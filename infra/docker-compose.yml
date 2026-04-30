@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: tour-ops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tour_ops_dev
+      POSTGRES_USER: tour_ops
+      POSTGRES_PASSWORD: tour_ops
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: tour-ops-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
