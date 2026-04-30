@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { OutboxProcessor } from "../../src/modules/outbox/outbox.processor";
 import { OutboxMetricsService } from "../../src/modules/outbox/outbox-metrics.service";
+import { SchedulerLockService } from "../../src/jobs/scheduler-lock.service";
+import { SchedulerRuntimeMetricsService } from "../../src/jobs/scheduler-runtime-metrics.service";
 import {
   OutboxEventEntity,
   OutboxEventStatus
@@ -16,6 +18,7 @@ function buildPendingRow(id: string): OutboxEventEntity {
   row.payload = {};
   row.status = OutboxEventStatus.PENDING;
   row.retryCount = 0;
+  row.nextRetryAt = null;
   row.createdAt = new Date();
   row.processedAt = null;
   return row;
@@ -27,6 +30,9 @@ test("processor marks row DELIVERED after successful publish", async () => {
 
   const qb = {
     where() {
+      return this;
+    },
+    andWhere() {
       return this;
     },
     orderBy() {
@@ -92,7 +98,19 @@ test("processor marks row DELIVERED after successful publish", async () => {
     dataSource as never,
     auditService as never,
     configService as never,
-    metrics
+    metrics,
+    {
+      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
+        await onLocked();
+        return { acquired: true };
+      }
+    } as SchedulerLockService,
+    {
+      noteStarted: () => undefined,
+      noteFinished: () => undefined,
+      noteFailed: () => undefined,
+      noteSkippedDueLock: () => undefined
+    } as unknown as SchedulerRuntimeMetricsService
   );
 
   await processor.processBatch();
@@ -109,6 +127,9 @@ test("processor increments retryCount when publish fails", async () => {
 
   const qb = {
     where() {
+      return this;
+    },
+    andWhere() {
       return this;
     },
     orderBy() {
@@ -173,7 +194,19 @@ test("processor increments retryCount when publish fails", async () => {
     dataSource as never,
     auditService as never,
     configService as never,
-    metrics
+    metrics,
+    {
+      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
+        await onLocked();
+        return { acquired: true };
+      }
+    } as SchedulerLockService,
+    {
+      noteStarted: () => undefined,
+      noteFinished: () => undefined,
+      noteFailed: () => undefined,
+      noteSkippedDueLock: () => undefined
+    } as unknown as SchedulerRuntimeMetricsService
   );
 
   await processor.processBatch();
@@ -183,12 +216,15 @@ test("processor increments retryCount when publish fails", async () => {
   assert.equal(saved[0]?.status, OutboxEventStatus.PENDING);
 });
 
-test("processor marks FAILED when retries exceed threshold", async () => {
+test("processor marks FAILED when retries reach threshold", async () => {
   const row = buildPendingRow("33333333-3333-4333-8333-333333333333");
-  row.retryCount = 6;
+  row.retryCount = 4;
 
   const qb = {
     where() {
+      return this;
+    },
+    andWhere() {
       return this;
     },
     orderBy() {
@@ -252,10 +288,23 @@ test("processor marks FAILED when retries exceed threshold", async () => {
     dataSource as never,
     auditService as never,
     configService as never,
-    metrics
+    metrics,
+    {
+      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
+        await onLocked();
+        return { acquired: true };
+      }
+    } as SchedulerLockService,
+    {
+      noteStarted: () => undefined,
+      noteFinished: () => undefined,
+      noteFailed: () => undefined,
+      noteSkippedDueLock: () => undefined
+    } as unknown as SchedulerRuntimeMetricsService
   );
 
   await processor.processBatch();
 
+  assert.equal(row.retryCount, 5);
   assert.equal(row.status, OutboxEventStatus.FAILED);
 });

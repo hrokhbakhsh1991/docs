@@ -3,6 +3,11 @@ import { IsEnum, IsOptional, IsString } from "class-validator";
 import { PaymentStatus } from "../entities/payment.entity";
 
 export class PaymentWebhookDto {
+  @ApiProperty({ required: false, example: "evt-20260430-0001" })
+  @IsOptional()
+  @IsString()
+  providerEventId?: string;
+
   @ApiProperty({ example: "mock-pay-001" })
   @IsString()
   providerPaymentId!: string;

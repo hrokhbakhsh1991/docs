@@ -7,11 +7,15 @@ import {
 } from "typeorm";
 
 @Entity("idempotency_keys")
-@Index("uq_idempotency_key", ["key"], { unique: true })
+@Index("uq_idempotency_tenant_key", ["tenantId", "key"], { unique: true })
+@Index("idx_idempotency_tenant_id", ["tenantId"])
 @Index("idx_idempotency_expires_at", ["expiresAt"])
 export class IdempotencyKeyEntity {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
+
+  @Column({ type: "uuid", name: "tenant_id" })
+  tenantId!: string;
 
   @Column({ type: "varchar", length: 255 })
   key!: string;

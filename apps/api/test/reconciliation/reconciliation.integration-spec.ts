@@ -38,7 +38,12 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
       timedOutPayments: 1,
       failedPayments: 2,
       autoRecoveredCapacityCount: 3,
-      lastTimeoutRunAt: "2026-04-30T12:02:00.000Z"
+      lastTimeoutRunAt: "2026-04-30T12:02:00.000Z",
+      webhookReceivedTotal: 10,
+      webhookProcessedTotal: 8,
+      webhookFailedTotal: 1,
+      webhookUnknownPaymentTotal: 1,
+      webhookDedupedTotal: 2
     })
   } as unknown as PaymentsService;
   const registrationsStub = {
@@ -50,6 +55,13 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
   } as unknown as RegistrationsService;
 
   const controller = new OpsController(
+    {
+      getEnableSchedulers: () => true,
+      getRuntimeRole: () => "worker"
+    } as never,
+    {
+      getSnapshot: () => ({})
+    } as never,
     metrics,
     reconciliationStub,
     paymentsStub,
@@ -73,13 +85,23 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
     payments: {
       timedOut: 1,
       failed: 2,
-      autoRecoveredCapacityCount: 3
+      autoRecoveredCapacityCount: 3,
+      webhookReceivedTotal: 10,
+      webhookProcessedTotal: 8,
+      webhookFailedTotal: 1,
+      webhookUnknownPaymentTotal: 1,
+      webhookDedupedTotal: 2
     },
     registrations: {
       registrationCreatedTotal: 10,
       registrationWaitlistedTotal: 3,
       paymentIntentsCreatedTotal: 4,
       registrationPaidTotal: 6
+    },
+    schedulers: {
+      enabled: true,
+      role: "worker",
+      jobs: {}
     }
   });
 });

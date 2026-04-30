@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, IsNull, Repository } from "typeorm";
+import { IdempotencyService } from "../idempotency/idempotency.service";
 import { OutboxService } from "../outbox/outbox.service";
 import {
   RegistrationEntity,
@@ -28,6 +29,22 @@ export type PaymentRuntimeMetrics = {
   failedPayments: number;
   autoRecoveredCapacityCount: number;
   lastTimeoutRunAt: string | null;
+  webhookReceivedTotal: number;
+  webhookProcessedTotal: number;
+  webhookFailedTotal: number;
+  webhookUnknownPaymentTotal: number;
+  webhookDedupedTotal: number;
+};
+
+export type WebhookProcessResult = {
+  processed: boolean;
+  deduplicated: boolean;
+  requestId: string;
+  providerPaymentId: string;
+  providerEventId: string | null;
+  provider: string | null;
+  tenantId: string | null;
+  status: PaymentStatus;
 };
 
 @Injectable()
@@ -37,11 +54,17 @@ export class PaymentsService {
   private autoRecoveredCapacityCount = 0;
   private lastTimeoutRunAt: string | null = null;
   private paymentIntentsCreatedTotal = 0;
+  private webhookReceivedTotal = 0;
+  private webhookProcessedTotal = 0;
+  private webhookFailedTotal = 0;
+  private webhookUnknownPaymentTotal = 0;
+  private webhookDedupedTotal = 0;
 
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly dataSource: DataSource,
+    private readonly idempotencyService: IdempotencyService,
     private readonly outboxService: OutboxService,
     @Inject(forwardRef(() => RegistrationsService))
     private readonly registrationsService: RegistrationsService
@@ -53,7 +76,12 @@ export class PaymentsService {
       timedOutPayments: this.timedOutPayments,
       failedPayments: this.failedPayments,
       autoRecoveredCapacityCount: this.autoRecoveredCapacityCount,
-      lastTimeoutRunAt: this.lastTimeoutRunAt
+      lastTimeoutRunAt: this.lastTimeoutRunAt,
+      webhookReceivedTotal: this.webhookReceivedTotal,
+      webhookProcessedTotal: this.webhookProcessedTotal,
+      webhookFailedTotal: this.webhookFailedTotal,
+      webhookUnknownPaymentTotal: this.webhookUnknownPaymentTotal,
+      webhookDedupedTotal: this.webhookDedupedTotal
     };
   }
 
@@ -178,16 +206,82 @@ export class PaymentsService {
     return this.toResponse(row);
   }
 
-  async processWebhook(payload: PaymentWebhookDto): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const payment = await manager.findOne(PaymentEntity, {
-        where: { providerPaymentId: payload.providerPaymentId }
+  async processWebhook(payload: PaymentWebhookDto): Promise<WebhookProcessResult> {
+    this.webhookReceivedTotal += 1;
+    const requestId = payload.providerEventId ?? `legacy-${payload.providerPaymentId}-${payload.status}`;
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const payment = await manager.findOne(PaymentEntity, {
+          where: { providerPaymentId: payload.providerPaymentId }
+        });
+        if (!payment) {
+          this.webhookUnknownPaymentTotal += 1;
+          return {
+            processed: false,
+            deduplicated: false,
+            requestId,
+            providerPaymentId: payload.providerPaymentId,
+            providerEventId: payload.providerEventId ?? null,
+            provider: null,
+            tenantId: null,
+            status: payload.status
+          };
+        }
+        const result = await this.idempotencyService.executeWithIdempotency(
+          {
+            tenantId: payment.tenantId,
+            key: requestId,
+            endpoint: "/internal/payments/webhook",
+            requestHash: this.idempotencyService.createRequestHash({
+              method: "POST",
+              path: "/internal/payments/webhook",
+              body: payload
+            }),
+            statusCode: 200
+          },
+          async () => {
+            await this.applyPaymentStatus(
+              manager,
+              payment,
+              payload.status,
+              "system",
+              payload.reason
+            );
+            return {
+              providerPaymentId: payload.providerPaymentId,
+              providerEventId: payload.providerEventId ?? null,
+              provider: payment.provider,
+              tenantId: payment.tenantId,
+              status: payload.status
+            };
+          }
+        );
+        this.webhookProcessedTotal += 1;
+        if (result.replayed) {
+          this.webhookDedupedTotal += 1;
+        }
+        const responseBody = result.responseBody as {
+          providerPaymentId?: string;
+          providerEventId?: string | null;
+          provider?: string;
+          tenantId?: string;
+          status?: PaymentStatus;
+        };
+        return {
+          processed: true,
+          deduplicated: result.replayed,
+          requestId,
+          providerPaymentId: responseBody.providerPaymentId ?? payload.providerPaymentId,
+          providerEventId: responseBody.providerEventId ?? payload.providerEventId ?? null,
+          provider: responseBody.provider ?? payment.provider,
+          tenantId: responseBody.tenantId ?? payment.tenantId,
+          status: responseBody.status ?? payload.status
+        };
       });
-      if (!payment) {
-        return;
-      }
-      await this.applyPaymentStatus(manager, payment, payload.status, "system", payload.reason);
-    });
+    } catch (error: unknown) {
+      this.webhookFailedTotal += 1;
+      throw error;
+    }
   }
 
   async refundPayment(id: string, reason?: string): Promise<PaymentResponseDto> {

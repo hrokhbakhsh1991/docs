@@ -15,6 +15,7 @@ import { OutboxModule } from "./modules/outbox/outbox.module";
 import { OpsModule } from "./modules/ops/ops.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ReconciliationModule } from "./modules/reconciliation/reconciliation.module";
+import { JobSchedulerModule } from "./jobs/job-scheduler.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ReconciliationModule } from "./modules/reconciliation/reconciliation.mo
     IdentityModule,
     ToursModule,
     OutboxModule,
+    JobSchedulerModule,
     RegistrationsModule,
     PaymentsModule,
     ReconciliationModule,

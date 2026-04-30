@@ -4,7 +4,7 @@ import { ConfigService } from "../config/config.service";
 
 const isTs = Boolean(process.env.TS_MIGRATIONS);
 const migrations = isTs
-  ? ["apps/api/src/database/migrations/*.ts"]
+  ? ["src/database/migrations/*.ts"]
   : ["dist/**/database/migrations/*.js"];
 
 export function createTypeOrmOptions(

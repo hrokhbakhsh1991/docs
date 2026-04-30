@@ -1,0 +1,321 @@
+import "reflect-metadata";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { after, before, beforeEach, test } from "node:test";
+import { INestApplication } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
+import { DataSource } from "typeorm";
+import request from "supertest";
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer
+} from "@testcontainers/postgresql";
+import { AppModule } from "../../src/app.module";
+import { requestContextStorage } from "../../src/common/request-context/request-context";
+import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import {
+  RegistrationEntity,
+  RegistrationStatus
+} from "../../src/modules/registrations/registration.entity";
+import { WaitlistItemEntity, WaitlistItemStatus } from "../../src/modules/registrations/waitlist-item.entity";
+import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
+
+const TENANT_ID = "11111111-1111-4111-8111-111111111111";
+const INTERNAL_API_KEY = "test-internal-key";
+
+let container: StartedPostgreSqlContainer;
+let app: INestApplication;
+let dataSource: DataSource;
+let registrationsService: RegistrationsService;
+let e2eUnavailableReason: string | null = null;
+
+function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
+  process.env.NODE_ENV = "test";
+  process.env.PORT = "3000";
+  process.env.LOG_LEVEL = "error";
+  process.env.DATABASE_HOST = db.getHost();
+  process.env.DATABASE_PORT = String(db.getPort());
+  process.env.DATABASE_USER = db.getUsername();
+  process.env.DATABASE_PASSWORD = db.getPassword();
+  process.env.DATABASE_NAME = db.getDatabase();
+  process.env.DATABASE_URL = db.getConnectionUri();
+  process.env.JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY ?? "test-private-key";
+  process.env.JWT_PUBLIC_KEY = process.env.JWT_PUBLIC_KEY ?? "test-public-key";
+  process.env.JWT_ISSUER = process.env.JWT_ISSUER ?? "test-issuer";
+  process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE ?? "test-audience";
+  process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "test-token";
+  process.env.REDIS_HOST = process.env.REDIS_HOST ?? "localhost";
+  process.env.REDIS_PORT = process.env.REDIS_PORT ?? "6379";
+  process.env.OUTBOX_POLL_INTERVAL_MS = "5000";
+  process.env.OUTBOX_MAX_RETRY = "5";
+  process.env.OUTBOX_BATCH_SIZE = "50";
+  process.env.OUTBOX_PROCESSOR_ENABLED = "false";
+  process.env.RECONCILIATION_ENABLED = "false";
+  process.env.RECONCILIATION_INTERVAL_MS = "600000";
+  process.env.PAYMENTS_TIMEOUT_ENABLED = "false";
+  process.env.PAYMENTS_TIMEOUT_INTERVAL_MS = "60000";
+  process.env.INTERNAL_API_KEY = INTERNAL_API_KEY;
+}
+
+async function truncateAllTables(ds: DataSource): Promise<void> {
+  const rows = (await ds.query(`
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename != 'typeorm_migrations'
+  `)) as Array<{ tablename: string }>;
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  const tableList = rows.map((row) => `"${row.tablename}"`).join(", ");
+  await ds.query(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
+}
+
+async function createTour(totalCapacity: number): Promise<TourEntity> {
+  const repo = dataSource.getRepository(TourEntity);
+  return repo.save(
+    repo.create({
+      tenantId: TENANT_ID,
+      title: `tour-${randomUUID()}`,
+      totalCapacity,
+      acceptedCount: 0,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      costContext: { requiresPayment: true }
+    })
+  );
+}
+
+async function publicRegister(
+  tourId: string,
+  index: number
+): Promise<request.Response> {
+  return request(app.getHttpServer())
+    .post(`/api/v2/tours/${tourId}/register`)
+    .send({
+      tenantId: TENANT_ID,
+      tourId,
+      participantFullName: `User ${index}`,
+      participantContactPhone: `+9891200000${index}`,
+      transportMode: "group_vehicle",
+      entryMode: "web"
+    });
+}
+
+before(async () => {
+  try {
+    container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  } catch (error: unknown) {
+    e2eUnavailableReason = `testcontainers unavailable: ${String(error)}`;
+    return;
+  }
+  applyEnvForContainer(container);
+
+  const moduleRef = await Test.createTestingModule({
+    imports: [AppModule]
+  }).compile();
+  app = moduleRef.createNestApplication();
+  await app.init();
+  dataSource = app.get(DataSource);
+  await dataSource.destroy();
+  dataSource.setOptions({
+    migrations: ["src/database/migrations/*.ts"],
+    migrationsTableName: "typeorm_migrations"
+  });
+  await dataSource.initialize();
+  await dataSource.dropDatabase();
+  await dataSource.destroy();
+  await dataSource.initialize();
+  await dataSource.runMigrations();
+  registrationsService = app.get(RegistrationsService);
+});
+
+beforeEach(async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  await truncateAllTables(dataSource);
+});
+
+after(async () => {
+  if (app) {
+    await app.close();
+  }
+  if (container) {
+    await container.stop();
+  }
+});
+
+test("paid registration success updates status to AcceptedPaid", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(2);
+
+  const registerResponse = await publicRegister(tour.id, 1);
+  assert.equal(registerResponse.status, 201);
+  const registrationId = registerResponse.body.registration.id as string;
+  const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
+
+  const webhookResponse = await request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("x-internal-api-key", INTERNAL_API_KEY)
+    .send({
+      providerPaymentId,
+      status: "Paid"
+    });
+  assert.equal(webhookResponse.status, 200);
+
+  const registration = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
+    id: registrationId
+  });
+  const refreshedTour = await dataSource.getRepository(TourEntity).findOneByOrFail({ id: tour.id });
+
+  assert.equal(registration.status, RegistrationStatus.ACCEPTED_PAID);
+  assert.equal(refreshedTour.acceptedCount, 1);
+});
+
+test("capacity full sends next user to waitlist", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(1);
+
+  const first = await publicRegister(tour.id, 1);
+  assert.equal(first.status, 201);
+  assert.equal(first.body.registration !== null, true);
+
+  const second = await publicRegister(tour.id, 2);
+  assert.equal(second.status, 201);
+  assert.equal(second.body.registration, null);
+  assert.equal(typeof second.body.waitlistItemId, "string");
+});
+
+test("cancelling accepted registration promotes waitlist user", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(1);
+
+  const first = await publicRegister(tour.id, 1);
+  const second = await publicRegister(tour.id, 2);
+  const firstRegistrationId = first.body.registration.id as string;
+  const waitlistItemId = second.body.waitlistItemId as string;
+
+  await requestContextStorage.run(
+    {
+      requestId: randomUUID(),
+      tenantId: TENANT_ID,
+      userId: "system-user",
+      role: "LEADER"
+    },
+    async () => {
+      await registrationsService.updateRegistrationStatus(firstRegistrationId, {
+        targetStatus: RegistrationStatus.CANCELLED
+      });
+    }
+  );
+
+  const waitlistRow = await dataSource.getRepository(WaitlistItemEntity).findOneByOrFail({
+    id: waitlistItemId
+  });
+  assert.equal(waitlistRow.status, WaitlistItemStatus.CONVERTED);
+
+  const promoted = await dataSource.getRepository(RegistrationEntity).findOneBy({
+    id: waitlistRow.promotedRegistrationId
+  });
+  assert.equal(promoted?.status, RegistrationStatus.ACCEPTED);
+});
+
+test("payment failure restores capacity and promotes waitlist user", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(1);
+
+  const first = await publicRegister(tour.id, 1);
+  const second = await publicRegister(tour.id, 2);
+  const firstRegistrationId = first.body.registration.id as string;
+  const providerPaymentId = first.body.paymentIntent.providerPaymentId as string;
+  const waitlistItemId = second.body.waitlistItemId as string;
+
+  const webhookResponse = await request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("x-internal-api-key", INTERNAL_API_KEY)
+    .send({
+      providerPaymentId,
+      status: "Failed",
+      reason: "gateway_failure"
+    });
+  assert.equal(webhookResponse.status, 200);
+
+  const firstRegistration = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
+    id: firstRegistrationId
+  });
+  assert.equal(firstRegistration.status, RegistrationStatus.REJECTED);
+
+  const waitlistRow = await dataSource.getRepository(WaitlistItemEntity).findOneByOrFail({
+    id: waitlistItemId
+  });
+  assert.equal(waitlistRow.status, WaitlistItemStatus.CONVERTED);
+
+  const refreshedTour = await dataSource.getRepository(TourEntity).findOneByOrFail({ id: tour.id });
+  assert.equal(refreshedTour.acceptedCount, 1);
+});
+
+test("webhook returns 200 even when transition is invalid", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(1);
+  const registerResponse = await publicRegister(tour.id, 1);
+  assert.equal(registerResponse.status, 201);
+  const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
+
+  const webhookResponse = await request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("x-internal-api-key", INTERNAL_API_KEY)
+    .send({
+      providerPaymentId,
+      providerEventId: "evt-invalid-transition-1",
+      status: "Cancelled"
+    });
+  assert.equal(webhookResponse.status, 200);
+});
+
+test("duplicate webhook event is deduplicated and remains 200", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(1);
+  const registerResponse = await publicRegister(tour.id, 1);
+  assert.equal(registerResponse.status, 201);
+  const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
+
+  const first = await request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("x-internal-api-key", INTERNAL_API_KEY)
+    .send({
+      providerPaymentId,
+      providerEventId: "evt-dedup-1",
+      status: "Paid"
+    });
+  assert.equal(first.status, 200);
+
+  const second = await request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("x-internal-api-key", INTERNAL_API_KEY)
+    .send({
+      providerPaymentId,
+      providerEventId: "evt-dedup-1",
+      status: "Paid"
+    });
+  assert.equal(second.status, 200);
+
+  const ops = await request(app.getHttpServer())
+    .get("/internal/ops/health")
+    .set("x-internal-api-key", INTERNAL_API_KEY);
+  assert.equal(ops.status, 200);
+  assert.equal(ops.body.payments.webhookDedupedTotal >= 1, true);
+});

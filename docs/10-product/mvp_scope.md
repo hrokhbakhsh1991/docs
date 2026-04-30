@@ -43,9 +43,13 @@ It prioritizes clarity, speed, and maintainability over full automation.
 
 ## 2.5 Payment Tracking (Operational)
 
-- Manual payment state recording (`NotPaid`, `Partial`, `Paid`)
-- Optional paid amount tracking
-- Leader-facing payment visibility for reconciliation
+- Payment intent lifecycle tracking (`Pending`, `Paid`, `Failed`, `Refunded`, `Cancelled`)
+- Internal webhook ingestion for provider status updates (idempotent response surface)
+- Automatic timeout handling for stale `Pending` payments
+- Registration-coupled payment outcomes:
+  - `Paid` -> registration `AcceptedPaid`
+  - `Failed`/`Refunded` -> registration capacity is recovered and waitlist promotion can trigger
+- Leader-facing and admin-facing payment visibility for reconciliation
 
 ## 2.6 Telegram Link Governance
 
@@ -58,7 +62,7 @@ It prioritizes clarity, speed, and maintainability over full automation.
 
 - Global cross-leader marketplace browsing
 - Recommendation/ranking discovery systems
-- Full payment gateway integration and auto-settlement
+- Full external settlement orchestration and PSP-specific business workflows beyond status ingestion
 - Advanced automated reminders and notification orchestration
 - Complex financial accounting and wallet systems
 

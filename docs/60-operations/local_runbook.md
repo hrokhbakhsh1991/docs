@@ -132,3 +132,30 @@ Warning: hard reset destroys local data. Use only in local environment.
 
 - Any divergence between runbook and runtime behavior must be logged as `DOC-SYNC-*`.
 - Do not silently adjust behavior outside approved contracts.
+
+## 11. Scheduler Deployment Contract (API vs Worker)
+
+For in-process jobs (`OutboxProcessor`, `PaymentsProcessor`, `ReconciliationProcessor`, `IdempotencyCleanupJob`), runtime role separation is mandatory in shared environments.
+
+Required environment flags:
+
+- `ENABLE_SCHEDULERS=true|false`
+- `APP_RUNTIME_ROLE=api|worker|all`
+- `JOB_SCHEDULER_JITTER_MS=<non-negative integer>`
+
+Recommended deployment model:
+
+1. API deployment (horizontal):
+   - `APP_RUNTIME_ROLE=api`
+   - `ENABLE_SCHEDULERS=true` (safe because role blocks scheduler startup)
+   - replicas `> 1` allowed
+2. Worker deployment (singleton for MVP):
+   - `APP_RUNTIME_ROLE=worker`
+   - `ENABLE_SCHEDULERS=true`
+   - replicas `= 1` for deterministic scheduling
+
+Behavior notes:
+
+- Jobs use PostgreSQL advisory locks; competing workers that fail to acquire lock emit `job_skipped_due_lock`.
+- Startup jitter (`JOB_SCHEDULER_JITTER_MS`) reduces synchronized bursts after restart.
+- Runtime visibility is exposed from `GET /internal/ops/health` under `schedulers`.

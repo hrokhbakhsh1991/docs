@@ -68,6 +68,29 @@ export class ConfigService {
     };
   }
 
+  getEnableSchedulers(): boolean {
+    if (this.env.NODE_ENV === "test") {
+      return false;
+    }
+    return this.env.ENABLE_SCHEDULERS === "true";
+  }
+
+  getRuntimeRole(): "api" | "worker" | "all" {
+    return this.env.APP_RUNTIME_ROLE;
+  }
+
+  getSchedulerJitterMs(): number {
+    return this.env.JOB_SCHEDULER_JITTER_MS;
+  }
+
+  shouldRunSchedulers(): boolean {
+    if (!this.getEnableSchedulers()) {
+      return false;
+    }
+    const role = this.getRuntimeRole();
+    return role === "worker" || role === "all";
+  }
+
   getOutboxPollIntervalMs(): number {
     return this.env.OUTBOX_POLL_INTERVAL_MS;
   }

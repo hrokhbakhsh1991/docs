@@ -286,7 +286,6 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
 
   const service = new RegistrationsService(
     {} as never,
-    {} as never,
     dataSource as never,
     requestContextService as never,
     outboxService as never

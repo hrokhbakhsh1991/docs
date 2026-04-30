@@ -5,17 +5,30 @@ import {
   Post,
   UnauthorizedException,
   UseGuards,
+  UseInterceptors,
   ValidationPipe
 } from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse
+} from "@nestjs/swagger";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { AuthService } from "./auth.service";
 import { LinkTelegramDto } from "./dto/link-telegram.dto";
+import { JwtAuthGuard } from "./jwt-auth.guard";
 import { Roles } from "./roles.decorator";
 import { Role } from "./roles.enum";
 import { RolesGuard } from "./roles.guard";
 import { TelegramSessionDto } from "./dto/telegram-session.dto";
 import { WebSessionDto } from "./dto/web-session.dto";
+import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { Idempotent } from "../idempotency/idempotent.decorator";
 
+@ApiTags("Auth")
 @Controller("api/v2/auth")
 export class AuthController {
   constructor(
@@ -25,6 +38,12 @@ export class AuthController {
 
   @Post("web/session")
   @HttpCode(200)
+  @ApiOperation({ summary: "Create web session token" })
+  @ApiBody({ type: WebSessionDto })
+  @ApiOkResponse({
+    description: "Authenticated web session created"
+  })
+  @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async webSession(
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     dto: WebSessionDto
@@ -39,6 +58,12 @@ export class AuthController {
 
   @Post("telegram/session")
   @HttpCode(200)
+  @ApiOperation({ summary: "Create Telegram session token" })
+  @ApiBody({ type: TelegramSessionDto })
+  @ApiOkResponse({
+    description: "Authenticated Telegram session created"
+  })
+  @ApiUnauthorizedResponse({ description: "Invalid Telegram init payload" })
   async telegramSession(
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     dto: TelegramSessionDto
@@ -53,8 +78,21 @@ export class AuthController {
 
   @Post("link-telegram")
   @HttpCode(200)
-  @UseGuards(RolesGuard)
+  // Fail-closed: link operation requires explicit JWT + role authorization.
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Link Telegram identity to authenticated user" })
+  @ApiBody({ type: LinkTelegramDto })
+  @ApiOkResponse({ description: "Telegram account linked successfully" })
+  @ApiUnauthorizedResponse({ description: "Authentication context missing" })
   @Roles(Role.MEMBER, Role.OWNER)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/auth/link-telegram",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context"
+  })
   async linkTelegram(
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     dto: LinkTelegramDto

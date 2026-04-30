@@ -11,11 +11,7 @@ import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { OutboxService } from "../outbox/outbox.service";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
-import {
-  CreateRegistrationDto,
-  RegistrationEntryModeDto,
-  RegistrationTransportModeDto
-} from "./dto/create-registration.dto";
+import { CreateRegistrationDto } from "./dto/create-registration.dto";
 import { CreateWaitlistItemDto } from "./dto/create-waitlist-item.dto";
 import {
   RegistrationResponseDto,
@@ -40,8 +36,6 @@ export class RegistrationsService {
   constructor(
     @InjectRepository(RegistrationEntity)
     private readonly registrationRepository: Repository<RegistrationEntity>,
-    @InjectRepository(WaitlistItemEntity)
-    private readonly waitlistItemRepository: Repository<WaitlistItemEntity>,
     private readonly dataSource: DataSource,
     private readonly requestContextService: RequestContextService,
     private readonly outboxService: OutboxService
@@ -240,21 +234,66 @@ export class RegistrationsService {
     registrationId: string,
     payload: UpdateRegistrationPaymentDto
   ): Promise<RegistrationResponseDto> {
-    void this.registrationRepository;
-    return {
-      ...this.buildRegistrationStub({
-        tenantId: "11111111-1111-4111-8111-111111111111",
-        tourId: "22222222-2222-4222-8222-222222222222",
-        participantFullName: "Ali Ahmadi",
-        participantContactPhone: "+989121234567",
-        transportMode: RegistrationTransportModeDto.GROUP_VEHICLE,
-        entryMode: RegistrationEntryModeDto.WEB
-      }),
-      id: registrationId,
-      paymentStatus: payload.paymentStatus,
-      paidAmount:
-        payload.paidAmount !== undefined ? payload.paidAmount.toString() : undefined
-    };
+    const trustedTenantId = this.requestContextService.getTenantId();
+    if (!trustedTenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const registration = await manager.findOne(RegistrationEntity, {
+        where: { id: registrationId }
+      });
+      if (!registration) {
+        throw new NotFoundException({
+          error: {
+            code: "RESOURCE_NOT_FOUND",
+            message: "Resource not found in tenant scope"
+          }
+        });
+      }
+      if (registration.tenantId !== trustedTenantId) {
+        throw new ForbiddenException({
+          error: {
+            code: "TENANT_CONTEXT_INVALID",
+            message: "Trusted tenant context is invalid"
+          }
+        });
+      }
+
+      this.validatePaymentTransition(
+        registration.status,
+        registration.paymentStatus,
+        payload.paymentStatus
+      );
+      this.validatePaymentAmountConsistency(payload.paymentStatus, payload.paidAmount);
+
+      registration.paymentStatus = payload.paymentStatus;
+      registration.paidAmount =
+        payload.paidAmount !== undefined ? payload.paidAmount.toString() : undefined;
+      const saved = await manager.save(registration);
+      const actorId = this.requestContextService.getUserId() ?? "unknown";
+      await this.outboxService.addEvent(manager, {
+        aggregateType: "Registration",
+        aggregateId: saved.id,
+        eventType: "registration.payment_updated",
+        payload: {
+          entityType: "registration",
+          entityId: saved.id,
+          actorId,
+          metadata: {
+            paymentStatus: saved.paymentStatus,
+            paidAmount: saved.paidAmount ?? null
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+      return this.toRegistrationResponse(saved);
+    });
   }
 
   async updatePaymentStatus(
@@ -338,40 +377,170 @@ export class RegistrationsService {
     waitlistItemId: string,
     payload: ConvertWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    void this.waitlistItemRepository;
-    return {
-      ...this.buildWaitlistStub({
-        tenantId: "11111111-1111-4111-8111-111111111111",
-        tourId: "22222222-2222-4222-8222-222222222222",
-        participantFullName: "Sara Mohammadi",
-        participantContactPhone: "+989351112233",
-        transportMode: RegistrationTransportModeDto.OTHER,
-        entryMode: RegistrationEntryModeDto.TELEGRAM
-      }),
-      id: waitlistItemId,
-      status: WaitlistItemStatus.CONVERTED,
-      conversionReason: payload.conversionReason
-    };
+    const trustedTenantId = this.requestContextService.getTenantId();
+    if (!trustedTenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
+      if (waitlistItem.tenantId !== trustedTenantId) {
+        throw new ForbiddenException({
+          error: {
+            code: "TENANT_CONTEXT_INVALID",
+            message: "Trusted tenant context is invalid"
+          }
+        });
+      }
+      if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
+        throw new ConflictException({
+          error: {
+            code: "STATE_TRANSITION_INVALID",
+            message: "Only waiting waitlist items can be converted"
+          }
+        });
+      }
+      const head = await this.getOldestWaitingWaitlistItemForUpdate(
+        manager,
+        waitlistItem.tenantId,
+        waitlistItem.tourId
+      );
+      if (!head || head.id !== waitlistItem.id) {
+        throw new ConflictException({
+          error: {
+            code: "STATE_TRANSITION_INVALID",
+            message: "Only the earliest waiting item can be converted"
+          }
+        });
+      }
+      await this.ensureNoActiveRegistrationDuplicate(manager, {
+        tenantId: waitlistItem.tenantId,
+        tourId: waitlistItem.tourId,
+        participantContactPhone: waitlistItem.participantContactPhone
+      });
+      const tour = await this.requireTourInTenantForUpdate(
+        manager,
+        waitlistItem.tourId,
+        waitlistItem.tenantId
+      );
+      if (tour.acceptedCount >= tour.totalCapacity) {
+        throw new ConflictException({
+          error: {
+            code: "CAPACITY_FULL",
+            message: "Tour capacity reached. Cannot convert waitlist item."
+          }
+        });
+      }
+
+      const convertedRegistration = manager.create(RegistrationEntity, {
+        tenantId: waitlistItem.tenantId,
+        tourId: waitlistItem.tourId,
+        participantFullName: waitlistItem.participantFullName,
+        participantContactPhone: waitlistItem.participantContactPhone,
+        transportMode: waitlistItem.transportMode,
+        entryMode: waitlistItem.entryMode,
+        status: RegistrationStatus.ACCEPTED,
+        paymentStatus: RegistrationPaymentStatus.NOT_PAID
+      });
+      const savedRegistration = await manager.save(convertedRegistration);
+      waitlistItem.status = WaitlistItemStatus.CONVERTED;
+      waitlistItem.promotedRegistrationId = savedRegistration.id;
+      waitlistItem.conversionReason = payload.conversionReason;
+      tour.acceptedCount += 1;
+      await manager.save(tour);
+      const savedWaitlist = await manager.save(waitlistItem);
+
+      const actorId = this.requestContextService.getUserId() ?? "unknown";
+      await this.outboxService.addEvent(manager, {
+        aggregateType: "WaitlistItem",
+        aggregateId: savedWaitlist.id,
+        eventType: "waitlist.converted",
+        payload: {
+          entityType: "waitlist_item",
+          entityId: savedWaitlist.id,
+          actorId,
+          promotedRegistrationId: savedRegistration.id,
+          reason: payload.conversionReason ?? null,
+          timestamp: new Date().toISOString()
+        }
+      });
+      await this.outboxService.addEvent(manager, {
+        aggregateType: "Registration",
+        aggregateId: savedRegistration.id,
+        eventType: "registration.accepted",
+        payload: {
+          entityType: "registration",
+          entityId: savedRegistration.id,
+          actorId,
+          metadata: {
+            previousStatus: null,
+            newStatus: RegistrationStatus.ACCEPTED,
+            source: "manual_waitlist_conversion",
+            waitlistItemId: savedWaitlist.id
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return this.toWaitlistResponse(savedWaitlist);
+    });
   }
 
   async cancelWaitlistItem(
     waitlistItemId: string,
     payload: CancelWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    void this.waitlistItemRepository;
-    return {
-      ...this.buildWaitlistStub({
-        tenantId: "11111111-1111-4111-8111-111111111111",
-        tourId: "22222222-2222-4222-8222-222222222222",
-        participantFullName: "Sara Mohammadi",
-        participantContactPhone: "+989351112233",
-        transportMode: RegistrationTransportModeDto.OTHER,
-        entryMode: RegistrationEntryModeDto.TELEGRAM
-      }),
-      id: waitlistItemId,
-      status: WaitlistItemStatus.CANCELLED,
-      cancelReason: payload.cancelReason
-    };
+    const trustedTenantId = this.requestContextService.getTenantId();
+    if (!trustedTenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
+      if (waitlistItem.tenantId !== trustedTenantId) {
+        throw new ForbiddenException({
+          error: {
+            code: "TENANT_CONTEXT_INVALID",
+            message: "Trusted tenant context is invalid"
+          }
+        });
+      }
+      if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
+        throw new ConflictException({
+          error: {
+            code: "STATE_TRANSITION_INVALID",
+            message: "Only waiting waitlist items can be cancelled"
+          }
+        });
+      }
+      waitlistItem.status = WaitlistItemStatus.CANCELLED;
+      waitlistItem.cancelReason = payload.cancelReason;
+      const saved = await manager.save(waitlistItem);
+      const actorId = this.requestContextService.getUserId() ?? "unknown";
+      await this.outboxService.addEvent(manager, {
+        aggregateType: "WaitlistItem",
+        aggregateId: saved.id,
+        eventType: "waitlist.cancelled",
+        payload: {
+          entityType: "waitlist_item",
+          entityId: saved.id,
+          actorId,
+          reason: saved.cancelReason ?? null,
+          timestamp: new Date().toISOString()
+        }
+      });
+      return this.toWaitlistResponse(saved);
+    });
   }
 
   private async requireTourInTenant(
@@ -502,6 +671,44 @@ export class RegistrationsService {
         message: "Conversion blocked due to active registration/waitlist conflict"
       }
     });
+  }
+
+  private async requireWaitlistItemForUpdate(
+    manager: EntityManager,
+    waitlistItemId: string
+  ): Promise<WaitlistItemEntity> {
+    const waitlistItem = await manager
+      .getRepository(WaitlistItemEntity)
+      .createQueryBuilder("w")
+      .setLock("pessimistic_write")
+      .where("w.id = :waitlistItemId", { waitlistItemId })
+      .getOne();
+    if (!waitlistItem) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
+    return waitlistItem;
+  }
+
+  private async getOldestWaitingWaitlistItemForUpdate(
+    manager: EntityManager,
+    tenantId: string,
+    tourId: string
+  ): Promise<WaitlistItemEntity | null> {
+    return manager
+      .getRepository(WaitlistItemEntity)
+      .createQueryBuilder("w")
+      .where("w.tenant_id = :tenantId", { tenantId })
+      .andWhere("w.tour_id = :tourId", { tourId })
+      .andWhere("w.status = :status", { status: WaitlistItemStatus.WAITING })
+      .orderBy("w.created_at", "ASC")
+      .setLock("pessimistic_write")
+      .setOnLocked("skip_locked")
+      .getOne();
   }
 
   private toRegistrationResponse(
@@ -654,6 +861,37 @@ export class RegistrationsService {
         message: "Requested payment update violates payment status lifecycle rules"
       }
     });
+  }
+
+  private validatePaymentAmountConsistency(
+    nextPaymentStatus: RegistrationPaymentStatus,
+    paidAmount?: number
+  ): void {
+    if (
+      nextPaymentStatus === RegistrationPaymentStatus.NOT_PAID &&
+      paidAmount !== undefined &&
+      paidAmount > 0
+    ) {
+      throw new ConflictException({
+        error: {
+          code: "PAYMENT_STATUS_TRANSITION_INVALID",
+          message: "NotPaid status cannot have a positive paidAmount"
+        }
+      });
+    }
+
+    if (
+      nextPaymentStatus === RegistrationPaymentStatus.PARTIAL &&
+      paidAmount !== undefined &&
+      paidAmount <= 0
+    ) {
+      throw new ConflictException({
+        error: {
+          code: "PAYMENT_STATUS_TRANSITION_INVALID",
+          message: "Partial status requires a positive paidAmount when provided"
+        }
+      });
+    }
   }
 
   private async ensureCapacityForAcceptance(
@@ -1051,65 +1289,4 @@ export class RegistrationsService {
     );
   }
 
-  private buildRegistrationStub(
-    payload: Pick<
-      CreateRegistrationDto,
-      | "tenantId"
-      | "tourId"
-      | "participantFullName"
-      | "participantContactPhone"
-      | "transportMode"
-      | "entryMode"
-    > &
-      Partial<CreateRegistrationDto>
-  ): RegistrationResponseDto {
-    const now = new Date().toISOString();
-    return {
-      id: "33333333-3333-4333-8333-333333333333",
-      tenantId: payload.tenantId,
-      tourId: payload.tourId,
-      participantFullName: payload.participantFullName,
-      participantContactPhone: payload.participantContactPhone,
-      transportMode: payload.transportMode,
-      entryMode: payload.entryMode,
-      telegramUserId: payload.telegramUserId,
-      telegramUsername: payload.telegramUsername,
-      vehicleSeatCapacity: payload.vehicleSeatCapacity,
-      participantNote: payload.participantNote,
-      status: RegistrationStatus.PENDING,
-      paymentStatus: RegistrationPaymentStatus.NOT_PAID,
-      paidAmount: undefined,
-      payment: undefined,
-      createdAt: now,
-      updatedAt: now
-    };
-  }
-
-  private buildWaitlistStub(
-    payload: Pick<
-      CreateWaitlistItemDto,
-      | "tenantId"
-      | "tourId"
-      | "participantFullName"
-      | "participantContactPhone"
-      | "transportMode"
-      | "entryMode"
-    >
-  ): WaitlistItemResponseDto {
-    const now = new Date().toISOString();
-    return {
-      id: "44444444-4444-4444-8444-444444444444",
-      tenantId: payload.tenantId,
-      tourId: payload.tourId,
-      participantFullName: payload.participantFullName,
-      participantContactPhone: payload.participantContactPhone,
-      transportMode: payload.transportMode,
-      entryMode: payload.entryMode,
-      status: WaitlistItemStatus.WAITING,
-      conversionReason: undefined,
-      cancelReason: undefined,
-      createdAt: now,
-      updatedAt: now
-    };
-  }
 }

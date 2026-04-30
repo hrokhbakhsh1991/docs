@@ -29,6 +29,7 @@ export class OutboxService {
       payload: event.payload,
       status: OutboxEventStatus.PENDING,
       retryCount: 0,
+      nextRetryAt: null,
       processedAt: null
     });
     await manager.save(row);

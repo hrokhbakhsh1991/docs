@@ -24,6 +24,11 @@ export const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1),
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: z.preprocess(toNumber, z.number().int().positive()),
+  ENABLE_SCHEDULERS: z.enum(["true", "false"]).default("true"),
+  APP_RUNTIME_ROLE: z.enum(["api", "worker", "all"]).default("all"),
+  JOB_SCHEDULER_JITTER_MS: z.preprocess(toNumber, z.number().int().nonnegative()).default(
+    500
+  ),
   OUTBOX_POLL_INTERVAL_MS: z.preprocess(
     toNumber,
     z.number().int().positive()

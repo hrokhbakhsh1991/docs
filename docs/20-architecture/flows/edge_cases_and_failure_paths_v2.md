@@ -23,7 +23,8 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 
 - No edge path may violate canonical statuses:
   - Registration: `Pending|Accepted|Rejected|Cancelled|NoShow`
-  - Payment: `NotPaid|Partial|Paid`
+  - Payment Aggregate: `Pending|Paid|Failed|Refunded|Cancelled`
+  - Registration Payment Field: `NotPaid|Partial|Paid`
   - Waitlist: `Waiting|Converted|Cancelled`
 - Fail-closed MUST apply for tenant/authz uncertainty.
 - Critical transitions MUST emit required audit events per `docs/20-architecture/contracts/audit_event_schema.md`.
@@ -40,10 +41,12 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 | `EC-WAIT-002` | conversion race creates active waitlist+registration conflict | uniqueness/conflict guard | `SR-FR-005`, `SR-FR-001` | `POST /api/v2/waitlist-items/{waitlistItemId}/convert` | `WAITLIST_CONFLICT_ACTIVE_RECORD` | rejected conversion MUST NOT emit `waitlist_status_changed` | Step-07 §5 `SR-FR-005` conflict-safe conversion |
 | `EC-WAIT-003` | cancel request arrives after successful convert | state freshness guard | `SR-FR-005`, `SR-NFR-002` | `PATCH /api/v2/waitlist-items/{waitlistItemId}/cancel` | `STATE_TRANSITION_INVALID` (`Converted` cannot move to `Cancelled`) | no new waitlist state-change event | Step-07 §4.2 waitlist conversion workflow |
 | `EC-WAIT-004` | simultaneous convert and cancel on same `Waiting` item | atomic state transition lock | `SR-FR-005`, `SR-NFR-002` | `POST /api/v2/waitlist-items/{waitlistItemId}/convert`, `PATCH /api/v2/waitlist-items/{waitlistItemId}/cancel` | one command succeeds, other receives `CONCURRENCY_CONFLICT` or `STATE_TRANSITION_INVALID` | exactly one `waitlist_status_changed` for winning path | Step-07 §4.2 transactional consistency |
-| `EC-PAY-001` | payment status update uses non-canonical enum | enum guard | `SR-FR-004` | `PATCH /api/v2/registrations/{registrationId}/payment` | `VALIDATION_ENUM_INVALID` | no `payment_status_changed` event | Step-07 §5 `SR-FR-004` enum validation |
+| `EC-PAY-001` | registration payment field update uses non-canonical enum | enum guard | `SR-FR-004` | `PATCH /api/v2/registrations/{registrationId}/payment` | `VALIDATION_ENUM_INVALID` | no `payment_status_changed` event | Step-07 §5 `SR-FR-004` enum validation |
 | `EC-PAY-002` | amount/status algebra mismatch (e.g., `Paid` with invalid amount relation) | payment algebra guard | `SR-FR-004` | `PATCH /api/v2/registrations/{registrationId}/payment` | `PAYMENT_STATUS_TRANSITION_INVALID` | no state-change event on rejected update | Step-07 §5 `SR-FR-004` state persistence |
 | `EC-PAY-003` | concurrent payment updates on same registration | concurrency guard | `SR-FR-004`, `SR-NFR-002` | `PATCH /api/v2/registrations/{registrationId}/payment` | one update wins, loser gets `CONCURRENCY_CONFLICT` | exactly one winning `payment_status_changed` per committed update | Step-07 §4.2 transactional consistency |
 | `EC-PAY-004` | export snapshot overlaps with in-flight updates | snapshot consistency guard | `SR-FR-007`, `SR-NFR-004` | `GET /api/v2/reconciliation/export.csv` | `EXPORT_SNAPSHOT_INCONSISTENT` or stable snapshot output | NonCritical-SHOULD `reconciliation_export_requested`; no critical audit dependency | Step-07 §6.3 export contract tests |
+| `EC-PAY-005` | provider webhook repeats same terminal status | idempotent webhook handling | `SR-FR-004`, `SR-NFR-002` | `POST /internal/payments/webhook` | endpoint returns `200`; duplicate state change is ignored safely | no duplicate critical transition side effects | Step-07 §4.2 idempotent/retry behavior |
+| `EC-PAY-006` | pending payment exceeds timeout threshold | timeout processor guard | `SR-FR-004`, `SR-FR-005` | scheduled timeout processor | payment transitions to `Failed`; registration capacity recovery path runs | emits canonical payment + registration transition events once | Step-07 §4.2 transactional consistency |
 | `EC-ID-001` | Telegram-required path called without valid Telegram context | mode-aware auth guard | `SR-FR-009`, `SR-FR-008` | `POST /api/v2/auth/telegram/session`, `POST /api/v2/registrations` (`entry_mode=telegram`) | `AUTH_TELEGRAM_CONTEXT_REQUIRED` | no critical transition event | Step-07 §5 `SR-FR-009` |
 | `EC-ID-002` | relink replay with same data | idempotency guard | `SR-FR-010` | `POST /api/v2/auth/link-telegram` | success replay (same result) | NonCritical-SHOULD `identity_linked` emitted once logically | Step-07 §4.3 web-mode + connect path |
 | `EC-ID-003` | idempotency key replay with different payload | idempotency mismatch guard | `SR-FR-010` | `POST /api/v2/auth/link-telegram` | `IDEMPOTENCY_KEY_REPLAY_MISMATCH` | no linking event on rejected replay | Step-07 §4.2 idempotent/retry behavior target |

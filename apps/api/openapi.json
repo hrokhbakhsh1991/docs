@@ -48,6 +48,7 @@
     "/api/v2/auth/web/session": {
       "post": {
         "operationId": "AuthController_webSession",
+        "summary": "Create web session token",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -61,14 +62,21 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Authenticated web session created"
+          },
+          "401": {
+            "description": "Invalid credentials"
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v2/auth/telegram/session": {
       "post": {
         "operationId": "AuthController_telegramSession",
+        "summary": "Create Telegram session token",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -82,14 +90,21 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Authenticated Telegram session created"
+          },
+          "401": {
+            "description": "Invalid Telegram init payload"
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v2/auth/link-telegram": {
       "post": {
         "operationId": "AuthController_linkTelegram",
+        "summary": "Link Telegram identity to authenticated user",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -103,14 +118,26 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Telegram account linked successfully"
+          },
+          "401": {
+            "description": "Authentication context missing"
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/tours": {
       "post": {
         "operationId": "ToursController_create",
+        "summary": "Create tour",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -124,23 +151,58 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourEntity"
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       },
       "get": {
         "operationId": "ToursController_list",
+        "summary": "List tours in tenant scope",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TourEntity"
+                  }
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/tours/{tourId}": {
       "patch": {
         "operationId": "ToursController_update",
+        "summary": "Update tour by id",
         "parameters": [
           {
             "name": "tourId",
@@ -163,12 +225,28 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourEntity"
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       },
       "get": {
         "operationId": "ToursController_getById",
+        "summary": "Get tour by id",
         "parameters": [
           {
             "name": "tourId",
@@ -181,9 +259,24 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourEntity"
+                }
+              }
+            }
           }
-        }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/tours/{tourId}/register": {
@@ -511,6 +604,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -664,6 +765,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -747,6 +856,14 @@
             "name": "waitlistItemId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -840,7 +957,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -976,7 +1093,7 @@
     "/internal/payments/webhook": {
       "post": {
         "operationId": "PaymentsWebhookController_webhook",
-        "summary": "Internal payment provider webhook (idempotent)",
+        "summary": "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -990,7 +1107,16 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Always returns 200 to provider; failures are logged/metriced internally.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "ok": true
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -1157,6 +1283,10 @@
           "total_capacity",
           "lifecycle_status"
         ]
+      },
+      "TourEntity": {
+        "type": "object",
+        "properties": {}
       },
       "UpdateTourDto": {
         "type": "object",
@@ -1771,6 +1901,10 @@
       "PaymentWebhookDto": {
         "type": "object",
         "properties": {
+          "providerEventId": {
+            "type": "string",
+            "example": "evt-20260430-0001"
+          },
           "providerPaymentId": {
             "type": "string",
             "example": "mock-pay-001"

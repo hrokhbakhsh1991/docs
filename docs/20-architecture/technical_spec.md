@@ -81,7 +81,7 @@ Deliver a leader-centric, dual-mode operational platform with strict tenant isol
 - `Tours`: create/read/update/lifecycle transitions
 - `Registrations`: submit/review/accept/reject/cancel/no-show
 - `Waitlist`: enqueue/dequeue/convert
-- `Payments`: status update and paid amount recording
+- `Payments`: intent creation, status transitions, webhook ingestion, timeout processing, and refund
 - `Dashboard`: aggregated operational visibility
 
 ## 7.1 API Semantics Baseline
@@ -97,7 +97,10 @@ Deliver a leader-centric, dual-mode operational platform with strict tenant isol
 - Capacity should be protected against race conditions during acceptance transitions.
 - Status updates should be auditable.
 - Reconciliation views should support export-ready output structures.
-- No gateway coupling is required in MVP.
+- MVP payment coupling model:
+  - Internal webhook endpoint MAY ingest provider status updates.
+  - Pending payments MAY be auto-failed by timeout policy.
+  - Payment transitions MUST remain tenant-safe, transactional, and deterministic with registration side effects.
 
 Related canonical docs:
 - `docs/20-architecture/data_model.md`

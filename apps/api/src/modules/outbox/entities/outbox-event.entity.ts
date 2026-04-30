@@ -42,6 +42,9 @@ export class OutboxEventEntity {
   @Column({ type: "int", name: "retry_count", default: 0 })
   retryCount!: number;
 
+  @Column({ type: "timestamptz", name: "next_retry_at", nullable: true })
+  nextRetryAt!: Date | null;
+
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;
 

@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -7,6 +8,8 @@ import {
 import { DataSource } from "typeorm";
 import { ConfigService } from "../../config/config.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { SchedulerLockService } from "../../jobs/scheduler-lock.service";
+import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
 import {
   OutboxEventEntity,
   OutboxEventStatus
@@ -24,25 +27,37 @@ import { OutboxMetricsService } from "./outbox-metrics.service";
 export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxProcessor.name);
   private interval?: NodeJS.Timeout;
+  private readonly jobName = "outbox_dispatch";
+  private readonly lockName = "scheduler:outbox_dispatch";
 
   constructor(
-    private readonly dataSource: DataSource,
-    private readonly auditService: AuditService,
-    private readonly configService: ConfigService,
-    private readonly metrics: OutboxMetricsService
+    @Inject(DataSource) private readonly dataSource: DataSource,
+    @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(OutboxMetricsService) private readonly metrics: OutboxMetricsService,
+    @Inject(SchedulerLockService) private readonly schedulerLock: SchedulerLockService,
+    @Inject(SchedulerRuntimeMetricsService)
+    private readonly schedulerMetrics: SchedulerRuntimeMetricsService
   ) {}
 
   onModuleInit(): void {
+    if (!this.configService.shouldRunSchedulers()) {
+      this.logger.log("job_skipped_runtime_role outbox_dispatch");
+      return;
+    }
     if (this.configService.getOutboxProcessorEnabled() === false) {
+      this.logger.log("job_disabled outbox_dispatch");
       return;
     }
     const ms = this.configService.getOutboxPollIntervalMs();
-    this.interval = setInterval(() => {
-      void this.processBatch().catch((error: unknown) => {
-        this.logger.warn(`outbox batch failed: ${String(error)}`);
-      });
-    }, ms);
-    this.interval.unref?.();
+    const jitterMs = Math.floor(Math.random() * (this.configService.getSchedulerJitterMs() + 1));
+    setTimeout(() => {
+      void this.runOnceWithLock();
+      this.interval = setInterval(() => {
+        void this.runOnceWithLock();
+      }, ms);
+      this.interval.unref?.();
+    }, jitterMs).unref?.();
   }
 
   onModuleDestroy(): void {
@@ -65,6 +80,9 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
       const rows = await manager
         .createQueryBuilder(OutboxEventEntity, "o")
         .where("o.status = :status", { status: OutboxEventStatus.PENDING })
+        .andWhere("(o.nextRetryAt IS NULL OR o.nextRetryAt <= :now)", {
+          now: new Date()
+        })
         .orderBy("o.createdAt", "ASC")
         .take(batchSize)
         .setLock("pessimistic_write")
@@ -79,11 +97,14 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
           await manager.save(row);
         } catch (error: unknown) {
           row.retryCount += 1;
-          if (row.retryCount > maxRetry) {
+          if (row.retryCount >= maxRetry) {
             row.status = OutboxEventStatus.FAILED;
+            row.nextRetryAt = null;
             this.metrics.incrementFailed();
-            this.logger.warn(
-              `outbox event ${row.id} marked FAILED after ${row.retryCount} retries`
+            this.logger.warn(`Outbox event ${row.id} reached max retry attempts`);
+          } else {
+            row.nextRetryAt = new Date(
+              Date.now() + 2 ** row.retryCount * 60 * 1000
             );
           }
           await manager.save(row);
@@ -93,5 +114,26 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
 
     this.metrics.setProcessingLatencyMs(Date.now() - started);
     this.metrics.setLastBatchProcessedAt(new Date().toISOString());
+  }
+
+  private async runOnceWithLock(): Promise<void> {
+    const started = Date.now();
+    this.schedulerMetrics.noteStarted(this.jobName);
+    this.logger.log("job_started outbox_dispatch");
+    try {
+      const lock = await this.schedulerLock.runWithGlobalLock(this.lockName, async () => {
+        await this.processBatch();
+      });
+      if (!lock.acquired) {
+        this.schedulerMetrics.noteSkippedDueLock(this.jobName);
+        this.logger.log("job_skipped_due_lock outbox_dispatch");
+        return;
+      }
+      this.schedulerMetrics.noteFinished(this.jobName, Date.now() - started);
+      this.logger.log("job_finished outbox_dispatch");
+    } catch (error: unknown) {
+      this.schedulerMetrics.noteFailed(this.jobName);
+      this.logger.warn(`outbox batch failed: ${String(error)}`);
+    }
   }
 }

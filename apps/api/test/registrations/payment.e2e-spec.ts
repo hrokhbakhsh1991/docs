@@ -52,7 +52,6 @@ function createServiceWithState(initial: RegistrationEntity | null): {
 
   const service = new RegistrationsService(
     {} as never,
-    {} as never,
     dataSource as never,
     requestContextService as never,
     outboxService as never

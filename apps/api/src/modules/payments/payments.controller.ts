@@ -6,19 +6,31 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  UseGuards
+  UseGuards,
+  UseInterceptors
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags
+} from "@nestjs/swagger";
 import { Role } from "../auth/roles.enum";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
+import { LoggerService } from "../../common/logger/logger.service";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
 import { RefundPaymentDto } from "./dto/refund-payment.dto";
 import { PaymentsService } from "./payments.service";
+import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Payments")
 @Controller("api/v2")
@@ -30,7 +42,15 @@ export class PaymentsController {
   @Roles(Role.LEADER, Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create payment intent for registration" })
-  @ApiOkResponse({ type: PaymentResponseDto })
+  @ApiBody({ type: CreatePaymentIntentDto })
+  @ApiCreatedResponse({ type: PaymentResponseDto })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/payments/intent",
+    statusCode: 201,
+    required: true,
+    tenantSource: "context"
+  })
   async createPaymentIntent(
     @Body() payload: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
@@ -65,6 +85,13 @@ export class PaymentsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin refund payment and reconcile registration" })
   @ApiOkResponse({ type: PaymentResponseDto })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/admin/payments/:id/refund",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context"
+  })
   async refundPayment(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() body: RefundPaymentDto
@@ -77,17 +104,93 @@ export class PaymentsController {
 @Controller("internal/payments")
 @UseGuards(InternalApiKeyGuard)
 export class PaymentsWebhookController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly loggerService: LoggerService,
+    private readonly requestContextService: RequestContextService
+  ) {}
 
   @Post("webhook")
   @HttpCode(200)
-  @ApiOperation({ summary: "Internal payment provider webhook (idempotent)" })
+  @ApiOperation({
+    summary:
+      "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)"
+  })
+  @ApiBody({ type: PaymentWebhookDto })
+  @ApiOkResponse({
+    schema: {
+      example: { ok: true }
+    },
+    description: "Always returns 200 to provider; failures are logged/metriced internally."
+  })
   async webhook(@Body() payload: PaymentWebhookDto): Promise<{ ok: true }> {
+    const requestId = this.safeRequestId();
+    this.loggerService.info("webhook_received", {
+      request_id: requestId,
+      event_type: "payment.webhook",
+      provider: "internal_provider",
+      provider_event_id: payload.providerEventId ?? null,
+      provider_payment_id: payload.providerPaymentId,
+      tenant_id: null,
+      status: payload.status
+    });
     try {
-      await this.paymentsService.processWebhook(payload);
-    } catch {
+      const result = await this.paymentsService.processWebhook(payload);
+      if (!result.processed) {
+        this.loggerService.warn("webhook_unknown_payment", {
+          request_id: result.requestId,
+          event_type: "payment.webhook",
+          provider: "internal_provider",
+          provider_event_id: result.providerEventId,
+          provider_payment_id: payload.providerPaymentId,
+          tenant_id: null,
+          status: payload.status,
+          error_message: "PAYMENT_NOT_FOUND"
+        });
+      } else if (result.deduplicated) {
+        this.loggerService.info("webhook_deduplicated", {
+          request_id: result.requestId,
+          event_type: "payment.webhook",
+          provider: result.provider ?? "internal_provider",
+          provider_event_id: result.providerEventId,
+          provider_payment_id: result.providerPaymentId,
+          tenant_id: result.tenantId,
+          status: result.status
+        });
+      } else {
+        this.loggerService.info("webhook_processed", {
+          request_id: result.requestId,
+          event_type: "payment.webhook",
+          provider: result.provider ?? "internal_provider",
+          provider_event_id: result.providerEventId,
+          provider_payment_id: result.providerPaymentId,
+          tenant_id: result.tenantId,
+          status: result.status
+        });
+      }
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.loggerService.error("webhook_failed", {
+        request_id: requestId,
+        event_type: "payment.webhook",
+        provider: "internal_provider",
+        provider_event_id: payload.providerEventId ?? null,
+        provider_payment_id: payload.providerPaymentId,
+        tenant_id: null,
+        status: payload.status,
+        error_message: err.message,
+        stack: err.stack ?? null
+      });
       // Webhook endpoint must remain idempotent and always return 200.
     }
     return { ok: true };
+  }
+
+  private safeRequestId(): string {
+    try {
+      return this.requestContextService.getRequestId();
+    } catch {
+      return "unknown";
+    }
   }
 }

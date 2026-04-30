@@ -35,7 +35,10 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
         return { id: "pay-1", status: "Pending" };
       }
     } as never,
-    {} as never
+    {} as never,
+    {
+      getTenantId: () => "tenant-1"
+    } as never
   );
 
   const response = await controller.publicRegister("tour-1" as never, {
@@ -63,7 +66,10 @@ test("public register returns waitlist position when capacity full", async () =>
       }
     } as never,
     {} as never,
-    {} as never
+    {} as never,
+    {
+      getTenantId: () => "tenant-1"
+    } as never
   );
 
   const response = await controller.publicRegister("tour-1" as never, {

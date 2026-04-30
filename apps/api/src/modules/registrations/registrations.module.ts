@@ -9,6 +9,7 @@ import { TourEntity } from "../tours/entities/tour.entity";
 import { OutboxModule } from "../outbox/outbox.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
+import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { IdempotencyModule } from "../idempotency/idempotency.module";
     IdempotencyModule
   ],
   controllers: [RegistrationsController],
-  providers: [RegistrationsService],
+  providers: [RegistrationsService, RateLimitGuard],
   exports: [RegistrationsService]
 })
 export class RegistrationsModule {}

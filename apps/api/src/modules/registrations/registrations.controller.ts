@@ -10,6 +10,7 @@ import {
   ApiForbiddenResponse
 } from "@nestjs/swagger";
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -21,6 +22,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe
 } from "@nestjs/common";
@@ -43,6 +45,10 @@ import { RegistrationsService } from "./registrations.service";
 import { PaymentsService } from "../payments/payments.service";
 import { CreatePaymentIntentDto } from "../payments/dto/create-payment-intent.dto";
 import { IdempotencyService } from "../idempotency/idempotency.service";
+import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
+import { RequestContextService } from "../../common/request-context/request-context.service";
+import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Registrations")
 @ApiBearerAuth()
@@ -58,17 +64,20 @@ export class RegistrationsController {
   constructor(
     private readonly registrationsService: RegistrationsService,
     private readonly paymentsService: PaymentsService,
-    private readonly idempotencyService: IdempotencyService
+    private readonly idempotencyService: IdempotencyService,
+    private readonly requestContextService: RequestContextService
   ) {}
 
   @Post("tours/:tourId/register")
   @HttpCode(201)
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: "Public registration endpoint (capacity-aware)" })
   async publicRegister(
     @Param("tourId", new ParseUUIDPipe()) tourId: string,
     @Body() payload: CreateRegistrationDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<Record<string, unknown>> {
+    this.requestContextService.setTenantId(payload.tenantId);
     const handler = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
@@ -104,11 +113,13 @@ export class RegistrationsController {
       return handler();
     }
     const requestHash = this.idempotencyService.createRequestHash({
-      tourId,
+      method: "POST",
+      path: `/api/v2/tours/${tourId}/register`,
       body: payload
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
+        tenantId: payload.tenantId,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/register",
         requestHash,
@@ -121,12 +132,14 @@ export class RegistrationsController {
 
   @Post("tours/:tourId/waitlist")
   @HttpCode(201)
+  @UseGuards(RateLimitGuard)
   @ApiOperation({ summary: "Public explicit waitlist endpoint" })
   async publicWaitlist(
     @Param("tourId", new ParseUUIDPipe()) tourId: string,
     @Body() payload: CreateWaitlistItemDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<{ waitlistItemId: string; queuePosition: number }> {
+    this.requestContextService.setTenantId(payload.tenantId);
     const handler = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
@@ -149,11 +162,13 @@ export class RegistrationsController {
       return handler();
     }
     const requestHash = this.idempotencyService.createRequestHash({
-      tourId,
+      method: "POST",
+      path: `/api/v2/tours/${tourId}/waitlist`,
       body: payload
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
+        tenantId: payload.tenantId,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/waitlist",
         requestHash,
@@ -183,6 +198,13 @@ export class RegistrationsController {
   @ApiForbiddenResponse({
     type: ErrorResponseDto,
     description: "Tenant and authorization errors (TENANT_*, AUTH_FORBIDDEN_ROLE)"
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/registrations",
+    statusCode: 201,
+    required: true,
+    tenantSource: "context"
   })
   async createRegistration(
     @Body() payload: CreateRegistrationDto
@@ -219,6 +241,13 @@ export class RegistrationsController {
   @ApiUnauthorizedResponse({ type: ErrorResponseDto })
   @ApiForbiddenResponse({ type: ErrorResponseDto })
   @ApiNotFoundResponse({ type: ErrorResponseDto })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/registrations/:registrationId/status",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context"
+  })
   async updateRegistrationStatus(
     @Param("registrationId", new ParseUUIDPipe()) registrationId: string,
     @Body() payload: UpdateRegistrationStatusDto
@@ -239,9 +268,34 @@ export class RegistrationsController {
   @ApiNotFoundResponse({ type: ErrorResponseDto })
   async updateRegistrationPayment(
     @Param("registrationId", new ParseUUIDPipe()) registrationId: string,
-    @Body() payload: UpdateRegistrationPaymentDto
+    @Body() payload: UpdateRegistrationPaymentDto,
+    @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<RegistrationResponseDto> {
-    return this.registrationsService.updateRegistrationPayment(registrationId, payload);
+    if (!idempotencyKey) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_REQUIRED_FIELD_MISSING",
+          message: "Idempotency-Key header is required"
+        }
+      });
+    }
+    const requestHash = this.idempotencyService.createRequestHash({
+      method: "PATCH",
+      path: `/api/v2/registrations/${registrationId}/payment`,
+      body: payload
+    });
+    const result = await this.idempotencyService.executeWithIdempotency(
+      {
+        tenantId: this.requireTrustedTenantId(),
+        key: idempotencyKey,
+        endpoint: "/api/v2/registrations/:registrationId/payment",
+        requestHash,
+        statusCode: 200
+      },
+      async () =>
+        this.registrationsService.updateRegistrationPayment(registrationId, payload)
+    );
+    return result.responseBody as RegistrationResponseDto;
   }
 
   @Post("waitlist-items")
@@ -255,6 +309,13 @@ export class RegistrationsController {
   @ApiBadRequestResponse({ type: ErrorResponseDto })
   @ApiUnauthorizedResponse({ type: ErrorResponseDto })
   @ApiForbiddenResponse({ type: ErrorResponseDto })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/waitlist-items",
+    statusCode: 201,
+    required: true,
+    tenantSource: "context"
+  })
   async createWaitlistItem(
     @Body() payload: CreateWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
@@ -275,9 +336,33 @@ export class RegistrationsController {
   @ApiNotFoundResponse({ type: ErrorResponseDto })
   async convertWaitlistItem(
     @Param("waitlistItemId", new ParseUUIDPipe()) waitlistItemId: string,
-    @Body() payload: ConvertWaitlistItemDto
+    @Body() payload: ConvertWaitlistItemDto,
+    @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<WaitlistItemResponseDto> {
-    return this.registrationsService.convertWaitlistItem(waitlistItemId, payload);
+    if (!idempotencyKey) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_REQUIRED_FIELD_MISSING",
+          message: "Idempotency-Key header is required"
+        }
+      });
+    }
+    const requestHash = this.idempotencyService.createRequestHash({
+      method: "POST",
+      path: `/api/v2/waitlist-items/${waitlistItemId}/convert`,
+      body: payload
+    });
+    const result = await this.idempotencyService.executeWithIdempotency(
+      {
+        tenantId: this.requireTrustedTenantId(),
+        key: idempotencyKey,
+        endpoint: "/api/v2/waitlist-items/:waitlistItemId/convert",
+        requestHash,
+        statusCode: 200
+      },
+      async () => this.registrationsService.convertWaitlistItem(waitlistItemId, payload)
+    );
+    return result.responseBody as WaitlistItemResponseDto;
   }
 
   @Patch("waitlist-items/:waitlistItemId/cancel")
@@ -293,8 +378,45 @@ export class RegistrationsController {
   @ApiNotFoundResponse({ type: ErrorResponseDto })
   async cancelWaitlistItem(
     @Param("waitlistItemId", new ParseUUIDPipe()) waitlistItemId: string,
-    @Body() payload: CancelWaitlistItemDto
+    @Body() payload: CancelWaitlistItemDto,
+    @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<WaitlistItemResponseDto> {
-    return this.registrationsService.cancelWaitlistItem(waitlistItemId, payload);
+    if (!idempotencyKey) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_REQUIRED_FIELD_MISSING",
+          message: "Idempotency-Key header is required"
+        }
+      });
+    }
+    const requestHash = this.idempotencyService.createRequestHash({
+      method: "PATCH",
+      path: `/api/v2/waitlist-items/${waitlistItemId}/cancel`,
+      body: payload
+    });
+    const result = await this.idempotencyService.executeWithIdempotency(
+      {
+        tenantId: this.requireTrustedTenantId(),
+        key: idempotencyKey,
+        endpoint: "/api/v2/waitlist-items/:waitlistItemId/cancel",
+        requestHash,
+        statusCode: 200
+      },
+      async () => this.registrationsService.cancelWaitlistItem(waitlistItemId, payload)
+    );
+    return result.responseBody as WaitlistItemResponseDto;
+  }
+
+  private requireTrustedTenantId(): string {
+    const tenantId = this.requestContextService.getTenantId();
+    if (!tenantId) {
+      throw new BadRequestException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required for idempotent operation"
+        }
+      });
+    }
+    return tenantId;
   }
 }

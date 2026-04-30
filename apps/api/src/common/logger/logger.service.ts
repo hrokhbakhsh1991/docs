@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import pino, { type Logger } from "pino";
 import { RequestContextService } from "../request-context/request-context.service";
 import { ConfigService } from "../../config/config.service";
@@ -10,7 +10,8 @@ export class LoggerService {
   private readonly logger: Logger;
 
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService
   ) {
     this.logger = pino({

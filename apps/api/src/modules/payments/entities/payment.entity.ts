@@ -14,7 +14,14 @@ export enum PaymentStatus {
 @Index("idx_payments_tenant_id", ["tenantId"])
 @Index("idx_payments_registration_id", ["registrationId"])
 @Index("idx_payments_status", ["status"])
-@Index("idx_payments_provider_payment_id", ["providerPaymentId"], { unique: true })
+@Index("idx_payments_provider_payment_id", ["providerPaymentId"], {
+  unique: true,
+  where: `"provider_payment_id" IS NOT NULL`
+})
+@Index("uq_payments_registration_pending", ["registrationId"], {
+  unique: true,
+  where: `"status" = 'Pending'`
+})
 export class PaymentEntity extends BaseTenantEntity {
   @Column({ type: "uuid", name: "registration_id" })
   registrationId!: string;

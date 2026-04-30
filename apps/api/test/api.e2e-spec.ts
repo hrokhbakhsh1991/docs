@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
+import { createHash, createHmac } from "node:crypto";
 import test from "node:test";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
@@ -22,6 +23,25 @@ const RETRYABILITY_VALUES = new Set([
 let app: INestApplication;
 let sessionToken = "";
 let createdTourId = "";
+
+function buildTelegramInitPayload(botToken: string, telegramUserId: number): string {
+  const user = JSON.stringify({ id: telegramUserId, username: "linked_user" });
+  const params = new URLSearchParams();
+  params.set("auth_date", "1714521600");
+  params.set("query_id", "AAEAAQ");
+  params.set("user", user);
+
+  const dataEntries: string[] = [];
+  for (const [key, value] of params.entries()) {
+    dataEntries.push(`${key}=${value}`);
+  }
+  dataEntries.sort();
+  const dataCheckString = dataEntries.join("\n");
+  const secretKey = createHash("sha256").update(botToken, "utf8").digest();
+  const hash = createHmac("sha256", secretKey).update(dataCheckString, "utf8").digest("hex");
+  params.set("hash", hash);
+  return params.toString();
+}
 
 function assertErrorEnvelope(response: Response): void {
   assert.equal(typeof response.body, "object");
@@ -199,6 +219,20 @@ test("POST /api/v2/auth/link-telegram with auth invalid payload -> envelope, no 
 
   assert.equal(response.status >= 400 && response.status < 500, true);
   assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/link-telegram with auth valid payload -> 200", async () => {
+  const telegramInitPayload = buildTelegramInitPayload("test-token", 987654321);
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/link-telegram")
+    .set("Authorization", `Bearer ${sessionToken}`)
+    .send({ telegram_init_payload: telegramInitPayload });
+
+  assert.equal(response.status, 200);
+  assert.equal(typeof response.body.user_id, "string");
+  assert.equal(response.body.linked_telegram_user_id, "987654321");
+  assert.equal(response.body.link_status, "Linked");
+  assert.equal(typeof response.body.linked_at, "string");
 });
 
 test("close test app", async () => {

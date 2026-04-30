@@ -43,9 +43,10 @@ This transition releases capacity and triggers waitlist promotion.
 
 ## Payment-Integrated Flow (Phase 5)
 1. If tour has `costContext.requiresPayment = true`, registration is created as `Accepted` (capacity reserved) with payment pending state.
-2. Payment webhook `Pending -> Paid` transitions registration to `AcceptedPaid`.
-3. Payment webhook `Pending -> Failed` transitions registration to `Rejected`, releases capacity, and triggers canonical FIFO waitlist promotion.
-4. Refund `Paid -> Refunded` transitions registration to `Refunded`, releases capacity, and triggers canonical FIFO waitlist promotion.
+2. Internal payment webhook `Pending -> Paid` transitions registration to `AcceptedPaid`.
+3. Internal payment webhook `Pending -> Failed` transitions registration to `Rejected`, releases capacity, and triggers canonical FIFO waitlist promotion.
+4. Admin refund `Paid -> Refunded` transitions registration to `Refunded`, releases capacity, and triggers canonical FIFO waitlist promotion.
+5. Timeout processor can convert stale `Pending` payments to `Failed` using the same recovery semantics as webhook failure.
 
 ## Full-Capacity Path
 - If tour is full at request time, participant is routed to waitlist flow.
