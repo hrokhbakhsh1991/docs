@@ -10,6 +10,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, IsNull, Repository } from "typeorm";
 import { IdempotencyService } from "../idempotency/idempotency.service";
 import { OutboxService } from "../outbox/outbox.service";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import {
   RegistrationEntity,
   RegistrationStatus
@@ -22,6 +23,7 @@ import { PaymentEntity, PaymentStatus } from "./entities/payment.entity";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
+const TENANT_PROBE_ID = "00000000-0000-4000-8000-000000000000";
 
 export type PaymentRuntimeMetrics = {
   paymentIntentsCreatedTotal: number;
@@ -64,6 +66,7 @@ export class PaymentsService {
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
     private readonly dataSource: DataSource,
+    private readonly requestContextService: RequestContextService,
     private readonly idempotencyService: IdempotencyService,
     private readonly outboxService: OutboxService,
     @Inject(forwardRef(() => RegistrationsService))
@@ -210,11 +213,27 @@ export class PaymentsService {
     this.webhookReceivedTotal += 1;
     const requestId = payload.providerEventId ?? `legacy-${payload.providerPaymentId}-${payload.status}`;
     try {
+      const payment = await this.resolvePaymentForWebhook(payload.providerPaymentId);
+      if (!payment) {
+        this.webhookUnknownPaymentTotal += 1;
+        return {
+          processed: false,
+          deduplicated: false,
+          requestId,
+          providerPaymentId: payload.providerPaymentId,
+          providerEventId: payload.providerEventId ?? null,
+          provider: null,
+          tenantId: null,
+          status: payload.status
+        };
+      }
+      this.requestContextService.setTenantId(payment.tenantId);
+
       return await this.dataSource.transaction(async (manager) => {
-        const payment = await manager.findOne(PaymentEntity, {
+        const scopedPayment = await manager.findOne(PaymentEntity, {
           where: { providerPaymentId: payload.providerPaymentId }
         });
-        if (!payment) {
+        if (!scopedPayment) {
           this.webhookUnknownPaymentTotal += 1;
           return {
             processed: false,
@@ -229,7 +248,7 @@ export class PaymentsService {
         }
         const result = await this.idempotencyService.executeWithIdempotency(
           {
-            tenantId: payment.tenantId,
+            tenantId: scopedPayment.tenantId,
             key: requestId,
             endpoint: "/internal/payments/webhook",
             requestHash: this.idempotencyService.createRequestHash({
@@ -242,7 +261,7 @@ export class PaymentsService {
           async () => {
             await this.applyPaymentStatus(
               manager,
-              payment,
+              scopedPayment,
               payload.status,
               "system",
               payload.reason
@@ -250,8 +269,8 @@ export class PaymentsService {
             return {
               providerPaymentId: payload.providerPaymentId,
               providerEventId: payload.providerEventId ?? null,
-              provider: payment.provider,
-              tenantId: payment.tenantId,
+              provider: scopedPayment.provider,
+              tenantId: scopedPayment.tenantId,
               status: payload.status
             };
           }
@@ -273,8 +292,8 @@ export class PaymentsService {
           requestId,
           providerPaymentId: responseBody.providerPaymentId ?? payload.providerPaymentId,
           providerEventId: responseBody.providerEventId ?? payload.providerEventId ?? null,
-          provider: responseBody.provider ?? payment.provider,
-          tenantId: responseBody.tenantId ?? payment.tenantId,
+          provider: responseBody.provider ?? scopedPayment.provider,
+          tenantId: responseBody.tenantId ?? scopedPayment.tenantId,
           status: responseBody.status ?? payload.status
         };
       });
@@ -282,6 +301,28 @@ export class PaymentsService {
       this.webhookFailedTotal += 1;
       throw error;
     }
+  }
+
+  private async resolvePaymentForWebhook(
+    providerPaymentId: string
+  ): Promise<PaymentEntity | null> {
+    // Keep a valid tenant bound so DB session bootstrap does not fail before lookup.
+    this.requestContextService.setTenantId(TENANT_PROBE_ID);
+    const tenants = (await this.dataSource.query(
+      'SELECT "id" FROM "tenants"'
+    )) as Array<{ id: string }>;
+
+    for (const tenant of tenants) {
+      this.requestContextService.setTenantId(tenant.id);
+      const payment = await this.paymentRepository.findOne({
+        where: { providerPaymentId }
+      });
+      if (payment) {
+        return payment;
+      }
+    }
+
+    return null;
   }
 
   async refundPayment(id: string, reason?: string): Promise<PaymentResponseDto> {

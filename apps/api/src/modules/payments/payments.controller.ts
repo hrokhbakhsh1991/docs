@@ -7,7 +7,9 @@ import {
   ParseUUIDPipe,
   Post,
   UseGuards,
-  UseInterceptors
+  UseInterceptors,
+  UsePipes,
+  ValidationPipe
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -34,6 +36,13 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Payments")
 @Controller("api/v2")
+@UsePipes(
+  new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true
+  })
+)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 

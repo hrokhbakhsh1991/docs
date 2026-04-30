@@ -1,9 +1,9 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString } from "class-validator";
 import { PaymentStatus } from "../entities/payment.entity";
 
 export class PaymentWebhookDto {
-  @ApiProperty({ required: false, example: "evt-20260430-0001" })
+  @ApiPropertyOptional({ example: "evt-20260430-0001" })
   @IsOptional()
   @IsString()
   providerEventId?: string;
@@ -18,7 +18,7 @@ export class PaymentWebhookDto {
   @IsEnum(PaymentStatus)
   status!: PaymentStatus;
 
-  @ApiProperty({ required: false, example: "gateway timeout" })
+  @ApiPropertyOptional({ example: "gateway timeout" })
   @IsOptional()
   @IsString()
   reason?: string;

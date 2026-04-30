@@ -39,6 +39,9 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   };
 
   const dataSource = {
+    async query() {
+      return [{ id: "tenant-1" }];
+    },
     async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
@@ -65,8 +68,13 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   } as unknown as OutboxService;
 
   const service = new PaymentsService(
-    {} as never,
+    {
+      async findOne(opts: { where: { providerPaymentId?: string } }) {
+        return opts.where.providerPaymentId === "provider-1" ? paymentRow : null;
+      }
+    } as never,
     dataSource,
+    { setTenantId: () => undefined } as never,
     {
       createRequestHash: () => "h",
       async executeWithIdempotency(
@@ -168,6 +176,7 @@ test("timeout processor fails stale pending payments and updates metrics", async
   const service = new PaymentsService(
     {} as never,
     dataSource,
+    { setTenantId: () => undefined } as never,
     {} as never,
     outboxService,
     registrationsService
@@ -210,6 +219,9 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   };
 
   const dataSource = {
+    async query() {
+      return [{ id: "tenant-1" }];
+    },
     async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
@@ -261,8 +273,13 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   } as unknown as OutboxService;
 
   const service = new PaymentsService(
-    {} as never,
+    {
+      async findOne(opts: { where: { providerPaymentId?: string } }) {
+        return opts.where.providerPaymentId === "provider-9" ? paymentRow : null;
+      }
+    } as never,
     dataSource,
+    { setTenantId: () => undefined } as never,
     idempotencyService as never,
     outboxService,
     registrationsService

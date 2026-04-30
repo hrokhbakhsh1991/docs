@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "nest build && node dist/src/openapi.generate.js",
+    "seed": "ts-node src/scripts/seed.ts",
+    "e2e:freeze": "ts-node src/scripts/freeze-e2e.ts",
     "start": "node dist/src/main.js",
     "start:prod": "node dist/src/main.js",
     "start:worker": "APP_RUNTIME_ROLE=worker ENABLE_SCHEDULERS=true node dist/src/main.js",
