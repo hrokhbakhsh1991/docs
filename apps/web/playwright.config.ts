@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  snapshotDir: "./tests/visual/__screenshots__",
+  snapshotDir: "./tests/visual/screenshots",
   retries: 1,
   forbidOnly: !!process.env.CI,
   workers: process.env.CI ? 1 : undefined,

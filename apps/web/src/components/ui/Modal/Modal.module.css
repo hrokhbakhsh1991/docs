@@ -74,7 +74,7 @@
 }
 
 .closeButton:focus-visible {
-  outline: var(--focus-ring-weight) solid var(--color-primary-focus);
+  outline: var(--focus-ring-weight, 2px) solid var(--color-primary-focus);
   outline-offset: 2px;
 }
 

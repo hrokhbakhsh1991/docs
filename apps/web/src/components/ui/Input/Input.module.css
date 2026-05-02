@@ -35,7 +35,7 @@
 }
 
 .control:focus {
-  outline: var(--focus-ring-weight) solid var(--color-primary-focus);
+  outline: var(--focus-ring-weight, 2px) solid var(--color-primary-focus);
   outline-offset: 2px;
   border-color: var(--color-primary);
 }
@@ -51,7 +51,7 @@
 }
 
 .controlInvalid:focus {
-  outline: var(--focus-ring-weight) solid var(--color-danger-focus);
+  outline: var(--focus-ring-weight, 2px) solid var(--color-danger-focus);
   outline-offset: 2px;
   border-color: var(--color-danger);
 }

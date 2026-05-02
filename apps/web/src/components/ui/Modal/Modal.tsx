@@ -4,7 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import { cn } from "./cn";
+import { cn } from "../cn";
 import styles from "./Modal.module.css";
 
 const FOCUSABLE_SELECTOR =
