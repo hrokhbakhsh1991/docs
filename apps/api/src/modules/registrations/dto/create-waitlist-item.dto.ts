@@ -17,12 +17,7 @@ import {
 
 export class CreateWaitlistItemDto {
   // TODO: Unknown top-level fields are rejected by ValidationPipe (forbidNonWhitelisted).
-  @ApiProperty({
-    description: "Tenant scope identifier asserted by client payload",
-    example: "11111111-1111-4111-8111-111111111111"
-  })
-  @IsUUID()
-  tenantId!: string;
+  // tenantId is derived from the tour; JWT tenant must match for non-admin callers.
 
   @ApiProperty({
     description: "Target tour identifier",

@@ -1,0 +1,33 @@
+.wrap {
+  height: 100%;
+  cursor: default;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.wrap:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-popover);
+  transform: translateY(-2px);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.summary strong {
+  color: var(--color-text-primary);
+  font-weight: var(--text-body-weight);
+}
+
+.accessory {
+  margin-top: var(--space-3);
+}

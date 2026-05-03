@@ -26,12 +26,7 @@ export enum RegistrationEntryModeDto {
 
 export class CreateRegistrationDto {
   // TODO: Unknown top-level fields are rejected by ValidationPipe (forbidNonWhitelisted).
-  @ApiProperty({
-    description: "Tenant scope identifier asserted by client payload",
-    example: "11111111-1111-4111-8111-111111111111"
-  })
-  @IsUUID()
-  tenantId!: string;
+  // tenantId is never taken from the client: derived from the tour row; authenticated routes also enforce JWT tenant === tour.tenantId (admin exempt).
 
   @ApiProperty({
     description: "Target tour identifier",

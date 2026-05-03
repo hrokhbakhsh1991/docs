@@ -11,6 +11,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -25,6 +26,11 @@ import { Role } from "./roles.enum";
 import { RolesGuard } from "./roles.guard";
 import { TelegramSessionDto } from "./dto/telegram-session.dto";
 import { WebSessionDto } from "./dto/web-session.dto";
+import {
+  LinkTelegramResponseDto,
+  TelegramSessionResponseDto,
+  WebSessionResponseDto
+} from "./dto/auth-session-response.dto";
 import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 
@@ -41,7 +47,8 @@ export class AuthController {
   @ApiOperation({ summary: "Create web session token" })
   @ApiBody({ type: WebSessionDto })
   @ApiOkResponse({
-    description: "Authenticated web session created"
+    description: "Authenticated web session created",
+    type: WebSessionResponseDto
   })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async webSession(
@@ -61,7 +68,8 @@ export class AuthController {
   @ApiOperation({ summary: "Create Telegram session token" })
   @ApiBody({ type: TelegramSessionDto })
   @ApiOkResponse({
-    description: "Authenticated Telegram session created"
+    description: "Authenticated Telegram session created",
+    type: TelegramSessionResponseDto
   })
   @ApiUnauthorizedResponse({ description: "Invalid Telegram init payload" })
   async telegramSession(
@@ -81,9 +89,17 @@ export class AuthController {
   // Fail-closed: link operation requires explicit JWT + role authorization.
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for link operation."
+  })
   @ApiOperation({ summary: "Link Telegram identity to authenticated user" })
   @ApiBody({ type: LinkTelegramDto })
-  @ApiOkResponse({ description: "Telegram account linked successfully" })
+  @ApiOkResponse({
+    description: "Telegram account linked successfully",
+    type: LinkTelegramResponseDto
+  })
   @ApiUnauthorizedResponse({ description: "Authentication context missing" })
   @Roles(Role.MEMBER, Role.OWNER)
   @UseInterceptors(IdempotencyInterceptor)

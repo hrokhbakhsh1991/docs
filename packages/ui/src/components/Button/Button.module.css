@@ -1,0 +1,104 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-family-base);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring-weight, 2px) solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sizeSm {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+}
+
+.sizeMd {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+}
+
+.sizeLg {
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+.primary:active:not(:disabled) {
+  background: var(--color-primary-active);
+}
+
+.secondary {
+  background: var(--color-bg-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--color-bg-muted);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--color-primary);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--color-bg-muted);
+}
+
+.danger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+.danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: buttonSpin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes buttonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading {
+  pointer-events: none;
+}

@@ -3,14 +3,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, test } from "node:test";
 import { INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import { DataSource } from "typeorm";
 import request from "supertest";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
-import { AppModule } from "../../src/app.module";
+import { createE2EApp } from "./bootstrap";
 import { requestContextStorage } from "../../src/common/request-context/request-context";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
@@ -94,7 +93,6 @@ async function publicRegister(
   return request(app.getHttpServer())
     .post(`/api/v2/tours/${tourId}/register`)
     .send({
-      tenantId: TENANT_ID,
       tourId,
       participantFullName: `User ${index}`,
       participantContactPhone: `+9891200000${index}`,
@@ -111,12 +109,7 @@ before(async () => {
     return;
   }
   applyEnvForContainer(container);
-
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule]
-  }).compile();
-  app = moduleRef.createNestApplication();
-  await app.init();
+  app = await createE2EApp();
   dataSource = app.get(DataSource);
   await dataSource.destroy();
   dataSource.setOptions({

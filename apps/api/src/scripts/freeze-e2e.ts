@@ -93,12 +93,17 @@ async function run(): Promise<void> {
       `status=${auth.status}, hasToken=${token.length > 0}`
     );
 
-    const tours = await requestJson<Array<{ id: string; title: string }>>(baseUrl, "/api/v2/tours", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const tours = await requestJson<{ items: Array<{ id: string; title: string }> }>(
+      baseUrl,
+      "/api/v2/tours",
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    const tourItems = Array.isArray(tours.body?.items) ? tours.body.items : [];
     const seededTitleSet = new Set(seed.tours.map((t) => t.title));
-    const matchedSeededTours = tours.body.filter((t) => seededTitleSet.has(t.title));
+    const matchedSeededTours = tourItems.filter((t) => seededTitleSet.has(t.title));
     if (matchedSeededTours.length > 0) {
       selectedTourId = matchedSeededTours[0].id;
     }

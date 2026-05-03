@@ -42,9 +42,7 @@ export class AuthMiddleware implements NestMiddleware {
     try {
       if (
         (req.method === "POST" &&
-          /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)) ||
-        (req.method === "GET" &&
-          /^\/api\/v2\/registrations\/[^/]+$/.test(req.path))
+          /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path))
       ) {
         return next();
       }

@@ -1,0 +1,28 @@
+.cellLink {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: var(--text-body-weight);
+  color: var(--color-text-link);
+  text-decoration: none;
+  text-align: left;
+}
+
+.cellLink:hover {
+  text-decoration: underline;
+}
+
+.mainLine {
+  font-weight: var(--text-h3-weight);
+  color: var(--color-text-primary);
+}
+
+.actionsCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}

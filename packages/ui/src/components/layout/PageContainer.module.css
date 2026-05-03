@@ -1,0 +1,12 @@
+.root {
+  width: 100%;
+  max-width: var(--layout-page-max-width, 72rem);
+  margin-inline: auto;
+  padding-inline: var(--space-page-gutter);
+}
+
+@media (min-width: 48rem) {
+  .root {
+    padding-inline: var(--space-page-gutter-lg);
+  }
+}

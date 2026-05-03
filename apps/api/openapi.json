@@ -62,7 +62,14 @@
         },
         "responses": {
           "200": {
-            "description": "Authenticated web session created"
+            "description": "Authenticated web session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebSessionResponseDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid credentials"
@@ -90,7 +97,14 @@
         },
         "responses": {
           "200": {
-            "description": "Authenticated Telegram session created"
+            "description": "Authenticated Telegram session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramSessionResponseDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid Telegram init payload"
@@ -105,7 +119,17 @@
       "post": {
         "operationId": "AuthController_linkTelegram",
         "summary": "Link Telegram identity to authenticated user",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for link operation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -118,7 +142,14 @@
         },
         "responses": {
           "200": {
-            "description": "Telegram account linked successfully"
+            "description": "Telegram account linked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkTelegramResponseDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Authentication context missing"
@@ -134,11 +165,112 @@
         ]
       }
     },
+    "/api/v2/users": {
+      "get": {
+        "operationId": "UsersController_listUsers",
+        "summary": "List tenant users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}": {
+      "patch": {
+        "operationId": "UsersController_updateUserRole",
+        "summary": "Change user role in tenant scope",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/tours": {
       "post": {
         "operationId": "ToursController_create",
         "summary": "Create tour",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -155,7 +287,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TourEntity"
+                  "$ref": "#/components/schemas/TourResponseDto"
                 }
               }
             }
@@ -172,18 +304,26 @@
       },
       "get": {
         "operationId": "ToursController_list",
-        "summary": "List tours in tenant scope",
-        "parameters": [],
+        "summary": "List tours in tenant scope (search + pagination)",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive match against tour title and description",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TourEntity"
-                  }
+                  "$ref": "#/components/schemas/PaginatedToursResponseDto"
                 }
               }
             }
@@ -211,6 +351,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for update mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -229,7 +378,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TourEntity"
+                  "$ref": "#/components/schemas/TourResponseDto"
                 }
               }
             }
@@ -263,7 +412,85 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TourEntity"
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/tours/{tourId}/registrations": {
+      "get": {
+        "operationId": "ToursController_listTourRegistrations",
+        "summary": "List registrations for tour (Leader workspace)",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/tours/{tourId}/waitlist-items": {
+      "get": {
+        "operationId": "ToursController_listTourWaitlist",
+        "summary": "List waitlist items for tour (Leader workspace)",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistItemResponseDto"
+                  }
                 }
               }
             }
@@ -294,8 +521,9 @@
           },
           {
             "name": "idempotency-key",
-            "required": true,
+            "required": false,
             "in": "header",
+            "description": "Optional idempotency key for safe replay.",
             "schema": {
               "type": "string"
             }
@@ -313,16 +541,19 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         },
         "tags": [
           "Registrations"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       }
     },
@@ -341,8 +572,9 @@
           },
           {
             "name": "idempotency-key",
-            "required": true,
+            "required": false,
             "in": "header",
+            "description": "Optional idempotency key for safe replay.",
             "schema": {
               "type": "string"
             }
@@ -360,16 +592,30 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "waitlistItemId": {
+                      "type": "string"
+                    },
+                    "queuePosition": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "waitlistItemId",
+                    "queuePosition"
+                  ]
+                }
+              }
+            }
           }
         },
         "tags": [
           "Registrations"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       }
     },
@@ -377,7 +623,17 @@
       "post": {
         "operationId": "RegistrationsController_createRegistration",
         "summary": "Create registration (Participant or Leader)",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -405,6 +661,132 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication errors (AUTH_*)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant and authorization errors (TENANT_*, AUTH_FORBIDDEN_ROLE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Registrations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/bookings": {
+      "post": {
+        "operationId": "RegistrationsController_createBooking",
+        "summary": "Create booking (register for tour)",
+        "description": "Authenticated shortcut: send only tourId; server fills participant fields from the signed-in user.",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation errors (e.g. VALIDATION_FAILED, VALIDATION_REQUIRED_FIELD_MISSING)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication errors (AUTH_*)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant and authorization errors (TENANT_*, AUTH_FORBIDDEN_ROLE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Registrations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "RegistrationsController_listBookings",
+        "summary": "List current user bookings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponseDto"
+                  }
                 }
               }
             }
@@ -518,6 +900,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "description": "Required idempotency key for status mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -609,6 +1000,7 @@
             "name": "idempotency-key",
             "required": true,
             "in": "header",
+            "description": "Required idempotency key for payment mutation.",
             "schema": {
               "type": "string"
             }
@@ -690,7 +1082,17 @@
       "post": {
         "operationId": "RegistrationsController_createWaitlistItem",
         "summary": "Create waitlist item (Participant or Leader)",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -770,6 +1172,7 @@
             "name": "idempotency-key",
             "required": true,
             "in": "header",
+            "description": "Required idempotency key for convert mutation.",
             "schema": {
               "type": "string"
             }
@@ -864,6 +1267,7 @@
             "name": "idempotency-key",
             "required": true,
             "in": "header",
+            "description": "Required idempotency key for cancel mutation.",
             "schema": {
               "type": "string"
             }
@@ -945,7 +1349,17 @@
       "post": {
         "operationId": "PaymentsController_createPaymentIntent",
         "summary": "Create payment intent for registration",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1056,6 +1470,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for refund mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1094,7 +1517,17 @@
       "post": {
         "operationId": "PaymentsWebhookController_webhook",
         "summary": "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for webhook ingestion.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1121,29 +1554,72 @@
         },
         "tags": [
           "Payments"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
         ]
       }
     },
     "/internal/ops/outbox": {
       "get": {
         "operationId": "OpsController_outboxSnapshot",
-        "parameters": [],
+        "summary": "Internal outbox metrics snapshot",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
       }
     },
     "/internal/ops/health": {
       "get": {
         "operationId": "OpsController_healthSnapshot",
-        "parameters": [],
+        "summary": "Internal runtime health snapshot",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
       }
     }
   },
@@ -1160,6 +1636,14 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "internalApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Internal-Api-Key",
+        "description": "Internal API key for protected internal endpoints."
+      }
+    },
     "schemas": {
       "WebCredentialDto": {
         "type": "object",
@@ -1204,6 +1688,32 @@
           "credential"
         ]
       },
+      "WebSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "session_token": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "entry_mode": {
+            "type": "string",
+            "enum": [
+              "web"
+            ]
+          }
+        },
+        "required": [
+          "session_token",
+          "user_id",
+          "tenant_id",
+          "entry_mode"
+        ]
+      },
       "TelegramSessionDto": {
         "type": "object",
         "properties": {
@@ -1229,6 +1739,32 @@
           "telegram_init_payload"
         ]
       },
+      "TelegramSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "session_token": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "tenant_id": {
+            "type": "string"
+          },
+          "entry_mode": {
+            "type": "string",
+            "enum": [
+              "telegram"
+            ]
+          }
+        },
+        "required": [
+          "session_token",
+          "user_id",
+          "tenant_id",
+          "entry_mode"
+        ]
+      },
       "LinkTelegramDto": {
         "type": "object",
         "properties": {
@@ -1243,6 +1779,87 @@
         },
         "required": [
           "telegram_init_payload"
+        ]
+      },
+      "LinkTelegramResponseDto": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "linked_telegram_user_id": {
+            "type": "string"
+          },
+          "link_status": {
+            "type": "string",
+            "enum": [
+              "Linked"
+            ]
+          },
+          "linked_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "linked_telegram_user_id",
+          "link_status",
+          "linked_at"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ava Chen"
+          },
+          "email": {
+            "type": "string",
+            "example": "ava.chen@example.com"
+          },
+          "role": {
+            "type": "string",
+            "example": "owner",
+            "description": "Tenant-scoped role from user_tenants.role"
+          },
+          "status": {
+            "type": "string",
+            "example": "Active",
+            "enum": [
+              "Active",
+              "Invited"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "status"
+        ]
+      },
+      "UpdateUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "member",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Tenant-scoped role in user_tenants.role"
+          }
+        },
+        "required": [
+          "role"
         ]
       },
       "CreateTourDto": {
@@ -1284,9 +1901,58 @@
           "lifecycle_status"
         ]
       },
-      "TourEntity": {
+      "TourResponseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "title": {
+            "type": "string",
+            "example": "Spring Camp 2026"
+          },
+          "description": {
+            "type": "string",
+            "example": "A two-day nature tour for members.",
+            "nullable": true
+          },
+          "totalCapacity": {
+            "type": "number",
+            "example": 30
+          },
+          "acceptedCount": {
+            "type": "number",
+            "example": 10
+          },
+          "costContext": {
+            "type": "object",
+            "example": {
+              "currency": "IRR",
+              "requiresPayment": true
+            },
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "startDate": {
+            "type": "object",
+            "example": "2026-05-01T08:00:00.000Z",
+            "nullable": true,
+            "description": "Reserved for forward-compatible schedule projection; may be absent."
+          },
+          "endDate": {
+            "type": "object",
+            "example": "2026-05-01T20:00:00.000Z",
+            "nullable": true,
+            "description": "Reserved for forward-compatible schedule projection; may be absent."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "totalCapacity",
+          "acceptedCount"
+        ]
       },
       "UpdateTourDto": {
         "type": "object",
@@ -1327,146 +1993,33 @@
           }
         }
       },
-      "CreateRegistrationDto": {
+      "PaginatedToursResponseDto": {
         "type": "object",
         "properties": {
-          "tenantId": {
-            "type": "string",
-            "description": "Tenant scope identifier asserted by client payload",
-            "example": "11111111-1111-4111-8111-111111111111"
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TourResponseDto"
+            }
           },
-          "tourId": {
-            "type": "string",
-            "description": "Target tour identifier",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "description": "Participant full name",
-            "example": "Ali Ahmadi",
-            "maxLength": 255
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "description": "Primary participant contact phone",
-            "example": "+989121234567",
-            "maxLength": 64
-          },
-          "transportMode": {
-            "type": "string",
-            "description": "Participant transport mode",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "group_vehicle"
-          },
-          "entryMode": {
-            "type": "string",
-            "description": "Entry mode for dual-mode access",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "web"
-          },
-          "telegramUserId": {
-            "type": "string",
-            "description": "Telegram user id; required when entryMode is telegram",
-            "example": "123456789"
-          },
-          "telegramUsername": {
-            "type": "string",
-            "description": "Optional Telegram username",
-            "example": "ali_trip",
-            "nullable": true
-          },
-          "vehicleSeatCapacity": {
+          "total": {
             "type": "number",
-            "description": "Optional vehicle seat capacity if participant is driver",
-            "example": 3,
-            "minimum": 1
+            "example": 42
           },
-          "participantNote": {
-            "type": "string",
-            "description": "Optional participant note",
-            "example": "Will arrive 30 minutes earlier",
-            "nullable": true
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "example": 10
           }
         },
         "required": [
-          "tenantId",
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode"
-        ]
-      },
-      "CreateWaitlistItemDto": {
-        "type": "object",
-        "properties": {
-          "tenantId": {
-            "type": "string",
-            "description": "Tenant scope identifier asserted by client payload",
-            "example": "11111111-1111-4111-8111-111111111111"
-          },
-          "tourId": {
-            "type": "string",
-            "description": "Target tour identifier",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "description": "Participant full name",
-            "example": "Sara Mohammadi",
-            "maxLength": 255
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "description": "Primary participant contact phone",
-            "example": "+989351112233",
-            "maxLength": 64
-          },
-          "transportMode": {
-            "type": "string",
-            "description": "Participant transport mode",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "other"
-          },
-          "entryMode": {
-            "type": "string",
-            "description": "Entry mode for dual-mode access",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "telegram"
-          },
-          "telegramUserId": {
-            "type": "string",
-            "description": "Telegram user id; required when entryMode is telegram",
-            "example": "987654321"
-          },
-          "telegramUsername": {
-            "type": "string",
-            "description": "Optional Telegram username",
-            "example": "sara_waiting",
-            "nullable": true
-          }
-        },
-        "required": [
-          "tenantId",
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode"
+          "items",
+          "total",
+          "page",
+          "limit"
         ]
       },
       "RegistrationResponseDto": {
@@ -1591,101 +2144,6 @@
           "updatedAt"
         ]
       },
-      "ErrorBodyDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "VALIDATION_FAILED"
-          },
-          "message": {
-            "type": "string",
-            "example": "Request validation failed"
-          },
-          "retryability": {
-            "type": "string",
-            "example": "NO_RETRY"
-          },
-          "details": {
-            "type": "object",
-            "example": {
-              "field_errors": [
-                {
-                  "field": "participantFullName",
-                  "reason": "required"
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "code",
-          "message",
-          "retryability"
-        ]
-      },
-      "ErrorResponseDto": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "$ref": "#/components/schemas/ErrorBodyDto"
-          },
-          "requestId": {
-            "type": "string",
-            "example": "req_1234567890"
-          }
-        },
-        "required": [
-          "error",
-          "requestId"
-        ]
-      },
-      "UpdateRegistrationStatusDto": {
-        "type": "object",
-        "properties": {
-          "targetStatus": {
-            "type": "string",
-            "description": "Target registration status",
-            "enum": [
-              "Pending",
-              "Accepted",
-              "AcceptedPaid",
-              "Rejected",
-              "Cancelled",
-              "NoShow",
-              "Refunded"
-            ],
-            "example": "Accepted"
-          }
-        },
-        "required": [
-          "targetStatus"
-        ]
-      },
-      "UpdateRegistrationPaymentDto": {
-        "type": "object",
-        "properties": {
-          "paymentStatus": {
-            "type": "string",
-            "description": "Target payment status",
-            "enum": [
-              "NotPaid",
-              "Partial",
-              "Paid"
-            ],
-            "example": "Partial"
-          },
-          "paidAmount": {
-            "type": "number",
-            "description": "Optional paid amount (non-negative)",
-            "example": 2500000,
-            "minimum": 0
-          }
-        },
-        "required": [
-          "paymentStatus"
-        ]
-      },
       "WaitlistItemResponseDto": {
         "type": "object",
         "properties": {
@@ -1767,6 +2225,244 @@
           "updatedAt"
         ]
       },
+      "CreateRegistrationDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Target tour identifier",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "description": "Participant full name",
+            "example": "Ali Ahmadi",
+            "maxLength": 255
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "description": "Primary participant contact phone",
+            "example": "+989121234567",
+            "maxLength": 64
+          },
+          "transportMode": {
+            "type": "string",
+            "description": "Participant transport mode",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "group_vehicle"
+          },
+          "entryMode": {
+            "type": "string",
+            "description": "Entry mode for dual-mode access",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "web"
+          },
+          "telegramUserId": {
+            "type": "string",
+            "description": "Telegram user id; required when entryMode is telegram",
+            "example": "123456789"
+          },
+          "telegramUsername": {
+            "type": "string",
+            "description": "Optional Telegram username",
+            "example": "ali_trip",
+            "nullable": true
+          },
+          "vehicleSeatCapacity": {
+            "type": "number",
+            "description": "Optional vehicle seat capacity if participant is driver",
+            "example": 3,
+            "minimum": 1
+          },
+          "participantNote": {
+            "type": "string",
+            "description": "Optional participant note",
+            "example": "Will arrive 30 minutes earlier",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode"
+        ]
+      },
+      "CreateWaitlistItemDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Target tour identifier",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "description": "Participant full name",
+            "example": "Sara Mohammadi",
+            "maxLength": 255
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "description": "Primary participant contact phone",
+            "example": "+989351112233",
+            "maxLength": 64
+          },
+          "transportMode": {
+            "type": "string",
+            "description": "Participant transport mode",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "other"
+          },
+          "entryMode": {
+            "type": "string",
+            "description": "Entry mode for dual-mode access",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "telegram"
+          },
+          "telegramUserId": {
+            "type": "string",
+            "description": "Telegram user id; required when entryMode is telegram",
+            "example": "987654321"
+          },
+          "telegramUsername": {
+            "type": "string",
+            "description": "Optional Telegram username",
+            "example": "sara_waiting",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode"
+        ]
+      },
+      "ErrorBodyDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "VALIDATION_FAILED"
+          },
+          "message": {
+            "type": "string",
+            "example": "Request validation failed"
+          },
+          "retryability": {
+            "type": "string",
+            "example": "NO_RETRY"
+          },
+          "details": {
+            "type": "object",
+            "example": {
+              "field_errors": [
+                {
+                  "field": "participantFullName",
+                  "reason": "required"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryability"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBodyDto"
+          },
+          "requestId": {
+            "type": "string",
+            "example": "req_1234567890"
+          }
+        },
+        "required": [
+          "error",
+          "requestId"
+        ]
+      },
+      "CreateBookingDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Tour to register for (booking is tied directly to the tour)",
+            "example": "22222222-2222-4222-8222-222222222222"
+          }
+        },
+        "required": [
+          "tourId"
+        ]
+      },
+      "UpdateRegistrationStatusDto": {
+        "type": "object",
+        "properties": {
+          "targetStatus": {
+            "type": "string",
+            "description": "Target registration status",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "AcceptedPaid",
+              "Rejected",
+              "Cancelled",
+              "NoShow",
+              "Refunded"
+            ],
+            "example": "Accepted"
+          }
+        },
+        "required": [
+          "targetStatus"
+        ]
+      },
+      "UpdateRegistrationPaymentDto": {
+        "type": "object",
+        "properties": {
+          "paymentStatus": {
+            "type": "string",
+            "description": "Target payment status",
+            "enum": [
+              "NotPaid",
+              "Partial",
+              "Paid"
+            ],
+            "example": "Partial"
+          },
+          "paidAmount": {
+            "type": "number",
+            "description": "Optional paid amount (non-negative)",
+            "example": 2500000,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "paymentStatus"
+        ]
+      },
       "ConvertWaitlistItemDto": {
         "type": "object",
         "properties": {
@@ -1802,9 +2498,14 @@
             "type": "string",
             "example": "IRR"
           },
-          "provider": {
+          "paymentProvider": {
             "type": "string",
             "example": "mock_provider"
+          },
+          "provider": {
+            "type": "string",
+            "example": "mock_provider",
+            "deprecated": true
           },
           "providerPaymentId": {
             "type": "string",
@@ -1816,7 +2517,7 @@
           "registrationId",
           "amount",
           "currency",
-          "provider"
+          "paymentProvider"
         ]
       },
       "PaymentResponseDto": {
@@ -1841,7 +2542,7 @@
             "type": "string"
           },
           "providerPaymentId": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "status": {
@@ -1855,15 +2556,15 @@
             ]
           },
           "paidAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "failedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "refundedAt": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "createdAt": {
@@ -1901,6 +2602,18 @@
       "PaymentWebhookDto": {
         "type": "object",
         "properties": {
+          "paymentId": {
+            "type": "string",
+            "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "registrationId": {
+            "type": "string",
+            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
           "providerEventId": {
             "type": "string",
             "example": "evt-20260430-0001"

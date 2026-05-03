@@ -5,13 +5,22 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, Repository } from "typeorm";
+import { DataSource, EntityManager, In, IsNull, Repository } from "typeorm";
+import {
+  registrationWhereForActor,
+  syntheticBookingContactPhone,
+  waitlistWhereForActor
+} from "../../common/security/ownership-scope";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { OutboxService } from "../outbox/outbox.service";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
-import { CreateRegistrationDto } from "./dto/create-registration.dto";
+import {
+  CreateRegistrationDto,
+  RegistrationEntryModeDto,
+  RegistrationTransportModeDto
+} from "./dto/create-registration.dto";
 import { CreateWaitlistItemDto } from "./dto/create-waitlist-item.dto";
 import {
   RegistrationResponseDto,
@@ -26,6 +35,7 @@ import {
   RegistrationStatus
 } from "./registration.entity";
 import { WaitlistItemEntity, WaitlistItemStatus } from "./waitlist-item.entity";
+import { UserEntity } from "../identity/entities/user.entity";
 
 @Injectable()
 export class RegistrationsService {
@@ -33,25 +43,61 @@ export class RegistrationsService {
   private registrationWaitlistedTotal = 0;
   private registrationPaidTotal = 0;
 
+  // DI-DIAGNOSTIC: If this service is instantiated with undefined fields, root cause is typically missing runtime design:paramtypes metadata in test transpilation pipeline.
+  // TODO(FREEZE-BLOCKER): Validate constructor dependency availability during E2E app bootstrap (registrationRepository, dataSource, requestContextService, outboxService); failures in RegistrationsController suggest upstream provider resolution issues.
   constructor(
     @InjectRepository(RegistrationEntity)
     private readonly registrationRepository: Repository<RegistrationEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
     private readonly dataSource: DataSource,
     private readonly requestContextService: RequestContextService,
     private readonly outboxService: OutboxService
   ) {}
 
+  /**
+   * Tenant for public idempotency boundaries (no JWT): resolved from the tour row only.
+   */
+  async getTenantIdForTourOrThrow(tourId: string): Promise<string> {
+    const tour = await this.registrationRepository.manager.findOne(TourEntity, {
+      where: { id: tourId },
+      select: { id: true, tenantId: true }
+    });
+    if (!tour) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
+    return tour.tenantId;
+  }
+
   async createRegistration(
     createDto: CreateRegistrationDto
   ): Promise<RegistrationResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      const tour = await this.requireTourInTenant(
-        manager,
-        createDto.tourId,
-        createDto.tenantId
-      );
+      const tour = await manager.findOne(TourEntity, { where: { id: createDto.tourId } });
+      if (!tour) {
+        throw new NotFoundException({
+          error: {
+            code: "RESOURCE_NOT_FOUND",
+            message: "Resource not found in tenant scope"
+          }
+        });
+      }
+      this.assertJwtTenantMatchesTourForAuthenticatedMutation(tour.tenantId);
 
-      await this.ensureNoActiveRegistrationDuplicate(manager, createDto);
+      const tenantId = tour.tenantId;
+      const scopedPayload = {
+        tenantId,
+        tourId: createDto.tourId,
+        participantContactPhone: createDto.participantContactPhone,
+        telegramUserId: createDto.telegramUserId
+      };
+
+      await this.ensureNoActiveRegistrationDuplicate(manager, scopedPayload);
       if (tour.acceptedCount >= tour.totalCapacity) {
         // TODO: Replace with automatic waitlist creation in next slice.
         throw new ConflictException({
@@ -71,7 +117,7 @@ export class RegistrationsService {
         : RegistrationStatus.PENDING;
 
       const registration = manager.create(RegistrationEntity, {
-        tenantId: createDto.tenantId,
+        tenantId,
         tourId: createDto.tourId,
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
@@ -113,11 +159,147 @@ export class RegistrationsService {
     });
   }
 
+  /**
+   * Authenticated shortcut: body is only `{ tourId }`. Participant profile fields are derived from the user row and a stable synthetic phone for duplicate detection.
+   */
+  async createBooking(tourId: string): Promise<RegistrationResponseDto> {
+    const tenantId = this.requestContextService.getTenantId();
+    const userId = this.requestContextService.getUserId();
+    if (!tenantId || !userId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId, deletedAt: IsNull() }
+    });
+    if (!user) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "User not found"
+        }
+      });
+    }
+
+    const participantFullName =
+      (user.fullName?.trim() && user.fullName.trim().length > 0
+        ? user.fullName.trim()
+        : undefined) ??
+      user.email.split("@")[0] ??
+      "Participant";
+
+    const participantContactPhone = syntheticBookingContactPhone(userId);
+
+    const createDto = {
+      tourId,
+      participantFullName,
+      participantContactPhone,
+      transportMode: RegistrationTransportModeDto.GROUP_VEHICLE,
+      entryMode: RegistrationEntryModeDto.WEB,
+      telegramUserId: user.telegramUserId ?? undefined,
+      telegramUsername: undefined
+    } as CreateRegistrationDto;
+
+    return this.createRegistration(createDto);
+  }
+
+  async listRegistrationsForTour(tourId: string): Promise<RegistrationResponseDto[]> {
+    const tenantId = this.requestContextService.getTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      await this.requireTourInTenant(manager, tourId, tenantId);
+      const rows = await manager.find(RegistrationEntity, {
+        where: { tourId, tenantId },
+        order: { createdAt: "DESC" }
+      });
+      return rows.map((row) => this.toRegistrationResponse(row));
+    });
+  }
+
+  async listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]> {
+    const tenantId = this.requestContextService.getTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      await this.requireTourInTenant(manager, tourId, tenantId);
+      const rows = await manager.find(WaitlistItemEntity, {
+        where: { tourId, tenantId },
+        order: { createdAt: "ASC" }
+      });
+      return rows.map((row) => this.toWaitlistResponse(row));
+    });
+  }
+
+  async listBookings(): Promise<RegistrationResponseDto[]> {
+    const tenantId = this.requestContextService.getTenantId();
+    const userId = this.requestContextService.getUserId();
+    if (!tenantId || !userId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId, deletedAt: IsNull() }
+    });
+    if (!user) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "User not found"
+        }
+      });
+    }
+
+    const participantContactPhone = syntheticBookingContactPhone(userId);
+    const whereClauses: Array<
+      { tenantId: string; participantContactPhone: string } | { tenantId: string; telegramUserId: string }
+    > = [{ tenantId, participantContactPhone }];
+    if (typeof user.telegramUserId === "string" && user.telegramUserId.trim() !== "") {
+      whereClauses.push({ tenantId, telegramUserId: user.telegramUserId.trim() });
+    }
+
+    const rows = await this.registrationRepository.find({
+      where: whereClauses,
+      order: { createdAt: "DESC" }
+    });
+    return rows.map((row) => this.toRegistrationResponse(row));
+  }
+
   async getRegistrationById(
     registrationId: string
   ): Promise<RegistrationResponseDto> {
+    const where = await registrationWhereForActor(
+      this.registrationRepository.manager,
+      this.userRepository,
+      this.requestContextService,
+      registrationId
+    );
     const registration = await this.registrationRepository.findOne({
-      where: { id: registrationId }
+      where
     });
     if (!registration) {
       throw new NotFoundException({
@@ -134,20 +316,14 @@ export class RegistrationsService {
     registrationId: string,
     payload: UpdateRegistrationStatusDto
   ): Promise<RegistrationResponseDto> {
-    const trustedTenantId = this.requestContextService.getTenantId();
-    if (!trustedTenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
-    }
-
     return this.dataSource.transaction(async (manager) => {
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: registrationId }
-      });
+      const where = await registrationWhereForActor(
+        manager,
+        this.userRepository,
+        this.requestContextService,
+        registrationId
+      );
+      const registration = await manager.findOne(RegistrationEntity, { where });
       if (!registration) {
         throw new NotFoundException({
           error: {
@@ -156,16 +332,6 @@ export class RegistrationsService {
           }
         });
       }
-
-      if (registration.tenantId !== trustedTenantId) {
-        throw new ForbiddenException({
-          error: {
-            code: "TENANT_CONTEXT_INVALID",
-            message: "Trusted tenant context is invalid"
-          }
-        });
-      }
-
       this.validateStatusTransition(registration.status, payload.targetStatus);
 
       const previousStatus = registration.status;
@@ -234,20 +400,14 @@ export class RegistrationsService {
     registrationId: string,
     payload: UpdateRegistrationPaymentDto
   ): Promise<RegistrationResponseDto> {
-    const trustedTenantId = this.requestContextService.getTenantId();
-    if (!trustedTenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
-    }
-
     return this.dataSource.transaction(async (manager) => {
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: registrationId }
-      });
+      const where = await registrationWhereForActor(
+        manager,
+        this.userRepository,
+        this.requestContextService,
+        registrationId
+      );
+      const registration = await manager.findOne(RegistrationEntity, { where });
       if (!registration) {
         throw new NotFoundException({
           error: {
@@ -256,15 +416,6 @@ export class RegistrationsService {
           }
         });
       }
-      if (registration.tenantId !== trustedTenantId) {
-        throw new ForbiddenException({
-          error: {
-            code: "TENANT_CONTEXT_INVALID",
-            message: "Trusted tenant context is invalid"
-          }
-        });
-      }
-
       this.validatePaymentTransition(
         registration.status,
         registration.paymentStatus,
@@ -302,7 +453,8 @@ export class RegistrationsService {
     metadata?: Record<string, unknown>
   ): Promise<RegistrationEntity> {
     const trustedTenantId = this.requestContextService.getTenantId();
-    if (!trustedTenantId) {
+    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
+    if (!trustedTenantId && role !== "admin") {
       throw new ForbiddenException({
         error: {
           code: "TENANT_CONTEXT_MISSING",
@@ -312,8 +464,14 @@ export class RegistrationsService {
     }
 
     return this.dataSource.transaction(async (manager) => {
+      const registrationScope = await registrationWhereForActor(
+        manager,
+        this.userRepository,
+        this.requestContextService,
+        id
+      );
       const registration = await manager.findOne(RegistrationEntity, {
-        where: { id }
+        where: registrationScope
       });
       if (!registration) {
         throw new NotFoundException({
@@ -324,11 +482,15 @@ export class RegistrationsService {
         });
       }
 
-      if (registration.tenantId !== trustedTenantId) {
-        throw new ForbiddenException({
+      if (
+        role !== "admin" &&
+        trustedTenantId &&
+        registration.tenantId !== trustedTenantId
+      ) {
+        throw new NotFoundException({
           error: {
-            code: "TENANT_CONTEXT_INVALID",
-            message: "Trusted tenant context is invalid"
+            code: "RESOURCE_NOT_FOUND",
+            message: "Resource not found in tenant scope"
           }
         });
       }
@@ -352,13 +514,34 @@ export class RegistrationsService {
     createDto: CreateWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      await this.requireTourInTenant(manager, createDto.tourId, createDto.tenantId);
+      const tour = await manager.findOne(TourEntity, { where: { id: createDto.tourId } });
+      if (!tour) {
+        throw new NotFoundException({
+          error: {
+            code: "RESOURCE_NOT_FOUND",
+            message: "Resource not found in tenant scope"
+          }
+        });
+      }
+      this.assertJwtTenantMatchesTourForAuthenticatedMutation(tour.tenantId);
 
-      await this.ensureNoActiveRegistrationDuplicate(manager, createDto);
-      await this.ensureNoWaitingWaitlistDuplicate(manager, createDto);
+      const tenantId = tour.tenantId;
+      const scopedPayload = {
+        tenantId,
+        tourId: createDto.tourId,
+        participantContactPhone: createDto.participantContactPhone,
+        telegramUserId: createDto.telegramUserId
+      };
+
+      await this.ensureNoActiveRegistrationDuplicate(manager, scopedPayload);
+      await this.ensureNoWaitingWaitlistDuplicate(manager, {
+        tenantId,
+        tourId: createDto.tourId,
+        participantContactPhone: createDto.participantContactPhone
+      });
 
       const waitlistItem = manager.create(WaitlistItemEntity, {
-        tenantId: createDto.tenantId,
+        tenantId,
         tourId: createDto.tourId,
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
@@ -377,26 +560,8 @@ export class RegistrationsService {
     waitlistItemId: string,
     payload: ConvertWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    const trustedTenantId = this.requestContextService.getTenantId();
-    if (!trustedTenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
-    }
-
     return this.dataSource.transaction(async (manager) => {
       const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
-      if (waitlistItem.tenantId !== trustedTenantId) {
-        throw new ForbiddenException({
-          error: {
-            code: "TENANT_CONTEXT_INVALID",
-            message: "Trusted tenant context is invalid"
-          }
-        });
-      }
       if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
         throw new ConflictException({
           error: {
@@ -495,26 +660,8 @@ export class RegistrationsService {
     waitlistItemId: string,
     payload: CancelWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    const trustedTenantId = this.requestContextService.getTenantId();
-    if (!trustedTenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
-    }
-
     return this.dataSource.transaction(async (manager) => {
       const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
-      if (waitlistItem.tenantId !== trustedTenantId) {
-        throw new ForbiddenException({
-          error: {
-            code: "TENANT_CONTEXT_INVALID",
-            message: "Trusted tenant context is invalid"
-          }
-        });
-      }
       if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
         throw new ConflictException({
           error: {
@@ -543,6 +690,25 @@ export class RegistrationsService {
     });
   }
 
+  /**
+   * Authenticated creates: tour defines canonical tenant; JWT tenant must match (admin may cross-tenant).
+   */
+  private assertJwtTenantMatchesTourForAuthenticatedMutation(tourTenantId: string): void {
+    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
+    if (role === "admin") {
+      return;
+    }
+    const jwtTenantId = this.requestContextService.getTenantId();
+    if (!jwtTenantId || jwtTenantId !== tourTenantId) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
+  }
+
   private async requireTourInTenant(
     manager: EntityManager,
     tourId: string,
@@ -558,10 +724,10 @@ export class RegistrationsService {
       });
     }
     if (tour.tenantId !== tenantId) {
-      throw new ForbiddenException({
+      throw new NotFoundException({
         error: {
-          code: "TENANT_CONTEXT_INVALID",
-          message: "Trusted tenant context is invalid"
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
         }
       });
     }
@@ -677,13 +843,28 @@ export class RegistrationsService {
     manager: EntityManager,
     waitlistItemId: string
   ): Promise<WaitlistItemEntity> {
-    const waitlistItem = await manager
+    const where = await waitlistWhereForActor(
+      manager,
+      this.userRepository,
+      this.requestContextService,
+      waitlistItemId
+    );
+    const qb = manager
       .getRepository(WaitlistItemEntity)
       .createQueryBuilder("w")
       .setLock("pessimistic_write")
-      .where("w.id = :waitlistItemId", { waitlistItemId })
-      .getOne();
-    if (!waitlistItem) {
+      .where("w.id = :waitlistItemId", { waitlistItemId: where.id })
+      .andWhere("w.deleted_at IS NULL");
+    if (where.tenantId) {
+      qb.andWhere("w.tenant_id = :tenantId", { tenantId: where.tenantId });
+    }
+    if (where.participantContactPhone) {
+      qb.andWhere("w.participant_contact_phone = :participantContactPhone", {
+        participantContactPhone: where.participantContactPhone
+      });
+    }
+    const resolved = await qb.getOne();
+    if (!resolved) {
       throw new NotFoundException({
         error: {
           code: "RESOURCE_NOT_FOUND",
@@ -691,7 +872,7 @@ export class RegistrationsService {
         }
       });
     }
-    return waitlistItem;
+    return resolved;
   }
 
   private async getOldestWaitingWaitlistItemForUpdate(
@@ -1161,7 +1342,6 @@ export class RegistrationsService {
   }
 
   async createPublicRegistrationOrWaitlist(input: {
-    tenantId: string;
     tourId: string;
     participantFullName: string;
     participantContactPhone: string;
@@ -1185,16 +1365,30 @@ export class RegistrationsService {
     | { type: "waitlist"; waitlistItem: WaitlistItemResponseDto; queuePosition: number }
   > {
     return this.dataSource.transaction(async (manager) => {
+      const tourPeek = await manager.findOne(TourEntity, {
+        where: { id: input.tourId },
+        select: { id: true, tenantId: true }
+      });
+      if (!tourPeek) {
+        throw new NotFoundException({
+          error: {
+            code: "RESOURCE_NOT_FOUND",
+            message: "Resource not found in tenant scope"
+          }
+        });
+      }
+      const tenantId = tourPeek.tenantId;
+      const scopedInput = { ...input, tenantId };
       const tour = await this.requireTourInTenantForUpdate(
         manager,
         input.tourId,
-        input.tenantId
+        tenantId
       );
-      await this.ensureNoActiveRegistrationDuplicate(manager, input);
+      await this.ensureNoActiveRegistrationDuplicate(manager, scopedInput);
       if (tour.acceptedCount >= tour.totalCapacity) {
-        await this.ensureNoWaitingWaitlistDuplicate(manager, input);
+        await this.ensureNoWaitingWaitlistDuplicate(manager, scopedInput);
         const waitlist = manager.create(WaitlistItemEntity, {
-          tenantId: input.tenantId,
+          tenantId,
           tourId: input.tourId,
           participantFullName: input.participantFullName,
           participantContactPhone: input.participantContactPhone,
@@ -1218,7 +1412,7 @@ export class RegistrationsService {
         });
         const queuePosition = await manager.count(WaitlistItemEntity, {
           where: {
-            tenantId: input.tenantId,
+            tenantId,
             tourId: input.tourId,
             status: WaitlistItemStatus.WAITING
           }
@@ -1231,7 +1425,7 @@ export class RegistrationsService {
       }
 
       const registration = manager.create(RegistrationEntity, {
-        tenantId: input.tenantId,
+        tenantId,
         tourId: input.tourId,
         participantFullName: input.participantFullName,
         participantContactPhone: input.participantContactPhone,

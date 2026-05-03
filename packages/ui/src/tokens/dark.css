@@ -1,0 +1,53 @@
+/** Dark theme — overrides semantic tokens (same variable names as :root). */
+.theme-dark {
+  --color-primary: #5b9fd4;
+  --color-primary-hover: #7eb3df;
+  --color-primary-active: #4a8fc4;
+  --color-primary-fg: #0d1117;
+  --color-secondary: #7eb3df;
+  --color-secondary-hover: #9dc6e8;
+  --color-secondary-fg: #0d1117;
+
+  --color-bg-page: #0d1117;
+  --color-bg-surface: #161b22;
+  --color-bg-surface-hover: #1f2630;
+  --color-bg-muted: #21262d;
+  --color-bg-disabled: #30363d;
+  --color-bg-inverse: #f6f7f9;
+
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #aeb4bd;
+  --color-text-muted: #7e8793;
+  --color-text-inverse: #1a1f26;
+  --color-text-link: #7eb3df;
+  --color-text-link-hover: #a8cff0;
+
+  --color-border-default: #30363d;
+  --color-border-strong: #484f58;
+  --color-border-subtle: #21262d;
+
+  --color-success: #56d364;
+  --color-success-bg: rgba(46, 160, 67, 0.18);
+  --color-success-border: #388e3c;
+  --color-warning: #e3b341;
+  --color-warning-bg: rgba(227, 179, 65, 0.15);
+  --color-warning-border: #c69026;
+  --color-danger: #ff7b72;
+  --color-danger-bg: rgba(248, 81, 73, 0.15);
+  --color-danger-border: #da3633;
+  --color-info: #79c0ff;
+  --color-info-bg: rgba(121, 192, 255, 0.12);
+  --color-info-border: #388bfd;
+
+  --color-overlay-scrim: rgba(1, 4, 9, 0.72);
+  --focus-ring-color: rgba(130, 175, 220, 0.55);
+  --focus-ring-offset: #161b22;
+  --color-primary-focus: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  --color-danger-focus: color-mix(in srgb, var(--color-danger) 35%, transparent);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 16px 56px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}

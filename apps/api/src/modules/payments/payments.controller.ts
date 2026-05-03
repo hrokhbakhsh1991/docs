@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -15,8 +16,10 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
+  ApiSecurity,
   ApiTags
 } from "@nestjs/swagger";
 import { Role } from "../auth/roles.enum";
@@ -48,8 +51,14 @@ export class PaymentsController {
 
   @Post("payments/intent")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER, Role.ADMIN)
+  /** Members (participants) create intents for registrations in their tenant; leaders/admins retain access. */
+  @Roles(Role.LEADER, Role.ADMIN, Role.MEMBER)
   @ApiBearerAuth()
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for create mutation."
+  })
   @ApiOperation({ summary: "Create payment intent for registration" })
   @ApiBody({ type: CreatePaymentIntentDto })
   @ApiCreatedResponse({ type: PaymentResponseDto })
@@ -61,7 +70,21 @@ export class PaymentsController {
     tenantSource: "context"
   })
   async createPaymentIntent(
-    @Body() payload: CreatePaymentIntentDto
+    @Body(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        exceptionFactory: () =>
+          new BadRequestException({
+            error: {
+              code: "VALIDATION_FAILED",
+              message: "Invalid request payload"
+            }
+          })
+      })
+    )
+    payload: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
     return this.paymentsService.createPaymentIntent(payload);
   }
@@ -92,6 +115,11 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for refund mutation."
+  })
   @ApiOperation({ summary: "Admin refund payment and reconcile registration" })
   @ApiOkResponse({ type: PaymentResponseDto })
   @UseInterceptors(IdempotencyInterceptor)
@@ -121,6 +149,12 @@ export class PaymentsWebhookController {
 
   @Post("webhook")
   @HttpCode(200)
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for webhook ingestion."
+  })
   @ApiOperation({
     summary:
       "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)"

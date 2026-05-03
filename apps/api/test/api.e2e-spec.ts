@@ -3,15 +3,8 @@ import assert from "node:assert/strict";
 import { createHash, createHmac } from "node:crypto";
 import test from "node:test";
 import { INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import request, { type Response } from "supertest";
-import { AppModule } from "../src/app.module";
-import { GlobalExceptionFilter } from "../src/common/errors/global-exception.filter";
-import { LoggerService } from "../src/common/logger/logger.service";
-import { AuthMiddleware } from "../src/common/middleware/auth.middleware";
-import { RequestContextMiddleware } from "../src/common/request-context/request-context.middleware";
-import { RequestContextService } from "../src/common/request-context/request-context.service";
-import { TenantMiddleware } from "../src/common/tenant/tenant.middleware";
+import { createE2EApp } from "./e2e/bootstrap";
 
 const RETRYABILITY_VALUES = new Set([
   "NO_RETRY",
@@ -55,26 +48,7 @@ function assertErrorEnvelope(response: Response): void {
 }
 
 test("bootstrap test app", async () => {
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule]
-  }).compile();
-
-  app = moduleRef.createNestApplication();
-
-  const requestContextMiddleware = app.get(RequestContextMiddleware);
-  app.use(requestContextMiddleware.use.bind(requestContextMiddleware));
-  const authMiddleware = app.get(AuthMiddleware);
-  app.use(authMiddleware.use.bind(authMiddleware));
-  const tenantMiddleware = app.get(TenantMiddleware);
-  app.use(tenantMiddleware.use.bind(tenantMiddleware));
-
-  const loggerService = app.get(LoggerService);
-  const requestContextService = app.get(RequestContextService);
-  app.useGlobalFilters(
-    new GlobalExceptionFilter(loggerService, requestContextService)
-  );
-
-  await app.init();
+  app = await createE2EApp();
 });
 
 test("GET /health -> 200 with requestId", async () => {
@@ -166,11 +140,14 @@ test("GET /api/v2/tours with auth -> 200", async () => {
     .get("/api/v2/tours")
     .set("Authorization", `Bearer ${sessionToken}`);
   assert.equal(response.status, 200);
-  assert.equal(Array.isArray(response.body), true);
-  if (response.body.length > 0) {
-    assert.equal(typeof response.body[0].totalCapacity, "number");
-    assert.equal(typeof response.body[0].acceptedCount, "number");
-    assert.equal(typeof response.body[0].lifecycleStatus, "string");
+  assert.equal(Array.isArray(response.body.items), true);
+  assert.equal(typeof response.body.total, "number");
+  assert.equal(typeof response.body.page, "number");
+  assert.equal(typeof response.body.limit, "number");
+  if (response.body.items.length > 0) {
+    assert.equal(typeof response.body.items[0].totalCapacity, "number");
+    assert.equal(typeof response.body.items[0].acceptedCount, "number");
+    assert.equal(typeof response.body.items[0].lifecycleStatus, "string");
   }
 });
 

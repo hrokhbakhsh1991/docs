@@ -3,14 +3,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, test } from "node:test";
 import { INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import { DataSource } from "typeorm";
 import request from "supertest";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
-import { AppModule } from "../../src/app.module";
+import { createE2EApp } from "./bootstrap";
 import { ReconciliationService } from "../../src/modules/reconciliation/reconciliation.service";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 
@@ -106,7 +105,6 @@ async function publicRegister(
   const req = request(app.getHttpServer())
     .post(`/api/v2/tours/${tourId}/register`)
     .send({
-      tenantId: TENANT_ID,
       tourId,
       participantFullName: `Release User ${index}`,
       participantContactPhone: `+989120001${index.toString().padStart(3, "0")}`,
@@ -127,12 +125,7 @@ before(async () => {
     return;
   }
   applyEnvForContainer(container);
-
-  const moduleRef = await Test.createTestingModule({
-    imports: [AppModule]
-  }).compile();
-  app = moduleRef.createNestApplication();
-  await app.init();
+  app = await createE2EApp();
   dataSource = app.get(DataSource);
   await dataSource.destroy();
   dataSource.setOptions({
@@ -221,7 +214,6 @@ test("Gate-C: idempotency mismatch on public register is rejected deterministica
     .post(`/api/v2/tours/${tourId}/register`)
     .set("idempotency-key", key)
     .send({
-      tenantId: TENANT_ID,
       tourId,
       participantFullName: "Different Payload User",
       participantContactPhone: "+989120009999",

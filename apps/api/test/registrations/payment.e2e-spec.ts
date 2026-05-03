@@ -7,9 +7,11 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
+import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 
 type MockManager = {
-  findOne: (entity: unknown, options: { where: { id: string } }) => Promise<RegistrationEntity | null>;
+  findOne: (entity: unknown, options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
+    Promise<RegistrationEntity | null>;
   save: (entity: RegistrationEntity) => Promise<RegistrationEntity>;
 };
 
@@ -19,9 +21,34 @@ function createServiceWithState(initial: RegistrationEntity | null): {
 } {
   let current = initial;
 
+  const registrationMatchesWhere = (
+    row: RegistrationEntity,
+    clause: Record<string, unknown>
+  ): boolean =>
+    clause.id === row.id &&
+    (clause.tenantId === undefined || clause.tenantId === row.tenantId) &&
+    (clause.participantContactPhone === undefined ||
+      clause.participantContactPhone === row.participantContactPhone) &&
+    (clause.telegramUserId === undefined || clause.telegramUserId === row.telegramUserId);
+
   const manager: MockManager = {
-    async findOne() {
-      return current;
+    async findOne(entity, options) {
+      const name = (entity as { name?: string }).name;
+      if (name === UserEntity.name) {
+        return null;
+      }
+      if (name === RegistrationEntity.name) {
+        const w = options.where;
+        if (current == null) return null;
+        const reg = current;
+        if (Array.isArray(w)) {
+          return w.some((c) => registrationMatchesWhere(reg, c as Record<string, unknown>))
+            ? reg
+            : null;
+        }
+        return registrationMatchesWhere(reg, w as Record<string, unknown>) ? reg : null;
+      }
+      return null;
     },
     async save(entity: RegistrationEntity) {
       current = {
@@ -44,6 +71,9 @@ function createServiceWithState(initial: RegistrationEntity | null): {
     },
     getUserId(): string {
       return "99999999-9999-4999-8999-999999999999";
+    },
+    getRole(): string {
+      return "owner";
     }
   };
   const outboxService = {
@@ -51,6 +81,7 @@ function createServiceWithState(initial: RegistrationEntity | null): {
   };
 
   const service = new RegistrationsService(
+    {} as never,
     {} as never,
     dataSource as never,
     requestContextService as never,

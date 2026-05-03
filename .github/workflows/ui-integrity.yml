@@ -1,0 +1,77 @@
+# UI integrity — tokens, types, web build (includes /ui-playground).
+#
+# Vercel Preview: Root Directory = apps/web; see apps/web/vercel.json and docs/deploy-vercel-preview.md.
+# Vercel’s Git integration posts Preview URLs on each PR; append `/ui-playground` for design QA.
+
+name: ui-integrity
+
+on:
+  pull_request:
+
+concurrency:
+  group: ui-integrity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch base branch (token removal guard)
+        run: git fetch origin "${{ github.base_ref }}" --depth=1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify playground route file exists
+        run: test -f apps/web/app/ui-playground/page.tsx
+
+      - name: Verify shared UI tokens exist
+        run: |
+          test -f packages/ui/src/styles.css
+          test -f packages/ui/src/tokens/index.css
+          test -f packages/ui/src/tokens/light.css
+          test -f packages/ui/src/tokens/dark.css
+
+      - name: Build shared UI package (types)
+        run: pnpm --filter @tour/ui build
+
+      - name: Validate design tokens (doc parity + no removals vs base)
+        env:
+          TOKEN_COMPARE_REF: origin/${{ github.base_ref }}
+        run: pnpm run check:ui
+
+      - name: Typecheck web
+        run: pnpm --dir apps/web run lint
+
+      - name: Typecheck telegram
+        run: pnpm --dir apps/telegram run lint
+
+      - name: ESLint (@apps/web)
+        run: pnpm --dir apps/web run eslint
+
+      - name: ESLint (@tour/ui)
+        run: pnpm --filter @tour/ui run eslint
+
+      - name: Build web app (compiles UI + playground)
+        run: pnpm --dir apps/web run build
+
+      - name: Build Telegram app
+        run: pnpm --dir apps/telegram run build

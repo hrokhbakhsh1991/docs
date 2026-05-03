@@ -36,6 +36,15 @@ async function bootstrap() {
     .setTitle("API v2 Documentation")
     .setVersion("2.0.0")
     .addServer("/api/v2")
+    .addApiKey(
+      {
+        type: "apiKey",
+        in: "header",
+        name: "X-Internal-Api-Key",
+        description: "Internal API key for protected internal endpoints."
+      },
+      "internalApiKey"
+    )
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, swaggerDocument);

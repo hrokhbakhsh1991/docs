@@ -1,0 +1,53 @@
+# Fast smoke: web build + critical UI paths (complements ui-integrity.yml).
+# Vercel Preview URLs are created by the Vercel Git integration when the project
+# Root Directory is `apps/web`; open https://<preview>/ui-playground on each PR.
+
+name: UI Preview & Sanity Check
+
+on:
+  pull_request:
+
+concurrency:
+  group: preview-ui-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared UI package (types)
+        run: pnpm --filter @tour/ui build
+
+      - name: Build Web App
+        run: pnpm --dir apps/web run build
+
+      - name: Build Telegram app
+        run: pnpm --dir apps/telegram run build
+
+      - name: Basic UI smoke test
+        run: |
+          echo "Checking critical UI files..."
+          test -f apps/web/app/ui-playground/page.tsx
+          test -f packages/ui/src/components/Button/Button.tsx
+          test -f packages/ui/src/tokens/index.css
+          test -f packages/ui/src/styles.css
+          echo "All UI components present ✔"

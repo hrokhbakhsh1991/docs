@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: tours-e2e-postgres
+    environment:
+      POSTGRES_DB: tours_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d tours_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    volumes:
+      - postgres-e2e-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: tours-e2e-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+
+volumes:
+  postgres-e2e-data:

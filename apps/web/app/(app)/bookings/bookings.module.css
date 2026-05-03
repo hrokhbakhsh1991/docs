@@ -1,0 +1,120 @@
+.pageHeader {
+  margin-bottom: var(--space-6);
+}
+
+.h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-h1-size);
+  font-weight: var(--text-h1-weight);
+}
+
+.lede {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--color-text-secondary);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-size);
+}
+
+.table th,
+.table td {
+  padding: var(--space-4) var(--space-5);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.table th {
+  font-weight: var(--text-h3-weight);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small-size);
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cellMuted {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small-size);
+}
+
+.link {
+  color: var(--color-text-link);
+  text-decoration: none;
+  font-weight: var(--text-body-weight);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.detailGrid {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 44rem;
+}
+
+.detailSection {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.detailSectionTitle {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-h3-size);
+  font-weight: var(--text-h3-weight);
+}
+
+.detailDl {
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.detailDt {
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.detailDd {
+  margin: 0;
+  font-size: var(--text-body-size);
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.notes {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+}
+
+.emptyNotes {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small-size);
+}

@@ -9,6 +9,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreateTourDto } from "./dto/create-tour.dto";
+import { ListToursQueryDto } from "./dto/list-tours-query.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
 import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
 
@@ -146,7 +147,12 @@ export class ToursService {
     }
   }
 
-  async listTours(): Promise<TourEntity[]> {
+  async listTours(query: ListToursQueryDto): Promise<{
+    items: TourEntity[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     const tenantId = this.requestContextService.getTenantId();
     if (!tenantId) {
       throw new ForbiddenException({
@@ -157,10 +163,31 @@ export class ToursService {
       });
     }
 
-    return this.tourRepository.find({
-      where: { tenantId },
-      order: { createdAt: "DESC" }
-    });
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const search = query.search?.trim() ?? "";
+
+    const qb = this.tourRepository
+      .createQueryBuilder("t")
+      .where("t.tenantId = :tenantId", { tenantId })
+      .orderBy("t.createdAt", "DESC");
+
+    if (search.length > 0) {
+      qb.andWhere(
+        "(LOWER(t.title) LIKE :search OR LOWER(COALESCE(t.description, '')) LIKE :search)",
+        { search: `%${search.toLowerCase()}%` }
+      );
+    }
+
+    const total = await qb.getCount();
+
+    const items = await qb
+      .clone()
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return { items, total, page, limit };
   }
 
   async getTourById(tourId: string): Promise<TourEntity> {

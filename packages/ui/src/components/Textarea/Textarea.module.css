@@ -1,0 +1,73 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.label {
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  line-height: var(--text-small-leading);
+  color: var(--color-text-primary);
+}
+
+.requiredMark {
+  color: var(--color-danger);
+  margin-left: var(--space-1);
+}
+
+.control {
+  min-height: 6rem;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+.control:hover:not(:disabled):not(:read-only) {
+  border-color: var(--color-border-strong);
+}
+
+.control:focus {
+  outline: var(--focus-ring-weight, 2px) solid var(--color-primary-focus);
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+}
+
+.control:disabled {
+  background: var(--color-bg-disabled);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.controlInvalid {
+  border-color: var(--color-danger);
+}
+
+.controlInvalid:focus {
+  outline: var(--focus-ring-weight, 2px) solid var(--color-danger-focus);
+  outline-offset: 2px;
+  border-color: var(--color-danger);
+}
+
+.help {
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-danger);
+}

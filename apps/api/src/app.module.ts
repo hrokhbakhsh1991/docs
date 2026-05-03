@@ -30,6 +30,8 @@ import { JobSchedulerModule } from "./jobs/job-scheduler.module";
     ToursModule,
     OutboxModule,
     JobSchedulerModule,
+    // DI-DIAGNOSTIC: RegistrationsModule and PaymentsModule are mutually dependent via forwardRef in submodules; bootstrap stability depends on complete DI metadata at runtime.
+    // TODO(FREEZE-BLOCKER): Re-validate module initialization order for RegistrationsModule/PaymentsModule during E2E bootstrap to rule out transient undefined injections.
     RegistrationsModule,
     PaymentsModule,
     ReconciliationModule,

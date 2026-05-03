@@ -1,0 +1,39 @@
+.card {
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  padding: var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+}
+
+/* Success card — post-registration / paid (§8.1) */
+.success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+/* Warning — async / payment pending */
+.warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+/* Danger — failed / rejected */
+.danger {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+}
+
+/* Info — operational notices */
+.info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+}
+
+/* Neutral summary */
+.neutral {
+  background: var(--color-bg-muted);
+  border-color: var(--color-border-default);
+}

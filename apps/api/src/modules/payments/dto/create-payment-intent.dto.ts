@@ -21,7 +21,7 @@ export class CreatePaymentIntentDto {
   @IsDefined()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(1)
   amount!: number;
 
   @ApiProperty({ example: "IRR" })
@@ -34,7 +34,13 @@ export class CreatePaymentIntentDto {
   @IsDefined()
   @IsNotEmpty()
   @IsString()
-  provider!: string;
+  paymentProvider!: string;
+
+  // Backward-compatible alias; not used by runtime logic.
+  @ApiPropertyOptional({ example: "mock_provider", deprecated: true })
+  @IsOptional()
+  @IsString()
+  provider?: string;
 
   @ApiPropertyOptional({ example: "mock-pay-001", nullable: true })
   @IsOptional()

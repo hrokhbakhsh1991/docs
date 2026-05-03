@@ -1,0 +1,14 @@
+"use client";
+
+import { useContext } from "react";
+
+import { ToastContext } from "./toast-context";
+import type { UseToastReturn } from "./types";
+
+export function useToast(): UseToastReturn {
+  const ctx = useContext(ToastContext);
+  if (!ctx) {
+    throw new Error("useToast must be used within ToastProvider.");
+  }
+  return ctx;
+}

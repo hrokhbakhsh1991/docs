@@ -1,0 +1,49 @@
+.actionsCell {
+  text-align: right;
+}
+
+.roleBadge {
+  vertical-align: middle;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-end;
+}
+
+.toolbarGrow {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+}
+
+.toolbarFixed {
+  flex: 0 1 11rem;
+  min-width: 10rem;
+}
+
+.paginationBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.pageIndicator {
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.sortCellInner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.inlineActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}

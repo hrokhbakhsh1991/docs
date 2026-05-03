@@ -94,9 +94,26 @@ function createServiceHarness() {
   };
 
   const manager = {
-    async findOne(entity: unknown, options: { where: { id: string } }) {
+    async findOne(
+      entity: unknown,
+      options: {
+        where:
+          | { id?: string; tenantId?: string; deletedAt?: unknown }
+          | Array<{ id?: string; tenantId?: string; participantContactPhone?: string }>;
+      }
+    ) {
       if ((entity as { name?: string }).name === RegistrationEntity.name) {
-        return options.where.id === registration.id ? { ...registration } : null;
+        const clauses = Array.isArray(options.where) ? options.where : [options.where];
+        const match = clauses.find((clause) => {
+          const w = clause as Record<string, unknown>;
+          return (
+            w.id === registration.id &&
+            (!w.tenantId || w.tenantId === registration.tenantId) &&
+            (!w.participantContactPhone ||
+              w.participantContactPhone === registration.participantContactPhone)
+          );
+        });
+        return match ? { ...registration } : null;
       }
       return null;
     },
@@ -162,7 +179,8 @@ function createServiceHarness() {
 
   const requestContextService = {
     getTenantId: () => registration.tenantId,
-    getUserId: () => "leader-1"
+    getUserId: () => "leader-1",
+    getRole: () => "owner"
   };
 
   const outboxService = {
@@ -175,6 +193,7 @@ function createServiceHarness() {
   };
 
   const service = new RegistrationsService(
+    {} as never,
     {} as never,
     dataSource as never,
     requestContextService as never,

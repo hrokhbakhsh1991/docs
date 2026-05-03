@@ -1,0 +1,19 @@
+.viewport {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-3);
+  pointer-events: none;
+  max-width: min(400px, calc(100vw - var(--space-page-gutter) * 2));
+}
+
+.toast {
+  pointer-events: auto;
+}
+
+.alert {
+  box-shadow: var(--shadow-modal);
+}

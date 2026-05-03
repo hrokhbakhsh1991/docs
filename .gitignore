@@ -25,3 +25,8 @@ yarn-error.log*
 # misc
 .DS_Store
 *.tsbuildinfo
+
+# Playwright (apps/web)
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/blob-report/

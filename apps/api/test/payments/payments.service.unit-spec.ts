@@ -73,6 +73,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
         return opts.where.providerPaymentId === "provider-1" ? paymentRow : null;
       }
     } as never,
+    {} as never,
     dataSource,
     { setTenantId: () => undefined } as never,
     {
@@ -174,6 +175,7 @@ test("timeout processor fails stale pending payments and updates metrics", async
   } as unknown as OutboxService;
 
   const service = new PaymentsService(
+    {} as never,
     {} as never,
     dataSource,
     { setTenantId: () => undefined } as never,
@@ -278,6 +280,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
         return opts.where.providerPaymentId === "provider-9" ? paymentRow : null;
       }
     } as never,
+    {} as never,
     dataSource,
     { setTenantId: () => undefined } as never,
     idempotencyService as never,

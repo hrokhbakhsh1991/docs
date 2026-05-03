@@ -1,0 +1,120 @@
+.listShell {
+  overflow: hidden;
+}
+
+.listCardHeader {
+  padding-bottom: var(--space-4);
+}
+
+.listCardBody {
+  position: relative;
+}
+
+.listCardBodyFetching::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg-page);
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-end;
+}
+
+.toolbarGrow {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+}
+
+.toolbarFixed {
+  flex: 0 1 11rem;
+  min-width: 10rem;
+}
+
+.toolbarSkeleton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-end;
+  width: 100%;
+}
+
+.toolbarSkeletonBar {
+  border-radius: var(--radius-md);
+  background: var(--color-bg-muted);
+  animation: tours-list-skeleton-pulse 1.35s ease-in-out infinite;
+}
+
+.toolbarSkeletonGrow {
+  flex: 1 1 14rem;
+  min-width: 12rem;
+  height: 2.75rem;
+}
+
+.toolbarSkeletonFixed {
+  flex: 0 1 11rem;
+  min-width: 10rem;
+  height: 2.75rem;
+}
+
+.sortSkeleton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.sortSkeletonChip {
+  width: 8.5rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-muted);
+  animation: tours-list-skeleton-pulse 1.35s ease-in-out infinite;
+}
+
+@keyframes tours-list-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.sortBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+.paginationBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.pageIndicator {
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.sortCellInner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.actionsCell {
+  text-align: right;
+}

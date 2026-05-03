@@ -112,12 +112,44 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
   let activeReleasers: Array<() => void> = [];
 
   const manager = {
-    async findOne(entity: unknown, options: { where: { id: string } }) {
+    async findOne(
+      entity: unknown,
+      options: {
+        where:
+          | { id?: string; tenantId?: string; deletedAt?: unknown }
+          | Array<{ id?: string; tenantId?: string; participantContactPhone?: string }>;
+      }
+    ) {
       if ((entity as { name?: string }).name === RegistrationEntity.name) {
-        return store.registrations.get(options.where.id) ?? null;
+        const first = Array.isArray(options.where)
+          ? options.where[0]
+          : options.where;
+        if (
+          !first ||
+          typeof first !== "object" ||
+          !("id" in first) ||
+          typeof first.id !== "string"
+        ) {
+          return null;
+        }
+        const w = first as { id: string; tenantId?: string };
+        const row = store.registrations.get(w.id) ?? null;
+        if (!row) return null;
+        if (
+          typeof w.tenantId === "string" &&
+          w.tenantId.length > 0 &&
+          row.tenantId !== w.tenantId
+        ) {
+          return null;
+        }
+        return row;
       }
       if ((entity as { name?: string }).name === TourEntity.name) {
-        const byId = options.where.id === store.tour.id;
+        if (Array.isArray(options.where)) {
+          return null;
+        }
+        const tw = options.where as { id?: string };
+        const byId = tw.id === store.tour.id;
         return byId ? ({ ...store.tour } as TourEntity) : null;
       }
       return null;
@@ -272,6 +304,10 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     },
     getUserId(): string {
       return "99999999-9999-4999-8999-999999999999";
+    },
+    /** Leader-facing registration updates (matches Role.LEADER = "owner" in JWT). */
+    getRole(): string {
+      return "owner";
     }
   };
 
@@ -285,6 +321,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
   };
 
   const service = new RegistrationsService(
+    {} as never,
     {} as never,
     dataSource as never,
     requestContextService as never,

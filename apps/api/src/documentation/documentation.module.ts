@@ -13,6 +13,8 @@ import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
 import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
 import { PaymentsService } from "../modules/payments/payments.service";
 import { ReconciliationService } from "../modules/reconciliation/reconciliation.service";
+import { UsersController } from "../modules/identity/users.controller";
+import { UsersService } from "../modules/identity/users.service";
 import { RegistrationsController } from "../modules/registrations/registrations.controller";
 import { RegistrationsService } from "../modules/registrations/registrations.service";
 import { ToursController } from "../modules/tours/tours.controller";
@@ -26,7 +28,8 @@ import { ToursService } from "../modules/tours/tours.service";
     RegistrationsController,
     PaymentsController,
     PaymentsWebhookController,
-    OpsController
+    OpsController,
+    UsersController
   ],
   providers: [
     {
@@ -71,6 +74,7 @@ import { ToursService } from "../modules/tours/tours.service";
     { provide: ToursService, useValue: {} },
     { provide: RegistrationsService, useValue: {} },
     { provide: PaymentsService, useValue: {} },
+    { provide: UsersService, useValue: {} },
     { provide: IdempotencyService, useValue: {} },
     {
       provide: OutboxMetricsService,

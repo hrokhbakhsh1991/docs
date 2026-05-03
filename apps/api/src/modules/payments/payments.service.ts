@@ -7,10 +7,15 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, IsNull, Repository } from "typeorm";
+import { DataSource, EntityManager, IsNull, Repository } from "typeorm";
+import {
+  findPaymentScopedForActor,
+  registrationWhereForActor
+} from "../../common/security/ownership-scope";
 import { IdempotencyService } from "../idempotency/idempotency.service";
 import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { UserEntity } from "../identity/entities/user.entity";
 import {
   RegistrationEntity,
   RegistrationStatus
@@ -65,10 +70,14 @@ export class PaymentsService {
   constructor(
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
     private readonly dataSource: DataSource,
     private readonly requestContextService: RequestContextService,
     private readonly idempotencyService: IdempotencyService,
     private readonly outboxService: OutboxService,
+    // DI-DIAGNOSTIC: forwardRef injection path depends on correct runtime constructor metadata; verify this parameter type is emitted in E2E execution mode.
+    // TODO(FREEZE-BLOCKER): Verify forwardRef-based RegistrationsService injection is never undefined during cold bootstrap and test module initialization.
     @Inject(forwardRef(() => RegistrationsService))
     private readonly registrationsService: RegistrationsService
   ) {}
@@ -98,13 +107,40 @@ export class PaymentsService {
     manager: DataSource["manager"],
     dto: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
+    const trustedTenantId = this.requestContextService.getTenantId();
+    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
+    if (!trustedTenantId && role !== "admin") {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+
+    const registrationScope = await registrationWhereForActor(
+      manager,
+      this.userRepository,
+      this.requestContextService,
+      dto.registrationId
+    );
     const registration = await manager.findOne(RegistrationEntity, {
-      where: {
-        id: dto.registrationId,
-        deletedAt: IsNull()
-      }
+      where: registrationScope
     });
     if (!registration) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Registration not found"
+        }
+      });
+    }
+    const isAdmin = role === "admin";
+    if (
+      !isAdmin &&
+      trustedTenantId &&
+      registration.tenantId !== trustedTenantId
+    ) {
       throw new NotFoundException({
         error: {
           code: "RESOURCE_NOT_FOUND",
@@ -128,13 +164,28 @@ export class PaymentsService {
         }
       });
     }
+    const existingPaid = await manager.findOne(PaymentEntity, {
+      where: {
+        registrationId: registration.id,
+        tenantId: registration.tenantId,
+        status: PaymentStatus.PAID
+      }
+    });
+    if (existingPaid) {
+      throw new ConflictException({
+        error: {
+          code: "PAYMENT_STATUS_TRANSITION_INVALID",
+          message: "Payment already completed for registration"
+        }
+      });
+    }
 
     const payment = manager.create(PaymentEntity, {
       tenantId: registration.tenantId,
       registrationId: registration.id,
       amount: dto.amount.toString(),
       currency: dto.currency,
-      provider: dto.provider,
+      provider: dto.paymentProvider,
       providerPaymentId: dto.providerPaymentId ?? null,
       status: PaymentStatus.PENDING,
       paidAt: null,
@@ -161,6 +212,7 @@ export class PaymentsService {
 
   async listPayments(): Promise<PaymentResponseDto[]> {
     const rows = await this.paymentRepository.find({
+      where: { deletedAt: IsNull() },
       order: { createdAt: "DESC" },
       take: 100
     });
@@ -170,8 +222,13 @@ export class PaymentsService {
   async getLatestPaymentForRegistration(
     registrationId: string
   ): Promise<PaymentResponseDto | null> {
+    const registration = await this.requireRegistrationOwnedByActor(registrationId);
     const row = await this.paymentRepository.findOne({
-      where: { registrationId },
+      where: {
+        registrationId,
+        tenantId: registration.tenantId,
+        deletedAt: IsNull()
+      },
       order: { createdAt: "DESC" }
     });
     if (!row) {
@@ -180,32 +237,55 @@ export class PaymentsService {
     return this.toResponse(row);
   }
 
+  /** Ensures caller may access this registration ID (tenant + member ownership). Returns the row when allowed. */
+  private async requireRegistrationOwnedByActor(
+    registrationId: string,
+    manager?: EntityManager
+  ): Promise<RegistrationEntity> {
+    const mgr = manager ?? this.paymentRepository.manager;
+    const regWhere = await registrationWhereForActor(
+      mgr,
+      this.userRepository,
+      this.requestContextService,
+      registrationId
+    );
+    const registration = await mgr.findOne(RegistrationEntity, {
+      where: regWhere
+    });
+    if (!registration) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
+    return registration;
+  }
+
   async createPaymentIntentForRegistration(input: {
     registrationId: string;
     amount: number;
     currency: string;
-    provider: string;
+    paymentProvider: string;
     providerPaymentId?: string;
   }): Promise<PaymentResponseDto> {
     return this.createPaymentIntent({
       registrationId: input.registrationId,
       amount: input.amount,
       currency: input.currency,
-      provider: input.provider,
+      paymentProvider: input.paymentProvider,
       providerPaymentId: input.providerPaymentId
     });
   }
 
   async getPaymentById(id: string): Promise<PaymentResponseDto> {
-    const row = await this.paymentRepository.findOne({ where: { id } });
-    if (!row) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Payment not found"
-        }
-      });
-    }
+    const row = await findPaymentScopedForActor(
+      this.paymentRepository.manager,
+      this.userRepository,
+      this.requestContextService,
+      id
+    );
     return this.toResponse(row);
   }
 
@@ -213,7 +293,7 @@ export class PaymentsService {
     this.webhookReceivedTotal += 1;
     const requestId = payload.providerEventId ?? `legacy-${payload.providerPaymentId}-${payload.status}`;
     try {
-      const payment = await this.resolvePaymentForWebhook(payload.providerPaymentId);
+      const payment = await this.resolvePaymentForWebhook(payload);
       if (!payment) {
         this.webhookUnknownPaymentTotal += 1;
         return {
@@ -304,8 +384,48 @@ export class PaymentsService {
   }
 
   private async resolvePaymentForWebhook(
-    providerPaymentId: string
+    payload: Pick<
+      PaymentWebhookDto,
+      "providerPaymentId" | "paymentId" | "registrationId" | "tenantId"
+    >
   ): Promise<PaymentEntity | null> {
+    const tryScopedLookup = async (tenantId: string): Promise<PaymentEntity | null> => {
+      this.requestContextService.setTenantId(tenantId);
+      if (payload.paymentId) {
+        const byPaymentId = await this.paymentRepository.findOne({
+          where: { id: payload.paymentId }
+        });
+        if (byPaymentId) {
+          return byPaymentId;
+        }
+      }
+      if (payload.providerPaymentId) {
+        const byProviderPaymentId = await this.paymentRepository.findOne({
+          where: { providerPaymentId: payload.providerPaymentId }
+        });
+        if (byProviderPaymentId) {
+          return byProviderPaymentId;
+        }
+      }
+      if (payload.registrationId) {
+        const byRegistrationId = await this.paymentRepository.findOne({
+          where: { registrationId: payload.registrationId },
+          order: { createdAt: "DESC" }
+        });
+        if (byRegistrationId) {
+          return byRegistrationId;
+        }
+      }
+      return null;
+    };
+
+    if (payload.tenantId) {
+      const scoped = await tryScopedLookup(payload.tenantId);
+      if (scoped) {
+        return scoped;
+      }
+    }
+
     // Keep a valid tenant bound so DB session bootstrap does not fail before lookup.
     this.requestContextService.setTenantId(TENANT_PROBE_ID);
     const tenants = (await this.dataSource.query(
@@ -313,10 +433,7 @@ export class PaymentsService {
     )) as Array<{ id: string }>;
 
     for (const tenant of tenants) {
-      this.requestContextService.setTenantId(tenant.id);
-      const payment = await this.paymentRepository.findOne({
-        where: { providerPaymentId }
-      });
+      const payment = await tryScopedLookup(tenant.id);
       if (payment) {
         return payment;
       }
@@ -327,15 +444,12 @@ export class PaymentsService {
 
   async refundPayment(id: string, reason?: string): Promise<PaymentResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      const payment = await manager.findOne(PaymentEntity, { where: { id } });
-      if (!payment) {
-        throw new NotFoundException({
-          error: {
-            code: "RESOURCE_NOT_FOUND",
-            message: "Payment not found"
-          }
-        });
-      }
+      const payment = await findPaymentScopedForActor(
+        manager,
+        this.userRepository,
+        this.requestContextService,
+        id
+      );
       const updated = await this.applyPaymentStatus(
         manager,
         payment,

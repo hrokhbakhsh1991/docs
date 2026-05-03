@@ -1,0 +1,2 @@
+/** Global design tokens (light + dark). Imported by `@tour/ui` entry and/or `import "@tour/ui/styles.css"`. */
+@import "./tokens/index.css";

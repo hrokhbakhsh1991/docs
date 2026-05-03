@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
+import { ApiHeader, ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { ConfigService } from "../../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
 import { OutboxMetricsService } from "../outbox/outbox-metrics.service";
@@ -7,6 +8,7 @@ import { ReconciliationService } from "../reconciliation/reconciliation.service"
 import { RegistrationsService } from "../registrations/registrations.service";
 import { InternalApiKeyGuard } from "./internal-api-key.guard";
 
+@ApiTags("Ops")
 @Controller("internal/ops")
 @UseGuards(InternalApiKeyGuard)
 export class OpsController {
@@ -20,6 +22,13 @@ export class OpsController {
   ) {}
 
   @Get("outbox")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({ summary: "Internal outbox metrics snapshot" })
   outboxSnapshot(): {
     pending: number;
     failed: number;
@@ -36,6 +45,13 @@ export class OpsController {
   }
 
   @Get("health")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({ summary: "Internal runtime health snapshot" })
   healthSnapshot(): {
     outbox: { pending: number; failed: number };
     capacity: { driftDetected: boolean; lastReconciliationAt: string | null };

@@ -1,0 +1,98 @@
+.page {
+  max-width: var(--layout-max-content);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-page-gutter);
+}
+
+@media (min-width: 48rem) {
+  .page {
+    padding-left: var(--space-page-gutter-lg);
+    padding-right: var(--space-page-gutter-lg);
+  }
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  padding: var(--space-4);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.toolbarTitle {
+  margin: 0;
+  font-size: var(--text-h2-size);
+  font-weight: var(--text-h2-weight);
+  line-height: var(--text-h2-leading);
+  color: var(--color-text-primary);
+}
+
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.themeButtons {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.section {
+  margin-bottom: var(--space-8);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  font-size: var(--text-h3-size);
+  font-weight: var(--text-h3-weight);
+  line-height: var(--text-h3-leading);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.subheading {
+  margin: var(--space-5) 0 var(--space-3);
+  font-size: var(--text-small-size);
+  font-weight: var(--text-small-strong-weight);
+  color: var(--color-text-secondary);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.rowStretch {
+  align-items: stretch;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: min(100%, 18rem);
+  flex: 1 1 16rem;
+}
+
+.highlightedCard {
+  border-color: var(--color-primary) !important;
+  box-shadow: var(--shadow-popover);
+}
+
+.note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-micro-size);
+  color: var(--color-text-muted);
+}

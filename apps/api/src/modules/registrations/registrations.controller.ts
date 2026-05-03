@@ -2,6 +2,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiHeader,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -32,6 +33,7 @@ import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
+import { CreateBookingDto } from "./dto/create-booking.dto";
 import { CreateRegistrationDto } from "./dto/create-registration.dto";
 import { CreateWaitlistItemDto } from "./dto/create-waitlist-item.dto";
 import {
@@ -51,7 +53,6 @@ import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Registrations")
-@ApiBearerAuth()
 @Controller("api/v2")
 @UsePipes(
   new ValidationPipe({
@@ -61,6 +62,8 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
   })
 )
 export class RegistrationsController {
+  // DI-DIAGNOSTIC: Constructor-injected services observed as undefined in E2E runtime; inspect emitted decorator metadata and module container resolution.
+  // TODO(FREEZE-BLOCKER): E2E failures show RegistrationsService/RequestContextService may be undefined at runtime; verify DI graph and provider resolution order in AppModule + RegistrationsModule bootstrap path.
   constructor(
     private readonly registrationsService: RegistrationsService,
     private readonly paymentsService: PaymentsService,
@@ -71,14 +74,28 @@ export class RegistrationsController {
   @Post("tours/:tourId/register")
   @HttpCode(201)
   @UseGuards(RateLimitGuard)
+  @ApiHeader({
+    name: "idempotency-key",
+    required: false,
+    description: "Optional idempotency key for safe replay."
+  })
   @ApiOperation({ summary: "Public registration endpoint (capacity-aware)" })
+  @ApiCreatedResponse({
+    schema: {
+      type: "object",
+      additionalProperties: true
+    }
+  })
   async publicRegister(
     @Param("tourId", new ParseUUIDPipe()) tourId: string,
     @Body() payload: CreateRegistrationDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<Record<string, unknown>> {
-    this.requestContextService.setTenantId(payload.tenantId);
+    const tenantScope = await this.registrationsService.getTenantIdForTourOrThrow(tourId);
+    this.requestContextService.setTenantId(tenantScope);
     const handler = async () => {
+      // DI-DIAGNOSTIC: Undefined registrationsService at this call site indicates controller instance is constructed without resolved provider.
+      // TODO(FREEZE-BLOCKER): Runtime error observed on createPublicRegistrationOrWaitlist indicates registrationsService instance can be undefined in current E2E bootstrap.
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
         tourId,
@@ -89,7 +106,7 @@ export class RegistrationsController {
               registrationId,
               amount: 0,
               currency: "IRR",
-              provider: "mock_provider",
+              paymentProvider: "mock_provider",
               providerPaymentId: `mock-${registrationId}`
             } satisfies CreatePaymentIntentDto)
           )
@@ -119,7 +136,7 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: payload.tenantId,
+        tenantId: tenantScope,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/register",
         requestHash,
@@ -133,13 +150,29 @@ export class RegistrationsController {
   @Post("tours/:tourId/waitlist")
   @HttpCode(201)
   @UseGuards(RateLimitGuard)
+  @ApiHeader({
+    name: "idempotency-key",
+    required: false,
+    description: "Optional idempotency key for safe replay."
+  })
   @ApiOperation({ summary: "Public explicit waitlist endpoint" })
+  @ApiCreatedResponse({
+    schema: {
+      type: "object",
+      properties: {
+        waitlistItemId: { type: "string" },
+        queuePosition: { type: "number" }
+      },
+      required: ["waitlistItemId", "queuePosition"]
+    }
+  })
   async publicWaitlist(
     @Param("tourId", new ParseUUIDPipe()) tourId: string,
     @Body() payload: CreateWaitlistItemDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<{ waitlistItemId: string; queuePosition: number }> {
-    this.requestContextService.setTenantId(payload.tenantId);
+    const tenantScope = await this.registrationsService.getTenantIdForTourOrThrow(tourId);
+    this.requestContextService.setTenantId(tenantScope);
     const handler = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
@@ -168,7 +201,7 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: payload.tenantId,
+        tenantId: tenantScope,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/waitlist",
         requestHash,
@@ -182,7 +215,13 @@ export class RegistrationsController {
   @Post("registrations")
   @HttpCode(201)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for create mutation."
+  })
+  @Roles(Role.PARTICIPANT, Role.LEADER, Role.ADMIN)
   @ApiOperation({
     summary: "Create registration (Participant or Leader)"
   })
@@ -212,8 +251,67 @@ export class RegistrationsController {
     return this.registrationsService.createRegistration(payload);
   }
 
-  @Get("registrations/:registrationId")
+  @Post("bookings")
+  @HttpCode(201)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for create mutation."
+  })
   @Roles(Role.PARTICIPANT, Role.LEADER)
+  @ApiOperation({
+    summary: "Create booking (register for tour)",
+    description:
+      "Authenticated shortcut: send only tourId; server fills participant fields from the signed-in user."
+  })
+  @ApiCreatedResponse({ type: RegistrationResponseDto })
+  @ApiBadRequestResponse({
+    type: ErrorResponseDto,
+    description: "Validation errors (e.g. VALIDATION_FAILED, VALIDATION_REQUIRED_FIELD_MISSING)"
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: "Authentication errors (AUTH_*)"
+  })
+  @ApiForbiddenResponse({
+    type: ErrorResponseDto,
+    description: "Tenant and authorization errors (TENANT_*, AUTH_FORBIDDEN_ROLE)"
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/bookings",
+    statusCode: 201,
+    required: true,
+    tenantSource: "context"
+  })
+  async createBooking(@Body() payload: CreateBookingDto): Promise<RegistrationResponseDto> {
+    return this.registrationsService.createBooking(payload.tourId);
+  }
+
+  @Get("bookings")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @ApiOperation({ summary: "List current user bookings" })
+  @ApiOkResponse({ type: RegistrationResponseDto, isArray: true })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: "Authentication errors (AUTH_*)"
+  })
+  @ApiForbiddenResponse({
+    type: ErrorResponseDto,
+    description: "Tenant and authorization errors (TENANT_*, AUTH_FORBIDDEN_ROLE)"
+  })
+  async listBookings(): Promise<RegistrationResponseDto[]> {
+    return this.registrationsService.listBookings();
+  }
+
+  @Get("registrations/:registrationId")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(Role.PARTICIPANT, Role.LEADER, Role.ADMIN)
   @ApiOperation({
     summary: "Get registration by id (Participant or Leader)"
   })
@@ -232,6 +330,12 @@ export class RegistrationsController {
 
   @Patch("registrations/:registrationId/status")
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for status mutation."
+  })
   @Roles(Role.LEADER)
   @ApiOperation({
     summary: "Update registration status (Leader only)"
@@ -257,6 +361,12 @@ export class RegistrationsController {
 
   @Patch("registrations/:registrationId/payment")
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for payment mutation."
+  })
   @Roles(Role.LEADER)
   @ApiOperation({
     summary: "Update registration payment status (Leader only)"
@@ -301,6 +411,12 @@ export class RegistrationsController {
   @Post("waitlist-items")
   @HttpCode(201)
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for create mutation."
+  })
   @Roles(Role.PARTICIPANT, Role.LEADER)
   @ApiOperation({
     summary: "Create waitlist item (Participant or Leader)"
@@ -326,6 +442,12 @@ export class RegistrationsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.LEADER)
   @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for convert mutation."
+  })
   @ApiOperation({
     summary: "Convert waitlist item (Leader only)"
   })
@@ -368,6 +490,12 @@ export class RegistrationsController {
   @Patch("waitlist-items/:waitlistItemId/cancel")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PARTICIPANT, Role.LEADER)
+  @ApiBearerAuth()
+  @ApiHeader({
+    name: "idempotency-key",
+    required: true,
+    description: "Required idempotency key for cancel mutation."
+  })
   @ApiOperation({
     summary: "Cancel waitlist item (Participant or Leader)"
   })

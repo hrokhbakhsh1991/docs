@@ -9,11 +9,12 @@
     "start": "node dist/src/main.js",
     "start:prod": "node dist/src/main.js",
     "start:worker": "APP_RUNTIME_ROLE=worker ENABLE_SCHEDULERS=true node dist/src/main.js",
-    "dev": "pnpm build && node dist/src/main.js",
+    "dev": "pnpm build && node --env-file=.env dist/src/main.js",
     "dev:watch": "tsc -w",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test \"test/outbox/**/*.ts\" \"test/registrations/**/*.unit-spec.ts\" \"test/registrations/**/*.e2e-spec.ts\" \"test/reconciliation/**/*.ts\" \"test/payments/**/*.ts\" \"test/idempotency/**/*.ts\" \"test/guards/**/*.ts\" \"test/jobs/**/*.ts\" \"test/tenant-isolation.spec.ts\" \"test/rls-guardrail.spec.ts\" \"src/**/*.spec.ts\"",
-    "test:e2e": "node --import tsx --test test/api.e2e-spec.ts test/e2e/registrations.e2e-spec.ts"
+    "test": "node --import tsx --test \"test/outbox/**/*.ts\" \"test/registrations/**/*.unit-spec.ts\" \"test/registrations/**/*.e2e-spec.ts\" \"test/reconciliation/**/*.ts\" \"test/payments/**/*.ts\" \"test/idempotency/**/*.ts\" \"test/guards/**/*.ts\" \"test/jobs/**/*.ts\" \"test/security/**/*.ts\" \"test/tenant-isolation.spec.ts\" \"test/rls-guardrail.spec.ts\" \"src/**/*.spec.ts\"",
+    "test:e2e": "node --import tsx --test test/api.e2e-spec.ts test/e2e/registrations.e2e-spec.ts",
+    "migrate:run": "tsx src/scripts/run-migrations.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.22",

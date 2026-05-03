@@ -20,19 +20,19 @@ export class PaymentResponseDto {
   @ApiProperty()
   provider!: string;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   providerPaymentId!: string | null;
 
   @ApiProperty({ enum: PaymentStatus })
   status!: PaymentStatus;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   paidAt!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   failedAt!: string | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   refundedAt!: string | null;
 
   @ApiProperty()

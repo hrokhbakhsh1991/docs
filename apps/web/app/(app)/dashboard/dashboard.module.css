@@ -1,0 +1,55 @@
+.pageHeader {
+  margin-bottom: var(--space-6);
+}
+
+.h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-h1-size);
+  font-weight: var(--text-h1-weight);
+}
+
+.lede {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--color-text-secondary);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryCard {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  height: 100%;
+}
+
+.summaryCardHeader {
+  padding: var(--space-5) var(--space-5) var(--space-2);
+}
+
+.summaryCardTitle {
+  margin: 0;
+  font-size: var(--text-h3-size);
+  font-weight: var(--text-h3-weight);
+  line-height: var(--text-h3-leading);
+  color: var(--color-text-primary);
+}
+
+.summaryCardHint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.summaryCardBody {
+  padding: var(--space-4) var(--space-5);
+}
