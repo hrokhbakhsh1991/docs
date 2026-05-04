@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import { Button } from "@tour/ui";
 
-import { BookingStatusBadge } from "../../../app/(app)/bookings/booking-badges";
+import { BookingStatusBadge } from "@/components/shared/badges";
 import listStyles from "../../../app/(app)/bookings/bookings.module.css";
 import { formatTourDateLabel } from "../tours/formatters";
 

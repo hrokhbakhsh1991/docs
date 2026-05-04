@@ -9,6 +9,7 @@ import { SchedulerRuntimeMetricsService } from "../jobs/scheduler-runtime-metric
 import { IdempotencyService } from "../modules/idempotency/idempotency.service";
 import { AuthController } from "../modules/auth/auth.controller";
 import { AuthService } from "../modules/auth/auth.service";
+import { WorkspaceService } from "../modules/auth/workspace.service";
 import { OpsController } from "../modules/ops/ops.controller";
 import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
 import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
@@ -49,7 +50,7 @@ import { ToursService } from "../modules/tours/tours.service";
     {
       provide: getDataSourceToken(),
       useValue: {
-        query: async () => [{ ok: 1 }]
+        query: async () => []
       }
     },
     {
@@ -78,7 +79,18 @@ import { ToursService } from "../modules/tours/tours.service";
         setTenantId: () => undefined
       }
     },
-    { provide: AuthService, useValue: {} },
+    {
+      provide: AuthService,
+      useValue: {
+        createWorkspaceSession: async () => ({
+          session_token: "openapi-build-token",
+          user_id: "00000000-0000-4000-8000-000000000001",
+          tenant_id: "00000000-0000-4000-8000-000000000000",
+          entry_mode: "web" as const
+        })
+      }
+    },
+    WorkspaceService,
     {
       provide: ConfigService,
       useValue: {

@@ -39,9 +39,6 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   };
 
   const dataSource = {
-    async query() {
-      return [{ id: "tenant-1" }];
-    },
     async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
@@ -94,6 +91,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   );
 
   await service.processWebhook({
+    tenant_id: "tenant-1",
     providerPaymentId: "provider-1",
     status: PaymentStatus.PAID
   });
@@ -221,9 +219,6 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   };
 
   const dataSource = {
-    async query() {
-      return [{ id: "tenant-1" }];
-    },
     async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
@@ -289,11 +284,13 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   );
 
   const first = await service.processWebhook({
+    tenant_id: "tenant-1",
     providerEventId: "evt-1",
     providerPaymentId: "provider-9",
     status: PaymentStatus.PAID
   });
   const second = await service.processWebhook({
+    tenant_id: "tenant-1",
     providerEventId: "evt-1",
     providerPaymentId: "provider-9",
     status: PaymentStatus.PAID

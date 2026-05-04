@@ -115,6 +115,84 @@
         ]
       }
     },
+    "/api/v2/auth/workspaces": {
+      "get": {
+        "operationId": "AuthController_listWorkspaces",
+        "summary": "List workspaces for the authenticated user",
+        "description": "Returns tenant memberships from user_tenants joined to tenants (non-deleted). Reads via SECURITY DEFINER function list_user_workspaces_for_auth so rows are not hidden by tenant RLS.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Active memberships for the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthWorkspaceItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/auth/workspace/session": {
+      "post": {
+        "operationId": "AuthController_workspaceSession",
+        "summary": "Issue session JWT for a workspace tenant",
+        "description": "Uses JWT `sub` as the user, verifies membership via user_tenants (definer function), and returns a new access token scoped to the requested tenant_id and role.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New web session token for the selected tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebSessionResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "HTTP 403 — authenticated user is not a member of the requested tenant_id"
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/auth/link-telegram": {
       "post": {
         "operationId": "AuthController_linkTelegram",
@@ -1779,6 +1857,46 @@
           "entry_mode"
         ]
       },
+      "AuthWorkspaceItemDto": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenant identifier from user_tenants.tenant_id",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "tenant_name": {
+            "type": "string",
+            "description": "Display name from tenants.name",
+            "example": "Mountain Collective"
+          },
+          "role": {
+            "type": "string",
+            "description": "Tenant-scoped role from user_tenants.role",
+            "example": "leader"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "tenant_name",
+          "role"
+        ]
+      },
+      "WorkspaceSessionDto": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Target tenant; caller must have an active user_tenants row for this tenant.",
+            "example": "11111111-1111-4111-8111-111111111111"
+          }
+        },
+        "required": [
+          "tenant_id"
+        ]
+      },
       "LinkTelegramDto": {
         "type": "object",
         "properties": {
@@ -2137,10 +2255,13 @@
             "type": "string",
             "enum": [
               "NotPaid",
-              "Partial",
-              "Paid"
+              "Paid",
+              "Refunded",
+              "Failed",
+              "Partial"
             ],
-            "example": "NotPaid"
+            "example": "NotPaid",
+            "description": "Persisted aggregate status (full entity enum). PATCH `/payment` accepts only NotPaid, Partial, Paid."
           },
           "paidAmount": {
             "type": "string",
@@ -2640,17 +2761,11 @@
       "PaymentWebhookDto": {
         "type": "object",
         "properties": {
-          "paymentId": {
+          "tenant_id": {
             "type": "string",
-            "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-          },
-          "registrationId": {
-            "type": "string",
-            "example": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
-          },
-          "tenantId": {
-            "type": "string",
-            "example": "11111111-1111-4111-8111-111111111111"
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111",
+            "description": "Tenant metadata from provider payload."
           },
           "providerEventId": {
             "type": "string",
@@ -2675,6 +2790,7 @@
           }
         },
         "required": [
+          "tenant_id",
           "providerPaymentId",
           "status"
         ]

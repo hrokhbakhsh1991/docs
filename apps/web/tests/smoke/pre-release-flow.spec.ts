@@ -37,7 +37,8 @@ test.describe("pre-release smoke flow", () => {
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
-            session_token: "header.eyJzdWIiOiJ1c2VyLTEiLCJ0ZW5hbnRfaWQiOiJ0ZW5hbnQtMSJ9.signature",
+            session_token:
+              "header.eyJzdWIiOiJ1c2VyLTEiLCJ0ZW5hbnRfaWQiOiJ0ZW5hbnQtMSIsInJvbGUiOiJtZW1iZXIifQ.signature",
             user_id: "user-1",
             tenant_id: "tenant-1",
             entry_mode: "web",

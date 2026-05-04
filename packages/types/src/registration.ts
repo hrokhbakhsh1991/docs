@@ -17,8 +17,16 @@ export type RegistrationStatus =
   | "NoShow"
   | "Refunded";
 
-/** Mirrors RegistrationResponseDto.paymentStatus */
-export type RegistrationPaymentStatus = "NotPaid" | "Partial" | "Paid";
+/**
+ * Persisted registration payment status (`registration.entity.ts` → `RegistrationPaymentStatus`).
+ * Matches API responses; public PATCH body remains limited to `NotPaid` | `Partial` | `Paid`.
+ */
+export type RegistrationPaymentStatus =
+  | "NotPaid"
+  | "Partial"
+  | "Paid"
+  | "Failed"
+  | "Refunded";
 
 export interface RegistrationResponseDto {
   id: string;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   forwardRef,
@@ -28,7 +29,6 @@ import { PaymentEntity, PaymentStatus } from "./entities/payment.entity";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
-const TENANT_PROBE_ID = "00000000-0000-4000-8000-000000000000";
 
 export type PaymentRuntimeMetrics = {
   paymentIntentsCreatedTotal: number;
@@ -53,6 +53,8 @@ export type WebhookProcessResult = {
   tenantId: string | null;
   status: PaymentStatus;
 };
+
+const WEBHOOK_TENANT_BINDING_FAILED = "WEBHOOK_TENANT_BINDING_FAILED";
 
 @Injectable()
 export class PaymentsService {
@@ -314,7 +316,13 @@ export class PaymentsService {
     this.webhookReceivedTotal += 1;
     const requestId = payload.providerEventId ?? `legacy-${payload.providerPaymentId}-${payload.status}`;
     try {
-      const payment = await this.resolvePaymentForWebhook(payload);
+      const payloadTenantId = payload.tenant_id.trim().toLowerCase();
+      const payment = await this.paymentRepository.findOne({
+        where: {
+          providerPaymentId: payload.providerPaymentId,
+          tenantId: payloadTenantId
+        }
+      });
       if (!payment) {
         this.webhookUnknownPaymentTotal += 1;
         return {
@@ -324,15 +332,37 @@ export class PaymentsService {
           providerPaymentId: payload.providerPaymentId,
           providerEventId: payload.providerEventId ?? null,
           provider: null,
-          tenantId: null,
+          tenantId: payloadTenantId,
           status: payload.status
         };
       }
-      this.requestContextService.setTenantId(payment.tenantId);
+      const paymentTenantId = payment.tenantId.trim().toLowerCase();
+      if (paymentTenantId !== payloadTenantId) {
+        throw new BadRequestException({
+          error: {
+            code: WEBHOOK_TENANT_BINDING_FAILED,
+            message: "Webhook tenant_id does not match payment tenant scope"
+          }
+        });
+      }
+      try {
+        this.requestContextService.setTenantId(payment.tenantId);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error.message : String(error);
+        throw new BadRequestException({
+          error: {
+            code: WEBHOOK_TENANT_BINDING_FAILED,
+            message: `Failed to bind tenant context for webhook: ${err}`
+          }
+        });
+      }
 
       return await this.dataSource.transaction(async (manager) => {
         const scopedPayment = await manager.findOne(PaymentEntity, {
-          where: { providerPaymentId: payload.providerPaymentId }
+          where: {
+            providerPaymentId: payload.providerPaymentId,
+            tenantId: payloadTenantId
+          }
         });
         if (!scopedPayment) {
           this.webhookUnknownPaymentTotal += 1;
@@ -343,7 +373,7 @@ export class PaymentsService {
             providerPaymentId: payload.providerPaymentId,
             providerEventId: payload.providerEventId ?? null,
             provider: null,
-            tenantId: null,
+            tenantId: payloadTenantId,
             status: payload.status
           };
         }
@@ -402,65 +432,6 @@ export class PaymentsService {
       this.webhookFailedTotal += 1;
       throw error;
     }
-  }
-
-  private async resolvePaymentForWebhook(
-    payload: Pick<
-      PaymentWebhookDto,
-      "providerPaymentId" | "paymentId" | "registrationId" | "tenantId"
-    >
-  ): Promise<PaymentEntity | null> {
-    const tryScopedLookup = async (tenantId: string): Promise<PaymentEntity | null> => {
-      this.requestContextService.setTenantId(tenantId);
-      if (payload.paymentId) {
-        const byPaymentId = await this.paymentRepository.findOne({
-          where: { id: payload.paymentId }
-        });
-        if (byPaymentId) {
-          return byPaymentId;
-        }
-      }
-      if (payload.providerPaymentId) {
-        const byProviderPaymentId = await this.paymentRepository.findOne({
-          where: { providerPaymentId: payload.providerPaymentId }
-        });
-        if (byProviderPaymentId) {
-          return byProviderPaymentId;
-        }
-      }
-      if (payload.registrationId) {
-        const byRegistrationId = await this.paymentRepository.findOne({
-          where: { registrationId: payload.registrationId },
-          order: { createdAt: "DESC" }
-        });
-        if (byRegistrationId) {
-          return byRegistrationId;
-        }
-      }
-      return null;
-    };
-
-    if (payload.tenantId) {
-      const scoped = await tryScopedLookup(payload.tenantId);
-      if (scoped) {
-        return scoped;
-      }
-    }
-
-    // Keep a valid tenant bound so DB session bootstrap does not fail before lookup.
-    this.requestContextService.setTenantId(TENANT_PROBE_ID);
-    const tenants = (await this.dataSource.query(
-      'SELECT "id" FROM "tenants"'
-    )) as Array<{ id: string }>;
-
-    for (const tenant of tenants) {
-      const payment = await tryScopedLookup(tenant.id);
-      if (payment) {
-        return payment;
-      }
-    }
-
-    return null;
   }
 
   async refundPayment(id: string, reason?: string): Promise<PaymentResponseDto> {

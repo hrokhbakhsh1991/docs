@@ -3,9 +3,11 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 
+import { leaderDashboardUseAggregateApi } from "@/lib/config/feature-flags";
 import { registrationKeys, tourKeys } from "@/lib/query-keys";
 import { listRegistrationsForTour } from "@/lib/services/registrations.service";
-import { getTours } from "@/lib/services/tours.service";
+import { getLeaderWorkspaceAggregate } from "@/lib/services/leader-workspace.service";
+import { DEFAULT_MAX_TOUR_PAGES, fetchAllToursSafely } from "@/lib/tours/fetchAllToursSafely";
 
 import type { BookingDto } from "@repo/types";
 
@@ -14,9 +16,27 @@ export type LeaderRegistrationRow = BookingDto & {
 };
 
 export function useLeaderTourRegistrations(enabled: boolean) {
+  const useAggregateApi = leaderDashboardUseAggregateApi();
+
   const toursQuery = useQuery({
-    queryKey: tourKeys.list({ search: "" }),
-    queryFn: () => getTours({ search: "" }),
+    queryKey: [
+      ...tourKeys.lists(),
+      useAggregateApi ? "aggregate" : "safe-all",
+      { search: "", maxPages: DEFAULT_MAX_TOUR_PAGES },
+    ],
+    queryFn: async () => {
+      if (useAggregateApi) {
+        const aggregate = await getLeaderWorkspaceAggregate();
+        return {
+          tours: aggregate.tours,
+          total: aggregate.tours.length,
+          limit: aggregate.tours.length || 1,
+          pagesFetched: 1,
+          partial: aggregate.partial,
+        };
+      }
+      return fetchAllToursSafely({ search: "", maxPages: DEFAULT_MAX_TOUR_PAGES });
+    },
     enabled,
     staleTime: 30_000,
   });
@@ -65,6 +85,8 @@ export function useLeaderTourRegistrations(enabled: boolean) {
     pendingRows,
     pendingCount: pendingRows.length,
     totalRegistrationCount: rows.length,
+    partial: toursQuery.data?.partial ?? false,
+    usingAggregateApi: useAggregateApi,
     isLoading: !enabled ? false : toursQuery.isPending || registrationsLoading,
     isError: toursQuery.isError,
     registrationsError,

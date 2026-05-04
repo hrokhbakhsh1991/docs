@@ -1,16 +1,33 @@
 # Wireflows Must-Have Journeys v2
 
 Document-ID: MKT-DOC-WIREFLOWS-MUST-HAVE-V2  
-Version: v1.0  
+Version: v1.1  
 Status: Active  
 Owner: Product Documentation Team  
-Last-Updated: 2026-04-28  
+Last-Updated: 2026-05-04  
 Language: English  
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
 ## Purpose
 
 Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract alignment.
+
+---
+
+## Participant intake payloads (API contract)
+
+> **Clients MUST NOT send `tenant_id`, `tenantId`, or `user_id`** in JSON bodies for **`POST /api/v2/registrations`**, **`POST /api/v2/waitlist-items`**, **`POST /api/v2/tours/{tourId}/register`**, or **`POST /api/v2/tours/{tourId}/waitlist`** (unknown keys fail validation).
+
+**Derived server-side**
+
+| Concept | Source |
+|---------|--------|
+| **Tenant scope** | **Authenticated routes:** JWT **`tenant_id` claim** after verification, aligned with **`tour.tenantId`** for mutations (see `docs/security/api_ownership_audit.md`). **Public register/waitlist:** **`tourId` path** → server resolves tenant (`resolve_tour_tenant_for_public_flow`); no client tenant field. |
+| **Actor / user identity** | **`Authorization: Bearer`** present → identity from JWT **`sub`** (not from body `user_id`). Anonymous public flows use intake/contact fields only. |
+
+Wire shapes: **`CreateRegistrationDto`** / **`CreateWaitlistItemDto`** (`apps/api/openapi.json`); detail: **`docs/20-architecture/contracts/participant_intake_schema.md`**.
+
+---
 
 ## A) Wireflow Coverage Matrix
 
@@ -28,11 +45,22 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
 | `J-I-02` | `I-02` Web entry without Telegram | `S-ID-02 -> S-PART-01` | `flows/telegram_integration` | `POST /api/v2/auth/web/session` | Covered |
 | `J-I-03` | `I-03` Connect Telegram post-onboarding | `S-ID-02 -> S-ID-03 -> S-PART-03` | `flows/telegram_integration` | `POST /api/v2/auth/link-telegram` | Covered |
 
+### Current Implementation vs MVP Endpoints
+
+- Journey docs for **`J-L-02`** and **`J-L-05`** currently point to:
+  - `GET /api/v2/dashboard/leader-workspace`
+  - `GET /api/v2/reconciliation/export.csv`
+- Current FE implementation in leader/review uses temporary frontend composition:
+  - tours list + per-tour registrations composition
+  - client-side CSV export
+- **Traceability risk:** product wireflow endpoint touchpoints and runtime FE behavior may diverge during audits/testing evidence.
+- **TODO:** **Switch to backend aggregation endpoints when shipped.**
+
 ## Wireflows (Detailed)
 
 ### J-L-01 (L-01)
-- **Actors / entry mode:** Leader, web mode.
-- **Preconditions:** Authenticated leader session in tenant scope.
+- **Actors / entry mode:** Leader (web).
+- **Preconditions:** Authenticated Leader session in tenant scope.
 - **Ordered transitions:**
   1. `S-LEAD-02` -> open create action.
   2. `S-LEAD-03` -> submit tour form.
@@ -46,7 +74,7 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
 - **Completion condition:** tour appears in tenant-scoped list.
 
 ### J-L-02 (L-02)
-- **Actors / entry mode:** Leader, web mode.
+- **Actors / entry mode:** Leader (web).
 - **Preconditions:** Pending registrations exist.
 - **Ordered transitions:**
   1. `S-LEAD-01` -> open pending queue.
@@ -62,7 +90,7 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
 - **Completion condition:** selected registration reaches target status and queue summary updates.
 
 ### J-L-03 (L-03)
-- **Actors / entry mode:** Leader, web mode.
+- **Actors / entry mode:** Leader (web).
 - **Preconditions:** Tour and capacity context exists.
 - **Ordered transitions:**
   1. `S-LEAD-04` -> accept/cancel action affecting capacity.
@@ -77,7 +105,7 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
 - **Completion condition:** capacity reflects accepted count and waitlist conversion is consistent.
 
 ### J-L-04 (L-04)
-- **Actors / entry mode:** Leader, web mode.
+- **Actors / entry mode:** Leader (web).
 - **Preconditions:** Target registration exists in tenant scope.
 - **Ordered transitions:**
   1. `S-LEAD-04` -> open payment action for registration.
@@ -92,7 +120,7 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
 - **Completion condition:** payment status persists and is visible in panel.
 
 ### J-L-05 (L-05)
-- **Actors / entry mode:** Leader, web mode.
+- **Actors / entry mode:** Leader (web).
 - **Preconditions:** Leader has at least one tour in tenant scope.
 - **Ordered transitions:**
   1. `S-LEAD-06` -> load aggregated payment/reconciliation data.
@@ -117,10 +145,39 @@ Formalize end-to-end wireflows for P0 UX journeys with strict FE/BE contract ali
   - `POST /api/v2/registrations` success: `registration_id`, `registration_status=Pending`.
   - `GET /api/v2/registrations/{registrationId}` for status render.
   - primary errors: `VALIDATION_REQUIRED_FIELD_MISSING`, `VALIDATION_ENUM_INVALID`, `AUTH_TELEGRAM_CONTEXT_REQUIRED`, `REGISTRATION_DUPLICATE_ACTIVE`, `CAPACITY_FULL`, `TENANT_SCOPE_CONFLICT`.
+
+**Example JSON bodies** (implemented DTOs — no `tenant_id`, no `user_id`; tenant/user from session + tour; see **Participant intake payloads (API contract)** above.)
+
+> **Note:** Tenant scope is derived from trusted server context (authenticated JWT/session tenant or server-side `tourId` resolution in public flows), never from client-provided JSON body fields.
+
+*Registration — `POST /api/v2/registrations`* (`CreateRegistrationDto`; optional fields such as `telegramUserId`, `participantNote` omitted here):
+
+```json
+{
+  "tourId": "22222222-2222-4222-8222-222222222222",
+  "participantFullName": "Ali Ahmadi",
+  "participantContactPhone": "+989121234567",
+  "transportMode": "group_vehicle",
+  "entryMode": "web"
+}
+```
+
+*Waitlist — `POST /api/v2/waitlist-items`* (`CreateWaitlistItemDto`; **narrower** than registration — no `participantNote` / `vehicleSeatCapacity`). Public equivalent: `POST /api/v2/tours/{tourId}/waitlist` with same body shape; keep body `tourId` consistent with path when both are sent.
+
+```json
+{
+  "tourId": "22222222-2222-4222-8222-222222222222",
+  "participantFullName": "Sara Mohammadi",
+  "participantContactPhone": "+989351112233",
+  "transportMode": "other",
+  "entryMode": "web"
+}
+```
+
 - **Alternate/error branches (explicit waitlist formalization):**
   - `CAPACITY_FULL` at `S-PART-02` -> render blocking waitlist CTA.
   - user action: choose waitlist enrollment from same context.
-  - endpoint touchpoint: `POST /api/v2/waitlist-items` with `tenant_id`, `tour_id`, `user_id`.
+  - endpoint touchpoint: authenticated **`POST /api/v2/waitlist-items`** or public **`POST /api/v2/tours/{tourId}/waitlist`** using the waitlist JSON shape above — **not** snake_case `tenant_id`, `tour_id`, or `user_id`; **`tourId`** (camelCase) remains required as in the example. Tenant scope and actor identity are **derived server-side**.
   - success outcome: waitlist enrollment acknowledged in same participant context; user keeps status awareness path via `S-PART-03`.
   - failure outcome: `WAITLIST_CONFLICT_ACTIVE_RECORD` or `TENANT_SCOPE_CONFLICT` keeps user on `S-PART-02` error state with corrective guidance.
 - **Completion condition:** participant has visible registration status record.

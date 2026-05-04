@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
-import { BookingStatusBadge } from "./booking-badges";
+import { BookingStatusBadge } from "@/components/shared/badges";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { bookingKeys, tourKeys } from "@/lib/query-keys";

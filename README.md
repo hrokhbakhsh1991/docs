@@ -105,6 +105,8 @@ pnpm lint
 
 API base path is `/api/v2` (Swagger server URL is aligned to this base path).
 
+> **NOTE (current frontend approach):** In leader/review flows, FE currently composes data on the client (`getTours` + per-tour registrations + client-side CSV) as a temporary implementation until aggregation endpoints (`GET /api/v2/dashboard/leader-workspace`, `GET /api/v2/reconciliation/export.csv`) are shipped.
+
 - Auth
   - `POST /api/v2/auth/web/session`
   - `POST /api/v2/auth/telegram/session`

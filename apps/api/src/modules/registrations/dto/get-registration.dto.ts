@@ -9,12 +9,6 @@ import {
   RegistrationTransportModeDto
 } from "./create-registration.dto";
 
-const PUBLIC_PAYMENT_STATUS_VALUES = [
-  RegistrationPaymentStatus.NOT_PAID,
-  RegistrationPaymentStatus.PARTIAL,
-  RegistrationPaymentStatus.PAID
-] as const;
-
 export class RegistrationResponseDto {
   @ApiProperty({ example: "33333333-3333-4333-8333-333333333333" })
   id!: string;
@@ -53,8 +47,10 @@ export class RegistrationResponseDto {
   status!: RegistrationStatus;
 
   @ApiProperty({
-    enum: PUBLIC_PAYMENT_STATUS_VALUES,
-    example: RegistrationPaymentStatus.NOT_PAID
+    enum: RegistrationPaymentStatus,
+    example: RegistrationPaymentStatus.NOT_PAID,
+    description:
+      "Persisted aggregate status (full entity enum). PATCH `/payment` accepts only NotPaid, Partial, Paid."
   })
   paymentStatus!: RegistrationPaymentStatus;
 

@@ -6,6 +6,7 @@
     "build": "nest build && node dist/src/openapi.generate.js",
     "seed": "ts-node src/scripts/seed.ts",
     "seed:demo-leader-tours": "node --env-file=.env --import tsx src/scripts/seed-demo-leader-tours.ts",
+    "seed:leader-bookings": "node --env-file=.env --import tsx src/scripts/seed-leader-bookings.ts",
     "auth:debug-audit": "node --env-file=.env --import tsx src/scripts/auth-debug-audit.ts",
     "e2e:freeze": "ts-node src/scripts/freeze-e2e.ts",
     "start": "node dist/src/main.js",

@@ -128,15 +128,18 @@ export function DashboardPageClient() {
         <li className={styles.gridItem}>
           <Card className={styles.gridCard}>
             <CardHeader>
-              <CardTitle>Bookings</CardTitle>
-              <CardSubtitle>Your registrations and payment summaries (J‑P‑02, J‑P‑03).</CardSubtitle>
+              <CardTitle>Registrations & payments</CardTitle>
+              <CardSubtitle>
+                Participant bookings live under their own workspace; leaders reconcile via the review queue and tour
+                workspaces (J‑P‑02, J‑P‑03).
+              </CardSubtitle>
             </CardHeader>
             <CardBody className={styles.cardBody}>
-              <div className={styles.bodySpacer} aria-hidden />
+              <p className={styles.bodyText}>Use the review queue to approve registrations and update payment fields.</p>
             </CardBody>
             <CardFooter>
-              <Button type="button" variant="secondary" onClick={() => router.push("/bookings")}>
-                View bookings
+              <Button type="button" variant="primary" onClick={() => router.push("/leader/review")}>
+                Open review queue
               </Button>
             </CardFooter>
           </Card>

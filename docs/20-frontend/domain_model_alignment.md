@@ -1,6 +1,10 @@
 # هم‌ترازی مدل دامنهٔ فرانت با API
 
-فرانت‌اند وب همچنان **فقط با mock** کار می‌کند؛ این سند توضیمی است که تایپ‌ها و دادهٔ آزمایشی با چه قراردادهایی از backend هم‌خوان شده‌اند.
+بخش‌هایی از اپ وب (از جمله **workspace لیدر**، **صف بررسی لیدر**، و **مسیر بوکینگ مشارکت‌کننده** (`/bookings`) با `NEXT_PUBLIC_API_URL`) اکنون با **HTTP زنده** (`apiClient` + React Query) به API متصل‌اند؛ بخش‌های دیگر ممکن است هنوز mock یا legacy داشته باشند. این سند همچنان مرجع **نگاشت تایپ‌ها و نام فیلدها** به قرارداد API است.
+
+**گزارش هم‌ترازی انتقال‌ها (تور):** [`workspace-transition-alignment-report.md`](./workspace-transition-alignment-report.md)  
+**گزارش هم‌ترازی بوکینگ / ثبت‌نام:** [`bookings-transition-alignment-report.md`](./bookings-transition-alignment-report.md)  
+**قوانین workflow فرانت:** [`front_end_workflow_rules.md`](./front_end_workflow_rules.md)
 
 ## منبع حقیقت
 
@@ -17,6 +21,23 @@
 | `auth.ts` | مدل‌های credential/session وب مطابق schema |
 
 اپ **`apps/web`** با `"@repo/types": "workspace:*"` این تایپ‌ها را import می‌کند.
+
+## Bookings vs Registrations domain mapping
+
+دامنهٔ قرارداد API برای «بوکینگ» در محصول، همان **registration** است؛ مسیرهای REST با نام booking روی ماژول ثبت‌نام پیاده شده‌اند.
+
+## Route ownership and roles
+
+- **`/bookings`**: فقط برای نقش مشارکت‌کننده (`member`)؛ برای مدیریت رزروهای شخصی شرکت‌کننده و جزئیات ثبت‌نام.
+- **`/leader/review`**: فقط برای نقش لیدر (`owner` / `admin`)؛ داشبورد اصلی بازبینی و گزارش‌گیری لیدر روی ثبت‌نام‌های همهٔ تورهای tenant.
+- **گارد نقش** در فرانت هم در middleware و هم در layout مسیرهای حساس اعمال می‌شود تا هم امنیت سمت‌سرور برقرار باشد و هم UX هم‌راستا بماند.
+
+- **`GET /api/v2/bookings`** و **`POST /api/v2/bookings`** در بک‌اند به **`RegistrationsController`** نگاشت می‌شوند و بدنه/آرایهٔ پاسخ از نوع **`RegistrationResponseDto`** است (در `@repo/types` به‌صورت **`BookingDto`** / **`Booking`** نام‌گذاری شده تا زبان محصول با دامنهٔ HTTP یکی باشد).
+- **`GET /api/v2/registrations/{registrationId}`** همان سندی است که UI جزئیات بوکینگ (`/bookings/[id]`) برای وضعیت، پرداخت و شرکت‌کننده می‌خواند.
+- **وضعیت بوکینگ در UI** (`BookingStatusBadge`، جداول لیست) همان فیلد **`status`** با نوع **`RegistrationStatus`** است؛ برچسب‌های محصولی مثل «Confirmed» فقط لایهٔ نمایش‌اند، نه enum جدا (`booking-badges.tsx`).
+- **`paymentStatus`** روی همان DTO است (**`RegistrationPaymentStatus`**؛ شامل مقادیر persist شده مانند **`Failed`** و **`Refunded`** وقتی بک‌اند برمی‌گرداند).
+
+برای قواعد **مجاز بودن انتقال وضعیت ثبت‌نام و پرداخت aggregate** در UI، به **`apps/web/lib/booking-transition-policy.ts`** و گزارش [**bookings-transition-alignment-report.md**](./bookings-transition-alignment-report.md) مراجعه کنید.
 
 ## انحرافهای آگاهانه (mock / UI)
 
@@ -35,24 +56,21 @@
 - دادهٔ تور در UI از مسیر **React Query → لایهٔ سرویس** می‌آید؛ دیگر **`ToursMockProvider`** یا React Context برای تورها وجود ندارد.
 - قیمت در API داخل **`costContext`** است؛ mock از شکل `{ currency: "USD", totalCost }` استفاده می‌کند (`formatters.ts`).
 
-### رزرو / بوکینگ (`MockBooking`)
+### رزرو / بوکینگ (محصول «Booking»)
 
-- دامنهٔ API **registration** است؛ `MockBooking` = **`RegistrationResponseDto`** به‌علاوه:
-  - **`tourTitleMock`**, **`tourStartDateMock`**, **`tourPriceAmountMock`** — فقط برای لیست/جزئیات بدون fetch تور جدا.
-  - **`participantEmailMock`** — در DTO ثبت‌نام در schema فعلی نیست؛ فقط mock.
-- نشان وضعیت رزرو در UI برای **`Accepted`** و **`AcceptedPaid`** متن **«Confirmed»** نشان می‌دهد؛ مقدار ذخیره‌شده همان enum API است (`booking-badges.tsx`).
-- برای پرداخت، **`NotPaid`** در برچسب به صورت **«Unpaid»** نمایش داده می‌شود.
+- دامنهٔ API همان **`registration`** است؛ **`BookingDto`** در **`@repo/types`** یک **alias** برای **`RegistrationResponseDto`** است (بدون فیلدهای mock اضافه در قرارداد فعلی).
+- لیست مشارکت‌کننده: **`apps/web/lib/services/bookings.service.ts`** → **`GET /api/v2/bookings`**؛ برای عنوان تور در صورت نیاز از **`GET /api/v2/tours`** کنار کش می‌شود (`BookingsListView`).
+- جزئیات: **`booking-detail-client.tsx`** از **`GET /api/v2/registrations/{id}`** و تور استفاده می‌کند.
+- گزارش‌گیری لیدر: **`leader-review-client.tsx`** با **`GET /api/v2/tours`** + **`GET /api/v2/tours/{id}/registrations`** نمای تجمیعی می‌سازد و با `PATCH` وضعیت/پرداخت را به‌روزرسانی می‌کند.
+- نشان وضعیت برای **`Accepted`** و **`AcceptedPaid`** در UI متن **«Confirmed»** است؛ مقدار سیمی همان **`RegistrationStatus`** (`booking-badges.tsx`).
+- برای پرداخت، **`NotPaid`** در برچسب **«Unpaid»** است؛ مقادیر **`Failed`** / **`Refunded`** هم پشتیبانی می‌شوند.
 
-## همگام‌سازی تور → بوکینگ (mock، دوران انتقالی)
-
-وقتی تور از مسیر **React Query / mutation** در **`lib/services/tours.service.ts`** به‌روز می‌شود، **`notifyBookingsOfTourUpdate`** (`workspace-mock-sync-bridge.ts`) با **`tourToBookingDenormSnapshot`** (`tour-ui-mappers.ts`) فقط فیلدهای **`tour*Mock`** روی ردیف‌های mock بوکینگ را هماهنگ می‌کند؛ **`BookingsMockProvider`** همچنان subscriber این bridge است. این یک پل موقت است تا وقتی registration واقعی تور را embed کند یا cache invalidate شود.
+**سابق (دیگر در درخت فعلی `apps/web` استفاده نمی‌شود):** پل mock همگام‌سازی تور → بوکینگ با **`BookingsMockProvider`**، **`notifyBookingsOfTourUpdate`**، و فیلدهای **`tour*Mock`** روی ردیف‌های درون‌حافظه. جریان فعلی با **HTTP واقعی** و **invalidate/refetch** کلیدهای React Query جایگزین شده است؛ اگر در اسناد قدیمی به این نام‌ها برخورد کردید، آن‌ها را legacy بدانید.
 
 ---
 
-## TODO هنگام اتصال HTTP واقعی
+## TODO / پیگیری
 
-1. جایگزینی بدنهٔ متدهای `lib/services/*.service.ts` با فراخوانی **`apiClient`** از **`apps/web/lib/api-client.ts`** (`NEXT_PUBLIC_API_URL`) به‌جای state درون حافظه؛ کلیدهای React Query در **`apps/web/lib/query-keys.ts`** (`tourKeys`, `bookingKeys`, `userKeys`) آمادهٔ Invalidate مرکزی هستند.
-2. هر تغییر در enum **`TourLifecycleStatus`** یا شکل **`TourResponseDto`** در OpenAPI باید هم‌زمان در **`mapTourResponseToDto`**, **`@repo/types`**, و توابع **`tour-lifecycle.ts`** / **`tour-ui-mappers.ts`** بازتاب داده شود تا نگاشت UI (`draft` / `active` / `archived`) با قرارداد منحرف نشود.
-3. حذف **`tourTitleMock`** و مشابه‌ها وقتی لیست/جزئیات registration تور را embed می‌کند یا join سمت سرور دارد.
-4. حذف **`participantEmailMock`** وقتی API ایمیل شرکت‌کننده را برمی‌گرداند (یا از منبع دیگری پر می‌شود).
-5. بازنگری **`bookingStatusLabel`** / **`paymentStatusLabel`** تا یا با محصول یکسان شوند یا مستقیماً enum API نشان داده شود.
+1. هر تغییر در enum **`TourLifecycleStatus`** یا شکل **`TourResponseDto`** در OpenAPI باید هم‌زمان در **`mapTourResponseToDto`**, **`@repo/types`**, و توابع **`tour-lifecycle.ts`** / **`tour-ui-mappers.ts`** بازتاب داده شود تا نگاشت UI (`draft` / `active` / `archived`) با قرارداد منحرف نشود.
+2. اگر محصول به **ایمیل شرکت‌کننده** در لیست/جزئیات نیاز دارد، پس از اضافه شدن به **`RegistrationResponseDto`** در OpenAPI، فرانت و CSVهای خروجی را به‌روز کنید.
+3. بازنگری دوره‌ای **`bookingStatusLabel`** / **`paymentStatusLabel`** برای هماهنگی با کپی محصول یا نمایش مستقیم enum API.

@@ -29,6 +29,7 @@ test("link-telegram declares explicit JwtAuthGuard + RolesGuard chain", () => {
 test("link-telegram is fail-closed when request context lacks identity", async () => {
   const controller = new AuthController(
     { linkTelegram: async () => ({}) } as never,
+    { listWorkspaces: async () => [] } as never,
     {
       getUserId: () => undefined,
       getTenantId: () => undefined
@@ -54,6 +55,7 @@ test("link-telegram succeeds for authorized caller with explicit identity contex
         linked_at: "2026-01-01T00:00:00.000Z"
       })
     } as never,
+    { listWorkspaces: async () => [] } as never,
     {
       getUserId: () => "user-1",
       getTenantId: () => "tenant-1"

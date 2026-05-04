@@ -1,17 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { Button, cn } from "@tour/ui";
+import { Button, cn, useToast } from "@tour/ui";
 
 import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 
 import styles from "./AppLayout.module.css";
 
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import {
+  WorkspacePickerModal,
+  type WorkspacePickerItem
+} from "@/components/workspace";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ApiError } from "@/lib/api-client";
+import { createWorkspaceSession } from "@/lib/services/auth.service";
 
 type NavLink = { href: string; label: string };
 
@@ -29,10 +35,14 @@ export type WorkspaceShellProps = {
 
 /** Sidebar + top strip for the authenticated workspace (distinct from `@tour/ui` AppLayout chrome). */
 export function WorkspaceShell({ children }: WorkspaceShellProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
+  const { showToast } = useToast();
   const { theme, setTheme } = useThemeSwitcher("light");
-  const { isHydrated, user } = useAuth();
+  const { isHydrated, user, setSession } = useAuth();
 
   const navigation = useMemo(() => {
     if (!(isHydrated && isLeaderRole(user?.role))) {
@@ -41,7 +51,6 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     const leader: NavLink[] = [
       { href: "/dashboard", label: "Dashboard" },
       { href: "/tours", label: "Tours" },
-      { href: "/bookings", label: "Bookings" },
       { href: "/leader/review", label: "Review queue" },
       { href: "/users", label: "Users" },
       { href: "/settings", label: "Settings" },
@@ -50,6 +59,30 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   }, [isHydrated, user?.role]);
 
   const closeSidebar = () => setSidebarOpen(false);
+
+  async function handleWorkspaceSelection(workspace: WorkspacePickerItem): Promise<void> {
+    if (isSwitchingWorkspace) {
+      return;
+    }
+    setIsSwitchingWorkspace(true);
+    try {
+      const session = await createWorkspaceSession(workspace.tenant_id);
+      setSession(session);
+      setWorkspaceModalOpen(false);
+      router.refresh();
+      showToast({ type: "success", message: "Workspace switched" });
+    } catch (error: unknown) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to switch workspace.";
+      showToast({ type: "error", message });
+    } finally {
+      setIsSwitchingWorkspace(false);
+    }
+  }
 
   return (
     <div className={styles.shell}>
@@ -105,6 +138,16 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
             <p className={styles.headerTitle}>Tour Ops</p>
           </div>
           <div className={styles.headerRight}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setWorkspaceModalOpen(true)}
+              loading={isSwitchingWorkspace}
+              disabled={isSwitchingWorkspace}
+            >
+              Switch Workspace
+            </Button>
             <div className={styles.themeCluster}>
               <Button
                 type="button"
@@ -131,6 +174,16 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           {children}
         </main>
       </div>
+      <WorkspacePickerModal
+        open={workspaceModalOpen}
+        onClose={() => {
+          if (!isSwitchingWorkspace) {
+            setWorkspaceModalOpen(false);
+          }
+        }}
+        onSelect={(workspace) => void handleWorkspaceSelection(workspace)}
+        title="Switch workspace"
+      />
     </div>
   );
 }

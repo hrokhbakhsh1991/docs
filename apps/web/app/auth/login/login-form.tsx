@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,10 +9,19 @@ import { z } from "zod";
 
 import { Button, FormField, Input, useToast } from "@tour/ui";
 
+import {
+  WorkspacePickerModal,
+  type WorkspacePickerItem
+} from "@/components/workspace";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { decodeJwtPayload } from "@/lib/auth/decode-jwt-payload";
+import type { WebSessionResponseBody } from "@/lib/auth/types";
 import { ApiError } from "@/lib/api-client";
-import { loginWebSession } from "@/lib/services/auth.service";
+import {
+  createWorkspaceSession,
+  loginWebSession
+} from "@/lib/services/auth.service";
+import { getAuthWorkspaces } from "@/lib/services/auth-workspaces.service";
 
 import authStyles from "../auth-forms.module.css";
 
@@ -38,7 +48,13 @@ function resolveSubmitErrorMessage(error: unknown): string {
 export function LoginForm() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { setSession } = useAuth();
+  const { setSession, clearSession } = useAuth();
+
+  const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false);
+  const [prefetchedWorkspaces, setPrefetchedWorkspaces] = useState<
+    WorkspacePickerItem[] | undefined
+  >(undefined);
+  const initialSessionRef = useRef<WebSessionResponseBody | null>(null);
 
   const {
     register,
@@ -50,15 +66,73 @@ export function LoginForm() {
     mode: "onChange",
   });
 
-  async function onValid(data: LoginFormValues) {
+  function resetWorkspacePickerState(): void {
+    setWorkspacePickerOpen(false);
+    setPrefetchedWorkspaces(undefined);
+    initialSessionRef.current = null;
+  }
+
+  function finishPostAuthNavigation(sessionToken: string): void {
+    showToast({ type: "success", message: "Login successful" });
+    const claims = decodeJwtPayload(sessionToken);
+    const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
+    void router.refresh();
+    router.push(isLeaderRole(role) ? "/dashboard" : "/tours");
+  }
+
+  function handleWorkspacePickerClose(): void {
+    const token = initialSessionRef.current?.session_token;
+    resetWorkspacePickerState();
+    if (token) {
+      finishPostAuthNavigation(token);
+    }
+  }
+
+  async function handleWorkspaceSelected(workspace: WorkspacePickerItem): Promise<void> {
+    const initial = initialSessionRef.current;
+    if (!initial) {
+      return;
+    }
+
+    if (workspace.tenant_id === initial.tenant_id) {
+      const token = initial.session_token;
+      resetWorkspacePickerState();
+      finishPostAuthNavigation(token);
+      return;
+    }
+
+    try {
+      const session = await createWorkspaceSession(workspace.tenant_id);
+      setSession(session);
+      resetWorkspacePickerState();
+      finishPostAuthNavigation(session.session_token);
+    } catch (err: unknown) {
+      showToast({ type: "error", message: resolveSubmitErrorMessage(err) });
+    }
+  }
+
+  async function onValid(data: LoginFormValues): Promise<void> {
     try {
       const session = await loginWebSession(data.email, data.password);
       setSession(session);
-      showToast({ type: "success", message: "Login successful" });
-      const claims = decodeJwtPayload(session.session_token);
-      const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
-      router.refresh();
-      router.push(isLeaderRole(role) ? "/dashboard" : "/tours");
+
+      let workspaces: WorkspacePickerItem[];
+      try {
+        workspaces = await getAuthWorkspaces();
+      } catch (err: unknown) {
+        clearSession();
+        showToast({ type: "error", message: resolveSubmitErrorMessage(err) });
+        return;
+      }
+
+      if (workspaces.length === 1) {
+        finishPostAuthNavigation(session.session_token);
+        return;
+      }
+
+      initialSessionRef.current = session;
+      setPrefetchedWorkspaces(workspaces);
+      setWorkspacePickerOpen(true);
     } catch (err: unknown) {
       showToast({ type: "error", message: resolveSubmitErrorMessage(err) });
     }
@@ -99,6 +173,14 @@ export function LoginForm() {
           Register
         </Link>
       </p>
+
+      <WorkspacePickerModal
+        open={workspacePickerOpen}
+        onClose={handleWorkspacePickerClose}
+        onSelect={(ws) => void handleWorkspaceSelected(ws)}
+        prefetchedWorkspaces={prefetchedWorkspaces}
+        title="Choose workspace"
+      />
     </>
   );
 }

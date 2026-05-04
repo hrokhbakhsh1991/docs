@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   UnauthorizedException,
@@ -10,6 +11,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiForbiddenResponse,
   ApiHeader,
   ApiOkResponse,
   ApiOperation,
@@ -18,6 +20,7 @@ import {
 } from "@nestjs/swagger";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { AuthService } from "./auth.service";
+import { WorkspaceService } from "./workspace.service";
 import { LinkTelegramDto } from "./dto/link-telegram.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { Roles } from "./roles.decorator";
@@ -25,11 +28,13 @@ import { Role } from "./roles.enum";
 import { RolesGuard } from "./roles.guard";
 import { TelegramSessionDto } from "./dto/telegram-session.dto";
 import { WebSessionDto } from "./dto/web-session.dto";
+import { WorkspaceSessionDto } from "./dto/workspace-session.dto";
 import {
   LinkTelegramResponseDto,
   TelegramSessionResponseDto,
   WebSessionResponseDto
 } from "./dto/auth-session-response.dto";
+import { AuthWorkspaceItemDto } from "./dto/auth-workspace-item.dto";
 import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 
@@ -38,6 +43,7 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly workspaceService: WorkspaceService,
     private readonly requestContextService: RequestContextService
   ) {}
 
@@ -79,6 +85,64 @@ export class AuthController {
     entry_mode: "telegram";
   }> {
     return this.authService.createTelegramSession(dto);
+  }
+
+  @Get("workspaces")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "List workspaces for the authenticated user",
+    description:
+      "Returns tenant memberships from user_tenants joined to tenants (non-deleted). " +
+      "Reads via SECURITY DEFINER function list_user_workspaces_for_auth so rows are not hidden by tenant RLS."
+  })
+  @ApiOkResponse({
+    description: "Active memberships for the current user",
+    type: AuthWorkspaceItemDto,
+    isArray: true
+  })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  async listWorkspaces(): Promise<AuthWorkspaceItemDto[]> {
+    return this.workspaceService.listWorkspaces();
+  }
+
+  @Post("workspace/session")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Issue session JWT for a workspace tenant",
+    description:
+      "Uses JWT `sub` as the user, verifies membership via user_tenants (definer function), " +
+      "and returns a new access token scoped to the requested tenant_id and role."
+  })
+  @ApiBody({ type: WorkspaceSessionDto })
+  @ApiOkResponse({
+    description: "New web session token for the selected tenant",
+    type: WebSessionResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({
+    description: "HTTP 403 — authenticated user is not a member of the requested tenant_id"
+  })
+  async workspaceSession(
+    @Body() dto: WorkspaceSessionDto
+  ): Promise<{
+    session_token: string;
+    user_id: string;
+    tenant_id: string;
+    entry_mode: "web";
+  }> {
+    const userId = this.requestContextService.getUserId();
+    if (!userId) {
+      throw new UnauthorizedException({
+        error: {
+          code: "AUTH_UNAUTHENTICATED",
+          message: "Authentication required"
+        }
+      });
+    }
+    return this.authService.createWorkspaceSession(userId, dto);
   }
 
   @Post("link-telegram")

@@ -2,14 +2,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { decodeJwtPayload } from "./lib/auth/decode-jwt-payload";
-
-/** Must stay aligned with `SESSION_TOKEN_COOKIE` in `lib/auth/session.ts` (avoid importing `session.ts` in Edge — it pulls `js-cookie`). */
-const SESSION_TOKEN_COOKIE = "tour_ops_session";
-
-function isLeaderRole(role: string | undefined): boolean {
-  const r = (role ?? "").trim().toLowerCase();
-  return r === "owner" || r === "admin";
-}
+import { canAccessLeaderReview } from "./lib/auth/routeRolePolicy";
+import { isLeaderRole, isParticipantRole } from "./lib/auth/role-tags";
+import { SESSION_TOKEN_COOKIE } from "./lib/auth/session-cookie";
 
 function hydrateRoleFromToken(token: string): string | undefined {
   // Protects against corrupted or tampered cookies that decodeJwtPayload does not fully validate
@@ -77,8 +72,11 @@ function isAllowedWithoutToken(pathname: string): boolean {
   return false;
 }
 
+function isBookingsParticipantRoute(pathname: string): boolean {
+  return pathname === "/bookings" || pathname.startsWith("/bookings/");
+}
+
 function isLeaderOnlyRoute(pathname: string): boolean {
-  if (pathname === "/dashboard" || pathname === "/dashboard/") return true;
   if (pathname === "/tours/new" || pathname === "/tours/new/") return true;
   if (pathname.startsWith("/leader")) return true;
   if (/^\/tours\/[^/]+\/edit(\/.*)?$/.test(pathname)) return true;
@@ -111,11 +109,25 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (!canAccessLeaderReview(role, pathname)) {
+    const dashUrl = request.nextUrl.clone();
+    dashUrl.pathname = "/dashboard";
+    dashUrl.search = "";
+    return NextResponse.redirect(dashUrl);
+  }
+
   if (isLeaderOnlyRoute(pathname) && !isLeaderRole(role)) {
     const forbiddenUrl = request.nextUrl.clone();
     forbiddenUrl.pathname = "/403";
     forbiddenUrl.search = "";
     return NextResponse.redirect(forbiddenUrl);
+  }
+
+  if (isBookingsParticipantRoute(pathname) && !isParticipantRole(role)) {
+    const dash = request.nextUrl.clone();
+    dash.pathname = "/dashboard";
+    dash.search = "";
+    return NextResponse.redirect(dash);
   }
 
   return NextResponse.next();

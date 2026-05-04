@@ -18,6 +18,7 @@ import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
 import type { LinkTelegramDto } from "./dto/link-telegram.dto";
 import type { TelegramSessionDto } from "./dto/telegram-session.dto";
 import type { WebSessionDto } from "./dto/web-session.dto";
+import type { WorkspaceSessionDto } from "./dto/workspace-session.dto";
 
 @Injectable()
 export class AuthService {
@@ -223,6 +224,94 @@ export class AuthService {
       session_token: accessToken,
       user_id: user.id,
       tenant_id: resolvedTenantId,
+      entry_mode: "web"
+    };
+  }
+
+  private normalizeUuidString(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  /**
+   * Ensures `userId` has an active user_tenants row for `tenantId` (non-deleted tenant).
+   * Uses `list_user_workspaces_for_auth` so RLS cannot hide cross-tenant memberships.
+   *
+   * @returns `role` from user_tenants when the user belongs to the tenant.
+   * @throws {ForbiddenException} HTTP 403 when the user does not belong to `tenantId`.
+   */
+  private async requireUserTenantMembershipRole(
+    userId: string,
+    tenantId: string
+  ): Promise<string> {
+    const target = this.normalizeUuidString(tenantId);
+    const rows = await this.userTenantRepository.manager.query<
+      Array<{ tenant_id: string; role: string }>
+    >(`SELECT tenant_id, role FROM list_user_workspaces_for_auth($1::uuid)`, [userId]);
+
+    const row = rows.find((r) => this.normalizeUuidString(r.tenant_id) === target);
+    if (!row) {
+      this.loggerService.warn("workspace session denied: user does not belong to tenant", {
+        userId,
+        tenantId: target
+      });
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_SCOPE_FORBIDDEN",
+          message: "User does not belong to the requested tenant"
+        }
+      });
+    }
+    return row.role;
+  }
+
+  /**
+   * Re-issues a JWT for `dto.tenant_id` when the caller (JWT `sub`) has membership.
+   * Uses `list_user_workspaces_for_auth` so RLS does not hide other tenants' memberships.
+   */
+  async createWorkspaceSession(
+    userId: string,
+    dto: WorkspaceSessionDto
+  ): Promise<{
+    session_token: string;
+    user_id: string;
+    tenant_id: string;
+    entry_mode: "web";
+  }> {
+    const targetTenantId = dto.tenant_id.trim();
+    if (!targetTenantId) {
+      throw new BadRequestException({
+        error: {
+          code: "INVALID_INPUT",
+          message: "tenant_id is required"
+        }
+      });
+    }
+
+    const role = await this.requireUserTenantMembershipRole(userId, targetTenantId);
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId, deletedAt: IsNull() }
+    });
+    if (!user) {
+      throw new UnauthorizedException({
+        error: {
+          code: "AUTH_UNAUTHENTICATED",
+          message: "User not found"
+        }
+      });
+    }
+
+    const accessToken = await this.signAccessToken({
+      userId: user.id,
+      tenantId: this.normalizeUuidString(targetTenantId),
+      role,
+      email: user.email
+    });
+
+    return {
+      session_token: accessToken,
+      user_id: user.id,
+      tenant_id: this.normalizeUuidString(targetTenantId),
       entry_mode: "web"
     };
   }

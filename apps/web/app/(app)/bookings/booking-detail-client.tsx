@@ -32,7 +32,7 @@ import {
   type BreadcrumbItem,
 } from "@tour/ui";
 
-import { BookingStatusBadge, PaymentStatusBadge } from "./booking-badges";
+import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/badges";
 import {
   formatRegistrationEntryMode,
   formatRegistrationInstant,

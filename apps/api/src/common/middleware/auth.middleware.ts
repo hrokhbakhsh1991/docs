@@ -29,6 +29,9 @@ const PUBLIC_ROUTES = [
   "/api/v2/auth/telegram/session"
 ];
 
+/** JWT required; tenant membership check skipped (handler lists all memberships with RLS bypass). */
+const AUTH_WORKSPACES_PATH = "/api/v2/auth/workspaces";
+
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
   constructor(
@@ -119,6 +122,13 @@ export class AuthMiddleware implements NestMiddleware {
       this.requestContextService.setUserId(userId);
       this.requestContextService.setTenantId(tenantId);
       this.requestContextService.setRole(role);
+
+      const skipTenantMembershipCheck =
+        req.method === "GET" && req.path === AUTH_WORKSPACES_PATH;
+
+      if (skipTenantMembershipCheck) {
+        return next();
+      }
 
       const queryRunner = this.dataSource.createQueryRunner();
       try {

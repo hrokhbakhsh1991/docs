@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -11,12 +12,14 @@ import {
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
   ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiSecurity,
+  ApiInternalServerErrorResponse,
   ApiTags
 } from "@nestjs/swagger";
 import { Role } from "../auth/roles.enum";
@@ -133,14 +136,20 @@ export class PaymentsWebhookController {
   })
   @ApiOperation({
     summary:
-      "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)"
+      "Internal payment provider webhook (200 on processed/unknown payment; non-200 on binding or processing failure)"
   })
   @ApiBody({ type: PaymentWebhookDto })
   @ApiOkResponse({
     schema: {
       example: { ok: true }
     },
-    description: "Always returns 200 to provider; failures are logged/metriced internally."
+    description: "Returns 200 for processed/deduplicated/unknown payment events."
+  })
+  @ApiBadRequestResponse({
+    description: "Tenant binding failed for webhook payload/payment scope."
+  })
+  @ApiInternalServerErrorResponse({
+    description: "Webhook processing failed."
   })
   async webhook(@Body() payload: PaymentWebhookDto): Promise<{ ok: true }> {
     const requestId = this.safeRequestId();
@@ -150,7 +159,7 @@ export class PaymentsWebhookController {
       provider: "internal_provider",
       provider_event_id: payload.providerEventId ?? null,
       provider_payment_id: payload.providerPaymentId,
-      tenant_id: null,
+      tenant_id: payload.tenant_id,
       status: payload.status
     });
     try {
@@ -162,7 +171,7 @@ export class PaymentsWebhookController {
           provider: "internal_provider",
           provider_event_id: result.providerEventId,
           provider_payment_id: payload.providerPaymentId,
-          tenant_id: null,
+          tenant_id: payload.tenant_id,
           status: payload.status,
           error_message: "PAYMENT_NOT_FOUND"
         });
@@ -188,19 +197,33 @@ export class PaymentsWebhookController {
         });
       }
     } catch (error: unknown) {
+      const asBadRequest = error instanceof BadRequestException ? error : null;
       const err = error instanceof Error ? error : new Error(String(error));
-      this.loggerService.error("webhook_failed", {
-        request_id: requestId,
-        event_type: "payment.webhook",
-        provider: "internal_provider",
-        provider_event_id: payload.providerEventId ?? null,
-        provider_payment_id: payload.providerPaymentId,
-        tenant_id: null,
-        status: payload.status,
-        error_message: err.message,
-        stack: err.stack ?? null
-      });
-      // Webhook endpoint must remain idempotent and always return 200.
+      if (asBadRequest) {
+        this.loggerService.warn("webhook_binding_failed", {
+          request_id: requestId,
+          event_type: "payment.webhook",
+          provider: "internal_provider",
+          provider_event_id: payload.providerEventId ?? null,
+          provider_payment_id: payload.providerPaymentId,
+          tenant_id: payload.tenant_id,
+          status: payload.status,
+          error_message: err.message
+        });
+      } else {
+        this.loggerService.error("webhook_failed", {
+          request_id: requestId,
+          event_type: "payment.webhook",
+          provider: "internal_provider",
+          provider_event_id: payload.providerEventId ?? null,
+          provider_payment_id: payload.providerPaymentId,
+          tenant_id: payload.tenant_id,
+          status: payload.status,
+          error_message: err.message,
+          stack: err.stack ?? null
+        });
+      }
+      throw error;
     }
     return { ok: true };
   }

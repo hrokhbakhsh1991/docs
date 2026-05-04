@@ -1,6 +1,8 @@
 import Cookies from "js-cookie";
 
-export const SESSION_TOKEN_COOKIE = "tour_ops_session";
+import { SESSION_TOKEN_COOKIE } from "./session-cookie";
+
+export { SESSION_TOKEN_COOKIE };
 
 export function getSessionToken(): string | undefined {
   return Cookies.get(SESSION_TOKEN_COOKIE);

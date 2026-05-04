@@ -38,6 +38,17 @@ This document tracks **gaps between backend runtime behavior, the OpenAPI contra
   - [ ] If API is extended: regenerate OpenAPI (`pnpm --dir apps/api build` or project-standard command — TODO: confirm) and reference new operations in wireflows.
   - [ ] Document limitations for FE if UX is narrowed (e.g. “no CSV export in v1”).
 
+#### Current Implementation vs MVP Endpoints
+
+- Wireflow journeys **`J-L-02`** and **`J-L-05`** currently reference:
+  - `GET /api/v2/dashboard/leader-workspace`
+  - `GET /api/v2/reconciliation/export.csv`
+- Current leader/review UI is implemented via temporary frontend composition:
+  - `getTours` + registrations per tour (`GET /api/v2/tours/{tourId}/registrations`)
+  - CSV composition/export generated on the client
+- This keeps UI functional but introduces **traceability drift**: documented journey touchpoints differ from runtime FE API call graph.
+- [ ] **TODO:** Switch to backend aggregation endpoints when shipped.
+
 ---
 
 ### A2. Canonical Public Registration Flow

@@ -330,36 +330,6 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
                 Cross-tour reconciliation: use Dashboard → Review queue → Export CSV (built from live list
                 endpoints).
               </p>
-              {statusMutation.isError ? (
-                <p role="alert" className={styles.errorBanner}>
-                  Status update failed:{" "}
-                  {statusMutation.error instanceof ApiError
-                    ? statusMutation.error.message.trim() || "Request failed."
-                    : statusMutation.error instanceof Error
-                      ? statusMutation.error.message
-                      : "Request failed."}
-                </p>
-              ) : null}
-              {paymentMutation.isError ? (
-                <p role="alert" className={styles.errorBanner}>
-                  Payment update failed:{" "}
-                  {paymentMutation.error instanceof ApiError
-                    ? paymentMutation.error.message.trim() || "Request failed."
-                    : paymentMutation.error instanceof Error
-                      ? paymentMutation.error.message
-                      : "Request failed."}
-                </p>
-              ) : null}
-              {convertMutation.isError ? (
-                <p role="alert" className={styles.errorBanner}>
-                  Waitlist conversion failed:{" "}
-                  {convertMutation.error instanceof ApiError
-                    ? convertMutation.error.message.trim() || "Request failed."
-                    : convertMutation.error instanceof Error
-                      ? convertMutation.error.message
-                      : "Request failed."}
-                </p>
-              ) : null}
             </CardBody>
           </Card>
         </div>

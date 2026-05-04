@@ -5,6 +5,13 @@ Version: v1.0
 Status: Active  
 Last-Updated: 2026-04-29
 
+## Canonical Glossary
+
+- **Tenant** -> isolation unit (security boundary).
+- **Workspace** -> tenant as presented to the user in UI.
+
+**Mapping:** Workspace = Tenant boundary (one-to-one mapping).
+
 ## Implemented Endpoints
 
 ### GET `/health`

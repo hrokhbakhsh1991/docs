@@ -7,6 +7,8 @@ export const API = {
   auth: {
     webSession: "/api/v2/auth/web/session",
     telegramSession: "/api/v2/auth/telegram/session",
+    workspaces: "/api/v2/auth/workspaces",
+    workspaceSession: "/api/v2/auth/workspace/session",
   },
   tours: "/api/v2/tours",
   toursQuery: (queryString: string) =>

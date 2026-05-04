@@ -14,17 +14,14 @@ import { decodeJwtPayload } from "./decode-jwt-payload";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./session";
 import type { WebSessionResponseBody } from "./types";
 
+export { isLeaderRole, isParticipantRole } from "./role-tags";
+
 export type AuthUser = {
   userId: string;
   tenantId: string;
   /** From JWT `role` claim (`owner` | `admin` | `member`, …). */
   role?: string;
 };
-
-export function isLeaderRole(role?: string): boolean {
-  const r = (role ?? "").trim().toLowerCase();
-  return r === "owner" || r === "admin";
-}
 
 /** Canonical copy when the UI exposes leader-only tooling (owner / admin; participants excluded). */
 export const LEADER_WORKSPACE_ACCESS_DENIED = {
