@@ -16,8 +16,11 @@ export class RequestContextMiddleware implements NestMiddleware {
     (req as RequestWithRequestId).requestId = requestId;
     res.setHeader("x-request-id", requestId);
 
-    requestContextStorage.run({ requestId, path: req.path }, () => {
-      next();
-    });
+    requestContextStorage.run(
+      { requestId, path: req.path, method: req.method },
+      () => {
+        next();
+      }
+    );
   }
 }

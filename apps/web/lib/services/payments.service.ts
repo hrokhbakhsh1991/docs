@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import { API } from "../api-paths";
 
 /** Mirrors OpenAPI `PaymentResponseDto` loosely for client use. */
 export type PaymentIntentResponse = {
@@ -84,7 +85,7 @@ export type CreatePaymentIntentPayload = {
 export async function createPaymentIntent(
   payload: CreatePaymentIntentPayload,
 ): Promise<PaymentIntentResponse> {
-  return apiClient.post<PaymentIntentResponse>("/api/v2/payments/intent", payload, {
+  return apiClient.post<PaymentIntentResponse>(API.paymentsIntent, payload, {
     idempotencyKey: true,
   });
 }

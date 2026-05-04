@@ -9,7 +9,18 @@ import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { useLeaderTourRegistrations } from "@/lib/hooks/useLeaderTourRegistrations";
 import { tourKeys } from "@/lib/query-keys";
 import { getTours, toursUseLiveApi } from "@/lib/services/tours.service";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, LoadingState } from "@tour/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  CardSubtitle,
+  CardTitle,
+  EmptyState,
+  LoadingState
+} from "@tour/ui";
 
 import styles from "./dashboard.module.css";
 
@@ -67,119 +78,138 @@ export function DashboardPageClient() {
     );
   }
 
+  if (isHydrated && isAuthenticated && !isLeaderRole(user?.role)) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Dashboard"
+        title="Dashboard"
+        breadcrumbItems={[{ label: "Home", href: "/dashboard" }, { label: "Dashboard" }]}
+      >
+        <Card>
+          <CardBody>
+            <p dir="rtl" className={styles.bodyText}>
+              شما دسترسی رهبر ندارید.
+            </p>
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
   const tourTotal = toursQuery.data?.total ?? toursQuery.data?.tours?.length ?? 0;
 
   return (
     <RegisteredWorkspacePage
       documentTitle="Dashboard"
-      title={leader ? "Leader dashboard" : "Workspace overview"}
-      description={
-        leader
-          ? "Pending registrations, per-tour workspace, payment updates — all wired to documented /api/v2 routes."
-          : "Your tenant workspace: tours, bookings, settings."
-      }
+      title="Leader dashboard"
+      description="Pending registrations, per-tour workspace, payment updates — all wired to documented /api/v2 routes."
       breadcrumbItems={[{ label: "Home", href: "/dashboard" }, { label: "Dashboard" }]}
     >
       <ul className={styles.grid}>
-        <li>
-          <Card>
+        <li className={styles.gridItem}>
+          <Card className={styles.gridCard}>
             <CardHeader>
               <CardTitle>Tours</CardTitle>
+              <CardSubtitle>Tenant-scoped catalogue (J‑L‑01).</CardSubtitle>
             </CardHeader>
-            <CardBody>
-              <p>Tenant-scoped catalogue (J‑L‑01).</p>
-              <p style={{ marginTop: "0.5rem" }}>
+            <CardBody className={styles.cardBody}>
+              <p className={styles.metricRow}>
                 Loaded tours:{" "}
                 <Badge variant={toursQuery.isPending ? "neutral" : "info"}>{toursQuery.isPending ? "…" : tourTotal}</Badge>
               </p>
-              <div style={{ marginTop: "1rem" }}>
-                <Button type="button" variant="primary" onClick={() => router.push("/tours")}>
-                  Manage tours
-                </Button>
-              </div>
             </CardBody>
+            <CardFooter>
+              <Button type="button" variant="primary" onClick={() => router.push("/tours")}>
+                Manage tours
+              </Button>
+            </CardFooter>
           </Card>
         </li>
-        <li>
-          <Card>
+        <li className={styles.gridItem}>
+          <Card className={styles.gridCard}>
             <CardHeader>
               <CardTitle>Bookings</CardTitle>
+              <CardSubtitle>Your registrations and payment summaries (J‑P‑02, J‑P‑03).</CardSubtitle>
             </CardHeader>
-            <CardBody>
-              <p>Your registrations and payment summaries (J‑P‑02, J‑P‑03).</p>
-              <div style={{ marginTop: "1rem" }}>
-                <Button type="button" variant="secondary" onClick={() => router.push("/bookings")}>
-                  View bookings
-                </Button>
-              </div>
+            <CardBody className={styles.cardBody}>
+              <div className={styles.bodySpacer} aria-hidden />
             </CardBody>
+            <CardFooter>
+              <Button type="button" variant="secondary" onClick={() => router.push("/bookings")}>
+                View bookings
+              </Button>
+            </CardFooter>
           </Card>
         </li>
-        <li>
-          <Card>
+        <li className={styles.gridItem}>
+          <Card className={styles.gridCard}>
             <CardHeader>
               <CardTitle>Payments & reconciliation</CardTitle>
-            </CardHeader>
-            <CardBody>
-              <p style={{ margin: 0 }}>
+              <CardSubtitle>
                 Payment fields on each registration are updated via{" "}
                 <strong>PATCH /api/v2/registrations/{"{id}"}/payment</strong> — use a tour workspace or the review
                 queue.
-              </p>
-              <p style={{ marginTop: "0.65rem", marginBottom: 0 }}>
-                {leader ? (
-                  <>
-                    Cross-tour CSV is generated in <strong>Review queue</strong> from live registrations (there is no{" "}
-                    <code>/reconciliation/export.csv</code> route in OpenAPI yet).
-                  </>
-                ) : (
-                  <>Your payment status follows your registration records under Bookings.</>
-                )}
+              </CardSubtitle>
+            </CardHeader>
+            <CardBody className={styles.cardBody}>
+              <p className={styles.bodyText}>
+                Cross-tour CSV is generated in <strong>Review queue</strong> from live registrations (there is no{" "}
+                <code>/reconciliation/export.csv</code> route in OpenAPI yet).
               </p>
             </CardBody>
+            <CardFooter>
+              <span className={styles.footerSpacer} aria-hidden />
+            </CardFooter>
           </Card>
         </li>
-        {leader ? (
-          <li>
-            <Card>
-              <CardHeader>
-                <CardTitle>Registration review queue</CardTitle>
-              </CardHeader>
-              <CardBody>
-                <p>Pulled from every tour listing your session can fetch as leader.</p>
-                <p style={{ marginTop: "0.5rem" }}>
-                  Pending registrations:{" "}
-                  <Badge variant={leaderIndex.isLoading ? "neutral" : "warning"}>
-                    {leaderIndex.isLoading ? "…" : leaderIndex.pendingCount}
-                  </Badge>{" "}
-                  · Rows loaded:{" "}
-                  <Badge variant={leaderIndex.isLoading ? "neutral" : "info"}>
-                    {leaderIndex.isLoading ? "…" : leaderIndex.totalRegistrationCount}
-                  </Badge>
-                </p>
-                <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                  <Button type="button" variant="primary" onClick={() => router.push("/leader/review")}>
-                    Open review queue
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => void leaderIndex.refetchAll()}>
-                    Refresh counts
-                  </Button>
-                  <Link href="/tours" style={{ alignSelf: "center", marginLeft: "0.35rem", fontWeight: 600 }}>
-                    Manage tours →
-                  </Link>
-                </div>
-              </CardBody>
-            </Card>
-          </li>
-        ) : null}
+        <li className={styles.gridItem}>
+          <Card className={styles.gridCard}>
+            <CardHeader>
+              <CardTitle>Registration review queue</CardTitle>
+              <CardSubtitle>Pulled from every tour listing your session can fetch as leader.</CardSubtitle>
+            </CardHeader>
+            <CardBody className={styles.cardBody}>
+              <p className={styles.metricRow}>
+                Pending registrations:{" "}
+                <Badge variant={leaderIndex.isLoading ? "neutral" : "warning"}>
+                  {leaderIndex.isLoading ? "…" : leaderIndex.pendingCount}
+                </Badge>{" "}
+                · Rows loaded:{" "}
+                <Badge variant={leaderIndex.isLoading ? "neutral" : "info"}>
+                  {leaderIndex.isLoading ? "…" : leaderIndex.totalRegistrationCount}
+                </Badge>
+              </p>
+            </CardBody>
+            <CardFooter>
+              <Button type="button" variant="primary" onClick={() => router.push("/leader/review")}>
+                Open review queue
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => void leaderIndex.refetchAll()}>
+                Refresh counts
+              </Button>
+              <Link href="/tours" className={styles.inlineLink}>
+                Manage tours →
+              </Link>
+            </CardFooter>
+          </Card>
+        </li>
       </ul>
-      <Card style={{ marginTop: "1.5rem" }}>
-        <CardBody>
-          <p>
+      <Card className={styles.usersCard}>
+        <CardHeader>
+          <CardTitle>Workspace users directory:</CardTitle>
+          <CardSubtitle>
             Workspace users directory:{" "}
-            <Link href="/users">Users</Link>
-          </p>
+            <Link href="/users" className={styles.inlineLink}>
+              Users
+            </Link>
+          </CardSubtitle>
+        </CardHeader>
+        <CardBody>
+          <div className={styles.bodySpacer} aria-hidden />
         </CardBody>
+        <CardFooter>
+          <span className={styles.footerSpacer} aria-hidden />
+        </CardFooter>
       </Card>
     </RegisteredWorkspacePage>
   );

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
-import { useAuth } from "@/lib/auth/auth-context";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import {
   paymentProjectionIsPending,
@@ -18,12 +18,7 @@ import { createPaymentIntent } from "@/lib/services/payments.service";
 import { getRegistrationById, registrationsUseLiveApi } from "@/lib/services/registrations.service";
 import { getTourById, toursUseLiveApi } from "@/lib/services/tours.service";
 import { useAppToast } from "@/lib/use-app-toast";
-import {
-  extractTourPriceUsd,
-  formatTourDateRange,
-  formatTourLocation,
-  formatTourPriceUsd,
-} from "@/components/tours/formatters";
+import { extractTourPriceUsd, formatTourLocation, formatTourPriceUsd } from "@/components/tours/formatters";
 import {
   Alert,
   Button,
@@ -74,7 +69,7 @@ export function BookingDetailClient({
   const queryClient = useQueryClient();
   const toast = useAppToast();
   const paymentSectionRef = useRef<HTMLDivElement>(null);
-  const { isHydrated, isAuthenticated } = useAuth();
+  const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = registrationsUseLiveApi();
   const registrationEnabled =
     Boolean(registrationId) && liveApi && isHydrated && isAuthenticated;
@@ -236,6 +231,14 @@ export function BookingDetailClient({
   const showStartIntentCta =
     paymentEligible && !hasPendingPaymentProjection && Boolean(intentParams);
 
+  /** FR-61 (MVP): only leaders resolve the URL; non-leaders never get a trimmed href (no DOM exposure). */
+  const leaderCommunicationHref =
+    isLeaderRole(user?.role) &&
+    tour?.communicationLink != null &&
+    String(tour.communicationLink).trim() !== ""
+      ? String(tour.communicationLink).trim()
+      : null;
+
   return (
     <RegisteredWorkspacePage
       documentTitle={`Registration · ${reg.id.slice(0, 8)}…`}
@@ -283,6 +286,28 @@ export function BookingDetailClient({
         </CardBody>
       </Card>
 
+      {leaderCommunicationHref ? (
+        <Card>
+          <CardHeader>
+            <CardTitle dir="rtl">ارتباط با رهبر تور</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <a
+              href={leaderCommunicationHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "var(--color-text-link)",
+                wordBreak: "break-word",
+                fontSize: "0.95rem",
+              }}
+            >
+              {leaderCommunicationHref}
+            </a>
+          </CardBody>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Tour</CardTitle>
@@ -316,10 +341,6 @@ export function BookingDetailClient({
                 <Link href={`/tours/${tour.id}`}>{tour.title}</Link>
               </p>
               <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
-                <div>
-                  <dt style={{ fontWeight: 600 }}>Dates</dt>
-                  <dd style={{ margin: 0 }}>{formatTourDateRange(tour)}</dd>
-                </div>
                 <div>
                   <dt style={{ fontWeight: 600 }}>Location</dt>
                   <dd style={{ margin: 0 }}>{formatTourLocation(tour)}</dd>

@@ -5,8 +5,7 @@ import {
   Post,
   UnauthorizedException,
   UseGuards,
-  UseInterceptors,
-  ValidationPipe
+  UseInterceptors
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -52,8 +51,7 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: "Invalid credentials" })
   async webSession(
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    dto: WebSessionDto
+    @Body() dto: WebSessionDto
   ): Promise<{
     session_token: string;
     user_id: string;
@@ -73,8 +71,7 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: "Invalid Telegram init payload" })
   async telegramSession(
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    dto: TelegramSessionDto
+    @Body() dto: TelegramSessionDto
   ): Promise<{
     session_token: string;
     user_id: string;
@@ -110,8 +107,7 @@ export class AuthController {
     tenantSource: "context"
   })
   async linkTelegram(
-    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    dto: LinkTelegramDto
+    @Body() dto: LinkTelegramDto
   ): Promise<{
     user_id: string;
     linked_telegram_user_id: string;

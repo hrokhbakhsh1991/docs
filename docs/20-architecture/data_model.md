@@ -2,7 +2,7 @@ Document-ID: MKT-DOC-DATA-MODEL-V2
 Version: v1.0
 Status: Active
 Owner: Product Documentation Team
-Last-Updated: 2026-04-27
+Last-Updated: 2026-05-04
 Language: English
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
@@ -46,12 +46,24 @@ Tenant resolution and enforcement for backend operations follow:
 - role capabilities resolved in context (tour/tenant), not globally fixed
 
 ## 4.2 Tour
-- tenant-scoped
-- source-of-truth capacity fields:
-  - `total_capacity`
-  - `accepted_count`
-- lifecycle status: `Draft`, `Open`, `Closed`, `Cancelled`
-- optional communication field: `chat_link`
+
+- Tenant-scoped; all reads/writes resolve through the tenant context (see §3).
+- **Authoritative field list (MVP):** the HTTP API contract — **`docs/20-architecture/contracts/api_endpoint_contracts_v2_base.md`** (GET `/api/v2/tours` / GET `/api/v2/tours/{tourId}` projection) — and the generated **`apps/api/openapi.json`** schema `TourResponseDto`. The running API is the source of truth for shape and nullability.
+
+**Operational fields in MVP (API JSON uses camelCase; DB columns are snake_case where noted):**
+
+| Concept | API / persistence notes |
+|---------|-------------------------|
+| Identity & audit | `id`; `createdAt` / `updatedAt` (timestamps on the tour row) |
+| Copy | `title` (required); `description` (optional) |
+| Capacity (source of truth at tour level) | `totalCapacity` ↔ `total_capacity`; `acceptedCount` ↔ `accepted_count` |
+| Lifecycle | `lifecycleStatus` ↔ `lifecycle_status` — enum values **`DRAFT`**, **`OPEN`**, **`CLOSED`**, **`CANCELLED`** on the wire (see contract + OpenAPI). Product language may use *Draft / Open / Closed / Cancelled*. |
+| Communication | `chatLink` ↔ `chat_link` (optional leader-managed link, e.g. Telegram) |
+| Pricing / opaque ops JSON | `costContext` ↔ `cost_context` (optional JSONB; e.g. currency, `totalCost`, optional `location` projection used by the web UI until first-class fields exist) |
+
+**Out of MVP (Tour):** persisted **tour schedule dates** (`startDate` / `endDate`) are **not** part of the MVP model or contract projection. Do not document or assume stored start/end instants for tours until added to the contract and backend schema.
+
+**Related:** `docs/20-frontend-domain-model-alignment.md` (how `@repo/types` maps to OpenAPI).
 
 ## 4.3 TourLeader
 - maps users to leader permissions per tour
@@ -159,6 +171,7 @@ No exception endpoints are allowed in MVP unless explicitly approved and documen
 
 ## Changelog
 
+- 2026-05-04: Expanded Tour (§4.2) with MVP operational fields, API/contract as source of truth, and explicit exclusion of persisted tour schedule dates.
 - 2026-04-29: Synced Registration payment lifecycle documentation with implemented internal lifecycle states and metadata container (`paymentMetadata`).
 - 2026-04-28: Added backend payment-status algebra baseline and explicit tenant query-class enforcement.
 - 2026-04-28: Added cross-reference to technical and tenant-boundary clarification policy for tenant resolution consistency.

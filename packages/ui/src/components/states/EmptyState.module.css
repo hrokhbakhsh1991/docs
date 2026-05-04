@@ -56,3 +56,12 @@
     max-width: 100%;
   }
 }
+
+.embedded {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-none);
+  padding-block: var(--space-4);
+  padding-inline: 0;
+  max-width: none;
+}

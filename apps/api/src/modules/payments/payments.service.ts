@@ -7,7 +7,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, IsNull, Repository } from "typeorm";
+import { DataSource, EntityManager, IsNull, Repository, type FindOptionsWhere } from "typeorm";
 import {
   findPaymentScopedForActor,
   registrationWhereForActor
@@ -108,7 +108,9 @@ export class PaymentsService {
     dto: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
     const trustedTenantId = this.requestContextService.getTenantId();
-    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
+    const actorRoleRaw = this.requestContextService.getRole();
+    const role = (actorRoleRaw ?? "").trim().toLowerCase();
+    const actorUserIdRaw = this.requestContextService.getUserId();
     if (!trustedTenantId && role !== "admin") {
       throw new ForbiddenException({
         error: {
@@ -118,12 +120,31 @@ export class PaymentsService {
       });
     }
 
-    const registrationScope = await registrationWhereForActor(
-      manager,
-      this.userRepository,
-      this.requestContextService,
-      dto.registrationId
-    );
+    const isPublicTenantBootstrapActor =
+      typeof trustedTenantId === "string" &&
+      trustedTenantId.trim() !== "" &&
+      (!actorUserIdRaw || actorUserIdRaw.trim() === "") &&
+      (!actorRoleRaw || actorRoleRaw.trim() === "");
+
+    let registrationScope:
+      | FindOptionsWhere<RegistrationEntity>
+      | FindOptionsWhere<RegistrationEntity>[];
+
+    if (isPublicTenantBootstrapActor) {
+      registrationScope = {
+        id: dto.registrationId,
+        tenantId: trustedTenantId,
+        deletedAt: IsNull()
+      };
+    } else {
+      registrationScope = await registrationWhereForActor(
+        manager,
+        this.userRepository,
+        this.requestContextService,
+        dto.registrationId
+      );
+    }
+
     const registration = await manager.findOne(RegistrationEntity, {
       where: registrationScope
     });

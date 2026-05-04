@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import listStyles from "../../bookings/bookings.module.css";
 import { BookingStatusBadge, PaymentStatusBadge } from "../../bookings/booking-badges";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
-import { isLeaderRole, LEADER_WORKSPACE_ACCESS_DENIED, useAuth } from "@/lib/auth/auth-context";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { downloadCsv, registrationsToCsv } from "@/lib/export-registrations-csv";
 import { useLeaderTourRegistrations } from "@/lib/hooks/useLeaderTourRegistrations";
@@ -59,8 +59,9 @@ export function LeaderReviewClient() {
   const toast = useAppToast();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const leader = isLeaderRole(user?.role);
+  const hasTenantId = Boolean(user?.tenantId?.trim());
   const liveApi = toursUseLiveApi() && registrationsUseLiveApi();
-  const hookEnabled = Boolean(leader && liveApi && isHydrated && isAuthenticated);
+  const hookEnabled = Boolean(leader && hasTenantId && liveApi && isHydrated && isAuthenticated);
 
   const leaderData = useLeaderTourRegistrations(hookEnabled);
 
@@ -157,18 +158,30 @@ export function LeaderReviewClient() {
     );
   }
 
-  if (!leader) {
+  if (isHydrated && isAuthenticated && !isLeaderRole(user?.role)) {
     return (
       <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
-        <EmptyState
-          title={LEADER_WORKSPACE_ACCESS_DENIED.title}
-          description={LEADER_WORKSPACE_ACCESS_DENIED.description}
-          action={
-            <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-              Dashboard
-            </Button>
-          }
-        />
+        <Card>
+          <CardBody>
+            <p dir="rtl" style={{ margin: 0 }}>
+              شما دسترسی رهبر ندارید.
+            </p>
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (isHydrated && isAuthenticated && isLeaderRole(user?.role) && !hasTenantId) {
+    return (
+      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+        <Card>
+          <CardBody>
+            <p dir="rtl" style={{ margin: 0 }}>
+              Tenant شما معتبر نیست. لطفاً دوباره وارد شوید.
+            </p>
+          </CardBody>
+        </Card>
       </RegisteredWorkspacePage>
     );
   }

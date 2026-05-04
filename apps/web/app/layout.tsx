@@ -16,8 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  // Default document locale/dir; `app/(app)/tours/layout.tsx` wraps fa/rtl for the tours subtree.
   return (
-    <html lang="en" className="theme-light">
+    <html lang="en" dir="ltr" className="theme-light">
       <body>
         <AppChromeProviders>{children}</AppChromeProviders>
       </body>

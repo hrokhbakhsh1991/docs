@@ -10,7 +10,7 @@ import { UserEntity } from "../identity/entities/user.entity";
 import { OutboxModule } from "../outbox/outbox.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
-import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
     IdempotencyModule
   ],
   controllers: [RegistrationsController],
-  providers: [RegistrationsService, RateLimitGuard],
+  providers: [RegistrationsService, ThrottlerGuard],
   exports: [RegistrationsService]
 })
 export class RegistrationsModule {}

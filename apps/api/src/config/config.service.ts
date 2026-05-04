@@ -138,4 +138,19 @@ export class ConfigService {
   getPaymentsTimeoutIntervalMs(): number {
     return this.env.PAYMENTS_TIMEOUT_INTERVAL_MS;
   }
+
+  /** Parsed list of allowed CORS origins; empty means do not allow browser cross-origin requests (except dev fallback below). */
+  getCorsOrigins(): string[] {
+    const parsed = this.env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    if (parsed.length > 0) {
+      return parsed;
+    }
+    // Next.js dev server defaults to port 3000; avoids blocked browser calls when CORS_ORIGIN is unset locally.
+    if (this.env.NODE_ENV === "development") {
+      return ["http://localhost:3000", "http://127.0.0.1:3000"];
+    }
+    return [];
+  }
 }

@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "dev:clean": "rm -rf .next && next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "tsc --noEmit",
     "eslint": "eslint --max-warnings 0 \"app/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\"",
     "test:vrt": "playwright test",
-    "test:vrt:update": "playwright test --update-snapshots"
+    "test:vrt:update": "playwright test --update-snapshots",
+    "auth:test": "node --env-file=.env.local --import tsx scripts/login-test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -30,8 +32,10 @@
     "@types/node": "^22.7.4",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "dotenv": "^17.2.3",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.15",
+    "tsx": "^4.20.6",
     "typescript": "^5.6.2"
   }
 }

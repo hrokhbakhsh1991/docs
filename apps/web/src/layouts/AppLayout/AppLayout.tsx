@@ -11,6 +11,7 @@ import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 import styles from "./AppLayout.module.css";
 
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 type NavLink = { href: string; label: string };
 
@@ -122,6 +123,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 Dark
               </Button>
             </div>
+            <LogoutButton />
             <span className={styles.avatar} aria-hidden title="User avatar" />
           </div>
         </header>

@@ -19,7 +19,6 @@ async function generateOpenApi(): Promise<void> {
       .build();
     const document = SwaggerModule.createDocument(app, config);
     writeFileSync(outputPath, JSON.stringify(document, null, 2));
-    console.log(`[openapi] generated successfully at ${outputPath}`);
   } finally {
     await app.close();
   }

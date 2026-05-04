@@ -16,6 +16,11 @@
   border: 1px solid var(--color-border-default);
 }
 
+/* Dark theme: chip edge reads closer to muted fill — strengthen stroke using existing strong-border token */
+:global(html.theme-dark) .neutral {
+  border-color: var(--color-border-strong);
+}
+
 .success {
   background: var(--color-success-bg);
   color: var(--color-success);

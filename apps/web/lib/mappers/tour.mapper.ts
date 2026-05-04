@@ -12,13 +12,16 @@ function normalizeLifecycle(value: unknown): TourLifecycleStatus {
   return "DRAFT";
 }
 
-function normalizeDate(value: unknown): string | null {
-  if (value == null) {
-    return null;
-  }
-  if (typeof value === "string") {
-    const t = value.trim();
-    return t === "" ? null : t;
+function normalizeOptionalString(value: unknown): string | null {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s === "" ? null : s;
+}
+
+function pickFirstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    const normalized = normalizeOptionalString(value);
+    if (normalized) return normalized;
   }
   return null;
 }
@@ -51,6 +54,17 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
   }
   const o = raw as Record<string, unknown>;
 
+  const link = pickFirstNonEmptyString(
+    o.chatLink,
+    o.chat_link,
+    o.communicationLink,
+    o.communication_link,
+    o.communication_link_url,
+    o.communicationUrl
+  );
+
+  const lifecycleStatus = normalizeLifecycle(o.lifecycleStatus ?? o.lifecycle_status);
+
   const tour: TourDto = {
     id: String(o.id ?? ""),
     title: String(o.title ?? ""),
@@ -58,14 +72,13 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
     totalCapacity: num(o.totalCapacity ?? o.total_capacity),
     acceptedCount: num(o.acceptedCount ?? o.accepted_count),
     costContext: normalizeCostContext(o.costContext ?? o.cost_context),
-    startDate: normalizeDate(o.startDate ?? o.start_date),
-    endDate: normalizeDate(o.endDate ?? o.end_date),
-  };
-
-  const lifecycleStatus = normalizeLifecycle(o.lifecycleStatus ?? o.lifecycle_status);
-
-  return {
-    ...tour,
     lifecycleStatus,
+    chatLink: link,
+    /** UI/forms legacy alias — same resolved value as `chatLink`. */
+    communicationLink: link,
+    createdAt: String(o.createdAt ?? ""),
+    updatedAt: String(o.updatedAt ?? ""),
   };
+
+  return tour;
 }

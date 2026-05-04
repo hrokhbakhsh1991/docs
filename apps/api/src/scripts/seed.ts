@@ -3,6 +3,7 @@ import { join } from "node:path";
 import * as argon2 from "argon2";
 import { DataSource, IsNull } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
+import { emitScriptDebug, emitScriptInfo } from "./script-log";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
@@ -39,6 +40,57 @@ async function run(): Promise<void> {
     const userRepo = dataSource.getRepository(UserEntity);
     const membershipRepo = dataSource.getRepository(UserTenantEntity);
     const tourRepo = dataSource.getRepository(TourEntity);
+
+    // Local-dev deterministic leader account requested by product/dev workflows.
+    const localTenantName = "demo-tenant";
+    const localLeaderEmail = "leader@test.com";
+    const localLeaderPassword = "demo123";
+
+    let localTenant = await tenantRepo.findOne({
+      where: { name: localTenantName, deletedAt: IsNull() }
+    });
+    if (!localTenant) {
+      localTenant = await tenantRepo.save(
+        tenantRepo.create({
+          name: localTenantName,
+          description: "Local development tenant for deterministic login"
+        })
+      );
+    }
+
+    let localLeader = await userRepo.findOne({
+      where: { email: localLeaderEmail, deletedAt: IsNull() }
+    });
+    if (!localLeader) {
+      // AuthService verifies passwords with argon2; keep hash algorithm aligned so login works.
+      const localHashedPassword = await argon2.hash(localLeaderPassword);
+      localLeader = await userRepo.save(
+        userRepo.create({
+          email: localLeaderEmail,
+          hashedPassword: localHashedPassword,
+          fullName: "Local Demo Leader",
+          isEmailVerified: true,
+          telegramUserId: null
+        })
+      );
+    }
+
+    const existingMembership = await membershipRepo.findOne({
+      where: {
+        tenantId: localTenant.id,
+        userId: localLeader.id,
+        deletedAt: IsNull()
+      }
+    });
+    if (!existingMembership) {
+      await membershipRepo.save(
+        membershipRepo.create({
+          tenantId: localTenant.id,
+          userId: localLeader.id,
+          role: Role.OWNER
+        })
+      );
+    }
 
     const tenantName = `Freeze QA Tenant ${new Date().toISOString()}`;
     const seededTenant = await tenantRepo.save(
@@ -117,8 +169,11 @@ async function run(): Promise<void> {
 
     const outputPath = join(process.cwd(), ".seed-output.json");
     await writeFile(outputPath, JSON.stringify(output, null, 2), "utf8");
-    console.log(`Seed complete. Output written to ${outputPath}`);
-    console.log(JSON.stringify(output, null, 2));
+    emitScriptInfo(`Local leader tenant id: ${localTenant.id}`);
+    emitScriptInfo(`Local leader user id: ${localLeader.id}`);
+    emitScriptInfo("✅ Seeded Leader user: leader@test.com / demo123");
+    emitScriptInfo(`Seed complete. Output written to ${outputPath}`);
+    emitScriptDebug(JSON.stringify(output, null, 2));
   } finally {
     await dataSource.destroy();
   }

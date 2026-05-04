@@ -324,6 +324,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     {} as never,
     {} as never,
     dataSource as never,
+    {} as never,
     requestContextService as never,
     outboxService as never
   );

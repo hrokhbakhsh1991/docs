@@ -131,17 +131,21 @@ For each entry:
 | **Method** | GET |
 | **Mock Response Example** | Array of `TourResponseDto` |
 
+> **Note:** Tour dates were removed from the MVP domain model. Older mock specifications may still reference them.
+
 ```json
 [
   {
     "id": "22222222-2222-4222-8222-222222222222",
+    "createdAt": "2026-05-02T10:00:00.000Z",
+    "updatedAt": "2026-05-02T10:00:00.000Z",
     "title": "Spring Camp 2026",
     "description": "Mock tour",
     "totalCapacity": 30,
     "acceptedCount": 10,
-    "costContext": { "currency": "IRR", "requiresPayment": true },
-    "startDate": null,
-    "endDate": null
+    "lifecycleStatus": "OPEN",
+    "chatLink": "https://t.me/joinchat/mock-example",
+    "costContext": { "currency": "IRR", "requiresPayment": true }
   }
 ]
 ```
@@ -158,16 +162,20 @@ For each entry:
 | **Method** | GET |
 | **Mock Response Example** | Single `TourResponseDto` |
 
+> **Note:** Tour dates were removed from the MVP domain model. Older mock specifications may still reference them.
+
 ```json
 {
   "id": "22222222-2222-4222-8222-222222222222",
+  "createdAt": "2026-05-02T10:00:00.000Z",
+  "updatedAt": "2026-05-02T10:00:00.000Z",
   "title": "Spring Camp 2026",
   "description": "Mock tour",
   "totalCapacity": 30,
   "acceptedCount": 10,
-  "costContext": { "currency": "IRR", "requiresPayment": true },
-  "startDate": null,
-  "endDate": null
+  "lifecycleStatus": "OPEN",
+  "chatLink": "https://t.me/joinchat/mock-example",
+  "costContext": { "currency": "IRR", "requiresPayment": true }
 }
 ```
 

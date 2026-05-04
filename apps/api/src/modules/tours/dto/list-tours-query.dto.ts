@@ -1,6 +1,10 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+
+/** Matches web tour list URL `status` (excluding `all`, which omits the param). */
+export const LIST_TOURS_STATUS_VALUES = ["active", "completed", "archived"] as const;
+export type ListToursStatusFilter = (typeof LIST_TOURS_STATUS_VALUES)[number];
 
 export class ListToursQueryDto {
   @ApiPropertyOptional({
@@ -35,4 +39,19 @@ export class ListToursQueryDto {
   @Min(1)
   @Max(100)
   limit = 10;
+
+  @ApiPropertyOptional({
+    enum: LIST_TOURS_STATUS_VALUES,
+    description:
+      "Lifecycle bucket: active → DRAFT, completed → OPEN, archived → CLOSED or CANCELLED"
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    return typeof value === "string" ? value.trim() : value;
+  })
+  @IsIn([...LIST_TOURS_STATUS_VALUES], {
+    message: "status must be one of: active, completed, archived"
+  })
+  status?: ListToursStatusFilter;
 }

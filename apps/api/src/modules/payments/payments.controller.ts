@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -8,9 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   UseGuards,
-  UseInterceptors,
-  UsePipes,
-  ValidationPipe
+  UseInterceptors
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -39,13 +36,6 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Payments")
 @Controller("api/v2")
-@UsePipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true
-  })
-)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
@@ -70,21 +60,7 @@ export class PaymentsController {
     tenantSource: "context"
   })
   async createPaymentIntent(
-    @Body(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        exceptionFactory: () =>
-          new BadRequestException({
-            error: {
-              code: "VALIDATION_FAILED",
-              message: "Invalid request payload"
-            }
-          })
-      })
-    )
-    payload: CreatePaymentIntentDto
+    @Body() payload: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
     return this.paymentsService.createPaymentIntent(payload);
   }

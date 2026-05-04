@@ -62,6 +62,7 @@ export function FormField({
     "aria-invalid": invalid ? true : children.props["aria-invalid"],
     "aria-describedby": describedBy,
     "aria-required": required ? true : children.props["aria-required"],
+    ...(required ? { required: true as const } : {}),
   });
 
   return (

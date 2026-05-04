@@ -22,9 +22,17 @@
 
 ### تور (دامنهٔ نمایشی، هم‌تراز با `TourDto` + چرخهٔ عمر)
 
-- **`lifecycleStatus`** در لایهٔ سرویس (`lib/services/tours.service.ts` به‌شکل `TourDetailDto`) نگه‌داری می‌شود چون در پاسخ GET تور فعلی در OpenAPI فیلد چرخهٔ عمر در پاسخ لیست نشده؛ برای UX فرم/لیست به آن نیاز داریم.
+- **`lifecycleStatus`** بخشی از **قرارداد API** است: در **`TourResponseDto`** داخل **`apps/api/openapi.json`** تعریف شده و بک‌اند آن را در پاسخ **`GET /api/v2/tours`** و **`GET /api/v2/tours/{tourId}`** (و پاسخ‌های ایجاد/به‌روزرسانی تور) برمی‌گرداند. در فرانت، مقدار خام JSON در **`mapTourResponseToDto`** (`apps/web/lib/mappers/tour.mapper.ts`) نرمال می‌شود و روی مدل سرویس به‌شکل **`TourDetailDto`** / تایپ‌های **`@repo/types`** در دسترس UI قرار می‌گیرد.
+
+- **لایهٔ نگاشت UI ↔ API (چرخهٔ عمر):** فرم‌ها و فیلترها از **مقادیر وضعیت UI** استفاده می‌کنند: **`draft`**, **`active`**, **`archived`** (`TourFormLifecycleStatus` در `apps/web/src/components/tours/tour-lifecycle.ts`، هم‌خوان با `TourSchema`). API از enum **`DRAFT`**, **`OPEN`**, **`CLOSED`**, **`CANCELLED`** (`TourLifecycleStatus`) استفاده می‌کند. تبدیل دوسویه با **`apiLifecycleToFormStatus`** (خواندن از API → UI) و **`formLifecycleToApi`** (ارسال فرم/`PATCH` → API) در همان فایل انجام می‌شود؛ ساخت بدنهٔ **`POST`/`PATCH`** تور از مسیر **`apps/web/app/(app)/tours/tour-ui-mappers.ts`** (`createTourDtoFromTourFormValues`, `updateTourDtoFromTourFormValues`) این enum را روی DTO سیم (مثلاً `lifecycle_status` در بدنهٔ درخواست طبق قرارداد) می‌نشاند. **برچسب‌های قابل‌مشاهده برای کاربر** (Draft / Active / Archived) با **`lifecycleDisplayLabel`** از همان ماژول گرفته می‌شوند و با مقادیر داخلی فرم (`draft` / `active` / `archived`) متفاوت‌اند.
+
+  | وضعیت UI | خواندن از API (`lifecycleStatus`) | نوشتن به API (`PATCH` از فرم) |
+  |-----------|-------------------------------------|-------------------------------|
+  | `draft` | `DRAFT` (و پیش‌فرض برای مقدار ناشناخته) | `DRAFT` |
+  | `active` | `OPEN` | `OPEN` |
+  | `archived` | `CLOSED` یا `CANCELLED` | `CLOSED` |
+
 - دادهٔ تور در UI از مسیر **React Query → لایهٔ سرویس** می‌آید؛ دیگر **`ToursMockProvider`** یا React Context برای تورها وجود ندارد.
-- فرم همچنان برچسب‌های **Draft / Published / Archived** را نشان می‌دهد؛ در لایهٔ نگاشت UI به **`DRAFT` / `OPEN` / `CLOSED`** تبدیل می‌شود (`apps/web/app/(app)/tours/tour-ui-mappers.ts`).
 - قیمت در API داخل **`costContext`** است؛ mock از شکل `{ currency: "USD", totalCost }` استفاده می‌کند (`formatters.ts`).
 
 ### رزرو / بوکینگ (`MockBooking`)
@@ -44,7 +52,7 @@
 ## TODO هنگام اتصال HTTP واقعی
 
 1. جایگزینی بدنهٔ متدهای `lib/services/*.service.ts` با فراخوانی **`apiClient`** از **`apps/web/lib/api-client.ts`** (`NEXT_PUBLIC_API_URL`) به‌جای state درون حافظه؛ کلیدهای React Query در **`apps/web/lib/query-keys.ts`** (`tourKeys`, `bookingKeys`, `userKeys`) آمادهٔ Invalidate مرکزی هستند.
-2. حذف یا جایگزینی **`lifecycleStatus`** محلی اگر GET تور در API فیلد معادل برگرداند.
+2. هر تغییر در enum **`TourLifecycleStatus`** یا شکل **`TourResponseDto`** در OpenAPI باید هم‌زمان در **`mapTourResponseToDto`**, **`@repo/types`**, و توابع **`tour-lifecycle.ts`** / **`tour-ui-mappers.ts`** بازتاب داده شود تا نگاشت UI (`draft` / `active` / `archived`) با قرارداد منحرف نشود.
 3. حذف **`tourTitleMock`** و مشابه‌ها وقتی لیست/جزئیات registration تور را embed می‌کند یا join سمت سرور دارد.
 4. حذف **`participantEmailMock`** وقتی API ایمیل شرکت‌کننده را برمی‌گرداند (یا از منبع دیگری پر می‌شود).
 5. بازنگری **`bookingStatusLabel`** / **`paymentStatusLabel`** تا یا با محصول یکسان شوند یا مستقیماً enum API نشان داده شود.

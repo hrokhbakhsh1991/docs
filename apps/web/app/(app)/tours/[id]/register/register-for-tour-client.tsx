@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -12,9 +12,12 @@ import {
   Button,
   Card,
   CardBody,
+  cn,
   EmptyState,
+  ErrorState,
   FormField,
   Input,
+  LoadingState,
   Select,
   Textarea,
 } from "@tour/ui";
@@ -25,18 +28,47 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { registrationNeedsPaymentUi } from "@/lib/payment-flow";
 import { bookingKeys, registrationKeys, tourKeys } from "@/lib/query-keys";
 import { publicRegisterTour, registrationsUseLiveApi } from "@/lib/services/registrations.service";
-import { getTourById, toursUseLiveApi } from "@/lib/services/tours.service";
+import { toursUseLiveApi } from "@/lib/services/tours.service";
 import { useAppToast } from "@/lib/use-app-toast";
+import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
+
+import registerStyles from "./register-for-tour.module.css";
+
+/** Aligned with `CreateRegistrationDto.participantContactPhone` (`@Matches` in apps/api). */
+const PARTICIPANT_PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}$/;
 
 const IntakeSchema = z.object({
   participantFullName: z.string().trim().min(1, "Full name is required.").max(255),
-  participantContactPhone: z.string().trim().min(1, "Phone is required.").max(64),
+  participantContactPhone: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required.")
+    .max(64, "Phone number is too long.")
+    .regex(
+      PARTICIPANT_PHONE_REGEX,
+      "Use 7–20 digits (optional + at the start). Spaces, dashes, and parentheses are allowed.",
+    ),
+  /** API: `self_vehicle` (product wording: personal / own vehicle). */
   transportMode: z.enum(["self_vehicle", "group_vehicle", "other"]),
   participantNote: z.string().trim().max(2000).optional(),
-  vehicleSeatCapacity: z.string().trim().refine(
-    (s) => !s.length || (/^\d{1,2}$/.test(s) && Number(s) >= 1 && Number(s) <= 99),
-    { message: "Between 1 and 99 seats, or leave blank." },
-  ),
+  /**
+   * Extra seats for carpooling (`CreateRegistrationDto.vehicleSeatCapacity`).
+   * Shown only when `transportMode === "self_vehicle"` (same as PERSONAL_VEHICLE in UX copy).
+   */
+  vehicleSeatCapacity: z
+    .number()
+    .int()
+    .min(1, "Choose 1, 2, or 3 extra seats.")
+    .max(3, "Choose 1, 2, or 3 extra seats.")
+    .optional(),
+}).superRefine((data, ctx) => {
+  if (data.transportMode !== "self_vehicle" && data.vehicleSeatCapacity != null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Extra seats apply only when you select “Self vehicle”.",
+      path: ["vehicleSeatCapacity"],
+    });
+  }
 });
 
 type IntakeValues = z.infer<typeof IntakeSchema>;
@@ -66,18 +98,25 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   const queryClient = useQueryClient();
   const toast = useAppToast();
   const { isHydrated, isAuthenticated, user } = useAuth();
-  const liveApi = toursUseLiveApi() && registrationsUseLiveApi();
-  const tourQueryEnabled = Boolean(tourId) && toursUseLiveApi() && isHydrated && isAuthenticated;
+  const leaderTenantReady = Boolean(user?.tenantId?.trim());
+  const liveApiFull = toursUseLiveApi() && registrationsUseLiveApi();
+  const tourQueryEnabled =
+    Boolean(tourId?.trim()) && liveApiFull && isHydrated && isAuthenticated && leaderTenantReady;
 
-  const { data: tour, isPending: tourLoading } = useQuery({
-    queryKey: tourKeys.detail(tourId),
-    queryFn: () => getTourById(tourId),
-    enabled: tourQueryEnabled,
-  });
+  const {
+    tour,
+    isLoading: tourLoading,
+    isFetching: tourFetching,
+    isError: tourIsError,
+    error: tourError,
+    refetch: refetchTour,
+  } = useTourDetail(tourId, { enabled: tourQueryEnabled });
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<IntakeValues>({
@@ -87,29 +126,43 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       participantContactPhone: "",
       transportMode: "group_vehicle",
       participantNote: "",
-      vehicleSeatCapacity: "",
+      vehicleSeatCapacity: undefined,
     },
   });
 
+  const transportMode = watch("transportMode");
+
+  /** PERSONAL_VEHICLE in product terms === API `self_vehicle`. Clear seats when mode changes away. */
+  useEffect(() => {
+    if (transportMode !== "self_vehicle") {
+      setValue("vehicleSeatCapacity", undefined, { shouldValidate: true, shouldDirty: false });
+    }
+  }, [transportMode, setValue]);
+
   const placementMutation = useMutation({
     mutationFn: async (values: IntakeValues) => {
-      const tenantId = user?.tenantId?.trim();
-      if (!tenantId) throw new Error("Missing tenant.");
-      return publicRegisterTour(tourId, {
-        tenantId,
+      if (!user?.tenantId?.trim()) throw new Error("Missing tenant.");
+      const trimmedNote = values.participantNote?.trim();
+      const base = {
         tourId,
         participantFullName: values.participantFullName.trim(),
         participantContactPhone: values.participantContactPhone.trim(),
         transportMode: values.transportMode,
-        entryMode: "web",
-        participantNote: values.participantNote?.trim() || undefined,
-        vehicleSeatCapacity: (() => {
-          const raw = values.vehicleSeatCapacity?.trim();
-          if (!raw?.length) return undefined;
-          const n = Number(raw);
-          return Number.isInteger(n) && n >= 1 && n <= 99 ? n : undefined;
-        })(),
-      });
+        entryMode: "web" as const,
+        ...(trimmedNote ? { participantNote: trimmedNote } : {}),
+      };
+      const seat =
+        values.transportMode === "self_vehicle" &&
+        typeof values.vehicleSeatCapacity === "number" &&
+        Number.isInteger(values.vehicleSeatCapacity) &&
+        values.vehicleSeatCapacity >= 1 &&
+        values.vehicleSeatCapacity <= 3
+          ? values.vehicleSeatCapacity
+          : undefined;
+      return publicRegisterTour(
+        tourId,
+        seat !== undefined ? { ...base, vehicleSeatCapacity: seat } : base,
+      );
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
@@ -148,7 +201,16 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
         })
       : false;
 
-  if (toursUseLiveApi() && !isHydrated) {
+  const tourErrorMessage =
+    tourError instanceof ApiError
+      ? tourError.status === 404
+        ? "No tour was found with this id."
+        : tourError.message.trim() || "Could not load tour. Please try again."
+      : tourError instanceof Error
+        ? tourError.message
+        : "Could not load tour. Please try again.";
+
+  if (!isHydrated) {
     return (
       <RegisteredWorkspacePage
         documentTitle="Register for tour"
@@ -156,14 +218,16 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
         breadcrumbItems={[...breadcrumbTrail]}
         actions={null}
       >
-        <Card>
-          <CardBody>Loading session…</CardBody>
+        <Card className={registerStyles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading session…" />
+          </CardBody>
         </Card>
       </RegisteredWorkspacePage>
     );
   }
 
-  if (liveApi && isHydrated && !isAuthenticated) {
+  if (liveApiFull && !isAuthenticated) {
     return (
       <RegisteredWorkspacePage
         documentTitle="Register for tour"
@@ -184,7 +248,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
     );
   }
 
-  if (toursUseLiveApi() && tourLoading) {
+  if (!liveApiFull) {
     return (
       <RegisteredWorkspacePage
         documentTitle="Register for tour"
@@ -192,12 +256,117 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
         breadcrumbItems={[...breadcrumbTrail]}
         actions={null}
       >
-        <Card>
-          <CardBody>Loading tour…</CardBody>
+        <EmptyState
+          title="Workspace API not configured"
+          description="Set NEXT_PUBLIC_API_URL and registration endpoints so tours and registrations use the live API."
+          action={
+            <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
+              Back to dashboard
+            </Button>
+          }
+        />
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (isAuthenticated && !leaderTenantReady) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Register for tour"
+        title="Register for tour"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <EmptyState
+          title="Tenant not available"
+          description="Your account is missing tenant context. Sign in again to refresh your session."
+          action={
+            <Button type="button" variant="primary" onClick={() => router.push("/login")}>
+              Sign in again
+            </Button>
+          }
+        />
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (tourLoading) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Register for tour"
+        title="Register for tour"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={registerStyles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading tour…" />
+          </CardBody>
         </Card>
       </RegisteredWorkspacePage>
     );
   }
+
+  if (tourIsError) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Register for tour"
+        title="Register for tour"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={registerStyles.stateCard}>
+          <CardBody>
+            <ErrorState title="Could not load tour" message={tourErrorMessage} onRetry={() => void refetchTour()} />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (!tour) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Register for tour"
+        title="Register for tour"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <EmptyState
+          title="Tour not found"
+          description="No tour exists with this id."
+          action={
+            <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
+              Back to tours
+            </Button>
+          }
+        />
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (tour.lifecycleStatus !== "OPEN") {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle={title}
+        title="Register for tour"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <EmptyState
+          title="Registrations are closed"
+          description="This tour is not accepting new registrations."
+          action={
+            <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}>
+              Back to tour
+            </Button>
+          }
+        />
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  const tourRefetching = Boolean(tour && !tourLoading && tourFetching);
 
   return (
     <RegisteredWorkspacePage
@@ -207,27 +376,39 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       breadcrumbItems={[...breadcrumbTrail]}
       actions={null}
     >
-      <Card>
-        <CardBody>
+      <div
+        className={cn(
+          registerStyles.contentRoot,
+          tourRefetching ? registerStyles.contentRootRefreshing : undefined
+        )}
+        aria-busy={tourRefetching ? true : undefined}
+      >
+        {tourRefetching ? (
+          <span className={registerStyles.liveRegion} aria-live="polite">
+            Updating tour
+          </span>
+        ) : null}
+        <Card>
+          <CardBody>
           {placementMutation.isSuccess && lastRegId ? (
             <div data-testid="register-success">
               <p role="status">Your registration was created.</p>
               {placement?.outcome === "registered" && placement.paymentIntent ? (
-                <p style={{ marginTop: "0.75rem" }}>
+                <p className={registerStyles.successStack}>
                   Payment record started — status{" "}
                   <strong>{placement.paymentIntent.status}</strong> ({placement.paymentIntent.currency}{" "}
                   {placement.paymentIntent.amount}). Open details to monitor settlement.
                 </p>
               ) : null}
               {placement?.outcome === "registered" && owesPaymentAfterRegister && !placement.paymentIntent ? (
-                <p style={{ marginTop: "0.75rem" }}>
+                <p className={registerStyles.successStack}>
                   Next step: create a checkout intent from your registration detail (payment confirms your seat asynchronously).
                 </p>
               ) : null}
-              <p style={{ marginTop: "0.75rem" }}>
+              <p className={registerStyles.successStack}>
                 Registration ID: <strong>{lastRegId}</strong>
               </p>
-              <div style={{ marginTop: "1rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              <div className={registerStyles.successActions}>
                 <Button
                   type="button"
                   variant="primary"
@@ -245,10 +426,10 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
           ) : placementMutation.isSuccess && placement?.outcome === "waitlisted" ? (
             <div data-testid="register-success" role="status">
               <p>You are on the waitlist for this tour.</p>
-              <p style={{ marginTop: "0.5rem" }}>
+              <p className={registerStyles.waitlistMeta}>
                 Queue position: <strong>{placement.queuePosition}</strong>
               </p>
-              <Link href={`/tours/${tourId}`} style={{ display: "inline-block", marginTop: "1rem" }}>
+              <Link href={`/tours/${tourId}`} className={registerStyles.returnLink}>
                 Return to tour
               </Link>
             </div>
@@ -259,7 +440,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                 void placementMutation.mutateAsync(values);
               })}
             >
-              <p style={{ marginBottom: "1rem" }}>
+              <p className={registerStyles.formLead}>
                 Complete the intake form. Placement uses{" "}
                 <strong>
                   POST /api/v2/tours/
@@ -280,13 +461,30 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                   <option value="other">Other</option>
                 </Select>
               </FormField>
-              <FormField label="Vehicle seats (optional)" error={errors.vehicleSeatCapacity?.message}>
-                <Input inputMode="numeric" placeholder="e.g. 4" {...register("vehicleSeatCapacity")} />
-              </FormField>
+              {transportMode === "self_vehicle" ? (
+                <FormField
+                  label="Extra seats in your car (optional)"
+                  description="Offer available seats to help other participants carpool."
+                  error={errors.vehicleSeatCapacity?.message}
+                >
+                  <Select
+                    aria-label="Extra seats in your car"
+                    {...register("vehicleSeatCapacity", {
+                      setValueAs: (v: unknown) =>
+                        v === "" || v === undefined || v === null ? undefined : Number(v),
+                    })}
+                  >
+                    <option value="">Select</option>
+                    <option value={1}>1 seat</option>
+                    <option value={2}>2 seats</option>
+                    <option value={3}>3 seats</option>
+                  </Select>
+                </FormField>
+              ) : null}
               <FormField label="Notes (optional)" error={errors.participantNote?.message}>
                 <Textarea rows={3} {...register("participantNote")} />
               </FormField>
-              <div style={{ marginTop: "1rem" }}>
+              <div className={registerStyles.submitRow}>
                 <Button type="submit" variant="primary" disabled={isSubmitting || placementMutation.isPending}>
                   {placementMutation.isPending ? "Submitting…" : "Submit registration"}
                 </Button>
@@ -295,6 +493,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
           )}
         </CardBody>
       </Card>
+      </div>
     </RegisteredWorkspacePage>
   );
 }

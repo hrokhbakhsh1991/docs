@@ -5,12 +5,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 
 import { Button, Card, cn } from "@tour/ui";
 
-import {
-  extractTourPriceUsd,
-  formatTourDateRange,
-  formatTourLocation,
-  formatTourPriceUsd,
-} from "./formatters";
+import { extractTourPriceUsd, formatTourLocation, formatTourPriceUsd } from "./formatters";
 
 import styles from "./TourCard.module.css";
 
@@ -84,15 +79,12 @@ export function TourCard({
     <Card
       className={cn(styles.wrap, className)}
       title={tour.title}
-      description={<span style={{ fontFamily: "var(--font-mono, ui-monospace, monospace)" }}>{tour.id}</span>}
+      description={<span className={styles.tourId}>{tour.id}</span>}
       actions={actions}
       onClick={onClick}
       {...rest}
     >
       <div className={styles.summary}>
-        <p style={{ margin: 0 }}>
-          <strong>Schedule:</strong> {formatTourDateRange(tour)}
-        </p>
         <p style={{ margin: 0 }}>
           <strong>Location:</strong> {formatTourLocation(tour)}
         </p>

@@ -196,6 +196,7 @@ function createServiceHarness() {
     {} as never,
     {} as never,
     dataSource as never,
+    {} as never,
     requestContextService as never,
     outboxService as never
   );

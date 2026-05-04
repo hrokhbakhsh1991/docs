@@ -9,6 +9,8 @@ export type EmptyStateProps = HTMLAttributes<HTMLDivElement> & {
   description?: ReactNode;
   action?: ReactNode;
   icon?: ReactNode;
+  /** When nested inside a Card/panel, omit inner surface so only one visual frame shows. */
+  embedded?: boolean;
 };
 
 function DefaultEmptyIcon() {
@@ -20,9 +22,17 @@ function DefaultEmptyIcon() {
   );
 }
 
-export function EmptyState({ title, description, action, icon, className, ...rest }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  description,
+  action,
+  icon,
+  embedded = false,
+  className,
+  ...rest
+}: EmptyStateProps) {
   return (
-    <div className={cn(styles.root, className)} role="status" {...rest}>
+    <div className={cn(styles.root, embedded && styles.embedded, className)} role="status" {...rest}>
       <div className={styles.icon}>{icon ?? <DefaultEmptyIcon />}</div>
       <h3 className={styles.title}>{title}</h3>
       {description ? (

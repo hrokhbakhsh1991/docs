@@ -24,15 +24,6 @@ export function buildCostContextUsd(totalCost: number): Record<string, unknown> 
   return { currency: "USD", totalCost };
 }
 
-/** `TourDto` exposes `startDate` / `endDate` (ISO instants when present). */
-export function formatTourDateRange(tour: TourDto): string {
-  const start = tour.startDate?.trim() ?? "";
-  const end = tour.endDate?.trim() ?? "";
-  if (!start && !end) return "—";
-  if (start && end) return `${formatTourDateLabel(start)} → ${formatTourDateLabel(end)}`;
-  return formatTourDateLabel(start || end);
-}
-
 /**
  * Location is projected in `cost_context.location` when the leader saves it (OpenAPI `cost_context` is free-form object).
  */

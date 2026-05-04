@@ -84,6 +84,7 @@ function createServiceWithState(initial: RegistrationEntity | null): {
     {} as never,
     {} as never,
     dataSource as never,
+    {} as never,
     requestContextService as never,
     outboxService as never
   );

@@ -6,6 +6,7 @@ import type {
 } from "@repo/types";
 
 import { apiClient } from "../api-client";
+import { API } from "../api-paths";
 import type { PaymentIntentResponse } from "./payments.service";
 import { coercePaymentIntentResponse } from "./payments.service";
 
@@ -65,8 +66,8 @@ export function normalizeRegistrationPayload(raw: unknown): BookingDto {
   };
 }
 
+/** Body fields aligned with `CreateRegistrationDto` (no `tenantId` — tenant is derived server-side). */
 export type CreateRegistrationPayload = {
-  tenantId: string;
   tourId: string;
   participantFullName: string;
   participantContactPhone: string;
@@ -79,7 +80,7 @@ export type CreateRegistrationPayload = {
 };
 
 export async function createRegistration(payload: CreateRegistrationPayload): Promise<BookingDto> {
-  const raw = await apiClient.post<unknown>("/api/v2/registrations", payload, {
+  const raw = await apiClient.post<unknown>(API.registrations, payload, {
     idempotencyKey: true,
   });
   return normalizeRegistrationPayload(raw);
@@ -104,7 +105,7 @@ export async function publicRegisterTour(
   payload: CreateRegistrationPayload,
 ): Promise<PublicRegisterOutcome> {
   const raw = await apiClient.post<unknown>(
-    `/api/v2/tours/${encodeURIComponent(tourId)}/register`,
+    API.tourRegister(tourId),
     { ...payload, tourId },
     { idempotencyKey: true },
   );
@@ -139,7 +140,7 @@ export async function publicWaitlistTour(
   payload: CreateWaitlistPayload,
 ): Promise<{ waitlistItemId: string; queuePosition: number }> {
   return apiClient.post<{ waitlistItemId: string; queuePosition: number }>(
-    `/api/v2/tours/${encodeURIComponent(tourId)}/waitlist`,
+    API.tourWaitlist(tourId),
     { ...payload, tourId },
     { idempotencyKey: true },
   );
@@ -150,24 +151,24 @@ export type CreateWaitlistPayload = Omit<CreateRegistrationPayload, "entryMode">
 };
 
 export async function createWaitlistItem(payload: CreateWaitlistPayload): Promise<WaitlistItemResponseDto> {
-  return apiClient.post<WaitlistItemResponseDto>("/api/v2/waitlist-items", payload, {
+  return apiClient.post<WaitlistItemResponseDto>(API.waitlistItems, payload, {
     idempotencyKey: true,
   });
 }
 
 export async function getRegistrationById(registrationId: string): Promise<BookingDto> {
-  const raw = await apiClient.get<unknown>(`/api/v2/registrations/${encodeURIComponent(registrationId)}`);
+  const raw = await apiClient.get<unknown>(API.registration(registrationId));
   return normalizeRegistrationPayload(raw);
 }
 
 export async function listRegistrationsForTour(tourId: string): Promise<BookingDto[]> {
-  const raw = await apiClient.get<unknown>(`/api/v2/tours/${encodeURIComponent(tourId)}/registrations`);
+  const raw = await apiClient.get<unknown>(API.tourRegistrations(tourId));
   return Array.isArray(raw) ? raw.map((row) => normalizeRegistrationPayload(row)) : [];
 }
 
 export async function listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]> {
   return apiClient.get<WaitlistItemResponseDto[]>(
-    `/api/v2/tours/${encodeURIComponent(tourId)}/waitlist-items`,
+    API.tourWaitlistItems(tourId),
     {}
   );
 }
@@ -177,7 +178,7 @@ export async function updateRegistrationStatus(
   targetStatus: RegistrationStatus
 ): Promise<BookingDto> {
   const raw = await apiClient.patch<unknown>(
-    `/api/v2/registrations/${encodeURIComponent(registrationId)}/status`,
+    API.registrationStatus(registrationId),
     { targetStatus },
     { idempotencyKey: true }
   );
@@ -189,7 +190,7 @@ export async function updateRegistrationPayment(
   body: { paymentStatus: RegistrationPaymentStatus; paidAmount?: number }
 ): Promise<BookingDto> {
   const raw = await apiClient.patch<unknown>(
-    `/api/v2/registrations/${encodeURIComponent(registrationId)}/payment`,
+    API.registrationPayment(registrationId),
     body,
     { idempotencyKey: true }
   );
@@ -201,7 +202,7 @@ export async function convertWaitlistItem(
   body?: { conversionReason?: string }
 ): Promise<WaitlistItemResponseDto> {
   return apiClient.post<WaitlistItemResponseDto>(
-    `/api/v2/waitlist-items/${encodeURIComponent(waitlistItemId)}/convert`,
+    API.waitlistItemConvert(waitlistItemId),
     body ?? {},
     { idempotencyKey: true }
   );

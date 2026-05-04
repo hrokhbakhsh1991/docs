@@ -8,7 +8,8 @@ import { z } from "zod";
 
 import { Button, FormField, Input, useToast } from "@tour/ui";
 
-import { useAuth } from "@/lib/auth/auth-context";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { decodeJwtPayload } from "@/lib/auth/decode-jwt-payload";
 import { ApiError } from "@/lib/api-client";
 import { loginWebSession } from "@/lib/services/auth.service";
 
@@ -54,8 +55,10 @@ export function LoginForm() {
       const session = await loginWebSession(data.email, data.password);
       setSession(session);
       showToast({ type: "success", message: "Login successful" });
-      router.push("/tours");
+      const claims = decodeJwtPayload(session.session_token);
+      const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
       router.refresh();
+      router.push(isLeaderRole(role) ? "/dashboard" : "/tours");
     } catch (err: unknown) {
       showToast({ type: "error", message: resolveSubmitErrorMessage(err) });
     }

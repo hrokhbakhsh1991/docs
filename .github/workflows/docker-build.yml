@@ -1,0 +1,41 @@
+name: docker-build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.api
+          push: false
+          tags: tour-ops-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.web
+          push: false
+          tags: tour-ops-web:ci
+          build-args:
+            NEXT_PUBLIC_API_URL: http://localhost:3001
+            NEXT_PUBLIC_TENANT_ID: "11111111-1111-4111-8111-111111111111"
+            NEXT_PUBLIC_PAYMENT_PROVIDER: mock_provider
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

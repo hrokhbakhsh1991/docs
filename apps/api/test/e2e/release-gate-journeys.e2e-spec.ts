@@ -10,6 +10,11 @@ import {
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
 import { createE2EApp } from "./bootstrap";
+import { resetTestDatabaseWithMigrations } from "./reset-test-database";
+import {
+  E2E_JWT_PRIVATE_KEY_PKCS8,
+  E2E_JWT_PUBLIC_KEY_SPKI
+} from "./jwt-test-keys";
 import { ReconciliationService } from "../../src/modules/reconciliation/reconciliation.service";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 
@@ -33,8 +38,8 @@ function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.DATABASE_PASSWORD = db.getPassword();
   process.env.DATABASE_NAME = db.getDatabase();
   process.env.DATABASE_URL = db.getConnectionUri();
-  process.env.JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY ?? "test-private-key";
-  process.env.JWT_PUBLIC_KEY = process.env.JWT_PUBLIC_KEY ?? "test-public-key";
+  process.env.JWT_PRIVATE_KEY = E2E_JWT_PRIVATE_KEY_PKCS8;
+  process.env.JWT_PUBLIC_KEY = E2E_JWT_PUBLIC_KEY_SPKI;
   process.env.JWT_ISSUER = process.env.JWT_ISSUER ?? "test-issuer";
   process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE ?? "test-audience";
   process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "test-token";
@@ -125,18 +130,9 @@ before(async () => {
     return;
   }
   applyEnvForContainer(container);
+  await resetTestDatabaseWithMigrations();
   app = await createE2EApp();
   dataSource = app.get(DataSource);
-  await dataSource.destroy();
-  dataSource.setOptions({
-    migrations: ["src/database/migrations/*.ts"],
-    migrationsTableName: "typeorm_migrations"
-  });
-  await dataSource.initialize();
-  await dataSource.dropDatabase();
-  await dataSource.destroy();
-  await dataSource.initialize();
-  await dataSource.runMigrations();
   reconciliationService = app.get(ReconciliationService);
 });
 

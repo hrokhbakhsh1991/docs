@@ -4,9 +4,7 @@ import {
   Get,
   Param,
   Patch,
-  UseGuards,
-  UsePipes,
-  ValidationPipe
+  UseGuards
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -27,13 +25,6 @@ import { UsersService } from "./users.service";
 
 @ApiTags("Users")
 @Controller("api/v2/users")
-@UsePipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true
-  })
-)
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 @Roles(Role.OWNER, Role.ADMIN, Role.LEADER)

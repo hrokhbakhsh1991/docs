@@ -21,7 +21,11 @@ packages/
   config/
   types/
 infra/
-  docker-compose.yml
+  docker-compose.yml          # Postgres + Redis only
+  docker-compose.full.yml    # full stack (includes ↑ via Compose `include`)
+  docker/
+    Dockerfile.api
+    Dockerfile.web
 tools/
 ```
 
@@ -43,6 +47,51 @@ pnpm install
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 ```
+
+## Run full stack (Docker)
+
+Postgres/Redis plus **Nest API** and **Next.js** as container images are defined in **`infra/docker-compose.full.yml`**. That file **includes** `infra/docker-compose.yml` for databases, then adds `api` and `web` services built from **`infra/docker/Dockerfile.api`** and **`infra/docker/Dockerfile.web`**.
+
+**Requirements:** Docker Engine + Docker Compose **v2.20+** (Compose Specification `include`).
+
+### Local full stack
+
+From the repository root:
+
+```bash
+pnpm docker:bootstrap   # generates infra/.env.docker (JWT keys, DB/Redis hosts — do not commit)
+pnpm docker:stack       # docker compose -f infra/docker-compose.full.yml up --build -d
+```
+
+Equivalent manual invocation:
+
+```bash
+bash infra/scripts/docker-bootstrap-env.sh
+docker compose -f infra/docker-compose.full.yml up --build -d
+```
+
+The Compose file expects **`infra/.env.docker`** (created by the bootstrap script). Services publish:
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:3001`
+
+The web image is built with `NEXT_PUBLIC_API_URL=http://localhost:3001` so the browser can reach the API on the host. **Production:** rebuild the web image with your public API base URL (and set **`CORS_ORIGIN`** on the API to match your frontend origins). Manage secrets via your host or orchestrator, not committed env files.
+
+Stop (pnpm shortcut):
+
+```bash
+pnpm docker:stack:down
+```
+
+Or:
+
+```bash
+docker compose -f infra/docker-compose.full.yml down
+```
+
+### CI (Docker build verification)
+
+On pull requests and pushes to **`main`**, `.github/workflows/docker-build.yml` runs **`docker build`** for both images (same Dockerfiles as above; images are not pushed to a registry). This catches broken Docker contexts or dependency installs early.
 
 ## Commands (from repository root)
 

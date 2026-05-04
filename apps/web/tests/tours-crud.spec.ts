@@ -7,7 +7,6 @@ test.describe.skip("tours mock CRUD", () => {
 
     await page.getByTestId("tour-field-name").fill(name);
     await page.getByTestId("tour-field-description").fill("Smoke-test description.");
-    await page.getByTestId("tour-field-date").fill("2026-10-15");
     await page.getByTestId("tour-field-price").fill("125.5");
     await page.getByTestId("tour-field-status").selectOption("active");
 

@@ -1,9 +1,9 @@
 import { extractTourPriceUsd } from "@/components/tours/formatters";
 import type { TourDetailDto } from "@/lib/services/tours.service";
 
-import { apiLifecycleToUi } from "./tour-ui-mappers";
+import { apiLifecycleToFormStatus } from "@/components/tours/tour-lifecycle";
 
-export type TourUiStatus = ReturnType<typeof apiLifecycleToUi>;
+export type TourUiStatus = ReturnType<typeof apiLifecycleToFormStatus>;
 export type TourStatusFilter = "all" | TourUiStatus;
 export type TourSortColumn = "title" | "price";
 export type TourSortDirection = "asc" | "desc";
@@ -11,7 +11,7 @@ export type TourSortDirection = "asc" | "desc";
 export function filterToursByStatus(tours: TourDetailDto[], statusFilter: TourStatusFilter): TourDetailDto[] {
   return tours.filter((tour) => {
     if (statusFilter === "all") return true;
-    return apiLifecycleToUi(tour.lifecycleStatus) === statusFilter;
+    return apiLifecycleToFormStatus(tour.lifecycleStatus) === statusFilter;
   });
 }
 

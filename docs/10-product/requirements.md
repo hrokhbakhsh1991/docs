@@ -82,7 +82,10 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 ## 3.7 Telegram Link Governance
 
 - `FR-60` Tour Telegram link MAY be stored and managed by leader roles.
-- `FR-61` Telegram link MUST be visible only to accepted participants.
+- `FR-61` (**MVP behavior**) The tour chat link MUST be visible only to **tour leaders** in the workspace (non-leaders MUST NOT be shown the link in the MVP UI).
+
+  The full product vision is that **accepted participants** can see the chat link when policy and channel context allow. For **MVP**, the web workspace is **leader-focused** (tour setup, registrations, payments, and operational links), so communication-link visibility is intentionally limited to **leaders only** to reduce scope and delivery risk. **Participant-facing visibility** of the same link (including enrollment and acceptance rules aligned with governance such as `FR-62`) is **out of scope for MVP** and will be implemented in a **future version**; until then, treat broader participant visibility as a **post-MVP** target unless a requirement is explicitly labeled **MVP behavior** as above.
+
 - `FR-62` Waitlist and non-accepted states MUST NOT access Telegram link.
 
 ## 3.8 Dashboard and Reconciliation

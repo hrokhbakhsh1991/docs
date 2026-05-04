@@ -14,17 +14,16 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--color-bg-page);
-  opacity: 0.4;
+  /* Dim using DS overlay scrim (§3 overlay tokens), not raw page bg opacity */
+  background: color-mix(in srgb, var(--color-overlay-scrim) 35%, transparent);
   pointer-events: none;
-  transition: opacity 0.15s ease;
 }
 
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .toolbarGrow {
@@ -41,7 +40,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
-  align-items: flex-end;
+  align-items: flex-start;
   width: 100%;
 }
 
@@ -54,13 +53,14 @@
 .toolbarSkeletonGrow {
   flex: 1 1 14rem;
   min-width: 12rem;
-  height: 2.75rem;
+  /* Match `@tour/ui` Input / Select `min-height: 40px` (2.5rem at default root) */
+  min-height: 2.5rem;
 }
 
 .toolbarSkeletonFixed {
   flex: 0 1 11rem;
   min-width: 10rem;
-  height: 2.75rem;
+  min-height: 2.5rem;
 }
 
 .sortSkeleton {
@@ -115,6 +115,12 @@
   gap: var(--space-1);
 }
 
-.actionsCell {
-  text-align: right;
+.sortDirectionGlyph {
+  display: inline-block;
+}
+
+@media (max-width: 48rem) {
+  .paginationTouchTargets :global(button) {
+    min-height: var(--layout-min-tap-target);
+  }
 }

@@ -10,6 +10,11 @@ import {
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
 import { createE2EApp } from "./bootstrap";
+import { resetTestDatabaseWithMigrations } from "./reset-test-database";
+import {
+  E2E_JWT_PRIVATE_KEY_PKCS8,
+  E2E_JWT_PUBLIC_KEY_SPKI
+} from "./jwt-test-keys";
 import { requestContextStorage } from "../../src/common/request-context/request-context";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
@@ -38,8 +43,8 @@ function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.DATABASE_PASSWORD = db.getPassword();
   process.env.DATABASE_NAME = db.getDatabase();
   process.env.DATABASE_URL = db.getConnectionUri();
-  process.env.JWT_PRIVATE_KEY = process.env.JWT_PRIVATE_KEY ?? "test-private-key";
-  process.env.JWT_PUBLIC_KEY = process.env.JWT_PUBLIC_KEY ?? "test-public-key";
+  process.env.JWT_PRIVATE_KEY = E2E_JWT_PRIVATE_KEY_PKCS8;
+  process.env.JWT_PUBLIC_KEY = E2E_JWT_PUBLIC_KEY_SPKI;
   process.env.JWT_ISSUER = process.env.JWT_ISSUER ?? "test-issuer";
   process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE ?? "test-audience";
   process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "test-token";
@@ -109,18 +114,9 @@ before(async () => {
     return;
   }
   applyEnvForContainer(container);
+  await resetTestDatabaseWithMigrations();
   app = await createE2EApp();
   dataSource = app.get(DataSource);
-  await dataSource.destroy();
-  dataSource.setOptions({
-    migrations: ["src/database/migrations/*.ts"],
-    migrationsTableName: "typeorm_migrations"
-  });
-  await dataSource.initialize();
-  await dataSource.dropDatabase();
-  await dataSource.destroy();
-  await dataSource.initialize();
-  await dataSource.runMigrations();
   registrationsService = app.get(RegistrationsService);
 });
 
@@ -155,6 +151,7 @@ test("paid registration success updates status to AcceptedPaid", async () => {
     .post("/internal/payments/webhook")
     .set("x-internal-api-key", INTERNAL_API_KEY)
     .send({
+      tenantId: TENANT_ID,
       providerPaymentId,
       status: "Paid"
     });
@@ -201,7 +198,7 @@ test("cancelling accepted registration promotes waitlist user", async () => {
       requestId: randomUUID(),
       tenantId: TENANT_ID,
       userId: "system-user",
-      role: "LEADER"
+      role: "owner"
     },
     async () => {
       await registrationsService.updateRegistrationStatus(firstRegistrationId, {
@@ -237,6 +234,7 @@ test("payment failure restores capacity and promotes waitlist user", async () =>
     .post("/internal/payments/webhook")
     .set("x-internal-api-key", INTERNAL_API_KEY)
     .send({
+      tenantId: TENANT_ID,
       providerPaymentId,
       status: "Failed",
       reason: "gateway_failure"
@@ -270,6 +268,7 @@ test("webhook returns 200 even when transition is invalid", async () => {
     .post("/internal/payments/webhook")
     .set("x-internal-api-key", INTERNAL_API_KEY)
     .send({
+      tenantId: TENANT_ID,
       providerPaymentId,
       providerEventId: "evt-invalid-transition-1",
       status: "Cancelled"
@@ -290,6 +289,7 @@ test("duplicate webhook event is deduplicated and remains 200", async () => {
     .post("/internal/payments/webhook")
     .set("x-internal-api-key", INTERNAL_API_KEY)
     .send({
+      tenantId: TENANT_ID,
       providerPaymentId,
       providerEventId: "evt-dedup-1",
       status: "Paid"
@@ -300,6 +300,7 @@ test("duplicate webhook event is deduplicated and remains 200", async () => {
     .post("/internal/payments/webhook")
     .set("x-internal-api-key", INTERNAL_API_KEY)
     .send({
+      tenantId: TENANT_ID,
       providerPaymentId,
       providerEventId: "evt-dedup-1",
       status: "Paid"

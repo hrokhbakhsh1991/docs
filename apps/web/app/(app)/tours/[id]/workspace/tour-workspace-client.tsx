@@ -1,54 +1,42 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
-import { isLeaderRole, LEADER_WORKSPACE_ACCESS_DENIED, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
-import { registrationKeys, tourKeys } from "@/lib/query-keys";
-import {
-  convertWaitlistItem,
-  listRegistrationsForTour,
-  listWaitlistItemsForTour,
-  registrationsUseLiveApi,
-  updateRegistrationPayment,
-  updateRegistrationStatus,
-} from "@/lib/services/registrations.service";
-import { getTourById, toursUseLiveApi } from "@/lib/services/tours.service";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { registrationsUseLiveApi } from "@/lib/services/registrations.service";
+import { toursUseLiveApi } from "@/lib/services/tours.service";
+import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
+import { useConvertWaitlistItem } from "@/features/registrations/hooks/useConvertWaitlistItem";
+import { useTourRegistrations } from "@/features/registrations/hooks/useTourRegistrations";
+import { useTourWaitlist } from "@/features/registrations/hooks/useTourWaitlist";
+import { useUpdateRegistrationPayment } from "@/features/registrations/hooks/useUpdateRegistrationPayment";
+import { useUpdateRegistrationStatus } from "@/features/registrations/hooks/useUpdateRegistrationStatus";
+
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
+  cn,
   EmptyState,
   ErrorState,
   LoadingState,
-  Select,
   type BreadcrumbItem,
 } from "@tour/ui";
 
-import type { BookingDto } from "@repo/types";
-import type { RegistrationPaymentStatus, RegistrationStatus } from "@repo/types";
-import type { WaitlistItemResponseDto } from "@repo/types";
+import { RegistrationsTable } from "./RegistrationsTable";
+import { WaitlistTable } from "./WaitlistTable";
+import {
+  isTourReadOnlyForWorkspace,
+  workspaceReadOnlyBannerText,
+} from "./tour-workspace-ui";
 
-import { BookingStatusBadge, PaymentStatusBadge } from "../../../bookings/booking-badges";
-
+import stateStyles from "./tour-workspace-state.module.css";
 import styles from "./tour-workspace.module.css";
-
-const STATUS_OPTIONS: RegistrationStatus[] = [
-  "Pending",
-  "Accepted",
-  "AcceptedPaid",
-  "Rejected",
-  "Cancelled",
-  "NoShow",
-  "Refunded",
-];
-
-const PAYMENT_OPTIONS: RegistrationPaymentStatus[] = ["NotPaid", "Partial", "Paid"];
 
 export type TourWorkspaceClientProps = {
   tourId: string;
@@ -56,92 +44,62 @@ export type TourWorkspaceClientProps = {
 
 export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const leader = isLeaderRole(user?.role);
+  const hasTenantId = Boolean(user?.tenantId?.trim());
   const liveApi = toursUseLiveApi() && registrationsUseLiveApi();
   const tourEnabled =
-    Boolean(tourId) && toursUseLiveApi() && isHydrated && isAuthenticated && leader;
+    Boolean(tourId) && toursUseLiveApi() && isHydrated && isAuthenticated && leader && hasTenantId;
   const dataEnabled =
-    Boolean(tourId) && liveApi && isHydrated && isAuthenticated && leader;
+    Boolean(tourId) && liveApi && isHydrated && isAuthenticated && leader && hasTenantId;
 
-  const tourQuery = useQuery({
-    queryKey: tourKeys.detail(tourId),
-    queryFn: () => getTourById(tourId),
-    enabled: tourEnabled,
-  });
+  const {
+    tour,
+    isLoading: tourLoading,
+    isFetching: tourFetching,
+    isError: tourIsError,
+    error: tourError,
+    refetch: refetchTour,
+  } = useTourDetail(tourId, { enabled: tourEnabled });
+  const {
+    registrations,
+    isLoading: regLoading,
+    isFetching: regFetching,
+    isError: regIsError,
+    refetch: refetchRegistrations,
+  } = useTourRegistrations(tourId, { enabled: dataEnabled });
+  const {
+    waitlist,
+    isLoading: waitLoading,
+    isFetching: waitFetching,
+    isError: waitIsError,
+    refetch: refetchWaitlist,
+  } = useTourWaitlist(tourId, { enabled: dataEnabled });
 
-  const regQuery = useQuery({
-    queryKey: registrationKeys.tourRegistrations(tourId),
-    queryFn: () => listRegistrationsForTour(tourId),
-    enabled: dataEnabled,
-  });
-
-  const waitQuery = useQuery({
-    queryKey: registrationKeys.tourWaitlist(tourId),
-    queryFn: () => listWaitlistItemsForTour(tourId),
-    enabled: dataEnabled,
-  });
+  const statusMutation = useUpdateRegistrationStatus(tourId);
+  const paymentMutation = useUpdateRegistrationPayment(tourId);
+  const convertMutation = useConvertWaitlistItem(tourId);
 
   const [registrationListFilter, setRegistrationListFilter] = useState<"all" | "pending">("all");
-  const [statusDraft, setStatusDraft] = useState<Record<string, RegistrationStatus>>({});
-  const [payDraft, setPayDraft] = useState<Record<string, RegistrationPaymentStatus>>({});
-  const [amountDraft, setAmountDraft] = useState<Record<string, string>>({});
 
-  const registrations = useMemo(() => regQuery.data ?? [], [regQuery.data]);
-  const waitlist = useMemo(() => waitQuery.data ?? [], [waitQuery.data]);
+  const tourErrorMessage =
+    tourError instanceof ApiError
+      ? tourError.status === 404
+        ? "No tour was found with this id."
+        : tourError.message.trim() || "Could not load tour details. Please try again."
+      : "Could not load tour details. Please try again.";
 
-  const displayedRegistrations = useMemo(() => {
-    if (registrationListFilter === "pending") {
-      return registrations.filter((r) => r.status === "Pending");
-    }
-    return registrations;
-  }, [registrationListFilter, registrations]);
-
-  const invalidateTourData = () => {
-    void queryClient.invalidateQueries({ queryKey: registrationKeys.tourRegistrations(tourId) });
-    void queryClient.invalidateQueries({ queryKey: registrationKeys.tourWaitlist(tourId) });
-    void queryClient.invalidateQueries({ queryKey: tourKeys.detail(tourId) });
-  };
-
-  const statusMutation = useMutation({
-    mutationFn: async ({ id, targetStatus }: { id: string; targetStatus: RegistrationStatus }) => {
-      return updateRegistrationStatus(id, targetStatus);
-    },
-    onSuccess: invalidateTourData,
-  });
-
-  const paymentMutation = useMutation({
-    mutationFn: async ({
-      id,
-      paymentStatus,
-      paidAmount,
-    }: {
-      id: string;
-      paymentStatus: RegistrationPaymentStatus;
-      paidAmount?: number;
-    }) => {
-      return updateRegistrationPayment(id, { paymentStatus, paidAmount });
-    },
-    onSuccess: invalidateTourData,
-  });
-
-  const convertMutation = useMutation({
-    mutationFn: (waitlistItemId: string) => convertWaitlistItem(waitlistItemId),
-    onSuccess: invalidateTourData,
-  });
-
-  const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Tours", href: "/tours" },
-    { label: tourQuery.data?.title ?? "Tour" },
-    { label: "Registrations workspace" },
-  ];
-
-  const pendingRegs = useMemo(
-    () => registrations.filter((r) => r.status === "Pending"),
-    [registrations],
+  const breadcrumbItems: BreadcrumbItem[] = useMemo(
+    () => [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tours", href: "/tours" },
+      { label: tour?.title ?? "Tour" },
+      { label: "Registrations workspace" },
+    ],
+    [tour?.title],
   );
+
+  const readOnly = tour != null && isTourReadOnlyForWorkspace(tour.lifecycleStatus);
 
   if (toursUseLiveApi() && !isHydrated) {
     return (
@@ -149,8 +107,9 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
         documentTitle="Workspace"
         title="Leader workspace"
         breadcrumbItems={breadcrumbItems}
+        actions={null}
       >
-        <Card>
+        <Card className={stateStyles.stateCard}>
           <CardBody>
             <LoadingState message="Loading session…" />
           </CardBody>
@@ -165,297 +124,271 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
         documentTitle="Workspace"
         title="Leader workspace"
         breadcrumbItems={breadcrumbItems}
+        actions={null}
       >
-        <EmptyState
-          title="Sign in required"
-          action={
-            <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-              Sign in
-            </Button>
-          }
-        />
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Sign in required"
+              description="Your session is missing or expired. Sign in to open the leader workspace."
+              action={
+                <Button type="button" variant="primary" onClick={() => router.push("/login")}>
+                  Sign in
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
       </RegisteredWorkspacePage>
     );
   }
 
-  if (!leader) {
+  if (isHydrated && isAuthenticated && !leader) {
     return (
       <RegisteredWorkspacePage
         documentTitle="Workspace"
         title="Leader workspace"
         breadcrumbItems={breadcrumbItems}
+        actions={null}
       >
-        <EmptyState
-          title={LEADER_WORKSPACE_ACCESS_DENIED.title}
-          description={LEADER_WORKSPACE_ACCESS_DENIED.description}
-          action={
-            <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}`)}>
-              Back to tour
-            </Button>
-          }
-        />
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Leader access required"
+              description="Only users with the leader role can open the registrations workspace."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
+                  Back to tours
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
       </RegisteredWorkspacePage>
     );
   }
 
-  if (tourQuery.isPending) {
+  if (isHydrated && isAuthenticated && leader && !hasTenantId) {
     return (
-      <RegisteredWorkspacePage documentTitle="Workspace" title="Leader workspace" breadcrumbItems={breadcrumbItems}>
-        <LoadingState message="Loading tour…" />
+      <RegisteredWorkspacePage
+        documentTitle="Workspace"
+        title="Leader workspace"
+        breadcrumbItems={breadcrumbItems}
+        actions={null}
+      >
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Tenant not available"
+              description="Your session is missing tenant context. Sign in again to continue."
+              action={
+                <Button type="button" variant="primary" onClick={() => router.push("/login")}>
+                  Sign in again
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
       </RegisteredWorkspacePage>
     );
   }
 
-  if (tourQuery.isError || !tourQuery.data) {
+  if (!liveApi && isHydrated) {
     return (
-      <RegisteredWorkspacePage documentTitle="Workspace" title="Leader workspace" breadcrumbItems={breadcrumbItems}>
-        <ErrorState
-          title="Could not load tour"
-          message={
-            tourQuery.error instanceof ApiError ? tourQuery.error.message : "Unknown error"
-          }
-          onRetry={() => void tourQuery.refetch()}
-        />
+      <RegisteredWorkspacePage
+        documentTitle="Workspace"
+        title="Leader workspace"
+        breadcrumbItems={breadcrumbItems}
+        actions={null}
+      >
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Workspace API not configured"
+              description="Set NEXT_PUBLIC_API_URL and ensure registrations API is available to load this workspace."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
+                  Back to dashboard
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
       </RegisteredWorkspacePage>
     );
   }
 
-  function statusFor(reg: BookingDto): RegistrationStatus {
-    return statusDraft[reg.id] ?? reg.status;
+  if (tourLoading) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Workspace"
+        title="Leader workspace"
+        breadcrumbItems={breadcrumbItems}
+        actions={null}
+      >
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading tour…" />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
   }
 
-  function paymentFor(reg: BookingDto): RegistrationPaymentStatus {
-    return payDraft[reg.id] ?? reg.paymentStatus;
+  if (tourIsError) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Workspace"
+        title="Leader workspace"
+        breadcrumbItems={breadcrumbItems}
+        actions={null}
+      >
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <ErrorState
+              title="Could not load tour"
+              message={tourErrorMessage}
+              onRetry={() => void refetchTour()}
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
   }
+
+  if (!tour) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Workspace"
+        title="Leader workspace"
+        breadcrumbItems={breadcrumbItems}
+        actions={null}
+      >
+        <Card className={stateStyles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Tour not found"
+              description="No tour exists with this id."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
+                  Back to tours
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  const pendingCount = registrations.filter((r) => r.status === "Pending").length;
+
+  const workspaceRefreshing =
+    (tourFetching && !tourLoading) || (regFetching && !regLoading) || (waitFetching && !waitLoading);
 
   return (
     <RegisteredWorkspacePage
-      documentTitle={`Workspace · ${tourQuery.data.title}`}
+      documentTitle={`Workspace · ${tour.title}`}
       title="Registrations workspace"
-      description={`${tourQuery.data.title} · ${tourQuery.data.acceptedCount}/${tourQuery.data.totalCapacity} accepted`}
+      description={`${tour.title} · ${tour.acceptedCount}/${tour.totalCapacity} accepted`}
       breadcrumbItems={breadcrumbItems}
       actions={
-        <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}`)}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
+        >
           Tour details
         </Button>
       }
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Overview (J‑L‑02)</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <p>
-            Pending review: <strong>{pendingRegs.length}</strong> · Total registrations in list:{" "}
-            <strong>{registrations.length}</strong> · Waitlist entries: <strong>{waitlist.length}</strong>
-          </p>
-          <p style={{ opacity: 0.85, fontSize: "0.9rem", marginTop: "0.5rem" }}>
-            Cross-tour reconciliation: use Dashboard → Review queue → Export CSV (built from live list endpoints).
-          </p>
-          {statusMutation.isError || paymentMutation.isError || convertMutation.isError ? (
-            <p role="alert" className={styles.errorBanner}>
-              {statusMutation.error instanceof ApiError ? statusMutation.error.message : ""}
-              {paymentMutation.error instanceof ApiError ? paymentMutation.error.message : ""}
-              {convertMutation.error instanceof ApiError ? convertMutation.error.message : ""}
-            </p>
-          ) : null}
-        </CardBody>
-      </Card>
+      <div
+        className={cn(styles.workspaceRoot, workspaceRefreshing ? styles.workspaceRootRefreshing : undefined)}
+        aria-busy={workspaceRefreshing ? true : undefined}
+      >
+        {workspaceRefreshing ? (
+          <span className={styles.liveRegion} aria-live="polite">
+            Updating workspace data
+          </span>
+        ) : null}
+        <div className={styles.workspaceSection}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Overview (J‑L‑02)</CardTitle>
+            </CardHeader>
+            <CardBody>
+              {readOnly ? (
+                <p role="status" className={styles.readOnlyBanner}>
+                  {workspaceReadOnlyBannerText(tour.lifecycleStatus)}
+                </p>
+              ) : null}
+              <p>
+                Pending review: <strong>{pendingCount}</strong> · Total registrations in list:{" "}
+                <strong>{registrations.length}</strong> · Waitlist entries: <strong>{waitlist.length}</strong>
+              </p>
+              <p className={styles.helperHint}>
+                Cross-tour reconciliation: use Dashboard → Review queue → Export CSV (built from live list
+                endpoints).
+              </p>
+              {statusMutation.isError ? (
+                <p role="alert" className={styles.errorBanner}>
+                  Status update failed:{" "}
+                  {statusMutation.error instanceof ApiError
+                    ? statusMutation.error.message.trim() || "Request failed."
+                    : statusMutation.error instanceof Error
+                      ? statusMutation.error.message
+                      : "Request failed."}
+                </p>
+              ) : null}
+              {paymentMutation.isError ? (
+                <p role="alert" className={styles.errorBanner}>
+                  Payment update failed:{" "}
+                  {paymentMutation.error instanceof ApiError
+                    ? paymentMutation.error.message.trim() || "Request failed."
+                    : paymentMutation.error instanceof Error
+                      ? paymentMutation.error.message
+                      : "Request failed."}
+                </p>
+              ) : null}
+              {convertMutation.isError ? (
+                <p role="alert" className={styles.errorBanner}>
+                  Waitlist conversion failed:{" "}
+                  {convertMutation.error instanceof ApiError
+                    ? convertMutation.error.message.trim() || "Request failed."
+                    : convertMutation.error instanceof Error
+                      ? convertMutation.error.message
+                      : "Request failed."}
+                </p>
+              ) : null}
+            </CardBody>
+          </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-            <CardTitle style={{ margin: 0 }}>Registrations</CardTitle>
-            <Select
-              aria-label="Filter registrations list"
-              value={registrationListFilter}
-              onChange={(e) => setRegistrationListFilter(e.target.value as "all" | "pending")}
-            >
-              <option value="all">All</option>
-              <option value="pending">Pending review</option>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardBody>
-          {regQuery.isPending ? (
-            <LoadingState message="Loading registrations…" />
-          ) : regQuery.isError ? (
-            <ErrorState title="Could not load registrations" onRetry={() => void regQuery.refetch()} />
-          ) : displayedRegistrations.length === 0 ? (
-            <p>
-              {registrationListFilter === "pending"
-                ? "No pending registrations for this tour."
-                : "No registrations yet for this tour."}
-            </p>
-          ) : (
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Participant</th>
-                    <th>Statuses</th>
-                    <th>Update status</th>
-                    <th>Payment ops</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedRegistrations.map((reg) => (
-                    <tr key={reg.id}>
-                      <td>
-                        <div>{reg.participantFullName}</div>
-                        <div className={styles.muted}>{reg.participantContactPhone}</div>
-                        <div className={styles.mono}>{reg.id.slice(0, 8)}…</div>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          <BookingStatusBadge status={reg.status} />
-                          <PaymentStatusBadge payment={reg.paymentStatus} />
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.controls}>
-                          <Select
-                            aria-label={`Status for ${reg.id}`}
-                            value={statusFor(reg)}
-                            onChange={(e) =>
-                              setStatusDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value as RegistrationStatus,
-                              }))
-                            }
-                          >
-                            {STATUS_OPTIONS.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </Select>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={
-                              statusMutation.isPending ||
-                              statusFor(reg) === reg.status
-                            }
-                            onClick={() =>
-                              statusMutation.mutate({ id: reg.id, targetStatus: statusFor(reg) })
-                            }
-                          >
-                            Apply
-                          </Button>
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.controls}>
-                          <Select
-                            aria-label={`Payment for ${reg.id}`}
-                            value={paymentFor(reg)}
-                            onChange={(e) =>
-                              setPayDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value as RegistrationPaymentStatus,
-                              }))
-                            }
-                          >
-                            {PAYMENT_OPTIONS.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </Select>
-                          <input
-                            className={styles.smallInput}
-                            type="number"
-                            min={0}
-                            placeholder="paid amount"
-                            value={amountDraft[reg.id] ?? ""}
-                            onChange={(e) =>
-                              setAmountDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value,
-                              }))
-                            }
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={paymentMutation.isPending}
-                            onClick={() => {
-                              const raw = amountDraft[reg.id]?.trim();
-                              const paidAmount =
-                                raw === "" || raw === undefined ? undefined : Number(raw);
-                              paymentMutation.mutate({
-                                id: reg.id,
-                                paymentStatus: paymentFor(reg),
-                                ...(typeof paidAmount === "number" && !Number.isNaN(paidAmount)
-                                  ? { paidAmount }
-                                  : {}),
-                              });
-                            }}
-                          >
-                            Save payment
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardBody>
-      </Card>
+        <div className={styles.workspaceSection}>
+          <RegistrationsTable
+            registrations={registrations}
+            filter={registrationListFilter}
+            onFilterChange={setRegistrationListFilter}
+            readOnly={readOnly}
+            isLoading={regLoading}
+            isError={regIsError}
+            onRetry={() => void refetchRegistrations()}
+            statusMutation={statusMutation}
+            paymentMutation={paymentMutation}
+          />
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Waitlist (J‑L‑03)</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {waitQuery.isPending ? (
-            <LoadingState message="Loading waitlist…" />
-          ) : waitQuery.isError ? (
-            <ErrorState title="Could not load waitlist" onRetry={() => void waitQuery.refetch()} />
-          ) : waitlist.length === 0 ? (
-            <p>No waitlist entries.</p>
-          ) : (
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Participant</th>
-                    <th>Status</th>
-                    <th>Convert</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {waitlist.map((w: WaitlistItemResponseDto) => (
-                    <tr key={w.id}>
-                      <td>
-                        <div>{w.participantFullName}</div>
-                        <div className={styles.muted}>{w.participantContactPhone}</div>
-                      </td>
-                      <td>{w.status}</td>
-                      <td>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="primary"
-                          disabled={w.status !== "Waiting" || convertMutation.isPending}
-                          onClick={() => convertMutation.mutate(w.id)}
-                        >
-                          Convert
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardBody>
-      </Card>
+        <div className={styles.workspaceSection}>
+          <WaitlistTable
+            waitlist={waitlist}
+            readOnly={readOnly}
+            isLoading={waitLoading}
+            isError={waitIsError}
+            onRetry={() => void refetchWaitlist()}
+            convertMutation={convertMutation}
+          />
+        </div>
+      </div>
     </RegisteredWorkspacePage>
   );
 }

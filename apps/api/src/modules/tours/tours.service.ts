@@ -10,6 +10,7 @@ import { Repository } from "typeorm";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreateTourDto } from "./dto/create-tour.dto";
 import { ListToursQueryDto } from "./dto/list-tours-query.dto";
+import { mapTourEntityToResponseDto, TourResponseDto } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
 import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
 
@@ -21,7 +22,7 @@ export class ToursService {
     private readonly requestContextService: RequestContextService
   ) {}
 
-  async createTour(dto: CreateTourDto): Promise<TourEntity> {
+  async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
     const tenantId = this.requestContextService.getTenantId();
     if (!tenantId) {
       throw new ForbiddenException({
@@ -44,7 +45,8 @@ export class ToursService {
         costContext: dto.cost_context
       });
 
-      return await this.tourRepository.save(tour);
+      const saved = await this.tourRepository.save(tour);
+      return mapTourEntityToResponseDto(saved);
     } catch {
       throw new InternalServerErrorException({
         error: {
@@ -55,7 +57,7 @@ export class ToursService {
     }
   }
 
-  async updateTour(tourId: string, dto: UpdateTourDto): Promise<TourEntity> {
+  async updateTour(tourId: string, dto: UpdateTourDto): Promise<TourResponseDto> {
     const tenantId = this.requestContextService.getTenantId();
     if (!tenantId) {
       throw new ForbiddenException({
@@ -136,7 +138,8 @@ export class ToursService {
         tour.costContext = dto.cost_context;
       }
 
-      return await this.tourRepository.save(tour);
+      const saved = await this.tourRepository.save(tour);
+      return mapTourEntityToResponseDto(saved);
     } catch {
       throw new InternalServerErrorException({
         error: {
@@ -148,7 +151,7 @@ export class ToursService {
   }
 
   async listTours(query: ListToursQueryDto): Promise<{
-    items: TourEntity[];
+    items: TourResponseDto[];
     total: number;
     page: number;
     limit: number;
@@ -179,18 +182,30 @@ export class ToursService {
       );
     }
 
+    if (query.status === "active") {
+      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", { lifecycleStatus: TourLifecycleStatus.DRAFT });
+    } else if (query.status === "completed") {
+      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", { lifecycleStatus: TourLifecycleStatus.OPEN });
+    } else if (query.status === "archived") {
+      qb.andWhere("t.lifecycleStatus IN (:...archivedStatuses)", {
+        archivedStatuses: [TourLifecycleStatus.CLOSED, TourLifecycleStatus.CANCELLED]
+      });
+    }
+
     const total = await qb.getCount();
 
-    const items = await qb
+    const rows = await qb
       .clone()
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
 
+    const items = rows.map((row) => mapTourEntityToResponseDto(row));
+
     return { items, total, page, limit };
   }
 
-  async getTourById(tourId: string): Promise<TourEntity> {
+  async getTourById(tourId: string): Promise<TourResponseDto> {
     const tenantId = this.requestContextService.getTenantId();
     if (!tenantId) {
       throw new ForbiddenException({
@@ -217,7 +232,7 @@ export class ToursService {
       });
     }
 
-    return tour;
+    return mapTourEntityToResponseDto(tour);
   }
 
   private isAllowedLifecycleTransition(

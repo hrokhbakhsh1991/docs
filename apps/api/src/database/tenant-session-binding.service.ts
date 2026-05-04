@@ -14,6 +14,13 @@ const HEALTH_PATH_PREFIXES = [
   "/health/readiness"
 ] as const;
 
+/**
+ * Paths aligned with tenant.middleware bypass for anonymous tour flows.
+ * Only POST is registered in Nest for these URLs; require POST here so a future GET on the
+ * same pattern cannot skip `set_config` without going through bootstrap.
+ */
+const PUBLIC_TOUR_FLOW_PATH = /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/;
+
 @Injectable()
 export class TenantSessionBindingService implements OnModuleInit {
   constructor(
@@ -65,6 +72,7 @@ export class TenantSessionBindingService implements OnModuleInit {
     }
 
     const requestPath = context.path;
+    const requestMethod = context.method;
     if (
       typeof requestPath === "string" &&
       HEALTH_PATH_PREFIXES.some((prefix) => requestPath.startsWith(prefix))
@@ -75,6 +83,13 @@ export class TenantSessionBindingService implements OnModuleInit {
     const tenantId = context.tenantId;
 
     if (!tenantId) {
+      if (
+        requestMethod === "POST" &&
+        typeof requestPath === "string" &&
+        PUBLIC_TOUR_FLOW_PATH.test(requestPath)
+      ) {
+        return;
+      }
       this.loggerService.error("tenant session binding failed: missing tenant", {
         requestId: context.requestId
       });
@@ -99,13 +114,14 @@ export class TenantSessionBindingService implements OnModuleInit {
   }
 
   private getRequestContextOrUndefined():
-    | { requestId: string; path?: string; tenantId?: string }
+    | { requestId: string; path?: string; method?: string; tenantId?: string }
     | undefined {
     try {
       const context = this.requestContextService.getContext();
       return {
         requestId: context.requestId,
         path: context.path,
+        method: context.method,
         tenantId: context.tenantId
       };
     } catch {

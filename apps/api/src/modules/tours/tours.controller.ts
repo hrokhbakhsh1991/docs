@@ -9,9 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
-  UseInterceptors,
-  UsePipes,
-  ValidationPipe
+  UseInterceptors
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -43,13 +41,6 @@ import {
 @ApiTags("Tours")
 @Controller("api/v2/tours")
 @UseInterceptors(ClassSerializerInterceptor)
-@UsePipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true
-  })
-)
 export class ToursController {
   constructor(
     private readonly toursService: ToursService,
@@ -117,6 +108,12 @@ export class ToursController {
     required: false,
     description: "Page size (max 100)",
     schema: { default: 10, minimum: 1, maximum: 100 }
+  })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    description: "Lifecycle bucket: active (draft), completed (open), archived (closed/cancelled)",
+    enum: ["active", "completed", "archived"]
   })
   @ApiOkResponse({ type: PaginatedToursResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)

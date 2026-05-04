@@ -1,0 +1,10 @@
+.root {
+  margin-block-start: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+}

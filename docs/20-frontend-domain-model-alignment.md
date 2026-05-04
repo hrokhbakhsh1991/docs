@@ -1,32 +1,37 @@
-# Frontend domain model alignment (backend-aware mocks)
+# Frontend domain model alignment (API-backed)
 
-The web app still uses **in-memory mocks only** (no real HTTP). Types and mock payloads follow **`apps/api/openapi.json`** so swapping in an API client later is straightforward.
+**Last updated:** 2026-05-04
+
+The web app (`apps/web`) uses the **live Tour-Ops HTTP API** when `NEXT_PUBLIC_API_URL` is configured. Shared TypeScript types and runtime payloads are aligned with **`apps/api/openapi.json`**, which is generated from the NestJS controllers and DTOs.
+
+## Authoritative field definitions
+
+For **Tour** (and other v2 resources), the canonical contract is:
+
+- **`docs/20-architecture/contracts/api_endpoint_contracts_v2_base.md`** — human-readable request/response projections and DTO rules.
+- **`apps/api/openapi.json`** — machine-readable schema (`components.schemas.*`) kept in sync with the backend build.
+
+If narrative docs and OpenAPI disagree, **fix the narrative or the server** so OpenAPI and the contract markdown match.
 
 ## Where shared types live
 
-**Package:** `packages/types` (`@repo/types` on npm)  
+**Package:** `packages/types` (`@repo/types` in the monorepo)  
 **Entry:** `packages/types/src/index.ts`
 
-| Frontend type | Backend source (OpenAPI schema) |
-|---------------|----------------------------------|
-| `TourResponseDto`, aliases `TourDto`, `Tour` | `components.schemas.TourResponseDto` |
-| `TourLifecycleStatus` | `UpdateTourDto.lifecycle_status` enum |
+| Frontend type | Backend source |
+|---------------|----------------|
+| `TourResponseDto`, aliases `TourDto`, `Tour` | OpenAPI `components.schemas.TourResponseDto` (implements the contract projection for GET/POST/PATCH tour) |
+| `TourLifecycleStatus` | OpenAPI `UpdateTourDto.lifecycle_status` enum (and entity enum on the server) |
 | `RegistrationResponseDto`, aliases `BookingDto`, `Booking` | `components.schemas.RegistrationResponseDto` |
 | `RegistrationStatus`, `RegistrationPaymentStatus`, transport/entry enums | Same registration schema |
 | `WebCredentialDto`, `WebSessionDto`, `WebSessionResponseDto` | Auth/session schemas |
 | `UserDto`, `User` | No standalone User entity in OpenAPI today — **`Pick` of `WebSessionResponseDto`** (`user_id`, `tenant_id`, `entry_mode`) |
 
-## Mock-only extensions (intentional drift)
+Field names in JSON follow **camelCase** as in OpenAPI (e.g. `totalCapacity`, `lifecycleStatus`, `chatLink`, `costContext`).
 
-These stay **outside** `@repo/types` and live next to web mocks:
+## Tour MVP scope (persistence)
 
-| Layer | Extra fields | Reason |
-|-------|----------------|--------|
-| `MockTour` (`apps/web/.../tours/mock-types.ts`) | `lifecycleStatus` | GET tour response in spec does not expose lifecycle; UI needs it for badges/forms. |
-| `MockBooking` (`apps/web/.../bookings/mock-booking-types.ts`) | `tourTitleMock`, `tourStartDateMock`, `tourPriceAmountMock` | Denormalized tour snapshot for list/detail without fetching tours. |
-| `MockBooking` | `participantEmailMock` | Not on `RegistrationResponseDto`; used only for mock UX. |
-
-Core arrays/objects **otherwise match** DTO field names and enums (`camelCase` as serialized in OpenAPI examples).
+The MVP **Tour** model exposed by the API does **not** include schedule dates (`startDate` / `endDate`) as persisted fields. UI must not imply stored tour dates until a future release adds them to the contract and schema. See also **`docs/20-architecture/data_model.md` §4.2**.
 
 ## Related doc
 

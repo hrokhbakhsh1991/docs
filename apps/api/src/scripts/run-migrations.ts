@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DataSource } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
+import { emitScriptInfo } from "./script-log";
 
 function loadEnvFile(relativeName: string): void {
   const envPath = resolve(process.cwd(), relativeName);
@@ -29,7 +30,7 @@ async function run(): Promise<void> {
   await dataSource.initialize();
   try {
     await dataSource.runMigrations();
-    console.log("Migrations applied successfully.");
+    emitScriptInfo("Migrations applied successfully.");
   } finally {
     await dataSource.destroy();
   }

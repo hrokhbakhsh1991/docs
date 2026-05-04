@@ -1,16 +1,11 @@
 .wrap {
   height: 100%;
   cursor: default;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+  transition: border-color 0.15s ease;
 }
 
 .wrap:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-popover);
-  transform: translateY(-2px);
 }
 
 .summary {
@@ -30,4 +25,8 @@
 
 .accessory {
   margin-top: var(--space-3);
+}
+
+.tourId {
+  font-family: var(--font-family-mono);
 }

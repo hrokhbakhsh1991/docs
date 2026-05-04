@@ -315,6 +315,20 @@
               "maxLength": 200,
               "type": "string"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Lifecycle bucket: active (draft), completed (open), archived (closed/cancelled)",
+            "schema": {
+              "enum": [
+                "active",
+                "completed",
+                "archived"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1908,6 +1922,18 @@
             "type": "string",
             "example": "22222222-2222-4222-8222-222222222222"
           },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-01T08:00:00.000Z",
+            "description": "Tour row creation time (UTC)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-01T08:05:00.000Z",
+            "description": "Tour row last update time (UTC)."
+          },
           "title": {
             "type": "string",
             "example": "Spring Camp 2026"
@@ -1915,43 +1941,55 @@
           "description": {
             "type": "string",
             "example": "A two-day nature tour for members.",
-            "nullable": true
+            "nullable": true,
+            "description": "Optional long-form description."
           },
           "totalCapacity": {
             "type": "number",
-            "example": 30
+            "example": 30,
+            "description": "Maximum capacity for the tour."
           },
           "acceptedCount": {
             "type": "number",
-            "example": 10
+            "example": 10,
+            "description": "Number of accepted registrations (capacity consumption)."
+          },
+          "lifecycleStatus": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "OPEN",
+              "CLOSED",
+              "CANCELLED"
+            ],
+            "example": "OPEN",
+            "description": "Tour lifecycle state."
+          },
+          "chatLink": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://t.me/joinchat/example",
+            "description": "Leader-managed communication link (e.g. Telegram)."
           },
           "costContext": {
             "type": "object",
             "example": {
-              "currency": "IRR",
-              "requiresPayment": true
+              "currency": "USD",
+              "totalCost": 1200
             },
             "nullable": true,
-            "additionalProperties": true
-          },
-          "startDate": {
-            "type": "object",
-            "example": "2026-05-01T08:00:00.000Z",
-            "nullable": true,
-            "description": "Reserved for forward-compatible schedule projection; may be absent."
-          },
-          "endDate": {
-            "type": "object",
-            "example": "2026-05-01T20:00:00.000Z",
-            "nullable": true,
-            "description": "Reserved for forward-compatible schedule projection; may be absent."
+            "additionalProperties": true,
+            "description": "Opaque pricing / operational JSON (JSONB)."
           }
         },
         "required": [
           "id",
+          "createdAt",
+          "updatedAt",
           "title",
           "totalCapacity",
-          "acceptedCount"
+          "acceptedCount",
+          "lifecycleStatus"
         ]
       },
       "UpdateTourDto": {

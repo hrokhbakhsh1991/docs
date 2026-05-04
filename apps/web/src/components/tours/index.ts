@@ -8,7 +8,6 @@ export {
   buildCostContextUsd,
   extractTourPriceUsd,
   formatTourDateLabel,
-  formatTourDateRange,
   formatTourLocation,
   formatTourPriceUsd,
 } from "./formatters";

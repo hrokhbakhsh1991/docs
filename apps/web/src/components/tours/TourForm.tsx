@@ -10,6 +10,7 @@ import { Alert, Button, Card, FormField, Input, Select, Textarea } from "@tour/u
 
 import { ApiError } from "@/lib/api-client";
 
+import { apiLifecycleToFormStatus } from "./tour-lifecycle";
 import { extractTourPriceUsd } from "./formatters";
 import { TourSchema, type TourFormInput, type TourFormValues } from "./tour-schema";
 
@@ -54,27 +55,25 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
     return {
       title: "",
       description: "",
-      startDate: "",
-      endDate: "",
       totalCapacity: 30,
       price: 0,
       status: "draft",
+      communicationLink: "",
     };
   }
 
   const priceUsd = extractTourPriceUsd(tour.costContext);
-  const lc = tour.lifecycleStatus;
-  const status =
-    lc === "OPEN" ? "active" : lc === "CLOSED" || lc === "CANCELLED" ? "archived" : "draft";
+  const status = tour.lifecycleStatus
+    ? apiLifecycleToFormStatus(tour.lifecycleStatus)
+    : "draft";
 
   return {
     title: tour.title ?? "",
     description: typeof tour.description === "string" ? tour.description : "",
-    startDate: tour.startDate ? tour.startDate.slice(0, 10) : "",
-    endDate: tour.endDate ? tour.endDate.slice(0, 10) : "",
     totalCapacity: typeof tour.totalCapacity === "number" && tour.totalCapacity > 0 ? tour.totalCapacity : 30,
     price: Number.isFinite(priceUsd) ? priceUsd : 0,
     status,
+    communicationLink: typeof tour.communicationLink === "string" ? tour.communicationLink : "",
   };
 }
 
@@ -86,11 +85,10 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isSubmitting, isSubmitted, isValid },
+    formState: { errors, isSubmitting, isSubmitted },
   } = useForm<TourFormInput, unknown, TourFormValues>({
     resolver: zodResolver(TourSchema),
     defaultValues: toDefaultValues(tour),
-    mode: "onChange",
   });
 
   useEffect(() => {
@@ -124,12 +122,12 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
   return (
     <Card
       title={resolvedMode === "create" ? "Create tour" : "Edit tour"}
-      description="Tour fields; create submits to the workspace API when NEXT_PUBLIC_API_URL is set (dates are UI-only for now)."
+      description="Tour fields; submits to the workspace API when NEXT_PUBLIC_API_URL is set."
     >
       <div className={styles.inner}>
         {isSubmitted && fieldMessages.length > 0 ? (
           <Alert variant="error" title="Please fix the form" role="alert">
-            <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
+            <ul className={styles.fieldErrorList} id="tour-form-field-error-list">
               {fieldMessages.map((msg) => (
                 <li key={msg}>{msg}</li>
               ))}
@@ -144,7 +142,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
         ) : null}
 
         <form className={styles.form} onSubmit={handleSubmit(submitValid)} noValidate>
-          <FormField label="Title" error={errors.title?.message}>
+          <FormField label="Title" required error={errors.title?.message}>
             <Input
               placeholder="e.g. Sunset kayak tour"
               autoComplete="off"
@@ -164,20 +162,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             />
           </FormField>
 
-          <FormField label="Start date" error={errors.startDate?.message}>
-            <Input
-              type="date"
-              data-testid="tour-field-date"
-              aria-invalid={errors.startDate ? true : undefined}
-              {...register("startDate")}
-            />
-          </FormField>
-
-          <FormField label="End date (optional)" description="Must be on or after start date." error={errors.endDate?.message}>
-            <Input type="date" data-testid="tour-field-end-date" aria-invalid={errors.endDate ? true : undefined} {...register("endDate")} />
-          </FormField>
-
-          <FormField label="Total capacity" error={errors.totalCapacity?.message}>
+          <FormField label="Total capacity" required error={errors.totalCapacity?.message}>
             <Input
               type="number"
               min={1}
@@ -188,7 +173,12 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             />
           </FormField>
 
-          <FormField label="Price (USD)" description="Stored in costContext totalCost." error={errors.price?.message}>
+          <FormField
+            label="Price (USD)"
+            required
+            description="Stored in costContext totalCost."
+            error={errors.price?.message}
+          >
             <Input
               type="number"
               min={0}
@@ -200,12 +190,27 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             />
           </FormField>
 
-          <FormField label="Status" error={errors.status?.message}>
+          <FormField label="Status" required error={errors.status?.message}>
             <Select data-testid="tour-field-status" invalid={Boolean(errors.status)} {...register("status")}>
               <option value="draft">Draft</option>
-              <option value="active">Published</option>
-              <option value="archived">Archived</option>
+              <option value="active">Active</option>
+              {resolvedMode === "edit" ? <option value="archived">Archived</option> : null}
             </Select>
+          </FormField>
+
+          <FormField
+            label="Communication link (optional)"
+            description="e.g. Telegram group invite URL."
+            error={errors.communicationLink?.message}
+          >
+            <Input
+              type="url"
+              inputMode="url"
+              placeholder="https://t.me/…"
+              autoComplete="off"
+              aria-invalid={errors.communicationLink ? true : undefined}
+              {...register("communicationLink")}
+            />
           </FormField>
 
           <div className={styles.actions}>
@@ -216,7 +221,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
               type="submit"
               variant="primary"
               loading={isSubmitting}
-              disabled={isSubmitting || !isValid}
+              disabled={isSubmitting}
               data-testid="tour-form-submit"
             >
               {resolvedMode === "create" ? "Create tour" : "Save changes"}

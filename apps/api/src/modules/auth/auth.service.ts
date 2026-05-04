@@ -170,6 +170,10 @@ export class AuthService {
       }
     });
 
+    if (process.env.AUTH_DEBUG_LOG === "true") {
+      console.log("[AUTH_DEBUG] web/session user found:", Boolean(user));
+    }
+
     if (!user) {
       throw new UnauthorizedException("AUTH_UNAUTHENTICATED");
     }
@@ -178,6 +182,11 @@ export class AuthService {
       user.hashedPassword,
       dto.credential.password
     );
+
+    if (process.env.AUTH_DEBUG_LOG === "true") {
+      console.log("[AUTH_DEBUG] web/session password match (argon2):", validPassword);
+    }
+
     if (!validPassword) {
       throw new UnauthorizedException("AUTH_UNAUTHENTICATED");
     }
@@ -189,6 +198,11 @@ export class AuthService {
         deletedAt: IsNull()
       }
     });
+
+    if (process.env.AUTH_DEBUG_LOG === "true") {
+      console.log("[AUTH_DEBUG] web/session role:", membership?.role ?? "(no membership)");
+      console.log("[AUTH_DEBUG] web/session tenantId:", resolvedTenantId);
+    }
 
     if (!membership) {
       this.loggerService.warn("tenant scope conflict during web session", {

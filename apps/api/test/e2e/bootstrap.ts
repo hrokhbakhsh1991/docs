@@ -11,12 +11,8 @@ import { RequestContextMiddleware } from "../../src/common/request-context/reque
 import { RequestContextService } from "../../src/common/request-context/request-context.service";
 import { TenantMiddleware } from "../../src/common/tenant/tenant.middleware";
 
-function loadDotEnvTest(): void {
-  const envPath = resolve(process.cwd(), ".env.test");
-  if (!existsSync(envPath)) {
-    return;
-  }
-  const content = readFileSync(envPath, "utf8");
+function applyEnvFile(path: string, onlyIfMissing: boolean): void {
+  const content = readFileSync(path, "utf8");
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -24,9 +20,22 @@ function loadDotEnvTest(): void {
     if (eq <= 0) continue;
     const key = trimmed.slice(0, eq).trim();
     const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) {
-      process.env[key] = value;
+    if (onlyIfMissing && key in process.env) {
+      continue;
     }
+    process.env[key] = value;
+  }
+}
+
+/** Defaults from `.env.test.example`, then optional `.env.test` overrides (keys present in that file). */
+function loadDotEnvTest(): void {
+  const examplePath = resolve(process.cwd(), ".env.test.example");
+  const envPath = resolve(process.cwd(), ".env.test");
+  if (existsSync(examplePath)) {
+    applyEnvFile(examplePath, true);
+  }
+  if (existsSync(envPath)) {
+    applyEnvFile(envPath, true);
   }
 }
 

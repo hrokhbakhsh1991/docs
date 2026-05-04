@@ -4,14 +4,13 @@ import { memo, type ReactNode } from "react";
 
 import { TourCard } from "@/components/tours/TourCard";
 
-import { Card, CardBody, EmptyState } from "@tour/ui";
+import { EmptyState } from "@tour/ui";
 
 import type { TourDetailDto } from "../../../../lib/services/tours.service";
 
-import { apiLifecycleToUi } from "../tour-ui-mappers";
 import { TourStatusBadge } from "../tour-status-badge";
 
-import styles from "./TourList.module.css";
+import gridStyles from "./tour-list-grid.module.css";
 
 export type TourListProps = {
   tours: TourDetailDto[];
@@ -24,25 +23,19 @@ export type TourListProps = {
 function TourListComponent({ tours, onSelectTour, onDeleteTour, emptyState }: TourListProps) {
   if (tours.length === 0) {
     return (
-      <Card>
-        <CardBody>
-          <div className={styles.emptyCardBody}>
-            {emptyState ?? (
-              <EmptyState title="No tours yet" description="Create a tour to see it listed here." />
-            )}
-          </div>
-        </CardBody>
-      </Card>
+      emptyState ?? (
+        <EmptyState embedded title="No tours yet" description="Create a tour to see it listed here." />
+      )
     );
   }
 
   return (
-    <ul className={styles.grid} aria-label="Tour list">
+    <ul className={gridStyles.grid} aria-label="Tour list">
       {tours.map((tour) => (
         <li key={tour.id}>
           <TourCard
             tour={tour}
-            accessory={<TourStatusBadge status={apiLifecycleToUi(tour.lifecycleStatus)} />}
+            accessory={<TourStatusBadge lifecycleStatus={tour.lifecycleStatus} />}
             {...(onSelectTour
               ? {
                   primaryActionLabel: "View details" as const,

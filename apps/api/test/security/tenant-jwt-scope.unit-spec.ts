@@ -62,6 +62,7 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
     {} as never,
     {} as never,
     dataSource as never,
+    {} as never,
     {
       getRole: () => "member",
       getTenantId: () => "11111111-1111-4111-8111-111111111111",
@@ -77,18 +78,17 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
 });
 
 test("getTenantIdForTourOrThrow returns tenant from tour row", async () => {
-  const registrationRepository = {
-    manager: {
-      async findOne() {
-        return { id: "t-1", tenantId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" };
-      }
+  const tenantBootstrapService = {
+    async resolveTenantFromTourId() {
+      return "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
     }
   };
 
   const service = new RegistrationsService(
-    registrationRepository as never,
     {} as never,
     {} as never,
+    {} as never,
+    tenantBootstrapService as never,
     {} as never,
     {} as never
   );
@@ -98,18 +98,17 @@ test("getTenantIdForTourOrThrow returns tenant from tour row", async () => {
 });
 
 test("getTenantIdForTourOrThrow rejects unknown tour id", async () => {
-  const registrationRepository = {
-    manager: {
-      async findOne() {
-        return null;
-      }
+  const tenantBootstrapService = {
+    async resolveTenantFromTourId() {
+      return null;
     }
   };
 
   const service = new RegistrationsService(
-    registrationRepository as never,
     {} as never,
     {} as never,
+    {} as never,
+    tenantBootstrapService as never,
     {} as never,
     {} as never
   );

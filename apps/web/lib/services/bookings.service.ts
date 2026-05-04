@@ -1,6 +1,7 @@
 import type { BookingDto } from "@repo/types";
 
 import { apiClient } from "../api-client";
+import { API } from "../api-paths";
 
 export function bookingsUseLiveApi(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
@@ -18,7 +19,7 @@ export type GetBookingsResult = {
 };
 
 export async function getBookings(): Promise<GetBookingsResult> {
-  const raw = await apiClient.get<unknown>("/api/v2/bookings");
+  const raw = await apiClient.get<unknown>(API.bookings);
   const items: BookingDto[] = Array.isArray(raw) ? (raw as BookingDto[]) : [];
   const len = items.length;
   const limit = len > 0 ? len : 1;

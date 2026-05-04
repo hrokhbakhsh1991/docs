@@ -4,25 +4,28 @@ import { ApiError } from "@/lib/api-client";
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 
 import { apiClient } from "../api-client";
+import { API } from "../api-paths";
 
 /** When true, list/read tours from `GET /api/v2/tours` (requires auth cookie). */
 export function toursUseLiveApi(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
 }
 
-/** Tour row including lifecycle (UI/OpenAPI extension). */
-export type TourDetailDto = TourDto & { lifecycleStatus: TourLifecycleStatus };
+/** Tour row from `GET /api/v2/tours` after {@link mapTourResponseToDto}. */
+export type TourDetailDto = TourDto;
 
 /**
  * Client payload for creating a tour (maps to Nest `CreateTourDto` on the wire).
  * `capacity` → `total_capacity`, `price` / optional `location` → `cost_context`.
- * `startDate` / `endDate` are intentionally omitted from the HTTP body.
+ * Tour schedule dates are not part of the MVP API; the client does not send them.
  */
 export type CreateTourDto = {
   title: string;
   description?: string;
   /** Stored in `cost_context.location` until the API adds a column. */
   location?: string;
+  /** Maps to `chat_link` on the wire. */
+  communicationLink?: string;
   capacity: number;
   price: number;
   lifecycle_status: "Draft" | "Open";
@@ -30,7 +33,7 @@ export type CreateTourDto = {
 
 /**
  * Edit-form payload → Nest `UpdateTourDto` (snake_case on wire).
- * Dates are not sent. Merge `existingCostContext` when patching `cost_context`.
+ * Merge `existingCostContext` when patching `cost_context`.
  */
 export type UpdateTourDto = {
   title: string;
@@ -40,12 +43,18 @@ export type UpdateTourDto = {
   lifecycle_status: TourLifecycleStatus;
   /** Preserved in `cost_context.location` when present. */
   location?: string;
+  /** Maps to `chat_link` on the wire when non-empty after trim. */
+  communicationLink?: string;
 };
 
 
-/** OpenAPI `GET /api/v2/tours` declares only optional `search` query param (`ToursController_list`). */
+/** Query params for `GET /api/v2/tours` (search, pagination, optional lifecycle bucket). */
 export type GetToursParams = {
   search?: string;
+  page?: number;
+  limit?: number;
+  /** Matches list URL: DRAFT / OPEN / CLOSED|CANCELLED buckets. Omit or use only with live API. */
+  status?: "active" | "completed" | "archived";
 };
 
 export type PaginatedToursResult = {
@@ -63,13 +72,19 @@ type PaginatedToursApiBody = {
 };
 
 /**
- * List tours with optional `search` (`GET /api/v2/tours` → {@link PaginatedToursApiBody}).
+ * List tours with optional `search`, `page`, `limit`, and `status` (`GET /api/v2/tours`).
  */
 export async function getTours(params?: GetToursParams): Promise<PaginatedToursResult> {
   const search = params?.search?.trim() ?? "";
   const qs = new URLSearchParams();
   if (search) qs.set("search", search);
-  const path = qs.toString() ? `/api/v2/tours?${qs}` : `/api/v2/tours`;
+  if (params?.page != null) qs.set("page", String(params.page));
+  if (params?.limit != null) qs.set("limit", String(params.limit));
+  const st = params?.status;
+  if (st === "active" || st === "completed" || st === "archived") {
+    qs.set("status", st);
+  }
+  const path = API.toursQuery(qs.toString());
   const raw = await apiClient.get<PaginatedToursApiBody>(path);
   const rows = Array.isArray(raw.items) ? raw.items : [];
   const pageFallback = 1;
@@ -84,7 +99,7 @@ export async function getTours(params?: GetToursParams): Promise<PaginatedToursR
 
 export async function getTourById(id: string): Promise<TourDetailDto | null> {
   try {
-    const row = await apiClient.get<unknown>(`/api/v2/tours/${encodeURIComponent(id)}`);
+    const row = await apiClient.get<unknown>(API.tour(id));
     return mapTourResponseToDto(row);
   } catch (error: unknown) {
     if (error instanceof ApiError && error.status === 404) {
@@ -122,13 +137,17 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   if (cost) {
     body.cost_context = cost;
   }
+  const link = dto.communicationLink?.trim();
+  if (link) {
+    body.chat_link = link;
+  }
   return body;
 }
 
 export async function createTour(dto: CreateTourDto): Promise<TourDetailDto> {
   const idempotencyKey =
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-  const raw = await apiClient.post<unknown>("/api/v2/tours", toCreateTourApiBody(dto), {
+  const raw = await apiClient.post<unknown>(API.tours, toCreateTourApiBody(dto), {
     idempotencyKey,
   });
   return mapTourResponseToDto(raw);
@@ -154,13 +173,18 @@ function toUpdateTourApiBody(
     delete merged.location;
   }
 
-  return {
+  const body: Record<string, unknown> = {
     title: dto.title.trim(),
     total_capacity: dto.capacity,
     lifecycle_status: dto.lifecycle_status,
     description: dto.description ?? "",
     cost_context: merged,
   };
+  const link = dto.communicationLink?.trim();
+  if (link) {
+    body.chat_link = link;
+  }
+  return body;
 }
 
 export async function updateTour(
@@ -171,7 +195,7 @@ export async function updateTour(
   const idempotencyKey =
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   const raw = await apiClient.patch<unknown>(
-    `/api/v2/tours/${encodeURIComponent(id)}`,
+    API.tour(id),
     toUpdateTourApiBody(dto, options?.existingCostContext ?? null),
     { idempotencyKey }
   );

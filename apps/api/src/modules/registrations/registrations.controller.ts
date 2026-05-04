@@ -18,15 +18,15 @@ import {
   Headers,
   Get,
   HttpCode,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
-  UseInterceptors,
-  UsePipes,
-  ValidationPipe
+  UseInterceptors
 } from "@nestjs/common";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
@@ -47,20 +47,14 @@ import { RegistrationsService } from "./registrations.service";
 import { PaymentsService } from "../payments/payments.service";
 import { CreatePaymentIntentDto } from "../payments/dto/create-payment-intent.dto";
 import { IdempotencyService } from "../idempotency/idempotency.service";
-import { RateLimitGuard } from "../../common/guards/rate-limit.guard";
+import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
 import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Registrations")
 @Controller("api/v2")
-@UsePipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true
-  })
-)
 export class RegistrationsController {
   // DI-DIAGNOSTIC: Constructor-injected services observed as undefined in E2E runtime; inspect emitted decorator metadata and module container resolution.
   // TODO(FREEZE-BLOCKER): E2E failures show RegistrationsService/RequestContextService may be undefined at runtime; verify DI graph and provider resolution order in AppModule + RegistrationsModule bootstrap path.
@@ -68,12 +62,16 @@ export class RegistrationsController {
     private readonly registrationsService: RegistrationsService,
     private readonly paymentsService: PaymentsService,
     private readonly idempotencyService: IdempotencyService,
-    private readonly requestContextService: RequestContextService
+    private readonly requestContextService: RequestContextService,
+    private readonly tenantBootstrapService: TenantBootstrapService
   ) {}
 
   @Post("tours/:tourId/register")
   @HttpCode(201)
-  @UseGuards(RateLimitGuard)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    "public-registration": { limit: 10, ttl: 60_000, blockDuration: 1 }
+  })
   @ApiHeader({
     name: "idempotency-key",
     required: false,
@@ -91,11 +89,21 @@ export class RegistrationsController {
     @Body() payload: CreateRegistrationDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<Record<string, unknown>> {
-    const tenantScope = await this.registrationsService.getTenantIdForTourOrThrow(tourId);
+    // Tenant bootstrap for public flow — resolves tenant before first RLS-bound repository query.
+    const tenantScope = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
+    if (!tenantScope) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
     this.requestContextService.setTenantId(tenantScope);
-    const handler = async () => {
-      // DI-DIAGNOSTIC: Undefined registrationsService at this call site indicates controller instance is constructed without resolved provider.
-      // TODO(FREEZE-BLOCKER): Runtime error observed on createPublicRegistrationOrWaitlist indicates registrationsService instance can be undefined in current E2E bootstrap.
+    /** TypeORM idempotency / transaction callbacks can drop ALS; re-enter for downstream `RequestContextService` reads. */
+    const requestContextSnapshot = requestContextStorage.getStore();
+
+    const executePlacement = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
         tourId,
@@ -104,7 +112,8 @@ export class RegistrationsController {
             manager,
             ({
               registrationId,
-              amount: 0,
+              /** Placeholder intent; `CreatePaymentIntentDto` requires `@Min(1)`. */
+              amount: 1,
               currency: "IRR",
               paymentProvider: "mock_provider",
               providerPaymentId: `mock-${registrationId}`
@@ -125,6 +134,11 @@ export class RegistrationsController {
         waitlistPosition: null
       };
     };
+
+    const handler = async () =>
+      requestContextSnapshot
+        ? requestContextStorage.run(requestContextSnapshot, executePlacement)
+        : executePlacement();
 
     if (!idempotencyKey) {
       return handler();
@@ -149,7 +163,10 @@ export class RegistrationsController {
 
   @Post("tours/:tourId/waitlist")
   @HttpCode(201)
-  @UseGuards(RateLimitGuard)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    "public-registration": { limit: 10, ttl: 60_000, blockDuration: 1 }
+  })
   @ApiHeader({
     name: "idempotency-key",
     required: false,
@@ -171,9 +188,19 @@ export class RegistrationsController {
     @Body() payload: CreateWaitlistItemDto,
     @Headers("idempotency-key") idempotencyKey?: string
   ): Promise<{ waitlistItemId: string; queuePosition: number }> {
-    const tenantScope = await this.registrationsService.getTenantIdForTourOrThrow(tourId);
+    // Tenant bootstrap for public flow — resolves tenant before first RLS-bound repository query.
+    const tenantScope = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
+    if (!tenantScope) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
     this.requestContextService.setTenantId(tenantScope);
-    const handler = async () => {
+    const requestContextSnapshot = requestContextStorage.getStore();
+    const executeWaitlistOnly = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
         ...payload,
         tourId
@@ -191,6 +218,10 @@ export class RegistrationsController {
         }
       });
     };
+    const handler = async () =>
+      requestContextSnapshot
+        ? requestContextStorage.run(requestContextSnapshot, executeWaitlistOnly)
+        : executeWaitlistOnly();
     if (!idempotencyKey) {
       return handler();
     }

@@ -1,58 +1,34 @@
 import type { TourFormValues } from "@/components/tours/tour-schema";
+import { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
+import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
 
 import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "../../../lib/services/tours.service";
 
-import type { TourLifecycleStatus } from "@repo/types";
+/** @deprecated Use {@link apiLifecycleToFormStatus} from `@/components/tours/tour-lifecycle`. */
+export const apiLifecycleToUi = apiLifecycleToFormStatus;
 
-import type { TourUiLifecycleStatus } from "./tour-display-types";
-
-/** Maps UI select values (Draft / Published / Archived) to API lifecycle enum. */
-function uiLifecycleToApi(ui: TourUiLifecycleStatus): TourLifecycleStatus {
-  switch (ui) {
-    case "Published":
-      return "OPEN";
-    case "Archived":
-      return "CLOSED";
-    default:
-      return "DRAFT";
-  }
-}
-
-/** Inverse for form defaults / badges. */
-export function apiLifecycleToUi(status: TourLifecycleStatus): TourUiLifecycleStatus {
-  switch (status) {
-    case "OPEN":
-      return "Published";
-    case "CLOSED":
-    case "CANCELLED":
-      return "Archived";
-    default:
-      return "Draft";
-  }
-}
-
+export { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 
 /**
  * Maps tour form values → {@link CreateTourDto} for `POST /api/v2/tours`.
- * Does not include dates (backend omits them). Archived UI maps to Draft on create (API allows Draft/Open only).
+ * Create API accepts only Draft or Open → UI `archived` is coerced to Draft.
  */
 export function createTourDtoFromTourFormValues(values: TourFormValues): CreateTourDto {
   const lifecycle_status: CreateTourDto["lifecycle_status"] =
     values.status === "active" ? "Open" : "Draft";
-  return {
-    title: values.title.trim(),
-    ...(values.description?.trim() ? { description: values.description.trim() } : {}),
+  return mapCreateTourDto({
+    title: values.title,
+    description: values.description,
+    communicationLink: values.communicationLink,
     capacity: values.totalCapacity,
     price: values.price,
     lifecycle_status,
-  };
+  });
 }
 
 /** Maps edit form → {@link UpdateTourDto}; preserves embedded `cost_context.location` when API returned one. */
 export function updateTourDtoFromTourFormValues(values: TourFormValues, existing: TourDetailDto): UpdateTourDto {
-  const uiStatus: TourUiLifecycleStatus =
-    values.status === "active" ? "Published" : values.status === "archived" ? "Archived" : "Draft";
-  const lifecycle_status = uiLifecycleToApi(uiStatus);
+  const lifecycle_status = formLifecycleToApi(values.status);
   const existingLoc =
     existing.costContext &&
     typeof existing.costContext === "object" &&
@@ -67,6 +43,6 @@ export function updateTourDtoFromTourFormValues(values: TourFormValues, existing
     price: values.price,
     lifecycle_status,
     ...(existingLoc ? { location: existingLoc } : {}),
+    ...(values.communicationLink?.trim() ? { communicationLink: values.communicationLink.trim() } : {}),
   };
 }
-

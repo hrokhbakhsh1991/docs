@@ -103,6 +103,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     registrationRepository as never,
     {} as never,
     {} as never,
+    {} as never,
     {
       getRole: () => actor.role,
       getTenantId: () => actor.tenantId,

@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import { API } from "../api-paths";
 
 /** When true, list/update users against Tour-Ops API (`NEXT_PUBLIC_API_URL`). */
 export function usersUseLiveApi(): boolean {
@@ -17,7 +18,7 @@ export type WorkspaceUserDto = {
 };
 
 export async function getUsers(): Promise<WorkspaceUserDto[]> {
-  return apiClient.get<WorkspaceUserDto[]>("/api/v2/users");
+  return apiClient.get<WorkspaceUserDto[]>(API.users);
 }
 
 /**
@@ -29,7 +30,7 @@ export async function getUserById(id: string): Promise<WorkspaceUserDto | null> 
 }
 
 export async function updateUserRole(id: string, role: string): Promise<WorkspaceUserDto> {
-  return apiClient.patch<WorkspaceUserDto>(`/api/v2/users/${encodeURIComponent(id)}`, {
+  return apiClient.patch<WorkspaceUserDto>(API.user(id), {
     role
   });
 }

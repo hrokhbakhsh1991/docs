@@ -51,5 +51,7 @@ export const envSchema = z.object({
   PAYMENTS_TIMEOUT_INTERVAL_MS: z.preprocess(
     toNumber,
     z.number().int().positive()
-  ).default(60000)
+  ).default(60000),
+  /** Comma-separated browser origins allowed by CORS (e.g. https://app.example.com,https://admin.example.com). Empty disables cross-origin in production/test; in development localhost:3000 and 127.0.0.1:3000 are allowed by ConfigService.getCorsOrigins(). */
+  CORS_ORIGIN: z.string().default("")
 });

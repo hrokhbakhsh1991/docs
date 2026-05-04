@@ -11,6 +11,7 @@ import {
   syntheticBookingContactPhone,
   waitlistWhereForActor
 } from "../../common/security/ownership-scope";
+import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { OutboxService } from "../outbox/outbox.service";
@@ -36,6 +37,7 @@ import {
 } from "./registration.entity";
 import { WaitlistItemEntity, WaitlistItemStatus } from "./waitlist-item.entity";
 import { UserEntity } from "../identity/entities/user.entity";
+import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
 
 @Injectable()
 export class RegistrationsService {
@@ -51,6 +53,7 @@ export class RegistrationsService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
     private readonly dataSource: DataSource,
+    private readonly tenantBootstrapService: TenantBootstrapService,
     private readonly requestContextService: RequestContextService,
     private readonly outboxService: OutboxService
   ) {}
@@ -59,11 +62,8 @@ export class RegistrationsService {
    * Tenant for public idempotency boundaries (no JWT): resolved from the tour row only.
    */
   async getTenantIdForTourOrThrow(tourId: string): Promise<string> {
-    const tour = await this.registrationRepository.manager.findOne(TourEntity, {
-      where: { id: tourId },
-      select: { id: true, tenantId: true }
-    });
-    if (!tour) {
+    const tenantId = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
+    if (!tenantId) {
       throw new NotFoundException({
         error: {
           code: "RESOURCE_NOT_FOUND",
@@ -71,7 +71,7 @@ export class RegistrationsService {
         }
       });
     }
-    return tour.tenantId;
+    return tenantId;
   }
 
   async createRegistration(
@@ -1364,7 +1364,8 @@ export class RegistrationsService {
       }
     | { type: "waitlist"; waitlistItem: WaitlistItemResponseDto; queuePosition: number }
   > {
-    return this.dataSource.transaction(async (manager) => {
+    const store = requestContextStorage.getStore();
+    const run = async (manager: EntityManager) => {
       const tourPeek = await manager.findOne(TourEntity, {
         where: { id: input.tourId },
         select: { id: true, tenantId: true }
@@ -1473,7 +1474,11 @@ export class RegistrationsService {
         requiresPayment,
         paymentIntent
       };
-    });
+    };
+    if (store) {
+      return requestContextStorage.run(store, () => this.dataSource.transaction(run));
+    }
+    return this.dataSource.transaction(run);
   }
 
   private isCapacityConsumingStatus(status: RegistrationStatus): boolean {

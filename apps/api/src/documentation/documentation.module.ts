@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { getDataSourceToken } from "@nestjs/typeorm";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "../app.controller";
 import { LoggerService } from "../common/logger/logger.service";
 import { RequestContextService } from "../common/request-context/request-context.service";
@@ -17,10 +18,23 @@ import { UsersController } from "../modules/identity/users.controller";
 import { UsersService } from "../modules/identity/users.service";
 import { RegistrationsController } from "../modules/registrations/registrations.controller";
 import { RegistrationsService } from "../modules/registrations/registrations.service";
+import { TenantBootstrapService } from "../modules/tenant/tenant-bootstrap.service";
 import { ToursController } from "../modules/tours/tours.controller";
 import { ToursService } from "../modules/tours/tours.service";
 
 @Module({
+  imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: "public-registration",
+          ttl: 60_000,
+          limit: 10,
+          blockDuration: 1
+        }
+      ]
+    })
+  ],
   controllers: [
     AppController,
     AuthController,
@@ -55,6 +69,8 @@ import { ToursService } from "../modules/tours/tours.service";
         getRole: () => "SYSTEM",
         getContext: () => ({
           requestId: "openapi-build",
+          path: "/health",
+          method: "GET",
           tenantId: "00000000-0000-4000-8000-000000000000",
           userId: "openapi-build-user",
           role: "SYSTEM"
@@ -72,6 +88,12 @@ import { ToursService } from "../modules/tours/tours.service";
       }
     },
     { provide: ToursService, useValue: {} },
+    {
+      provide: TenantBootstrapService,
+      useValue: {
+        resolveTenantFromTourId: async () => "00000000-0000-4000-8000-000000000000"
+      }
+    },
     { provide: RegistrationsService, useValue: {} },
     { provide: PaymentsService, useValue: {} },
     { provide: UsersService, useValue: {} },
@@ -106,7 +128,8 @@ import { ToursService } from "../modules/tours/tours.service";
       useValue: {
         getSnapshot: () => ({})
       }
-    }
+    },
+    ThrottlerGuard
   ]
 })
 export class DocumentationModule {}

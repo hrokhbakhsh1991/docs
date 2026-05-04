@@ -5,6 +5,7 @@
 
 import axios, { AxiosError, type AxiosInstance } from "axios";
 
+import { AUTH_SESSION_PATHS } from "./api-paths";
 import { clearAuthAndRedirectToLogin, getSessionToken } from "./auth/session";
 import { emitGlobalApiToast } from "./global-api-toast";
 
@@ -19,10 +20,34 @@ declare module "axios" {
   }
 }
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+/**
+ * Contract: env should be origin only (`http://localhost:3001`).
+ * Trailing `/api/v2` is stripped so legacy configs never yield `/api/v2/api/v2/...` on the wire.
+ */
+export function normalizeTourOpsApiOrigin(raw: string): string {
+  let s = raw.trim().replace(/\/$/, "");
+  const suffix = "/api/v2";
+  let stripped = false;
+  while (s.endsWith(suffix)) {
+    s = s.slice(0, -suffix.length).replace(/\/$/, "");
+    stripped = true;
+  }
+  if (stripped && process.env.NODE_ENV === "development") {
+    console.warn(
+      "[api-client] NEXT_PUBLIC_API_URL ended with /api/v2; using origin only. Prefer setting NEXT_PUBLIC_API_URL=http://localhost:3001 (no path)."
+    );
+  }
+  return s;
+}
+
+const API_BASE_URL = normalizeTourOpsApiOrigin(process.env.NEXT_PUBLIC_API_URL ?? "");
 const API_TIMEOUT_MS = 15_000;
 
-const AUTH_SESSION_PATHS = ["/api/v2/auth/web/session", "/api/v2/auth/telegram/session"];
+function assertNoDoubleApiV2InUrl(resolvedUrl: string): void {
+  if (resolvedUrl.includes("/api/v2/api/v2")) {
+    throw new Error("Invalid API path: double /api/v2 detected");
+  }
+}
 
 export class ApiError extends Error {
   code: string;
@@ -37,6 +62,13 @@ export class ApiError extends Error {
     this.code = code;
     this.status = status;
     this.data = data;
+  }
+}
+
+export class ForbiddenError extends ApiError {
+  constructor(message = "You are not allowed to perform this action.", data?: unknown) {
+    super("FORBIDDEN", message, 403, data);
+    this.name = "ForbiddenError";
   }
 }
 
@@ -91,7 +123,7 @@ function toApiError(error: unknown): ApiError {
         return new ApiError(backendCode ?? "UNAUTHORIZED", "Your session has expired. Please sign in again.", status, data);
       }
       if (status === 403) {
-        return new ApiError(backendCode ?? "FORBIDDEN", "You are not allowed to perform this action.", status, data);
+        return new ForbiddenError("You are not allowed to perform this action.", data);
       }
       if (status === 500) {
         return new ApiError(backendCode ?? "SERVER_ERROR", "Server error. Please try again later.", status, data);
@@ -136,6 +168,8 @@ export const axiosApi: AxiosInstance = axios.create({
 });
 
 axiosApi.interceptors.request.use((config) => {
+  assertNoDoubleApiV2InUrl(axios.getUri(config));
+
   const token =
     typeof window !== "undefined" && typeof document !== "undefined" ? getSessionToken() : undefined;
   const relativeUrl = config.url ?? "";
@@ -202,11 +236,17 @@ axiosApi.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    if (status === 403) {
+      const path = window.location.pathname;
+      if (path !== "/403") {
+        window.location.assign("/403");
+      }
+      return Promise.reject(error);
+    }
+
     if (!cfg?.skipGlobalErrorToast) {
       if (isLikelyNetworkOrTimeout(error)) {
         emitGlobalApiToast({ type: "error", message: "Connection lost. Please try again." });
-      } else if (status === 403) {
-        emitGlobalApiToast({ type: "error", message: "You are not allowed to perform this action." });
       } else if (status === 500) {
         emitGlobalApiToast({ type: "error", message: "Server error. Please try again later." });
       }

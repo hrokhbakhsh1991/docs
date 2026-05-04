@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { API } from "../../lib/api-paths";
+
 type BookingRow = {
   id: string;
   tenantId: string;
@@ -30,7 +32,7 @@ test.describe("pre-release smoke flow", () => {
       const path = url.pathname;
       const authHeader = request.headers()["authorization"];
 
-      if (path === "/api/v2/auth/web/session" && method === "POST") {
+      if (path === API.auth.webSession && method === "POST") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -54,7 +56,7 @@ test.describe("pre-release smoke flow", () => {
       }
       state.sawAuthHeader = true;
 
-      if (path === "/api/v2/tours" && method === "GET") {
+      if (path === API.tours && method === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -67,8 +69,6 @@ test.describe("pre-release smoke flow", () => {
                 total_capacity: 20,
                 accepted_count: state.bookings.length,
                 lifecycle_status: "OPEN",
-                start_date: nowIso,
-                end_date: nowIso,
                 cost_context: { totalCost: 90, currency: "USD", location: "Center" },
               },
             ],
@@ -80,7 +80,7 @@ test.describe("pre-release smoke flow", () => {
         return;
       }
 
-      if (path === "/api/v2/tours/tour-1" && method === "GET") {
+      if (path === API.tour("tour-1") && method === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -91,15 +91,14 @@ test.describe("pre-release smoke flow", () => {
             total_capacity: 20,
             accepted_count: state.bookings.length,
             lifecycle_status: "OPEN",
-            start_date: nowIso,
-            end_date: nowIso,
             cost_context: { totalCost: 90, currency: "USD", location: "Center" },
           }),
         });
         return;
       }
 
-      const registerMatch = /^\/api\/v2\/tours\/([^/]+)\/register$/u.exec(path);
+      const registerRe = new RegExp(`^${API.tours.replace(/\//g, "\\/")}\\/([^/]+)\\/register$`, "u");
+      const registerMatch = registerRe.exec(path);
       if (registerMatch && method === "POST") {
         const tourIdResolved = registerMatch[1] ?? "tour-1";
         const idemKey = request.headers()["idempotency-key"];
@@ -133,7 +132,7 @@ test.describe("pre-release smoke flow", () => {
         return;
       }
 
-      if (path === "/api/v2/bookings" && method === "GET") {
+      if (path === API.bookings && method === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -142,7 +141,7 @@ test.describe("pre-release smoke flow", () => {
         return;
       }
 
-      if (path === "/api/v2/users" && method === "GET") {
+      if (path === API.users && method === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",

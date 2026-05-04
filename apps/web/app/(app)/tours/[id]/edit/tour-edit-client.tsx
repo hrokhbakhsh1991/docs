@@ -1,185 +1,260 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
-  Breadcrumb,
   Button,
+  Card,
+  CardBody,
+  cn,
   EmptyState,
   ErrorState,
   LoadingState,
-  PageContainer,
-  PageShell,
-  useAppLayoutChromeSetter,
 } from "@tour/ui";
 
 import { TourForm } from "@/components/tours/TourForm";
-
-import { isLeaderRole, LEADER_WORKSPACE_ACCESS_DENIED, useAuth } from "@/lib/auth/auth-context";
+import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
+import { useUpdateTour } from "@/features/tours/hooks/useUpdateTour";
+import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { ApiError } from "@/lib/api-client";
-import { tourKeys } from "@/lib/query-keys";
-import { getTourById, toursUseLiveApi, updateTour } from "@/lib/services/tours.service";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { toursUseLiveApi } from "@/lib/services/tours.service";
 
 import { updateTourDtoFromTourFormValues } from "../../tour-ui-mappers";
 
+import styles from "./tour-edit-client.module.css";
+
 export function TourEditClient({ tourId }: { tourId: string }) {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const setChrome = useAppLayoutChromeSetter();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = toursUseLiveApi();
   const leader = isLeaderRole(user?.role);
 
   const queryEnabled = Boolean(tourId) && liveApi && isHydrated && isAuthenticated && leader;
-
-  const {
-    data: tour,
-    isPending,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: tourKeys.detail(tourId),
-    queryFn: () => getTourById(tourId),
+  const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
+  const updateMutation = useUpdateTour(tourId);
 
   const errorMessage =
     error instanceof ApiError
       ? error.status === 404
         ? "No tour was found with this id."
-        : error.message
+        : error.message.trim() || "Could not load tour details. Please try again."
       : "Could not load tour details. Please try again.";
 
-  const updateMutation = useMutation({
-    mutationFn: async (payload: {
-      dto: ReturnType<typeof updateTourDtoFromTourFormValues>;
-      mergeCostFrom: Record<string, unknown> | null | undefined;
-    }) =>
-      updateTour(tourId, payload.dto, {
-        existingCostContext: payload.mergeCostFrom ?? null,
-      }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: tourKeys.detail(tourId) });
-      void queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: tourKeys.catalog() });
-      router.push(`/tours/${encodeURIComponent(tourId)}`);
-    },
-  });
+  const lastCrumbLabel = tour?.title?.trim() ? tour.title : "Edit tour";
+  const breadcrumbTrail = [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tours", href: "/tours" },
+    { label: lastCrumbLabel },
+  ] as const;
 
-  useEffect(() => {
-    if (!tour) {
-      setChrome(null);
-      return;
-    }
-    setChrome({
-      title: "Edit tour",
-      description: `Editing ${tour.title} — changes save via PATCH /api/v2/tours/${tourId}.`,
-      breadcrumb: (
-        <Breadcrumb
-          items={[
-            { label: "Home", href: "/dashboard" },
-            { label: "Tours", href: "/tours" },
-            { label: tour.title },
-          ]}
-        />
-      ),
-    });
-    return () => setChrome(null);
-  }, [tour, tourId, setChrome]);
+  const shellTitle = "Edit tour";
+  const documentTitle = tour?.title ? `Edit ${tour.title}` : "Edit tour";
+
+  const canEditLifecycle =
+    tour != null && (tour.lifecycleStatus === "DRAFT" || tour.lifecycleStatus === "OPEN");
 
   if (liveApi && !isHydrated) {
     return (
-      <PageShell documentTitle="Edit tour">
-        <PageContainer>
-          <LoadingState message="Loading session…" />
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading session…" />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
   if (liveApi && isHydrated && !isAuthenticated) {
     return (
-      <PageShell documentTitle="Edit tour">
-        <PageContainer>
-          <EmptyState
-            title="Sign in required"
-            description="Your session is missing or expired. Sign in to edit tours."
-            action={
-              <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                Sign in
-              </Button>
-            }
-          />
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Sign in required"
+              description="Your session is missing or expired. Sign in to edit tours."
+              action={
+                <Button type="button" variant="primary" onClick={() => router.push("/login")}>
+                  Sign in
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
-  if (liveApi && isHydrated && isAuthenticated && !leader) {
+  if (isHydrated && isAuthenticated && !leader) {
     return (
-      <PageShell documentTitle="Edit tour">
-        <PageContainer>
-          <EmptyState
-            title={LEADER_WORKSPACE_ACCESS_DENIED.title}
-            description={LEADER_WORKSPACE_ACCESS_DENIED.description}
-            action={
-              <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}>
-                Back to tour
-              </Button>
-            }
-          />
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Leader access required"
+              description="Only users with the leader role can edit tours."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
+                  Back to tours
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
-  if (isPending) {
+  if (!liveApi && isHydrated) {
     return (
-      <PageShell documentTitle="Edit tour">
-        <PageContainer>
-          <LoadingState message="Loading tour…" />
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Workspace API not configured"
+              description="Set NEXT_PUBLIC_API_URL in your environment to load and edit tours."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
+                  Back to dashboard
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading tour…" />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
   if (isError) {
     return (
-      <PageShell documentTitle="Tour not found">
-        <PageContainer>
-          <ErrorState title="Could not load tour" message={errorMessage} onRetry={() => void refetch()} />
-          <p style={{ marginTop: "var(--space-4)", marginBottom: 0, fontSize: "var(--text-small-size)" }}>
-            <Link href="/tours" style={{ color: "var(--color-text-link)" }}>
-              Back to tours
-            </Link>
-          </p>
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <ErrorState title="Could not load tour" message={errorMessage} onRetry={() => void refetch()} />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
   if (!tour) {
     return (
-      <PageShell documentTitle="Tour not found">
-        <PageContainer>
-          <p style={{ marginTop: 0 }} role="alert">
-            Tour not found.
-          </p>
-          <Link href="/tours" style={{ color: "var(--color-text-link)" }}>
-            Back to tours
-          </Link>
-        </PageContainer>
-      </PageShell>
+      <RegisteredWorkspacePage
+        documentTitle={shellTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Tour not found"
+              description="No tour exists with this id."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
+                  Back to tours
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
     );
   }
 
+  if (!canEditLifecycle) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle={documentTitle}
+        title={shellTitle}
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Tour is read-only"
+              description="This tour is closed/cancelled and cannot be edited."
+              action={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
+                >
+                  Back to tour
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  const editRefreshing = Boolean(tour && !isLoading && isFetching);
+
   return (
-    <PageShell documentTitle={`Edit ${tour.title}`}>
-      <PageContainer>
+    <RegisteredWorkspacePage
+      documentTitle={documentTitle}
+      title={shellTitle}
+      description={`Editing ${tour.title} — changes save via PATCH /api/v2/tours/${tourId}.`}
+      breadcrumbItems={[...breadcrumbTrail]}
+      actions={null}
+    >
+      <div
+        className={cn(styles.contentRoot, editRefreshing ? styles.contentRootRefreshing : undefined)}
+        aria-busy={editRefreshing ? true : undefined}
+      >
+        {editRefreshing ? (
+          <span className={styles.liveRegion} aria-live="polite">
+            Updating tour data
+          </span>
+        ) : null}
         <TourForm
           mode="edit"
           tour={tour}
@@ -192,9 +267,10 @@ export function TourEditClient({ tourId }: { tourId: string }) {
             if (!updated) {
               throw new Error("Tour not found");
             }
+            router.push(`/tours/${encodeURIComponent(tourId)}`);
           }}
         />
-      </PageContainer>
-    </PageShell>
+      </div>
+    </RegisteredWorkspacePage>
   );
 }

@@ -10,9 +10,6 @@ import { RegistrationsController } from "../../src/modules/registrations/registr
 test("public register returns paymentIntent when requiresPayment=true", async () => {
   const controller = new RegistrationsController(
     {
-      async getTenantIdForTourOrThrow() {
-        return "tenant-1";
-      },
       async createPublicRegistrationOrWaitlist() {
         return {
           type: "registration" as const,
@@ -42,6 +39,11 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
     {
       setTenantId: () => {},
       getTenantId: () => "tenant-1"
+    } as never,
+    {
+      async resolveTenantFromTourId() {
+        return "tenant-1";
+      }
     } as never
   );
 
@@ -60,9 +62,6 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
 test("public register returns waitlist position when capacity full", async () => {
   const controller = new RegistrationsController(
     {
-      async getTenantIdForTourOrThrow() {
-        return "tenant-1";
-      },
       async createPublicRegistrationOrWaitlist() {
         return {
           type: "waitlist" as const,
@@ -76,6 +75,11 @@ test("public register returns waitlist position when capacity full", async () =>
     {
       setTenantId: () => {},
       getTenantId: () => "tenant-1"
+    } as never,
+    {
+      async resolveTenantFromTourId() {
+        return "tenant-1";
+      }
     } as never
   );
 

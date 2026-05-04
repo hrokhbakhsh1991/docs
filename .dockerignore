@@ -1,0 +1,29 @@
+# Git / tooling
+.git
+.github
+**/.DS_Store
+
+# Dependencies & caches
+node_modules
+**/node_modules
+.pnpm-store
+**/.next/cache
+
+# Build outputs (rebuilt in image)
+**/dist
+**/.next
+**/coverage
+**/playwright-report
+**/test-results
+
+# Env & secrets (never bake real secrets into images)
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/infra/.env.docker
+
+# Misc
+*.log
+*.md
+!README.md

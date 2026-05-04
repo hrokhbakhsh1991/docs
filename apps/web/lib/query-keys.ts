@@ -1,11 +1,20 @@
 export const tourKeys = {
   all: ["tours"] as const,
   lists: () => [...tourKeys.all, "list"] as const,
-  /** Matches `GET /api/v2/tours` documented query params (`search` only). Pagination is client-side after fetch. */
-  list: (params: { search: string }) => [...tourKeys.lists(), { search: params.search }] as const,
+  /** List cache key; optional `page` / `limit` align with `GET /api/v2/tours` query when present. */
+  list: (params: { search: string; page?: number; limit?: number }) =>
+    [
+      ...tourKeys.lists(),
+      {
+        search: params.search,
+        ...(params.page !== undefined ? { page: params.page } : {}),
+        ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      },
+    ] as const,
+  details: () => [...tourKeys.all, "detail"] as const,
+  detail: (id: string | number) => [...tourKeys.details(), String(id)] as const,
   /** Large page fetch for booking tour pickers. */
   catalog: () => [...tourKeys.all, "catalog"] as const,
-  detail: (id: string | number) => ["tour", String(id)] as const,
 };
 
 export const bookingKeys = {

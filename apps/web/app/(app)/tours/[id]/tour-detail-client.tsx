@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
@@ -11,28 +10,22 @@ import {
   CardBody,
   CardHeader,
   CardTitle,
+  cn,
   EmptyState,
   ErrorState,
   LoadingState,
-  type BadgeVariant,
 } from "@tour/ui";
 
-import {
-  extractTourPriceUsd,
-  formatTourDateLabel,
-  formatTourDateRange,
-  formatTourLocation,
-  formatTourPriceUsd,
-} from "@/components/tours/formatters";
+import { extractTourPriceUsd, formatTourLocation, formatTourPriceUsd } from "@/components/tours/formatters";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
-import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
+import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { toursUseLiveApi } from "@/lib/services/tours.service";
+import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 
-import { tourKeys } from "@/lib/query-keys";
+import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
 
-import { getTourById, toursUseLiveApi } from "../../../../lib/services/tours.service";
-
-import { apiLifecycleToUi } from "../tour-ui-mappers";
+import { lifecycleBadgeVariant } from "./tour-detail-ui";
 
 import styles from "./tour-detail-client.module.css";
 
@@ -46,36 +39,12 @@ const breadcrumbTrail = [
   { label: "Tour details" },
 ] as const;
 
-function lifecycleBadgeVariant(status: ReturnType<typeof apiLifecycleToUi>): BadgeVariant {
-  switch (status) {
-    case "Published":
-      return "success";
-    case "Archived":
-      return "info";
-    default:
-      return "neutral";
-  }
-}
-
-function formatDisplayDate(iso: string | null | undefined): string {
-  if (!iso?.trim()) return "—";
-  return formatTourDateLabel(iso);
-}
-
 export function TourDetailClient({ tourId }: TourDetailClientProps) {
   const router = useRouter();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = toursUseLiveApi();
   const queryEnabled = Boolean(tourId) && liveApi && isHydrated && isAuthenticated;
-  const {
-    data: tour,
-    isPending: isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: tourKeys.detail(tourId),
-    queryFn: () => getTourById(tourId),
+  const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
 
@@ -83,21 +52,17 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     error instanceof ApiError
       ? error.status === 404
         ? "No tour was found with this id."
-        : error.message
+        : error.message.trim() || "Could not load tour details. Please try again."
       : "Could not load tour details. Please try again.";
 
   const chromeDescription =
-    tour != null
-      ? `${formatTourDateRange(tour)} · ${formatTourPriceUsd(extractTourPriceUsd(tour.costContext))}`
-      : undefined;
+    tour != null ? formatTourPriceUsd(extractTourPriceUsd(tour.costContext)) : undefined;
 
   const documentTitle = tour?.title ?? "Tour details";
 
   const tourSubtitle = useMemo(() => {
     if (!tour) return undefined;
-    const ui = apiLifecycleToUi(tour.lifecycleStatus);
-    const parts = [ui, formatTourDateRange(tour)].filter((p) => p && p !== "—");
-    return parts.join(" · ");
+    return lifecycleDisplayLabel(apiLifecycleToFormStatus(tour.lifecycleStatus));
   }, [tour]);
 
   if (liveApi && !isHydrated) {
@@ -111,23 +76,6 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
         <Card className={styles.stateCard}>
           <CardBody>
             <LoadingState message="Loading session…" />
-          </CardBody>
-        </Card>
-      </RegisteredWorkspacePage>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <RegisteredWorkspacePage
-        documentTitle="Tour details"
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
-        actions={null}
-      >
-        <Card className={styles.stateCard}>
-          <CardBody>
-            <LoadingState message="Loading tour…" />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -153,6 +101,48 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
                 </Button>
               }
             />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (!liveApi && isHydrated) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Tour details"
+        title="Tour details"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <EmptyState
+              title="Workspace API not configured"
+              description="Set NEXT_PUBLIC_API_URL in your environment to load tour details."
+              action={
+                <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
+                  Back to dashboard
+                </Button>
+              }
+            />
+          </CardBody>
+        </Card>
+      </RegisteredWorkspacePage>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <RegisteredWorkspacePage
+        documentTitle="Tour details"
+        title="Tour details"
+        breadcrumbItems={[...breadcrumbTrail]}
+        actions={null}
+      >
+        <Card className={styles.stateCard}>
+          <CardBody>
+            <LoadingState message="Loading tour…" />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -201,7 +191,7 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     );
   }
 
-  const uiStatus = apiLifecycleToUi(tour.lifecycleStatus);
+  const uiStatus = apiLifecycleToFormStatus(tour.lifecycleStatus);
   const locationLabel = formatTourLocation(tour);
   const priceLabel = formatTourPriceUsd(extractTourPriceUsd(tour.costContext));
   const descriptionText = (tour.description ?? "").trim();
@@ -209,6 +199,15 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     typeof tour.totalCapacity === "number" && Number.isFinite(tour.totalCapacity)
       ? String(tour.totalCapacity)
       : "—";
+
+  /** FR-61 (MVP): chat link is not shown in the DOM for non-leader roles. */
+  const leaderVisibleChatLink =
+    isLeaderRole(user?.role) && typeof tour.communicationLink === "string"
+      ? tour.communicationLink.trim()
+      : "";
+  const showTourChatLink = leaderVisibleChatLink.length > 0;
+
+  const detailRefreshing = Boolean(tour && !isLoading && isFetching);
 
   return (
     <RegisteredWorkspacePage
@@ -218,12 +217,21 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
       breadcrumbItems={[...breadcrumbTrail]}
       actions={null}
     >
-      <div className={styles.stack}>
+      <div
+        className={cn(styles.contentRoot, detailRefreshing ? styles.contentRootRefreshing : undefined)}
+        aria-busy={detailRefreshing ? true : undefined}
+      >
+        {detailRefreshing ? (
+          <span className={styles.liveRegion} aria-live="polite">
+            Updating tour details
+          </span>
+        ) : null}
+        <div className={styles.stack}>
         <Card>
           <CardHeader>
             <div className={styles.headerRow}>
               <CardTitle>Tour Information</CardTitle>
-              <Badge variant={lifecycleBadgeVariant(uiStatus)}>{uiStatus}</Badge>
+              <Badge variant={lifecycleBadgeVariant(uiStatus)}>{lifecycleDisplayLabel(uiStatus)}</Badge>
             </div>
             {tourSubtitle ? <p className={styles.sectionLead}>{tourSubtitle}</p> : null}
           </CardHeader>
@@ -251,14 +259,16 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
                 <dt className={styles.term}>Price</dt>
                 <dd className={styles.def}>{priceLabel}</dd>
               </div>
-              <div className={styles.field}>
-                <dt className={styles.term}>Start date</dt>
-                <dd className={styles.def}>{formatDisplayDate(tour.startDate)}</dd>
-              </div>
-              <div className={styles.field}>
-                <dt className={styles.term}>End date</dt>
-                <dd className={styles.def}>{formatDisplayDate(tour.endDate)}</dd>
-              </div>
+              {showTourChatLink ? (
+                <div className={styles.field}>
+                  <dt className={styles.term}>Communication link</dt>
+                  <dd className={styles.def}>
+                    <a href={leaderVisibleChatLink} target="_blank" rel="noopener noreferrer">
+                      {leaderVisibleChatLink}
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </CardBody>
         </Card>
@@ -296,12 +306,15 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
                   Registrations workspace
                 </Button>
               ) : null}
-              <Button type="button" variant="primary" onClick={() => router.push(`/tours/${tourId}/register`)}>
-                Register
-              </Button>
+              {tour.lifecycleStatus === "OPEN" ? (
+                <Button type="button" variant="primary" onClick={() => router.push(`/tours/${tourId}/register`)}>
+                  Register
+                </Button>
+              ) : null}
             </div>
           </CardBody>
         </Card>
+        </div>
       </div>
     </RegisteredWorkspacePage>
   );
