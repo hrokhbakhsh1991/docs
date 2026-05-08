@@ -2,13 +2,16 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  forwardRef,
-  Inject,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, EntityManager, IsNull, Repository, type FindOptionsWhere } from "typeorm";
+import { TenantContextMissingError } from "../../common/errors/tenant-context-missing.error";
+import {
+  tenantContextMissingError,
+  tenantScopedResourceNotFoundError
+} from "../../common/errors/error-response-builders";
 import {
   findPaymentScopedForActor,
   registrationWhereForActor
@@ -16,16 +19,22 @@ import {
 import { IdempotencyService } from "../idempotency/idempotency.service";
 import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { TenantDbContextService } from "../../database/tenant-db-context.service";
+import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import {
   RegistrationEntity,
+  RegistrationPaymentStatus,
   RegistrationStatus
 } from "../registrations/registration.entity";
-import { RegistrationsService } from "../registrations/registrations.service";
+import { TourEntity } from "../tours/entities/tour.entity";
+import { WaitlistItemEntity, WaitlistItemStatus } from "../registrations/waitlist-item.entity";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
 import { PaymentEntity, PaymentStatus } from "./entities/payment.entity";
+import { emitRegistrationStatusChangedEvent, emitWaitlistConvertedAndAcceptedEvents } from "../registrations/registrations-effects";
+import { validateStatusTransition } from "../registrations/registrations-policy";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
@@ -74,14 +83,13 @@ export class PaymentsService {
     private readonly paymentRepository: Repository<PaymentEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(TenantEntity)
+    private readonly tenantRepository: Repository<TenantEntity>,
     private readonly dataSource: DataSource,
     private readonly requestContextService: RequestContextService,
+    private readonly tenantDbContext: TenantDbContextService,
     private readonly idempotencyService: IdempotencyService,
-    private readonly outboxService: OutboxService,
-    // DI-DIAGNOSTIC: forwardRef injection path depends on correct runtime constructor metadata; verify this parameter type is emitted in E2E execution mode.
-    // TODO(FREEZE-BLOCKER): Verify forwardRef-based RegistrationsService injection is never undefined during cold bootstrap and test module initialization.
-    @Inject(forwardRef(() => RegistrationsService))
-    private readonly registrationsService: RegistrationsService
+    private readonly outboxService: OutboxService
   ) {}
 
   getMetricsSnapshot(): PaymentRuntimeMetrics {
@@ -109,17 +117,12 @@ export class PaymentsService {
     manager: DataSource["manager"],
     dto: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
-    const trustedTenantId = this.requestContextService.getTenantId();
+    const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
     const actorRoleRaw = this.requestContextService.getRole();
     const role = (actorRoleRaw ?? "").trim().toLowerCase();
     const actorUserIdRaw = this.requestContextService.getUserId();
     if (!trustedTenantId && role !== "admin") {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
+      throw new ForbiddenException(tenantContextMissingError());
     }
 
     const isPublicTenantBootstrapActor =
@@ -218,6 +221,7 @@ export class PaymentsService {
     const saved = await manager.save(payment);
     this.paymentIntentsCreatedTotal += 1;
     await this.outboxService.addEvent(manager, {
+      tenantId: registration.tenantId,
       aggregateType: "Payment",
       aggregateId: saved.id,
       eventType: "payment.created",
@@ -233,9 +237,15 @@ export class PaymentsService {
     return this.toResponse(saved);
   }
 
-  async listPayments(): Promise<PaymentResponseDto[]> {
+  async listPayments(tenantId: string): Promise<PaymentResponseDto[]> {
+    const normalizedTenantId = tenantId.trim().toLowerCase();
+    if (!normalizedTenantId) {
+      throw new TenantContextMissingError(
+        "Tenant context is missing tenant_id for admin payment listing"
+      );
+    }
     const rows = await this.paymentRepository.find({
-      where: { deletedAt: IsNull() },
+      where: { tenantId: normalizedTenantId, deletedAt: IsNull() },
       order: { createdAt: "DESC" },
       take: 100
     });
@@ -276,12 +286,7 @@ export class PaymentsService {
       where: regWhere
     });
     if (!registration) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
     return registration;
   }
@@ -317,6 +322,10 @@ export class PaymentsService {
     const requestId = payload.providerEventId ?? `legacy-${payload.providerPaymentId}-${payload.status}`;
     try {
       const payloadTenantId = payload.tenant_id.trim().toLowerCase();
+      // Internal webhook bypasses TenantMiddleware; RLS still needs app.tenant_id before any query.
+      // Scope is the validated body tenant combined with providerPaymentId in the lookup below
+      // (no widening: wrong tenant_id yields no payment row).
+      this.requestContextService.setTenantId(payloadTenantId);
       const payment = await this.paymentRepository.findOne({
         where: {
           providerPaymentId: payload.providerPaymentId,
@@ -390,13 +399,26 @@ export class PaymentsService {
             statusCode: 200
           },
           async () => {
-            await this.applyPaymentStatus(
-              manager,
-              scopedPayment,
-              payload.status,
-              "system",
-              payload.reason
-            );
+            try {
+              await this.applyPaymentStatus(
+                manager,
+                scopedPayment,
+                payload.status,
+                "system",
+                payload.reason
+              );
+            } catch (error: unknown) {
+              if (this.isWebhookIgnoredInvalidPaymentTransition(error)) {
+                return {
+                  providerPaymentId: payload.providerPaymentId,
+                  providerEventId: payload.providerEventId ?? null,
+                  provider: scopedPayment.provider,
+                  tenantId: scopedPayment.tenantId,
+                  status: scopedPayment.status
+                };
+              }
+              throw error;
+            }
             return {
               providerPaymentId: payload.providerPaymentId,
               providerEventId: payload.providerEventId ?? null,
@@ -456,29 +478,37 @@ export class PaymentsService {
   async failTimedOutPendingPayments(): Promise<number> {
     const threshold = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60_000);
     let timedOutThisRun = 0;
-    await this.dataSource.transaction(async (manager) => {
-      const rows = await manager
-        .getRepository(PaymentEntity)
-        .createQueryBuilder("p")
-        .where("p.status = :status", { status: PaymentStatus.PENDING })
-        .andWhere("p.created_at <= :threshold", { threshold })
-        .orderBy("p.created_at", "ASC")
-        .take(PAYMENT_TIMEOUT_BATCH)
-        .setLock("pessimistic_write")
-        .setOnLocked("skip_locked")
-        .getMany();
-
-      for (const payment of rows) {
-        await this.applyPaymentStatus(
-          manager,
-          payment,
-          PaymentStatus.FAILED,
-          "system",
-          "payment_timeout"
-        );
-        timedOutThisRun += 1;
-      }
+    const tenants = await this.tenantRepository.find({
+      select: { id: true },
+      where: { deletedAt: IsNull() }
     });
+
+    for (const tenant of tenants) {
+      await this.tenantDbContext.runInTenantScope(tenant.id, async (manager) => {
+        const rows = await manager
+          .getRepository(PaymentEntity)
+          .createQueryBuilder("p")
+          .where("p.tenant_id = :tenantId", { tenantId: tenant.id })
+          .andWhere("p.status = :status", { status: PaymentStatus.PENDING })
+          .andWhere("p.created_at <= :threshold", { threshold })
+          .orderBy("p.created_at", "ASC")
+          .take(PAYMENT_TIMEOUT_BATCH)
+          .setLock("pessimistic_write")
+          .setOnLocked("skip_locked")
+          .getMany();
+
+        for (const payment of rows) {
+          await this.applyPaymentStatus(
+            manager,
+            payment,
+            PaymentStatus.FAILED,
+            "system",
+            "payment_timeout"
+          );
+          timedOutThisRun += 1;
+        }
+      });
+    }
 
     if (timedOutThisRun > 0) {
       this.timedOutPayments += timedOutThisRun;
@@ -530,7 +560,7 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.PAID) {
-      await this.registrationsService.transitionRegistrationForPayment(
+      await this.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.ACCEPTED_PAID,
@@ -539,7 +569,7 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.FAILED) {
-      await this.registrationsService.transitionRegistrationForPayment(
+      await this.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.REJECTED,
@@ -550,7 +580,7 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.REFUNDED) {
-      await this.registrationsService.transitionRegistrationForPayment(
+      await this.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.REFUNDED,
@@ -561,6 +591,7 @@ export class PaymentsService {
 
     const saved = await manager.save(payment);
     await this.outboxService.addEvent(manager, {
+      tenantId: saved.tenantId,
       aggregateType: "Payment",
       aggregateId: payment.id,
       eventType: this.mapEventType(next),
@@ -577,6 +608,227 @@ export class PaymentsService {
     });
 
     return saved;
+  }
+
+  private async transitionRegistrationForPayment(
+    manager: EntityManager,
+    registration: RegistrationEntity,
+    targetStatus: RegistrationStatus,
+    actorId: string
+  ): Promise<RegistrationEntity> {
+    const previousStatus = registration.status;
+    if (previousStatus === targetStatus) {
+      return registration;
+    }
+    validateStatusTransition(previousStatus, targetStatus);
+    const affectsAcceptedCounter =
+      this.isCapacityConsumingStatus(previousStatus) ||
+      this.isCapacityConsumingStatus(targetStatus);
+    const lockedTour = affectsAcceptedCounter
+      ? await this.requireTourInTenantForUpdate(
+          manager,
+          registration.tourId,
+          registration.tenantId
+        )
+      : null;
+    await this.ensureCapacityForAcceptance(
+      manager,
+      registration,
+      targetStatus,
+      lockedTour
+    );
+    registration.status = targetStatus;
+    if (lockedTour) {
+      this.applyAcceptedCounterDelta(lockedTour, previousStatus, targetStatus);
+      await manager.save(lockedTour);
+    }
+    const saved = await manager.save(registration);
+    if (
+      this.isCapacityConsumingStatus(previousStatus) &&
+      !this.isCapacityConsumingStatus(targetStatus)
+    ) {
+      await this.promoteNextWaitlistItem(manager, saved, lockedTour);
+    }
+    await emitRegistrationStatusChangedEvent({
+      manager,
+      outboxService: this.outboxService,
+      registration: saved,
+      actorId,
+      previousStatus,
+      newStatus: targetStatus,
+      eventType: this.mapRegistrationStatusEvent(targetStatus),
+      source: "payment_flow"
+    });
+    return saved;
+  }
+
+  private async requireTourInTenantForUpdate(
+    manager: EntityManager,
+    tourId: string,
+    tenantId: string
+  ): Promise<TourEntity> {
+    const tour = await manager
+      .getRepository(TourEntity)
+      .createQueryBuilder("tour")
+      .setLock("pessimistic_write")
+      .where("tour.id = :tourId", { tourId })
+      .andWhere("tour.tenant_id = :tenantId", { tenantId })
+      .getOne();
+
+    if (!tour) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+    return tour;
+  }
+
+  private async ensureCapacityForAcceptance(
+    manager: EntityManager,
+    registration: RegistrationEntity,
+    targetStatus: RegistrationStatus,
+    lockedTour?: TourEntity | null
+  ): Promise<void> {
+    if (
+      this.isCapacityConsumingStatus(registration.status) ||
+      !this.isCapacityConsumingStatus(targetStatus)
+    ) {
+      return;
+    }
+
+    const tour =
+      lockedTour ??
+      (await this.requireTourInTenantForUpdate(
+        manager,
+        registration.tourId,
+        registration.tenantId
+      ));
+
+    if (tour.acceptedCount >= tour.totalCapacity) {
+      throw new ConflictException({
+        error: {
+          code: "CAPACITY_FULL",
+          message: "Tour capacity reached. Cannot accept additional registrations."
+        }
+      });
+    }
+  }
+
+  private applyAcceptedCounterDelta(
+    tour: TourEntity,
+    previousStatus: RegistrationStatus,
+    targetStatus: RegistrationStatus
+  ): void {
+    const wasAccepted = this.isCapacityConsumingStatus(previousStatus);
+    const willBeAccepted = this.isCapacityConsumingStatus(targetStatus);
+    if (wasAccepted === willBeAccepted) {
+      return;
+    }
+    if (willBeAccepted) {
+      tour.acceptedCount += 1;
+      return;
+    }
+    tour.acceptedCount = Math.max(0, tour.acceptedCount - 1);
+  }
+
+  private async promoteNextWaitlistItem(
+    manager: EntityManager,
+    registration: RegistrationEntity,
+    lockedTour?: TourEntity | null
+  ): Promise<boolean> {
+    const tour =
+      lockedTour ??
+      (await this.requireTourInTenantForUpdate(
+        manager,
+        registration.tourId,
+        registration.tenantId
+      ));
+    if (tour.acceptedCount >= tour.totalCapacity) {
+      return false;
+    }
+
+    const waitlistItem = await manager
+      .getRepository(WaitlistItemEntity)
+      .createQueryBuilder("w")
+      .where("w.tenant_id = :tenantId", { tenantId: registration.tenantId })
+      .andWhere("w.tour_id = :tourId", { tourId: registration.tourId })
+      .andWhere("w.status = :status", { status: WaitlistItemStatus.WAITING })
+      .orderBy("w.created_at", "ASC")
+      .setLock("pessimistic_write")
+      .setOnLocked("skip_locked")
+      .getOne();
+
+    if (!waitlistItem) {
+      return false;
+    }
+
+    const promotedRegistration = manager.create(RegistrationEntity, {
+      tenantId: waitlistItem.tenantId,
+      tourId: waitlistItem.tourId,
+      participantFullName: waitlistItem.participantFullName,
+      participantContactPhone: waitlistItem.participantContactPhone,
+      transportMode: waitlistItem.transportMode,
+      entryMode: waitlistItem.entryMode,
+      status: RegistrationStatus.ACCEPTED,
+      paymentStatus: RegistrationPaymentStatus.NOT_PAID,
+      paidAmount: undefined
+    });
+
+    const savedPromotedRegistration = await manager.save(promotedRegistration);
+    waitlistItem.status = WaitlistItemStatus.CONVERTED;
+    waitlistItem.promotedRegistrationId = savedPromotedRegistration.id;
+    await manager.save(waitlistItem);
+    tour.acceptedCount += 1;
+    await manager.save(tour);
+
+    await emitWaitlistConvertedAndAcceptedEvents({
+      manager,
+      outboxService: this.outboxService,
+      waitlistItem,
+      promotedRegistration: savedPromotedRegistration,
+      actorId: this.requestContextService.getUserId() ?? "system",
+      source: "waitlist_promotion"
+    });
+    return true;
+  }
+
+  private mapRegistrationStatusEvent(targetStatus: RegistrationStatus): string {
+    switch (targetStatus) {
+      case RegistrationStatus.ACCEPTED:
+        return "registration.accepted";
+      case RegistrationStatus.ACCEPTED_PAID:
+        return "registration.accepted_paid";
+      case RegistrationStatus.REJECTED:
+        return "registration.rejected";
+      case RegistrationStatus.CANCELLED:
+        return "registration.cancelled";
+      case RegistrationStatus.NO_SHOW:
+        return "registration.no_show";
+      case RegistrationStatus.REFUNDED:
+        return "registration.refunded";
+      default:
+        return "registration.status_changed";
+    }
+  }
+
+  private isCapacityConsumingStatus(status: RegistrationStatus): boolean {
+    return (
+      status === RegistrationStatus.ACCEPTED ||
+      status === RegistrationStatus.ACCEPTED_PAID
+    );
+  }
+
+  /**
+   * Webhooks must ack (200) for benign provider noise; invalid FSM transitions are ignored, not 409.
+   */
+  private isWebhookIgnoredInvalidPaymentTransition(error: unknown): boolean {
+    if (!(error instanceof ConflictException)) {
+      return false;
+    }
+    const body = error.getResponse();
+    if (typeof body !== "object" || body === null || !("error" in body)) {
+      return false;
+    }
+    const code = (body as { error?: { code?: string } }).error?.code;
+    return code === "PAYMENT_STATUS_TRANSITION_INVALID";
   }
 
   private validatePaymentTransition(current: PaymentStatus, next: PaymentStatus): void {

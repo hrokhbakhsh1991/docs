@@ -5,10 +5,11 @@ import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 
 import { apiClient } from "../api-client";
 import { API } from "../api-paths";
+import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 /** When true, list/read tours from `GET /api/v2/tours` (requires auth cookie). */
 export function toursUseLiveApi(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
+  return isTourOpsApiConfigured();
 }
 
 /** Tour row from `GET /api/v2/tours` after {@link mapTourResponseToDto}. */
@@ -24,6 +25,9 @@ export type CreateTourDto = {
   description?: string;
   /** Stored in `cost_context.location` until the API adds a column. */
   location?: string;
+  autoAcceptRegistrations: boolean;
+  tourType?: "camp" | "mountain" | "city" | "desert" | "other";
+  primaryTransportMode?: "bus" | "train" | "plane" | "private_car" | "mixed" | "none";
   /** Maps to `chat_link` on the wire. */
   communicationLink?: string;
   capacity: number;
@@ -128,6 +132,7 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
     title: dto.title.trim(),
     total_capacity: dto.capacity,
     lifecycle_status: dto.lifecycle_status,
+    autoAcceptRegistrations: dto.autoAcceptRegistrations,
   };
   const desc = dto.description?.trim();
   if (desc) {
@@ -140,6 +145,12 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   const link = dto.communicationLink?.trim();
   if (link) {
     body.chat_link = link;
+  }
+  if (dto.tourType) {
+    body.tourType = dto.tourType;
+  }
+  if (dto.primaryTransportMode) {
+    body.primaryTransportMode = dto.primaryTransportMode;
   }
   return body;
 }

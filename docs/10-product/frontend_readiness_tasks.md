@@ -793,7 +793,7 @@ Cross-check **Sections A–I** and `apps/api/openapi.json`. Each item should eit
 - **TODO:** **Waitlist item GET** for participant status screen — path absent in OpenAPI (**J4**).
 - **TODO:** **Cancel registration** as a dedicated mutation — verify whether **`PATCH /api/v2/registrations/{registrationId}/status`** with `Cancelled` is the only contract or a dedicated route is required.
 - **TODO:** **Query params** on **`GET /api/v2/admin/payments`** — OpenAPI lists none; confirm server behavior for filtering.
-- **TODO:** **Session** surfaces — `POST /api/v2/auth/web/session`, `POST /api/v2/auth/telegram/session`, `POST /api/v2/auth/link-telegram` per OpenAPI (**Section G**).
+- **TODO:** **Session** surfaces — `POST /api/v2/auth/web/session/otp`, `POST /api/v2/auth/telegram/session`, `POST /api/v2/auth/link-telegram` per OpenAPI (**Section G**). Canonical web auth doc: **`docs/authentication-phone-otp.md`**.
 
 ---
 

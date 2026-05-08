@@ -61,6 +61,20 @@ export class ConfigService {
     return this.env.TELEGRAM_BOT_TOKEN;
   }
 
+  /**
+   * UNSAFE local helper for OTP debugging. Always keep disabled outside local development.
+   */
+  getAuthAllowDevStaticOtp(): boolean {
+    const explicit = process.env.AUTH_ALLOW_DEV_STATIC_OTP;
+    if (explicit === "true") {
+      return true;
+    }
+    if (explicit === "false") {
+      return false;
+    }
+    return this.env.NODE_ENV === "development" || this.env.NODE_ENV === "test";
+  }
+
   getRedisConfig(): RedisConfig {
     return {
       host: this.env.REDIS_HOST,
@@ -115,6 +129,22 @@ export class ConfigService {
     return this.env.INTERNAL_API_KEY;
   }
 
+  getPaymentsWebhookSigningSecret(): string {
+    return this.env.PAYMENTS_WEBHOOK_SIGNING_SECRET;
+  }
+
+  /** Secondary secret for rotation; empty disables dual-verify. */
+  getPaymentsWebhookSigningSecretPrevious(): string {
+    return this.env.PAYMENTS_WEBHOOK_SIGNING_SECRET_PREVIOUS?.trim() ?? "";
+  }
+
+  /** Parsed allowlist; empty means any IP (configure in production). */
+  getPaymentsWebhookAllowedIps(): string[] {
+    return this.env.PAYMENTS_WEBHOOK_ALLOWED_IPS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
   /** Disabled automatically in test regardless of RECONCILIATION_ENABLED. */
   getReconciliationEnabled(): boolean {
     if (this.env.NODE_ENV === "test") {
@@ -139,7 +169,7 @@ export class ConfigService {
     return this.env.PAYMENTS_TIMEOUT_INTERVAL_MS;
   }
 
-  /** Parsed list of allowed CORS origins; empty means do not allow browser cross-origin requests (except dev fallback below). */
+  /** Parsed explicit allowlist from `CORS_ORIGIN` (trimmed, preserved casing). */
   getCorsOrigins(): string[] {
     const parsed = this.env.CORS_ORIGIN.split(",")
       .map((origin) => origin.trim())
@@ -152,5 +182,181 @@ export class ConfigService {
       return ["http://localhost:3000", "http://127.0.0.1:3000"];
     }
     return [];
+  }
+
+  getTrustProxySetting(): number | boolean {
+    if (this.env.TRUST_PROXY !== "true") {
+      return false;
+    }
+    const hops = this.env.TRUST_PROXY_HOPS;
+    return hops <= 0 ? false : hops;
+  }
+
+  getTrustedProxyCidrs(): string[] {
+    return this.env.TRUSTED_PROXY_CIDRS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  /** When false, `X-Forwarded-Host` must not be trusted for tenant resolution (see `TenantHostResolverService`). */
+  isTrustProxyEnabled(): boolean {
+    return this.env.TRUST_PROXY === "true";
+  }
+
+  getTenantHostTrustModel(): {
+    trustProxy: boolean;
+    trustedProxyCidrs: string[];
+    baseDomain: string;
+  } {
+    return {
+      trustProxy: this.isTrustProxyEnabled(),
+      trustedProxyCidrs: this.getTrustedProxyCidrs(),
+      baseDomain: this.getTenantRootDomain()
+    };
+  }
+
+  getCorsAllowTenantSuborigins(): boolean {
+    return this.env.CORS_ALLOW_TENANT_SUBORIGINS === "true";
+  }
+
+  /**
+   * Invite links and other server-generated UI URLs. Prefer explicit origin in production multi-tenant.
+   */
+  getPublicWebAppOrigin(): string {
+    const explicit = this.env.PUBLIC_WEB_ORIGIN.trim();
+    if (explicit) {
+      return explicit.replace(/\/$/, "");
+    }
+    const first = this.getCorsOrigins()[0]?.trim();
+    if (first) {
+      return first.replace(/\/$/, "");
+    }
+    return "http://localhost:3000";
+  }
+
+  /**
+   * Whether `Origin` may receive credentialed CORS responses. Undefined/empty Origin (non-browser) allowed.
+   */
+  isCorsOriginAllowed(originHeader: string | undefined): boolean {
+    if (originHeader === undefined || originHeader.trim() === "") {
+      return true;
+    }
+
+    const origin = originHeader.trim();
+
+    const explicitNorm = new Set(
+      this.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean).map((o) => o.toLowerCase())
+    );
+    if (explicitNorm.has(origin.toLowerCase())) {
+      return true;
+    }
+
+    if (this.env.NODE_ENV === "development") {
+      const devDefaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+      if (devDefaults.includes(origin)) {
+        return true;
+      }
+    }
+
+    if (!this.getCorsAllowTenantSuborigins()) {
+      return false;
+    }
+
+    const root = this.getTenantRootDomain();
+    if (!root) {
+      return false;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      return false;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    const matchesWorkspaceHost = host === root || host.endsWith(`.${root}`);
+    if (!matchesWorkspaceHost) {
+      return false;
+    }
+
+    if (this.env.NODE_ENV === "production") {
+      const localhostLike = host === "localhost" || host.endsWith(".localhost");
+      if (parsed.protocol !== "https:" && !localhostLike) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Normalized root domain for `{tenant}.{root}` parsing (lowercase, no port).
+   * Empty disables host-based tenant resolution (`TenantHostResolverService`).
+   */
+  getTenantRootDomain(): string {
+    return this.env.TENANT_ROOT_DOMAIN.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
+  }
+
+  /** Labels blocked from becoming tenant slug lookups (lowercase). */
+  getTenantHostReservedSubdomains(): Set<string> {
+    return new Set(
+      this.env.TENANT_HOST_RESERVED_SUBDOMAINS.split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }
+
+  /**
+   * `NODE_ENV=test`: only explicit `TENANT_RATE_LIMIT_ENABLED=true` enables limits.
+   * Other environments: enabled unless `TENANT_RATE_LIMIT_ENABLED=false`.
+   */
+  isTenantRateLimitEnabled(): boolean {
+    const flag = this.env.TENANT_RATE_LIMIT_ENABLED;
+    if (this.env.NODE_ENV === "test") {
+      return flag === "true";
+    }
+    return flag !== "false";
+  }
+
+  getTenantRateLimitApiConfig(): {
+    windowMs: number;
+    perTenant: number;
+    perUser: number;
+    perIp: number;
+  } {
+    return {
+      windowMs: this.env.TENANT_RATE_LIMIT_API_WINDOW_MS,
+      perTenant: this.env.TENANT_RATE_LIMIT_API_PER_TENANT,
+      perUser: this.env.TENANT_RATE_LIMIT_API_PER_USER,
+      perIp: this.env.TENANT_RATE_LIMIT_API_PER_IP
+    };
+  }
+
+  getTenantRateLimitLoginConfig(): {
+    windowMs: number;
+    perTenant: number;
+    perIp: number;
+  } {
+    return {
+      windowMs: this.env.TENANT_RATE_LIMIT_LOGIN_WINDOW_MS,
+      perTenant: this.env.TENANT_RATE_LIMIT_LOGIN_PER_TENANT,
+      perIp: this.env.TENANT_RATE_LIMIT_LOGIN_PER_IP
+    };
+  }
+
+  getTenantRateLimitJobConfig(): { windowMs: number; perTenant: number } {
+    return {
+      windowMs: this.env.TENANT_RATE_LIMIT_JOB_WINDOW_MS,
+      perTenant: this.env.TENANT_RATE_LIMIT_JOB_PER_TENANT
+    };
+  }
+
+  getRateLimitFailMode(): "degraded" | "fail_closed" | "fail_open" {
+    return this.env.RATE_LIMIT_FAIL_MODE;
+  }
+
+  getSchemaGuardMode(): "warn_only" | "degraded" | "fail_fast" {
+    return this.env.SCHEMA_GUARD_MODE;
   }
 }

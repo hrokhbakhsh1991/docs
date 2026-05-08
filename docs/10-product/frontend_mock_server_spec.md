@@ -587,14 +587,25 @@ Same as J2 — poll registration after promotion.
 
 Section J lists additional **session** routes required for **Section G**-style flows. These **are** in OpenAPI:
 
-#### `POST /api/v2/auth/web/session`
+#### `POST /api/v2/auth/web/session/otp`
 
 | Field | Value |
 |-------|--------|
 | **Exists in OpenAPI** | **YES** |
 | **Method** | POST |
-| **Request** | `WebSessionDto` |
+| **Request** | `PhoneSessionDto` — `phone`, `otp` (non-production mock: OTP **`1234`**) |
 | **Response** | `WebSessionResponseDto` |
+
+**Example request:**
+
+```json
+{
+  "phone": "+989121236598",
+  "otp": "1234"
+}
+```
+
+**Example response:**
 
 ```json
 {

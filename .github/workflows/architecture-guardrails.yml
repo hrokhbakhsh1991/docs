@@ -1,0 +1,22 @@
+name: architecture-guardrails
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  tenant-isolation-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Tenant isolation guardrails
+        run: node scripts/check-tenant-isolation-guardrails.mjs

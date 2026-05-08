@@ -10,13 +10,19 @@ import { IdempotencyService } from "../modules/idempotency/idempotency.service";
 import { AuthController } from "../modules/auth/auth.controller";
 import { AuthService } from "../modules/auth/auth.service";
 import { WorkspaceService } from "../modules/auth/workspace.service";
+import { ObservabilityMetricsService } from "../common/observability/observability-metrics.service";
+import { TenantAbuseMetricsService } from "../common/tenant-abuse/tenant-abuse-metrics.service";
+import { TenantUsageMeteringService } from "../common/billing/tenant-usage-metering.service";
 import { OpsController } from "../modules/ops/ops.controller";
 import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
 import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
 import { PaymentsService } from "../modules/payments/payments.service";
 import { ReconciliationService } from "../modules/reconciliation/reconciliation.service";
 import { UsersController } from "../modules/identity/users.controller";
-import { UsersService } from "../modules/identity/users.service";
+import { UsersAuditService } from "../modules/identity/users-audit.service";
+import { UsersInviteService } from "../modules/identity/services/users-invite.service";
+import { UsersReadService } from "../modules/identity/users-read.service";
+import { UsersWriteService } from "../modules/identity/users-write.service";
 import { RegistrationsController } from "../modules/registrations/registrations.controller";
 import { RegistrationsService } from "../modules/registrations/registrations.service";
 import { TenantBootstrapService } from "../modules/tenant/tenant-bootstrap.service";
@@ -90,7 +96,19 @@ import { ToursService } from "../modules/tours/tours.service";
         })
       }
     },
-    WorkspaceService,
+    {
+      provide: WorkspaceService,
+      useValue: {
+        listWorkspaces: async () => [],
+        createWorkspace: async () => ({
+          tenant_id: "00000000-0000-4000-8000-000000000000",
+          tenant_name: "OpenAPI Workspace",
+          tenant_subdomain: "openapi",
+          role: "owner",
+          session_version: 1
+        })
+      }
+    },
     {
       provide: ConfigService,
       useValue: {
@@ -108,7 +126,10 @@ import { ToursService } from "../modules/tours/tours.service";
     },
     { provide: RegistrationsService, useValue: {} },
     { provide: PaymentsService, useValue: {} },
-    { provide: UsersService, useValue: {} },
+    { provide: UsersReadService, useValue: {} },
+    { provide: UsersWriteService, useValue: {} },
+    { provide: UsersAuditService, useValue: {} },
+    { provide: UsersInviteService, useValue: {} },
     { provide: IdempotencyService, useValue: {} },
     {
       provide: OutboxMetricsService,
@@ -118,6 +139,30 @@ import { ToursService } from "../modules/tours/tours.service";
           outbox_failed_total: 0,
           outbox_processing_latency_ms: 0,
           last_batch_processed_at: null
+        })
+      }
+    },
+    {
+      provide: ObservabilityMetricsService,
+      useValue: {
+        getPrometheusText: () => "",
+        getSecurityMetricsSnapshot: () => ({
+          tenant_resolution_failures_total: {},
+          auth_login_failures_total: 0,
+          tenant_mismatch_total: 0,
+          security_events_total: {},
+          metric_alert_trace_hints: []
+        })
+      }
+    },
+    {
+      provide: TenantAbuseMetricsService,
+      useValue: {
+        getPrometheusText: () => "",
+        getSnapshot: () => ({
+          tenant_rate_limit_exceeded_total: {},
+          tenant_request_volume_total: 0,
+          tenant_request_volume_sample_top: []
         })
       }
     },
@@ -139,6 +184,16 @@ import { ToursService } from "../modules/tours/tours.service";
       provide: SchedulerRuntimeMetricsService,
       useValue: {
         getSnapshot: () => ({})
+      }
+    },
+    {
+      provide: TenantUsageMeteringService,
+      useValue: {
+        getSnapshot: () => ({
+          tenant_usage_updates_total: 0,
+          tenant_quota_exceeded_total: 0,
+          tenant_quota_exceeded_by_scope: {}
+        })
       }
     },
     ThrottlerGuard

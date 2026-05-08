@@ -183,7 +183,7 @@ Minimal set the **`apps/web` participant + leader MVP** SHOULD depend on:
 
 ### Auth / session
 
-- `POST /api/v2/auth/web/session` — bootstrap workspace session
+- `POST /api/v2/auth/web/session/otp` — bootstrap workspace session (phone + OTP; tenant from subdomain `Host`)
 
 ### Tours (participant + leader)
 

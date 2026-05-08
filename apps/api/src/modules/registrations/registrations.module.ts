@@ -1,4 +1,4 @@
-import { forwardRef, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "../auth/auth.module";
 import { RegistrationEntity } from "./registration.entity";
@@ -17,9 +17,7 @@ import { ThrottlerGuard } from "@nestjs/throttler";
     TypeOrmModule.forFeature([RegistrationEntity, WaitlistItemEntity, TourEntity, UserEntity]),
     AuthModule,
     OutboxModule,
-    // DI-DIAGNOSTIC: Circular dependency edge with PaymentsModule relies on forwardRef; if combined with weak runtime metadata, provider resolution may degrade into undefined injections.
-    // TODO(FREEZE-BLOCKER): Confirm forwardRef cycle with PaymentsModule does not produce partially-initialized providers in E2E runtime container.
-    forwardRef(() => PaymentsModule),
+    PaymentsModule,
     IdempotencyModule
   ],
   controllers: [RegistrationsController],

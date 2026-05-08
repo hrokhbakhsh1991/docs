@@ -3,8 +3,10 @@ import type { BookingDto } from "@repo/types";
 import { apiClient } from "../api-client";
 import { API } from "../api-paths";
 
+import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
+
 export function bookingsUseLiveApi(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
+  return isTourOpsApiConfigured();
 }
 
 /**

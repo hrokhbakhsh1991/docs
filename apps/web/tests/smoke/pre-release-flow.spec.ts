@@ -32,7 +32,7 @@ test.describe("pre-release smoke flow", () => {
       const path = url.pathname;
       const authHeader = request.headers()["authorization"];
 
-      if (path === API.auth.webSession && method === "POST") {
+      if (path === "/api/v2/auth/web/session/otp" && method === "POST") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -43,6 +43,22 @@ test.describe("pre-release smoke flow", () => {
             tenant_id: "tenant-1",
             entry_mode: "web",
           }),
+        });
+        return;
+      }
+
+      if (path === API.auth.workspaces && method === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([
+            {
+              tenant_id: "tenant-1",
+              tenant_name: "Smoke Tenant",
+              tenant_subdomain: "smoke",
+              role: "member",
+            },
+          ]),
         });
         return;
       }
@@ -155,8 +171,10 @@ test.describe("pre-release smoke flow", () => {
     });
 
     await page.goto("/login");
-    await page.getByLabel("Email").fill("alex@example.com");
-    await page.getByLabel("Password").fill("secret");
+    await page.getByLabel("Phone").fill("+15551234567");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByLabel("OTP")).toBeVisible();
+    await page.getByLabel("OTP").fill("1234");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/tours$/);
 

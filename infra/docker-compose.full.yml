@@ -4,7 +4,8 @@
 # 1) bash infra/scripts/docker-bootstrap-env.sh
 # 2) docker compose -f infra/docker-compose.full.yml up --build -d
 #
-# Web UI talks to the API via published port 3001 → use NEXT_PUBLIC_API_URL=http://localhost:3001 at build time.
+# Web image is tenant-agnostic. Browser hits API on same host + port 3001 via NEXT_PUBLIC_API_DYNAMIC_ORIGIN;
+# NEXT_PUBLIC_API_URL stays as SSR/build fallback to the API origin.
 
 include:
   - path: docker-compose.yml
@@ -36,7 +37,8 @@ services:
       dockerfile: infra/docker/Dockerfile.web
       args:
         NEXT_PUBLIC_API_URL: http://localhost:3001
-        NEXT_PUBLIC_TENANT_ID: "db87dfa8-477d-4c98-8695-f06b105a1405"
+        NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "true"
+        NEXT_PUBLIC_API_PORT: "3001"
         NEXT_PUBLIC_PAYMENT_PROVIDER: mock_provider
     ports:
       - "3000:3000"

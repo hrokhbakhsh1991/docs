@@ -2,6 +2,7 @@ import {
   BadRequestException,
   CallHandler,
   ExecutionContext,
+  Inject,
   Injectable,
   NestInterceptor
 } from "@nestjs/common";
@@ -14,8 +15,9 @@ import { IDEMPOTENCY_POLICY_KEY, type IdempotencyPolicy } from "./idempotent.dec
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
   constructor(
-    private readonly reflector: Reflector,
-    private readonly idempotencyService: IdempotencyService,
+    @Inject(Reflector) private readonly reflector: Reflector,
+    @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService
   ) {}
 
@@ -76,7 +78,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
   private resolveTenantId(policy: IdempotencyPolicy, body?: Record<string, unknown>): string {
     if (policy.tenantSource === "context") {
-      const trustedTenantId = this.requestContextService.getTenantId();
+      const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
       if (!trustedTenantId) {
         throw new BadRequestException({
           error: {

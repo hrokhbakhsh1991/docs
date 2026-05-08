@@ -29,3 +29,9 @@
   color: var(--color-text-primary);
 }
 
+.historyActor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { DataSource } from "typeorm";
+import { TenantContextMissingError } from "../../src/common/errors/tenant-context-missing.error";
 import { OutboxService } from "../../src/modules/outbox/outbox.service";
 import {
   RegistrationEntity,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import { PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
 
@@ -44,17 +44,6 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     }
   } as unknown as DataSource;
 
-  const registrationsService = {
-    async transitionRegistrationForPayment(
-      _m: unknown,
-      reg: RegistrationEntity,
-      target: RegistrationStatus
-    ) {
-      reg.status = target;
-      return reg;
-    }
-  } as unknown as RegistrationsService;
-
   const outboxService = {
     async addEvent(
       _m: unknown,
@@ -71,8 +60,10 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
       }
     } as never,
     {} as never,
+    {} as never,
     dataSource,
     { setTenantId: () => undefined } as never,
+    { runInTenantScope: async () => undefined } as never,
     {
       createRequestHash: () => "h",
       async executeWithIdempotency(
@@ -86,8 +77,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
         };
       }
     } as never,
-    outboxService,
-    registrationsService
+    outboxService
   );
 
   await service.processWebhook({
@@ -158,16 +148,6 @@ test("timeout processor fails stale pending payments and updates metrics", async
       return fn(manager);
     }
   } as unknown as DataSource;
-  const registrationsService = {
-    async transitionRegistrationForPayment(
-      _m: unknown,
-      reg: RegistrationEntity,
-      target: RegistrationStatus
-    ) {
-      reg.status = target;
-      return reg;
-    }
-  } as unknown as RegistrationsService;
   const outboxService = {
     async addEvent(): Promise<void> {}
   } as unknown as OutboxService;
@@ -175,11 +155,19 @@ test("timeout processor fails stale pending payments and updates metrics", async
   const service = new PaymentsService(
     {} as never,
     {} as never,
+    {
+      async find() {
+        return [{ id: "tenant-1" }];
+      }
+    } as never,
     dataSource,
     { setTenantId: () => undefined } as never,
+    {
+      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+        fn(manager)
+    } as never,
     {} as never,
-    outboxService,
-    registrationsService
+    outboxService
   );
 
   const timedOut = await service.failTimedOutPendingPayments();
@@ -254,17 +242,6 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     }
   };
 
-  const registrationsService = {
-    async transitionRegistrationForPayment(
-      _m: unknown,
-      reg: RegistrationEntity,
-      target: RegistrationStatus
-    ) {
-      reg.status = target;
-      return reg;
-    }
-  } as unknown as RegistrationsService;
-
   const outboxService = {
     async addEvent(): Promise<void> {}
   } as unknown as OutboxService;
@@ -276,11 +253,12 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
       }
     } as never,
     {} as never,
+    {} as never,
     dataSource,
     { setTenantId: () => undefined } as never,
+    { runInTenantScope: async () => undefined } as never,
     idempotencyService as never,
-    outboxService,
-    registrationsService
+    outboxService
   );
 
   const first = await service.processWebhook({
@@ -302,4 +280,86 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   assert.equal(snapshot.webhookReceivedTotal, 2);
   assert.equal(snapshot.webhookProcessedTotal, 2);
   assert.equal(snapshot.webhookDedupedTotal, 1);
+});
+
+test("admin payment list is tenant scoped", async () => {
+  const rows = [
+    {
+      id: "pay-a",
+      tenantId: "tenant-a",
+      registrationId: "reg-a",
+      amount: "100",
+      currency: "USD",
+      provider: "mock",
+      providerPaymentId: "pp-a",
+      status: PaymentStatus.PAID,
+      paidAt: null,
+      failedAt: null,
+      refundedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null
+    },
+    {
+      id: "pay-b",
+      tenantId: "tenant-b",
+      registrationId: "reg-b",
+      amount: "200",
+      currency: "USD",
+      provider: "mock",
+      providerPaymentId: "pp-b",
+      status: PaymentStatus.PAID,
+      paidAt: null,
+      failedAt: null,
+      refundedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null
+    }
+  ];
+  let capturedTenantId: string | undefined;
+  const paymentRepository = {
+    async find(opts: { where: { tenantId: string } }) {
+      capturedTenantId = opts.where.tenantId;
+      return rows.filter((row) => row.tenantId === opts.where.tenantId);
+    }
+  };
+
+  const service = new PaymentsService(
+    paymentRepository as never,
+    {} as never,
+    {} as never,
+    {} as DataSource,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never
+  );
+
+  const result = await service.listPayments("TENANT-A");
+  assert.equal(capturedTenantId, "tenant-a");
+  assert.equal(result.length, 1);
+  assert.equal(result[0]?.tenantId, "tenant-a");
+});
+
+test("admin payment list fails when tenant context is missing", async () => {
+  const service = new PaymentsService(
+    {
+      async find() {
+        return [];
+      }
+    } as never,
+    {} as never,
+    {} as never,
+    {} as DataSource,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never
+  );
+
+  await assert.rejects(
+    () => service.listPayments("   "),
+    (error) => error instanceof TenantContextMissingError
+  );
 });

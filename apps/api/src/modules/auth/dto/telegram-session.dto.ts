@@ -1,6 +1,6 @@
 import { Transform } from "class-transformer";
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsIn, IsNotEmpty, IsString } from "class-validator";
 
 export class TelegramSessionDto {
   @ApiProperty({
@@ -19,11 +19,4 @@ export class TelegramSessionDto {
   @IsString()
   @IsNotEmpty()
   telegram_init_payload!: string;
-
-  @ApiPropertyOptional({
-    example: "11111111-1111-4111-8111-111111111111"
-  })
-  @IsOptional()
-  @IsUUID()
-  asserted_tenant_id?: string;
 }

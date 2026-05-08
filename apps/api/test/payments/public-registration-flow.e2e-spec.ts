@@ -38,6 +38,7 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
     {} as never,
     {
       setTenantId: () => {},
+      resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1"
     } as never,
     {
@@ -74,6 +75,7 @@ test("public register returns waitlist position when capacity full", async () =>
     {} as never,
     {
       setTenantId: () => {},
+      resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1"
     } as never,
     {

@@ -9,7 +9,9 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
+import { assignTestApiPort } from "./assign-test-api-port";
 import { createE2EApp } from "./bootstrap";
+import { signPaymentsWebhookPayload } from "./sign-payments-webhook";
 import { resetTestDatabaseWithMigrations } from "./reset-test-database";
 import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
@@ -23,6 +25,7 @@ import {
 } from "../../src/modules/registrations/registration.entity";
 import { WaitlistItemEntity, WaitlistItemStatus } from "../../src/modules/registrations/waitlist-item.entity";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
+import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const INTERNAL_API_KEY = "test-internal-key";
@@ -33,9 +36,24 @@ let dataSource: DataSource;
 let registrationsService: RegistrationsService;
 let e2eUnavailableReason: string | null = null;
 
+function postSignedPaymentWebhook(body: Record<string, unknown>) {
+  const raw = JSON.stringify(body);
+  const secret = process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET;
+  if (!secret || secret.length < 16) {
+    throw new Error("PAYMENTS_WEBHOOK_SIGNING_SECRET must be set for webhook tests");
+  }
+  const { timestamp, signature } = signPaymentsWebhookPayload(raw, secret);
+  return request(app.getHttpServer())
+    .post("/internal/payments/webhook")
+    .set("Content-Type", "application/json")
+    .set("x-payments-webhook-timestamp", timestamp)
+    .set("x-payments-webhook-signature", signature)
+    .send(raw);
+}
+
 function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.NODE_ENV = "test";
-  process.env.PORT = "3000";
+  assignTestApiPort();
   process.env.LOG_LEVEL = "error";
   process.env.DATABASE_HOST = db.getHost();
   process.env.DATABASE_PORT = String(db.getPort());
@@ -75,6 +93,16 @@ async function truncateAllTables(ds: DataSource): Promise<void> {
 
   const tableList = rows.map((row) => `"${row.tablename}"`).join(", ");
   await ds.query(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
+}
+
+/** FK `fk_tours_tenant` requires a tenants row before inserting tours. */
+async function seedE2eTenant(ds: DataSource): Promise<void> {
+  await ds.getRepository(TenantEntity).insert({
+    id: TENANT_ID,
+    name: "Registrations E2E Tenant",
+    description: "Seeded for registrations.e2e-spec.ts",
+    subdomain: "reg-e2e"
+  });
 }
 
 async function createTour(totalCapacity: number): Promise<TourEntity> {
@@ -125,6 +153,7 @@ beforeEach(async () => {
     return;
   }
   await truncateAllTables(dataSource);
+  await seedE2eTenant(dataSource);
 });
 
 after(async () => {
@@ -147,14 +176,11 @@ test("paid registration success updates status to AcceptedPaid", async () => {
   const registrationId = registerResponse.body.registration.id as string;
   const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
 
-  const webhookResponse = await request(app.getHttpServer())
-    .post("/internal/payments/webhook")
-    .set("x-internal-api-key", INTERNAL_API_KEY)
-    .send({
-      tenantId: TENANT_ID,
-      providerPaymentId,
-      status: "Paid"
-    });
+  const webhookResponse = await postSignedPaymentWebhook({
+    tenant_id: TENANT_ID,
+    providerPaymentId,
+    status: "Paid"
+  });
   assert.equal(webhookResponse.status, 200);
 
   const registration = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
@@ -230,15 +256,12 @@ test("payment failure restores capacity and promotes waitlist user", async () =>
   const providerPaymentId = first.body.paymentIntent.providerPaymentId as string;
   const waitlistItemId = second.body.waitlistItemId as string;
 
-  const webhookResponse = await request(app.getHttpServer())
-    .post("/internal/payments/webhook")
-    .set("x-internal-api-key", INTERNAL_API_KEY)
-    .send({
-      tenantId: TENANT_ID,
-      providerPaymentId,
-      status: "Failed",
-      reason: "gateway_failure"
-    });
+  const webhookResponse = await postSignedPaymentWebhook({
+    tenant_id: TENANT_ID,
+    providerPaymentId,
+    status: "Failed",
+    reason: "gateway_failure"
+  });
   assert.equal(webhookResponse.status, 200);
 
   const firstRegistration = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
@@ -264,15 +287,12 @@ test("webhook returns 200 even when transition is invalid", async () => {
   assert.equal(registerResponse.status, 201);
   const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
 
-  const webhookResponse = await request(app.getHttpServer())
-    .post("/internal/payments/webhook")
-    .set("x-internal-api-key", INTERNAL_API_KEY)
-    .send({
-      tenantId: TENANT_ID,
-      providerPaymentId,
-      providerEventId: "evt-invalid-transition-1",
-      status: "Cancelled"
-    });
+  const webhookResponse = await postSignedPaymentWebhook({
+    tenant_id: TENANT_ID,
+    providerPaymentId,
+    providerEventId: "evt-invalid-transition-1",
+    status: "Cancelled"
+  });
   assert.equal(webhookResponse.status, 200);
 });
 
@@ -285,26 +305,20 @@ test("duplicate webhook event is deduplicated and remains 200", async () => {
   assert.equal(registerResponse.status, 201);
   const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
 
-  const first = await request(app.getHttpServer())
-    .post("/internal/payments/webhook")
-    .set("x-internal-api-key", INTERNAL_API_KEY)
-    .send({
-      tenantId: TENANT_ID,
-      providerPaymentId,
-      providerEventId: "evt-dedup-1",
-      status: "Paid"
-    });
+  const first = await postSignedPaymentWebhook({
+    tenant_id: TENANT_ID,
+    providerPaymentId,
+    providerEventId: "evt-dedup-1",
+    status: "Paid"
+  });
   assert.equal(first.status, 200);
 
-  const second = await request(app.getHttpServer())
-    .post("/internal/payments/webhook")
-    .set("x-internal-api-key", INTERNAL_API_KEY)
-    .send({
-      tenantId: TENANT_ID,
-      providerPaymentId,
-      providerEventId: "evt-dedup-1",
-      status: "Paid"
-    });
+  const second = await postSignedPaymentWebhook({
+    tenant_id: TENANT_ID,
+    providerPaymentId,
+    providerEventId: "evt-dedup-1",
+    status: "Paid"
+  });
   assert.equal(second.status, 200);
 
   const ops = await request(app.getHttpServer())

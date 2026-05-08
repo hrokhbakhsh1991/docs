@@ -20,6 +20,7 @@ test("OutboxService.addEvent uses provided EntityManager.save", async () => {
   const metrics = new OutboxMetricsService();
   const service = new OutboxService(metrics);
   await service.addEvent(manager, {
+    tenantId: "55555555-5555-4555-8555-555555555555",
     aggregateType: "Registration",
     aggregateId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     eventType: "registration.accepted",
@@ -28,6 +29,7 @@ test("OutboxService.addEvent uses provided EntityManager.save", async () => {
 
   assert.equal(persisted.length, 1);
   const row = persisted[0] as Record<string, unknown>;
+  assert.equal(row.tenantId, "55555555-5555-4555-8555-555555555555");
   assert.equal(row.aggregateType, "Registration");
   assert.equal(row.eventType, "registration.accepted");
   assert.equal(row.status, OutboxEventStatus.PENDING);

@@ -1,0 +1,4 @@
+export const TENANT_RESOLVER_REDIS = Symbol("TENANT_RESOLVER_REDIS");
+
+export const TENANT_HOST_CACHE_TTL_SECONDS = 60;
+

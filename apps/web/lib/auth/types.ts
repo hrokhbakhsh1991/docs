@@ -1,12 +1,7 @@
-/** Mirrors POST /api/v2/auth/web/session contract */
-
-export type WebSessionRequestBody = {
-  entry_mode: "web";
-  credential: {
-    email: string;
-    password: string;
-  };
-  asserted_tenant_id: string;
+/** Mirrors POST /api/v2/auth/web/session/otp contract */
+export type PhoneOtpSessionRequestBody = {
+  phone: string;
+  otp: string;
 };
 
 export type WebSessionResponseBody = {

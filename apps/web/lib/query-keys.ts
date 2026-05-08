@@ -27,7 +27,10 @@ export const userKeys = {
   all: ["users"] as const,
   lists: () => [...userKeys.all, "list"] as const,
   details: () => [...userKeys.all, "detail"] as const,
-  detail: (id: string | number) => [...userKeys.details(), id] as const,
+  detail: (tenantScope: string, id: string | number) =>
+    [...userKeys.details(), { tenantScope }, String(id)] as const,
+  roleHistory: (tenantScope: string, id: string | number) =>
+    [...userKeys.all, "role-history", { tenantScope }, String(id)] as const,
 };
 
 export const registrationKeys = {

@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 
+import { UserDetailChunkLoading } from "../user-detail-chunk-loading";
+import { USERS_ROUTE_COPY } from "../users-copy";
+
 const UserDetailClient = dynamic(
   () => import("./user-detail-client").then((m) => m.UserDetailClient),
-  { loading: () => <p>Loading user…</p> }
+  { loading: () => <UserDetailChunkLoading /> }
 );
 
 export const metadata: Metadata = {
-  title: "User",
-  description: "Workspace user profile.",
+  title: USERS_ROUTE_COPY.metadata.detailTitle,
+  description: USERS_ROUTE_COPY.metadata.detailDescription,
 };
 
 export default function UserDetailPage({ params }: { params: { id: string } }) {

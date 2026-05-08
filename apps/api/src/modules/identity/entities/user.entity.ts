@@ -19,6 +19,10 @@ export class UserEntity {
   @Column({ type: "varchar", name: "email", length: 320 })
   email!: string;
 
+  @Index("uq_users_phone", { unique: true })
+  @Column({ type: "varchar", name: "phone", nullable: true })
+  phone?: string;
+
   @Column({
     name: "telegram_user_id",
     type: "varchar",
@@ -35,6 +39,12 @@ export class UserEntity {
 
   @Column({ type: "boolean", name: "is_email_verified", default: false })
   isEmailVerified!: boolean;
+
+  @Column({ type: "boolean", name: "is_phone_verified", default: false })
+  isPhoneVerified?: boolean;
+
+  @Column({ type: "timestamptz", name: "last_login_at", nullable: true })
+  lastLoginAt?: Date | null;
 
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;

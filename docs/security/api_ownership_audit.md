@@ -68,9 +68,11 @@ Payments and registrations reuse these builders for **query-level** filtering.
 | Payments | `POST /api/v2/admin/payments/:id/refund` | Same | Uses `findPaymentScopedForActor` before transition. | Yes | role + tenant + owner |
 | Payments | `internal/payments/webhook` | Trust provider payload | Internal key; resolves payment with operational tenant probe (not end-user JWT). | N/A | internal + provider |
 | Users | `GET /api/v2/users` | Cross-tenant user list | Membership join scoped to context `tenantId`. | Yes | tenant |
-| Users | `PATCH /api/v2/users/:id` | Cross-tenant role edit | `user_tenant` row must match context `tenantId` + `userId`. | Yes | tenant + membership |
-| Auth | `POST /api/v2/auth/*` | N/A | No resource id traversal. | N/A | credentials |
+| Users | `PATCH /api/v2/users/:id` | Cross-tenant role edit / privilege escalation | Target `user_tenants` row scoped by JWT `tenantId` + path `userId`; centralized RBAC policy forbids self-change, `owner` assignment, mutating `owner` rows, and non-hierarchical changes; success bumps `session_version` (JWT `sess_ver` invalidation). | Yes | tenant + membership + RBAC |
+| Auth | `POST /api/v2/auth/*` | N/A | No resource id traversal. | N/A | web: phone + OTP; telegram: signed init payload |
 | Ops | `internal/ops/*` | N/A | Internal API key; aggregates only. | N/A | internal key |
+
+**Web (`apps/web`) — Users directory (reference, same tenant rules):** Routes **`/users`** and **`/users/:id`** consume the APIs above; list UI applies **client-side** search/filter/sort/pagination over the fetched roster. **No in-app “invite member”** completion path is documented here—the screen does not add new ownership surfaces beyond these endpoints.
 
 ---
 
@@ -99,7 +101,7 @@ Payments and registrations reuse these builders for **query-level** filtering.
 ## Residual risks (MVP)
 
 1. **Public** flows remain unauthenticated — only **rate limits** and **valid `tourId`** reduce abuse; tenant is server-derived from tour.
-2. **`asserted_tenant_id` on auth session** (login) is still a client hint for which workspace to join — separate from registration DTOs (documented in auth product spec if needed).
+2. **Auth session (web/Telegram)** tenant scope comes **only** from the inbound HTTP host (`TenantResolverMiddleware`); clients cannot assert a tenant UUID in the login body — separate from registration DTOs.
 3. **Webhook** tenant probe loops all tenants on miss — acceptable for internal pipeline; monitor for abuse of internal keys.
 
 ---

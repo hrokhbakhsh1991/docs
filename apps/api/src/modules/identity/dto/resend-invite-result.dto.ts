@@ -1,0 +1,32 @@
+import { ApiProperty } from "@nestjs/swagger";
+import { MembershipStatus } from "../membership-status.enum";
+import { WorkspaceInviteStatus } from "../entities/workspace-invite.entity";
+
+export class ResendInviteResultDto {
+  @ApiProperty({ format: "uuid" })
+  inviteId!: string;
+
+  @ApiProperty({ format: "uuid" })
+  tenantId!: string;
+
+  @ApiProperty({ format: "uuid" })
+  userId!: string;
+
+  @ApiProperty()
+  phone!: string;
+
+  @ApiProperty()
+  role!: string;
+
+  @ApiProperty()
+  inviteToken!: string;
+
+  @ApiProperty({ enum: WorkspaceInviteStatus })
+  status!: WorkspaceInviteStatus;
+
+  @ApiProperty({ format: "date-time" })
+  expiresAt!: string;
+
+  @ApiProperty({ enum: MembershipStatus })
+  membershipStatus!: MembershipStatus;
+}

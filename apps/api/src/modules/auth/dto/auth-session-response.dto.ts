@@ -12,6 +12,19 @@ export class WebSessionResponseDto {
 
   @ApiProperty({ enum: ["web"] })
   entry_mode!: "web";
+
+  @ApiProperty({
+    required: false,
+    description:
+      "When true, OTP verification succeeded but account completion is required before issuing a session"
+  })
+  requires_registration?: boolean;
+
+  @ApiProperty({
+    required: false,
+    description: "Short-lived onboarding token used by registration completion endpoint"
+  })
+  onboarding_token?: string;
 }
 
 export class TelegramSessionResponseDto {

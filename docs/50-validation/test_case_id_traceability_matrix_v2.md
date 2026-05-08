@@ -38,7 +38,7 @@ Policy rules:
 | `TC-SR-FR-007-01` | `SR-FR-007` | `GET /api/v2/reconciliation/export.csv` | contract | required CSV columns exist in stable order |
 | `TC-SR-FR-007-02` | `SR-FR-007` | reconciliation export flow | integration | export returns only requested tenant/tour rows |
 | `TC-SR-FR-008-01` | `SR-FR-008` | `POST /api/v2/auth/telegram/session` | integration | telegram session created with valid context |
-| `TC-SR-FR-008-02` | `SR-FR-008` | `POST /api/v2/auth/web/session` | e2e | web mode follows same business-core behavior |
+| `TC-SR-FR-008-02` | `SR-FR-008` | `POST /api/v2/auth/web/session/otp` | e2e | web phone + OTP mode follows same business-core behavior |
 | `TC-SR-FR-009-01` | `SR-FR-009` | telegram auth + registration create | integration | telegram-required path without context returns `AUTH_TELEGRAM_CONTEXT_REQUIRED` |
 | `TC-SR-FR-010-01` | `SR-FR-010` | `POST /api/v2/auth/link-telegram` | e2e | post-onboarding connect path succeeds and links account |
 | `TC-SR-FR-010-02` | `SR-FR-010` | link endpoint idempotency | contract | replay with different payload returns `IDEMPOTENCY_KEY_REPLAY_MISMATCH` |
@@ -55,7 +55,7 @@ Policy rules:
 | Endpoint | Requirements | Test Case IDs |
 |---|---|---|
 | `POST /api/v2/auth/telegram/session` | `SR-FR-008`, `SR-FR-009`, `SR-NFR-001` | `TC-SR-FR-008-01`, `TC-SR-FR-009-01`, `TC-SR-NFR-001-01` |
-| `POST /api/v2/auth/web/session` | `SR-FR-008`, `SR-NFR-001` | `TC-SR-FR-008-02`, `TC-SR-NFR-001-01` |
+| `POST /api/v2/auth/web/session/otp` | `SR-FR-008`, `SR-NFR-001` | `TC-SR-FR-008-02`, `TC-SR-NFR-001-01` |
 | `POST /api/v2/auth/link-telegram` | `SR-FR-010`, `SR-NFR-001` | `TC-SR-FR-010-01`, `TC-SR-FR-010-02`, `TC-SR-NFR-001-01` |
 | `POST /api/v2/tours` | `SR-FR-003`, `SR-NFR-001` | `TC-SR-FR-003-01`, `TC-SR-NFR-001-01` |
 | `PATCH /api/v2/tours/{tour_id}` | `SR-FR-003`, `SR-NFR-001` | `TC-SR-FR-003-01`, `TC-SR-NFR-001-02` |

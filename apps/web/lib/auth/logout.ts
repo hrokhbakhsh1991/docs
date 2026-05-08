@@ -8,7 +8,9 @@ type RouterLike = {
 };
 
 export function logoutWithRouter(router: RouterLike): void {
-  clearSessionToken();
-  router.push("/login");
-  router.refresh();
+  void (async () => {
+    await clearSessionToken();
+    router.push("/login");
+    router.refresh();
+  })();
 }

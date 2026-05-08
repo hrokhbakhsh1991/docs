@@ -8,6 +8,9 @@ import {
   type ReconciliationRuntimeSnapshot
 } from "../../src/modules/reconciliation/reconciliation.service";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
+import { ObservabilityMetricsService } from "../../src/common/observability/observability-metrics.service";
+import { TenantAbuseMetricsService } from "../../src/common/tenant-abuse/tenant-abuse-metrics.service";
+import { TenantUsageMeteringService } from "../../src/common/billing/tenant-usage-metering.service";
 
 /**
  * Thin integration check: OpsController maps cached metrics to the external JSON contract
@@ -54,6 +57,17 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
     })
   } as unknown as RegistrationsService;
 
+  const observabilityMetrics = new ObservabilityMetricsService();
+  const tenantAbuseMetrics = new TenantAbuseMetricsService();
+  const tenantUsageMetrics = {
+    getSnapshot: () => ({
+      tenant_usage_updates_total: 0,
+      tenant_quota_exceeded_total: 0,
+      tenant_quota_exceeded_by_scope: {}
+    }),
+    getPrometheusText: () => ""
+  } as unknown as TenantUsageMeteringService;
+
   const controller = new OpsController(
     {
       getEnableSchedulers: () => true,
@@ -65,7 +79,10 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
     metrics,
     reconciliationStub,
     paymentsStub,
-    registrationsStub
+    registrationsStub,
+    observabilityMetrics,
+    tenantAbuseMetrics,
+    tenantUsageMetrics
   );
 
   assert.deepStrictEqual(controller.outboxSnapshot(), {

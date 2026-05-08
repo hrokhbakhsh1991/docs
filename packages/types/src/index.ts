@@ -1,8 +1,7 @@
 export type {
+  PhoneOtpLoginRequest,
   User,
   UserDto,
-  WebCredentialDto,
-  WebSessionDto,
   WebSessionResponseDto,
 } from "./auth";
 export type {

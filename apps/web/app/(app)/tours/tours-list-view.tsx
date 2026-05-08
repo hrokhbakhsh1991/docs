@@ -240,14 +240,7 @@ export function ToursListView() {
         <CardHeader className={styles.listCardHeader}>
           <div className={styles.toolbar}>
             <div className={styles.toolbarGrow}>
-              <FormField
-                label="Search"
-                description={
-                  liveApi
-                    ? `Title and description (debounced 300ms).${searchStale ? " Updating…" : ""}`
-                    : `Title and description (debounced 300ms).`
-                }
-              >
+              <FormField label="Search">
                 <Input
                   type="search"
                   placeholder="Search tours…"
@@ -275,6 +268,10 @@ export function ToursListView() {
               </FormField>
             </div>
           </div>
+          <small className={styles.toolbarMeta}>
+            Title and description (debounced 300ms).
+            {searchStale ? " Updating…" : ""}
+          </small>
           <div className={styles.sortBar} role="group" aria-label="Sort tours">
             <span className={styles.sortCellInner}>
               <Button type="button" variant="ghost" size="md" onClick={() => toggleTourSort("title")}>

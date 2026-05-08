@@ -2,7 +2,7 @@ Document-ID: MKT-DOC-MVP-SCOPE-V2
 Version: v1.0
 Status: Active
 Owner: Product Documentation Team
-Last-Updated: 2026-04-27
+Last-Updated: 2026-05-05
 Language: English
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
@@ -21,6 +21,7 @@ It prioritizes clarity, speed, and maintainability over full automation.
 
 - Tenant-scoped leader operations
 - Leader-owned participant entry context
+- **Workspace member directory** (web `/users`, owners/admins): tenant roster from **`GET /api/v2/users`** and **permitted** role changes via **`PATCH /api/v2/users/:id`** per server RBAC—not an invite/onboarding product by itself (see `docs/10-product/screens_overview.md`, `S-LEAD-07`)
 
 ## 2.2 Dual-Mode Runtime
 

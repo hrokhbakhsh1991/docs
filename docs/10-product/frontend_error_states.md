@@ -126,7 +126,7 @@ Legend for **Backend status code**:
 
 | Screen | API | Error / situation | Backend status code | User-facing behavior | Notes |
 |--------|-----|-------------------|----------------------|------------------------|-------|
-| Web login | `POST /api/v2/auth/web/session` | Invalid credentials | **401** doc | Inline error; no generic unknown | |
+| Web login | `POST /api/v2/auth/web/session/otp` | Invalid phone / OTP | **401** doc | Inline error on OTP step; no generic unknown | |
 | Telegram session | `POST /api/v2/auth/telegram/session` | Invalid payload | **401** doc | Retry / restart Telegram flow | |
 | Link Telegram | `POST /api/v2/auth/link-telegram` | Unauthorized | **401** doc | Login | |
 

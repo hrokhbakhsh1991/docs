@@ -61,7 +61,9 @@ Tenant
 Tour  (table `tours`)
 ```
 
-- **`user_tenants`** is the join between **`users`** and **`tenants`** (unique per user+tenant); role strings (e.g. owner/member) live here.
+- **`user_tenants`** is the join between **`users`** and **`tenants`** (unique per user+tenant); role strings live here (`owner`, `admin`, `member`, `viewer` in the implemented API). **Workspace RBAC** (ordering, PATCH vs invite rules, `session_version` on role change) is centralized in `apps/api/src/common/rbac/workspace-membership-rbac.policy.ts` and applied from `UsersService` / `WorkspaceInvitesService`. Invite-based role assignment to `owner` is forbidden; ownership changes are handled only through the dedicated ownership-transfer flow. DB-level enforcement now includes: (1) partial unique index for at most one active owner row per workspace; (2) deferred constraint trigger preventing zero-owner workspace states at transaction commit.
+- **Tour-ops web directory:** Eligible workspace roles use **`/users`** (list + client-side filtering/sorting/paging over **`GET /api/v2/users`**) and **`/users/:id`** (detail resolved from that roster—no extra user-by-id read API). Product screen id: `S-LEAD-07` in `docs/10-product/screens_overview.md`.
+- **Leader clarification:** when accessing non-owned workspaces without direct membership, Leader is downgraded to `USER` role with read-only access.
 - **`tours`** rows are **tenant-scoped** via column `tenant_id`; registrations and waitlist items hang off `tour_id` and duplicate `tenant_id` for RLS and query convenience.
 
 ---
@@ -71,6 +73,7 @@ Tour  (table `tours`)
 ## 4.1 User
 - global identity profile
 - role capabilities resolved in context (tour/tenant), not globally fixed
+- **Web login:** `POST /api/v2/auth/web/session/otp` resolves the user by **`users.phone`** using SQL **`phone_normalized()`** (function; no `phone_normalized` column). Column **`is_phone_verified`** exists; product policy may tighten over time. **`hashed_password`** is required in the schema for non-web paths (e.g. Telegram) but **not** used for web OTP. See **`docs/authentication-phone-otp.md`**.
 
 ## 4.2 Tour
 

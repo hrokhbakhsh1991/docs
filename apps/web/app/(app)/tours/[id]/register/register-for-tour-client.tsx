@@ -437,7 +437,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
             <form
               noValidate
               onSubmit={handleSubmit((values) => {
-                void placementMutation.mutateAsync(values);
+                placementMutation.mutate(values);
               })}
             >
               <p className={registerStyles.formLead}>

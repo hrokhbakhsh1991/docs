@@ -106,6 +106,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     {} as never,
     {
       getRole: () => actor.role,
+      resolveEffectiveTenantId: () => actor.tenantId,
       getTenantId: () => actor.tenantId,
       getUserId: () => actor.userId
     } as never,
@@ -139,14 +140,27 @@ test("leader can access any registration in tenant", async () => {
   assert.equal(row.id, "reg-other");
 });
 
-test("admin can access cross-tenant registration by id", async () => {
+test("admin scoped to JWT tenant cannot load registration from another tenant", async () => {
   const { service } = buildRegistrationsServiceHarness({
     role: "admin",
     tenantId: "tenant-a",
     userId: "admin-1"
   });
-  const row = await service.getRegistrationById("reg-cross-tenant");
-  assert.equal(row.tenantId, "tenant-b");
+  await assert.rejects(
+    () => service.getRegistrationById("reg-cross-tenant"),
+    (err) => err instanceof NotFoundException
+  );
+});
+
+test("admin can load registration in their tenant", async () => {
+  const { service } = buildRegistrationsServiceHarness({
+    role: "admin",
+    tenantId: "tenant-a",
+    userId: "admin-1"
+  });
+  const row = await service.getRegistrationById("reg-other");
+  assert.equal(row.id, "reg-other");
+  assert.equal(row.tenantId, "tenant-a");
 });
 
 test("payment intent denies member access to other member registration", async () => {
@@ -203,15 +217,27 @@ test("payment intent denies member access to other member registration", async (
   const service = new PaymentsService(
     {} as never,
     {} as never,
+    {} as never,
     dataSource,
     {
       getRole: () => "member",
+      resolveEffectiveTenantId: () => "tenant-a",
       getTenantId: () => "tenant-a",
       getUserId: () => memberUserId
     } as never,
     {} as never,
-    { addEvent: async () => undefined } as never,
-    {} as never
+    {
+      executeWithIdempotency: async (
+        _params: unknown,
+        handler: () => Promise<Record<string, unknown>>
+      ) => ({
+        statusCode: 200,
+        responseBody: await handler(),
+        replayed: false
+      }),
+      createRequestHash: () => "hash"
+    } as never,
+    { addEvent: async () => undefined } as never
   );
 
   await assert.rejects(

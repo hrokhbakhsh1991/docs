@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { createHash } from "node:crypto";
 import { QueryFailedError } from "typeorm";
 import { DataSource, LessThan, Repository } from "typeorm";
@@ -17,6 +17,7 @@ export class IdempotencyService {
   constructor(
     @InjectRepository(IdempotencyKeyEntity)
     private readonly idempotencyRepository: Repository<IdempotencyKeyEntity>,
+    @InjectDataSource()
     private readonly dataSource: DataSource
   ) {}
 

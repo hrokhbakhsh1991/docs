@@ -4,7 +4,7 @@ Document-ID: MKT-DOC-AUTHZ-TENANT-MATRIX-V2
 Version: v1.0  
 Status: Active  
 Owner: Product Documentation Team  
-Last-Updated: 2026-04-28  
+Last-Updated: 2026-05-05  
 Language: English  
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
@@ -22,6 +22,7 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 ## 3. Role Definitions (Operational Scope)
 
 - `Leader`: owner/admin permissions within tenant scope.
+- `Leader`: downgraded to `USER` role with read-only access to non-owned workspaces.
 - `Participant`: participant actions and own-journey reads.
 - `Admin`: platform-level role. No cross-tenant admin read/write/export on MVP operational surfaces.
 - `Anonymous`: unauthenticated session bootstrap only.
@@ -31,7 +32,7 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 | Endpoint | AuthN | Allowed Roles | Tenant Rule | Fail-Closed Conditions | SR Coverage |
 |---|---|---|---|---|---|
 | `POST /api/v2/auth/telegram/session` | Telegram proof required | `Anonymous` | resolve tenant from trusted Telegram/session signal | missing/invalid Telegram context; tenant conflict | `SR-FR-008`, `SR-FR-009`, `SR-NFR-001` |
-| `POST /api/v2/auth/web/session` | credential required | `Anonymous` | resolve tenant from trusted web signal | missing trusted context; tenant conflict | `SR-FR-008`, `SR-NFR-001` |
+| `POST /api/v2/auth/web/session/otp` | phone + OTP | `Anonymous` | resolve tenant from trusted web signal (`Host` subdomain) | missing trusted context; tenant conflict | `SR-FR-008`, `SR-NFR-001` |
 | `POST /api/v2/auth/link-telegram` | session required + Telegram proof | `Participant`, `Leader` | linked account MUST remain in session tenant | missing session; mismatched tenant; conflicting link target | `SR-FR-010`, `SR-NFR-001` |
 | `POST /api/v2/tours` | session required | `Leader` | created tour MUST bind to trusted tenant | missing tenant context; forbidden role | `SR-FR-003`, `SR-NFR-001` |
 | `PATCH /api/v2/tours/{tour_id}` | session required | `Leader` | by-id update MUST include tenant predicate | resource outside tenant; forbidden role | `SR-FR-003`, `SR-NFR-001` |
@@ -43,6 +44,11 @@ BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all capitals.
 | `PATCH /api/v2/waitlist-items/{waitlistItemId}/cancel` | session required | `Participant`, `Leader` | cancel MUST be scoped to item tenant | cross-tenant target; invalid status | `SR-FR-005`, `SR-NFR-001`, `SR-NFR-002` |
 | `PATCH /api/v2/registrations/{registrationId}/payment` | session required | `Leader` | payment update MUST be in registration tenant | cross-tenant target; forbidden role | `SR-FR-004`, `SR-NFR-001`, `SR-NFR-002` |
 | `GET /api/v2/dashboard/leader-workspace` | session required | `Leader` | aggregate query MUST include tenant predicate | tenant mismatch/missing | `SR-FR-003`, `SR-NFR-001`, `SR-NFR-003` |
+| `GET /api/v2/users` | session required | `Leader` (controller: JWT `owner`, `admin`) | list MUST be tenant membership for context `tenantId` | forbidden role; missing tenant context | — |
+| `PATCH /api/v2/users/{id}` | session required | `Leader` (controller: JWT `owner`, `admin`) | target `user_tenants` row MUST be in tenant; workspace RBAC policy on role transitions | policy denial; cross-tenant target; not found in tenant | — |
+| `POST /api/v2/workspaces/{tenantId}/invites` | session required | `Leader` (controller: JWT `owner`, `admin`) | invite MUST target path tenant; role assignment follows workspace invite policy | tenant mismatch; forbidden role; `owner` invite attempt rejected | — |
+| `POST /api/v2/invites/accept` | session required | `Participant`, `Leader` | invite token MUST resolve to same email+tenant under trusted context | invite not found/expired; email mismatch; `owner` role invitation rejected | — |
+| `POST /api/v2/workspaces/{tenantId}/ownership-transfer` | session required | `owner` | actor MUST be current owner in tenant; target MUST be active tenant member | actor not owner; target missing; tenant mismatch | — |
 | `GET /api/v2/reconciliation/export.csv` | session required | `Leader` | export MUST be tenant + tour scoped | cross-tenant request; missing tour scope | `SR-FR-007`, `SR-NFR-001`, `SR-NFR-004` |
 
 ## 5. Tenant Enforcement Invariants
@@ -54,6 +60,7 @@ All operational endpoints MUST enforce:
 3. Missing required trusted context MUST fail closed.
 4. Any trusted-context conflict MUST fail closed.
 5. No cross-tenant admin read/write/export on MVP operational surfaces.
+6. Workspace membership persistence MUST preserve ownership invariant (`exactly one active owner` at transaction commit).
 
 ## 6. Audit Emission Matrix (SR-NFR-002)
 

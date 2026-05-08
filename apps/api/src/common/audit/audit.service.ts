@@ -1,36 +1,19 @@
 import { Injectable } from "@nestjs/common";
+import type { OutboxDeliveryEnvelope } from "./outbox-delivery.types";
 import { LoggerService } from "../logger/logger.service";
-
-type AuditEntityType = "registration";
-
-type AuditEventPayload = {
-  entityType: AuditEntityType;
-  entityId: string;
-  actorId: string;
-  metadata: {
-    previousStatus: string;
-    newStatus: string;
-    tourId: string;
-    scheduleId: string | null;
-  };
-};
 
 @Injectable()
 export class AuditService {
   constructor(private readonly loggerService: LoggerService) {}
 
-  emit(eventName: string, payload: AuditEventPayload): void {
-    this.loggerService.info("audit.event.emitted", {
-      eventName,
-      ...payload
-    });
-  }
-
-  /** Delivery path for transactional outbox (same log shape; consumers must be idempotent). */
-  deliverFromOutbox(eventType: string, payload: Record<string, unknown>): void {
+  /** Delivery path for transactional outbox (structured envelope; consumers must be idempotent). */
+  deliverFromOutbox(envelope: OutboxDeliveryEnvelope): void {
     this.loggerService.info("audit.event.delivered", {
-      eventType,
-      ...payload
+      tenant_id: envelope.tenant_id,
+      event_id: envelope.event_id,
+      event_type: envelope.event_type,
+      created_at: envelope.created_at,
+      payload: envelope.payload
     });
   }
 }

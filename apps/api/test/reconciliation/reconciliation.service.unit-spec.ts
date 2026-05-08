@@ -1,12 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { DataSource, EntityManager, Repository } from "typeorm";
+import type { EntityManager, Repository } from "typeorm";
 import { OutboxService } from "../../src/modules/outbox/outbox.service";
 import { TenantEntity as IdentityTenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { ReconciliationService } from "../../src/modules/reconciliation/reconciliation.service";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import { WaitlistItemStatus } from "../../src/modules/registrations/waitlist-item.entity";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import type { TenantRateLimitService } from "../../src/common/tenant-abuse/tenant-rate-limit.service";
+
+const noopTenantRateLimit = {
+  tryConsumeJobForTenant: async () => true
+} as unknown as TenantRateLimitService;
+const noopTenantUsage = {
+  tryConsumeBackgroundJob: async () => true
+} as const;
+const passthroughTenantDbContext = {
+  runInTenantScope: async <T>(_tenantId: string, fn: (manager: EntityManager) => Promise<T>) =>
+    fn({} as EntityManager)
+};
 
 type ReconcilePriv = (
   manager: EntityManager,
@@ -67,10 +79,12 @@ test("reconciliation raises acceptedCount when stored counter is below real Acce
   } as unknown as EntityManager;
 
   const svc = new ReconciliationService(
-    {} as never,
     outboxService,
     registrationsService,
-    {} as Repository<IdentityTenantEntity>
+    {} as Repository<IdentityTenantEntity>,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    passthroughTenantDbContext as never
   );
 
   const result = await asReconcile(svc)(manager, tour);
@@ -128,10 +142,12 @@ test("reconciliation lowers acceptedCount when stored counter is above real Acce
   } as unknown as EntityManager;
 
   const svc = new ReconciliationService(
-    {} as never,
     outboxService,
     registrationsService,
-    {} as Repository<IdentityTenantEntity>
+    {} as Repository<IdentityTenantEntity>,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    passthroughTenantDbContext as never
   );
 
   await asReconcile(svc)(manager, tour);
@@ -189,10 +205,12 @@ test("reconciliation triggers canonical promotion while capacity and Waiting ite
   } as unknown as EntityManager;
 
   const svc = new ReconciliationService(
-    {} as never,
     outboxService,
     registrationsService,
-    {} as Repository<IdentityTenantEntity>
+    {} as Repository<IdentityTenantEntity>,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    passthroughTenantDbContext as never
   );
 
   const { drift, promotions } = await asReconcile(svc)(manager, locked);
@@ -238,10 +256,12 @@ test("reconciliation stops promotion loop when promote fails", async () => {
   } as unknown as EntityManager;
 
   const svc = new ReconciliationService(
-    {} as never,
     outboxService,
     registrationsService,
-    {} as Repository<IdentityTenantEntity>
+    {} as Repository<IdentityTenantEntity>,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    passthroughTenantDbContext as never
   );
 
   const { promotions } = await asReconcile(svc)(manager, locked);
@@ -295,7 +315,6 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
   } as unknown as Repository<IdentityTenantEntity>;
 
   const unifiedMgr = {
-    async query() {},
     async find(_entity: unknown, opts?: { skip?: number }) {
       if ((opts?.skip ?? 0) > 0) {
         return [];
@@ -314,17 +333,18 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
     }
   } as unknown as EntityManager;
 
-  const dataSource = {
-    async transaction<T>(fn: (m: EntityManager) => Promise<T>): Promise<T> {
-      return fn(unifiedMgr);
-    }
-  } as unknown as DataSource;
-
   const svc = new ReconciliationService(
-    dataSource,
     outboxService,
     registrationsService,
-    identityTenantRepository
+    identityTenantRepository,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    {
+      runInTenantScope: async <T>(
+        _tenantId: string,
+        fn: (m: EntityManager) => Promise<T>
+      ) => fn(unifiedMgr as EntityManager)
+    } as never
   );
 
   await svc.runReconciliationCycle();
@@ -337,4 +357,99 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
   assert.equal(snap.totalPromotionsTriggered >= 1, true);
   assert.equal(events.some((e) => e.eventType === "tour.capacity.reconciled"), true);
   assert.equal(tourA.acceptedCount, 3);
+});
+
+test("runReconciliationCycle sets tenant GUC with LOCAL scope (no session bleed)", async () => {
+  const tenantA = "11111111-1111-4111-8111-111111111111";
+  const tenantB = "22222222-2222-4222-8222-222222222222";
+  const toursByTenant: Record<string, TourEntity[]> = {
+    [tenantA]: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        tenantId: tenantA,
+        title: "a",
+        totalCapacity: 1,
+        acceptedCount: 0,
+        lifecycleStatus: undefined as never
+      } as unknown as TourEntity
+    ],
+    [tenantB]: [
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        tenantId: tenantB,
+        title: "b",
+        totalCapacity: 1,
+        acceptedCount: 0,
+        lifecycleStatus: undefined as never
+      } as unknown as TourEntity
+    ]
+  };
+  const queryCalls: Array<{ sql: string; args: unknown[] }> = [];
+
+  const registrationsService = {
+    async lockTourRowForUpdate(_m: EntityManager, tourId: string) {
+      const all = [...toursByTenant[tenantA], ...toursByTenant[tenantB]];
+      return all.find((t) => t.id === tourId) as TourEntity;
+    },
+    async promoteNextWaitlistSlotIfEligible() {
+      return false;
+    }
+  } as unknown as RegistrationsService;
+
+  const identityTenantRepository = {
+    async find() {
+      return [{ id: tenantA }, { id: tenantB }] as IdentityTenantEntity[];
+    }
+  } as unknown as Repository<IdentityTenantEntity>;
+
+  const manager = {
+    async query(sql: string, args: unknown[]) {
+      queryCalls.push({ sql, args });
+    },
+    async find(_entity: unknown, opts: { where: { tenantId: string }; skip?: number }) {
+      const tenantId = opts.where.tenantId;
+      return (opts.skip ?? 0) > 0 ? [] : (toursByTenant[tenantId] ?? []);
+    },
+    async count() {
+      return 0;
+    },
+    async save(entity: TourEntity) {
+      return entity;
+    },
+    async exists() {
+      return false;
+    }
+  } as unknown as EntityManager;
+
+  const svc = new ReconciliationService(
+    { addEvent: async () => undefined } as never,
+    registrationsService,
+    identityTenantRepository,
+    noopTenantRateLimit,
+    noopTenantUsage as never,
+    {
+      runInTenantScope: async <T>(
+        tenantId: string,
+        fn: (m: EntityManager) => Promise<T>
+      ) => {
+        await manager.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
+        return fn(manager as EntityManager);
+      }
+    } as never
+  );
+
+  await svc.runReconciliationCycle();
+
+  assert.equal(
+    queryCalls.every(
+      (call) =>
+        call.sql.includes("set_config('app.tenant_id', $1, true)") && call.args.length === 1
+    ),
+    true
+  );
+  assert.equal(
+    queryCalls.some((call) => call.args[0] === tenantA) &&
+      queryCalls.some((call) => call.args[0] === tenantB),
+    true
+  );
 });

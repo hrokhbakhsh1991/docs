@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DataSource } from "typeorm";
@@ -11,10 +12,12 @@ import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 
 type SeedOutput = {
   tenantId: string;
+  tenantSubdomain: string;
   tenantName: string;
   user: {
     id: string;
     email: string;
+    phone: string;
     password: string;
     role: string;
   };
@@ -40,6 +43,17 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function signPaymentsWebhookBody(rawBody: string, secret: string): {
+  timestamp: string;
+  signature: string;
+} {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac("sha256", secret)
+    .update(Buffer.concat([Buffer.from(`${timestamp}.`, "utf8"), Buffer.from(rawBody, "utf8")]))
+    .digest("hex");
+  return { timestamp, signature };
+}
+
 async function requestJson<T>(
   baseUrl: string,
   path: string,
@@ -53,9 +67,14 @@ async function requestJson<T>(
 
 async function run(): Promise<void> {
   const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
-  const internalApiKey = requireEnv("INTERNAL_API_KEY");
+  const webhookSigningSecret = requireEnv("PAYMENTS_WEBHOOK_SIGNING_SECRET");
   const seedPath = join(process.cwd(), ".seed-output.json");
   const seed = JSON.parse(await readFile(seedPath, "utf8")) as SeedOutput;
+  if (!seed.tenantSubdomain?.trim()) {
+    throw new Error(
+      ".seed-output.json is missing tenantSubdomain; rerun apps/api seed to regenerate output."
+    );
+  }
 
   const results: FlowResult[] = [];
   const flow = (name: string, passed: boolean, details: string) => {
@@ -70,20 +89,22 @@ async function run(): Promise<void> {
   const participantPhone = `+98912${uniqueSuffix}`;
 
   try {
+    const tenantRoot = process.env.TENANT_ROOT_DOMAIN?.trim() || "localhost";
+    const loginHost =
+      tenantRoot === "localhost"
+        ? `${seed.tenantSubdomain}.localhost`
+        : `${seed.tenantSubdomain}.${tenantRoot}`;
+
     const auth = await requestJson<{
       session_token?: string;
       user_id?: string;
       tenant_id?: string;
-    }>(baseUrl, "/api/v2/auth/web/session", {
+    }>(baseUrl, "/api/v2/auth/web/session/otp", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Host: loginHost },
       body: JSON.stringify({
-        entry_mode: "web",
-        asserted_tenant_id: seed.tenantId,
-        credential: {
-          email: seed.user.email,
-          password: seed.user.password
-        }
+        phone: seed.user.phone,
+        otp: "1234"
       })
     });
     token = auth.body.session_token ?? "";
@@ -172,17 +193,21 @@ async function run(): Promise<void> {
       );
     }
 
+    const webhookBody = JSON.stringify({
+      tenant_id: seed.tenantId,
+      providerEventId: `freeze-webhook-${Date.now()}`,
+      providerPaymentId,
+      status: "Paid"
+    });
+    const whSig = signPaymentsWebhookBody(webhookBody, webhookSigningSecret);
     const webhook = await requestJson<{ ok?: boolean }>(baseUrl, "/internal/payments/webhook", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Internal-Api-Key": internalApiKey
+        "x-payments-webhook-timestamp": whSig.timestamp,
+        "x-payments-webhook-signature": whSig.signature
       },
-      body: JSON.stringify({
-        providerEventId: `freeze-webhook-${Date.now()}`,
-        providerPaymentId,
-        status: "Paid"
-      })
+      body: webhookBody
     });
     flow(
       "FLOW 5: WEBHOOK SIMULATION",

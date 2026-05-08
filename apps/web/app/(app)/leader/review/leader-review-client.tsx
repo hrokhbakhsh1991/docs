@@ -163,22 +163,25 @@ export function LeaderReviewClient() {
       title="Leader review dashboard"
       description={`${filters.overview.pending} pending · ${filters.overview.total} total registrations across tenant tours.`}
       breadcrumbItems={breadcrumbItems}
-      actions={
-        <ReviewFilters
-          value={filters.filtersState}
-          isLoading={leaderData.isLoading}
-          canExport={leaderData.rows.length > 0}
-          onQueueFilterChange={filters.setQueueFilter}
-          onStatusFilterChange={filters.setStatusFilter}
-          onParticipantFilterChange={filters.setParticipantFilter}
-          onFromDateChange={filters.setFromDate}
-          onToDateChange={filters.setToDate}
-          onExportCsv={exportCsv}
-          onRefresh={() => void invalidateAll()}
-          onClearFilters={filters.clearFilters}
-        />
-      }
     >
+      <Card style={{ marginBottom: "1rem" }}>
+        <CardHeader>
+          <ReviewFilters
+            value={filters.filtersState}
+            isLoading={leaderData.isLoading}
+            canExport={leaderData.rows.length > 0}
+            onQueueFilterChange={filters.setQueueFilter}
+            onStatusFilterChange={filters.setStatusFilter}
+            onParticipantFilterChange={filters.setParticipantFilter}
+            onFromDateChange={filters.setFromDate}
+            onToDateChange={filters.setToDate}
+            onExportCsv={exportCsv}
+            onRefresh={() => void invalidateAll()}
+            onClearFilters={filters.clearFilters}
+          />
+        </CardHeader>
+      </Card>
+
       <ReviewSummaryCards overview={filters.overview} />
 
       <Card style={{ marginBottom: "1rem" }}>

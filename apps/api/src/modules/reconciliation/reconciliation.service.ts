@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, IsNull, Repository } from "typeorm";
+import { EntityManager, In, IsNull, Repository } from "typeorm";
+import { TenantUsageMeteringService } from "../../common/billing/tenant-usage-metering.service";
 import { TenantEntity as IdentityTenantEntity } from "../identity/entities/tenant.entity";
 import { OutboxService } from "../outbox/outbox.service";
 import { TourEntity } from "../tours/entities/tour.entity";
@@ -13,6 +14,9 @@ import {
   WaitlistItemStatus
 } from "../registrations/waitlist-item.entity";
 import { RegistrationsService } from "../registrations/registrations.service";
+import { TenantRateLimitService } from "../../common/tenant-abuse/tenant-rate-limit.service";
+import { TenantDbContextService } from "../../database/tenant-db-context.service";
+import { enforceBackgroundTenantRuntimePolicies } from "../../common/tenant/tenant-runtime-policy";
 
 const TOUR_PAGE_SIZE = 50;
 const MAX_PROMOTIONS_PER_TOUR_PER_RUN = 50;
@@ -38,11 +42,13 @@ export class ReconciliationService {
   private totalPromotionsTriggered = 0;
 
   constructor(
-    private readonly dataSource: DataSource,
     private readonly outboxService: OutboxService,
     private readonly registrationsService: RegistrationsService,
     @InjectRepository(IdentityTenantEntity)
-    private readonly identityTenantRepository: Repository<IdentityTenantEntity>
+    private readonly identityTenantRepository: Repository<IdentityTenantEntity>,
+    private readonly tenantRateLimitService: TenantRateLimitService,
+    private readonly tenantUsageMeteringService: TenantUsageMeteringService,
+    private readonly tenantDbContext: TenantDbContextService
   ) {}
 
   getSnapshot(): ReconciliationRuntimeSnapshot {
@@ -67,13 +73,19 @@ export class ReconciliationService {
     let promotedThisRun = 0;
 
     for (const { id: tenantId } of tenants) {
+      const runtimeAllowed = await enforceBackgroundTenantRuntimePolicies(tenantId, {
+        tryConsumeBackgroundJob: async (currentTenantId) =>
+          this.tenantUsageMeteringService.tryConsumeBackgroundJob(currentTenantId),
+        tryConsumeTenantJobRateLimit: async (currentTenantId) =>
+          this.tenantRateLimitService.tryConsumeJobForTenant(currentTenantId)
+      });
+      if (!runtimeAllowed) {
+        continue;
+      }
+
       let skip = 0;
       while (true) {
-        const tours = await this.dataSource.transaction(async (manager) => {
-          await manager.query(
-            "SELECT set_config('app.tenant_id', $1, false)",
-            [tenantId]
-          );
+        const tours = await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
           return manager.find(TourEntity, {
             where: { tenantId },
             order: { id: "ASC" },
@@ -87,14 +99,9 @@ export class ReconciliationService {
         }
 
         for (const tour of tours) {
-          const { drift, promotions } = await this.dataSource.transaction(
-            async (manager) => {
-              await manager.query(
-                "SELECT set_config('app.tenant_id', $1, false)",
-                [tour.tenantId]
-              );
-              return this.reconcileSingleTour(manager, tour);
-            }
+          const { drift, promotions } = await this.tenantDbContext.runInTenantScope(
+            tour.tenantId,
+            async (manager) => this.reconcileSingleTour(manager, tour)
           );
           if (drift) {
             driftThisRun = true;
@@ -142,6 +149,7 @@ export class ReconciliationService {
       await manager.save(lockedTour);
 
       await this.outboxService.addEvent(manager, {
+        tenantId: tour.tenantId,
         aggregateType: "Tour",
         aggregateId: tour.id,
         eventType: "tour.capacity.reconciled",
@@ -193,4 +201,5 @@ export class ReconciliationService {
 
     return { drift, promotions };
   }
+
 }

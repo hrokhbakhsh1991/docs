@@ -29,10 +29,10 @@ export function useLeaderTourRegistrations(enabled: boolean) {
         const aggregate = await getLeaderWorkspaceAggregate();
         return {
           tours: aggregate.tours,
-          total: aggregate.tours.length,
+          total: aggregate.meta.total,
           limit: aggregate.tours.length || 1,
           pagesFetched: 1,
-          partial: aggregate.partial,
+          partial: aggregate.meta.partial,
         };
       }
       return fetchAllToursSafely({ search: "", maxPages: DEFAULT_MAX_TOUR_PAGES });

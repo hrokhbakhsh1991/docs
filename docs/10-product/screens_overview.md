@@ -2,7 +2,7 @@ Document-ID: MKT-DOC-SCREENS-OVERVIEW-V2
 Version: v1.0
 Status: Active
 Owner: Product Documentation Team
-Last-Updated: 2026-04-27
+Last-Updated: 2026-05-05
 Language: English
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
@@ -35,6 +35,9 @@ There is no global cross-leader tour browsing surface in active v2 scope.
 - `S-LEAD-06` Payment Tracking Panel  
   Payment status, paid amount, proof-tracking context, reconciliation view.
 
+- `S-LEAD-07` Workspace Members (`/users`)  
+  Directory of users in the **active tenant**: name, email, role badge, membership status. Data from **`GET /api/v2/users`** (tenant-scoped on the server with cursor pagination + optional search/role filters). **Role changes** use **`PATCH /api/v2/users/:id`** where workspace RBAC allows; the API remains authoritative (e.g. no self-change, no owner-row edits in general PATCH, hierarchical rules, `session_version` bump on success). **Owner transfer** is a dedicated operation: **`POST /api/v2/workspaces/:tenantId/ownership-transfer`** (owner-only). **Member detail** at `/users/:id` resolves the same roster client-side—there is **no** separate `GET /users/:id` contract. **Invite / “add member” from this screen** is **not** implemented; additionally, workspace invites MUST NOT assign `owner` role.
+
 ---
 
 ## 3. Participant Screens
@@ -62,7 +65,7 @@ There is no global cross-leader tour browsing surface in active v2 scope.
   Telegram mode identity-bound launch.
 
 - `S-ID-02` Standalone Web Sign-In/Sign-Up  
-  Web onboarding without mandatory Telegram.
+  Web workspace sign-in without mandatory Telegram: **step 1 phone**, **step 2 OTP**, then `POST /api/v2/auth/web/session/otp` (tenant from subdomain). See **`docs/authentication-phone-otp.md`**.
 
 - `S-ID-03` Connect Telegram  
   Post-onboarding linking action for web users.

@@ -30,7 +30,7 @@ Canonical-Reference: docs/20-architecture/canonical_framework.md
 | `FR-43`, `FR-44` | `SR-FR-005` | `L-03` | `S-LEAD-05`, `S-LEAD-04` | `waitlist`, `capacity_management`, `edge_cases_and_failure_paths_v2` | `POST /api/v2/waitlist-items`, `POST /api/v2/waitlist-items/{waitlistItemId}/convert`, `PATCH /api/v2/waitlist-items/{waitlistItemId}/cancel` | `audit_event_schema`, `data_model` | `SR-FR-005-AC` | Step-07 `SR-FR-005` | `STORY-03-01`, `STORY-03-02` | Full |
 | `FR-61`, `FR-62` | `SR-FR-006` | `P-03`, `L-02` | `S-PART-03`, `S-PART-05`, `S-LEAD-04` | `telegram_integration`, `registration` | `PATCH /api/v2/registrations/{registrationId}/status`, `GET /api/v2/registrations/{registrationId}` | `authz_tenant_endpoint_matrix` | `SR-FR-006-AC` | Step-07 `SR-FR-006` | `STORY-05-01` | Full |
 | `FR-71`, `FR-72` | `SR-FR-007` | `L-05` | `S-LEAD-06` | `cost_and_payment` | `GET /api/v2/reconciliation/export.csv` | `reconciliation_export_contract` | `SR-FR-007-AC` | Step-07 `SR-FR-007`, 6.3 | `STORY-04-02` | Full |
-| `FR-10`, `FR-11`, `FR-12` | `SR-FR-008` | `I-01`, `I-02` | `S-ID-01`, `S-ID-02`, `S-PART-01` | `telegram_integration` | `POST /api/v2/auth/telegram/session`, `POST /api/v2/auth/web/session` | `participant_intake_schema`, `authz_tenant_endpoint_matrix` | `SR-FR-008-AC` | Step-07 `SR-FR-008` | `STORY-01-02` | Full |
+| `FR-10`, `FR-11`, `FR-12` | `SR-FR-008` | `I-01`, `I-02` | `S-ID-01`, `S-ID-02`, `S-PART-01` | `telegram_integration` | `POST /api/v2/auth/telegram/session`, `POST /api/v2/auth/web/session/otp` | `participant_intake_schema`, `authz_tenant_endpoint_matrix` | `SR-FR-008-AC` | Step-07 `SR-FR-008` | `STORY-01-02` | Full |
 | `FR-20` | `SR-FR-009` | `I-01`, `P-01` | `S-ID-01`, `S-PART-02` | `telegram_integration`, `registration` | `POST /api/v2/auth/telegram/session`, `POST /api/v2/registrations` | `participant_intake_schema`, `error_response_taxonomy_v2` | `SR-FR-009-AC` | Step-07 `SR-FR-009` | `STORY-01-02`, `STORY-02-01` | Full |
 | `FR-22`, `FR-23` | `SR-FR-010` | `I-03` | `S-ID-03`, `S-PART-03` | `telegram_integration`, `edge_cases_and_failure_paths_v2` | `POST /api/v2/auth/link-telegram` | `authz_tenant_endpoint_matrix` | `SR-FR-010-AC` | Step-07 `SR-FR-010` | `STORY-01-02` | Full |
 | `NFR-01` | `SR-NFR-001` | `L-01..L-05`, `P-01..P-03`, `I-01..I-03` | `S-LEAD-*`, `S-PART-*`, `S-ID-*` | `all core flows`, `edge_cases_and_failure_paths_v2` | `all /api/v2 protected endpoints` | `authz_tenant_endpoint_matrix`, `participant_intake_schema`, `audit_event_schema`, `reconciliation_export_contract` | `SR-NFR-001-AC` | Step-07 `SR-NFR-001`, Gate 7.2 | `STORY-01-01` | Full |
@@ -61,7 +61,7 @@ Canonical-Reference: docs/20-architecture/canonical_framework.md
 | Endpoint | Requirements Covered |
 |---|---|
 | `POST /api/v2/auth/telegram/session` | `SR-FR-008`, `SR-FR-009`, `SR-NFR-001` |
-| `POST /api/v2/auth/web/session` | `SR-FR-008`, `SR-NFR-001` |
+| `POST /api/v2/auth/web/session/otp` | `SR-FR-008`, `SR-NFR-001` |
 | `POST /api/v2/auth/link-telegram` | `SR-FR-010`, `SR-NFR-001` |
 | `POST /api/v2/tours` | `SR-FR-003`, `SR-NFR-001` |
 | `PATCH /api/v2/tours/{tour_id}` | `SR-FR-003`, `SR-NFR-001` |

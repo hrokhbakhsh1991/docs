@@ -23,7 +23,7 @@ export function LogoutButton(): JSX.Element {
         }
       });
     } finally {
-      clearSessionToken();
+      await clearSessionToken();
       router.refresh();
       router.push("/login");
       setIsLoading(false);

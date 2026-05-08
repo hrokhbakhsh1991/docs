@@ -24,7 +24,7 @@ If narrative docs and OpenAPI disagree, **fix the narrative or the server** so O
 | `TourLifecycleStatus` | OpenAPI `UpdateTourDto.lifecycle_status` enum (and entity enum on the server) |
 | `RegistrationResponseDto`, aliases `BookingDto`, `Booking` | `components.schemas.RegistrationResponseDto` |
 | `RegistrationStatus`, `RegistrationPaymentStatus`, transport/entry enums | Same registration schema |
-| `WebCredentialDto`, `WebSessionDto`, `WebSessionResponseDto` | Auth/session schemas |
+| `PhoneOtpLoginRequest`, `WebSessionResponseDto` | Web OTP login + session response (`POST /api/v2/auth/web/session/otp`) |
 | `UserDto`, `User` | No standalone User entity in OpenAPI today — **`Pick` of `WebSessionResponseDto`** (`user_id`, `tenant_id`, `entry_mode`) |
 
 Field names in JSON follow **camelCase** as in OpenAPI (e.g. `totalCapacity`, `lifecycleStatus`, `chatLink`, `costContext`).

@@ -1,9 +1,11 @@
-import { forwardRef, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { DatabaseModule } from "../../database/database.module";
 import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
+import { PaymentWebhookSignatureGuard } from "./payments-webhook-signature.guard";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { OutboxModule } from "../outbox/outbox.module";
-import { RegistrationsModule } from "../registrations/registrations.module";
+import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { PaymentEntity } from "./entities/payment.entity";
 import { PaymentsController, PaymentsWebhookController } from "./payments.controller";
@@ -13,14 +15,18 @@ import { PaymentsService } from "./payments.service";
 @Module({
   imports: [
     TypeOrmModule.forFeature([PaymentEntity, UserEntity]),
-    // DI-DIAGNOSTIC: Circular dependency edge with RegistrationsModule relies on forwardRef; unresolved metadata can cause partially-initialized provider graph.
-    // TODO(FREEZE-BLOCKER): Confirm forwardRef cycle with RegistrationsModule resolves deterministically in E2E; investigate possible undefined RegistrationsService injection path.
-    forwardRef(() => RegistrationsModule),
+    TypeOrmModule.forFeature([TenantEntity]),
+    DatabaseModule,
     OutboxModule,
     IdempotencyModule
   ],
   controllers: [PaymentsController, PaymentsWebhookController],
-  providers: [PaymentsService, PaymentsProcessor, InternalApiKeyGuard],
+  providers: [
+    PaymentsService,
+    PaymentsProcessor,
+    InternalApiKeyGuard,
+    PaymentWebhookSignatureGuard
+  ],
   exports: [PaymentsService]
 })
 export class PaymentsModule {}

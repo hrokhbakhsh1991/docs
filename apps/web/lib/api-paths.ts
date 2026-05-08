@@ -1,15 +1,16 @@
 /**
  * Canonical Tour-Ops HTTP paths under `/api/v2`.
- * Use with `NEXT_PUBLIC_API_URL` set to origin only (no `/api/v2`).
+ * Base URL comes from `resolveTourOpsApiBaseUrl()` (fixed `NEXT_PUBLIC_API_URL` or dynamic host + port).
  */
 
 export const API = {
   auth: {
-    webSession: "/api/v2/auth/web/session",
+    webSession: "/api/v2/auth/web/session/otp",
     telegramSession: "/api/v2/auth/telegram/session",
     workspaces: "/api/v2/auth/workspaces",
     workspaceSession: "/api/v2/auth/workspace/session",
   },
+  dashboardLeaderWorkspace: "/api/v2/dashboard/leader-workspace",
   tours: "/api/v2/tours",
   toursQuery: (queryString: string) =>
     queryString.trim() ? `/api/v2/tours?${queryString}` : "/api/v2/tours",
@@ -26,7 +27,9 @@ export const API = {
   waitlistItemConvert: (id: string) => `/api/v2/waitlist-items/${encodeURIComponent(id)}/convert`,
   bookings: "/api/v2/bookings",
   users: "/api/v2/users",
+  usersBulkRole: "/api/v2/users/bulk-role",
   user: (id: string) => `/api/v2/users/${encodeURIComponent(id)}`,
+  userRoleHistory: (id: string) => `/api/v2/users/${encodeURIComponent(id)}/role-history`,
   paymentsIntent: "/api/v2/payments/intent",
 } as const;
 

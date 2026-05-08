@@ -2,6 +2,27 @@
  * Mirrors backend `tour_lifecycle_status_enum` / OpenAPI `lifecycleStatus` enum.
  */
 export type TourLifecycleStatus = "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+export type DifficultyLevel = "easy" | "moderate" | "hard" | "technical";
+
+export interface TourItineraryItem {
+  day: number;
+  title: string;
+  description?: string | null;
+  distanceKm?: number | null;
+  elevationGainM?: number | null;
+}
+
+export interface TourDetailsDto {
+  destinationName?: string;
+  elevationM?: number;
+  difficulty?: DifficultyLevel;
+  durationDays?: number;
+  meetingPoint?: string;
+  requiredGear?: string[];
+  itinerary?: TourItineraryItem[];
+}
+
+export type TourDetails = TourDetailsDto;
 
 /**
  * Mirrors Nest/OpenAPI `TourResponseDto` (`apps/api/openapi.json` components.schemas.TourResponseDto).
@@ -18,6 +39,10 @@ export interface TourResponseDto {
   lifecycleStatus: TourLifecycleStatus;
   chatLink?: string | null;
   costContext?: Record<string, unknown> | null;
+  autoAcceptRegistrations?: boolean | null;
+  tourType?: "camp" | "mountain" | "city" | "desert" | "other" | null;
+  primaryTransportMode?: "bus" | "train" | "plane" | "private_car" | "mixed" | "none" | null;
+  details?: TourDetailsDto | null;
 }
 
 /**

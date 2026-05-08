@@ -32,8 +32,10 @@ test("link-telegram is fail-closed when request context lacks identity", async (
     { listWorkspaces: async () => [] } as never,
     {
       getUserId: () => undefined,
+      resolveEffectiveTenantId: () => undefined,
       getTenantId: () => undefined
-    } as never
+    } as never,
+    { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as never
   );
 
   await assert.rejects(
@@ -58,8 +60,10 @@ test("link-telegram succeeds for authorized caller with explicit identity contex
     { listWorkspaces: async () => [] } as never,
     {
       getUserId: () => "user-1",
+      resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1"
-    } as never
+    } as never,
+    { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as never
   );
 
   const result = await controller.linkTelegram({

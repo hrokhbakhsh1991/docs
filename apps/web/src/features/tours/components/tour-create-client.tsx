@@ -2,12 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
 import {
   Button,
   Card,
   CardBody,
+  Checkbox,
   EmptyState,
   FormField,
   Input,
@@ -23,6 +24,7 @@ import { toursUseLiveApi } from "@/lib/services/tours.service";
 
 import { useCreateTour } from "../hooks/useCreateTour";
 import type { TourCreateFormInput, TourCreateModel } from "../models/tourCreateModel";
+import { PRIMARY_TRANSPORT_MODES, SOCIAL_PLATFORMS, TOUR_TYPES } from "../models/tourCreateModel";
 import { TourCreateSchema } from "../models/tourCreateModel";
 
 /** Shown in shell chrome, document title, and main card (keep in sync visually). */
@@ -44,6 +46,7 @@ export function TourCreateClient() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<TourCreateFormInput, unknown, TourCreateModel>({
     resolver: zodResolver(TourCreateSchema),
@@ -51,11 +54,19 @@ export function TourCreateClient() {
       title: "",
       description: "",
       location: "",
+      autoAcceptRegistrations: true,
+      tourType: undefined,
+      primaryTransportMode: undefined,
+      socialLinks: [{ platform: "telegram", url: "" }],
       communicationLink: "",
       capacity: 10,
       price: 0,
       lifecycle_status: "Draft",
     },
+  });
+  const { fields: socialLinkFields, append: appendSocialLink, remove: removeSocialLink } = useFieldArray({
+    control,
+    name: "socialLinks",
   });
 
   async function handleCreateTourSubmit(values: TourCreateModel) {
@@ -191,23 +202,121 @@ export function TourCreateClient() {
               <Textarea rows={3} invalid={Boolean(errors.description)} {...register("description")} />
             </FormField>
 
+            <FormField label="Tour type (optional)" error={errors.tourType?.message}>
+              <Select invalid={Boolean(errors.tourType)} {...register("tourType")}>
+                <option value="">Select...</option>
+                {TOUR_TYPES.map((tourType) => (
+                  <option key={tourType} value={tourType}>
+                    {tourType === "camp"
+                      ? "Camp"
+                      : tourType === "mountain"
+                        ? "Mountain"
+                        : tourType === "city"
+                          ? "City"
+                          : tourType === "desert"
+                            ? "Desert"
+                            : "Other"}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
             <FormField label="Location (optional)" error={errors.location?.message}>
               <Input autoComplete="off" aria-invalid={errors.location ? true : undefined} {...register("location")} />
             </FormField>
 
+            <FormField label="Primary transport mode (optional)" error={errors.primaryTransportMode?.message}>
+              <Select invalid={Boolean(errors.primaryTransportMode)} {...register("primaryTransportMode")}>
+                <option value="">Select...</option>
+                {PRIMARY_TRANSPORT_MODES.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {mode === "bus"
+                      ? "Bus"
+                      : mode === "train"
+                        ? "Train"
+                        : mode === "plane"
+                          ? "Plane"
+                          : mode === "private_car"
+                            ? "Private car"
+                            : mode === "mixed"
+                              ? "Mixed"
+                              : "No transport"}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
             <FormField
-              label="Communication link (optional)"
-              description="e.g. Telegram group invite URL."
-              error={errors.communicationLink?.message}
+              label="Registration"
+              description="Registration behavior for this tour"
+              error={errors.autoAcceptRegistrations?.message}
             >
-              <Input
-                type="url"
-                inputMode="url"
-                placeholder="https://t.me/…"
-                autoComplete="off"
-                aria-invalid={errors.communicationLink ? true : undefined}
-                {...register("communicationLink")}
+              <Checkbox
+                label="Automatically accept registrations until capacity is full"
+                {...register("autoAcceptRegistrations")}
               />
+            </FormField>
+
+            <FormField
+              label="Social links (optional)"
+              description="The first link is treated as the primary communication link for current API compatibility."
+              error={errors.socialLinks?.message}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {socialLinkFields.map((field, index) => (
+                  <div key={field.id} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Select
+                      invalid={Boolean(errors.socialLinks?.[index]?.platform)}
+                      style={{ minWidth: "10rem" }}
+                      {...register(`socialLinks.${index}.platform`)}
+                    >
+                      {SOCIAL_PLATFORMS.map((platform) => (
+                        <option key={platform} value={platform}>
+                          {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                        </option>
+                      ))}
+                    </Select>
+                    <Input
+                      type="url"
+                      inputMode="url"
+                      placeholder={index === 0 ? "https://t.me/..." : "https://..."}
+                      autoComplete="off"
+                      aria-invalid={errors.socialLinks?.[index]?.url ? true : undefined}
+                      style={{ flex: 1, minWidth: "14rem" }}
+                      {...register(`socialLinks.${index}.url`)}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => removeSocialLink(index)}
+                      disabled={isPending || socialLinkFields.length <= 1}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                {errors.socialLinks &&
+                  Array.isArray(errors.socialLinks) &&
+                  errors.socialLinks.map((socialLinkError, index) => {
+                    const platformError = socialLinkError?.platform?.message;
+                    const urlError = socialLinkError?.url?.message;
+                    if (!platformError && !urlError) return null;
+                    return (
+                      <div key={`social-link-error-${index}`} style={{ color: "var(--color-danger-600)" }}>
+                        {platformError ?? urlError}
+                      </div>
+                    );
+                  })}
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isPending}
+                  onClick={() => appendSocialLink({ platform: "telegram", url: "" })}
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  Add link
+                </Button>
+              </div>
             </FormField>
 
             <FormField label="Capacity" error={errors.capacity?.message}>

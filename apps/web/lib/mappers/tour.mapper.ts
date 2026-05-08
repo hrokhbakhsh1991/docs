@@ -1,4 +1,4 @@
-import type { TourDto, TourLifecycleStatus } from "@repo/types";
+import type { DifficultyLevel, TourDetailsDto, TourDto, TourLifecycleStatus, TourItineraryItem } from "@repo/types";
 
 import type { TourDetailDto } from "../services/tours.service";
 
@@ -44,6 +44,62 @@ function num(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function normalizeOptionalNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeDifficulty(value: unknown): DifficultyLevel | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "easy" || raw === "moderate" || raw === "hard" || raw === "technical") {
+    return raw;
+  }
+  return null;
+}
+
+function normalizeItineraryItem(value: unknown): TourItineraryItem | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  const day = normalizeOptionalNumber(item.day);
+  if (day == null) return null;
+  return {
+    day,
+    title: normalizeOptionalString(item.title) ?? "",
+    description: normalizeOptionalString(item.description),
+    distanceKm: normalizeOptionalNumber(item.distanceKm ?? item.distance_km),
+    elevationGainM: normalizeOptionalNumber(item.elevationGainM ?? item.elevation_gain_m),
+  };
+}
+
+function normalizeTourDetails(value: unknown): TourDetailsDto | null {
+  if (!value || typeof value !== "object") return null;
+  const o = value as Record<string, unknown>;
+
+  const requiredGear = Array.isArray(o.requiredGear ?? o.required_gear)
+    ? (o.requiredGear ?? o.required_gear)
+        .map((v) => normalizeOptionalString(v))
+        .filter((v): v is string => Boolean(v))
+    : null;
+
+  const rawItinerary = o.itinerary;
+  const itinerary = Array.isArray(rawItinerary)
+    ? rawItinerary
+        .map((item) => normalizeItineraryItem(item))
+        .filter((item): item is TourItineraryItem => item !== null)
+    : null;
+
+  return {
+    destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name),
+    elevationM: normalizeOptionalNumber(o.elevationM ?? o.elevation_m),
+    difficulty: normalizeDifficulty(o.difficulty),
+    durationDays: normalizeOptionalNumber(o.durationDays ?? o.duration_days),
+    meetingPoint: normalizeOptionalString(o.meetingPoint ?? o.meeting_point),
+    requiredGear,
+    itinerary,
+  };
+}
+
 /**
  * Maps a loose JSON row from `GET /api/v2/tours` (serialized entity + OpenAPI fields)
  * into {@link TourDto} + `lifecycleStatus` for list/detail UI.
@@ -74,6 +130,19 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
     costContext: normalizeCostContext(o.costContext ?? o.cost_context),
     lifecycleStatus,
     chatLink: link,
+    autoAcceptRegistrations:
+      typeof (o.autoAcceptRegistrations ?? o.auto_accept_registrations) === "boolean"
+        ? Boolean(o.autoAcceptRegistrations ?? o.auto_accept_registrations)
+        : null,
+    tourType:
+      o.tourType == null
+        ? null
+        : (String(o.tourType).trim().toLowerCase() as TourDto["tourType"]),
+    primaryTransportMode:
+      o.primaryTransportMode == null
+        ? null
+        : (String(o.primaryTransportMode).trim().toLowerCase() as TourDto["primaryTransportMode"]),
+    details: normalizeTourDetails(o.details),
     /** UI/forms legacy alias — same resolved value as `chatLink`. */
     communicationLink: link,
     createdAt: String(o.createdAt ?? ""),

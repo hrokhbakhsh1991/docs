@@ -43,32 +43,40 @@ Last-Updated: 2026-04-29
   - `status`
 - **Errors:** `DEPENDENCY_TEMPORARY_UNAVAILABLE`, `INTERNAL_ERROR`
 
-### POST `/api/v2/auth/web/session`
+### POST `/api/v2/auth/web/session/otp`
 - **Auth:** Public
-- **Request DTO:** `WebSessionDto`
-  - `entry_mode`
-  - `credential.email`
-  - `credential.password`
-  - `asserted_tenant_id` (optional)
+- **Tenant scope:** Resolved server-side from HTTP `Host` / `x-forwarded-host` as `{slug}.{TENANT_ROOT_DOMAIN}` (see `TenantResolverMiddleware`); **not** accepted from the JSON body.
+- **Request DTO:** `PhoneSessionDto`
+  - `phone` — workspace user’s phone (strip non-digits except leading `+`; SQL match via **`phone_normalized(users.phone)`**; there is **no** `phone_normalized` **column** on `users`)
+  - `otp` — one-time password (non-production: static **`1234`**; production disables static OTP)
+- **Example body:**
+  ```json
+  {
+    "phone": "+989121236598",
+    "otp": "1234"
+  }
+  ```
 - **Response (200):**
   - `session_token`
   - `user_id`
   - `tenant_id`
-  - `entry_mode`
-- **Errors:** `VALIDATION_FAILED`, `AUTH_UNAUTHENTICATED`, `TENANT_SCOPE_CONFLICT`, `TENANT_CONTEXT_MISSING`, `INTERNAL_ERROR`
+  - `entry_mode`: **`"web"`**
+- **Errors:** `VALIDATION_FAILED`, `AUTH_UNAUTHENTICATED`, `TENANT_HOST_UNKNOWN`, `TENANT_CONTEXT_MISSING`, `TENANT_SCOPE_FORBIDDEN`, `INTERNAL_ERROR`
+
+See **`docs/authentication-phone-otp.md`** for the full web auth narrative.
 
 ### POST `/api/v2/auth/telegram/session`
 - **Auth:** Public
+- **Tenant scope:** Same Host-based resolution as web session.
 - **Request DTO:** `TelegramSessionDto`
   - `entry_mode`
   - `telegram_init_payload`
-  - `asserted_tenant_id` (optional)
 - **Response (200):**
   - `session_token`
   - `user_id`
   - `tenant_id`
   - `entry_mode`
-- **Errors:** `VALIDATION_FAILED`, `AUTH_TELEGRAM_CONTEXT_REQUIRED`, `TENANT_SCOPE_CONFLICT`, `TENANT_CONTEXT_MISSING`, `INTERNAL_ERROR`
+- **Errors:** `VALIDATION_FAILED`, `AUTH_TELEGRAM_CONTEXT_REQUIRED`, `TENANT_HOST_UNKNOWN`, `TENANT_CONTEXT_MISSING`, `TENANT_SCOPE_FORBIDDEN`, `INTERNAL_ERROR`
 
 ### POST `/api/v2/auth/link-telegram`
 - **Auth:** Authenticated (`member`/`owner`)
@@ -204,6 +212,32 @@ Last-Updated: 2026-04-29
   - `cancelReason` (optional)
 - **Response (200):** `WaitlistItemResponseDto`
 - **Errors:** `VALIDATION_FAILED`, `VALIDATION_FIELD_FORMAT_INVALID`, `AUTH_UNAUTHENTICATED`, `AUTH_FORBIDDEN_ROLE`, `TENANT_CONTEXT_MISSING`, `TENANT_CONTEXT_INVALID`, `TENANT_SCOPE_FORBIDDEN`, `RESOURCE_NOT_FOUND`, `STATE_TRANSITION_INVALID`, `CONCURRENCY_CONFLICT`, `INTERNAL_ERROR`
+
+### POST `/api/v2/workspaces/{tenantId}/invites`
+- **Auth:** Authenticated (`owner`/`admin`)
+- **Request DTO:** `CreateWorkspaceInviteDto`
+  - `email`
+  - `role` (`admin` | `member` | `viewer`)
+- **Response (201):** `WorkspaceInviteResponseDto`
+  - `id`, `tenant_id`, `email`, `role`, `invite_link`, `expires_at`
+- **Errors:** `VALIDATION_FAILED`, `OWNER_ROLE_INVITE_FORBIDDEN`, `AUTH_UNAUTHENTICATED`, `AUTH_FORBIDDEN_ROLE`, `TENANT_SCOPE_FORBIDDEN`, `INTERNAL_ERROR`
+- **Notes:** `owner` role is restricted and cannot be assigned through invites.
+
+### POST `/api/v2/invites/accept`
+- **Auth:** Authenticated
+- **Request DTO:** `AcceptWorkspaceInviteDto`
+  - `token`
+- **Response (200):** `AcceptWorkspaceInviteResponseDto`
+  - `tenant_id`, `role`
+- **Errors:** `VALIDATION_FAILED`, `INVITE_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_EMAIL_MISMATCH`, `OWNER_ROLE_INVITE_FORBIDDEN`, `AUTH_UNAUTHENTICATED`, `INTERNAL_ERROR`
+
+### POST `/api/v2/workspaces/{tenantId}/ownership-transfer`
+- **Auth:** Authenticated (`owner`)
+- **Request DTO:** `TransferWorkspaceOwnershipDto`
+  - `newOwnerUserId` (UUID of existing active member in the same tenant)
+- **Response (200):** `TransferWorkspaceOwnershipResponseDto`
+  - `tenant_id`, `previous_owner_user_id`, `new_owner_user_id`
+- **Errors:** `VALIDATION_FAILED`, `OWNER_ONLY_TRANSFER`, `OWNER_TRANSFER_SELF_FORBIDDEN`, `OWNER_ALREADY_ASSIGNED`, `TENANT_SCOPE_FORBIDDEN`, `RESOURCE_NOT_FOUND`, `AUTH_UNAUTHENTICATED`, `INTERNAL_ERROR`
 
 ## Changelog
 

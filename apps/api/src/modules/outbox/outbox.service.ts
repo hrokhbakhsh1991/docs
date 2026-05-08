@@ -7,6 +7,8 @@ import {
 import { OutboxMetricsService } from "./outbox-metrics.service";
 
 export type OutboxEventInput = {
+  /** Workspace tenant for worker dispatch and RLS alignment during processing. */
+  tenantId: string;
   aggregateType: string;
   aggregateId: string;
   eventType: string;
@@ -22,7 +24,9 @@ export class OutboxService {
    * or rolls back with the same transaction as domain mutations (AUDIT-RULE-004).
    */
   async addEvent(manager: EntityManager, event: OutboxEventInput): Promise<void> {
+    const tenantId = event.tenantId.trim().toLowerCase();
     const row = manager.create(OutboxEventEntity, {
+      tenantId,
       aggregateType: event.aggregateType,
       aggregateId: event.aggregateId,
       eventType: event.eventType,

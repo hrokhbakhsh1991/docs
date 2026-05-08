@@ -1,19 +1,11 @@
 /**
- * Mirrors OpenAPI auth/session DTOs used by `AuthController_webSession` et al.
- * Wire payloads use snake_case as in `openapi.json`; align HTTP client serializers accordingly when wiring fetch.
+ * Mirrors OpenAPI auth DTOs for `POST /api/v2/auth/web/session/otp`.
+ * Wire payloads use snake_case as in `openapi.json`.
  */
 
-/** Maps `WebCredentialDto` */
-export interface WebCredentialDto {
-  email: string;
-  password: string;
-}
-
-/** Maps `WebSessionDto` (request body shape from OpenAPI). */
-export interface WebSessionDto {
-  entry_mode: "web";
-  credential: WebCredentialDto;
-  asserted_tenant_id?: string;
+export interface PhoneOtpLoginRequest {
+  phone: string;
+  otp: string;
 }
 
 /** Maps `WebSessionResponseDto` */

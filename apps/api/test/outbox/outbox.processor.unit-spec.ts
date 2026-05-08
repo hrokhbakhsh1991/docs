@@ -12,6 +12,7 @@ import {
 function buildPendingRow(id: string): OutboxEventEntity {
   const row = new OutboxEventEntity();
   row.id = id;
+  row.tenantId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   row.aggregateType = "Registration";
   row.aggregateId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   row.eventType = "registration.accepted";
@@ -56,6 +57,12 @@ test("processor marks row DELIVERED after successful publish", async () => {
     async count() {
       return 5;
     },
+    async query() {
+      return [];
+    },
+    async findOne() {
+      return row;
+    },
     createQueryBuilder() {
       return qb;
     },
@@ -99,6 +106,10 @@ test("processor marks row DELIVERED after successful publish", async () => {
     auditService as never,
     configService as never,
     metrics,
+    {
+      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+        fn(manager)
+    } as never,
     {
       runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
         await onLocked();
@@ -153,8 +164,14 @@ test("processor increments retryCount when publish fails", async () => {
     async count() {
       return 1;
     },
+    async query() {
+      return [];
+    },
     createQueryBuilder() {
       return qb;
+    },
+    async findOne() {
+      return row;
     },
     async save(entity: OutboxEventEntity) {
       saved.push(entity);
@@ -195,6 +212,10 @@ test("processor increments retryCount when publish fails", async () => {
     auditService as never,
     configService as never,
     metrics,
+    {
+      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+        fn(manager)
+    } as never,
     {
       runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
         await onLocked();
@@ -248,8 +269,14 @@ test("processor marks FAILED when retries reach threshold", async () => {
     async count() {
       return 1;
     },
+    async query() {
+      return [];
+    },
     createQueryBuilder() {
       return qb;
+    },
+    async findOne() {
+      return row;
     },
     async save(entity: OutboxEventEntity) {
       return entity;
@@ -289,6 +316,10 @@ test("processor marks FAILED when retries reach threshold", async () => {
     auditService as never,
     configService as never,
     metrics,
+    {
+      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+        fn(manager)
+    } as never,
     {
       runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
         await onLocked();

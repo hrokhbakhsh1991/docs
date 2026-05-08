@@ -7,20 +7,46 @@
 }
 
 .toolbar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 13rem) auto;
   gap: var(--space-4);
-  align-items: flex-end;
+  align-items: end;
 }
 
 .toolbarGrow {
-  flex: 1 1 14rem;
-  min-width: 12rem;
+  min-width: 0;
 }
 
 .toolbarFixed {
-  flex: 0 1 11rem;
-  min-width: 10rem;
+  min-width: 11rem;
+}
+
+.toolbarAction {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.toolbarMeta {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbarFixed {
+    min-width: 0;
+  }
+
+  .toolbarAction {
+    justify-self: start;
+  }
 }
 
 .paginationBar {
@@ -42,8 +68,60 @@
   gap: var(--space-1);
 }
 
+.selectionCell {
+  width: 2.5rem;
+  text-align: center;
+}
+
 .inlineActions {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.roleControl {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  max-width: 14rem;
+}
+
+.roleHint {
+  font-size: var(--text-small-size);
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+  max-width: 14rem;
+  text-align: right;
+}
+
+.bulkToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bulkSelectionSummary {
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.bulkActionControls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bulkRoleLabel {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.bulkRoleLabel > span {
+  white-space: nowrap;
 }

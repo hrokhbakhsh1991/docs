@@ -113,7 +113,7 @@ Mandatory states for each critical screen:
 
 ### S-ID-02 (Web Sign-In/Sign-Up)
 - `loading`: auth request in-flight.
-- `empty`: credential form ready.
+- `empty`: phone + OTP login flow ready (step 1: phone; step 2: OTP).
 - `success`: web session established and route to `S-PART-01`.
 - `error`: auth failure with retry; mapped codes: `AUTH_UNAUTHENTICATED`, `VALIDATION_REQUIRED_FIELD_MISSING`, `TENANT_SCOPE_CONFLICT`, `TENANT_CONTEXT_MISSING`.
 - `permission_denied`: web entry restricted for context; mapped codes: `TENANT_SCOPE_FORBIDDEN`.

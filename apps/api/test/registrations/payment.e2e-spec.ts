@@ -66,6 +66,9 @@ function createServiceWithState(initial: RegistrationEntity | null): {
   };
 
   const requestContextService = {
+    resolveEffectiveTenantId(): string {
+      return "11111111-1111-4111-8111-111111111111";
+    },
     getTenantId(): string {
       return "11111111-1111-4111-8111-111111111111";
     },

@@ -1,5 +1,9 @@
+/**
+ * JWT / membership role strings used by RolesGuard.
+ * `PARTICIPANT` is the product term for tenant `member` in participant-only routes.
+ * Leader-style workspace access uses persisted role `owner` (or `admin` where allowed).
+ */
 export enum Role {
-  LEADER = "owner",
   PARTICIPANT = "member",
   OWNER = "owner",
   ADMIN = "admin",

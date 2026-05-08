@@ -2,7 +2,7 @@ Document-ID: MKT-DOC-PRODUCT-OVERVIEW-V2
 Version: v1.0
 Status: Active
 Owner: Product Documentation Team
-Last-Updated: 2026-04-27
+Last-Updated: 2026-05-05
 Language: English
 Canonical-Reference: docs/20-architecture/canonical_framework.md
 
@@ -77,6 +77,7 @@ The active core includes:
 - payment-proof-based tracking and verification
 - Telegram link governance by registration state
 - dashboard visibility for leader decisions
+- **workspace member directory** (`/users` in the web app, owners/admins): tenant roster visibility and **server-enforced** role updates where policy allows; **not** a full “team invite” product surface—inviting members from that UI is out of scope until implemented end-to-end
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## منبع حقیقت
 
-- **`apps/api/openapi.json`** — به‌ویژه `TourResponseDto`, `RegistrationResponseDto`, `UpdateTourDto.lifecycle_status`, و DTOهای session وب (`WebSessionResponseDto` و … در `packages/types/src/auth.ts`).
+- **`apps/api/openapi.json`** — به‌ویژه `TourResponseDto`, `RegistrationResponseDto`, `UpdateTourDto.lifecycle_status`, و وب احراز هویت با OTP (`PhoneSessionDto` / OpenAPI، `WebSessionResponseDto` و `PhoneOtpLoginRequest` در `packages/types/src/auth.ts`). مرجع متنی: **`docs/authentication-phone-otp.md`**.
 
 ## بستهٔ اشتراکی
 
@@ -18,7 +18,7 @@
 |------|-------------------------|
 | `tour.ts` | `TourResponseDto`, مقادیر enum چرخهٔ عمر تور (`DRAFT`, `OPEN`, …) |
 | `registration.ts` | `RegistrationResponseDto`, `RegistrationStatus`, `RegistrationPaymentStatus`, … |
-| `auth.ts` | مدل‌های credential/session وب مطابق schema |
+| `auth.ts` | مدل‌های phone+OTP و پاسخ session وب مطابق schema |
 
 اپ **`apps/web`** با `"@repo/types": "workspace:*"` این تایپ‌ها را import می‌کند.
 

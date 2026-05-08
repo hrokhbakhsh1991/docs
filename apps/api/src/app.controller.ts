@@ -1,28 +1,37 @@
 import {
   Controller,
   Get,
+  Inject,
+  Optional,
   ServiceUnavailableException
 } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import type { DataSource } from "typeorm";
 import { LoggerService } from "./common/logger/logger.service";
 import { RequestContextService } from "./common/request-context/request-context.service";
+import { RuntimeSchemaGuardService } from "./database/runtime-schema-guard.service";
 
 @Controller()
 export class AppController {
   constructor(
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
-    private readonly loggerService: LoggerService,
-    @InjectDataSource() private readonly dataSource: DataSource
+    @Inject(LoggerService) private readonly loggerService: LoggerService,
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @Optional() private readonly runtimeSchemaGuardService?: RuntimeSchemaGuardService
   ) {}
 
   @Get("health")
   health() {
     this.loggerService.info("health check requested");
 
+    const degraded = this.runtimeSchemaGuardService?.isDegraded() ?? false;
     return {
-      status: "ok",
-      requestId: this.requestContextService.getRequestId()
+      status: degraded ? "degraded" : "ok",
+      requestId: this.requestContextService.getRequestId(),
+      ...(degraded
+        ? { degraded_reasons: { missing_columns: this.runtimeSchemaGuardService?.getMissingColumns() ?? [] } }
+        : {})
     };
   }
 

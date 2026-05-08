@@ -13,10 +13,13 @@ import { TourEntity, TourLifecycleStatus } from "../modules/tours/entities/tour.
 type SeedOutput = {
   seededAt: string;
   tenantId: string;
+  /** Subdomain slug for Host `{tenantSubdomain}.{TENANT_ROOT_DOMAIN}` (e.g. demo.localhost). */
+  tenantSubdomain: string;
   tenantName: string;
   user: {
     id: string;
     email: string;
+    phone: string;
     password: string;
     role: string;
   };
@@ -44,6 +47,7 @@ async function run(): Promise<void> {
     // Local-dev deterministic leader account requested by product/dev workflows.
     const localTenantName = "demo-tenant";
     const localLeaderEmail = "leader@test.com";
+    const localLeaderPhone = "+15551234567";
     const localLeaderPassword = "demo123";
 
     let localTenant = await tenantRepo.findOne({
@@ -53,9 +57,13 @@ async function run(): Promise<void> {
       localTenant = await tenantRepo.save(
         tenantRepo.create({
           name: localTenantName,
-          description: "Local development tenant for deterministic login"
+          description: "Local development tenant for deterministic login",
+          subdomain: "demo"
         })
       );
+    } else if (!localTenant.subdomain) {
+      localTenant.subdomain = "demo";
+      await tenantRepo.save(localTenant);
     }
 
     let localLeader = await userRepo.findOne({
@@ -67,12 +75,23 @@ async function run(): Promise<void> {
       localLeader = await userRepo.save(
         userRepo.create({
           email: localLeaderEmail,
+          phone: localLeaderPhone,
           hashedPassword: localHashedPassword,
           fullName: "Local Demo Leader",
           isEmailVerified: true,
+          isPhoneVerified: true,
           telegramUserId: null
         })
       );
+    } else {
+      await userRepo.update(
+        { id: localLeader.id },
+        {
+          phone: localLeader.phone?.trim() || localLeaderPhone,
+          isPhoneVerified: true
+        }
+      );
+      localLeader = await userRepo.findOneOrFail({ where: { id: localLeader.id } });
     }
 
     const existingMembership = await membershipRepo.findOne({
@@ -93,22 +112,27 @@ async function run(): Promise<void> {
     }
 
     const tenantName = `Freeze QA Tenant ${new Date().toISOString()}`;
+    const freezeSlug = `freeze${Date.now().toString(36)}`;
     const seededTenant = await tenantRepo.save(
       tenantRepo.create({
         name: tenantName,
-        description: "Seeded tenant for backend freeze E2E validation"
+        description: "Seeded tenant for backend freeze E2E validation",
+        subdomain: freezeSlug
       })
     );
 
     const userEmail = `freeze.qa.${Date.now()}@example.com`;
+    const userPhone = `+1555${Date.now().toString().slice(-7)}`;
     const userPassword = "Passw0rd!";
     const hashedPassword = await argon2.hash(userPassword);
     const seededUser = await userRepo.save(
       userRepo.create({
         email: userEmail,
+        phone: userPhone,
         hashedPassword,
         fullName: "Freeze QA Leader",
         isEmailVerified: true,
+        isPhoneVerified: true,
         telegramUserId: null
       })
     );
@@ -152,10 +176,12 @@ async function run(): Promise<void> {
     const output: SeedOutput = {
       seededAt: new Date().toISOString(),
       tenantId: seededTenant.id,
+      tenantSubdomain: freezeSlug,
       tenantName,
       user: {
         id: seededUser.id,
         email: userEmail,
+        phone: userPhone,
         password: userPassword,
         role: Role.OWNER
       },

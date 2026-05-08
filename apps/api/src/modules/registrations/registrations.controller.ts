@@ -252,7 +252,7 @@ export class RegistrationsController {
     required: true,
     description: "Required idempotency key for create mutation."
   })
-  @Roles(Role.PARTICIPANT, Role.LEADER, Role.ADMIN)
+  @Roles(Role.PARTICIPANT, Role.OWNER, Role.ADMIN)
   @ApiOperation({
     summary: "Create registration (Participant or Leader)"
   })
@@ -291,7 +291,7 @@ export class RegistrationsController {
     required: true,
     description: "Required idempotency key for create mutation."
   })
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiOperation({
     summary: "Create booking (register for tour)",
     description:
@@ -324,7 +324,7 @@ export class RegistrationsController {
   @Get("bookings")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiOperation({ summary: "List current user bookings" })
   @ApiOkResponse({ type: RegistrationResponseDto, isArray: true })
   @ApiUnauthorizedResponse({
@@ -342,7 +342,7 @@ export class RegistrationsController {
   @Get("registrations/:registrationId")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @Roles(Role.PARTICIPANT, Role.LEADER, Role.ADMIN)
+  @Roles(Role.PARTICIPANT, Role.OWNER, Role.ADMIN)
   @ApiOperation({
     summary: "Get registration by id (Participant or Leader)"
   })
@@ -367,7 +367,7 @@ export class RegistrationsController {
     required: true,
     description: "Required idempotency key for status mutation."
   })
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   @ApiOperation({
     summary: "Update registration status (Leader only)"
   })
@@ -398,7 +398,7 @@ export class RegistrationsController {
     required: true,
     description: "Required idempotency key for payment mutation."
   })
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   @ApiOperation({
     summary: "Update registration payment status (Leader only)"
   })
@@ -448,7 +448,7 @@ export class RegistrationsController {
     required: true,
     description: "Required idempotency key for create mutation."
   })
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiOperation({
     summary: "Create waitlist item (Participant or Leader)"
   })
@@ -471,7 +471,7 @@ export class RegistrationsController {
 
   @Post("waitlist-items/:waitlistItemId/convert")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   @HttpCode(200)
   @ApiBearerAuth()
   @ApiHeader({
@@ -520,7 +520,7 @@ export class RegistrationsController {
 
   @Patch("waitlist-items/:waitlistItemId/cancel")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -567,7 +567,7 @@ export class RegistrationsController {
   }
 
   private requireTrustedTenantId(): string {
-    const tenantId = this.requestContextService.getTenantId();
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
       throw new BadRequestException({
         error: {

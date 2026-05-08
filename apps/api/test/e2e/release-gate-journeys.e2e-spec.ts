@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
+import * as argon2 from "argon2";
 import { randomUUID } from "node:crypto";
 import { after, before, beforeEach, test } from "node:test";
 import { INestApplication } from "@nestjs/common";
@@ -9,17 +10,25 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
+import { assignTestApiPort } from "./assign-test-api-port";
 import { createE2EApp } from "./bootstrap";
 import { resetTestDatabaseWithMigrations } from "./reset-test-database";
 import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
+import { tenantTestHost } from "./tenant-test-host";
+import { E2E_DEV_OTP } from "./web-session-otp.helper";
 import { ReconciliationService } from "../../src/modules/reconciliation/reconciliation.service";
+import { Role } from "../../src/modules/auth/roles.enum";
+import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
+import { UserEntity } from "../../src/modules/identity/entities/user.entity";
+import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const INTERNAL_API_KEY = "test-internal-key";
+const LEADER_PHONE = "+15558300001";
 
 let container: StartedPostgreSqlContainer;
 let app: INestApplication;
@@ -30,7 +39,7 @@ let leaderToken = "";
 
 function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.NODE_ENV = "test";
-  process.env.PORT = "3000";
+  assignTestApiPort();
   process.env.LOG_LEVEL = "error";
   process.env.DATABASE_HOST = db.getHost();
   process.env.DATABASE_PORT = String(db.getPort());
@@ -54,6 +63,37 @@ function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.PAYMENTS_TIMEOUT_ENABLED = "false";
   process.env.PAYMENTS_TIMEOUT_INTERVAL_MS = "60000";
   process.env.INTERNAL_API_KEY = INTERNAL_API_KEY;
+}
+
+async function seedReleaseGateTenant(ds: DataSource): Promise<void> {
+  const tenantRepo = ds.getRepository(TenantEntity);
+  const userRepo = ds.getRepository(UserEntity);
+  const membershipRepo = ds.getRepository(UserTenantEntity);
+  await tenantRepo.insert({
+    id: TENANT_ID,
+    name: "Release gate tenant",
+    description: "release-gate-journeys e2e",
+    subdomain: "release-gate"
+  });
+  const hashedPassword = await argon2.hash(`fixture-${randomUUID()}`);
+  const user = await userRepo.save(
+    userRepo.create({
+      email: "leader@example.com",
+      phone: LEADER_PHONE,
+      isPhoneVerified: true,
+      hashedPassword,
+      fullName: "Release Gate Leader",
+      isEmailVerified: true,
+      telegramUserId: null
+    })
+  );
+  await membershipRepo.save(
+    membershipRepo.create({
+      tenantId: TENANT_ID,
+      userId: user.id,
+      role: Role.OWNER
+    })
+  );
 }
 
 async function truncateAllTables(ds: DataSource): Promise<void> {
@@ -89,14 +129,11 @@ async function createTour(totalCapacity: number): Promise<string> {
 
 async function createLeaderSession(): Promise<string> {
   const response = await request(app.getHttpServer())
-    .post("/api/v2/auth/web/session")
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("release-gate"))
     .send({
-      entry_mode: "web",
-      credential: {
-        email: "leader@example.com",
-        password: "Passw0rd!"
-      },
-      asserted_tenant_id: TENANT_ID
+      phone: LEADER_PHONE,
+      otp: E2E_DEV_OTP
     });
   assert.equal(response.status, 200);
   return response.body.session_token as string;
@@ -141,6 +178,7 @@ beforeEach(async () => {
     return;
   }
   await truncateAllTables(dataSource);
+  await seedReleaseGateTenant(dataSource);
   leaderToken = await createLeaderSession();
 });
 

@@ -15,6 +15,7 @@ import {
   OutboxEventStatus
 } from "./entities/outbox-event.entity";
 import { OutboxMetricsService } from "./outbox-metrics.service";
+import { TenantDbContextService } from "../../database/tenant-db-context.service";
 
 /**
  * Transactional outbox dispatcher.
@@ -35,6 +36,8 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(OutboxMetricsService) private readonly metrics: OutboxMetricsService,
+    @Inject(TenantDbContextService)
+    private readonly tenantDbContext: TenantDbContextService,
     @Inject(SchedulerLockService) private readonly schedulerLock: SchedulerLockService,
     @Inject(SchedulerRuntimeMetricsService)
     private readonly schedulerMetrics: SchedulerRuntimeMetricsService
@@ -71,13 +74,13 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
     const maxRetry = this.configService.getOutboxMaxRetry();
     const batchSize = this.configService.getOutboxBatchSize();
 
-    await this.dataSource.transaction(async (manager) => {
+    const rows = await this.dataSource.transaction(async (manager) => {
       const pendingTotal = await manager.count(OutboxEventEntity, {
         where: { status: OutboxEventStatus.PENDING }
       });
       this.metrics.setPendingTotal(pendingTotal);
 
-      const rows = await manager
+      return manager
         .createQueryBuilder(OutboxEventEntity, "o")
         .where("o.status = :status", { status: OutboxEventStatus.PENDING })
         .andWhere("(o.nextRetryAt IS NULL OR o.nextRetryAt <= :now)", {
@@ -88,29 +91,46 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
         .setLock("pessimistic_write")
         .setOnLocked("skip_locked")
         .getMany();
+    });
 
-      for (const row of rows) {
-        try {
-          this.auditService.deliverFromOutbox(row.eventType, row.payload);
+    for (const row of rows) {
+      try {
+        const tenantId = row.tenantId.trim().toLowerCase();
+        await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
+          this.auditService.deliverFromOutbox({
+            tenant_id: tenantId,
+            event_id: row.id,
+            event_type: row.eventType,
+            payload: row.payload as Record<string, unknown>,
+            created_at: row.createdAt instanceof Date
+              ? row.createdAt.toISOString()
+              : String(row.createdAt)
+          });
           row.status = OutboxEventStatus.DELIVERED;
           row.processedAt = new Date();
           await manager.save(row);
-        } catch (error: unknown) {
-          row.retryCount += 1;
-          if (row.retryCount >= maxRetry) {
-            row.status = OutboxEventStatus.FAILED;
-            row.nextRetryAt = null;
+        });
+      } catch (error: unknown) {
+        await this.dataSource.transaction(async (manager) => {
+          const fresh = await manager.findOne(OutboxEventEntity, { where: { id: row.id } });
+          if (!fresh) {
+            return;
+          }
+          fresh.retryCount += 1;
+          if (fresh.retryCount >= maxRetry) {
+            fresh.status = OutboxEventStatus.FAILED;
+            fresh.nextRetryAt = null;
             this.metrics.incrementFailed();
-            this.logger.warn(`Outbox event ${row.id} reached max retry attempts`);
+            this.logger.warn(`Outbox event ${fresh.id} reached max retry attempts`);
           } else {
-            row.nextRetryAt = new Date(
-              Date.now() + 2 ** row.retryCount * 60 * 1000
+            fresh.nextRetryAt = new Date(
+              Date.now() + 2 ** fresh.retryCount * 60 * 1000
             );
           }
-          await manager.save(row);
-        }
+          await manager.save(fresh);
+        });
       }
-    });
+    }
 
     this.metrics.setProcessingLatencyMs(Date.now() - started);
     this.metrics.setLastBatchProcessedAt(new Date().toISOString());

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { Button, EmptyState, ErrorState, LoadingState, Modal } from "@tour/ui";
 
-import { ApiError } from "@/lib/api-client";
+import { resolveAuthUiErrorMessage } from "@/lib/errors/auth-ui-error-message";
 import {
   getAuthWorkspaces,
   type AuthWorkspaceListItem
@@ -29,15 +29,8 @@ export type WorkspacePickerModalProps = {
 
 const DEFAULT_TITLE = "Choose workspace";
 
-/** Mirrors `resolveSubmitErrorMessage` in login-form (ApiError-first). */
 function resolveWorkspaceFetchError(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Could not load workspaces.";
+  return resolveAuthUiErrorMessage(error);
 }
 
 export function WorkspacePickerModal({

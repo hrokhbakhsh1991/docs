@@ -36,6 +36,7 @@ test("domain + outbox rolls back together when transaction aborts", async () => 
       await dataSource.transaction(async (m) => {
         await m.save({ domain: "dummy" });
         await outbox.addEvent(m, {
+          tenantId: "66666666-6666-4666-8666-666666666666",
           aggregateType: "Registration",
           aggregateId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
           eventType: "registration.accepted",

@@ -5,11 +5,14 @@ import { API } from "../api-paths";
 export type AuthWorkspaceListItem = {
   tenant_id: string;
   tenant_name: string;
+  /** Empty when API returns no subdomain label yet. */
+  tenant_subdomain?: string;
   role: string;
 };
 
-export async function getAuthWorkspaces(): Promise<AuthWorkspaceListItem[]> {
+export async function getAuthWorkspaces(authToken?: string): Promise<AuthWorkspaceListItem[]> {
   return apiClient.get<AuthWorkspaceListItem[]>(API.auth.workspaces, {
     skipGlobalErrorToast: true,
+    authToken,
   });
 }

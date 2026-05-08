@@ -15,9 +15,13 @@ export enum OutboxEventStatus {
 @Entity("outbox_events")
 @Index("idx_outbox_events_status_created_at", ["status", "createdAt"])
 @Index("idx_outbox_events_aggregate", ["aggregateType", "aggregateId"])
+@Index("idx_outbox_events_tenant_created_at", ["tenantId", "createdAt"])
 export class OutboxEventEntity {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
+
+  @Column({ type: "uuid", name: "tenant_id" })
+  tenantId!: string;
 
   @Column({ type: "varchar", name: "aggregate_type", length: 64 })
   aggregateType!: string;

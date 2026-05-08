@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, IsUUID } from "class-validator";
+import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from "class-validator";
 
 /**
  * Response item for GET /api/v2/auth/workspaces (user_tenants + tenants projection).
@@ -22,10 +22,29 @@ export class AuthWorkspaceItemDto {
   tenant_name!: string;
 
   @ApiProperty({
+    description:
+      "Workspace hostname label (`tenants.subdomain`); empty when unset. Used for Host-aligned workspace switches.",
+    example: "acme",
+    required: false
+  })
+  @IsOptional()
+  @IsString()
+  tenant_subdomain?: string;
+
+  @ApiProperty({
     description: "Tenant-scoped role from user_tenants.role",
     example: "leader"
   })
   @IsString()
   @IsNotEmpty()
   role!: string;
+
+  @ApiProperty({
+    description: "Membership session version (JWT `sess_ver` must match for this tenant)",
+    example: 1
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  session_version?: number;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button, cn, useToast } from "@tour/ui";
 
@@ -17,6 +17,10 @@ import {
 } from "@/components/workspace";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ApiError } from "@/lib/api-client";
+import {
+  PENDING_WORKSPACE_SESSION_TENANT_KEY,
+  scheduleWorkspaceHostNavigationIfNeeded,
+} from "@/lib/workspace/workspace-host-navigation";
 import { createWorkspaceSession } from "@/lib/services/auth.service";
 
 type NavLink = { href: string; label: string };
@@ -43,6 +47,60 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const { showToast } = useToast();
   const { theme, setTheme } = useThemeSwitcher("light");
   const { isHydrated, user, setSession } = useAuth();
+  const pendingWorkspaceRanRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHydrated || !user?.tenantId || pendingWorkspaceRanRef.current) {
+      return;
+    }
+    let pending: string | null = null;
+    try {
+      pending = sessionStorage.getItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+    } catch {
+      return;
+    }
+    const trimmed = pending?.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (trimmed.toLowerCase() === user.tenantId.trim().toLowerCase()) {
+      try {
+        sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    pendingWorkspaceRanRef.current = true;
+    void (async () => {
+      try {
+        const session = await createWorkspaceSession(trimmed);
+        try {
+          sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+        } catch {
+          /* ignore */
+        }
+        await setSession(session);
+        pendingWorkspaceRanRef.current = false;
+        showToast({ type: "success", message: "Workspace switched" });
+        router.refresh();
+      } catch (error: unknown) {
+        pendingWorkspaceRanRef.current = false;
+        try {
+          sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+        } catch {
+          /* ignore */
+        }
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Failed to switch workspace.";
+        showToast({ type: "error", message });
+      }
+    })();
+  }, [isHydrated, user?.tenantId, router, setSession, showToast]);
 
   const navigation = useMemo(() => {
     if (!(isHydrated && isLeaderRole(user?.role))) {
@@ -58,6 +116,33 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     return leader;
   }, [isHydrated, user?.role]);
 
+  useEffect(() => {
+    // #region agent log
+    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "770f2e"
+      },
+      body: JSON.stringify({
+        sessionId: "770f2e",
+        runId: "initial",
+        hypothesisId: "H2",
+        location: "src/layouts/AppLayout/AppLayout.tsx:120",
+        message: "sidebar_navigation_computed",
+        data: {
+          pathname,
+          is_hydrated: isHydrated,
+          user_role: user?.role ?? null,
+          has_users_link: navigation.some((n) => n.href === "/users"),
+          nav_items: navigation.map((n) => n.href)
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
+  }, [navigation, isHydrated, user?.role, pathname]);
+
   const closeSidebar = () => setSidebarOpen(false);
 
   async function handleWorkspaceSelection(workspace: WorkspacePickerItem): Promise<void> {
@@ -66,8 +151,17 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     }
     setIsSwitchingWorkspace(true);
     try {
+      if (
+        user?.tenantId &&
+        scheduleWorkspaceHostNavigationIfNeeded({
+          workspace,
+          currentTenantId: user.tenantId,
+        })
+      ) {
+        return;
+      }
       const session = await createWorkspaceSession(workspace.tenant_id);
-      setSession(session);
+      await setSession(session);
       setWorkspaceModalOpen(false);
       router.refresh();
       showToast({ type: "success", message: "Workspace switched" });

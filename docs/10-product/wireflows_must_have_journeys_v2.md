@@ -42,7 +42,7 @@ Wire shapes: **`CreateRegistrationDto`** / **`CreateWaitlistItemDto`** (`apps/ap
 | `J-P-02` | `P-02` Track registration status | `S-PART-03` | `flows/registration` | `GET /api/v2/registrations/{registrationId}` | Covered |
 | `J-P-03` | `P-03` Follow payment status | `S-PART-03 -> S-PART-04` | `flows/cost_and_payment` | `GET /api/v2/registrations/{registrationId}` | Covered |
 | `J-I-01` | `I-01` Telegram entry | `S-ID-01 -> S-PART-01` | `flows/telegram_integration` | `POST /api/v2/auth/telegram/session` | Covered |
-| `J-I-02` | `I-02` Web entry without Telegram | `S-ID-02 -> S-PART-01` | `flows/telegram_integration` | `POST /api/v2/auth/web/session` | Covered |
+| `J-I-02` | `I-02` Web entry without Telegram | `S-ID-02 -> S-PART-01` | `flows/telegram_integration` | `POST /api/v2/auth/web/session/otp` | Covered |
 | `J-I-03` | `I-03` Connect Telegram post-onboarding | `S-ID-02 -> S-ID-03 -> S-PART-03` | `flows/telegram_integration` | `POST /api/v2/auth/link-telegram` | Covered |
 
 ### Current Implementation vs MVP Endpoints
@@ -223,15 +223,15 @@ Wire shapes: **`CreateRegistrationDto`** / **`CreateWaitlistItemDto`** (`apps/ap
 
 ### J-I-02 (I-02)
 - **Actors / entry mode:** Participant, web mode.
-- **Preconditions:** User has valid web credential flow.
+- **Preconditions:** User has workspace membership and a known **phone** on the `users` row (OTP policy satisfied).
 - **Ordered transitions:**
-  1. `S-ID-02` -> submit sign-in/sign-up.
+  1. `S-ID-02` -> step 1 **phone**, step 2 **OTP**, then submit session.
   2. `S-PART-01` -> load leader-scoped tour details.
-- **Trigger/action:** credential submission.
+- **Trigger/action:** **`POST /api/v2/auth/web/session/otp`** with `phone` + `otp`.
 - **Backend touchpoints:**
-  - `POST /api/v2/auth/web/session`.
+  - `POST /api/v2/auth/web/session/otp`.
   - primary errors: `AUTH_UNAUTHENTICATED`, `TENANT_CONTEXT_MISSING`, `TENANT_SCOPE_CONFLICT`.
-- **Alternate/error branches:** authentication failure remains on `S-ID-02`.
+- **Alternate/error branches:** authentication failure remains on `S-ID-02` (OTP step).
 - **Completion condition:** web session created in tenant scope.
 
 ### J-I-03 (I-03)
@@ -264,7 +264,7 @@ Wire shapes: **`CreateRegistrationDto`** / **`CreateWaitlistItemDto`** (`apps/ap
 | `J-P-02` | `GET /api/v2/registrations/{registrationId}` | `TENANT_SCOPE_FORBIDDEN` | `permission_denied` on `S-PART-03` | show tenant denial; stop protected action |
 | `J-P-03` | `GET /api/v2/registrations/{registrationId}` | `RESOURCE_NOT_FOUND` | `error` on `S-PART-04` | show not-found guidance; manual refresh |
 | `J-I-01` | `POST /api/v2/auth/telegram/session` | `TENANT_CONTEXT_MISSING` | `error` on `S-ID-01` | show context recovery guidance; retry after action |
-| `J-I-02` | `POST /api/v2/auth/web/session` | `AUTH_UNAUTHENTICATED` | `error` on `S-ID-02` | re-enter credentials and retry |
+| `J-I-02` | `POST /api/v2/auth/web/session/otp` | `AUTH_UNAUTHENTICATED` | `error` on `S-ID-02` | fix phone / OTP and retry |
 | `J-I-03` | `POST /api/v2/auth/link-telegram` | `STATE_TRANSITION_INVALID` | `error` on `S-ID-03` | resolve linking precondition and retry |
 | `J-I-03` | `POST /api/v2/auth/link-telegram` | `TENANT_SCOPE_CONFLICT` | `permission_denied` on `S-ID-03` | stop action and return to tenant-safe path |
 

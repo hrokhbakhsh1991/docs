@@ -45,7 +45,7 @@ export function syntheticBookingContactPhone(userId: string): string {
 function requireActorScope(ctx: RequestContextService): ActorScope {
   const role = roleTag(ctx.getRole());
   const userId = ctx.getUserId();
-  const tenantId = ctx.getTenantId();
+  const tenantId = ctx.resolveEffectiveTenantId();
   if (!role) {
     throw new ForbiddenException({
       error: {
@@ -106,7 +106,19 @@ export async function registrationWhereForActor(
 ): Promise<FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[]> {
   const actor = requireActorScope(ctx);
   if (isAdminRole(actor.role)) {
-    return { id: registrationId, deletedAt: IsNull() };
+    if (!actor.tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+    return {
+      id: registrationId,
+      tenantId: actor.tenantId,
+      deletedAt: IsNull()
+    };
   }
   if (isLeaderRole(actor.role)) {
     return {
@@ -151,7 +163,19 @@ export async function waitlistWhereForActor(
 ): Promise<FindOptionsWhere<WaitlistItemEntity>> {
   const actor = requireActorScope(ctx);
   if (isAdminRole(actor.role)) {
-    return { id: waitlistItemId, deletedAt: IsNull() };
+    if (!actor.tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
+    return {
+      id: waitlistItemId,
+      tenantId: actor.tenantId,
+      deletedAt: IsNull()
+    };
   }
   if (isLeaderRole(actor.role)) {
     return {
@@ -191,8 +215,20 @@ export async function findPaymentScopedForActor(
   let payment: PaymentEntity | null;
 
   if (isAdminRole(actor.role)) {
+    if (!actor.tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_CONTEXT_MISSING",
+          message: "Trusted tenant context required but absent"
+        }
+      });
+    }
     payment = await manager.findOne(PaymentEntity, {
-      where: { id: paymentId, deletedAt: IsNull() }
+      where: {
+        id: paymentId,
+        tenantId: actor.tenantId,
+        deletedAt: IsNull()
+      }
     });
   } else {
     if (!actor.tenantId) {

@@ -92,6 +92,7 @@ function createControllerFixture() {
     {} as never,
     idempotencyService as unknown as IdempotencyService,
     {
+      resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1",
       setTenantId: () => undefined
     } as never,

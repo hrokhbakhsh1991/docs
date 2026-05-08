@@ -7,11 +7,12 @@ import type {
 
 import { apiClient } from "../api-client";
 import { API } from "../api-paths";
+import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 import type { PaymentIntentResponse } from "./payments.service";
 import { coercePaymentIntentResponse } from "./payments.service";
 
 export function registrationsUseLiveApi(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_API_URL?.trim());
+  return isTourOpsApiConfigured();
 }
 
 function pickStr(o: Record<string, unknown>, ...keys: string[]): string {

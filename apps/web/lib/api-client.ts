@@ -1,13 +1,25 @@
 /**
- * Axios HTTP client for Tour-Ops API (`NEXT_PUBLIC_API_URL`).
- * Attaches Bearer token from cookie; clears session and redirects on 401 (except login flows).
+ * Axios HTTP client for Tour-Ops API (see `resolveTourOpsApiBaseUrl` / `tour-ops-api-origin.ts`).
+ *
+ * Auth transport (browser → Nest):
+ * - The HttpOnly `session` cookie is scoped to the **Next.js origin** only, so it is **not** sent to
+ *   a different API host/port even with `withCredentials: true`.
+ * - The same JWT is mirrored into `sessionStorage` by `persistSessionToken` (`lib/auth/session.ts`).
+ *   We attach it as `Authorization: Bearer <token>` so `AuthMiddleware` on Nest receives a token on
+ *   the first cross-origin request after login.
+ * - Route protection in `middleware.ts` still relies on the Next-only cookie; that stays unchanged.
+ *
+ * Clears session and redirects on 401 (except login flows).
  */
 
 import axios, { AxiosError, type AxiosInstance } from "axios";
 
-import { AUTH_SESSION_PATHS } from "./api-paths";
-import { clearAuthAndRedirectToLogin, getSessionToken } from "./auth/session";
+import { clearAuthAndRedirectToLogin } from "./auth/session";
+import { getStoredSessionToken } from "./auth/session";
 import { emitGlobalApiToast } from "./global-api-toast";
+import { resolveTourOpsApiBaseUrl } from "./tour-ops-api-origin";
+
+export { normalizeTourOpsApiOrigin } from "./tour-ops-api-origin";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -20,28 +32,8 @@ declare module "axios" {
   }
 }
 
-/**
- * Contract: env should be origin only (`http://localhost:3001`).
- * Trailing `/api/v2` is stripped so legacy configs never yield `/api/v2/api/v2/...` on the wire.
- */
-export function normalizeTourOpsApiOrigin(raw: string): string {
-  let s = raw.trim().replace(/\/$/, "");
-  const suffix = "/api/v2";
-  let stripped = false;
-  while (s.endsWith(suffix)) {
-    s = s.slice(0, -suffix.length).replace(/\/$/, "");
-    stripped = true;
-  }
-  if (stripped && process.env.NODE_ENV === "development") {
-    console.warn(
-      "[api-client] NEXT_PUBLIC_API_URL ended with /api/v2; using origin only. Prefer setting NEXT_PUBLIC_API_URL=http://localhost:3001 (no path)."
-    );
-  }
-  return s;
-}
-
-const API_BASE_URL = normalizeTourOpsApiOrigin(process.env.NEXT_PUBLIC_API_URL ?? "");
 const API_TIMEOUT_MS = 15_000;
+const DEFAULT_FETCH_INIT: RequestInit = { credentials: "include" };
 
 function assertNoDoubleApiV2InUrl(resolvedUrl: string): void {
   if (resolvedUrl.includes("/api/v2/api/v2")) {
@@ -69,6 +61,17 @@ export class ForbiddenError extends ApiError {
   constructor(message = "You are not allowed to perform this action.", data?: unknown) {
     super("FORBIDDEN", message, 403, data);
     this.name = "ForbiddenError";
+  }
+}
+
+export class NotFoundError extends ApiError {
+  constructor(
+    message: string = "The requested resource was not found.",
+    code = "RESOURCE_NOT_FOUND",
+    data?: unknown,
+  ) {
+    super(code, message, 404, data);
+    this.name = "NotFoundError";
   }
 }
 
@@ -108,6 +111,7 @@ function toApiError(error: unknown): ApiError {
     const ax = error as AxiosError<unknown>;
     const status = ax.response?.status;
     const data = ax.response?.data;
+    const requestUrl = String(ax.config?.url ?? "");
     const errCode = String(ax.code ?? "").toUpperCase();
     const msg = typeof ax.message === "string" ? ax.message.toLowerCase() : "";
     const isTimeout = errCode === "ECONNABORTED" || errCode === "ETIMEDOUT" || msg.includes("timeout");
@@ -120,10 +124,31 @@ function toApiError(error: unknown): ApiError {
     if (typeof status === "number") {
       const backendCode = extractBackendCode(data);
       if (status === 401) {
-        return new ApiError(backendCode ?? "UNAUTHORIZED", "Your session has expired. Please sign in again.", status, data);
+        const code = backendCode ?? "UNAUTHORIZED";
+        const isLoginPath = requestUrl.includes("/api/v2/auth/web/session/otp");
+        if (code === "AUTH_OTP_INVALID") {
+          return new ApiError(code, "Invalid OTP code.", status, data);
+        }
+        if (code === "AUTH_OTP_EXPIRED") {
+          return new ApiError(code, "OTP has expired. Request a new code and try again.", status, data);
+        }
+        if (code === "AUTH_PHONE_INVALID") {
+          return new ApiError(code, "Invalid phone number or OTP.", status, data);
+        }
+        if (isLoginPath && code === "AUTH_UNAUTHENTICATED") {
+          return new ApiError(code, "Invalid phone number or OTP.", status, data);
+        }
+        if (code === "AUTH_TOKEN_REVOKED") {
+          return new ApiError(code, "Your session has expired. Please sign in again.", status, data);
+        }
+        return new ApiError(code, "Your session has expired. Please sign in again.", status, data);
       }
       if (status === 403) {
         return new ForbiddenError("You are not allowed to perform this action.", data);
+      }
+      if (status === 404) {
+        const code = backendCode ?? "RESOURCE_NOT_FOUND";
+        return new NotFoundError(extractMessage(status, data), code, data);
       }
       if (status === 500) {
         return new ApiError(backendCode ?? "SERVER_ERROR", "Server error. Please try again later.", status, data);
@@ -141,10 +166,12 @@ function toApiError(error: unknown): ApiError {
 export type ApiRequestOptions = {
   /** Send Idempotency-Key; use `true` to generate a UUID per request */
   idempotencyKey?: string | boolean;
-  /** Set on auth session POST so a wrong-password 401 does not wipe cookies or redirect */
+  /** Set on auth session POST so invalid OTP 401 does not wipe cookies or redirect */
   skipAuthRedirectOn401?: boolean;
   /** Opt out of global 500 / connection-lost toasts for this call */
   skipGlobalErrorToast?: boolean;
+  /** Override: use this JWT instead of the token from session storage. */
+  authToken?: string;
 };
 
 function mergeRequestConfig(options?: ApiRequestOptions) {
@@ -152,6 +179,38 @@ function mergeRequestConfig(options?: ApiRequestOptions) {
   if (typeof options?.idempotencyKey === "string") {
     headers["Idempotency-Key"] = options.idempotencyKey;
   }
+  if (typeof options?.authToken === "string" && options.authToken.trim()) {
+    headers.Authorization = `Bearer ${options.authToken.trim()}`;
+  } else {
+    const storedToken = getStoredSessionToken();
+    if (storedToken) {
+      headers.Authorization = `Bearer ${storedToken}`;
+    }
+  }
+  // #region agent log
+  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
+    ...DEFAULT_FETCH_INIT,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "770f2e"
+    },
+    body: JSON.stringify({
+      sessionId: "770f2e",
+      runId: "initial",
+      hypothesisId: "H6",
+      location: "lib/api-client.ts:166",
+      message: "api_request_config_auth_state",
+      data: {
+        has_explicit_auth_token:
+          typeof options?.authToken === "string" && options.authToken.trim().length > 0,
+        has_authorization_header: typeof headers.Authorization === "string",
+        skip_auth_redirect_on_401: options?.skipAuthRedirectOn401 === true
+      },
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion
   return {
     headers,
     attachIdempotency: options?.idempotencyKey === true,
@@ -161,23 +220,19 @@ function mergeRequestConfig(options?: ApiRequestOptions) {
 }
 
 export const axiosApi: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL || undefined,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
   timeout: API_TIMEOUT_MS,
 });
 
 axiosApi.interceptors.request.use((config) => {
-  assertNoDoubleApiV2InUrl(axios.getUri(config));
-
-  const token =
-    typeof window !== "undefined" && typeof document !== "undefined" ? getSessionToken() : undefined;
-  const relativeUrl = config.url ?? "";
-  const isAuthSessionEntry = AUTH_SESSION_PATHS.some((p) => relativeUrl.includes(p));
-
-  if (token && !isAuthSessionEntry && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const base = resolveTourOpsApiBaseUrl().trim();
+  if (!base) {
+    return Promise.reject(new Error("NEXT_PUBLIC_API_URL is not configured."));
   }
+  config.baseURL = base;
+
+  assertNoDoubleApiV2InUrl(axios.getUri({ ...config, baseURL: base }));
 
   const method = (config.method ?? "get").toUpperCase();
   if (
@@ -230,8 +285,31 @@ axiosApi.interceptors.response.use(
     const status = error.response?.status;
 
     if (status === 401) {
+      // #region agent log
+      fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
+        ...DEFAULT_FETCH_INIT,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "770f2e"
+        },
+        body: JSON.stringify({
+          sessionId: "770f2e",
+          runId: "initial",
+          hypothesisId: "H6",
+          location: "lib/api-client.ts:239",
+          message: "api_response_401_interceptor",
+          data: {
+            url: cfg?.url ?? "",
+            method: (cfg?.method ?? "get").toUpperCase(),
+            skip_auth_redirect_on_401: cfg?.skipAuthRedirectOn401 === true
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion
       if (!cfg?.skipAuthRedirectOn401) {
-        clearAuthAndRedirectToLogin();
+        void clearAuthAndRedirectToLogin();
       }
       return Promise.reject(error);
     }
@@ -258,7 +336,7 @@ axiosApi.interceptors.response.use(
 
 export const apiClient = {
   async get<T>(path: string, options?: ApiRequestOptions): Promise<T> {
-    if (!API_BASE_URL) {
+    if (!resolveTourOpsApiBaseUrl().trim()) {
       throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
     }
     try {
@@ -270,7 +348,7 @@ export const apiClient = {
   },
 
   async post<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<T> {
-    if (!API_BASE_URL) {
+    if (!resolveTourOpsApiBaseUrl().trim()) {
       throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
     }
     try {
@@ -282,7 +360,7 @@ export const apiClient = {
   },
 
   async patch<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<T> {
-    if (!API_BASE_URL) {
+    if (!resolveTourOpsApiBaseUrl().trim()) {
       throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
     }
     try {
@@ -294,7 +372,7 @@ export const apiClient = {
   },
 
   async delete<T = void>(path: string, options?: ApiRequestOptions): Promise<T> {
-    if (!API_BASE_URL) {
+    if (!resolveTourOpsApiBaseUrl().trim()) {
       throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
     }
     try {

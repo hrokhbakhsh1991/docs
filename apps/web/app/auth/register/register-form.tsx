@@ -2,23 +2,34 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button, FormField, Input, useToast } from "@tour/ui";
+import { useAuth } from "@/lib/auth/auth-context";
 
 import authStyles from "../auth-forms.module.css";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
-  email: z.string().trim().min(1, "Email is required.").email("Enter a valid email address."),
-  password: z.string().min(1, "Password is required."),
+  email: z
+    .string()
+    .trim()
+    .email("Enter a valid email address.")
+    .optional()
+    .or(z.literal("")),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const { setSession } = useAuth();
+  const onboardingToken = searchParams.get("onboarding")?.trim() || "";
+  const inviteToken = searchParams.get("invite")?.trim() || "";
 
   const {
     register,
@@ -26,22 +37,68 @@ export function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "" },
   });
 
   async function onValid(data: RegisterFormValues) {
-    void data;
-    showToast({ type: "info", message: "Registration is currently unavailable." });
+    if (!onboardingToken) {
+      showToast({ type: "error", message: "Registration session is missing. Start from login again." });
+      return;
+    }
+    const response = await fetch("/api/auth/complete-registration", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        onboarding_token: onboardingToken,
+        full_name: data.name.trim(),
+        email: data.email?.trim() || undefined
+      })
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: { message?: string };
+      session_token?: string;
+      user_id?: string;
+      tenant_id?: string;
+    };
+    if (!response.ok || !payload.ok) {
+      showToast({ type: "error", message: payload.error?.message ?? "Registration completion failed." });
+      return;
+    }
+    if (
+      typeof payload.session_token === "string" &&
+      typeof payload.user_id === "string" &&
+      typeof payload.tenant_id === "string"
+    ) {
+      await setSession({
+        session_token: payload.session_token,
+        user_id: payload.user_id,
+        tenant_id: payload.tenant_id,
+        entry_mode: "web"
+      });
+    }
+    if (inviteToken) {
+      const inviteResponse = await fetch("/api/auth/accept-invite", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invite_token: inviteToken })
+      });
+      if (!inviteResponse.ok) {
+        showToast({ type: "error", message: "Registration completed, but invite acceptance failed." });
+      }
+    }
+    showToast({ type: "success", message: "Registration completed." });
+    void router.refresh();
+    router.push("/dashboard");
   }
 
   return (
     <>
       <h1 className={authStyles.heading}>Register</h1>
       <p className={authStyles.lead}>
-        Create account is currently unavailable in this workspace. Signed-in tour signup follows the canonical placement
-        API described in{" "}
-        <code style={{ fontSize: "0.95em" }}>docs/architecture/frontend_mvp_contract.md</code> (tour-scoped register and
-        waitlist endpoints).
+        Complete your profile to finish onboarding for this workspace.
       </p>
       <form className={authStyles.form} onSubmit={handleSubmit(onValid)} noValidate>
         <FormField label="Name" error={errors.name?.message}>
@@ -63,18 +120,8 @@ export function RegisterForm() {
             {...register("email")}
           />
         </FormField>
-        <FormField label="Password" error={errors.password?.message}>
-          <Input
-            type="password"
-            autoComplete="new-password"
-            placeholder="••••••••"
-            aria-invalid={errors.password ? true : undefined}
-            disabled={isSubmitting}
-            {...register("password")}
-          />
-        </FormField>
-        <Button type="submit" variant="primary" loading={isSubmitting}>
-          Register
+        <Button type="submit" variant="primary" loading={isSubmitting} disabled={!onboardingToken}>
+          Complete registration
         </Button>
       </form>
       <p className={authStyles.footerNote}>

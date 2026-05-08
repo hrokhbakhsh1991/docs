@@ -1,21 +1,29 @@
 import "reflect-metadata";
+import { shutdownTracing, startTracing } from "./tracing";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Logger, ShutdownSignal, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
+import express from "express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { GlobalExceptionFilter } from "./common/errors/global-exception.filter";
 import { LoggerService } from "./common/logger/logger.service";
+import { ObservabilityMetricsService } from "./common/observability/observability-metrics.service";
 import { AuthMiddleware } from "./common/middleware/auth.middleware";
 import { RequestContextMiddleware } from "./common/request-context/request-context.middleware";
 import { RequestContextService } from "./common/request-context/request-context.service";
+import { TenantRateLimitMiddleware } from "./common/tenant-abuse/tenant-rate-limit.middleware";
+import { TenantUsageMiddleware } from "./common/billing/tenant-usage.middleware";
 import { TenantMiddleware } from "./common/tenant/tenant.middleware";
+import { TenantResolverMiddleware } from "./common/tenant/tenant-resolver.middleware";
 import { ConfigService } from "./config/config.service";
 
 async function bootstrap() {
+  startTracing();
+
   if (process.env.NODE_ENV !== "production") {
     setInterval(() => {
       const m = process.memoryUsage();
@@ -25,7 +33,19 @@ async function bootstrap() {
     }, 5000);
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false
+  });
+
+  app.use(
+    express.json({
+      limit: "2mb",
+      verify: (req, _res, buf) => {
+        (req as express.Request & { rawBody?: Buffer }).rawBody = buf;
+      }
+    })
+  );
+  app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
   // Docker/Compose stop uses SIGTERM; handle it explicitly so we call app.close() then exit 0.
   // Other shutdown signals stay on Nest's enableShutdownHooks path (no duplicate listeners).
@@ -39,23 +59,28 @@ async function bootstrap() {
     )
   );
 
-  app.set("trust proxy", 1);
+  const configService = app.get(ConfigService);
+  app.set("trust proxy", configService.getTrustProxySetting());
   // Swagger UI serves inline scripts; default Helmet CSP blocks it.
   app.use(helmet({ contentSecurityPolicy: false }));
 
-  const configService = app.get(ConfigService);
-  const corsOrigins = configService.getCorsOrigins();
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : false,
+    origin: true,
     credentials: true
   });
 
   const requestContextMiddleware = app.get(RequestContextMiddleware);
   app.use(requestContextMiddleware.use.bind(requestContextMiddleware));
+  const tenantResolverMiddleware = app.get(TenantResolverMiddleware);
+  app.use(tenantResolverMiddleware.use.bind(tenantResolverMiddleware));
   const authMiddleware = app.get(AuthMiddleware);
   app.use(authMiddleware.use.bind(authMiddleware));
   const tenantMiddleware = app.get(TenantMiddleware);
   app.use(tenantMiddleware.use.bind(tenantMiddleware));
+  const tenantRateLimitMiddleware = app.get(TenantRateLimitMiddleware);
+  app.use(tenantRateLimitMiddleware.use.bind(tenantRateLimitMiddleware));
+  const tenantUsageMiddleware = app.get(TenantUsageMiddleware);
+  app.use(tenantUsageMiddleware.use.bind(tenantUsageMiddleware));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -65,8 +90,9 @@ async function bootstrap() {
   );
   const loggerService = app.get(LoggerService);
   const requestContextService = app.get(RequestContextService);
+  const observabilityMetrics = app.get(ObservabilityMetricsService);
   app.useGlobalFilters(
-    new GlobalExceptionFilter(loggerService, requestContextService)
+    new GlobalExceptionFilter(loggerService, requestContextService, observabilityMetrics)
   );
   const swaggerConfig = new DocumentBuilder()
     .setTitle("API v2 Documentation")
@@ -91,6 +117,7 @@ async function bootstrap() {
   await app.listen(configService.getPort());
 
   const gracefulShutdown = async (signal: NodeJS.Signals) => {
+    let exitCode = 0;
     try {
       await app.close();
     } catch (err) {
@@ -99,9 +126,11 @@ async function bootstrap() {
         err instanceof Error ? err.stack : String(err),
         "Bootstrap"
       );
-      process.exit(1);
+      exitCode = 1;
+    } finally {
+      await shutdownTracing();
     }
-    process.exit(0);
+    process.exit(exitCode);
   };
 
   process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));

@@ -10,7 +10,9 @@ import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer
 } from "@testcontainers/postgresql";
+import { assignTestApiPort } from "./e2e/assign-test-api-port";
 import { createE2EApp } from "./e2e/bootstrap";
+import { tenantTestHost } from "./e2e/tenant-test-host";
 import { resetTestDatabaseWithMigrations } from "./e2e/reset-test-database";
 import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
@@ -22,9 +24,11 @@ import { UserEntity } from "../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../src/modules/identity/entities/user-tenant.entity";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
+const OTHER_TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const INTERNAL_API_KEY = "test-internal-key";
 const LEADER_EMAIL = "leader@example.com";
-const LEADER_PASSWORD = "Passw0rd!";
+const LEADER_PHONE = "+15550000001";
+const E2E_INVITE_ACCEPT_TOKEN = "e2eaccept0123456789abcdef0123456789abcdef";
 
 const RETRYABILITY_VALUES = new Set([
   "NO_RETRY",
@@ -37,11 +41,12 @@ let container: StartedPostgreSqlContainer | undefined;
 let app: INestApplication | undefined;
 let e2eUnavailableReason: string | null = null;
 let sessionToken = "";
+let otherWorkspaceSessionToken = "";
 let createdTourId = "";
 
 function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.NODE_ENV = "test";
-  process.env.PORT = "3000";
+  assignTestApiPort();
   process.env.LOG_LEVEL = "error";
   process.env.DATABASE_HOST = db.getHost();
   process.env.DATABASE_PORT = String(db.getPort());
@@ -75,16 +80,45 @@ async function seedLeaderUser(ds: DataSource): Promise<void> {
   await tenantRepo.insert({
     id: TENANT_ID,
     name: "API E2E Tenant",
-    description: "Seeded for test/api.e2e-spec.ts"
+    description: "Seeded for test/api.e2e-spec.ts",
+    subdomain: "e2e-primary"
+  });
+  await tenantRepo.insert({
+    id: OTHER_TENANT_ID,
+    name: "API E2E Other Tenant",
+    description: "Seeded non-member tenant for workspace authz tests",
+    subdomain: "e2e-other"
   });
 
-  const hashedPassword = await argon2.hash(LEADER_PASSWORD);
+  const otherOwnerPassword = await argon2.hash("unused-other-owner-password");
+  const otherOwner = await userRepo.save(
+    userRepo.create({
+      email: "other-owner@example.com",
+      phone: "+15550000002",
+      hashedPassword: otherOwnerPassword,
+      fullName: "E2E Other Workspace Owner",
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      telegramUserId: null
+    })
+  );
+  await membershipRepo.save(
+    membershipRepo.create({
+      tenantId: OTHER_TENANT_ID,
+      userId: otherOwner.id,
+      role: Role.OWNER
+    })
+  );
+
+  const hashedPassword = await argon2.hash("unused-e2e-web-otp-password");
   const user = await userRepo.save(
     userRepo.create({
       email: LEADER_EMAIL,
+      phone: LEADER_PHONE,
       hashedPassword,
       fullName: "E2E Leader",
       isEmailVerified: true,
+      isPhoneVerified: true,
       telegramUserId: null
     })
   );
@@ -195,20 +229,56 @@ test("GET /health/readiness -> 200|503 (contract on failure)", async () => {
   }
 });
 
-test("POST /api/v2/auth/web/session -> 200 with JWT", async () => {
+test("POST /api/v2/auth/web/session/otp missing phone -> 400 envelope", async () => {
   if (e2eUnavailableReason || !app) {
     return;
   }
   const response = await request(app.getHttpServer())
-    .post("/api/v2/auth/web/session")
-    .send({
-      entry_mode: "web",
-      credential: {
-        email: LEADER_EMAIL,
-        password: LEADER_PASSWORD
-      },
-      asserted_tenant_id: TENANT_ID
-    });
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
+    .send({ otp: "1234" });
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.error.code, "VALIDATION_FAILED");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/web/session/otp missing otp -> 400 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
+    .send({ phone: LEADER_PHONE });
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.error.code, "VALIDATION_FAILED");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/web/session/otp wrong otp -> 401 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
+    .send({ phone: LEADER_PHONE, otp: "0000" });
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.error.code, "AUTH_UNAUTHENTICATED");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/web/session/otp correct otp -> 200 with JWT", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
+    .send({ phone: LEADER_PHONE, otp: "1234" });
 
   assert.equal(response.status, 200);
   assert.equal(typeof response.body.session_token, "string");
@@ -217,12 +287,178 @@ test("POST /api/v2/auth/web/session -> 200 with JWT", async () => {
   sessionToken = response.body.session_token;
 });
 
-test("POST /api/v2/auth/web/session invalid body -> 400 envelope", async () => {
+test("POST /api/v2/auth/web/session/otp normalizes phone formatting -> 200", async () => {
   if (e2eUnavailableReason || !app) {
     return;
   }
   const response = await request(app.getHttpServer())
-    .post("/api/v2/auth/web/session")
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
+    .send({ phone: " +1 (555) 000-0001 ", otp: "1234" });
+
+  assert.equal(response.status, 200);
+  assert.equal(typeof response.body.session_token, "string");
+  assert.equal(response.body.entry_mode, "web");
+});
+
+test("POST /api/v2/auth/workspace/session for tenant without membership -> 403 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/workspace/session")
+    .set("Authorization", `Bearer ${sessionToken}`)
+    .send({
+      tenant_id: OTHER_TENANT_ID
+    });
+
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error?.code, "TENANT_SCOPE_FORBIDDEN");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/invites/:token/accept without auth -> 401 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer()).post(
+    `/api/v2/invites/${E2E_INVITE_ACCEPT_TOKEN}/accept`
+  );
+  assert.equal(response.status, 401);
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/invites/:token/accept unknown token -> 404 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/invites/000000000000000000000000000000000000000000000000/accept")
+    .set("Authorization", `Bearer ${sessionToken}`);
+  assert.equal(response.status, 404);
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/invites/:token/accept valid invite -> 200, membership, invite removed", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const leader = await ds.getRepository(UserEntity).findOneOrFail({
+    where: { email: LEADER_EMAIL }
+  });
+  await ds.query(
+    `INSERT INTO workspace_invites (id, tenant_id, email, role, token, expires_at, created_by)
+     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid)`,
+    [randomUUID(), OTHER_TENANT_ID, LEADER_EMAIL.toLowerCase(), Role.MEMBER, E2E_INVITE_ACCEPT_TOKEN, leader.id]
+  );
+
+  const response = await request(app.getHttpServer())
+    .post(`/api/v2/invites/${E2E_INVITE_ACCEPT_TOKEN}/accept`)
+    .set("Authorization", `Bearer ${sessionToken}`);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.tenant_id, OTHER_TENANT_ID);
+  assert.equal(response.body.role, Role.MEMBER);
+
+  const membership = await ds.getRepository(UserTenantEntity).findOne({
+    where: {
+      userId: leader.id,
+      tenantId: OTHER_TENANT_ID
+    }
+  });
+  assert.equal(Boolean(membership), true);
+  assert.equal(membership?.deletedAt, null);
+
+  const remaining = await ds.query<{ count: string }[]>(
+    `SELECT COUNT(*)::text AS count FROM workspace_invites WHERE token = $1`,
+    [E2E_INVITE_ACCEPT_TOKEN]
+  );
+  assert.equal(remaining[0]?.count, "0");
+
+  const again = await request(app.getHttpServer())
+    .post(`/api/v2/invites/${E2E_INVITE_ACCEPT_TOKEN}/accept`)
+    .set("Authorization", `Bearer ${sessionToken}`);
+  assert.equal(again.status, 404);
+  assertErrorEnvelope(again);
+});
+
+test("POST /api/v2/auth/workspace/session for tenant after invite membership -> 200 with JWT", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/workspace/session")
+    .set("Host", tenantTestHost("e2e-other"))
+    .set("Authorization", `Bearer ${sessionToken}`)
+    .send({
+      tenant_id: OTHER_TENANT_ID
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(typeof response.body.session_token, "string");
+  assert.equal(response.body.tenant_id, OTHER_TENANT_ID);
+  otherWorkspaceSessionToken = response.body.session_token;
+});
+
+test("GET /api/v2/auth/workspaces with OTHER tenant member session -> 200", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .get("/api/v2/auth/workspaces")
+    .set("Authorization", `Bearer ${otherWorkspaceSessionToken}`);
+
+  assert.equal(response.status, 200);
+  assert.equal(Array.isArray(response.body), true);
+});
+
+test("PATCH /api/v2/users/:id with member-only OTHER tenant session -> 403", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .patch(`/api/v2/users/${randomUUID()}`)
+    .set("Authorization", `Bearer ${otherWorkspaceSessionToken}`)
+    .send({
+      role: "member"
+    });
+
+  assert.equal(response.status, 403);
+});
+
+test("POST /api/v2/auth/web/session/otp unknown tenant slug host -> 404 TENANT_HOST_UNKNOWN", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("no-such-tenant-slug"))
+    .send({ phone: LEADER_PHONE, otp: "1234" });
+  assert.equal(response.status, 404);
+  assert.equal(response.body.error?.code, "TENANT_HOST_UNKNOWN");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/web/session/otp apex Host -> 403 TENANT_CONTEXT_MISSING", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
+    .set("Host", "localhost")
+    .send({ phone: LEADER_PHONE, otp: "1234" });
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error?.code, "TENANT_CONTEXT_MISSING");
+  assertErrorEnvelope(response);
+});
+
+test("POST /api/v2/auth/web/session/otp invalid body -> 400 envelope", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .post("/api/v2/auth/web/session/otp")
     .send({});
   assert.equal(response.status, 400);
   assert.equal(response.body.error.code, "VALIDATION_FAILED");

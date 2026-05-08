@@ -178,6 +178,7 @@ function createServiceHarness() {
   };
 
   const requestContextService = {
+    resolveEffectiveTenantId: () => registration.tenantId,
     getTenantId: () => registration.tenantId,
     getUserId: () => "leader-1",
     getRole: () => "owner"

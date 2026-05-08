@@ -1,10 +1,9 @@
 /**
- * Local auth audit for POST /api/v2/auth/web/session (DB + Argon2 + optional HTTP).
+ * Local audit for phone + OTP web login (`POST /api/v2/auth/web/session/otp`).
  * Run from apps/api: pnpm auth:debug-audit
- * Loads env via Node --env-file=.env (see package.json script).
  */
 import * as argon2 from "argon2";
-import bcrypt from "bcrypt";
+import { randomUUID } from "node:crypto";
 import { DataSource, IsNull } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
 import { Role } from "../modules/auth/roles.enum";
@@ -13,15 +12,9 @@ import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
 
 const EMAIL = "leader@test.com";
-const PLAIN_PASSWORD = "demo123";
+const PHONE = "+15551234567";
+const STATIC_OTP = "1234";
 const TENANT_NAME = "demo-tenant";
-
-function maskHash(hash: string): string {
-  if (hash.length <= 16) {
-    return `${hash.slice(0, 4)}…`;
-  }
-  return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
-}
 
 function assertDbEnv(): void {
   const keys = ["DATABASE_HOST", "DATABASE_USER", "DATABASE_PASSWORD", "DATABASE_NAME"] as const;
@@ -36,65 +29,48 @@ function assertDbEnv(): void {
   }
 }
 
-/** Mirrors AuthService.createWebSession checks before JWT (throws with reason string). */
-async function simulateWebSessionValidation(params: {
+async function simulateOtpSessionChecks(params: {
   dataSource: DataSource;
-  email: string;
-  password: string;
-  assertedTenantId: string;
+  phone: string;
+  otp: string;
+  tenantId: string;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const email = params.email.trim().toLowerCase();
-  const userRepo = params.dataSource.getRepository(UserEntity);
-  const membershipRepo = params.dataSource.getRepository(UserTenantEntity);
-
-  const user = await userRepo.findOne({
-    where: { email, deletedAt: IsNull() }
-  });
+  if (process.env.NODE_ENV === "production") {
+    return { ok: false, reason: "static OTP checks disabled in production NODE_ENV" };
+  }
+  if (params.otp !== STATIC_OTP) {
+    return { ok: false, reason: "AUTH_UNAUTHENTICATED (OTP mismatch for non-production static policy)" };
+  }
+  const user = await params.dataSource
+    .getRepository(UserEntity)
+    .createQueryBuilder("u")
+    .where("u.deleted_at IS NULL")
+    .andWhere("phone_normalized(u.phone) = phone_normalized(:phone)", { phone: params.phone.trim() })
+    .getOne();
   if (!user) {
-    return { ok: false, reason: "AUTH_UNAUTHENTICATED (user not found)" };
+    return { ok: false, reason: "AUTH_UNAUTHENTICATED (no user for normalized phone)" };
   }
-
-  let validPassword = false;
-  try {
-    validPassword = await argon2.verify(user.hashedPassword, params.password);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { ok: false, reason: `argon2.verify failed: ${msg}` };
-  }
-  if (!validPassword) {
-    return { ok: false, reason: "AUTH_UNAUTHENTICATED (password mismatch)" };
-  }
-
-  const membership = await membershipRepo.findOne({
-    where: {
-      userId: user.id,
-      tenantId: params.assertedTenantId,
-      deletedAt: IsNull()
-    }
+  const membership = await params.dataSource.getRepository(UserTenantEntity).findOne({
+    where: { userId: user.id, tenantId: params.tenantId, deletedAt: IsNull() }
   });
   if (!membership) {
-    return { ok: false, reason: "TENANT_SCOPE_CONFLICT (no membership for asserted tenant)" };
+    return { ok: false, reason: "TENANT_SCOPE_FORBIDDEN (no membership for tenant)" };
   }
-
   return { ok: true };
 }
 
-async function httpLoginSession(baseUrl: string, tenantId: string): Promise<{
+async function httpLoginSession(baseUrl: string, hostHeader: string): Promise<{
   ok: boolean;
   status?: number;
   session_token?: string;
   error?: string;
 }> {
-  const url = `${baseUrl.replace(/\/$/, "")}/api/v2/auth/web/session`;
-  const body = {
-    entry_mode: "web" as const,
-    credential: { email: EMAIL, password: PLAIN_PASSWORD },
-    asserted_tenant_id: tenantId
-  };
+  const url = `${baseUrl.replace(/\/$/, "")}/api/v2/auth/web/session/otp`;
+  const body = { phone: PHONE, otp: STATIC_OTP };
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Host: hostHeader },
       body: JSON.stringify(body)
     });
     const text = await res.text();
@@ -107,11 +83,7 @@ async function httpLoginSession(baseUrl: string, tenantId: string): Promise<{
     if (!res.ok) {
       return { ok: false, status: res.status, error: text.slice(0, 500) };
     }
-    return {
-      ok: true,
-      status: res.status,
-      session_token: json.session_token
-    };
+    return { ok: true, status: res.status, session_token: json.session_token };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };
@@ -128,12 +100,6 @@ async function run(): Promise<void> {
 
   await dataSource.initialize();
 
-  let userExists = false;
-  let passwordMatchArgon = false;
-  let bcryptMatch = false;
-  let bcryptCompared = false;
-  let role: string | undefined;
-  let tenantIdForLogin: string | undefined;
   let loginStatus: "success" | "failure" = "failure";
 
   try {
@@ -148,39 +114,42 @@ async function run(): Promise<void> {
       tenant = await tenantRepo.save(
         tenantRepo.create({
           name: TENANT_NAME,
-          description: "Created by auth-debug-audit"
+          description: "Created by auth-debug-audit",
+          subdomain: "demo"
         })
       );
       console.log(`Created tenant name=${TENANT_NAME} id=${tenant.id}`);
+    } else if (!tenant.subdomain?.trim()) {
+      tenant.subdomain = "demo";
+      await tenantRepo.save(tenant);
     }
-    tenantIdForLogin = tenant.id;
 
     let user = await userRepo.findOne({
       where: { email: EMAIL, deletedAt: IsNull() }
     });
 
     if (!user) {
-      const hashedPassword = await argon2.hash(PLAIN_PASSWORD);
       user = await userRepo.save(
         userRepo.create({
           email: EMAIL,
-          hashedPassword,
+          phone: PHONE,
+          isPhoneVerified: true,
+          hashedPassword: await argon2.hash(`fixture-${randomUUID()}`),
           fullName: "Audit Leader",
           isEmailVerified: true,
           telegramUserId: null
         })
       );
       console.log(`Created user ${EMAIL} id=${user.id}`);
+    } else if (!user.phone?.trim()) {
+      user.phone = PHONE;
+      user.isPhoneVerified = true;
+      await userRepo.save(user);
+      console.log(`Set phone on user ${user.id}`);
     }
 
-    userExists = true;
-
     const membershipRow = await membershipRepo.findOne({
-      where: {
-        userId: user.id,
-        tenantId: tenant!.id,
-        deletedAt: IsNull()
-      }
+      where: { userId: user.id, tenantId: tenant!.id, deletedAt: IsNull() }
     });
     if (!membershipRow) {
       await membershipRepo.save(
@@ -193,54 +162,19 @@ async function run(): Promise<void> {
       console.log(`Created membership owner for ${EMAIL} on tenant ${tenant!.id}`);
     }
 
-    const membershipAfter = await membershipRepo.findOne({
-      where: {
-        userId: user.id,
-        tenantId: tenant!.id,
-        deletedAt: IsNull()
-      }
-    });
-    role = membershipAfter?.role;
-
     console.log("\n--- Database snapshot ---");
     console.log(`id: ${user.id}`);
     console.log(`email: ${user.email}`);
-    console.log(`role (membership): ${role ?? "(missing)"}`);
-    console.log(`tenantId (UUID for asserted_tenant_id): ${tenant!.id}`);
-    console.log(`tenant name: ${tenant!.name}`);
-    console.log(`passwordHash (masked): ${maskHash(user.hashedPassword)}`);
+    console.log(`phone: ${user.phone ?? "(unset)"}`);
+    console.log(`tenantId: ${tenant!.id}`);
+    console.log(`tenant subdomain: ${tenant!.subdomain ?? "(unset)"}`);
 
-    try {
-      passwordMatchArgon = await argon2.verify(user.hashedPassword, PLAIN_PASSWORD);
-    } catch (e) {
-      console.log(`argon2.verify threw: ${e instanceof Error ? e.message : String(e)}`);
-      passwordMatchArgon = false;
-    }
-    console.log(`argon2.verify("${PLAIN_PASSWORD}", storedHash): ${passwordMatchArgon}`);
-
-    bcryptCompared = true;
-    try {
-      bcryptMatch = await bcrypt.compare(PLAIN_PASSWORD, user.hashedPassword);
-    } catch {
-      bcryptMatch = false;
-    }
-    console.log(
-      `bcrypt.compare("${PLAIN_PASSWORD}", storedHash): ${bcryptMatch} (note: API uses Argon2; bcrypt here is diagnostic only)`
-    );
-
-    if (!passwordMatchArgon) {
-      user.hashedPassword = await argon2.hash(PLAIN_PASSWORD);
-      await userRepo.save(user);
-      passwordMatchArgon = await argon2.verify(user.hashedPassword, PLAIN_PASSWORD);
-      console.log(`Updated password hash with Argon2; verify now: ${passwordMatchArgon}`);
-    }
-
-    console.log("\n--- Internal validation (mirrors AuthService before JWT) ---");
-    const internal = await simulateWebSessionValidation({
+    console.log("\n--- Internal validation (OTP + membership, non-production) ---");
+    const internal = await simulateOtpSessionChecks({
       dataSource,
-      email: EMAIL,
-      password: PLAIN_PASSWORD,
-      assertedTenantId: tenant!.id
+      phone: PHONE,
+      otp: STATIC_OTP,
+      tenantId: tenant!.id
     });
     if (internal.ok) {
       console.log("Internal simulation: OK");
@@ -250,8 +184,12 @@ async function run(): Promise<void> {
 
     const port = process.env.PORT ?? "3000";
     const baseUrl = process.env.AUTH_AUDIT_API_BASE ?? `http://127.0.0.1:${port}`;
-    console.log(`\n--- HTTP POST ${baseUrl}/api/v2/auth/web/session ---`);
-    const http = await httpLoginSession(baseUrl, tenant!.id);
+    console.log(`\n--- HTTP POST ${baseUrl}/api/v2/auth/web/session/otp ---`);
+    const tenantRoot = process.env.TENANT_ROOT_DOMAIN?.trim() || "localhost";
+    const slug = tenant!.subdomain?.trim() || "demo";
+    const hostHeader =
+      tenantRoot === "localhost" ? `${slug}.localhost` : `${slug}.${tenantRoot}`;
+    const http = await httpLoginSession(baseUrl, hostHeader);
     if (http.ok && http.session_token) {
       console.log(`HTTP ${http.status}: OK, JWT length=${http.session_token.length}`);
       loginStatus = "success";
@@ -261,7 +199,7 @@ async function run(): Promise<void> {
       );
       loginStatus = "failure";
       if (http.error?.includes("ECONNREFUSED")) {
-        console.log("(API غیرفعال است؛ فقط منطق DB/argon2 بالا معتبر است.)");
+        console.log("(API unreachable; DB checks above are still valid.)");
       }
     }
   } finally {
@@ -269,14 +207,7 @@ async function run(): Promise<void> {
   }
 
   console.log("\n========================================");
-  console.log("AUTH DEBUG SUMMARY:");
-  console.log(`- user exists: ${userExists ? "yes" : "no"}`);
-  console.log(`- password match (argon2, canonical): ${passwordMatchArgon ? "yes" : "no"}`);
-  console.log(
-    `- password match (bcrypt diagnostic): ${bcryptCompared ? (bcryptMatch ? "yes" : "no") : "skipped"}`
-  );
-  console.log(`- role: ${role ?? "(unknown)"}`);
-  console.log(`- tenantId (UUID): ${tenantIdForLogin ?? "(unknown)"}`);
+  console.log("AUTH DEBUG SUMMARY (phone + OTP):");
   console.log(`- login status: ${loginStatus}`);
   console.log("========================================\n");
 }

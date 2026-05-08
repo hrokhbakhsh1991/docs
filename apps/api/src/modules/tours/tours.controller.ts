@@ -3,6 +3,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Get,
+  Inject,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -43,7 +44,8 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 export class ToursController {
   constructor(
-    private readonly toursService: ToursService,
+    @Inject(ToursService) private readonly toursService: ToursService,
+    @Inject(RegistrationsService)
     private readonly registrationsService: RegistrationsService
   ) {}
 
@@ -57,7 +59,7 @@ export class ToursController {
   @ApiOperation({ summary: "Create tour" })
   @ApiCreatedResponse({ type: TourResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours",
@@ -79,7 +81,7 @@ export class ToursController {
   @ApiOperation({ summary: "Update tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours/:tourId",
@@ -117,7 +119,7 @@ export class ToursController {
   })
   @ApiOkResponse({ type: PaginatedToursResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   async list(@Query() query: ListToursQueryDto): Promise<PaginatedToursResponseDto> {
     const { items, total, page, limit } = await this.toursService.listTours(query);
     return { items, total, page, limit };
@@ -128,7 +130,7 @@ export class ToursController {
   @ApiOperation({ summary: "List registrations for tour (Leader workspace)" })
   @ApiOkResponse({ type: RegistrationResponseDto, isArray: true })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   async listTourRegistrations(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
   ): Promise<RegistrationResponseDto[]> {
@@ -140,7 +142,7 @@ export class ToursController {
   @ApiOperation({ summary: "List waitlist items for tour (Leader workspace)" })
   @ApiOkResponse({ type: WaitlistItemResponseDto, isArray: true })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.LEADER)
+  @Roles(Role.OWNER)
   async listTourWaitlist(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
   ): Promise<WaitlistItemResponseDto[]> {
@@ -152,7 +154,7 @@ export class ToursController {
   @ApiOperation({ summary: "Get tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.LEADER)
+  @Roles(Role.PARTICIPANT, Role.OWNER)
   async getById(@Param("tourId") tourId: string): Promise<TourResponseDto> {
     return this.toursService.getTourById(tourId);
   }

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Header, UseGuards } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { ConfigService } from "../../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
@@ -7,6 +7,9 @@ import { PaymentsService } from "../payments/payments.service";
 import { ReconciliationService } from "../reconciliation/reconciliation.service";
 import { RegistrationsService } from "../registrations/registrations.service";
 import { InternalApiKeyGuard } from "./internal-api-key.guard";
+import { ObservabilityMetricsService } from "../../common/observability/observability-metrics.service";
+import { TenantAbuseMetricsService } from "../../common/tenant-abuse/tenant-abuse-metrics.service";
+import { TenantUsageMeteringService } from "../../common/billing/tenant-usage-metering.service";
 
 @ApiTags("Ops")
 @Controller("internal/ops")
@@ -18,7 +21,10 @@ export class OpsController {
     private readonly outboxMetrics: OutboxMetricsService,
     private readonly reconciliation: ReconciliationService,
     private readonly paymentsService: PaymentsService,
-    private readonly registrationsService: RegistrationsService
+    private readonly registrationsService: RegistrationsService,
+    private readonly observabilityMetrics: ObservabilityMetricsService,
+    private readonly tenantAbuseMetrics: TenantAbuseMetricsService,
+    private readonly tenantUsageMetering: TenantUsageMeteringService
   ) {}
 
   @Get("outbox")
@@ -42,6 +48,63 @@ export class OpsController {
       processingLatencyMs: s.outbox_processing_latency_ms,
       lastBatchProcessedAt: s.last_batch_processed_at
     };
+  }
+
+  @Get("metrics/prometheus")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({
+    summary:
+      "Prometheus-style counters (in-process; scrape per replica or aggregate via OTEL bridge)"
+  })
+  @Header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+  metricsPrometheus(): string {
+    return `${this.observabilityMetrics.getPrometheusText()}${this.tenantAbuseMetrics.getPrometheusText()}${this.tenantUsageMetering.getPrometheusText()}`;
+  }
+
+  @Get("metrics/security")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({
+    summary: "JSON snapshot of tenant/auth security counters (OpenTelemetry / custom exporter friendly)"
+  })
+  metricsSecurityJson(): ReturnType<ObservabilityMetricsService["getSecurityMetricsSnapshot"]> {
+    return this.observabilityMetrics.getSecurityMetricsSnapshot();
+  }
+
+  @Get("metrics/tenant-abuse")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({
+    summary:
+      "Tenant rate-limit counters + sampled per-tenant request volume (debug cardinality — not for Prometheus labels)"
+  })
+  metricsTenantAbuseJson(): ReturnType<TenantAbuseMetricsService["getSnapshot"]> {
+    return this.tenantAbuseMetrics.getSnapshot();
+  }
+
+  @Get("metrics/tenant-usage")
+  @ApiSecurity("internalApiKey")
+  @ApiHeader({
+    name: "X-Internal-Api-Key",
+    required: true,
+    description: "Internal API key required for ops endpoints."
+  })
+  @ApiOperation({ summary: "Tenant usage metering + quota enforcement counters" })
+  metricsTenantUsageJson(): ReturnType<TenantUsageMeteringService["getSnapshot"]> {
+    return this.tenantUsageMetering.getSnapshot();
   }
 
   @Get("health")

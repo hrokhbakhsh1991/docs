@@ -3,6 +3,8 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigService } from "../config/config.service";
 import { createTypeOrmOptions } from "./database.config";
 import { TenantSessionBindingService } from "./tenant-session-binding.service";
+import { TenantDbContextService } from "./tenant-db-context.service";
+import { RuntimeSchemaGuardService } from "./runtime-schema-guard.service";
 
 @Module({
   imports: [
@@ -12,7 +14,7 @@ import { TenantSessionBindingService } from "./tenant-session-binding.service";
         createTypeOrmOptions(configService)
     })
   ],
-  providers: [TenantSessionBindingService],
-  exports: [TypeOrmModule]
+  providers: [TenantSessionBindingService, TenantDbContextService, RuntimeSchemaGuardService],
+  exports: [TypeOrmModule, TenantDbContextService]
 })
 export class DatabaseModule {}

@@ -18,15 +18,15 @@ import {
   ApiHeader,
   ApiOkResponse,
   ApiOperation,
-  ApiSecurity,
   ApiInternalServerErrorResponse,
   ApiTags
 } from "@nestjs/swagger";
+import { SkipThrottle, Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { Role } from "../auth/roles.enum";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
-import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
+import { PaymentWebhookSignatureGuard } from "./payments-webhook-signature.guard";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
@@ -40,12 +40,15 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 @ApiTags("Payments")
 @Controller("api/v2")
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly requestContextService: RequestContextService
+  ) {}
 
   @Post("payments/intent")
   @UseGuards(JwtAuthGuard, RolesGuard)
   /** Members (participants) create intents for registrations in their tenant; leaders/admins retain access. */
-  @Roles(Role.LEADER, Role.ADMIN, Role.MEMBER)
+  @Roles(Role.OWNER, Role.ADMIN, Role.MEMBER)
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",
@@ -75,7 +78,8 @@ export class PaymentsController {
   @ApiOperation({ summary: "Admin list of recent payments" })
   @ApiOkResponse({ type: PaymentResponseDto, isArray: true })
   async listPayments(): Promise<PaymentResponseDto[]> {
-    return this.paymentsService.listPayments();
+    const tenantContext = this.requestContextService.assertTenantContext();
+    return this.paymentsService.listPayments(tenantContext.tenantId);
   }
 
   @Get("admin/payments/:id")
@@ -117,8 +121,10 @@ export class PaymentsController {
 }
 
 @ApiTags("Payments")
+/** Webhook uses only `payments-webhook` bucket; do not consume `public-registration` (shared IP limit). */
+@SkipThrottle({ "public-registration": true })
 @Controller("internal/payments")
-@UseGuards(InternalApiKeyGuard)
+@UseGuards(ThrottlerGuard, PaymentWebhookSignatureGuard)
 export class PaymentsWebhookController {
   constructor(
     private readonly paymentsService: PaymentsService,
@@ -128,11 +134,18 @@ export class PaymentsWebhookController {
 
   @Post("webhook")
   @HttpCode(200)
-  @ApiSecurity("internalApiKey")
+  @Throttle({
+    "payments-webhook": { limit: 500, ttl: 60_000, blockDuration: 1 }
+  })
   @ApiHeader({
-    name: "X-Internal-Api-Key",
+    name: "X-Payments-Webhook-Timestamp",
     required: true,
-    description: "Internal API key required for webhook ingestion."
+    description: "Unix timestamp (seconds) used in HMAC; must be within ±5 minutes."
+  })
+  @ApiHeader({
+    name: "X-Payments-Webhook-Signature",
+    required: true,
+    description: "Lowercase hex HMAC-SHA256 of `${timestamp}.${rawBody}` using PAYMENTS_WEBHOOK_SIGNING_SECRET."
   })
   @ApiOperation({
     summary:

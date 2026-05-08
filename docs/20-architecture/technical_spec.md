@@ -35,7 +35,7 @@ Deliver a leader-centric, dual-mode operational platform with strict tenant isol
 - Session must carry tenant and user context.
 
 ## 3.2 Web Mode
-- Independent web login/onboarding supported.
+- Independent web login/onboarding supported: **phone number + OTP** (`POST /api/v2/auth/web/session/otp`), tenant from **subdomain**; see **`docs/authentication-phone-otp.md`**.
 - `Connect Telegram` must link identities post-onboarding.
 
 ---

@@ -12,6 +12,7 @@ import {
 function buildPendingRow(id: string): OutboxEventEntity {
   const row = new OutboxEventEntity();
   row.id = id;
+  row.tenantId = "44444444-4444-4444-8444-444444444444";
   row.aggregateType = "Registration";
   row.aggregateId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   row.eventType = "registration.accepted";
@@ -53,6 +54,9 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     async count() {
       return 1;
     },
+    async query() {
+      return [];
+    },
     createQueryBuilder() {
       return qb;
     },
@@ -93,6 +97,10 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     auditService as never,
     configService as never,
     new OutboxMetricsService(),
+    {
+      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<void>) =>
+        fn(manager)
+    } as never,
     {
       runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
         await onLocked();

@@ -45,17 +45,18 @@
         }
       }
     },
-    "/api/v2/auth/web/session": {
+    "/api/v2/auth/web/session/otp": {
       "post": {
-        "operationId": "AuthController_webSession",
-        "summary": "Create web session token",
+        "operationId": "AuthController_webSessionOtp",
+        "summary": "Create web session token using phone OTP",
+        "description": "Tenant is resolved only from the HTTP `Host` (and `x-forwarded-host` when trusted): `{slug}.{TENANT_ROOT_DOMAIN}`. This endpoint is introduced for parallel phone+OTP auth migration.",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WebSessionDto"
+                "$ref": "#/components/schemas/PhoneSessionDto"
               }
             }
           }
@@ -73,6 +74,87 @@
           },
           "401": {
             "description": "Invalid credentials"
+          },
+          "403": {
+            "description": "TENANT_CONTEXT_MISSING, TENANT_SCOPE_FORBIDDEN (no membership), or invalid credentials"
+          },
+          "404": {
+            "description": "TENANT_HOST_UNKNOWN — slug has no matching tenant row"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v2/auth/web/phone/preflight": {
+      "post": {
+        "operationId": "AuthController_preflightPhone",
+        "summary": "Classify phone intent for auth onboarding flow",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhonePreflightDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v2/auth/web/otp/request": {
+      "post": {
+        "operationId": "AuthController_requestOtp",
+        "summary": "Request OTP for phone auth flow",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v2/auth/web/registration/complete": {
+      "post": {
+        "operationId": "AuthController_completeRegistration",
+        "summary": "Complete minimal registration after phone OTP verification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRegistrationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
           }
         },
         "tags": [
@@ -84,6 +166,7 @@
       "post": {
         "operationId": "AuthController_telegramSession",
         "summary": "Create Telegram session token",
+        "description": "Same Host-based tenant resolution as web login. Telegram proof is in `telegram_init_payload`; tenant scope comes only from `request.tenant`.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -108,6 +191,12 @@
           },
           "401": {
             "description": "Invalid Telegram init payload"
+          },
+          "403": {
+            "description": "TENANT_CONTEXT_MISSING or TENANT_SCOPE_FORBIDDEN"
+          },
+          "404": {
+            "description": "TENANT_HOST_UNKNOWN"
           }
         },
         "tags": [
@@ -119,7 +208,7 @@
       "get": {
         "operationId": "AuthController_listWorkspaces",
         "summary": "List workspaces for the authenticated user",
-        "description": "Returns tenant memberships from user_tenants joined to tenants (non-deleted). Reads via SECURITY DEFINER function list_user_workspaces_for_auth so rows are not hidden by tenant RLS.",
+        "description": "Returns tenant memberships from user_tenants joined to tenants (non-deleted). Uses a tightly scoped read path with explicit user-bound constraints.",
         "parameters": [],
         "responses": {
           "200": {
@@ -147,13 +236,55 @@
             "bearer": []
           }
         ]
+      },
+      "post": {
+        "operationId": "AuthController_createWorkspace",
+        "summary": "Create workspace",
+        "description": "Creates a new workspace tenant with the provided name/subdomain and assigns the authenticated user as owner.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace created and owner membership assigned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthWorkspaceItemDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant context or membership constraints failed"
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/auth/workspace/session": {
       "post": {
         "operationId": "AuthController_workspaceSession",
         "summary": "Issue session JWT for a workspace tenant",
-        "description": "Uses JWT `sub` as the user, verifies membership via user_tenants (definer function), and returns a new access token scoped to the requested tenant_id and role.",
+        "description": "Uses JWT `sub` as the user, verifies membership via user_tenants, and returns a new access token scoped to the requested tenant_id and role. When the HTTP Host resolves to a workspace tenant, `tenant_id` must match that host tenant.",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -244,20 +375,116 @@
       }
     },
     "/api/v2/users": {
+      "post": {
+        "operationId": "UsersController_createUserUnsupported",
+        "summary": "Create user (unsupported)",
+        "description": "Explicitly unsupported in this API. User lifecycle is managed through registration/invite/auth flows.",
+        "parameters": [],
+        "responses": {
+          "405": {
+            "description": "Direct user creation is not supported"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
       "get": {
         "operationId": "UsersController_listUsers",
         "summary": "List tenant users",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size for cursor pagination",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from previous response `nextCursor`",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search across full name and email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "description": "Filter by tenant-scoped role",
+            "schema": {
+              "enum": [
+                "owner",
+                "admin",
+                "member",
+                "viewer"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by membership lifecycle status",
+            "schema": {
+              "enum": [
+                "INVITED",
+                "ACTIVE",
+                "SUSPENDED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastLoginFrom",
+            "required": false,
+            "in": "query",
+            "description": "Include users with last login at or after this timestamp (inclusive).",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastLoginTo",
+            "required": false,
+            "in": "query",
+            "description": "Include users with last login at or before this timestamp (inclusive).",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserResponseDto"
-                  }
+                  "$ref": "#/components/schemas/ListUsersResponseDto"
                 }
               }
             }
@@ -279,10 +506,200 @@
         ]
       }
     },
+    "/api/v2/users/invite": {
+      "post": {
+        "operationId": "UsersController_inviteUser",
+        "summary": "Invite user into tenant workspace",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteUserResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}/resend-invite": {
+      "post": {
+        "operationId": "UsersController_resendInvite",
+        "summary": "Resend pending invite for invited membership",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendInviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendInviteResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}/role-history": {
+      "get": {
+        "operationId": "UsersController_getUserRoleHistory",
+        "summary": "List role change history for a tenant user",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRoleHistoryItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/users/{id}": {
+      "get": {
+        "operationId": "UsersController_getUserById",
+        "summary": "Get tenant-scoped user by id",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
       "patch": {
         "operationId": "UsersController_updateUserRole",
         "summary": "Change user role in tenant scope",
+        "description": "General role update: cannot change your own role, cannot assign or modify `owner` here, and actor must outrank target and new role. Success bumps `session_version` on the target membership so older JWTs for that user+tenant fail with `AUTH_TOKEN_REVOKED`. RBAC denial codes: RBAC_SELF_ROLE_CHANGE_FORBIDDEN, RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN, RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN, RBAC_INSUFFICIENT_ROLE_PRIVILEGE.",
         "parameters": [
           {
             "name": "id",
@@ -318,6 +735,165 @@
             "description": "Authentication required"
           },
           "403": {
+            "description": "Insufficient JWT role, tenant context, or workspace RBAC policy (see operation description for codes)"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteUserUnsupported",
+        "summary": "Delete user (unsupported)",
+        "description": "Explicitly unsupported in this API. Membership and ownership flows are controlled separately.",
+        "parameters": [],
+        "responses": {
+          "405": {
+            "description": "Direct user deletion is not supported"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/bulk-role": {
+      "patch": {
+        "operationId": "UsersController_bulkUpdateUserRole",
+        "summary": "Bulk change user roles in tenant scope",
+        "description": "Bulk general role update under tenant scope. Each target is evaluated with the same PATCH RBAC policy (no self change, no owner modification/assignment, actor must outrank target and new role). Runs in a single transaction and bumps `session_version` only for memberships whose role actually changes.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkUpdateUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient JWT role, tenant context, or workspace RBAC policy (see operation description for policy constraints)"
+          },
+          "404": {
+            "description": "One or more user memberships not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}/suspend": {
+      "patch": {
+        "operationId": "UsersController_suspendUser",
+        "summary": "Suspend tenant-scoped membership for a user",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or policy violation (self/owner suspension forbidden)"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}/reactivate": {
+      "patch": {
+        "operationId": "UsersController_reactivateUser",
+        "summary": "Reactivate suspended tenant-scoped membership for a user",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
             "description": "Insufficient role or tenant context"
           },
           "404": {
@@ -326,6 +902,226 @@
         },
         "tags": [
           "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/{id}/remove": {
+      "delete": {
+        "operationId": "UsersController_removeUser",
+        "summary": "Remove user membership from current tenant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User membership removed"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or policy violation (self/owner removal forbidden)"
+          },
+          "404": {
+            "description": "User membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/invites/accept": {
+      "post": {
+        "operationId": "InvitesController_acceptInvite",
+        "summary": "Accept workspace invite by token",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invite accepted and membership activated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Invite email does not match authenticated user"
+          },
+          "404": {
+            "description": "Invalid or unknown invite token"
+          }
+        },
+        "tags": [
+          "Invites"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/ownership-transfer": {
+      "post": {
+        "operationId": "WorkspaceOwnershipController_transferOwnership",
+        "summary": "Transfer workspace ownership to another active member.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferWorkspaceOwnershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferWorkspaceOwnershipResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Identity"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/audit-events/export": {
+      "get": {
+        "operationId": "TenantAuditEventsController_exportTenantAudit",
+        "summary": "Export tenant-scoped audit event stream",
+        "description": "Append-only compliance audit (`tenant_audit_events`) for the workspace. Requires JWT tenant to match `:tenantId`. Owner/admin only.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound (ISO-8601)",
+            "schema": {
+              "example": "2026-01-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound (ISO-8601)",
+            "schema": {
+              "example": "2026-12-31T23:59:59.999Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "csv",
+              "enum": [
+                "csv",
+                "ndjson",
+                "json"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Hard cap 50000",
+            "schema": {
+              "maximum": 50000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV, NDJSON, or JSON array depending on `format`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or insufficient role"
+          }
+        },
+        "tags": [
+          "Compliance"
         ],
         "security": [
           {
@@ -590,6 +1386,39 @@
         },
         "tags": [
           "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/dashboard/leader-workspace": {
+      "get": {
+        "operationId": "DashboardAggregateController_getLeaderWorkspaceAggregate",
+        "summary": "Leader workspace aggregate",
+        "description": "Returns first-page tenant tours for dashboard aggregates.",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max tours returned for aggregate payload",
+            "schema": {
+              "default": 200,
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboard"
         ],
         "security": [
           {
@@ -1608,12 +2437,21 @@
     "/internal/payments/webhook": {
       "post": {
         "operationId": "PaymentsWebhookController_webhook",
-        "summary": "Internal payment provider webhook (idempotent, always returns 200 even on processing errors)",
+        "summary": "Internal payment provider webhook (200 on processed/unknown payment; non-200 on binding or processing failure)",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
+            "name": "X-Payments-Webhook-Signature",
             "in": "header",
-            "description": "Internal API key required for webhook ingestion.",
+            "description": "Lowercase hex HMAC-SHA256 of `${timestamp}.${rawBody}` using PAYMENTS_WEBHOOK_SIGNING_SECRET.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Payments-Webhook-Timestamp",
+            "in": "header",
+            "description": "Unix timestamp (seconds) used in HMAC; must be within ±5 minutes.",
             "required": true,
             "schema": {
               "type": "string"
@@ -1632,7 +2470,7 @@
         },
         "responses": {
           "200": {
-            "description": "Always returns 200 to provider; failures are logged/metriced internally.",
+            "description": "Returns 200 for processed/deduplicated/unknown payment events.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1642,10 +2480,41 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Tenant binding failed for webhook payload/payment scope."
+          },
+          "500": {
+            "description": "Webhook processing failed."
           }
         },
         "tags": [
           "Payments"
+        ]
+      }
+    },
+    "/internal/ops/outbox": {
+      "get": {
+        "operationId": "OpsController_outboxSnapshot",
+        "summary": "Internal outbox metrics snapshot",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
         ],
         "security": [
           {
@@ -1654,10 +2523,100 @@
         ]
       }
     },
-    "/internal/ops/outbox": {
+    "/internal/ops/metrics/prometheus": {
       "get": {
-        "operationId": "OpsController_outboxSnapshot",
-        "summary": "Internal outbox metrics snapshot",
+        "operationId": "OpsController_metricsPrometheus",
+        "summary": "Prometheus-style counters (in-process; scrape per replica or aggregate via OTEL bridge)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/security": {
+      "get": {
+        "operationId": "OpsController_metricsSecurityJson",
+        "summary": "JSON snapshot of tenant/auth security counters (OpenTelemetry / custom exporter friendly)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/tenant-abuse": {
+      "get": {
+        "operationId": "OpsController_metricsTenantAbuseJson",
+        "summary": "Tenant rate-limit counters + sampled per-tenant request volume (debug cardinality — not for Prometheus labels)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/tenant-usage": {
+      "get": {
+        "operationId": "OpsController_metricsTenantUsageJson",
+        "summary": "Tenant usage metering + quota enforcement counters",
         "parameters": [
           {
             "name": "X-Internal-Api-Key",
@@ -1737,47 +2696,28 @@
       }
     },
     "schemas": {
-      "WebCredentialDto": {
+      "PhoneSessionDto": {
         "type": "object",
         "properties": {
-          "email": {
+          "phone": {
             "type": "string",
-            "example": "leader@example.com",
-            "description": "User email address for web login"
+            "example": "+989121234567",
+            "description": "Phone number used for OTP login (digits and optional leading +; spaces stripped)"
           },
-          "password": {
+          "otp": {
             "type": "string",
-            "example": "Passw0rd!",
-            "description": "Plain text password for authentication"
+            "example": "1234",
+            "description": "One-time password code"
+          },
+          "invite_token": {
+            "type": "string",
+            "example": "4f2e4f27d321...",
+            "description": "Optional workspace invite token for invite onboarding continuity"
           }
         },
         "required": [
-          "email",
-          "password"
-        ]
-      },
-      "WebSessionDto": {
-        "type": "object",
-        "properties": {
-          "entry_mode": {
-            "type": "string",
-            "example": "web",
-            "enum": [
-              "web"
-            ]
-          },
-          "credential": {
-            "$ref": "#/components/schemas/WebCredentialDto"
-          },
-          "asserted_tenant_id": {
-            "type": "string",
-            "example": "11111111-1111-4111-8111-111111111111",
-            "description": "Optional tenant assertion from trusted client context"
-          }
-        },
-        "required": [
-          "entry_mode",
-          "credential"
+          "phone",
+          "otp"
         ]
       },
       "WebSessionResponseDto": {
@@ -1797,6 +2737,14 @@
             "enum": [
               "web"
             ]
+          },
+          "requires_registration": {
+            "type": "boolean",
+            "description": "When true, OTP verification succeeded but account completion is required before issuing a session"
+          },
+          "onboarding_token": {
+            "type": "string",
+            "description": "Short-lived onboarding token used by registration completion endpoint"
           }
         },
         "required": [
@@ -1804,6 +2752,57 @@
           "user_id",
           "tenant_id",
           "entry_mode"
+        ]
+      },
+      "PhonePreflightDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+989121234567",
+            "description": "Phone number to classify for auth onboarding flow"
+          },
+          "invite_token": {
+            "type": "string",
+            "example": "4f2e4f27d321...",
+            "description": "Optional workspace invite token if user arrived through invite link"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "OtpRequestDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+989121234567"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "CompleteRegistrationDto": {
+        "type": "object",
+        "properties": {
+          "onboarding_token": {
+            "type": "string",
+            "description": "Short-lived onboarding token returned after OTP verification for unknown phone"
+          },
+          "full_name": {
+            "type": "string",
+            "example": "Jane Operator"
+          },
+          "email": {
+            "type": "string",
+            "example": "jane@example.com"
+          }
+        },
+        "required": [
+          "onboarding_token",
+          "full_name"
         ]
       },
       "TelegramSessionDto": {
@@ -1820,10 +2819,6 @@
             "type": "string",
             "example": "query_id=AAHdF6IQAAAAAN0XohDhrOrc&user=%7B%22id%22%3A123456789%7D&auth_date=1714000000&hash=abcdef",
             "description": "Telegram init data payload from Telegram WebApp"
-          },
-          "asserted_tenant_id": {
-            "type": "string",
-            "example": "11111111-1111-4111-8111-111111111111"
           }
         },
         "required": [
@@ -1871,16 +2866,46 @@
             "description": "Display name from tenants.name",
             "example": "Mountain Collective"
           },
+          "tenant_subdomain": {
+            "type": "string",
+            "description": "Workspace hostname label (`tenants.subdomain`); empty when unset. Used for Host-aligned workspace switches.",
+            "example": "acme"
+          },
           "role": {
             "type": "string",
             "description": "Tenant-scoped role from user_tenants.role",
             "example": "leader"
+          },
+          "session_version": {
+            "type": "number",
+            "description": "Membership session version (JWT `sess_ver` must match for this tenant)",
+            "example": 1
           }
         },
         "required": [
           "tenant_id",
           "tenant_name",
-          "role"
+          "role",
+          "session_version"
+        ]
+      },
+      "CreateWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Workspace display name",
+            "example": "Denali"
+          },
+          "subdomain": {
+            "type": "string",
+            "description": "Workspace hostname label (slug/subdomain)",
+            "example": "denali"
+          }
+        },
+        "required": [
+          "name",
+          "subdomain"
         ]
       },
       "WorkspaceSessionDto": {
@@ -1939,6 +2964,123 @@
           "linked_at"
         ]
       },
+      "InviteUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "InviteUserResultDto": {
+        "type": "object",
+        "properties": {
+          "inviteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "inviteToken": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "membershipStatus": {
+            "type": "string",
+            "enum": [
+              "INVITED",
+              "ACTIVE",
+              "SUSPENDED"
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "inviteId",
+          "tenantId",
+          "phone",
+          "role",
+          "inviteToken",
+          "status",
+          "expiresAt"
+        ]
+      },
+      "ResendInviteDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResendInviteResultDto": {
+        "type": "object",
+        "properties": {
+          "inviteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "inviteToken": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "membershipStatus": {
+            "type": "string",
+            "enum": [
+              "INVITED",
+              "ACTIVE",
+              "SUSPENDED"
+            ]
+          }
+        },
+        "required": [
+          "inviteId",
+          "tenantId",
+          "userId",
+          "phone",
+          "role",
+          "inviteToken",
+          "status",
+          "expiresAt",
+          "membershipStatus"
+        ]
+      },
       "UserResponseDto": {
         "type": "object",
         "properties": {
@@ -1954,6 +3096,16 @@
             "type": "string",
             "example": "ava.chen@example.com"
           },
+          "phone": {
+            "type": "object",
+            "nullable": true,
+            "example": "+989121236598"
+          },
+          "isPhoneVerified": {
+            "type": "boolean",
+            "example": true,
+            "description": "Phone verification flag for OTP-capable accounts."
+          },
           "role": {
             "type": "string",
             "example": "owner",
@@ -1961,11 +3113,36 @@
           },
           "status": {
             "type": "string",
-            "example": "Active",
+            "example": "ACTIVE",
             "enum": [
-              "Active",
-              "Invited"
+              "INVITED",
+              "ACTIVE",
+              "SUSPENDED"
             ]
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Last successful login timestamp when available."
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when membership joined/activated."
+          },
+          "invitedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when invite was issued for membership."
+          },
+          "suspendedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when membership was suspended."
           }
         },
         "required": [
@@ -1976,6 +3153,89 @@
           "status"
         ]
       },
+      "ListUsersResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "object",
+            "nullable": true,
+            "description": "Opaque cursor for the next page; null when no more rows",
+            "example": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTA1VDA4OjAwOjAwLjAwMFoiLCJpZCI6IjExMTExMTExLTExMTEtNDExMS04MTExLTExMTExMTExMTExMSJ9"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor"
+        ]
+      },
+      "UserRoleHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "actorUserId": {
+            "type": "string",
+            "example": "2bc6f9f4-7568-4a65-99c6-236f2d7dcbd5"
+          },
+          "actorEmail": {
+            "type": "string",
+            "example": "owner@workspace.test"
+          },
+          "oldRole": {
+            "type": "string",
+            "example": "member"
+          },
+          "newRole": {
+            "type": "string",
+            "example": "admin"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-05-05T07:32:00.000Z"
+          }
+        },
+        "required": [
+          "actorUserId",
+          "actorEmail",
+          "oldRole",
+          "newRole",
+          "createdAt"
+        ]
+      },
+      "BulkUpdateUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "userIds": {
+            "example": [
+              "7f9a71aa-5fae-4da5-99dd-ef0bd19f1e1c",
+              "4b8a8b8d-1ad5-4ce4-9c0c-3ec529ff5ab6"
+            ],
+            "description": "Tenant-scoped target user IDs for bulk role update.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "role": {
+            "type": "string",
+            "example": "member",
+            "enum": [
+              "admin",
+              "member",
+              "viewer"
+            ],
+            "description": "New tenant-scoped role for all target users. The `owner` role cannot be assigned here; only changed memberships bump `session_version`."
+          }
+        },
+        "required": [
+          "userIds",
+          "role"
+        ]
+      },
       "UpdateUserRoleDto": {
         "type": "object",
         "properties": {
@@ -1983,15 +3243,55 @@
             "type": "string",
             "example": "member",
             "enum": [
-              "owner",
               "admin",
-              "member"
+              "member",
+              "viewer"
             ],
-            "description": "Tenant-scoped role in user_tenants.role"
+            "description": "New tenant-scoped role for the target user. The `owner` role cannot be assigned here; successful updates bump `user_tenants.session_version`, invalidating prior JWTs for that membership (`sess_ver`)."
           }
         },
         "required": [
           "role"
+        ]
+      },
+      "AcceptInviteDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TransferWorkspaceOwnershipDto": {
+        "type": "object",
+        "properties": {
+          "newOwnerUserId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "7f9a71aa-5fae-4da5-99dd-ef0bd19f1e1c",
+            "description": "Existing active workspace member that will become the new owner."
+          }
+        },
+        "required": [
+          "newOwnerUserId"
+        ]
+      },
+      "TransferWorkspaceOwnershipResponseDto": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "previous_owner_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "new_owner_user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "previous_owner_user_id",
+          "new_owner_user_id"
         ]
       },
       "CreateTourDto": {
@@ -2024,6 +3324,97 @@
             "example": {
               "currency": "USD",
               "totalCost": 1200
+            }
+          },
+          "autoAcceptRegistrations": {
+            "type": "boolean",
+            "example": true
+          },
+          "tourType": {
+            "type": "string",
+            "enum": [
+              "camp",
+              "mountain",
+              "city",
+              "desert",
+              "other"
+            ],
+            "example": "camp"
+          },
+          "primaryTransportMode": {
+            "type": "string",
+            "enum": [
+              "bus",
+              "train",
+              "plane",
+              "private_car",
+              "mixed",
+              "none"
+            ],
+            "example": "bus"
+          },
+          "destinationName": {
+            "type": "string",
+            "example": "Damavand"
+          },
+          "elevationM": {
+            "type": "number",
+            "example": 5671
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "moderate",
+              "hard",
+              "technical"
+            ],
+            "example": "moderate"
+          },
+          "durationDays": {
+            "type": "number",
+            "example": 3
+          },
+          "meetingPoint": {
+            "type": "string",
+            "example": "Azadi Square, Gate 3"
+          },
+          "requiredGear": {
+            "example": [
+              "Hiking boots",
+              "Waterproof jacket"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "itinerary": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "day": {
+                  "type": "number",
+                  "example": 1
+                },
+                "title": {
+                  "type": "string",
+                  "example": "Base camp approach"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Drive and acclimatization hike."
+                },
+                "distanceKm": {
+                  "type": "number",
+                  "example": 8
+                },
+                "elevationGainM": {
+                  "type": "number",
+                  "example": 450
+                }
+              }
             }
           }
         },
@@ -2098,6 +3489,119 @@
             "nullable": true,
             "additionalProperties": true,
             "description": "Opaque pricing / operational JSON (JSONB)."
+          },
+          "autoAcceptRegistrations": {
+            "type": "boolean",
+            "nullable": true,
+            "example": true,
+            "description": "When false, registrations are not auto-accepted by tour policy."
+          },
+          "tourType": {
+            "type": "string",
+            "enum": [
+              "camp",
+              "mountain",
+              "city",
+              "desert",
+              "other"
+            ],
+            "nullable": true,
+            "example": "camp",
+            "description": "Optional tour classification for specialized UX."
+          },
+          "primaryTransportMode": {
+            "type": "string",
+            "enum": [
+              "bus",
+              "train",
+              "plane",
+              "private_car",
+              "mixed",
+              "none"
+            ],
+            "nullable": true,
+            "example": "bus",
+            "description": "Primary transport mode for the tour."
+          },
+          "details": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "destinationName": {
+                "type": "string",
+                "nullable": true,
+                "example": "Damavand"
+              },
+              "elevationM": {
+                "type": "number",
+                "nullable": true,
+                "example": 5671
+              },
+              "difficulty": {
+                "enum": [
+                  "easy",
+                  "moderate",
+                  "hard",
+                  "technical"
+                ],
+                "nullable": true,
+                "example": "hard"
+              },
+              "durationDays": {
+                "type": "number",
+                "nullable": true,
+                "example": 3
+              },
+              "meetingPoint": {
+                "type": "string",
+                "nullable": true,
+                "example": "Azadi Square, Gate 3"
+              },
+              "requiredGear": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "example": [
+                  "Hiking boots",
+                  "Headlamp"
+                ]
+              },
+              "itinerary": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "day": {
+                      "type": "number",
+                      "example": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Approach"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "Transfer to base camp."
+                    },
+                    "distanceKm": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 8
+                    },
+                    "elevationGainM": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 450
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "required": [
@@ -2145,6 +3649,97 @@
             "example": {
               "currency": "USD",
               "discount": 10
+            }
+          },
+          "autoAcceptRegistrations": {
+            "type": "boolean",
+            "example": true
+          },
+          "tourType": {
+            "type": "string",
+            "enum": [
+              "camp",
+              "mountain",
+              "city",
+              "desert",
+              "other"
+            ],
+            "example": "camp"
+          },
+          "primaryTransportMode": {
+            "type": "string",
+            "enum": [
+              "bus",
+              "train",
+              "plane",
+              "private_car",
+              "mixed",
+              "none"
+            ],
+            "example": "bus"
+          },
+          "destinationName": {
+            "type": "string",
+            "example": "Damavand"
+          },
+          "elevationM": {
+            "type": "number",
+            "example": 5671
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "moderate",
+              "hard",
+              "technical"
+            ],
+            "example": "moderate"
+          },
+          "durationDays": {
+            "type": "number",
+            "example": 3
+          },
+          "meetingPoint": {
+            "type": "string",
+            "example": "Azadi Square, Gate 3"
+          },
+          "requiredGear": {
+            "example": [
+              "Hiking boots",
+              "Waterproof jacket"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "itinerary": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "day": {
+                  "type": "number",
+                  "example": 1
+                },
+                "title": {
+                  "type": "string",
+                  "example": "Base camp approach"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Drive and acclimatization hike."
+                },
+                "distanceKm": {
+                  "type": "number",
+                  "example": 8
+                },
+                "elevationGainM": {
+                  "type": "number",
+                  "example": 450
+                }
+              }
             }
           }
         }

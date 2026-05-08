@@ -11,6 +11,10 @@ import {
   syntheticBookingContactPhone,
   waitlistWhereForActor
 } from "../../common/security/ownership-scope";
+import {
+  tenantContextMissingError,
+  tenantScopedResourceNotFoundError
+} from "../../common/errors/error-response-builders";
 import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
@@ -38,6 +42,34 @@ import {
 import { WaitlistItemEntity, WaitlistItemStatus } from "./waitlist-item.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
+import {
+  emitPublicRegistrationAcceptedEvent,
+  emitRegistrationCreatedEvent,
+  emitRegistrationPaymentUpdatedEvent,
+  emitRegistrationStatusChangedEvent,
+  emitRegistrationWaitlistedEvent,
+  emitWaitlistCancelledEvent,
+  emitWaitlistConvertedAndAcceptedEvents
+} from "./registrations-effects";
+import {
+  assertJwtTenantMatchesTourForAuthenticatedMutation,
+  validatePaymentAmountConsistency,
+  validatePaymentTransition,
+  validateStatusTransition
+} from "./registrations-policy";
+import {
+  assertTourCapacityInvariant,
+  assertUserNotAlreadyRegistered
+} from "./policies/registration-integrity.policy";
+import {
+  assertNoDuplicateWaitlist,
+  assertTourAllowsWaitlist,
+  assertWaitlistPromotionAllowed
+} from "./policies/waitlist-integrity.policy";
+import {
+  assertTourIsOpenForRegistration
+} from "../tours/policies/tour-lifecycle.policy";
+import { TourLifecycleStatus } from "../tours/entities/tour.entity";
 
 @Injectable()
 export class RegistrationsService {
@@ -64,12 +96,7 @@ export class RegistrationsService {
   async getTenantIdForTourOrThrow(tourId: string): Promise<string> {
     const tenantId = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
     if (!tenantId) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
     return tenantId;
   }
@@ -80,14 +107,14 @@ export class RegistrationsService {
     return this.dataSource.transaction(async (manager) => {
       const tour = await manager.findOne(TourEntity, { where: { id: createDto.tourId } });
       if (!tour) {
-        throw new NotFoundException({
-          error: {
-            code: "RESOURCE_NOT_FOUND",
-            message: "Resource not found in tenant scope"
-          }
-        });
+        throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
-      this.assertJwtTenantMatchesTourForAuthenticatedMutation(tour.tenantId);
+      assertTourIsOpenForRegistration(tour);
+      assertJwtTenantMatchesTourForAuthenticatedMutation({
+        role: this.requestContextService.getRole(),
+        jwtTenantId: this.requestContextService.resolveEffectiveTenantId(),
+        tourTenantId: tour.tenantId
+      });
 
       const tenantId = tour.tenantId;
       const scopedPayload = {
@@ -96,6 +123,15 @@ export class RegistrationsService {
         participantContactPhone: createDto.participantContactPhone,
         telegramUserId: createDto.telegramUserId
       };
+
+      const existingRegistrations = await manager.find(RegistrationEntity, {
+        where: {
+          tenantId,
+          tourId: createDto.tourId,
+          participantContactPhone: createDto.participantContactPhone
+        }
+      });
+      assertUserNotAlreadyRegistered(tour, existingRegistrations);
 
       await this.ensureNoActiveRegistrationDuplicate(manager, scopedPayload);
       if (tour.acceptedCount >= tour.totalCapacity) {
@@ -112,6 +148,9 @@ export class RegistrationsService {
         typeof tour.costContext?.requiresPayment === "boolean"
           ? Boolean(tour.costContext.requiresPayment)
           : false;
+      // TODO(tour-auto-accept): `TourEntity.autoAcceptRegistrations` is now available.
+      // Revisit initial status policy here to incorporate auto-accept + payment flow together
+      // without changing current `requiresPayment`-driven behavior.
       const initialStatus = paymentRequired
         ? RegistrationStatus.ACCEPTED
         : RegistrationStatus.PENDING;
@@ -134,26 +173,22 @@ export class RegistrationsService {
 
       if (paymentRequired) {
         tour.acceptedCount += 1;
+        assertTourCapacityInvariant(tour);
+        if (tour.acceptedCount >= tour.totalCapacity) {
+          tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+        }
         await manager.save(tour);
       }
 
       const saved = await manager.save(registration);
       this.registrationCreatedTotal += 1;
       const actorId = this.requestContextService.getUserId() ?? "unknown";
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "Registration",
-        aggregateId: saved.id,
-        eventType: "registration.created",
-        payload: {
-          entityType: "registration",
-          entityId: saved.id,
-          actorId,
-          tenantId: saved.tenantId,
-          tourId: saved.tourId,
-          status: saved.status,
-          paymentRequired,
-          timestamp: new Date().toISOString()
-        }
+      await emitRegistrationCreatedEvent({
+        manager,
+        outboxService: this.outboxService,
+        registration: saved,
+        actorId,
+        paymentRequired
       });
       return this.toRegistrationResponse(saved);
     });
@@ -163,15 +198,10 @@ export class RegistrationsService {
    * Authenticated shortcut: body is only `{ tourId }`. Participant profile fields are derived from the user row and a stable synthetic phone for duplicate detection.
    */
   async createBooking(tourId: string): Promise<RegistrationResponseDto> {
-    const tenantId = this.requestContextService.getTenantId();
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
     const userId = this.requestContextService.getUserId();
     if (!tenantId || !userId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
+      throw new ForbiddenException(tenantContextMissingError());
     }
 
     const user = await this.userRepository.findOne({
@@ -209,14 +239,9 @@ export class RegistrationsService {
   }
 
   async listRegistrationsForTour(tourId: string): Promise<RegistrationResponseDto[]> {
-    const tenantId = this.requestContextService.getTenantId();
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
+      throw new ForbiddenException(tenantContextMissingError());
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -230,14 +255,9 @@ export class RegistrationsService {
   }
 
   async listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]> {
-    const tenantId = this.requestContextService.getTenantId();
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
+      throw new ForbiddenException(tenantContextMissingError());
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -251,15 +271,10 @@ export class RegistrationsService {
   }
 
   async listBookings(): Promise<RegistrationResponseDto[]> {
-    const tenantId = this.requestContextService.getTenantId();
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
     const userId = this.requestContextService.getUserId();
     if (!tenantId || !userId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required but absent"
-        }
-      });
+      throw new ForbiddenException(tenantContextMissingError());
     }
 
     const user = await this.userRepository.findOne({
@@ -309,6 +324,18 @@ export class RegistrationsService {
         }
       });
     }
+    const ctxTenant = this.requestContextService.resolveEffectiveTenantId();
+    if (
+      ctxTenant &&
+      registration.tenantId.trim().toLowerCase() !== ctxTenant.trim().toLowerCase()
+    ) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_SCOPE_FORBIDDEN",
+          message: "Registration tenant does not match trusted tenant context"
+        }
+      });
+    }
     return this.toRegistrationResponse(registration);
   }
 
@@ -332,7 +359,7 @@ export class RegistrationsService {
           }
         });
       }
-      this.validateStatusTransition(registration.status, payload.targetStatus);
+      validateStatusTransition(registration.status, payload.targetStatus);
 
       const previousStatus = registration.status;
       const statusChanged = previousStatus !== payload.targetStatus;
@@ -373,22 +400,14 @@ export class RegistrationsService {
       if (previousStatus !== payload.targetStatus) {
         const eventName = this.mapRegistrationStatusEvent(payload.targetStatus);
         const actorId = this.requestContextService.getUserId() ?? "unknown";
-        await this.outboxService.addEvent(manager, {
-          aggregateType: "Registration",
-          aggregateId: saved.id,
-          eventType: eventName,
-          payload: {
-            entityType: "registration",
-            entityId: saved.id,
-            actorId,
-            metadata: {
-              previousStatus,
-              newStatus: payload.targetStatus,
-              tourId: saved.tourId,
-              scheduleId: null
-            },
-            timestamp: new Date().toISOString()
-          }
+        await emitRegistrationStatusChangedEvent({
+          manager,
+          outboxService: this.outboxService,
+          registration: saved,
+          actorId,
+          previousStatus,
+          newStatus: payload.targetStatus,
+          eventType: eventName
         });
       }
 
@@ -416,32 +435,23 @@ export class RegistrationsService {
           }
         });
       }
-      this.validatePaymentTransition(
+      validatePaymentTransition(
         registration.status,
         registration.paymentStatus,
         payload.paymentStatus
       );
-      this.validatePaymentAmountConsistency(payload.paymentStatus, payload.paidAmount);
+      validatePaymentAmountConsistency(payload.paymentStatus, payload.paidAmount);
 
       registration.paymentStatus = payload.paymentStatus;
       registration.paidAmount =
         payload.paidAmount !== undefined ? payload.paidAmount.toString() : undefined;
       const saved = await manager.save(registration);
       const actorId = this.requestContextService.getUserId() ?? "unknown";
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "Registration",
-        aggregateId: saved.id,
-        eventType: "registration.payment_updated",
-        payload: {
-          entityType: "registration",
-          entityId: saved.id,
-          actorId,
-          metadata: {
-            paymentStatus: saved.paymentStatus,
-            paidAmount: saved.paidAmount ?? null
-          },
-          timestamp: new Date().toISOString()
-        }
+      await emitRegistrationPaymentUpdatedEvent({
+        manager,
+        outboxService: this.outboxService,
+        registration: saved,
+        actorId
       });
       return this.toRegistrationResponse(saved);
     });
@@ -452,7 +462,7 @@ export class RegistrationsService {
     newPaymentStatus: RegistrationPaymentStatus,
     metadata?: Record<string, unknown>
   ): Promise<RegistrationEntity> {
-    const trustedTenantId = this.requestContextService.getTenantId();
+    const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
     const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
     if (!trustedTenantId && role !== "admin") {
       throw new ForbiddenException({
@@ -495,7 +505,7 @@ export class RegistrationsService {
         });
       }
 
-      this.validatePaymentTransition(
+      validatePaymentTransition(
         registration.status,
         registration.paymentStatus,
         newPaymentStatus
@@ -523,7 +533,11 @@ export class RegistrationsService {
           }
         });
       }
-      this.assertJwtTenantMatchesTourForAuthenticatedMutation(tour.tenantId);
+      assertJwtTenantMatchesTourForAuthenticatedMutation({
+        role: this.requestContextService.getRole(),
+        jwtTenantId: this.requestContextService.resolveEffectiveTenantId(),
+        tourTenantId: tour.tenantId
+      });
 
       const tenantId = tour.tenantId;
       const scopedPayload = {
@@ -534,6 +548,15 @@ export class RegistrationsService {
       };
 
       await this.ensureNoActiveRegistrationDuplicate(manager, scopedPayload);
+      const existingWaitlistItems = await manager.find(WaitlistItemEntity, {
+        where: {
+          tenantId,
+          tourId: createDto.tourId,
+          participantContactPhone: createDto.participantContactPhone
+        }
+      });
+      assertNoDuplicateWaitlist(existingWaitlistItems);
+      assertTourAllowsWaitlist(tour);
       await this.ensureNoWaitingWaitlistDuplicate(manager, {
         tenantId,
         tourId: createDto.tourId,
@@ -593,6 +616,8 @@ export class RegistrationsService {
         waitlistItem.tourId,
         waitlistItem.tenantId
       );
+      assertTourIsOpenForRegistration(tour);
+      assertWaitlistPromotionAllowed(tour);
       if (tour.acceptedCount >= tour.totalCapacity) {
         throw new ConflictException({
           error: {
@@ -617,39 +642,22 @@ export class RegistrationsService {
       waitlistItem.promotedRegistrationId = savedRegistration.id;
       waitlistItem.conversionReason = payload.conversionReason;
       tour.acceptedCount += 1;
+      assertTourCapacityInvariant(tour);
+      if (tour.acceptedCount >= tour.totalCapacity) {
+        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+      }
       await manager.save(tour);
       const savedWaitlist = await manager.save(waitlistItem);
 
       const actorId = this.requestContextService.getUserId() ?? "unknown";
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "WaitlistItem",
-        aggregateId: savedWaitlist.id,
-        eventType: "waitlist.converted",
-        payload: {
-          entityType: "waitlist_item",
-          entityId: savedWaitlist.id,
-          actorId,
-          promotedRegistrationId: savedRegistration.id,
-          reason: payload.conversionReason ?? null,
-          timestamp: new Date().toISOString()
-        }
-      });
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "Registration",
-        aggregateId: savedRegistration.id,
-        eventType: "registration.accepted",
-        payload: {
-          entityType: "registration",
-          entityId: savedRegistration.id,
-          actorId,
-          metadata: {
-            previousStatus: null,
-            newStatus: RegistrationStatus.ACCEPTED,
-            source: "manual_waitlist_conversion",
-            waitlistItemId: savedWaitlist.id
-          },
-          timestamp: new Date().toISOString()
-        }
+      await emitWaitlistConvertedAndAcceptedEvents({
+        manager,
+        outboxService: this.outboxService,
+        waitlistItem: savedWaitlist,
+        promotedRegistration: savedRegistration,
+        actorId,
+        reason: payload.conversionReason ?? undefined,
+        source: "manual_waitlist_conversion"
       });
 
       return this.toWaitlistResponse(savedWaitlist);
@@ -674,39 +682,14 @@ export class RegistrationsService {
       waitlistItem.cancelReason = payload.cancelReason;
       const saved = await manager.save(waitlistItem);
       const actorId = this.requestContextService.getUserId() ?? "unknown";
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "WaitlistItem",
-        aggregateId: saved.id,
-        eventType: "waitlist.cancelled",
-        payload: {
-          entityType: "waitlist_item",
-          entityId: saved.id,
-          actorId,
-          reason: saved.cancelReason ?? null,
-          timestamp: new Date().toISOString()
-        }
+      await emitWaitlistCancelledEvent({
+        manager,
+        outboxService: this.outboxService,
+        waitlistItem: saved,
+        actorId
       });
       return this.toWaitlistResponse(saved);
     });
-  }
-
-  /**
-   * Authenticated creates: tour defines canonical tenant; JWT tenant must match (admin may cross-tenant).
-   */
-  private assertJwtTenantMatchesTourForAuthenticatedMutation(tourTenantId: string): void {
-    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
-    if (role === "admin") {
-      return;
-    }
-    const jwtTenantId = this.requestContextService.getTenantId();
-    if (!jwtTenantId || jwtTenantId !== tourTenantId) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
-    }
   }
 
   private async requireTourInTenant(
@@ -716,20 +699,10 @@ export class RegistrationsService {
   ): Promise<TourEntity> {
     const tour = await manager.findOne(TourEntity, { where: { id: tourId } });
     if (!tour) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
     if (tour.tenantId !== tenantId) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
     return tour;
   }
@@ -748,12 +721,7 @@ export class RegistrationsService {
       .getOne();
 
     if (!tour) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
     return tour;
@@ -865,12 +833,7 @@ export class RegistrationsService {
     }
     const resolved = await qb.getOne();
     if (!resolved) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
     return resolved;
   }
@@ -951,130 +914,6 @@ export class RegistrationsService {
     };
   }
 
-  private validateStatusTransition(
-    currentStatus: RegistrationStatus,
-    targetStatus: RegistrationStatus
-  ): void {
-    const allowedTransitions: Record<RegistrationStatus, RegistrationStatus[]> = {
-      [RegistrationStatus.PENDING]: [
-        RegistrationStatus.ACCEPTED,
-        RegistrationStatus.ACCEPTED_PAID,
-        RegistrationStatus.REJECTED,
-        RegistrationStatus.CANCELLED
-      ],
-      [RegistrationStatus.ACCEPTED]: [
-        RegistrationStatus.ACCEPTED_PAID,
-        RegistrationStatus.REJECTED,
-        RegistrationStatus.CANCELLED,
-        RegistrationStatus.NO_SHOW
-      ],
-      [RegistrationStatus.ACCEPTED_PAID]: [
-        RegistrationStatus.REJECTED,
-        RegistrationStatus.CANCELLED,
-        RegistrationStatus.REFUNDED
-      ],
-      [RegistrationStatus.REJECTED]: [],
-      [RegistrationStatus.CANCELLED]: [],
-      [RegistrationStatus.NO_SHOW]: [],
-      [RegistrationStatus.REFUNDED]: []
-    };
-
-    if (currentStatus === targetStatus) {
-      return;
-    }
-
-    if (allowedTransitions[currentStatus].includes(targetStatus)) {
-      return;
-    }
-
-    throw new ConflictException({
-      error: {
-        code: "STATE_TRANSITION_INVALID",
-        message: "Requested registration status transition is not allowed"
-      }
-    });
-  }
-
-  private validatePaymentTransition(
-    registrationStatus: RegistrationStatus,
-    currentPaymentStatus: RegistrationPaymentStatus,
-    nextPaymentStatus: RegistrationPaymentStatus
-  ): void {
-    if (
-      registrationStatus === RegistrationStatus.CANCELLED ||
-      registrationStatus === RegistrationStatus.REJECTED
-    ) {
-      throw new ConflictException({
-        error: {
-          code: "PAYMENT_STATUS_TRANSITION_INVALID",
-          message:
-            "Requested payment update is not allowed for cancelled or rejected registration"
-        }
-      });
-    }
-
-    if (currentPaymentStatus === nextPaymentStatus) {
-      return;
-    }
-
-    const allowedTransitions: Partial<
-      Record<RegistrationPaymentStatus, RegistrationPaymentStatus[]>
-    > = {
-      [RegistrationPaymentStatus.NOT_PAID]: [
-        RegistrationPaymentStatus.PAID,
-        RegistrationPaymentStatus.FAILED
-      ],
-      [RegistrationPaymentStatus.PAID]: [RegistrationPaymentStatus.REFUNDED],
-      [RegistrationPaymentStatus.FAILED]: [
-        RegistrationPaymentStatus.NOT_PAID,
-        RegistrationPaymentStatus.PAID
-      ]
-    };
-
-    const allowedNext = allowedTransitions[currentPaymentStatus] ?? [];
-    if (allowedNext.includes(nextPaymentStatus)) {
-      return;
-    }
-
-    throw new ConflictException({
-      error: {
-        code: "PAYMENT_STATUS_TRANSITION_INVALID",
-        message: "Requested payment update violates payment status lifecycle rules"
-      }
-    });
-  }
-
-  private validatePaymentAmountConsistency(
-    nextPaymentStatus: RegistrationPaymentStatus,
-    paidAmount?: number
-  ): void {
-    if (
-      nextPaymentStatus === RegistrationPaymentStatus.NOT_PAID &&
-      paidAmount !== undefined &&
-      paidAmount > 0
-    ) {
-      throw new ConflictException({
-        error: {
-          code: "PAYMENT_STATUS_TRANSITION_INVALID",
-          message: "NotPaid status cannot have a positive paidAmount"
-        }
-      });
-    }
-
-    if (
-      nextPaymentStatus === RegistrationPaymentStatus.PARTIAL &&
-      paidAmount !== undefined &&
-      paidAmount <= 0
-    ) {
-      throw new ConflictException({
-        error: {
-          code: "PAYMENT_STATUS_TRANSITION_INVALID",
-          message: "Partial status requires a positive paidAmount when provided"
-        }
-      });
-    }
-  }
-
   private async ensureCapacityForAcceptance(
     manager: EntityManager,
     registration: RegistrationEntity,
@@ -1119,10 +958,15 @@ export class RegistrationsService {
 
     if (willBeAccepted) {
       tour.acceptedCount += 1;
+      assertTourCapacityInvariant(tour);
+      if (tour.acceptedCount >= tour.totalCapacity) {
+        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+      }
       return;
     }
 
     tour.acceptedCount = Math.max(0, tour.acceptedCount - 1);
+    assertTourCapacityInvariant(tour);
   }
 
   /**
@@ -1172,6 +1016,8 @@ export class RegistrationsService {
         registration.tourId,
         registration.tenantId
       ));
+    assertTourIsOpenForRegistration(tour);
+    assertWaitlistPromotionAllowed(tour);
     if (tour.acceptedCount >= tour.totalCapacity) {
       return false;
     }
@@ -1209,40 +1055,20 @@ export class RegistrationsService {
     waitlistItem.promotedRegistrationId = savedPromotedRegistration.id;
     await manager.save(waitlistItem);
     tour.acceptedCount += 1;
+    assertTourCapacityInvariant(tour);
+    if (tour.acceptedCount >= tour.totalCapacity) {
+      tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+    }
     await manager.save(tour);
 
     const actorId = this.requestContextService.getUserId() ?? "system";
-    await this.outboxService.addEvent(manager, {
-      aggregateType: "WaitlistItem",
-      aggregateId: waitlistItem.id,
-      eventType: "waitlist.converted",
-      payload: {
-        entityType: "waitlist_item",
-        entityId: waitlistItem.id,
-        actorId,
-        promotedRegistrationId: savedPromotedRegistration.id,
-        tourId: waitlistItem.tourId,
-        timestamp: new Date().toISOString()
-      }
-    });
-    await this.outboxService.addEvent(manager, {
-      aggregateType: "Registration",
-      aggregateId: savedPromotedRegistration.id,
-      eventType: "registration.accepted",
-      payload: {
-        entityType: "registration",
-        entityId: savedPromotedRegistration.id,
-        actorId,
-        metadata: {
-          previousStatus: null,
-          newStatus: RegistrationStatus.ACCEPTED,
-          tourId: savedPromotedRegistration.tourId,
-          scheduleId: null,
-          source: "waitlist_promotion",
-          waitlistItemId: waitlistItem.id
-        },
-        timestamp: new Date().toISOString()
-      }
+    await emitWaitlistConvertedAndAcceptedEvents({
+      manager,
+      outboxService: this.outboxService,
+      waitlistItem,
+      promotedRegistration: savedPromotedRegistration,
+      actorId,
+      source: "waitlist_promotion"
     });
     return true;
   }
@@ -1276,7 +1102,7 @@ export class RegistrationsService {
     if (previousStatus === targetStatus) {
       return registration;
     }
-    this.validateStatusTransition(previousStatus, targetStatus);
+    validateStatusTransition(previousStatus, targetStatus);
     const affectsAcceptedCounter =
       this.isCapacityConsumingStatus(previousStatus) ||
       this.isCapacityConsumingStatus(targetStatus);
@@ -1305,23 +1131,15 @@ export class RegistrationsService {
     ) {
       await this.promoteNextWaitlistItem(manager, saved, lockedTour);
     }
-    await this.outboxService.addEvent(manager, {
-      aggregateType: "Registration",
-      aggregateId: saved.id,
+    await emitRegistrationStatusChangedEvent({
+      manager,
+      outboxService: this.outboxService,
+      registration: saved,
+      actorId,
+      previousStatus,
+      newStatus: targetStatus,
       eventType: this.mapRegistrationStatusEvent(targetStatus),
-      payload: {
-        entityType: "registration",
-        entityId: saved.id,
-        actorId,
-        metadata: {
-          previousStatus,
-          newStatus: targetStatus,
-          tourId: saved.tourId,
-          scheduleId: null,
-          source: "payment_flow"
-        },
-        timestamp: new Date().toISOString()
-      }
+      source: "payment_flow"
     });
     if (targetStatus === RegistrationStatus.ACCEPTED_PAID) {
       this.registrationPaidTotal += 1;
@@ -1385,8 +1203,26 @@ export class RegistrationsService {
         input.tourId,
         tenantId
       );
+      assertTourIsOpenForRegistration(tour);
+      const existingRegistrations = await manager.find(RegistrationEntity, {
+        where: {
+          tenantId,
+          tourId: input.tourId,
+          participantContactPhone: input.participantContactPhone
+        }
+      });
+      assertUserNotAlreadyRegistered(tour, existingRegistrations);
       await this.ensureNoActiveRegistrationDuplicate(manager, scopedInput);
       if (tour.acceptedCount >= tour.totalCapacity) {
+        assertTourAllowsWaitlist(tour);
+        const existingWaitlistItems = await manager.find(WaitlistItemEntity, {
+          where: {
+            tenantId,
+            tourId: input.tourId,
+            participantContactPhone: input.participantContactPhone
+          }
+        });
+        assertNoDuplicateWaitlist(existingWaitlistItems);
         await this.ensureNoWaitingWaitlistDuplicate(manager, scopedInput);
         const waitlist = manager.create(WaitlistItemEntity, {
           tenantId,
@@ -1399,17 +1235,11 @@ export class RegistrationsService {
         });
         const savedWaitlist = await manager.save(waitlist);
         this.registrationWaitlistedTotal += 1;
-        await this.outboxService.addEvent(manager, {
-          aggregateType: "WaitlistItem",
-          aggregateId: savedWaitlist.id,
-          eventType: "registration.waitlisted",
-          payload: {
-            entityType: "waitlist_item",
-            entityId: savedWaitlist.id,
-            actorId: this.requestContextService.getUserId() ?? "public",
-            tourId: savedWaitlist.tourId,
-            timestamp: new Date().toISOString()
-          }
+        await emitRegistrationWaitlistedEvent({
+          manager,
+          outboxService: this.outboxService,
+          waitlistItem: savedWaitlist,
+          actorId: this.requestContextService.getUserId() ?? "public"
         });
         const queuePosition = await manager.count(WaitlistItemEntity, {
           where: {
@@ -1436,29 +1266,26 @@ export class RegistrationsService {
         telegramUsername: input.telegramUsername,
         vehicleSeatCapacity: input.vehicleSeatCapacity,
         participantNote: input.participantNote,
+        // TODO(tour-auto-accept): `TourEntity.autoAcceptRegistrations` should be evaluated
+        // alongside public registration + payment intent semantics. Keep current status as-is
+        // until a combined design is agreed to avoid payment-flow regressions.
         status: RegistrationStatus.ACCEPTED,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
       });
       tour.acceptedCount += 1;
+      assertTourCapacityInvariant(tour);
+      if (tour.acceptedCount >= tour.totalCapacity) {
+        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+      }
       await manager.save(tour);
       const saved = await manager.save(registration);
       this.registrationCreatedTotal += 1;
-      await this.outboxService.addEvent(manager, {
-        aggregateType: "Registration",
-        aggregateId: saved.id,
-        eventType: "registration.accepted",
-        payload: {
-          entityType: "registration",
-          entityId: saved.id,
-          actorId: this.requestContextService.getUserId() ?? "public",
-          metadata: {
-            previousStatus: null,
-            newStatus: RegistrationStatus.ACCEPTED,
-            source: "public_registration"
-          },
-          timestamp: new Date().toISOString()
-        }
+      await emitPublicRegistrationAcceptedEvent({
+        manager,
+        outboxService: this.outboxService,
+        registration: saved,
+        actorId: this.requestContextService.getUserId() ?? "public"
       });
       const requiresPayment =
         typeof tour.costContext?.requiresPayment === "boolean"

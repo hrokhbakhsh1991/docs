@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import pino, { type Logger } from "pino";
+import { tryGetActiveTraceLogFields } from "../observability/active-trace-log-fields";
 import { RequestContextService } from "../request-context/request-context.service";
 import { ConfigService } from "../../config/config.service";
 
@@ -37,13 +38,12 @@ export class LoggerService {
   }
 
   private withRequestContext(meta: LogMeta): LogMeta {
-    const ctx = this.requestContextService.tryGetLogAttributes();
-    if (!ctx) {
-      return { ...meta };
-    }
+    const traceFields = tryGetActiveTraceLogFields();
+    const ctx = this.requestContextService.tryGetStructuredLogContext();
     return {
-      ...meta,
-      ...ctx
+      ...(traceFields ?? {}),
+      ...(ctx ?? {}),
+      ...meta
     };
   }
 }
