@@ -76,27 +76,33 @@ function normalizeTourDetails(value: unknown): TourDetailsDto | null {
   if (!value || typeof value !== "object") return null;
   const o = value as Record<string, unknown>;
 
-  const requiredGear = Array.isArray(o.requiredGear ?? o.required_gear)
-    ? (o.requiredGear ?? o.required_gear)
-        .map((v) => normalizeOptionalString(v))
-        .filter((v): v is string => Boolean(v))
-    : null;
+  const gearRaw: unknown = o.requiredGear ?? o.required_gear;
+  const requiredGear = Array.isArray(gearRaw)
+    ? gearRaw
+        .map((v: unknown) => normalizeOptionalString(v))
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+    : undefined;
 
-  const rawItinerary = o.itinerary;
+  const rawItinerary: unknown = o.itinerary;
   const itinerary = Array.isArray(rawItinerary)
     ? rawItinerary
-        .map((item) => normalizeItineraryItem(item))
+        .map((item: unknown) => normalizeItineraryItem(item))
         .filter((item): item is TourItineraryItem => item !== null)
-    : null;
+    : undefined;
+
+  const tripDetailsRaw: unknown = o.tripDetails ?? o.trip_details;
 
   return {
-    destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name),
-    elevationM: normalizeOptionalNumber(o.elevationM ?? o.elevation_m),
-    difficulty: normalizeDifficulty(o.difficulty),
-    durationDays: normalizeOptionalNumber(o.durationDays ?? o.duration_days),
-    meetingPoint: normalizeOptionalString(o.meetingPoint ?? o.meeting_point),
-    requiredGear,
-    itinerary,
+    destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name) ?? undefined,
+    elevationM: normalizeOptionalNumber(o.elevationM ?? o.elevation_m) ?? undefined,
+    difficulty: normalizeDifficulty(o.difficulty) ?? undefined,
+    durationDays: normalizeOptionalNumber(o.durationDays ?? o.duration_days) ?? undefined,
+    meetingPoint: normalizeOptionalString(o.meetingPoint ?? o.meeting_point) ?? undefined,
+    ...(requiredGear != null && requiredGear.length > 0 ? { requiredGear } : {}),
+    ...(itinerary != null && itinerary.length > 0 ? { itinerary } : {}),
+    ...(tripDetailsRaw != null && typeof tripDetailsRaw === "object" && !Array.isArray(tripDetailsRaw)
+      ? { tripDetails: tripDetailsRaw as Record<string, unknown> }
+      : {}),
   };
 }
 

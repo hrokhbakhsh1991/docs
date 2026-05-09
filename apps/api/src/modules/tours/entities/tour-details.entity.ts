@@ -9,6 +9,7 @@ import {
 } from "typeorm";
 
 import { TourEntity as Tour } from "./tour.entity";
+import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 export enum DifficultyLevel {
   EASY = "easy",
@@ -65,6 +66,9 @@ export class TourDetails {
 
   @Column({ type: "jsonb", name: "itinerary", nullable: true })
   itinerary!: ItineraryItem[] | null;
+
+  @Column({ type: "jsonb", name: "trip_details", nullable: true })
+  tripDetails!: TourTripDetails | null;
 
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;

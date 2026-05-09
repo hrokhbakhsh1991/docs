@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsArray,
   IsBoolean,
@@ -8,10 +9,13 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  Min
+  Min,
+  ValidateIf,
+  ValidateNested
 } from "class-validator";
 import { PrimaryTransportMode, TourLifecycleStatus, TourType } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import { TourTripDetailsDto } from "./trip-details.dto";
 
 export class UpdateTourDto {
   @ApiPropertyOptional({
@@ -142,4 +146,16 @@ export class UpdateTourDto {
   @IsArray()
   @IsObject({ each: true })
   itinerary?: TourItineraryItem[];
+
+  @ApiPropertyOptional({
+    description:
+      "Structured trip details (JSON). Patches are deep-merged into the stored document (omit a key to leave it unchanged; arrays replace when sent). Pass root `null` to clear the whole blob. Separate from `description` marketing text.",
+    type: () => TourTripDetailsDto,
+    nullable: true
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @ValidateNested()
+  @Type(() => TourTripDetailsDto)
+  tripDetails?: TourTripDetailsDto | null;
 }

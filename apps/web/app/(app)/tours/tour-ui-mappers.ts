@@ -1,6 +1,8 @@
 import type { TourFormValues } from "@/components/tours/tour-schema";
 import { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
+import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
+import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetails.schema";
 
 import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "../../../lib/services/tours.service";
 
@@ -16,6 +18,7 @@ export { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours
 export function createTourDtoFromTourFormValues(values: TourFormValues): CreateTourDto {
   const lifecycle_status: CreateTourDto["lifecycle_status"] =
     values.status === "active" ? "Open" : "Draft";
+  const tripDetailsCompact = compactTripDetailsForApi(values.tripDetails) as TourTripDetails | undefined;
   return mapCreateTourDto({
     title: values.title,
     description: values.description,
@@ -23,6 +26,7 @@ export function createTourDtoFromTourFormValues(values: TourFormValues): CreateT
     capacity: values.totalCapacity,
     price: values.price,
     lifecycle_status,
+    ...(tripDetailsCompact ? { tripDetails: tripDetailsCompact } : {}),
   });
 }
 
@@ -36,6 +40,7 @@ export function updateTourDtoFromTourFormValues(values: TourFormValues, existing
     typeof (existing.costContext as Record<string, unknown>).location === "string"
       ? String((existing.costContext as Record<string, unknown>).location)
       : undefined;
+  const tripDetailsCompact = compactTripDetailsForApi(values.tripDetails) as TourTripDetails | undefined;
   return {
     title: values.title.trim(),
     description: values.description?.trim() ?? "",
@@ -44,5 +49,6 @@ export function updateTourDtoFromTourFormValues(values: TourFormValues, existing
     lifecycle_status,
     ...(existingLoc ? { location: existingLoc } : {}),
     ...(values.communicationLink?.trim() ? { communicationLink: values.communicationLink.trim() } : {}),
+    ...(tripDetailsCompact ? { tripDetails: tripDetailsCompact } : {}),
   };
 }

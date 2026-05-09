@@ -25,6 +25,8 @@ declare module "axios" {
   export interface AxiosRequestConfig {
     /** Do not clear token / redirect when login returns 401 */
     skipAuthRedirectOn401?: boolean;
+    /** Do not full-page redirect to `/403` on 403 (caller handles inline) */
+    skip403Redirect?: boolean;
     /** Request interceptor sets Idempotency-Key when true */
     attachIdempotency?: boolean;
     /** Skip global interceptor toasts (500 / connection) for this request */
@@ -168,6 +170,8 @@ export type ApiRequestOptions = {
   idempotencyKey?: string | boolean;
   /** Set on auth session POST so invalid OTP 401 does not wipe cookies or redirect */
   skipAuthRedirectOn401?: boolean;
+  /** When true, 403 responses reject without navigating to `/403` (inline UX) */
+  skip403Redirect?: boolean;
   /** Opt out of global 500 / connection-lost toasts for this call */
   skipGlobalErrorToast?: boolean;
   /** Override: use this JWT instead of the token from session storage. */
@@ -215,6 +219,7 @@ function mergeRequestConfig(options?: ApiRequestOptions) {
     headers,
     attachIdempotency: options?.idempotencyKey === true,
     skipAuthRedirectOn401: options?.skipAuthRedirectOn401,
+    skip403Redirect: options?.skip403Redirect,
     skipGlobalErrorToast: options?.skipGlobalErrorToast,
   };
 }
@@ -315,9 +320,11 @@ axiosApi.interceptors.response.use(
     }
 
     if (status === 403) {
-      const path = window.location.pathname;
-      if (path !== "/403") {
-        window.location.assign("/403");
+      if (!cfg?.skip403Redirect) {
+        const path = window.location.pathname;
+        if (path !== "/403") {
+          window.location.assign("/403");
+        }
       }
       return Promise.reject(error);
     }

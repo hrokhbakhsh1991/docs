@@ -2,7 +2,16 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useCallback } from "react";
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type Control,
+  type FieldErrors,
+  type FieldValues,
+  type UseFormRegister,
+} from "react-hook-form";
 
 import {
   Button,
@@ -18,6 +27,7 @@ import {
 } from "@tour/ui";
 
 import { FormErrorAlert } from "@/components/forms/FormErrorAlert";
+import { ApiError, ForbiddenError } from "@/lib/api-client";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
@@ -25,7 +35,14 @@ import { toursUseLiveApi } from "@/lib/services/tours.service";
 import { useCreateTour } from "../hooks/useCreateTour";
 import type { TourCreateFormInput, TourCreateModel } from "../models/tourCreateModel";
 import { PRIMARY_TRANSPORT_MODES, SOCIAL_PLATFORMS, TOUR_TYPES } from "../models/tourCreateModel";
-import { TourCreateSchema } from "../models/tourCreateModel";
+import { createTourCreateSchemaForEventKind } from "../models/tourCreateModel";
+import { isMountainTourLike, resolveEventKindFromTourContext } from "../policies/tour-kind-policy";
+import {
+  getCoreFieldConfigForKind,
+  normalizeFieldUserRole,
+  resolveFieldAccess,
+} from "../config/tripDetailsFieldConfig";
+import { TourCreateTripDetailsFields } from "./tour-create-trip-details-fields";
 
 /** Shown in shell chrome, document title, and main card (keep in sync visually). */
 const CREATE_TOUR_PAGE_TITLE = "Create tour";
@@ -41,6 +58,16 @@ export function TourCreateClient() {
   const { mutateAsync, isPending, error: createTourError } = useCreateTour();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const workspaceApiConfigured = toursUseLiveApi();
+  const resolver = useCallback(
+    (values: TourCreateFormInput, context: unknown, options: any) => {
+      const eventKind = resolveEventKindFromTourContext({
+        tourType: values.tourType,
+        tripStyle: values.tripDetails?.overview?.tripStyle,
+      });
+      return zodResolver(createTourCreateSchemaForEventKind(eventKind))(values, context, options);
+    },
+    [],
+  );
 
   const {
     register,
@@ -49,7 +76,7 @@ export function TourCreateClient() {
     control,
     formState: { errors },
   } = useForm<TourCreateFormInput, unknown, TourCreateModel>({
-    resolver: zodResolver(TourCreateSchema),
+    resolver,
     defaultValues: {
       title: "",
       description: "",
@@ -57,8 +84,15 @@ export function TourCreateClient() {
       autoAcceptRegistrations: true,
       tourType: undefined,
       primaryTransportMode: undefined,
+      durationDays: undefined,
+      meetingPoint: "",
       socialLinks: [{ platform: "telegram", url: "" }],
       communicationLink: "",
+      tripDetails: {
+        itinerary: {
+          dayPlans: [],
+        },
+      },
       capacity: 10,
       price: 0,
       lifecycle_status: "Draft",
@@ -68,6 +102,19 @@ export function TourCreateClient() {
     control,
     name: "socialLinks",
   });
+  const watchedTourType = useWatch({ control, name: "tourType" });
+  const watchedTripStyle = useWatch({ control, name: "tripDetails.overview.tripStyle" });
+  const isMountainTour = isMountainTourLike({
+    tourType: watchedTourType,
+    tripStyle: watchedTripStyle,
+  });
+  const eventKind = resolveEventKindFromTourContext({
+    tourType: watchedTourType,
+    tripStyle: watchedTripStyle,
+  });
+  const viewerRole = normalizeFieldUserRole(user?.role);
+  const coreConfigById = new Map(getCoreFieldConfigForKind(eventKind).map((row) => [row.id, row]));
+  const capacityAccess = resolveFieldAccess(coreConfigById.get("core.capacity"), viewerRole);
 
   async function handleCreateTourSubmit(values: TourCreateModel) {
     try {
@@ -81,9 +128,12 @@ export function TourCreateClient() {
 
   const mutationErrorMessage =
     createTourError != null
-      ? createTourError instanceof Error
-        ? createTourError.message
-        : "Failed to create tour. Please try again."
+      ? createTourError instanceof ForbiddenError ||
+          (createTourError instanceof ApiError && createTourError.status === 403)
+        ? "You don't have permission to create tours in this workspace. If you think this is a mistake, sign in with an owner or admin account, or ask your workspace owner to update your role."
+        : createTourError instanceof Error
+          ? createTourError.message
+          : "Failed to create tour. Please try again."
       : null;
 
   /** Back when possible; `replace("/tours")` only if no prior history entry or `back` throws. */
@@ -246,6 +296,36 @@ export function TourCreateClient() {
               </Select>
             </FormField>
 
+            <FormField label="Duration (days) (optional)" error={errors.durationDays?.message}>
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                placeholder="e.g. 3"
+                autoComplete="off"
+                aria-invalid={errors.durationDays ? true : undefined}
+                {...register("durationDays")}
+              />
+            </FormField>
+
+            <FormField label="Meeting point (optional)" error={errors.meetingPoint?.message}>
+              <Input
+                autoComplete="off"
+                aria-invalid={errors.meetingPoint ? true : undefined}
+                {...register("meetingPoint")}
+              />
+            </FormField>
+
+            <TourCreateTripDetailsFields
+              register={register as unknown as UseFormRegister<FieldValues>}
+              control={control as unknown as Control<FieldValues>}
+              errors={errors as unknown as FieldErrors<FieldValues>}
+              isPending={isPending}
+              isMountainTour={isMountainTour}
+              eventKind={eventKind}
+              viewerRole={viewerRole}
+            />
+
             <FormField
               label="Registration"
               description="Registration behavior for this tour"
@@ -319,15 +399,18 @@ export function TourCreateClient() {
               </div>
             </FormField>
 
-            <FormField label="Capacity" error={errors.capacity?.message}>
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                aria-invalid={errors.capacity ? true : undefined}
-                {...register("capacity")}
-              />
-            </FormField>
+            {capacityAccess.canView ? (
+              <FormField label="Capacity" error={errors.capacity?.message}>
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  aria-invalid={errors.capacity ? true : undefined}
+                  disabled={isPending || !capacityAccess.canEdit}
+                  {...register("capacity")}
+                />
+              </FormField>
+            ) : null}
 
             <FormField label="Price (USD)" error={errors.price?.message}>
               <Input

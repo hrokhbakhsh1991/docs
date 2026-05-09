@@ -12,6 +12,54 @@ export interface TourItineraryItem {
   elevationGainM?: number | null;
 }
 
+export interface TourTripDetailsLogistics {
+  meetingPoint?: string;
+  departureMeetingTime?: string;
+  departureDate?: string;
+  returnDate?: string;
+  returnPoint?: string;
+  transportation?: string;
+  accommodationType?: string;
+  mealPlan?: string;
+  supportServices?: string[];
+  includedServices?: string[];
+  excludedServices?: string[];
+  optionalServices?: string[];
+  guideLanguage?: string[];
+  groupSizeMin?: number;
+  groupSizeMax?: number;
+}
+
+export type TripDetailsExperienceLevel = "none" | "basic" | "intermediate" | "advanced";
+export type TripDetailsGenderRestriction = "none" | "male_only" | "female_only";
+
+export interface TourTripDetailsParticipation {
+  minimumAge?: number;
+  maximumAge?: number;
+  genderRestriction?: TripDetailsGenderRestriction;
+  difficultyLevel?: DifficultyLevel;
+  fitnessLevel?: DifficultyLevel;
+  experienceLevel?: TripDetailsExperienceLevel;
+  medicalRestrictions?: string;
+  technicalSkillRequired?: string;
+  requirements?: string;
+  skillsRequired?: string[];
+  gearRequired?: string[];
+  gearOptional?: string[];
+  documentsRequired?: string[];
+  suitableFor?: string[];
+  notSuitableFor?: string[];
+}
+
+export interface TourTripDetails {
+  schemaVersion?: number;
+  overview?: Record<string, unknown>;
+  itinerary?: Record<string, unknown>;
+  participation?: TourTripDetailsParticipation;
+  logistics?: TourTripDetailsLogistics;
+  policies?: Record<string, unknown>;
+}
+
 export interface TourDetailsDto {
   destinationName?: string;
   elevationM?: number;
@@ -20,6 +68,8 @@ export interface TourDetailsDto {
   meetingPoint?: string;
   requiredGear?: string[];
   itinerary?: TourItineraryItem[];
+  /** Structured trip details (JSONB). Mirrors API `details.tripDetails`. */
+  tripDetails?: TourTripDetails | null;
 }
 
 export type TourDetails = TourDetailsDto;

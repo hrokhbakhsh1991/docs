@@ -3,16 +3,32 @@
 import type { TourDto } from "@repo/types";
 import type { TourLifecycleStatus } from "@repo/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect } from "react";
+import {
+  useForm,
+  useWatch,
+  type Control,
+  type FieldErrors,
+  type FieldValues,
+  type UseFormRegister,
+} from "react-hook-form";
 
 import { Alert, Button, Card, FormField, Input, Select, Textarea } from "@tour/ui";
 
 import { ApiError } from "@/lib/api-client";
+import { TourCreateTripDetailsFields } from "@/features/tours/components/tour-create-trip-details-fields";
+import {
+  getCoreFieldConfigForKind,
+  normalizeFieldUserRole,
+  resolveFieldAccess,
+} from "@/features/tours/config/tripDetailsFieldConfig";
+import { normalizeTripDetailsFormDefault } from "@/features/tours/models/tourTripDetails.schema";
+import { isMountainTourLike, resolveEventKindFromTourContext } from "@/features/tours/policies/tour-kind-policy";
+import { useAuth } from "@/lib/auth/auth-context";
 
 import { apiLifecycleToFormStatus } from "./tour-lifecycle";
 import { extractTourPriceUsd } from "./formatters";
-import { TourSchema, type TourFormInput, type TourFormValues } from "./tour-schema";
+import { createTourSchemaForEventKind, type TourFormInput, type TourFormValues } from "./tour-schema";
 
 import styles from "./TourForm.module.css";
 
@@ -51,6 +67,8 @@ export type TourFormProps = {
 };
 
 function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
+  const emptyTripDetails = normalizeTripDetailsFormDefault(undefined);
+
   if (!tour || (!tour.title && !tour.id)) {
     return {
       title: "",
@@ -59,6 +77,8 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
       price: 0,
       status: "draft",
       communicationLink: "",
+      tourType: undefined,
+      tripDetails: emptyTripDetails,
     };
   }
 
@@ -67,6 +87,11 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
     ? apiLifecycleToFormStatus(tour.lifecycleStatus)
     : "draft";
 
+  const rawTrip =
+    tour.details?.tripDetails != null && typeof tour.details.tripDetails === "object"
+      ? (tour.details.tripDetails as Record<string, unknown>)
+      : undefined;
+
   return {
     title: tour.title ?? "",
     description: typeof tour.description === "string" ? tour.description : "",
@@ -74,22 +99,48 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
     price: Number.isFinite(priceUsd) ? priceUsd : 0,
     status,
     communicationLink: typeof tour.communicationLink === "string" ? tour.communicationLink : "",
+    tourType: tour.tourType ?? undefined,
+    tripDetails: normalizeTripDetailsFormDefault(rawTrip),
   };
 }
 
 export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourFormProps) {
   const resolvedMode = mode === "edit" || tour?.id ? "edit" : "create";
+  const { user } = useAuth();
+  const resolver = useCallback(
+    (values: TourFormInput, context: unknown, options: any) => {
+      const eventKind = resolveEventKindFromTourContext({
+        tourType: values.tourType,
+        tripStyle: values.tripDetails?.overview?.tripStyle,
+      });
+      return zodResolver(createTourSchemaForEventKind(eventKind))(values, context, options);
+    },
+    [],
+  );
 
   const {
     register,
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors, isSubmitting, isSubmitted },
   } = useForm<TourFormInput, unknown, TourFormValues>({
-    resolver: zodResolver(TourSchema),
+    resolver,
     defaultValues: toDefaultValues(tour),
   });
+  const watchedTripStyle = useWatch({ control, name: "tripDetails.overview.tripStyle" });
+  const isMountainTour = isMountainTourLike({
+    tourType: tour?.tourType ?? undefined,
+    tripStyle: watchedTripStyle,
+  });
+  const eventKind = resolveEventKindFromTourContext({
+    tourType: tour?.tourType ?? undefined,
+    tripStyle: watchedTripStyle,
+  });
+  const viewerRole = normalizeFieldUserRole(user?.role);
+  const coreConfigById = new Map(getCoreFieldConfigForKind(eventKind).map((row) => [row.id, row]));
+  const capacityAccess = resolveFieldAccess(coreConfigById.get("core.totalCapacity"), viewerRole);
 
   useEffect(() => {
     reset(toDefaultValues(tour));
@@ -162,16 +213,19 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             />
           </FormField>
 
-          <FormField label="Total capacity" required error={errors.totalCapacity?.message}>
-            <Input
-              type="number"
-              min={1}
-              step={1}
-              data-testid="tour-field-capacity"
-              aria-invalid={errors.totalCapacity ? true : undefined}
-              {...register("totalCapacity", { valueAsNumber: true })}
-            />
-          </FormField>
+          {capacityAccess.canView ? (
+            <FormField label="Total capacity" required error={errors.totalCapacity?.message}>
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                data-testid="tour-field-capacity"
+                aria-invalid={errors.totalCapacity ? true : undefined}
+                disabled={isSubmitting || !capacityAccess.canEdit}
+                {...register("totalCapacity", { valueAsNumber: true })}
+              />
+            </FormField>
+          ) : null}
 
           <FormField
             label="Price (USD)"
@@ -212,6 +266,16 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
               {...register("communicationLink")}
             />
           </FormField>
+
+          <TourCreateTripDetailsFields
+            register={register as unknown as UseFormRegister<FieldValues>}
+            control={control as unknown as Control<FieldValues>}
+            errors={errors as unknown as FieldErrors<FieldValues>}
+            isPending={isSubmitting}
+            isMountainTour={isMountainTour}
+            eventKind={eventKind}
+            viewerRole={viewerRole}
+          />
 
           <div className={styles.actions}>
             <Button type="button" variant="ghost" disabled={isSubmitting} onClick={onCancel}>

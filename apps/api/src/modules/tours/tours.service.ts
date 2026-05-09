@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
   Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException
 } from "@nestjs/common";
+import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
@@ -19,7 +21,14 @@ import { mapTourEntityToResponseDto, TourResponseDto } from "./dto/tour-response
 import { UpdateTourDto } from "./dto/update-tour.dto";
 import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
 import { TourDetails } from "./entities/tour-details.entity";
-import { assertTourIsPublishable, assertValidLifecycleTransition } from "./policies/tour-lifecycle.policy";
+import type { TourTripDetails } from "./types/tour-trip-details.types";
+import { TourTripDetailsDto } from "./dto/trip-details.dto";
+import {
+  assertTourIsPublishable,
+  assertTourOpenReadiness,
+  assertValidLifecycleTransition
+} from "./policies/tour-lifecycle.policy";
+import { mergeTourTripDetails } from "./utils/merge-trip-details";
 
 @Injectable()
 export class ToursService {
@@ -60,6 +69,7 @@ export class ToursService {
       | "meetingPoint"
       | "requiredGear"
       | "itinerary"
+      | "tripDetails"
     >
   ): boolean {
     return (
@@ -69,8 +79,21 @@ export class ToursService {
       dto.durationDays !== undefined ||
       dto.meetingPoint !== undefined ||
       dto.requiredGear !== undefined ||
-      dto.itinerary !== undefined
+      dto.itinerary !== undefined ||
+      dto.tripDetails !== undefined
     );
+  }
+
+  private tripDetailsToPersistedJson(
+    value: TourTripDetailsDto | null | undefined
+  ): TourTripDetails | null | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === null) {
+      return null;
+    }
+    return JSON.parse(JSON.stringify(instanceToPlain(value))) as TourTripDetails;
   }
 
   async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
@@ -90,6 +113,7 @@ export class ToursService {
             d.meetingPoint = dto.meetingPoint ?? null;
             d.requiredGear = dto.requiredGear ?? null;
             d.itinerary = dto.itinerary ?? null;
+            d.tripDetails = this.tripDetailsToPersistedJson(dto.tripDetails) ?? null;
             return d;
           })()
         : undefined;
@@ -109,6 +133,15 @@ export class ToursService {
         details
       });
 
+      const nextLifecycle = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
+      if (nextLifecycle === TourLifecycleStatus.OPEN) {
+        assertTourOpenReadiness({
+          title: tour.title,
+          totalCapacity: tour.totalCapacity,
+          details: tour.details ?? null
+        });
+      }
+
       const saved = await this.tourRepository.save(tour);
       const loaded = await this.tourRepository.findOne({
         where: {
@@ -125,7 +158,10 @@ export class ToursService {
       }
 
       return mapTourEntityToResponseDto(loaded);
-    } catch {
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new InternalServerErrorException({
         error: {
           code: "INTERNAL_ERROR",
@@ -242,11 +278,25 @@ export class ToursService {
         if (dto.itinerary !== undefined) {
           tour.details.itinerary = dto.itinerary;
         }
+        if (dto.tripDetails !== undefined) {
+          if (dto.tripDetails === null) {
+            tour.details.tripDetails = null;
+          } else {
+            const patch = this.tripDetailsToPersistedJson(dto.tripDetails);
+            tour.details.tripDetails = mergeTourTripDetails(
+              tour.details.tripDetails ?? null,
+              patch as TourTripDetails
+            );
+          }
+        }
       }
 
       const saved = await this.tourRepository.save(tour);
       return mapTourEntityToResponseDto(saved);
-    } catch {
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new InternalServerErrorException({
         error: {
           code: "INTERNAL_ERROR",

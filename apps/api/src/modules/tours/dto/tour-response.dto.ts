@@ -7,6 +7,7 @@ import {
   TourType
 } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 /**
  * GET/POST/PATCH tour projection per `docs/20-architecture/contracts/api_endpoint_contracts_v2_base.md`
@@ -125,6 +126,12 @@ export class TourResponseDto {
             elevationGainM: { type: "number", nullable: true, example: 450 }
           }
         }
+      },
+      tripDetails: {
+        type: "object",
+        nullable: true,
+        additionalProperties: true,
+        description: "Structured trip details (JSONB). Separate from tour `description`."
       }
     }
   })
@@ -136,6 +143,7 @@ export class TourResponseDto {
     meetingPoint?: string | null;
     requiredGear?: string[] | null;
     itinerary?: TourItineraryItem[] | null;
+    tripDetails?: TourTripDetails | null;
   } | null;
 }
 
@@ -163,7 +171,8 @@ export function mapTourEntityToResponseDto(tour: TourEntity): TourResponseDto {
         durationDays: tour.details.durationDays ?? null,
         meetingPoint: tour.details.meetingPoint ?? null,
         requiredGear: tour.details.requiredGear ?? null,
-        itinerary: tour.details.itinerary ?? null
+        itinerary: tour.details.itinerary ?? null,
+        tripDetails: tour.details.tripDetails ?? null
       }
     : null;
   return dto;

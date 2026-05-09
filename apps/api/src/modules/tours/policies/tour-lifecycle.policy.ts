@@ -1,6 +1,51 @@
 import { BadRequestException } from "@nestjs/common";
 import { TourEntity as Tour, TourLifecycleStatus } from "../entities/tour.entity";
 
+/** Shape used to validate title/capacity/details before setting lifecycle to OPEN (create or transition). */
+export type TourOpenReadinessInput = {
+  title: string;
+  totalCapacity: number;
+  details?: { durationDays?: number | null } | null;
+};
+
+/**
+ * Content rules required for a tour to be OPEN (no lifecycle checks).
+ * Centralizes publish readiness so create and update paths stay aligned.
+ */
+export function assertTourOpenReadiness(snapshot: TourOpenReadinessInput): void {
+  if (!snapshot.title || snapshot.title.trim() === "") {
+    throw new BadRequestException({
+      error: {
+        code: "TOUR_NOT_PUBLISHABLE",
+        message: "Tour title is required before publishing"
+      }
+    });
+  }
+
+  if (!Number.isFinite(snapshot.totalCapacity) || snapshot.totalCapacity <= 0) {
+    throw new BadRequestException({
+      error: {
+        code: "TOUR_NOT_PUBLISHABLE",
+        message: "Tour total capacity must be greater than zero before publishing"
+      }
+    });
+  }
+
+  const durationDays = snapshot.details?.durationDays;
+  if (
+    durationDays !== undefined &&
+    durationDays !== null &&
+    durationDays <= 0
+  ) {
+    throw new BadRequestException({
+      error: {
+        code: "TOUR_NOT_PUBLISHABLE",
+        message: "Tour details durationDays must be greater than zero when provided"
+      }
+    });
+  }
+}
+
 export function assertValidLifecycleTransition(
   current: TourLifecycleStatus,
   next: TourLifecycleStatus
@@ -41,53 +86,21 @@ export function assertTourIsOpenForRegistration(tour: Tour): void {
   });
 }
 
+/**
+ * Validates that a persisted DRAFT tour may transition to OPEN (draft gate + readiness).
+ */
 export function assertTourIsPublishable(tour: Tour): void {
-  if (!tour.title || tour.title.trim() === "") {
-    throw new BadRequestException({
-      error: {
-        code: "TOUR_NOT_PUBLISHABLE",
-        message: "Tour title is required before publishing"
-      }
-    });
-  }
-
-  if (!Number.isFinite(tour.totalCapacity) || tour.totalCapacity <= 0) {
-    throw new BadRequestException({
-      error: {
-        code: "TOUR_NOT_PUBLISHABLE",
-        message: "Tour total capacity must be greater than zero before publishing"
-      }
-    });
-  }
-
-  const startDate = (tour as unknown as { startDate?: Date | string | null }).startDate;
-  if (!startDate) {
-    throw new BadRequestException({
-      error: {
-        code: "TOUR_NOT_PUBLISHABLE",
-        message: "Tour start date is required before publishing"
-      }
-    });
-  }
+  assertTourOpenReadiness({
+    title: tour.title,
+    totalCapacity: tour.totalCapacity,
+    details: tour.details ?? null
+  });
 
   if (tour.lifecycleStatus !== TourLifecycleStatus.DRAFT) {
     throw new BadRequestException({
       error: {
         code: "TOUR_NOT_PUBLISHABLE",
         message: "Only draft tours can be published"
-      }
-    });
-  }
-
-  if (
-    tour.details?.durationDays !== undefined &&
-    tour.details?.durationDays !== null &&
-    tour.details.durationDays <= 0
-  ) {
-    throw new BadRequestException({
-      error: {
-        code: "TOUR_NOT_PUBLISHABLE",
-        message: "Tour details durationDays must be greater than zero when provided"
       }
     });
   }

@@ -1,19 +1,33 @@
 import type { CreateTourDto } from "@/lib/services/tours.service";
 
 import type { SocialLink } from "../models/tourCreateModel";
+import { compactTripDetailsForApi } from "../models/tourTripDetails.schema";
+import type { TourTripDetails } from "../models/tourTripDetails.schema";
 
-/** Fields required to build {@link CreateTourDto}; optional strings omit from payload when empty after trim. */
+/**
+ * Fields accepted by {@link mapCreateTourDto}.
+ * Optional API fields use `Partial` so alternate create entry points (e.g. tour form mappers) stay loose.
+ */
 export type MapCreateTourDtoInput = Pick<
   CreateTourDto,
-  "title" | "capacity" | "price" | "lifecycle_status" | "autoAcceptRegistrations"
-> & {
-  description?: string;
-  location?: string;
-  communicationLink?: string;
-  tourType?: CreateTourDto["tourType"];
-  primaryTransportMode?: CreateTourDto["primaryTransportMode"];
-  socialLinks?: SocialLink[];
-};
+  "title" | "capacity" | "price" | "lifecycle_status"
+> &
+  Partial<
+    Pick<
+      CreateTourDto,
+      | "autoAcceptRegistrations"
+      | "durationDays"
+      | "meetingPoint"
+      | "tripDetails"
+      | "tourType"
+      | "primaryTransportMode"
+    >
+  > & {
+    description?: string;
+    location?: string;
+    communicationLink?: string;
+    socialLinks?: SocialLink[];
+  };
 
 export type CreateTourDtoPrepared = CreateTourDto & {
   /** Prepared for future backend support; currently ignored by API serializer. */
@@ -28,15 +42,22 @@ export function mapCreateTourDto(payload: MapCreateTourDtoInput): CreateTourDtoP
   const primarySocialLink = payload.socialLinks?.[0]?.url?.trim();
   const fallbackCommunicationLink = payload.communicationLink?.trim();
   const communicationLink = primarySocialLink || fallbackCommunicationLink;
+  /** Wire-safe `tripDetails` (trimmed strings, filtered arrays, valid `dayPlans`, no `undefined` keys). */
+  const tripDetailsCompact = compactTripDetailsForApi(payload.tripDetails) as TourTripDetails | undefined;
 
   return {
     title: payload.title.trim(),
     ...(payload.description?.trim() ? { description: payload.description.trim() } : {}),
     ...(payload.location?.trim() ? { location: payload.location.trim() } : {}),
     ...(communicationLink ? { communicationLink } : {}),
-    autoAcceptRegistrations: payload.autoAcceptRegistrations,
+    autoAcceptRegistrations: payload.autoAcceptRegistrations ?? true,
     ...(payload.tourType ? { tourType: payload.tourType } : {}),
     ...(payload.primaryTransportMode ? { primaryTransportMode: payload.primaryTransportMode } : {}),
+    ...(typeof payload.durationDays === "number" && Number.isFinite(payload.durationDays)
+      ? { durationDays: payload.durationDays }
+      : {}),
+    ...(payload.meetingPoint?.trim() ? { meetingPoint: payload.meetingPoint.trim() } : {}),
+    ...(tripDetailsCompact ? { tripDetails: tripDetailsCompact } : {}),
     ...(payload.socialLinks && payload.socialLinks.length > 0 ? { socialLinks: payload.socialLinks } : {}),
     capacity: payload.capacity,
     price: payload.price,

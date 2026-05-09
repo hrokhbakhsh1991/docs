@@ -1,4 +1,4 @@
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsArray,
@@ -10,10 +10,12 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  Min
+  Min,
+  ValidateNested
 } from "class-validator";
 import { PrimaryTransportMode, TourLifecycleStatus, TourType } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import { TourTripDetailsDto } from "./trip-details.dto";
 
 export class CreateTourDto {
   @ApiProperty({
@@ -145,4 +147,14 @@ export class CreateTourDto {
   @IsArray()
   @IsObject({ each: true })
   itinerary?: TourItineraryItem[];
+
+  @ApiPropertyOptional({
+    description:
+      "Structured trip details (JSON). On create, the payload is persisted as given (no prior document to merge). Separate from `description` marketing text.",
+    type: () => TourTripDetailsDto
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TourTripDetailsDto)
+  tripDetails?: TourTripDetailsDto;
 }

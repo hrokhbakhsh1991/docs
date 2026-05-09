@@ -59,7 +59,7 @@ export class ToursController {
   @ApiOperation({ summary: "Create tour" })
   @ApiCreatedResponse({ type: TourResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.OWNER)
+  @Roles(Role.OWNER, Role.ADMIN)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours",
@@ -81,7 +81,7 @@ export class ToursController {
   @ApiOperation({ summary: "Update tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.OWNER)
+  @Roles(Role.OWNER, Role.ADMIN)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours/:tourId",

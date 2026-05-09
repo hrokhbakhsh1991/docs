@@ -3294,6 +3294,333 @@
           "new_owner_user_id"
         ]
       },
+      "TripDetailsOverviewDto": {
+        "type": "object",
+        "properties": {
+          "mainDestination": {
+            "type": "string"
+          },
+          "destinationRegion": {
+            "type": "string"
+          },
+          "tourTheme": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tripStyle": {
+            "type": "string",
+            "enum": [
+              "mountaineering",
+              "nature",
+              "cultural",
+              "city",
+              "desert",
+              "adventure",
+              "mixed"
+            ]
+          },
+          "difficultyLevel": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "moderate",
+              "hard",
+              "technical"
+            ]
+          },
+          "elevationGainMeters": {
+            "type": "number"
+          },
+          "maxAltitudeMeters": {
+            "type": "number"
+          },
+          "bestFor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shortIntro": {
+            "type": "string"
+          }
+        }
+      },
+      "TripDetailsDayPlanDto": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "number",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Approach"
+          },
+          "description": {
+            "type": "string",
+            "example": "Transfer to base camp."
+          },
+          "distanceKm": {
+            "type": "number",
+            "example": 8
+          },
+          "elevationGainM": {
+            "type": "number",
+            "example": 450
+          }
+        }
+      },
+      "TripDetailsItineraryDto": {
+        "type": "object",
+        "properties": {
+          "highlights": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "includedVisits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excludedVisits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "optionalActivities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outline": {
+            "type": "string",
+            "description": "Free-text itinerary / program summary."
+          },
+          "programNotes": {
+            "type": "string"
+          },
+          "specialExperiences": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dayPlans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TripDetailsDayPlanDto"
+            }
+          }
+        }
+      },
+      "TripDetailsParticipationDto": {
+        "type": "object",
+        "properties": {
+          "minimumAge": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 150
+          },
+          "maximumAge": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 150
+          },
+          "genderRestriction": {
+            "type": "string",
+            "enum": [
+              "none",
+              "male_only",
+              "female_only"
+            ]
+          },
+          "fitnessLevel": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "moderate",
+              "hard",
+              "technical"
+            ]
+          },
+          "experienceLevel": {
+            "type": "string",
+            "enum": [
+              "none",
+              "basic",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "medicalRestrictions": {
+            "type": "string"
+          },
+          "requirements": {
+            "type": "string"
+          },
+          "skillsRequired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gearRequired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "gearOptional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "documentsRequired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "suitableFor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notSuitableFor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TripDetailsLogisticsDto": {
+        "type": "object",
+        "properties": {
+          "meetingPoint": {
+            "type": "string"
+          },
+          "returnPoint": {
+            "type": "string"
+          },
+          "transportation": {
+            "type": "string"
+          },
+          "accommodationType": {
+            "type": "string"
+          },
+          "mealPlan": {
+            "type": "string"
+          },
+          "supportServices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "includedServices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excludedServices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "optionalServices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "guideLanguage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupSizeMin": {
+            "type": "number",
+            "minimum": 0
+          },
+          "groupSizeMax": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      },
+      "TripDetailsPoliciesDto": {
+        "type": "object",
+        "properties": {
+          "reservationRules": {
+            "type": "string"
+          },
+          "cancellationPolicy": {
+            "type": "string"
+          },
+          "refundPolicy": {
+            "type": "string"
+          },
+          "attendanceRules": {
+            "type": "string"
+          },
+          "lateArrivalPolicy": {
+            "type": "string"
+          },
+          "noShowPolicy": {
+            "type": "string"
+          },
+          "confirmationPolicy": {
+            "type": "string"
+          },
+          "capacityPolicy": {
+            "type": "string"
+          },
+          "weatherPolicy": {
+            "type": "string"
+          },
+          "safetyPolicy": {
+            "type": "string"
+          }
+        }
+      },
+      "TourTripDetailsDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "number",
+            "example": 1,
+            "minimum": 1
+          },
+          "overview": {
+            "$ref": "#/components/schemas/TripDetailsOverviewDto"
+          },
+          "itinerary": {
+            "$ref": "#/components/schemas/TripDetailsItineraryDto"
+          },
+          "participation": {
+            "$ref": "#/components/schemas/TripDetailsParticipationDto"
+          },
+          "logistics": {
+            "$ref": "#/components/schemas/TripDetailsLogisticsDto"
+          },
+          "policies": {
+            "$ref": "#/components/schemas/TripDetailsPoliciesDto"
+          }
+        }
+      },
       "CreateTourDto": {
         "type": "object",
         "properties": {
@@ -3416,6 +3743,14 @@
                 }
               }
             }
+          },
+          "tripDetails": {
+            "description": "Structured trip details (JSON). On create, the payload is persisted as given (no prior document to merge). Separate from `description` marketing text.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TourTripDetailsDto"
+              }
+            ]
           }
         },
         "required": [
@@ -3600,6 +3935,12 @@
                     }
                   }
                 }
+              },
+              "tripDetails": {
+                "type": "object",
+                "nullable": true,
+                "additionalProperties": true,
+                "description": "Structured trip details (JSONB). Separate from tour `description`."
               }
             }
           }
@@ -3741,6 +4082,15 @@
                 }
               }
             }
+          },
+          "tripDetails": {
+            "description": "Structured trip details (JSON). Patches are deep-merged into the stored document (omit a key to leave it unchanged; arrays replace when sent). Pass root `null` to clear the whole blob. Separate from `description` marketing text.",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TourTripDetailsDto"
+              }
+            ]
           }
         }
       },

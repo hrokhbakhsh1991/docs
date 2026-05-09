@@ -1,6 +1,7 @@
 import type { TourDto, TourLifecycleStatus } from "@repo/types";
 
 import { ApiError } from "@/lib/api-client";
+import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 
 import { apiClient } from "../api-client";
@@ -30,6 +31,12 @@ export type CreateTourDto = {
   primaryTransportMode?: "bus" | "train" | "plane" | "private_car" | "mixed" | "none";
   /** Maps to `chat_link` on the wire. */
   communicationLink?: string;
+  /** Nest `CreateTourDto.durationDays` (camelCase JSON). */
+  durationDays?: number;
+  /** Nest `CreateTourDto.meetingPoint` (camelCase JSON). */
+  meetingPoint?: string;
+  /** Nest `CreateTourDto.tripDetails` → `tour_details.trip_details` (JSONB). */
+  tripDetails?: TourTripDetails;
   capacity: number;
   price: number;
   lifecycle_status: "Draft" | "Open";
@@ -49,6 +56,8 @@ export type UpdateTourDto = {
   location?: string;
   /** Maps to `chat_link` on the wire when non-empty after trim. */
   communicationLink?: string;
+  /** Nest `UpdateTourDto.tripDetails` → merged into `tour_details.trip_details` (JSONB). */
+  tripDetails?: TourTripDetails;
 };
 
 
@@ -152,6 +161,25 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   if (dto.primaryTransportMode) {
     body.primaryTransportMode = dto.primaryTransportMode;
   }
+  if (
+    typeof dto.durationDays === "number" &&
+    Number.isInteger(dto.durationDays) &&
+    dto.durationDays > 0
+  ) {
+    body.durationDays = dto.durationDays;
+  }
+  const meeting = dto.meetingPoint?.trim();
+  if (meeting) {
+    body.meetingPoint = meeting;
+  }
+  if (
+    dto.tripDetails != null &&
+    typeof dto.tripDetails === "object" &&
+    Object.keys(dto.tripDetails).length > 0
+  ) {
+    /** Normalized in {@link mapCreateTourDto} via `compactTripDetailsForApi` (JSON-safe, no `undefined` keys). */
+    body.tripDetails = dto.tripDetails;
+  }
   return body;
 }
 
@@ -160,6 +188,8 @@ export async function createTour(dto: CreateTourDto): Promise<TourDetailDto> {
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   const raw = await apiClient.post<unknown>(API.tours, toCreateTourApiBody(dto), {
     idempotencyKey,
+    /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
+    skip403Redirect: true,
   });
   return mapTourResponseToDto(raw);
 }
@@ -194,6 +224,13 @@ function toUpdateTourApiBody(
   const link = dto.communicationLink?.trim();
   if (link) {
     body.chat_link = link;
+  }
+  if (
+    dto.tripDetails != null &&
+    typeof dto.tripDetails === "object" &&
+    Object.keys(dto.tripDetails).length > 0
+  ) {
+    body.tripDetails = dto.tripDetails;
   }
   return body;
 }

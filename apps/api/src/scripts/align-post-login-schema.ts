@@ -41,6 +41,11 @@ async function main(): Promise<void> {
     `);
 
     await dataSource.query(`
+      ALTER TABLE "tour_details"
+      ADD COLUMN IF NOT EXISTS "trip_details" jsonb NULL
+    `);
+
+    await dataSource.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tour_type_enum') THEN
