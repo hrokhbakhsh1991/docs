@@ -157,5 +157,16 @@ export const envSchema = z.object({
    * - degraded: keep serving but mark health as degraded
    * - fail_fast: abort startup when required columns are missing
    */
-  SCHEMA_GUARD_MODE: z.enum(["warn_only", "degraded", "fail_fast"]).default("warn_only")
+  SCHEMA_GUARD_MODE: z.enum(["warn_only", "degraded", "fail_fast"]).default("warn_only"),
+
+  /**
+   * Optional web app origin for email deep links (e.g. `https://app.example.com`).
+   * Trailing slash is ignored. Empty skips verify links in outbound mail.
+   */
+  FRONTEND_BASE_URL: z.string().default(""),
+
+  /** Resend API key; empty disables outbound email (EmailService no-ops). */
+  RESEND_API_KEY: z.string().default(""),
+  /** Verified sender, e.g. `TourOps <mail@yourdomain.com>`. Empty uses Resend onboarding sender while testing. */
+  RESEND_FROM: z.string().default("")
 });

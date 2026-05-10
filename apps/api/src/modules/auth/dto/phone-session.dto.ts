@@ -1,6 +1,6 @@
 import { Transform } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, MinLength } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from "class-validator";
 import { normalizeOtpPhoneInput } from "../../../common/phone/otp-phone-normalize";
 
 export class PhoneSessionDto {
@@ -34,4 +34,22 @@ export class PhoneSessionDto {
   @IsOptional()
   @IsString()
   invite_token?: string;
+
+  @ApiProperty({
+    required: false,
+    description: "OTP challenge id from POST /api/v2/auth/web/otp/request (preferred login path)"
+  })
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== "string") {
+      return value;
+    }
+    const t = value.trim();
+    return t === "" ? undefined : t;
+  })
+  @IsOptional()
+  @IsUUID("4")
+  challenge_id?: string;
 }

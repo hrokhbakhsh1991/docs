@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -9,20 +10,36 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Max,
   Min,
   ValidateIf,
   ValidateNested
 } from "class-validator";
-import { PrimaryTransportMode, TourLifecycleStatus, TourType } from "../entities/tour.entity";
+import { TourLifecycleStatus, TOUR_TYPES, type TourType } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
 import { TourTripDetailsDto } from "./trip-details.dto";
+import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "./create-tour.dto";
+import {
+  TOUR_TRANSPORT_MODE_VALUES,
+  normalizeTourTransportModesForDto,
+  type TourTransportMode
+} from "../tour-transport-modes";
+import { TOUR_DURATION_DAYS_MAX, TOUR_DURATION_DAYS_MIN } from "../utils/tour-duration";
 
 export class UpdateTourDto {
   @ApiPropertyOptional({
-    example: "Spring Camp 2026 - Updated"
+    example: "Damavand summit — 2-day climb (updated)",
+    minLength: TOUR_TITLE_MIN_LENGTH,
+    maxLength: TOUR_TITLE_MAX_LENGTH
   })
   @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
   @IsString()
+  @Length(TOUR_TITLE_MIN_LENGTH, TOUR_TITLE_MAX_LENGTH, {
+    message: `Title must be between ${TOUR_TITLE_MIN_LENGTH} and ${TOUR_TITLE_MAX_LENGTH} characters.`
+  })
   title?: string;
 
   @ApiPropertyOptional({
@@ -52,7 +69,10 @@ export class UpdateTourDto {
     | TourLifecycleStatus.CANCELLED;
 
   @ApiPropertyOptional({
-    example: "Updated description"
+    example: "Updated description",
+    description:
+      "Long-form copy for the **tour detail page**. When publishing or opening a tour to the public, this should be populated for consistency with list/detail UX. " +
+      "Teaser text for cards belongs in `tripDetails.overview.shortIntro`, not here."
   })
   @IsOptional()
   @IsString()
@@ -80,20 +100,40 @@ export class UpdateTourDto {
   autoAcceptRegistrations?: boolean;
 
   @ApiPropertyOptional({
-    enum: TourType,
-    example: TourType.CAMP
+    enum: [...TOUR_TYPES],
+    example: TOUR_TYPES[0],
+    description:
+      "Top-level **category** of the tour. Use `tripDetails.overview.tripStyles` for the execution-style selections (adventure, luxury, …)."
   })
   @IsOptional()
-  @IsEnum(TourType)
+  @IsIn([...TOUR_TYPES])
   tourType?: TourType;
 
   @ApiPropertyOptional({
-    enum: PrimaryTransportMode,
-    example: PrimaryTransportMode.BUS
+    type: [String],
+    enum: TOUR_TRANSPORT_MODE_VALUES,
+    isArray: true,
+    example: ["plane"],
+    description:
+      "Replace tour transport modes (multi-select). Send `[]` or `null` to clear. No `mixed` — combine concrete modes."
   })
   @IsOptional()
-  @IsEnum(PrimaryTransportMode)
-  primaryTransportMode?: PrimaryTransportMode;
+  @Transform(({ value }) => normalizeTourTransportModesForDto(value) as TourTransportMode[] | undefined)
+  @IsArray()
+  @ArrayUnique()
+  @IsIn([...TOUR_TRANSPORT_MODE_VALUES], { each: true })
+  transportModes?: TourTransportMode[];
+
+  @ApiPropertyOptional({
+    format: "uuid",
+    nullable: true,
+    description: "Workspace destination from Settings → Locations. Send `null` to clear."
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsUUID()
+  destinationId?: string | null;
 
   @ApiPropertyOptional({ example: "Damavand" })
   @IsOptional()
@@ -110,24 +150,23 @@ export class UpdateTourDto {
   @IsEnum(DifficultyLevel)
   difficulty?: DifficultyLevel;
 
-  @ApiPropertyOptional({ example: 3 })
+  @ApiPropertyOptional({
+    example: 3,
+    minimum: TOUR_DURATION_DAYS_MIN,
+    maximum: TOUR_DURATION_DAYS_MAX,
+    description:
+      "Inclusive day count. Re-derived server-side from `tripDetails.logistics.departureDate`/`returnDate` when those are part of the patch."
+  })
   @IsOptional()
   @IsInt()
+  @Min(TOUR_DURATION_DAYS_MIN)
+  @Max(TOUR_DURATION_DAYS_MAX)
   durationDays?: number;
 
   @ApiPropertyOptional({ example: "Azadi Square, Gate 3" })
   @IsOptional()
   @IsString()
   meetingPoint?: string;
-
-  @ApiPropertyOptional({
-    type: [String],
-    example: ["Hiking boots", "Waterproof jacket"]
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  requiredGear?: string[];
 
   @ApiPropertyOptional({
     type: "array",

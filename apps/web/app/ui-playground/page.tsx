@@ -25,7 +25,7 @@ import {
   Select,
   Textarea,
 } from "@tour/ui";
-import { useThemeSwitcher } from "../../src/hooks/useThemeSwitcher";
+import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 
 import styles from "./playground.module.css";
 

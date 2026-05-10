@@ -1,4 +1,11 @@
-import type { DifficultyLevel, TourDetailsDto, TourDto, TourLifecycleStatus, TourItineraryItem } from "@repo/types";
+import {
+  normalizeLegacyOverviewTripStyleToTripStyles,
+  type DifficultyLevel,
+  type TourDetailsDto,
+  type TourDto,
+  type TourItineraryItem,
+  type TourLifecycleStatus,
+} from "@repo/types";
 
 import type { TourDetailDto } from "../services/tours.service";
 
@@ -76,13 +83,6 @@ function normalizeTourDetails(value: unknown): TourDetailsDto | null {
   if (!value || typeof value !== "object") return null;
   const o = value as Record<string, unknown>;
 
-  const gearRaw: unknown = o.requiredGear ?? o.required_gear;
-  const requiredGear = Array.isArray(gearRaw)
-    ? gearRaw
-        .map((v: unknown) => normalizeOptionalString(v))
-        .filter((v): v is string => typeof v === "string" && v.length > 0)
-    : undefined;
-
   const rawItinerary: unknown = o.itinerary;
   const itinerary = Array.isArray(rawItinerary)
     ? rawItinerary
@@ -90,7 +90,12 @@ function normalizeTourDetails(value: unknown): TourDetailsDto | null {
         .filter((item): item is TourItineraryItem => item !== null)
     : undefined;
 
-  const tripDetailsRaw: unknown = o.tripDetails ?? o.trip_details;
+  let tripDetailsRaw: unknown = o.tripDetails ?? o.trip_details;
+  if (tripDetailsRaw != null && typeof tripDetailsRaw === "object" && !Array.isArray(tripDetailsRaw)) {
+    const td = JSON.parse(JSON.stringify(tripDetailsRaw)) as Record<string, unknown>;
+    normalizeLegacyOverviewTripStyleToTripStyles(td);
+    tripDetailsRaw = td;
+  }
 
   return {
     destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name) ?? undefined,
@@ -98,12 +103,37 @@ function normalizeTourDetails(value: unknown): TourDetailsDto | null {
     difficulty: normalizeDifficulty(o.difficulty) ?? undefined,
     durationDays: normalizeOptionalNumber(o.durationDays ?? o.duration_days) ?? undefined,
     meetingPoint: normalizeOptionalString(o.meetingPoint ?? o.meeting_point) ?? undefined,
-    ...(requiredGear != null && requiredGear.length > 0 ? { requiredGear } : {}),
     ...(itinerary != null && itinerary.length > 0 ? { itinerary } : {}),
     ...(tripDetailsRaw != null && typeof tripDetailsRaw === "object" && !Array.isArray(tripDetailsRaw)
       ? { tripDetails: tripDetailsRaw as Record<string, unknown> }
       : {}),
   };
+}
+
+const TOUR_TRANSPORT_MODE_SLUGS = new Set(["bus", "train", "plane", "private_car"]);
+
+type TourTransportModeSlug = TourDto["transportModes"][number];
+
+/** Maps new `transportModes` array or legacy single `primaryTransportMode` enum. */
+function normalizeTransportModesRow(o: Record<string, unknown>): TourDto["transportModes"] {
+  const multi = o.transportModes ?? o.transport_modes;
+  if (Array.isArray(multi)) {
+    const out: TourTransportModeSlug[] = [];
+    for (const x of multi) {
+      const v = String(x).trim().toLowerCase();
+      if (TOUR_TRANSPORT_MODE_SLUGS.has(v)) out.push(v as TourTransportModeSlug);
+    }
+    return [...new Set(out)].sort() as TourDto["transportModes"];
+  }
+  const legacy = o.primaryTransportMode ?? o.primary_transport_mode;
+  if (legacy == null || legacy === "") return [];
+  const v = String(legacy).trim().toLowerCase();
+  if (v === "mixed") {
+    return (["bus", "train", "plane", "private_car"] as TourTransportModeSlug[]).slice().sort() as TourDto["transportModes"];
+  }
+  if (v === "none") return [];
+  if (TOUR_TRANSPORT_MODE_SLUGS.has(v)) return [v as TourTransportModeSlug];
+  return [];
 }
 
 /**
@@ -144,10 +174,12 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
       o.tourType == null
         ? null
         : (String(o.tourType).trim().toLowerCase() as TourDto["tourType"]),
-    primaryTransportMode:
-      o.primaryTransportMode == null
-        ? null
-        : (String(o.primaryTransportMode).trim().toLowerCase() as TourDto["primaryTransportMode"]),
+    transportModes: normalizeTransportModesRow(o),
+    destinationId: normalizeOptionalString(o.destinationId ?? o.destination_id),
+    destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name),
+    destinationRegionName: normalizeOptionalString(
+      o.destinationRegionName ?? o.destination_region_name,
+    ),
     details: normalizeTourDetails(o.details),
     /** UI/forms legacy alias — same resolved value as `chatLink`. */
     communicationLink: link,

@@ -3,8 +3,11 @@
 import type { TourDto } from "@repo/types";
 import type { TourLifecycleStatus } from "@repo/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo } from "react";
 import {
+  Controller,
+  FormProvider,
   useForm,
   useWatch,
   type Control,
@@ -15,8 +18,14 @@ import {
 
 import { Alert, Button, Card, FormField, Input, Select, Textarea } from "@tour/ui";
 
+import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { ApiError } from "@/lib/api-client";
+import { getCatalogErrorMessageKey, logTenantCatalogMismatchDev } from "@/lib/errors/tenant-catalog-tour-errors";
 import { TourCreateTripDetailsFields } from "@/features/tours/components/tour-create-trip-details-fields";
+import { TourDestinationSelectField } from "@/features/tours/components/tour-destination-select-field";
+import { TourLocationSection } from "@/features/tours/components/tour-location-section";
+import { useTourDestinations } from "@/hooks/use-tour-destinations";
+import type { SettingsDestinationDto } from "@/lib/settings-locations-client";
 import {
   getCoreFieldConfigForKind,
   normalizeFieldUserRole,
@@ -31,6 +40,15 @@ import { extractTourPriceUsd } from "./formatters";
 import { createTourSchemaForEventKind, type TourFormInput, type TourFormValues } from "./tour-schema";
 
 import styles from "./TourForm.module.css";
+
+function defaultLocationSection(): TourFormInput["locationSection"] {
+  return {
+    regionId: "",
+    mainDestinationId: "",
+    secondaryDestinationIdsRaw: "",
+    displayLocationOverride: "",
+  };
+}
 
 function apiValidationMessage(data: unknown): string | null {
   if (!data || typeof data !== "object") {
@@ -66,7 +84,7 @@ export type TourFormProps = {
   onCancel?: () => void;
 };
 
-function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
+function toDefaultValues(tour?: TourFormProps["tour"]): TourFormInput {
   const emptyTripDetails = normalizeTripDetailsFormDefault(undefined);
 
   if (!tour || (!tour.title && !tour.id)) {
@@ -78,8 +96,10 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
       status: "draft",
       communicationLink: "",
       tourType: undefined,
+      destinationId: null,
+      locationSection: defaultLocationSection(),
       tripDetails: emptyTripDetails,
-    };
+    } as TourFormInput;
   }
 
   const priceUsd = extractTourPriceUsd(tour.costContext);
@@ -92,6 +112,22 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
       ? (tour.details.tripDetails as Record<string, unknown>)
       : undefined;
 
+  const tripDetails = normalizeTripDetailsFormDefault(rawTrip);
+  const overview =
+    tripDetails.overview && typeof tripDetails.overview === "object" && !Array.isArray(tripDetails.overview)
+      ? (tripDetails.overview as Record<string, unknown>)
+      : {};
+  const costCtx =
+    tour.costContext && typeof tour.costContext === "object" && !Array.isArray(tour.costContext)
+      ? (tour.costContext as Record<string, unknown>)
+      : undefined;
+  const costLocation = typeof costCtx?.location === "string" ? costCtx.location : "";
+
+  const destId =
+    tour && "destinationId" in tour && typeof (tour as TourDto).destinationId === "string"
+      ? (tour as TourDto).destinationId
+      : null;
+
   return {
     title: tour.title ?? "",
     description: typeof tour.description === "string" ? tour.description : "",
@@ -100,24 +136,66 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormValues {
     status,
     communicationLink: typeof tour.communicationLink === "string" ? tour.communicationLink : "",
     tourType: tour.tourType ?? undefined,
-    tripDetails: normalizeTripDetailsFormDefault(rawTrip),
-  };
+    destinationId: destId,
+    locationSection: {
+      regionId: typeof overview.settingsRegionId === "string" ? overview.settingsRegionId : "",
+      mainDestinationId:
+        typeof overview.settingsMainDestinationId === "string" ? overview.settingsMainDestinationId : "",
+      secondaryDestinationIdsRaw:
+        typeof overview.secondaryDestinationIdsRaw === "string" ? overview.secondaryDestinationIdsRaw : "",
+      displayLocationOverride: costLocation === "" ? undefined : costLocation,
+    },
+    tripDetails,
+  } as TourFormInput;
 }
 
 export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourFormProps) {
+  const tCatalog = useTranslations("tours.catalogErrors");
   const resolvedMode = mode === "edit" || tour?.id ? "edit" : "create";
   const { user } = useAuth();
+  const { groupedRegions, allDestinations, isLoading: tourDestinationsLoading } = useTourDestinations();
+
+  const inactiveDestinationOption = useMemo((): SettingsDestinationDto | null => {
+    const id =
+      tour && "destinationId" in tour && typeof (tour as TourDto).destinationId === "string"
+        ? (tour as TourDto).destinationId
+        : null;
+    if (!id) {
+      return null;
+    }
+    const row = allDestinations.find((d) => d.id === id);
+    if (row) {
+      return row.isActive ? null : row;
+    }
+    const name = tour && "destinationName" in tour ? (tour as TourDto).destinationName : null;
+    if (name) {
+      return {
+        id,
+        name,
+        regionId: "",
+        type: null,
+        altitudeM: null,
+        sortOrder: null,
+        isActive: false,
+      };
+    }
+    return null;
+  }, [allDestinations, tour]);
   const resolver = useCallback(
     (values: TourFormInput, context: unknown, options: any) => {
       const eventKind = resolveEventKindFromTourContext({
         tourType: values.tourType,
-        tripStyle: values.tripDetails?.overview?.tripStyle,
+        tripStyles: values.tripDetails?.overview?.tripStyles as string[] | undefined,
       });
       return zodResolver(createTourSchemaForEventKind(eventKind))(values, context, options);
     },
     [],
   );
 
+  const formMethods = useForm<TourFormInput, unknown, TourFormValues>({
+    resolver,
+    defaultValues: toDefaultValues(tour),
+  });
   const {
     register,
     handleSubmit,
@@ -125,18 +203,17 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
     setError,
     control,
     formState: { errors, isSubmitting, isSubmitted },
-  } = useForm<TourFormInput, unknown, TourFormValues>({
-    resolver,
-    defaultValues: toDefaultValues(tour),
-  });
-  const watchedTripStyle = useWatch({ control, name: "tripDetails.overview.tripStyle" });
+  } = formMethods;
+  const watchedTripStyles = useWatch({ control, name: "tripDetails.overview.tripStyles" }) as
+    | string[]
+    | undefined;
   const isMountainTour = isMountainTourLike({
     tourType: tour?.tourType ?? undefined,
-    tripStyle: watchedTripStyle,
+    tripStyles: watchedTripStyles,
   });
   const eventKind = resolveEventKindFromTourContext({
     tourType: tour?.tourType ?? undefined,
-    tripStyle: watchedTripStyle,
+    tripStyles: watchedTripStyles,
   });
   const viewerRole = normalizeFieldUserRole(user?.role);
   const coreConfigById = new Map(getCoreFieldConfigForKind(eventKind).map((row) => [row.id, row]));
@@ -156,6 +233,15 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
       await onSubmit(data);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
+        const catalogKey = getCatalogErrorMessageKey(err.code);
+        if (catalogKey) {
+          logTenantCatalogMismatchDev(err);
+          setError("root", {
+            type: "server",
+            message: tCatalog(catalogKey),
+          });
+          return;
+        }
         const detailed = apiValidationMessage(err.data);
         setError("root", {
           type: "server",
@@ -192,6 +278,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
           </Alert>
         ) : null}
 
+        <FormProvider {...formMethods}>
         <form className={styles.form} onSubmit={handleSubmit(submitValid)} noValidate>
           <FormField label="Title" required error={errors.title?.message}>
             <Input
@@ -213,16 +300,37 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             />
           </FormField>
 
+          <TourDestinationSelectField
+            control={control as never}
+            name="destinationId"
+            groupedRegions={groupedRegions}
+            inactiveSelection={inactiveDestinationOption}
+            error={errors.destinationId?.message}
+            disabled={isSubmitting || tourDestinationsLoading}
+          />
+
+          <TourLocationSection regions={[]} destinations={[]} hideRegionDestinationPickers />
+
           {capacityAccess.canView ? (
             <FormField label="Total capacity" required error={errors.totalCapacity?.message}>
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                data-testid="tour-field-capacity"
-                aria-invalid={errors.totalCapacity ? true : undefined}
-                disabled={isSubmitting || !capacityAccess.canEdit}
-                {...register("totalCapacity", { valueAsNumber: true })}
+              <Controller
+                control={control}
+                name="totalCapacity"
+                render={({ field }) => (
+                  <PersianNumberInput
+                    data-testid="tour-field-capacity"
+                    aria-invalid={errors.totalCapacity ? true : undefined}
+                    disabled={isSubmitting || !capacityAccess.canEdit}
+                    numericMode="integer"
+                    value={field.value}
+                    onChange={(v) =>
+                      field.onChange(v === "" ? Number.NaN : Number.parseInt(v, 10))
+                    }
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  />
+                )}
               />
             </FormField>
           ) : null}
@@ -233,14 +341,22 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             description="Stored in costContext totalCost."
             error={errors.price?.message}
           >
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              placeholder="0.00"
-              data-testid="tour-field-price"
-              aria-invalid={errors.price ? true : undefined}
-              {...register("price", { valueAsNumber: true })}
+            <Controller
+              control={control}
+              name="price"
+              render={({ field }) => (
+                <PersianNumberInput
+                  placeholder="0.00"
+                  data-testid="tour-field-price"
+                  aria-invalid={errors.price ? true : undefined}
+                  numericMode="decimal"
+                  value={field.value}
+                  onChange={(v) => field.onChange(v === "" ? Number.NaN : Number(v))}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
             />
           </FormField>
 
@@ -275,6 +391,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             isMountainTour={isMountainTour}
             eventKind={eventKind}
             viewerRole={viewerRole}
+            suppressLogisticsMeetingAndReturn
           />
 
           <div className={styles.actions}>
@@ -292,6 +409,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             </Button>
           </div>
         </form>
+        </FormProvider>
       </div>
     </Card>
   );

@@ -23,24 +23,6 @@ function clearCookie(response: NextResponse): NextResponse {
 
 export async function GET(): Promise<NextResponse> {
   const token = cookies().get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  // #region agent log
-  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "770f2e"
-    },
-    body: JSON.stringify({
-      sessionId: "770f2e",
-      runId: "initial",
-      hypothesisId: "H7",
-      location: "app/api/auth/session/route.ts:26",
-      message: "session_route_get_enter",
-      data: { has_cookie_token: Boolean(token) },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
   if (!token) {
     return NextResponse.json({ authenticated: false }, { status: 200 });
   }
@@ -56,28 +38,6 @@ export async function GET(): Promise<NextResponse> {
     user_id: userId,
     tenant_id: tenantId
   };
-  // #region agent log
-  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "770f2e"
-    },
-    body: JSON.stringify({
-      sessionId: "770f2e",
-      runId: "initial",
-      hypothesisId: "H7",
-      location: "app/api/auth/session/route.ts:57",
-      message: "session_route_get_exit_authenticated",
-      data: {
-        authenticated: payload.authenticated,
-        has_user_id: typeof payload.user_id === "string" && payload.user_id.length > 0,
-        has_tenant_id: typeof payload.tenant_id === "string" && payload.tenant_id.length > 0
-      },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
   return NextResponse.json(payload);
 }
 

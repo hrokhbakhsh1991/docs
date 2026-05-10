@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { TourEntity as Tour, TourLifecycleStatus } from "../entities/tour.entity";
+import { TOUR_DURATION_DAYS_MAX, TOUR_DURATION_DAYS_MIN } from "../utils/tour-duration";
 
 /** Shape used to validate title/capacity/details before setting lifecycle to OPEN (create or transition). */
 export type TourOpenReadinessInput = {
@@ -32,17 +33,19 @@ export function assertTourOpenReadiness(snapshot: TourOpenReadinessInput): void 
   }
 
   const durationDays = snapshot.details?.durationDays;
-  if (
-    durationDays !== undefined &&
-    durationDays !== null &&
-    durationDays <= 0
-  ) {
-    throw new BadRequestException({
-      error: {
-        code: "TOUR_NOT_PUBLISHABLE",
-        message: "Tour details durationDays must be greater than zero when provided"
-      }
-    });
+  if (durationDays !== undefined && durationDays !== null) {
+    if (
+      !Number.isInteger(durationDays) ||
+      durationDays < TOUR_DURATION_DAYS_MIN ||
+      durationDays > TOUR_DURATION_DAYS_MAX
+    ) {
+      throw new BadRequestException({
+        error: {
+          code: "TOUR_NOT_PUBLISHABLE",
+          message: `Tour details durationDays must be an integer between ${TOUR_DURATION_DAYS_MIN} and ${TOUR_DURATION_DAYS_MAX} when provided`
+        }
+      });
+    }
   }
 }
 

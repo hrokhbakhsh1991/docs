@@ -1,10 +1,14 @@
 import type { TourFormValues } from "@/components/tours/tour-schema";
 import { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
-import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
+import {
+  applyTourThemeOverviewEnrichment,
+  injectLocationSectionIntoTripDetails,
+  mapCreateTourDto,
+} from "@/features/tours/domain/mapCreateTourDto";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetails.schema";
 
-import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "../../../lib/services/tours.service";
+import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "@/lib/services/tours.service";
 
 /** @deprecated Use {@link apiLifecycleToFormStatus} from `@/components/tours/tour-lifecycle`. */
 export const apiLifecycleToUi = apiLifecycleToFormStatus;
@@ -15,23 +19,34 @@ export { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours
  * Maps tour form values → {@link CreateTourDto} for `POST /api/v2/tours`.
  * Create API accepts only Draft or Open → UI `archived` is coerced to Draft.
  */
-export function createTourDtoFromTourFormValues(values: TourFormValues): CreateTourDto {
+export function createTourDtoFromTourFormValues(
+  values: TourFormValues,
+  themeCatalog?: readonly { id: string; name: string }[],
+): CreateTourDto {
   const lifecycle_status: CreateTourDto["lifecycle_status"] =
     values.status === "active" ? "Open" : "Draft";
-  const tripDetailsCompact = compactTripDetailsForApi(values.tripDetails) as TourTripDetails | undefined;
-  return mapCreateTourDto({
-    title: values.title,
-    description: values.description,
-    communicationLink: values.communicationLink,
-    capacity: values.totalCapacity,
-    price: values.price,
-    lifecycle_status,
-    ...(tripDetailsCompact ? { tripDetails: tripDetailsCompact } : {}),
-  });
+  return mapCreateTourDto(
+    {
+      title: values.title,
+      description: values.description,
+      communicationLink: values.communicationLink,
+      capacity: values.totalCapacity,
+      price: values.price,
+      lifecycle_status,
+      destinationId: values.destinationId ?? null,
+      locationSection: values.locationSection,
+      tripDetails: values.tripDetails,
+    },
+    { themeCatalog },
+  );
 }
 
 /** Maps edit form → {@link UpdateTourDto}; preserves embedded `cost_context.location` when API returned one. */
-export function updateTourDtoFromTourFormValues(values: TourFormValues, existing: TourDetailDto): UpdateTourDto {
+export function updateTourDtoFromTourFormValues(
+  values: TourFormValues,
+  existing: TourDetailDto,
+  themeCatalog?: readonly { id: string; name: string }[],
+): UpdateTourDto {
   const lifecycle_status = formLifecycleToApi(values.status);
   const existingLoc =
     existing.costContext &&
@@ -40,14 +55,25 @@ export function updateTourDtoFromTourFormValues(values: TourFormValues, existing
     typeof (existing.costContext as Record<string, unknown>).location === "string"
       ? String((existing.costContext as Record<string, unknown>).location)
       : undefined;
-  const tripDetailsCompact = compactTripDetailsForApi(values.tripDetails) as TourTripDetails | undefined;
+  const tripDetailsMerged = injectLocationSectionIntoTripDetails(
+    values.tripDetails ?? undefined,
+    values.locationSection,
+  );
+  const tripDetailsEnriched = applyTourThemeOverviewEnrichment(tripDetailsMerged, themeCatalog);
+  const tripDetailsCompact = compactTripDetailsForApi(tripDetailsEnriched) as TourTripDetails | undefined;
+  const displayLoc = values.locationSection?.displayLocationOverride?.trim();
   return {
     title: values.title.trim(),
     description: values.description?.trim() ?? "",
     capacity: values.totalCapacity,
     price: values.price,
     lifecycle_status,
-    ...(existingLoc ? { location: existingLoc } : {}),
+    destinationId: values.destinationId ?? null,
+    ...(displayLoc
+      ? { location: displayLoc }
+      : existingLoc
+        ? { location: existingLoc }
+        : {}),
     ...(values.communicationLink?.trim() ? { communicationLink: values.communicationLink.trim() } : {}),
     ...(tripDetailsCompact ? { tripDetails: tripDetailsCompact } : {}),
   };

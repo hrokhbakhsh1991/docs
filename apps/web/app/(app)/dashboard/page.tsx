@@ -1,12 +1,23 @@
-import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+
+import { routing } from "@/i18n/routing";
 
 import { DashboardPageClient } from "./dashboard-page-client";
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Leader workspace overview — registrations, tours, and bookings.",
-};
+const LOCALE = routing.defaultLocale;
 
-export default function DashboardPage() {
+export async function generateMetadata() {
+  setRequestLocale(LOCALE);
+  const t = await getTranslations({ locale: LOCALE, namespace: "metadata.dashboard" });
+
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
+export default async function DashboardPage() {
+  setRequestLocale(LOCALE);
+
   return <DashboardPageClient />;
 }

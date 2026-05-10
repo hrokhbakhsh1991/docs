@@ -1,15 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 
 import { Button } from "@tour/ui";
 
+/**
+ * Persian-only 403 page. Document is RTL via root `layout` (`lang="fa"` `dir="rtl"`).
+ */
 export default function ForbiddenPage() {
   const router = useRouter();
 
   return (
     <main
-      dir="rtl"
       style={{
         minHeight: "100vh",
         padding: "var(--space-6) var(--space-page-gutter)",

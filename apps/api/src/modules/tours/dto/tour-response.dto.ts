@@ -1,13 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { normalizeLegacyOverviewTripStyleToTripStyles } from "@repo/types";
 
 import {
-  PrimaryTransportMode,
   TourEntity,
   TourLifecycleStatus,
-  TourType
+  TOUR_TYPES,
+  type TourType
 } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
+import { TOUR_TRANSPORT_MODE_VALUES, type TourTransportMode } from "../tour-transport-modes";
 
 /**
  * GET/POST/PATCH tour projection per `docs/20-architecture/contracts/api_endpoint_contracts_v2_base.md`
@@ -83,20 +85,46 @@ export class TourResponseDto {
   autoAcceptRegistrations?: boolean | null;
 
   @ApiPropertyOptional({
-    enum: TourType,
+    enum: [...TOUR_TYPES],
     nullable: true,
-    example: TourType.CAMP,
-    description: "Optional tour classification for specialized UX."
+    example: TOUR_TYPES[0],
+    description:
+      "Top-level **category** (mountain, city, desert, nature, cultural). Execution-style selections live in `tripDetails.overview.tripStyles`."
   })
   tourType?: TourType | null;
 
-  @ApiPropertyOptional({
-    enum: PrimaryTransportMode,
-    nullable: true,
-    example: PrimaryTransportMode.BUS,
-    description: "Primary transport mode for the tour."
+  @ApiProperty({
+    type: [String],
+    enum: [...TOUR_TRANSPORT_MODE_VALUES],
+    isArray: true,
+    example: ["bus", "train"],
+    description:
+      "Organized transport modes for this tour (multi-select). Empty when unset. No `mixed` slug."
   })
-  primaryTransportMode?: PrimaryTransportMode | null;
+  transportModes!: TourTransportMode[];
+
+  @ApiPropertyOptional({
+    format: "uuid",
+    nullable: true,
+    description: "FK to workspace_destinations when the tour is linked to a Settings destination."
+  })
+  destinationId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "Damavand",
+    description: "Destination display name (from Settings) when `destinationId` is set."
+  })
+  destinationName?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: "Mazandaran",
+    description: "Region name for the linked destination, for list/detail UI."
+  })
+  destinationRegionName?: string | null;
 
   @ApiPropertyOptional({
     nullable: true,
@@ -107,12 +135,6 @@ export class TourResponseDto {
       difficulty: { enum: Object.values(DifficultyLevel), nullable: true, example: DifficultyLevel.HARD },
       durationDays: { type: "number", nullable: true, example: 3 },
       meetingPoint: { type: "string", nullable: true, example: "Azadi Square, Gate 3" },
-      requiredGear: {
-        type: "array",
-        items: { type: "string" },
-        nullable: true,
-        example: ["Hiking boots", "Headlamp"]
-      },
       itinerary: {
         type: "array",
         nullable: true,
@@ -141,7 +163,6 @@ export class TourResponseDto {
     difficulty?: DifficultyLevel | null;
     durationDays?: number | null;
     meetingPoint?: string | null;
-    requiredGear?: string[] | null;
     itinerary?: TourItineraryItem[] | null;
     tripDetails?: TourTripDetails | null;
   } | null;
@@ -162,7 +183,17 @@ export function mapTourEntityToResponseDto(tour: TourEntity): TourResponseDto {
   dto.costContext = tour.costContext ?? null;
   dto.autoAcceptRegistrations = tour.autoAcceptRegistrations ?? null;
   dto.tourType = tour.tourType ?? null;
-  dto.primaryTransportMode = tour.primaryTransportMode ?? null;
+  dto.transportModes = Array.isArray(tour.transportModes) ? [...tour.transportModes] : [];
+  dto.destinationId = tour.destination?.id ?? null;
+  dto.destinationName = tour.destination?.name ?? null;
+  dto.destinationRegionName = tour.destination?.region?.name ?? null;
+  let tripDetailsOut: TourTripDetails | null = tour.details?.tripDetails ?? null;
+  if (tripDetailsOut != null) {
+    const cloned = JSON.parse(JSON.stringify(tripDetailsOut)) as Record<string, unknown>;
+    normalizeLegacyOverviewTripStyleToTripStyles(cloned);
+    tripDetailsOut = cloned as TourTripDetails;
+  }
+
   dto.details = tour.details
     ? {
         destinationName: tour.details.destinationName ?? null,
@@ -170,9 +201,8 @@ export function mapTourEntityToResponseDto(tour: TourEntity): TourResponseDto {
         difficulty: tour.details.difficulty ?? null,
         durationDays: tour.details.durationDays ?? null,
         meetingPoint: tour.details.meetingPoint ?? null,
-        requiredGear: tour.details.requiredGear ?? null,
         itinerary: tour.details.itinerary ?? null,
-        tripDetails: tour.details.tripDetails ?? null
+        tripDetails: tripDetailsOut
       }
     : null;
   return dto;

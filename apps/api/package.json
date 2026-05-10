@@ -19,9 +19,11 @@
     "test": "node --import tsx --test \"test/outbox/**/*.ts\" \"test/registrations/**/*.unit-spec.ts\" \"test/registrations/**/*.e2e-spec.ts\" \"test/reconciliation/**/*.ts\" \"test/payments/**/*.ts\" \"test/idempotency/**/*.ts\" \"test/guards/**/*.ts\" \"test/jobs/**/*.ts\" \"test/security/**/*.ts\" \"test/modules/**/*.unit-spec.ts\" \"test/tenant-isolation.spec.ts\" \"test/rls-guardrail.spec.ts\" \"src/**/*.spec.ts\"",
     "test:e2e": "node --import tsx --test test/api.e2e-spec.ts test/e2e/registrations.e2e-spec.ts test/e2e/tenant-isolation.e2e-spec.ts test/e2e/jwt-membership-guard.e2e-spec.ts test/e2e/subdomain-multi-tenant.e2e-spec.ts test/e2e/subdomain-comprehensive.e2e-spec.ts test/e2e/invite-role-hierarchy.e2e-spec.ts test/e2e/users-role-rbac.e2e-spec.ts test/e2e/users-cursor-bulk.e2e-spec.ts test/e2e/invite-accept-function.e2e-spec.ts test/e2e/invite-accept-parallel.e2e-spec.ts test/e2e/tenant-context-leak.e2e-spec.ts test/e2e/payments-webhook-wrong-tenant.e2e-spec.ts test/e2e/ownership-transfer.e2e-spec.ts",
     "migrate:run": "node --env-file=.env --import tsx src/scripts/run-migrations.ts",
-    "schema:align": "node --env-file=.env --import tsx src/scripts/align-post-login-schema.ts"
+    "schema:align": "node --env-file=.env --import tsx src/scripts/align-post-login-schema.ts",
+    "migrate:tour-theme-tags": "node --env-file=.env --import tsx src/scripts/migrate-tour-theme-tags.ts"
   },
   "dependencies": {
+    "@repo/types": "workspace:*",
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/common": "^10.4.22",
     "@nestjs/core": "^10.4.22",
@@ -46,6 +48,7 @@
     "pg": "^8.13.1",
     "pino": "^10.3.1",
     "reflect-metadata": "^0.2.2",
+    "resend": "^4.0.1",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",

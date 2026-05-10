@@ -6,9 +6,9 @@ import { useCallback, type ReactNode } from "react";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
-import { useToursData } from "../../tours/_hooks/use-tours-data";
-import { useToursQueryParams } from "../../tours/_hooks/use-tours-query-params";
-import type { TourListQueryModel } from "../../tours/_hooks/query-model";
+import { useToursData } from "./_hooks/use-tours-data";
+import { useToursQueryParams } from "./_hooks/use-tours-query-params";
+import type { TourListQueryModel } from "./_hooks/query-model";
 
 import {
   Button,

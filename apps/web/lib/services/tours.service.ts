@@ -1,4 +1,4 @@
-import type { TourDto, TourLifecycleStatus } from "@repo/types";
+import type { TourDto, TourLifecycleStatus, TourType } from "@repo/types";
 
 import { ApiError } from "@/lib/api-client";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
@@ -27,8 +27,9 @@ export type CreateTourDto = {
   /** Stored in `cost_context.location` until the API adds a column. */
   location?: string;
   autoAcceptRegistrations: boolean;
-  tourType?: "camp" | "mountain" | "city" | "desert" | "other";
-  primaryTransportMode?: "bus" | "train" | "plane" | "private_car" | "mixed" | "none";
+  tourType?: TourType;
+  /** Multi-select; omit or `[]` when none. No `mixed` — pick every mode that applies. */
+  transportModes?: ("bus" | "train" | "plane" | "private_car")[];
   /** Maps to `chat_link` on the wire. */
   communicationLink?: string;
   /** Nest `CreateTourDto.durationDays` (camelCase JSON). */
@@ -37,6 +38,8 @@ export type CreateTourDto = {
   meetingPoint?: string;
   /** Nest `CreateTourDto.tripDetails` → `tour_details.trip_details` (JSONB). */
   tripDetails?: TourTripDetails;
+  /** Nest `CreateTourDto.destinationId` → `tours.destination_id`. */
+  destinationId?: string | null;
   capacity: number;
   price: number;
   lifecycle_status: "Draft" | "Open";
@@ -58,6 +61,8 @@ export type UpdateTourDto = {
   communicationLink?: string;
   /** Nest `UpdateTourDto.tripDetails` → merged into `tour_details.trip_details` (JSONB). */
   tripDetails?: TourTripDetails;
+  /** Nest `UpdateTourDto.destinationId` → `tours.destination_id` (send `null` to clear). */
+  destinationId?: string | null;
 };
 
 
@@ -158,8 +163,8 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   if (dto.tourType) {
     body.tourType = dto.tourType;
   }
-  if (dto.primaryTransportMode) {
-    body.primaryTransportMode = dto.primaryTransportMode;
+  if (dto.transportModes && dto.transportModes.length > 0) {
+    body.transportModes = dto.transportModes;
   }
   if (
     typeof dto.durationDays === "number" &&
@@ -179,6 +184,9 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   ) {
     /** Normalized in {@link mapCreateTourDto} via `compactTripDetailsForApi` (JSON-safe, no `undefined` keys). */
     body.tripDetails = dto.tripDetails;
+  }
+  if (dto.destinationId != null && dto.destinationId !== "") {
+    body.destinationId = dto.destinationId;
   }
   return body;
 }
@@ -231,6 +239,9 @@ function toUpdateTourApiBody(
     Object.keys(dto.tripDetails).length > 0
   ) {
     body.tripDetails = dto.tripDetails;
+  }
+  if (dto.destinationId !== undefined) {
+    body.destinationId = dto.destinationId;
   }
   return body;
 }

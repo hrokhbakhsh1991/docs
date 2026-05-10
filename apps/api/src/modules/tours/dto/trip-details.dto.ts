@@ -1,23 +1,67 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
 import {
+  ACCOMMODATION_TYPE_VALUES,
+  MEAL_PLAN_VALUES,
+  normalizeAccommodationTypesForDto,
+  normalizeMealPlanForDto,
+  type AccommodationTypeSlug,
+  type MealPlanSlug
+} from "@repo/types";
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Transform, Type } from "class-transformer";
+import {
+  ArrayUnique,
   IsArray,
   IsEnum,
   IsIn,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
+  IsUUID,
+  MaxLength,
   Max,
   Min,
-  ValidateNested
+  ValidateNested,
+  registerDecorator,
+  type ValidationArguments,
+  type ValidationOptions
 } from "class-validator";
 
 import { DifficultyLevel } from "../entities/tour-details.entity";
 import {
   EXPERIENCE_LEVEL_VALUES,
   GENDER_RESTRICTION_VALUES,
-  TRIP_STYLE_VALUES
+  TRIP_STYLE_VALUES,
+  type TripStyle
 } from "../types/tour-trip-details.types";
+import {
+  DIFFICULTY_RATING_MAX,
+  DIFFICULTY_RATING_MIN,
+  DIFFICULTY_RATING_STEP,
+  DIFFICULTY_RATING_VALUES,
+  type DifficultyRating
+} from "../tour-difficulty-rating";
+import {
+  AUDIENCE_GROUP_VALUES,
+  findAudienceOverlap,
+  normalizeAudienceGroupsForDto,
+  type AudienceGroup
+} from "../audience-groups";
+
+/** Maximum length of `tripDetails.overview.shortIntro` (used for tour cards / meta description). */
+export const TRIP_SHORT_INTRO_MAX_LENGTH = 250;
+
+/**
+ * Trim/lowercase incoming `tripStyles` entries before validation; preserves order
+ * and lets `@IsIn` flag unknown values. Returns `undefined` when the field is omitted.
+ */
+function normalizeTripStylesInput(value: unknown): TripStyle[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value)) return value as never;
+  return value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : entry))
+    .filter((entry) => typeof entry === "string" && entry.length > 0) as TripStyle[];
+}
 
 export class TripDetailsDayPlanDto {
   @ApiPropertyOptional({ example: 1 })
@@ -58,21 +102,55 @@ export class TripDetailsOverviewDto {
   @IsString()
   destinationRegion?: string;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    format: "uuid",
+    description: "Workspace catalog tour theme ids (`workspace_tour_themes.id`)."
+  })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  tourTheme?: string[];
+  @ArrayUnique()
+  @IsUUID("4", { each: true })
+  tourThemeIds?: string[];
 
-  @ApiPropertyOptional({ enum: TRIP_STYLE_VALUES })
+  @ApiPropertyOptional({
+    type: "object",
+    additionalProperties: { type: "string" },
+    description:
+      "Optional snapshot of theme id → display label for detail views when an id is no longer in the workspace catalog."
+  })
   @IsOptional()
-  @IsIn(TRIP_STYLE_VALUES as unknown as string[])
-  tripStyle?: (typeof TRIP_STYLE_VALUES)[number];
+  @IsObject()
+  tourThemeLabels?: Record<string, string>;
 
-  @ApiPropertyOptional({ enum: DifficultyLevel })
+  @ApiPropertyOptional({
+    type: [String],
+    enum: TRIP_STYLE_VALUES,
+    isArray: true,
+    description:
+      "Multi-select execution style (adventure, relaxed, luxury, budget, familyFriendly, photography). " +
+      "Orthogonal to root `tourType` (mountain, city, …). Replaces a legacy singular overview style field (migrated to this array on read)."
+  })
   @IsOptional()
-  @IsEnum(DifficultyLevel)
-  difficultyLevel?: DifficultyLevel;
+  @Transform(({ value }) => normalizeTripStylesInput(value))
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(TRIP_STYLE_VALUES as unknown as string[], { each: true })
+  tripStyles?: TripStyle[];
+
+  @ApiPropertyOptional({
+    type: Number,
+    minimum: DIFFICULTY_RATING_MIN,
+    maximum: DIFFICULTY_RATING_MAX,
+    multipleOf: DIFFICULTY_RATING_STEP,
+    example: 4.5,
+    description:
+      `Numeric difficulty rating on a 1–10 scale with ${DIFFICULTY_RATING_STEP} step granularity ` +
+      "(allowed values: 1, 1.5, 2, …, 9.5, 10). Replaces the legacy enum."
+  })
+  @IsOptional()
+  @IsIn(DIFFICULTY_RATING_VALUES as unknown as number[])
+  difficultyLevel?: DifficultyRating;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -84,15 +162,34 @@ export class TripDetailsOverviewDto {
   @IsInt()
   maxAltitudeMeters?: number;
 
-  @ApiPropertyOptional({ type: [String] })
+  /**
+   * @deprecated Replaced by the structured audience matrix
+   * (`participation.suitableFor` / `participation.notSuitableFor`).
+   * Kept on the DTO so legacy clients can still round-trip existing JSONB without errors.
+   * The web tour-create form no longer renders or writes this field.
+   */
+  @ApiPropertyOptional({
+    type: [String],
+    deprecated: true,
+    description:
+      "Deprecated. Use `participation.suitableFor` / `participation.notSuitableFor` instead. " +
+      "Retained for backward-compatible reads of older JSONB documents."
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   bestFor?: string[];
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    maxLength: TRIP_SHORT_INTRO_MAX_LENGTH,
+    description:
+      `Very short teaser (≤${TRIP_SHORT_INTRO_MAX_LENGTH} chars) for **tour cards / list previews / meta description**. ` +
+      "The root tour `description` field holds the long-form story for the **full tour page**. " +
+      "If empty, clients should fall back to `description` when rendering cards."
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(TRIP_SHORT_INTRO_MAX_LENGTH)
   shortIntro?: string;
 }
 
@@ -200,17 +297,27 @@ export class TripDetailsParticipationDto {
   @IsString({ each: true })
   skillsRequired?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    format: "uuid",
+    description: "Workspace equipment item ids (required gear)."
+  })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  gearRequired?: string[];
+  @ArrayUnique()
+  @IsUUID("4", { each: true })
+  gearRequiredIds?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    format: "uuid",
+    description: "Workspace equipment item ids (optional / recommended gear)."
+  })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  gearOptional?: string[];
+  @ArrayUnique()
+  @IsUUID("4", { each: true })
+  gearOptionalIds?: string[];
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -218,17 +325,79 @@ export class TripDetailsParticipationDto {
   @IsString({ each: true })
   documentsRequired?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    enum: AUDIENCE_GROUP_VALUES,
+    isArray: true,
+    description:
+      "Audience groups this tour is well-suited for. Fixed enum: " +
+      AUDIENCE_GROUP_VALUES.join(", ") +
+      ". Must NOT overlap with `notSuitableFor`. Legacy free-form values from older payloads " +
+      "are silently dropped during normalization."
+  })
   @IsOptional()
+  @Transform(({ value }) => normalizeAudienceGroupsForDto(value))
   @IsArray()
-  @IsString({ each: true })
-  suitableFor?: string[];
+  @ArrayUnique()
+  @IsIn(AUDIENCE_GROUP_VALUES as unknown as string[], { each: true })
+  suitableFor?: AudienceGroup[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    enum: AUDIENCE_GROUP_VALUES,
+    isArray: true,
+    description:
+      "Audience groups this tour is NOT suitable for. Fixed enum: " +
+      AUDIENCE_GROUP_VALUES.join(", ") +
+      ". Must NOT overlap with `suitableFor`."
+  })
   @IsOptional()
+  @Transform(({ value }) => normalizeAudienceGroupsForDto(value))
   @IsArray()
-  @IsString({ each: true })
-  notSuitableFor?: string[];
+  @ArrayUnique()
+  @IsIn(AUDIENCE_GROUP_VALUES as unknown as string[], { each: true })
+  @AudienceGroupsDoNotOverlap("suitableFor")
+  notSuitableFor?: AudienceGroup[];
+}
+
+/**
+ * Class-validator constraint: rejects when this property and `siblingProperty` share any value.
+ * Used to enforce that an audience group is not flagged simultaneously as suitable AND not suitable.
+ */
+function AudienceGroupsDoNotOverlap(
+  siblingProperty: string,
+  validationOptions?: ValidationOptions
+) {
+  return function decorate(object: object, propertyName: string) {
+    registerDecorator({
+      name: "audienceGroupsDoNotOverlap",
+      target: object.constructor,
+      propertyName,
+      options: validationOptions,
+      constraints: [siblingProperty],
+      validator: {
+        validate(value: unknown, args: ValidationArguments): boolean {
+          const siblingName = args.constraints[0] as string;
+          const siblingValue = (args.object as Record<string, unknown>)[siblingName];
+          const a = Array.isArray(value) ? (value as string[]) : [];
+          const b = Array.isArray(siblingValue) ? (siblingValue as string[]) : [];
+          return findAudienceOverlap(a, b).length === 0;
+        },
+        defaultMessage(args: ValidationArguments): string {
+          const siblingName = args.constraints[0] as string;
+          const a = Array.isArray(args.value) ? (args.value as string[]) : [];
+          const b = Array.isArray((args.object as Record<string, unknown>)[siblingName])
+            ? ((args.object as Record<string, unknown>)[siblingName] as string[])
+            : [];
+          const overlap = findAudienceOverlap(a, b);
+          return (
+            `\`${args.property}\` and \`${siblingName}\` must not contain the same audience group ` +
+            `(conflicting: ${overlap.join(", ")}).`
+          );
+        }
+      }
+    });
+  };
 }
 
 export class TripDetailsLogisticsDto {
@@ -263,20 +432,80 @@ export class TripDetailsLogisticsDto {
   @IsString()
   returnPoint?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: "Planned transportation notes (mode, route, operator, vehicle).",
+    maxLength: 1000
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
+  transportationNotes?: string;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    maxLength: 1000,
+    description:
+      "Deprecated. Use `transportationNotes`. Retained for backward-compatible reads of legacy JSONB; " +
+      "new writes should send `transportationNotes`."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
   transportation?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    type: [String],
+    enum: ACCOMMODATION_TYPE_VALUES,
+    isArray: true,
+    description:
+      "Accommodation for this trip (multi-select). Allowed: " +
+      ACCOMMODATION_TYPE_VALUES.join(", ") +
+      "."
+  })
+  @IsOptional()
+  @Transform(({ value }) => normalizeAccommodationTypesForDto(value))
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(ACCOMMODATION_TYPE_VALUES as unknown as string[], { each: true })
+  accommodationTypes?: AccommodationTypeSlug[];
+
+  @ApiPropertyOptional({
+    description: "Additional accommodation context not covered by fixed categories.",
+    maxLength: 500
+  })
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  accommodationNotes?: string;
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    maxLength: 500,
+    description:
+      "Deprecated. Use `accommodationTypes` and optional `accommodationNotes`. Retained for backward-compatible reads of legacy JSONB."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   accommodationType?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    enum: MEAL_PLAN_VALUES,
+    description: "Included meals for the trip (single choice)."
+  })
+  @IsOptional()
+  @Transform(({ value }) => normalizeMealPlanForDto(value))
+  @IsIn(MEAL_PLAN_VALUES as unknown as string[])
+  mealPlan?: MealPlanSlug;
+
+  @ApiPropertyOptional({
+    description: "Additional meal or catering context beyond `mealPlan`.",
+    maxLength: 500
+  })
   @IsOptional()
   @IsString()
-  mealPlan?: string;
+  @MaxLength(500)
+  mealNotes?: string;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
@@ -302,7 +531,23 @@ export class TripDetailsLogisticsDto {
   @IsString({ each: true })
   optionalServices?: string[];
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    type: [String],
+    format: "uuid",
+    description: "Workspace guide language ids (from Settings → Guide languages)."
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID("4", { each: true })
+  guideLanguageIds?: string[];
+
+  @ApiPropertyOptional({
+    deprecated: true,
+    type: [String],
+    description:
+      "Deprecated. Use `guideLanguageIds` referencing workspace guide languages. Retained for legacy JSONB reads only."
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

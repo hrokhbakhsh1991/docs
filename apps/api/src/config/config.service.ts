@@ -359,4 +359,19 @@ export class ConfigService {
   getSchemaGuardMode(): "warn_only" | "degraded" | "fail_fast" {
     return this.env.SCHEMA_GUARD_MODE;
   }
+
+  /** Trimmed public web origin for links in transactional email; empty when not set. */
+  getFrontendBaseUrl(): string {
+    return (this.env.FRONTEND_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  }
+
+  /** Trimmed Resend API key; empty when not configured. */
+  getResendApiKey(): string {
+    return (this.env.RESEND_API_KEY ?? "").trim();
+  }
+
+  /** Trimmed `From` header for Resend; empty means EmailService uses a documented test sender. */
+  getResendFrom(): string {
+    return (this.env.RESEND_FROM ?? "").trim();
+  }
 }

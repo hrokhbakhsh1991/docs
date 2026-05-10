@@ -1,3 +1,17 @@
+/**
+ * Workspace shell layout — directional rules use logical properties / `html[dir]` so RTL (`fa`) mirrors correctly.
+ * Remaining localized UI strings and fine-grained component fixes land in later i18n passes.
+ */
+
+/* Directional drawer slide: RTL opens from inline-start (visual right): positive translate hides off-screen. */
+html[dir="ltr"] .shell {
+  --workspace-drawer-shift: -100%;
+}
+
+html[dir="rtl"] .shell {
+  --workspace-drawer-shift: 100%;
+}
+
 .shell {
   display: flex;
   min-height: 100vh;
@@ -9,7 +23,7 @@
 .skipLink {
   position: absolute;
   top: -100px;
-  left: var(--space-3);
+  inset-inline-start: var(--space-3);
   z-index: calc(var(--z-modal) + 1);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
@@ -29,14 +43,14 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bg-surface) 94%, var(--color-primary) 6%) 0%, var(--color-bg-surface) 42%),
     var(--color-bg-surface);
-  border-right: 1px solid var(--color-border-subtle);
+  border-inline-end: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
   padding: var(--space-4) 0;
   z-index: var(--z-sticky);
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   bottom: 0;
   height: 100dvh;
   overflow: hidden;
@@ -91,11 +105,18 @@
     transform 0.15s ease;
 }
 
+html[dir="ltr"] .navLink:hover {
+  transform: translateX(2px);
+}
+
+html[dir="rtl"] .navLink:hover {
+  transform: translateX(-2px);
+}
+
 .navLink:hover {
   background: color-mix(in srgb, var(--color-bg-muted) 88%, var(--color-primary) 12%);
   color: var(--color-text-primary);
   border-color: color-mix(in srgb, var(--color-border-default) 80%, var(--color-primary) 20%);
-  transform: translateX(2px);
 }
 
 .navLink:focus-visible {
@@ -107,7 +128,7 @@
   background: color-mix(in srgb, var(--color-bg-muted) 78%, var(--color-primary) 22%);
   color: var(--color-primary);
   border-color: color-mix(in srgb, var(--color-border-default) 65%, var(--color-primary) 35%);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-primary) 80%, transparent);
+  border-inline-start: 3px solid color-mix(in srgb, var(--color-primary) 85%, transparent);
 }
 
 .column {
@@ -115,7 +136,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-left: 260px;
+  margin-inline-start: 260px;
 }
 
 .header {
@@ -133,8 +154,8 @@
 
 @media (min-width: 48rem) {
   .header {
-    padding-left: var(--space-page-gutter-lg);
-    padding-right: var(--space-page-gutter-lg);
+    padding-inline-start: var(--space-page-gutter-lg);
+    padding-inline-end: var(--space-page-gutter-lg);
   }
 }
 
@@ -205,11 +226,11 @@
 @media (max-width: 47.99rem) {
   .sidebar {
     position: fixed;
-    left: 0;
+    inset-inline-start: 0;
     top: 0;
     bottom: 0;
     height: 100dvh;
-    transform: translateX(-100%);
+    transform: translateX(var(--workspace-drawer-shift, -100%));
     transition: transform 0.2s ease;
     box-shadow: var(--shadow-none);
     z-index: var(--z-modal);
@@ -233,6 +254,6 @@
   }
 
   .column {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 }

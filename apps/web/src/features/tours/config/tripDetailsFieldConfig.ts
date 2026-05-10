@@ -32,15 +32,13 @@ export type FieldConfigBase = {
 };
 
 export type TripDetailsFieldId =
-  | "schemaVersion"
   | "overview.mainDestination"
   | "overview.destinationRegion"
-  | "overview.tourTheme"
-  | "overview.tripStyle"
+  | "overview.tourThemeIds"
+  | "overview.tripStyles"
   | "overview.difficultyLevel"
   | "overview.elevationGainMeters"
   | "overview.maxAltitudeMeters"
-  | "overview.bestFor"
   | "overview.shortIntro"
   | "itinerary.highlights"
   | "itinerary.includedVisits"
@@ -55,14 +53,16 @@ export type TripDetailsFieldId =
   | "logistics.departureDate"
   | "logistics.returnDate"
   | "logistics.returnPoint"
-  | "logistics.transportation"
-  | "logistics.accommodationType"
+  | "logistics.transportationNotes"
+  | "logistics.accommodationTypes"
+  | "logistics.accommodationNotes"
   | "logistics.mealPlan"
+  | "logistics.mealNotes"
   | "logistics.supportServices"
   | "logistics.includedServices"
   | "logistics.excludedServices"
   | "logistics.optionalServices"
-  | "logistics.guideLanguage"
+  | "logistics.guideLanguageIds"
   | "logistics.groupSizeMin"
   | "logistics.groupSizeMax"
   | "participation.minimumAge"
@@ -73,8 +73,8 @@ export type TripDetailsFieldId =
   | "participation.technicalSkillRequired"
   | "participation.requirements"
   | "participation.skillsRequired"
-  | "participation.gearRequired"
-  | "participation.gearOptional"
+  | "participation.gearRequiredIds"
+  | "participation.gearOptionalIds"
   | "participation.documentsRequired"
   | "participation.suitableFor"
   | "participation.notSuitableFor"
@@ -107,15 +107,13 @@ export type EventKindFieldConfig = {
 };
 
 const FIELD_IDS: readonly TripDetailsFieldId[] = [
-  "schemaVersion",
   "overview.mainDestination",
   "overview.destinationRegion",
-  "overview.tourTheme",
-  "overview.tripStyle",
+  "overview.tourThemeIds",
+  "overview.tripStyles",
   "overview.difficultyLevel",
   "overview.elevationGainMeters",
   "overview.maxAltitudeMeters",
-  "overview.bestFor",
   "overview.shortIntro",
   "itinerary.highlights",
   "itinerary.includedVisits",
@@ -130,14 +128,16 @@ const FIELD_IDS: readonly TripDetailsFieldId[] = [
   "logistics.departureDate",
   "logistics.returnDate",
   "logistics.returnPoint",
-  "logistics.transportation",
-  "logistics.accommodationType",
+  "logistics.transportationNotes",
+  "logistics.accommodationTypes",
+  "logistics.accommodationNotes",
   "logistics.mealPlan",
+  "logistics.mealNotes",
   "logistics.supportServices",
   "logistics.includedServices",
   "logistics.excludedServices",
   "logistics.optionalServices",
-  "logistics.guideLanguage",
+  "logistics.guideLanguageIds",
   "logistics.groupSizeMin",
   "logistics.groupSizeMax",
   "participation.minimumAge",
@@ -148,8 +148,8 @@ const FIELD_IDS: readonly TripDetailsFieldId[] = [
   "participation.technicalSkillRequired",
   "participation.requirements",
   "participation.skillsRequired",
-  "participation.gearRequired",
-  "participation.gearOptional",
+  "participation.gearRequiredIds",
+  "participation.gearOptionalIds",
   "participation.medicalRestrictions",
   "participation.documentsRequired",
   "participation.suitableFor",
@@ -168,11 +168,24 @@ const FIELD_IDS: readonly TripDetailsFieldId[] = [
 
 const CORE_FIELD_IDS: readonly CoreFieldId[] = ["core.totalCapacity", "core.capacity"];
 
-function allEditableOptional(): TripDetailsFieldConfig[] {
+/**
+ * Mountain-only fields — never relevant for non-mountain kinds.
+ * Hidden from the form and stripped on the server when `tourType !== mountain`
+ * (see `apps/api/src/modules/tours/utils/tour-type-gates.ts`).
+ */
+const MOUNTAIN_ONLY_FIELD_IDS: readonly TripDetailsFieldId[] = ["overview.maxAltitudeMeters"];
+
+const NON_MOUNTAIN_HIDDEN_OVERRIDES: Partial<Record<TripDetailsFieldId, Omit<TripDetailsFieldConfig, "id">>> =
+  Object.fromEntries(
+    MOUNTAIN_ONLY_FIELD_IDS.map((id) => [id, { visibility: "hidden", requiredness: "optional" }]),
+  ) as Partial<Record<TripDetailsFieldId, Omit<TripDetailsFieldConfig, "id">>>;
+
+function buildKindTripDetailsConfig(
+  overrides: Partial<Record<TripDetailsFieldId, Omit<TripDetailsFieldConfig, "id">>> = {},
+): TripDetailsFieldConfig[] {
   return FIELD_IDS.map((id) => ({
     id,
-    visibility: "editable",
-    requiredness: "optional",
+    ...(overrides[id] ?? { visibility: "editable", requiredness: "optional" }),
   }));
 }
 
@@ -186,38 +199,47 @@ function allCoreEditableOptional(): CoreFieldConfig[] {
 
 const GENERIC_CONFIG: EventKindFieldConfig = {
   kind: "generic",
-  tripDetails: allEditableOptional(),
+  tripDetails: buildKindTripDetailsConfig(NON_MOUNTAIN_HIDDEN_OVERRIDES),
   core: allCoreEditableOptional(),
 };
 
 const MOUNTAIN_OVERRIDES: Partial<Record<TripDetailsFieldId, Omit<TripDetailsFieldConfig, "id">>> = {
   "participation.minimumAge": { visibility: "editable", requiredness: "required" },
   "overview.difficultyLevel": { visibility: "editable", requiredness: "required" },
-  "participation.gearRequired": { visibility: "editable", requiredness: "required" },
+  "participation.gearRequiredIds": { visibility: "editable", requiredness: "required" },
   "participation.technicalSkillRequired": { visibility: "editable", requiredness: "recommended" },
   "logistics.meetingPoint": { visibility: "editable", requiredness: "required" },
   "logistics.departureDate": { visibility: "editable", requiredness: "required" },
   "logistics.returnDate": { visibility: "editable", requiredness: "recommended" },
-  "logistics.transportation": { visibility: "editable", requiredness: "recommended" },
+  "logistics.transportationNotes": { visibility: "editable", requiredness: "recommended" },
   "logistics.groupSizeMin": { visibility: "editable", requiredness: "recommended" },
   "logistics.groupSizeMax": { visibility: "editable", requiredness: "recommended" },
 };
 
 const MOUNTAIN_CONFIG: EventKindFieldConfig = {
   kind: "mountain",
-  tripDetails: FIELD_IDS.map((id) => ({
-    id,
-    ...(MOUNTAIN_OVERRIDES[id] ?? { visibility: "editable", requiredness: "optional" }),
-  })),
+  tripDetails: buildKindTripDetailsConfig(MOUNTAIN_OVERRIDES),
   core: allCoreEditableOptional(),
 };
 
 const EVENT_KIND_CONFIGS: Record<EventKind, EventKindFieldConfig> = {
   generic: GENERIC_CONFIG,
   mountain: MOUNTAIN_CONFIG,
-  cultural: { kind: "cultural", tripDetails: allEditableOptional(), core: allCoreEditableOptional() },
-  city_tour: { kind: "city_tour", tripDetails: allEditableOptional(), core: allCoreEditableOptional() },
-  workshop: { kind: "workshop", tripDetails: allEditableOptional(), core: allCoreEditableOptional() },
+  cultural: {
+    kind: "cultural",
+    tripDetails: buildKindTripDetailsConfig(NON_MOUNTAIN_HIDDEN_OVERRIDES),
+    core: allCoreEditableOptional(),
+  },
+  city_tour: {
+    kind: "city_tour",
+    tripDetails: buildKindTripDetailsConfig(NON_MOUNTAIN_HIDDEN_OVERRIDES),
+    core: allCoreEditableOptional(),
+  },
+  workshop: {
+    kind: "workshop",
+    tripDetails: buildKindTripDetailsConfig(NON_MOUNTAIN_HIDDEN_OVERRIDES),
+    core: allCoreEditableOptional(),
+  },
 };
 
 export function getTripDetailsFieldConfigForKind(kind: EventKind): TripDetailsFieldConfig[] {

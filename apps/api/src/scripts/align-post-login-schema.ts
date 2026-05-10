@@ -1,8 +1,19 @@
 import { DataSource } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
+import { MobileOtpChallenges1777591400000 } from "../database/migrations/1777591400000-MobileOtpChallenges";
+import { TourTransportModesMultiSelect1777591100000 } from "../database/migrations/1777591100000-TourTransportModesMultiSelect";
+import { WorkspaceInvitesCanonicalModel1777584000000 } from "../database/migrations/1777584000000-WorkspaceInvitesCanonicalModel";
+import { WorkspaceRegionsAndDestinations1777591500000 } from "../database/migrations/1777591500000-WorkspaceRegionsAndDestinations";
+import { WorkspaceEquipmentItems1777591700000 } from "../database/migrations/1777591700000-WorkspaceEquipmentItems";
+import { WorkspaceTourThemes1777591900000 } from "../database/migrations/1777591900000-WorkspaceTourThemes";
+import { WorkspaceGuideLanguages1777592000000 } from "../database/migrations/1777592000000-WorkspaceGuideLanguages";
+import { TourDestinationId1777591600000 } from "../database/migrations/1777591600000-TourDestinationId";
 
 async function main(): Promise<void> {
-  const dataSource = new DataSource(createDataSourceOptionsFromEnv());
+  const dataSource = new DataSource({
+    ...createDataSourceOptionsFromEnv(),
+    migrations: []
+  });
   await dataSource.initialize();
   try {
     await dataSource.query(`
@@ -29,7 +40,6 @@ async function main(): Promise<void> {
         "difficulty" "public"."difficulty_level",
         "duration_days" integer,
         "meeting_point" character varying,
-        "required_gear" jsonb,
         "itinerary" jsonb,
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -94,6 +104,69 @@ async function main(): Promise<void> {
       $$;
     `);
 
+    // `TourEntity` expects `transport_modes varchar[]`; older DBs only have `primary_transport_mode` enum.
+    const transportModesPresent = (await dataSource.query(
+      `SELECT 1 AS x FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'tours' AND column_name = 'transport_modes' LIMIT 1`
+    )) as unknown[];
+    if (transportModesPresent.length === 0) {
+      const primaryTransportPresent = (await dataSource.query(
+        `SELECT 1 AS x FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'tours' AND column_name = 'primary_transport_mode' LIMIT 1`
+      )) as unknown[];
+      const tourQr = dataSource.createQueryRunner();
+      await tourQr.connect();
+      await tourQr.startTransaction();
+      try {
+        if (primaryTransportPresent.length > 0) {
+          await new TourTransportModesMultiSelect1777591100000().up(tourQr);
+        } else {
+          await tourQr.query(`
+            ALTER TABLE "tours"
+            ADD COLUMN IF NOT EXISTS "transport_modes" character varying array NOT NULL DEFAULT '{}'::character varying[]
+          `);
+        }
+        await tourQr.commitTransaction();
+      } catch (err) {
+        await tourQr.rollbackTransaction();
+        throw err;
+      } finally {
+        await tourQr.release();
+      }
+    }
+
+    // Auth / invite / OTP tables: idempotent when migrations were not fully applied locally.
+    const qr = dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+    try {
+      await new WorkspaceInvitesCanonicalModel1777584000000().up(qr);
+      await new MobileOtpChallenges1777591400000().up(qr);
+      await qr.commitTransaction();
+    } catch (err) {
+      await qr.rollbackTransaction();
+      throw err;
+    } finally {
+      await qr.release();
+    }
+
+    const qrLocations = dataSource.createQueryRunner();
+    await qrLocations.connect();
+    await qrLocations.startTransaction();
+    try {
+      await new WorkspaceRegionsAndDestinations1777591500000().up(qrLocations);
+      await new TourDestinationId1777591600000().up(qrLocations);
+      await new WorkspaceEquipmentItems1777591700000().up(qrLocations);
+      await new WorkspaceTourThemes1777591900000().up(qrLocations);
+      await new WorkspaceGuideLanguages1777592000000().up(qrLocations);
+      await qrLocations.commitTransaction();
+    } catch (err) {
+      await qrLocations.rollbackTransaction();
+      throw err;
+    } finally {
+      await qrLocations.release();
+    }
+
     console.log(
       JSON.stringify(
         {
@@ -104,7 +177,16 @@ async function main(): Promise<void> {
             "difficulty_level",
             "tours.auto_accept_registrations",
             "tours.tour_type",
-            "tours.primary_transport_mode"
+            "tours.primary_transport_mode",
+            "tours.transport_modes",
+            "workspace_invites.canonical_model",
+            "mobile_otp_challenges",
+            "workspace_regions",
+            "workspace_destinations",
+            "tours.destination_id",
+            "workspace_equipment_items",
+            "workspace_tour_themes",
+            "workspace_guide_languages"
           ]
         },
         null,

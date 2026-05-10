@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useMemo, useState, Fragment, type CSSProperties, type ReactNode } from "react";
 import {
   Controller,
   type Control,
@@ -8,9 +9,10 @@ import {
   type FieldValues,
   type UseFormRegister,
   useFieldArray,
+  useWatch,
 } from "react-hook-form";
 
-import { Button, FormField, Input, Select, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, JalaliDatePicker, JalaliTimePicker, Select, Textarea } from "@tour/ui";
 
 import {
   getTripDetailsFieldConfigForKind,
@@ -20,6 +22,7 @@ import {
   resolveFieldAccess,
   type UserRole,
 } from "../config/tripDetailsFieldConfig";
+import { ACCOMMODATION_TYPE_VALUES, MEAL_PLAN_VALUES } from "@repo/types";
 import {
   DIFFICULTY_LEVELS,
   EXPERIENCE_LEVELS,
@@ -27,12 +30,35 @@ import {
   TRIP_STYLES,
 } from "../models/tourTripDetails.schema";
 import type { EventKind } from "../policies/tour-kind-policy";
+import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
+import { useSettingsGuideLanguages } from "@/hooks/use-settings-guide-languages";
+import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
+import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
+import { uiLocaleDigits, convertNumbers } from "../../../lib/number-utils";
+import { computeTourDurationDays } from "../domain/computeTourDurationDays";
+import {
+  DIFFICULTY_RATING_VALUES,
+  formatDifficultyRating,
+} from "../domain/difficulty-rating";
+import { AUDIENCE_GROUP_VALUES, type AudienceGroup } from "../domain/audience-groups";
+import {
+  TRIP_SHORT_INTRO_MAX_LENGTH,
+} from "../models/tourTripDetails.schema";
 
 const detailsShell: CSSProperties = {
   border: "1px solid var(--color-neutral-200, #e5e5e5)",
   borderRadius: "8px",
   padding: "0.5rem 0.75rem",
   background: "var(--color-neutral-25, #fafafa)",
+};
+
+const AUDIENCE_LABEL_KEYS: Record<AudienceGroup, string> = {
+  families: "trip_audienceGroup_families",
+  solo_travelers: "trip_audienceGroup_solo_travelers",
+  seniors: "trip_audienceGroup_seniors",
+  kids: "trip_audienceGroup_kids",
+  beginners: "trip_audienceGroup_beginners",
+  experienced_hikers: "trip_audienceGroup_experienced_hikers",
 };
 
 const summaryStyle: CSSProperties = {
@@ -83,31 +109,39 @@ const subsectionTitleStyle: CSSProperties = {
   color: "var(--color-neutral-900, #171717)",
 };
 
-function tripStyleLabel(v: string): string {
-  const map: Record<string, string> = {
-    mountaineering: "Mountaineering",
-    nature: "Nature",
-    cultural: "Cultural",
-    city: "City",
-    desert: "Desert",
-    adventure: "Adventure",
-    mixed: "Mixed",
+/** Local-time Gregorian YMD (avoids timezone drift from `toISOString`). */
+function toGregorianYmd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function tripStylesOptionLabel(v: string, t: (key: string) => string): string {
+  const keys: Record<string, string> = {
+    adventure: "trip_styleAdventure",
+    relaxed: "trip_styleRelaxed",
+    luxury: "trip_styleLuxury",
+    budget: "trip_styleBudget",
+    familyFriendly: "trip_styleFamilyFriendly",
+    photography: "trip_stylePhotography",
   };
-  return map[v] ?? v;
+  const k = keys[v];
+  return k ? t(k) : v;
 }
 
-function difficultyLabel(v: string): string {
-  return v.charAt(0).toUpperCase() + v.slice(1);
+function difficultyLabel(v: string, t: (key: string) => string): string {
+  return t(`trip_difficulty${v.charAt(0).toUpperCase()}${v.slice(1)}`);
 }
 
-function genderLabel(v: string): string {
-  if (v === "male_only") return "Male only";
-  if (v === "female_only") return "Female only";
-  return "No restriction";
+function genderLabel(v: string, t: (key: string) => string): string {
+  if (v === "male_only") return t("trip_genderMaleOnly");
+  if (v === "female_only") return t("trip_genderFemaleOnly");
+  return t("trip_genderNone");
 }
 
-function experienceLabel(v: string): string {
-  return v.charAt(0).toUpperCase() + v.slice(1);
+function experienceLabel(v: string, t: (key: string) => string): string {
+  return t(`trip_experience${v.charAt(0).toUpperCase()}${v.slice(1)}`);
 }
 
 /** RHF bridge: callers cast from their concrete form types (see `TourForm` / `TourCreateClient`). */
@@ -119,6 +153,8 @@ export type TripDetailsNestedFormProps = {
   isMountainTour?: boolean;
   eventKind?: EventKind;
   viewerRole?: UserRole;
+  /** When true, meeting/return points are collected in `TourLocationSection` instead. */
+  suppressLogisticsMeetingAndReturn?: boolean;
 };
 
 function OptionalEnumSelect({
@@ -140,6 +176,7 @@ function OptionalEnumSelect({
   options: readonly string[];
   formatLabel: (v: string) => string;
 }) {
+  const t = useTranslations("tours.new");
   return (
     <Controller
       control={control}
@@ -158,7 +195,7 @@ function OptionalEnumSelect({
               field.onChange(v === "" ? undefined : v);
             }}
           >
-            <option value="">Select…</option>
+            <option value="">{t("trip_selectEmpty")}</option>
             {options.map((opt) => (
               <option key={opt} value={opt}>
                 {formatLabel(opt)}
@@ -167,6 +204,107 @@ function OptionalEnumSelect({
           </Select>
         </FormField>
       )}
+    />
+  );
+}
+
+function TourThemeIdsCheckboxField({
+  control,
+  name,
+  label,
+  description,
+  error,
+  disabled,
+  themes,
+  loading,
+  loadFailed,
+  emptyHint,
+  ariaGroupLabel,
+}: {
+  control: Control<FieldValues>;
+  name: string;
+  label: string;
+  description?: string;
+  error?: string;
+  disabled: boolean;
+  themes: { id: string; name: string; isActive: boolean }[];
+  loading: boolean;
+  loadFailed: boolean;
+  emptyHint: string;
+  ariaGroupLabel: string;
+}) {
+  const t = useTranslations("tours.new");
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => {
+        const raw = Array.isArray(field.value) ? (field.value as string[]) : [];
+        const selected = new Set(raw);
+        const byId = new Map(themes.map((row) => [row.id, row]));
+        const activeSorted = themes.filter((row) => row.isActive);
+        const catalogIds = new Set(activeSorted.map((row) => row.id));
+        const inactiveSelected = themes.filter((row) => !row.isActive && selected.has(row.id));
+        const orphanIds = raw.filter((id) => !byId.has(id));
+        type Row = { id: string; label: string };
+        const rows: Row[] = [
+          ...activeSorted.map((row) => ({ id: row.id, label: row.name })),
+          ...inactiveSelected.map((row) => ({
+            id: row.id,
+            label: `${row.name}${t("trip_tourThemeInactiveSuffix")}`,
+          })),
+          ...orphanIds.map((id) => ({
+            id,
+            label: `${t("trip_tourThemeOrphanLabel")} (${id.slice(0, 8)}…)`,
+          })),
+        ];
+        const toggle = (id: string) => {
+          const next = new Set(selected);
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+          const catalogOrder = activeSorted.map((row) => row.id).filter((rowId) => next.has(rowId));
+          const extra = [...next].filter((rowId) => !catalogIds.has(rowId));
+          field.onChange([...catalogOrder, ...extra]);
+        };
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{label}</span>
+            {description ? <p style={mutedHelp}>{description}</p> : null}
+            {loading ? <p style={mutedHelp}>{t("trip_tourThemesLoading")}</p> : null}
+            {!loading && loadFailed ? (
+              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+                {t("trip_tourThemesLoadError")}
+              </p>
+            ) : null}
+            {!loading && !loadFailed && rows.length === 0 ? <p style={mutedHelp}>{emptyHint}</p> : null}
+            {!loading && !loadFailed && rows.length > 0 ? (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+                role="group"
+                aria-label={ariaGroupLabel}
+              >
+                {rows.map((row) => (
+                  <Checkbox
+                    key={row.id}
+                    label={row.label}
+                    checked={selected.has(row.id)}
+                    disabled={disabled}
+                    onChange={() => toggle(row.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {error ? (
+              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        );
+      }}
     />
   );
 }
@@ -188,6 +326,8 @@ function StringTagListField({
   error?: string;
   disabled?: boolean;
 }) {
+  const t = useTranslations("tours.new");
+  const locale = useLocale();
   const [draft, setDraft] = useState("");
   return (
     <Controller
@@ -207,7 +347,7 @@ function StringTagListField({
                     <button
                       type="button"
                       disabled={disabled}
-                      aria-label={`Remove ${tag}`}
+                      aria-label={t("trip_tagRemoveAria", { tag })}
                       onClick={() => field.onChange(list.filter((_, idx) => idx !== i))}
                       style={{
                         border: "none",
@@ -228,7 +368,7 @@ function StringTagListField({
               <Input
                 autoComplete="off"
                 disabled={disabled}
-                placeholder={placeholder}
+                placeholder={placeholder != null ? uiLocaleDigits(placeholder, locale) : undefined}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
@@ -255,9 +395,88 @@ function StringTagListField({
                   }
                 }}
               >
-                Add
+                {t("trip_tagAdd")}
               </Button>
             </div>
+            {error ? (
+              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+function EquipmentIdsCheckboxField({
+  control,
+  name,
+  label,
+  description,
+  error,
+  disabled,
+  items,
+  loading,
+  loadFailed,
+  emptyHint,
+  ariaGroupLabel,
+}: {
+  control: Control<FieldValues>;
+  name: string;
+  label: string;
+  description?: string;
+  error?: string;
+  disabled: boolean;
+  items: { id: string; name: string }[];
+  loading: boolean;
+  loadFailed: boolean;
+  emptyHint: string;
+  ariaGroupLabel: string;
+}) {
+  const t = useTranslations("tours.new");
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => {
+        const raw = Array.isArray(field.value) ? (field.value as string[]) : [];
+        const selected = new Set(raw);
+        const toggle = (id: string) => {
+          const next = new Set(selected);
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+          const ordered = items.map((row) => row.id).filter((rowId) => next.has(rowId));
+          field.onChange(ordered);
+        };
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+            <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{label}</span>
+            {description ? <p style={mutedHelp}>{description}</p> : null}
+            {loading ? <p style={mutedHelp}>{t("trip_gearEquipmentLoading")}</p> : null}
+            {!loading && loadFailed ? (
+              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+                {t("trip_gearEquipmentLoadError")}
+              </p>
+            ) : null}
+            {!loading && !loadFailed && items.length === 0 ? <p style={mutedHelp}>{emptyHint}</p> : null}
+            {!loading && !loadFailed && items.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }} role="group" aria-label={ariaGroupLabel}>
+                {items.map((row) => (
+                  <Checkbox
+                    key={row.id}
+                    label={row.name}
+                    checked={selected.has(row.id)}
+                    disabled={disabled}
+                    onChange={() => toggle(row.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
             {error ? (
               <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
                 {error}
@@ -299,12 +518,33 @@ export function TourCreateTripDetailsFields({
   isMountainTour = false,
   eventKind = isMountainTour ? "mountain" : "generic",
   viewerRole = normalizeFieldUserRole(undefined),
+  suppressLogisticsMeetingAndReturn = false,
 }: TripDetailsNestedFormProps) {
+  const t = useTranslations("tours.new");
+  const locale = useLocale();
+  const ph = (key: string) => uiLocaleDigits(t(key), locale);
   const td = errors.tripDetails as Record<string, any> | undefined;
   const { fields: dayFields, append: appendDay, remove: removeDay } = useFieldArray({
     control,
     name: "tripDetails.itinerary.dayPlans",
   });
+  const departureYmd = useWatch({ control, name: "tripDetails.logistics.departureDate" }) as string | undefined;
+  const returnYmd = useWatch({ control, name: "tripDetails.logistics.returnDate" }) as string | undefined;
+  const derivedDurationDays = useMemo(
+    () => computeTourDurationDays(departureYmd, returnYmd),
+    [departureYmd, returnYmd],
+  );
+  const shortIntroWatch = useWatch({ control, name: "tripDetails.overview.shortIntro" }) as string | undefined;
+  const todayYmd = useMemo(() => toGregorianYmd(new Date()), []);
+  const maxBookableYmd = useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 2);
+    return toGregorianYmd(d);
+  }, []);
+  const returnMinYmd = useMemo(() => {
+    const dep = typeof departureYmd === "string" ? departureYmd.trim() : "";
+    return dep && dep > todayYmd ? dep : todayYmd;
+  }, [departureYmd, todayYmd]);
   const fieldConfig = getTripDetailsFieldConfigForKind(eventKind);
   const fieldConfigById = new Map(fieldConfig.map((row) => [row.id, row]));
   const cfg = (id: TripDetailsFieldId): { visibility: "hidden" | "readonly" | "editable"; requiredness: FieldRequiredness } => {
@@ -312,8 +552,8 @@ export function TourCreateTripDetailsFields({
     const resolved = resolveFieldAccess(row, viewerRole);
     return { visibility: resolved.visibility, requiredness: resolved.requiredness };
   };
-  const FIELD_REQUIRED_HINT = "پر کردن این فیلد برای این نوع برنامه الزامی است.";
-  const FIELD_RECOMMENDED_HINT = "توصیه می‌شود برای شفافیت بیشتر این فیلد کامل شود.";
+  const FIELD_REQUIRED_HINT = t("trip_fieldRequiredHint");
+  const FIELD_RECOMMENDED_HINT = t("trip_fieldRecommendedHint");
   const labelWithRequiredness = (label: string, id: TripDetailsFieldId): string =>
     cfg(id).requiredness === "required" ? `${label} *` : label;
   const mergeDescription = (base: string | undefined, id: TripDetailsFieldId): string | undefined => {
@@ -328,154 +568,283 @@ export function TourCreateTripDetailsFields({
   const isReadonly = (id: TripDetailsFieldId): boolean => cfg(id).visibility === "readonly";
   const isDisabled = (id: TripDetailsFieldId): boolean => isPending || isReadonly(id);
 
+  const equipmentQuery = useSettingsEquipment();
+  const equipmentItems = useMemo(
+    () => (equipmentQuery.data ?? []).map((row) => ({ id: row.id, name: row.name })),
+    [equipmentQuery.data],
+  );
+  const guideLanguagesQuery = useSettingsGuideLanguages();
+  const guideLanguageItems = useMemo(
+    () => (guideLanguagesQuery.data ?? []).map((row) => ({ id: row.id, name: row.name })),
+    [guideLanguagesQuery.data],
+  );
+  const tourThemesQuery = useSettingsTourThemes();
+  const tourThemeRows = useMemo(
+    () =>
+      (tourThemesQuery.data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        isActive: row.isActive,
+      })),
+    [tourThemesQuery.data],
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       <p style={{ ...mutedHelp, margin: "0 0 0.25rem" }}>
-        Optional structured details are saved separately from the marketing description above and appear in API{" "}
-        <code style={{ fontSize: "0.8em" }}>details.tripDetails</code>.
+        {t("trip_introHelp", { code: t("trip_introHelpCode") })}
       </p>
 
-      <CollapsibleSection title="1. Trip overview" defaultOpen>
-        <FormField label="Schema version (optional)" error={td?.schemaVersion?.message as string | undefined}>
-          <Input
-            type="number"
-            min={1}
-            max={99}
-            step={1}
-            placeholder="e.g. 1"
-            disabled={isPending}
-            autoComplete="off"
-            {...register("tripDetails.schemaVersion")}
-          />
-        </FormField>
-        <FormField label="Main destination" error={td?.overview?.mainDestination?.message as string | undefined}>
+      <CollapsibleSection title={t("trip_sectionOverview")} defaultOpen>
+        <FormField label={t("trip_mainDestinationLabel")} error={td?.overview?.mainDestination?.message as string | undefined}>
           <Input disabled={isPending} autoComplete="off" {...register("tripDetails.overview.mainDestination")} />
         </FormField>
-        <FormField label="Destination region" error={td?.overview?.destinationRegion?.message as string | undefined}>
+        <FormField label={t("trip_destinationRegionLabel")} error={td?.overview?.destinationRegion?.message as string | undefined}>
           <Input disabled={isPending} autoComplete="off" {...register("tripDetails.overview.destinationRegion")} />
         </FormField>
-        <OptionalEnumSelect
-          control={control}
-          name="tripDetails.overview.tripStyle"
-          label="Trip style"
-          error={td?.overview?.tripStyle?.message as string | undefined}
-          disabled={isPending}
-          options={TRIP_STYLES}
-          formatLabel={tripStyleLabel}
-        />
+        {isHidden("overview.tripStyles") ? null : (
+          <FormField
+            label={t("trip_tripStyleLabel")}
+            description={t("trip_tripStyleDescription")}
+            error={td?.overview?.tripStyles?.message as string | undefined}
+          >
+            <Controller
+              control={control}
+              name="tripDetails.overview.tripStyles"
+              render={({ field }) => {
+                const value = Array.isArray(field.value) ? (field.value as string[]) : [];
+                return (
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+                    role="group"
+                    aria-label={t("trip_tripStyleLabel")}
+                  >
+                    {TRIP_STYLES.map((style) => (
+                      <Checkbox
+                        key={style}
+                        label={tripStylesOptionLabel(style, t)}
+                        checked={value.includes(style)}
+                        disabled={isPending}
+                        onChange={(e) => {
+                          const next = new Set(value);
+                          if (e.target.checked) {
+                            next.add(style);
+                          } else {
+                            next.delete(style);
+                          }
+                          field.onChange([...next]);
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              }}
+            />
+          </FormField>
+        )}
         {isHidden("overview.difficultyLevel") ? null : (
-          <OptionalEnumSelect
+          <Controller
             control={control}
             name="tripDetails.overview.difficultyLevel"
-            label={labelWithRequiredness("Difficulty level", "overview.difficultyLevel")}
-            description={mergeDescription(
-              isMountainTour
-                ? "For mountain tours this is required and should reflect both physical load and technical challenge."
-                : undefined,
-              "overview.difficultyLevel",
-            )}
-            error={td?.overview?.difficultyLevel?.message as string | undefined}
-            disabled={isDisabled("overview.difficultyLevel")}
-            options={DIFFICULTY_LEVELS}
-            formatLabel={difficultyLabel}
+            render={({ field }) => {
+              const current =
+                typeof field.value === "number"
+                  ? field.value
+                  : typeof field.value === "string" && field.value !== ""
+                    ? Number(convertNumbers(field.value, "en"))
+                    : NaN;
+              const selectValue = Number.isFinite(current) ? String(current) : "";
+              return (
+                <FormField
+                  label={labelWithRequiredness(
+                    t("trip_difficultyLevelLabel"),
+                    "overview.difficultyLevel",
+                  )}
+                  description={mergeDescription(
+                    isMountainTour
+                      ? `${t("trip_difficultyLevelDescription")} ${t("trip_difficultyMountainDescription")}`
+                      : t("trip_difficultyLevelDescription"),
+                    "overview.difficultyLevel",
+                  )}
+                  error={td?.overview?.difficultyLevel?.message as string | undefined}
+                >
+                  <Select
+                    invalid={Boolean(td?.overview?.difficultyLevel)}
+                    disabled={isDisabled("overview.difficultyLevel")}
+                    value={selectValue}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        field.onChange(undefined);
+                        return;
+                      }
+                      const n = Number(raw);
+                      field.onChange(Number.isFinite(n) ? n : undefined);
+                    }}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                  >
+                    <option value="">{t("selectPlaceholder")}</option>
+                    {DIFFICULTY_RATING_VALUES.map((v) => {
+                      const rendered = formatDifficultyRating(v);
+                      return (
+                        <option key={rendered} value={rendered}>
+                          {locale === "fa" ? convertNumbers(rendered, "fa") : rendered}
+                        </option>
+                      );
+                    })}
+                  </Select>
+                </FormField>
+              );
+            }}
           />
         )}
         <FormField
-          label="Elevation gain (meters)"
+          label={t("trip_elevationGainMetersLabel")}
           error={td?.overview?.elevationGainMeters?.message as string | undefined}
         >
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            disabled={isPending}
-            autoComplete="off"
-            {...register("tripDetails.overview.elevationGainMeters")}
+          <Controller
+            control={control}
+            name="tripDetails.overview.elevationGainMeters"
+            render={({ field }) => (
+              <PersianNumberInput
+                autoComplete="off"
+                disabled={isPending}
+                numericMode="integer"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+            )}
           />
         </FormField>
-        <FormField label="Max altitude (meters)" error={td?.overview?.maxAltitudeMeters?.message as string | undefined}>
-          <Input
-            type="number"
-            step={1}
+        {isHidden("overview.maxAltitudeMeters") ? null : (
+          <FormField
+            label={labelWithRequiredness(
+              t("trip_maxAltitudeMetersLabel"),
+              "overview.maxAltitudeMeters",
+            )}
+            description={mergeDescription(
+              t("trip_maxAltitudeMetersDescription"),
+              "overview.maxAltitudeMeters",
+            )}
+            error={td?.overview?.maxAltitudeMeters?.message as string | undefined}
+          >
+            <Controller
+              control={control}
+              name="tripDetails.overview.maxAltitudeMeters"
+              render={({ field }) => (
+                <PersianNumberInput
+                  autoComplete="off"
+                  disabled={isDisabled("overview.maxAltitudeMeters")}
+                  numericMode="integer"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
+            />
+          </FormField>
+        )}
+        {isHidden("overview.tourThemeIds") ? null : (
+          <TourThemeIdsCheckboxField
+            control={control}
+            name="tripDetails.overview.tourThemeIds"
+            label={t("trip_tourThemesLabel")}
+            description={mergeDescription(t("trip_tourThemesDescription"), "overview.tourThemeIds")}
+            error={td?.overview?.tourThemeIds?.message as string | undefined}
             disabled={isPending}
-            autoComplete="off"
-            {...register("tripDetails.overview.maxAltitudeMeters")}
+            themes={tourThemeRows}
+            loading={tourThemesQuery.isLoading}
+            loadFailed={tourThemesQuery.isError}
+            emptyHint={t("trip_tourThemesEmptyHint")}
+            ariaGroupLabel={t("trip_tourThemesLabel")}
           />
-        </FormField>
-        <StringTagListField
-          control={control}
-          name="tripDetails.overview.tourTheme"
-          label="Tour themes"
-          description="Keywords that describe the trip (e.g. “photography”, “family”)."
-          placeholder="Add a theme and press Enter or Add"
-          error={td?.overview?.tourTheme?.message as string | undefined}
-          disabled={isPending}
-        />
-        <StringTagListField
-          control={control}
-          name="tripDetails.overview.bestFor"
-          label="Best for"
-          description="Who this tour suits best."
-          placeholder="e.g. first-time hikers"
-          error={td?.overview?.bestFor?.message as string | undefined}
-          disabled={isPending}
-        />
-        <FormField label="Short intro" error={td?.overview?.shortIntro?.message as string | undefined}>
-          <Textarea rows={3} invalid={Boolean(td?.overview?.shortIntro)} disabled={isPending} {...register("tripDetails.overview.shortIntro")} />
+        )}
+        <FormField
+          label={t("trip_shortIntroLabel")}
+          description={
+            <>
+              <span>{mergeDescription(t("trip_shortIntroDescription"), "overview.shortIntro")}</span>
+              <span style={{ display: "block", marginTop: "0.35rem", fontSize: "0.8125rem", opacity: 0.85 }}>
+                {uiLocaleDigits(
+                  t("trip_shortIntroCharCounter", {
+                    current: (shortIntroWatch ?? "").length,
+                    max: TRIP_SHORT_INTRO_MAX_LENGTH,
+                  }),
+                  locale,
+                )}
+              </span>
+            </>
+          }
+          error={td?.overview?.shortIntro?.message as string | undefined}
+        >
+          <Textarea
+            rows={3}
+            maxLength={TRIP_SHORT_INTRO_MAX_LENGTH}
+            invalid={Boolean(td?.overview?.shortIntro)}
+            disabled={isPending}
+            {...register("tripDetails.overview.shortIntro")}
+          />
         </FormField>
       </CollapsibleSection>
 
-      <CollapsibleSection title="2. Itinerary & highlights" defaultOpen>
+      <CollapsibleSection title={t("trip_sectionItinerary")} defaultOpen>
         <StringTagListField
           control={control}
           name="tripDetails.itinerary.highlights"
-          label="Highlights"
-          placeholder="Highlight"
+          label={t("trip_highlightsLabel")}
+          placeholder={ph("trip_highlightsPlaceholder")}
           error={td?.itinerary?.highlights?.message as string | undefined}
           disabled={isPending}
         />
         <StringTagListField
           control={control}
           name="tripDetails.itinerary.includedVisits"
-          label="Included visits"
-          placeholder="Visit or stop"
+          label={t("trip_includedVisitsLabel")}
+          placeholder={ph("trip_includedVisitsPlaceholder")}
           error={td?.itinerary?.includedVisits?.message as string | undefined}
           disabled={isPending}
         />
         <StringTagListField
           control={control}
           name="tripDetails.itinerary.excludedVisits"
-          label="Excluded visits"
-          placeholder="Not included"
+          label={t("trip_excludedVisitsLabel")}
+          placeholder={ph("trip_excludedVisitsPlaceholder")}
           error={td?.itinerary?.excludedVisits?.message as string | undefined}
           disabled={isPending}
         />
         <StringTagListField
           control={control}
           name="tripDetails.itinerary.optionalActivities"
-          label="Optional activities"
-          placeholder="Optional add-on"
+          label={t("trip_optionalActivitiesLabel")}
+          placeholder={ph("trip_optionalActivitiesPlaceholder")}
           error={td?.itinerary?.optionalActivities?.message as string | undefined}
           disabled={isPending}
         />
         <StringTagListField
           control={control}
           name="tripDetails.itinerary.specialExperiences"
-          label="Special experiences"
-          placeholder="Unique experience"
+          label={t("trip_specialExperiencesLabel")}
+          placeholder={ph("trip_specialExperiencesPlaceholder")}
           error={td?.itinerary?.specialExperiences?.message as string | undefined}
           disabled={isPending}
         />
-        <FormField label="Itinerary outline" error={td?.itinerary?.outline?.message as string | undefined}>
+        <FormField label={t("trip_itineraryOutlineLabel")} error={td?.itinerary?.outline?.message as string | undefined}>
           <Textarea rows={4} invalid={Boolean(td?.itinerary?.outline)} disabled={isPending} {...register("tripDetails.itinerary.outline")} />
         </FormField>
-        <FormField label="Program notes" error={td?.itinerary?.programNotes?.message as string | undefined}>
+        <FormField label={t("trip_programNotesLabel")} error={td?.itinerary?.programNotes?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.itinerary?.programNotes)} disabled={isPending} {...register("tripDetails.itinerary.programNotes")} />
         </FormField>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>Day-by-day plan</span>
-          <p style={mutedHelp}>Optional structured days (day number required per row).</p>
+          <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{t("trip_dayByDayTitle")}</span>
+          <p style={mutedHelp}>{t("trip_dayByDayHelp")}</p>
           {dayFields.map((row, index) => (
             <div
               key={row.id}
@@ -488,32 +857,48 @@ export function TourCreateTripDetailsFields({
                 padding: "0.5rem",
               }}
             >
-              <FormField label="Day" error={td?.itinerary?.dayPlans?.[index]?.day?.message as string | undefined}>
-                <Input
-                  type="number"
-                  min={1}
-                  step={1}
-                  disabled={isPending}
-                  {...register(`tripDetails.itinerary.dayPlans.${index}.day`)}
+              <FormField label={t("trip_dayPlanDayLabel")} error={td?.itinerary?.dayPlans?.[index]?.day?.message as string | undefined}>
+                <Controller
+                  control={control}
+                  name={`tripDetails.itinerary.dayPlans.${index}.day`}
+                  render={({ field }) => (
+                    <PersianNumberInput
+                      disabled={isPending}
+                      numericMode="integer"
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  )}
                 />
               </FormField>
-              <FormField label="Title" error={td?.itinerary?.dayPlans?.[index]?.title?.message as string | undefined}>
+              <FormField label={t("trip_dayPlanTitleLabel")} error={td?.itinerary?.dayPlans?.[index]?.title?.message as string | undefined}>
                 <Input disabled={isPending} {...register(`tripDetails.itinerary.dayPlans.${index}.title`)} />
               </FormField>
               <FormField
-                label="Distance (km)"
+                label={t("trip_dayPlanDistanceLabel")}
                 error={td?.itinerary?.dayPlans?.[index]?.distanceKm?.message as string | undefined}
               >
-                <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  disabled={isPending}
-                  {...register(`tripDetails.itinerary.dayPlans.${index}.distanceKm`)}
+                <Controller
+                  control={control}
+                  name={`tripDetails.itinerary.dayPlans.${index}.distanceKm`}
+                  render={({ field }) => (
+                    <PersianNumberInput
+                      disabled={isPending}
+                      numericMode="integer"
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  )}
                 />
               </FormField>
               <FormField
-                label="Description"
+                label={t("trip_dayPlanDescriptionLabel")}
                 error={td?.itinerary?.dayPlans?.[index]?.description?.message as string | undefined}
               >
                 <Textarea
@@ -524,18 +909,27 @@ export function TourCreateTripDetailsFields({
                 />
               </FormField>
               <FormField
-                label="Elevation gain (m)"
+                label={t("trip_dayPlanElevationLabel")}
                 error={td?.itinerary?.dayPlans?.[index]?.elevationGainM?.message as string | undefined}
               >
-                <Input
-                  type="number"
-                  step={1}
-                  disabled={isPending}
-                  {...register(`tripDetails.itinerary.dayPlans.${index}.elevationGainM`)}
+                <Controller
+                  control={control}
+                  name={`tripDetails.itinerary.dayPlans.${index}.elevationGainM`}
+                  render={({ field }) => (
+                    <PersianNumberInput
+                      disabled={isPending}
+                      numericMode="integer"
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  )}
                 />
               </FormField>
               <Button type="button" variant="ghost" disabled={isPending} onClick={() => removeDay(index)}>
-                Remove day
+                {t("trip_removeDay")}
               </Button>
             </div>
           ))}
@@ -554,50 +948,44 @@ export function TourCreateTripDetailsFields({
             }
             style={{ alignSelf: "flex-start" }}
           >
-            Add day
+            {t("trip_addDay")}
           </Button>
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection title="3. Participation & eligibility">
+      <CollapsibleSection title={t("trip_sectionParticipation")}>
         {isMountainTour ? (
           <p style={mutedHelp}>
-            For mountain tours, minimum age and at least one required gear item are mandatory.
+            {t("trip_mountainRequiredNote")}
           </p>
         ) : null}
-        <h4 style={subsectionTitleStyle}>سطح برنامه و تجربه</h4>
+        <h4 style={subsectionTitleStyle}>{t("trip_subsectionProgramExperience")}</h4>
         <OptionalEnumSelect
           control={control}
           name="tripDetails.participation.fitnessLevel"
-          label="سختی کلی برنامه"
-          description="شدت کلی برنامه (جسمی + فنی) را مشخص کنید؛ مثلاً پیاده‌روی سبک، پیمایش سنگین یا برنامه فنی."
+          label={t("trip_fitnessLabel")}
+          description={t("trip_fitnessDescription")}
           error={td?.participation?.fitnessLevel?.message as string | undefined}
           disabled={isPending}
           options={DIFFICULTY_LEVELS}
-          formatLabel={difficultyLabel}
+          formatLabel={(v) => difficultyLabel(v, t)}
         />
         {isHidden("participation.experienceLevel") ? null : (
           <OptionalEnumSelect
             control={control}
             name="tripDetails.participation.experienceLevel"
-            label={labelWithRequiredness("سطح تجربه موردنیاز", "participation.experienceLevel")}
-            description={mergeDescription(
-              "تجربه قبلی شرکت‌کننده؛ مثل «اولین برنامه»، «سابقه پیمایش یک‌روزه»، یا «آشنا با ارتفاع بالای ۳۰۰۰ متر».",
-              "participation.experienceLevel",
-            )}
+            label={labelWithRequiredness(t("trip_experienceLevelLabel"), "participation.experienceLevel")}
+            description={mergeDescription(t("trip_experienceLevelDescription"), "participation.experienceLevel")}
             error={td?.participation?.experienceLevel?.message as string | undefined}
             disabled={isDisabled("participation.experienceLevel")}
             options={EXPERIENCE_LEVELS}
-            formatLabel={experienceLabel}
+            formatLabel={(v) => experienceLabel(v, t)}
           />
         )}
         {isHidden("participation.technicalSkillRequired") ? null : (
           <FormField
-            label={labelWithRequiredness("مهارت فنی موردنیاز", "participation.technicalSkillRequired")}
-            description={mergeDescription(
-              "مهارت‌های فنی خاص موردنیاز را بنویسید؛ مانند کار با کرامپون، طناب، دست‌به‌سنگ یا عبور از مسیرهای فنی.",
-              "participation.technicalSkillRequired",
-            )}
+            label={labelWithRequiredness(t("trip_technicalSkillLabel"), "participation.technicalSkillRequired")}
+            description={mergeDescription(t("trip_technicalSkillDescription"), "participation.technicalSkillRequired")}
             error={td?.participation?.technicalSkillRequired?.message as string | undefined}
           >
             <Textarea
@@ -609,45 +997,60 @@ export function TourCreateTripDetailsFields({
           </FormField>
         )}
 
-        <h4 style={subsectionTitleStyle}>سن و شرایط پزشکی</h4>
+        <h4 style={subsectionTitleStyle}>{t("trip_subsectionAgeMedical")}</h4>
         {isHidden("participation.minimumAge") ? null : (
           <FormField
-            label={labelWithRequiredness("حداقل سن مجاز", "participation.minimumAge")}
-            description={mergeDescription(
-              "به‌عنوان قانون پذیرش اجرا می‌شود؛ شرکت‌کنندگان کم‌سن‌تر قابل تایید نخواهند بود.",
-              "participation.minimumAge",
-            )}
+            label={labelWithRequiredness(t("trip_minimumAgeLabel"), "participation.minimumAge")}
+            description={mergeDescription(t("trip_minimumAgeDescription"), "participation.minimumAge")}
             error={td?.participation?.minimumAge?.message as string | undefined}
           >
-            <Input
-              type="number"
-              min={0}
-              max={150}
-              step={1}
-              disabled={isDisabled("participation.minimumAge")}
-              {...register("tripDetails.participation.minimumAge")}
+            <Controller
+              control={control}
+              name="tripDetails.participation.minimumAge"
+              render={({ field }) => (
+                <PersianNumberInput
+                  disabled={isDisabled("participation.minimumAge")}
+                  numericMode="integer"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
             />
           </FormField>
         )}
-        <FormField label="Maximum age" error={td?.participation?.maximumAge?.message as string | undefined}>
-          <Input type="number" min={0} max={150} step={1} disabled={isPending} {...register("tripDetails.participation.maximumAge")} />
+        <FormField label={t("trip_maximumAgeLabel")} error={td?.participation?.maximumAge?.message as string | undefined}>
+          <Controller
+            control={control}
+            name="tripDetails.participation.maximumAge"
+            render={({ field }) => (
+              <PersianNumberInput
+                disabled={isPending}
+                numericMode="integer"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+            )}
+          />
         </FormField>
         <OptionalEnumSelect
           control={control}
           name="tripDetails.participation.genderRestriction"
-          label="Gender restriction"
+          label={t("trip_genderRestrictionLabel")}
           error={td?.participation?.genderRestriction?.message as string | undefined}
           disabled={isPending}
           options={GENDER_RESTRICTIONS}
-          formatLabel={genderLabel}
+          formatLabel={(v) => genderLabel(v, t)}
         />
         {isHidden("participation.medicalRestrictions") ? null : (
           <FormField
-            label={labelWithRequiredness("محدودیت‌های پزشکی", "participation.medicalRestrictions")}
-            description={mergeDescription(
-              "شرایطی را ذکر کنید که ممکن است برنامه را ناایمن کند؛ مثل بیماری قلبی، آسم کنترل‌نشده یا سابقه مشکل شدید ارتفاع.",
-              "participation.medicalRestrictions",
-            )}
+            label={labelWithRequiredness(t("trip_medicalRestrictionsLabel"), "participation.medicalRestrictions")}
+            description={mergeDescription(t("trip_medicalRestrictionsDescription"), "participation.medicalRestrictions")}
             error={td?.participation?.medicalRestrictions?.message as string | undefined}
           >
             <Textarea
@@ -658,223 +1061,491 @@ export function TourCreateTripDetailsFields({
             />
           </FormField>
         )}
-        <FormField label="Requirements" error={td?.participation?.requirements?.message as string | undefined}>
+        <FormField label={t("trip_requirementsLabel")} error={td?.participation?.requirements?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.participation?.requirements)} disabled={isPending} {...register("tripDetails.participation.requirements")} />
         </FormField>
         <h4 style={subsectionTitleStyle}>تجهیزات</h4>
         <StringTagListField
           control={control}
           name="tripDetails.participation.skillsRequired"
-          label="Skills required"
+          label={t("trip_skillsRequiredLabel")}
           disabled={isPending}
-          placeholder="Skill"
+          placeholder={ph("trip_skillsRequiredPlaceholder")}
           error={td?.participation?.skillsRequired?.message as string | undefined}
         />
-        {isHidden("participation.gearRequired") ? null : (
-          <StringTagListField
+        {isHidden("participation.gearRequiredIds") ? null : (
+          <EquipmentIdsCheckboxField
             control={control}
-            name="tripDetails.participation.gearRequired"
-            label={labelWithRequiredness("تجهیزات الزامی", "participation.gearRequired")}
-            description={mergeDescription(
-              "موارد مشخص و قابل تهیه بنویسید؛ مثل کفش مناسب، پوشاک لایه‌ای، هدلامپ، باتوم یا کیت کمک‌های اولیه.",
-              "participation.gearRequired",
-            )}
-            disabled={isDisabled("participation.gearRequired")}
-            placeholder="مثلاً کفش ترکینگ"
-            error={td?.participation?.gearRequired?.message as string | undefined}
+            name="tripDetails.participation.gearRequiredIds"
+            label={labelWithRequiredness(t("trip_gearRequiredLabel"), "participation.gearRequiredIds")}
+            description={mergeDescription(t("trip_gearRequiredDescription"), "participation.gearRequiredIds")}
+            disabled={isDisabled("participation.gearRequiredIds")}
+            items={equipmentItems}
+            loading={equipmentQuery.isLoading}
+            loadFailed={equipmentQuery.isError}
+            emptyHint={t("trip_gearEquipmentEmptyHint")}
+            ariaGroupLabel={t("trip_gearRequiredLabel")}
+            error={td?.participation?.gearRequiredIds?.message as string | undefined}
           />
         )}
-        {isHidden("participation.gearOptional") ? null : (
-          <StringTagListField
+        {isHidden("participation.gearOptionalIds") ? null : (
+          <EquipmentIdsCheckboxField
             control={control}
-            name="tripDetails.participation.gearOptional"
-            label={labelWithRequiredness("تجهیزات پیشنهادی", "participation.gearOptional")}
-            description={mergeDescription(
-              "ابزارهای مفید اما غیرالزامی؛ مثل گتر، عینک یدک، پاوربانک یا باتوم اضافه.",
-              "participation.gearOptional",
-            )}
-            disabled={isDisabled("participation.gearOptional")}
-            placeholder="مثلاً باتری اضافه هدلامپ"
-            error={td?.participation?.gearOptional?.message as string | undefined}
+            name="tripDetails.participation.gearOptionalIds"
+            label={labelWithRequiredness(t("trip_gearOptionalLabel"), "participation.gearOptionalIds")}
+            description={mergeDescription(t("trip_gearOptionalDescription"), "participation.gearOptionalIds")}
+            disabled={isDisabled("participation.gearOptionalIds")}
+            items={equipmentItems}
+            loading={equipmentQuery.isLoading}
+            loadFailed={equipmentQuery.isError}
+            emptyHint={t("trip_gearEquipmentEmptyHint")}
+            ariaGroupLabel={t("trip_gearOptionalLabel")}
+            error={td?.participation?.gearOptionalIds?.message as string | undefined}
           />
         )}
         <StringTagListField
           control={control}
           name="tripDetails.participation.documentsRequired"
-          label="Documents required"
+          label={t("trip_documentsRequiredLabel")}
           disabled={isPending}
-          placeholder="Document"
+          placeholder={ph("trip_documentsRequiredPlaceholder")}
           error={td?.participation?.documentsRequired?.message as string | undefined}
         />
-        <StringTagListField
-          control={control}
-          name="tripDetails.participation.suitableFor"
-          label="Suitable for"
-          disabled={isPending}
-          placeholder="Audience"
-          error={td?.participation?.suitableFor?.message as string | undefined}
-        />
-        <StringTagListField
-          control={control}
-          name="tripDetails.participation.notSuitableFor"
-          label="Not suitable for"
-          disabled={isPending}
-          placeholder="Audience"
-          error={td?.participation?.notSuitableFor?.message as string | undefined}
-        />
+        {isHidden("participation.suitableFor") && isHidden("participation.notSuitableFor") ? null : (
+          <FormField
+            label={labelWithRequiredness(t("trip_audienceMatrixLabel"), "participation.suitableFor")}
+            description={mergeDescription(t("trip_audienceMatrixDescription"), "participation.suitableFor")}
+            error={
+              (td?.participation?.notSuitableFor?.message as string | undefined) ??
+              (td?.participation?.suitableFor?.message as string | undefined)
+            }
+          >
+            <Controller
+              control={control}
+              name="tripDetails.participation.suitableFor"
+              render={({ field: suitField }) => (
+                <Controller
+                  control={control}
+                  name="tripDetails.participation.notSuitableFor"
+                  render={({ field: notField }) => {
+                    const suitArr = Array.isArray(suitField.value) ? (suitField.value as AudienceGroup[]) : [];
+                    const notArr = Array.isArray(notField.value) ? (notField.value as AudienceGroup[]) : [];
+                    const suit = new Set(suitArr);
+                    const not = new Set(notArr);
+                    const disabledMatrix =
+                      isDisabled("participation.suitableFor") || isDisabled("participation.notSuitableFor");
+                    const setSuitable = (g: AudienceGroup, on: boolean) => {
+                      const nextS = new Set(suit);
+                      const nextN = new Set(not);
+                      if (on) {
+                        nextN.delete(g);
+                        nextS.add(g);
+                      } else {
+                        nextS.delete(g);
+                      }
+                      suitField.onChange(nextS.size > 0 ? [...nextS].sort((a, b) => a.localeCompare(b)) : []);
+                      notField.onChange(nextN.size > 0 ? [...nextN].sort((a, b) => a.localeCompare(b)) : []);
+                    };
+                    const setNotSuitable = (g: AudienceGroup, on: boolean) => {
+                      const nextS = new Set(suit);
+                      const nextN = new Set(not);
+                      if (on) {
+                        nextS.delete(g);
+                        nextN.add(g);
+                      } else {
+                        nextN.delete(g);
+                      }
+                      suitField.onChange(nextS.size > 0 ? [...nextS].sort((a, b) => a.localeCompare(b)) : []);
+                      notField.onChange(nextN.size > 0 ? [...nextN].sort((a, b) => a.localeCompare(b)) : []);
+                    };
+                    return (
+                      <div
+                        dir={locale === "fa" ? "rtl" : "ltr"}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.35rem",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "minmax(0,1fr) auto auto",
+                            gap: "0.35rem 0.75rem",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span />
+                          <span style={{ fontWeight: 600, textAlign: "center" }}>{t("trip_audienceColumnSuitable")}</span>
+                          <span style={{ fontWeight: 600, textAlign: "center" }}>{t("trip_audienceColumnNotSuitable")}</span>
+                          {AUDIENCE_GROUP_VALUES.map((g) => (
+                            <Fragment key={g}>
+                              <span>{t(AUDIENCE_LABEL_KEYS[g] as never)}</span>
+                              <div style={{ display: "flex", justifyContent: "center" }}>
+                                <Checkbox
+                                  bare
+                                  checked={suit.has(g)}
+                                  disabled={disabledMatrix}
+                                  aria-label={`${t(AUDIENCE_LABEL_KEYS[g] as never)} — ${t("trip_audienceColumnSuitable")}`}
+                                  onChange={(e) => {
+                                    setSuitable(g, e.target.checked);
+                                  }}
+                                />
+                              </div>
+                              <div style={{ display: "flex", justifyContent: "center" }}>
+                                <Checkbox
+                                  bare
+                                  checked={not.has(g)}
+                                  disabled={disabledMatrix}
+                                  aria-label={`${t(AUDIENCE_LABEL_KEYS[g] as never)} — ${t("trip_audienceColumnNotSuitable")}`}
+                                  onChange={(e) => {
+                                    setNotSuitable(g, e.target.checked);
+                                  }}
+                                />
+                              </div>
+                            </Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+              )}
+            />
+          </FormField>
+        )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="4. Logistics & services">
-        {isHidden("logistics.meetingPoint") ? null : (
+      <CollapsibleSection title={t("trip_sectionLogistics")}>
+        {!suppressLogisticsMeetingAndReturn && !isHidden("logistics.meetingPoint") ? (
           <FormField
-            label={labelWithRequiredness("Meeting point", "logistics.meetingPoint")}
+            label={labelWithRequiredness(t("trip_meetingPointLabel"), "logistics.meetingPoint")}
             description={mergeDescription(undefined, "logistics.meetingPoint")}
             error={td?.logistics?.meetingPoint?.message as string | undefined}
           >
             <Input disabled={isDisabled("logistics.meetingPoint")} autoComplete="off" {...register("tripDetails.logistics.meetingPoint")} />
           </FormField>
-        )}
-        <FormField
-          label="ساعت تجمع برای حرکت"
-          error={td?.logistics?.departureMeetingTime?.message as string | undefined}
-        >
-          <Input
-            type="time"
-            disabled={isPending}
-            autoComplete="off"
-            {...register("tripDetails.logistics.departureMeetingTime")}
-          />
-        </FormField>
+        ) : null}
+        <Controller
+          control={control}
+          name="tripDetails.logistics.departureMeetingTime"
+          render={({ field }) => (
+            <FormField
+              label={t("trip_departureMeetingTimeLabel")}
+              error={td?.logistics?.departureMeetingTime?.message as string | undefined}
+            >
+              <JalaliTimePicker
+                ref={field.ref}
+                name={field.name}
+                value={typeof field.value === "string" ? field.value : ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                disabled={isPending}
+                invalid={Boolean(td?.logistics?.departureMeetingTime)}
+                minuteStep={5}
+                hourLabel={t("trip_timeHourLabel")}
+                minuteLabel={t("trip_timeMinuteLabel")}
+                confirmLabel={t("trip_timeConfirm")}
+                cancelLabel={t("trip_timeCancel")}
+                clearLabel={t("trip_timeClear")}
+                openPickerAriaLabel={t("trip_timeOpenPickerAria")}
+              />
+            </FormField>
+          )}
+        />
         {isHidden("logistics.departureDate") ? null : (
-          <FormField
-            label={labelWithRequiredness("تاریخ رفت", "logistics.departureDate")}
-            description={mergeDescription(undefined, "logistics.departureDate")}
-            error={td?.logistics?.departureDate?.message as string | undefined}
-          >
-            <Input type="date" disabled={isDisabled("logistics.departureDate")} autoComplete="off" {...register("tripDetails.logistics.departureDate")} />
-          </FormField>
+          <Controller
+            control={control}
+            name="tripDetails.logistics.departureDate"
+            render={({ field }) => (
+              <FormField
+                label={labelWithRequiredness(t("trip_departureDateLabel"), "logistics.departureDate")}
+                description={mergeDescription(undefined, "logistics.departureDate")}
+                error={td?.logistics?.departureDate?.message as string | undefined}
+              >
+                <JalaliDatePicker
+                  ref={field.ref}
+                  name={field.name}
+                  value={typeof field.value === "string" ? field.value : ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  disabled={isDisabled("logistics.departureDate")}
+                  invalid={Boolean(td?.logistics?.departureDate)}
+                  minDate={todayYmd}
+                  maxDate={maxBookableYmd}
+                  clearLabel={t("trip_jalaliClear")}
+                  openCalendarAriaLabel={t("trip_openCalendarAria")}
+                />
+              </FormField>
+            )}
+          />
         )}
         {isHidden("logistics.returnDate") ? null : (
-          <FormField
-            label={labelWithRequiredness("تاریخ برگشت", "logistics.returnDate")}
-            description={mergeDescription(undefined, "logistics.returnDate")}
-            error={td?.logistics?.returnDate?.message as string | undefined}
-          >
-            <Input type="date" disabled={isDisabled("logistics.returnDate")} autoComplete="off" {...register("tripDetails.logistics.returnDate")} />
-          </FormField>
+          <Controller
+            control={control}
+            name="tripDetails.logistics.returnDate"
+            render={({ field }) => (
+              <FormField
+                label={labelWithRequiredness(t("trip_returnDateLabel"), "logistics.returnDate")}
+                description={mergeDescription(undefined, "logistics.returnDate")}
+                error={td?.logistics?.returnDate?.message as string | undefined}
+              >
+                <JalaliDatePicker
+                  ref={field.ref}
+                  name={field.name}
+                  value={typeof field.value === "string" ? field.value : ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  disabled={isDisabled("logistics.returnDate")}
+                  invalid={Boolean(td?.logistics?.returnDate)}
+                  minDate={returnMinYmd}
+                  maxDate={maxBookableYmd}
+                  clearLabel={t("trip_jalaliClear")}
+                  openCalendarAriaLabel={t("trip_openCalendarAria")}
+                />
+              </FormField>
+            )}
+          />
         )}
-        <FormField label="Return point" error={td?.logistics?.returnPoint?.message as string | undefined}>
-          <Input disabled={isPending} autoComplete="off" {...register("tripDetails.logistics.returnPoint")} />
-        </FormField>
-        {isHidden("logistics.transportation") ? null : (
+        {derivedDurationDays !== undefined ? (
           <FormField
-            label={labelWithRequiredness("Transportation", "logistics.transportation")}
-            description={mergeDescription(undefined, "logistics.transportation")}
-            error={td?.logistics?.transportation?.message as string | undefined}
+            label={t("trip_durationDaysComputedLabel")}
+            description={t("trip_durationDaysComputedDescription")}
+          >
+            <Input
+              type="text"
+              readOnly
+              tabIndex={-1}
+              aria-readonly="true"
+              value={
+                locale === "fa"
+                  ? convertNumbers(String(derivedDurationDays), "fa")
+                  : String(derivedDurationDays)
+              }
+              dir="rtl"
+            />
+          </FormField>
+        ) : null}
+        {!suppressLogisticsMeetingAndReturn ? (
+          <FormField label={t("trip_returnPointLabel")} error={td?.logistics?.returnPoint?.message as string | undefined}>
+            <Input disabled={isPending} autoComplete="off" {...register("tripDetails.logistics.returnPoint")} />
+          </FormField>
+        ) : null}
+        {isHidden("logistics.transportationNotes") ? null : (
+          <FormField
+            label={labelWithRequiredness(t("trip_transportationNotesLabel"), "logistics.transportationNotes")}
+            description={mergeDescription(undefined, "logistics.transportationNotes")}
+            error={td?.logistics?.transportationNotes?.message as string | undefined}
           >
             <Textarea
               rows={2}
-              invalid={Boolean(td?.logistics?.transportation)}
-              disabled={isDisabled("logistics.transportation")}
-              {...register("tripDetails.logistics.transportation")}
+              invalid={Boolean(td?.logistics?.transportationNotes)}
+              disabled={isDisabled("logistics.transportationNotes")}
+              {...register("tripDetails.logistics.transportationNotes")}
             />
           </FormField>
         )}
-        <FormField label="Accommodation type" error={td?.logistics?.accommodationType?.message as string | undefined}>
-          <Input disabled={isPending} autoComplete="off" {...register("tripDetails.logistics.accommodationType")} />
-        </FormField>
-        <FormField label="Meal plan" error={td?.logistics?.mealPlan?.message as string | undefined}>
-          <Textarea rows={2} invalid={Boolean(td?.logistics?.mealPlan)} disabled={isPending} {...register("tripDetails.logistics.mealPlan")} />
-        </FormField>
+        {isHidden("logistics.accommodationTypes") ? null : (
+          <FormField
+            label={labelWithRequiredness(t("trip_accommodationTypesLabel"), "logistics.accommodationTypes")}
+            description={mergeDescription(undefined, "logistics.accommodationTypes")}
+            error={td?.logistics?.accommodationTypes?.message as string | undefined}
+          >
+            <Controller
+              name="tripDetails.logistics.accommodationTypes"
+              control={control}
+              render={({ field }) => (
+                <div
+                  style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+                  role="group"
+                  aria-label={t("trip_accommodationTypesLabel")}
+                >
+                  {ACCOMMODATION_TYPE_VALUES.map((slug) => (
+                    <Checkbox
+                      key={slug}
+                      label={t(`trip_accommodation_${slug}`)}
+                      checked={(field.value ?? ([] as string[])).includes(slug)}
+                      disabled={isPending || isDisabled("logistics.accommodationTypes")}
+                      onChange={(e) => {
+                        const prev = (field.value ?? []) as string[];
+                        const next = new Set(prev);
+                        if (e.target.checked) {
+                          next.add(slug);
+                        } else {
+                          next.delete(slug);
+                        }
+                        field.onChange([...next].sort((a, b) => a.localeCompare(b)));
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            />
+          </FormField>
+        )}
+        {isHidden("logistics.accommodationNotes") ? null : (
+          <FormField
+            label={t("trip_accommodationNotesLabel")}
+            error={td?.logistics?.accommodationNotes?.message as string | undefined}
+          >
+            <Textarea
+              rows={2}
+              invalid={Boolean(td?.logistics?.accommodationNotes)}
+              disabled={isPending || isDisabled("logistics.accommodationNotes")}
+              {...register("tripDetails.logistics.accommodationNotes")}
+            />
+          </FormField>
+        )}
+        {isHidden("logistics.mealPlan") ? null : (
+          <OptionalEnumSelect
+            control={control}
+            name="tripDetails.logistics.mealPlan"
+            label={labelWithRequiredness(t("trip_mealPlanLabel"), "logistics.mealPlan")}
+            description={mergeDescription(undefined, "logistics.mealPlan")}
+            error={td?.logistics?.mealPlan?.message as string | undefined}
+            disabled={isPending || isDisabled("logistics.mealPlan")}
+            options={MEAL_PLAN_VALUES}
+            formatLabel={(v) => t(`trip_mealPlan_${v}`)}
+          />
+        )}
+        {isHidden("logistics.mealNotes") ? null : (
+          <FormField
+            label={t("trip_mealNotesLabel")}
+            error={td?.logistics?.mealNotes?.message as string | undefined}
+          >
+            <Textarea
+              rows={2}
+              invalid={Boolean(td?.logistics?.mealNotes)}
+              disabled={isPending || isDisabled("logistics.mealNotes")}
+              {...register("tripDetails.logistics.mealNotes")}
+            />
+          </FormField>
+        )}
         <StringTagListField
           control={control}
           name="tripDetails.logistics.supportServices"
-          label="Support services"
+          label={t("trip_supportServicesLabel")}
           disabled={isPending}
-          placeholder="Service"
+          placeholder={ph("trip_supportServicesPlaceholder")}
           error={td?.logistics?.supportServices?.message as string | undefined}
         />
         <StringTagListField
           control={control}
           name="tripDetails.logistics.includedServices"
-          label="Included services"
+          label={t("trip_includedServicesLabel")}
           disabled={isPending}
-          placeholder="Service"
+          placeholder={ph("trip_supportServicesPlaceholder")}
           error={td?.logistics?.includedServices?.message as string | undefined}
         />
         <StringTagListField
           control={control}
           name="tripDetails.logistics.excludedServices"
-          label="Excluded services"
+          label={t("trip_excludedServicesLabel")}
           disabled={isPending}
-          placeholder="Service"
+          placeholder={ph("trip_supportServicesPlaceholder")}
           error={td?.logistics?.excludedServices?.message as string | undefined}
         />
         <StringTagListField
           control={control}
           name="tripDetails.logistics.optionalServices"
-          label="Optional services"
+          label={t("trip_optionalServicesLabel")}
           disabled={isPending}
-          placeholder="Service"
+          placeholder={ph("trip_supportServicesPlaceholder")}
           error={td?.logistics?.optionalServices?.message as string | undefined}
         />
-        <StringTagListField
-          control={control}
-          name="tripDetails.logistics.guideLanguage"
-          label="Guide languages"
-          disabled={isPending}
-          placeholder="e.g. English"
-          error={td?.logistics?.guideLanguage?.message as string | undefined}
-        />
+        {isHidden("logistics.guideLanguageIds") ? null : (
+          <EquipmentIdsCheckboxField
+            control={control}
+            name="tripDetails.logistics.guideLanguageIds"
+            label={labelWithRequiredness(t("trip_guideLanguagesLabel"), "logistics.guideLanguageIds")}
+            description={mergeDescription(t("trip_guideLanguagesDescription"), "logistics.guideLanguageIds")}
+            disabled={isPending || isDisabled("logistics.guideLanguageIds")}
+            items={guideLanguageItems}
+            loading={guideLanguagesQuery.isLoading}
+            loadFailed={guideLanguagesQuery.isError}
+            emptyHint={t("trip_guideLanguagesEmptyHint")}
+            ariaGroupLabel={t("trip_guideLanguagesLabel")}
+            error={td?.logistics?.guideLanguageIds?.message as string | undefined}
+          />
+        )}
         {isHidden("logistics.groupSizeMin") ? null : (
           <FormField
-            label={labelWithRequiredness("Group size (min)", "logistics.groupSizeMin")}
+            label={labelWithRequiredness(t("trip_groupSizeMinLabel"), "logistics.groupSizeMin")}
             description={mergeDescription(undefined, "logistics.groupSizeMin")}
             error={td?.logistics?.groupSizeMin?.message as string | undefined}
           >
-            <Input type="number" min={0} step={1} disabled={isDisabled("logistics.groupSizeMin")} {...register("tripDetails.logistics.groupSizeMin")} />
+            <Controller
+              control={control}
+              name="tripDetails.logistics.groupSizeMin"
+              render={({ field }) => (
+                <PersianNumberInput
+                  disabled={isDisabled("logistics.groupSizeMin")}
+                  numericMode="integer"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
+            />
           </FormField>
         )}
         {isHidden("logistics.groupSizeMax") ? null : (
           <FormField
-            label={labelWithRequiredness("Group size (max)", "logistics.groupSizeMax")}
+            label={labelWithRequiredness(t("trip_groupSizeMaxLabel"), "logistics.groupSizeMax")}
             description={mergeDescription(undefined, "logistics.groupSizeMax")}
             error={td?.logistics?.groupSizeMax?.message as string | undefined}
           >
-            <Input type="number" min={0} step={1} disabled={isDisabled("logistics.groupSizeMax")} {...register("tripDetails.logistics.groupSizeMax")} />
+            <Controller
+              control={control}
+              name="tripDetails.logistics.groupSizeMax"
+              render={({ field }) => (
+                <PersianNumberInput
+                  disabled={isDisabled("logistics.groupSizeMax")}
+                  numericMode="integer"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
+              )}
+            />
           </FormField>
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="5. Booking & attendance policies">
-        <FormField label="Reservation rules" error={td?.policies?.reservationRules?.message as string | undefined}>
+      <CollapsibleSection title={t("trip_sectionPolicies")}>
+        <FormField label={t("trip_reservationRulesLabel")} error={td?.policies?.reservationRules?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.reservationRules)} disabled={isPending} {...register("tripDetails.policies.reservationRules")} />
         </FormField>
-        <FormField label="Cancellation policy" error={td?.policies?.cancellationPolicy?.message as string | undefined}>
+        <FormField label={t("trip_cancellationPolicyLabel")} error={td?.policies?.cancellationPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.cancellationPolicy)} disabled={isPending} {...register("tripDetails.policies.cancellationPolicy")} />
         </FormField>
-        <FormField label="Refund policy" error={td?.policies?.refundPolicy?.message as string | undefined}>
+        <FormField label={t("trip_refundPolicyLabel")} error={td?.policies?.refundPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.refundPolicy)} disabled={isPending} {...register("tripDetails.policies.refundPolicy")} />
         </FormField>
-        <FormField label="Attendance rules" error={td?.policies?.attendanceRules?.message as string | undefined}>
+        <FormField label={t("trip_attendanceRulesLabel")} error={td?.policies?.attendanceRules?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.attendanceRules)} disabled={isPending} {...register("tripDetails.policies.attendanceRules")} />
         </FormField>
-        <FormField label="Late arrival policy" error={td?.policies?.lateArrivalPolicy?.message as string | undefined}>
+        <FormField label={t("trip_lateArrivalPolicyLabel")} error={td?.policies?.lateArrivalPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.lateArrivalPolicy)} disabled={isPending} {...register("tripDetails.policies.lateArrivalPolicy")} />
         </FormField>
-        <FormField label="No-show policy" error={td?.policies?.noShowPolicy?.message as string | undefined}>
+        <FormField label={t("trip_noShowPolicyLabel")} error={td?.policies?.noShowPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.noShowPolicy)} disabled={isPending} {...register("tripDetails.policies.noShowPolicy")} />
         </FormField>
-        <FormField label="Confirmation policy" error={td?.policies?.confirmationPolicy?.message as string | undefined}>
+        <FormField label={t("trip_confirmationPolicyLabel")} error={td?.policies?.confirmationPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.confirmationPolicy)} disabled={isPending} {...register("tripDetails.policies.confirmationPolicy")} />
         </FormField>
-        <FormField label="Capacity policy" error={td?.policies?.capacityPolicy?.message as string | undefined}>
+        <FormField label={t("trip_capacityPolicyLabel")} error={td?.policies?.capacityPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.capacityPolicy)} disabled={isPending} {...register("tripDetails.policies.capacityPolicy")} />
         </FormField>
-        <FormField label="Weather policy" error={td?.policies?.weatherPolicy?.message as string | undefined}>
+        <FormField label={t("trip_weatherPolicyLabel")} error={td?.policies?.weatherPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.weatherPolicy)} disabled={isPending} {...register("tripDetails.policies.weatherPolicy")} />
         </FormField>
-        <FormField label="Safety policy" error={td?.policies?.safetyPolicy?.message as string | undefined}>
+        <FormField label={t("trip_safetyPolicyLabel")} error={td?.policies?.safetyPolicy?.message as string | undefined}>
           <Textarea rows={3} invalid={Boolean(td?.policies?.safetyPolicy)} disabled={isPending} {...register("tripDetails.policies.safetyPolicy")} />
         </FormField>
       </CollapsibleSection>

@@ -1130,6 +1130,99 @@
         ]
       }
     },
+    "/api/v2/me": {
+      "get": {
+        "operationId": "MeController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "MeController_patchMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v2/me/verify-email": {
+      "post": {
+        "operationId": "MeController_verifyEmail",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v2/me/change-mobile/request": {
+      "post": {
+        "operationId": "MeController_requestChangeMobile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMobileRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v2/me/change-mobile/verify": {
+      "post": {
+        "operationId": "MeController_verifyChangeMobile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeMobileVerifyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/v2/tours": {
       "post": {
         "operationId": "ToursController_create",
@@ -2672,6 +2765,771 @@
           }
         ]
       }
+    },
+    "/api/v2/settings/regions": {
+      "get": {
+        "operationId": "SettingsRegionsController_list",
+        "summary": "List workspace regions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Regions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsRegionsController_create",
+        "summary": "Create workspace region",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceRegionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Regions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/regions/{regionId}": {
+      "patch": {
+        "operationId": "SettingsRegionsController_update",
+        "summary": "Update workspace region",
+        "parameters": [
+          {
+            "name": "regionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceRegionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Regions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsRegionsController_remove",
+        "summary": "Delete workspace region",
+        "parameters": [
+          {
+            "name": "regionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Regions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/destinations": {
+      "get": {
+        "operationId": "SettingsDestinationsController_list",
+        "summary": "List workspace destinations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Destinations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsDestinationsController_create",
+        "summary": "Create workspace destination",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceDestinationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Destinations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/destinations/{destinationId}": {
+      "patch": {
+        "operationId": "SettingsDestinationsController_update",
+        "summary": "Update workspace destination",
+        "parameters": [
+          {
+            "name": "destinationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceDestinationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Destinations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsDestinationsController_remove",
+        "summary": "Delete workspace destination",
+        "parameters": [
+          {
+            "name": "destinationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Destinations"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/equipment": {
+      "get": {
+        "operationId": "SettingsEquipmentController_list",
+        "summary": "List workspace equipment items",
+        "description": "Readable by all workspace members (for tour UI). Create/update/delete remain owner/admin only.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceEquipmentItemResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Equipment"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsEquipmentController_create",
+        "summary": "Create workspace equipment item",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEquipmentItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceEquipmentItemResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Equipment"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/equipment/reorder": {
+      "patch": {
+        "operationId": "SettingsEquipmentController_reorder",
+        "summary": "Reorder workspace equipment items (full id list)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderEquipmentItemsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceEquipmentItemResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Equipment"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/equipment/{id}": {
+      "patch": {
+        "operationId": "SettingsEquipmentController_update",
+        "summary": "Update workspace equipment item",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEquipmentItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceEquipmentItemResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Equipment"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsEquipmentController_remove",
+        "summary": "Delete workspace equipment item",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Equipment"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/guide-languages": {
+      "get": {
+        "operationId": "SettingsGuideLanguagesController_list",
+        "summary": "List workspace guide languages",
+        "description": "Readable by all workspace members (for tour UI). Create/update/delete remain owner/admin only.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceGuideLanguageResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Guide languages"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsGuideLanguagesController_create",
+        "summary": "Create workspace guide language",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGuideLanguageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceGuideLanguageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Guide languages"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/guide-languages/reorder": {
+      "patch": {
+        "operationId": "SettingsGuideLanguagesController_reorder",
+        "summary": "Reorder workspace guide languages (full id list)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderGuideLanguagesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceGuideLanguageResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Guide languages"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/guide-languages/{id}": {
+      "patch": {
+        "operationId": "SettingsGuideLanguagesController_update",
+        "summary": "Update workspace guide language",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGuideLanguageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceGuideLanguageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Guide languages"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsGuideLanguagesController_remove",
+        "summary": "Delete workspace guide language",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Guide languages"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-themes": {
+      "get": {
+        "operationId": "SettingsTourThemesController_list",
+        "summary": "List workspace tour themes",
+        "description": "Readable by all workspace members (for tour UI). Create/update/delete remain owner/admin only.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceTourThemeResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour themes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsTourThemesController_create",
+        "summary": "Create workspace tour theme",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceTourThemeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourThemeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour themes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-themes/reorder": {
+      "patch": {
+        "operationId": "SettingsTourThemesController_reorder",
+        "summary": "Reorder workspace tour themes (full id list)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderWorkspaceTourThemesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceTourThemeResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour themes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-themes/{id}": {
+      "patch": {
+        "operationId": "SettingsTourThemesController_update",
+        "summary": "Update workspace tour theme",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceTourThemeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourThemeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour themes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsTourThemesController_remove",
+        "summary": "Delete workspace tour theme",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Tour themes"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -2713,6 +3571,10 @@
             "type": "string",
             "example": "4f2e4f27d321...",
             "description": "Optional workspace invite token for invite onboarding continuity"
+          },
+          "challenge_id": {
+            "type": "string",
+            "description": "OTP challenge id from POST /api/v2/auth/web/otp/request (preferred login path)"
           }
         },
         "required": [
@@ -3294,6 +4156,22 @@
           "new_owner_user_id"
         ]
       },
+      "PatchMeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "VerifyEmailDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChangeMobileRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChangeMobileVerifyDto": {
+        "type": "object",
+        "properties": {}
+      },
       "TripDetailsOverviewDto": {
         "type": "object",
         "properties": {
@@ -3303,32 +4181,43 @@
           "destinationRegion": {
             "type": "string"
           },
-          "tourTheme": {
+          "tourThemeIds": {
+            "description": "Workspace catalog tour theme ids (`workspace_tour_themes.id`).",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
-          "tripStyle": {
-            "type": "string",
-            "enum": [
-              "mountaineering",
-              "nature",
-              "cultural",
-              "city",
-              "desert",
-              "adventure",
-              "mixed"
-            ]
+          "tourThemeLabels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Optional snapshot of theme id → display label for detail views when an id is no longer in the workspace catalog."
+          },
+          "tripStyles": {
+            "type": "array",
+            "description": "Multi-select execution style (adventure, relaxed, luxury, budget, familyFriendly, photography). Orthogonal to root `tourType` (mountain, city, …). Replaces a legacy singular overview style field (migrated to this array on read).",
+            "items": {
+              "type": "string",
+              "enum": [
+                "adventure",
+                "relaxed",
+                "luxury",
+                "budget",
+                "familyFriendly",
+                "photography"
+              ]
+            }
           },
           "difficultyLevel": {
-            "type": "string",
-            "enum": [
-              "easy",
-              "moderate",
-              "hard",
-              "technical"
-            ]
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "multipleOf": 0.5,
+            "example": 4.5,
+            "description": "Numeric difficulty rating on a 1–10 scale with 0.5 step granularity (allowed values: 1, 1.5, 2, …, 9.5, 10). Replaces the legacy enum."
           },
           "elevationGainMeters": {
             "type": "number"
@@ -3337,13 +4226,17 @@
             "type": "number"
           },
           "bestFor": {
+            "deprecated": true,
+            "description": "Deprecated. Use `participation.suitableFor` / `participation.notSuitableFor` instead. Retained for backward-compatible reads of older JSONB documents.",
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "shortIntro": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 250,
+            "description": "Very short teaser (≤250 chars) for **tour cards / list previews / meta description**. The root tour `description` field holds the long-form story for the **full tour page**. If empty, clients should fall back to `description` when rendering cards."
           }
         }
       },
@@ -3462,6 +4355,10 @@
           "medicalRestrictions": {
             "type": "string"
           },
+          "technicalSkillRequired": {
+            "type": "string",
+            "description": "Technical mountaineering skill expectation (separate from general fitness)."
+          },
           "requirements": {
             "type": "string"
           },
@@ -3471,16 +4368,20 @@
               "type": "string"
             }
           },
-          "gearRequired": {
+          "gearRequiredIds": {
+            "description": "Workspace equipment item ids (required gear).",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
-          "gearOptional": {
+          "gearOptionalIds": {
+            "description": "Workspace equipment item ids (optional / recommended gear).",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           "documentsRequired": {
@@ -3491,14 +4392,32 @@
           },
           "suitableFor": {
             "type": "array",
+            "description": "Audience groups this tour is well-suited for. Fixed enum: families, solo_travelers, seniors, kids, beginners, experienced_hikers. Must NOT overlap with `notSuitableFor`. Legacy free-form values from older payloads are silently dropped during normalization.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "families",
+                "solo_travelers",
+                "seniors",
+                "kids",
+                "beginners",
+                "experienced_hikers"
+              ]
             }
           },
           "notSuitableFor": {
             "type": "array",
+            "description": "Audience groups this tour is NOT suitable for. Fixed enum: families, solo_travelers, seniors, kids, beginners, experienced_hikers. Must NOT overlap with `suitableFor`.",
             "items": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "families",
+                "solo_travelers",
+                "seniors",
+                "kids",
+                "beginners",
+                "experienced_hikers"
+              ]
             }
           }
         }
@@ -3509,17 +4428,73 @@
           "meetingPoint": {
             "type": "string"
           },
+          "departureMeetingTime": {
+            "type": "string",
+            "description": "Local departure meetup time (free text, e.g. 05:30)."
+          },
+          "departureDate": {
+            "type": "string",
+            "description": "Departure date (recommended format: YYYY-MM-DD)."
+          },
+          "returnDate": {
+            "type": "string",
+            "description": "Return date (recommended format: YYYY-MM-DD)."
+          },
           "returnPoint": {
             "type": "string"
           },
+          "transportationNotes": {
+            "type": "string",
+            "description": "Planned transportation notes (mode, route, operator, vehicle).",
+            "maxLength": 1000
+          },
           "transportation": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true,
+            "maxLength": 1000,
+            "description": "Deprecated. Use `transportationNotes`. Retained for backward-compatible reads of legacy JSONB; new writes should send `transportationNotes`."
+          },
+          "accommodationTypes": {
+            "type": "array",
+            "description": "Accommodation for this trip (multi-select). Allowed: hotel, hostel, tent, mountain_hut, camp, guesthouse.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "hotel",
+                "hostel",
+                "tent",
+                "mountain_hut",
+                "camp",
+                "guesthouse"
+              ]
+            }
+          },
+          "accommodationNotes": {
+            "type": "string",
+            "description": "Additional accommodation context not covered by fixed categories.",
+            "maxLength": 500
           },
           "accommodationType": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true,
+            "maxLength": 500,
+            "description": "Deprecated. Use `accommodationTypes` and optional `accommodationNotes`. Retained for backward-compatible reads of legacy JSONB."
           },
           "mealPlan": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "none",
+              "breakfast",
+              "half_board",
+              "full_board",
+              "self_catering"
+            ],
+            "description": "Included meals for the trip (single choice)."
+          },
+          "mealNotes": {
+            "type": "string",
+            "description": "Additional meal or catering context beyond `mealPlan`.",
+            "maxLength": 500
           },
           "supportServices": {
             "type": "array",
@@ -3545,7 +4520,17 @@
               "type": "string"
             }
           },
+          "guideLanguageIds": {
+            "description": "Workspace guide language ids (from Settings → Guide languages).",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
           "guideLanguage": {
+            "deprecated": true,
+            "description": "Deprecated. Use `guideLanguageIds` referencing workspace guide languages. Retained for legacy JSONB reads only.",
             "type": "array",
             "items": {
               "type": "string"
@@ -3626,7 +4611,9 @@
         "properties": {
           "title": {
             "type": "string",
-            "example": "Spring Camp 2026"
+            "example": "Damavand summit — 2-day climb from the south face",
+            "minLength": 10,
+            "maxLength": 120
           },
           "total_capacity": {
             "type": "number",
@@ -3640,7 +4627,8 @@
           },
           "description": {
             "type": "string",
-            "example": "A two-day nature tour for members."
+            "example": "A two-day nature tour for members.",
+            "description": "Long-form marketing copy for the **tour detail page** (not list cards). For **public** tours (`lifecycle_status` = Open), treat this as **required** by product policy so detail pages stay complete. Distinct from `tripDetails.overview.shortIntro`, which is a short teaser for cards/previews."
           },
           "chat_link": {
             "type": "string",
@@ -3660,25 +4648,37 @@
           "tourType": {
             "type": "string",
             "enum": [
-              "camp",
               "mountain",
               "city",
               "desert",
-              "other"
+              "nature",
+              "cultural"
             ],
-            "example": "camp"
+            "example": "mountain",
+            "description": "Top-level **category** of the tour (mountain, city, desert, nature, cultural). Distinct from `tripDetails.overview.tripStyles`, which describes the execution style (adventure, luxury, …)."
           },
-          "primaryTransportMode": {
-            "type": "string",
-            "enum": [
+          "transportModes": {
+            "type": "array",
+            "example": [
               "bus",
-              "train",
-              "plane",
-              "private_car",
-              "mixed",
-              "none"
+              "train"
             ],
-            "example": "bus"
+            "description": "Organized transport modes for this tour (multi-select: bus, train, plane, private_car). Omit or send `[]` when not applicable. There is no `mixed` value — select every mode that applies.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "bus",
+                "train",
+                "plane",
+                "private_car"
+              ]
+            }
+          },
+          "destinationId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Workspace destination from Settings → Locations (optional)."
           },
           "destinationName": {
             "type": "string",
@@ -3700,21 +4700,14 @@
           },
           "durationDays": {
             "type": "number",
-            "example": 3
+            "example": 3,
+            "minimum": 1,
+            "maximum": 60,
+            "description": "Inclusive day count. **Derived** from `tripDetails.logistics.departureDate`/`returnDate` when both are present; the server overrides any value sent here in that case. Direct API callers may still send it without dates."
           },
           "meetingPoint": {
             "type": "string",
             "example": "Azadi Square, Gate 3"
-          },
-          "requiredGear": {
-            "example": [
-              "Hiking boots",
-              "Waterproof jacket"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "itinerary": {
             "type": "array",
@@ -3834,29 +4827,50 @@
           "tourType": {
             "type": "string",
             "enum": [
-              "camp",
               "mountain",
               "city",
               "desert",
-              "other"
+              "nature",
+              "cultural"
             ],
             "nullable": true,
-            "example": "camp",
-            "description": "Optional tour classification for specialized UX."
+            "example": "mountain",
+            "description": "Top-level **category** (mountain, city, desert, nature, cultural). Execution-style selections live in `tripDetails.overview.tripStyles`."
           },
-          "primaryTransportMode": {
-            "type": "string",
-            "enum": [
+          "transportModes": {
+            "type": "array",
+            "example": [
               "bus",
-              "train",
-              "plane",
-              "private_car",
-              "mixed",
-              "none"
+              "train"
             ],
+            "description": "Organized transport modes for this tour (multi-select). Empty when unset. No `mixed` slug.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "bus",
+                "train",
+                "plane",
+                "private_car"
+              ]
+            }
+          },
+          "destinationId": {
+            "type": "object",
+            "format": "uuid",
             "nullable": true,
-            "example": "bus",
-            "description": "Primary transport mode for the tour."
+            "description": "FK to workspace_destinations when the tour is linked to a Settings destination."
+          },
+          "destinationName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Damavand",
+            "description": "Destination display name (from Settings) when `destinationId` is set."
+          },
+          "destinationRegionName": {
+            "type": "string",
+            "nullable": true,
+            "example": "Mazandaran",
+            "description": "Region name for the linked destination, for list/detail UI."
           },
           "details": {
             "type": "object",
@@ -3891,17 +4905,6 @@
                 "type": "string",
                 "nullable": true,
                 "example": "Azadi Square, Gate 3"
-              },
-              "requiredGear": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "nullable": true,
-                "example": [
-                  "Hiking boots",
-                  "Headlamp"
-                ]
               },
               "itinerary": {
                 "type": "array",
@@ -3952,7 +4955,8 @@
           "title",
           "totalCapacity",
           "acceptedCount",
-          "lifecycleStatus"
+          "lifecycleStatus",
+          "transportModes"
         ]
       },
       "UpdateTourDto": {
@@ -3960,7 +4964,9 @@
         "properties": {
           "title": {
             "type": "string",
-            "example": "Spring Camp 2026 - Updated"
+            "example": "Damavand summit — 2-day climb (updated)",
+            "minLength": 10,
+            "maxLength": 120
           },
           "total_capacity": {
             "type": "number",
@@ -3979,7 +4985,8 @@
           },
           "description": {
             "type": "string",
-            "example": "Updated description"
+            "example": "Updated description",
+            "description": "Long-form copy for the **tour detail page**. When publishing or opening a tour to the public, this should be populated for consistency with list/detail UX. Teaser text for cards belongs in `tripDetails.overview.shortIntro`, not here."
           },
           "chat_link": {
             "type": "string",
@@ -3999,25 +5006,36 @@
           "tourType": {
             "type": "string",
             "enum": [
-              "camp",
               "mountain",
               "city",
               "desert",
-              "other"
+              "nature",
+              "cultural"
             ],
-            "example": "camp"
+            "example": "mountain",
+            "description": "Top-level **category** of the tour. Use `tripDetails.overview.tripStyles` for the execution-style selections (adventure, luxury, …)."
           },
-          "primaryTransportMode": {
-            "type": "string",
-            "enum": [
-              "bus",
-              "train",
-              "plane",
-              "private_car",
-              "mixed",
-              "none"
+          "transportModes": {
+            "type": "array",
+            "example": [
+              "plane"
             ],
-            "example": "bus"
+            "description": "Replace tour transport modes (multi-select). Send `[]` or `null` to clear. No `mixed` — combine concrete modes.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "bus",
+                "train",
+                "plane",
+                "private_car"
+              ]
+            }
+          },
+          "destinationId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Workspace destination from Settings → Locations. Send `null` to clear."
           },
           "destinationName": {
             "type": "string",
@@ -4039,21 +5057,14 @@
           },
           "durationDays": {
             "type": "number",
-            "example": 3
+            "example": 3,
+            "minimum": 1,
+            "maximum": 60,
+            "description": "Inclusive day count. Re-derived server-side from `tripDetails.logistics.departureDate`/`returnDate` when those are part of the patch."
           },
           "meetingPoint": {
             "type": "string",
             "example": "Azadi Square, Gate 3"
-          },
-          "requiredGear": {
-            "example": [
-              "Hiking boots",
-              "Waterproof jacket"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "itinerary": {
             "type": "array",
@@ -4739,6 +5750,376 @@
           "providerPaymentId",
           "status"
         ]
+      },
+      "CreateWorkspaceRegionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWorkspaceRegionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWorkspaceDestinationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWorkspaceDestinationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "WorkspaceEquipmentItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "category",
+          "description",
+          "icon",
+          "isActive",
+          "sortOrder",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateEquipmentItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "category": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 80
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "icon": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 120
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "ReorderEquipmentItemsDto": {
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "itemIds"
+        ]
+      },
+      "UpdateEquipmentItemDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "category": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 80
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "icon": {
+            "type": "object",
+            "nullable": true,
+            "maxLength": 120
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        }
+      },
+      "WorkspaceGuideLanguageResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "isActive",
+          "sortOrder",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateGuideLanguageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "ReorderGuideLanguagesDto": {
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "description": "Every guide language id for the workspace, in display order",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "itemIds"
+        ]
+      },
+      "UpdateGuideLanguageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        }
+      },
+      "WorkspaceTourThemeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "description",
+          "isActive",
+          "sortOrder",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateWorkspaceTourThemeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
+      "ReorderWorkspaceTourThemesDto": {
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "itemIds"
+        ]
+      },
+      "UpdateWorkspaceTourThemeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          }
+        }
       }
     }
   }

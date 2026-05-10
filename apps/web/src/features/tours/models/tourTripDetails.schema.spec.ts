@@ -3,25 +3,28 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 
 import type { TourTripDetails } from "./tourTripDetails.schema";
-import { applyTripDetailsRequirednessToSchema, compactTripDetailsForApi, TourTripDetailsRootSchema } from "./tourTripDetails.schema";
+import { applyTripDetailsRequirednessToSchema, compactTripDetailsForApi, TourTripDetailsSchema } from "./tourTripDetails.schema";
 import { getTripDetailsFieldConfigForKind } from "../config/tripDetailsFieldConfig";
 import type { EventKind } from "../policies/tour-kind-policy";
 
 /** Matches RHF root: `tripDetails` is nested under the form object; issue paths are `tripDetails.…`. */
 function tripDetailsFormSchema(kind: EventKind) {
   return z.object({
-    tripDetails: applyTripDetailsRequirednessToSchema(
-      TourTripDetailsRootSchema,
-      getTripDetailsFieldConfigForKind(kind),
-    ),
+    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForKind(kind)),
   });
 }
 
+/** Future date so the "departure not in the past" cross-field rule never trips fixtures. */
+const FUTURE_DEPARTURE_YMD = "2099-05-01";
+
+/** Valid v4 UUID for fixture equipment ids. */
+const GEAR_ID_FIXTURE = "11111111-1111-4111-8111-111111111111";
+
 /** All five mountain-required TripDetails fields populated. */
 const validMountainTripDetails = {
-  overview: { difficultyLevel: "moderate" as const },
-  participation: { minimumAge: 18, gearRequired: ["boots"] },
-  logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+  overview: { difficultyLevel: 5 },
+  participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+  logistics: { meetingPoint: "Azadi", departureDate: FUTURE_DEPARTURE_YMD },
 };
 
 function hasPath(issues: z.ZodIssue[], dottedPath: string): boolean {
@@ -39,12 +42,16 @@ test("compactTripDetailsForApi returns undefined for empty / whitespace-only pay
   );
 });
 
+/** Valid v4 UUID for fixture tour theme ids. */
+const THEME_ID_FIXTURE = "22222222-2222-4222-8222-222222222222";
+
 test("compactTripDetailsForApi trims strings, filters empty list entries, and keeps enums", () => {
   const out = compactTripDetailsForApi({
     overview: {
       mainDestination: "  Damavand  ",
-      tourTheme: [" a ", "", "photo"],
-      tripStyle: "nature",
+      tourThemeIds: [THEME_ID_FIXTURE],
+      tourThemeLabels: { [THEME_ID_FIXTURE]: "Photography trips" },
+      tripStyles: ["adventure", "photography"],
     },
     itinerary: {
       highlights: ["sunrise", "  "],
@@ -54,12 +61,13 @@ test("compactTripDetailsForApi trims strings, filters empty list entries, and ke
         { day: 2 },
       ],
     },
-  } as TourTripDetails);
+  } as unknown as TourTripDetails);
   assert.deepEqual(out, {
     overview: {
       mainDestination: "Damavand",
-      tourTheme: ["a", "photo"],
-      tripStyle: "nature",
+      tourThemeIds: [THEME_ID_FIXTURE],
+      tourThemeLabels: { [THEME_ID_FIXTURE]: "Photography trips" },
+      tripStyles: ["adventure", "photography"],
     },
     itinerary: {
       highlights: ["sunrise"],
@@ -81,8 +89,8 @@ test('mountain: missing overview.difficultyLevel → error on tripDetails.overvi
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      participation: { minimumAge: 18, gearRequired: ["boots"] },
-      logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+      participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+      logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
@@ -94,8 +102,8 @@ test('mountain: missing logistics.departureDate → error on tripDetails.logisti
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
-      participation: { minimumAge: 18, gearRequired: ["boots"] },
+      overview: { difficultyLevel: 5 },
+      participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
       logistics: { meetingPoint: "Azadi" },
     },
   });
@@ -108,9 +116,9 @@ test('mountain: missing logistics.meetingPoint → error on tripDetails.logistic
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
-      participation: { minimumAge: 18, gearRequired: ["boots"] },
-      logistics: { departureDate: "2026-05-01" },
+      overview: { difficultyLevel: 5 },
+      participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+      logistics: { departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
@@ -122,9 +130,9 @@ test('mountain: empty logistics.meetingPoint → error on tripDetails.logistics.
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
-      participation: { minimumAge: 18, gearRequired: ["boots"] },
-      logistics: { meetingPoint: "", departureDate: "2026-05-01" },
+      overview: { difficultyLevel: 5 },
+      participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+      logistics: { meetingPoint: "", departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
@@ -136,9 +144,9 @@ test('mountain: missing participation.minimumAge → error on tripDetails.partic
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
-      participation: { gearRequired: ["boots"] },
-      logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+      overview: { difficultyLevel: 5 },
+      participation: { gearRequiredIds: [GEAR_ID_FIXTURE] },
+      logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
@@ -146,32 +154,62 @@ test('mountain: missing participation.minimumAge → error on tripDetails.partic
   assert.equal(hasPath(result.error.issues, "tripDetails.participation.minimumAge"), true);
 });
 
-test('mountain: participation.gearRequired omitted → error on tripDetails.participation.gearRequired', () => {
+test('mountain: participation.gearRequiredIds omitted → error on tripDetails.participation.gearRequiredIds', () => {
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
+      overview: { difficultyLevel: 5 },
       participation: { minimumAge: 18 },
-      logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+      logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
   if (result.success) return;
-  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequired"), true);
+  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequiredIds"), true);
 });
 
-test('mountain: participation.gearRequired empty array → error on tripDetails.participation.gearRequired', () => {
+test('mountain: participation.gearRequiredIds empty array → error on tripDetails.participation.gearRequiredIds', () => {
   const schema = tripDetailsFormSchema("mountain");
   const result = schema.safeParse({
     tripDetails: {
-      overview: { difficultyLevel: "moderate" },
-      participation: { minimumAge: 18, gearRequired: [] },
-      logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+      overview: { difficultyLevel: 5 },
+      participation: { minimumAge: 18, gearRequiredIds: [] },
+      logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
   assert.equal(result.success, false);
   if (result.success) return;
-  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequired"), true);
+  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequiredIds"), true);
+});
+
+test("mountain: invalid gearRequiredIds entry → error", () => {
+  const schema = tripDetailsFormSchema("mountain");
+  const result = schema.safeParse({
+    tripDetails: {
+      overview: { difficultyLevel: 5 },
+      participation: { minimumAge: 18, gearRequiredIds: ["not-a-uuid"] },
+      logistics: { meetingPoint: "Azadi", departureDate: FUTURE_DEPARTURE_YMD },
+    },
+  });
+  assert.equal(result.success, false);
+  if (result.success) return;
+  assert.ok(
+    result.error.issues.some((i) => i.path.join(".").startsWith("tripDetails.participation.gearRequiredIds")),
+  );
+});
+
+test("generic: invalid overview.tourThemeIds entry → error", () => {
+  const schema = tripDetailsFormSchema("generic");
+  const result = schema.safeParse({
+    tripDetails: {
+      overview: { tourThemeIds: ["not-a-uuid"] },
+    },
+  });
+  assert.equal(result.success, false);
+  if (result.success) return;
+  assert.ok(
+    result.error.issues.some((i) => i.path.join(".").startsWith("tripDetails.overview.tourThemeIds")),
+  );
 });
 
 test('mountain: all required TripDetails fields present → validation passes', () => {
@@ -186,48 +224,48 @@ test("generic: payloads that fail mountain for each required field still validat
     {
       name: "no overview.difficultyLevel",
       tripDetails: {
-        participation: { minimumAge: 18, gearRequired: ["boots"] },
-        logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+        participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+        logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
       },
     },
     {
       name: "no logistics.departureDate",
       tripDetails: {
-        overview: { difficultyLevel: "moderate" },
-        participation: { minimumAge: 18, gearRequired: ["boots"] },
+        overview: { difficultyLevel: 5 },
+        participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
         logistics: { meetingPoint: "Azadi" },
       },
     },
     {
       name: "no logistics.meetingPoint",
       tripDetails: {
-        overview: { difficultyLevel: "moderate" },
-        participation: { minimumAge: 18, gearRequired: ["boots"] },
-        logistics: { departureDate: "2026-05-01" },
+        overview: { difficultyLevel: 5 },
+        participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
+        logistics: { departureDate: "2099-05-01" },
       },
     },
     {
       name: "no participation.minimumAge",
       tripDetails: {
-        overview: { difficultyLevel: "moderate" },
-        participation: { gearRequired: ["boots"] },
-        logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+        overview: { difficultyLevel: 5 },
+        participation: { gearRequiredIds: [GEAR_ID_FIXTURE] },
+        logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
       },
     },
     {
-      name: "no participation.gearRequired",
+      name: "no participation.gearRequiredIds",
       tripDetails: {
-        overview: { difficultyLevel: "moderate" },
+        overview: { difficultyLevel: 5 },
         participation: { minimumAge: 18 },
-        logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+        logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
       },
     },
     {
-      name: "empty participation.gearRequired",
+      name: "empty participation.gearRequiredIds",
       tripDetails: {
-        overview: { difficultyLevel: "moderate" },
-        participation: { minimumAge: 18, gearRequired: [] },
-        logistics: { meetingPoint: "Azadi", departureDate: "2026-05-01" },
+        overview: { difficultyLevel: 5 },
+        participation: { minimumAge: 18, gearRequiredIds: [] },
+        logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
       },
     },
   ];
@@ -235,4 +273,30 @@ test("generic: payloads that fail mountain for each required field still validat
     const result = schema.safeParse({ tripDetails });
     assert.equal(result.success, true, `generic should accept: ${name}`);
   }
+});
+
+test("audience overlap → error on tripDetails.participation.notSuitableFor", () => {
+  const result = TourTripDetailsSchema.safeParse({
+    participation: { suitableFor: ["kids"], notSuitableFor: ["kids"] },
+  });
+  assert.equal(result.success, false);
+  if (result.success) return;
+  assert.equal(hasPath(result.error.issues, "participation.notSuitableFor"), true);
+});
+
+test("shortIntro over 250 characters fails", () => {
+  const result = TourTripDetailsSchema.safeParse({
+    overview: { shortIntro: "x".repeat(251) },
+  });
+  assert.equal(result.success, false);
+});
+
+test("compactTripDetailsForApi drops deprecated overview.bestFor", () => {
+  const raw = {
+    overview: { bestFor: ["legacy"], shortIntro: "ok" },
+  } as unknown as TourTripDetails;
+  const out = compactTripDetailsForApi(raw);
+  assert.ok(out && typeof out.overview === "object" && out.overview !== null);
+  assert.equal("bestFor" in (out!.overview as Record<string, unknown>), false);
+  assert.equal((out!.overview as Record<string, unknown>).shortIntro, "ok");
 });

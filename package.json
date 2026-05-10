@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter @apps/api dev",
-    "build": "pnpm --filter \"@apps/*\" run build",
+    "build": "pnpm --filter @repo/types run build && pnpm --filter \"@apps/*\" run build",
     "lint": "pnpm --filter \"@apps/*\" run lint",
     "test": "pnpm --filter \"@apps/api\" run test",
     "test:security": "jest tests/security --runInBand",

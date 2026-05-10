@@ -8,6 +8,8 @@
  *   On the server (SSR/Node), falls back to `NEXT_PUBLIC_API_URL` — keep it set for builds.
  */
 
+let didWarnApiUrlHadVersionPathSuffix = false;
+
 export function normalizeTourOpsApiOrigin(raw: string): string {
   let s = raw.trim().replace(/\/$/, "");
   const suffix = "/api/v2";
@@ -16,10 +18,17 @@ export function normalizeTourOpsApiOrigin(raw: string): string {
     s = s.slice(0, -suffix.length).replace(/\/$/, "");
     stripped = true;
   }
-  if (stripped && process.env.NODE_ENV === "development") {
-    console.warn(
-      "[tour-ops-api-origin] NEXT_PUBLIC_API_URL ended with /api/v2; using origin only. Prefer setting NEXT_PUBLIC_API_URL=http://localhost:3001 (no path)."
-    );
+  if (
+    stripped &&
+    process.env.NODE_ENV === "development" &&
+    !didWarnApiUrlHadVersionPathSuffix
+  ) {
+    didWarnApiUrlHadVersionPathSuffix = true;
+    const message =
+      "[tour-ops-api-origin] API base URL ended with /api/v2; using origin only. Set TOUR_OPS_API_URL or NEXT_PUBLIC_API_URL to the origin only (e.g. http://localhost:3001), not …/api/v2.";
+    queueMicrotask(() => {
+      console.warn(message);
+    });
   }
   return s;
 }
@@ -65,11 +74,11 @@ export function resolveTourOpsApiBaseUrl(): string {
 
 /** Gate UI blocks that require calling Tour-Ops HTTP APIs. */
 export function isTourOpsApiConfigured(): boolean {
-  if (!isTourOpsApiDynamicOrigin()) {
-    return Boolean(normalizeTourOpsApiOrigin(process.env.NEXT_PUBLIC_API_URL ?? ""));
-  }
-  return (
-    typeof window !== "undefined" ||
-    Boolean(normalizeTourOpsApiOrigin(process.env.NEXT_PUBLIC_API_URL ?? ""))
+  const hasExplicit = Boolean(
+    normalizeTourOpsApiOrigin(process.env.NEXT_PUBLIC_API_URL ?? "")
   );
+  if (!isTourOpsApiDynamicOrigin()) {
+    return hasExplicit;
+  }
+  return typeof window !== "undefined" || hasExplicit;
 }

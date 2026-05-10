@@ -1,7 +1,12 @@
-import { Column, Entity, Index, OneToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToOne } from "typeorm";
 import { Exclude } from "class-transformer";
+import { TOUR_TYPES, type TourType } from "@repo/types";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
+import { WorkspaceDestinationEntity } from "../../settings-locations/entities/workspace-destination.entity";
 import { TourDetails } from "./tour-details.entity";
+import type { TourTransportMode } from "../tour-transport-modes";
+
+export { TOUR_TYPES, type TourType };
 
 export enum TourLifecycleStatus {
   DRAFT = "DRAFT",
@@ -10,22 +15,15 @@ export enum TourLifecycleStatus {
   CANCELLED = "CANCELLED"
 }
 
-export enum TourType {
-  CAMP = "camp",
-  MOUNTAIN = "mountain",
-  CITY = "city",
-  DESERT = "desert",
-  OTHER = "other"
-}
-
-export enum PrimaryTransportMode {
-  BUS = "bus",
-  TRAIN = "train",
-  PLANE = "plane",
-  PRIVATE_CAR = "private_car",
-  MIXED = "mixed",
-  NONE = "none"
-}
+/**
+ * Top-level tour **category**. Distinct from `tripDetails.overview.tripStyles`,
+ * which is a sub-genre describing the *execution style* (adventure, luxury, …).
+ *
+ * Canonical slugs live in `@repo/types` {@link TOUR_TYPES}.
+ *
+ * Legacy values (`camp`, `other`) were dropped in migration
+ * `1777591000000-RefineTourTypeEnum`: `camp → nature`, `other → NULL`.
+ */
 
 @Entity("tours")
 @Index("idx_tours_tenant_id", ["tenantId"])
@@ -69,21 +67,27 @@ export class TourEntity extends BaseTenantEntity {
 
   @Column({
     type: "enum",
-    enum: TourType,
+    enum: [...TOUR_TYPES],
     enumName: "tour_type_enum",
     name: "tour_type",
     nullable: true
   })
   tourType?: TourType;
 
+  /**
+   * Organized transport offered for this tour (multi-select).
+   * Empty array = not specified / none. No legacy `mixed` slug — combine modes instead.
+   */
   @Column({
-    type: "enum",
-    enum: PrimaryTransportMode,
-    enumName: "primary_transport_mode_enum",
-    name: "primary_transport_mode",
-    nullable: true
+    type: "varchar",
+    array: true,
+    name: "transport_modes"
   })
-  primaryTransportMode?: PrimaryTransportMode;
+  transportModes!: TourTransportMode[];
+
+  @ManyToOne(() => WorkspaceDestinationEntity, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "destination_id" })
+  destination?: WorkspaceDestinationEntity | null;
 
   @OneToOne(() => TourDetails, (details) => details.tour, { cascade: true, nullable: true })
   details?: TourDetails;

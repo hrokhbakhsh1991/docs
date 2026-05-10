@@ -44,26 +44,6 @@ export async function persistSessionToken(token: string): Promise<void> {
 }
 
 export async function clearSessionToken(): Promise<void> {
-  const stack =
-    typeof Error === "function" ? new Error("clearSessionToken").stack?.split("\n").slice(1, 5) : undefined;
-  // #region agent log
-  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "770f2e"
-    },
-    body: JSON.stringify({
-      sessionId: "770f2e",
-      runId: "initial",
-      hypothesisId: "H6",
-      location: "lib/auth/session.ts:42",
-      message: "clear_session_token_called",
-      data: { caller_stack: stack ?? [] },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
   await fetch("/api/auth/session", {
     method: "DELETE",
     credentials: "include"
@@ -79,26 +59,6 @@ export async function clearSessionToken(): Promise<void> {
  * Used when the API returns 401 (expired or invalid token).
  */
 export async function clearAuthAndRedirectToLogin(): Promise<void> {
-  // #region agent log
-  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "770f2e"
-    },
-    body: JSON.stringify({
-      sessionId: "770f2e",
-      runId: "initial",
-      hypothesisId: "H6",
-      location: "lib/auth/session.ts:57",
-      message: "clear_auth_and_redirect_called",
-      data: {
-        has_window: typeof window !== "undefined"
-      },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
   await clearSessionToken();
   if (typeof window === "undefined") return;
   const path = window.location.pathname;

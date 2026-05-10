@@ -1,3 +1,8 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
+/** Loads per-request messages and locale from `src/i18n/request.ts` for `next-intl` + App Router. */
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -14,4 +19,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

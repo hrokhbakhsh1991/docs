@@ -1,3 +1,7 @@
+import type { AccommodationTypeSlug } from "./accommodation-types";
+import type { MealPlanSlug } from "./meal-plan";
+import type { TourType } from "./tour-classification";
+
 /**
  * Mirrors backend `tour_lifecycle_status_enum` / OpenAPI `lifecycleStatus` enum.
  */
@@ -18,13 +22,31 @@ export interface TourTripDetailsLogistics {
   departureDate?: string;
   returnDate?: string;
   returnPoint?: string;
+  /** Planned transportation notes (mode, route, operator). */
+  transportationNotes?: string;
+  /**
+   * @deprecated Legacy JSONB key — use `transportationNotes`. Kept until all stored tours are migrated.
+   */
   transportation?: string;
+  /** Accommodation categories (multi-select). */
+  accommodationTypes?: AccommodationTypeSlug[];
+  /** Extra accommodation context (not covered by fixed types). */
+  accommodationNotes?: string;
+  /**
+   * @deprecated Legacy free-text `accommodationType`. Use `accommodationTypes` + `accommodationNotes`.
+   */
   accommodationType?: string;
-  mealPlan?: string;
+  /** Included meals (single choice). */
+  mealPlan?: MealPlanSlug;
+  /** Extra meal / catering context beyond the fixed `mealPlan` option. */
+  mealNotes?: string;
   supportServices?: string[];
   includedServices?: string[];
   excludedServices?: string[];
   optionalServices?: string[];
+  /** Workspace guide language ids (`workspace_guide_languages.id`). */
+  guideLanguageIds?: string[];
+  /** @deprecated Use `guideLanguageIds`. */
   guideLanguage?: string[];
   groupSizeMin?: number;
   groupSizeMax?: number;
@@ -32,6 +54,17 @@ export interface TourTripDetailsLogistics {
 
 export type TripDetailsExperienceLevel = "none" | "basic" | "intermediate" | "advanced";
 export type TripDetailsGenderRestriction = "none" | "male_only" | "female_only";
+
+/** Fixed audience segments for suitable / not-suitable matrix (`tripDetails.participation`). */
+export const TOUR_AUDIENCE_GROUP_VALUES = [
+  "families",
+  "solo_travelers",
+  "seniors",
+  "kids",
+  "beginners",
+  "experienced_hikers",
+] as const;
+export type TourAudienceGroup = (typeof TOUR_AUDIENCE_GROUP_VALUES)[number];
 
 export interface TourTripDetailsParticipation {
   minimumAge?: number;
@@ -44,16 +77,31 @@ export interface TourTripDetailsParticipation {
   technicalSkillRequired?: string;
   requirements?: string;
   skillsRequired?: string[];
-  gearRequired?: string[];
-  gearOptional?: string[];
+  /** Workspace equipment item ids (`workspace_equipment_items.id`). */
+  gearRequiredIds?: string[];
+  /** Workspace equipment item ids (`workspace_equipment_items.id`). */
+  gearOptionalIds?: string[];
   documentsRequired?: string[];
-  suitableFor?: string[];
-  notSuitableFor?: string[];
+  suitableFor?: TourAudienceGroup[];
+  notSuitableFor?: TourAudienceGroup[];
+}
+
+/**
+ * Documented keys on `tripDetails.overview` (JSONB). Additional keys are allowed.
+ */
+export interface TourTripDetailsOverviewFields {
+  /** Workspace catalog ids (`workspace_tour_themes.id`). */
+  tourThemeIds?: string[];
+  /**
+   * Optional id → label snapshot from last save; used when a theme id no longer exists
+   * in the workspace catalog for display on read-only surfaces.
+   */
+  tourThemeLabels?: Record<string, string>;
 }
 
 export interface TourTripDetails {
   schemaVersion?: number;
-  overview?: Record<string, unknown>;
+  overview?: Record<string, unknown> & TourTripDetailsOverviewFields;
   itinerary?: Record<string, unknown>;
   participation?: TourTripDetailsParticipation;
   logistics?: TourTripDetailsLogistics;
@@ -64,9 +112,13 @@ export interface TourDetailsDto {
   destinationName?: string;
   elevationM?: number;
   difficulty?: DifficultyLevel;
+  /**
+   * Inclusive day count derived server-side from
+   * `tripDetails.logistics.departureDate` / `returnDate` (range 1–60). Read-only on the client;
+   * editable input has been removed in favor of the date pickers.
+   */
   durationDays?: number;
   meetingPoint?: string;
-  requiredGear?: string[];
   itinerary?: TourItineraryItem[];
   /** Structured trip details (JSONB). Mirrors API `details.tripDetails`. */
   tripDetails?: TourTripDetails | null;
@@ -90,8 +142,15 @@ export interface TourResponseDto {
   chatLink?: string | null;
   costContext?: Record<string, unknown> | null;
   autoAcceptRegistrations?: boolean | null;
-  tourType?: "camp" | "mountain" | "city" | "desert" | "other" | null;
-  primaryTransportMode?: "bus" | "train" | "plane" | "private_car" | "mixed" | "none" | null;
+  tourType?: TourType | null;
+  /** Organized transport for the tour (multi-select). Empty = none / unset. */
+  transportModes: ("bus" | "train" | "plane" | "private_car")[];
+  /** FK to workspace `workspace_destinations` when linked from Settings → Locations. */
+  destinationId?: string | null;
+  /** Display name from linked destination (list/detail UI). */
+  destinationName?: string | null;
+  /** Region name for the linked destination (list/detail UI). */
+  destinationRegionName?: string | null;
   details?: TourDetailsDto | null;
 }
 

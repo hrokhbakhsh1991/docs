@@ -107,3 +107,32 @@
 .stateCard {
   max-width: var(--layout-max-form-wide);
 }
+
+.equipmentSubheading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-small-size);
+  font-weight: var(--text-small-strong-weight);
+  color: var(--color-text-secondary);
+}
+
+.equipmentSubheading:first-of-type {
+  margin-top: 0;
+}
+
+.equipmentList {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+}
+
+.equipmentList li + li {
+  margin-top: var(--space-1);
+}
+
+.equipmentMuted {
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}

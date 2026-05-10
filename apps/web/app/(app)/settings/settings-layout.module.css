@@ -1,0 +1,12 @@
+/**
+ * Centered settings column — logical props for RTL/LTR.
+ * ~42rem (672px) sits in the 640–720px comfort band.
+ */
+.root {
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}

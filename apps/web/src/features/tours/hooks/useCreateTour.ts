@@ -12,7 +12,10 @@ export function useCreateTour() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (values: TourCreateModel) => createTour(mapCreateTourDto(values)),
+    mutationFn: async (values: TourCreateModel & { themeCatalog?: readonly { id: string; name: string }[] }) => {
+      const { themeCatalog, ...rest } = values;
+      return createTour(mapCreateTourDto(rest, { themeCatalog }));
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
     },

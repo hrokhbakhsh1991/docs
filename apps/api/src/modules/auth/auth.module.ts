@@ -10,7 +10,6 @@ import { AuthService } from "./auth.service";
 import { WorkspaceService } from "./workspace.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { RolesGuard } from "./roles.guard";
-
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, UserTenantEntity, TenantEntity, WorkspaceInviteEntity]),

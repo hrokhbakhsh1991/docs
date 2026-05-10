@@ -14,6 +14,7 @@ import {
 
 import { TourForm } from "@/components/tours/TourForm";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
+import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useUpdateTour } from "@/features/tours/hooks/useUpdateTour";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { ApiError } from "@/lib/api-client";
@@ -35,6 +36,7 @@ export function TourEditClient({ tourId }: { tourId: string }) {
     enabled: queryEnabled,
   });
   const updateMutation = useUpdateTour(tourId);
+  const tourThemesQuery = useSettingsTourThemes();
 
   const errorMessage =
     error instanceof ApiError
@@ -261,7 +263,7 @@ export function TourEditClient({ tourId }: { tourId: string }) {
           onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
           onSubmit={async (values) => {
             const updated = await updateMutation.mutateAsync({
-              dto: updateTourDtoFromTourFormValues(values, tour),
+              dto: updateTourDtoFromTourFormValues(values, tour, tourThemesQuery.data ?? []),
               mergeCostFrom: tour.costContext ?? null,
             });
             if (!updated) {

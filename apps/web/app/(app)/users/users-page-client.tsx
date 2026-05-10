@@ -445,51 +445,6 @@ export function UsersPageClient() {
       debouncedSearchQuery.trim().length > 0 || directoryUiState.roleFilter !== "all",
   });
 
-  useEffect(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "770f2e"
-      },
-      body: JSON.stringify({
-        sessionId: "770f2e",
-        runId: "initial",
-        hypothesisId: "H3",
-        location: "app/(app)/users/users-page-client.tsx:362",
-        message: "users_page_gate_and_query_state",
-        data: {
-          list_query_enabled: listQueryEnabled,
-          live_api: liveApi,
-          is_hydrated: isHydrated,
-          is_authenticated: isAuthenticated,
-          role: sessionUser?.role ?? null,
-          leader,
-          users_loading_initial: usersLoadingInitial,
-          is_fetching: isFetching,
-          is_error: isError,
-          roster_count: rosterRows.length,
-          body_state_type: bodyState.type
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
-  }, [
-    listQueryEnabled,
-    liveApi,
-    isHydrated,
-    isAuthenticated,
-    sessionUser?.role,
-    leader,
-    usersLoadingInitial,
-    isFetching,
-    isError,
-    rosterRows.length,
-    bodyState.type
-  ]);
-
   const clearDirectoryFilters = useCallback(() => {
     setDirectoryUiState((s) => ({
       ...s,

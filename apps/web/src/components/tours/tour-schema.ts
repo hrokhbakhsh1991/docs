@@ -1,13 +1,14 @@
 import { z } from "zod";
 
+import { TOUR_TYPES } from "@repo/types";
+
+import { getTripDetailsFieldConfigForKind } from "@/features/tours/config/tripDetailsFieldConfig";
 import {
   applyTripDetailsRequirednessToSchema,
   TourTripDetailsRootSchema,
 } from "@/features/tours/models/tourTripDetails.schema";
+import { tourLocationSectionSchema } from "@/features/tours/models/tourCreateModel";
 import type { EventKind } from "@/features/tours/policies/tour-kind-policy";
-import { getTripDetailsFieldConfigForKind } from "@/features/tours/config/tripDetailsFieldConfig";
-
-const TOUR_TYPES = ["camp", "mountain", "city", "desert", "other"] as const;
 
 /**
  * Form values aligned with `TourDto` and UI lifecycle mapping (`draft` → DRAFT …).
@@ -26,16 +27,18 @@ const TourBaseSchema = z.object({
       .optional()
       .transform((v) => (v && v.length > 0 ? v : undefined)),
     tourType: z.enum(TOUR_TYPES).optional(),
+    destinationId: z.preprocess(
+      (raw) => (raw === "" || raw === undefined ? null : raw),
+      z.union([z.string().uuid(), z.null()]),
+    ),
+    locationSection: tourLocationSectionSchema,
     /** Same nested shape as create-tour (`POST /api/v2/tours`); PATCH uses `compactTripDetailsForApi` before send. */
     tripDetails: TourTripDetailsRootSchema,
   });
 
 export function createTourSchemaForEventKind(eventKind: EventKind) {
   return TourBaseSchema.extend({
-    tripDetails: applyTripDetailsRequirednessToSchema(
-      TourTripDetailsRootSchema,
-      getTripDetailsFieldConfigForKind(eventKind),
-    ),
+    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForKind(eventKind)),
   });
 }
 

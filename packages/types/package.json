@@ -2,11 +2,11 @@
   "name": "@repo/types",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "node --import tsx --test src/tour-kind.spec.ts"
+    "build": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\""
   },
   "devDependencies": {
     "tsx": "^4.20.6",

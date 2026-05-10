@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
 import {
@@ -16,11 +17,14 @@ import {
   LoadingState,
 } from "@tour/ui";
 
-import { extractTourPriceUsd, formatTourLocation, formatTourPriceUsd } from "@/components/tours/formatters";
+import { formatTourLocationV2 } from "@/app/(app)/tours/tour-location-formatters";
+import { extractTourPriceUsd, formatTourPriceUsd } from "@/components/tours/formatters";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { ApiError } from "@/lib/api-client";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
+import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
+import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 
 import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
@@ -41,12 +45,54 @@ const breadcrumbTrail = [
 
 export function TourDetailClient({ tourId }: TourDetailClientProps) {
   const router = useRouter();
+  const tTours = useTranslations("tours");
+  const equipmentQuery = useSettingsEquipment();
+  const themesQuery = useSettingsTourThemes();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = toursUseLiveApi();
   const queryEnabled = Boolean(tourId) && liveApi && isHydrated && isAuthenticated;
   const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
+
+  const equipmentNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const row of equipmentQuery.data ?? []) {
+      m.set(row.id, row.name);
+    }
+    return m;
+  }, [equipmentQuery.data]);
+
+  const themeNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const row of themesQuery.data ?? []) {
+      m.set(row.id, row.name);
+    }
+    return m;
+  }, [themesQuery.data]);
+
+  const themeIdList = useMemo(() => {
+    const o = tour?.details?.tripDetails?.overview as
+      | { tourThemeIds?: unknown; tourThemeLabels?: Record<string, string> }
+      | undefined;
+    const raw = o?.tourThemeIds;
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+  }, [tour]);
+
+  const gearIdLists = useMemo(() => {
+    const participation = tour?.details?.tripDetails?.participation as
+      | { gearRequiredIds?: unknown[]; gearOptionalIds?: unknown[] }
+      | undefined;
+    const asIds = (arr: unknown[] | undefined) =>
+      (arr ?? []).filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+    return {
+      required: asIds(participation?.gearRequiredIds),
+      optional: asIds(participation?.gearOptionalIds),
+    };
+  }, [tour]);
 
   const errorMessage =
     error instanceof ApiError
@@ -64,6 +110,19 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     if (!tour) return undefined;
     return lifecycleDisplayLabel(apiLifecycleToFormStatus(tour.lifecycleStatus));
   }, [tour]);
+
+  const resolveThemeLabel = (id: string): string => {
+    const fromCatalog = themeNameById.get(id);
+    if (fromCatalog) {
+      return fromCatalog;
+    }
+    const o = tour?.details?.tripDetails?.overview as { tourThemeLabels?: Record<string, string> } | undefined;
+    const snapshot = o?.tourThemeLabels?.[id]?.trim();
+    if (snapshot) {
+      return snapshot;
+    }
+    return tTours("detail_themeUnknown", { id: `${id.slice(0, 8)}…` });
+  };
 
   if (liveApi && !isHydrated) {
     return (
@@ -192,7 +251,7 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   }
 
   const uiStatus = apiLifecycleToFormStatus(tour.lifecycleStatus);
-  const locationLabel = formatTourLocation(tour);
+  const locationLabel = formatTourLocationV2(tour);
   const priceLabel = formatTourPriceUsd(extractTourPriceUsd(tour.costContext));
   const descriptionText = (tour.description ?? "").trim();
   const capacityLabel =
@@ -272,6 +331,57 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
             </dl>
           </CardBody>
         </Card>
+
+        {themeIdList.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{tTours("detail_tourThemes")}</CardTitle>
+            </CardHeader>
+            <CardBody className={styles.panelBody}>
+              {themesQuery.isError ? (
+                <p className={styles.equipmentMuted}>{tTours("detail_themeLoadError")}</p>
+              ) : null}
+              <ul className={styles.equipmentList}>
+                {themeIdList.map((id) => (
+                  <li key={id}>{resolveThemeLabel(id)}</li>
+                ))}
+              </ul>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {gearIdLists.required.length > 0 || gearIdLists.optional.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Equipment</CardTitle>
+            </CardHeader>
+            <CardBody className={styles.panelBody}>
+              {equipmentQuery.isError ? (
+                <p className={styles.equipmentMuted}>{tTours("detail_equipmentLoadError")}</p>
+              ) : null}
+              {gearIdLists.required.length > 0 ? (
+                <>
+                  <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
+                  <ul className={styles.equipmentList}>
+                    {gearIdLists.required.map((id) => (
+                      <li key={`req-${id}`}>{equipmentNameById.get(id) ?? tTours("detail_equipmentUnknown")}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {gearIdLists.optional.length > 0 ? (
+                <>
+                  <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
+                  <ul className={styles.equipmentList}>
+                    {gearIdLists.optional.map((id) => (
+                      <li key={`opt-${id}`}>{equipmentNameById.get(id) ?? tTours("detail_equipmentUnknown")}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </CardBody>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>

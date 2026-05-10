@@ -61,9 +61,6 @@ export class TourDetails {
   @Column({ type: "varchar", name: "meeting_point", nullable: true })
   meetingPoint!: string | null;
 
-  @Column({ type: "jsonb", name: "required_gear", nullable: true })
-  requiredGear!: string[] | null;
-
   @Column({ type: "jsonb", name: "itinerary", nullable: true })
   itinerary!: ItineraryItem[] | null;
 

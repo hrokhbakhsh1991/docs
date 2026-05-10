@@ -6,7 +6,7 @@ import { TourCard } from "@/components/tours/TourCard";
 
 import { EmptyState } from "@tour/ui";
 
-import type { TourDetailDto } from "../../../../lib/services/tours.service";
+import type { TourDetailDto } from "@/lib/services/tours.service";
 
 import { TourStatusBadge } from "../tour-status-badge";
 

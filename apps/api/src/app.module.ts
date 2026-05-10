@@ -21,15 +21,20 @@ import { RegistrationsModule } from "./modules/registrations/registrations.modul
 import { ToursModule } from "./modules/tours/tours.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
 import { OpsModule } from "./modules/ops/ops.module";
+import { SettingsLocationsModule } from "./modules/settings-locations/settings-locations.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ReconciliationModule } from "./modules/reconciliation/reconciliation.module";
 import { JobSchedulerModule } from "./jobs/job-scheduler.module";
 import { TenantAbuseModule } from "./common/tenant-abuse/tenant-abuse.module";
 import { TenantUsageModule } from "./common/billing/tenant-usage.module";
+import { EmailModule } from "./common/email/email.module";
+import { OtpModule } from "./modules/auth/otp.module";
 
 @Module({
   imports: [
     ConfigModule,
+    EmailModule,
+    OtpModule,
     TenantAbuseModule,
     TenantUsageModule,
     ThrottlerModule.forRootAsync({
@@ -83,7 +88,8 @@ import { TenantUsageModule } from "./common/billing/tenant-usage.module";
     RegistrationsModule,
     PaymentsModule,
     ReconciliationModule,
-    OpsModule
+    OpsModule,
+    SettingsLocationsModule
   ],
   controllers: [AppController],
   providers: [AuthMiddleware]

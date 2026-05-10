@@ -8,6 +8,21 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/**
+ * Vazirmatn: `next/font` sets `--font-vazirmatn` on `<html>` (see `src/fonts/vazirmatn.ts`).
+ * `@tour/ui` components use `var(--font-family-base)` — override so the whole app picks up Vazirmatn.
+ */
+html.theme-light,
+html.theme-dark {
+  --font-family-base: var(--font-vazirmatn), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+/* Tailwind-style utility name for consistency; same stack as `--font-family-base` after override. */
+.font-sans {
+  font-family: var(--font-family-base);
+}
+
 body {
   margin: 0;
   min-height: 100vh;

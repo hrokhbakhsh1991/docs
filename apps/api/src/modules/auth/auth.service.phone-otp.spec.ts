@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { generateKeyPairSync, randomUUID } from "node:crypto";
 import { ForbiddenException, UnauthorizedException } from "@nestjs/common";
+import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import type { UserEntity } from "../identity/entities/user.entity";
 import { AuthService } from "./auth.service";
 import type { PhoneSessionDto } from "./dto/phone-session.dto";
@@ -111,6 +112,23 @@ function makeAuthService(deps: {
   };
   const nodeEnv = deps.nodeEnv ?? "test";
   const allowDevStaticOtp = deps.allowDevStaticOtp ?? true;
+  const otpServiceStub = {
+    createMobileOtpChallenge: async (_mobile: string, _purpose: "login" | "change_mobile") => ({
+      challengeId: randomUUID()
+    }),
+    verifyMobileOtp: async (_challengeId: string, code: string) => {
+      if (code.trim() !== "1234") {
+        throw new UnauthorizedException({
+          error: { code: "AUTH_OTP_INVALID", message: "Invalid OTP code" }
+        });
+      }
+      return {
+        success: true as const,
+        mobile: normalizeOtpPhoneInput("+15550000001"),
+        purpose: "login" as const
+      };
+    }
+  };
   return new AuthService(
     userRepo as never,
     membershipRepo as never,
@@ -125,7 +143,8 @@ function makeAuthService(deps: {
     } as never,
     requestContext as never,
     { info: () => {}, warn: () => {}, error: () => {} } as never,
-    { appendOrWarn: async () => {} } as never
+    { appendOrWarn: async () => {} } as never,
+    otpServiceStub as never
   );
 }
 

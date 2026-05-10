@@ -35,7 +35,6 @@ declare module "axios" {
 }
 
 const API_TIMEOUT_MS = 15_000;
-const DEFAULT_FETCH_INIT: RequestInit = { credentials: "include" };
 
 function assertNoDoubleApiV2InUrl(resolvedUrl: string): void {
   if (resolvedUrl.includes("/api/v2/api/v2")) {
@@ -191,30 +190,6 @@ function mergeRequestConfig(options?: ApiRequestOptions) {
       headers.Authorization = `Bearer ${storedToken}`;
     }
   }
-  // #region agent log
-  fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-    ...DEFAULT_FETCH_INIT,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "770f2e"
-    },
-    body: JSON.stringify({
-      sessionId: "770f2e",
-      runId: "initial",
-      hypothesisId: "H6",
-      location: "lib/api-client.ts:166",
-      message: "api_request_config_auth_state",
-      data: {
-        has_explicit_auth_token:
-          typeof options?.authToken === "string" && options.authToken.trim().length > 0,
-        has_authorization_header: typeof headers.Authorization === "string",
-        skip_auth_redirect_on_401: options?.skipAuthRedirectOn401 === true
-      },
-      timestamp: Date.now()
-    })
-  }).catch(() => {});
-  // #endregion
   return {
     headers,
     attachIdempotency: options?.idempotencyKey === true,
@@ -290,29 +265,6 @@ axiosApi.interceptors.response.use(
     const status = error.response?.status;
 
     if (status === 401) {
-      // #region agent log
-      fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-        ...DEFAULT_FETCH_INIT,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Debug-Session-Id": "770f2e"
-        },
-        body: JSON.stringify({
-          sessionId: "770f2e",
-          runId: "initial",
-          hypothesisId: "H6",
-          location: "lib/api-client.ts:239",
-          message: "api_response_401_interceptor",
-          data: {
-            url: cfg?.url ?? "",
-            method: (cfg?.method ?? "get").toUpperCase(),
-            skip_auth_redirect_on_401: cfg?.skipAuthRedirectOn401 === true
-          },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion
       if (!cfg?.skipAuthRedirectOn401) {
         void clearAuthAndRedirectToLogin();
       }

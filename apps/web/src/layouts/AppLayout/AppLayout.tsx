@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
+
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { Button, cn, useToast } from "@tour/ui";
 
@@ -23,14 +24,22 @@ import {
 } from "@/lib/workspace/workspace-host-navigation";
 import { createWorkspaceSession } from "@/lib/services/auth.service";
 
-type NavLink = { href: string; label: string };
+type NavLink = { href: string; label: string; pathKey: string };
 
 /** Participants never see `/users`; leader queue is injected for owners/admins. */
-const PARTICIPANT_NAV: readonly NavLink[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/tours", label: "Tours" },
-  { href: "/bookings", label: "Bookings" },
-  { href: "/settings", label: "Settings" },
+const PARTICIPANT_KEYS = [
+  { path: "/dashboard", msgKey: "dashboard" as const },
+  { path: "/tours", msgKey: "tours" as const },
+  { path: "/bookings", msgKey: "bookings" as const },
+  { path: "/settings", msgKey: "settings" as const },
+];
+
+const LEADER_KEYS = [
+  { path: "/dashboard", msgKey: "dashboard" as const },
+  { path: "/tours", msgKey: "tours" as const },
+  { path: "/leader/review", msgKey: "reviewQueue" as const },
+  { path: "/users", msgKey: "users" as const },
+  { path: "/settings", msgKey: "settings" as const },
 ];
 
 export type WorkspaceShellProps = {
@@ -41,6 +50,9 @@ export type WorkspaceShellProps = {
 export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const tNav = useTranslations("nav");
+  const tApp = useTranslations("app");
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
@@ -102,46 +114,20 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     })();
   }, [isHydrated, user?.tenantId, router, setSession, showToast]);
 
-  const navigation = useMemo(() => {
+  const navigation = useMemo((): NavLink[] => {
     if (!(isHydrated && isLeaderRole(user?.role))) {
-      return [...PARTICIPANT_NAV];
+      return PARTICIPANT_KEYS.map(({ path, msgKey }) => ({
+        href: path,
+        pathKey: path,
+        label: tNav(msgKey),
+      }));
     }
-    const leader: NavLink[] = [
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/tours", label: "Tours" },
-      { href: "/leader/review", label: "Review queue" },
-      { href: "/users", label: "Users" },
-      { href: "/settings", label: "Settings" },
-    ];
-    return leader;
-  }, [isHydrated, user?.role]);
-
-  useEffect(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "770f2e"
-      },
-      body: JSON.stringify({
-        sessionId: "770f2e",
-        runId: "initial",
-        hypothesisId: "H2",
-        location: "src/layouts/AppLayout/AppLayout.tsx:120",
-        message: "sidebar_navigation_computed",
-        data: {
-          pathname,
-          is_hydrated: isHydrated,
-          user_role: user?.role ?? null,
-          has_users_link: navigation.some((n) => n.href === "/users"),
-          nav_items: navigation.map((n) => n.href)
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
-  }, [navigation, isHydrated, user?.role, pathname]);
+    return LEADER_KEYS.map(({ path, msgKey }) => ({
+      href: path,
+      pathKey: path,
+      label: tNav(msgKey),
+    }));
+  }, [isHydrated, user?.role, tNav]);
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -181,29 +167,29 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   return (
     <div className={styles.shell}>
       <a href="#workspace-main-content" className={styles.skipLink}>
-        Skip to main content
+        {tApp("skipToMain")}
       </a>
       <button
         type="button"
         className={cn(styles.overlay, sidebarOpen && styles.overlayVisible)}
-        aria-label="Close menu"
+        aria-label={tApp("closeMenu")}
         tabIndex={sidebarOpen ? 0 : -1}
         onClick={closeSidebar}
       />
       <aside
         id="workspace-main-navigation"
         className={cn(styles.sidebar, sidebarOpen && styles.sidebarOpen)}
-        aria-label="Main navigation"
+        aria-label={tApp("mainNav")}
       >
         <div className={styles.sidebarHeader}>
           <Link href="/dashboard" className={styles.brand} onClick={closeSidebar}>
-            Tour Ops
+            {tApp("brand")}
           </Link>
         </div>
         <nav className={styles.nav}>
-          {navigation.map(({ href, label }) => (
+          {navigation.map(({ href, label, pathKey }) => (
             <Link
-              key={href}
+              key={pathKey}
               href={href}
               className={cn(styles.navLink, pathname === href && styles.navLinkActive)}
               onClick={closeSidebar}
@@ -226,10 +212,10 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 aria-controls="workspace-main-navigation"
                 onClick={() => setSidebarOpen((o) => !o)}
               >
-                Menu
+                {tApp("menu")}
               </Button>
             </div>
-            <p className={styles.headerTitle}>Tour Ops</p>
+            <p className={styles.headerTitle}>{tApp("brand")}</p>
           </div>
           <div className={styles.headerRight}>
             <Button
@@ -240,7 +226,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
               loading={isSwitchingWorkspace}
               disabled={isSwitchingWorkspace}
             >
-              Switch Workspace
+              {tApp("switchWorkspace")}
             </Button>
             <div className={styles.themeCluster}>
               <Button
@@ -249,7 +235,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 size="sm"
                 onClick={() => setTheme("light")}
               >
-                Light
+                {tApp("themeLight")}
               </Button>
               <Button
                 type="button"
@@ -257,7 +243,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 size="sm"
                 onClick={() => setTheme("dark")}
               >
-                Dark
+                {tApp("themeDark")}
               </Button>
             </div>
             <LogoutButton />
@@ -276,7 +262,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
           }
         }}
         onSelect={(workspace) => void handleWorkspaceSelection(workspace)}
-        title="Switch workspace"
+        title={tApp("switchWorkspace")}
       />
     </div>
   );

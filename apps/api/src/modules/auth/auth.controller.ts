@@ -160,7 +160,9 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: "Request OTP for phone auth flow" })
   @ApiBody({ type: OtpRequestDto })
-  async requestOtp(@Body() dto: OtpRequestDto): Promise<{ otp_requested: true; delivery: "dev_static" }> {
+  async requestOtp(
+    @Body() dto: OtpRequestDto
+  ): Promise<{ otp_requested: true; delivery: "dev_static"; challenge_id: string }> {
     return this.authService.requestPhoneOtp(dto.phone);
   }
 

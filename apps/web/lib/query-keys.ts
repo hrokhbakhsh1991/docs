@@ -39,3 +39,24 @@ export const registrationKeys = {
   tourRegistrations: (tourId: string) => [...registrationKeys.all, "tour", tourId] as const,
   tourWaitlist: (tourId: string) => [...registrationKeys.all, "tour", tourId, "waitlist"] as const,
 };
+
+export const settingsLocationsKeys = {
+  all: ["settings", "locations"] as const,
+  regions: () => [...settingsLocationsKeys.all, "regions"] as const,
+  destinations: () => [...settingsLocationsKeys.all, "destinations"] as const,
+};
+
+export const settingsEquipmentKeys = {
+  all: ["settings", "equipment"] as const,
+  list: () => [...settingsEquipmentKeys.all, "list"] as const,
+};
+
+export const settingsTourThemesKeys = {
+  all: ["settings", "tourThemes"] as const,
+  list: () => [...settingsTourThemesKeys.all, "list"] as const,
+};
+
+export const settingsGuideLanguagesKeys = {
+  all: ["settings", "guideLanguages"] as const,
+  list: () => [...settingsGuideLanguagesKeys.all, "list"] as const,
+};

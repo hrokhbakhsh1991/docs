@@ -14,7 +14,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  /* Dim using DS overlay scrim (§3 overlay tokens), not raw page bg opacity */
+  /* Dim using DS overlay scrim tokens, not raw page bg opacity */
   background: color-mix(in srgb, var(--color-overlay-scrim) 35%, transparent);
   pointer-events: none;
 }

@@ -26,6 +26,16 @@ import { UsersWriteService } from "../modules/identity/users-write.service";
 import { RegistrationsController } from "../modules/registrations/registrations.controller";
 import { RegistrationsService } from "../modules/registrations/registrations.service";
 import { TenantBootstrapService } from "../modules/tenant/tenant-bootstrap.service";
+import { EquipmentSettingsService } from "../modules/settings-locations/equipment-settings.service";
+import { GuideLanguagesSettingsService } from "../modules/settings-locations/guide-languages-settings.service";
+import { TourThemesSettingsService } from "../modules/settings-locations/tour-themes-settings.service";
+import { SettingsDestinationsController } from "../modules/settings-locations/settings-destinations.controller";
+import { SettingsDestinationsService } from "../modules/settings-locations/settings-destinations.service";
+import { SettingsEquipmentController } from "../modules/settings-locations/settings-equipment.controller";
+import { SettingsGuideLanguagesController } from "../modules/settings-locations/settings-guide-languages.controller";
+import { SettingsTourThemesController } from "../modules/settings-locations/settings-tour-themes.controller";
+import { SettingsRegionsController } from "../modules/settings-locations/settings-regions.controller";
+import { SettingsRegionsService } from "../modules/settings-locations/settings-regions.service";
 import { ToursController } from "../modules/tours/tours.controller";
 import { ToursService } from "../modules/tours/tours.service";
 
@@ -50,7 +60,12 @@ import { ToursService } from "../modules/tours/tours.service";
     PaymentsController,
     PaymentsWebhookController,
     OpsController,
-    UsersController
+    UsersController,
+    SettingsRegionsController,
+    SettingsDestinationsController,
+    SettingsEquipmentController,
+    SettingsGuideLanguagesController,
+    SettingsTourThemesController
   ],
   providers: [
     {
@@ -73,7 +88,8 @@ import { ToursService } from "../modules/tours/tours.service";
         getRequestId: () => "openapi-build",
         getTenantId: () => "00000000-0000-4000-8000-000000000000",
         getUserId: () => "openapi-build-user",
-        getRole: () => "SYSTEM",
+        getRole: () => "OWNER",
+        resolveEffectiveTenantId: () => "00000000-0000-4000-8000-000000000000",
         getContext: () => ({
           requestId: "openapi-build",
           path: "/health",
@@ -118,6 +134,138 @@ import { ToursService } from "../modules/tours/tours.service";
       }
     },
     { provide: ToursService, useValue: {} },
+    {
+      provide: SettingsRegionsService,
+      useValue: {
+        list: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000002",
+          name: "Region",
+          country: null,
+          sortOrder: 0,
+          isActive: true
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000002",
+          name: "Region",
+          country: null,
+          sortOrder: 0,
+          isActive: true
+        }),
+        remove: async () => undefined
+      }
+    },
+    {
+      provide: SettingsDestinationsService,
+      useValue: {
+        list: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000003",
+          name: "Destination",
+          regionId: "00000000-0000-4000-8000-000000000002",
+          type: null,
+          altitudeM: null,
+          sortOrder: 0,
+          isActive: true
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000003",
+          name: "Destination",
+          regionId: "00000000-0000-4000-8000-000000000002",
+          type: null,
+          altitudeM: null,
+          sortOrder: 0,
+          isActive: true
+        }),
+        remove: async () => undefined
+      }
+    },
+    {
+      provide: EquipmentSettingsService,
+      useValue: {
+        findAllByWorkspace: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000001",
+          name: "Example",
+          slug: "example",
+          category: null,
+          description: null,
+          icon: null,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000001",
+          name: "Example",
+          slug: "example",
+          category: null,
+          description: null,
+          icon: null,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        remove: async () => undefined,
+        reorder: async () => []
+      }
+    },
+    {
+      provide: GuideLanguagesSettingsService,
+      useValue: {
+        findAllByWorkspace: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000010",
+          name: "English",
+          slug: "english",
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000010",
+          name: "English",
+          slug: "english",
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        remove: async () => undefined,
+        reorder: async () => []
+      }
+    },
+    {
+      provide: TourThemesSettingsService,
+      useValue: {
+        findAllByWorkspace: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000010",
+          name: "Wildlife",
+          slug: "wildlife",
+          description: null,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000010",
+          name: "Wildlife",
+          slug: "wildlife",
+          description: null,
+          isActive: true,
+          sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        remove: async () => undefined,
+        reorder: async () => []
+      }
+    },
     {
       provide: TenantBootstrapService,
       useValue: {

@@ -43,6 +43,14 @@ export class UserEntity {
   @Column({ type: "boolean", name: "is_phone_verified", default: false })
   isPhoneVerified?: boolean;
 
+  @Column({
+    type: "boolean",
+    name: "notifications_enabled",
+    nullable: true,
+    default: null
+  })
+  notificationsEnabled?: boolean | null;
+
   @Column({ type: "timestamptz", name: "last_login_at", nullable: true })
   lastLoginAt?: Date | null;
 

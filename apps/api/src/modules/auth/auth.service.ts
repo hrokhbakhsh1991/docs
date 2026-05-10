@@ -12,6 +12,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 import type { Request } from "express";
 import { IsNull, QueryFailedError, Repository } from "typeorm";
 import { loadPrivateKey, loadPublicKey } from "../../auth/jwt-key.util";
+import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
@@ -31,6 +32,7 @@ import type { WebSessionResponseDto } from "./dto/auth-session-response.dto";
 import type { PhoneSessionDto } from "./dto/phone-session.dto";
 import type { TelegramSessionDto } from "./dto/telegram-session.dto";
 import type { WorkspaceSessionDto } from "./dto/workspace-session.dto";
+import { OtpService } from "./otp.service";
 
 @Injectable()
 export class AuthService {
@@ -46,7 +48,8 @@ export class AuthService {
     private readonly requestContextService: RequestContextService,
     @Inject(LoggerService) private readonly loggerService: LoggerService,
     @Inject(TenantAuditEventsService)
-    private readonly tenantAuditEventsService: TenantAuditEventsService
+    private readonly tenantAuditEventsService: TenantAuditEventsService,
+    @Inject(OtpService) private readonly otpService: OtpService
   ) {}
 
   private makeOnboardingEmailFromPhone(phone: string): string {
@@ -172,16 +175,20 @@ export class AuthService {
     return otp.trim() === "1234";
   }
 
-  async requestPhoneOtp(phone: string): Promise<{ otp_requested: true; delivery: "dev_static" }> {
+  async requestPhoneOtp(
+    phone: string
+  ): Promise<{ otp_requested: true; delivery: "dev_static"; challenge_id: string }> {
     const normalizedPhone = phone.trim();
     this.loggerService.info("auth_phone_otp_requested", {
       masked_phone: this.maskPhoneForLog(normalizedPhone),
       env: this.configService.getNodeEnv(),
       dev_static_otp_enabled: this.isDevStaticOtpEnabled()
     });
+    const { challengeId } = await this.otpService.createMobileOtpChallenge(normalizedPhone, "login");
     return {
       otp_requested: true,
-      delivery: "dev_static"
+      delivery: "dev_static",
+      challenge_id: challengeId
     };
   }
 
@@ -399,54 +406,12 @@ export class AuthService {
   }
 
   async createWebSessionOtp(dto: PhoneSessionDto): Promise<WebSessionResponseDto> {
-    // #region agent log
-    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "c19782"
-      },
-      body: JSON.stringify({
-        sessionId: "c19782",
-        runId: "pre-fix",
-        hypothesisId: "H3",
-        location: "src/modules/auth/auth.service.ts:214",
-        message: "auth_create_web_session_entry",
-        data: {
-          phone_present: typeof dto.phone === "string" && dto.phone.trim() !== "",
-          otp_length: typeof dto.otp === "string" ? dto.otp.length : -1
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
     this.loggerService.info("auth_web_otp_service_entry", {
       masked_phone: this.maskPhoneForLog(dto.phone),
       otp_present: dto.otp.trim() !== "",
       otp_length: dto.otp.length
     });
     const resolvedTenantId = this.requestContextService.resolveEffectiveTenantId();
-    // #region agent log
-    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "c19782"
-      },
-      body: JSON.stringify({
-        sessionId: "c19782",
-        runId: "pre-fix",
-        hypothesisId: "H4",
-        location: "src/modules/auth/auth.service.ts:220",
-        message: "auth_tenant_resolution",
-        data: {
-          resolved_tenant_id_present: Boolean(resolvedTenantId),
-          host_tenant_id_present: Boolean(this.requestContextService.tryGetHostTenantId?.())
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
     this.loggerService.info("auth_web_otp_tenant_resolution", {
       resolved_tenant_id: resolvedTenantId ?? null,
       request_tenant_id: this.requestContextService.tryGetTenantId() ?? null,
@@ -465,50 +430,57 @@ export class AuthService {
     }
     this.requestContextService.setTenantId(resolvedTenantId);
 
-    const isDevStaticOtpEnabled = this.isDevStaticOtpEnabled();
     const trimmedOtp = dto.otp.trim();
+    const challengeId = dto.challenge_id?.trim();
+
     this.loggerService.info("auth_web_otp_feature_flags", {
       env: this.configService.getNodeEnv(),
-      dev_static_otp_enabled: isDevStaticOtpEnabled
+      dev_static_otp_enabled: this.isDevStaticOtpEnabled(),
+      challenge_id_present: Boolean(challengeId)
     });
-    if (isDevStaticOtpEnabled && trimmedOtp !== "1234") {
-      this.loggerService.warn("auth_web_otp_invalid_static_otp_branch", {
-        static_otp_match: false,
-        otp_length: trimmedOtp.length
-      });
-      throw new UnauthorizedException({
-        error: {
-          code: "AUTH_OTP_INVALID",
-          message: "Invalid OTP code"
-        }
-      });
-    }
 
-    this.loggerService.info("auth_web_otp_validate_phone_call", {
-      masked_phone: this.maskPhoneForLog(dto.phone),
-      otp_length: dto.otp.length
-    });
-    const user = await this.validatePhoneOtp(dto.phone, dto.otp);
-    // #region agent log
-    fetch("http://127.0.0.1:7323/ingest/c60f1c6f-cda4-48f9-ac76-d6e5407c03d1", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "c19782"
-      },
-      body: JSON.stringify({
-        sessionId: "c19782",
-        runId: "pre-fix",
-        hypothesisId: "H5",
-        location: "src/modules/auth/auth.service.ts:262",
-        message: "auth_user_lookup_after_otp",
-        data: {
-          user_found: Boolean(user)
-        },
-        timestamp: Date.now()
-      })
-    }).catch(() => {});
-    // #endregion
+    let user: UserEntity | null;
+    if (challengeId) {
+      const verified = await this.otpService.verifyMobileOtp(challengeId, trimmedOtp);
+      if (verified.purpose !== "login") {
+        throw new UnauthorizedException({
+          error: {
+            code: "AUTH_OTP_INVALID",
+            message: "Invalid OTP challenge for login"
+          }
+        });
+      }
+      const phoneNorm = normalizeOtpPhoneInput(dto.phone);
+      if (phoneNorm !== verified.mobile) {
+        throw new UnauthorizedException({
+          error: {
+            code: "AUTH_OTP_INVALID",
+            message: "Phone does not match OTP challenge"
+          }
+        });
+      }
+      user = await this.findUserByPhone(verified.mobile);
+    } else {
+      const isDevStaticOtpEnabled = this.isDevStaticOtpEnabled();
+      if (isDevStaticOtpEnabled && trimmedOtp !== "1234") {
+        this.loggerService.warn("auth_web_otp_invalid_static_otp_branch", {
+          static_otp_match: false,
+          otp_length: trimmedOtp.length
+        });
+        throw new UnauthorizedException({
+          error: {
+            code: "AUTH_OTP_INVALID",
+            message: "Invalid OTP code"
+          }
+        });
+      }
+
+      this.loggerService.info("auth_web_otp_validate_phone_call", {
+        masked_phone: this.maskPhoneForLog(dto.phone),
+        otp_length: dto.otp.length
+      });
+      user = await this.validatePhoneOtp(dto.phone, dto.otp);
+    }
     if (!user) {
       if (!this.isDevStaticOtpEnabled()) {
         this.loggerService.warn("auth_web_otp_user_validation_failed", {

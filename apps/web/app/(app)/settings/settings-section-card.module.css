@@ -1,0 +1,4 @@
+/** Optional hook for section-specific tuning; Card supplies surface + shadow. */
+.sectionCard {
+  width: 100%;
+}

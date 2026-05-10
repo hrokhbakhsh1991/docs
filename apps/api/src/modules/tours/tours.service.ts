@@ -10,6 +10,17 @@ import {
 import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+
+import {
+  ACCOMMODATION_TYPE_VALUES,
+  MEAL_PLAN_VALUES,
+  parseLegacyAccommodationTypeString,
+  parseLegacyMealPlanString
+} from "@repo/types";
+import { WorkspaceDestinationEntity } from "../settings-locations/entities/workspace-destination.entity";
+import { WorkspaceEquipmentItemEntity } from "../settings-locations/entities/workspace-equipment-item.entity";
+import { WorkspaceGuideLanguageEntity } from "../settings-locations/entities/workspace-guide-language.entity";
+import { WorkspaceTourThemeEntity } from "../settings-locations/entities/workspace-tour-theme.entity";
 import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
@@ -29,15 +40,81 @@ import {
   assertValidLifecycleTransition
 } from "./policies/tour-lifecycle.policy";
 import { mergeTourTripDetails } from "./utils/merge-trip-details";
+import type { TourTransportMode } from "./tour-transport-modes";
+import { computeTourDurationDays } from "./utils/tour-duration";
+import { applyTourTypeFieldGates } from "./utils/tour-type-gates";
+import {
+  assertEquipmentIdsBelongToTenant,
+  assertGuideLanguageIdsBelongToTenant,
+  assertTourThemeIdsBelongToTenant,
+} from "./utils/assert-workspace-catalog-ids";
+import { collectWorkspaceCatalogIds } from "./utils/collect-workspace-catalog-ids";
 
 @Injectable()
 export class ToursService {
   constructor(
     @InjectRepository(TourEntity)
     private readonly tourRepository: Repository<TourEntity>,
+    @InjectRepository(WorkspaceDestinationEntity)
+    private readonly workspaceDestinationRepository: Repository<WorkspaceDestinationEntity>,
+    @InjectRepository(WorkspaceEquipmentItemEntity)
+    private readonly workspaceEquipmentRepository: Repository<WorkspaceEquipmentItemEntity>,
+    @InjectRepository(WorkspaceTourThemeEntity)
+    private readonly workspaceTourThemesRepository: Repository<WorkspaceTourThemeEntity>,
+    @InjectRepository(WorkspaceGuideLanguageEntity)
+    private readonly workspaceGuideLanguagesRepository: Repository<WorkspaceGuideLanguageEntity>,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService
   ) {}
+
+  private async assertDestinationBelongsToTenant(
+    tenantId: string,
+    destinationId: string
+  ): Promise<void> {
+    const row = await this.workspaceDestinationRepository.findOne({
+      where: { id: destinationId, tenantId },
+      select: { id: true }
+    });
+    if (!row) {
+      throw new BadRequestException({
+        error: {
+          code: "DESTINATION_NOT_IN_WORKSPACE",
+          message: "The selected destination is not part of this workspace."
+        }
+      });
+    }
+  }
+
+  private destinationRelation(
+    destinationId: string | null | undefined
+  ): WorkspaceDestinationEntity | null {
+    if (!destinationId) {
+      return null;
+    }
+    return { id: destinationId } as WorkspaceDestinationEntity;
+  }
+
+  /**
+   * Ensures JSONB catalog UUID arrays (`gear*Ids`, `tourThemeIds`, `guideLanguageIds`)
+   * reference existing rows scoped to the same workspace as {@link tenantId}.
+   */
+  private async assertTripDetailsCatalogRefsForTenant(
+    tenantId: string,
+    tripDetails: TourTripDetails | null | undefined,
+  ): Promise<void> {
+    if (tripDetails == null) {
+      return;
+    }
+    const { equipmentIds, tourThemeIds, guideLanguageIds } = collectWorkspaceCatalogIds(tripDetails);
+    await assertEquipmentIdsBelongToTenant(this.workspaceEquipmentRepository, tenantId, equipmentIds);
+    await assertTourThemeIdsBelongToTenant(this.workspaceTourThemesRepository, tenantId, tourThemeIds);
+    await assertGuideLanguageIdsBelongToTenant(this.workspaceGuideLanguagesRepository, tenantId, guideLanguageIds);
+  }
+
+  private static readonly tourResponseRelations = {
+    details: true,
+    destination: { region: true }
+  } as const;
 
   /** Align API casing (`Draft`) with Postgres enum (`DRAFT`) when class-transformer metadata is missing (e.g. tsx E2E). */
   private normalizeLifecycleStatusInput(
@@ -67,7 +144,6 @@ export class ToursService {
       | "difficulty"
       | "durationDays"
       | "meetingPoint"
-      | "requiredGear"
       | "itinerary"
       | "tripDetails"
     >
@@ -78,10 +154,163 @@ export class ToursService {
       dto.difficulty !== undefined ||
       dto.durationDays !== undefined ||
       dto.meetingPoint !== undefined ||
-      dto.requiredGear !== undefined ||
       dto.itinerary !== undefined ||
       dto.tripDetails !== undefined
     );
+  }
+
+  /**
+   * Fills `transportationNotes` from legacy `transportation` when needed and mirrors notes
+   * into `transportation` so existing readers keep working until migration is complete.
+   */
+  private normalizeLogisticsTransportationMigration(
+    td: TourTripDetails | null | undefined,
+  ): TourTripDetails | null | undefined {
+    if (td == null || td.logistics == null || typeof td.logistics !== "object") {
+      return td;
+    }
+    const lg = { ...(td.logistics as Record<string, unknown>) };
+    const notes = typeof lg.transportationNotes === "string" ? lg.transportationNotes.trim() : "";
+    const legacy = typeof lg.transportation === "string" ? lg.transportation.trim() : "";
+    if (!notes && legacy) {
+      lg.transportationNotes = legacy;
+    }
+    const finalNotes =
+      typeof lg.transportationNotes === "string" ? lg.transportationNotes.trim() : "";
+    if (finalNotes) {
+      lg.transportationNotes = finalNotes;
+      lg.transportation = finalNotes;
+    } else {
+      delete lg.transportationNotes;
+      delete lg.transportation;
+    }
+    return { ...td, logistics: lg } as TourTripDetails;
+  }
+
+  /**
+   * Promotes legacy `accommodationType` string into `accommodationTypes` / `accommodationNotes`,
+   * and mirrors known types back into `accommodationType` comma-slugs for older consumers.
+   */
+  private normalizeLogisticsAccommodationMigration(
+    td: TourTripDetails | null | undefined,
+  ): TourTripDetails | null | undefined {
+    if (td == null || td.logistics == null || typeof td.logistics !== "object") {
+      return td;
+    }
+    const lg = { ...(td.logistics as Record<string, unknown>) };
+    const allowed = ACCOMMODATION_TYPE_VALUES as readonly string[];
+
+    const rawArr = lg.accommodationTypes;
+    let nextTypes: string[] = [];
+    if (Array.isArray(rawArr)) {
+      for (const x of rawArr) {
+        if (typeof x !== "string") {
+          continue;
+        }
+        const s = x.trim().toLowerCase().replace(/\s+/g, "_");
+        if (allowed.includes(s)) {
+          nextTypes.push(s);
+        }
+      }
+      nextTypes = [...new Set(nextTypes)].sort((a, b) => a.localeCompare(b));
+    }
+
+    const legacy = typeof lg.accommodationType === "string" ? lg.accommodationType.trim() : "";
+    let notes = typeof lg.accommodationNotes === "string" ? lg.accommodationNotes.trim() : "";
+
+    if (nextTypes.length === 0 && legacy) {
+      const { types, remainder } = parseLegacyAccommodationTypeString(legacy);
+      nextTypes = types as string[];
+      if (remainder) {
+        notes = notes ? `${notes}\n${remainder}` : remainder;
+      }
+    }
+
+    if (nextTypes.length > 0) {
+      lg.accommodationTypes = nextTypes;
+    } else {
+      delete lg.accommodationTypes;
+    }
+
+    if (notes) {
+      lg.accommodationNotes = notes;
+    } else {
+      delete lg.accommodationNotes;
+    }
+
+    if (nextTypes.length > 0) {
+      lg.accommodationType = nextTypes.join(", ");
+    } else {
+      delete lg.accommodationType;
+    }
+
+    return { ...td, logistics: lg } as TourTripDetails;
+  }
+
+  /**
+   * Promotes legacy free-text `mealPlan` into enum `mealPlan` + optional `mealNotes`.
+   */
+  private normalizeLogisticsMealPlanMigration(
+    td: TourTripDetails | null | undefined,
+  ): TourTripDetails | null | undefined {
+    if (td == null || td.logistics == null || typeof td.logistics !== "object") {
+      return td;
+    }
+    const lg = { ...(td.logistics as Record<string, unknown>) };
+    const allowed = MEAL_PLAN_VALUES as readonly string[];
+
+    const raw = lg.mealPlan;
+    let plan: string | undefined;
+    let notes = typeof lg.mealNotes === "string" ? lg.mealNotes.trim() : "";
+
+    if (typeof raw === "string") {
+      const v = raw.trim().toLowerCase().replace(/\s+/g, "_");
+      if (allowed.includes(v)) {
+        plan = v;
+      } else if (raw.trim()) {
+        const { plan: parsedPlan, remainder } = parseLegacyMealPlanString(raw);
+        if (parsedPlan) {
+          plan = parsedPlan;
+        }
+        if (remainder) {
+          notes = notes ? `${notes}\n${remainder}` : remainder;
+        }
+      }
+    }
+
+    if (plan) {
+      lg.mealPlan = plan;
+    } else {
+      delete lg.mealPlan;
+    }
+
+    if (notes) {
+      lg.mealNotes = notes;
+    } else {
+      delete lg.mealNotes;
+    }
+
+    return { ...td, logistics: lg } as TourTripDetails;
+  }
+
+  /** Drops removed free-text gear keys from JSONB so older rows are cleaned on save. */
+  private stripLegacyParticipationGearKeys(
+    td: TourTripDetails | null | undefined,
+  ): TourTripDetails | null | undefined {
+    if (td == null || typeof td !== "object") {
+      return td;
+    }
+    const participation = td.participation;
+    if (participation == null || typeof participation !== "object" || Array.isArray(participation)) {
+      return td;
+    }
+    const p = { ...participation } as Record<string, unknown>;
+    if (!("gearRequired" in p) && !("gearOptional" in p)) {
+      return td;
+    }
+    delete p.gearRequired;
+    delete p.gearOptional;
+    return { ...td, participation: p as TourTripDetails["participation"] };
   }
 
   private tripDetailsToPersistedJson(
@@ -93,7 +322,25 @@ export class ToursService {
     if (value === null) {
       return null;
     }
-    return JSON.parse(JSON.stringify(instanceToPlain(value))) as TourTripDetails;
+    const parsed = JSON.parse(JSON.stringify(instanceToPlain(value))) as TourTripDetails;
+    const stripped = this.stripLegacyParticipationGearKeys(parsed) ?? parsed;
+    const afterTransport = this.normalizeLogisticsTransportationMigration(stripped);
+    const afterAccommodation = this.normalizeLogisticsAccommodationMigration(afterTransport);
+    return this.stripDeprecatedLogisticsGuideLanguage(
+      this.normalizeLogisticsMealPlanMigration(afterAccommodation),
+    );
+  }
+
+  /** Drops deprecated free-text `guideLanguage` from persisted logistics (use `guideLanguageIds`). */
+  private stripDeprecatedLogisticsGuideLanguage(
+    td: TourTripDetails | null | undefined,
+  ): TourTripDetails | null | undefined {
+    if (td == null || td.logistics == null || typeof td.logistics !== "object") {
+      return td;
+    }
+    const lg = { ...(td.logistics as Record<string, unknown>) };
+    delete lg.guideLanguage;
+    return { ...td, logistics: lg } as TourTripDetails;
   }
 
   async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
@@ -103,20 +350,37 @@ export class ToursService {
     }
 
     try {
-      const details = this.hasAnyTourDetailsField(dto)
-        ? (() => {
-            const d = new TourDetails();
-            d.destinationName = dto.destinationName ?? null;
-            d.elevationM = dto.elevationM ?? null;
-            d.difficulty = dto.difficulty ?? null;
-            d.durationDays = dto.durationDays ?? null;
-            d.meetingPoint = dto.meetingPoint ?? null;
-            d.requiredGear = dto.requiredGear ?? null;
-            d.itinerary = dto.itinerary ?? null;
-            d.tripDetails = this.tripDetailsToPersistedJson(dto.tripDetails) ?? null;
-            return d;
-          })()
-        : undefined;
+      if (dto.destinationId) {
+        await this.assertDestinationBelongsToTenant(tenantId, dto.destinationId);
+      }
+
+      let details: TourDetails | undefined;
+      if (this.hasAnyTourDetailsField(dto)) {
+        const d = new TourDetails();
+        d.destinationName = dto.destinationName ?? null;
+        d.elevationM = dto.elevationM ?? null;
+        d.difficulty = dto.difficulty ?? null;
+        d.durationDays = dto.durationDays ?? null;
+        d.meetingPoint = dto.meetingPoint ?? null;
+        d.itinerary = dto.itinerary ?? null;
+        d.tripDetails =
+          applyTourTypeFieldGates(
+            this.tripDetailsToPersistedJson(dto.tripDetails),
+            dto.tourType ?? null,
+          ) ?? null;
+        const derived = computeTourDurationDays(
+          d.tripDetails?.logistics?.departureDate,
+          d.tripDetails?.logistics?.returnDate
+        );
+        if (derived !== undefined) {
+          d.durationDays = derived;
+        }
+        details = d;
+      }
+
+      if (details?.tripDetails) {
+        await this.assertTripDetailsCatalogRefsForTenant(tenantId, details.tripDetails);
+      }
 
       const tour = this.tourRepository.create({
         tenantId,
@@ -129,7 +393,8 @@ export class ToursService {
         costContext: dto.cost_context,
         autoAcceptRegistrations: dto.autoAcceptRegistrations,
         tourType: dto.tourType,
-        primaryTransportMode: dto.primaryTransportMode,
+        transportModes: [...new Set(dto.transportModes ?? [])].sort() as TourTransportMode[],
+        destination: this.destinationRelation(dto.destinationId ?? null),
         details
       });
 
@@ -148,9 +413,7 @@ export class ToursService {
           id: saved.id,
           tenantId
         },
-        relations: {
-          details: true
-        }
+        relations: ToursService.tourResponseRelations
       });
 
       if (!loaded) {
@@ -192,9 +455,7 @@ export class ToursService {
         id: tourId,
         tenantId
       },
-      relations: {
-        details: true
-      }
+      relations: ToursService.tourResponseRelations
     });
 
     if (!tour) {
@@ -250,8 +511,16 @@ export class ToursService {
       if (dto.tourType !== undefined) {
         tour.tourType = dto.tourType;
       }
-      if (dto.primaryTransportMode !== undefined) {
-        tour.primaryTransportMode = dto.primaryTransportMode;
+      if (dto.transportModes !== undefined) {
+        tour.transportModes = [...new Set(dto.transportModes)].sort() as TourTransportMode[];
+      }
+      if (dto.destinationId !== undefined) {
+        if (dto.destinationId === null) {
+          tour.destination = null;
+        } else {
+          await this.assertDestinationBelongsToTenant(tenantId, dto.destinationId);
+          tour.destination = this.destinationRelation(dto.destinationId);
+        }
       }
       if (this.hasAnyTourDetailsField(dto)) {
         if (!tour.details) {
@@ -272,9 +541,6 @@ export class ToursService {
         if (dto.meetingPoint !== undefined) {
           tour.details.meetingPoint = dto.meetingPoint;
         }
-        if (dto.requiredGear !== undefined) {
-          tour.details.requiredGear = dto.requiredGear;
-        }
         if (dto.itinerary !== undefined) {
           tour.details.itinerary = dto.itinerary;
         }
@@ -283,16 +549,42 @@ export class ToursService {
             tour.details.tripDetails = null;
           } else {
             const patch = this.tripDetailsToPersistedJson(dto.tripDetails);
-            tour.details.tripDetails = mergeTourTripDetails(
-              tour.details.tripDetails ?? null,
-              patch as TourTripDetails
-            );
+            tour.details.tripDetails = this.stripLegacyParticipationGearKeys(
+              mergeTourTripDetails(tour.details.tripDetails ?? null, patch as TourTripDetails),
+            ) ?? null;
           }
+        }
+
+        // Strip mountain-only fields (e.g. `overview.maxAltitudeMeters`) when the
+        // effective tourType is non-mountain, regardless of whether tourType was
+        // changed in this patch or stayed the same.
+        if (tour.details.tripDetails) {
+          const gated = applyTourTypeFieldGates(tour.details.tripDetails, tour.tourType ?? null);
+          tour.details.tripDetails = gated ?? null;
+        }
+
+        if (dto.tripDetails !== undefined && tour.details.tripDetails) {
+          await this.assertTripDetailsCatalogRefsForTenant(tenantId, tour.details.tripDetails);
+        }
+
+        const derivedDuration = computeTourDurationDays(
+          tour.details.tripDetails?.logistics?.departureDate,
+          tour.details.tripDetails?.logistics?.returnDate
+        );
+        if (derivedDuration !== undefined) {
+          tour.details.durationDays = derivedDuration;
         }
       }
 
       const saved = await this.tourRepository.save(tour);
-      return mapTourEntityToResponseDto(saved);
+      const reloaded = await this.tourRepository.findOne({
+        where: { id: saved.id, tenantId },
+        relations: ToursService.tourResponseRelations
+      });
+      if (!reloaded) {
+        throw new NotFoundException(tenantScopedResourceNotFoundError());
+      }
+      return mapTourEntityToResponseDto(reloaded);
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -324,6 +616,8 @@ export class ToursService {
     const qb = this.tourRepository
       .createQueryBuilder("t")
       .leftJoinAndSelect("t.details", "details")
+      .leftJoinAndSelect("t.destination", "destination")
+      .leftJoinAndSelect("destination.region", "destinationRegion")
       .where("t.tenantId = :tenantId", { tenantId })
       .orderBy("t.createdAt", "DESC");
 
@@ -368,9 +662,7 @@ export class ToursService {
         id: tourId,
         tenantId
       },
-      relations: {
-        details: true
-      }
+      relations: ToursService.tourResponseRelations
     });
 
     if (!tour) {

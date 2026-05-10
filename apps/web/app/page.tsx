@@ -1,6 +1,23 @@
 import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
-export default function HomePage() {
+import { routing } from "@/i18n/routing";
+
+const LOCALE = routing.defaultLocale;
+
+export async function generateMetadata() {
+  setRequestLocale(LOCALE);
+  const t = await getTranslations({ locale: LOCALE, namespace: "metadata.home" });
+
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
+export default async function HomePage() {
+  setRequestLocale(LOCALE);
+
   return (
     <main
       style={{
