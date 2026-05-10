@@ -7,8 +7,36 @@ import {
   RegistrationEntity,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
+import { WaitlistItemEntity } from "../../src/modules/registrations/waitlist-item.entity";
 import { PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
+import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+
+function stubTourRepositoryForPaymentsLock() {
+  return {
+    createQueryBuilder() {
+      return {
+        setLock() {
+          return this;
+        },
+        where() {
+          return this;
+        },
+        andWhere() {
+          return this;
+        },
+        async getOne() {
+          return {
+            id: "tour-1",
+            tenantId: "tenant-1",
+            totalCapacity: 10,
+            acceptedCount: 0
+          } as TourEntity;
+        }
+      };
+    }
+  };
+}
 
 test("webhook paid transitions registration to AcceptedPaid and emits payment.succeeded", async () => {
   const outboxEvents: string[] = [];
@@ -22,10 +50,18 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   const registration = {
     id: "reg-1",
     tenantId: "tenant-1",
+    tourId: "tour-1",
+    tourDepartureId: "tour-1",
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
 
   const manager = {
+    getRepository(entity: unknown) {
+      if ((entity as { name?: string }).name === TourEntity.name) {
+        return stubTourRepositoryForPaymentsLock();
+      }
+      throw new Error("unexpected repository");
+    },
     async findOne(entity: unknown, opts: { where: Record<string, unknown> }) {
       const name = (entity as { name?: string }).name;
       if (name === "PaymentEntity") {
@@ -102,10 +138,42 @@ test("timeout processor fails stale pending payments and updates metrics", async
   const registration = {
     id: "reg-2",
     tenantId: "tenant-1",
+    tourId: "tour-1",
+    tourDepartureId: "tour-1",
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
   const manager = {
-    getRepository() {
+    getRepository(entity: unknown) {
+      const name = (entity as { name?: string }).name;
+      if (name === TourEntity.name) {
+        return stubTourRepositoryForPaymentsLock();
+      }
+      if (name === WaitlistItemEntity.name) {
+        return {
+          createQueryBuilder() {
+            return {
+              where() {
+                return this;
+              },
+              andWhere() {
+                return this;
+              },
+              orderBy() {
+                return this;
+              },
+              setLock() {
+                return this;
+              },
+              setOnLocked() {
+                return this;
+              },
+              async getOne() {
+                return null;
+              }
+            };
+          }
+        };
+      }
       return {
         createQueryBuilder() {
           return {
@@ -190,10 +258,18 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   const registration = {
     id: "reg-9",
     tenantId: "tenant-1",
+    tourId: "tour-1",
+    tourDepartureId: "tour-1",
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
 
   const manager = {
+    getRepository(entity: unknown) {
+      if ((entity as { name?: string }).name === TourEntity.name) {
+        return stubTourRepositoryForPaymentsLock();
+      }
+      throw new Error("unexpected repository");
+    },
     async findOne(entity: unknown, opts: { where: Record<string, unknown> }) {
       const name = (entity as { name?: string }).name;
       if (name === "PaymentEntity") {

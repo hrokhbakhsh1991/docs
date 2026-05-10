@@ -2,6 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToOne } from "typeorm"
 import { Exclude } from "class-transformer";
 import { TOUR_TYPES, type TourType } from "@repo/types";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
+import { UserEntity } from "../../identity/entities/user.entity";
 import { WorkspaceDestinationEntity } from "../../settings-locations/entities/workspace-destination.entity";
 import { TourDetails } from "./tour-details.entity";
 import type { TourTransportMode } from "../tour-transport-modes";
@@ -23,6 +24,9 @@ export enum TourLifecycleStatus {
  *
  * Legacy values (`camp`, `other`) were dropped in migration
  * `1777591000000-RefineTourTypeEnum`: `camp → nature`, `other → NULL`.
+ *
+ * Longer-term product model may split immutable **product** definition from bookable **departure**
+ * instances (pricing engine, GDPR, multi-locale). Current rows remain single-table with JSONB details.
  */
 
 @Entity("tours")
@@ -91,4 +95,30 @@ export class TourEntity extends BaseTenantEntity {
 
   @OneToOne(() => TourDetails, (details) => details.tour, { cascade: true, nullable: true })
   details?: TourDetails;
+
+  @Column({ type: "uuid", name: "tour_product_id", nullable: true })
+  tourProductId?: string | null;
+
+  @Column({ type: "uuid", name: "tour_departure_id", nullable: true })
+  tourDepartureId?: string | null;
+
+  @Column({ type: "uuid", name: "created_by_user_id", nullable: true })
+  createdByUserId?: string | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "created_by_user_id" })
+  createdBy?: UserEntity | null;
+
+  /** Denormalized from trip logistics for list/filter (see migrations). */
+  @Column({ type: "date", name: "starts_on", nullable: true })
+  startsOn?: string | null;
+
+  @Column({ type: "date", name: "ends_on", nullable: true })
+  endsOn?: string | null;
+
+  @Column({ type: "varchar", length: 3, name: "currency_code", nullable: true })
+  currencyCode?: string | null;
+
+  @Column({ type: "bigint", name: "list_price_minor", nullable: true })
+  listPriceMinor?: string | null;
 }

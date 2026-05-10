@@ -1,3 +1,7 @@
+/**
+ * Tours module: sellable capacity and pricing snapshots tie to `tour_departures`; bookings reference it via
+ * `registrations.tour_departure_id` (see migrations and RegistrationsModule).
+ */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "../auth/auth.module";
@@ -11,13 +15,20 @@ import { WorkspaceGuideLanguageEntity } from "../settings-locations/entities/wor
 import { WorkspaceTourThemeEntity } from "../settings-locations/entities/workspace-tour-theme.entity";
 import { TourDetails } from "./entities/tour-details.entity";
 import { TourEntity } from "./entities/tour.entity";
+import { TourDepartureEntity } from "./entities/tour-departure.entity";
+import { TourPriceEntity } from "./entities/tour-price.entity";
+import { TourProductEntity } from "./entities/tour-product.entity";
 import { ToursService } from "./tours.service";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       TourEntity,
       TourDetails,
+      TourProductEntity,
+      TourDepartureEntity,
+      TourPriceEntity,
       WorkspaceDestinationEntity,
       WorkspaceEquipmentItemEntity,
       WorkspaceTourThemeEntity,
@@ -28,6 +39,6 @@ import { ToursService } from "./tours.service";
     RegistrationsModule
   ],
   controllers: [ToursController, DashboardAggregateController],
-  providers: [ToursService]
+  providers: [ToursService, ThrottlerGuard]
 })
 export class ToursModule {}

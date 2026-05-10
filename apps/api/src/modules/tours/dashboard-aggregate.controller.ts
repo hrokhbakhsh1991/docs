@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -9,7 +9,7 @@ import type { TourResponseDto } from "./dto/tour-response.dto";
 
 @ApiTags("Dashboard")
 @Controller("api/v2/dashboard")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard)
 @ApiBearerAuth()
 export class DashboardAggregateController {
   constructor(private readonly toursService: ToursService) {}

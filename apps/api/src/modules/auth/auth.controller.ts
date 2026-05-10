@@ -28,7 +28,7 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import { AuthService } from "./auth.service";
 import { WorkspaceService } from "./workspace.service";
 import { LinkTelegramDto } from "./dto/link-telegram.dto";
-import { JwtAuthGuard } from "./jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "./authorization-presence.guard";
 import { Roles } from "./roles.decorator";
 import { Role } from "./roles.enum";
 import { RolesGuard } from "./roles.guard";
@@ -205,7 +205,7 @@ export class AuthController {
 
   @Get("workspaces")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthorizationPresenceGuard)
   @ApiOperation({
     summary: "List workspaces for the authenticated user",
     description:
@@ -224,7 +224,7 @@ export class AuthController {
 
   @Post("workspaces")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthorizationPresenceGuard)
   @ApiOperation({
     summary: "Create workspace",
     description:
@@ -243,7 +243,7 @@ export class AuthController {
 
   @Post("workspace/session")
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthorizationPresenceGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Issue session JWT for a workspace tenant",
@@ -294,7 +294,7 @@ export class AuthController {
   @Post("link-telegram")
   @HttpCode(200)
   // Fail-closed: link operation requires explicit JWT + role authorization.
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",

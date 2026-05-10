@@ -1,5 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
+import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
 
 export enum RegistrationStatus {
@@ -24,11 +25,16 @@ export enum RegistrationPaymentStatus {
 @Entity("registrations")
 @Index("idx_registrations_tenant_id", ["tenantId"])
 @Index("idx_registrations_tour_id", ["tourId"])
+@Index("idx_registrations_tour_departure_id", ["tourDepartureId"])
 @Index("idx_registrations_status", ["status"])
 @Index("idx_registrations_payment_status", ["paymentStatus"])
 export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "uuid", name: "tour_id" })
   tourId!: string;
+
+  /** Bookable inventory row (1:1 with legacy tour in foundation model). */
+  @Column({ type: "uuid", name: "tour_departure_id" })
+  tourDepartureId!: string;
 
   @Column({ type: "varchar", name: "participant_full_name", length: 255 })
   participantFullName!: string;
@@ -78,7 +84,18 @@ export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "jsonb", name: "payment_metadata", nullable: true })
   paymentMetadata?: Record<string, unknown>;
 
+  /** List price minor units and currency captured from the tour at booking time (audit). */
+  @Column({ type: "bigint", name: "quoted_list_price_minor", nullable: true })
+  quotedListPriceMinor?: string | null;
+
+  @Column({ type: "varchar", length: 3, name: "quoted_currency_code", nullable: true })
+  quotedCurrencyCode?: string | null;
+
   @ManyToOne(() => TourEntity, { nullable: false })
   @JoinColumn({ name: "tour_id", referencedColumnName: "id" })
   tour!: TourEntity;
+
+  @ManyToOne(() => TourDepartureEntity, { nullable: false })
+  @JoinColumn({ name: "tour_departure_id", referencedColumnName: "id" })
+  tourDeparture!: TourDepartureEntity;
 }

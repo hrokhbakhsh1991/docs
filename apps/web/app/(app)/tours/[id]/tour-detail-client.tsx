@@ -30,6 +30,7 @@ import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
 
 import { lifecycleBadgeVariant } from "./tour-detail-ui";
+import { TourTripDetailsPanel } from "./tour-trip-details-panel";
 
 import styles from "./tour-detail-client.module.css";
 
@@ -331,6 +332,8 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
             </dl>
           </CardBody>
         </Card>
+
+        <TourTripDetailsPanel tour={tour} />
 
         {themeIdList.length > 0 ? (
           <Card>

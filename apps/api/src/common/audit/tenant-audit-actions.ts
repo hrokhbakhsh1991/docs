@@ -13,7 +13,12 @@ export const TenantAuditAction = {
   MEMBERSHIP_REMOVED: "membership.removed",
   WORKSPACE_OWNERSHIP_TRANSFERRED: "workspace.ownership.transferred",
   WORKSPACE_INVITE_ACCEPTED: "workspace.invite.accepted",
-  DATA_EXPORT_AUDIT: "data.export.audit_trail"
+  DATA_EXPORT_AUDIT: "data.export.audit_trail",
+
+  PROFILE_EMAIL_VERIFICATION_STARTED: "profile.email.verification_started",
+  PROFILE_EMAIL_VERIFIED: "profile.email.verified",
+  PROFILE_SELF_PII_FIELDS_UPDATED: "profile.self.pii_updated",
+  PROFILE_PHONE_UPDATED_SELF: "profile.phone.updated_self"
 } as const;
 
 export type TenantAuditActionType =

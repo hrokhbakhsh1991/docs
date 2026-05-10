@@ -45,6 +45,13 @@ function loadDotEnvTest(): void {
   if (!process.env.TENANT_ROOT_DOMAIN?.trim()) {
     process.env.TENANT_ROOT_DOMAIN = "localhost";
   }
+  /** {@link web-session-otp.helper} uses OTP `1234` under NODE_ENV=test; align unless `.env.test` disables explicitly. */
+  if (
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP === undefined ||
+    String(process.env.AUTH_ALLOW_DEV_STATIC_OTP).trim() === ""
+  ) {
+    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "true";
+  }
   if (
     !process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET ||
     process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET.trim().length < 16
@@ -52,6 +59,10 @@ function loadDotEnvTest(): void {
     process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET =
       "test-webhook-hmac-secret-at-least-32chars!!!!";
   }
+  // E2E/testcontainers: explicit defaults so ConfigService + EmailService construct reliably (tsx metadata).
+  process.env.RESEND_API_KEY ??= "";
+  process.env.RESEND_FROM ??= "";
+  process.env.FRONTEND_BASE_URL ??= "";
 }
 
 export async function createE2EApp(): Promise<INestApplication> {

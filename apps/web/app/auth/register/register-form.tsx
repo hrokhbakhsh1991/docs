@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { Button, FormField, Input, useToast } from "@tour/ui";
 
@@ -13,20 +12,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 
 import authStyles from "../auth-forms.module.css";
-
-function registerSchemaFactory(t: (key: string) => string) {
-  return z.object({
-    name: z.string().trim().min(1, t("register.validationNameRequired")),
-    email: z
-      .string()
-      .trim()
-      .email(t("register.validationEmailInvalid"))
-      .optional()
-      .or(z.literal("")),
-  });
-}
-
-type RegisterFormValues = z.infer<ReturnType<typeof registerSchemaFactory>>;
+import { buildRegisterFormSchema, type RegisterFormValues } from "./register-schema";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -37,7 +23,7 @@ export function RegisterForm() {
   const onboardingToken = searchParams.get("onboarding")?.trim() || "";
   const inviteToken = searchParams.get("invite")?.trim() || "";
 
-  const registerSchema = useMemo(() => registerSchemaFactory(t), [t]);
+  const registerSchema = useMemo(() => buildRegisterFormSchema(t), [t]);
 
   const {
     register,
@@ -119,7 +105,7 @@ export function RegisterForm() {
             {...register("name")}
           />
         </FormField>
-        <FormField label={t("register.emailLabel")} error={errors.email?.message}>
+        <FormField label={t("register.emailOptionalLabel")} error={errors.email?.message}>
           <Input
             type="email"
             autoComplete="email"

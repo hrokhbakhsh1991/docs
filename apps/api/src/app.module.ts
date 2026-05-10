@@ -58,6 +58,12 @@ import { OtpModule } from "./modules/auth/otp.module";
               ttl: 60_000,
               limit: 200,
               blockDuration: 1
+            },
+            {
+              name: "tour-create",
+              ttl: 60_000,
+              limit: isTest ? 5000 : 30,
+              blockDuration: 1
             }
           ],
           storage: new ThrottlerStorageRedisService({

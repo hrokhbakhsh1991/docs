@@ -1,5 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
+import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
 
 export enum WaitlistItemStatus {
@@ -11,10 +12,14 @@ export enum WaitlistItemStatus {
 @Entity("waitlist_items")
 @Index("idx_waitlist_items_tenant_id", ["tenantId"])
 @Index("idx_waitlist_items_tour_id", ["tourId"])
+@Index("idx_waitlist_items_tour_departure_id", ["tourDepartureId"])
 @Index("idx_waitlist_items_status", ["status"])
 export class WaitlistItemEntity extends BaseTenantEntity {
   @Column({ type: "uuid", name: "tour_id" })
   tourId!: string;
+
+  @Column({ type: "uuid", name: "tour_departure_id" })
+  tourDepartureId!: string;
 
   @Column({ type: "varchar", name: "participant_full_name", length: 255 })
   participantFullName!: string;
@@ -53,4 +58,8 @@ export class WaitlistItemEntity extends BaseTenantEntity {
   @ManyToOne(() => TourEntity, { nullable: false })
   @JoinColumn({ name: "tour_id", referencedColumnName: "id" })
   tour!: TourEntity;
+
+  @ManyToOne(() => TourDepartureEntity, { nullable: false })
+  @JoinColumn({ name: "tour_departure_id", referencedColumnName: "id" })
+  tourDeparture!: TourDepartureEntity;
 }

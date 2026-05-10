@@ -130,6 +130,14 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
     );
   }
 
+  function optionalNumberInRange(min: number, max: number) {
+    const rangeMsg = msgs.intBetween(min, max);
+    return z.preprocess(
+      (raw) => emptyToUndefined(englishDigitsUnknown(raw)),
+      z.union([z.undefined(), z.coerce.number().min(min, rangeMsg).max(max, rangeMsg)]),
+    );
+  }
+
   function requiredIntInRange(min: number, max: number, coerceMessage: string) {
     const rangeMsg = msgs.intBetween(min, max);
     return z.preprocess(
@@ -269,8 +277,46 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
     })
     .strip();
 
+  const optionalTimeHhmm = z
+    .string()
+    .max(5)
+    .optional()
+    .transform((v) => (v === undefined || v.trim() === "" ? undefined : v.trim()))
+    .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
+      message: msgs.timeFormatInvalid,
+    });
+
   const TripDetailsItinerarySchema = z
     .object({
+      segmentActivities: z
+        .array(
+          z
+            .object({
+              dayNumber: z.number().int().min(1),
+              title: optionalShortText(256),
+              description: optionalLongText,
+              segments: z
+                .array(
+                  z
+                    .object({
+                      title: optionalShortText(256),
+                      description: optionalLongText,
+                      activityType: optionalShortText(64),
+                      startTime: optionalTimeHhmm,
+                      endTime: optionalTimeHhmm,
+                      estimatedDurationHours: optionalNumberInRange(0, 240),
+                      distanceKm: optionalNumberInRange(0, 10_000),
+                      elevationGainMeters: optionalIntInRange(0, 30_000),
+                      maxAltitudeMeters: optionalIntInRange(-500, 30_000),
+                      locationName: optionalShortText(256),
+                    })
+                    .strip(),
+                )
+                .optional(),
+            })
+            .strip(),
+        )
+        .optional(),
       highlights: optionalStringList,
       includedVisits: optionalStringList,
       excludedVisits: optionalStringList,
@@ -306,22 +352,20 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       documentsRequired: optionalStringList,
       suitableFor: audienceGroupArraySchema,
       notSuitableFor: audienceGroupArraySchema,
+      /** Participant must carry valid sport / mountaineering insurance (leader-enforced eligibility). */
+      sportsInsuranceRequired: z.boolean().optional(),
+      /** Profile national ID required at registration time (server-enforced). */
+      registrationNationalIdRequired: z.boolean().optional(),
     })
     .strip();
 
-  const optionalTimeHhmm = z
-    .string()
-    .max(5)
-    .optional()
-    .transform((v) => (v === undefined || v.trim() === "" ? undefined : v.trim()))
-    .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
-      message: msgs.timeFormatInvalid,
-    });
-
   const TripDetailsLogisticsSchema = z
     .object({
+      primaryTransportMode: z.enum(["plane", "train", "bus", "midibus", "private_car"]).optional(),
+      fuelShareToman: optionalIntInRange(0, 10_000_000_000),
       meetingPoint: optionalShortText(2048),
       departureMeetingTime: optionalTimeHhmm,
+      returnMeetingTime: optionalTimeHhmm,
       departureDate: optionalShortText(32),
       returnDate: optionalShortText(32),
       returnPoint: optionalShortText(2048),
@@ -343,6 +387,10 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       includedServices: optionalStringList,
       excludedServices: optionalStringList,
       optionalServices: optionalStringList,
+      /** Organizer includes some insurance coverage in the tour package (distinct from participant sport insurance). */
+      leaderProvidesInsurance: z.boolean().optional(),
+      /** Short note when `leaderProvidesInsurance` (scope, insurer type, exclusions). */
+      leaderInsuranceNotes: optionalShortText(500),
       guideLanguageIds: optionalGearUuidIdsList,
       groupSizeMin: optionalIntInRange(0, 10_000),
       groupSizeMax: optionalIntInRange(0, 10_000),

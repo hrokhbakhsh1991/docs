@@ -85,6 +85,10 @@ test("processor marks row DELIVERED after successful publish", async () => {
     }
   };
 
+  const emailService = {
+    async sendVerificationEmailOutboundStrict(): Promise<void> {}
+  };
+
   const configService = {
     getOutboxProcessorEnabled(): boolean {
       return true;
@@ -104,6 +108,7 @@ test("processor marks row DELIVERED after successful publish", async () => {
   const processor = new OutboxProcessor(
     dataSource as never,
     auditService as never,
+    emailService as never,
     configService as never,
     metrics,
     {
@@ -191,6 +196,10 @@ test("processor increments retryCount when publish fails", async () => {
     }
   };
 
+  const emailService = {
+    async sendVerificationEmailOutboundStrict(): Promise<void> {}
+  };
+
   const configService = {
     getOutboxProcessorEnabled(): boolean {
       return true;
@@ -210,6 +219,7 @@ test("processor increments retryCount when publish fails", async () => {
   const processor = new OutboxProcessor(
     dataSource as never,
     auditService as never,
+    emailService as never,
     configService as never,
     metrics,
     {
@@ -295,6 +305,10 @@ test("processor marks FAILED when retries reach threshold", async () => {
     }
   };
 
+  const emailService = {
+    async sendVerificationEmailOutboundStrict(): Promise<void> {}
+  };
+
   const configService = {
     getOutboxProcessorEnabled(): boolean {
       return true;
@@ -314,6 +328,7 @@ test("processor marks FAILED when retries reach threshold", async () => {
   const processor = new OutboxProcessor(
     dataSource as never,
     auditService as never,
+    emailService as never,
     configService as never,
     metrics,
     {

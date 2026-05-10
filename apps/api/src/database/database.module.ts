@@ -6,6 +6,8 @@ import { TenantSessionBindingService } from "./tenant-session-binding.service";
 import { TenantDbContextService } from "./tenant-db-context.service";
 import { RuntimeSchemaGuardService } from "./runtime-schema-guard.service";
 
+/** Read replica / CQRS routing is not wired here; see `docs/read-scaling.md` and ops DSN config. */
+
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({

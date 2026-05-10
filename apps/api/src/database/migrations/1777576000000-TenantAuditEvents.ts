@@ -38,9 +38,19 @@ export class TenantAuditEvents1777576000000 implements MigrationInterface {
       ALTER TABLE "tenant_audit_events" FORCE ROW LEVEL SECURITY
     `);
     await queryRunner.query(`
-      CREATE POLICY tenant_isolation_policy ON tenant_audit_events
-      USING (tenant_id = current_setting('app.tenant_id')::uuid)
-      WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid)
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_policies
+          WHERE schemaname = 'public'
+            AND tablename = 'tenant_audit_events'
+            AND policyname = 'tenant_isolation_policy'
+        ) THEN
+          CREATE POLICY tenant_isolation_policy ON tenant_audit_events
+          USING (tenant_id = current_setting('app.tenant_id')::uuid)
+          WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid);
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`

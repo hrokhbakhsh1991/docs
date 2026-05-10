@@ -84,6 +84,9 @@ export interface TourTripDetailsParticipation {
   documentsRequired?: string[];
   suitableFor?: TourAudienceGroup[];
   notSuitableFor?: TourAudienceGroup[];
+  sportsInsuranceRequired?: boolean;
+  /** When true, API requires authenticated profile with `national_id` for registration / waitlist. */
+  registrationNationalIdRequired?: boolean;
 }
 
 /**

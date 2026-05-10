@@ -8,7 +8,9 @@ import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
 import { convertNumbers, toEnglishIntegerString, uiLocaleDigits } from "../../../src/lib/number-utils";
 
 import styles from "./settings-profile-form.module.css";
-import { pickMeErrorMessage, type RefreshWorkspaceMeOptions, type WorkspaceMeData } from "./workspace-me-provider";
+import { pickMeErrorMessage } from "@/lib/me-api-error";
+
+import type { RefreshWorkspaceMeOptions, WorkspaceMeData } from "./workspace-me-provider";
 
 export type PhoneSettingsPanelProps = {
   me: WorkspaceMeData;
@@ -82,7 +84,7 @@ export function PhoneSettingsPanel({ me, refresh }: PhoneSettingsPanelProps) {
       });
       const body = (await res.json().catch(() => ({}))) as { challenge_id?: string };
       if (!res.ok || typeof body.challenge_id !== "string") {
-        const msg = pickMeErrorMessage(body, t("phoneRequestCodeFailedToast"));
+        const msg = pickMeErrorMessage(body, t("phoneRequestCodeFailedToast"), t);
         setPhoneError(msg);
         showToast({ type: "error", message: msg });
         return;
@@ -126,7 +128,7 @@ export function PhoneSettingsPanel({ me, refresh }: PhoneSettingsPanelProps) {
       });
       const body = (await res.json().catch(() => ({}))) as { status?: string };
       if (!res.ok || body.status !== "mobile_changed") {
-        const msg = pickMeErrorMessage(body, t("phoneVerifyFailedToast"));
+        const msg = pickMeErrorMessage(body, t("phoneVerifyFailedToast"), t);
         setOtpError(msg);
         showToast({ type: "error", message: msg });
         return;

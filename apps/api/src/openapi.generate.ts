@@ -16,6 +16,7 @@ async function generateOpenApi(): Promise<void> {
       .setTitle("API v2 Documentation")
       .setVersion("2.0.0")
       .addServer("/api/v2")
+      .addBearerAuth({ type: "http", scheme: "bearer", bearerFormat: "JWT" }, "bearer")
       .build();
     const document = SwaggerModule.createDocument(app, config);
     writeFileSync(outputPath, JSON.stringify(document, null, 2));

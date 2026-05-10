@@ -12,7 +12,7 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -23,7 +23,7 @@ import { SettingsDestinationsService } from "./settings-destinations.service";
 
 @ApiTags("Settings — Destinations")
 @Controller("api/v2/settings/destinations")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard)
 @ApiBearerAuth()
 export class SettingsDestinationsController {
   constructor(private readonly destinations: SettingsDestinationsService) {}

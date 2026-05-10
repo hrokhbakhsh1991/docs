@@ -15,7 +15,7 @@ export class CreateTourDetailsTable1777587000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE TABLE "tour_details" (
+      CREATE TABLE IF NOT EXISTS "tour_details" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "tour_id" uuid NOT NULL,
         "destination_name" character varying,

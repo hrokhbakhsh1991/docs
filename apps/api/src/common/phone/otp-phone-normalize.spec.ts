@@ -13,3 +13,11 @@ test("normalizeOtpPhoneInput trims outer whitespace", () => {
 test("normalizeOtpPhoneInput preserves single leading +", () => {
   assert.equal(normalizeOtpPhoneInput("+1 (555) 000-0001"), "+15550000001");
 });
+
+test("normalizeOtpPhoneInput maps Persian digits before stripping", () => {
+  assert.equal(normalizeOtpPhoneInput("+۹۸۹۱۲۱۲۳۶۵۹۸"), "+989121236598");
+});
+
+test("normalizeOtpPhoneInput maps Arabic-Indic digits", () => {
+  assert.equal(normalizeOtpPhoneInput("+٩٨٩١٢١٢٣٦٥٩٨"), "+989121236598");
+});

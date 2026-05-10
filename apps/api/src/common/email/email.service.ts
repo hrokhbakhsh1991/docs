@@ -19,16 +19,16 @@ export class EmailService {
     this.resend = apiKey !== "" ? new Resend(apiKey) : null;
   }
 
-  async sendVerificationEmail(to: string, codeOrLink: string): Promise<void> {
+  /** Outbox/worker path: skips quietly without Resend configured; otherwise throws on Hard failures (retryable). */
+  async sendVerificationEmailOutboundStrict(to: string, codeOrLink: string): Promise<void> {
     const toTrimmed = to.trim();
     if (toTrimmed === "") {
-      this.loggerService.warn("email_send_skipped_empty_to", {});
-      return;
+      throw new Error("Email verification outbound: empty recipient address");
     }
 
     const apiKey = this.configService.getResendApiKey();
     if (apiKey === "" || this.resend === null) {
-      this.loggerService.warn("email_send_skipped_no_resend_api_key", { to: toTrimmed });
+      this.loggerService.warn("email_send_skipped_no_resend_api_key", {});
       return;
     }
 
@@ -40,7 +40,8 @@ export class EmailService {
     let linkParagraph = "";
     if (base !== "") {
       try {
-        const relative = `settings?verify_email_token=${encodeURIComponent(codeOrLink)}`;
+        /** Fragment keeps the opaque token off the wire to the HTTP server/query logs. */
+        const relative = `settings#verify_email_token=${encodeURIComponent(codeOrLink)}`;
         const u = new URL(relative, base.endsWith("/") ? base : `${base}/`);
         if (u.protocol === "http:" || u.protocol === "https:") {
           const href = u.href.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -52,24 +53,29 @@ export class EmailService {
     }
     const html = `<p>Verify your email using this token:</p><p><strong>${escaped}</strong></p>${linkParagraph}`;
 
+    const { data, error } = await this.resend.emails.send({
+      from,
+      to: [toTrimmed],
+      subject: "Verify your email",
+      html
+    });
+    if (error) {
+      throw new Error(error.message ?? "Resend email send rejected");
+    }
+    this.loggerService.info("email_send_verification_ok", { to: toTrimmed, id: data?.id });
+  }
+
+  async sendVerificationEmail(to: string, codeOrLink: string): Promise<void> {
+    const toTrimmed = to.trim();
+    if (toTrimmed === "") {
+      this.loggerService.warn("email_send_skipped_empty_to", {});
+      return;
+    }
     try {
-      const { data, error } = await this.resend.emails.send({
-        from,
-        to: [toTrimmed],
-        subject: "Verify your email",
-        html
-      });
-      if (error) {
-        this.loggerService.error("email_send_resend_error", {
-          to: toTrimmed,
-          resend_message: error.message
-        });
-        return;
-      }
-      this.loggerService.info("email_send_verification_ok", { to: toTrimmed, id: data?.id });
+      await this.sendVerificationEmailOutboundStrict(toTrimmed, codeOrLink);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.loggerService.error("email_send_verification_failed", { to: toTrimmed, message });
+      const msg = err instanceof Error ? err.message : String(err);
+      this.loggerService.error("email_send_verification_failed", { to: toTrimmed, message: msg });
     }
   }
 }

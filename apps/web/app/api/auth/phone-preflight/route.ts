@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
+
 function resolveBackendUrl(): string {
   return process.env.TOUR_OPS_API_URL?.trim() || "http://denali.localhost:3001";
 }
@@ -11,7 +13,8 @@ type PreflightBody = {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as PreflightBody;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone =
+    typeof body.phone === "string" ? normalizeOtpPhoneInput(body.phone) : "";
   const inviteToken = typeof body.invite_token === "string" ? body.invite_token.trim() : undefined;
   if (!phone) {
     return NextResponse.json(

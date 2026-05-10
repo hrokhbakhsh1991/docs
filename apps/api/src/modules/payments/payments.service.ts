@@ -763,6 +763,7 @@ export class PaymentsService {
     const promotedRegistration = manager.create(RegistrationEntity, {
       tenantId: waitlistItem.tenantId,
       tourId: waitlistItem.tourId,
+      tourDepartureId: waitlistItem.tourDepartureId,
       participantFullName: waitlistItem.participantFullName,
       participantContactPhone: waitlistItem.participantContactPhone,
       transportMode: waitlistItem.transportMode,

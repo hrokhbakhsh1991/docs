@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from "class-validator";
 
 export class CompleteRegistrationDto {
   @ApiProperty({
@@ -17,6 +17,8 @@ export class CompleteRegistrationDto {
 
   @ApiProperty({ required: false, example: "jane@example.com" })
   @IsOptional()
+  @ValidateIf((_o, v) => typeof v === "string" && v.trim() !== "")
+  @IsEmail()
   @IsString()
   @MaxLength(320)
   email?: string;

@@ -4,19 +4,19 @@ import test from "node:test";
 import { UnauthorizedException } from "@nestjs/common";
 import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { AuthController } from "../../src/modules/auth/auth.controller";
-import { JwtAuthGuard } from "../../src/modules/auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../../src/modules/auth/authorization-presence.guard";
 import { RolesGuard } from "../../src/modules/auth/roles.guard";
 import { Role } from "../../src/modules/auth/roles.enum";
 import { ROLES_METADATA_KEY } from "../../src/modules/auth/roles.decorator";
 import { LinkTelegramDto } from "../../src/modules/auth/dto/link-telegram.dto";
 
-test("link-telegram declares explicit JwtAuthGuard + RolesGuard chain", () => {
+test("link-telegram declares explicit AuthorizationPresenceGuard + RolesGuard chain", () => {
   const guards = Reflect.getMetadata(
     GUARDS_METADATA,
     AuthController.prototype.linkTelegram
   ) as Array<new (...args: unknown[]) => unknown>;
   assert.equal(Array.isArray(guards), true);
-  assert.equal(guards.includes(JwtAuthGuard), true);
+  assert.equal(guards.includes(AuthorizationPresenceGuard), true);
   assert.equal(guards.includes(RolesGuard as never), true);
 
   const roles = Reflect.getMetadata(

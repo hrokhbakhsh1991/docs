@@ -24,7 +24,7 @@ import { IsNull, Repository } from "typeorm";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -33,7 +33,7 @@ import { UserEntity } from "./entities/user.entity";
 
 @ApiTags("Compliance")
 @Controller("api/v2/workspaces")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard)
 @ApiBearerAuth()
 @Roles(Role.OWNER, Role.ADMIN)
 export class TenantAuditEventsController {

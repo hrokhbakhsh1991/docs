@@ -106,6 +106,7 @@ function buildRegistration(
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     tenantId: "11111111-1111-4111-8111-111111111111",
     tourId: "22222222-2222-4222-8222-222222222222",
+    tourDepartureId: "22222222-2222-4222-8222-222222222222",
     participantFullName: "Test User",
     participantContactPhone: "+989121234567",
     transportMode: "group_vehicle",

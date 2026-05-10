@@ -1133,16 +1133,58 @@
     "/api/v2/me": {
       "get": {
         "operationId": "MeController_getMe",
+        "summary": "Current user profile in workspace context",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeProfileResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or no membership"
           }
-        }
+        },
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       },
       "patch": {
         "operationId": "MeController_patchMe",
-        "parameters": [],
+        "summary": "Update profile fields and/or start email change verification",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Optional replay protection for identical PATCH payloads (tenant-scoped, 24h default TTL).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Optional weak concurrency check from GET `ETag` (e.g. `W/\"3\"` equals `profile_row_version`). Omit for legacy clients.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1155,14 +1197,43 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Updated profile, or pending verification when email changes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MeProfileResponseDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MePendingEmailVerificationResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or no membership"
           }
-        }
+        },
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/me/verify-email": {
       "post": {
         "operationId": "MeController_verifyEmail",
+        "summary": "Complete email change with verification token",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1176,14 +1247,36 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeEmailVerifiedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or no membership"
           }
-        }
+        },
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/me/change-mobile/request": {
       "post": {
         "operationId": "MeController_requestChangeMobile",
+        "summary": "Start mobile change (sends OTP)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1197,14 +1290,36 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeChangeMobileChallengeResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or no membership"
           }
-        }
+        },
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/me/change-mobile/verify": {
       "post": {
         "operationId": "MeController_verifyChangeMobile",
+        "summary": "Complete mobile change with OTP",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1218,9 +1333,30 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeMobileChangedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or no membership"
           }
-        }
+        },
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/tours": {
@@ -1295,6 +1431,34 @@
                 "archived"
               ],
               "type": "string"
+            }
+          },
+          {
+            "name": "cursor_id",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor: tour id from the last item of the previous page (use with cursor_created_at)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor_created_at",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor: ISO-8601 created_at of that tour row (use with cursor_id)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_total",
+            "required": false,
+            "in": "query",
+            "description": "When false, skips an extra COUNT query; `total` in the response is -1 (unknown). Default true.",
+            "schema": {
+              "default": true,
+              "type": "boolean"
             }
           }
         ],
@@ -4156,21 +4320,269 @@
           "new_owner_user_id"
         ]
       },
+      "MeProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "full_name": {
+            "type": "object",
+            "nullable": true,
+            "description": "Display name; may be unset"
+          },
+          "national_id": {
+            "type": "object",
+            "nullable": true,
+            "description": "Iran national ID (digits only)",
+            "pattern": "^[0-9]{10}$",
+            "minLength": 10,
+            "maxLength": 10
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "female",
+              "male",
+              "non_binary",
+              "prefer_not_to_say"
+            ],
+            "description": "Self-reported gender when set"
+          },
+          "birth_date": {
+            "type": "object",
+            "nullable": true,
+            "description": "Date of birth in Gregorian ISO `YYYY-MM-DD` when set",
+            "example": "1990-05-21"
+          },
+          "email": {
+            "type": "object",
+            "nullable": true,
+            "description": "Contact email when set. Phone-only signups store `phone_*@local.invalid` internally — API omits that placeholder (`null` here).",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "is_email_verified": {
+            "type": "boolean",
+            "description": "Whether the current primary email address is verified"
+          },
+          "phone": {
+            "type": "object",
+            "nullable": true,
+            "description": "Normalized phone number when set"
+          },
+          "is_phone_verified": {
+            "type": "boolean",
+            "description": "Whether phone is verified via OTP-capable flows"
+          },
+          "notifications_enabled": {
+            "type": "object",
+            "nullable": true,
+            "description": "`true`/`false` when opted in/out; JSON `null` when never set (stored as DB NULL)."
+          },
+          "profile_row_version": {
+            "type": "number",
+            "description": "Increases on persisted profile/email/phone mutations; pair with weak `ETag` / `If-Match` optimistic locking.",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "is_email_verified",
+          "is_phone_verified",
+          "notifications_enabled",
+          "profile_row_version"
+        ]
+      },
+      "MePendingEmailVerificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_email_verification"
+            ]
+          },
+          "profile_row_version": {
+            "type": "number",
+            "description": "`users.profile_row_version` after persisting ancillary profile fields tied to verification start."
+          }
+        },
+        "required": [
+          "status",
+          "profile_row_version"
+        ]
+      },
       "PatchMeDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "full_name": {
+            "type": "object",
+            "nullable": true,
+            "description": "Display name (1–255 characters when set); JSON null clears.",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "description": "New email; triggers verification flow when different from current",
+            "maxLength": 320,
+            "format": "email"
+          },
+          "notifications_enabled": {
+            "type": "object",
+            "nullable": true,
+            "description": "Notification preference: `true`/`false` sets explicitly; JSON `null` clears to unset (DB NULL). When omitted, unchanged."
+          },
+          "expected_profile_row_version": {
+            "type": "number",
+            "description": "Optimistic concurrency token (same value as `profile_row_version` / weak `ETag` on `GET /me`). Omit `If-Match` or keep both equal when both are sent."
+          },
+          "national_id": {
+            "type": "object",
+            "nullable": true,
+            "description": "Iran national ID (10 Latin digits; Persian/Arabic digits accepted and normalized). Send null to clear.",
+            "pattern": "^[0-9]{10}$",
+            "minLength": 10,
+            "maxLength": 10
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "female",
+              "male",
+              "non_binary",
+              "prefer_not_to_say"
+            ],
+            "description": "Self-reported gender; send null to clear"
+          },
+          "birth_date": {
+            "type": "object",
+            "nullable": true,
+            "description": "Gregorian date of birth as YYYY-MM-DD (no time zone). Send null to clear.",
+            "example": "1990-05-21"
+          }
+        }
       },
       "VerifyEmailDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "64-character hex token from verification email",
+            "minLength": 64,
+            "maxLength": 64,
+            "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "MeEmailVerifiedResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "email_verified"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "status",
+          "email"
+        ]
       },
       "ChangeMobileRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "new_mobile": {
+            "type": "string",
+            "description": "New mobile number (normalized for OTP; min 8 significant characters)",
+            "example": "+989121234567"
+          }
+        },
+        "required": [
+          "new_mobile"
+        ]
+      },
+      "MeChangeMobileChallengeResponseDto": {
+        "type": "object",
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "description": "Opaque challenge identifier for OTP verification",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "challenge_id"
+        ]
       },
       "ChangeMobileVerifyDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Challenge id from change-mobile request"
+          },
+          "code": {
+            "type": "string",
+            "description": "OTP code from SMS or dev flow"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "code"
+        ]
+      },
+      "MeMobileChangedResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "mobile_changed"
+            ]
+          },
+          "mobile": {
+            "type": "string",
+            "description": "New verified mobile number (normalized)",
+            "example": "+989121234567"
+          }
+        },
+        "required": [
+          "status",
+          "mobile"
+        ]
+      },
+      "CostContextDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "USD",
+            "description": "ISO 4217 alpha code when set."
+          },
+          "totalCost": {
+            "type": "number",
+            "example": 1200
+          },
+          "location": {
+            "type": "string",
+            "description": "Display / billing location hint until a dedicated column exists."
+          }
+        }
       },
       "TripDetailsOverviewDto": {
         "type": "object",
@@ -4237,6 +4649,20 @@
             "type": "string",
             "maxLength": 250,
             "description": "Very short teaser (≤250 chars) for **tour cards / list previews / meta description**. The root tour `description` field holds the long-form story for the **full tour page**. If empty, clients should fall back to `description` when rendering cards."
+          },
+          "settingsRegionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Settings → Locations region id (wizard JSONB linkage)."
+          },
+          "settingsMainDestinationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Settings → Locations primary destination id (wizard)."
+          },
+          "secondaryDestinationIdsRaw": {
+            "type": "string",
+            "description": "Free-text / comma-separated secondary destination ids from the wizard when not normalized to UUID array."
           }
         }
       },
@@ -4262,6 +4688,64 @@
           "elevationGainM": {
             "type": "number",
             "example": 450
+          }
+        }
+      },
+      "TripDetailsSegmentActivitySegmentDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "activityType": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "description": "24h HH:mm"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "24h HH:mm"
+          },
+          "estimatedDurationHours": {
+            "type": "number"
+          },
+          "distanceKm": {
+            "type": "number"
+          },
+          "elevationGainMeters": {
+            "type": "number"
+          },
+          "maxAltitudeMeters": {
+            "type": "number"
+          },
+          "locationName": {
+            "type": "string"
+          }
+        }
+      },
+      "TripDetailsSegmentActivityDayDto": {
+        "type": "object",
+        "properties": {
+          "dayNumber": {
+            "type": "number",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TripDetailsSegmentActivitySegmentDto"
+            }
           }
         }
       },
@@ -4309,6 +4793,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TripDetailsDayPlanDto"
+            }
+          },
+          "segmentActivities": {
+            "description": "Structured per-day segments from the tour wizard (distinct from legacy `dayPlans` rows).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TripDetailsSegmentActivityDayDto"
             }
           }
         }
@@ -4419,6 +4910,14 @@
                 "experienced_hikers"
               ]
             }
+          },
+          "sportsInsuranceRequired": {
+            "type": "boolean",
+            "description": "Participant must carry valid sport / mountaineering insurance (leader-enforced)."
+          },
+          "registrationNationalIdRequired": {
+            "type": "boolean",
+            "description": "When true, only authenticated registrants with `national_id` set on their user profile may register or join the waitlist."
           }
         }
       },
@@ -4543,6 +5042,33 @@
           "groupSizeMax": {
             "type": "number",
             "minimum": 0
+          },
+          "primaryTransportMode": {
+            "type": "string",
+            "enum": [
+              "plane",
+              "train",
+              "bus",
+              "midibus",
+              "private_car"
+            ],
+            "description": "Primary mode selected in the wizard (stored in JSONB; may inform root `transportModes`)."
+          },
+          "fuelShareToman": {
+            "type": "number",
+            "description": "Shared fuel cost in Toman when `primaryTransportMode` is `private_car`."
+          },
+          "returnMeetingTime": {
+            "type": "string",
+            "description": "Return / end-of-trip meetup time (24h HH:mm)."
+          },
+          "leaderProvidesInsurance": {
+            "type": "boolean",
+            "description": "Organizer includes some insurance coverage in the tour package."
+          },
+          "leaderInsuranceNotes": {
+            "type": "string",
+            "maxLength": 500
           }
         }
       },
@@ -4635,11 +5161,15 @@
             "example": "https://t.me/joinchat/example"
           },
           "cost_context": {
-            "type": "object",
             "example": {
               "currency": "USD",
               "totalCost": 1200
-            }
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CostContextDto"
+              }
+            ]
           },
           "autoAcceptRegistrations": {
             "type": "boolean",
@@ -4993,11 +5523,15 @@
             "example": "https://t.me/joinchat/updated"
           },
           "cost_context": {
-            "type": "object",
             "example": {
               "currency": "USD",
-              "discount": 10
-            }
+              "totalCost": 1200
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CostContextDto"
+              }
+            ]
           },
           "autoAcceptRegistrations": {
             "type": "boolean",
@@ -5116,7 +5650,8 @@
           },
           "total": {
             "type": "number",
-            "example": 42
+            "example": 42,
+            "description": "Total matching rows, or -1 when include_total=false on the list request"
           },
           "page": {
             "type": "number",

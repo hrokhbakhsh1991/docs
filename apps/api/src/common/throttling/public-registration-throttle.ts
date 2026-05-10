@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { BlockList, isIP } from "node:net";
 import type { ExecutionContext } from "@nestjs/common";
 
+import { requestContextStorage } from "../request-context/request-context";
+
 type ResolveClientIpOptions = {
   trustedProxyCidrs?: string[];
 };
@@ -147,15 +149,29 @@ export function resolveThrottleClientIp(
 }
 
 /**
- * One Redis bucket per client IP across both public registration routes (matches legacy guard).
- * Default ThrottlerGuard keys include handler name, which would split limits per endpoint.
+ * Redis buckets keyed by throttler name + client tracker (IP). With `tenantId`, many tenants
+ * behind one IP get separate buckets; with `userId` as well, many users behind one NAT within
+ * the same workspace get separate buckets.
  */
 export function publicRegistrationThrottleKey(
   _context: ExecutionContext,
   tracker: string,
   throttlerName: string
 ): string {
+  const store = requestContextStorage.getStore();
+  const tenantRaw = store?.tenantId?.trim().toLowerCase();
+  const userRaw = store?.userId?.trim().toLowerCase();
+  let segment: string;
+  if (tenantRaw) {
+    if (userRaw) {
+      segment = `${throttlerName}:tenant:${tenantRaw}:user:${userRaw}:${tracker}`;
+    } else {
+      segment = `${throttlerName}:tenant:${tenantRaw}:${tracker}`;
+    }
+  } else {
+    segment = `${throttlerName}:${tracker}`;
+  }
   return createHash("sha256")
-    .update(`public-registration-shared:${throttlerName}:${tracker}`)
+    .update(`public-registration-shared:${segment}`)
     .digest("hex");
 }

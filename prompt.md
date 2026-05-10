@@ -1,534 +1,338 @@
+# سند راهبر عملیاتی: تکمیل ماژول Profile تا سطح آمادهٔ بهره‌برداری
 
-این فایل شامل مجموعه پرامپت‌های مرحله‌به‌مرحله برای توسعه یا ریفکتور کامل صفحه ایجاد تور (`/tours/new`) به شکل Wizard است.
+این سند برای حالتی نوشته شده که تیم از **محدودیت MVP خارج شده** و هدف **نسخهٔ کامل، استاندارد و قابل‌دفاع** برای مسیر **پروفایل کاربر جاری** (`/api/v2/me`، BFF، Settings) است — نه «حداقل قابل قبول برای لانچ اولیه».
 
-> هدف:  
-> - پیاده‌سازی یک Wizard چندمرحله‌ای برای ساخت `trip_details`  
-> - پشتیبانی از سناریوهای پیچیده (دو قله در یک روز، تور ترکیبی کوهنوردی + فرهنگی + اجتماعی، دورهمی‌ها، …)  
-> - استفاده از Next.js + React Hook Form + Zod  
-> - سازگاری با NestJS backend و مدل `trip_details` (با ساختار جدید `itinerary` و بخش‌های `overview`, `participation`, `logistics`, `policies`, …)
-
-> نحوه استفاده از این فایل:
-> - در هر مرحله، پرامپت آن مرحله را در GPT/Copilot/Cursor اجرا کن.
-> - خروجی را در repo اعمال کن.
-> - اگر تغییری لازم بود، در همان مرحله اصلاح کن و بعد به مرحله بعد برو.
+**مرز باریک:** هر چیزی دربارهٔ **تورها، رزرو، قیمت، جستجو** خارج از همین مسیر Identity/Settings نیست؛ اما هر آنچه برای پروفایل، PII، اعلان‌ها، تأیید ایمیل و موبایل لازم است **در همین ریپو و همین جریان**، در این سند بسته‌بندی شده است.
 
 ---
 
-## SECTION 0 – Context & Constraints (برای همه مراحل)
-
-**PROMPT 0 – Provide full context**
-
-> You are assisting in refactoring and implementing a complete multi-step wizard for creating tours at route `/tours/new`.
->
-> Tech stack:
-> - Next.js (App Router or Pages Router – infer from codebase)
-> - React, TypeScript
-> - React Hook Form (RHF)
-> - Zod for validation
-> - Backend: NestJS, REST API
->
-> Domain model:
-> - We have a backend `trip_details` model with sections: `overview`, `itinerary`, `participation`, `logistics`, `policies`, and optional future sections like `riskAssessment`, `route`, `emergency`.
-> - `eventKind` is derived from `tourType` / `tripStyles`.
-> - We want a flexible `itinerary` that supports:
->   - multi-day trips
->   - multiple activities per day (segments)
->   - mixed types of activities (e.g. mountaineering + cultural visit + social gathering)
->
-> Itinerary target structure (proposed):
->
-```ts
-> type TourItinerarySegmentType =
->   | 'approach'
->   | 'summit'
->   | 'hike'
->   | 'trek'
->   | 'transfer'
->   | 'cultural'
->   | 'historical'
->   | 'social'
->   | 'rest'
->   | 'other';
->
-> type TourItinerarySegment = {
->   id?: string;
->   type: TourItinerarySegmentType;
->   title: string;
->   description?: string;
->   location?: string;
->   maxAltitudeMeters?: number;
->   distanceKm?: number;
->   estimatedDurationHours?: number;
->   startTime?: string; // HH:mm
->   endTime?: string;   // HH:mm
-> };
->
-> type TourItineraryDay = {
->   dayIndex: number;
->   title?: string;
->   dateOffset?: number; // 0-based offset from start date
->   description?: string;
->   segments: TourItinerarySegment[];
-> };
->
-> type TourItinerary = {
->   days: TourItineraryDay[];
-> };
-> 
-Overview target structure (simplified):
-
-
-> type TourOverview = {
->   title: string;
->   slug?: string;
->   mainTheme: 'mountaineering' | 'trekking' | 'cultural' | 'social' | 'mixed';
->   secondaryThemes?: string[];
->   tourType?: string;
->   tripStyles?: string[];
->   shortDescription: string;
->   longDescription?: string;
->   highlights?: string[];
->   locationSummary?: string;
->   // ...other fields already defined in README.tour-create-wizard.md
-> };
-> 
-We already have a detailed document README.tour-create-wizard.md that describes:
-
-current backend trip_details structure
-current frontend form
-target wizard steps (8-step flow)
-mapping between frontend fields and backend model
-considerations for backward compatibility
-General UX plan for the wizard (can be adjusted):
-
-Basic Info (overview)
-Capacity & Pricing
-Location & Dates
-Itinerary (multi-day, multi-segment)
-Participation & Requirements
-Services & Logistics
-Policies & Safety
-Review & Submit
-Constraints:
-
-Keep all changes compatible with the backend API (NestJS).
-Use React Hook Form + Zod for each wizard step, with a shared form context.
-Keep the wizard state centralised (single RHF form over all steps).
-Ensure we can support complex cases:
-two summits in one day
-combination of social / cultural / mountaineering activities
-multi-day, mixed-theme trips (e.g. mountaineering + historical visits).
-Your job:
-
-In the following steps, I’ll ask you to:
-analyse existing code,
-propose refactors and new components,
-generate precise TypeScript/React code,
-provide migration / compatibility notes.
-Always:
-
-Show complete interfaces/types when they are changed.
-Show full React component code when new components are introduced.
-Explain briefly how to integrate with existing code (imports, file paths, etc.).
-Confirm that you understood the context and are ready for step 1. Don’t start coding yet, just summarise your understanding and what you’ll focus on.
-
-SECTION 1 – Analyse existing implementation
-PROMPT 1 – Analyse current /tours/new page and related forms
-
-I want you to analyse the current implementation of the tour creation page and related forms.
-
-Locate the current implementation:
-/tours/new page or equivalent route
-any global form components or hooks used for tour creation
-any Zod schemas related to trip_details or tour creation
-Summarise:
-current form structure (single-page vs multi-step)
-how validation is currently handled (Zod schemas, custom validation, etc.)
-how the payload is built and sent to the backend (API route, service function)
-Identify:
-places where the current form maps to the backend trip_details
-where itinerary is currently defined and how it’s structured in the frontend
-Output:
-a short, structured summary:
-FormStructure
-Validation
-PayloadMapping
-ItineraryHandling
-KeyFiles (list of file paths)
-Please show file paths and any relevant type/interface names, but do not rewrite code yet. I only want analysis.
-
-SECTION 2 – Wizard shell & layout
-PROMPT 2 – Create Wizard shell
-
-Now we want to refactor the tour creation into a multi-step wizard.
-
-Tasks:
-
-Propose the file structure for the wizard components. Example:
-app/tours/new/page.tsx (or similar)
-components/tours/wizard/TourCreateWizard.tsx
-components/tours/wizard/steps/BasicInfoStep.tsx
-components/tours/wizard/steps/CapacityPricingStep.tsx
-components/tours/wizard/steps/LocationDatesStep.tsx
-components/tours/wizard/steps/ItineraryStep.tsx
-components/tours/wizard/steps/ParticipationStep.tsx
-components/tours/wizard/steps/LogisticsStep.tsx
-components/tours/wizard/steps/PoliciesStep.tsx
-components/tours/wizard/steps/ReviewSubmitStep.tsx
-Implement a first version of TourCreateWizard.tsx that:
-uses React Hook Form with a single form context for all steps
-manages current step index
-renders different step components based on current step
-has Next / Previous navigation
-Provide:
-TypeScript code for TourCreateWizard.tsx
-any shared types it needs (but keep them minimal; detailed domain types will be refined later)
-Assumptions:
-
-Use functional components with TypeScript.
-Use React Hook Form’s FormProvider to share form context across steps.
-Don’t connect to the backend yet; just prepare a onSubmit handler stub.
-Output:
-
-The complete code for:
-TourCreateWizard.tsx
-A short explanation of how to integrate it into /tours/new page.
-SECTION 3 – Global form schema (Zod + RHF integration)
-PROMPT 3 – Define Zod schema for the entire wizard
-
-We now want to define the global Zod schema for the wizard, which will drive React Hook Form.
-
-Tasks:
-
-Define a Zod schema tourCreateSchema that covers all wizard steps:
-overview/basic info (title, mainTheme, secondaryThemes, tourType, tripStyles, shortDescription, etc.)
-capacity & pricing
-location & dates
-itinerary (with the flexible days and segments structure from the context)
-participation & requirements
-logistics
-policies & safety
-Pay special attention to:
-itinerary:
-days: { dayIndex: number; title?: string; description?: string; segments: Segment[] }[]
-segments: { type, title, description?, ... }[]
-overview:
-mainTheme
-secondaryThemes (optional array)
-tourType, tripStyles (if needed)
-Ensure:
-the schema is compatible with the backend trip_details expectations
-we can later transform this form data into the backend payload with minimal mapping
-Then:
-show how to integrate this Zod schema with React Hook Form in TourCreateWizard.tsx
-using zodResolver
-Output:
-
-A new file schemas/tourCreateSchema.ts (or similar) with:
-tourCreateSchema
-TourCreateFormValues TypeScript type inferred from the schema
-The updated TourCreateWizard.tsx showing:
-integration of the resolver
-use of TourCreateFormValues as the form type.
-SECTION 4 – Step 1: Basic Info (Overview)
-PROMPT 4 – Implement Basic Info step
-
-Implement BasicInfoStep.tsx to handle the overview part of the wizard.
-
-Requirements:
-
-Fields (can be adjusted):
-overview.title (required)
-overview.shortDescription (required)
-overview.longDescription (optional)
-overview.mainTheme (enum: ‘mountaineering’ | ‘trekking’ | ‘cultural’ | ‘social’ | ‘mixed’)
-overview.secondaryThemes (optional multi-select)
-optional: overview.tourType, overview.tripStyles (if used as UI-level or backend-level enums)
-Use React Hook Form’s useFormContext.
-Display validation errors based on Zod schema.
-Tasks:
-
-Implement BasicInfoStep.tsx:
-full TypeScript/React component
-form fields mapped to tourCreateSchema
-Show how to register these fields:
-use register, Controller, or any custom inputs we use in the codebase
-Make sure:
-the step component is integrated properly into TourCreateWizard.tsx
-the wizard step will block Next if required fields are missing (we can handle this by validating the whole form but conceptually focus on Zod-level constraints).
-Output:
-
-Complete BasicInfoStep.tsx code.
-Any needed type adjustments in tourCreateSchema for overview.
-SECTION 5 – Step 2: Capacity & Pricing
-PROMPT 5 – Implement Capacity & Pricing step
-
-Implement CapacityPricingStep.tsx.
-
-Fields (example, adjust to match existing backend model and README mapping):
-
-capacity:
-participation.maxParticipants
-participation.minParticipants?
-pricing:
-pricing.basePrice
-pricing.currency
-pricing.discountRules? (if applicable)
-Tasks:
-
-Update tourCreateSchema to include participation and pricing parts.
-Implement CapacityPricingStep.tsx:
-using useFormContext
-mapping to Zod schema fields
-Ensure:
-it’s integrated in TourCreateWizard.tsx
-Output:
-
-Updated Zod schema snippet.
-Full CapacityPricingStep.tsx.
-SECTION 6 – Step 3: Location & Dates
-PROMPT 6 – Implement Location & Dates step
-
-Implement LocationDatesStep.tsx.
-
-Fields (to align with backend and README):
-
-Start/end dates:
-schedule.startDate
-schedule.endDate
-optionally schedule.timezone
-Base location:
-location.country
-location.region
-location.city
-optional location.meetingPoint
-Tasks:
-
-Extend tourCreateSchema with schedule and location sections (if not already defined).
-Implement LocationDatesStep.tsx:
-mapping fields to schema
-using any date-picker components used in the project (if known; otherwise propose simple input types).
-Output:
-
-Updated schema.
-Full LocationDatesStep.tsx.
-SECTION 7 – Step 4: Itinerary (multi-day, multi-segment)
-PROMPT 7 – Implement Itinerary step with days + segments
-
-This is the critical step: implementing ItineraryStep.tsx for multi-day, multi-segment itineraries.
-
-Goals:
-
-Support complex itineraries, including:
-multiple segments per day
-different segment types: summit, trek, cultural, social, transfer, etc.
-scenario: two peaks in one day (two summit segments in the same day)
-scenario: mixed mountaineering + cultural in different days
-Provide a UX where:
-user can:
-add/remove days
-add/remove segments inside a day
-each segment has:
-type
-title
-optional description
-optional location
-optional maxAltitudeMeters, distanceKm, estimatedDurationHours
-optional startTime, endTime
-Tasks:
-
-Confirm/adjust the Zod structure for itinerary:
-
-itinerary.days[].segments[]
-Implement ItineraryStep.tsx with:
-
-use of useFieldArray from React Hook Form for:
-days array
-segments array per day (nested useFieldArray)
-use of Controller or register for each segment field
-Example UX:
-
-A list of days:
-“Day 1”, “Day 2”, …
-each day block:
-title (optional)
-description (optional)
-[Add segment] button
-for each segment:
-select: type
-input: title
-textarea: description
-optional fields: altitude, distance, etc.
-Buttons:
-[Add day]
-[Remove day]
-Ensure:
-
-the resulting form value matches the itinerary schema we defined.
-we can represent scenarios like:
-two summits in one day:
-Day 1:
-Segment 1: type = ‘summit’, title = ‘Peak A’
-Segment 2: type = ‘summit’, title = ‘Peak B’
-mountaineering + historical:
-Day 2:
-Segment 1: type = ‘summit’
-Segment 2: type = ‘cultural’
-social events (games, book-club, movie night):
-Segment: type = ‘social’, title = ‘Board games night’
-Output:
-
-Updated itinerary part of tourCreateSchema (if needed).
-Full ItineraryStep.tsx code, including:
-useFieldArray usage
-nested arrays handling
-Any helper components (e.g. ItineraryDayCard, ItinerarySegmentForm) if you decide to extract them.
-SECTION 8 – Step 5: Participation & Requirements
-PROMPT 8 – Implement Participation step
-
-Implement ParticipationStep.tsx focusing on participation & requirements.
-
-Fields might include:
-
-participation.requiredExperienceLevel
-participation.requiredFitnessLevel
-participation.ageLimit
-participation.equipmentRequirements (list or text)
-any other participation-related fields from the README mapping.
-Tasks:
-
-Extend tourCreateSchema.participation as needed.
-Implement ParticipationStep.tsx with appropriate inputs and validation.
-Ensure consistency between:
-heavy/technical tours (e.g. high-altitude mountaineering)
-light/social tours (e.g. board games, book club) – i.e. avoid forcing irrelevant fields.
-Output:
-
-Updated schema.
-Full ParticipationStep.tsx.
-SECTION 9 – Step 6: Services & Logistics
-PROMPT 9 – Implement Logistics step
-
-Implement LogisticsStep.tsx focusing on services & logistics.
-
-Fields example:
-
-logistics.includedServices (e.g. transport, accommodation, meals)
-logistics.excludedServices
-logistics.meetingPointDetails
-logistics.transportationDetails
-logistics.accommodationDetails
-Tasks:
-
-Extend the logistics part of tourCreateSchema.
-Implement LogisticsStep.tsx.
-Output:
-
-Schema updates.
-Full LogisticsStep.tsx.
-SECTION 10 – Step 7: Policies & Safety
-PROMPT 10 – Implement Policies & Safety step
-
-Implement PoliciesStep.tsx focusing on policies & safety.
-
-Fields example:
-
-policies.cancellationPolicy
-policies.refundPolicy
-policies.safetyNotes
-policies.riskDisclaimer
-optional: riskAssessment (future extension placeholder)
-Tasks:
-
-Extend policies in tourCreateSchema.
-Implement PoliciesStep.tsx.
-Output:
-
-Schema updates.
-Full PoliciesStep.tsx.
-SECTION 11 – Step 8: Review & Submit
-PROMPT 11 – Implement Review & Submit step
-
-Implement ReviewSubmitStep.tsx.
-
-Goals:
-
-Show a read-only summary of all wizard data (overview, capacity, dates, itinerary, participation, logistics, policies).
-Allow user to:
-go back to previous steps to edit
-submit the final form
-Tasks:
-
-Implement ReviewSubmitStep.tsx:
-Access all form values via useFormContext + watch.
-Display a structured summary:
-Basic Info
-Capacity & Pricing
-Location & Dates
-Itinerary (days & segments)
-Participation
-Logistics
-Policies
-In TourCreateWizard.tsx:
-wire up the final handleSubmit:
-gather form values
-transform them if necessary into backend trip_details shape
-call an API function (e.g. createTour) – for now, stub it with a placeholder or an inferred API hook if available.
-Output:
-
-ReviewSubmitStep.tsx code.
-Updated TourCreateWizard.tsx with final onSubmit handler.
-A mapping example from TourCreateFormValues to backend payload.
-SECTION 12 – Backend payload mapping & compatibility
-PROMPT 12 – Define backend payload mapping
-
-We now need a clear mapping from the wizard form values (TourCreateFormValues) to the backend payload expected by NestJS for creating a tour (trip_details or the full tour DTO).
-
-Tasks:
-
-Define a function:
-mapFormValuesToBackendPayload(formValues: TourCreateFormValues): BackendTourCreateDto
-Implement:
-mapping for:
-overview → relevant backend fields
-itinerary → backend trip_details.itinerary structure
-participation
-logistics
-policies
-pricing and other top-level properties
-Ensure:
-backward compatibility:
-if old backend expects a simpler itinerary, describe how to:
-flatten the segments if necessary
-or keep them as is if backend supports the new structure
-Output:
-The full implementation of this mapping function in a file like:
-lib/mappers/mapTourCreateFormToDto.ts
-Notes/comments inside the code explaining assumptions and compatibility decisions.
-Output:
-
-TypeScript code for the mapping function.
-Example usage in TourCreateWizard.tsx in the submit handler.
-SECTION 13 – Final refactor, cleanup & TODOs
-PROMPT 13 – Final refactor checklist
-
-We’ve implemented the wizard steps and mapping.
-
-Now:
-
-Identify any remaining TODOs:
-socialLinks handling (if present)
-legacy fields in old form that are not yet mapped
-optional sections like riskAssessment, route, emergency
-Provide:
-a short checklist of remaining items
-suggested incremental steps to address them later (without blocking current release)
-Double-check:
-that all wizard steps use a consistent form structure and Zod schema
-that all fields from the old form are either:
-mapped
-deprecated (with explicit note)
-Output:
-
-A bullet-point checklist for further improvements.
-Any small adjustments to keep the code coherent.
+## ۱) چشم‌انداز «کامل» — از رقبا و محصولات مشابه چه برداریم؟
+
+| منبع | الگوی صحیح برای نسخهٔ کامل |
+|------|---------------------------|
+| **OTA / تور** | فیلدهای هویتی و دموگرافی غالباً **قبل از قطعیت رزرو** یا در **checkout** تکمیل می‌شوند؛ هر فیلد باید **هدف حقوقی/عملیاتی** داشته باشد (ویزا، بیمه، لیست حضور وسیله نقلیه، گزارش حادثه). |
+| **SaaS مدرن (Stripe, Shopify)** | **تشکیک PII حقوقی** از **preference**؛ **consent/trace**؛ **نشست تأیید** برای تغییر تماس؛ **خط زمان رویداد** برای تغییرات حساس؛ عدم لاگ خام PII در سرور عمومی. |
+| **محیط ایران (کد ملی)** | الزام حقوقی را با حقوق تأیید کنید؛ فنی:**اعتبارchecksum**؛ **Indexed unique جزئی برای مقدار غیر NULL**؛ در نسخهٔ کامل: **رمزنگاری ستون یا envelope** برای کاهش مخاطرهٔ نشت dump؛ ماسک در UI جز در صورت ضرورت عرضهٔ کامل. |
+| **تجربهٔ RTL و تقویم** | تاریخ تولد در UI با **`JalaliDatePicker`** (`@tour/ui`، مانند «تاریخ رفت/برگشت» ویزارد)؛ قرارداد ذخیره **فقط تاریخ گرِگوری ISO `YYYY-MM-DD`**؛ بدون اعتماد به timezone برای فیلدهای «تاریخ ساده». |
+
+**اصل هم‌خط با معماری فعلی همین مونوریپو:** دادهٔ پروفایل نشان‌داده‌شده در `/me` روی جدول **`users`** جهانی می‌ماند (بدون `tenant_id`). اگر آینده کسب‌وکار خواست نام/تمایلات **per workspace** باشد، آن موضوع مهاجرت **جدول ویژگی‌های عضویت** است؛ در نسخهٔ «کامل فعلی» می‌توانی آن را در backlog رسمی با KPI نگه دارید.
+
+---
+
+## ۲) تعریف «انجام کامل» (Definition of Done) برای Profile
+
+به‌منظور اعلام **بستهٔ Profile تمام**:
+
+1. **قرارداد**: OpenAPI برای `GET/PATCH /api/v2/me` و هر `POST .../me/...` با **بدنهٔ درخواست و پاسخ غیرخالی**، شامل اتحادیهٔ پاسخ‌ها (`profile` مقابل `{ status: ... }`).
+2. **نوع‌ها**: یک منبع حقیقت مشترک (مثلاً `@tour/types` یا codegen)؛ فرانت بدون `as unknown` جز در لایهٔ پارسر.
+3. **درست‌کاری**: تراکنش دیتابیس برای هر جریانی که چند دستور وابسته دارد؛ ایمیل تأیید **پس از commit** از طریق outbox یا صف.
+4. **امنیت**: AuthMiddleware قطعی برای مسیرهای محافظت‌شده؛ تطبیق معنای **`ensureActorMembership`** با ACTIVE **یا** خط‌قرمز سند؛ Guard با نام واقعی نقش؛ عدم لاگ plain PII؛ سیاست نقش کم‌امتیاز برای DB.
+5. **حساب‌پذیری**: لاگ یا جدول **audit append-only** برای تغییر ایمیل، موبایل، کدملی، تولد؛ حداقل `actor_user_id`، `tenant_id`، timestamps، قبلی→بعدی (برای ملزومات حقوقی اغلب hash یا truncation).
+6. **UX حقوق کاربر**: سند حریم خصوصی و نقش هر فیلد؛ توکن تأیید ایمیل کم‌ریسک (کوتاه مدت؛ ترجیح fragment/POST؛ حذف از URL پس از consume).
+7. **تست**: واحد اعتبار (کد ملی، تاریخ تولد، جنسیت)؛ ادغامی BFF↔Nest روی subdomain مستأجر؛ حداقل یک سناریوی E2E برای PATCH پروفایل + تأیید ایمیل یا تغییر موبایل.
+
+---
+
+## ۳) طرح دادهٔ غنی‌شدهٔ `users` (نسخهٔ کامل، نه نیم‌استوانه)
+
+### ۳.۱ ستون‌های پیشنهادی پروفایل گسترده
+
+| ستون پیشنهادی | نوع Postgres | الزام ثبت با کاربر جدید؟ | الزام حقوقی/کیفیت |
+|---------------|----------------|---------------------------|-------------------|
+| `national_id` | `varchar(10)` یا `varchar(64)` در صورت رمزنهان‌سازی | خیر؛ NULL مجاز | **Unique partial index**: `WHERE national_id IS NOT NULL`؛ نرمال‌سازی به ارقام لاتین؛ **checksum ایران** قبل از هر `save`. |
+| `gender` | `varchar(32)` با CHECK محدود به enum کنترلی یا enum DB | خیر؛ NULL = «اظهار نکرده» | مقادیر پایدار API (`female`, `male`, `non_binary`, `prefer_not_to_say`، ...)؛ ترجمه‌ها در وب. |
+| `birth_date` | `date` | خیر؛ NULL | بازهٔ سنی؛ جلوگی از تاریخ آینده؛ ذخیرهٔ محض تاریخ. |
+
+**پیوست اختیاری برای «کامل»:** جدول یا ستون **`profile_consented_at`** / **`marketing_consented_at`** اگر KPI شما الزام حقوق تفکیک اعلان بازاریابی دارد؛ در همین بار می‌توانی هم‌زمان با **`notifications_enabled`** معنادهی شود.
+
+### ۳.۲ لایهٔ برنامهٔ لازم (تمام قطعات)
+
+| لایه | کار |
+|------|-----|
+| Migration | ستون‌ها + ایندیکس‌ها + محدودیت‌های CHECK؛ مهاجرت امن بدون خام‌کردن ستون موجود. |
+| Entity + DTO + Response | هم‌خط با DB؛ اعتبار `class-validator`; **عدم قبول PATCH با فیلدهای ناشناخته**. |
+| `MeService` | `patchMe` / `toProfileResponse`؛ **تراکنش** برای هر شاخه؛ helper خالص برای کدملی؛ عدم کش رفتگی در لاگ. |
+| OpenAPI + types | جزء DoD؛ CI از خالی‌شدن `properties` در اسکیمای `/me` جلوگیری کند. |
+| BFF | تغییر نکند جز اگر سربرگ اضافی لازم شود؛ body relay کافی است. |
+| Frontend | کارت واحد یا گسترش کارت موجود؛ **`JalaliDatePicker`** + Zod؛ `meClient`; refetch با **tenant نشست**. |
+| Security/Ops | runbook نقش‌ها؛ روتاسیون secret؛ پشتیبان DB با نقش کم‌مجوز. |
+
+### ۳.۳ ریسک PII ویژه (کامل = عدم شانه خالی کردن)
+
+- **لاگ‌ها:** هرگونه `console.log`/Pino شامل کدملی خام **ممنوع**؛ تست ادغامی روی لاگ خام.
+- **خروجی `GET /me`**: برای حساب دار صاحب داده باز هم کامل؛ اگر هرگز نقش staff به پاسخ خام نیاز نداشت، کنترلر‌های دیگر **هرگز** همان شیء را نشان ندهند.
+- **Retention**: سیاست نگه‌داشت در مستند حقوقی و در صورت حذف کاربر (**soft delete موجود**) تأثیر ستون‌ها را مشخص کنید.
+
+---
+
+## ۴) ثبت رسمی مشکل‌ها — راه‌حل استاندارد — دستهٔ موجی
+
+برای هر مورد بعد از «راه‌حل» دستهٔ اجرایی با یکی از این برچسب‌ها آمده تا در بخش ۵ روی نقشه بیفتد:
+
+- **【قرارداد】** — اولویت اول بسته‌شدن
+- **【دادهٔ دامنه】**
+- **【تراکنش و ایمیل】**
+- **【امنیت و عمقٔ دفاع】**
+- **【تجربهٔ کاربر】**
+- **【معماری و عملیات】**
+
+---
+
+### M1 — پراکندگی ماژول نرم‌افزاری
+
+**مسئله:** Identity Nest + Next BFF + Settings بدون مرز اسم‌گذاری یکدست.
+
+**راه‌حل استاندارد:** سند آرشیتکت «Profile Boundary»؛ آرایش پوشه `features/profile`؛ README کوتاه ریشهٔ تنظیمات پیونددهنده به API.
+
+**فاز اجرا:** **【معماری و عملیات】**.
+
+---
+
+### M2 — `MeService` مونولیت
+
+**مسئله:** ORM، ایمیل، OTP، نرمال‌سازی تلفن، قریباً همه در یک کلاس.
+
+**راه‌حل استاندارد:** جداسازی حداقلی `ProfileWriteService` / `IdentityContactService` یا ماژول خصوصی با **transaction‌های صریح**؛ توابع pure برای کدملی و سن.
+
+**فاز:** **【معماری و عملیات】** (پس از تثبیت قرارداد).
+
+---
+
+### M3 — OpenAPI ناقص / دروغگو
+
+**مسئله:** پاسخ ۲۰۰ خالی؛ `PatchMeDto` در سند خالی.
+
+**راه‌حل استاندارد:** DTOهای پاسخ با `@ApiProperty`؛ اتحادها برای `pending_*`؛ قانون CI روی `openapi.json`.
+
+**فاز:** **【قرارداد】**.
+
+---
+
+### M4 — انواع TS پراکنده
+
+**مسئله:** `WorkspaceMeData` شل؛ عدم اشتراک با بک.
+
+**راه‌حل استاندارد:** نوع مشترک یا codegen؛ پارسر مرزی تنها نقطهٔ `unknown`.
+
+**فاز:** **【قرارداد】**.
+
+---
+
+### M5 — دو معنای عضویت (Middleware در برابر `ensureActorMembershipOrThrow`)
+
+**مسئله:** ACTIVE + `sess_ver` فقط در middleware؛ سرویس فقط «ردیفی هست».
+
+**راه‌حل استاندارد:** یکسان‌سازی فیلتر `ACTIVE` در access layer **یا** تایید حقوقی «فقط ورود middleware» با تست امنیتی روی هر route جدید.
+
+**فاز:** **【امنیت و عمقٔ دفاع】**.
+
+---
+
+### M6 — `JwtAuthGuard` نام‌گذاری گمراه‌کننده
+
+**مسئله:** فقط هدر Bearer می‌بیند.
+
+**راه‌حل استاندارد:** rename به **`AuthorizationPresenceGuard`** + lint داخلی؛ یا guard واقعاً verify (هزینهٔ تکرار با middleware).
+
+**فاز:** **【امنیت و عمقٔ دفاع】**.
+
+---
+
+### M7 — پروفایل جهانی vs چندمحیط
+
+**مسئله:** عدم override per tenant.
+
+**راه‌حل استاندارد:** اگر KPI آمد: **`user_workspace_profile`**؛ در غیر این صورت سند رسمی رد شدن الزام؛ نه تأخیر سکوت.
+
+**فاز:** **【معماری و عملیات】** (تصمیم محصول)، نه پیش‌فرض پیاده‌سازی.
+
+---
+
+### M8 — نبود RLS روی `users` و `email_verification_tokens`
+
+**مسئله:** ایزوله‌سازی سطح PostgreSQL نیست.
+
+**راه‌حل استاندارد:** نقش DB minimal privilege؛ شبکهٔ خصوصی؛ تهیهٔ سند threat model؛ ارزیابی Security Definer فقط برای معدود کوئری اگر الزام نشد.
+
+**فاز:** **【امنیت و عمقٔ دفاع】**.
+
+---
+
+### M9 — تراکنش نبودن در تغییر ایمیل (save / delete token / insert)
+
+**مسئله:** ناسازگاری میان‌عملیاتی.
+
+**راه‌حل استاندارد:** `transaction` دور تمام تغییرات persistence؛ سپس outbox ایمیل.
+
+**فاز:** **【تراکنش و ایمیل】**.
+
+---
+
+### M10 — `verifyEmail` دو save جدا
+
+**مسئله:** شکاف میان user و token.
+
+**راه‌حل استاندارد:** همان transaction؛ `FOR UPDATE` روی سطر token اگر لازم.
+
+**فاز:** **【تراکنش و ایمیل】**.
+
+---
+
+### M11 — ایمیل هم‌زمان در Thread درخواست
+
+**مسئله:** tail latency و coupling به SMTP.
+
+**راه‌حل استاندارد:** outbox + worker؛ API فقط ACK واضح؛ retry idempotent.
+
+**فاز:** **【تراکنش و ایمیل】**.
+
+---
+
+### M12 — نبود audit برای تغییرات حساس
+
+**مسئله:** بازجویی و انطباق دشوار.
+
+**راه‌حل استاندارد:** رویداد append-only؛ فیلتر export برای حقوق‌دان؛ هرگونه تغییر کدملی/تولد حتمی در نسخهٔ کامل.
+
+**فاز:** **【امنیت و عمقٔ دفاع】** + **【دادهٔ دامنه】**.
+
+---
+
+### M13 — last-write-wins روی PATCH
+
+**مسئله:** از دست رفتن بی‌صدا.
+
+**راه‌حل استاندارد:** `If-Match` / `row_version`؛ 409 با payload راهنما.
+
+**فاز:** **【تجربهٔ کاربر】** (با بُعد داده).
+
+---
+
+### M14 — رقابت روی unique
+
+**مسئله:** خطای DB گاهی غیرقابل فهم.
+
+**راه‌حل استاندارد:** mapper از کد PG به پیام محلی؛ اختیاری header idempotency روی PATCH.
+
+**فاز:** **【تجربهٔ کاربر】**.
+
+---
+
+### M15 — `notifications_enabled` سه‌حالته در DB، دوبخشی در API
+
+**مسئله:** null vs false.
+
+**راه‌حل استاندارد:** تصمیم محصول مکتوب + migration به default ثابت **یا** API سه‌حالته صریح.
+
+**فاز:** **【دادهٔ دامنه】**.
+
+---
+
+### M16 — BFF و env / Host
+
+**مسئله:** پیکربندی اشتباه tenant mismatch.
+
+**راه‌حل استاندارد:** runbook؛ تست smoke روی staging با subdomain واقعی؛ مانیتورینگ 403 `TENANT_HOST_TOKEN_MISMATCH`.
+
+**فاز:** **【معماری و عملیات】**.
+
+---
+
+### M17 — فرانت: اجبار `fullName` در حالی که API اختیاری
+
+**مسئله:** بلاک نوتیفیکیشن.
+
+**راه‌حل استاندارد:** Zod اختیاری + PATCH فقط فیلدهای تغییر یافته.
+
+**فاز:** **【تجربهٔ کاربر】** + **【قرارداد】** (هم‌خطی).
+
+---
+
+### M18–M19 — نبود max در فرانت
+
+**راه‌حل:** `.max(255)` نام، `.max(320)` ایمیل.
+
+**فاز:** **【تجربهٔ کاربر】**.
+
+---
+
+### M20 — `pickMeErrorMessage` بی‌توجه به `code`
+
+**راه‌حل:** `normalizeMeError` با جدول کد→رشته i18n.
+
+**فاز:** **【تجربهٔ کاربر】**.
+
+---
+
+### M21–M22 — GET مضاعف بعد از PATCH؛ ناپایداری deps
+
+**راه‌حل:** یک منبع حقیقت یا ref پایدار برای callback.
+
+**فاز:** **【تجربهٔ کاربر】**.
+
+---
+
+### M23 — کهنگی `me` با تعویض workspace
+
+**راه‌حل:** subscribe به tenant نشست؛ invalidation کلید کش.
+
+**فاز:** **【تجربهٔ کاربر】**.
+
+---
+
+### M24–M25 — نمای شماره و وابسته بودن به `me.id`
+
+**راه‌حل:** digits بر اساس locale؛ `id` اجبار در قرارداد GET.
+
+**فاز:** **【تجربهٔ کاربر】** + **【قرارداد】**.
+
+---
+
+### M26 — توکن در query
+
+**راه‌حل:** fragment، POST یک‌بار مصرف، revoke سریع.
+
+**فاز:** **【امنیت و عمقٔ دفاع】**.
+
+---
+
+### M27 — نوع ایمیل nullable در نوع مواجه نشده با ستون غیر Nullable
+
+**راه‌حل:** هم‌ترازی TypeScript با DB واقعی.
+
+**فاز:** **【قرارداد】**.
+
+---
+
+### M28 — فیلدهای جدید بدون اعتبار استاندارد
+
+**راه‌حل:** واحد اشتراکی backend + mirrored Zod + تست جدا برای checksum و بازه تاریخ.
+
+**فاز:** **【دادهٔ دامنه】** (هستهٔ rollout فیلدهای جدید).
+
+---
+
+## ۵) نقشهٔ موجی اجرای «کامل» (بدون سقف MVP)
+
+این نقشه **ترتیب پیشنهادی** است؛ هر موج می‌تواند چند sprint بگیرد ولی ترتیب **【قرارداد】** قبل از rollout داده الزاماً رعایت شود تا دوباره‌کاری نشود.
+
+| موج | برچسب‌های دسته | خروجی قابل‌تحویل |
+|-----|----------------|------------------|
+| **موج ۱ — قرارداد و درست‌کاری فوری** | 【قرارداد】، بخشی 【تجربهٔ کاربر】 | OpenAPI واقعی؛ types مشترک؛ رفع نام اجباری؛ max طول؛ map خطا با `code`؛ هم‌خطی نوع ایمیل؛ `id` تضمین‌شده در GET. |
+| **موج ۲ — داده و API پروفایل غنی** | 【دادهٔ دامنه】، 【قرارداد】 | Migration `national_id`, `gender`, `birth_date`؛ PATCH/GET؛ اعتبار کامل؛ UI با Jalali + Select + نرمال‌سازی ارقام ورودی؛ i18n کامل. |
+| **موج ۳ — صُلب تراکنش و ایمیل نامتقارن** | 【تراکنش و ایمیل】 | trx روی PATCH ایمیل؛ trx روی verify؛ outbox + worker؛ مانیتورینگ خطای ارسال ایمیل و صف خروجی. |
+| **موج ۴ — امنیت و حساب‌پذیری** | 【امنیت و عمقٔ دفاع】، 【دادهٔ دامنه】 | audit؛ تمایز نقش؛ rename guard؛ مستند اتکای به middleware؛ ارزیابی رمز ستون؛ سیاست پاکسازی؛ اصلاح لینک توکن تأیید. |
+| **موج ۵ — رقابت همزمان و ظرافت محصولی** | 【تجربهٔ کاربر】، 【معماری و عملیات】 | ETag/`row_version`؛ idempotency اختیاری؛ `meClient`؛ حذف دوباره‌گیری؛ tri-state یا default نوتیفیکیشن؛ تصمیم per-tenant اگر KPI. |
+| **موج ۶ — سخت‌گیری عملیاتی** | 【معماری و عملیات】 | refactor تدریجی `MeService`؛ تست E2E نهایی؛ اسلاید آموزش پشتیبانی؛ Runbook incident PII. |
+
+---
+
+## ۶) جمع‌بندی مدیریتی
+
+- **خروج از MVP** یعنی DoD بخش ۲ باید به‌تدریج **همه tick** بگیرد؛ موج ۱–۳ حداقل‌های **قابل‌دفاع در تولید** برای دادهٔ حساس و تماس هستند.  
+- **فیلدهای کد ملی، جنسیت، تولد** در نسخهٔ کامل فقط با **audit + اعتبار + تراکنش پایه** قابل‌قبول‌اند؛ در غیر این صورت ریسک حقوقی و عملیاتی روی برند شماست.  
+- **`JalaliDatePicker`** در همین کدبیس از قبل با مقدار **`YYYY-MM-DD` گرِگوری** استفاده می‌شود؛ برای تولد **همان الگو** تکرار شود تا گزارش و مهاجرت بعدی ساده بماند.
+
+---
+
+*این نسخهٔ سند برای مسیر **تکمیل کامل** ماژول Profile است؛ زمان‌بندی sprint را تیم بر اساس ظرفیت روی موج‌ها می‌چیند.*

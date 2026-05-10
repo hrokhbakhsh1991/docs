@@ -29,6 +29,42 @@ export function toEnglishIntegerString(value: string): string {
   return normalizeNumericInput(value).replace(/\D/g, "");
 }
 
+/** Commas / thin spaces / Arabic thousands separator ، (U+066C) typed or pasted — strip before numeric parse. */
+export function stripNumericSeparators(value: string): string {
+  return value.replace(/[,٬\s\u202f\u200c']/g, "");
+}
+
+/**
+ * Group integer chunk with commas (ASCII) before Persian digit shaping; fractional part untouched.
+ */
+export function formatEnglishWithThousands(english: string, mode: "integer" | "decimal"): string {
+  const safe = english.trim();
+  if (safe === "") {
+    return "";
+  }
+
+  if (mode === "integer") {
+    const digitsOnly = safe.replace(/\D/g, "");
+    if (digitsOnly === "") {
+      return "";
+    }
+    return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }
+
+  const dotIdx = safe.indexOf(".");
+  const intRaw = dotIdx === -1 ? safe : safe.slice(0, dotIdx);
+  const fracRaw = dotIdx === -1 ? undefined : safe.slice(dotIdx + 1);
+
+  const intDigits = intRaw.replace(/\D/g, "");
+  const groupedInt = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  if (dotIdx === -1) {
+    return groupedInt;
+  }
+
+  return `${groupedInt}.${fracRaw ?? ""}`;
+}
+
 /** After script normalization, keep one optional decimal point and ASCII digits. */
 export function toEnglishDecimalString(value: string): string {
   /** Arabic decimal separator `٫` (U+066B), common in Persian numeric typing. */

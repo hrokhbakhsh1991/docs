@@ -21,7 +21,7 @@ import {
   ApiQuery,
   ApiTags
 } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -31,6 +31,7 @@ import { PaginatedToursResponseDto } from "./dto/paginated-tours-response.dto";
 import { TourResponseDto } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
 import { ToursService } from "./tours.service";
+import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 import { RegistrationsService } from "../registrations/registrations.service";
@@ -58,7 +59,8 @@ export class ToursController {
   })
   @ApiOperation({ summary: "Create tour" })
   @ApiCreatedResponse({ type: TourResponseDto })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, ThrottlerGuard)
+  @Throttle({ "tour-create": { ttl: 60_000, limit: 30 } })
   @Roles(Role.OWNER, Role.ADMIN)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
@@ -80,7 +82,7 @@ export class ToursController {
   })
   @ApiOperation({ summary: "Update tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.OWNER, Role.ADMIN)
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
@@ -118,7 +120,7 @@ export class ToursController {
     enum: ["active", "completed", "archived"]
   })
   @ApiOkResponse({ type: PaginatedToursResponseDto })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.PARTICIPANT, Role.OWNER)
   async list(@Query() query: ListToursQueryDto): Promise<PaginatedToursResponseDto> {
     const { items, total, page, limit } = await this.toursService.listTours(query);
@@ -129,7 +131,7 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List registrations for tour (Leader workspace)" })
   @ApiOkResponse({ type: RegistrationResponseDto, isArray: true })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.OWNER)
   async listTourRegistrations(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
@@ -141,7 +143,7 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List waitlist items for tour (Leader workspace)" })
   @ApiOkResponse({ type: WaitlistItemResponseDto, isArray: true })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.OWNER)
   async listTourWaitlist(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
@@ -153,7 +155,7 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.PARTICIPANT, Role.OWNER)
   async getById(@Param("tourId") tourId: string): Promise<TourResponseDto> {
     return this.toursService.getTourById(tourId);

@@ -20,6 +20,7 @@ import {
 } from "class-validator";
 import { TourLifecycleStatus, TOUR_TYPES, type TourType } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import { CostContextDto } from "./cost-context.dto";
 import { TourTripDetailsDto } from "./trip-details.dto";
 import {
   TOUR_TRANSPORT_MODE_VALUES,
@@ -89,14 +90,16 @@ export class CreateTourDto {
   chat_link?: string;
 
   @ApiPropertyOptional({
+    type: () => CostContextDto,
     example: {
       currency: "USD",
       totalCost: 1200
     }
   })
   @IsOptional()
-  @IsObject()
-  cost_context?: Record<string, unknown>;
+  @ValidateNested()
+  @Type(() => CostContextDto)
+  cost_context?: CostContextDto;
 
   @ApiPropertyOptional({
     example: true

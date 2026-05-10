@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -33,7 +34,9 @@ import {
 } from "./dto/get-registration.dto";
 import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
+import { TourDetails } from "../tours/entities/tour-details.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
+import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -70,6 +73,24 @@ import {
   assertTourIsOpenForRegistration
 } from "../tours/policies/tour-lifecycle.policy";
 import { TourLifecycleStatus } from "../tours/entities/tour.entity";
+import { quoteListPriceForTour } from "../tours/pricing/quote-list-price";
+
+/** Resolves the bookable departure id for this tour (foundation: often same as `tour.id`). */
+function tourDepartureIdForBooking(tour: TourEntity): string {
+  return tour.tourDepartureId ?? tour.id;
+}
+
+/** Captures list price from tour at booking time for audit (see quoteListPriceForTour). */
+function quoteSnapshotFromTour(tour: TourEntity): {
+  quotedListPriceMinor?: string;
+  quotedCurrencyCode: string;
+} {
+  const q = quoteListPriceForTour(tour);
+  return {
+    ...(q.listPriceMinor ? { quotedListPriceMinor: q.listPriceMinor } : {}),
+    quotedCurrencyCode: q.currencyCode
+  };
+}
 
 @Injectable()
 export class RegistrationsService {
@@ -105,11 +126,20 @@ export class RegistrationsService {
     createDto: CreateRegistrationDto
   ): Promise<RegistrationResponseDto> {
     return this.dataSource.transaction(async (manager) => {
-      const tour = await manager.findOne(TourEntity, { where: { id: createDto.tourId } });
-      if (!tour) {
+      const tourPeek = await manager.findOne(TourEntity, {
+        where: { id: createDto.tourId },
+        select: { id: true, tenantId: true }
+      });
+      if (!tourPeek) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
+      const tour = await this.requireTourInTenantForUpdate(
+        manager,
+        createDto.tourId,
+        tourPeek.tenantId
+      );
       assertTourIsOpenForRegistration(tour);
+      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, createDto.tourId);
       assertJwtTenantMatchesTourForAuthenticatedMutation({
         role: this.requestContextService.getRole(),
         jwtTenantId: this.requestContextService.resolveEffectiveTenantId(),
@@ -148,16 +178,13 @@ export class RegistrationsService {
         typeof tour.costContext?.requiresPayment === "boolean"
           ? Boolean(tour.costContext.requiresPayment)
           : false;
-      // TODO(tour-auto-accept): `TourEntity.autoAcceptRegistrations` is now available.
-      // Revisit initial status policy here to incorporate auto-accept + payment flow together
-      // without changing current `requiresPayment`-driven behavior.
-      const initialStatus = paymentRequired
-        ? RegistrationStatus.ACCEPTED
-        : RegistrationStatus.PENDING;
+      const placement = this.resolveInitialRegistrationPlacement(tour);
 
       const registration = manager.create(RegistrationEntity, {
         tenantId,
         tourId: createDto.tourId,
+        tourDepartureId: tourDepartureIdForBooking(tour),
+        ...quoteSnapshotFromTour(tour),
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
         transportMode: createDto.transportMode,
@@ -166,18 +193,19 @@ export class RegistrationsService {
         telegramUsername: createDto.telegramUsername,
         vehicleSeatCapacity: createDto.vehicleSeatCapacity,
         participantNote: createDto.participantNote,
-        status: initialStatus,
+        status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
       });
 
-      if (paymentRequired) {
+      if (placement.consumesAcceptedCapacity) {
         tour.acceptedCount += 1;
         assertTourCapacityInvariant(tour);
         if (tour.acceptedCount >= tour.totalCapacity) {
           tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
         }
         await manager.save(tour);
+        await this.syncTourDepartureFromTour(manager, tour);
       }
 
       const saved = await manager.save(registration);
@@ -387,6 +415,7 @@ export class RegistrationsService {
       if (lockedTour) {
         this.applyAcceptedCounterDelta(lockedTour, previousStatus, payload.targetStatus);
         await manager.save(lockedTour);
+        await this.syncTourDepartureFromTour(manager, lockedTour);
       }
       const saved = await manager.save(registration);
 
@@ -566,6 +595,7 @@ export class RegistrationsService {
       const waitlistItem = manager.create(WaitlistItemEntity, {
         tenantId,
         tourId: createDto.tourId,
+        tourDepartureId: tourDepartureIdForBooking(tour),
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
         transportMode: createDto.transportMode,
@@ -630,6 +660,8 @@ export class RegistrationsService {
       const convertedRegistration = manager.create(RegistrationEntity, {
         tenantId: waitlistItem.tenantId,
         tourId: waitlistItem.tourId,
+        tourDepartureId: tourDepartureIdForBooking(tour),
+        ...quoteSnapshotFromTour(tour),
         participantFullName: waitlistItem.participantFullName,
         participantContactPhone: waitlistItem.participantContactPhone,
         transportMode: waitlistItem.transportMode,
@@ -647,6 +679,7 @@ export class RegistrationsService {
         tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
       }
       await manager.save(tour);
+      await this.syncTourDepartureFromTour(manager, tour);
       const savedWaitlist = await manager.save(waitlistItem);
 
       const actorId = this.requestContextService.getUserId() ?? "unknown";
@@ -692,6 +725,73 @@ export class RegistrationsService {
     });
   }
 
+  /**
+   * Decides first-class registration status and whether this row consumes `tours.accepted_count`.
+   * Payment-required tours reserve capacity immediately (`Accepted`). Otherwise, explicit
+   * `tour.autoAcceptRegistrations === true` accepts immediately; `false`/`null` stays `Pending` for manual approval.
+   */
+  private resolveInitialRegistrationPlacement(tour: TourEntity): {
+    status: RegistrationStatus;
+    consumesAcceptedCapacity: boolean;
+  } {
+    const paymentRequired =
+      typeof tour.costContext?.requiresPayment === "boolean"
+        ? Boolean(tour.costContext.requiresPayment)
+        : false;
+    if (paymentRequired) {
+      return { status: RegistrationStatus.ACCEPTED, consumesAcceptedCapacity: true };
+    }
+    if (tour.autoAcceptRegistrations === true) {
+      return { status: RegistrationStatus.ACCEPTED, consumesAcceptedCapacity: true };
+    }
+    return { status: RegistrationStatus.PENDING, consumesAcceptedCapacity: false };
+  }
+
+  /**
+   * When the tour's trip details set `participation.registrationNationalIdRequired`,
+   * require an authenticated user (JWT context) with non-empty `users.national_id`.
+   */
+  private async assertTourNationalIdRegistrationPolicyOrThrow(
+    manager: EntityManager,
+    tourId: string
+  ): Promise<void> {
+    const detailsRow = await manager.findOne(TourDetails, {
+      where: { tourId },
+      select: { tripDetails: true }
+    });
+    const participation = detailsRow?.tripDetails?.participation as
+      | { registrationNationalIdRequired?: boolean }
+      | undefined;
+    if (participation?.registrationNationalIdRequired !== true) {
+      return;
+    }
+
+    const userId = this.requestContextService.getUserId()?.trim();
+    if (!userId) {
+      throw new BadRequestException({
+        error: {
+          code: "REGISTRATION_AUTH_REQUIRED",
+          message:
+            "This tour requires a national ID on your profile; sign in with your workspace session (browser cookies or Bearer token) before registering."
+        }
+      });
+    }
+
+    const profileUser = await manager.findOne(UserEntity, {
+      where: { id: userId, deletedAt: IsNull() },
+      select: { nationalId: true }
+    });
+    const nationalId = profileUser?.nationalId?.trim();
+    if (!nationalId) {
+      throw new BadRequestException({
+        error: {
+          code: "PROFILE_NATIONAL_ID_REQUIRED",
+          message: "Add your national ID in profile settings before registering for this tour."
+        }
+      });
+    }
+  }
+
   private async requireTourInTenant(
     manager: EntityManager,
     tourId: string,
@@ -725,6 +825,22 @@ export class RegistrationsService {
     }
 
     return tour;
+  }
+
+  /** Dual-write: mirror capacity/sold onto `tour_departures` when that row exists (foundation migration). */
+  private async syncTourDepartureFromTour(
+    manager: EntityManager,
+    tour: TourEntity
+  ): Promise<void> {
+    await manager.update(
+      TourDepartureEntity,
+      { id: tour.id },
+      {
+        soldCount: tour.acceptedCount,
+        capacityTotal: tour.totalCapacity,
+        lifecycleStatus: tour.lifecycleStatus
+      }
+    );
   }
 
   private async ensureNoActiveRegistrationDuplicate(
@@ -992,6 +1108,8 @@ export class RegistrationsService {
     const anchor = manager.create(RegistrationEntity, {
       tenantId,
       tourId,
+      tourDepartureId: tourDepartureIdForBooking(lockedTour),
+      ...quoteSnapshotFromTour(lockedTour),
       participantFullName: "__reconciliation_promotion_anchor__",
       participantContactPhone: "__system__",
       transportMode: "other",
@@ -1040,6 +1158,8 @@ export class RegistrationsService {
     const promotedRegistration = manager.create(RegistrationEntity, {
       tenantId: waitlistItem.tenantId,
       tourId: waitlistItem.tourId,
+      tourDepartureId: tourDepartureIdForBooking(tour),
+      ...quoteSnapshotFromTour(tour),
       participantFullName: waitlistItem.participantFullName,
       participantContactPhone: waitlistItem.participantContactPhone,
       transportMode: waitlistItem.transportMode,
@@ -1060,6 +1180,7 @@ export class RegistrationsService {
       tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
     }
     await manager.save(tour);
+    await this.syncTourDepartureFromTour(manager, tour);
 
     const actorId = this.requestContextService.getUserId() ?? "system";
     await emitWaitlistConvertedAndAcceptedEvents({
@@ -1123,6 +1244,7 @@ export class RegistrationsService {
     if (lockedTour) {
       this.applyAcceptedCounterDelta(lockedTour, previousStatus, targetStatus);
       await manager.save(lockedTour);
+      await this.syncTourDepartureFromTour(manager, lockedTour);
     }
     const saved = await manager.save(registration);
     if (
@@ -1204,6 +1326,7 @@ export class RegistrationsService {
         tenantId
       );
       assertTourIsOpenForRegistration(tour);
+      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, input.tourId);
       const existingRegistrations = await manager.find(RegistrationEntity, {
         where: {
           tenantId,
@@ -1227,6 +1350,7 @@ export class RegistrationsService {
         const waitlist = manager.create(WaitlistItemEntity, {
           tenantId,
           tourId: input.tourId,
+          tourDepartureId: tourDepartureIdForBooking(tour),
           participantFullName: input.participantFullName,
           participantContactPhone: input.participantContactPhone,
           transportMode: input.transportMode,
@@ -1255,9 +1379,17 @@ export class RegistrationsService {
         };
       }
 
+      const placement = this.resolveInitialRegistrationPlacement(tour);
+      const requiresPayment =
+        typeof tour.costContext?.requiresPayment === "boolean"
+          ? Boolean(tour.costContext.requiresPayment)
+          : false;
+
       const registration = manager.create(RegistrationEntity, {
         tenantId,
         tourId: input.tourId,
+        tourDepartureId: tourDepartureIdForBooking(tour),
+        ...quoteSnapshotFromTour(tour),
         participantFullName: input.participantFullName,
         participantContactPhone: input.participantContactPhone,
         transportMode: input.transportMode,
@@ -1266,33 +1398,42 @@ export class RegistrationsService {
         telegramUsername: input.telegramUsername,
         vehicleSeatCapacity: input.vehicleSeatCapacity,
         participantNote: input.participantNote,
-        // TODO(tour-auto-accept): `TourEntity.autoAcceptRegistrations` should be evaluated
-        // alongside public registration + payment intent semantics. Keep current status as-is
-        // until a combined design is agreed to avoid payment-flow regressions.
-        status: RegistrationStatus.ACCEPTED,
+        status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
       });
-      tour.acceptedCount += 1;
-      assertTourCapacityInvariant(tour);
-      if (tour.acceptedCount >= tour.totalCapacity) {
-        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+      if (placement.consumesAcceptedCapacity) {
+        tour.acceptedCount += 1;
+        assertTourCapacityInvariant(tour);
+        if (tour.acceptedCount >= tour.totalCapacity) {
+          tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
+        }
+        await manager.save(tour);
+        await this.syncTourDepartureFromTour(manager, tour);
       }
-      await manager.save(tour);
       const saved = await manager.save(registration);
       this.registrationCreatedTotal += 1;
-      await emitPublicRegistrationAcceptedEvent({
-        manager,
-        outboxService: this.outboxService,
-        registration: saved,
-        actorId: this.requestContextService.getUserId() ?? "public"
-      });
-      const requiresPayment =
-        typeof tour.costContext?.requiresPayment === "boolean"
-          ? Boolean(tour.costContext.requiresPayment)
-          : false;
+      const actorId = this.requestContextService.getUserId() ?? "public";
+      if (placement.status === RegistrationStatus.ACCEPTED) {
+        await emitPublicRegistrationAcceptedEvent({
+          manager,
+          outboxService: this.outboxService,
+          registration: saved,
+          actorId
+        });
+      } else {
+        await emitRegistrationCreatedEvent({
+          manager,
+          outboxService: this.outboxService,
+          registration: saved,
+          actorId,
+          paymentRequired: requiresPayment
+        });
+      }
       const paymentIntent =
-        requiresPayment && input.createPaymentIntent
+        requiresPayment &&
+        input.createPaymentIntent &&
+        placement.status === RegistrationStatus.ACCEPTED
           ? await input.createPaymentIntent(manager, saved.id)
           : null;
       return {

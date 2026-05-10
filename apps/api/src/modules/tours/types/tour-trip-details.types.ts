@@ -114,6 +114,13 @@ export interface TripDetailsParticipation {
   suitableFor?: AudienceGroup[];
   /** Audience groups this tour is NOT suitable for. See {@link suitableFor}. */
   notSuitableFor?: AudienceGroup[];
+  /** Participant must carry valid sport / mountaineering insurance (leader-enforced). */
+  sportsInsuranceRequired?: boolean;
+  /**
+   * When true, registration is allowed only for authenticated users whose profile includes a national ID.
+   * Enforced in {@link RegistrationsService}.
+   */
+  registrationNationalIdRequired?: boolean;
 }
 
 export interface TripDetailsLogistics {

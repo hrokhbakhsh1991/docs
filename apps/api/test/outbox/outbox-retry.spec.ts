@@ -77,6 +77,10 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     }
   };
 
+  const emailService = {
+    async sendVerificationEmailOutboundStrict(): Promise<void> {}
+  };
+
   const configService = {
     getOutboxProcessorEnabled(): boolean {
       return true;
@@ -95,6 +99,7 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
   return new OutboxProcessor(
     dataSource as never,
     auditService as never,
+    emailService as never,
     configService as never,
     new OutboxMetricsService(),
     {

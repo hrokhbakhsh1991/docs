@@ -78,6 +78,101 @@ export class AuthMiddleware implements NestMiddleware {
     @Inject(LoggerService) private readonly loggerService: LoggerService
   ) {}
 
+  /**
+   * For public POST `/api/v2/tours/:id/register|waitlist`, authentication is not required.
+   * When a valid session token is present anyway, attach JWT context so downstream handlers
+   * (e.g. tour policies keyed off profile fields) can resolve `userId`.
+   */
+  private async tryAttachJwtContextForPublicTourPlacement(req: Request): Promise<void> {
+    try {
+      const token = this.extractToken(req);
+      if (!token) {
+        return;
+      }
+
+      const publicKey = await loadPublicKey(this.configService.getJwtPublicKey());
+      let payload: JwtClaims;
+      try {
+        const verified = await jwtVerify(token, publicKey, {
+          algorithms: ["RS256"],
+          issuer: this.configService.getJwtIssuer(),
+          audience: this.configService.getJwtAudience(),
+          clockTolerance: "5s"
+        });
+        payload = verified.payload as JwtClaims;
+      } catch {
+        return;
+      }
+
+      if (
+        typeof payload.sub !== "string" ||
+        typeof payload.tenant_id !== "string" ||
+        typeof payload.role !== "string"
+      ) {
+        return;
+      }
+
+      const jwtSessionVersion =
+        typeof payload.sess_ver === "number"
+          ? payload.sess_ver
+          : typeof payload.sess_ver === "string" && payload.sess_ver.trim() !== ""
+            ? Number(payload.sess_ver)
+            : NaN;
+      if (!Number.isInteger(jwtSessionVersion) || jwtSessionVersion < 1) {
+        return;
+      }
+
+      const userId = payload.sub.trim();
+      const tenantId = payload.tenant_id.trim();
+      const role = payload.role.trim();
+
+      if (!userId || !tenantId || !role) {
+        return;
+      }
+
+      const hostTenantEntity = req.tenant;
+      if (
+        hostTenantEntity?.id &&
+        !skipsJwtHostTenantAlignment(req.path, req.method) &&
+        hostTenantEntity.id.trim().toLowerCase() !== tenantId.trim().toLowerCase()
+      ) {
+        return;
+      }
+
+      const queryRunner = this.dataSource.createQueryRunner();
+      try {
+        await queryRunner.connect();
+
+        const membershipRow = await queryRunner.manager
+          .getRepository(UserTenantEntity)
+          .createQueryBuilder("ut")
+          .select("ut.session_version", "session_version")
+          .where("ut.user_id = :userId", { userId })
+          .andWhere("ut.tenant_id = :tenantId", { tenantId })
+          .andWhere("ut.deleted_at IS NULL")
+          .andWhere("ut.membership_status = 'ACTIVE'")
+          .getRawOne<{ session_version: string | number }>();
+
+        if (!membershipRow) {
+          return;
+        }
+
+        const dbSessionVersion = Number(membershipRow.session_version);
+        if (!Number.isInteger(dbSessionVersion) || dbSessionVersion !== jwtSessionVersion) {
+          return;
+        }
+      } finally {
+        await queryRunner.release();
+      }
+
+      this.requestContextService.setUserId(userId);
+      this.requestContextService.setTenantId(tenantId);
+      this.requestContextService.setRole(role);
+    } catch {
+      /* anonymous registration — ignore optional auth failures */
+    }
+  }
+
   private extractToken(req: Request): string | undefined {
     const cookieHeader = req.header("cookie");
     const jwtCookieToken = extractCookieToken(cookieHeader, JWT_COOKIE_NAME);
@@ -114,9 +209,10 @@ export class AuthMiddleware implements NestMiddleware {
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       if (
-        (req.method === "POST" &&
-          /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path))
+        req.method === "POST" &&
+        /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)
       ) {
+        await this.tryAttachJwtContextForPublicTourPlacement(req);
         return next();
       }
       if (PUBLIC_ROUTES.some((route) => req.path.startsWith(route))) {

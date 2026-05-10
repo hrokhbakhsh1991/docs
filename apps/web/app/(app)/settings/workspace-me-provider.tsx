@@ -6,33 +6,21 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode
 } from "react";
 
+import type { MeProfileWire } from "@repo/types";
 import { useToast } from "@tour/ui";
 import { useTranslations } from "next-intl";
 
-/** Payload from `GET /api/v2/me` (proxied as `GET /api/me`). */
-export type WorkspaceMeData = {
-  id?: string;
-  full_name?: string | null;
-  email?: string | null;
-  is_email_verified?: boolean;
-  phone?: string | null;
-  is_phone_verified?: boolean;
-  notifications_enabled?: boolean;
-};
+import { pickMeErrorMessage } from "@/lib/me-api-error";
 
-export function pickMeErrorMessage(payload: unknown, fallback: string): string {
-  if (payload && typeof payload === "object" && "error" in payload) {
-    const err = (payload as { error?: { message?: string } }).error;
-    if (typeof err?.message === "string" && err.message.trim() !== "") {
-      return err.message.trim();
-    }
-  }
-  return fallback;
-}
+import { fetchMe } from "@/lib/me-client";
+
+/** Payload from `GET /api/v2/me` (proxied as `GET /api/me`). */
+export type WorkspaceMeData = MeProfileWire;
 
 export type RefreshWorkspaceMeOptions = {
   /** When true, skip `isLoading` toggles so children do not unmount (e.g. after PATCH). */
@@ -55,36 +43,38 @@ export function WorkspaceMeProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const refresh = useCallback(
-    async (opts?: RefreshWorkspaceMeOptions) => {
-      const silent = opts?.silent === true;
-      if (!silent) {
-        setIsLoading(true);
-      }
-      setError(null);
-      try {
-        const res = await fetch("/api/me", { credentials: "include", cache: "no-store" });
-        const body = (await res.json().catch(() => ({}))) as WorkspaceMeData;
-        if (!res.ok) {
-          setData(null);
-          const msg = pickMeErrorMessage(body, t("loadFailedToast"));
-          setError(new Error(msg));
-          showToast({ type: "error", message: msg });
-          return;
-        }
-        setData(body);
-      } catch {
+  const toastRef = useRef(showToast);
+  const translateRef = useRef(t);
+  toastRef.current = showToast;
+  translateRef.current = t;
+
+  const refresh = useCallback(async (opts?: RefreshWorkspaceMeOptions) => {
+    const silent = opts?.silent === true;
+    if (!silent) {
+      setIsLoading(true);
+    }
+    setError(null);
+    try {
+      const res = await fetchMe();
+      const body = (await res.json().catch(() => ({}))) as WorkspaceMeData;
+      if (!res.ok) {
         setData(null);
-        setError(new Error(t("loadFailedToast")));
-        showToast({ type: "error", message: t("loadFailedToast") });
-      } finally {
-        if (!silent) {
-          setIsLoading(false);
-        }
+        const msg = pickMeErrorMessage(body, translateRef.current("loadFailedToast"), translateRef.current);
+        setError(new Error(msg));
+        toastRef.current({ type: "error", message: msg });
+        return;
       }
-    },
-    [showToast, t],
-  );
+      setData(body);
+    } catch {
+      setData(null);
+      setError(new Error(translateRef.current("loadFailedToast")));
+      toastRef.current({ type: "error", message: translateRef.current("loadFailedToast") });
+    } finally {
+      if (!silent) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     void refresh();

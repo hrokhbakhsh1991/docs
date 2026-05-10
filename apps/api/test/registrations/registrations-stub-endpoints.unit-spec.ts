@@ -7,7 +7,7 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
-import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import {
   WaitlistItemEntity,
   WaitlistItemStatus
@@ -18,6 +18,7 @@ function createServiceHarness() {
     id: "reg-1",
     tenantId: "11111111-1111-4111-8111-111111111111",
     tourId: "tour-1",
+    tourDepartureId: "tour-1",
     participantFullName: "User One",
     participantContactPhone: "+989120000001",
     transportMode: "group_vehicle",
@@ -32,12 +33,14 @@ function createServiceHarness() {
     id: "tour-1",
     tenantId: registration.tenantId,
     totalCapacity: 2,
-    acceptedCount: 0
+    acceptedCount: 0,
+    lifecycleStatus: TourLifecycleStatus.OPEN
   } as TourEntity;
   const waitlist = {
     id: "wait-1",
     tenantId: registration.tenantId,
     tourId: "tour-1",
+    tourDepartureId: "tour-1",
     participantFullName: "Wait One",
     participantContactPhone: "+989120000111",
     transportMode: "group_vehicle",
@@ -94,6 +97,9 @@ function createServiceHarness() {
   };
 
   const manager = {
+    async update() {
+      return { affected: 1, raw: [], generatedMaps: [] };
+    },
     async findOne(
       entity: unknown,
       options: {

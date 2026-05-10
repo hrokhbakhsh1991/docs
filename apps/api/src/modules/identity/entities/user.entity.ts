@@ -6,7 +6,8 @@ import {
   Index,
   OneToMany,
   PrimaryGeneratedColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  VersionColumn
 } from "typeorm";
 import { UserTenantEntity } from "./user-tenant.entity";
 
@@ -35,7 +36,16 @@ export class UserEntity {
   hashedPassword!: string;
 
   @Column({ type: "varchar", name: "full_name", length: 255, nullable: true })
-  fullName?: string;
+  fullName?: string | null;
+
+  @Column({ type: "varchar", name: "national_id", length: 10, nullable: true })
+  nationalId?: string | null;
+
+  @Column({ type: "varchar", name: "gender", length: 32, nullable: true })
+  gender?: string | null;
+
+  @Column({ type: "date", name: "birth_date", nullable: true })
+  birthDate?: Date | string | null;
 
   @Column({ type: "boolean", name: "is_email_verified", default: false })
   isEmailVerified!: boolean;
@@ -50,6 +60,13 @@ export class UserEntity {
     default: null
   })
   notificationsEnabled?: boolean | null;
+
+  @VersionColumn({
+    type: "int",
+    name: "profile_row_version",
+    default: 1
+  })
+  profileRowVersion!: number;
 
   @Column({ type: "timestamptz", name: "last_login_at", nullable: true })
   lastLoginAt?: Date | null;

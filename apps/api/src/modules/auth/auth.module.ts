@@ -8,7 +8,7 @@ import { WorkspaceInviteEntity } from "../identity/entities/workspace-invite.ent
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { WorkspaceService } from "./workspace.service";
-import { JwtAuthGuard } from "./jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "./authorization-presence.guard";
 import { RolesGuard } from "./roles.guard";
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { RolesGuard } from "./roles.guard";
     IdempotencyModule
   ],
   controllers: [AuthController],
-  providers: [AuthService, WorkspaceService, JwtAuthGuard, RolesGuard],
-  exports: [JwtAuthGuard, RolesGuard]
+  providers: [AuthService, WorkspaceService, AuthorizationPresenceGuard, RolesGuard],
+  exports: [AuthorizationPresenceGuard, RolesGuard]
 })
 export class AuthModule {}

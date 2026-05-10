@@ -6,7 +6,7 @@
 
 | Caller | Where `tenant_id` comes from | Client `tenantId` in body/query |
 | ------ | ------------------------------ | --------------------------------- |
-| **Authenticated** (`JwtAuthGuard`) | JWT / `RequestContextService` (set by auth middleware from token). | **Ignored / rejected** — removed from `CreateRegistrationDto` and `CreateWaitlistItemDto`. Canonical tenant for writes is **`tour.tenantId`** resolved in the service, then **must equal** JWT tenant for non-`admin` roles (else **404**). |
+| **Authenticated** (`AuthorizationPresenceGuard` + auth middleware JWT) | `RequestContextService` filled by **`AuthMiddleware`** from the Bearer token/JWT cookie (not by the guard). The guard only **requires an `Authorization` header** so unauthenticated callers get **401** before handlers run. | **Ignored / rejected** — removed from `CreateRegistrationDto` and `CreateWaitlistItemDto`. Canonical tenant for writes is **`tour.tenantId`** resolved in the service, then **must equal** JWT tenant for non-`admin` roles (else **404**). |
 | **Public** (`POST .../tours/:tourId/register`, `.../waitlist`) | No JWT — derived only from **database**: `getTenantIdForTourOrThrow(tourId)` then locked `requireTourInTenantForUpdate`. Body must **not** carry `tenantId` (idempotency scope uses resolved tenant). |
 | **Internal** (webhook, ops) | Service / provider payload | N/A for end-user spoofing |
 
@@ -94,7 +94,7 @@ Payments and registrations reuse these builders for **query-level** filtering.
 | `apps/api/test/security/tenant-jwt-scope.unit-spec.ts` | JWT tenant ≠ `tour.tenantId` → **404** on authenticated create; `getTenantIdForTourOrThrow` behaviour. |
 | `apps/api/test/registrations/*.unit-spec.ts` | Harnesses updated with `getRole()` + composite `findOne` where clauses. |
 
-**Anonymous / 401:** User JWT routes use `JwtAuthGuard`; no ownership test in service layer for unauthenticated callers.
+**Anonymous / 401:** User JWT routes use `AuthorizationPresenceGuard` (presence of `Authorization`); JWT validation is in **`AuthMiddleware`**. No ownership test in service layer for unauthenticated callers.
 
 ---
 

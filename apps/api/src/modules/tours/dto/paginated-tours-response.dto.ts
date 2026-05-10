@@ -6,7 +6,10 @@ export class PaginatedToursResponseDto {
   @ApiProperty({ type: [TourResponseDto] })
   items!: TourResponseDto[];
 
-  @ApiProperty({ example: 42 })
+  @ApiProperty({
+    example: 42,
+    description: "Total matching rows, or -1 when include_total=false on the list request"
+  })
   total!: number;
 
   @ApiProperty({ example: 1 })

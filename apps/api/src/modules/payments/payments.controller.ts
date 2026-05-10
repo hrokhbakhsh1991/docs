@@ -25,7 +25,7 @@ import { SkipThrottle, Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { Role } from "../auth/roles.enum";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { PaymentWebhookSignatureGuard } from "./payments-webhook-signature.guard";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
@@ -46,7 +46,7 @@ export class PaymentsController {
   ) {}
 
   @Post("payments/intent")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   /** Members (participants) create intents for registrations in their tenant; leaders/admins retain access. */
   @Roles(Role.OWNER, Role.ADMIN, Role.MEMBER)
   @ApiBearerAuth()
@@ -72,7 +72,7 @@ export class PaymentsController {
   }
 
   @Get("admin/payments")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin list of recent payments" })
@@ -83,7 +83,7 @@ export class PaymentsController {
   }
 
   @Get("admin/payments/:id")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin get payment by id" })
@@ -95,7 +95,7 @@ export class PaymentsController {
   }
 
   @Post("admin/payments/:id/refund")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @ApiBearerAuth()
   @ApiHeader({

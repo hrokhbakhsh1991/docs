@@ -9,7 +9,7 @@ import {
   UseGuards
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -21,7 +21,7 @@ import { UsersWriteService } from "./users-write.service";
 
 @ApiTags("Identity")
 @Controller("api/v2/workspaces")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard)
 @ApiBearerAuth()
 export class WorkspaceOwnershipController {
   constructor(private readonly usersWriteService: UsersWriteService) {}

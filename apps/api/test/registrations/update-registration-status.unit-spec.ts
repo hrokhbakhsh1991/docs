@@ -7,7 +7,7 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
-import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import {
   WaitlistItemEntity,
   WaitlistItemStatus
@@ -18,12 +18,14 @@ type TourRecord = {
   tenantId: string;
   totalCapacity: number;
   acceptedCount: number;
+  lifecycleStatus: TourLifecycleStatus;
 };
 
 type WaitlistRecord = {
   id: string;
   tenantId: string;
   tourId: string;
+  tourDepartureId: string;
   participantFullName: string;
   participantContactPhone: string;
   transportMode: string;
@@ -61,6 +63,7 @@ function buildRegistration(
     id,
     tenantId: "11111111-1111-4111-8111-111111111111",
     tourId: "22222222-2222-4222-8222-222222222222",
+    tourDepartureId: "22222222-2222-4222-8222-222222222222",
     participantFullName: "Test User",
     participantContactPhone: "+989121234567",
     transportMode: "group_vehicle",
@@ -95,7 +98,8 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     id: "22222222-2222-4222-8222-222222222222",
     tenantId: "11111111-1111-4111-8111-111111111111",
     totalCapacity: options.totalCapacity ?? 5,
-    acceptedCount: options.acceptedCount ?? 0
+    acceptedCount: options.acceptedCount ?? 0,
+    lifecycleStatus: TourLifecycleStatus.OPEN
   };
   const registrations =
     options.registrations ??
@@ -153,6 +157,9 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
         return byId ? ({ ...store.tour } as TourEntity) : null;
       }
       return null;
+    },
+    async update() {
+      return { affected: 1, raw: [], generatedMaps: [] };
     },
     async save(entity: unknown) {
       const named = entity as { id?: string; totalCapacity?: number; acceptedCount?: number };
@@ -344,6 +351,7 @@ function buildWaitlist(
     id,
     tenantId: "11111111-1111-4111-8111-111111111111",
     tourId: "22222222-2222-4222-8222-222222222222",
+    tourDepartureId: "22222222-2222-4222-8222-222222222222",
     participantFullName: `Waitlist ${id}`,
     participantContactPhone: `+98912000${id.slice(0, 3)}`,
     transportMode: "group_vehicle",

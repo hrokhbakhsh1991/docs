@@ -27,7 +27,7 @@ import {
   UseInterceptors
 } from "@nestjs/common";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -245,7 +245,7 @@ export class RegistrationsController {
 
   @Post("registrations")
   @HttpCode(201)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -284,7 +284,7 @@ export class RegistrationsController {
 
   @Post("bookings")
   @HttpCode(201)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -322,7 +322,7 @@ export class RegistrationsController {
   }
 
   @Get("bookings")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiOperation({ summary: "List current user bookings" })
@@ -340,7 +340,7 @@ export class RegistrationsController {
   }
 
   @Get("registrations/:registrationId")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @Roles(Role.PARTICIPANT, Role.OWNER, Role.ADMIN)
   @ApiOperation({
@@ -360,7 +360,7 @@ export class RegistrationsController {
   }
 
   @Patch("registrations/:registrationId/status")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -391,7 +391,7 @@ export class RegistrationsController {
   }
 
   @Patch("registrations/:registrationId/payment")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -441,7 +441,7 @@ export class RegistrationsController {
 
   @Post("waitlist-items")
   @HttpCode(201)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "idempotency-key",
@@ -470,7 +470,7 @@ export class RegistrationsController {
   }
 
   @Post("waitlist-items/:waitlistItemId/convert")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.OWNER)
   @HttpCode(200)
   @ApiBearerAuth()
@@ -519,7 +519,7 @@ export class RegistrationsController {
   }
 
   @Patch("waitlist-items/:waitlistItemId/cancel")
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
   @Roles(Role.PARTICIPANT, Role.OWNER)
   @ApiBearerAuth()
   @ApiHeader({

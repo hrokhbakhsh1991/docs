@@ -12,15 +12,19 @@ import {
   ArrayUnique,
   IsArray,
   IsEnum,
+  IsBoolean,
   IsIn,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
   registerDecorator,
   type ValidationArguments,
@@ -50,6 +54,15 @@ import {
 
 /** Maximum length of `tripDetails.overview.shortIntro` (used for tour cards / meta description). */
 export const TRIP_SHORT_INTRO_MAX_LENGTH = 250;
+
+/** Wizard primary transport mode (orthogonal to root `transportModes`; persisted in logistics JSONB). */
+export const PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES = [
+  "plane",
+  "train",
+  "bus",
+  "midibus",
+  "private_car"
+] as const;
 
 /**
  * Trim/lowercase incoming `tripStyles` entries before validation; preserves order
@@ -191,6 +204,118 @@ export class TripDetailsOverviewDto {
   @IsString()
   @MaxLength(TRIP_SHORT_INTRO_MAX_LENGTH)
   shortIntro?: string;
+
+  @ApiPropertyOptional({
+    format: "uuid",
+    description: "Settings → Locations region id (wizard JSONB linkage)."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  settingsRegionId?: string;
+
+  @ApiPropertyOptional({
+    format: "uuid",
+    description: "Settings → Locations primary destination id (wizard)."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  settingsMainDestinationId?: string;
+
+  @ApiPropertyOptional({
+    description: "Free-text / comma-separated secondary destination ids from the wizard when not normalized to UUID array."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  secondaryDestinationIdsRaw?: string;
+}
+
+export class TripDetailsSegmentActivitySegmentDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  activityType?: string;
+
+  @ApiPropertyOptional({ description: "24h HH:mm" })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== "")
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "startTime must be empty or HH:mm" })
+  startTime?: string;
+
+  @ApiPropertyOptional({ description: "24h HH:mm" })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== "")
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "endTime must be empty or HH:mm" })
+  endTime?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  estimatedDurationHours?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  distanceKm?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  elevationGainMeters?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  maxAltitudeMeters?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  locationName?: string;
+}
+
+export class TripDetailsSegmentActivityDayDto {
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsInt()
+  @Min(1)
+  dayNumber!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({ type: () => [TripDetailsSegmentActivitySegmentDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsSegmentActivitySegmentDto)
+  segments?: TripDetailsSegmentActivitySegmentDto[];
 }
 
 export class TripDetailsItineraryDto {
@@ -242,6 +367,16 @@ export class TripDetailsItineraryDto {
   @ValidateNested({ each: true })
   @Type(() => TripDetailsDayPlanDto)
   dayPlans?: TripDetailsDayPlanDto[];
+
+  @ApiPropertyOptional({
+    type: () => [TripDetailsSegmentActivityDayDto],
+    description: "Structured per-day segments from the tour wizard (distinct from legacy `dayPlans` rows)."
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsSegmentActivityDayDto)
+  segmentActivities?: TripDetailsSegmentActivityDayDto[];
 }
 
 export class TripDetailsParticipationDto {
@@ -358,6 +493,21 @@ export class TripDetailsParticipationDto {
   @IsIn(AUDIENCE_GROUP_VALUES as unknown as string[], { each: true })
   @AudienceGroupsDoNotOverlap("suitableFor")
   notSuitableFor?: AudienceGroup[];
+
+  @ApiPropertyOptional({
+    description: "Participant must carry valid sport / mountaineering insurance (leader-enforced)."
+  })
+  @IsOptional()
+  @IsBoolean()
+  sportsInsuranceRequired?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      "When true, only authenticated registrants with `national_id` set on their user profile may register or join the waitlist."
+  })
+  @IsOptional()
+  @IsBoolean()
+  registrationNationalIdRequired?: boolean;
 }
 
 /**
@@ -564,6 +714,43 @@ export class TripDetailsLogisticsDto {
   @IsInt()
   @Min(0)
   groupSizeMax?: number;
+
+  @ApiPropertyOptional({
+    enum: PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES,
+    description: "Primary mode selected in the wizard (stored in JSONB; may inform root `transportModes`)."
+  })
+  @IsOptional()
+  @IsIn([...PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES])
+  primaryTransportMode?: (typeof PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES)[number];
+
+  @ApiPropertyOptional({
+    description: "Shared fuel cost in Toman when `primaryTransportMode` is `private_car`."
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10_000_000_000)
+  fuelShareToman?: number;
+
+  @ApiPropertyOptional({ description: "Return / end-of-trip meetup time (24h HH:mm)." })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== "")
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "returnMeetingTime must be empty or HH:mm" })
+  returnMeetingTime?: string;
+
+  @ApiPropertyOptional({
+    description: "Organizer includes some insurance coverage in the tour package."
+  })
+  @IsOptional()
+  @IsBoolean()
+  leaderProvidesInsurance?: boolean;
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  leaderInsuranceNotes?: string;
 }
 
 export class TripDetailsPoliciesDto {

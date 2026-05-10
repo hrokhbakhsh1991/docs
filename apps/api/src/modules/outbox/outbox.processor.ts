@@ -16,6 +16,8 @@ import {
 } from "./entities/outbox-event.entity";
 import { OutboxMetricsService } from "./outbox-metrics.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
+import { EmailService } from "../../common/email/email.service";
+import { OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND } from "./identity-email-outbox.constants";
 
 /**
  * Transactional outbox dispatcher.
@@ -34,6 +36,7 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(DataSource) private readonly dataSource: DataSource,
     @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(OutboxMetricsService) private readonly metrics: OutboxMetricsService,
     @Inject(TenantDbContextService)
@@ -97,20 +100,31 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
       try {
         const tenantId = row.tenantId.trim().toLowerCase();
         await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
-          this.auditService.deliverFromOutbox({
-            tenant_id: tenantId,
-            event_id: row.id,
-            event_type: row.eventType,
-            payload: row.payload as Record<string, unknown>,
-            created_at: row.createdAt instanceof Date
-              ? row.createdAt.toISOString()
-              : String(row.createdAt)
-          });
+          const payload = row.payload as Record<string, unknown>;
+          if (row.eventType === OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND) {
+            const to = typeof payload.to === "string" ? payload.to : "";
+            const tok = typeof payload.token === "string" ? payload.token : "";
+            await this.emailService.sendVerificationEmailOutboundStrict(to, tok);
+          } else {
+            this.auditService.deliverFromOutbox({
+              tenant_id: tenantId,
+              event_id: row.id,
+              event_type: row.eventType,
+              payload,
+              created_at: row.createdAt instanceof Date
+                ? row.createdAt.toISOString()
+                : String(row.createdAt)
+            });
+          }
           row.status = OutboxEventStatus.DELIVERED;
           row.processedAt = new Date();
           await manager.save(row);
         });
       } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `outbox_delivery_failed eventType=${row.eventType} id=${row.id}: ${errMsg}`
+        );
         await this.dataSource.transaction(async (manager) => {
           const fresh = await manager.findOne(OutboxEventEntity, { where: { id: row.id } });
           if (!fresh) {

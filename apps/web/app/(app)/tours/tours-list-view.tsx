@@ -204,7 +204,7 @@ export function ToursListView() {
         </CardBody>
       </Card>
     );
-  } else if (tours.length === 0 && query.search.trim() === "") {
+  } else if (tours.length === 0 && query.search.trim() === "" && query.status === "all") {
     body = (
       <Card>
         <CardBody>

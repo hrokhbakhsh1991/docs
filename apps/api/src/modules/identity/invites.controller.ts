@@ -8,14 +8,14 @@ import {
   ApiTags,
   ApiUnauthorizedResponse
 } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { AcceptInviteDto } from "./dto/accept-invite.dto";
 import type { AcceptInviteResult } from "./services/users-invite.service";
 import { UsersInviteService } from "./services/users-invite.service";
 
 @ApiTags("Invites")
 @Controller("api/v2/invites")
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthorizationPresenceGuard)
 @ApiBearerAuth()
 export class InvitesController {
   constructor(private readonly usersInviteService: UsersInviteService) {}

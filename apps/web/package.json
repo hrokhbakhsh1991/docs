@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"app/**/*.spec.ts\"",
     "eslint": "eslint --max-warnings 0 \"app/**/*.{js,jsx,ts,tsx}\" \"src/**/*.{js,jsx,ts,tsx}\"",
     "test:vrt": "playwright test",
     "test:vrt:update": "playwright test --update-snapshots",

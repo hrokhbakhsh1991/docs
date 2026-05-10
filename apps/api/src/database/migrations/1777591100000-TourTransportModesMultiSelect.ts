@@ -16,24 +16,33 @@ export class TourTransportModesMultiSelect1777591100000 implements MigrationInte
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "tours"
-      ADD COLUMN "transport_modes" character varying array NOT NULL DEFAULT '{}'::character varying[]
+      ADD COLUMN IF NOT EXISTS "transport_modes" character varying array NOT NULL DEFAULT '{}'::character varying[]
     `);
 
     await queryRunner.query(`
-      UPDATE "tours"
-      SET "transport_modes" = CASE "primary_transport_mode"::text
-        WHEN 'bus' THEN ARRAY['bus']::character varying[]
-        WHEN 'train' THEN ARRAY['train']::character varying[]
-        WHEN 'plane' THEN ARRAY['plane']::character varying[]
-        WHEN 'private_car' THEN ARRAY['private_car']::character varying[]
-        WHEN 'mixed' THEN ARRAY['bus', 'train', 'plane', 'private_car']::character varying[]
-        WHEN 'none' THEN ARRAY[]::character varying[]
-        ELSE ARRAY[]::character varying[]
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'tours' AND column_name = 'primary_transport_mode'
+        ) THEN
+          UPDATE "tours"
+          SET "transport_modes" = CASE "primary_transport_mode"::text
+            WHEN 'bus' THEN ARRAY['bus']::character varying[]
+            WHEN 'train' THEN ARRAY['train']::character varying[]
+            WHEN 'plane' THEN ARRAY['plane']::character varying[]
+            WHEN 'private_car' THEN ARRAY['private_car']::character varying[]
+            WHEN 'mixed' THEN ARRAY['bus', 'train', 'plane', 'private_car']::character varying[]
+            WHEN 'none' THEN ARRAY[]::character varying[]
+            ELSE ARRAY[]::character varying[]
+          END;
+        END IF;
       END
+      $$;
     `);
 
     await queryRunner.query(`
-      ALTER TABLE "tours" DROP COLUMN "primary_transport_mode"
+      ALTER TABLE "tours" DROP COLUMN IF EXISTS "primary_transport_mode"
     `);
 
     await queryRunner.query(`DROP TYPE IF EXISTS "public"."primary_transport_mode_enum"`);

@@ -6,58 +6,269 @@ import {
   NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import { randomBytes } from "node:crypto";
-import { IsNull, MoreThan, Repository } from "typeorm";
+import { DataSource, EntityManager, IsNull, MoreThan, QueryFailedError, type Repository } from "typeorm";
 
-import { EmailService } from "../../common/email/email.service";
+import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
+import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { OtpService } from "../auth/otp.service";
+import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
+import { OutboxService } from "../outbox/outbox.service";
 import type { PatchMeDto } from "./dto/patch-me.dto";
 import { EmailVerificationTokenEntity } from "./entities/email-verification-token.entity";
 import { UserEntity } from "./entities/user.entity";
 import { UsersAccessService } from "./users-access.service";
+import {
+  OUTBOX_AGGREGATE_TYPE_EMAIL_VERIFICATION_TOKEN,
+  OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND
+} from "../outbox/identity-email-outbox.constants";
+import { isBirthDateYmdEligible } from "./utils/gregorian-ymd-eligibility";
+import { validateIranNationalIdChecksum } from "./utils/iran-national-id";
+import {
+  diffSelfPiiFieldKeys,
+  mapUserEntityToMeProfileResponse,
+  snapshotSelfPiiFromUser
+} from "./me-profile.mapper";
+import type {
+  EmailVerifiedResponse,
+  MeProfileResponse,
+  MobileChangedResponse,
+  PendingEmailVerificationResponse
+} from "./me-profile.types";
 
-export type MeProfileResponse = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  is_email_verified: boolean;
-  phone: string | null;
-  is_phone_verified: boolean;
-  notifications_enabled: boolean;
-};
-
-export type PendingEmailVerificationResponse = {
-  status: "pending_email_verification";
-};
-
-export type EmailVerifiedResponse = {
-  status: "email_verified";
-  email: string;
-};
-
-export type MobileChangedResponse = {
-  status: "mobile_changed";
-  mobile: string;
-};
+export type {
+  EmailVerifiedResponse,
+  MeProfileResponse,
+  MobileChangedResponse,
+  PendingEmailVerificationResponse
+} from "./me-profile.types";
 
 @Injectable()
 export class MeService {
   private static readonly EMAIL_TOKEN_TTL_MS = 30 * 60 * 1000;
 
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(EmailVerificationTokenEntity)
-    private readonly emailVerificationTokenRepository: Repository<EmailVerificationTokenEntity>,
-    private readonly usersAccess: UsersAccessService,
-    private readonly requestContext: RequestContextService,
-    private readonly emailService: EmailService,
-    private readonly otpService: OtpService
-  ) {}
+    userRepository: Repository<UserEntity>,
+    dataSource: DataSource,
+    usersAccess: UsersAccessService,
+    requestContext: RequestContextService,
+    outboxService: OutboxService,
+    otpService: OtpService,
+    tenantAuditEventsService: TenantAuditEventsService
+  ) {
+    this.userRepository = userRepository;
+    this.dataSource = dataSource;
+    this.usersAccess = usersAccess;
+    this.requestContext = requestContext;
+    this.outboxService = outboxService;
+    this.otpService = otpService;
+    this.tenantAuditEventsService = tenantAuditEventsService;
+  }
+
+  private readonly userRepository: Repository<UserEntity>;
+  private readonly dataSource: DataSource;
+  private readonly usersAccess: UsersAccessService;
+  private readonly requestContext: RequestContextService;
+  private readonly outboxService: OutboxService;
+  private readonly otpService: OtpService;
+  private readonly tenantAuditEventsService: TenantAuditEventsService;
+
+  private emailPublicSuffix(email: string): string | null {
+    const t = email.trim().toLowerCase();
+    const at = t.lastIndexOf("@");
+    if (at < 1 || at === t.length - 1) {
+      return null;
+    }
+    return t.slice(at + 1);
+  }
+
+  private selfActorLabel(user: Pick<UserEntity, "email">, userId: string): string {
+    const e = user.email?.trim();
+    return e !== undefined && e !== "" ? e : userId;
+  }
+
+  /** Case-insensitive match on trimmed email (aligned with typical inbox uniqueness). */
+  private async findActiveUserByEmailCaseInsensitive(
+    repo: Repository<UserEntity>,
+    email: string
+  ): Promise<UserEntity | null> {
+    const trimmed = email.trim();
+    if (trimmed === "") {
+      return null;
+    }
+    return repo
+      .createQueryBuilder("u")
+      .where("LOWER(TRIM(u.email)) = LOWER(TRIM(:email))", { email: trimmed })
+      .andWhere("u.deleted_at IS NULL")
+      .getOne();
+  }
+
+  private tryGetActorRole(): string | undefined {
+    try {
+      const r = this.requestContext.getRole()?.trim();
+      return r !== undefined && r !== "" ? r : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private workspaceRoleAuditFields(): Record<string, unknown> {
+    const role = this.tryGetActorRole();
+    return role !== undefined ? { workspace_role: role } : {};
+  }
+
+  private isUsersNationalIdUniqueViolation(err: unknown): boolean {
+    if (!(err instanceof QueryFailedError)) {
+      return false;
+    }
+    const d = err.driverError as { code?: string; constraint?: string } | undefined;
+    if (d?.code !== "23505") {
+      return false;
+    }
+    return (
+      d?.constraint === "uq_users_national_id_active" ||
+      (typeof err.message === "string" && err.message.includes("uq_users_national_id_active"))
+    );
+  }
+
+  private isOptimisticProfileVersionConflict(err: unknown): boolean {
+    return (
+      typeof err === "object" &&
+      err !== null &&
+      (err as { name?: unknown }).name === "OptimisticLockVersionMismatchError"
+    );
+  }
+
+  private async persistUserProfileOrNationalIdConflict(
+    repo: Repository<UserEntity>,
+    user: UserEntity
+  ): Promise<void> {
+    try {
+      await repo.save(user);
+    } catch (err: unknown) {
+      if (this.isOptimisticProfileVersionConflict(err)) {
+        throw new ConflictException({
+          error: {
+            code: "PROFILE_ROW_VERSION_CONFLICT",
+            message: "Profile changed concurrently — reload settings, then try again."
+          }
+        });
+      }
+      if (this.isUsersNationalIdUniqueViolation(err)) {
+        throw new ConflictException({
+          error: {
+            code: "USER_NATIONAL_ID_CONFLICT",
+            message: "National ID is already in use"
+          }
+        });
+      }
+      throw err;
+    }
+  }
+
+  /** Profile writes join the Postgres transaction started by optional `Idempotency-Key`. */
+  private async withProfileMutationTransaction<T>(
+    run: (manager: EntityManager) => Promise<T>
+  ): Promise<T> {
+    const em = getIdempotentEntityManager();
+    if (em) {
+      return run(em);
+    }
+    return this.dataSource.transaction(run);
+  }
+
+  private assertExpectedProfileRowVersion(
+    expected: number | undefined,
+    entity: Pick<UserEntity, "profileRowVersion">
+  ): void {
+    if (expected === undefined) {
+      return;
+    }
+    const cur = Number(entity.profileRowVersion);
+    const want = Number(expected);
+    if (want !== cur) {
+      throw new ConflictException({
+        error: {
+          code: "PROFILE_ROW_VERSION_CONFLICT",
+          message: "Profile changed in another tab or session — reload settings, then try again."
+        }
+      });
+    }
+  }
+
+  private async applyNationalIdPatchOrThrow(
+    repo: Repository<UserEntity>,
+    user: UserEntity,
+    value: string | null
+  ): Promise<void> {
+    if (value === null) {
+      user.nationalId = null;
+      return;
+    }
+    if (!validateIranNationalIdChecksum(value)) {
+      throw new BadRequestException({
+        error: {
+          code: "USER_NATIONAL_ID_INVALID",
+          message: "National ID is not valid"
+        }
+      });
+    }
+    const taken = await repo.findOne({
+      where: { nationalId: value, deletedAt: IsNull() }
+    });
+    if (taken && taken.id !== user.id) {
+      throw new ConflictException({
+        error: {
+          code: "USER_NATIONAL_ID_CONFLICT",
+          message: "National ID is already in use"
+        }
+      });
+    }
+    user.nationalId = value;
+  }
+
+  private applyBirthDatePatchOrThrow(user: UserEntity, value: string | null): void {
+    if (value === null) {
+      user.birthDate = null;
+      return;
+    }
+    if (!isBirthDateYmdEligible(value)) {
+      throw new BadRequestException({
+        error: {
+          code: "USER_BIRTH_DATE_INVALID",
+          message: "Birth date is not valid"
+        }
+      });
+    }
+    user.birthDate = value;
+  }
+
+  private async applyMePatchDtoToUser(
+    repo: Repository<UserEntity>,
+    user: UserEntity,
+    dto: PatchMeDto
+  ): Promise<void> {
+    if (dto.full_name !== undefined) {
+      user.fullName = dto.full_name === null ? null : dto.full_name;
+    }
+
+    if (dto.notifications_enabled !== undefined) {
+      user.notificationsEnabled = dto.notifications_enabled;
+    }
+
+    if (dto.national_id !== undefined) {
+      await this.applyNationalIdPatchOrThrow(repo, user, dto.national_id);
+    }
+    if (dto.gender !== undefined) {
+      user.gender = dto.gender;
+    }
+    if (dto.birth_date !== undefined) {
+      this.applyBirthDatePatchOrThrow(user, dto.birth_date);
+    }
+  }
 
   private resolveSelfOrThrow(): { tenantId: string; userId: string } {
     const tenantId = this.requestContext.resolveEffectiveTenantId();
@@ -69,19 +280,6 @@ export class MeService {
       throw new ForbiddenException(authRequiredError());
     }
     return { tenantId, userId };
-  }
-
-  private toProfileResponse(user: UserEntity): MeProfileResponse {
-    const rawPhone = user.phone?.trim() ?? "";
-    return {
-      id: user.id,
-      full_name: user.fullName ?? null,
-      email: user.email ?? null,
-      is_email_verified: user.isEmailVerified === true,
-      phone: rawPhone === "" ? null : normalizeOtpPhoneInput(rawPhone),
-      is_phone_verified: user.isPhoneVerified === true,
-      notifications_enabled: user.notificationsEnabled === true
-    };
   }
 
   async getMe(): Promise<MeProfileResponse> {
@@ -97,75 +295,134 @@ export class MeService {
       });
     }
 
-    return this.toProfileResponse(user);
+    return mapUserEntityToMeProfileResponse(user);
   }
 
-  async patchMe(dto: PatchMeDto): Promise<MeProfileResponse | PendingEmailVerificationResponse> {
+  async patchMe(
+    dto: PatchMeDto,
+    concurrency?: { expectedProfileRowVersion?: number }
+  ): Promise<MeProfileResponse | PendingEmailVerificationResponse> {
     const { tenantId, userId } = this.resolveSelfOrThrow();
     await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
-    if (!user) {
-      throw new NotFoundException({
-        error: { code: "USER_NOT_FOUND", message: "User not found" }
+    return this.withProfileMutationTransaction(async (manager) => {
+      const repo = manager.getRepository(UserEntity);
+      const user = await repo.findOne({
+        where: { id: userId, deletedAt: IsNull() }
       });
-    }
-
-    if (dto.full_name !== undefined) {
-      user.fullName = dto.full_name;
-    }
-
-    if (dto.notifications_enabled !== undefined) {
-      user.notificationsEnabled = dto.notifications_enabled;
-    }
-
-    const emailChangeRequested =
-      dto.email !== undefined && dto.email.trim().toLowerCase() !== user.email.trim().toLowerCase();
-
-    if (emailChangeRequested) {
-      const next = dto.email!.trim();
-      const taken = await this.userRepository.findOne({
-        where: { email: next, deletedAt: IsNull() }
-      });
-      if (taken && taken.id !== user.id) {
-        throw new ConflictException({
-          error: {
-            code: "USER_EMAIL_CONFLICT",
-            message: "Email is already in use"
-          }
+      if (!user) {
+        throw new NotFoundException({
+          error: { code: "USER_NOT_FOUND", message: "User not found" }
         });
       }
 
-      await this.userRepository.save(user);
+      this.assertExpectedProfileRowVersion(concurrency?.expectedProfileRowVersion, user);
 
-      await this.emailVerificationTokenRepository.delete({
-        userId: user.id,
-        usedAt: IsNull()
-      });
+      const wantsEmailVerificationFlow =
+        dto.email !== undefined &&
+        dto.email.trim().toLowerCase() !== user.email.trim().toLowerCase();
 
-      const token = randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + MeService.EMAIL_TOKEN_TTL_MS);
+      if (wantsEmailVerificationFlow) {
+        const next = dto.email!.trim();
+        const u = user;
+        const priorEmail = u.email.trim();
+        await this.applyMePatchDtoToUser(repo, u, dto);
 
-      await this.emailVerificationTokenRepository.save(
-        this.emailVerificationTokenRepository.create({
-          userId: user.id,
+        const ownerOfEmail = await repo.findOne({
+          where: { email: next, deletedAt: IsNull() }
+        });
+        if (ownerOfEmail && ownerOfEmail.id !== u.id) {
+          throw new ConflictException({
+            error: {
+              code: "USER_EMAIL_CONFLICT",
+              message: "Email is already in use"
+            }
+          });
+        }
+
+        await this.persistUserProfileOrNationalIdConflict(repo, u);
+
+        await manager
+          .createQueryBuilder()
+          .delete()
+          .from(EmailVerificationTokenEntity)
+          .where("user_id = :userId AND used_at IS NULL", { userId: u.id })
+          .execute();
+
+        const token = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + MeService.EMAIL_TOKEN_TTL_MS);
+
+        const tokenRow = manager.create(EmailVerificationTokenEntity, {
+          userId: u.id,
           newEmail: next,
           token,
           expiresAt,
           usedAt: null
-        })
-      );
+        });
+        const savedToken = await manager.save(tokenRow);
 
-      await this.emailService.sendVerificationEmail(next, token);
+        await this.outboxService.addEvent(manager, {
+          tenantId,
+          aggregateType: OUTBOX_AGGREGATE_TYPE_EMAIL_VERIFICATION_TOKEN,
+          aggregateId: savedToken.id,
+          eventType: OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND,
+          payload: { to: next, token }
+        });
 
-      return { status: "pending_email_verification" };
-    }
+        await this.tenantAuditEventsService.append(
+          {
+            tenantId,
+            actorUserId: userId,
+            actor: this.selfActorLabel({ email: priorEmail }, userId),
+            userId,
+            action: TenantAuditAction.PROFILE_EMAIL_VERIFICATION_STARTED,
+            resourceType: "email_verification",
+            resourceId: savedToken.id,
+            metadata: {
+              prior_email_domain: this.emailPublicSuffix(priorEmail) ?? "",
+              new_email_domain: this.emailPublicSuffix(next) ?? "",
+              ...this.workspaceRoleAuditFields()
+            },
+            clientIp: this.requestContext.tryGetClientIp(),
+            requestId: this.requestContext.tryGetRequestId() ?? null
+          },
+          manager
+        );
 
-    await this.userRepository.save(user);
+        return {
+          status: "pending_email_verification",
+          profile_row_version: u.profileRowVersion
+        };
+      }
 
-    return this.toProfileResponse(user);
+      const beforeSelfPii = snapshotSelfPiiFromUser(user);
+      await this.applyMePatchDtoToUser(repo, user, dto);
+      await this.persistUserProfileOrNationalIdConflict(repo, user);
+
+      const changed = diffSelfPiiFieldKeys(beforeSelfPii, snapshotSelfPiiFromUser(user));
+      if (changed.length > 0) {
+        await this.tenantAuditEventsService.append(
+          {
+            tenantId,
+            actorUserId: userId,
+            actor: this.selfActorLabel(user, userId),
+            userId,
+            action: TenantAuditAction.PROFILE_SELF_PII_FIELDS_UPDATED,
+            resourceType: "user_profile",
+            resourceId: userId,
+            metadata: {
+              fields: changed,
+              ...this.workspaceRoleAuditFields()
+            },
+            clientIp: this.requestContext.tryGetClientIp(),
+            requestId: this.requestContext.tryGetRequestId() ?? null
+          },
+          manager
+        );
+      }
+
+      return mapUserEntityToMeProfileResponse(user);
+    });
   }
 
   async verifyEmail(token: string): Promise<EmailVerifiedResponse> {
@@ -173,52 +430,79 @@ export class MeService {
     await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
 
     const trimmed = token.trim();
-    const row = await this.emailVerificationTokenRepository.findOne({
-      where: {
-        token: trimmed,
-        usedAt: IsNull(),
-        expiresAt: MoreThan(new Date())
+
+    let resolvedEmail = "";
+    await this.withProfileMutationTransaction(async (manager) => {
+      const row = await manager.findOne(EmailVerificationTokenEntity, {
+        where: {
+          token: trimmed,
+          usedAt: IsNull(),
+          expiresAt: MoreThan(new Date())
+        },
+        lock: { mode: "pessimistic_write" }
+      });
+
+      if (!row || row.userId !== userId) {
+        throw new BadRequestException({
+          error: {
+            code: "EMAIL_VERIFICATION_INVALID",
+            message: "Invalid or expired verification token"
+          }
+        });
       }
+
+      const userRepo = manager.getRepository(UserEntity);
+      const ownerOfEmail = await this.findActiveUserByEmailCaseInsensitive(userRepo, row.newEmail);
+      if (ownerOfEmail && ownerOfEmail.id !== userId) {
+        throw new ConflictException({
+          error: {
+            code: "USER_EMAIL_CONFLICT",
+            message: "Email is already in use by another account"
+          }
+        });
+      }
+
+      const user = await userRepo.findOne({
+        where: { id: userId, deletedAt: IsNull() }
+      });
+      if (!user) {
+        throw new NotFoundException({
+          error: { code: "USER_NOT_FOUND", message: "User not found" }
+        });
+      }
+
+      const priorEmail = user.email.trim();
+      user.email = row.newEmail;
+      user.isEmailVerified = true;
+      await this.persistUserProfileOrNationalIdConflict(userRepo, user);
+
+      row.usedAt = new Date();
+      await manager.save(row);
+
+      resolvedEmail = user.email;
+
+      await this.tenantAuditEventsService.append(
+        {
+          tenantId,
+          actorUserId: userId,
+          actor: this.selfActorLabel({ email: priorEmail }, userId),
+          userId,
+          action: TenantAuditAction.PROFILE_EMAIL_VERIFIED,
+          resourceType: "user_profile",
+          resourceId: userId,
+          metadata: {
+            prior_email_domain: this.emailPublicSuffix(priorEmail) ?? "",
+            new_email_domain: this.emailPublicSuffix(row.newEmail) ?? "",
+            ...this.workspaceRoleAuditFields()
+          },
+          clientIp: this.requestContext.tryGetClientIp(),
+          requestId: this.requestContext.tryGetRequestId() ?? null
+        },
+        manager
+      );
     });
 
-    if (!row || row.userId !== userId) {
-      throw new BadRequestException({
-        error: {
-          code: "EMAIL_VERIFICATION_INVALID",
-          message: "Invalid or expired verification token"
-        }
-      });
-    }
-
-    const taken = await this.userRepository.findOne({
-      where: { email: row.newEmail, deletedAt: IsNull() }
-    });
-    if (taken && taken.id !== userId) {
-      throw new ConflictException({
-        error: {
-          code: "USER_EMAIL_CONFLICT",
-          message: "Email is already in use"
-        }
-      });
-    }
-
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
-    if (!user) {
-      throw new NotFoundException({
-        error: { code: "USER_NOT_FOUND", message: "User not found" }
-      });
-    }
-
-    user.email = row.newEmail;
-    user.isEmailVerified = true;
-    await this.userRepository.save(user);
-
-    row.usedAt = new Date();
-    await this.emailVerificationTokenRepository.save(row);
-
-    return { status: "email_verified", email: user.email };
+    return { status: "email_verified", email: resolvedEmail };
   }
 
   private async findUserByNormalizedPhoneExclusive(
@@ -304,18 +588,37 @@ export class MeService {
       });
     }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
-    if (!user) {
-      throw new NotFoundException({
-        error: { code: "USER_NOT_FOUND", message: "User not found" }
+    await this.withProfileMutationTransaction(async (manager) => {
+      const userRepo = manager.getRepository(UserEntity);
+      const user = await userRepo.findOne({
+        where: { id: userId, deletedAt: IsNull() }
       });
-    }
+      if (!user) {
+        throw new NotFoundException({
+          error: { code: "USER_NOT_FOUND", message: "User not found" }
+        });
+      }
 
-    user.phone = verified.mobile;
-    user.isPhoneVerified = true;
-    await this.userRepository.save(user);
+      user.phone = verified.mobile;
+      user.isPhoneVerified = true;
+      await this.persistUserProfileOrNationalIdConflict(userRepo, user);
+
+      await this.tenantAuditEventsService.append(
+        {
+          tenantId,
+          actorUserId: userId,
+          actor: this.selfActorLabel(user, userId),
+          userId,
+          action: TenantAuditAction.PROFILE_PHONE_UPDATED_SELF,
+          resourceType: "user_profile",
+          resourceId: userId,
+          metadata: this.workspaceRoleAuditFields(),
+          clientIp: this.requestContext.tryGetClientIp(),
+          requestId: this.requestContext.tryGetRequestId() ?? null
+        },
+        manager
+      );
+    });
 
     return { status: "mobile_changed", mobile: verified.mobile };
   }

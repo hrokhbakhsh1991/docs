@@ -24,6 +24,7 @@ export function createTypeOrmOptions(
     autoLoadEntities: true,
     logging: false,
     migrationsTableName: "typeorm_migrations",
+    migrationsTransactionMode: "each",
     migrations
   };
 }
@@ -39,6 +40,7 @@ export function createDataSourceOptionsFromEnv(): DataSourceOptions {
     synchronize: false,
     logging: false,
     migrationsTableName: "typeorm_migrations",
+    migrationsTransactionMode: "each",
     migrations
   };
 }

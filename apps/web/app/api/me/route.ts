@@ -25,7 +25,13 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const payload = await backendRes.json().catch(() => ({}));
-  return NextResponse.json(payload, { status: backendRes.status });
+  const out = NextResponse.json(payload, { status: backendRes.status });
+  const etag = backendRes.headers.get("etag");
+  if (etag && etag.trim() !== "") {
+    out.headers.set("ETag", etag.trim());
+    out.headers.set("Cache-Control", backendRes.headers.get("cache-control") ?? "private, no-store");
+  }
+  return out;
 }
 
 export async function PATCH(req: Request): Promise<NextResponse> {
@@ -47,12 +53,21 @@ export async function PATCH(req: Request): Promise<NextResponse> {
     );
   }
 
+  const ifMatch = typeof req.headers.get === "function" ? req.headers.get("if-match") : null;
+  const idempotencyKey = typeof req.headers.get === "function" ? req.headers.get("idempotency-key") : null;
+
+  const forward = new Headers(headers);
+  forward.set("Content-Type", "application/json");
+  if (ifMatch !== null && ifMatch.trim() !== "") {
+    forward.set("If-Match", ifMatch.trim());
+  }
+  if (idempotencyKey !== null && idempotencyKey.trim() !== "") {
+    forward.set("Idempotency-Key", idempotencyKey.trim());
+  }
+
   const backendRes = await fetch(`${resolveMeBackendUrl()}/api/v2/me`, {
     method: "PATCH",
-    headers: {
-      ...headers,
-      "Content-Type": "application/json"
-    },
+    headers: forward,
     body: JSON.stringify(body),
     cache: "no-store"
   }).catch(() => null);

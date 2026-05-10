@@ -5,6 +5,16 @@ export type {
   WebSessionResponseDto,
 } from "./auth";
 export type {
+  MeChangeMobileChallengeWire,
+  MeEmailVerifiedWire,
+  MeMobileChangedWire,
+  MePatchSuccessWire,
+  MePendingEmailVerificationWire,
+  MeProfileGenderWire,
+  MeProfileWire,
+} from "./me";
+export { ME_PROFILE_GENDER_VALUES } from "./me";
+export type {
   Booking,
   BookingDto,
   RegistrationEntryMode,

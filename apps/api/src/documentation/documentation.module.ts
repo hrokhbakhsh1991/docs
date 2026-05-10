@@ -18,6 +18,8 @@ import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
 import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
 import { PaymentsService } from "../modules/payments/payments.service";
 import { ReconciliationService } from "../modules/reconciliation/reconciliation.service";
+import { MeController } from "../modules/identity/me.controller";
+import { MeService } from "../modules/identity/me.service";
 import { UsersController } from "../modules/identity/users.controller";
 import { UsersAuditService } from "../modules/identity/users-audit.service";
 import { UsersInviteService } from "../modules/identity/services/users-invite.service";
@@ -48,6 +50,12 @@ import { ToursService } from "../modules/tours/tours.service";
           ttl: 60_000,
           limit: 10,
           blockDuration: 1
+        },
+        {
+          name: "tour-create",
+          ttl: 60_000,
+          limit: 5000,
+          blockDuration: 1
         }
       ]
     })
@@ -60,6 +68,7 @@ import { ToursService } from "../modules/tours/tours.service";
     PaymentsController,
     PaymentsWebhookController,
     OpsController,
+    MeController,
     UsersController,
     SettingsRegionsController,
     SettingsDestinationsController,
@@ -278,6 +287,42 @@ import { ToursService } from "../modules/tours/tours.service";
     { provide: UsersWriteService, useValue: {} },
     { provide: UsersAuditService, useValue: {} },
     { provide: UsersInviteService, useValue: {} },
+    {
+      provide: MeService,
+      useValue: {
+        getMe: async () => ({
+          id: "00000000-0000-4000-8000-000000000099",
+          full_name: "OpenAPI User",
+          national_id: null,
+          gender: null,
+          birth_date: null,
+          email: "openapi@example.com",
+          is_email_verified: true,
+          phone: "+989000000000",
+          is_phone_verified: true,
+          notifications_enabled: true,
+          profile_row_version: 1
+        }),
+        patchMe: async () => ({
+          id: "00000000-0000-4000-8000-000000000099",
+          full_name: "OpenAPI User",
+          national_id: null,
+          gender: null,
+          birth_date: null,
+          email: "openapi@example.com",
+          is_email_verified: true,
+          phone: "+989000000000",
+          is_phone_verified: true,
+          notifications_enabled: true,
+          profile_row_version: 2
+        }),
+        verifyEmail: async () => ({ status: "email_verified" as const, email: "openapi@example.com" }),
+        requestChangeMobile: async () => ({
+          challenge_id: "00000000-0000-4000-8000-0000000000aa"
+        }),
+        verifyChangeMobile: async () => ({ status: "mobile_changed" as const, mobile: "+989000000000" })
+      }
+    },
     { provide: IdempotencyService, useValue: {} },
     {
       provide: OutboxMetricsService,

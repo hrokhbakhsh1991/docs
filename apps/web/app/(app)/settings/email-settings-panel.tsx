@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { cn, Button, FormField, Input, LoadingState, useToast } from "@tour/ui";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,7 +13,11 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 
 import styles from "./settings-profile-form.module.css";
 import { isPendingEmailVerification, mapMeToEmailForm } from "./settings-me-shared";
-import { pickMeErrorMessage, type RefreshWorkspaceMeOptions, type WorkspaceMeData } from "./workspace-me-provider";
+import { pickMeErrorMessage } from "@/lib/me-api-error";
+
+import { patchMe } from "@/lib/me-client";
+
+import type { RefreshWorkspaceMeOptions, WorkspaceMeData } from "./workspace-me-provider";
 
 export type EmailSettingsPanelProps = {
   me: WorkspaceMeData;
@@ -31,6 +35,26 @@ function emailPendingStorageKey(userId: string | undefined): string | null {
   return `tour_settings_email_pending_${userId}`;
 }
 
+/** Parses `#verify_email_token=…` (preferred; avoids server-side query logging). */
+function parseVerifyEmailTokenFromLocationHash(hash: string): string {
+  const withoutHash = hash.startsWith("#") ? hash.slice(1) : hash;
+  const trimmed = withoutHash.trim();
+  if (trimmed === "") {
+    return "";
+  }
+  try {
+    const params = new URLSearchParams(trimmed.startsWith("?") ? trimmed.slice(1) : trimmed);
+    const t =
+      params.get("verify_email_token")?.trim() ??
+      trimmed.match(/(?:^|[?&])verify_email_token=([^&]+)/)?.[1]?.trim() ??
+      "";
+    const decoded = t === "" ? "" : decodeURIComponent(t).trim();
+    return decoded.length === 64 ? decoded : "";
+  } catch {
+    return "";
+  }
+}
+
 function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const t = useTranslations("settings");
   const router = useRouter();
@@ -38,6 +62,7 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
 
+  const [hashToken, setHashToken] = useState("");
   const [editingEmail, setEditingEmail] = useState(false);
   const [manualTokenOpen, setManualTokenOpen] = useState(false);
   const [emailChangePending, setEmailChangePending] = useState(false);
@@ -45,12 +70,34 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const [tokenError, setTokenError] = useState<string | undefined>(undefined);
   const [verifySuccessInline, setVerifySuccessInline] = useState("");
   const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const profileRowVersionRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (typeof me.profile_row_version === "number") {
+      profileRowVersionRef.current = me.profile_row_version;
+    }
+  }, [me.profile_row_version]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    const sync = (): void => {
+      setHashToken(parseVerifyEmailTokenFromLocationHash(window.location.hash ?? ""));
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   const urlToken = useMemo(() => {
+    if (hashToken !== "") {
+      return hashToken;
+    }
     const fromQuery =
       searchParams.get("verify_email_token")?.trim() ?? searchParams.get("token")?.trim() ?? "";
     return fromQuery.length === 64 ? fromQuery : "";
-  }, [searchParams]);
+  }, [hashToken, searchParams]);
 
   const tokenSectionOpen = Boolean(urlToken) || manualTokenOpen;
 
@@ -95,7 +142,12 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const schema = useMemo(
     () =>
       z.object({
-        email: z.string().trim().min(1, t("validationEmailRequired")).email(t("validationEmailInvalid")),
+        email: z
+          .string()
+          .trim()
+          .min(1, { message: t("validationEmailRequired") })
+          .email({ message: t("validationEmailInvalid") })
+          .max(320, { message: t("validationEmailMax") }),
       }) satisfies z.ZodType<EmailFormValues>,
     [t],
   );
@@ -160,23 +212,26 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
 
   async function onValid(formData: EmailFormValues) {
     try {
-      const res = await fetch("/api/me", {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-        }),
-      });
+      const versionForMatch = profileRowVersionRef.current ?? me.profile_row_version;
+      const ifMatch =
+        typeof versionForMatch === "number" ? `W/"${String(versionForMatch)}"` : undefined;
+
+      const res = await patchMe(
+        { email: formData.email.trim() },
+        ifMatch !== undefined ? { ifMatch } : undefined,
+      );
       const body = (await res.json().catch(() => ({}))) as WorkspaceMeData | { status?: string };
       if (!res.ok) {
         showToast({
           type: "error",
-          message: pickMeErrorMessage(body, t("saveFailedToast")),
+          message: pickMeErrorMessage(body, t("saveFailedToast"), t),
         });
         return;
       }
       if (isPendingEmailVerification(body)) {
+        if (typeof body.profile_row_version === "number") {
+          profileRowVersionRef.current = body.profile_row_version;
+        }
         persistPending();
         setEditingEmail(false);
         showToast({ type: "success", message: t("toastEmailVerificationSent") });
@@ -184,7 +239,11 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
         return;
       }
       clearPending();
-      reset(mapMeToEmailForm(body as WorkspaceMeData));
+      const wb = body as WorkspaceMeData;
+      if (typeof wb.profile_row_version === "number") {
+        profileRowVersionRef.current = wb.profile_row_version;
+      }
+      reset(mapMeToEmailForm(wb));
       setEditingEmail(false);
       showToast({ type: "success", message: t("toastSaved") });
       await refresh({ silent: true });
@@ -213,7 +272,7 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
       });
       const body = (await res.json().catch(() => ({}))) as { status?: string; email?: string };
       if (!res.ok || body.status !== "email_verified") {
-        const msg = pickMeErrorMessage(body, t("emailVerifyFailedToast"));
+        const msg = pickMeErrorMessage(body, t("emailVerifyFailedToast"), t);
         setTokenError(msg);
         showToast({ type: "error", message: msg });
         return;
@@ -224,6 +283,11 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
       setVerifySuccessInline(t("emailVerifySuccessInline"));
       showToast({ type: "success", message: t("emailVerifySuccessToast") });
       await refresh({ silent: true });
+      if (typeof window !== "undefined") {
+        const { pathname: p, search } = window.location;
+        window.history.replaceState(null, "", `${p}${search}`);
+        setHashToken("");
+      }
       router.replace(pathname);
     } catch {
       const msg = t("emailVerifyFailedToast");

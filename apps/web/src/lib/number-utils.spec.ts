@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { convertNumbers, toEnglishDecimalString, toEnglishIntegerString } from "./number-utils";
+import {
+  convertNumbers,
+  formatEnglishWithThousands,
+  stripNumericSeparators,
+  toEnglishDecimalString,
+  toEnglishIntegerString,
+} from "./number-utils";
 
 test("convertNumbers to en maps Persian and Arabic-Indic digits", () => {
   assert.equal(convertNumbers("۰۱۲۳۴۵۶۷۸۹", "en"), "0123456789");
@@ -22,4 +28,15 @@ test("toEnglishDecimalString keeps one dot", () => {
   assert.equal(toEnglishDecimalString(persianWithArabicDecimalSep), "12.34");
   assert.equal(toEnglishDecimalString("12.34"), "12.34");
   assert.equal(toEnglishDecimalString("1..2"), "1.2");
+});
+
+test("stripNumericSeparators removes grouping characters", () => {
+  assert.equal(stripNumericSeparators("1,234٬ 5"), "12345");
+});
+
+test("formatEnglishWithThousands groups integer part", () => {
+  assert.equal(formatEnglishWithThousands("1200000", "integer"), "1,200,000");
+  assert.equal(formatEnglishWithThousands("1200.5", "decimal"), "1,200.5");
+  assert.equal(formatEnglishWithThousands("1200.", "decimal"), "1,200.");
+  assert.equal(formatEnglishWithThousands(".5", "decimal"), ".5");
 });

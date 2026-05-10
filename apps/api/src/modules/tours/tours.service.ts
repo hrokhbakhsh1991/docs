@@ -9,7 +9,9 @@ import {
 } from "@nestjs/common";
 import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Brackets, Repository } from "typeorm";
+
+import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 
 import {
   ACCOMMODATION_TYPE_VALUES,
@@ -25,6 +27,7 @@ import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
+import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreateTourDto } from "./dto/create-tour.dto";
 import { ListToursQueryDto } from "./dto/list-tours-query.dto";
@@ -33,6 +36,7 @@ import { UpdateTourDto } from "./dto/update-tour.dto";
 import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
 import { TourDetails } from "./entities/tour-details.entity";
 import type { TourTripDetails } from "./types/tour-trip-details.types";
+import { CURRENT_TRIP_DETAILS_SCHEMA_VERSION } from "./types/trip-details-schema";
 import { TourTripDetailsDto } from "./dto/trip-details.dto";
 import {
   assertTourIsPublishable,
@@ -49,12 +53,30 @@ import {
   assertTourThemeIdsBelongToTenant,
 } from "./utils/assert-workspace-catalog-ids";
 import { collectWorkspaceCatalogIds } from "./utils/collect-workspace-catalog-ids";
+import {
+  assertCreateTourInvariants,
+  validateTripDetailsCanonical
+} from "./utils/assert-create-tour-invariants";
+import { TourProductEntity } from "./entities/tour-product.entity";
+import { TourDepartureEntity } from "./entities/tour-departure.entity";
+import { TourPriceEntity, TourPriceType } from "./entities/tour-price.entity";
+import {
+  currencyCodeFromCostContext,
+  extractTripLogisticsDates,
+  listPriceMinorFromCostContext
+} from "./utils/commercial-fields";
 
 @Injectable()
 export class ToursService {
   constructor(
     @InjectRepository(TourEntity)
     private readonly tourRepository: Repository<TourEntity>,
+    @InjectRepository(TourProductEntity)
+    private readonly tourProductRepository: Repository<TourProductEntity>,
+    @InjectRepository(TourDepartureEntity)
+    private readonly tourDepartureRepository: Repository<TourDepartureEntity>,
+    @InjectRepository(TourPriceEntity)
+    private readonly tourPriceRepository: Repository<TourPriceEntity>,
     @InjectRepository(WorkspaceDestinationEntity)
     private readonly workspaceDestinationRepository: Repository<WorkspaceDestinationEntity>,
     @InjectRepository(WorkspaceEquipmentItemEntity)
@@ -64,14 +86,145 @@ export class ToursService {
     @InjectRepository(WorkspaceGuideLanguageEntity)
     private readonly workspaceGuideLanguagesRepository: Repository<WorkspaceGuideLanguageEntity>,
     @Inject(RequestContextService)
-    private readonly requestContextService: RequestContextService
+    private readonly requestContextService: RequestContextService,
+    @Inject(LoggerService)
+    private readonly loggerService: LoggerService
   ) {}
+
+  /**
+   * When {@link executeWithIdempotency} runs the handler, the same PostgreSQL transaction must be used
+   * for tour rows and catalog assertions; otherwise idempotency keys and tours can diverge.
+   */
+  private reposForWrite(): {
+    tour: Repository<TourEntity>;
+    tourProduct: Repository<TourProductEntity>;
+    tourDeparture: Repository<TourDepartureEntity>;
+    tourPrice: Repository<TourPriceEntity>;
+    workspaceDestination: Repository<WorkspaceDestinationEntity>;
+    workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
+    workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
+    workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
+  } {
+    const em = getIdempotentEntityManager();
+    if (em) {
+      return {
+        tour: em.getRepository(TourEntity),
+        tourProduct: em.getRepository(TourProductEntity),
+        tourDeparture: em.getRepository(TourDepartureEntity),
+        tourPrice: em.getRepository(TourPriceEntity),
+        workspaceDestination: em.getRepository(WorkspaceDestinationEntity),
+        workspaceEquipment: em.getRepository(WorkspaceEquipmentItemEntity),
+        workspaceTourThemes: em.getRepository(WorkspaceTourThemeEntity),
+        workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity)
+      };
+    }
+    return {
+      tour: this.tourRepository,
+      tourProduct: this.tourProductRepository,
+      tourDeparture: this.tourDepartureRepository,
+      tourPrice: this.tourPriceRepository,
+      workspaceDestination: this.workspaceDestinationRepository,
+      workspaceEquipment: this.workspaceEquipmentRepository,
+      workspaceTourThemes: this.workspaceTourThemesRepository,
+      workspaceGuideLanguages: this.workspaceGuideLanguagesRepository
+    };
+  }
+
+  /**
+   * Keeps `tour_products`, `tour_departures`, and base `tour_prices` in sync with the legacy `tours` row (dual-write).
+   */
+  private async syncProductDepartureForTour(
+    writeRepos: {
+      tour: Repository<TourEntity>;
+      tourProduct: Repository<TourProductEntity>;
+      tourDeparture: Repository<TourDepartureEntity>;
+      tourPrice: Repository<TourPriceEntity>;
+      workspaceDestination: Repository<WorkspaceDestinationEntity>;
+      workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
+      workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
+      workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
+    },
+    tour: TourEntity
+  ): Promise<void> {
+    const { startsOn, endsOn } = extractTripLogisticsDates(tour.details ?? null);
+    const currency = currencyCodeFromCostContext(tour.costContext);
+    const listMinor = listPriceMinorFromCostContext(tour.costContext);
+
+    if (!tour.tourProductId) {
+      const product = writeRepos.tourProduct.create({
+        tenantId: tour.tenantId,
+        title: tour.title,
+        description: tour.description ?? null
+      });
+      await writeRepos.tourProduct.save(product);
+
+      const departure = writeRepos.tourDeparture.create({
+        id: tour.id,
+        tourProductId: product.id,
+        tenantId: tour.tenantId,
+        startsOn: startsOn ?? undefined,
+        endsOn: endsOn ?? undefined,
+        currencyCode: currency,
+        listPriceMinor: listMinor ?? undefined,
+        lifecycleStatus: tour.lifecycleStatus,
+        capacityTotal: tour.totalCapacity,
+        reservedCount: 0,
+        soldCount: tour.acceptedCount
+      });
+      await writeRepos.tourDeparture.save(departure);
+
+      tour.tourProductId = product.id;
+      tour.tourDepartureId = tour.id;
+      await writeRepos.tour.save(tour);
+
+      const price = writeRepos.tourPrice.create({
+        tourDepartureId: departure.id,
+        priceType: TourPriceType.BASE,
+        currencyCode: currency,
+        amountMinor: listMinor ?? "0"
+      });
+      await writeRepos.tourPrice.save(price);
+      return;
+    }
+
+    const product = await writeRepos.tourProduct.findOne({
+      where: { id: tour.tourProductId }
+    });
+    if (product) {
+      product.title = tour.title;
+      product.description = tour.description ?? null;
+      await writeRepos.tourProduct.save(product);
+    }
+
+    const departureId = tour.tourDepartureId ?? tour.id;
+    const dep = await writeRepos.tourDeparture.findOne({ where: { id: departureId } });
+    if (dep) {
+      dep.startsOn = startsOn ?? undefined;
+      dep.endsOn = endsOn ?? undefined;
+      dep.currencyCode = currency;
+      dep.listPriceMinor = listMinor ?? undefined;
+      dep.lifecycleStatus = tour.lifecycleStatus;
+      dep.capacityTotal = tour.totalCapacity;
+      dep.soldCount = tour.acceptedCount;
+      await writeRepos.tourDeparture.save(dep);
+
+      const basePrice = await writeRepos.tourPrice.findOne({
+        where: { tourDepartureId: dep.id, priceType: TourPriceType.BASE }
+      });
+      if (basePrice) {
+        basePrice.currencyCode = currency;
+        basePrice.amountMinor = listMinor ?? basePrice.amountMinor;
+        await writeRepos.tourPrice.save(basePrice);
+      }
+    }
+  }
 
   private async assertDestinationBelongsToTenant(
     tenantId: string,
-    destinationId: string
+    destinationId: string,
+    destinationRepository: Repository<WorkspaceDestinationEntity> = this.workspaceDestinationRepository
   ): Promise<void> {
-    const row = await this.workspaceDestinationRepository.findOne({
+    const row = await destinationRepository.findOne({
       where: { id: destinationId, tenantId },
       select: { id: true }
     });
@@ -101,20 +254,60 @@ export class ToursService {
   private async assertTripDetailsCatalogRefsForTenant(
     tenantId: string,
     tripDetails: TourTripDetails | null | undefined,
+    repos?: {
+      workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
+      workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
+      workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
+    }
   ): Promise<void> {
     if (tripDetails == null) {
       return;
     }
+    const equipmentRepo = repos?.workspaceEquipment ?? this.workspaceEquipmentRepository;
+    const themesRepo = repos?.workspaceTourThemes ?? this.workspaceTourThemesRepository;
+    const languagesRepo = repos?.workspaceGuideLanguages ?? this.workspaceGuideLanguagesRepository;
     const { equipmentIds, tourThemeIds, guideLanguageIds } = collectWorkspaceCatalogIds(tripDetails);
-    await assertEquipmentIdsBelongToTenant(this.workspaceEquipmentRepository, tenantId, equipmentIds);
-    await assertTourThemeIdsBelongToTenant(this.workspaceTourThemesRepository, tenantId, tourThemeIds);
-    await assertGuideLanguageIdsBelongToTenant(this.workspaceGuideLanguagesRepository, tenantId, guideLanguageIds);
+    await assertEquipmentIdsBelongToTenant(equipmentRepo, tenantId, equipmentIds);
+    await assertTourThemeIdsBelongToTenant(themesRepo, tenantId, tourThemeIds);
+    await assertGuideLanguageIdsBelongToTenant(languagesRepo, tenantId, guideLanguageIds);
   }
 
   private static readonly tourResponseRelations = {
     details: true,
     destination: { region: true }
   } as const;
+
+  /**
+   * Loads a tour for PATCH with `FOR UPDATE` so concurrent edits serialize instead of last-write-wins.
+   * Uses the same repository (transactional when inside idempotent handler) as the rest of the write path.
+   */
+  /** Keeps denormalized list/audit columns in sync with JSON details and cost_context. */
+  private applyDenormalizedTourListColumns(tour: TourEntity): void {
+    const { startsOn, endsOn } = extractTripLogisticsDates(tour.details ?? null);
+    tour.startsOn = startsOn ?? undefined;
+    tour.endsOn = endsOn ?? undefined;
+    if (tour.costContext && typeof tour.costContext === "object") {
+      tour.currencyCode = currencyCodeFromCostContext(tour.costContext);
+      const minor = listPriceMinorFromCostContext(tour.costContext);
+      tour.listPriceMinor = minor ?? undefined;
+    }
+  }
+
+  private async loadTourForUpdateLocking(
+    tourRepo: Repository<TourEntity>,
+    tourId: string,
+    tenantId: string
+  ): Promise<TourEntity | null> {
+    return tourRepo
+      .createQueryBuilder("t")
+      .leftJoinAndSelect("t.details", "details")
+      .leftJoinAndSelect("t.destination", "destination")
+      .leftJoinAndSelect("destination.region", "destinationRegion")
+      .where("t.id = :tourId", { tourId })
+      .andWhere("t.tenantId = :tenantId", { tenantId })
+      .setLock("pessimistic_write")
+      .getOne();
+  }
 
   /** Align API casing (`Draft`) with Postgres enum (`DRAFT`) when class-transformer metadata is missing (e.g. tsx E2E). */
   private normalizeLifecycleStatusInput(
@@ -326,9 +519,16 @@ export class ToursService {
     const stripped = this.stripLegacyParticipationGearKeys(parsed) ?? parsed;
     const afterTransport = this.normalizeLogisticsTransportationMigration(stripped);
     const afterAccommodation = this.normalizeLogisticsAccommodationMigration(afterTransport);
-    return this.stripDeprecatedLogisticsGuideLanguage(
+    const normalized = this.stripDeprecatedLogisticsGuideLanguage(
       this.normalizeLogisticsMealPlanMigration(afterAccommodation),
     );
+    if (normalized === null || normalized === undefined) {
+      return normalized;
+    }
+    return {
+      ...normalized,
+      schemaVersion: normalized.schemaVersion ?? CURRENT_TRIP_DETAILS_SCHEMA_VERSION
+    };
   }
 
   /** Drops deprecated free-text `guideLanguage` from persisted logistics (use `guideLanguageIds`). */
@@ -349,9 +549,17 @@ export class ToursService {
       throw new ForbiddenException(tenantContextMissingError());
     }
 
+    const writeRepos = this.reposForWrite();
+
     try {
+      assertCreateTourInvariants(dto);
+
       if (dto.destinationId) {
-        await this.assertDestinationBelongsToTenant(tenantId, dto.destinationId);
+        await this.assertDestinationBelongsToTenant(
+          tenantId,
+          dto.destinationId,
+          writeRepos.workspaceDestination
+        );
       }
 
       let details: TourDetails | undefined;
@@ -379,10 +587,14 @@ export class ToursService {
       }
 
       if (details?.tripDetails) {
-        await this.assertTripDetailsCatalogRefsForTenant(tenantId, details.tripDetails);
+        await this.assertTripDetailsCatalogRefsForTenant(tenantId, details.tripDetails, {
+          workspaceEquipment: writeRepos.workspaceEquipment,
+          workspaceTourThemes: writeRepos.workspaceTourThemes,
+          workspaceGuideLanguages: writeRepos.workspaceGuideLanguages
+        });
       }
 
-      const tour = this.tourRepository.create({
+      const tour = writeRepos.tour.create({
         tenantId,
         title: dto.title,
         description: dto.description,
@@ -390,13 +602,21 @@ export class ToursService {
         acceptedCount: 0,
         lifecycleStatus: this.normalizeLifecycleStatusInput(dto.lifecycle_status),
         chatLink: dto.chat_link,
-        costContext: dto.cost_context,
+        costContext: dto.cost_context
+          ? (instanceToPlain(dto.cost_context) as Record<string, unknown>)
+          : undefined,
         autoAcceptRegistrations: dto.autoAcceptRegistrations,
         tourType: dto.tourType,
         transportModes: [...new Set(dto.transportModes ?? [])].sort() as TourTransportMode[],
         destination: this.destinationRelation(dto.destinationId ?? null),
         details
       });
+
+      this.applyDenormalizedTourListColumns(tour);
+      const createdBy = this.requestContextService.getUserId();
+      if (createdBy) {
+        tour.createdByUserId = createdBy;
+      }
 
       const nextLifecycle = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
       if (nextLifecycle === TourLifecycleStatus.OPEN) {
@@ -407,8 +627,8 @@ export class ToursService {
         });
       }
 
-      const saved = await this.tourRepository.save(tour);
-      const loaded = await this.tourRepository.findOne({
+      const saved = await writeRepos.tour.save(tour);
+      const loaded = await writeRepos.tour.findOne({
         where: {
           id: saved.id,
           tenantId
@@ -419,6 +639,17 @@ export class ToursService {
       if (!loaded) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
+
+      await this.syncProductDepartureForTour(writeRepos, loaded);
+
+      const creator = this.requestContextService.getUserId();
+      this.loggerService.info("tour.created", {
+        event: "tour.created",
+        tour_id: loaded.id,
+        tenant_id: tenantId,
+        lifecycle_status: loaded.lifecycleStatus,
+        ...(creator ? { created_by_user_id: creator } : {})
+      });
 
       return mapTourEntityToResponseDto(loaded);
     } catch (err) {
@@ -450,13 +681,13 @@ export class ToursService {
       });
     }
 
-    const tour = await this.tourRepository.findOne({
-      where: {
-        id: tourId,
-        tenantId
-      },
-      relations: ToursService.tourResponseRelations
-    });
+    const writeRepos = this.reposForWrite();
+
+    const tour = await this.loadTourForUpdateLocking(
+      writeRepos.tour,
+      tourId,
+      tenantId
+    );
 
     if (!tour) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
@@ -503,7 +734,7 @@ export class ToursService {
         tour.chatLink = dto.chat_link;
       }
       if (dto.cost_context !== undefined) {
-        tour.costContext = dto.cost_context;
+        tour.costContext = instanceToPlain(dto.cost_context) as Record<string, unknown>;
       }
       if (dto.autoAcceptRegistrations !== undefined) {
         tour.autoAcceptRegistrations = dto.autoAcceptRegistrations;
@@ -518,7 +749,11 @@ export class ToursService {
         if (dto.destinationId === null) {
           tour.destination = null;
         } else {
-          await this.assertDestinationBelongsToTenant(tenantId, dto.destinationId);
+          await this.assertDestinationBelongsToTenant(
+            tenantId,
+            dto.destinationId,
+            writeRepos.workspaceDestination
+          );
           tour.destination = this.destinationRelation(dto.destinationId);
         }
       }
@@ -564,7 +799,11 @@ export class ToursService {
         }
 
         if (dto.tripDetails !== undefined && tour.details.tripDetails) {
-          await this.assertTripDetailsCatalogRefsForTenant(tenantId, tour.details.tripDetails);
+          await this.assertTripDetailsCatalogRefsForTenant(tenantId, tour.details.tripDetails, {
+            workspaceEquipment: writeRepos.workspaceEquipment,
+            workspaceTourThemes: writeRepos.workspaceTourThemes,
+            workspaceGuideLanguages: writeRepos.workspaceGuideLanguages
+          });
         }
 
         const derivedDuration = computeTourDurationDays(
@@ -574,16 +813,31 @@ export class ToursService {
         if (derivedDuration !== undefined) {
           tour.details.durationDays = derivedDuration;
         }
+
+        validateTripDetailsCanonical(tour.details?.tripDetails);
       }
 
-      const saved = await this.tourRepository.save(tour);
-      const reloaded = await this.tourRepository.findOne({
+      this.applyDenormalizedTourListColumns(tour);
+
+      const saved = await writeRepos.tour.save(tour);
+      const reloaded = await writeRepos.tour.findOne({
         where: { id: saved.id, tenantId },
         relations: ToursService.tourResponseRelations
       });
       if (!reloaded) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
+      await this.syncProductDepartureForTour(writeRepos, reloaded);
+
+      const editor = this.requestContextService.getUserId();
+      this.loggerService.info("tour.updated", {
+        event: "tour.updated",
+        tour_id: reloaded.id,
+        tenant_id: tenantId,
+        lifecycle_status: reloaded.lifecycleStatus,
+        ...(editor ? { updated_by_user_id: editor } : {})
+      });
+
       return mapTourEntityToResponseDto(reloaded);
     } catch (err) {
       if (err instanceof HttpException) {
@@ -613,38 +867,83 @@ export class ToursService {
     const limit = query.limit ?? 10;
     const search = query.search?.trim() ?? "";
 
+    const hasCursorId =
+      typeof query.cursor_id === "string" && query.cursor_id.trim() !== "";
+    const hasCursorAt =
+      typeof query.cursor_created_at === "string" && query.cursor_created_at.trim() !== "";
+    if (hasCursorId !== hasCursorAt) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_FIELD_FORMAT_INVALID",
+          message: "cursor_id and cursor_created_at must both be provided for keyset pagination"
+        }
+      });
+    }
+    const useKeyset = hasCursorId && hasCursorAt;
+    const cursorAt = useKeyset
+      ? new Date(query.cursor_created_at as string)
+      : null;
+    const cursorId = useKeyset ? (query.cursor_id as string).trim() : null;
+    if (useKeyset && cursorAt !== null && Number.isNaN(cursorAt.getTime())) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_FIELD_FORMAT_INVALID",
+          message: "cursor_created_at must be a valid ISO-8601 date-time"
+        }
+      });
+    }
+
     const qb = this.tourRepository
       .createQueryBuilder("t")
       .leftJoinAndSelect("t.details", "details")
       .leftJoinAndSelect("t.destination", "destination")
       .leftJoinAndSelect("destination.region", "destinationRegion")
       .where("t.tenantId = :tenantId", { tenantId })
-      .orderBy("t.createdAt", "DESC");
+      .orderBy("t.createdAt", "DESC")
+      .addOrderBy("t.id", "DESC");
 
     if (search.length > 0) {
-      qb.andWhere(
-        "(LOWER(t.title) LIKE :search OR LOWER(COALESCE(t.description, '')) LIKE :search)",
-        { search: `%${search.toLowerCase()}%` }
-      );
+      qb.andWhere("t.search_vector @@ plainto_tsquery('simple', :fts)", {
+        fts: search
+      });
     }
 
     if (query.status === "active") {
-      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", { lifecycleStatus: TourLifecycleStatus.DRAFT });
+      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", {
+        lifecycleStatus: TourLifecycleStatus.DRAFT
+      });
     } else if (query.status === "completed") {
-      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", { lifecycleStatus: TourLifecycleStatus.OPEN });
+      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", {
+        lifecycleStatus: TourLifecycleStatus.OPEN
+      });
     } else if (query.status === "archived") {
       qb.andWhere("t.lifecycleStatus IN (:...archivedStatuses)", {
         archivedStatuses: [TourLifecycleStatus.CLOSED, TourLifecycleStatus.CANCELLED]
       });
     }
 
-    const total = await qb.getCount();
+    if (useKeyset && cursorAt !== null && cursorId !== null) {
+      qb.andWhere(
+        new Brackets((b) => {
+          b.where("t.createdAt < :cAt", { cAt: cursorAt }).orWhere(
+            new Brackets((inner) => {
+              inner
+                .where("t.createdAt = :cAt", { cAt: cursorAt })
+                .andWhere("t.id < :cId", { cId: cursorId });
+            })
+          );
+        })
+      );
+    }
 
-    const rows = await qb
-      .clone()
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getMany();
+    const includeTotal = query.include_total !== false;
+    const total = includeTotal ? await qb.getCount() : -1;
+
+    const dataQb = qb.clone();
+    if (!useKeyset) {
+      dataQb.skip((page - 1) * limit);
+    }
+    const rows = await dataQb.take(limit).getMany();
 
     const items = rows.map((row) => mapTourEntityToResponseDto(row));
 

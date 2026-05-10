@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -80,6 +80,12 @@ function registerTourErrorMessage(error: unknown): string {
   if (error.code === "REGISTRATION_DUPLICATE_ACTIVE") {
     return "You already have an active registration for this tour.";
   }
+  if (error.code === "PROFILE_NATIONAL_ID_REQUIRED") {
+    return "This tour requires your national ID on your profile. Open Settings → Profile to add it, then try again.";
+  }
+  if (error.code === "REGISTRATION_AUTH_REQUIRED") {
+    return "This tour requires a signed-in session with your workspace cookies. Sign in again and retry.";
+  }
   return error.message.trim() || "Could not complete registration. Please try again.";
 }
 
@@ -111,6 +117,30 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
     error: tourError,
     refetch: refetchTour,
   } = useTourDetail(tourId, { enabled: tourQueryEnabled });
+
+  const requiresNationalIdRegistration =
+    tour?.details?.tripDetails?.participation?.registrationNationalIdRequired === true;
+
+  const meProfileQuery = useQuery({
+    queryKey: ["me-profile-national-id-guard"],
+    enabled: tourQueryEnabled && Boolean(tour) && requiresNationalIdRegistration,
+    queryFn: async (): Promise<{ national_id?: string | null }> => {
+      const res = await fetch("/api/me", { credentials: "include", cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`me ${res.status}`);
+      }
+      return (await res.json()) as { national_id?: string | null };
+    },
+  });
+
+  const nationalIdMissingForTour =
+    requiresNationalIdRegistration &&
+    meProfileQuery.isSuccess &&
+    (!meProfileQuery.data?.national_id || String(meProfileQuery.data.national_id).trim() === "");
+
+  const nationalIdRegistrationBlocked =
+    requiresNationalIdRegistration &&
+    (meProfileQuery.isLoading || meProfileQuery.isError || nationalIdMissingForTour);
 
   const {
     register,
@@ -448,6 +478,27 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                 </strong>{" "}
                 (capacity-aware — full tours are waitlisted in the same response).
               </p>
+              {requiresNationalIdRegistration ? (
+                <div className={registerStyles.profileGate}>
+                  {meProfileQuery.isLoading ? (
+                    <p className={registerStyles.profileGateMuted}>Checking your profile for national ID…</p>
+                  ) : null}
+                  {meProfileQuery.isError ? (
+                    <p role="alert">
+                      Could not verify your profile. Refresh the page or sign in again, then retry.
+                    </p>
+                  ) : null}
+                  {nationalIdMissingForTour ? (
+                    <p role="alert">
+                      This tour requires your national ID on your profile.{" "}
+                      <Link href="/settings" className={registerStyles.returnLink}>
+                        Open profile settings
+                      </Link>{" "}
+                      to add it before registering.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <FormField label="Full name" required error={errors.participantFullName?.message}>
                 <Input autoComplete="name" {...register("participantFullName")} />
               </FormField>
@@ -485,7 +536,11 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                 <Textarea rows={3} {...register("participantNote")} />
               </FormField>
               <div className={registerStyles.submitRow}>
-                <Button type="submit" variant="primary" disabled={isSubmitting || placementMutation.isPending}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting || placementMutation.isPending || nationalIdRegistrationBlocked}
+                >
                   {placementMutation.isPending ? "Submitting…" : "Submit registration"}
                 </Button>
               </div>

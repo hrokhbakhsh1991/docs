@@ -12,7 +12,7 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
@@ -24,7 +24,7 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
 
 @ApiTags("Settings — Tour themes")
 @Controller("api/v2/settings/tour-themes")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard)
 @ApiBearerAuth()
 export class SettingsTourThemesController {
   constructor(private readonly tourThemes: TourThemesSettingsService) {}

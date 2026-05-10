@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
+import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
 
 type LoginPayload = {
   phone?: unknown;
@@ -18,7 +19,8 @@ function secureCookieEnabled(): boolean {
 
 export async function POST(req: Request): Promise<NextResponse> {
   const body = (await req.json().catch(() => ({}))) as LoginPayload;
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone =
+    typeof body.phone === "string" ? normalizeOtpPhoneInput(body.phone) : "";
   const otp = typeof body.otp === "string" ? body.otp.trim() : "";
   const inviteToken = typeof body.invite_token === "string" ? body.invite_token.trim() : undefined;
   if (!phone || !otp) {
