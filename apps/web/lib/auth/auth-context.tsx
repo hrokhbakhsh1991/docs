@@ -14,7 +14,7 @@ import { decodeJwtPayload } from "./decode-jwt-payload";
 import { clearSessionToken, persistSessionToken } from "./session";
 import type { WebSessionResponseBody } from "./types";
 
-export { isLeaderRole, isParticipantRole } from "./role-tags";
+export { isLeaderRole, isParticipantRole, isWorkspaceOwner } from "./role-tags";
 
 export type AuthUser = {
   userId: string;

@@ -24,15 +24,6 @@ import { ConfigService } from "./config/config.service";
 async function bootstrap() {
   startTracing();
 
-  if (process.env.NODE_ENV !== "production") {
-    setInterval(() => {
-      const m = process.memoryUsage();
-      console.log(
-        `[MEMORY] rss=${(m.rss / 1024 / 1024).toFixed(0)}MB heapUsed=${(m.heapUsed / 1024 / 1024).toFixed(0)}MB heapTotal=${(m.heapTotal / 1024 / 1024).toFixed(0)}MB`
-      );
-    }, 5000);
-  }
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false
   });

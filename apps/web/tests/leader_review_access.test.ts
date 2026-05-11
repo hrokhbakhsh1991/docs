@@ -4,6 +4,7 @@ import {
   canAccessLeaderReview,
   isLeaderReviewRoute,
   isLeaderRole,
+  isWorkspaceOwner,
 } from "../lib/auth/routeRolePolicy";
 
 test.describe("routeRolePolicy (pure authority)", () => {
@@ -11,6 +12,15 @@ test.describe("routeRolePolicy (pure authority)", () => {
     expect(isLeaderRole("owner")).toBeTruthy();
     expect(isLeaderRole("admin")).toBeTruthy();
     expect(isLeaderRole(" OWNER ")).toBeTruthy();
+  });
+
+  test("isWorkspaceOwner is true only for owner role", () => {
+    expect(isWorkspaceOwner("owner")).toBeTruthy();
+    expect(isWorkspaceOwner(" OWNER ")).toBeTruthy();
+    expect(isWorkspaceOwner("admin")).toBeFalsy();
+    expect(isWorkspaceOwner("member")).toBeFalsy();
+    expect(isWorkspaceOwner(undefined)).toBeFalsy();
+    expect(isWorkspaceOwner(null)).toBeFalsy();
   });
 
   test("isLeaderRole returns false for non-leader or missing roles", () => {

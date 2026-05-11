@@ -6,6 +6,7 @@ import { WorkspaceInvitesCanonicalModel1777584000000 } from "../database/migrati
 import { WorkspaceRegionsAndDestinations1777591500000 } from "../database/migrations/1777591500000-WorkspaceRegionsAndDestinations";
 import { WorkspaceEquipmentItems1777591700000 } from "../database/migrations/1777591700000-WorkspaceEquipmentItems";
 import { WorkspaceTourThemes1777591900000 } from "../database/migrations/1777591900000-WorkspaceTourThemes";
+import { WorkspaceTourCreationPresets1777593700000 } from "../database/migrations/1777593700000-WorkspaceTourCreationPresets";
 import { WorkspaceGuideLanguages1777592000000 } from "../database/migrations/1777592000000-WorkspaceGuideLanguages";
 import { TourDestinationId1777591600000 } from "../database/migrations/1777591600000-TourDestinationId";
 
@@ -158,6 +159,7 @@ async function main(): Promise<void> {
       await new TourDestinationId1777591600000().up(qrLocations);
       await new WorkspaceEquipmentItems1777591700000().up(qrLocations);
       await new WorkspaceTourThemes1777591900000().up(qrLocations);
+      await new WorkspaceTourCreationPresets1777593700000().up(qrLocations);
       await new WorkspaceGuideLanguages1777592000000().up(qrLocations);
       await qrLocations.commitTransaction();
     } catch (err) {
@@ -186,6 +188,7 @@ async function main(): Promise<void> {
             "tours.destination_id",
             "workspace_equipment_items",
             "workspace_tour_themes",
+            "workspace_tour_creation_presets",
             "workspace_guide_languages"
           ]
         },

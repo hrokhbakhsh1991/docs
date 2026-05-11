@@ -7,6 +7,10 @@ export function isLeaderRole(role?: string | null): boolean {
   return normalized === "owner" || normalized === "admin";
 }
 
+export function isWorkspaceOwner(role?: string | null): boolean {
+  return (role ?? "").trim().toLowerCase() === "owner";
+}
+
 export function isLeaderReviewRoute(pathname: string): boolean {
   return pathname === "/leader/review" || pathname.startsWith("/leader/review/");
 }

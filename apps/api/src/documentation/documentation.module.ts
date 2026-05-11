@@ -30,11 +30,13 @@ import { RegistrationsService } from "../modules/registrations/registrations.ser
 import { TenantBootstrapService } from "../modules/tenant/tenant-bootstrap.service";
 import { EquipmentSettingsService } from "../modules/settings-locations/equipment-settings.service";
 import { GuideLanguagesSettingsService } from "../modules/settings-locations/guide-languages-settings.service";
+import { TourCreationPresetsSettingsService } from "../modules/settings-locations/tour-creation-presets-settings.service";
 import { TourThemesSettingsService } from "../modules/settings-locations/tour-themes-settings.service";
 import { SettingsDestinationsController } from "../modules/settings-locations/settings-destinations.controller";
 import { SettingsDestinationsService } from "../modules/settings-locations/settings-destinations.service";
 import { SettingsEquipmentController } from "../modules/settings-locations/settings-equipment.controller";
 import { SettingsGuideLanguagesController } from "../modules/settings-locations/settings-guide-languages.controller";
+import { SettingsTourCreationPresetsController } from "../modules/settings-locations/settings-tour-creation-presets.controller";
 import { SettingsTourThemesController } from "../modules/settings-locations/settings-tour-themes.controller";
 import { SettingsRegionsController } from "../modules/settings-locations/settings-regions.controller";
 import { SettingsRegionsService } from "../modules/settings-locations/settings-regions.service";
@@ -74,7 +76,8 @@ import { ToursService } from "../modules/tours/tours.service";
     SettingsDestinationsController,
     SettingsEquipmentController,
     SettingsGuideLanguagesController,
-    SettingsTourThemesController
+    SettingsTourThemesController,
+    SettingsTourCreationPresetsController
   ],
   providers: [
     {
@@ -268,6 +271,38 @@ import { ToursService } from "../modules/tours/tours.service";
           description: null,
           isActive: true,
           sortOrder: 0,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        remove: async () => undefined,
+        reorder: async () => []
+      }
+    },
+    {
+      provide: TourCreationPresetsSettingsService,
+      useValue: {
+        findAllByWorkspace: async () => [],
+        create: async () => ({
+          id: "00000000-0000-4000-8000-000000000011",
+          name: "Mountain preset",
+          description: null,
+          isActive: true,
+          sortOrder: 0,
+          matchTourType: null,
+          matchMainTourThemeId: null,
+          defaults: {},
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }),
+        update: async () => ({
+          id: "00000000-0000-4000-8000-000000000011",
+          name: "Mountain preset",
+          description: null,
+          isActive: true,
+          sortOrder: 0,
+          matchTourType: null,
+          matchMainTourThemeId: null,
+          defaults: {},
           createdAt: new Date(0).toISOString(),
           updatedAt: new Date(0).toISOString()
         }),

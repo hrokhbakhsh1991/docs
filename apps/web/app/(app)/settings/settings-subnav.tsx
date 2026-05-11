@@ -19,6 +19,11 @@ export function SettingsSubnav() {
     pathname === "/settings/tour-themes" || pathname.startsWith("/settings/tour-themes/");
   const guideLanguagesActive =
     pathname === "/settings/guide-languages" || pathname.startsWith("/settings/guide-languages/");
+  const tourPresetsActive =
+    pathname === "/settings/tour-presets" ||
+    pathname.startsWith("/settings/tour-presets/") ||
+    pathname === "/settings/tour-form-defaults" ||
+    pathname.startsWith("/settings/tour-form-defaults/");
 
   return (
     <nav className={styles.root} aria-label={t("settingsSubnavAria")}>
@@ -39,6 +44,9 @@ export function SettingsSubnav() {
         className={cn(styles.link, guideLanguagesActive && styles.linkActive)}
       >
         {t("settingsSubnavGuideLanguages")}
+      </Link>
+      <Link href="/settings/tour-presets" className={cn(styles.link, tourPresetsActive && styles.linkActive)}>
+        {t("settingsSubnavTourFormDefaults")}
       </Link>
     </nav>
   );

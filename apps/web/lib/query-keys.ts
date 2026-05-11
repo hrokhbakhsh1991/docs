@@ -60,3 +60,8 @@ export const settingsGuideLanguagesKeys = {
   all: ["settings", "guideLanguages"] as const,
   list: () => [...settingsGuideLanguagesKeys.all, "list"] as const,
 };
+
+export const settingsTourPresetsKeys = {
+  all: ["settings", "tourPresets"] as const,
+  list: () => [...settingsTourPresetsKeys.all, "list"] as const,
+};

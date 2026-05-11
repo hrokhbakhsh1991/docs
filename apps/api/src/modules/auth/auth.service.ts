@@ -159,31 +159,13 @@ export class AuthService {
   }
 
   private isPhoneOtpCodeValid(otp: string): boolean {
-    const isDevStaticEnabled = this.isDevStaticOtpEnabled();
-    if (!isDevStaticEnabled) {
-      this.loggerService.info("auth_web_otp_validation_mode", {
-        mode: "provider_required",
-        env: this.configService.getNodeEnv()
-      });
-      return false;
-    }
-    this.loggerService.warn("auth_web_otp_validation_mode", {
-      mode: "dev_static_otp",
-      static_otp: "1234",
-      env: this.configService.getNodeEnv()
-    });
-    return otp.trim() === "1234";
+    return this.isDevStaticOtpEnabled() && otp.trim() === "1234";
   }
 
   async requestPhoneOtp(
     phone: string
   ): Promise<{ otp_requested: true; delivery: "dev_static"; challenge_id: string }> {
     const normalizedPhone = phone.trim();
-    this.loggerService.info("auth_phone_otp_requested", {
-      masked_phone: this.maskPhoneForLog(normalizedPhone),
-      env: this.configService.getNodeEnv(),
-      dev_static_otp_enabled: this.isDevStaticOtpEnabled()
-    });
     const { challengeId } = await this.otpService.createMobileOtpChallenge(normalizedPhone, "login");
     return {
       otp_requested: true,
@@ -200,11 +182,6 @@ export class AuthService {
     const normalizedPhone = dto.phone.trim();
     const user = await this.findUserByPhone(normalizedPhone);
     const invitePending = await this.hasPendingInviteForPhone(normalizedPhone, dto.invite_token);
-    this.loggerService.info("auth_phone_lookup_result", {
-      masked_phone: this.maskPhoneForLog(normalizedPhone),
-      user_found: Boolean(user),
-      invite_pending: invitePending
-    });
     return {
       mode: user ? "existing_user" : "new_user",
       invite_pending: invitePending,
@@ -338,89 +315,22 @@ export class AuthService {
   }
 
   async validatePhoneOtp(phone: string, otp: string): Promise<UserEntity | null> {
-    const nodeEnv = this.configService.getNodeEnv();
-    const allowDevStaticOtp = this.isDevStaticOtpEnabled();
-    this.loggerService.info("auth_web_otp_validate_phone_entry", {
-      env: nodeEnv,
-      allow_dev_static_otp: allowDevStaticOtp,
-      masked_phone: this.maskPhoneForLog(phone),
-      otp_length: otp.length
-    });
-    if (!allowDevStaticOtp) {
-      this.loggerService.warn("phone OTP validation requested without configured OTP provider", {
-        mode: "otp_provider_missing",
-        env: nodeEnv,
-        dev_static_otp_enabled: false
-      });
-      this.loggerService.warn("auth_web_otp_validate_phone_early_return", {
-        reason: "dev_static_otp_disabled",
-        env: nodeEnv,
-        masked_phone: this.maskPhoneForLog(phone)
-      });
+    if (!this.isDevStaticOtpEnabled()) {
       return null;
     }
-    const staticOtpMatch = otp === "1234";
-    this.loggerService.info("auth_web_otp_static_comparison", {
-      static_otp_match: staticOtpMatch,
-      otp_length: otp.length
-    });
     if (!this.isPhoneOtpCodeValid(otp)) {
-      this.loggerService.warn("auth_web_otp_validate_phone_early_return", {
-        reason: "static_otp_mismatch",
-        masked_phone: this.maskPhoneForLog(phone)
-      });
       return null;
     }
-    this.loggerService.warn("UNSAFE auth path used: development static OTP accepted", {
-      mode: "dev_static_otp",
-      otp_source: "static_1234",
-      env: nodeEnv,
-      guidance: "Disable AUTH_ALLOW_DEV_STATIC_OTP outside local development."
-    });
     const trimmed = phone.trim();
-    this.loggerService.info("auth_web_otp_phone_normalization", {
-      raw_phone: phone,
-      normalized_phone: trimmed,
-      raw_masked_phone: this.maskPhoneForLog(phone),
-      normalized_masked_phone: this.maskPhoneForLog(trimmed)
-    });
-    this.loggerService.info("auth_web_otp_lookup_phone_prepared", {
-      masked_phone_raw: this.maskPhoneForLog(phone),
-      masked_phone_trimmed: this.maskPhoneForLog(trimmed),
-      trimmed_length: trimmed.length
-    });
     if (!trimmed) {
-      this.loggerService.warn("auth_web_otp_validate_phone_early_return", {
-        reason: "phone_empty_after_trim"
-      });
       return null;
     }
-    // Match `users.phone` using DB `phone_normalized()` so spacing/format variants align.
-    const user = await this.findUserByPhone(trimmed);
-    this.loggerService.info("auth_web_otp_user_lookup_result", {
-      masked_phone_trimmed: this.maskPhoneForLog(trimmed),
-      user_found: Boolean(user),
-      user_id: user?.id
-    });
-    return user;
+    return this.findUserByPhone(trimmed);
   }
 
   async createWebSessionOtp(dto: PhoneSessionDto): Promise<WebSessionResponseDto> {
-    this.loggerService.info("auth_web_otp_service_entry", {
-      masked_phone: this.maskPhoneForLog(dto.phone),
-      otp_present: dto.otp.trim() !== "",
-      otp_length: dto.otp.length
-    });
     const resolvedTenantId = this.requestContextService.resolveEffectiveTenantId();
-    this.loggerService.info("auth_web_otp_tenant_resolution", {
-      resolved_tenant_id: resolvedTenantId ?? null,
-      request_tenant_id: this.requestContextService.tryGetTenantId() ?? null,
-      host_tenant_id: this.requestContextService.tryGetHostTenantId() ?? null
-    });
     if (!resolvedTenantId) {
-      this.loggerService.warn("auth_web_otp_tenant_resolution_failed", {
-        reason: "tenant_context_missing"
-      });
       throw new ForbiddenException({
         error: {
           code: "TENANT_CONTEXT_MISSING",
@@ -432,12 +342,6 @@ export class AuthService {
 
     const trimmedOtp = dto.otp.trim();
     const challengeId = dto.challenge_id?.trim();
-
-    this.loggerService.info("auth_web_otp_feature_flags", {
-      env: this.configService.getNodeEnv(),
-      dev_static_otp_enabled: this.isDevStaticOtpEnabled(),
-      challenge_id_present: Boolean(challengeId)
-    });
 
     let user: UserEntity | null;
     if (challengeId) {
@@ -463,10 +367,6 @@ export class AuthService {
     } else {
       const isDevStaticOtpEnabled = this.isDevStaticOtpEnabled();
       if (isDevStaticOtpEnabled && trimmedOtp !== "1234") {
-        this.loggerService.warn("auth_web_otp_invalid_static_otp_branch", {
-          static_otp_match: false,
-          otp_length: trimmedOtp.length
-        });
         throw new UnauthorizedException({
           error: {
             code: "AUTH_OTP_INVALID",
@@ -475,19 +375,10 @@ export class AuthService {
         });
       }
 
-      this.loggerService.info("auth_web_otp_validate_phone_call", {
-        masked_phone: this.maskPhoneForLog(dto.phone),
-        otp_length: dto.otp.length
-      });
       user = await this.validatePhoneOtp(dto.phone, dto.otp);
     }
     if (!user) {
       if (!this.isDevStaticOtpEnabled()) {
-        this.loggerService.warn("auth_web_otp_user_validation_failed", {
-          masked_phone: this.maskPhoneForLog(dto.phone),
-          tenant_id: resolvedTenantId,
-          reason: "otp_provider_not_configured"
-        });
         throw new UnauthorizedException({
           error: {
             code: "AUTH_PHONE_INVALID",
@@ -499,11 +390,6 @@ export class AuthService {
         phone: dto.phone.trim(),
         tenantId: resolvedTenantId,
         inviteToken: dto.invite_token
-      });
-      this.loggerService.info("auth_web_otp_registration_required", {
-        masked_phone: this.maskPhoneForLog(dto.phone),
-        tenant_id: resolvedTenantId,
-        invite_token_present: typeof dto.invite_token === "string" && dto.invite_token.trim() !== ""
       });
       return {
         session_token: "",
@@ -532,21 +418,9 @@ export class AuthService {
             deletedAt: IsNull()
           }
         });
-    this.loggerService.info("auth_web_otp_membership_lookup_result", {
-      user_id: user.id,
-      tenant_id: resolvedTenantId,
-      membership_found: Boolean(membership),
-      membership_role: membership?.role,
-      membership_status: anyMembership?.status ?? null
-    });
 
     if (!membership) {
       const membershipStatus = anyMembership?.status ?? "NONE";
-      this.loggerService.warn("auth_web_otp_membership_not_active", {
-        user_id: user.id,
-        tenant_id: resolvedTenantId,
-        membership_status: membershipStatus
-      });
       throw new ForbiddenException({
         error: {
           code: "AUTH_NO_ACTIVE_MEMBERSHIP",
@@ -559,12 +433,6 @@ export class AuthService {
       });
     }
 
-    this.loggerService.info("auth_web_otp_session_issuance_start", {
-      user_id: user.id,
-      tenant_id: resolvedTenantId,
-      role: membership.role,
-      session_version: membership.sessionVersion
-    });
     let accessToken: string;
     try {
       accessToken = await this.signAccessToken({
@@ -573,10 +441,6 @@ export class AuthService {
         role: membership.role,
         email: user.email ?? null,
         sessionVersion: membership.sessionVersion
-      });
-      this.loggerService.info("auth_web_otp_session_issuance_result", {
-        success: true,
-        session_token_present: accessToken.length > 0
       });
     } catch (error: unknown) {
       this.loggerService.error("auth_web_otp_session_issuance_result", {
@@ -606,12 +470,6 @@ export class AuthService {
       tenant_id: resolvedTenantId,
       entry_mode: "web"
     };
-    this.loggerService.info("auth_web_otp_response_assembled", {
-      user_id: response.user_id,
-      tenant_id: response.tenant_id,
-      entry_mode: response.entry_mode,
-      session_token_present: typeof response.session_token === "string" && response.session_token !== ""
-    });
     return response;
   }
 
@@ -806,12 +664,6 @@ export class AuthService {
       role: membership.role,
       email: user.email ?? null,
       sessionVersion: membership.sessionVersion
-    });
-
-    this.loggerService.info("auth_registration_completed", {
-      user_id: user.id,
-      tenant_id: onboarding.tenantId,
-      invite_token_present: typeof onboarding.inviteToken === "string" && onboarding.inviteToken !== ""
     });
 
     void this.tenantAuditEventsService.appendOrWarn({

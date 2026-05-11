@@ -5,7 +5,6 @@ import { Repository } from "typeorm";
 
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { ConfigService } from "../../config/config.service";
-import { LoggerService } from "../../common/logger/logger.service";
 import type { MobileOtpPurpose } from "./entities/mobile-otp-challenge.entity";
 import { MobileOtpChallengeEntity } from "./entities/mobile-otp-challenge.entity";
 
@@ -17,8 +16,7 @@ export class OtpService {
   constructor(
     @InjectRepository(MobileOtpChallengeEntity)
     private readonly challengeRepository: Repository<MobileOtpChallengeEntity>,
-    private readonly configService: ConfigService,
-    private readonly loggerService: LoggerService
+    private readonly configService: ConfigService
   ) {}
 
   private isDevStaticOtpEnabled(): boolean {
@@ -47,12 +45,6 @@ export class OtpService {
       })
     );
 
-    this.loggerService.info("mobile_otp_challenge_created", {
-      challenge_id: id,
-      purpose,
-      dev_static_otp: this.isDevStaticOtpEnabled() ? DEV_STATIC_OTP : undefined
-    });
-
     return { challengeId: id };
   }
 
@@ -61,7 +53,6 @@ export class OtpService {
     code: string
   ): Promise<{ success: true; mobile: string; purpose: MobileOtpPurpose }> {
     if (!this.isDevStaticOtpEnabled()) {
-      this.loggerService.warn("mobile_otp_verify_rejected_no_dev_provider", { challenge_id: challengeId });
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
@@ -72,7 +63,6 @@ export class OtpService {
 
     const trimmedCode = typeof code === "string" ? code.trim() : "";
     if (trimmedCode !== DEV_STATIC_OTP) {
-      this.loggerService.warn("mobile_otp_verify_rejected_bad_code", { challenge_id: challengeId });
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",

@@ -1,10 +1,22 @@
 import type { CSSProperties } from "react";
+import { TOUR_TYPES } from "@repo/types";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Checkbox, FormField, Input, Select, Textarea } from "@tour/ui";
 
+import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
+import { TourCreationPresetBanner } from "@/features/tours/wizard/TourCreationPresetBanner";
+
 import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
+
+const TOUR_TYPE_OPTION_KEYS = {
+  mountain: "tourTypeMountain",
+  city: "tourTypeCity",
+  desert: "tourTypeDesert",
+  nature: "tourTypeNature",
+  cultural: "tourTypeCultural",
+} as const;
 
 const mutedHelp: CSSProperties = {
   fontSize: "0.8125rem",
@@ -12,7 +24,11 @@ const mutedHelp: CSSProperties = {
   margin: 0,
 };
 
-export function BasicInfoStep() {
+export type BasicInfoStepProps = {
+  tourCreationPresets?: SettingsTourPresetDto[];
+};
+
+export function BasicInfoStep({ tourCreationPresets }: BasicInfoStepProps) {
   const t = useTranslations("tours.new");
   const {
     register,
@@ -29,8 +45,42 @@ export function BasicInfoStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
+      <TourCreationPresetBanner presets={tourCreationPresets} />
+
       <FormField label="عنوان تور" error={errors.overview?.title?.message}>
         <Input type="text" placeholder="مثلاً صعود دماوند" {...register("overview.title")} />
+      </FormField>
+
+      <FormField
+        label={t("fieldTourType")}
+        description={t("fieldTourTypeDescription")}
+        error={
+          typeof errors.overview?.tourType?.message === "string" ? errors.overview.tourType.message : undefined
+        }
+      >
+        <Controller
+          control={control}
+          name="overview.tourType"
+          render={({ field }) => (
+            <Select
+              name={field.name}
+              ref={field.ref}
+              onBlur={field.onBlur}
+              value={field.value ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                field.onChange(v === "" ? undefined : v);
+              }}
+            >
+              <option value="">{t("selectPlaceholder")}</option>
+              {TOUR_TYPES.map((tt) => (
+                <option key={tt} value={tt}>
+                  {t(TOUR_TYPE_OPTION_KEYS[tt])}
+                </option>
+              ))}
+            </Select>
+          )}
+        />
       </FormField>
 
       <FormField

@@ -64,6 +64,10 @@ function SettingsWorkspaceBody() {
             <p className={styles.hubLinkTitle}>{t("hubGuideLanguagesLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubGuideLanguagesBlurb")}</p>
           </Link>
+          <Link href="/settings/tour-presets" className={styles.hubLink}>
+            <p className={styles.hubLinkTitle}>{t("hubTourFormDefaultsLink")}</p>
+            <p className={styles.hubLinkBlurb}>{t("hubTourFormDefaultsBlurb")}</p>
+          </Link>
         </div>
       </SettingsSectionCard>
 

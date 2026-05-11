@@ -7,6 +7,7 @@
     "seed": "node --env-file=.env --import tsx src/scripts/seed.ts",
     "seed:bulk-test-users": "node --env-file=.env --import tsx src/scripts/seed-bulk-test-users.ts",
     "seed:demo-leader-tours": "node --env-file=.env --import tsx src/scripts/seed-demo-leader-tours.ts",
+    "seed:denali-tour-presets": "node --env-file=.env --import tsx src/scripts/seed-denali-tour-presets.ts",
     "seed:leader-bookings": "node --env-file=.env --import tsx src/scripts/seed-leader-bookings.ts",
     "auth:debug-audit": "node --env-file=.env --import tsx src/scripts/auth-debug-audit.ts",
     "e2e:freeze": "node --env-file=.env --import tsx src/scripts/freeze-e2e.ts",

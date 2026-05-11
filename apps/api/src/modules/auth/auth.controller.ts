@@ -56,20 +56,6 @@ const authInboundBodyPipe = new ValidationPipe({
   forbidNonWhitelisted: true
 });
 
-function maskPhoneForLog(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const digits = value.replace(/\D/g, "");
-  if (digits.length === 0) {
-    return "***";
-  }
-  if (digits.length <= 4) {
-    return `***${digits}`;
-  }
-  return `***${digits.slice(-4)}`;
-}
-
 @ApiTags("Auth")
 @Controller("api/v2/auth")
 export class AuthController {
@@ -105,37 +91,10 @@ export class AuthController {
     requires_registration?: boolean;
     onboarding_token?: string;
   }> {
-    const inboundBody = req.body as { phone?: unknown; otp?: unknown } | undefined;
-    this.loggerService.info("auth_web_otp_inbound_request", {
-      route: "/api/v2/auth/web/session/otp",
-      masked_phone: maskPhoneForLog(inboundBody?.phone),
-      otp_present: typeof inboundBody?.otp === "string" ? inboundBody.otp.trim() !== "" : false,
-      otp_length: typeof inboundBody?.otp === "string" ? inboundBody.otp.trim().length : 0,
-      has_phone_field: Object.prototype.hasOwnProperty.call(inboundBody ?? {}, "phone"),
-      has_otp_field: Object.prototype.hasOwnProperty.call(inboundBody ?? {}, "otp"),
-      host_header:
-        typeof req.headers.host === "string" && req.headers.host.trim() !== ""
-          ? req.headers.host
-          : undefined,
-      method: req.method,
-      path: req.path
-    });
     try {
       const meta: ArgumentMetadata = { type: "body", metatype: PhoneSessionDto };
       const dto = (await authInboundBodyPipe.transform(req.body, meta)) as PhoneSessionDto;
-      this.loggerService.info("auth_web_otp_dto_normalized", {
-        masked_phone_before: maskPhoneForLog(inboundBody?.phone),
-        masked_phone_after: maskPhoneForLog(dto.phone),
-        otp_length_after_trim: dto.otp.length
-      });
-      const response = await this.authService.createWebSessionOtp(dto);
-      this.loggerService.info("auth_web_otp_controller_response_ready", {
-        user_id: response.user_id,
-        tenant_id: response.tenant_id,
-        entry_mode: response.entry_mode,
-        session_token_present: typeof response.session_token === "string" && response.session_token !== ""
-      });
-      return response;
+      return await this.authService.createWebSessionOtp(dto);
     } catch (error: unknown) {
       this.loggerService.error("auth_web_otp_controller_error", {
         error_name: error instanceof Error ? error.name : typeof error,

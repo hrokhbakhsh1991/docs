@@ -122,51 +122,59 @@ export function LoginForm() {
   const otpRegister = withIntegerDigitNormalization(register("otp"));
 
   async function onValid(data: LoginFormValues): Promise<void> {
-    if (step === "phone") {
-      if (!data.phone) return;
-      const normalizedPhone = normalizeOtpPhoneInput(data.phone);
-      const preflightResponse = await fetch("/api/auth/phone-preflight", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: normalizedPhone,
-          ...(inviteToken ? { invite_token: inviteToken } : {}),
-        }),
-      });
-      const preflightPayload = (await preflightResponse.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error_code?: string;
-        message?: string;
-      };
-      if (!preflightResponse.ok || !preflightPayload.ok) {
-        throw new Error(preflightPayload.message ?? "Could not continue with this phone");
-      }
-      const otpRequestResponse = await fetch("/api/auth/request-otp", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: normalizedPhone,
-          ...(inviteToken ? { invite_token: inviteToken } : {}),
-        }),
-      });
-      const otpRequestPayload = (await otpRequestResponse.json().catch(() => ({}))) as {
-        ok?: boolean;
-        error_code?: string;
-        message?: string;
-      };
-      if (!otpRequestResponse.ok || !otpRequestPayload.ok) {
-        throw new Error(otpRequestPayload.message ?? "Failed to request OTP");
-      }
-      setStep("otp");
-      clearErrors();
-      return;
-    }
-    if (step === "otp") {
-      if (!data.phone) return;
-    }
     try {
+      if (step === "phone") {
+        if (!data.phone) return;
+        const normalizedPhone = normalizeOtpPhoneInput(data.phone);
+        const preflightResponse = await fetch("/api/auth/phone-preflight", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: normalizedPhone,
+            ...(inviteToken ? { invite_token: inviteToken } : {}),
+          }),
+        });
+        const preflightPayload = (await preflightResponse.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error_code?: string;
+          message?: string;
+          error?: { message?: string };
+        };
+        const preflightMessage =
+          preflightPayload.message ??
+          (typeof preflightPayload.error?.message === "string" ? preflightPayload.error.message : undefined);
+        if (!preflightResponse.ok || !preflightPayload.ok) {
+          throw new Error(preflightMessage ?? "Could not continue with this phone");
+        }
+        const otpRequestResponse = await fetch("/api/auth/request-otp", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: normalizedPhone,
+            ...(inviteToken ? { invite_token: inviteToken } : {}),
+          }),
+        });
+        const otpRequestPayload = (await otpRequestResponse.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error_code?: string;
+          message?: string;
+          error?: { message?: string };
+        };
+        const otpRequestMessage =
+          otpRequestPayload.message ??
+          (typeof otpRequestPayload.error?.message === "string" ? otpRequestPayload.error.message : undefined);
+        if (!otpRequestResponse.ok || !otpRequestPayload.ok) {
+          throw new Error(otpRequestMessage ?? "Failed to request OTP");
+        }
+        setStep("otp");
+        clearErrors();
+        return;
+      }
+      if (step === "otp") {
+        if (!data.phone) return;
+      }
       const response = await fetch("/api/auth/login-web-session", {
         method: "POST",
         credentials: "include",

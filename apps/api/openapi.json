@@ -3694,6 +3694,185 @@
           }
         ]
       }
+    },
+    "/api/v2/settings/tour-presets": {
+      "get": {
+        "operationId": "SettingsTourCreationPresetsController_list",
+        "summary": "List workspace tour creation presets",
+        "description": "Readable by all workspace members. Mutations remain owner/admin only.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceTourCreationPresetResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour creation presets"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "SettingsTourCreationPresetsController_create",
+        "summary": "Create workspace tour creation preset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceTourCreationPresetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourCreationPresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour creation presets"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-presets/reorder": {
+      "patch": {
+        "operationId": "SettingsTourCreationPresetsController_reorder",
+        "summary": "Reorder tour creation presets (full id list)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderWorkspaceTourCreationPresetsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkspaceTourCreationPresetResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour creation presets"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-presets/{id}": {
+      "patch": {
+        "operationId": "SettingsTourCreationPresetsController_update",
+        "summary": "Update workspace tour creation preset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceTourCreationPresetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourCreationPresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour creation presets"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsTourCreationPresetsController_remove",
+        "summary": "Delete workspace tour creation preset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Tour creation presets"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -6653,6 +6832,151 @@
           },
           "sortOrder": {
             "type": "number"
+          }
+        }
+      },
+      "WorkspaceTourCreationPresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "matchTourType": {
+            "type": "object",
+            "nullable": true
+          },
+          "matchMainTourThemeId": {
+            "type": "object",
+            "nullable": true
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isActive",
+          "sortOrder",
+          "defaults",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateWorkspaceTourCreationPresetDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "matchTourType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "mountain",
+              "city",
+              "desert",
+              "nature",
+              "cultural"
+            ]
+          },
+          "matchMainTourThemeId": {
+            "type": "object",
+            "nullable": true
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Partial tour create wizard defaults (JSON object)."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ReorderWorkspaceTourCreationPresetsDto": {
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "description": "Every preset id exactly once, workspace order.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "itemIds"
+        ]
+      },
+      "UpdateWorkspaceTourCreationPresetDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1
+          },
+          "description": {
+            "type": "object",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "matchTourType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "mountain",
+              "city",
+              "desert",
+              "nature",
+              "cultural"
+            ]
+          },
+          "matchMainTourThemeId": {
+            "type": "object",
+            "nullable": true
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true
           }
         }
       }
