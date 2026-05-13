@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Request } from "express";
+import type { UserRole } from "../auth/user-role.enum";
 import { TenantContextMissingError } from "../errors/tenant-context-missing.error";
 import { assertTenantContext } from "./assert-tenant-context";
 import {
@@ -79,6 +80,12 @@ export class RequestContextService {
     return v && v !== "" ? v : undefined;
   }
 
+  tryGetRole(): UserRole | undefined {
+    const store = requestContextStorage.getStore();
+    const v = store?.role;
+    return v;
+  }
+
   tryGetRequestId(): string | undefined {
     const store = requestContextStorage.getStore();
     const v = store?.requestId?.trim();
@@ -110,8 +117,8 @@ export class RequestContextService {
     if (store.userId !== undefined && store.userId !== "") {
       fields.user_id = store.userId;
     }
-    if (store.role !== undefined && store.role !== "") {
-      fields.role = store.role;
+    if (store.role !== undefined) {
+      fields.role = store.role as string;
     }
     const ip = store.clientIp?.trim();
     if (ip !== undefined && ip !== "") {
@@ -146,7 +153,7 @@ export class RequestContextService {
     return this.getContext().userId;
   }
 
-  getRole(): string | undefined {
+  getRole(): UserRole | undefined {
     return this.getContext().role;
   }
 
@@ -163,9 +170,28 @@ export class RequestContextService {
     context.userId = id;
   }
 
-  setRole(role: string): void {
+  setRole(role: UserRole): void {
     const context = this.getContext();
     context.role = role;
+  }
+
+  /** Called after JWT membership verification so CASL can mirror DB lifecycle. */
+  setWorkspaceAbilityContext(status: string, labels?: readonly string[]): void {
+    const context = this.getContext();
+    context.workspaceMembershipStatus = status;
+    context.abilityLabels = labels;
+  }
+
+  tryGetWorkspaceMembershipStatus(): string | undefined {
+    const store = requestContextStorage.getStore();
+    const v = store?.workspaceMembershipStatus?.trim();
+    return v && v !== "" ? v : undefined;
+  }
+
+  tryGetAbilityLabels(): readonly string[] | undefined {
+    const store = requestContextStorage.getStore();
+    const labels = store?.abilityLabels;
+    return labels && labels.length > 0 ? labels : undefined;
   }
 
   /**

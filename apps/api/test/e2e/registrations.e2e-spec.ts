@@ -17,6 +17,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { requestContextStorage } from "../../src/common/request-context/request-context";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
@@ -224,7 +225,7 @@ test("cancelling accepted registration promotes waitlist user", async () => {
       requestId: randomUUID(),
       tenantId: TENANT_ID,
       userId: "system-user",
-      role: "owner"
+      role: UserRole.Owner
     },
     async () => {
       await registrationsService.updateRegistrationStatus(firstRegistrationId, {

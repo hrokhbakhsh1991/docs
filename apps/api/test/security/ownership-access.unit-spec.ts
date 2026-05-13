@@ -10,10 +10,11 @@ import {
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 
 type Actor = {
-  role?: string;
+  role?: UserRole;
   tenantId?: string;
   userId?: string;
 };
@@ -24,6 +25,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
   const records: RegistrationEntity[] = [
     {
       id: "reg-own",
+      rowVersion: 1,
       tenantId: "tenant-a",
       tourId: "tour-1",
       tourDepartureId: "tour-1",
@@ -38,6 +40,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     } as RegistrationEntity,
     {
       id: "reg-other",
+      rowVersion: 1,
       tenantId: "tenant-a",
       tourId: "tour-1",
       tourDepartureId: "tour-1",
@@ -52,6 +55,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     } as RegistrationEntity,
     {
       id: "reg-cross-tenant",
+      rowVersion: 1,
       tenantId: "tenant-b",
       tourId: "tour-2",
       tourDepartureId: "tour-2",
@@ -120,7 +124,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
 
 test("member accesses own registration only", async () => {
   const { service } = buildRegistrationsServiceHarness({
-    role: "member",
+    role: UserRole.Member,
     tenantId: "tenant-a",
     userId: "11111111-1111-4111-8111-111111111111"
   });
@@ -135,7 +139,7 @@ test("member accesses own registration only", async () => {
 
 test("leader can access any registration in tenant", async () => {
   const { service } = buildRegistrationsServiceHarness({
-    role: "owner",
+    role: UserRole.Owner,
     tenantId: "tenant-a",
     userId: "leader-1"
   });
@@ -145,7 +149,7 @@ test("leader can access any registration in tenant", async () => {
 
 test("admin scoped to JWT tenant cannot load registration from another tenant", async () => {
   const { service } = buildRegistrationsServiceHarness({
-    role: "admin",
+    role: UserRole.Admin,
     tenantId: "tenant-a",
     userId: "admin-1"
   });
@@ -157,7 +161,7 @@ test("admin scoped to JWT tenant cannot load registration from another tenant", 
 
 test("admin can load registration in their tenant", async () => {
   const { service } = buildRegistrationsServiceHarness({
-    role: "admin",
+    role: UserRole.Admin,
     tenantId: "tenant-a",
     userId: "admin-1"
   });

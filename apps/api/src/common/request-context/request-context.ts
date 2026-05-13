@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { UserRole } from "../auth/user-role.enum";
 
 export interface RequestContext {
   requestId: string;
@@ -11,7 +12,8 @@ export interface RequestContext {
   tenantContextFrozen?: boolean;
   tenantId?: string;
   userId?: string;
-  role?: string;
+  /** Workspace role from verified JWT / membership (see {@link UserRole}). */
+  role?: UserRole;
   /**
    * Controls tenant binding behavior for DB calls in this async context.
    * `normal`: tenant binding is mandatory before tenant-scoped DB access.
@@ -24,6 +26,13 @@ export interface RequestContext {
   tenantBindingSuppressionReason?: string;
   /** Client IP (trust-proxy aware), set by {@link RequestContextMiddleware}. */
   clientIp?: string;
+  /**
+   * Workspace membership lifecycle for CASL (`user_tenants.membership_status`).
+   * Set by {@link AuthMiddleware} after ACTIVE membership is verified for JWT requests.
+   */
+  workspaceMembershipStatus?: string;
+  /** Optional marketing / CRM labels for ability rules (future: load from DB). */
+  abilityLabels?: readonly string[];
 }
 
 export enum TenantBindingMode {

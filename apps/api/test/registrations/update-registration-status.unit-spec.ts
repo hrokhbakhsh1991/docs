@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
   RegistrationEntity,
@@ -316,8 +317,8 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
       return "99999999-9999-4999-8999-999999999999";
     },
     /** Leader-facing registration updates (JWT workspace role `owner`). */
-    getRole(): string {
-      return "owner";
+    getRole(): UserRole {
+      return UserRole.Owner;
     }
   };
 

@@ -39,7 +39,8 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    if (!allowedRoles.includes(role as Role)) {
+    const roleStr = String(role);
+    if (!allowedRoles.some((allowed) => String(allowed) === roleStr)) {
       throw new ForbiddenException({
         error: {
           code: "AUTH_FORBIDDEN_ROLE",

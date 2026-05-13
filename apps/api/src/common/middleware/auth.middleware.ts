@@ -19,6 +19,7 @@ import {
 } from "../auth/auth-route-policy";
 import { authRequiredError } from "../errors/error-response-builders";
 import { LoggerService } from "../logger/logger.service";
+import { tryParseWorkspaceUserRole } from "../auth/user-role.enum";
 import { RequestContextService } from "../request-context/request-context.service";
 
 type JwtClaims = {
@@ -124,8 +125,8 @@ export class AuthMiddleware implements NestMiddleware {
 
       const userId = payload.sub.trim();
       const tenantId = payload.tenant_id.trim();
-      const role = payload.role.trim();
-
+      const roleRaw = payload.role.trim();
+      const role = tryParseWorkspaceUserRole(roleRaw);
       if (!userId || !tenantId || !role) {
         return;
       }
@@ -168,6 +169,7 @@ export class AuthMiddleware implements NestMiddleware {
       this.requestContextService.setUserId(userId);
       this.requestContextService.setTenantId(tenantId);
       this.requestContextService.setRole(role);
+      this.requestContextService.setWorkspaceAbilityContext("ACTIVE");
     } catch {
       /* anonymous registration — ignore optional auth failures */
     }
@@ -264,10 +266,20 @@ export class AuthMiddleware implements NestMiddleware {
 
       const userId = payload.sub.trim();
       const tenantId = payload.tenant_id.trim();
-      const role = payload.role.trim();
+      const roleRaw = payload.role.trim();
+      const role = tryParseWorkspaceUserRole(roleRaw);
 
       if (!userId || !tenantId || !role) {
-        throw new UnauthorizedException(authRequiredError());
+        throw new UnauthorizedException(
+          roleRaw && !role
+            ? {
+                error: {
+                  code: "AUTH_INVALID_ROLE",
+                  message: "Unknown workspace role in session token"
+                }
+              }
+            : authRequiredError()
+        );
       }
 
       const hostTenantEntity = req.tenant;
@@ -339,6 +351,7 @@ export class AuthMiddleware implements NestMiddleware {
             }
           });
         }
+        this.requestContextService.setWorkspaceAbilityContext("ACTIVE");
       } finally {
         await queryRunner.release();
       }
