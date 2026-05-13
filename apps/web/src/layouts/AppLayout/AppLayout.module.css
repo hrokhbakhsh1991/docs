@@ -201,6 +201,63 @@ html[dir="rtl"] .navLink:hover {
   gap: var(--space-1);
 }
 
+.accountMenu {
+  position: relative;
+}
+
+.accountMenuSummary {
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+}
+
+.accountMenuSummary::-webkit-details-marker {
+  display: none;
+}
+
+.accountMenuSummary:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-subtle);
+  background: var(--color-bg-muted);
+}
+
+.accountMenuPopover {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-1));
+  min-width: 14rem;
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+  z-index: calc(var(--z-modal) - 2);
+}
+
+.accountMenuLink {
+  display: inline-block;
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.accountMenuLink:hover {
+  text-decoration: underline;
+}
+
+.accountMenuHint {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-caption-size, 0.75rem);
+  color: var(--color-text-secondary);
+  line-height: 1.35;
+}
+
 .avatar {
   width: 36px;
   height: 36px;

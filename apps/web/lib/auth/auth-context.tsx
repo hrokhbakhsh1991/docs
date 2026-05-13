@@ -19,8 +19,12 @@ export { isLeaderRole, isParticipantRole, isWorkspaceOwner } from "./role-tags";
 export type AuthUser = {
   userId: string;
   tenantId: string;
-  /** From JWT `role` claim (`owner` | `admin` | `member`, …). */
+  /** From JWT `role` claim (`owner` | `admin` | `leader` | `member` | `viewer`, …). */
   role?: string;
+  /** When set, passed into CASL `defineAbilityFor` (defaults to ACTIVE if omitted). */
+  membershipStatus?: string;
+  /** Optional marketing / CRM labels for CASL (future: hydrate from API). */
+  abilityLabels?: readonly string[] | null;
 };
 
 /** Canonical copy when the UI exposes leader-only tooling (owner / admin; participants excluded). */
@@ -46,18 +50,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const ac = new AbortController();
+    const timeoutMs = 8_000;
+    const tid = window.setTimeout(() => ac.abort(), timeoutMs);
     void (async () => {
       try {
         const response = await fetch("/api/auth/session", {
           method: "GET",
           credentials: "include",
-          cache: "no-store"
+          cache: "no-store",
+          signal: ac.signal,
         });
         const payload = (await response.json().catch(() => ({}))) as {
           authenticated?: boolean;
           user?: AuthUser;
           user_id?: string;
           tenant_id?: string;
+          session_token?: string;
           decoded?: { payload?: { role?: unknown } };
         };
         void response;
@@ -73,11 +82,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const tenantId =
             payload.user?.tenantId?.trim() ||
             (typeof payload.tenant_id === "string" ? payload.tenant_id.trim() : "");
+          const tokenForClaims =
+            typeof payload.session_token === "string" ? payload.session_token.trim() : "";
+          const roleFromJwt =
+            tokenForClaims !== "" ? decodeJwtPayload(tokenForClaims)?.role : undefined;
           const role =
             payload.user?.role ||
             (typeof payload.decoded?.payload?.role === "string"
               ? payload.decoded.payload.role.trim()
-              : undefined);
+              : undefined) ||
+            (typeof roleFromJwt === "string" ? roleFromJwt.trim() : undefined);
           if (!userId || !tenantId) {
             setUser(null);
           } else {
@@ -89,17 +103,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       } catch {
-        if (!active) {
-          return;
+        if (active) {
+          setUser(null);
         }
-        setUser(null);
-      }
-      if (active) {
-        setIsHydrated(true);
+      } finally {
+        window.clearTimeout(tid);
+        if (active) {
+          setIsHydrated(true);
+        }
       }
     })();
     return () => {
       active = false;
+      ac.abort();
+      window.clearTimeout(tid);
     };
   }, []);
 

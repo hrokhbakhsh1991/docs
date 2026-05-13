@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import type { Resolver } from "react-hook-form";
@@ -11,7 +12,7 @@ import { buildDuplicatePresetName, deepClonePresetDefaults } from "@/lib/tour-pr
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
-import { Button, Checkbox, FormField, Input, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, Select, Textarea } from "@tour/ui";
 
 import formStyles from "../settings-profile-form.module.css";
 import panelStyles from "../locations/locations-settings-panel.module.css";
@@ -42,6 +43,7 @@ export type TourPresetFormParsed = {
   description: string | null;
   sortOrder: number | undefined;
   isActive: boolean;
+  formProfile: TourFormProfile;
   defaults: Record<string, unknown>;
 };
 
@@ -50,6 +52,7 @@ type TourPresetFormInput = {
   description: string;
   sortOrder: string;
   isActive: boolean;
+  formProfile: TourFormProfile;
   defaultsJson: string;
 };
 
@@ -87,6 +90,7 @@ export function TourPresetForm({
           message: t("tourPresetsValidationSortOrder"),
         }),
         isActive: z.boolean(),
+        formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
         defaultsJson: z
           .string()
           .default("")
@@ -114,6 +118,7 @@ export function TourPresetForm({
       description: "",
       sortOrder: "",
       isActive: true,
+      formProfile: "general",
       defaultsJson: "",
     },
   });
@@ -128,6 +133,7 @@ export function TourPresetForm({
         description: editing.description ?? "",
         sortOrder: editing.sortOrder !== undefined ? String(editing.sortOrder) : "",
         isActive: editing.isActive,
+        formProfile: (editing.formProfile as TourFormProfile) ?? "general",
         defaultsJson:
           editing.defaults && Object.keys(editing.defaults).length > 0
             ? JSON.stringify(editing.defaults, null, 2)
@@ -140,6 +146,7 @@ export function TourPresetForm({
         description: duplicateFrom.description ?? "",
         sortOrder: duplicateSortOrder != null ? String(duplicateSortOrder) : "",
         isActive: duplicateFrom.isActive,
+        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? "general",
         defaultsJson: Object.keys(defaultsCopy).length > 0 ? JSON.stringify(defaultsCopy, null, 2) : "",
       });
     } else {
@@ -148,6 +155,7 @@ export function TourPresetForm({
         description: "",
         sortOrder: "",
         isActive: true,
+        formProfile: "general",
         defaultsJson: "",
       });
     }
@@ -172,6 +180,7 @@ export function TourPresetForm({
           description: descriptionTrim ? descriptionTrim : null,
           sortOrder,
           isActive: values.isActive,
+          formProfile: values.formProfile,
           defaults,
         };
         await onSubmit(parsed);
@@ -224,6 +233,33 @@ export function TourPresetForm({
               ref={field.ref}
               name={field.name}
             />
+          )}
+        />
+      </FormField>
+
+      <FormField
+        label={t("tourPresetsFieldFormProfile")}
+        description={t("tourPresetsFieldFormProfileHint")}
+        error={errors.formProfile?.message}
+      >
+        <Controller
+          control={control}
+          name="formProfile"
+          render={({ field }) => (
+            <Select
+              name={field.name}
+              ref={field.ref}
+              onBlur={field.onBlur}
+              value={field.value}
+              onChange={(e) => field.onChange(e.target.value as TourFormProfile)}
+              aria-invalid={errors.formProfile ? true : undefined}
+            >
+              {TOUR_FORM_PROFILE_VALUES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
           )}
         />
       </FormField>

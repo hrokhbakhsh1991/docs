@@ -8,6 +8,8 @@ export type SettingsTourPresetDto = {
   sortOrder: number;
   matchTourType: string | null;
   matchMainTourThemeId: string | null;
+  /** Resolved form profile for wizard preset filtering. */
+  formProfile: string;
   defaults: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +22,8 @@ export type CreateTourPresetPayload = {
   sortOrder?: number;
   matchTourType?: string | null;
   matchMainTourThemeId?: string | null;
+  /** When omitted, API infers from tour type or defaults to `general`. */
+  formProfile?: string | null;
   defaults?: Record<string, unknown>;
 };
 
@@ -49,7 +53,16 @@ export async function getTourPresets(): Promise<SettingsTourPresetDto[]> {
   if (!Array.isArray(body)) {
     throw new Error("Invalid tour presets response");
   }
-  return body as SettingsTourPresetDto[];
+  return (body as unknown[]).map((raw) => {
+    const r = raw as SettingsTourPresetDto & { form_profile?: string };
+    const formProfile =
+      typeof r.formProfile === "string" && r.formProfile.trim() !== ""
+        ? r.formProfile
+        : typeof r.form_profile === "string" && r.form_profile.trim() !== ""
+          ? r.form_profile
+          : "general";
+    return { ...r, formProfile };
+  });
 }
 
 export async function createTourPreset(payload: CreateTourPresetPayload): Promise<SettingsTourPresetDto> {

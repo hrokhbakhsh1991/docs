@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
+import { TOUR_FORM_PROFILE_VALUES_LIST } from "@repo/types";
+
 export class WorkspaceTourCreationPresetResponseDto {
   @ApiProperty()
   id!: string;
@@ -21,6 +23,9 @@ export class WorkspaceTourCreationPresetResponseDto {
 
   @ApiPropertyOptional({ nullable: true })
   matchMainTourThemeId!: string | null;
+
+  @ApiProperty({ enum: TOUR_FORM_PROFILE_VALUES_LIST })
+  formProfile!: string;
 
   @ApiProperty({ type: "object", additionalProperties: true })
   defaults!: Record<string, unknown>;

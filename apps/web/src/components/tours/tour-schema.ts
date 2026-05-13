@@ -1,14 +1,13 @@
 import { z } from "zod";
 
-import { TOUR_TYPES } from "@repo/types";
+import { TOUR_TYPES, type TourFormProfile } from "@repo/types";
 
-import { getTripDetailsFieldConfigForKind } from "@/features/tours/config/tripDetailsFieldConfig";
+import { getTripDetailsFieldConfigForProfile } from "@/features/tours/config/tripDetailsFieldConfigAdapter";
 import {
   applyTripDetailsRequirednessToSchema,
   TourTripDetailsRootSchema,
 } from "@/features/tours/models/tourTripDetails.schema";
 import { tourLocationSectionSchema } from "@/features/tours/models/tourCreateModel";
-import type { EventKind } from "@/features/tours/policies/tour-kind-policy";
 
 /**
  * Form values aligned with `TourDto` and UI lifecycle mapping (`draft` → DRAFT …).
@@ -36,13 +35,13 @@ const TourBaseSchema = z.object({
     tripDetails: TourTripDetailsRootSchema,
   });
 
-export function createTourSchemaForEventKind(eventKind: EventKind) {
+export function createTourSchemaForProfile(profile: TourFormProfile) {
   return TourBaseSchema.extend({
-    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForKind(eventKind)),
+    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForProfile(profile)),
   });
 }
 
-export const TourSchema = createTourSchemaForEventKind("generic");
+export const TourSchema = createTourSchemaForProfile("general");
 
 export type TourFormInput = z.input<typeof TourSchema>;
 export type TourFormValues = z.output<typeof TourSchema>;

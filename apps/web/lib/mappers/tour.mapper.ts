@@ -1,5 +1,6 @@
 import {
   normalizeLegacyOverviewTripStyleToTripStyles,
+  normalizeTourFormProfileInput,
   type DifficultyLevel,
   type TourDetailsDto,
   type TourDto,
@@ -175,6 +176,13 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
         ? null
         : (String(o.tourType).trim().toLowerCase() as TourDto["tourType"]),
     transportModes: normalizeTransportModesRow(o),
+    formProfileSnapshot: (() => {
+      const snapRaw = o.formProfileSnapshot ?? o.form_profile_snapshot;
+      if (snapRaw == null || (typeof snapRaw === "string" && snapRaw.trim() === "")) {
+        return null;
+      }
+      return normalizeTourFormProfileInput(snapRaw);
+    })(),
     destinationId: normalizeOptionalString(o.destinationId ?? o.destination_id),
     destinationName: normalizeOptionalString(o.destinationName ?? o.destination_name),
     destinationRegionName: normalizeOptionalString(

@@ -25,13 +25,27 @@ import { updateTourDtoFromTourFormValues } from "../../tour-ui-mappers";
 
 import styles from "./tour-edit-client.module.css";
 
-export function TourEditClient({ tourId }: { tourId: string }) {
+export type TourEditInitialSession = {
+  userId: string;
+  tenantId: string;
+  role?: string;
+};
+
+export function TourEditClient({
+  tourId,
+  initialSession = null,
+}: {
+  tourId: string;
+  initialSession?: TourEditInitialSession | null;
+}) {
   const router = useRouter();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = toursUseLiveApi();
-  const leader = isLeaderRole(user?.role);
+  const effectiveRole = isHydrated ? user?.role : user?.role ?? initialSession?.role;
+  const leader = isLeaderRole(effectiveRole);
+  const sessionReady = isHydrated ? isAuthenticated : Boolean(initialSession);
 
-  const queryEnabled = Boolean(tourId) && liveApi && isHydrated && isAuthenticated && leader;
+  const queryEnabled = Boolean(tourId) && liveApi && sessionReady && leader;
   const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
@@ -58,7 +72,7 @@ export function TourEditClient({ tourId }: { tourId: string }) {
   const canEditLifecycle =
     tour != null && (tour.lifecycleStatus === "DRAFT" || tour.lifecycleStatus === "OPEN");
 
-  if (liveApi && !isHydrated) {
+  if (liveApi && !isHydrated && !initialSession) {
     return (
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
@@ -260,10 +274,16 @@ export function TourEditClient({ tourId }: { tourId: string }) {
         <TourForm
           mode="edit"
           tour={tour}
+          themeCatalogForFormProfile={tourThemesQuery.data ?? []}
           onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
-          onSubmit={async (values) => {
+          onSubmit={async (values, meta) => {
             const updated = await updateMutation.mutateAsync({
-              dto: updateTourDtoFromTourFormValues(values, tour, tourThemesQuery.data ?? []),
+              dto: updateTourDtoFromTourFormValues(
+                values,
+                tour,
+                tourThemesQuery.data ?? [],
+                meta?.resolvedFormProfile,
+              ),
               mergeCostFrom: tour.costContext ?? null,
             });
             if (!updated) {

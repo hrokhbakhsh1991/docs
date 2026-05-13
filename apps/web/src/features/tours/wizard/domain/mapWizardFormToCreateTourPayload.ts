@@ -73,12 +73,16 @@ export function mapFormValuesToBackendPayload(formValues: TourCreateFormValues):
   const segmentActivities = mapItineraryDays(formValues.itinerary.days);
 
   const primaryMode = formValues.logistics.primaryTransportMode;
-  const transportModes: CreateTourDto["transportModes"] =
-    primaryMode === "midibus"
-      ? (["bus"] as TransportMode[])
-      : primaryMode
-        ? ([primaryMode] as TransportMode[])
-        : undefined;
+  const supplementalPrivateCar = formValues.logistics.supplementalPrivateCar === true;
+  const transportModes: CreateTourDto["transportModes"] = (() => {
+    if (!primaryMode) return undefined;
+    const normalizedPrimary = (primaryMode === "midibus" ? "bus" : primaryMode) as TransportMode;
+    const set = new Set<TransportMode>([normalizedPrimary]);
+    if (primaryMode !== "private_car" && supplementalPrivateCar) {
+      set.add("private_car");
+    }
+    return [...set].sort((a, b) => a.localeCompare(b)) as CreateTourDto["transportModes"];
+  })();
 
   const resolvedCapacity =
     formValues.logistics.groupSizeMax ??
@@ -125,7 +129,7 @@ export function mapFormValuesToBackendPayload(formValues: TourCreateFormValues):
     logistics: {
       primaryTransportMode: trimToUndefined(formValues.logistics.primaryTransportMode),
       fuelShareToman:
-        formValues.logistics.primaryTransportMode === "private_car"
+        formValues.logistics.primaryTransportMode === "private_car" || supplementalPrivateCar
           ? formValues.logistics.fuelShareToman
           : undefined,
       departureDate: YMD_RE.test(trimToUndefined(formValues.schedule.startDate) ?? "")

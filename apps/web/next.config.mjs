@@ -6,7 +6,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  transpilePackages: ["@tour/ui"],
+  transpilePackages: ["@tour/ui", "@repo/shared-rbac"],
   /**
    * Avoid dev-only "Cannot find module './NNN.js'" when webpack disk cache / chunks
    * drift after fast refresh (stale .next referenced chunks).

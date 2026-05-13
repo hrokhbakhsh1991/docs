@@ -18,6 +18,11 @@ type Props = {
   tour: TourDto;
 };
 
+function formatTransportModesList(modes: TourDto["transportModes"] | undefined): string | undefined {
+  if (!modes?.length) return undefined;
+  return modes.map((m) => TRANSPORT_LABELS[m] ?? m).join("، ");
+}
+
 const TRANSPORT_LABELS: Record<string, string> = {
   plane: "هواپیما",
   train: "قطار",
@@ -97,6 +102,7 @@ export function TourTripDetailsPanel({ tour }: Props) {
   const accommodationNotes = trimStr(logistics?.accommodationNotes);
   const mealNotes = trimStr(logistics?.mealNotes);
   const primaryTransportMode = trimStr(logistics?.primaryTransportMode);
+  const transportModesSummary = formatTransportModesList(tour.transportModes);
   const fuelShareToman =
     typeof logistics?.fuelShareToman === "number" && Number.isFinite(logistics.fuelShareToman)
       ? logistics.fuelShareToman
@@ -195,6 +201,7 @@ export function TourTripDetailsPanel({ tour }: Props) {
     meetingPoint ||
     returnPoint ||
     primaryTransportMode ||
+    tour.transportModes.length > 1 ||
     fuelShareToman != null ||
     accommodationLabels ||
     accommodationNotes ||
@@ -271,7 +278,10 @@ export function TourTripDetailsPanel({ tour }: Props) {
                   {TRANSPORT_LABELS[primaryTransportMode] ?? primaryTransportMode}
                 </MetaRow>
               ) : null}
-              {primaryTransportMode === "private_car" && fuelShareToman != null ? (
+              {tour.transportModes.length > 1 && transportModesSummary ? (
+                <MetaRow term="ترکیب حمل‌ونقل (ثبت‌شده در سامانه)">{transportModesSummary}</MetaRow>
+              ) : null}
+              {fuelShareToman != null ? (
                 <MetaRow term={t("detail_fuelShareLabel")}>
                   {fuelShareToman.toLocaleString("fa-IR")} تومان
                 </MetaRow>

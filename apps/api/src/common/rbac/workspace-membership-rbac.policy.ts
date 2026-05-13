@@ -1,17 +1,19 @@
-import { ROLE_RANK } from "../../../../../packages/shared/rbac/workspace-roles";
+import { ROLE_RANK } from "@repo/shared-rbac";
+import { UserRole } from "../auth/user-role.enum";
 
 /**
  * Central workspace membership RBAC policy (ordering + transition rules).
  *
  * Target product hierarchy (highest first): owner > leader > admin > member > viewer.
- * Persisted membership roles in this codebase today: owner, admin, member, viewer.
- * The `leader` rank is reserved for a future persisted role; it is not assignable via
- * current HTTP DTOs — see GENERAL_PATCH_ASSIGNABLE_ROLES / INVITE_ASSIGNABLE_ROLES.
+ * Persisted membership roles in this codebase today: owner, leader, admin, member, viewer.
+ * `leader` is assignable via general PATCH when the actor outranks the new role (typically
+ * workspace owner only). Workspace invites still exclude `leader` and `owner` — see
+ * {@link INVITE_ASSIGNABLE_ROLES}.
  *
  * General PATCH /api/v2/users/:id is intentionally stricter than invites: it never
- * assigns `owner` and never mutates an existing `owner` membership row (owner changes
- * belong to a dedicated flow, not implemented here). Invite-based assignment to `owner`
- * is also forbidden.
+ * assigns `owner` and never mutates an existing `owner` membership row (ownership
+ * changes use `POST /api/v2/workspaces/:tenantId/ownership-transfer`). Invite-based
+ * assignment to `owner` is forbidden.
  */
 
 export const RBAC_SELF_ROLE_CHANGE_FORBIDDEN = "RBAC_SELF_ROLE_CHANGE_FORBIDDEN";
@@ -24,12 +26,13 @@ export const RBAC_UNKNOWN_MEMBERSHIP_ROLE = "RBAC_UNKNOWN_MEMBERSHIP_ROLE";
 /** Higher number = higher privilege. Includes structural `leader` for future use. */
 export const WORKSPACE_MEMBERSHIP_ROLE_RANK: Readonly<Record<string, number>> = ROLE_RANK;
 
-/** Roles that may exist in `user_tenants.role` today (lowercase persisted strings). */
+/** Roles that may exist in `user_tenants.role` today (aligned with {@link UserRole}). */
 export const PERSISTED_WORKSPACE_MEMBERSHIP_ROLES = Object.freeze([
-  "owner",
-  "admin",
-  "member",
-  "viewer"
+  UserRole.Owner,
+  UserRole.Leader,
+  UserRole.Admin,
+  UserRole.Member,
+  UserRole.Viewer
 ] as const);
 
 export type PersistedWorkspaceMembershipRole = (typeof PERSISTED_WORKSPACE_MEMBERSHIP_ROLES)[number];
@@ -38,18 +41,27 @@ export type PersistedWorkspaceMembershipRole = (typeof PERSISTED_WORKSPACE_MEMBE
  * Roles allowed as the NEW role on PATCH /api/v2/users/:id (general update).
  * Excludes `owner` (use a dedicated owner-transfer flow when product adds one).
  */
-export const GENERAL_PATCH_ASSIGNABLE_ROLES = Object.freeze(["admin", "member", "viewer"] as const);
+export const GENERAL_PATCH_ASSIGNABLE_ROLES = Object.freeze([
+  UserRole.Leader,
+  UserRole.Admin,
+  UserRole.Member,
+  UserRole.Viewer
+] as const);
 export type GeneralPatchAssignableRole = (typeof GENERAL_PATCH_ASSIGNABLE_ROLES)[number];
 
 /**
  * Roles allowed on workspace invite creation DTO.
  * Excludes `owner` and `leader` (ownership changes require a dedicated transfer flow).
  */
-export const INVITE_ASSIGNABLE_ROLES = Object.freeze(["admin", "member", "viewer"] as const);
+export const INVITE_ASSIGNABLE_ROLES = Object.freeze([
+  UserRole.Admin,
+  UserRole.Member,
+  UserRole.Viewer
+] as const);
 export type InviteAssignableRole = (typeof INVITE_ASSIGNABLE_ROLES)[number];
 
 const LEGACY_ROLE_ALIASES: Readonly<Record<string, PersistedWorkspaceMembershipRole>> = Object.freeze({
-  operator: "member"
+  operator: UserRole.Member
 });
 
 export function normalizeWorkspaceMembershipRole(
@@ -118,7 +130,7 @@ export function evaluateGeneralMembershipRoleChange(input: {
     };
   }
 
-  if (newNorm === "owner") {
+  if (newNorm === UserRole.Owner) {
     return {
       ok: false,
       code: RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN,

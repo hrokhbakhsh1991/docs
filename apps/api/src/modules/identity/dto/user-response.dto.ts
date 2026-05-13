@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { UserRole } from "../../../common/auth/user-role.enum";
 import { MembershipStatus } from "../membership-status.enum";
 
 export class UserResponseDto {
@@ -17,10 +18,14 @@ export class UserResponseDto {
   @ApiPropertyOptional({ example: true, description: "Phone verification flag for OTP-capable accounts." })
   isPhoneVerified?: boolean;
 
-  @ApiProperty({ example: "owner", description: "Tenant-scoped role from user_tenants.role" })
-  role!: string;
+  @ApiProperty({ example: UserRole.Owner, enum: UserRole, description: "Tenant-scoped role from user_tenants.role" })
+  role!: UserRole;
 
-  @ApiProperty({ example: MembershipStatus.ACTIVE, enum: MembershipStatus })
+  @ApiPropertyOptional({
+    example: 1,
+    description: "Optimistic concurrency token from `users.profile_row_version` (for ETag / If-Match)."
+  })
+  profileRowVersion?: number;
   status!: MembershipStatus;
 
   @ApiPropertyOptional({
@@ -54,4 +59,16 @@ export class UserResponseDto {
     description: "Timestamp when membership was suspended."
   })
   suspendedAt?: Date | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: "Tenant-scoped membership labels from `user_tenants.labels` (e.g. club_member)."
+  })
+  labels?: string[];
+
+  @ApiPropertyOptional({
+    example: false,
+    description: "True when the user account has a linked Telegram id (for in-app indicators)."
+  })
+  telegramLinked?: boolean;
 }

@@ -1,32 +1,29 @@
 /**
- * Workspace membership role carried on JWT `role` and `user_tenants.role` (lowercase).
- * Phase 1: replaces untyped `role: string` on request context after JWT verification.
- *
- * Additional values are **non-JWT** actors (workers, OpenAPI build, CASL placeholders).
+ * Workspace membership roles (JWT `role` and `user_tenants.role`, lowercase).
+ * Product hierarchy (highest first): owner > leader > admin > member > viewer.
  */
 export enum UserRole {
   Owner = "owner",
   Leader = "leader",
   Admin = "admin",
   Member = "member",
-  Viewer = "viewer",
-  /** Synthetic OpenAPI / documentation actor */
+  Viewer = "viewer"
+}
+
+/**
+ * Non-workspace JWT actors (OpenAPI build, workers, CASL placeholders, internal ops).
+ */
+export enum InternalActorRole {
   System = "SYSTEM",
-  /** CASL fail-closed placeholder */
   None = "none",
-  /** Background worker jobs */
   Worker = "worker",
-  /** Internal API / ops actor */
   Api = "api"
 }
 
-const JWT_WORKSPACE_ROLES = new Set<string>([
-  UserRole.Owner,
-  UserRole.Leader,
-  UserRole.Admin,
-  UserRole.Member,
-  UserRole.Viewer
-]);
+/** Value stored on {@link RequestContext.role} after auth or synthetic contexts. */
+export type RequestActorRole = UserRole | InternalActorRole;
+
+const JWT_WORKSPACE_ROLES = new Set<string>(Object.values(UserRole));
 
 /**
  * Returns a {@link UserRole} when `raw` matches a known **workspace JWT** role (case-insensitive).
@@ -37,4 +34,8 @@ export function tryParseWorkspaceUserRole(raw: string): UserRole | undefined {
     return undefined;
   }
   return normalized as UserRole;
+}
+
+export function isWorkspaceUserRole(role: RequestActorRole | undefined): role is UserRole {
+  return role !== undefined && JWT_WORKSPACE_ROLES.has(String(role).trim().toLowerCase());
 }

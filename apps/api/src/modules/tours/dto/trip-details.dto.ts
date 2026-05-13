@@ -724,7 +724,8 @@ export class TripDetailsLogisticsDto {
   primaryTransportMode?: (typeof PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES)[number];
 
   @ApiPropertyOptional({
-    description: "Shared fuel cost in Toman when `primaryTransportMode` is `private_car`."
+    description:
+      "Shared fuel cost in Toman when the tour uses `private_car` (either as wizard primary mode or alongside another mode in root `transportModes`)."
   })
   @IsOptional()
   @IsInt()

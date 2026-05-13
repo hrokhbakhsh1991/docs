@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 
 import { API } from "../../lib/api-paths";
 
+import { installAuthBffSmokeRoutes } from "./auth-bff-smoke-routes";
+
 type BookingRow = {
   id: string;
   tenantId: string;
@@ -24,6 +26,8 @@ test.describe("pre-release smoke flow", () => {
       sawIdempotencyKey: false,
       bookings: [] as BookingRow[],
     };
+
+    await installAuthBffSmokeRoutes(page);
 
     await page.route("**/api/v2/**", async (route) => {
       const request = route.request();
@@ -171,11 +175,14 @@ test.describe("pre-release smoke flow", () => {
     });
 
     await page.goto("/login");
-    await page.getByLabel("Phone").fill("+15551234567");
-    await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page.getByLabel("OTP")).toBeVisible();
-    await page.getByLabel("OTP").fill("1234");
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("تلفن همراه").fill("+15551234567");
+    await page.getByRole("button", { name: "ادامه" }).click();
+    await expect(page.getByLabel("رمز یک‌بارمصرف")).toBeVisible();
+    await page.getByLabel("رمز یک‌بارمصرف").fill("1234");
+    await page.getByRole("button", { name: "ورود" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await page.goto("/tours");
     await expect(page).toHaveURL(/\/tours$/);
 
     await expect(page.locator("body")).toContainText("Tours");

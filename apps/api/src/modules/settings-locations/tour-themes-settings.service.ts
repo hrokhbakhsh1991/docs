@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
+import { normalizeTourFormProfileInput } from "@repo/types";
+
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import type { CreateWorkspaceTourThemeDto } from "./dto/create-workspace-tour-theme.dto";
@@ -55,6 +57,7 @@ export class TourThemesSettingsService {
       description: row.description ?? null,
       isActive: row.isActive,
       sortOrder: row.sortOrder,
+      formProfile: normalizeTourFormProfileInput(row.formProfile),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString()
     };
@@ -84,7 +87,8 @@ export class TourThemesSettingsService {
       slug,
       description: this.normalizeNullableText(dto.description),
       isActive: dto.isActive ?? true,
-      sortOrder: dto.sortOrder ?? 0
+      sortOrder: dto.sortOrder ?? 0,
+      formProfile: normalizeTourFormProfileInput(dto.formProfile),
     });
     const saved = await this.tourThemesRepository.save(row);
     return this.toResponse(saved);
@@ -129,6 +133,9 @@ export class TourThemesSettingsService {
     }
     if (dto.sortOrder !== undefined) {
       row.sortOrder = dto.sortOrder;
+    }
+    if (dto.formProfile !== undefined) {
+      row.formProfile = normalizeTourFormProfileInput(dto.formProfile);
     }
     const saved = await this.tourThemesRepository.save(row);
     return this.toResponse(saved);

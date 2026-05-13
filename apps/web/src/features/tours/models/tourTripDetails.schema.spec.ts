@@ -1,16 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { z } from "zod";
+import type { TourFormProfile } from "@repo/types";
 
 import type { TourTripDetails } from "./tourTripDetails.schema";
 import { applyTripDetailsRequirednessToSchema, compactTripDetailsForApi, TourTripDetailsSchema } from "./tourTripDetails.schema";
-import { getTripDetailsFieldConfigForKind } from "../config/tripDetailsFieldConfig";
-import type { EventKind } from "../policies/tour-kind-policy";
+import { getTripDetailsFieldConfigForProfile } from "../config/tripDetailsFieldConfigAdapter";
 
 /** Matches RHF root: `tripDetails` is nested under the form object; issue paths are `tripDetails.…`. */
-function tripDetailsFormSchema(kind: EventKind) {
+function tripDetailsFormSchema(profile: TourFormProfile) {
   return z.object({
-    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForKind(kind)),
+    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForProfile(profile)),
   });
 }
 
@@ -86,7 +86,7 @@ test("compactTripDetailsForApi drops dayPlans rows without a valid day", () => {
 });
 
 test('mountain: missing overview.difficultyLevel → error on tripDetails.overview.difficultyLevel', () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       participation: { minimumAge: 18, gearRequiredIds: [GEAR_ID_FIXTURE] },
@@ -99,7 +99,7 @@ test('mountain: missing overview.difficultyLevel → error on tripDetails.overvi
 });
 
 test('mountain: missing logistics.departureDate → error on tripDetails.logistics.departureDate', () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -113,7 +113,7 @@ test('mountain: missing logistics.departureDate → error on tripDetails.logisti
 });
 
 test('mountain: missing logistics.meetingPoint → error on tripDetails.logistics.meetingPoint', () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -127,7 +127,7 @@ test('mountain: missing logistics.meetingPoint → error on tripDetails.logistic
 });
 
 test('mountain: empty logistics.meetingPoint → error on tripDetails.logistics.meetingPoint', () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -140,8 +140,8 @@ test('mountain: empty logistics.meetingPoint → error on tripDetails.logistics.
   assert.equal(hasPath(result.error.issues, "tripDetails.logistics.meetingPoint"), true);
 });
 
-test('mountain: missing participation.minimumAge → error on tripDetails.participation.minimumAge', () => {
-  const schema = tripDetailsFormSchema("mountain");
+test("mountain_outdoor: missing participation.minimumAge is allowed by profile rules", () => {
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -149,13 +149,11 @@ test('mountain: missing participation.minimumAge → error on tripDetails.partic
       logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
-  assert.equal(result.success, false);
-  if (result.success) return;
-  assert.equal(hasPath(result.error.issues, "tripDetails.participation.minimumAge"), true);
+  assert.equal(result.success, true);
 });
 
-test('mountain: participation.gearRequiredIds omitted → error on tripDetails.participation.gearRequiredIds', () => {
-  const schema = tripDetailsFormSchema("mountain");
+test("mountain_outdoor: omitted participation.gearRequiredIds is allowed by profile rules", () => {
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -163,13 +161,11 @@ test('mountain: participation.gearRequiredIds omitted → error on tripDetails.p
       logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
-  assert.equal(result.success, false);
-  if (result.success) return;
-  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequiredIds"), true);
+  assert.equal(result.success, true);
 });
 
-test('mountain: participation.gearRequiredIds empty array → error on tripDetails.participation.gearRequiredIds', () => {
-  const schema = tripDetailsFormSchema("mountain");
+test("mountain_outdoor: empty participation.gearRequiredIds is allowed by profile rules", () => {
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -177,13 +173,11 @@ test('mountain: participation.gearRequiredIds empty array → error on tripDetai
       logistics: { meetingPoint: "Azadi", departureDate: "2099-05-01" },
     },
   });
-  assert.equal(result.success, false);
-  if (result.success) return;
-  assert.equal(hasPath(result.error.issues, "tripDetails.participation.gearRequiredIds"), true);
+  assert.equal(result.success, true);
 });
 
 test("mountain: invalid gearRequiredIds entry → error", () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({
     tripDetails: {
       overview: { difficultyLevel: 5 },
@@ -199,7 +193,7 @@ test("mountain: invalid gearRequiredIds entry → error", () => {
 });
 
 test("generic: invalid overview.tourThemeIds entry → error", () => {
-  const schema = tripDetailsFormSchema("generic");
+  const schema = tripDetailsFormSchema("general");
   const result = schema.safeParse({
     tripDetails: {
       overview: { tourThemeIds: ["not-a-uuid"] },
@@ -213,13 +207,13 @@ test("generic: invalid overview.tourThemeIds entry → error", () => {
 });
 
 test('mountain: all required TripDetails fields present → validation passes', () => {
-  const schema = tripDetailsFormSchema("mountain");
+  const schema = tripDetailsFormSchema("mountain_outdoor");
   const result = schema.safeParse({ tripDetails: validMountainTripDetails });
   assert.equal(result.success, true);
 });
 
 test("generic: payloads that fail mountain for each required field still validate", () => {
-  const schema = tripDetailsFormSchema("generic");
+  const schema = tripDetailsFormSchema("general");
   const cases: { name: string; tripDetails: Record<string, unknown> }[] = [
     {
       name: "no overview.difficultyLevel",

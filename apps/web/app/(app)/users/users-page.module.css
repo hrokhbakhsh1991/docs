@@ -79,6 +79,18 @@
   gap: var(--space-2);
 }
 
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:focus-within {
+  outline: none;
+}
+
+.clickableRow:hover {
+  background: var(--color-bg-muted);
+}
+
 .roleControl {
   display: inline-flex;
   flex-direction: column;
@@ -124,4 +136,29 @@
 
 .bulkRoleLabel > span {
   white-space: nowrap;
+}
+
+.nameWithTelegram {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.telegramLinkedIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #229ed9;
+}
+
+.labelsCell {
+  max-width: 14rem;
+}
+
+.labelBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }

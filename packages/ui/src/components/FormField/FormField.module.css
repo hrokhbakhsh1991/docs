@@ -17,6 +17,23 @@
   margin-inline-start: var(--space-1);
 }
 
+/*
+ * Recommended-tier badge. Mirrors `FieldRequiredness === "recommended"` in the wizard rules
+ * layer (non-blocking — pure UI affordance). Uses the secondary text color and a small inline
+ * pill so it reads as a hint, not an error / required indicator.
+ */
+.recommendedMark {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill, 9999px);
+  font-size: var(--text-x-small-size, 0.75rem);
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted, rgba(0, 0, 0, 0.04));
+}
+
 .help {
   margin: 0;
   font-size: var(--text-small-size);

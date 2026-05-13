@@ -5235,7 +5235,7 @@
           },
           "fuelShareToman": {
             "type": "number",
-            "description": "Shared fuel cost in Toman when `primaryTransportMode` is `private_car`."
+            "description": "Shared fuel cost in Toman when the tour uses `private_car` (either as wizard primary mode or alongside another mode in root `transportModes`)."
           },
           "returnMeetingTime": {
             "type": "string",
@@ -5365,6 +5365,19 @@
             ],
             "example": "mountain",
             "description": "Top-level **category** of the tour (mountain, city, desert, nature, cultural). Distinct from `tripDetails.overview.tripStyles`, which describes the execution style (adventure, luxury, …)."
+          },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "example": "mountain_outdoor",
+            "description": "Canonical **tour creation form profile**. When present, takes precedence over theme-derived profile and `tourType` fallbacks for server strip, invariants, and persisted `formProfileSnapshot`. Omit to resolve from `tripDetails.overview.tourThemeIds[0]` then `tourType`."
           },
           "transportModes": {
             "type": "array",
@@ -5563,6 +5576,11 @@
               ]
             }
           },
+          "formProfileSnapshot": {
+            "type": "string",
+            "nullable": true,
+            "description": "Resolved form profile at creation (`general`, `urban_event`, …); optional frozen snapshot on the row."
+          },
           "destinationId": {
             "type": "object",
             "format": "uuid",
@@ -5727,6 +5745,19 @@
             ],
             "example": "mountain",
             "description": "Top-level **category** of the tour. Use `tripDetails.overview.tripStyles` for the execution-style selections (adventure, luxury, …)."
+          },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "example": "urban_event",
+            "description": "Canonical **tour creation form profile** for this write. When present, takes precedence over theme-derived profile and `tourType` for strip, invariants, and (when applicable) `formProfileSnapshot`. Omit to resolve from stored `tripDetails.overview.tourThemeIds[0]` then `tourType`."
           },
           "transportModes": {
             "type": "array",
@@ -6746,6 +6777,17 @@
           "sortOrder": {
             "type": "number"
           },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -6762,6 +6804,7 @@
           "description",
           "isActive",
           "sortOrder",
+          "formProfile",
           "createdAt",
           "updatedAt"
         ]
@@ -6788,6 +6831,19 @@
           },
           "sortOrder": {
             "type": "number"
+          },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "description": "Tour creation wizard profile bound to this theme.",
+            "default": "general"
           }
         },
         "required": [
@@ -6832,6 +6888,18 @@
           },
           "sortOrder": {
             "type": "number"
+          },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "description": "Tour creation wizard profile bound to this theme."
           }
         }
       },
@@ -6862,6 +6930,17 @@
             "type": "object",
             "nullable": true
           },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ]
+          },
           "defaults": {
             "type": "object",
             "additionalProperties": true
@@ -6878,6 +6957,7 @@
           "name",
           "isActive",
           "sortOrder",
+          "formProfile",
           "defaults",
           "createdAt",
           "updatedAt"
@@ -6915,6 +6995,18 @@
           "matchMainTourThemeId": {
             "type": "object",
             "nullable": true
+          },
+          "formProfile": {
+            "type": "string",
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "description": "Form profile this preset targets (wizard compatibility filter)."
           },
           "defaults": {
             "type": "object",
@@ -6973,6 +7065,19 @@
           "matchMainTourThemeId": {
             "type": "object",
             "nullable": true
+          },
+          "formProfile": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "general",
+              "mountain_outdoor",
+              "nature_trip",
+              "urban_event",
+              "cinema_event",
+              "cultural_tour"
+            ],
+            "description": "Form profile this preset targets (wizard compatibility filter)."
           },
           "defaults": {
             "type": "object",

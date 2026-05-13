@@ -1,6 +1,7 @@
 import { apiClient } from "../api-client";
 import { API } from "../api-paths";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
+import type { UserRole } from "../auth/user-role";
 
 /** When true, list/update users against Tour-Ops API (`NEXT_PUBLIC_API_URL`). */
 export function usersUseLiveApi(): boolean {
@@ -16,7 +17,7 @@ export type WorkspaceUserDto = {
   email: string;
   phone?: string | null;
   isPhoneVerified?: boolean;
-  role: string;
+  role: UserRole;
   status: "INVITED" | "ACTIVE" | "SUSPENDED" | string;
   lastLoginAt?: string | null;
   joinedAt?: string | null;
@@ -38,7 +39,7 @@ export type GetUsersParams = {
   limit?: number;
   cursor?: string;
   search?: string;
-  role?: "owner" | "leader" | "admin" | "member" | "viewer";
+  role?: UserRole;
   status?: "INVITED" | "ACTIVE" | "SUSPENDED";
   lastLoginFrom?: string;
   lastLoginTo?: string;
@@ -69,7 +70,7 @@ export async function getUserById(id: string): Promise<WorkspaceUserDto | null> 
 
 export type InviteUserPayload = {
   phone: string;
-  role: "admin" | "member" | "viewer";
+  role: Extract<UserRole, "admin" | "member" | "viewer">;
 };
 
 export async function inviteUser(payload: InviteUserPayload): Promise<unknown> {
@@ -80,7 +81,7 @@ export async function resendInvite(userId: string): Promise<unknown> {
   return apiClient.post(`${API.user(userId)}/resend-invite`, {});
 }
 
-export async function updateUserRole(id: string, role: string): Promise<WorkspaceUserDto> {
+export async function updateUserRole(id: string, role: UserRole): Promise<WorkspaceUserDto> {
   return apiClient.patch<WorkspaceUserDto>(API.user(id), {
     role
   });
@@ -88,7 +89,7 @@ export async function updateUserRole(id: string, role: string): Promise<Workspac
 
 export async function bulkUpdateUserRole(
   userIds: string[],
-  role: "leader" | "admin" | "member" | "viewer"
+  role: Extract<UserRole, "leader" | "admin" | "member" | "viewer">
 ): Promise<WorkspaceUserDto[]> {
   return apiClient.patch<WorkspaceUserDto[]>(API.usersBulkRole, {
     userIds,
@@ -118,6 +119,24 @@ export async function withOptimisticUsersRollback<T>(
     callbacks?.onRollback?.();
     throw err;
   }
+}
+
+/** Wraps {@link updateUserRole} with {@link withOptimisticUsersRollback} for directory mutations. */
+export function updateUserRoleWithOptimisticUsersRollback(
+  id: string,
+  role: UserRole,
+  callbacks?: OptimisticUsersMutationCallbacks<WorkspaceUserDto>
+): Promise<WorkspaceUserDto> {
+  return withOptimisticUsersRollback(() => updateUserRole(id, role), callbacks);
+}
+
+/** Wraps {@link bulkUpdateUserRole} with rollback hooks. */
+export function bulkUpdateUserRoleWithOptimisticUsersRollback(
+  userIds: string[],
+  role: Extract<UserRole, "leader" | "admin" | "member" | "viewer">,
+  callbacks?: OptimisticUsersMutationCallbacks<WorkspaceUserDto[]>
+): Promise<WorkspaceUserDto[]> {
+  return withOptimisticUsersRollback(() => bulkUpdateUserRole(userIds, role), callbacks);
 }
 
 /** Backward-compatible alias used by existing callers. */

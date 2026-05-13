@@ -1,3 +1,14 @@
+/**
+ * Legacy **EventKind** compatibility surface (Phase 5 sunset).
+ *
+ * - **Do not** use `EventKind` for product behavior — classify with `TourFormProfile` /
+ *   `TourDomainProfile` and enforce with ProfileRules (web) + profile strip/invariants (API).
+ * - **Do** keep this module for: Edit-form legacy inputs, external API payloads that still send
+ *   `eventKind` / old `tourType` hints, analytics projections, and the
+ *   `tour-domain-profile-bridge` module.
+ *
+ * @see docs/PROFILE_ARCHITECTURE_PLAYBOOK.md — EventKind sunset boundaries.
+ */
 export type EventKind = "generic" | "mountain" | "cultural" | "city_tour" | "workshop";
 
 export type EventKindResolverInput = {

@@ -18,6 +18,8 @@ import {
   Min,
   ValidateNested
 } from "class-validator";
+import { TOUR_FORM_PROFILE_VALUES_LIST, type TourFormProfile } from "@repo/types";
+
 import { TourLifecycleStatus, TOUR_TYPES, type TourType } from "../entities/tour.entity";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
 import { CostContextDto } from "./cost-context.dto";
@@ -118,6 +120,18 @@ export class CreateTourDto {
   @IsOptional()
   @IsIn([...TOUR_TYPES])
   tourType?: TourType;
+
+  @ApiPropertyOptional({
+    enum: TOUR_FORM_PROFILE_VALUES_LIST,
+    example: "mountain_outdoor",
+    description:
+      "Canonical **tour creation form profile**. When present, takes precedence over theme-derived profile " +
+      "and `tourType` fallbacks for server strip, invariants, and persisted `formProfileSnapshot`. " +
+      "Omit to resolve from `tripDetails.overview.tourThemeIds[0]` then `tourType`."
+  })
+  @IsOptional()
+  @IsIn(TOUR_FORM_PROFILE_VALUES_LIST)
+  formProfile?: TourFormProfile;
 
   @ApiPropertyOptional({
     type: [String],

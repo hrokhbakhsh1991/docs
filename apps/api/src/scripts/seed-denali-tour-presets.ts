@@ -6,6 +6,7 @@
  */
 import { DataSource } from "typeorm";
 
+import { defaultTourFormProfileForTourType, type TourType } from "@repo/types";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
 import { mergeLegacyMatchIntoDefaults } from "../modules/settings-locations/tour-preset-defaults-legacy";
 import { emitScriptInfo } from "./script-log";
@@ -178,11 +179,12 @@ export async function seedDenaliTourPresets(): Promise<void> {
 
     for (const row of rows) {
       const defaultsMerged = mergeLegacyMatchIntoDefaults(row.defaults, row.match_tour_type, row.match_main_tour_theme_id);
+      const formProfile = defaultTourFormProfileForTourType(row.match_tour_type as TourType | null);
       await ds.query(
         `INSERT INTO workspace_tour_creation_presets
-          (workspace_id, name, description, is_active, sort_order, match_tour_type, match_main_tour_theme_id, defaults)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)`,
-        [wsId, row.name, row.description, row.is_active, row.sort_order, null, null, JSON.stringify(defaultsMerged)],
+          (workspace_id, name, description, is_active, sort_order, match_tour_type, match_main_tour_theme_id, form_profile, defaults)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
+        [wsId, row.name, row.description, row.is_active, row.sort_order, null, null, formProfile, JSON.stringify(defaultsMerged)],
       );
     }
 

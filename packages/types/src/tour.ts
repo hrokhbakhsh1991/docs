@@ -1,5 +1,6 @@
 import type { AccommodationTypeSlug } from "./accommodation-types";
 import type { MealPlanSlug } from "./meal-plan";
+import type { TourFormProfile } from "./tour-form-profile";
 import type { TourType } from "./tour-classification";
 
 /**
@@ -148,6 +149,8 @@ export interface TourResponseDto {
   tourType?: TourType | null;
   /** Organized transport for the tour (multi-select). Empty = none / unset. */
   transportModes: ("bus" | "train" | "plane" | "private_car")[];
+  /** Resolved form profile at tour creation; optional compliance snapshot. */
+  formProfileSnapshot?: TourFormProfile | null;
   /** FK to workspace `workspace_destinations` when linked from Settings → Locations. */
   destinationId?: string | null;
   /** Display name from linked destination (list/detail UI). */

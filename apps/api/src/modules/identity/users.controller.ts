@@ -9,8 +9,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -25,6 +27,10 @@ import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard
 import { Roles } from "../auth/roles.decorator";
 import { Role } from "../auth/roles.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { BulkUpdateUserRoleDto } from "./dto/bulk-update-user-role.dto";
 import { InviteUserDto } from "./dto/invite-user.dto";
 import { InviteUserResultDto } from "./dto/invite-user-result.dto";
@@ -42,7 +48,7 @@ import { UsersWriteService } from "./users-write.service";
 
 @ApiTags("Users")
 @Controller("api/v2/users")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 @Roles(Role.OWNER, Role.ADMIN)
 export class UsersController {
@@ -73,6 +79,8 @@ export class UsersController {
   ) {}
 
   @Post("invite")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "UserMembership"))
   @ApiOperation({ summary: "Invite user into tenant workspace" })
   @ApiOkResponse({ type: InviteUserResultDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -82,6 +90,8 @@ export class UsersController {
   }
 
   @Post(":id/resend-invite")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Resend pending invite for invited membership" })
   @ApiOkResponse({ type: ResendInviteResultDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -95,6 +105,8 @@ export class UsersController {
   }
 
   @Get()
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({ summary: "List tenant users" })
   @ApiOkResponse({ type: ListUsersResponseDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -104,6 +116,8 @@ export class UsersController {
   }
 
   @Get(":id/role-history")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Audit"))
   @ApiOperation({ summary: "List role change history for a tenant user" })
   @ApiOkResponse({ type: UserRoleHistoryItemDto, isArray: true })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -114,16 +128,25 @@ export class UsersController {
   }
 
   @Get(":id")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({ summary: "Get tenant-scoped user by id" })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
   @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
   @ApiNotFoundResponse({ description: "User membership not found in tenant" })
-  async getUserById(@Param("id", new ParseUUIDPipe()) id: string): Promise<UserResponseDto> {
-    return this.usersReadService.getUserById(id);
+  async getUserById(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<UserResponseDto> {
+    const dto = await this.usersReadService.getUserById(id);
+    res.setHeader("ETag", `W/"user:${dto.id}:${dto.profileRowVersion ?? 1}"`);
+    return dto;
   }
 
   @Patch("bulk-role")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({
     summary: "Bulk change user roles in tenant scope",
     description:
@@ -143,6 +166,8 @@ export class UsersController {
   }
 
   @Patch(":id")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({
     summary: "Change user role in tenant scope",
     description:
@@ -165,6 +190,8 @@ export class UsersController {
   }
 
   @Patch(":id/suspend")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Suspend tenant-scoped membership for a user" })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -177,6 +204,8 @@ export class UsersController {
   }
 
   @Patch(":id/reactivate")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Reactivate suspended tenant-scoped membership for a user" })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: "Authentication required" })
@@ -187,6 +216,8 @@ export class UsersController {
   }
 
   @Delete(":id/remove")
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Delete, "UserMembership"))
   @ApiOperation({ summary: "Remove user membership from current tenant" })
   @ApiOkResponse({ description: "User membership removed" })
   @ApiUnauthorizedResponse({ description: "Authentication required" })

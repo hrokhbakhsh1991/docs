@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { TOUR_FORM_PROFILE_VALUES_LIST, type TourFormProfile } from "@repo/types";
 
 export class WorkspaceTourThemeResponseDto {
   @ApiProperty({ format: "uuid" })
@@ -18,6 +19,9 @@ export class WorkspaceTourThemeResponseDto {
 
   @ApiProperty()
   sortOrder!: number;
+
+  @ApiProperty({ enum: TOUR_FORM_PROFILE_VALUES_LIST })
+  formProfile!: TourFormProfile;
 
   @ApiProperty({ type: String, format: "date-time" })
   createdAt!: string;

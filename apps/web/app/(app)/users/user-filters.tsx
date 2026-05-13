@@ -1,6 +1,12 @@
 "use client";
 
+import { Can } from "@casl/react";
 import { Button, FormField, Input, Select } from "@tour/ui";
+
+import type { AppAbility } from "@repo/shared-rbac";
+
+import { AbilityAction } from "@/lib/casl/ability-actions";
+import { useAbility } from "@/lib/casl/ability-provider";
 
 import type { RoleFilter } from "./users-page-logic";
 import styles from "./users-page.module.css";
@@ -29,6 +35,8 @@ export function UserFilters({
   onExportCsv,
   onInviteUser
 }: UserFiltersProps) {
+  const ability = useAbility();
+
   return (
     <div className={styles.toolbar} role="group" aria-label={copy.membersToolbarAriaLabel}>
       <div className={styles.toolbarGrow}>
@@ -47,6 +55,7 @@ export function UserFilters({
           <Select value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}>
             <option value="all">All</option>
             <option value="owner">Owner</option>
+            <option value="leader">Leader</option>
             <option value="admin">Admin</option>
             <option value="member">Member</option>
             <option value="viewer">Viewer</option>
@@ -54,9 +63,13 @@ export function UserFilters({
         </FormField>
       </div>
       <div className={styles.toolbarAction}>
-        <Button type="button" variant="primary" onClick={onInviteUser}>
-          Invite User
-        </Button>
+        <Can<AppAbility> ability={ability} I={AbilityAction.Create} a="UserMembership">
+          {(allowed) => (
+            <Button type="button" variant="primary" onClick={onInviteUser} disabled={!allowed}>
+              Invite User
+            </Button>
+          )}
+        </Can>
       </div>
       <div className={styles.toolbarAction}>
         <Button type="button" variant="secondary" onClick={onExportCsv} disabled={exportDisabled}>

@@ -1,3 +1,5 @@
+import type { TourFormProfile } from "@repo/types";
+
 import type { TourFormValues } from "@/components/tours/tour-schema";
 import { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 import {
@@ -5,6 +7,7 @@ import {
   injectLocationSectionIntoTripDetails,
   mapCreateTourDto,
 } from "@/features/tours/domain/mapCreateTourDto";
+import { stripTourFormTripDetailsForFormProfile } from "@/features/tours/domain/stripTourFormTripDetailsForProfile";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetails.schema";
 
@@ -45,7 +48,9 @@ export function createTourDtoFromTourFormValues(
 export function updateTourDtoFromTourFormValues(
   values: TourFormValues,
   existing: TourDetailDto,
-  themeCatalog?: readonly { id: string; name: string }[],
+  themeCatalog?: readonly { id: string; name: string; formProfile?: TourFormProfile }[],
+  /** Theme-derived profile: strips inactive tripDetails groups before PATCH (parity with create wizard). */
+  resolvedFormProfile?: TourFormProfile,
 ): UpdateTourDto {
   const lifecycle_status = formLifecycleToApi(values.status);
   const existingLoc =
@@ -55,10 +60,14 @@ export function updateTourDtoFromTourFormValues(
     typeof (existing.costContext as Record<string, unknown>).location === "string"
       ? String((existing.costContext as Record<string, unknown>).location)
       : undefined;
-  const tripDetailsMerged = injectLocationSectionIntoTripDetails(
+  let tripDetailsMerged = injectLocationSectionIntoTripDetails(
     values.tripDetails ?? undefined,
     values.locationSection,
   );
+  if (resolvedFormProfile != null) {
+    tripDetailsMerged =
+      stripTourFormTripDetailsForFormProfile(resolvedFormProfile, tripDetailsMerged) ?? tripDetailsMerged;
+  }
   const tripDetailsEnriched = applyTourThemeOverviewEnrichment(tripDetailsMerged, themeCatalog);
   const tripDetailsCompact = compactTripDetailsForApi(tripDetailsEnriched) as TourTripDetails | undefined;
   const displayLoc = values.locationSection?.displayLocationOverride?.trim();
@@ -69,6 +78,7 @@ export function updateTourDtoFromTourFormValues(
     price: values.price,
     lifecycle_status,
     destinationId: values.destinationId ?? null,
+    ...(resolvedFormProfile != null ? { formProfile: resolvedFormProfile } : {}),
     ...(displayLoc
       ? { location: displayLoc }
       : existingLoc

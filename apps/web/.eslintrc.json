@@ -1,5 +1,94 @@
 {
   "root": true,
   "extends": ["next/core-web-vitals"],
-  "ignorePatterns": [".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "next-env.d.ts"]
+  "ignorePatterns": [".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+  "overrides": [
+    {
+      "files": [
+        "src/components/tours/wizard/**/*.{ts,tsx}",
+        "src/features/tours/wizard/**/*.{ts,tsx}",
+        "app/(app)/tours/new/**/*.{ts,tsx}",
+        "app/(app)/tours/create/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@repo/types",
+                "importNames": [
+                  "EventKind",
+                  "EventKindResolverInput",
+                  "resolveEventKindFromTourContext",
+                  "eventKindForDomainProfile"
+                ],
+                "message": "Wizard code must classify in `TourFormProfile`/`TourDomainProfile` only. Use `getProfileRules` / `getStepRule` / `getFieldRule` from `@/features/tours/wizard/profileRules/getProfileRules`. See `docs/20-architecture/tour-profile-guardrails.md`."
+              },
+              {
+                "name": "@/features/tours/config/tripDetailsFieldConfig",
+                "message": "Edit-side EventKind matrix — forbidden in wizard code. Add field rules to `apps/web/src/features/tours/wizard/profileRules/rules.ts`."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "app/(app)/tours/\\[id\\]/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@repo/types",
+                "importNames": [
+                  "EventKind",
+                  "EventKindResolverInput",
+                  "resolveEventKindFromTourContext",
+                  "eventKindForDomainProfile"
+                ],
+                "message": "Edit page tree must classify via `TourFormProfile` / `TourDomainProfile`. Legacy `EventKind` reads belong inside the adapter (`apps/web/src/features/tours/domain/tourDomainProfileAdapters.ts`), Edit form root (`apps/web/src/components/tours/TourForm.tsx`), legacy Edit matrix (`apps/web/src/features/tours/config/tripDetailsFieldConfig*.ts` — slated for retirement in Phase P6), or telemetry (`apps/web/src/features/tours/observability/*`). See `docs/20-architecture/tour-profile-guardrails.md` and `promptq.md`."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.{ts,tsx}",
+        "app/**/*.{ts,tsx}",
+        "lib/**/*.{ts,tsx}"
+      ],
+      "excludedFiles": [
+        "src/features/tours/domain/tourDomainProfileAdapters.ts",
+        "src/features/tours/domain/tourDomainProfileAdapters.spec.ts",
+        "src/features/tours/observability/tourProfileObservability.ts",
+        "src/features/tours/components/tour-create-trip-details-fields.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@repo/types",
+                "importNames": [
+                  "EventKind",
+                  "EventKindResolverInput",
+                  "resolveEventKindFromTourContext",
+                  "eventKindForDomainProfile"
+                ],
+                "message": "Phase P8: legacy `EventKind` axis is namespaced. Import as `import { Legacy } from \"@repo/types\"` and read `Legacy.EventKind` / `Legacy.resolveEventKindFromTourContext` / `Legacy.eventKindForDomainProfile`. The top-level deprecated re-exports will be removed next cycle. See `docs/20-architecture/tour-profile-guardrails.md` and `promptq.md` (Phase P8)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

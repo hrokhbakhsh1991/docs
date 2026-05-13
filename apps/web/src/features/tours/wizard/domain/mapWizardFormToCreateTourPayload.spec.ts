@@ -12,6 +12,7 @@ function minimalValidForm(overrides?: Partial<TourCreateFormValues>): TourCreate
       title: "پیمایش دو روزه اولنگ",
       shortDescription: "تور آزمایشی برای تست mapper",
       longDescription: "",
+      mainTourThemeId: undefined,
       secondaryTourThemeIds: [],
       tripStyles: [],
       highlights: [],
@@ -111,10 +112,28 @@ test("midibus maps to bus transport mode while preserving logistics primary mode
   assert.equal(dto.capacity, 9);
 });
 
+test("supplemental private car adds private_car to transportModes and sends fuel in logistics", () => {
+  const v = minimalValidForm({
+    logistics: {
+      primaryTransportMode: "bus",
+      supplementalPrivateCar: true,
+      fuelShareToman: 180_000,
+    },
+  });
+  const dto = mapFormValuesToBackendPayload(v);
+  assert.deepEqual(dto.transportModes, ["bus", "private_car"]);
+  assert.equal(dto.tripDetails?.logistics?.primaryTransportMode, "bus");
+  assert.equal(dto.tripDetails?.logistics?.fuelShareToman, 180_000);
+});
+
 test("insurance flags map into tripDetails when enabled", () => {
   const v = minimalValidForm({
     participation: { sportsInsuranceRequired: true },
-    logistics: { leaderProvidesInsurance: true, leaderInsuranceNotes: "بیمه مسئولیت گروه" },
+    logistics: {
+      primaryTransportMode: "bus",
+      leaderProvidesInsurance: true,
+      leaderInsuranceNotes: "بیمه مسئولیت گروه",
+    },
   });
   const dto = mapFormValuesToBackendPayload(v);
   assert.equal(dto.tripDetails?.participation?.sportsInsuranceRequired, true);
@@ -125,7 +144,11 @@ test("insurance flags map into tripDetails when enabled", () => {
 test("insurance flags omitted from tripDetails when disabled", () => {
   const v = minimalValidForm({
     participation: { sportsInsuranceRequired: false },
-    logistics: { leaderProvidesInsurance: false, leaderInsuranceNotes: "نادیده گرفته شود" },
+    logistics: {
+      primaryTransportMode: "bus",
+      leaderProvidesInsurance: false,
+      leaderInsuranceNotes: "نادیده گرفته شود",
+    },
   });
   const dto = mapFormValuesToBackendPayload(v);
   assert.equal(dto.tripDetails?.participation?.sportsInsuranceRequired, undefined);

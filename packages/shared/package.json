@@ -1,0 +1,19 @@
+{
+  "name": "@repo/shared-rbac",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "node --import tsx --test \"rbac/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@casl/ability": "^6.7.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.6.2"
+  }
+}

@@ -23,7 +23,12 @@ export type MapCreateTourDtoInput = Pick<
   Partial<
     Pick<
       CreateTourDto,
-      "autoAcceptRegistrations" | "tripDetails" | "tourType" | "transportModes" | "destinationId"
+      | "autoAcceptRegistrations"
+      | "tripDetails"
+      | "tourType"
+      | "formProfile"
+      | "transportModes"
+      | "destinationId"
     >
   > & {
     description?: string;
@@ -152,6 +157,7 @@ export function mapCreateTourDto(
     ...(communicationLink ? { communicationLink } : {}),
     autoAcceptRegistrations: payload.autoAcceptRegistrations ?? true,
     ...(payload.tourType ? { tourType: payload.tourType } : {}),
+    ...(payload.formProfile ? { formProfile: payload.formProfile } : {}),
     ...(payload.transportModes && payload.transportModes.length > 0
       ? { transportModes: [...new Set(payload.transportModes)].sort() as CreateTourDto["transportModes"] }
       : {}),

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TOUR_TYPES, type TourType } from "@repo/types";
+import { TOUR_TYPES, type TourFormProfile, type TourType } from "@repo/types";
 
 import { normalizeNumericInput } from "@/lib/digit-localization";
 import { applyTripDetailsRequirednessToSchema, TourTripDetailsRootSchema, type TourTripDetails } from "./tourTripDetails.schema";
@@ -10,8 +10,7 @@ import {
   TOUR_TITLE_MIN_LENGTH,
   type ToursNewValidationMessages,
 } from "./tours-new-validation-messages";
-import type { EventKind } from "../policies/tour-kind-policy";
-import { getTripDetailsFieldConfigForKind } from "../config/tripDetailsFieldConfig";
+import { getTripDetailsFieldConfigForProfile } from "../config/tripDetailsFieldConfigAdapter";
 
 export type { ToursNewValidationMessages } from "./tours-new-validation-messages";
 
@@ -153,16 +152,16 @@ function buildTourCreateBaseSchema(msgs: ToursNewValidationMessages) {
   });
 }
 
-export function createTourCreateSchemaForEventKind(
-  eventKind: EventKind,
+export function createTourCreateSchemaForProfile(
+  profile: TourFormProfile,
   messages: ToursNewValidationMessages = DEFAULT_TOURS_NEW_VALIDATION_MESSAGES,
 ) {
   return buildTourCreateBaseSchema(messages).extend({
-    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForKind(eventKind), messages),
+    tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForProfile(profile), messages),
   }) satisfies z.ZodType<TourCreateModel>;
 }
 
-export const TourCreateSchema = createTourCreateSchemaForEventKind("generic");
+export const TourCreateSchema = createTourCreateSchemaForProfile("general");
 
 export type TourCreateFormInput = z.input<typeof TourCreateSchema>;
 

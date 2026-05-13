@@ -24,6 +24,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/types/package.json ./packages/types/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/config/package.json ./packages/config/
 COPY packages/config/tsconfig.base.json ./packages/config/
 
@@ -32,8 +33,11 @@ RUN pnpm install --frozen-lockfile --filter @apps/web...
 COPY apps/web ./apps/web
 COPY packages/ui ./packages/ui
 COPY packages/types ./packages/types
+COPY packages/shared ./packages/shared
 
-RUN pnpm --filter @apps/web run build
+RUN pnpm --filter @repo/types run build \
+  && pnpm --filter @repo/shared-rbac run build \
+  && pnpm --filter @apps/web run build
 
 # Runner layout matches Next standalone + https://nextjs.org/docs/app/api-reference/config/next-config-js/output
 # Standalone root (/app) contains apps/web/server.js; server chdirs to apps/web, so .next/static and public belong under apps/web/.

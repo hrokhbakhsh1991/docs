@@ -2,11 +2,11 @@
  * UI hints for workspace role PATCH options (must mirror backend policy in
  * `apps/api/src/common/rbac/workspace-membership-rbac.policy.ts`). Security is enforced server-side.
  */
-import { ROLE_RANK } from "../../../../packages/shared/rbac/workspace-roles";
+import { ROLE_RANK } from "@repo/shared-rbac";
 
 const RANK: Readonly<Record<string, number>> = ROLE_RANK;
 
-const PATCH_NEW_ROLES = ["admin", "member", "viewer"] as const;
+const PATCH_NEW_ROLES = ["leader", "admin", "member", "viewer"] as const;
 
 function norm(role: string | undefined): string {
   return (role ?? "").trim().toLowerCase();

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TOUR_TYPES } from "@repo/types";
+import { TOUR_TYPES, TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import { Controller, useForm, type Control } from "react-hook-form";
@@ -72,6 +72,7 @@ function createTourPresetSimpleSchema(t: (key: string) => string) {
       message: t("tourPresetsValidationSortOrder"),
     }),
     isActive: z.boolean(),
+    formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
     policies: policiesZodObject(),
     participation: z.object({
       sportsInsuranceRequired: z.boolean(),
@@ -239,6 +240,7 @@ export function TourPresetSimpleForm({
       description: "",
       sortOrder: "",
       isActive: true,
+      formProfile: "general",
       ...inner,
     };
   }, []);
@@ -260,6 +262,7 @@ export function TourPresetSimpleForm({
         description: editing.description ?? "",
         sortOrder: editing.sortOrder !== undefined ? String(editing.sortOrder) : "",
         isActive: editing.isActive,
+        formProfile: (editing.formProfile as TourFormProfile) ?? "general",
         ...defaultsRecordToSimpleFields(editing.defaults),
       });
     } else if (duplicateFrom) {
@@ -269,6 +272,7 @@ export function TourPresetSimpleForm({
         description: duplicateFrom.description ?? "",
         sortOrder: duplicateSortOrder != null ? String(duplicateSortOrder) : "",
         isActive: duplicateFrom.isActive,
+        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? "general",
         ...defaultsRecordToSimpleFields(defaultsCopy),
       });
     } else {
@@ -299,6 +303,7 @@ export function TourPresetSimpleForm({
           description: descriptionTrim ? descriptionTrim : null,
           sortOrder,
           isActive: values.isActive,
+          formProfile: values.formProfile,
           defaults,
         };
         await onSubmit(parsed);
@@ -343,6 +348,33 @@ export function TourPresetSimpleForm({
           name="isActive"
           render={({ field }) => (
             <Checkbox bare id={activeDomId} checked={field.value} onChange={(e) => field.onChange(e.target.checked)} onBlur={field.onBlur} ref={field.ref} name={field.name} />
+          )}
+        />
+      </FormField>
+
+      <FormField
+        label={t("tourPresetsFieldFormProfile")}
+        description={t("tourPresetsFieldFormProfileHint")}
+        error={errors.formProfile?.message}
+      >
+        <Controller
+          control={control}
+          name="formProfile"
+          render={({ field }) => (
+            <Select
+              name={field.name}
+              ref={field.ref}
+              onBlur={field.onBlur}
+              value={field.value}
+              onChange={(e) => field.onChange(e.target.value as TourFormProfile)}
+              aria-invalid={errors.formProfile ? true : undefined}
+            >
+              {TOUR_FORM_PROFILE_VALUES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
           )}
         />
       </FormField>

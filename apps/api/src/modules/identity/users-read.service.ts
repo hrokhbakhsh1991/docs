@@ -82,7 +82,10 @@ export class UsersReadService {
         "ut.invited_at AS invited_at",
         "ut.joined_at AS joined_at",
         "ut.suspended_at AS suspended_at",
-        "ut.created_at AS membership_created_at"
+        "ut.created_at AS membership_created_at",
+        "ut.labels AS labels",
+        "u.profile_row_version AS profile_row_version",
+        "(u.telegram_user_id IS NOT NULL AND btrim(u.telegram_user_id) <> '') AS telegram_linked"
       ])
       .orderBy("ut.created_at", "DESC")
       .addOrderBy("ut.id", "DESC")
@@ -102,6 +105,9 @@ export class UsersReadService {
         invited_at: Date | null;
         joined_at: Date | null;
         suspended_at: Date | null;
+        labels: unknown;
+        telegram_linked: boolean | string;
+        profile_row_version: number | null;
       }>();
 
     const hasNext = rows.length > limit;
@@ -120,7 +126,10 @@ export class UsersReadService {
         membership_status: row.membership_status,
         invited_at: row.invited_at,
         joined_at: row.joined_at,
-        suspended_at: row.suspended_at
+        suspended_at: row.suspended_at,
+        labels: row.labels,
+        telegram_linked: row.telegram_linked,
+        profile_row_version: row.profile_row_version ?? undefined
       })
     );
 

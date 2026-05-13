@@ -23,6 +23,7 @@ import {
   updateUserRole,
   usersUseLiveApi,
 } from "@/lib/services/users.service";
+import type { UserRole } from "@/lib/auth/user-role";
 import { useAppToast } from "@/lib/use-app-toast";
 
 import {
@@ -43,9 +44,10 @@ import { UsersDirectoryLockedPanel } from "./users-directory-locked-panel";
 import { UsersDirectoryTableCard } from "./users-directory-table-card";
 import { resolveUsersDirectoryBodyState } from "./users-directory-gate";
 import { UsersDirectoryPageShell } from "./users-page-shell";
+import { UserDirectoryDetailModal } from "./user-directory-detail-modal";
 
 const copy = USERS_ROUTE_COPY.list;
-const ROLE_FILTER_VALUES: readonly RoleFilter[] = ["all", "owner", "admin", "member", "viewer"];
+const ROLE_FILTER_VALUES: readonly RoleFilter[] = ["all", "owner", "leader", "admin", "member", "viewer"];
 const USERS_PAGE_SIZE = 10;
 
 function parseSortParam(value: string | null): { sortColumn: UserSortColumn; sortDir: "asc" | "desc" } {
@@ -95,6 +97,7 @@ export function UsersPageClient() {
   const [bulkRoleSelection, setBulkRoleSelection] = useState<"" | BulkAssignableRole>("");
   const [directoryPage, setDirectoryPage] = useState(1);
   const [inviteUserModalOpen, setInviteUserModalOpen] = useState(false);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [bulkRemoveConfirmOpen, setBulkRemoveConfirmOpen] = useState(false);
 
   const activeSearchQuery = debouncedSearchQuery.trim();
@@ -145,7 +148,7 @@ export function UsersPageClient() {
 
   const [activeRoleMutationUserId, setActiveRoleMutationUserId] = useState<string | null>(null);
   const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) => updateUserRole(userId, role),
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => updateUserRole(userId, role),
     onMutate: async (variables) => {
       setActiveRoleMutationUserId(variables.userId);
       await queryClient.cancelQueries({ queryKey: userKeys.lists() });
@@ -417,8 +420,8 @@ export function UsersPageClient() {
   }, []);
 
   const openUserProfile = useCallback((userId: string) => {
-    router.push(`/users/${userId}`);
-  }, [router]);
+    setDetailUserId(userId);
+  }, []);
 
   const openInviteUserModal = useCallback(() => {
     setInviteUserModalOpen(true);
@@ -455,16 +458,19 @@ export function UsersPageClient() {
   }, []);
 
   const exportUsersCsv = useCallback(() => {
-    const headers = ["Name", "Email", "Role", "Status"];
+    const headers = ["Name", "Email", "Role", "Status", "Labels", "TelegramLinked"];
     const escapeCsv = (value: string) => `"${value.replace(/"/g, "\"\"")}"`;
     const lines = [headers.join(",")];
     for (const row of sortedUsers) {
+      const labelsJoined = (row.labels ?? []).join("; ");
       lines.push(
         [
           escapeCsv(row.name),
           escapeCsv(row.email),
           escapeCsv(row.role),
           escapeCsv(row.status),
+          escapeCsv(labelsJoined),
+          escapeCsv(row.telegramLinked ? "yes" : "no"),
         ].join(","),
       );
     }
@@ -564,6 +570,11 @@ export function UsersPageClient() {
               onInvited={refreshUsersListAfterInvite}
             />
           ) : null}
+          <UserDirectoryDetailModal
+            open={detailUserId !== null}
+            userId={detailUserId}
+            onClose={() => setDetailUserId(null)}
+          />
         </>
       ) : (
         <UsersDirectoryLockedPanel state={bodyState} onRetryList={() => void refetch()} />

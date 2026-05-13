@@ -12,6 +12,7 @@ import {
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { evaluateGeneralMembershipRoleChange } from "../../common/rbac/workspace-membership-rbac.policy";
 import type {
   TransferWorkspaceOwnershipDto,
@@ -290,7 +291,7 @@ export class UsersWriteService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    if (membership.role.trim().toLowerCase() === "owner") {
+    if (membership.role.trim().toLowerCase() === UserRole.Owner) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -455,7 +456,7 @@ export class UsersWriteService {
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    if (membership.role.trim().toLowerCase() === "owner") {
+    if (membership.role.trim().toLowerCase() === UserRole.Owner) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -562,7 +563,7 @@ export class UsersWriteService {
         where: { tenantId, userId: actorUserId, deletedAt: IsNull() },
         lock: { mode: "pessimistic_write" }
       });
-      if (!actorMembership || actorMembership.role.trim().toLowerCase() !== "owner") {
+      if (!actorMembership || actorMembership.role.trim().toLowerCase() !== UserRole.Owner) {
         throw new ForbiddenException({
           error: {
             code: "OWNER_ONLY_TRANSFER",
@@ -585,7 +586,7 @@ export class UsersWriteService {
                session_version = session_version + 1,
                updated_at = now()
          WHERE id = $2`,
-        ["admin", actorMembership.id]
+        [UserRole.Admin, actorMembership.id]
       );
 
       await manager.query(
@@ -594,7 +595,7 @@ export class UsersWriteService {
                session_version = session_version + 1,
                updated_at = now()
          WHERE id = $2`,
-        ["owner", targetMembership.id]
+        [UserRole.Owner, targetMembership.id]
       );
 
       await manager
@@ -607,14 +608,14 @@ export class UsersWriteService {
             actorUserId,
             targetUserId: actorUserId,
             oldRole: actorMembership.role,
-            newRole: "admin"
+            newRole: UserRole.Admin
           },
           {
             tenantId,
             actorUserId,
             targetUserId: newOwnerUserId,
             oldRole: targetMembership.role,
-            newRole: "owner"
+            newRole: UserRole.Owner
           }
         ])
         .execute();

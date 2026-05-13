@@ -1,3 +1,4 @@
+import type { TourFormProfile } from "@repo/types";
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToOne } from "typeorm";
 import { Exclude } from "class-transformer";
 import { TOUR_TYPES, type TourType } from "@repo/types";
@@ -108,6 +109,9 @@ export class TourEntity extends BaseTenantEntity {
   @ManyToOne(() => UserEntity, { nullable: true, onDelete: "SET NULL" })
   @JoinColumn({ name: "created_by_user_id" })
   createdBy?: UserEntity | null;
+
+  @Column({ type: "varchar", length: 32, name: "form_profile_snapshot", nullable: true })
+  formProfileSnapshot?: TourFormProfile | null;
 
   /** Denormalized from trip logistics for list/filter (see migrations). */
   @Column({ type: "date", name: "starts_on", nullable: true })

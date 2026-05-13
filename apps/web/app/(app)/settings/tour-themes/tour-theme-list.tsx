@@ -83,6 +83,9 @@ function SortableTourThemeRow({
             <span className={panelStyles.listItemMeta}>
               {t("tourThemesSortOrderLabel", { n: String(item.sortOrder) })}
             </span>
+            <span className={panelStyles.listItemMeta} title={item.formProfile}>
+              {t(`tourThemesFormProfileOption_${item.formProfile}` as never)}
+            </span>
             {!item.isActive ? <span className={panelStyles.listItemBadge}>— {t("tourThemesInactiveBadge")}</span> : null}
           </div>
           <div className={panelStyles.listItemActions}>
@@ -179,6 +182,9 @@ export function TourThemeList({
                   <span className={panelStyles.listItemMeta}>{previewDescription(item.description)}</span>
                   <span className={panelStyles.listItemMeta}>
                     {t("tourThemesSortOrderLabel", { n: String(item.sortOrder) })}
+                  </span>
+                  <span className={panelStyles.listItemMeta} title={item.formProfile}>
+                    {t(`tourThemesFormProfileOption_${item.formProfile}` as never)}
                   </span>
                   {!item.isActive ? (
                     <span className={panelStyles.listItemBadge}>— {t("tourThemesInactiveBadge")}</span>

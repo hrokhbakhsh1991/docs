@@ -2,10 +2,13 @@
 
 import { Button, Card, CardBody, Select } from "@tour/ui";
 
+import { AbilityAction } from "@/lib/casl/ability-actions";
+import { useAbility } from "@/lib/casl/ability-provider";
+
 import styles from "./users-page.module.css";
 import { USERS_ROUTE_COPY } from "./users-copy";
 
-export type BulkAssignableRole = "admin" | "member" | "viewer";
+export type BulkAssignableRole = "leader" | "admin" | "member" | "viewer";
 const copy = USERS_ROUTE_COPY.list;
 
 type UsersDirectoryBulkToolbarProps = {
@@ -37,6 +40,9 @@ export function UsersDirectoryBulkToolbar({
   isRemoving,
   onClearSelection,
 }: UsersDirectoryBulkToolbarProps) {
+  const ability = useAbility();
+  const canMutateMembership = ability.can(AbilityAction.Update, "UserMembership");
+
   if (selectedCount <= 0) {
     return null;
   }
@@ -54,9 +60,11 @@ export function UsersDirectoryBulkToolbar({
               <Select
                 aria-label={copy.bulkChangeRoleAriaLabel}
                 value={selectedRole}
+                disabled={!canMutateMembership}
                 onChange={(event) => onSelectedRoleChange(event.target.value as "" | BulkAssignableRole)}
               >
                 <option value="">{copy.bulkChangeRolePlaceholder}</option>
+                <option value="leader">Leader</option>
                 <option value="admin">Admin</option>
                 <option value="member">Member</option>
                 <option value="viewer">Viewer</option>
@@ -70,6 +78,7 @@ export function UsersDirectoryBulkToolbar({
               variant="secondary"
               onClick={onSuspendUsers}
               loading={isSuspending}
+              disabled={!canMutateMembership}
             >
               Suspend users
             </Button>
@@ -78,6 +87,7 @@ export function UsersDirectoryBulkToolbar({
               variant="secondary"
               onClick={onReactivateUsers}
               loading={isReactivating}
+              disabled={!canMutateMembership}
             >
               Reactivate users
             </Button>
@@ -86,6 +96,7 @@ export function UsersDirectoryBulkToolbar({
               variant="ghost"
               onClick={onRemoveUsers}
               loading={isRemoving}
+              disabled={!canMutateMembership}
             >
               Remove users
             </Button>
@@ -93,7 +104,7 @@ export function UsersDirectoryBulkToolbar({
               type="button"
               variant="primary"
               onClick={onApplyRole}
-              disabled={!selectedRole}
+              disabled={!selectedRole || !canMutateMembership}
               loading={isApplying}
             >
               {copy.bulkApplyRoleButton}

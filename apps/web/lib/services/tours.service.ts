@@ -1,4 +1,4 @@
-import type { TourDto, TourLifecycleStatus, TourType } from "@repo/types";
+import type { TourDto, TourLifecycleStatus, TourFormProfile, TourType } from "@repo/types";
 
 import { ApiError } from "@/lib/api-client";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
@@ -28,6 +28,8 @@ export type CreateTourDto = {
   location?: string;
   autoAcceptRegistrations: boolean;
   tourType?: TourType;
+  /** Nest `CreateTourDto.formProfile` — canonical profile for strip/invariants (optional). */
+  formProfile?: TourFormProfile;
   /** Multi-select; omit or `[]` when none. No `mixed` — pick every mode that applies. */
   transportModes?: ("bus" | "train" | "plane" | "private_car")[];
   /** Maps to `chat_link` on the wire. */
@@ -59,6 +61,8 @@ export type UpdateTourDto = {
   location?: string;
   /** Maps to `chat_link` on the wire when non-empty after trim. */
   communicationLink?: string;
+  /** Nest `UpdateTourDto.formProfile` — optional; aligns PATCH strip/snapshot with theme-derived profile when set. */
+  formProfile?: TourFormProfile;
   /** Nest `UpdateTourDto.tripDetails` → merged into `tour_details.trip_details` (JSONB). */
   tripDetails?: TourTripDetails;
   /** Nest `UpdateTourDto.destinationId` → `tours.destination_id` (send `null` to clear). */
@@ -163,6 +167,9 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
   if (dto.tourType) {
     body.tourType = dto.tourType;
   }
+  if (dto.formProfile) {
+    body.formProfile = dto.formProfile;
+  }
   if (dto.transportModes && dto.transportModes.length > 0) {
     body.transportModes = dto.transportModes;
   }
@@ -242,6 +249,9 @@ function toUpdateTourApiBody(
   }
   if (dto.destinationId !== undefined) {
     body.destinationId = dto.destinationId;
+  }
+  if (dto.formProfile) {
+    body.formProfile = dto.formProfile;
   }
   return body;
 }

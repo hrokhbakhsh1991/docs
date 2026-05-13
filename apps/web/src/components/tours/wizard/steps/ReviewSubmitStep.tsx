@@ -180,11 +180,22 @@ export function ReviewSubmitStep() {
             label="حمل‌ونقل اصلی"
             value={transportModeLabels[(logistics?.primaryTransportMode ?? "").trim()] ?? logistics?.primaryTransportMode}
           />
+          <SummaryRow
+            label="خودرو شخصی کنار حمل اصلی"
+            value={
+              logistics?.primaryTransportMode &&
+              logistics.primaryTransportMode !== "private_car" &&
+              logistics?.supplementalPrivateCar
+                ? "بله"
+                : undefined
+            }
+          />
           <SummaryRow label="نوع اقامت (چندگانه)" value={accommodationTypesSummary} />
           <SummaryRow
             label="دنگ بنزین هر سرنشین"
             value={
-              logistics?.primaryTransportMode === "private_car" && logistics?.fuelShareToman != null
+              logistics?.fuelShareToman != null &&
+              (logistics?.primaryTransportMode === "private_car" || logistics?.supplementalPrivateCar === true)
                 ? `${logistics.fuelShareToman.toLocaleString("fa-IR")} تومان`
                 : undefined
             }

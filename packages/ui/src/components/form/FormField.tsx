@@ -16,6 +16,21 @@ export type FormFieldProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & 
   label?: ReactNode;
   htmlFor?: string;
   required?: boolean;
+  /**
+   * Soft "recommended" tier label rendered as a non-blocking badge next to `label`.
+   *
+   * Semantics (matches the wizard's `FieldRequiredness === "recommended"` tier, see
+   * `apps/web/src/features/tours/wizard/profileRules/types.ts`):
+   *
+   * - Pure UI affordance — does **not** set `required` / `aria-required` on the control;
+   *   form submission and step navigation are unaffected.
+   * - Only rendered when `required` is falsy. A `"required"` field never simultaneously
+   *   displays a "recommended" badge — required wins.
+   * - The caller supplies the translated text (e.g. `"پیشنهادی"` / `"Recommended"`); the
+   *   primitive only styles + positions the marker. The badge is added to the visible
+   *   label and to `aria-describedby` so assistive tech can announce it.
+   */
+  recommendedLabel?: ReactNode;
   error?: ReactNode;
   /** Helper copy below the control */
   description?: ReactNode;
@@ -28,6 +43,7 @@ export function FormField({
   label,
   htmlFor,
   required,
+  recommendedLabel,
   error,
   description,
   helperText,
@@ -44,13 +60,18 @@ export function FormField({
   const fieldId = htmlFor ?? (children.props.id as string | undefined) ?? generatedId;
   const helpId = `${fieldId}-help`;
   const errId = `${fieldId}-err`;
+  const recommendedId = `${fieldId}-rec`;
   const invalid = Boolean(error);
   const hint = description ?? helperText;
+  // `"recommended"` is mutually exclusive with `"required"` — a required field never
+  // simultaneously displays the recommended badge, matching the rules-layer semantics.
+  const showRecommended = !required && recommendedLabel != null && recommendedLabel !== false;
 
   const describedByParts = [
     typeof children.props["aria-describedby"] === "string"
       ? (children.props["aria-describedby"] as string)
       : "",
+    showRecommended ? recommendedId : "",
     hint ? helpId : "",
     error ? errId : "",
   ].filter(Boolean);
@@ -73,6 +94,15 @@ export function FormField({
           {required ? (
             <span className={styles.requiredMark} aria-hidden>
               *
+            </span>
+          ) : null}
+          {showRecommended ? (
+            <span
+              id={recommendedId}
+              className={styles.recommendedMark}
+              data-testid="form-field-recommended"
+            >
+              {recommendedLabel}
             </span>
           ) : null}
         </label>

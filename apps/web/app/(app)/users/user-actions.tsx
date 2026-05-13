@@ -7,10 +7,13 @@ import { useId, useMemo } from "react";
 import { Button, Select } from "@tour/ui";
 
 import type { AuthUser } from "@/lib/auth/auth-context";
+import { AbilityAction } from "@/lib/casl/ability-actions";
+import { useAbility } from "@/lib/casl/ability-provider";
 import { API } from "@/lib/api-paths";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
+import type { UserRole } from "@/lib/auth/user-role";
 import { useAppToast } from "@/lib/use-app-toast";
 import {
   resolveWorkspaceRoleSelectUi,
@@ -51,7 +54,7 @@ type UserActionsProps = {
   isOwnerTarget?: boolean;
   sessionUser: AuthUser | null;
   activeRoleMutationUserId: string | null;
-  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: string }, unknown>;
+  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onOpenProfile: () => void;
 };
 
@@ -67,6 +70,8 @@ export function UserActions({
   roleMutation,
   onOpenProfile
 }: UserActionsProps) {
+  const ability = useAbility();
+  const canMutateMembership = ability.can(AbilityAction.Update, "UserMembership");
   const queryClient = useQueryClient();
   const toast = useAppToast();
   const hintId = useId();
@@ -82,7 +87,8 @@ export function UserActions({
     normalizedCurrentRole: currentNorm
   });
   const rowMutationPending = activeRoleMutationUserId === rowId;
-  const roleSelectDisabled = rowMutationPending || resolved.disabledWithoutMutation;
+  const roleSelectDisabled =
+    !canMutateMembership || rowMutationPending || resolved.disabledWithoutMutation;
   const hintText = useMemo(() => {
     if (rowMutationPending) return copy.roleSelectHintSaving;
     if (resolved.hintKey) return roleSelectHintForKey(resolved.hintKey);
@@ -122,10 +128,10 @@ export function UserActions({
     reactivateMutation.isPending ||
     resendInviteMutation.isPending ||
     removeMutation.isPending;
-  const suspendDisabled = lifecycleMutationPending || isSelf || isOwner;
-  const reactivateDisabled = lifecycleMutationPending || isSelf;
-  const resendInviteDisabled = lifecycleMutationPending || isSelf;
-  const removeDisabled = lifecycleMutationPending || isSelf || isOwner;
+  const suspendDisabled = !canMutateMembership || lifecycleMutationPending || isSelf || isOwner;
+  const reactivateDisabled = !canMutateMembership || lifecycleMutationPending || isSelf;
+  const resendInviteDisabled = !canMutateMembership || lifecycleMutationPending || isSelf;
+  const removeDisabled = !canMutateMembership || lifecycleMutationPending || isSelf || isOwner;
 
   return (
     <div className={styles.inlineActions}>
@@ -137,7 +143,7 @@ export function UserActions({
           value={currentNorm}
           disabled={roleSelectDisabled}
           onChange={(e) => {
-            roleMutation.mutate({ userId: rowId, role: e.target.value });
+            roleMutation.mutate({ userId: rowId, role: e.target.value as UserRole });
           }}
         >
           {resolved.optionValues.map((r) => (
@@ -152,8 +158,8 @@ export function UserActions({
           </small>
         ) : null}
       </div>
-      <Button type="button" variant="ghost" size="sm" aria-label={`${copy.profileButton}, ${rowName}`} onClick={onOpenProfile}>
-        View profile
+      <Button type="button" variant="ghost" size="sm" aria-label={`${copy.viewDetailsButton}, ${rowName}`} onClick={onOpenProfile}>
+        {copy.viewDetailsButton}
       </Button>
       {statusNorm === "ACTIVE" && !isOwner ? (
         <Button type="button" variant="ghost" size="sm" disabled={suspendDisabled} onClick={() => suspendMutation.mutate()}>

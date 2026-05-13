@@ -17,9 +17,10 @@ test("normalize maps legacy operator to member", () => {
   assert.equal(normalizeWorkspaceMembershipRole("operator"), "member");
 });
 
-test("leader rank exists structurally but is not a persisted invite/patch DTO role yet", () => {
+test("leader rank is persisted and participates in normalization", () => {
   assert.equal(WORKSPACE_MEMBERSHIP_ROLE_RANK.leader, 4);
-  assert.equal(getWorkspaceMembershipRoleRank("leader"), undefined);
+  assert.equal(getWorkspaceMembershipRoleRank("leader"), 4);
+  assert.equal(normalizeWorkspaceMembershipRole("leader"), "leader");
 });
 
 test("evaluateGeneralMembershipRoleChange forbids self", () => {
@@ -96,13 +97,40 @@ test("GENERAL_PATCH_ASSIGNABLE_ROLES excludes owner", () => {
   assert.equal((GENERAL_PATCH_ASSIGNABLE_ROLES as readonly string[]).includes("owner"), false);
 });
 
+test("GENERAL_PATCH_ASSIGNABLE_ROLES includes leader", () => {
+  assert.equal((GENERAL_PATCH_ASSIGNABLE_ROLES as readonly string[]).includes("leader"), true);
+});
+
+test("evaluateGeneralMembershipRoleChange owner can promote admin to leader", () => {
+  const r = evaluateGeneralMembershipRoleChange({
+    actorUserId: "o",
+    actorRole: "owner",
+    targetUserId: "a",
+    targetCurrentRole: "admin",
+    newRole: "leader"
+  });
+  assert.equal(r.ok, true);
+});
+
+test("evaluateGeneralMembershipRoleChange admin cannot assign leader rank", () => {
+  const r = evaluateGeneralMembershipRoleChange({
+    actorUserId: "a1",
+    actorRole: "admin",
+    targetUserId: "m1",
+    targetCurrentRole: "member",
+    newRole: "leader"
+  });
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.code, RBAC_INSUFFICIENT_ROLE_PRIVILEGE);
+});
+
 test("evaluateWorkspaceInviteRole admin cannot invite owner", () => {
   const r = evaluateWorkspaceInviteRole({ inviterRole: "admin", invitedRole: "owner" });
   assert.equal(r.ok, false);
 });
 
-test("evaluateWorkspaceInviteRole owner can invite owner", () => {
-  assert.equal(evaluateWorkspaceInviteRole({ inviterRole: "owner", invitedRole: "owner" }).ok, true);
+test("evaluateWorkspaceInviteRole cannot invite owner role", () => {
+  assert.equal(evaluateWorkspaceInviteRole({ inviterRole: "owner", invitedRole: "owner" }).ok, false);
 });
 
 test("evaluateWorkspaceInviteRole admin can invite viewer", () => {

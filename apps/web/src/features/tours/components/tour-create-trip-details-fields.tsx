@@ -15,13 +15,14 @@ import {
 import { Button, Checkbox, FormField, Input, JalaliDatePicker, JalaliTimePicker, Select, Textarea } from "@tour/ui";
 
 import {
-  getTripDetailsFieldConfigForKind,
   type FieldRequiredness,
   type TripDetailsFieldId,
   normalizeFieldUserRole,
   resolveFieldAccess,
   type UserRole,
 } from "../config/tripDetailsFieldConfig";
+import { getTripDetailsFieldConfigForProfile } from "../config/tripDetailsFieldConfigAdapter";
+import type { TourFormProfile } from "@repo/types";
 import { ACCOMMODATION_TYPE_VALUES, MEAL_PLAN_VALUES } from "@repo/types";
 import {
   DIFFICULTY_LEVELS,
@@ -29,7 +30,6 @@ import {
   GENDER_RESTRICTIONS,
   TRIP_STYLES,
 } from "../models/tourTripDetails.schema";
-import type { EventKind } from "../policies/tour-kind-policy";
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { useSettingsGuideLanguages } from "@/hooks/use-settings-guide-languages";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
@@ -144,14 +144,19 @@ function experienceLabel(v: string, t: (key: string) => string): string {
   return t(`trip_experience${v.charAt(0).toUpperCase()}${v.slice(1)}`);
 }
 
-/** RHF bridge: callers cast from their concrete form types (see `TourForm` / `TourCreateClient`). */
+/**
+ * RHF bridge: only caller after Phase C cleanup is the flat Edit form
+ * (`apps/web/src/components/tours/TourForm.tsx`). The dead `TourCreateClient`
+ * caller was removed in Phase C alongside the rest of the legacy single-page
+ * create surface.
+ */
 export type TripDetailsNestedFormProps = {
   register: UseFormRegister<FieldValues>;
   control: Control<FieldValues>;
   errors: FieldErrors<FieldValues>;
   isPending: boolean;
-  isMountainTour?: boolean;
-  eventKind?: EventKind;
+  /** Canonical profile used for visibility/requiredness in Edit flow. */
+  formProfile?: TourFormProfile;
   viewerRole?: UserRole;
   /** When true, meeting/return points are collected in `TourLocationSection` instead. */
   suppressLogisticsMeetingAndReturn?: boolean;
@@ -515,8 +520,7 @@ export function TourCreateTripDetailsFields({
   control,
   errors,
   isPending,
-  isMountainTour = false,
-  eventKind = isMountainTour ? "mountain" : "generic",
+  formProfile = "general",
   viewerRole = normalizeFieldUserRole(undefined),
   suppressLogisticsMeetingAndReturn = false,
 }: TripDetailsNestedFormProps) {
@@ -545,7 +549,8 @@ export function TourCreateTripDetailsFields({
     const dep = typeof departureYmd === "string" ? departureYmd.trim() : "";
     return dep && dep > todayYmd ? dep : todayYmd;
   }, [departureYmd, todayYmd]);
-  const fieldConfig = getTripDetailsFieldConfigForKind(eventKind);
+  const fieldConfig = getTripDetailsFieldConfigForProfile(formProfile);
+  const isMountainProfile = formProfile === "mountain_outdoor";
   const fieldConfigById = new Map(fieldConfig.map((row) => [row.id, row]));
   const cfg = (id: TripDetailsFieldId): { visibility: "hidden" | "readonly" | "editable"; requiredness: FieldRequiredness } => {
     const row = fieldConfigById.get(id as never);
@@ -661,7 +666,7 @@ export function TourCreateTripDetailsFields({
                     "overview.difficultyLevel",
                   )}
                   description={mergeDescription(
-                    isMountainTour
+                    isMountainProfile
                       ? `${t("trip_difficultyLevelDescription")} ${t("trip_difficultyMountainDescription")}`
                       : t("trip_difficultyLevelDescription"),
                     "overview.difficultyLevel",
@@ -954,7 +959,7 @@ export function TourCreateTripDetailsFields({
       </CollapsibleSection>
 
       <CollapsibleSection title={t("trip_sectionParticipation")}>
-        {isMountainTour ? (
+        {isMountainProfile ? (
           <p style={mutedHelp}>
             {t("trip_mountainRequiredNote")}
           </p>

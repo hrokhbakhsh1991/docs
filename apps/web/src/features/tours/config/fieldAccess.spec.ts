@@ -5,7 +5,7 @@ import {
   resolveFieldAccess,
   type FieldConfigBase,
   type UserRole,
-} from "./tripDetailsFieldConfig";
+} from "./editFieldRbac";
 
 const baseEditable: Pick<FieldConfigBase, "visibility" | "requiredness"> = {
   visibility: "editable",

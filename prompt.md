@@ -1,338 +1,115 @@
-# سند راهبر عملیاتی: تکمیل ماژول Profile تا سطح آمادهٔ بهره‌برداری
+# 🗺️ Project Execution Guide: User Management & Accounting Refactor
 
-این سند برای حالتی نوشته شده که تیم از **محدودیت MVP خارج شده** و هدف **نسخهٔ کامل، استاندارد و قابل‌دفاع** برای مسیر **پروفایل کاربر جاری** (`/api/v2/me`، BFF، Settings) است — نه «حداقل قابل قبول برای لانچ اولیه».
-
-**مرز باریک:** هر چیزی دربارهٔ **تورها، رزرو، قیمت، جستجو** خارج از همین مسیر Identity/Settings نیست؛ اما هر آنچه برای پروفایل، PII، اعلان‌ها، تأیید ایمیل و موبایل لازم است **در همین ریپو و همین جریان**، در این سند بسته‌بندی شده است.
+This document serves as the canonical architectural guide and roadmap for evolving the Tour Management platform into a secure, multi-tenant financial system.
 
 ---
 
-## ۱) چشم‌انداز «کامل» — از رقبا و محصولات مشابه چه برداریم؟
+## 📅 Phased Roadmap
 
-| منبع | الگوی صحیح برای نسخهٔ کامل |
-|------|---------------------------|
-| **OTA / تور** | فیلدهای هویتی و دموگرافی غالباً **قبل از قطعیت رزرو** یا در **checkout** تکمیل می‌شوند؛ هر فیلد باید **هدف حقوقی/عملیاتی** داشته باشد (ویزا، بیمه، لیست حضور وسیله نقلیه، گزارش حادثه). |
-| **SaaS مدرن (Stripe, Shopify)** | **تشکیک PII حقوقی** از **preference**؛ **consent/trace**؛ **نشست تأیید** برای تغییر تماس؛ **خط زمان رویداد** برای تغییرات حساس؛ عدم لاگ خام PII در سرور عمومی. |
-| **محیط ایران (کد ملی)** | الزام حقوقی را با حقوق تأیید کنید؛ فنی:**اعتبارchecksum**؛ **Indexed unique جزئی برای مقدار غیر NULL**؛ در نسخهٔ کامل: **رمزنگاری ستون یا envelope** برای کاهش مخاطرهٔ نشت dump؛ ماسک در UI جز در صورت ضرورت عرضهٔ کامل. |
-| **تجربهٔ RTL و تقویم** | تاریخ تولد در UI با **`JalaliDatePicker`** (`@tour/ui`، مانند «تاریخ رفت/برگشت» ویزارد)؛ قرارداد ذخیره **فقط تاریخ گرِگوری ISO `YYYY-MM-DD`**؛ بدون اعتماد به timezone برای فیلدهای «تاریخ ساده». |
+### Phase 1: Critical Fixes & Stabilization
+**Goal:** Eliminate high-risk security gaps and harden tenant isolation.
 
-**اصل هم‌خط با معماری فعلی همین مونوریپو:** دادهٔ پروفایل نشان‌داده‌شده در `/me` روی جدول **`users`** جهانی می‌ماند (بدون `tenant_id`). اگر آینده کسب‌وکار خواست نام/تمایلات **per workspace** باشد، آن موضوع مهاجرت **جدول ویژگی‌های عضویت** است؛ در نسخهٔ «کامل فعلی» می‌توانی آن را در backlog رسمی با KPI نگه دارید.
+| Task | Priority | Deliverable |
+| :--- | :--- | :--- |
+| **Server-Side Tenant Guard** | 🔴 Critical | Middleware to validate `tenantId` from JWT against all resources. |
+| **Role Enum Migration** | 🔴 Critical | Strict TS Enum for all roles (Owner, Admin, Leader, Member). |
+| **RBAC Synchronization** | 🟠 High | Synchronized CASL rules with server-side API guards. |
+| **Concurrency Control** | 🟠 High | Versioning/ETags for user mutation endpoints. |
 
----
+### Phase 2: Module Refactoring
+**Goal:** Establish clean architectural boundaries and event-driven foundations.
 
-## ۲) تعریف «انجام کامل» (Definition of Done) برای Profile
+| Task | Priority | Deliverable |
+| :--- | :--- | :--- |
+| **Finance Context Extraction** | 🟠 High | Decoupled `Finance` context (Payments, Invoices, Wallets). |
+| **Domain Event Bus** | 🟡 Medium | Lightweight event system for critical state changes. |
+| **Repository Pattern** | 🟡 Medium | Refactored services following DDD repository patterns. |
+| **Pricing Snapshots** | 🟠 High | Immutable historical price capture on booking creation. |
 
-به‌منظور اعلام **بستهٔ Profile تمام**:
+### Phase 3: Feature Enhancement
+**Goal:** Implementation of core financial and safety systems.
 
-1. **قرارداد**: OpenAPI برای `GET/PATCH /api/v2/me` و هر `POST .../me/...` با **بدنهٔ درخواست و پاسخ غیرخالی**، شامل اتحادیهٔ پاسخ‌ها (`profile` مقابل `{ status: ... }`).
-2. **نوع‌ها**: یک منبع حقیقت مشترک (مثلاً `@tour/types` یا codegen)؛ فرانت بدون `as unknown` جز در لایهٔ پارسر.
-3. **درست‌کاری**: تراکنش دیتابیس برای هر جریانی که چند دستور وابسته دارد؛ ایمیل تأیید **پس از commit** از طریق outbox یا صف.
-4. **امنیت**: AuthMiddleware قطعی برای مسیرهای محافظت‌شده؛ تطبیق معنای **`ensureActorMembership`** با ACTIVE **یا** خط‌قرمز سند؛ Guard با نام واقعی نقش؛ عدم لاگ plain PII؛ سیاست نقش کم‌امتیاز برای DB.
-5. **حساب‌پذیری**: لاگ یا جدول **audit append-only** برای تغییر ایمیل، موبایل، کدملی، تولد؛ حداقل `actor_user_id`، `tenant_id`، timestamps، قبلی→بعدی (برای ملزومات حقوقی اغلب hash یا truncation).
-6. **UX حقوق کاربر**: سند حریم خصوصی و نقش هر فیلد؛ توکن تأیید ایمیل کم‌ریسک (کوتاه مدت؛ ترجیح fragment/POST؛ حذف از URL پس از consume).
-7. **تست**: واحد اعتبار (کد ملی، تاریخ تولد، جنسیت)؛ ادغامی BFF↔Nest روی subdomain مستأجر؛ حداقل یک سناریوی E2E برای PATCH پروفایل + تأیید ایمیل یا تغییر موبایل.
+| Task | Priority | Deliverable |
+| :--- | :--- | :--- |
+| **Pricing Engine** | 🟠 High | Rule-based engine for dynamic/role-based discounts. |
+| **Payment Integration** | 🟠 High | Gateway integration with idempotency key support. |
+| **Safety Profiles** | 🟡 Medium | Encrypted Emergency/Medical sub-objects on users. |
+| **Ledger System** | 🟠 High | Transactional ledger for user balances/credits. |
 
----
+### Phase 4: Optimization & Cleanup
+**Goal:** Finalize observability and sunset legacy code.
 
-## ۳) طرح دادهٔ غنی‌شدهٔ `users` (نسخهٔ کامل، نه نیم‌استوانه)
-
-### ۳.۱ ستون‌های پیشنهادی پروفایل گسترده
-
-| ستون پیشنهادی | نوع Postgres | الزام ثبت با کاربر جدید؟ | الزام حقوقی/کیفیت |
-|---------------|----------------|---------------------------|-------------------|
-| `national_id` | `varchar(10)` یا `varchar(64)` در صورت رمزنهان‌سازی | خیر؛ NULL مجاز | **Unique partial index**: `WHERE national_id IS NOT NULL`؛ نرمال‌سازی به ارقام لاتین؛ **checksum ایران** قبل از هر `save`. |
-| `gender` | `varchar(32)` با CHECK محدود به enum کنترلی یا enum DB | خیر؛ NULL = «اظهار نکرده» | مقادیر پایدار API (`female`, `male`, `non_binary`, `prefer_not_to_say`، ...)؛ ترجمه‌ها در وب. |
-| `birth_date` | `date` | خیر؛ NULL | بازهٔ سنی؛ جلوگی از تاریخ آینده؛ ذخیرهٔ محض تاریخ. |
-
-**پیوست اختیاری برای «کامل»:** جدول یا ستون **`profile_consented_at`** / **`marketing_consented_at`** اگر KPI شما الزام حقوق تفکیک اعلان بازاریابی دارد؛ در همین بار می‌توانی هم‌زمان با **`notifications_enabled`** معنادهی شود.
-
-### ۳.۲ لایهٔ برنامهٔ لازم (تمام قطعات)
-
-| لایه | کار |
-|------|-----|
-| Migration | ستون‌ها + ایندیکس‌ها + محدودیت‌های CHECK؛ مهاجرت امن بدون خام‌کردن ستون موجود. |
-| Entity + DTO + Response | هم‌خط با DB؛ اعتبار `class-validator`; **عدم قبول PATCH با فیلدهای ناشناخته**. |
-| `MeService` | `patchMe` / `toProfileResponse`؛ **تراکنش** برای هر شاخه؛ helper خالص برای کدملی؛ عدم کش رفتگی در لاگ. |
-| OpenAPI + types | جزء DoD؛ CI از خالی‌شدن `properties` در اسکیمای `/me` جلوگیری کند. |
-| BFF | تغییر نکند جز اگر سربرگ اضافی لازم شود؛ body relay کافی است. |
-| Frontend | کارت واحد یا گسترش کارت موجود؛ **`JalaliDatePicker`** + Zod؛ `meClient`; refetch با **tenant نشست**. |
-| Security/Ops | runbook نقش‌ها؛ روتاسیون secret؛ پشتیبان DB با نقش کم‌مجوز. |
-
-### ۳.۳ ریسک PII ویژه (کامل = عدم شانه خالی کردن)
-
-- **لاگ‌ها:** هرگونه `console.log`/Pino شامل کدملی خام **ممنوع**؛ تست ادغامی روی لاگ خام.
-- **خروجی `GET /me`**: برای حساب دار صاحب داده باز هم کامل؛ اگر هرگز نقش staff به پاسخ خام نیاز نداشت، کنترلر‌های دیگر **هرگز** همان شیء را نشان ندهند.
-- **Retention**: سیاست نگه‌داشت در مستند حقوقی و در صورت حذف کاربر (**soft delete موجود**) تأثیر ستون‌ها را مشخص کنید.
+| Task | Priority | Deliverable |
+| :--- | :--- | :--- |
+| **Audit Trail UI** | 🟢 Low | Admin dashboard for historical activity logs. |
+| **Performance Tuning** | 🟢 Low | Virtualized directory UI and optimized caching. |
+| **Legacy Code Sunset** | 🟢 Low | Removal of all string-based magic role logic. |
 
 ---
 
-## ۴) ثبت رسمی مشکل‌ها — راه‌حل استاندارد — دستهٔ موجی
+## 🛠️ Detailed Technical Design
 
-برای هر مورد بعد از «راه‌حل» دستهٔ اجرایی با یکی از این برچسب‌ها آمده تا در بخش ۵ روی نقشه بیفتد:
+### 1. Auth & Identity Module
+- **Responsibilities:** Manage authentication lifecycle, hydrate session/tenant context, enforce type-safe roles.
+- **Interfaces:** 
+  - *Input:* OTP Code, Session Cookie, JWT.
+  - *Output:* `AuthUser` object (ID, Tenant, Role, Status).
+- **Best Practices:** Use strict Enums; implement transparent refresh logic; validate JWT claims at the frontend boundary.
 
-- **【قرارداد】** — اولویت اول بسته‌شدن
-- **【دادهٔ دامنه】**
-- **【تراکنش و ایمیل】**
-- **【امنیت و عمقٔ دفاع】**
-- **【تجربهٔ کاربر】**
-- **【معماری و عملیات】**
+### 2. RBAC & Authorization (CASL)
+- **Responsibilities:** Translate roles into CASL rules; provide consistent UI gating.
+- **Interfaces:** 
+  - *Input:* `AuthUser` object.
+  - *Output:* CASL `Ability` instance.
+- **Best Practices:** Share rule definitions between FE/BE via shared libs; implement "Graceful Denials" (Request Access flows).
 
----
+### 3. User Management (Directory)
+- **Responsibilities:** Tenant directory rendering; bulk role/suspension updates; activity monitoring.
+- **Interfaces:** 
+  - *Input:* Search/Filter/Sort params.
+  - *Output:* Optimistically updated lists; success/error toasts.
+- **Best Practices:** Move all filtering/sorting to server-side; implement Audit Log tabs in detail modals.
 
-### M1 — پراکندگی ماژول نرم‌افزاری
+### 4. Tour Wizard & Creation
+- **Responsibilities:** Multi-step form orchestration; business rule enforcement based on "Tour Profile".
+- **Interfaces:** 
+  - *Input:* `TourFormProfile`, Draft ID.
+  - *Output:* Validated `TourDto`.
+- **Best Practices:** Robust server-side draft saving; centralize visibility rules in a dedicated engine.
 
-**مسئله:** Identity Nest + Next BFF + Settings بدون مرز اسم‌گذاری یکدست.
-
-**راه‌حل استاندارد:** سند آرشیتکت «Profile Boundary»؛ آرایش پوشه `features/profile`؛ README کوتاه ریشهٔ تنظیمات پیونددهنده به API.
-
-**فاز اجرا:** **【معماری و عملیات】**.
-
----
-
-### M2 — `MeService` مونولیت
-
-**مسئله:** ORM، ایمیل، OTP، نرمال‌سازی تلفن، قریباً همه در یک کلاس.
-
-**راه‌حل استاندارد:** جداسازی حداقلی `ProfileWriteService` / `IdentityContactService` یا ماژول خصوصی با **transaction‌های صریح**؛ توابع pure برای کدملی و سن.
-
-**فاز:** **【معماری و عملیات】** (پس از تثبیت قرارداد).
-
----
-
-### M3 — OpenAPI ناقص / دروغگو
-
-**مسئله:** پاسخ ۲۰۰ خالی؛ `PatchMeDto` در سند خالی.
-
-**راه‌حل استاندارد:** DTOهای پاسخ با `@ApiProperty`؛ اتحادها برای `pending_*`؛ قانون CI روی `openapi.json`.
-
-**فاز:** **【قرارداد】**.
+### 5. Registration & Booking
+- **Responsibilities:** Handle tour sign-ups; manage waitlists; coordinate with Finance for payment linkage.
+- **Interfaces:** 
+  - *Input:* `tourId`, user data.
+  - *Output:* `BookingDto`.
+- **Best Practices:** Use a strict State Machine for status transitions; capture price snapshots at booking time.
 
 ---
 
-### M4 — انواع TS پراکنده
+## ⚠️ Dependency & Risk Analysis
 
-**مسئله:** `WorkspaceMeData` شل؛ عدم اشتراک با بک.
+### Fragile Points
+| Module | Risk | Mitigation Strategy |
+| :--- | :--- | :--- |
+| **AuthContext** | Application-wide lockout | Use contract testing (Pact) between FE/BE. |
+| **Ability Provider** | Privilege escalation | Implement comprehensive unit testing for all role mappings. |
+| **Tenant Isolation** | Data leakage | Implement mandatory server-side middleware for all resource access. |
+| **Wizard State** | Data loss / corruption | Implement real-time draft persistence and Zod schema validation. |
 
-**راه‌حل استاندارد:** نوع مشترک یا codegen؛ پارسر مرزی تنها نقطهٔ `unknown`.
-
-**فاز:** **【قرارداد】**.
-
----
-
-### M5 — دو معنای عضویت (Middleware در برابر `ensureActorMembershipOrThrow`)
-
-**مسئله:** ACTIVE + `sess_ver` فقط در middleware؛ سرویس فقط «ردیفی هست».
-
-**راه‌حل استاندارد:** یکسان‌سازی فیلتر `ACTIVE` در access layer **یا** تایید حقوقی «فقط ورود middleware» با تست امنیتی روی هر route جدید.
-
-**فاز:** **【امنیت و عمقٔ دفاع】**.
+### Mitigation Summary
+- **Feature Flags:** Decouple deployment from release for financial features.
+- **Shadow Pricing:** Run new pricing logic in parallel with legacy for validation.
+- **Idempotency Keys:** Ensure all payment/mutation requests are replay-safe.
+- **Zod Boundary Checks:** Validate every API response shape at runtime.
 
 ---
 
-### M6 — `JwtAuthGuard` نام‌گذاری گمراه‌کننده
-
-**مسئله:** فقط هدر Bearer می‌بیند.
-
-**راه‌حل استاندارد:** rename به **`AuthorizationPresenceGuard`** + lint داخلی؛ یا guard واقعاً verify (هزینهٔ تکرار با middleware).
-
-**فاز:** **【امنیت و عمقٔ دفاع】**.
-
----
-
-### M7 — پروفایل جهانی vs چندمحیط
-
-**مسئله:** عدم override per tenant.
-
-**راه‌حل استاندارد:** اگر KPI آمد: **`user_workspace_profile`**؛ در غیر این صورت سند رسمی رد شدن الزام؛ نه تأخیر سکوت.
-
-**فاز:** **【معماری و عملیات】** (تصمیم محصول)، نه پیش‌فرض پیاده‌سازی.
+## ✅ Phase 1 Execution Checklist
+- [ ] Implement `tenantGuard` middleware on all API routes.
+- [ ] Refactor `AuthUser` role type to `UserRole` Enum.
+- [ ] Add `version` column to User and Booking tables.
+- [ ] Mirror CASL permissions in backend `CanActivate` guards.
+- [ ] Integrate optimistic update rollbacks in `users.service`.
 
 ---
-
-### M8 — نبود RLS روی `users` و `email_verification_tokens`
-
-**مسئله:** ایزوله‌سازی سطح PostgreSQL نیست.
-
-**راه‌حل استاندارد:** نقش DB minimal privilege؛ شبکهٔ خصوصی؛ تهیهٔ سند threat model؛ ارزیابی Security Definer فقط برای معدود کوئری اگر الزام نشد.
-
-**فاز:** **【امنیت و عمقٔ دفاع】**.
-
----
-
-### M9 — تراکنش نبودن در تغییر ایمیل (save / delete token / insert)
-
-**مسئله:** ناسازگاری میان‌عملیاتی.
-
-**راه‌حل استاندارد:** `transaction` دور تمام تغییرات persistence؛ سپس outbox ایمیل.
-
-**فاز:** **【تراکنش و ایمیل】**.
-
----
-
-### M10 — `verifyEmail` دو save جدا
-
-**مسئله:** شکاف میان user و token.
-
-**راه‌حل استاندارد:** همان transaction؛ `FOR UPDATE` روی سطر token اگر لازم.
-
-**فاز:** **【تراکنش و ایمیل】**.
-
----
-
-### M11 — ایمیل هم‌زمان در Thread درخواست
-
-**مسئله:** tail latency و coupling به SMTP.
-
-**راه‌حل استاندارد:** outbox + worker؛ API فقط ACK واضح؛ retry idempotent.
-
-**فاز:** **【تراکنش و ایمیل】**.
-
----
-
-### M12 — نبود audit برای تغییرات حساس
-
-**مسئله:** بازجویی و انطباق دشوار.
-
-**راه‌حل استاندارد:** رویداد append-only؛ فیلتر export برای حقوق‌دان؛ هرگونه تغییر کدملی/تولد حتمی در نسخهٔ کامل.
-
-**فاز:** **【امنیت و عمقٔ دفاع】** + **【دادهٔ دامنه】**.
-
----
-
-### M13 — last-write-wins روی PATCH
-
-**مسئله:** از دست رفتن بی‌صدا.
-
-**راه‌حل استاندارد:** `If-Match` / `row_version`؛ 409 با payload راهنما.
-
-**فاز:** **【تجربهٔ کاربر】** (با بُعد داده).
-
----
-
-### M14 — رقابت روی unique
-
-**مسئله:** خطای DB گاهی غیرقابل فهم.
-
-**راه‌حل استاندارد:** mapper از کد PG به پیام محلی؛ اختیاری header idempotency روی PATCH.
-
-**فاز:** **【تجربهٔ کاربر】**.
-
----
-
-### M15 — `notifications_enabled` سه‌حالته در DB، دوبخشی در API
-
-**مسئله:** null vs false.
-
-**راه‌حل استاندارد:** تصمیم محصول مکتوب + migration به default ثابت **یا** API سه‌حالته صریح.
-
-**فاز:** **【دادهٔ دامنه】**.
-
----
-
-### M16 — BFF و env / Host
-
-**مسئله:** پیکربندی اشتباه tenant mismatch.
-
-**راه‌حل استاندارد:** runbook؛ تست smoke روی staging با subdomain واقعی؛ مانیتورینگ 403 `TENANT_HOST_TOKEN_MISMATCH`.
-
-**فاز:** **【معماری و عملیات】**.
-
----
-
-### M17 — فرانت: اجبار `fullName` در حالی که API اختیاری
-
-**مسئله:** بلاک نوتیفیکیشن.
-
-**راه‌حل استاندارد:** Zod اختیاری + PATCH فقط فیلدهای تغییر یافته.
-
-**فاز:** **【تجربهٔ کاربر】** + **【قرارداد】** (هم‌خطی).
-
----
-
-### M18–M19 — نبود max در فرانت
-
-**راه‌حل:** `.max(255)` نام، `.max(320)` ایمیل.
-
-**فاز:** **【تجربهٔ کاربر】**.
-
----
-
-### M20 — `pickMeErrorMessage` بی‌توجه به `code`
-
-**راه‌حل:** `normalizeMeError` با جدول کد→رشته i18n.
-
-**فاز:** **【تجربهٔ کاربر】**.
-
----
-
-### M21–M22 — GET مضاعف بعد از PATCH؛ ناپایداری deps
-
-**راه‌حل:** یک منبع حقیقت یا ref پایدار برای callback.
-
-**فاز:** **【تجربهٔ کاربر】**.
-
----
-
-### M23 — کهنگی `me` با تعویض workspace
-
-**راه‌حل:** subscribe به tenant نشست؛ invalidation کلید کش.
-
-**فاز:** **【تجربهٔ کاربر】**.
-
----
-
-### M24–M25 — نمای شماره و وابسته بودن به `me.id`
-
-**راه‌حل:** digits بر اساس locale؛ `id` اجبار در قرارداد GET.
-
-**فاز:** **【تجربهٔ کاربر】** + **【قرارداد】**.
-
----
-
-### M26 — توکن در query
-
-**راه‌حل:** fragment، POST یک‌بار مصرف، revoke سریع.
-
-**فاز:** **【امنیت و عمقٔ دفاع】**.
-
----
-
-### M27 — نوع ایمیل nullable در نوع مواجه نشده با ستون غیر Nullable
-
-**راه‌حل:** هم‌ترازی TypeScript با DB واقعی.
-
-**فاز:** **【قرارداد】**.
-
----
-
-### M28 — فیلدهای جدید بدون اعتبار استاندارد
-
-**راه‌حل:** واحد اشتراکی backend + mirrored Zod + تست جدا برای checksum و بازه تاریخ.
-
-**فاز:** **【دادهٔ دامنه】** (هستهٔ rollout فیلدهای جدید).
-
----
-
-## ۵) نقشهٔ موجی اجرای «کامل» (بدون سقف MVP)
-
-این نقشه **ترتیب پیشنهادی** است؛ هر موج می‌تواند چند sprint بگیرد ولی ترتیب **【قرارداد】** قبل از rollout داده الزاماً رعایت شود تا دوباره‌کاری نشود.
-
-| موج | برچسب‌های دسته | خروجی قابل‌تحویل |
-|-----|----------------|------------------|
-| **موج ۱ — قرارداد و درست‌کاری فوری** | 【قرارداد】، بخشی 【تجربهٔ کاربر】 | OpenAPI واقعی؛ types مشترک؛ رفع نام اجباری؛ max طول؛ map خطا با `code`؛ هم‌خطی نوع ایمیل؛ `id` تضمین‌شده در GET. |
-| **موج ۲ — داده و API پروفایل غنی** | 【دادهٔ دامنه】، 【قرارداد】 | Migration `national_id`, `gender`, `birth_date`؛ PATCH/GET؛ اعتبار کامل؛ UI با Jalali + Select + نرمال‌سازی ارقام ورودی؛ i18n کامل. |
-| **موج ۳ — صُلب تراکنش و ایمیل نامتقارن** | 【تراکنش و ایمیل】 | trx روی PATCH ایمیل؛ trx روی verify؛ outbox + worker؛ مانیتورینگ خطای ارسال ایمیل و صف خروجی. |
-| **موج ۴ — امنیت و حساب‌پذیری** | 【امنیت و عمقٔ دفاع】، 【دادهٔ دامنه】 | audit؛ تمایز نقش؛ rename guard؛ مستند اتکای به middleware؛ ارزیابی رمز ستون؛ سیاست پاکسازی؛ اصلاح لینک توکن تأیید. |
-| **موج ۵ — رقابت همزمان و ظرافت محصولی** | 【تجربهٔ کاربر】، 【معماری و عملیات】 | ETag/`row_version`؛ idempotency اختیاری؛ `meClient`؛ حذف دوباره‌گیری؛ tri-state یا default نوتیفیکیشن؛ تصمیم per-tenant اگر KPI. |
-| **موج ۶ — سخت‌گیری عملیاتی** | 【معماری و عملیات】 | refactor تدریجی `MeService`؛ تست E2E نهایی؛ اسلاید آموزش پشتیبانی؛ Runbook incident PII. |
-
----
-
-## ۶) جمع‌بندی مدیریتی
-
-- **خروج از MVP** یعنی DoD بخش ۲ باید به‌تدریج **همه tick** بگیرد؛ موج ۱–۳ حداقل‌های **قابل‌دفاع در تولید** برای دادهٔ حساس و تماس هستند.  
-- **فیلدهای کد ملی، جنسیت، تولد** در نسخهٔ کامل فقط با **audit + اعتبار + تراکنش پایه** قابل‌قبول‌اند؛ در غیر این صورت ریسک حقوقی و عملیاتی روی برند شماست.  
-- **`JalaliDatePicker`** در همین کدبیس از قبل با مقدار **`YYYY-MM-DD` گرِگوری** استفاده می‌شود؛ برای تولد **همان الگو** تکرار شود تا گزارش و مهاجرت بعدی ساده بماند.
-
----
-
-*این نسخهٔ سند برای مسیر **تکمیل کامل** ماژول Profile است؛ زمان‌بندی sprint را تیم بر اساس ظرفیت روی موج‌ها می‌چیند.*
+*Blueprint generated on 2026-05-13. Ready for immediate implementation.*

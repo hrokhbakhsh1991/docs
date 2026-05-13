@@ -125,6 +125,9 @@ function SortableTourPresetRow({
             <strong>{item.name}</strong>
             <span className={panelStyles.listItemMeta}>{previewDescription(item.description)}</span>
             <span className={panelStyles.listItemMeta}>{matchLine}</span>
+            <span className={panelStyles.listItemMeta}>
+              {t("tourPresetsMetaFormProfile", { profile: item.formProfile ?? "general" })}
+            </span>
             <span className={panelStyles.listItemMeta}>{keysLine}</span>
             <span className={panelStyles.listItemMeta}>{t("tourPresetsSortOrderLabel", { n: String(item.sortOrder) })}</span>
             {!item.isActive ? <span className={panelStyles.listItemBadge}>— {t("tourPresetsInactiveBadge")}</span> : null}

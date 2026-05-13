@@ -2,10 +2,18 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+
+import {
+  defaultTourFormProfileForTourType,
+  normalizeTourFormProfileInput,
+  type TourFormProfile,
+  type TourType
+} from "@repo/types";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
@@ -13,15 +21,26 @@ import type { CreateWorkspaceTourCreationPresetDto } from "./dto/create-workspac
 import type { UpdateWorkspaceTourCreationPresetDto } from "./dto/update-workspace-tour-creation-preset.dto";
 import { WorkspaceTourCreationPresetResponseDto } from "./dto/workspace-tour-creation-preset-response.dto";
 import { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
+import { WorkspaceTourThemeEntity } from "./entities/workspace-tour-theme.entity";
+import {
+  detectPresetThemeProfileDrift,
+  formatPresetDriftWarning,
+  type ThemeLookup,
+} from "./tour-preset-defaults-drift";
+import { parsePresetDefaultsOrThrow } from "./tour-preset-defaults.schema";
 import { mergeLegacyMatchIntoDefaults } from "./tour-preset-defaults-legacy";
 
 const MAX_DEFAULTS_JSON_BYTES = 256 * 1024;
 
 @Injectable()
 export class TourCreationPresetsSettingsService {
+  private readonly logger = new Logger(TourCreationPresetsSettingsService.name);
+
   constructor(
     @InjectRepository(WorkspaceTourCreationPresetEntity)
     private readonly presetsRepository: Repository<WorkspaceTourCreationPresetEntity>,
+    @InjectRepository(WorkspaceTourThemeEntity)
+    private readonly themesRepository: Repository<WorkspaceTourThemeEntity>,
     private readonly requestContext: RequestContextService
   ) {}
 
@@ -45,6 +64,18 @@ export class TourCreationPresetsSettingsService {
     return t === "" ? null : t;
   }
 
+  private normalizeOptionalMatchTourType(value: string | null | undefined): string | null {
+    if (value == null) return null;
+    const t = String(value).trim();
+    return t === "" ? null : t;
+  }
+
+  private normalizeOptionalUuid(value: string | null | undefined): string | null {
+    if (value == null) return null;
+    const t = String(value).trim();
+    return t === "" ? null : t;
+  }
+
   private assertPlainDefaults(value: unknown): Record<string, unknown> {
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
       throw new BadRequestException({
@@ -60,7 +91,51 @@ export class TourCreationPresetsSettingsService {
         }
       });
     }
-    return value as Record<string, unknown>;
+    const plain = value as Record<string, unknown>;
+    parsePresetDefaultsOrThrow(plain);
+    return plain;
+  }
+
+  /**
+   * Soft drift diagnostic: looks up the workspace theme referenced by either
+   * `defaults.overview.mainTourThemeId` or the legacy `matchMainTourThemeId`
+   * column and compares its `formProfile` with `preset.formProfile`. Mismatch
+   * is emitted as a `warn` log — the preset is **always saved** (Phase-2
+   * policy "soft"). See `tour-preset-defaults-drift.ts` for the contract.
+   */
+  private async checkAndLogThemeProfileDrift(opts: {
+    workspaceId: string;
+    presetFormProfile: TourFormProfile | null | undefined;
+    defaults: Record<string, unknown>;
+    matchMainTourThemeId: string | null;
+  }): Promise<void> {
+    if (!opts.presetFormProfile) return;
+    const overviewRaw = opts.defaults.overview;
+    const overview =
+      overviewRaw && typeof overviewRaw === "object" && !Array.isArray(overviewRaw)
+        ? (overviewRaw as Record<string, unknown>)
+        : {};
+    const defaultsOverviewMainTourThemeId =
+      typeof overview.mainTourThemeId === "string" ? overview.mainTourThemeId : null;
+
+    const lookup: ThemeLookup = async (themeId) => {
+      const theme = await this.themesRepository.findOne({
+        where: { id: themeId, workspaceId: opts.workspaceId },
+        select: { id: true, formProfile: true },
+      });
+      return theme ? { id: theme.id, formProfile: theme.formProfile } : null;
+    };
+
+    const result = await detectPresetThemeProfileDrift(
+      {
+        presetFormProfile: opts.presetFormProfile,
+        defaultsOverviewMainTourThemeId,
+        matchMainTourThemeId: opts.matchMainTourThemeId,
+      },
+      lookup,
+    );
+    const warning = formatPresetDriftWarning(result);
+    if (warning) this.logger.warn(warning);
   }
 
   private toResponse(row: WorkspaceTourCreationPresetEntity): WorkspaceTourCreationPresetResponseDto {
@@ -79,8 +154,9 @@ export class TourCreationPresetsSettingsService {
       description: row.description ?? null,
       isActive: row.isActive,
       sortOrder: row.sortOrder,
-      matchTourType: null,
-      matchMainTourThemeId: null,
+      matchTourType: row.matchTourType ?? null,
+      matchMainTourThemeId: row.matchMainTourThemeId ?? null,
+      formProfile: normalizeTourFormProfileInput(row.formProfile ?? "general"),
       defaults: enrichedDefaults,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString()
@@ -99,6 +175,12 @@ export class TourCreationPresetsSettingsService {
   async create(dto: CreateWorkspaceTourCreationPresetDto): Promise<WorkspaceTourCreationPresetResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
     const defaults = this.assertPlainDefaults(dto.defaults ?? {});
+    const matchTourType = this.normalizeOptionalMatchTourType(dto.matchTourType);
+    const matchMainTourThemeId = this.normalizeOptionalUuid(dto.matchMainTourThemeId);
+    const formProfile =
+      dto.formProfile != null && String(dto.formProfile).trim() !== ""
+        ? normalizeTourFormProfileInput(dto.formProfile)
+        : defaultTourFormProfileForTourType(matchTourType as TourType | null);
 
     const row = this.presetsRepository.create({
       workspaceId,
@@ -106,9 +188,16 @@ export class TourCreationPresetsSettingsService {
       description: this.normalizeNullableText(dto.description),
       isActive: dto.isActive ?? true,
       sortOrder: dto.sortOrder ?? 0,
-      matchTourType: null,
-      matchMainTourThemeId: null,
+      matchTourType,
+      matchMainTourThemeId,
+      formProfile,
       defaults
+    });
+    await this.checkAndLogThemeProfileDrift({
+      workspaceId,
+      presetFormProfile: formProfile,
+      defaults,
+      matchMainTourThemeId,
     });
     const saved = await this.presetsRepository.save(row);
     return this.toResponse(saved);
@@ -144,10 +233,31 @@ export class TourCreationPresetsSettingsService {
     if (dto.defaults !== undefined) {
       row.defaults = this.assertPlainDefaults(dto.defaults);
     }
+    if (dto.matchTourType !== undefined) {
+      row.matchTourType = this.normalizeOptionalMatchTourType(dto.matchTourType);
+    }
+    if (dto.matchMainTourThemeId !== undefined) {
+      row.matchMainTourThemeId = this.normalizeOptionalUuid(dto.matchMainTourThemeId);
+    }
+    if (dto.formProfile !== undefined) {
+      row.formProfile =
+        dto.formProfile == null || String(dto.formProfile).trim() === ""
+          ? "general"
+          : normalizeTourFormProfileInput(dto.formProfile);
+    }
 
-    row.matchTourType = null;
-    row.matchMainTourThemeId = null;
-
+    if (
+      dto.defaults !== undefined ||
+      dto.formProfile !== undefined ||
+      dto.matchMainTourThemeId !== undefined
+    ) {
+      await this.checkAndLogThemeProfileDrift({
+        workspaceId,
+        presetFormProfile: row.formProfile,
+        defaults: row.defaults,
+        matchMainTourThemeId: row.matchMainTourThemeId,
+      });
+    }
     const saved = await this.presetsRepository.save(row);
     return this.toResponse(saved);
   }

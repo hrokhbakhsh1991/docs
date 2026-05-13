@@ -32,11 +32,14 @@ export async function GET(): Promise<NextResponse> {
   if (!userId || !tenantId) {
     return clearCookie(NextResponse.json({ authenticated: false }, { status: 200 }));
   }
+  const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
   const payload = {
     authenticated: true,
     session_token: token,
     user_id: userId,
-    tenant_id: tenantId
+    tenant_id: tenantId,
+    /** Client `useAuth` prefers this shape; keeps leader gates working when JWT carries `role`. */
+    user: { userId, tenantId, role },
   };
   return NextResponse.json(payload);
 }

@@ -18,6 +18,8 @@ export type ModalProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   closeOnScrimClick?: boolean;
   /** When true, Escape, scrim, and the header close control do not dismiss */
   preventDismiss?: boolean;
+  /** Merged onto the dialog panel (e.g. width for large layouts). */
+  panelClassName?: string;
 };
 
 export function Modal({
@@ -29,6 +31,7 @@ export function Modal({
   closeOnScrimClick = true,
   preventDismiss = false,
   className,
+  panelClassName,
   ...rest
 }: ModalProps) {
   const titleId = useId();
@@ -122,7 +125,7 @@ export function Modal({
       <div
         ref={dialogRef}
         id={panelId}
-        className={styles.dialog}
+        className={cn(styles.dialog, panelClassName)}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

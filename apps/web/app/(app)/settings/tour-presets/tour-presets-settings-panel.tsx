@@ -13,6 +13,7 @@ import {
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 import { nextTourPresetSortOrder } from "@/lib/tour-preset-duplicate";
+import { matchRulesFromPresetDefaults } from "@/lib/tour-preset-match-from-defaults";
 import { isLeaderRole, isWorkspaceOwner, useAuth } from "@/lib/auth/auth-context";
 
 import {
@@ -95,14 +96,16 @@ export function TourPresetsSettingsPanel() {
   const onSubmitForm = useCallback(
     async (values: TourPresetFormParsed) => {
       try {
+        const { matchTourType, matchMainTourThemeId } = matchRulesFromPresetDefaults(values.defaults);
         const payload = {
           name: values.name,
           description: values.description,
           isActive: values.isActive,
           defaults: values.defaults,
+          formProfile: values.formProfile,
+          matchTourType,
+          matchMainTourThemeId,
           ...(values.sortOrder !== undefined ? { sortOrder: values.sortOrder } : {}),
-          matchTourType: null,
-          matchMainTourThemeId: null,
         };
         if (editing) {
           await updateMutation.mutateAsync({ id: editing.id, input: payload });

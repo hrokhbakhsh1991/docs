@@ -33,7 +33,7 @@
 
 **Validation بک‌اند:** `ValidationPipe` با `whitelist` + `forbidNonWhitelisted` روی DTOهای تو در تو؛ فیلدهای ناشناس در بدنه رد می‌شوند.
 
-**Gate نمونه:** فیلدهای فقط-کوهستان (مثل `maxAltitudeMeters` در overview) در سرور برای `tourType !== mountain` حذف می‌شوند (`applyTourTypeFieldGates`).
+**Gate نمونه:** فیلدهای فقط-کوهستان (مثل `maxAltitudeMeters` در overview) در سرور برای پروفایل‌های غیر از `mountain_outdoor` حذف می‌شوند (`applyMountainOverviewFieldGatesForFormProfile`). محور قدیمی `applyTourTypeFieldGates` در فاز P4 بازنشسته شد و کلاینت‌ها/سرویس‌ها اکنون به همان منبع پروفایل (`TourFormProfile`) متکی هستند.
 
 ### 2.3 `eventKind`
 
@@ -156,9 +156,18 @@ type TourOverview = {
 
 ## 7. مرجع متنی اضافی
 
-- **`prompt.md`** — پرامپت‌های مرحله‌به‌مرحله (SECTION 1+).
-- **`tour-create-wizard.prompt.md`** — پیش‌نویس طولانی‌تر طراحی دامنه و UX (با فرمت ناهموار؛ این README جمع‌بندی مرجع است).
-- **`ANALYSIS-tour-create-current.md`** — خروجی **PROMPT 1** (تحلیل پیاده‌سازی فعلی `/tours/new`: FormStructure, Validation, PayloadMapping, ItineraryHandling, KeyFiles).
+- **معماری فعلی (post P1–P11):**
+  - [`docs/20-architecture/tour-profile-current-state.md`](docs/20-architecture/tour-profile-current-state.md) — دیاگرام یک‌صفحه‌ای (Mermaid) از مسیر resolver → strip → invariants → snapshot، مصرف‌کنندگان UI، و جزیرهٔ legacy؛ به‌علاوهٔ ماتریس invariantها (I-1 تا I-9) و چک‌لیست triage.
+  - [`docs/20-architecture/ADR-tour-profile-closure.md`](docs/20-architecture/ADR-tour-profile-closure.md) — ADR رسمی بسته‌شدن مدل پروفایل تور (Phases P1 – P11): تصمیم، پیامدها، هزینه‌های سازگاری پذیرفته‌شده، اجرای مکانیکی، و triggerهای بازنگری.
+  - [`docs/20-architecture/unified-tour-domain-model.md`](docs/20-architecture/unified-tour-domain-model.md) — RFC کامل (لایه‌ها، invariantها، درخت تصمیم، helperهای deprecated، و ضمیمهٔ §12a "Status — closed items").
+  - [`docs/20-architecture/tour-profile-guardrails.md`](docs/20-architecture/tour-profile-guardrails.md) — قوانین ESLint و CI fitness که این معماری را رگرسیون‌پذیر نمی‌کنند.
+  - [`docs/PROFILE_ARCHITECTURE_PLAYBOOK.md`](docs/PROFILE_ARCHITECTURE_PLAYBOOK.md) — چک‌لیست عملی برای افزودن پروفایل / فیلد جدید (پس از P10، افزودن پروفایل ≈ یک ردیف descriptor + یک کلید i18n).
+- **پلن و وضعیت بسته‌شدن:**
+  - [`prompt.md`](prompt.md) — پرامپت‌های مرحله‌به‌مرحله (SECTION 1+) و **Final Enterprise Architecture Status** (post P1–P11 = **Enterprise Ready**).
+  - [`promptq.md`](promptq.md) — جدول وضعیت همهٔ فازهای P1–P11 با لینک به فایل‌های تغییریافته.
+- **بایگانی طراحی اولیه:**
+  - **`tour-create-wizard.prompt.md`** — پیش‌نویس طولانی‌تر طراحی دامنه و UX.
+  - **`ANALYSIS-tour-create-current.md`** — خروجی **PROMPT 1** (تحلیل پیاده‌سازی فعلی `/tours/new`).
 
 ---
 

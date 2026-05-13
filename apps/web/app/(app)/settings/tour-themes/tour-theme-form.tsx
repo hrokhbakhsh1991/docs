@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DEFAULT_TOUR_FORM_PROFILE, TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import type { Resolver } from "react-hook-form";
@@ -10,7 +11,7 @@ import { z } from "zod";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 
-import { Button, Checkbox, FormField, Input, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, Select, Textarea } from "@tour/ui";
 
 import formStyles from "../settings-profile-form.module.css";
 import panelStyles from "../locations/locations-settings-panel.module.css";
@@ -28,6 +29,7 @@ export type TourThemeFormParsed = {
   description: string | null;
   sortOrder: number | undefined;
   isActive: boolean;
+  formProfile: TourFormProfile;
 };
 
 type TourThemeFormInput = {
@@ -36,6 +38,7 @@ type TourThemeFormInput = {
   description: string;
   sortOrder: string;
   isActive: boolean;
+  formProfile: TourFormProfile;
 };
 
 export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourThemeFormProps) {
@@ -56,6 +59,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
           .transform((v) => (v && v !== "" ? Number(v) : undefined))
           .refine((v) => v === undefined || !Number.isNaN(v), { message: t("tourThemesValidationSortOrder") }),
         isActive: z.boolean(),
+        formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
       }),
     [t],
   );
@@ -70,6 +74,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
       description: "",
       sortOrder: "",
       isActive: true,
+      formProfile: DEFAULT_TOUR_FORM_PROFILE,
     },
   });
 
@@ -84,6 +89,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
         description: editing.description ?? "",
         sortOrder: String(editing.sortOrder),
         isActive: Boolean(editing.isActive),
+        formProfile: editing.formProfile,
       });
     } else {
       reset({
@@ -92,6 +98,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
         description: "",
         sortOrder: "",
         isActive: true,
+        formProfile: DEFAULT_TOUR_FORM_PROFILE,
       });
     }
   }, [editing, reset]);
@@ -107,6 +114,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
           description: descriptionTrim ? descriptionTrim : null,
           sortOrder: values.sortOrder,
           isActive: values.isActive,
+          formProfile: values.formProfile,
         });
       })}
       noValidate
@@ -133,6 +141,22 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
         error={errors.description?.message}
       >
         <Textarea rows={3} {...register("description")} />
+      </FormField>
+      <FormField
+        label={t("tourThemesFieldFormProfile")}
+        description={t("tourThemesFieldFormProfileHint")}
+        error={errors.formProfile?.message}
+      >
+        <Select
+          aria-invalid={errors.formProfile ? true : undefined}
+          {...register("formProfile")}
+        >
+          {TOUR_FORM_PROFILE_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {t(`tourThemesFormProfileOption_${value}` as never)}
+            </option>
+          ))}
+        </Select>
       </FormField>
       <FormField label={t("tourThemesFieldSortOrder")} description={t("tourThemesFieldSortOrderHint")} error={errors.sortOrder?.message}>
         <Controller

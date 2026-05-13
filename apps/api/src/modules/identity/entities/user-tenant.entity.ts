@@ -52,6 +52,12 @@ export class UserTenantEntity extends BaseTenantEntity {
   @Column({ type: "int", name: "session_version", default: 1 })
   sessionVersion!: number;
 
+  /**
+   * Tenant-scoped membership tags (e.g. club_member, has_car). Stored as JSON string array.
+   */
+  @Column({ type: "jsonb", name: "labels", default: () => "'[]'::jsonb" })
+  labels!: string[];
+
   @ManyToOne(() => UserEntity, (user) => user.memberships, { nullable: false })
   @JoinColumn({ name: "user_id", referencedColumnName: "id" })
   user!: UserEntity;

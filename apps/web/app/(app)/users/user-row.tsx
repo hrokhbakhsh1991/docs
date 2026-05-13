@@ -1,23 +1,28 @@
 "use client";
 
 import type { UseMutationResult } from "@tanstack/react-query";
+import type { MouseEvent } from "react";
 import { memo } from "react";
 
 import { Badge, Checkbox, TableCell, TableRow } from "@tour/ui";
 
 import type { AuthUser } from "@/lib/auth/auth-context";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
+import type { UserRole } from "@/lib/auth/user-role";
 
-import { normalizeRole, roleLabel, roleVariant } from "./users-page-logic";
+import { normalizeRole, roleLabel, roleVariant, formatMembershipLabelDisplay } from "./users-page-logic";
 import styles from "./users-page.module.css";
+import { USERS_ROUTE_COPY } from "./users-copy";
 import { UserActions } from "./user-actions";
+
+const copy = USERS_ROUTE_COPY.list;
 
 type UserRowProps = {
   row: WorkspaceUserDto;
   sessionUser: AuthUser | null;
   selected: boolean;
   activeRoleMutationUserId: string | null;
-  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: string }, unknown>;
+  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onOpenProfile: (userId: string) => void;
   onToggleSelected: (userId: string, checked: boolean) => void;
 };
@@ -49,6 +54,24 @@ function relativeTimeLabel(value?: string | null): string {
   return formatter.format(-years, "year");
 }
 
+function TelegramLinkedGlyph() {
+  return (
+    <svg
+      className={styles.telegramLinkedIcon}
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M21.5 4.5 3.5 11.2c-1 .4-1 1-.2 1.3l4.6 1.4 1.8 5.7c.2.6.5.7.9.4l2.5-1.8 5.3 3.9c.6.3 1 .2 1.2-.5l3.5-16.5c.2-1-.4-1.6-1.2-1.2ZM8.1 14.3l10.5-6.5c.5-.3.9-.1.5.4l-8.6 7.8-.3 3.2-2.1-5Z"
+      />
+    </svg>
+  );
+}
+
 function UserRowBase({
   row,
   sessionUser,
@@ -63,9 +86,18 @@ function UserRowBase({
   const isSelfTarget = row.id === sessionUserId;
   const isOwnerTarget = normalizeRole(row.role) === "owner";
 
+  function handleRowPointerDown(event: MouseEvent<HTMLTableRowElement>) {
+    const el = event.target as HTMLElement | null;
+    if (!el) return;
+    if (el.closest("button, a, input, select, textarea, label, [data-skip-row-open='true']")) {
+      return;
+    }
+    onOpenProfile(row.id);
+  }
+
   return (
-    <TableRow>
-      <TableCell className={styles.selectionCell}>
+      <TableRow className={styles.clickableRow} onClick={handleRowPointerDown}>
+      <TableCell className={styles.selectionCell} onClick={(e) => e.stopPropagation()}>
         <Checkbox
           bare
           aria-label={`Select ${row.name}`}
@@ -74,13 +106,35 @@ function UserRowBase({
           onChange={(event) => onToggleSelected(row.id, event.target.checked)}
         />
       </TableCell>
-      <TableCell>{row.name}</TableCell>
+      <TableCell>
+        <span className={styles.nameWithTelegram}>
+          <span>{row.name}</span>
+          {row.telegramLinked ? (
+            <span role="img" aria-label={copy.telegramLinkedAria} title={copy.telegramLinkedAria}>
+              <TelegramLinkedGlyph />
+            </span>
+          ) : null}
+        </span>
+      </TableCell>
       <TableCell>{row.email}</TableCell>
       <TableCell>{row.phone?.trim() ? row.phone : "—"}</TableCell>
       <TableCell>
         <Badge variant={row.isPhoneVerified ? "success" : "neutral"}>
           {row.isPhoneVerified ? "Verified" : "Unverified"}
         </Badge>
+      </TableCell>
+      <TableCell className={styles.labelsCell}>
+        {row.labels && row.labels.length > 0 ? (
+          <div className={styles.labelBadges}>
+            {row.labels.map((label) => (
+              <Badge key={label} variant="neutral">
+                {formatMembershipLabelDisplay(label)}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          copy.emptyLabelsCell
+        )}
       </TableCell>
       <TableCell>
         <Badge className={styles.roleBadge} variant={roleVariant(row.role)}>
@@ -92,7 +146,7 @@ function UserRowBase({
       </TableCell>
       <TableCell>{relativeTimeLabel(row.lastLoginAt)}</TableCell>
       <TableCell>{relativeTimeLabel(row.joinedAt)}</TableCell>
-      <TableCell className={styles.actionsCell}>
+      <TableCell className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
         <UserActions
           rowId={row.id}
           rowName={row.name}

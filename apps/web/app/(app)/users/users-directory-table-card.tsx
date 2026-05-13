@@ -6,6 +6,7 @@ import { Button, Card, CardBody, CardFooter, CardHeader, EmptyState } from "@tou
 
 import type { AuthUser } from "@/lib/auth/auth-context";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
+import type { UserRole } from "@/lib/auth/user-role";
 
 import type {
   RoleFilter,
@@ -45,7 +46,7 @@ export type UsersDirectoryTableCardProps = {
   roleMutation: UseMutationResult<
     WorkspaceUserDto,
     unknown,
-    { userId: string; role: string },
+    { userId: string; role: UserRole },
     unknown
   >;
   activeRoleMutationUserId: string | null;

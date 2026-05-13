@@ -362,6 +362,8 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
   const TripDetailsLogisticsSchema = z
     .object({
       primaryTransportMode: z.enum(["plane", "train", "bus", "midibus", "private_car"]).optional(),
+      /** Workspace preset / clone only — wizard field `logistics.supplementalPrivateCar`. */
+      supplementalPrivateCar: z.boolean().optional(),
       fuelShareToman: optionalIntInRange(0, 10_000_000_000),
       meetingPoint: optionalShortText(2048),
       departureMeetingTime: optionalTimeHhmm,

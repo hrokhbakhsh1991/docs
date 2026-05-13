@@ -80,6 +80,7 @@ export function TourThemesSettingsPanel() {
           slug: values.slug,
           description: values.description,
           isActive: values.isActive,
+          formProfile: values.formProfile,
           ...(values.sortOrder !== undefined ? { sortOrder: values.sortOrder } : {}),
         };
         if (editing) {

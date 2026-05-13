@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { IsNull, Repository } from "typeorm";
+import type { RequestActorRole, UserRole } from "../../common/auth/user-role.enum";
 import {
   authRequiredError,
   tenantContextMissingError,
@@ -21,10 +22,13 @@ export type TenantScopedUserRow = {
   is_phone_verified: boolean;
   role: string;
   membership_status: MembershipStatus;
+  profile_row_version?: number;
   last_login_at?: Date | null;
   invited_at?: Date | null;
   joined_at?: Date | null;
   suspended_at?: Date | null;
+  labels?: unknown;
+  telegram_linked?: boolean | string | null;
 };
 
 @Injectable()
@@ -53,7 +57,7 @@ export class UsersAccessService {
     return tenantId;
   }
 
-  resolveActorContextOrThrow(): { actorUserId: string; actorRole: string | undefined } {
+  resolveActorContextOrThrow(): { actorUserId: string; actorRole: RequestActorRole | undefined } {
     const actorUserId = this.requestContextService.getUserId();
     const actorRole = this.requestContextService.getRole();
     if (!actorUserId) {
@@ -102,7 +106,10 @@ export class UsersAccessService {
         "ut.membership_status AS membership_status",
         "ut.invited_at AS invited_at",
         "ut.joined_at AS joined_at",
-        "ut.suspended_at AS suspended_at"
+        "ut.suspended_at AS suspended_at",
+        "ut.labels AS labels",
+        "u.profile_row_version AS profile_row_version",
+        "(u.telegram_user_id IS NOT NULL AND btrim(u.telegram_user_id) <> '') AS telegram_linked"
       ])
       .getRawOne<TenantScopedUserRow>();
     if (!row) {
@@ -118,12 +125,45 @@ export class UsersAccessService {
       email: row.email,
       phone: row.phone,
       isPhoneVerified: row.is_phone_verified,
-      role: row.role,
+      role: row.role as UserRole,
       status: row.membership_status,
       lastLoginAt: row.last_login_at ?? null,
       invitedAt: row.invited_at ?? null,
       joinedAt: row.joined_at ?? null,
-      suspendedAt: row.suspended_at ?? null
+      suspendedAt: row.suspended_at ?? null,
+      labels: normalizeMembershipLabels(row.labels),
+      telegramLinked: coerceTelegramLinked(row.telegram_linked),
+      profileRowVersion:
+        row.profile_row_version !== undefined && row.profile_row_version !== null
+          ? Number(row.profile_row_version)
+          : undefined
     };
   }
+}
+
+function normalizeMembershipLabels(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+  if (typeof value === "string") {
+    try {
+      return normalizeMembershipLabels(JSON.parse(value) as unknown);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function coerceTelegramLinked(value: boolean | string | null | undefined): boolean {
+  if (value === true || value === "t" || value === "true" || value === "1") {
+    return true;
+  }
+  return false;
 }

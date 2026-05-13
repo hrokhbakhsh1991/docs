@@ -3,7 +3,7 @@ import { getDataSourceToken } from "@nestjs/typeorm";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "../app.controller";
 import { LoggerService } from "../common/logger/logger.service";
-import { UserRole } from "../common/auth/user-role.enum";
+import { UserRole, InternalActorRole } from "../common/auth/user-role.enum";
 import { RequestContextService } from "../common/request-context/request-context.service";
 import { ConfigService } from "../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../jobs/scheduler-runtime-metrics.service";
@@ -109,7 +109,7 @@ import { ToursService } from "../modules/tours/tours.service";
           method: "GET",
           tenantId: "00000000-0000-4000-8000-000000000000",
           userId: "openapi-build-user",
-          role: UserRole.System
+          role: InternalActorRole.System
         }),
         setTenantId: () => undefined
       }

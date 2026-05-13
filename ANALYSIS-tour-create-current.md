@@ -78,7 +78,7 @@
 | پیام‌های validation | `apps/web/src/features/tours/models/tours-new-validation-messages.ts` |
 | i18n پیام‌ها | `apps/web/src/features/tours/i18n/build-tours-new-validation-messages.ts` |
 | سیاست event kind / فیلدها | `apps/web/src/features/tours/config/tripDetailsFieldConfig.ts` |
-| resolver نوع رویداد | `packages/types/src/tour-kind.ts` (و export در `apps/web/.../policies/tour-kind-policy.ts`) |
+| resolver نوع رویداد | `packages/types/src/tour-kind.ts` (compatibility-only — legacy shim `apps/web/.../policies/tour-kind-policy.ts` was retired in migration Phase 5) |
 | نگاشت به DTO API | `apps/web/src/features/tours/domain/mapCreateTourDto.ts` |
 | محاسبه duration | `apps/web/src/features/tours/domain/computeTourDurationDays.ts` |
 | mutation | `apps/web/src/features/tours/hooks/useCreateTour.ts` |

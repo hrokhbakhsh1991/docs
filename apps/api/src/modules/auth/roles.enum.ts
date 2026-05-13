@@ -7,5 +7,6 @@ export enum Role {
   PARTICIPANT = "member",
   OWNER = "owner",
   ADMIN = "admin",
+  LEADER = "leader",
   MEMBER = "member"
 }

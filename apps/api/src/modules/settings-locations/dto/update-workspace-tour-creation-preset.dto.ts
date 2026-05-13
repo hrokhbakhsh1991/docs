@@ -13,7 +13,7 @@ import {
   ValidateIf
 } from "class-validator";
 
-import { TOUR_TYPES } from "@repo/types";
+import { TOUR_TYPES, TOUR_FORM_PROFILE_VALUES_LIST, type TourFormProfile } from "@repo/types";
 
 export class UpdateWorkspaceTourCreationPresetDto {
   @ApiPropertyOptional({ maxLength: 120, minLength: 1 })
@@ -51,6 +51,17 @@ export class UpdateWorkspaceTourCreationPresetDto {
   @ValidateIf((_, v) => v != null && String(v).trim() !== "")
   @IsUUID()
   matchMainTourThemeId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    enum: TOUR_FORM_PROFILE_VALUES_LIST,
+    description: "Form profile this preset targets (wizard compatibility filter)."
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== "")
+  @IsString()
+  @IsIn(TOUR_FORM_PROFILE_VALUES_LIST)
+  formProfile?: TourFormProfile | null;
 
   @ApiPropertyOptional({ type: "object", additionalProperties: true })
   @IsOptional()

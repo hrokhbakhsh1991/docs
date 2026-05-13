@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ACCOMMODATION_TYPE_VALUES, TOUR_TYPES } from "@repo/types";
+import { ACCOMMODATION_TYPE_VALUES, TOUR_TYPES, type TourFormProfile } from "@repo/types";
 
 import {
   DIFFICULTY_LEVELS,
@@ -8,11 +8,26 @@ import {
   TRIP_STYLES,
 } from "@/features/tours/models/tourTripDetails.schema";
 import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "@/features/tours/models/tours-new-validation-messages";
+import { inactiveTourCreateRootKeysForProfile } from "@/features/tours/wizard/fieldGroups";
+
+import { mergeTourValidationFlagsForSchema } from "./tourCreateValidationPolicy";
 
 const hhmmRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ymdRegex = /^\d{4}-\d{2}-\d{2}$/;
 const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRIMARY_TRANSPORT_MODES = ["plane", "train", "bus", "midibus", "private_car"] as const;
+
+/**
+ * RHF + `<select>` use `""` for “unset”. Prefer `union + transform` over `z.preprocess` here so Zod’s
+ * inferred output stays typed (Zod v4 preprocess defaults can widen to `unknown` and break RHF resolvers).
+ */
+const optionalOverviewUuid = z
+  .union([z.string().uuid(), z.literal(""), z.undefined()])
+  .transform((v) => (v === "" ? undefined : v));
+
+const optionalLogisticsPrimaryTransport = z
+  .union([z.enum(PRIMARY_TRANSPORT_MODES), z.literal(""), z.undefined()])
+  .transform((v) => (v === "" ? undefined : v));
 
 const accommodationTypesEnumSchema = z.enum(
   ACCOMMODATION_TYPE_VALUES as unknown as [string, ...string[]],
@@ -76,14 +91,28 @@ const itinerarySegmentSchema = z
     }
   });
 
-const itineraryDaySchema = z.object({
-  dayNumber: z.number().int().min(1),
-  title: z.string().trim().min(1, "عنوان روز الزامی است."),
-  description: z.string().trim().optional(),
-  segments: z.array(itinerarySegmentSchema).min(1, "هر روز باید حداقل یک بخش داشته باشد."),
-});
+const itineraryDaySchema = z
+  .object({
+    dayNumber: z.number().int().min(1),
+    title: z.string().trim().optional(),
+    description: z.string().trim().optional(),
+    segments: z.array(itinerarySegmentSchema).min(1, "هر روز باید حداقل یک بخش داشته باشد."),
+  })
+  .superRefine((day, ctx) => {
+    const vf = mergeTourValidationFlagsForSchema();
+    if (!vf.relaxItineraryMinDays && !(day.title ?? "").trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "عنوان روز الزامی است.",
+        path: ["title"],
+      });
+    }
+  });
 
-export const tourCreateSchema = z
+export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
+  const inactiveRoots = new Set(inactiveTourCreateRootKeysForProfile(profile));
+
+  return z
   .object({
     /** وقتی true باشد، ثبت‌نام بدون تأیید دستی مستقیماً به وضعیت پذیرفته‌شده می‌رود (مگر جریان پرداخت متفاوت تعریف شود). */
     autoAcceptRegistrations: z.boolean().optional(),
@@ -94,7 +123,7 @@ export const tourCreateSchema = z
         .min(TOUR_TITLE_MIN_LENGTH, `عنوان باید حداقل ${TOUR_TITLE_MIN_LENGTH} نویسه باشد.`)
         .max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`),
       slug: z.string().trim().optional(),
-      mainTourThemeId: z.string().uuid().optional(),
+      mainTourThemeId: optionalOverviewUuid,
       secondaryTourThemeIds: z.array(z.string().uuid()).optional(),
       tourType: z.string().trim().optional(),
       tripStyles: z.array(z.string().trim()).optional(),
@@ -125,7 +154,7 @@ export const tourCreateSchema = z
       displayLocation: z.string().trim().optional(),
     }),
     itinerary: z.object({
-      days: z.array(itineraryDaySchema).min(1, "حداقل یک روز برای برنامه سفر تعریف کنید."),
+      days: z.array(itineraryDaySchema),
     }),
     participation: z.object({
       requiredExperienceLevel: z.string().trim().optional(),
@@ -147,7 +176,12 @@ export const tourCreateSchema = z
       registrationNationalIdRequired: z.boolean().optional(),
     }),
     logistics: z.object({
-      primaryTransportMode: z.enum(PRIMARY_TRANSPORT_MODES).optional(),
+      primaryTransportMode: optionalLogisticsPrimaryTransport,
+      /**
+       * When primary is not `private_car`, organizer may mark that some participants / legs use personal cars.
+       * Must be false when primary is `private_car` (UI hides; Zod rejects inconsistent payloads).
+       */
+      supplementalPrivateCar: z.boolean().optional(),
       fuelShareToman: z.number().int().min(0, "دنگ بنزین نمی‌تواند منفی باشد.").optional(),
       includedServices: z.string().trim().optional(),
       excludedServices: z.string().trim().optional(),
@@ -183,6 +217,16 @@ export const tourCreateSchema = z
     }),
   })
   .superRefine((values, ctx) => {
+    const vf = mergeTourValidationFlagsForSchema();
+
+    if (!inactiveRoots.has("itinerary") && !vf.relaxItineraryMinDays && values.itinerary.days.length < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "حداقل یک روز برای برنامه سفر تعریف کنید.",
+        path: ["itinerary", "days"],
+      });
+    }
+
     const shortText = (values.overview.shortDescription ?? "").trim();
     const longText = (values.overview.longDescription ?? "").trim();
     if (!shortText && !longText) {
@@ -221,13 +265,15 @@ export const tourCreateSchema = z
       }
     }
 
-    const maxDaysBySchedule = start && end ? computeDurationDaysFromYmd(start, end) : undefined;
-    if (maxDaysBySchedule != null && values.itinerary.days.length > maxDaysBySchedule) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `تعداد روزهای برنامه سفر نمی‌تواند بیشتر از ${maxDaysBySchedule} روز باشد.`,
-        path: ["itinerary", "days"],
-      });
+    if (!inactiveRoots.has("itinerary")) {
+      const maxDaysBySchedule = start && end ? computeDurationDaysFromYmd(start, end) : undefined;
+      if (maxDaysBySchedule != null && values.itinerary.days.length > maxDaysBySchedule) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `تعداد روزهای برنامه سفر نمی‌تواند بیشتر از ${maxDaysBySchedule} روز باشد.`,
+          path: ["itinerary", "days"],
+        });
+      }
     }
 
     const departureMeetingTime = (values.schedule.departureMeetingTime ?? "").trim();
@@ -240,14 +286,16 @@ export const tourCreateSchema = z
       });
     }
 
-    const minL = values.logistics.groupSizeMin;
-    const maxL = values.logistics.groupSizeMax;
-    if (minL != null && maxL != null && maxL < minL) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "حداکثر اندازه گروه باید بیشتر یا مساوی حداقل باشد.",
-        path: ["logistics", "groupSizeMax"],
-      });
+    if (!inactiveRoots.has("logistics")) {
+      const minL = values.logistics.groupSizeMin;
+      const maxL = values.logistics.groupSizeMax;
+      if (minL != null && maxL != null && maxL < minL) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "حداکثر اندازه گروه باید بیشتر یا مساوی حداقل باشد.",
+          path: ["logistics", "groupSizeMax"],
+        });
+      }
     }
 
     const tourType = values.overview.tourType?.trim();
@@ -271,31 +319,33 @@ export const tourCreateSchema = z
       }
     }
 
-    const exp = values.participation.requiredExperienceLevel?.trim();
-    if (exp && !(EXPERIENCE_LEVELS as readonly string[]).includes(exp as (typeof EXPERIENCE_LEVELS)[number])) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "سطح تجربه نامعتبر است.",
-        path: ["participation", "requiredExperienceLevel"],
-      });
-    }
+    if (!inactiveRoots.has("participation")) {
+      const exp = values.participation.requiredExperienceLevel?.trim();
+      if (exp && !(EXPERIENCE_LEVELS as readonly string[]).includes(exp as (typeof EXPERIENCE_LEVELS)[number])) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "سطح تجربه نامعتبر است.",
+          path: ["participation", "requiredExperienceLevel"],
+        });
+      }
 
-    const fit = values.participation.requiredFitnessLevel?.trim();
-    if (fit && !(DIFFICULTY_LEVELS as readonly string[]).includes(fit as (typeof DIFFICULTY_LEVELS)[number])) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "سطح آمادگی جسمانی نامعتبر است.",
-        path: ["participation", "requiredFitnessLevel"],
-      });
-    }
+      const fit = values.participation.requiredFitnessLevel?.trim();
+      if (fit && !(DIFFICULTY_LEVELS as readonly string[]).includes(fit as (typeof DIFFICULTY_LEVELS)[number])) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "سطح آمادگی جسمانی نامعتبر است.",
+          path: ["participation", "requiredFitnessLevel"],
+        });
+      }
 
-    const gen = values.participation.genderRestriction?.trim();
-    if (gen && !["none", "male_only", "female_only"].includes(gen)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "محدودیت جنسیت نامعتبر است.",
-        path: ["participation", "genderRestriction"],
-      });
+      const gen = values.participation.genderRestriction?.trim();
+      if (gen && !["none", "male_only", "female_only"].includes(gen)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "محدودیت جنسیت نامعتبر است.",
+          path: ["participation", "genderRestriction"],
+        });
+      }
     }
 
     const mainDestinationId = values.location.mainDestinationId?.trim();
@@ -338,21 +388,42 @@ export const tourCreateSchema = z
       });
     }
 
-    if (!values.logistics.primaryTransportMode) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "حمل‌ونقل اصلی سفر را انتخاب کنید.",
-        path: ["logistics", "primaryTransportMode"],
-      });
-    }
+    if (!inactiveRoots.has("logistics")) {
+      if (!vf.relaxLogisticsPrimary && !values.logistics.primaryTransportMode) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "حمل‌ونقل اصلی سفر را انتخاب کنید.",
+          path: ["logistics", "primaryTransportMode"],
+        });
+      }
 
-    if (values.logistics.primaryTransportMode === "private_car" && values.logistics.fuelShareToman == null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "برای حالت خودرو شخصی، مبلغ دنگ بنزین را مشخص کنید.",
-        path: ["logistics", "fuelShareToman"],
-      });
+      const primaryTm = values.logistics.primaryTransportMode;
+      const supplemental = values.logistics.supplementalPrivateCar === true;
+      if (!vf.relaxLogisticsPrimary) {
+        if (primaryTm === "private_car" && supplemental) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "وقتی حمل‌ونقل اصلی خودرو شخصی است، گزینهٔ «همچنین خودرو شخصی» باید خاموش باشد.",
+            path: ["logistics", "supplementalPrivateCar"],
+          });
+        }
+
+        const needsFuelShare = supplemental || primaryTm === "private_car";
+        if (needsFuelShare && values.logistics.fuelShareToman == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              primaryTm === "private_car"
+                ? "برای حالت خودرو شخصی، مبلغ دنگ بنزین را مشخص کنید."
+                : "با فعال‌کردن خودرو شخصی کنار حمل اصلی، مبلغ دنگ بنزین را برای سرنشینان مشخص کنید.",
+            path: ["logistics", "fuelShareToman"],
+          });
+        }
+      }
     }
   });
+}
+
+export const tourCreateSchema = buildTourCreateSchemaForFormProfile("general");
 
 export type TourCreateFormValues = z.infer<typeof tourCreateSchema>;

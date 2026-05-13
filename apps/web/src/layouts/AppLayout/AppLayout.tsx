@@ -23,6 +23,7 @@ import {
   scheduleWorkspaceHostNavigationIfNeeded,
 } from "@/lib/workspace/workspace-host-navigation";
 import { createWorkspaceSession } from "@/lib/services/auth.service";
+import { getTelegramSyncDeepLink } from "@/lib/telegram-sync-link";
 
 type NavLink = { href: string; label: string; pathKey: string };
 
@@ -246,6 +247,22 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
                 {tApp("themeDark")}
               </Button>
             </div>
+            {isHydrated && user ? (
+              <details className={styles.accountMenu}>
+                <summary className={styles.accountMenuSummary}>{tApp("accountMenu")}</summary>
+                <div className={styles.accountMenuPopover}>
+                  <a
+                    className={styles.accountMenuLink}
+                    href={getTelegramSyncDeepLink()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {tApp("syncTelegram")}
+                  </a>
+                  <p className={styles.accountMenuHint}>{tApp("syncTelegramHint")}</p>
+                </div>
+              </details>
+            ) : null}
             <LogoutButton />
             <span className={styles.avatar} aria-hidden title="User avatar" />
           </div>

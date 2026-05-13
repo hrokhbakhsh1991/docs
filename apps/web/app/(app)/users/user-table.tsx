@@ -7,6 +7,7 @@ import { Button, Checkbox, Table, TableBody, TableHead, TableHeaderCell, TableRo
 
 import type { AuthUser } from "@/lib/auth/auth-context";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
+import type { UserRole } from "@/lib/auth/user-role";
 
 import { normalizeRole, type UserSortColumn, type UserSortDirection } from "./users-page-logic";
 import styles from "./users-page.module.css";
@@ -31,7 +32,7 @@ type UserTableProps = {
   sessionUser: AuthUser | null;
   selectedUserIds: ReadonlySet<string>;
   activeRoleMutationUserId: string | null;
-  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: string }, unknown>;
+  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onToggleSort: (column: UserSortColumn) => void;
   onOpenProfile: (userId: string) => void;
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
@@ -106,6 +107,7 @@ function UserTableBase({
           </TableHeaderCell>
           <TableHeaderCell>Phone</TableHeaderCell>
           <TableHeaderCell>Phone verification</TableHeaderCell>
+          <TableHeaderCell>{copy.columnLabels}</TableHeaderCell>
           <TableHeaderCell>Role</TableHeaderCell>
           <TableHeaderCell>Status</TableHeaderCell>
           <TableHeaderCell>Last Login</TableHeaderCell>

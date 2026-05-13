@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { normalizeLegacyOverviewTripStyleToTripStyles } from "@repo/types";
+import { normalizeLegacyOverviewTripStyleToTripStyles, type TourFormProfile } from "@repo/types";
 
 import {
   TourEntity,
@@ -104,6 +104,14 @@ export class TourResponseDto {
   transportModes!: TourTransportMode[];
 
   @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description:
+      "Resolved form profile at creation (`general`, `urban_event`, …); optional frozen snapshot on the row.",
+  })
+  formProfileSnapshot?: TourFormProfile | null;
+
+  @ApiPropertyOptional({
     format: "uuid",
     nullable: true,
     description: "FK to workspace_destinations when the tour is linked to a Settings destination."
@@ -184,6 +192,7 @@ export function mapTourEntityToResponseDto(tour: TourEntity): TourResponseDto {
   dto.autoAcceptRegistrations = tour.autoAcceptRegistrations ?? null;
   dto.tourType = tour.tourType ?? null;
   dto.transportModes = Array.isArray(tour.transportModes) ? [...tour.transportModes] : [];
+  dto.formProfileSnapshot = tour.formProfileSnapshot ?? null;
   dto.destinationId = tour.destination?.id ?? null;
   dto.destinationName = tour.destination?.name ?? null;
   dto.destinationRegionName = tour.destination?.region?.name ?? null;

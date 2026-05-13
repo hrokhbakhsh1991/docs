@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { UserRole } from "../auth/user-role.enum";
+import type { RequestActorRole } from "../auth/user-role.enum";
 
 export interface RequestContext {
   requestId: string;
@@ -12,8 +12,8 @@ export interface RequestContext {
   tenantContextFrozen?: boolean;
   tenantId?: string;
   userId?: string;
-  /** Workspace role from verified JWT / membership (see {@link UserRole}). */
-  role?: UserRole;
+  /** Workspace or synthetic actor role (see {@link RequestActorRole}). */
+  role?: RequestActorRole;
   /**
    * Controls tenant binding behavior for DB calls in this async context.
    * `normal`: tenant binding is mandatory before tenant-scoped DB access.

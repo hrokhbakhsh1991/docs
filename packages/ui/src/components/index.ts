@@ -48,6 +48,9 @@ export type {
 export { Button } from "./Button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./Button";
 
+export { CopyButton } from "./CopyButton";
+export type { CopyButtonProps } from "./CopyButton";
+
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
 
@@ -86,10 +89,20 @@ export {
 export type { TableProps } from "./Table";
 
 export { EmptyState, ErrorState, LoadingState } from "./states";
-export type { EmptyStateProps, ErrorStateProps, LoadingStateProps } from "./states";
+export type {
+  EmptyStateProps,
+  ErrorStateProps,
+  LoadingStateProps,
+} from "./states";
 
 export { Textarea } from "./Textarea";
 export type { TextareaProps } from "./Textarea";
 
 export { ToastProvider, useToast } from "./toast";
-export type { ShowToastOptions, Toast, ToastProviderProps, ToastType, UseToastReturn } from "./toast";
+export type {
+  ShowToastOptions,
+  Toast,
+  ToastProviderProps,
+  ToastType,
+  UseToastReturn,
+} from "./toast";

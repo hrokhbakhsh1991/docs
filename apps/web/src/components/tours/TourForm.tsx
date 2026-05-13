@@ -1,10 +1,9 @@
 "use client";
 
-import type { TourDto } from "@repo/types";
-import type { TourLifecycleStatus } from "@repo/types";
+import type { TourDto, TourFormProfile, TourLifecycleStatus, TourType } from "@repo/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import {
   Controller,
   FormProvider,
@@ -27,17 +26,30 @@ import { TourLocationSection } from "@/features/tours/components/tour-location-s
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import type { SettingsDestinationDto } from "@/lib/settings-locations-client";
 import {
-  getCoreFieldConfigForKind,
-  normalizeFieldUserRole,
-  resolveFieldAccess,
-} from "@/features/tours/config/tripDetailsFieldConfig";
+  getCoreFieldConfigForProfile,
+} from "@/features/tours/config/tripDetailsFieldConfigAdapter";
+import { normalizeFieldUserRole, resolveFieldAccess } from "@/features/tours/config/tripDetailsFieldConfig";
 import { normalizeTripDetailsFormDefault } from "@/features/tours/models/tourTripDetails.schema";
-import { isMountainTourLike, resolveEventKindFromTourContext } from "@/features/tours/policies/tour-kind-policy";
+import {
+  resetTourFlatFormProfileValidationFlags,
+  setTourFlatFormProfileValidationFlags,
+  tourFormProfileToWizardValidationFlags,
+} from "@/components/tours/wizard/schemas/tourCreateValidationPolicy";
+import {
+  dualClassificationForEditForm,
+  domainProfileFromEditFormValues,
+} from "@/features/tours/domain/tourDomainProfileAdapters";
+import {
+  emitEditDomainClassificationDrift,
+  emitEditSaveHttpFailure,
+} from "@/features/tours/observability/tourProfileObservability";
+import type { ThemeRowForProfile } from "@/features/tours/wizard/tourWizardProfileResolve";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useUnifiedTourDomainProfileForEditResolver } from "@/lib/config/feature-flags";
 
 import { apiLifecycleToFormStatus } from "./tour-lifecycle";
 import { extractTourPriceUsd } from "./formatters";
-import { createTourSchemaForEventKind, type TourFormInput, type TourFormValues } from "./tour-schema";
+import { createTourSchemaForProfile, type TourFormInput, type TourFormValues } from "./tour-schema";
 
 import styles from "./TourForm.module.css";
 
@@ -48,6 +60,20 @@ function defaultLocationSection(): TourFormInput["locationSection"] {
     secondaryDestinationIdsRaw: "",
     displayLocationOverride: "",
   };
+}
+
+/**
+ * Extracts the primary theme id from a `TourFormInput`. Matches the watched form
+ * extraction in `mainTourThemeIdForProfile` (first non-empty trimmed string).
+ */
+function extractMainTourThemeIdFromValues(values: TourFormInput): string | undefined {
+  const ids = (values.tripDetails as { overview?: { tourThemeIds?: unknown } } | undefined)?.overview
+    ?.tourThemeIds;
+  if (!Array.isArray(ids) || ids.length === 0) return undefined;
+  const first = ids[0];
+  if (typeof first !== "string") return undefined;
+  const trimmed = first.trim();
+  return trimmed === "" ? undefined : trimmed;
 }
 
 function apiValidationMessage(data: unknown): string | null {
@@ -73,6 +99,10 @@ function apiValidationMessage(data: unknown): string | null {
   return parts.length ? parts.join(" ") : null;
 }
 
+export type TourFormSubmitMeta = {
+  resolvedFormProfile: TourFormProfile;
+};
+
 export type TourFormProps = {
   tour?: Partial<TourDto> & {
     id?: string;
@@ -80,8 +110,10 @@ export type TourFormProps = {
     acceptedCount?: number;
   };
   mode?: "create" | "edit";
-  onSubmit: (values: TourFormValues) => void | Promise<void>;
+  onSubmit: (values: TourFormValues, meta?: TourFormSubmitMeta) => void | Promise<void>;
   onCancel?: () => void;
+  /** When set with edit mode, enables theme-derived profile strip on save and flat-form validation flags. */
+  themeCatalogForFormProfile?: readonly ThemeRowForProfile[];
 };
 
 function toDefaultValues(tour?: TourFormProps["tour"]): TourFormInput {
@@ -149,7 +181,13 @@ function toDefaultValues(tour?: TourFormProps["tour"]): TourFormInput {
   } as TourFormInput;
 }
 
-export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourFormProps) {
+export function TourForm({
+  tour,
+  mode = "create",
+  onSubmit,
+  onCancel,
+  themeCatalogForFormProfile,
+}: TourFormProps) {
   const tCatalog = useTranslations("tours.catalogErrors");
   const resolvedMode = mode === "edit" || tour?.id ? "edit" : "create";
   const { user } = useAuth();
@@ -181,15 +219,30 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
     }
     return null;
   }, [allDestinations, tour]);
+  /**
+   * Edit Zod resolver uses `TourDomainProfile` from the theme catalog when available, so
+   * the trip-details schema matches the workspace theme's `TourFormProfile` even when commercial
+   * `tourType` disagrees (e.g. cinema profile on a mountain `tourType`).
+   *
+   * Phase P7 (promptq.md) flipped `useUnifiedTourDomainProfileForEditResolver` to ON by
+   * default. The resolver below always routes through `domainProfileFromEditFormValues`;
+   * the flag now only annotates observability events and engages the legacy fallback when
+   * the `LEGACY_EDIT_RESOLVER_ENABLED` kill switch is set (single-cycle escape hatch,
+   * scheduled for removal in Phase P8 along with `legacyEventKindFromEditFormValues`).
+   */
+  const unifiedEditResolverEnabled = useUnifiedTourDomainProfileForEditResolver();
   const resolver = useCallback(
     (values: TourFormInput, context: unknown, options: any) => {
-      const eventKind = resolveEventKindFromTourContext({
+      const tripStyles = values.tripDetails?.overview?.tripStyles as string[] | undefined;
+      const formProfile = domainProfileFromEditFormValues({
+        themeCatalog: themeCatalogForFormProfile,
         tourType: values.tourType,
-        tripStyles: values.tripDetails?.overview?.tripStyles as string[] | undefined,
+        mainTourThemeId: extractMainTourThemeIdFromValues(values),
+        tripStyles,
       });
-      return zodResolver(createTourSchemaForEventKind(eventKind))(values, context, options);
+      return zodResolver(createTourSchemaForProfile(formProfile))(values, context, options);
     },
-    [],
+    [themeCatalogForFormProfile],
   );
 
   const formMethods = useForm<TourFormInput, unknown, TourFormValues>({
@@ -207,16 +260,77 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
   const watchedTripStyles = useWatch({ control, name: "tripDetails.overview.tripStyles" }) as
     | string[]
     | undefined;
-  const isMountainTour = isMountainTourLike({
-    tourType: tour?.tourType ?? undefined,
-    tripStyles: watchedTripStyles,
-  });
-  const eventKind = resolveEventKindFromTourContext({
-    tourType: tour?.tourType ?? undefined,
-    tripStyles: watchedTripStyles,
-  });
+  const watchedTourThemeIds = useWatch({ control, name: "tripDetails.overview.tourThemeIds" }) as
+    | string[]
+    | undefined;
+  const watchedTourTypeField = useWatch({ control, name: "tourType" }) as TourType | undefined;
+
+  const mainTourThemeIdForProfile = useMemo(() => {
+    if (!Array.isArray(watchedTourThemeIds) || watchedTourThemeIds.length === 0) {
+      return undefined;
+    }
+    const first = watchedTourThemeIds[0];
+    return typeof first === "string" ? first.trim() : undefined;
+  }, [watchedTourThemeIds]);
+
+  /**
+   * Dual classification for Edit when the theme catalog is loaded: canonical `TourDomainProfile`
+   * plus legacy vs projected `EventKind` for the trip-details matrix and drift telemetry.
+   * `resolvedFormProfileForEdit` stays undefined before the catalog loads so existing reset logic
+   * for validation flags is unchanged.
+   */
+  const editClassification = useMemo(() => {
+    if (resolvedMode !== "edit" || !themeCatalogForFormProfile) {
+      return undefined;
+    }
+    return dualClassificationForEditForm({
+      themeCatalog: themeCatalogForFormProfile,
+      tourType: watchedTourTypeField,
+      mainTourThemeId: mainTourThemeIdForProfile,
+      tripStyles: watchedTripStyles,
+    });
+  }, [
+    resolvedMode,
+    themeCatalogForFormProfile,
+    watchedTourTypeField,
+    mainTourThemeIdForProfile,
+    watchedTripStyles,
+  ]);
+
+  const resolvedFormProfileForEdit: TourFormProfile | undefined =
+    editClassification?.domainProfile;
+  const currentTourId = tour && "id" in tour ? (tour as TourDto).id : undefined;
+
+  useEffect(() => {
+    if (!editClassification || editClassification.agrees) {
+      return;
+    }
+    emitEditDomainClassificationDrift({
+      tour_id: currentTourId,
+      domain_profile: editClassification.domainProfile,
+      legacy_event_kind: editClassification.legacyEventKind,
+      projected_event_kind: editClassification.projectedEventKind,
+      unified_edit_resolver_enabled: unifiedEditResolverEnabled,
+    });
+  }, [currentTourId, editClassification, unifiedEditResolverEnabled]);
+
+  useLayoutEffect(() => {
+    if (resolvedFormProfileForEdit == null) {
+      resetTourFlatFormProfileValidationFlags();
+      return () => {
+        resetTourFlatFormProfileValidationFlags();
+      };
+    }
+    setTourFlatFormProfileValidationFlags(tourFormProfileToWizardValidationFlags(resolvedFormProfileForEdit));
+    return () => {
+      resetTourFlatFormProfileValidationFlags();
+    };
+  }, [resolvedFormProfileForEdit]);
+
   const viewerRole = normalizeFieldUserRole(user?.role);
-  const coreConfigById = new Map(getCoreFieldConfigForKind(eventKind).map((row) => [row.id, row]));
+  const coreConfigById = resolvedFormProfileForEdit
+    ? new Map(getCoreFieldConfigForProfile(resolvedFormProfileForEdit).map((row) => [row.id, row]))
+    : new Map();
   const capacityAccess = resolveFieldAccess(coreConfigById.get("core.totalCapacity"), viewerRole);
 
   useEffect(() => {
@@ -230,9 +344,20 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
 
   async function submitValid(data: TourFormValues) {
     try {
-      await onSubmit(data);
+      await onSubmit(
+        data,
+        resolvedFormProfileForEdit != null ? { resolvedFormProfile: resolvedFormProfileForEdit } : undefined,
+      );
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
+        emitEditSaveHttpFailure({
+          tour_id: currentTourId,
+          http_status: 400,
+          error_code: err.code,
+          error_message: err.message,
+          domain_profile: resolvedFormProfileForEdit,
+          unified_edit_resolver_enabled: unifiedEditResolverEnabled,
+        });
         const catalogKey = getCatalogErrorMessageKey(err.code);
         if (catalogKey) {
           logTenantCatalogMismatchDev(err);
@@ -388,8 +513,7 @@ export function TourForm({ tour, mode = "create", onSubmit, onCancel }: TourForm
             control={control as unknown as Control<FieldValues>}
             errors={errors as unknown as FieldErrors<FieldValues>}
             isPending={isSubmitting}
-            isMountainTour={isMountainTour}
-            eventKind={eventKind}
+            formProfile={resolvedFormProfileForEdit}
             viewerRole={viewerRole}
             suppressLogisticsMeetingAndReturn
           />

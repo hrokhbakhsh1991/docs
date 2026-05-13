@@ -1,3 +1,6 @@
+import type { TourFormProfile } from "@repo/types";
+import { normalizeTourFormProfileInput } from "@repo/types";
+
 import { pickSettingsErrorMessage } from "@/lib/settings-locations-client";
 
 export type SettingsTourThemeDto = {
@@ -7,6 +10,7 @@ export type SettingsTourThemeDto = {
   description: string | null;
   isActive: boolean;
   sortOrder: number;
+  formProfile: TourFormProfile;
   createdAt: string;
   updatedAt: string;
 };
@@ -17,6 +21,7 @@ export type CreateTourThemePayload = {
   description?: string | null;
   isActive?: boolean;
   sortOrder?: number;
+  formProfile?: TourFormProfile;
 };
 
 export type UpdateTourThemePayload = Partial<CreateTourThemePayload>;
@@ -45,7 +50,10 @@ export async function getTourThemes(): Promise<SettingsTourThemeDto[]> {
   if (!Array.isArray(body)) {
     throw new Error("Invalid tour themes response");
   }
-  return body as SettingsTourThemeDto[];
+  return (body as SettingsTourThemeDto[]).map((row) => ({
+    ...row,
+    formProfile: normalizeTourFormProfileInput((row as { formProfile?: unknown }).formProfile),
+  }));
 }
 
 export async function createTourTheme(payload: CreateTourThemePayload): Promise<SettingsTourThemeDto> {
@@ -60,7 +68,10 @@ export async function createTourTheme(payload: CreateTourThemePayload): Promise<
   if (!res.ok) {
     throw new Error(pickSettingsErrorMessage(body, "Failed to create tour theme"));
   }
-  return body as SettingsTourThemeDto;
+  return {
+    ...(body as SettingsTourThemeDto),
+    formProfile: normalizeTourFormProfileInput((body as { formProfile?: unknown }).formProfile),
+  };
 }
 
 export async function updateTourTheme(
@@ -78,7 +89,10 @@ export async function updateTourTheme(
   if (!res.ok) {
     throw new Error(pickSettingsErrorMessage(body, "Failed to update tour theme"));
   }
-  return body as SettingsTourThemeDto;
+  return {
+    ...(body as SettingsTourThemeDto),
+    formProfile: normalizeTourFormProfileInput((body as { formProfile?: unknown }).formProfile),
+  };
 }
 
 export async function deleteTourTheme(id: string): Promise<void> {
@@ -108,5 +122,8 @@ export async function reorderTourThemes(itemIds: string[]): Promise<SettingsTour
   if (!Array.isArray(body)) {
     throw new Error("Invalid tour themes reorder response");
   }
-  return body as SettingsTourThemeDto[];
+  return (body as SettingsTourThemeDto[]).map((row) => ({
+    ...row,
+    formProfile: normalizeTourFormProfileInput((row as { formProfile?: unknown }).formProfile),
+  }));
 }

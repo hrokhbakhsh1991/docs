@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Request } from "express";
-import type { UserRole } from "../auth/user-role.enum";
+import type { RequestActorRole } from "../auth/user-role.enum";
 import { TenantContextMissingError } from "../errors/tenant-context-missing.error";
 import { assertTenantContext } from "./assert-tenant-context";
 import {
@@ -80,7 +80,7 @@ export class RequestContextService {
     return v && v !== "" ? v : undefined;
   }
 
-  tryGetRole(): UserRole | undefined {
+  tryGetRole(): RequestActorRole | undefined {
     const store = requestContextStorage.getStore();
     const v = store?.role;
     return v;
@@ -153,7 +153,7 @@ export class RequestContextService {
     return this.getContext().userId;
   }
 
-  getRole(): UserRole | undefined {
+  getRole(): RequestActorRole | undefined {
     return this.getContext().role;
   }
 
@@ -170,7 +170,7 @@ export class RequestContextService {
     context.userId = id;
   }
 
-  setRole(role: UserRole): void {
+  setRole(role: RequestActorRole): void {
     const context = this.getContext();
     context.role = role;
   }

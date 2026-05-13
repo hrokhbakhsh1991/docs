@@ -1,3 +1,5 @@
+import type { TourFormProfile } from "@repo/types";
+
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
@@ -14,12 +16,17 @@ export function listActiveTourCreationPresetsSorted(
     );
 }
 
-/** Wizard: show every preset; active rows first (inactive visible but apply may be disabled). */
+/** Wizard: show presets compatible with the resolved form profile; active rows first. */
 export function listAllTourWizardPresetsSorted(
   presets: SettingsTourPresetDto[] | undefined,
+  resolvedFormProfile?: TourFormProfile,
 ): SettingsTourPresetDto[] {
   if (!presets?.length) return [];
-  return [...presets].sort((a, b) => {
+  let list = [...presets];
+  if (resolvedFormProfile) {
+    list = list.filter((p) => (p.formProfile ?? "general") === resolvedFormProfile);
+  }
+  return list.sort((a, b) => {
     if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
     const d = a.sortOrder - b.sortOrder;
     if (d !== 0) return d;

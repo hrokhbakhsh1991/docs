@@ -10,11 +10,42 @@ import {
 import { DIFFICULTY_LEVELS, EXPERIENCE_LEVELS, GENDER_RESTRICTIONS } from "@/features/tours/models/tourTripDetails.schema";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
+import { NewlineArrayTextareaField } from "@/features/tours/wizard/groups/primitives/NewlineArrayTextareaField";
+import {
+  FieldGate,
+  useIsFieldRecommended,
+  useIsFieldRequired,
+} from "@/features/tours/wizard/profileRulesReact";
+import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
 
 const mutedHelp = {
   fontSize: "0.8125rem",
   color: "var(--color-neutral-600, #525252)",
   margin: 0,
+} as const;
+
+/**
+ * Stable, typed field-path constants used both for visibility gating (`<FieldGate>`) and for
+ * required-ness lookups (`useIsFieldRequired`). Centralizing them here avoids string typos and
+ * keeps the rules-layer integration easy to audit at a glance.
+ */
+const PATHS = {
+  sportsInsuranceRequired: "participation.sportsInsuranceRequired" as WizardFieldPath,
+  registrationNationalIdRequired: "participation.registrationNationalIdRequired" as WizardFieldPath,
+  requiredExperienceLevel: "participation.requiredExperienceLevel" as WizardFieldPath,
+  requiredFitnessLevel: "participation.requiredFitnessLevel" as WizardFieldPath,
+  minimumAge: "participation.minimumAge" as WizardFieldPath,
+  maximumAge: "participation.maximumAge" as WizardFieldPath,
+  genderRestriction: "participation.genderRestriction" as WizardFieldPath,
+  technicalSkillRequired: "participation.technicalSkillRequired" as WizardFieldPath,
+  medicalRestrictions: "participation.medicalRestrictions" as WizardFieldPath,
+  requirements: "participation.requirements" as WizardFieldPath,
+  skillsRequired: "participation.skillsRequired" as WizardFieldPath,
+  gearRequiredIds: "participation.gearRequiredIds" as WizardFieldPath,
+  gearOptionalIds: "participation.gearOptionalIds" as WizardFieldPath,
+  documentsRequired: "participation.documentsRequired" as WizardFieldPath,
+  suitableFor: "participation.suitableFor" as WizardFieldPath,
+  notSuitableFor: "participation.notSuitableFor" as WizardFieldPath,
 } as const;
 
 function EquipmentIdsCheckboxField({
@@ -27,6 +58,7 @@ function EquipmentIdsCheckboxField({
   items,
   loading,
   loadFailed,
+  ariaRequired,
 }: {
   control: ReturnType<typeof useFormContext<TourCreateFormValues>>["control"];
   name: "participation.gearRequiredIds" | "participation.gearOptionalIds";
@@ -37,6 +69,7 @@ function EquipmentIdsCheckboxField({
   items: { id: string; name: string }[];
   loading: boolean;
   loadFailed: boolean;
+  ariaRequired?: boolean;
 }) {
   return (
     <Controller
@@ -57,7 +90,10 @@ function EquipmentIdsCheckboxField({
         };
 
         return (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}
+            aria-required={ariaRequired || undefined}
+          >
             <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{label}</span>
             {description ? <p style={mutedHelp}>{description}</p> : null}
             {loading ? <p style={mutedHelp}>در حال بارگذاری تجهیزات…</p> : null}
@@ -94,6 +130,11 @@ function EquipmentIdsCheckboxField({
   );
 }
 
+/**
+ * Participation fields use `FieldGate` and `useIsFieldRequired` so visibility and requiredness
+ * come from `ProfileRules` (no ad hoc `TourFormProfile` branches here). Cinema/urban profiles
+ * hide this step at the rail via inactive field groups.
+ */
 export function ParticipationStep() {
   const {
     register,
@@ -105,6 +146,22 @@ export function ParticipationStep() {
     .filter((row) => row.isActive)
     .map((row) => ({ id: row.id, name: row.name }));
 
+  const reqFitness = useIsFieldRequired(PATHS.requiredFitnessLevel);
+  const reqExperience = useIsFieldRequired(PATHS.requiredExperienceLevel);
+  const reqGender = useIsFieldRequired(PATHS.genderRestriction);
+  const reqMinAge = useIsFieldRequired(PATHS.minimumAge);
+  const reqMaxAge = useIsFieldRequired(PATHS.maximumAge);
+  const reqGearRequired = useIsFieldRequired(PATHS.gearRequiredIds);
+  const reqGearOptional = useIsFieldRequired(PATHS.gearOptionalIds);
+
+  // Phase P12 UI fold-in — soft "recommended" hint for paths flagged in the descriptor's
+  // mountain Edit presets. Tier propagation is in `profileRules/rules.ts`; this step uses
+  // inline FA strings (no `useTranslations`) for parity with its existing copy style, but the
+  // label literal matches `tours.new.wizardFieldHintRecommended` so a future i18n pass is a
+  // mechanical replacement.
+  const recommendedLabel = "پیشنهادی";
+  const technicalSkillRecommended = useIsFieldRecommended(PATHS.technicalSkillRequired);
+
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
       <p style={{ ...mutedHelp, gridColumn: "1 / -1" }}>
@@ -113,303 +170,300 @@ export function ParticipationStep() {
         مهارت‌های فنی کوتاه (مثل کار با طناب) را می‌توانید جداگانه در «مهارت فنی موردنیاز» خلاصه کنید.
       </p>
 
-      <FormField
-        label="الزام بیمه ورزشی شخصی"
-        description="اگر فعال باشد، شرکت تنها با داشتن بیمه ورزشی معتبر مجاز است؛ جزئیات را در «مدارک» یا «الزامات» هم می‌توانید بنویسید. بیمه‌ای که برگزارکننده در بسته تور ارائه می‌دهد در گام «لجستیک و خدمات» جداگانه مشخص می‌شود."
-      >
-        <Controller
-          control={control}
-          name="participation.sportsInsuranceRequired"
-          render={({ field }) => (
-            <Checkbox
-              label="شرکت در این تور تنها با داشتن بیمه ورزشی معتبر الزامی است."
-              checked={Boolean(field.value)}
-              onChange={(e) => field.onChange(e.target.checked)}
-              onBlur={field.onBlur}
-              ref={field.ref}
-              name={field.name}
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.sportsInsuranceRequired}>
+        <FormField
+          label="الزام بیمه ورزشی شخصی"
+          description="اگر فعال باشد، شرکت تنها با داشتن بیمه ورزشی معتبر مجاز است؛ جزئیات را در «مدارک» یا «الزامات» هم می‌توانید بنویسید. بیمه‌ای که برگزارکننده در بسته تور ارائه می‌دهد در گام «لجستیک و خدمات» جداگانه مشخص می‌شود."
+        >
+          <Controller
+            control={control}
+            name="participation.sportsInsuranceRequired"
+            render={({ field }) => (
+              <Checkbox
+                label="شرکت در این تور تنها با داشتن بیمه ورزشی معتبر الزامی است."
+                checked={Boolean(field.value)}
+                onChange={(e) => field.onChange(e.target.checked)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                name={field.name}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="الزام کد ملی در ثبت‌نام"
-        description="اگر فعال باشد، فقط کاربرانی که با نشست وارد شده‌اند و در پروفایل‌شان کد ملی ثبت کرده‌اند می‌توانند در این تور ثبت‌نام یا به لیست انتظار بروند."
-      >
-        <Controller
-          control={control}
-          name="participation.registrationNationalIdRequired"
-          render={({ field }) => (
-            <Checkbox
-              label="برای ثبت‌نام در این تور، تکمیل کد ملی در پروفایل الزامی است."
-              checked={Boolean(field.value)}
-              onChange={(e) => field.onChange(e.target.checked)}
-              onBlur={field.onBlur}
-              ref={field.ref}
-              name={field.name}
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.registrationNationalIdRequired}>
+        <FormField
+          label="الزام کد ملی در ثبت‌نام"
+          description="اگر فعال باشد، فقط کاربرانی که با نشست وارد شده‌اند و در پروفایل‌شان کد ملی ثبت کرده‌اند می‌توانند در این تور ثبت‌نام یا به لیست انتظار بروند."
+        >
+          <Controller
+            control={control}
+            name="participation.registrationNationalIdRequired"
+            render={({ field }) => (
+              <Checkbox
+                label="برای ثبت‌نام در این تور، تکمیل کد ملی در پروفایل الزامی است."
+                checked={Boolean(field.value)}
+                onChange={(e) => field.onChange(e.target.checked)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                name={field.name}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="سطح تجربه موردنیاز"
-        description="سطح تجربه کلی شرکت؛ اگر نامشخص بماند در سامانه پر نمی‌شود."
-        error={errors.participation?.requiredExperienceLevel?.message}
-      >
-        <Controller
-          control={control}
-          name="participation.requiredExperienceLevel"
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ""}
-              onChange={(e) => field.onChange(e.target.value)}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-              invalid={Boolean(errors.participation?.requiredExperienceLevel)}
-              aria-invalid={Boolean(errors.participation?.requiredExperienceLevel)}
-            >
-              <option value="">انتخاب کنید (اختیاری)</option>
-              {EXPERIENCE_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {EXPERIENCE_LEVEL_LABELS[level]}
-                </option>
-              ))}
-            </Select>
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.requiredExperienceLevel}>
+        <FormField
+          label="سطح تجربه موردنیاز"
+          description="سطح تجربه کلی شرکت؛ اگر نامشخص بماند در سامانه پر نمی‌شود."
+          error={errors.participation?.requiredExperienceLevel?.message}
+        >
+          <Controller
+            control={control}
+            name="participation.requiredExperienceLevel"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? ""}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                invalid={Boolean(errors.participation?.requiredExperienceLevel)}
+                aria-invalid={Boolean(errors.participation?.requiredExperienceLevel)}
+                aria-required={reqExperience || undefined}
+              >
+                <option value="">انتخاب کنید (اختیاری)</option>
+                {EXPERIENCE_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {EXPERIENCE_LEVEL_LABELS[level]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="سطح آمادگی جسمانی"
-        description="سطح سختی فیزیکی مسیر؛ گزینه «فنی» برای مسیرهایی است که مهارت ویژه لازم دارد."
-        error={errors.participation?.requiredFitnessLevel?.message}
-      >
-        <Controller
-          control={control}
-          name="participation.requiredFitnessLevel"
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ""}
-              onChange={(e) => field.onChange(e.target.value)}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-              invalid={Boolean(errors.participation?.requiredFitnessLevel)}
-              aria-invalid={Boolean(errors.participation?.requiredFitnessLevel)}
-            >
-              <option value="">انتخاب کنید (اختیاری)</option>
-              {DIFFICULTY_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {FITNESS_LEVEL_LABELS[level]}
-                </option>
-              ))}
-            </Select>
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.requiredFitnessLevel}>
+        <FormField
+          label="سطح آمادگی جسمانی"
+          description="سطح سختی فیزیکی مسیر؛ گزینه «فنی» برای مسیرهایی است که مهارت ویژه لازم دارد."
+          error={errors.participation?.requiredFitnessLevel?.message}
+        >
+          <Controller
+            control={control}
+            name="participation.requiredFitnessLevel"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? ""}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                invalid={Boolean(errors.participation?.requiredFitnessLevel)}
+                aria-invalid={Boolean(errors.participation?.requiredFitnessLevel)}
+                aria-required={reqFitness || undefined}
+              >
+                <option value="">انتخاب کنید (اختیاری)</option>
+                {DIFFICULTY_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {FITNESS_LEVEL_LABELS[level]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField label="حداقل سن" error={errors.participation?.minimumAge?.message} description="اگر بدون محدودیت باشد خالی بگذارید.">
-        <Controller
-          control={control}
-          name="participation.minimumAge"
-          render={({ field }) => (
-            <PersianNumberInput
-              numericMode="integer"
-              value={field.value ?? ""}
-              onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-              placeholder="مثلاً ۱۸"
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.minimumAge}>
+        <FormField label="حداقل سن" error={errors.participation?.minimumAge?.message} description="اگر بدون محدودیت باشد خالی بگذارید.">
+          <Controller
+            control={control}
+            name="participation.minimumAge"
+            render={({ field }) => (
+              <PersianNumberInput
+                numericMode="integer"
+                value={field.value ?? ""}
+                onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                placeholder="مثلاً ۱۸"
+                aria-required={reqMinAge || undefined}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField label="حداکثر سن" error={errors.participation?.maximumAge?.message} description="اگر برای سن سقف ندارید، خالی بگذارید.">
-        <Controller
-          control={control}
-          name="participation.maximumAge"
-          render={({ field }) => (
-            <PersianNumberInput
-              numericMode="integer"
-              value={field.value ?? ""}
-              onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-              placeholder="مثلاً ۶۵"
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.maximumAge}>
+        <FormField label="حداکثر سن" error={errors.participation?.maximumAge?.message} description="اگر برای سن سقف ندارید، خالی بگذارید.">
+          <Controller
+            control={control}
+            name="participation.maximumAge"
+            render={({ field }) => (
+              <PersianNumberInput
+                numericMode="integer"
+                value={field.value ?? ""}
+                onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                placeholder="مثلاً ۶۵"
+                aria-required={reqMaxAge || undefined}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="محدودیت جنسیت"
-        description="انتخاب «بدون محدودیت» یعنی همه مجاز؛ خالی مانده یعنی در این مرحله صریح نکرده‌اید."
-        error={errors.participation?.genderRestriction?.message}
-      >
-        <Controller
-          control={control}
-          name="participation.genderRestriction"
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ""}
-              onChange={(e) => field.onChange(e.target.value)}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-              invalid={Boolean(errors.participation?.genderRestriction)}
-              aria-invalid={Boolean(errors.participation?.genderRestriction)}
-            >
-              <option value="">انتخاب کنید (اختیاری)</option>
-              {GENDER_RESTRICTIONS.map((g) => (
-                <option key={g} value={g}>
-                  {GENDER_RESTRICTION_LABELS[g]}
-                </option>
-              ))}
-            </Select>
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.genderRestriction}>
+        <FormField
+          label="محدودیت جنسیت"
+          description="انتخاب «بدون محدودیت» یعنی همه مجاز؛ خالی مانده یعنی در این مرحله صریح نکرده‌اید."
+          error={errors.participation?.genderRestriction?.message}
+        >
+          <Controller
+            control={control}
+            name="participation.genderRestriction"
+            render={({ field }) => (
+              <Select
+                value={field.value ?? ""}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                invalid={Boolean(errors.participation?.genderRestriction)}
+                aria-invalid={Boolean(errors.participation?.genderRestriction)}
+                aria-required={reqGender || undefined}
+              >
+                <option value="">انتخاب کنید (اختیاری)</option>
+                {GENDER_RESTRICTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    {GENDER_RESTRICTION_LABELS[g]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="مهارت فنی موردنیاز"
-        description="خلاصه یک‌خط یا کوتاه از مهارت فنی؛ نه کل شرایط قبول."
-      >
-        <Input
-          type="text"
-          placeholder="مثل: کار با ابزار یخ‌نوردی؛ فرود سیال با هشت؛ آشنایی با کار طناب ثابت"
-          {...register("participation.technicalSkillRequired")}
-        />
-      </FormField>
+      <FieldGate field={PATHS.technicalSkillRequired}>
+        <FormField
+          label="مهارت فنی موردنیاز"
+          description="خلاصه یک‌خط یا کوتاه از مهارت فنی؛ نه کل شرایط قبول."
+          recommendedLabel={technicalSkillRecommended ? recommendedLabel : undefined}
+        >
+          <Input
+            type="text"
+            placeholder="مثل: کار با ابزار یخ‌نوردی؛ فرود سیال با هشت؛ آشنایی با کار طناب ثابت"
+            {...register("participation.technicalSkillRequired")}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="محدودیت‌های پزشکی"
-        description="مواردی که شرکت کننده باید از قبل بداند (بدون تشخیص پزشکی)."
-      >
-        <Textarea
-          rows={2}
-          placeholder="مثل: نامناسب برای افراد مبتلا به مشکلات حاد قلبی ـ تنفسی؛ لازم است وضعیت سلامت را با راهبلد هماهنگ کنید."
-          {...register("participation.medicalRestrictions")}
-        />
-      </FormField>
+      <FieldGate field={PATHS.medicalRestrictions}>
+        <FormField
+          label="محدودیت‌های پزشکی"
+          description="مواردی که شرکت کننده باید از قبل بداند (بدون تشخیص پزشکی)."
+        >
+          <Textarea
+            rows={2}
+            placeholder="مثل: نامناسب برای افراد مبتلا به مشکلات حاد قلبی ـ تنفسی؛ لازم است وضعیت سلامت را با راهبلد هماهنگ کنید."
+            {...register("participation.medicalRestrictions")}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="الزامات (شرایط پذیرش)"
-        description="متن آزاد برای شرایط عمومی قبول؛ مثال: حداقل چهار صعود قبلی بالای چهارهزار متر؛ همراه داشتن گواهی پزشک."
-      >
-        <Textarea
-          rows={3}
-          placeholder="مثل: شرکت تنها برای کسانی که حداقل چهار قله بالای ۴۰۰۰ متر با سربار را صعود کرده باشند؛ ارائه رزومه صعود الزامی است."
-          {...register("participation.requirements")}
-        />
-      </FormField>
+      <FieldGate field={PATHS.requirements}>
+        <FormField
+          label="الزامات (شرایط پذیرش)"
+          description="متن آزاد برای شرایط عمومی قبول؛ مثال: حداقل چهار صعود قبلی بالای چهارهزار متر؛ همراه داشتن گواهی پزشک."
+        >
+          <Textarea
+            rows={3}
+            placeholder="مثل: شرکت تنها برای کسانی که حداقل چهار قله بالای ۴۰۰۰ متر با سربار را صعود کرده باشند؛ ارائه رزومه صعود الزامی است."
+            {...register("participation.requirements")}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField
-        label="مهارت‌ها و پیش‌نیازها"
-        description="هر شرط یا مهارت را در یک خط؛ می‌توانید همان الزام صعود قبلی را اینجا به‌صورت فهرست بنویسید."
-      >
-        <Controller
-          control={control}
+      <FieldGate field={PATHS.skillsRequired}>
+        <NewlineArrayTextareaField
           name="participation.skillsRequired"
-          render={({ field }) => (
-            <Textarea
-              rows={3}
-              placeholder={`هر خط یک مورد؛ مثل:
+          label="مهارت‌ها و پیش‌نیازها"
+          description="هر شرط یا مهارت را در یک خط؛ می‌توانید همان الزام صعود قبلی را اینجا به‌صورت فهرست بنویسید."
+          rows={3}
+          placeholder={`هر خط یک مورد؛ مثل:
 صعود حداقل چهار قله بالای ۴۰۰۰ متر با سربار
 تسلط به فرود سیال با هشت
 تجربه شب‌مانی در ارتفاع`}
-              value={(field.value ?? []).join("\n")}
-              onChange={(e) => field.onChange(e.target.value.split("\n").map((v) => v.trim()).filter(Boolean))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-          )}
         />
-      </FormField>
+      </FieldGate>
 
-      <EquipmentIdsCheckboxField
-        control={control}
-        name="participation.gearRequiredIds"
-        label="تجهیزات الزامی (از تنظیمات)"
-        description="هر مورد فعال در تنظیمات تجهیزات؛ شرکت کننده بدون این‌ها مجاز نیست."
-        error={errors.participation?.gearRequiredIds?.message as string | undefined}
-        disabled={false}
-        items={equipmentItems}
-        loading={equipmentQuery.isLoading}
-        loadFailed={equipmentQuery.isError}
-      />
-
-      <EquipmentIdsCheckboxField
-        control={control}
-        name="participation.gearOptionalIds"
-        label="تجهیزات پیشنهادی"
-        description="مواردی که داشتنشان کمک می‌کند ولی الزام سیستمی نیست."
-        error={errors.participation?.gearOptionalIds?.message as string | undefined}
-        disabled={false}
-        items={equipmentItems}
-        loading={equipmentQuery.isLoading}
-        loadFailed={equipmentQuery.isError}
-      />
-
-      <FormField label="مدارک موردنیاز" description="هر خط یک نوع سند؛ مثل کارت ملی یا گزارش کوهنوردی رسمی.">
-        <Controller
+      <FieldGate field={PATHS.gearRequiredIds}>
+        <EquipmentIdsCheckboxField
           control={control}
+          name="participation.gearRequiredIds"
+          label="تجهیزات الزامی (از تنظیمات)"
+          description="هر مورد فعال در تنظیمات تجهیزات؛ شرکت کننده بدون این‌ها مجاز نیست."
+          error={errors.participation?.gearRequiredIds?.message as string | undefined}
+          disabled={false}
+          items={equipmentItems}
+          loading={equipmentQuery.isLoading}
+          loadFailed={equipmentQuery.isError}
+          ariaRequired={reqGearRequired}
+        />
+      </FieldGate>
+
+      <FieldGate field={PATHS.gearOptionalIds}>
+        <EquipmentIdsCheckboxField
+          control={control}
+          name="participation.gearOptionalIds"
+          label="تجهیزات پیشنهادی"
+          description="مواردی که داشتنشان کمک می‌کند ولی الزام سیستمی نیست."
+          error={errors.participation?.gearOptionalIds?.message as string | undefined}
+          disabled={false}
+          items={equipmentItems}
+          loading={equipmentQuery.isLoading}
+          loadFailed={equipmentQuery.isError}
+          ariaRequired={reqGearOptional}
+        />
+      </FieldGate>
+
+      <FieldGate field={PATHS.documentsRequired}>
+        <NewlineArrayTextareaField
           name="participation.documentsRequired"
-          render={({ field }) => (
-            <Textarea
-              rows={2}
-              placeholder={"مثل: تصویر کارت ملی\nرزومه صعود تأییدشده یا گزارش رسمی باشگاه کوهنوردی"}
-              value={(field.value ?? []).join("\n")}
-              onChange={(e) => field.onChange(e.target.value.split("\n").map((v) => v.trim()).filter(Boolean))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-          )}
+          label="مدارک موردنیاز"
+          description="هر خط یک نوع سند؛ مثل کارت ملی یا گزارش کوهنوردی رسمی."
+          rows={2}
+          placeholder={"مثل: تصویر کارت ملی\nرزومه صعود تأییدشده یا گزارش رسمی باشگاه کوهنوردی"}
         />
-      </FormField>
+      </FieldGate>
 
-      <FormField label="مناسب برای" description="هر خط یک گروه یا توصیف؛ برای نمایش به مسافر.">
-        <Controller
-          control={control}
+      <FieldGate field={PATHS.suitableFor}>
+        <NewlineArrayTextareaField
           name="participation.suitableFor"
-          render={({ field }) => (
-            <Textarea
-              rows={2}
-              placeholder={"مثل: کوهنوردان با سابقه ارتفاع\nافراد با آمادگی جسمانی خوب در هفته سه تا چهار جلسه ورزشی"}
-              value={(field.value ?? []).join("\n")}
-              onChange={(e) => field.onChange(e.target.value.split("\n").map((v) => v.trim()).filter(Boolean))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-          )}
+          label="مناسب برای"
+          description="هر خط یک گروه یا توصیف؛ برای نمایش به مسافر."
+          rows={2}
+          placeholder={"مثل: کوهنوردان با سابقه ارتفاع\nافراد با آمادگی جسمانی خوب در هفته سه تا چهار جلسه ورزشی"}
         />
-      </FormField>
+      </FieldGate>
 
-      <FormField label="نامناسب برای" description="طبق دستور خودتان؛ هر خط یک مورد برای شفاف‌سازی.">
-        <Controller
-          control={control}
+      <FieldGate field={PATHS.notSuitableFor}>
+        <NewlineArrayTextareaField
           name="participation.notSuitableFor"
-          render={({ field }) => (
-            <Textarea
-              rows={2}
-              placeholder={"مثل: خانم‌های باردار\nکودکان زیر پانزده سال بدون تجربه ارتفاع"}
-              value={(field.value ?? []).join("\n")}
-              onChange={(e) => field.onChange(e.target.value.split("\n").map((v) => v.trim()).filter(Boolean))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-          )}
+          label="نامناسب برای"
+          description="طبق دستور خودتان؛ هر خط یک مورد برای شفاف‌سازی."
+          rows={2}
+          placeholder={"مثل: خانم‌های باردار\nکودکان زیر پانزده سال بدون تجربه ارتفاع"}
         />
-      </FormField>
+      </FieldGate>
     </div>
   );
 }
