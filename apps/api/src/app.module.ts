@@ -11,9 +11,11 @@ import { DatabaseModule } from "./database/database.module";
 import { LoggerModule } from "./common/logger/logger.module";
 import { ObservabilityModule } from "./common/observability/observability.module";
 import { RequestContextModule } from "./common/request-context/request-context.module";
+import { CaslModule } from "./common/casl/casl.module";
 import { TenantModule } from "./common/tenant/tenant.module";
 import { ConfigModule } from "./config/config.module";
 import { AuthMiddleware } from "./common/middleware/auth.middleware";
+import { TenantGuardMiddleware } from "./common/middleware/tenant-guard.middleware";
 import { AuditModule } from "./common/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { IdentityModule } from "./modules/identity/identity.module";
@@ -80,6 +82,7 @@ import { OtpModule } from "./modules/auth/otp.module";
     }),
     DatabaseModule,
     RequestContextModule,
+    CaslModule,
     LoggerModule,
     ObservabilityModule,
     AuditModule,
@@ -98,6 +101,6 @@ import { OtpModule } from "./modules/auth/otp.module";
     SettingsLocationsModule
   ],
   controllers: [AppController],
-  providers: [AuthMiddleware]
+  providers: [AuthMiddleware, TenantGuardMiddleware]
 })
 export class AppModule {}

@@ -10,6 +10,7 @@ import { GlobalExceptionFilter } from "../../src/common/errors/global-exception.
 import { LoggerService } from "../../src/common/logger/logger.service";
 import { ObservabilityMetricsService } from "../../src/common/observability/observability-metrics.service";
 import { AuthMiddleware } from "../../src/common/middleware/auth.middleware";
+import { TenantGuardMiddleware } from "../../src/common/middleware/tenant-guard.middleware";
 import { RequestContextMiddleware } from "../../src/common/request-context/request-context.middleware";
 import { RequestContextService } from "../../src/common/request-context/request-context.service";
 import { TenantRateLimitMiddleware } from "../../src/common/tenant-abuse/tenant-rate-limit.middleware";
@@ -99,6 +100,8 @@ export async function createE2EApp(): Promise<INestApplication> {
   app.use(authMiddleware.use.bind(authMiddleware));
   const tenantMiddleware = app.get(TenantMiddleware);
   app.use(tenantMiddleware.use.bind(tenantMiddleware));
+  const tenantGuardMiddleware = app.get(TenantGuardMiddleware);
+  app.use(tenantGuardMiddleware.use.bind(tenantGuardMiddleware));
   const tenantRateLimitMiddleware = app.get(TenantRateLimitMiddleware);
   app.use(tenantRateLimitMiddleware.use.bind(tenantRateLimitMiddleware));
 
