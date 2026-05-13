@@ -22,6 +22,8 @@ export type WorkspaceUserDto = {
   joinedAt?: string | null;
   invitedAt?: string | null;
   suspendedAt?: string | null;
+  labels?: string[];
+  telegramLinked?: boolean;
 };
 
 export type UserRoleHistoryItemDto = {
@@ -36,7 +38,7 @@ export type GetUsersParams = {
   limit?: number;
   cursor?: string;
   search?: string;
-  role?: "owner" | "admin" | "member" | "viewer";
+  role?: "owner" | "leader" | "admin" | "member" | "viewer";
   status?: "INVITED" | "ACTIVE" | "SUSPENDED";
   lastLoginFrom?: string;
   lastLoginTo?: string;
@@ -86,12 +88,36 @@ export async function updateUserRole(id: string, role: string): Promise<Workspac
 
 export async function bulkUpdateUserRole(
   userIds: string[],
-  role: "admin" | "member" | "viewer"
+  role: "leader" | "admin" | "member" | "viewer"
 ): Promise<WorkspaceUserDto[]> {
   return apiClient.patch<WorkspaceUserDto[]>(API.usersBulkRole, {
     userIds,
     role,
   });
+}
+
+export type OptimisticUsersMutationCallbacks<T> = {
+  onSuccess?: (data: T) => void;
+  /** Invoked when the API call fails after an optimistic UI patch (e.g. TanStack Query `onError`). */
+  onRollback?: () => void;
+};
+
+/**
+ * Phase 1 stub: wraps a users-directory mutation so callers can centralize rollback hooks.
+ * Phase 2+: pair with TanStack Query `onMutate` snapshot restore for the users list cache.
+ */
+export async function withOptimisticUsersRollback<T>(
+  run: () => Promise<T>,
+  callbacks?: OptimisticUsersMutationCallbacks<T>
+): Promise<T> {
+  try {
+    const data = await run();
+    callbacks?.onSuccess?.(data);
+    return data;
+  } catch (err) {
+    callbacks?.onRollback?.();
+    throw err;
+  }
 }
 
 /** Backward-compatible alias used by existing callers. */
