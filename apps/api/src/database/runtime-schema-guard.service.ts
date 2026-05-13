@@ -17,7 +17,10 @@ const REQUIRED_COLUMNS: RequiredColumn[] = [
   { table: "user_tenants", column: "invited_at" },
   { table: "user_tenants", column: "joined_at" },
   { table: "user_tenants", column: "suspended_at" },
-  { table: "user_tenants", column: "session_version" }
+  { table: "user_tenants", column: "session_version" },
+  { table: "user_tenants", column: "labels" },
+  { table: "users", column: "profile_row_version" },
+  { table: "registrations", column: "row_version" }
 ];
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, VersionColumn } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
@@ -29,6 +29,10 @@ export enum RegistrationPaymentStatus {
 @Index("idx_registrations_status", ["status"])
 @Index("idx_registrations_payment_status", ["paymentStatus"])
 export class RegistrationEntity extends BaseTenantEntity {
+  /** Optimistic locking for registration / booking updates (see migration `1777594100000`). */
+  @VersionColumn({ type: "int", name: "row_version", default: 1 })
+  rowVersion!: number;
+
   @Column({ type: "uuid", name: "tour_id" })
   tourId!: string;
 
