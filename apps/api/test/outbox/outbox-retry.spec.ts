@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { OutboxProcessor } from "../../src/modules/outbox/outbox.processor";
 import { OutboxMetricsService } from "../../src/modules/outbox/outbox-metrics.service";
-import { SchedulerLockService } from "../../src/jobs/scheduler-lock.service";
-import { SchedulerRuntimeMetricsService } from "../../src/jobs/scheduler-runtime-metrics.service";
 import {
   OutboxEventEntity,
   OutboxEventStatus
@@ -60,6 +58,12 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     createQueryBuilder() {
       return qb;
     },
+    async findOne(entity: unknown, opts: { where: { id: string } }) {
+      if (entity === OutboxEventEntity && opts.where.id === row.id) {
+        return row;
+      }
+      return null;
+    },
     async save(entity: OutboxEventEntity) {
       return entity;
     }
@@ -105,19 +109,7 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     {
       runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<void>) =>
         fn(manager)
-    } as never,
-    {
-      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
-        await onLocked();
-        return { acquired: true };
-      }
-    } as SchedulerLockService,
-    {
-      noteStarted: () => undefined,
-      noteFinished: () => undefined,
-      noteFailed: () => undefined,
-      noteSkippedDueLock: () => undefined
-    } as unknown as SchedulerRuntimeMetricsService
+    } as never
   );
 }
 

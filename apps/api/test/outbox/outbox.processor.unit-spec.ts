@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { OutboxProcessor } from "../../src/modules/outbox/outbox.processor";
 import { OutboxMetricsService } from "../../src/modules/outbox/outbox-metrics.service";
-import { SchedulerLockService } from "../../src/jobs/scheduler-lock.service";
-import { SchedulerRuntimeMetricsService } from "../../src/jobs/scheduler-runtime-metrics.service";
 import {
   OutboxEventEntity,
   OutboxEventStatus
@@ -114,19 +112,7 @@ test("processor marks row DELIVERED after successful publish", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never,
-    {
-      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
-        await onLocked();
-        return { acquired: true };
-      }
-    } as SchedulerLockService,
-    {
-      noteStarted: () => undefined,
-      noteFinished: () => undefined,
-      noteFailed: () => undefined,
-      noteSkippedDueLock: () => undefined
-    } as unknown as SchedulerRuntimeMetricsService
+    } as never
   );
 
   await processor.processBatch();
@@ -225,19 +211,7 @@ test("processor increments retryCount when publish fails", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never,
-    {
-      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
-        await onLocked();
-        return { acquired: true };
-      }
-    } as SchedulerLockService,
-    {
-      noteStarted: () => undefined,
-      noteFinished: () => undefined,
-      noteFailed: () => undefined,
-      noteSkippedDueLock: () => undefined
-    } as unknown as SchedulerRuntimeMetricsService
+    } as never
   );
 
   await processor.processBatch();
@@ -334,19 +308,7 @@ test("processor marks FAILED when retries reach threshold", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never,
-    {
-      runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
-        await onLocked();
-        return { acquired: true };
-      }
-    } as SchedulerLockService,
-    {
-      noteStarted: () => undefined,
-      noteFinished: () => undefined,
-      noteFailed: () => undefined,
-      noteSkippedDueLock: () => undefined
-    } as unknown as SchedulerRuntimeMetricsService
+    } as never
   );
 
   await processor.processBatch();

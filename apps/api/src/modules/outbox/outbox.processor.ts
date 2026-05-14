@@ -1,15 +1,7 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit
-} from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { DataSource } from "typeorm";
 import { ConfigService } from "../../config/config.service";
 import { AuditService } from "../../common/audit/audit.service";
-import { SchedulerLockService } from "../../jobs/scheduler-lock.service";
-import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
 import {
   OutboxEventEntity,
   OutboxEventStatus
@@ -22,16 +14,18 @@ import { OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND } from "./identity-e
 /**
  * Transactional outbox dispatcher.
  *
- * Idempotency: if the process crashes after a successful publish() but before the row is
- * marked DELIVERED, the next poll may deliver the same event again. Downstream consumers
- * (webhooks, analytics) MUST dedupe on aggregateId + eventType or a stable idempotency key.
+ * **Enqueue:** domain-critical events must be inserted via {@link enqueueOutboxEvent} in the same
+ * transaction as aggregate writes. Optional `domainEventId` enables DB-level dedupe (unique per tenant).
+ *
+ * **Publish / retry:** failed deliveries increment `retry_count` and set `next_retry_at` with exponential
+ * backoff until `OUTBOX_MAX_RETRY`, then `FAILED`.
+ *
+ * **Idempotency:** at-least-once delivery — the same row may be processed again after a crash before
+ * `DELIVERED`. Downstream handlers MUST dedupe on `event_id` (outbox PK) and/or stable domain ids in payload.
  */
 @Injectable()
-export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
+export class OutboxProcessor {
   private readonly logger = new Logger(OutboxProcessor.name);
-  private interval?: NodeJS.Timeout;
-  private readonly jobName = "outbox_dispatch";
-  private readonly lockName = "scheduler:outbox_dispatch";
 
   constructor(
     @Inject(DataSource) private readonly dataSource: DataSource,
@@ -40,37 +34,8 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(OutboxMetricsService) private readonly metrics: OutboxMetricsService,
     @Inject(TenantDbContextService)
-    private readonly tenantDbContext: TenantDbContextService,
-    @Inject(SchedulerLockService) private readonly schedulerLock: SchedulerLockService,
-    @Inject(SchedulerRuntimeMetricsService)
-    private readonly schedulerMetrics: SchedulerRuntimeMetricsService
+    private readonly tenantDbContext: TenantDbContextService
   ) {}
-
-  onModuleInit(): void {
-    if (!this.configService.shouldRunSchedulers()) {
-      this.logger.log("job_skipped_runtime_role outbox_dispatch");
-      return;
-    }
-    if (this.configService.getOutboxProcessorEnabled() === false) {
-      this.logger.log("job_disabled outbox_dispatch");
-      return;
-    }
-    const ms = this.configService.getOutboxPollIntervalMs();
-    const jitterMs = Math.floor(Math.random() * (this.configService.getSchedulerJitterMs() + 1));
-    setTimeout(() => {
-      void this.runOnceWithLock();
-      this.interval = setInterval(() => {
-        void this.runOnceWithLock();
-      }, ms);
-      this.interval.unref?.();
-    }, jitterMs).unref?.();
-  }
-
-  onModuleDestroy(): void {
-    if (this.interval) {
-      clearInterval(this.interval);
-    }
-  }
 
   async processBatch(): Promise<void> {
     const started = Date.now();
@@ -83,6 +48,7 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
       });
       this.metrics.setPendingTotal(pendingTotal);
 
+      // tenant-isolation:qb-exempt — pending queue is global; each row dispatched under runInTenantScope.
       return manager
         .createQueryBuilder(OutboxEventEntity, "o")
         .where("o.status = :status", { status: OutboxEventStatus.PENDING })
@@ -148,26 +114,5 @@ export class OutboxProcessor implements OnModuleInit, OnModuleDestroy {
 
     this.metrics.setProcessingLatencyMs(Date.now() - started);
     this.metrics.setLastBatchProcessedAt(new Date().toISOString());
-  }
-
-  private async runOnceWithLock(): Promise<void> {
-    const started = Date.now();
-    this.schedulerMetrics.noteStarted(this.jobName);
-    this.logger.log("job_started outbox_dispatch");
-    try {
-      const lock = await this.schedulerLock.runWithGlobalLock(this.lockName, async () => {
-        await this.processBatch();
-      });
-      if (!lock.acquired) {
-        this.schedulerMetrics.noteSkippedDueLock(this.jobName);
-        this.logger.log("job_skipped_due_lock outbox_dispatch");
-        return;
-      }
-      this.schedulerMetrics.noteFinished(this.jobName, Date.now() - started);
-      this.logger.log("job_finished outbox_dispatch");
-    } catch (error: unknown) {
-      this.schedulerMetrics.noteFailed(this.jobName);
-      this.logger.warn(`outbox batch failed: ${String(error)}`);
-    }
   }
 }
