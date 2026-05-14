@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -16,8 +17,10 @@ import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
+import { isOptimisticLockVersionMismatchError } from "../../common/typeorm/optimistic-lock-version-mismatch";
 import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { tryParseWorkspaceUserRole, UserRole } from "../../common/auth/user-role.enum";
 import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { OutboxService } from "../outbox/outbox.service";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
@@ -35,7 +38,7 @@ import {
 import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
 import { TourDetails } from "../tours/entities/tour-details.entity";
-import { TourEntity } from "../tours/entities/tour.entity";
+import { TourEntity, TourLifecycleStatus } from "../tours/entities/tour.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import {
   RegistrationEntity,
@@ -45,7 +48,12 @@ import {
 import { WaitlistItemEntity, WaitlistItemStatus } from "./waitlist-item.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
+import { createPricingSnapshot } from "../pricing/create-pricing-snapshot";
+import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
+import { PaymentEntity, PaymentStatus } from "../payments/entities/payment.entity";
 import {
+  emitBookingCreatedOutboxEvent,
+  emitBookingFinalizationPipelineEvent,
   emitPublicRegistrationAcceptedEvent,
   emitRegistrationCreatedEvent,
   emitRegistrationPaymentUpdatedEvent,
@@ -72,26 +80,30 @@ import {
 import {
   assertTourIsOpenForRegistration
 } from "../tours/policies/tour-lifecycle.policy";
-import { TourLifecycleStatus } from "../tours/entities/tour.entity";
-import { quoteListPriceForTour } from "../tours/pricing/quote-list-price";
+import { RegistrationQuoteApplicationService } from "./application/registration-quote.application.service";
+import { bookableTourDepartureId } from "./domain/bookable-departure-id";
+import {
+  isCapacityConsumingRegistrationStatus,
+  registrationStatusToOutboxEventType
+} from "./domain/registration-outbox-event-type";
+import { BookingLedgerAuthorityService } from "../finance/ledger/booking-ledger-authority.service";
+import { assertFinancialIdempotencyKey } from "../idempotency/financial-idempotency";
+import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
+import {
+  BookingFinalizationPhase,
+  assertSingleStepBookingFinalizationAdvance,
+  bookingFinalizationPhaseFromFacts
+} from "./domain/booking-finalization-pipeline";
+import { RegistrationsReadRepository } from "./repositories/registrations-read.repository";
+import type { IRegistrationsReadRepository } from "./repositories/registrations-read.repository.interface";
 
-/** Resolves the bookable departure id for this tour (foundation: often same as `tour.id`). */
-function tourDepartureIdForBooking(tour: TourEntity): string {
-  return tour.tourDepartureId ?? tour.id;
-}
-
-/** Captures list price from tour at booking time for audit (see quoteListPriceForTour). */
-function quoteSnapshotFromTour(tour: TourEntity): {
-  quotedListPriceMinor?: string;
-  quotedCurrencyCode: string;
-} {
-  const q = quoteListPriceForTour(tour);
-  return {
-    ...(q.listPriceMinor ? { quotedListPriceMinor: q.listPriceMinor } : {}),
-    quotedCurrencyCode: q.currencyCode
-  };
-}
-
+/**
+ * **Services = orchestration + policy** (ownership scopes, transitions, validation).
+ * Registration reads delegate to {@link RegistrationsReadRepository} (**persistence only**).
+ * **Pricing:** all persisted booking quotes go through {@link RegistrationQuoteApplicationService} → finance
+ * rules engine (`calculateQuote`); do not compute totals inline here.
+ * Decomposition inventory: `architecture/service-decomposition.map.ts` (`REGISTRATIONS_GOD_METHODS`).
+ */
 @Injectable()
 export class RegistrationsService {
   private registrationCreatedTotal = 0;
@@ -108,8 +120,26 @@ export class RegistrationsService {
     private readonly dataSource: DataSource,
     private readonly tenantBootstrapService: TenantBootstrapService,
     private readonly requestContextService: RequestContextService,
-    private readonly outboxService: OutboxService
+    private readonly outboxService: OutboxService,
+    private readonly registrationQuoteApplication: RegistrationQuoteApplicationService,
+    @Inject(RegistrationsReadRepository)
+    private readonly registrationsReadRepository: IRegistrationsReadRepository,
+    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService
   ) {}
+
+  /**
+   * When HTTP idempotency wraps the controller, reuse that EntityManager so financial rows and
+   * idempotency keys commit in one PostgreSQL transaction (see idempotent-transaction.context).
+   */
+  private runInIdempotentOrOwnTransaction<T>(
+    fn: (manager: EntityManager) => Promise<T>
+  ): Promise<T> {
+    const em = getIdempotentEntityManager();
+    if (em) {
+      return fn(em);
+    }
+    return this.dataSource.transaction(fn);
+  }
 
   /**
    * Tenant for public idempotency boundaries (no JWT): resolved from the tour row only.
@@ -125,7 +155,7 @@ export class RegistrationsService {
   async createRegistration(
     createDto: CreateRegistrationDto
   ): Promise<RegistrationResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const tourPeek = await manager.findOne(TourEntity, {
         where: { id: createDto.tourId },
         select: { id: true, tenantId: true }
@@ -183,8 +213,8 @@ export class RegistrationsService {
       const registration = manager.create(RegistrationEntity, {
         tenantId,
         tourId: createDto.tourId,
-        tourDepartureId: tourDepartureIdForBooking(tour),
-        ...quoteSnapshotFromTour(tour),
+        tourDepartureId: bookableTourDepartureId(tour),
+        ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, createDto.discountCode ?? null)),
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
         transportMode: createDto.transportMode,
@@ -208,7 +238,7 @@ export class RegistrationsService {
         await this.syncTourDepartureFromTour(manager, tour);
       }
 
-      const saved = await manager.save(registration);
+      const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
       this.registrationCreatedTotal += 1;
       const actorId = this.requestContextService.getUserId() ?? "unknown";
       await emitRegistrationCreatedEvent({
@@ -220,6 +250,8 @@ export class RegistrationsService {
       });
       return this.toRegistrationResponse(saved);
     });
+
+    return result;
   }
 
   /**
@@ -341,9 +373,7 @@ export class RegistrationsService {
       this.requestContextService,
       registrationId
     );
-    const registration = await this.registrationRepository.findOne({
-      where
-    });
+    const registration = await this.registrationsReadRepository.findOneStandalone(where);
     if (!registration) {
       throw new NotFoundException({
         error: {
@@ -371,14 +401,14 @@ export class RegistrationsService {
     registrationId: string,
     payload: UpdateRegistrationStatusDto
   ): Promise<RegistrationResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const where = await registrationWhereForActor(
         manager,
         this.userRepository,
         this.requestContextService,
         registrationId
       );
-      const registration = await manager.findOne(RegistrationEntity, { where });
+      const registration = await this.registrationsReadRepository.findOneInManager(manager, where);
       if (!registration) {
         throw new NotFoundException({
           error: {
@@ -387,13 +417,14 @@ export class RegistrationsService {
           }
         });
       }
+      this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
       validateStatusTransition(registration.status, payload.targetStatus);
 
       const previousStatus = registration.status;
       const statusChanged = previousStatus !== payload.targetStatus;
       const affectsAcceptedCounter =
-        this.isCapacityConsumingStatus(previousStatus) ||
-        this.isCapacityConsumingStatus(payload.targetStatus);
+        isCapacityConsumingRegistrationStatus(previousStatus) ||
+        isCapacityConsumingRegistrationStatus(payload.targetStatus);
 
       const lockedTour =
         statusChanged && affectsAcceptedCounter
@@ -417,17 +448,17 @@ export class RegistrationsService {
         await manager.save(lockedTour);
         await this.syncTourDepartureFromTour(manager, lockedTour);
       }
-      const saved = await manager.save(registration);
+      const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
 
       if (
-        this.isCapacityConsumingStatus(previousStatus) &&
-        !this.isCapacityConsumingStatus(payload.targetStatus)
+        isCapacityConsumingRegistrationStatus(previousStatus) &&
+        !isCapacityConsumingRegistrationStatus(payload.targetStatus)
       ) {
         await this.promoteNextWaitlistItem(manager, saved, lockedTour);
       }
 
       if (previousStatus !== payload.targetStatus) {
-        const eventName = this.mapRegistrationStatusEvent(payload.targetStatus);
+        const eventName = registrationStatusToOutboxEventType(payload.targetStatus);
         const actorId = this.requestContextService.getUserId() ?? "unknown";
         await emitRegistrationStatusChangedEvent({
           manager,
@@ -446,16 +477,18 @@ export class RegistrationsService {
 
   async updateRegistrationPayment(
     registrationId: string,
-    payload: UpdateRegistrationPaymentDto
+    payload: UpdateRegistrationPaymentDto,
+    idempotencyKey: string
   ): Promise<RegistrationResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    const idempotencyKeyTrimmed = assertFinancialIdempotencyKey(idempotencyKey);
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const where = await registrationWhereForActor(
         manager,
         this.userRepository,
         this.requestContextService,
         registrationId
       );
-      const registration = await manager.findOne(RegistrationEntity, { where });
+      const registration = await this.registrationsReadRepository.findOneInManager(manager, where);
       if (!registration) {
         throw new NotFoundException({
           error: {
@@ -464,6 +497,7 @@ export class RegistrationsService {
           }
         });
       }
+      this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
       validatePaymentTransition(
         registration.status,
         registration.paymentStatus,
@@ -471,10 +505,13 @@ export class RegistrationsService {
       );
       validatePaymentAmountConsistency(payload.paymentStatus, payload.paidAmount);
 
-      registration.paymentStatus = payload.paymentStatus;
-      registration.paidAmount =
-        payload.paidAmount !== undefined ? payload.paidAmount.toString() : undefined;
-      const saved = await manager.save(registration);
+      await this.bookingLedgerAuthority.applyLeaderRegistrationPaymentMutation(
+        manager,
+        registration,
+        payload,
+        idempotencyKeyTrimmed
+      );
+      const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
       const actorId = this.requestContextService.getUserId() ?? "unknown";
       await emitRegistrationPaymentUpdatedEvent({
         manager,
@@ -492,8 +529,8 @@ export class RegistrationsService {
     metadata?: Record<string, unknown>
   ): Promise<RegistrationEntity> {
     const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
-    const role = (this.requestContextService.getRole() ?? "").trim().toLowerCase();
-    if (!trustedTenantId && role !== "admin") {
+    const parsedRole = tryParseWorkspaceUserRole(String(this.requestContextService.getRole() ?? ""));
+    if (!trustedTenantId && parsedRole !== UserRole.Admin) {
       throw new ForbiddenException({
         error: {
           code: "TENANT_CONTEXT_MISSING",
@@ -509,9 +546,7 @@ export class RegistrationsService {
         this.requestContextService,
         id
       );
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: registrationScope
-      });
+      const registration = await this.registrationsReadRepository.findOneInManager(manager, registrationScope);
       if (!registration) {
         throw new NotFoundException({
           error: {
@@ -522,7 +557,7 @@ export class RegistrationsService {
       }
 
       if (
-        role !== "admin" &&
+        parsedRole !== UserRole.Admin &&
         trustedTenantId &&
         registration.tenantId !== trustedTenantId
       ) {
@@ -545,7 +580,7 @@ export class RegistrationsService {
         registration.paymentMetadata = metadata;
       }
 
-      return manager.save(registration);
+      return this.saveRegistrationOrVersionConflict(manager, registration);
     });
   }
 
@@ -595,7 +630,7 @@ export class RegistrationsService {
       const waitlistItem = manager.create(WaitlistItemEntity, {
         tenantId,
         tourId: createDto.tourId,
-        tourDepartureId: tourDepartureIdForBooking(tour),
+        tourDepartureId: bookableTourDepartureId(tour),
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
         transportMode: createDto.transportMode,
@@ -660,8 +695,8 @@ export class RegistrationsService {
       const convertedRegistration = manager.create(RegistrationEntity, {
         tenantId: waitlistItem.tenantId,
         tourId: waitlistItem.tourId,
-        tourDepartureId: tourDepartureIdForBooking(tour),
-        ...quoteSnapshotFromTour(tour),
+        tourDepartureId: bookableTourDepartureId(tour),
+        ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, null)),
         participantFullName: waitlistItem.participantFullName,
         participantContactPhone: waitlistItem.participantContactPhone,
         transportMode: waitlistItem.transportMode,
@@ -669,7 +704,10 @@ export class RegistrationsService {
         status: RegistrationStatus.ACCEPTED,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID
       });
-      const savedRegistration = await manager.save(convertedRegistration);
+      const savedRegistration = await this.saveRegistrationOrVersionConflict(
+        manager,
+        convertedRegistration
+      );
       waitlistItem.status = WaitlistItemStatus.CONVERTED;
       waitlistItem.promotedRegistrationId = savedRegistration.id;
       waitlistItem.conversionReason = payload.conversionReason;
@@ -852,32 +890,28 @@ export class RegistrationsService {
       telegramUserId?: string;
     }
   ): Promise<void> {
-    const duplicateByPhone = await manager.findOne(RegistrationEntity, {
-      where: {
-        tenantId: payload.tenantId,
-        tourId: payload.tourId,
-        participantContactPhone: payload.participantContactPhone,
-        status: In([
-          RegistrationStatus.PENDING,
-          RegistrationStatus.ACCEPTED,
-          RegistrationStatus.ACCEPTED_PAID
-        ])
-      }
+    const duplicateByPhone = await this.registrationsReadRepository.findOneInManager(manager, {
+      tenantId: payload.tenantId,
+      tourId: payload.tourId,
+      participantContactPhone: payload.participantContactPhone,
+      status: In([
+        RegistrationStatus.PENDING,
+        RegistrationStatus.ACCEPTED,
+        RegistrationStatus.ACCEPTED_PAID
+      ])
     });
 
     const duplicateByTelegram =
       payload.telegramUserId && payload.telegramUserId.trim() !== ""
-        ? await manager.findOne(RegistrationEntity, {
-            where: {
-              tenantId: payload.tenantId,
-              tourId: payload.tourId,
-              telegramUserId: payload.telegramUserId,
-              status: In([
-                RegistrationStatus.PENDING,
-                RegistrationStatus.ACCEPTED,
-                RegistrationStatus.ACCEPTED_PAID
-              ])
-            }
+        ? await this.registrationsReadRepository.findOneInManager(manager, {
+            tenantId: payload.tenantId,
+            tourId: payload.tourId,
+            telegramUserId: payload.telegramUserId,
+            status: In([
+              RegistrationStatus.PENDING,
+              RegistrationStatus.ACCEPTED,
+              RegistrationStatus.ACCEPTED_PAID
+            ])
           })
         : null;
 
@@ -971,6 +1005,160 @@ export class RegistrationsService {
       .getOne();
   }
 
+  private assertExpectedRegistrationRowVersion(
+    registration: RegistrationEntity,
+    expectedRowVersion: number
+  ): void {
+    if (Number(registration.rowVersion) !== Number(expectedRowVersion)) {
+      throw new ConflictException({
+        error: {
+          code: "REGISTRATION_ROW_VERSION_CONFLICT",
+          message: "Booking changed concurrently — reload the registration, then try again."
+        }
+      });
+    }
+  }
+
+  private async restoreImmutableRegistrationQuoteColumns(
+    manager: EntityManager,
+    registration: RegistrationEntity
+  ): Promise<void> {
+    if (!registration.id) {
+      return;
+    }
+    const hasSnap = await manager.exists(BookingPriceSnapshotEntity, {
+      where: { bookingId: registration.id, tenantId: registration.tenantId }
+    });
+    if (!hasSnap) {
+      return;
+    }
+    const persisted = await manager.findOne(RegistrationEntity, {
+      where: { id: registration.id, tenantId: registration.tenantId },
+      select: {
+        id: true,
+        tenantId: true,
+        quotedListPriceMinor: true,
+        quotedCurrencyCode: true,
+        quotedTotalMinor: true,
+        quotedPricingVersion: true,
+        quotedLineItemsJson: true
+      }
+    });
+    if (!persisted) {
+      return;
+    }
+    registration.quotedListPriceMinor = persisted.quotedListPriceMinor;
+    registration.quotedCurrencyCode = persisted.quotedCurrencyCode;
+    registration.quotedTotalMinor = persisted.quotedTotalMinor;
+    registration.quotedPricingVersion = persisted.quotedPricingVersion;
+    registration.quotedLineItemsJson = persisted.quotedLineItemsJson;
+  }
+
+  private async saveRegistrationOrVersionConflict(
+    manager: EntityManager,
+    registration: RegistrationEntity
+  ): Promise<RegistrationEntity> {
+    const existedBefore =
+      Boolean(registration.id) &&
+      (await manager.exists(RegistrationEntity, { where: { id: registration.id } }));
+    try {
+      if (existedBefore && registration.id) {
+        await this.restoreImmutableRegistrationQuoteColumns(manager, registration);
+      }
+      const saved = await manager.save(registration);
+      if (!existedBefore) {
+        await emitBookingCreatedOutboxEvent({
+          manager,
+          outboxService: this.outboxService,
+          tenantId: saved.tenantId,
+          registrationId: saved.id,
+          tourId: saved.tourId,
+          correlationId: this.requestContextService.getRequestId()
+        });
+        await this.ensureBookingPriceSnapshotLockedAndEmit(manager, saved);
+      }
+      return saved;
+    } catch (err: unknown) {
+      if (isOptimisticLockVersionMismatchError(err)) {
+        throw new ConflictException({
+          error: {
+            code: "REGISTRATION_ROW_VERSION_CONFLICT",
+            message: "Booking changed concurrently — reload the registration, then try again."
+          }
+        });
+      }
+      throw err;
+    }
+  }
+
+  private async ensureBookingPriceSnapshotLockedAndEmit(
+    manager: EntityManager,
+    saved: RegistrationEntity
+  ): Promise<void> {
+    if (await manager.exists(BookingPriceSnapshotEntity, { where: { bookingId: saved.id } })) {
+      return;
+    }
+    const hasPending = await manager.exists(PaymentEntity, {
+      where: {
+        registrationId: saved.id,
+        tenantId: saved.tenantId,
+        status: PaymentStatus.PENDING
+      }
+    });
+    const hasPaid = await manager.exists(PaymentEntity, {
+      where: {
+        registrationId: saved.id,
+        tenantId: saved.tenantId,
+        status: PaymentStatus.PAID
+      }
+    });
+    if (hasPending || hasPaid) {
+      return;
+    }
+    const listMinor = saved.quotedListPriceMinor ?? saved.quotedTotalMinor;
+    if (
+      saved.quotedTotalMinor == null ||
+      saved.quotedPricingVersion == null ||
+      saved.quotedCurrencyCode == null ||
+      listMinor == null
+    ) {
+      throw new ConflictException({
+        error: {
+          code: "BOOKING_PRICING_SNAPSHOT_INCOMPLETE",
+          message:
+            "Booking is missing a complete server-side price quote; an immutable pricing snapshot cannot be created. Live catalog prices must not be used without a booking-time quote."
+        }
+      });
+    }
+    const phaseBefore = bookingFinalizationPhaseFromFacts({
+      hasPriceSnapshot: false,
+      hasPendingPayment: hasPending,
+      hasCapturedPayment: hasPaid,
+      registrationFinanciallyConfirmed: saved.status === RegistrationStatus.ACCEPTED_PAID
+    });
+    assertSingleStepBookingFinalizationAdvance(
+      phaseBefore,
+      BookingFinalizationPhase.PRICE_SNAPSHOT_LOCKED,
+      "lockBookingPriceSnapshot"
+    );
+    const row = await createPricingSnapshot(manager, {
+      tenantId: saved.tenantId,
+      bookingId: saved.id,
+      listPriceMinor: String(listMinor),
+      currency: String(saved.quotedCurrencyCode),
+      pricingRuleVersion: String(saved.quotedPricingVersion),
+      computedTotalMinor: String(saved.quotedTotalMinor)
+    });
+    await emitBookingFinalizationPipelineEvent({
+      manager,
+      outboxService: this.outboxService,
+      tenantId: saved.tenantId,
+      registrationId: saved.id,
+      phase: BookingFinalizationPhase.PRICE_SNAPSHOT_LOCKED,
+      metadata: { snapshotId: row.snapshotId }
+    });
+  }
+
   private toRegistrationResponse(
     entity: RegistrationEntity
   ): RegistrationResponseDto {
@@ -987,6 +1175,7 @@ export class RegistrationsService {
       vehicleSeatCapacity: entity.vehicleSeatCapacity,
       participantNote: entity.participantNote,
       status: entity.status,
+      rowVersion: entity.rowVersion,
       paymentStatus: entity.paymentStatus,
       paidAmount: entity.paidAmount,
       payment:
@@ -1008,6 +1197,18 @@ export class RegistrationsService {
                   : null
             }
           : undefined,
+      lockedPricing:
+        entity.quotedTotalMinor != null &&
+        entity.quotedCurrencyCode != null &&
+        entity.quotedPricingVersion != null
+          ? {
+              totalMinor: String(entity.quotedTotalMinor),
+              currency: String(entity.quotedCurrencyCode).trim().toUpperCase(),
+              pricingRuleVersion: String(entity.quotedPricingVersion),
+              listPriceMinor:
+                entity.quotedListPriceMinor != null ? String(entity.quotedListPriceMinor) : null
+            }
+          : null,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString()
     };
@@ -1037,8 +1238,8 @@ export class RegistrationsService {
     lockedTour?: TourEntity | null
   ): Promise<void> {
     if (
-      this.isCapacityConsumingStatus(registration.status) ||
-      !this.isCapacityConsumingStatus(targetStatus)
+      isCapacityConsumingRegistrationStatus(registration.status) ||
+      !isCapacityConsumingRegistrationStatus(targetStatus)
     ) {
       return;
     }
@@ -1066,8 +1267,8 @@ export class RegistrationsService {
     previousStatus: RegistrationStatus,
     targetStatus: RegistrationStatus
   ): void {
-    const wasAccepted = this.isCapacityConsumingStatus(previousStatus);
-    const willBeAccepted = this.isCapacityConsumingStatus(targetStatus);
+    const wasAccepted = isCapacityConsumingRegistrationStatus(previousStatus);
+    const willBeAccepted = isCapacityConsumingRegistrationStatus(targetStatus);
     if (wasAccepted === willBeAccepted) {
       return;
     }
@@ -1108,8 +1309,7 @@ export class RegistrationsService {
     const anchor = manager.create(RegistrationEntity, {
       tenantId,
       tourId,
-      tourDepartureId: tourDepartureIdForBooking(lockedTour),
-      ...quoteSnapshotFromTour(lockedTour),
+      tourDepartureId: bookableTourDepartureId(lockedTour),
       participantFullName: "__reconciliation_promotion_anchor__",
       participantContactPhone: "__system__",
       transportMode: "other",
@@ -1158,8 +1358,8 @@ export class RegistrationsService {
     const promotedRegistration = manager.create(RegistrationEntity, {
       tenantId: waitlistItem.tenantId,
       tourId: waitlistItem.tourId,
-      tourDepartureId: tourDepartureIdForBooking(tour),
-      ...quoteSnapshotFromTour(tour),
+      tourDepartureId: bookableTourDepartureId(tour),
+      ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, null)),
       participantFullName: waitlistItem.participantFullName,
       participantContactPhone: waitlistItem.participantContactPhone,
       transportMode: waitlistItem.transportMode,
@@ -1169,7 +1369,10 @@ export class RegistrationsService {
       paidAmount: undefined
     });
 
-    const savedPromotedRegistration = await manager.save(promotedRegistration);
+    const savedPromotedRegistration = await this.saveRegistrationOrVersionConflict(
+      manager,
+      promotedRegistration
+    );
 
     waitlistItem.status = WaitlistItemStatus.CONVERTED;
     waitlistItem.promotedRegistrationId = savedPromotedRegistration.id;
@@ -1194,25 +1397,6 @@ export class RegistrationsService {
     return true;
   }
 
-  private mapRegistrationStatusEvent(targetStatus: RegistrationStatus): string {
-    switch (targetStatus) {
-      case RegistrationStatus.ACCEPTED:
-        return "registration.accepted";
-      case RegistrationStatus.ACCEPTED_PAID:
-        return "registration.accepted_paid";
-      case RegistrationStatus.REJECTED:
-        return "registration.rejected";
-      case RegistrationStatus.CANCELLED:
-        return "registration.cancelled";
-      case RegistrationStatus.NO_SHOW:
-        return "registration.no_show";
-      case RegistrationStatus.REFUNDED:
-        return "registration.refunded";
-      default:
-        return "registration.status_changed";
-    }
-  }
-
   async transitionRegistrationForPayment(
     manager: EntityManager,
     registration: RegistrationEntity,
@@ -1225,8 +1409,8 @@ export class RegistrationsService {
     }
     validateStatusTransition(previousStatus, targetStatus);
     const affectsAcceptedCounter =
-      this.isCapacityConsumingStatus(previousStatus) ||
-      this.isCapacityConsumingStatus(targetStatus);
+      isCapacityConsumingRegistrationStatus(previousStatus) ||
+      isCapacityConsumingRegistrationStatus(targetStatus);
     const lockedTour = affectsAcceptedCounter
       ? await this.requireTourInTenantForUpdate(
           manager,
@@ -1246,10 +1430,10 @@ export class RegistrationsService {
       await manager.save(lockedTour);
       await this.syncTourDepartureFromTour(manager, lockedTour);
     }
-    const saved = await manager.save(registration);
+    const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
     if (
-      this.isCapacityConsumingStatus(previousStatus) &&
-      !this.isCapacityConsumingStatus(targetStatus)
+      isCapacityConsumingRegistrationStatus(previousStatus) &&
+      !isCapacityConsumingRegistrationStatus(targetStatus)
     ) {
       await this.promoteNextWaitlistItem(manager, saved, lockedTour);
     }
@@ -1260,7 +1444,7 @@ export class RegistrationsService {
       actorId,
       previousStatus,
       newStatus: targetStatus,
-      eventType: this.mapRegistrationStatusEvent(targetStatus),
+      eventType: registrationStatusToOutboxEventType(targetStatus),
       source: "payment_flow"
     });
     if (targetStatus === RegistrationStatus.ACCEPTED_PAID) {
@@ -1291,9 +1475,10 @@ export class RegistrationsService {
     telegramUsername?: string;
     vehicleSeatCapacity?: number;
     participantNote?: string;
+    discountCode?: string | null;
     createPaymentIntent?: (
       manager: EntityManager,
-      registrationId: string
+      registration: RegistrationEntity
     ) => Promise<PaymentResponseDto>;
   }): Promise<
     | {
@@ -1350,7 +1535,7 @@ export class RegistrationsService {
         const waitlist = manager.create(WaitlistItemEntity, {
           tenantId,
           tourId: input.tourId,
-          tourDepartureId: tourDepartureIdForBooking(tour),
+          tourDepartureId: bookableTourDepartureId(tour),
           participantFullName: input.participantFullName,
           participantContactPhone: input.participantContactPhone,
           transportMode: input.transportMode,
@@ -1388,8 +1573,8 @@ export class RegistrationsService {
       const registration = manager.create(RegistrationEntity, {
         tenantId,
         tourId: input.tourId,
-        tourDepartureId: tourDepartureIdForBooking(tour),
-        ...quoteSnapshotFromTour(tour),
+        tourDepartureId: bookableTourDepartureId(tour),
+        ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, input.discountCode ?? null)),
         participantFullName: input.participantFullName,
         participantContactPhone: input.participantContactPhone,
         transportMode: input.transportMode,
@@ -1411,7 +1596,7 @@ export class RegistrationsService {
         await manager.save(tour);
         await this.syncTourDepartureFromTour(manager, tour);
       }
-      const saved = await manager.save(registration);
+      const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
       this.registrationCreatedTotal += 1;
       const actorId = this.requestContextService.getUserId() ?? "public";
       if (placement.status === RegistrationStatus.ACCEPTED) {
@@ -1430,12 +1615,23 @@ export class RegistrationsService {
           paymentRequired: requiresPayment
         });
       }
-      const paymentIntent =
+      let paymentIntent: PaymentResponseDto | null = null;
+      if (
         requiresPayment &&
         input.createPaymentIntent &&
         placement.status === RegistrationStatus.ACCEPTED
-          ? await input.createPaymentIntent(manager, saved.id)
-          : null;
+      ) {
+        if (!getIdempotentEntityManager()) {
+          throw new BadRequestException({
+            error: {
+              code: "FINANCIAL_IDEMPOTENCY_CONTEXT_REQUIRED",
+              message:
+                "Idempotency-Key header is required when this tour collects payment at registration so payment creation is replay-safe."
+            }
+          });
+        }
+        paymentIntent = await input.createPaymentIntent!(manager, saved);
+      }
       return {
         type: "registration" as const,
         registration: this.toRegistrationResponse(saved),
@@ -1448,12 +1644,4 @@ export class RegistrationsService {
     }
     return this.dataSource.transaction(run);
   }
-
-  private isCapacityConsumingStatus(status: RegistrationStatus): boolean {
-    return (
-      status === RegistrationStatus.ACCEPTED ||
-      status === RegistrationStatus.ACCEPTED_PAID
-    );
-  }
-
 }
