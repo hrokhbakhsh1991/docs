@@ -2,14 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { NotFoundException } from "@nestjs/common";
 import type { DataSource } from "typeorm";
-import { PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
+import { runWithIdempotentEntityManager } from "../../src/modules/idempotency/idempotent-transaction.context";
+import { PaymentEntity, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
+import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/booking-price-snapshot.entity";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
+import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
+import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
+import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
+import { stubPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
+import { createRegistrationsReadRepositoryTestDouble } from "../registrations/stub-registrations-read-repository";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 
@@ -117,7 +125,10 @@ function buildRegistrationsServiceHarness(actor: Actor) {
       getTenantId: () => actor.tenantId,
       getUserId: () => actor.userId
     } as never,
-    { addEvent: async () => undefined } as never
+    { addEvent: async () => undefined } as never,
+    stubRegistrationQuoteApplication,
+    createRegistrationsReadRepositoryTestDouble(registrationRepository as never),
+    new BookingLedgerAuthorityService(noopOutboxServiceForTests)
   );
   return { service };
 }
@@ -196,10 +207,44 @@ test("payment intent denies member access to other member registration", async (
           id: "reg-own",
           tenantId: "tenant-a",
           status: RegistrationStatus.ACCEPTED,
-          paymentStatus: RegistrationPaymentStatus.NOT_PAID
+          paymentStatus: RegistrationPaymentStatus.NOT_PAID,
+          quotedTotalMinor: "100",
+          quotedListPriceMinor: "100",
+          quotedCurrencyCode: "USD",
+          quotedPricingVersion: "v1"
         };
       }
       return null;
+    },
+    getRepository(entity: unknown) {
+      if (entity === BookingPriceSnapshotEntity) {
+        return {
+          findOne: async () => ({
+            computedTotalMinor: "100",
+            currency: "USD",
+            pricingRuleVersion: "v1"
+          })
+        };
+      }
+      throw new Error("unexpected getRepository");
+    },
+    async exists(entity: unknown, opts: { where: Record<string, unknown> }) {
+      const w = opts.where;
+      if (entity === BookingPriceSnapshotEntity) {
+        return w.bookingId === "reg-own" && w.tenantId === "tenant-a";
+      }
+      if (entity === PaymentEntity) {
+        if (w.registrationId !== "reg-own" || w.tenantId !== "tenant-a") {
+          return false;
+        }
+        if (w.status === PaymentStatus.PENDING) {
+          return !Object.prototype.hasOwnProperty.call(w, "id");
+        }
+        if (w.status === PaymentStatus.PAID) {
+          return false;
+        }
+      }
+      return false;
     },
     create(_: unknown, payload: Record<string, unknown>) {
       return payload;
@@ -220,6 +265,26 @@ test("payment intent denies member access to other member registration", async (
       return fn(manager);
     }
   } as unknown as DataSource;
+
+  const resolverStub = {
+    async resolveRegistrationForCreateIntent(m: typeof manager, dto: { registrationId: string }) {
+      const reg = await m.findOne(RegistrationEntity, {
+        where: [
+          {
+            id: dto.registrationId,
+            participantContactPhone: ownPhone,
+            tenantId: "tenant-a"
+          }
+        ]
+      });
+      if (!reg) {
+        throw new NotFoundException({
+          error: { code: "RESOURCE_NOT_FOUND", message: "Registration not found" }
+        });
+      }
+      return reg;
+    }
+  };
 
   const service = new PaymentsService(
     {} as never,
@@ -244,25 +309,32 @@ test("payment intent denies member access to other member registration", async (
       }),
       createRequestHash: () => "hash"
     } as never,
-    { addEvent: async () => undefined } as never
+    { addEvent: async () => undefined } as never,
+    resolverStub as never,
+    noopPaymentRefundLedgerForTests,
+    stubPaymentGatewayFactoryForTests
   );
 
   await assert.rejects(
     () =>
-      service.createPaymentIntent({
-        registrationId: "reg-other",
-        amount: 100,
-        currency: "USD",
-        paymentProvider: "mock_provider"
-      }),
+      runWithIdempotentEntityManager(manager as never, () =>
+        service.createPaymentIntent({
+          registrationId: "reg-other",
+          amount: 100,
+          currency: "USD",
+          paymentProvider: "mock_provider"
+        })
+      ),
     (err) => err instanceof NotFoundException
   );
 
-  const ownIntent = await service.createPaymentIntent({
-    registrationId: "reg-own",
-    amount: 100,
-    currency: "USD",
-    paymentProvider: "mock_provider"
-  });
+  const ownIntent = await runWithIdempotentEntityManager(manager as never, () =>
+    service.createPaymentIntent({
+      registrationId: "reg-own",
+      amount: 100,
+      currency: "USD",
+      paymentProvider: "mock_provider"
+    })
+  );
   assert.equal(ownIntent.registrationId, "reg-own");
 });

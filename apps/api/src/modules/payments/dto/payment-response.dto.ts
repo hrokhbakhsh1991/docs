@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { PaymentStatus } from "../entities/payment.entity";
 
 export class PaymentResponseDto {
@@ -40,4 +40,14 @@ export class PaymentResponseDto {
 
   @ApiProperty()
   updatedAt!: string;
+
+  @ApiPropertyOptional({ type: String, nullable: true, description: "Stripe PaymentIntent client secret when applicable." })
+  clientSecret?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: "Hosted checkout URL (e.g. Zibal) when applicable."
+  })
+  checkoutUrl?: string | null;
 }

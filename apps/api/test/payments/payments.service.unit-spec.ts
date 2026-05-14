@@ -8,9 +8,52 @@ import {
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
 import { WaitlistItemEntity } from "../../src/modules/registrations/waitlist-item.entity";
-import { PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
+import { PaymentEntity, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
+import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/booking-price-snapshot.entity";
+import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
+import { noopPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+
+/**
+ * Stubs `EntityManager.exists` for tests that exercise booking finalization / payment capture.
+ */
+function stubExistsDefaultPipeline(input: {
+  registrationId: string;
+  tenantId: string;
+  hasPriceSnapshot?: boolean;
+  hasPendingPayment?: boolean;
+  hasPaidPayment?: boolean;
+}) {
+  const {
+    registrationId,
+    tenantId,
+    hasPriceSnapshot = true,
+    hasPendingPayment = true,
+    hasPaidPayment = false
+  } = input;
+  return async (entity: unknown, opts: { where: Record<string, unknown> }) => {
+    const w = opts.where;
+    if (entity === BookingPriceSnapshotEntity) {
+      return hasPriceSnapshot;
+    }
+    if (entity === PaymentEntity) {
+      if (w.registrationId !== registrationId || w.tenantId !== tenantId) {
+        return false;
+      }
+      if (w.status === PaymentStatus.PENDING) {
+        if (Object.prototype.hasOwnProperty.call(w, "id")) {
+          return false;
+        }
+        return hasPendingPayment;
+      }
+      if (w.status === PaymentStatus.PAID) {
+        return hasPaidPayment;
+      }
+    }
+    return false;
+  };
+}
 
 function stubTourRepositoryForPaymentsLock() {
   return {
@@ -62,6 +105,13 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
       }
       throw new Error("unexpected repository");
     },
+    exists: stubExistsDefaultPipeline({
+      registrationId: "reg-1",
+      tenantId: "tenant-1",
+      hasPriceSnapshot: true,
+      hasPendingPayment: true,
+      hasPaidPayment: false
+    }),
     async findOne(entity: unknown, opts: { where: Record<string, unknown> }) {
       const name = (entity as { name?: string }).name;
       if (name === "PaymentEntity") {
@@ -113,7 +163,10 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
         };
       }
     } as never,
-    outboxService
+    outboxService,
+    {} as never,
+    noopPaymentRefundLedgerForTests,
+    noopPaymentGatewayFactoryForTests
   );
 
   await service.processWebhook({
@@ -124,6 +177,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
 
   assert.equal(registration.status, RegistrationStatus.ACCEPTED_PAID);
   assert.equal(outboxEvents.includes("payment.succeeded"), true);
+  assert.equal(outboxEvents.includes("booking.finalization.payment_captured"), true);
+  assert.equal(outboxEvents.includes("booking.finalization.booking_confirmed"), true);
 });
 
 test("timeout processor fails stale pending payments and updates metrics", async () => {
@@ -209,7 +264,14 @@ test("timeout processor fails stale pending payments and updates metrics", async
     },
     async save(entity: unknown) {
       return entity;
-    }
+    },
+    exists: stubExistsDefaultPipeline({
+      registrationId: "reg-2",
+      tenantId: "tenant-1",
+      hasPriceSnapshot: true,
+      hasPendingPayment: true,
+      hasPaidPayment: false
+    })
   };
   const dataSource = {
     async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
@@ -235,7 +297,10 @@ test("timeout processor fails stale pending payments and updates metrics", async
         fn(manager)
     } as never,
     {} as never,
-    outboxService
+    outboxService,
+    {} as never,
+    noopPaymentRefundLedgerForTests,
+    noopPaymentGatewayFactoryForTests
   );
 
   const timedOut = await service.failTimedOutPendingPayments();
@@ -270,6 +335,13 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
       }
       throw new Error("unexpected repository");
     },
+    exists: stubExistsDefaultPipeline({
+      registrationId: "reg-9",
+      tenantId: "tenant-1",
+      hasPriceSnapshot: true,
+      hasPendingPayment: true,
+      hasPaidPayment: false
+    }),
     async findOne(entity: unknown, opts: { where: Record<string, unknown> }) {
       const name = (entity as { name?: string }).name;
       if (name === "PaymentEntity") {
@@ -334,7 +406,10 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     { setTenantId: () => undefined } as never,
     { runInTenantScope: async () => undefined } as never,
     idempotencyService as never,
-    outboxService
+    outboxService,
+    {} as never,
+    noopPaymentRefundLedgerForTests,
+    noopPaymentGatewayFactoryForTests
   );
 
   const first = await service.processWebhook({
@@ -409,7 +484,10 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     {} as never,
     {} as never,
-    {} as never
+    {} as never,
+    {} as never,
+    noopPaymentRefundLedgerForTests,
+    noopPaymentGatewayFactoryForTests
   );
 
   const result = await service.listPayments("TENANT-A");
@@ -431,7 +509,10 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     {} as never,
     {} as never,
-    {} as never
+    {} as never,
+    {} as never,
+    noopPaymentRefundLedgerForTests,
+    noopPaymentGatewayFactoryForTests
   );
 
   await assert.rejects(

@@ -89,8 +89,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
             statusCode: policy.statusCode
           },
           async (manager) =>
-            runWithIdempotentEntityManager(manager, async () =>
-              (await firstValueFrom(next.handle())) as Record<string, unknown>
+            runWithIdempotentEntityManager(
+              manager,
+              async () => (await firstValueFrom(next.handle())) as Record<string, unknown>,
+              { idempotencyKey }
             )
         )
         .then((result) => result.responseBody)

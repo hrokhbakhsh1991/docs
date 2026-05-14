@@ -45,6 +45,11 @@ export const envSchema = z.object({
     50
   ),
   OUTBOX_PROCESSOR_ENABLED: z.enum(["true", "false"]).default("true"),
+  /**
+   * When `true`, wires {@link EVENT_PUBLISHER} to {@link InMemoryEventBus} (single-process only).
+   * Default `false`: critical flows use the transactional outbox; no in-process domain dispatch.
+   */
+  ENABLE_IN_MEMORY_DOMAIN_EVENTS: z.enum(["true", "false"]).default("false"),
   /** Protects GET /internal/ops/*; compare via x-internal-api-key header. */
   INTERNAL_API_KEY: z.string().default(""),
   /** HMAC-SHA256 secret for POST /internal/payments/webhook (min 16 chars). */
@@ -168,5 +173,20 @@ export const envSchema = z.object({
   /** Resend API key; empty disables outbound email (EmailService no-ops). */
   RESEND_API_KEY: z.string().default(""),
   /** Verified sender, e.g. `TourOps <mail@yourdomain.com>`. Empty uses Resend onboarding sender while testing. */
-  RESEND_FROM: z.string().default("")
+  RESEND_FROM: z.string().default(""),
+
+  /**
+   * Stripe secret API key (`sk_test_…` / `sk_live_…`). When empty, `paymentProvider=stripe` uses the
+   * in-process placeholder adapter instead of the live SDK.
+   */
+  STRIPE_SECRET_KEY: z.string().default(""),
+
+  /** Zibal `merchant` id (digits). Required for `paymentProvider=zibal` when using the real adapter. */
+  ZIBAL_MERCHANT: z.string().default(""),
+
+  /**
+   * Absolute HTTPS callback URL registered with Zibal (buyer return + verification handoff).
+   * Required for `paymentProvider=zibal` when using the real adapter.
+   */
+  ZIBAL_CALLBACK_URL: z.string().default("")
 });

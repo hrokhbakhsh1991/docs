@@ -6,20 +6,30 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, IsNull, Repository, type FindOptionsWhere } from "typeorm";
+import { DataSource, EntityManager, IsNull, Not, Repository } from "typeorm";
 import { TenantContextMissingError } from "../../common/errors/tenant-context-missing.error";
 import {
-  tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
 import {
   findPaymentScopedForActor,
   registrationWhereForActor
 } from "../../common/security/ownership-scope";
+import {
+  assertFinancialMutationRunsInIdempotentScope,
+  assertFinancialIdempotencyKey
+} from "../idempotency/financial-idempotency";
+import {
+  getFinancialIdempotencyKeyFromContext,
+  getIdempotentEntityManager
+} from "../idempotency/idempotent-transaction.context";
 import { IdempotencyService } from "../idempotency/idempotency.service";
+import { PaymentRefundLedgerAuthorityService } from "../finance/ledger/payment-refund-ledger-authority.service";
 import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
+import { isOptimisticLockVersionMismatchError } from "../../common/typeorm/optimistic-lock-version-mismatch";
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import {
@@ -27,17 +37,61 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../registrations/registration.entity";
+import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
+import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-booking-price-snapshot";
 import { TourEntity } from "../tours/entities/tour.entity";
 import { WaitlistItemEntity, WaitlistItemStatus } from "../registrations/waitlist-item.entity";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
 import { PaymentEntity, PaymentStatus } from "./entities/payment.entity";
-import { emitRegistrationStatusChangedEvent, emitWaitlistConvertedAndAcceptedEvents } from "../registrations/registrations-effects";
+import { PaymentIntentRegistrationResolverApplicationService } from "./application/payment-intent-registration-resolver.application.service";
+import { assertPaymentIntentMatchesBookingSnapshot } from "./domain/assert-payment-intent-matches-booking-snapshot";
+import {
+  assertAllowedPaymentStatusTransition,
+  paymentStatusToOutboxEventType
+} from "./domain/payment-status-transition";
+import {
+  assertAllowedPaymentIntentLifecycleTransition,
+  PaymentIntentLifecycleStatus
+} from "./domain/payment-intent-lifecycle";
+import {
+  isCapacityConsumingRegistrationStatus,
+  registrationStatusToOutboxEventType
+} from "../registrations/domain/registration-outbox-event-type";
+import {
+  emitBookingFinalizationPipelineEvent,
+  emitRegistrationStatusChangedEvent,
+  emitWaitlistConvertedAndAcceptedEvents
+} from "../registrations/registrations-effects";
+import {
+  assertBookingFinalizationAtLeast,
+  assertSingleStepBookingFinalizationAdvance,
+  BookingFinalizationPhase,
+  bookingFinalizationPhaseFromFacts,
+  type BookingFinalizationFacts
+} from "../registrations/domain/booking-finalization-pipeline";
 import { validateStatusTransition } from "../registrations/registrations-policy";
+import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
+
+function pickFinancialPaymentSnapshot(payment: PaymentEntity): Record<string, unknown> {
+  return {
+    id: payment.id,
+    tenantId: payment.tenantId,
+    registrationId: payment.registrationId,
+    amount: payment.amount,
+    currency: payment.currency,
+    provider: payment.provider,
+    providerPaymentId: payment.providerPaymentId,
+    status: payment.status,
+    paidAt: payment.paidAt?.toISOString() ?? null,
+    failedAt: payment.failedAt?.toISOString() ?? null,
+    refundedAt: payment.refundedAt?.toISOString() ?? null
+  };
+}
 
 export type PaymentRuntimeMetrics = {
   paymentIntentsCreatedTotal: number;
@@ -65,6 +119,11 @@ export type WebhookProcessResult = {
 
 const WEBHOOK_TENANT_BINDING_FAILED = "WEBHOOK_TENANT_BINDING_FAILED";
 
+/**
+ * Payment intents, webhooks, refunds, and timeout sweeps. Shares registration capacity rules via
+ * `registrations/domain/registration-outbox-event-type.ts`. Decomposition inventory:
+ * `architecture/service-decomposition.map.ts` (`PAYMENTS_GOD_METHODS`).
+ */
 @Injectable()
 export class PaymentsService {
   private timedOutPayments = 0;
@@ -89,8 +148,42 @@ export class PaymentsService {
     private readonly requestContextService: RequestContextService,
     private readonly tenantDbContext: TenantDbContextService,
     private readonly idempotencyService: IdempotencyService,
-    private readonly outboxService: OutboxService
+    private readonly outboxService: OutboxService,
+    private readonly paymentIntentRegistrationResolver: PaymentIntentRegistrationResolverApplicationService,
+    private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
+    private readonly paymentGatewayFactory: PaymentGatewayFactory
   ) {}
+
+  private async loadBookingFinalizationFacts(
+    manager: EntityManager,
+    registration: RegistrationEntity
+  ): Promise<BookingFinalizationFacts> {
+    const [hasPriceSnapshot, hasPendingPayment, hasCapturedPayment] = await Promise.all([
+      manager.exists(BookingPriceSnapshotEntity, {
+        where: { bookingId: registration.id, tenantId: registration.tenantId }
+      }),
+      manager.exists(PaymentEntity, {
+        where: {
+          registrationId: registration.id,
+          tenantId: registration.tenantId,
+          status: PaymentStatus.PENDING
+        }
+      }),
+      manager.exists(PaymentEntity, {
+        where: {
+          registrationId: registration.id,
+          tenantId: registration.tenantId,
+          status: PaymentStatus.PAID
+        }
+      })
+    ]);
+    return {
+      hasPriceSnapshot,
+      hasPendingPayment,
+      hasCapturedPayment,
+      registrationFinanciallyConfirmed: registration.status === RegistrationStatus.ACCEPTED_PAID
+    };
+  }
 
   getMetricsSnapshot(): PaymentRuntimeMetrics {
     return {
@@ -108,72 +201,18 @@ export class PaymentsService {
   }
 
   async createPaymentIntent(dto: CreatePaymentIntentDto): Promise<PaymentResponseDto> {
-    return this.dataSource.transaction((manager) =>
-      this.createPaymentIntentWithManager(manager, dto)
-    );
+    assertFinancialMutationRunsInIdempotentScope("createPaymentIntent");
+    const em = getIdempotentEntityManager()!;
+    return this.createPaymentIntentWithManager(em, dto);
   }
 
   async createPaymentIntentWithManager(
     manager: DataSource["manager"],
     dto: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
-    const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
-    const actorRoleRaw = this.requestContextService.getRole();
-    const role = (actorRoleRaw ?? "").trim().toLowerCase();
-    const actorUserIdRaw = this.requestContextService.getUserId();
-    if (!trustedTenantId && role !== "admin") {
-      throw new ForbiddenException(tenantContextMissingError());
-    }
-
-    const isPublicTenantBootstrapActor =
-      typeof trustedTenantId === "string" &&
-      trustedTenantId.trim() !== "" &&
-      (!actorUserIdRaw || actorUserIdRaw.trim() === "") &&
-      (!actorRoleRaw || actorRoleRaw.trim() === "");
-
-    let registrationScope:
-      | FindOptionsWhere<RegistrationEntity>
-      | FindOptionsWhere<RegistrationEntity>[];
-
-    if (isPublicTenantBootstrapActor) {
-      registrationScope = {
-        id: dto.registrationId,
-        tenantId: trustedTenantId,
-        deletedAt: IsNull()
-      };
-    } else {
-      registrationScope = await registrationWhereForActor(
-        manager,
-        this.userRepository,
-        this.requestContextService,
-        dto.registrationId
-      );
-    }
-
-    const registration = await manager.findOne(RegistrationEntity, {
-      where: registrationScope
-    });
-    if (!registration) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Registration not found"
-        }
-      });
-    }
-    const isAdmin = role === "admin";
-    if (
-      !isAdmin &&
-      trustedTenantId &&
-      registration.tenantId !== trustedTenantId
-    ) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Registration not found"
-        }
-      });
-    }
+    assertFinancialMutationRunsInIdempotentScope("createPaymentIntentWithManager");
+    const registration =
+      await this.paymentIntentRegistrationResolver.resolveRegistrationForCreateIntent(manager, dto);
 
     const existingPending = await manager.findOne(PaymentEntity, {
       where: {
@@ -206,13 +245,66 @@ export class PaymentsService {
       });
     }
 
+    const factsBeforeIntent = await this.loadBookingFinalizationFacts(manager, registration);
+    const phaseBeforeIntent = bookingFinalizationPhaseFromFacts(factsBeforeIntent);
+    assertBookingFinalizationAtLeast(
+      phaseBeforeIntent,
+      BookingFinalizationPhase.PRICE_SNAPSHOT_LOCKED,
+      "createPaymentIntent"
+    );
+
+    const canonicalSnapshot = await findCanonicalBookingPriceSnapshot(
+      manager,
+      registration.tenantId,
+      registration.id
+    );
+    if (!canonicalSnapshot) {
+      throw new ConflictException({
+        error: {
+          code: "BOOKING_PRICE_SNAPSHOT_MISSING",
+          message:
+            "Cannot create payment intent without an immutable booking price snapshot. Live catalog pricing cannot be used here."
+        }
+      });
+    }
+    assertPaymentIntentMatchesBookingSnapshot(dto, canonicalSnapshot);
+
+    assertAllowedPaymentIntentLifecycleTransition(
+      PaymentIntentLifecycleStatus.CREATED,
+      PaymentIntentLifecycleStatus.PENDING
+    );
+
+    const explicitProviderPaymentId =
+      typeof dto.providerPaymentId === "string" ? dto.providerPaymentId.trim() : "";
+    let resolvedProviderPaymentId: string | null = explicitProviderPaymentId || null;
+    let gatewayClientSecret: string | null = null;
+    let gatewayCheckoutUrl: string | null = null;
+
+    if (!resolvedProviderPaymentId) {
+      const idempotencyKey =
+        getFinancialIdempotencyKeyFromContext() ??
+        `dev:create_payment_intent:${registration.tenantId}:${registration.id}:${dto.paymentProvider}`;
+      const gateway = this.paymentGatewayFactory.forProvider(dto.paymentProvider);
+      const gatewayResult = await gateway.createPaymentIntent({
+        tenantId: registration.tenantId,
+        idempotencyKey,
+        amount: dto.amount,
+        currency: dto.currency,
+        registrationId: registration.id,
+        metadata: { source: "payments_service" }
+      });
+      resolvedProviderPaymentId = gatewayResult.providerPaymentId;
+      gatewayClientSecret = gatewayResult.clientSecret ?? null;
+      gatewayCheckoutUrl = gatewayResult.checkoutUrl ?? null;
+    }
+
     const payment = manager.create(PaymentEntity, {
       tenantId: registration.tenantId,
       registrationId: registration.id,
       amount: dto.amount.toString(),
       currency: dto.currency,
       provider: dto.paymentProvider,
-      providerPaymentId: dto.providerPaymentId ?? null,
+      providerPaymentId: resolvedProviderPaymentId,
       status: PaymentStatus.PENDING,
       paidAt: null,
       failedAt: null,
@@ -231,10 +323,34 @@ export class PaymentsService {
         registrationId: saved.registrationId,
         status: saved.status,
         timestamp: new Date().toISOString()
+      },
+      financialAudit: {
+        stateBefore: null,
+        stateAfter: pickFinancialPaymentSnapshot(saved)
       }
     });
 
-    return this.toResponse(saved);
+    const factsAfterIntent = await this.loadBookingFinalizationFacts(manager, registration);
+    const phaseAfterIntent = bookingFinalizationPhaseFromFacts(factsAfterIntent);
+    assertSingleStepBookingFinalizationAdvance(
+      phaseBeforeIntent,
+      phaseAfterIntent,
+      "createPaymentIntent"
+    );
+    await emitBookingFinalizationPipelineEvent({
+      manager,
+      outboxService: this.outboxService,
+      tenantId: registration.tenantId,
+      registrationId: registration.id,
+      phase: BookingFinalizationPhase.PAYMENT_INITIATED,
+      metadata: { paymentId: saved.id }
+    });
+
+    return {
+      ...this.toResponse(saved),
+      clientSecret: gatewayClientSecret,
+      checkoutUrl: gatewayCheckoutUrl
+    };
   }
 
   async listPayments(tenantId: string): Promise<PaymentResponseDto[]> {
@@ -405,7 +521,8 @@ export class PaymentsService {
                 scopedPayment,
                 payload.status,
                 "system",
-                payload.reason
+                payload.reason,
+                payload.status === PaymentStatus.REFUNDED ? requestId : undefined
               );
             } catch (error: unknown) {
               if (this.isWebhookIgnoredInvalidPaymentTransition(error)) {
@@ -456,23 +573,25 @@ export class PaymentsService {
     }
   }
 
-  async refundPayment(id: string, reason?: string): Promise<PaymentResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
-      const payment = await findPaymentScopedForActor(
-        manager,
-        this.userRepository,
-        this.requestContextService,
-        id
-      );
-      const updated = await this.applyPaymentStatus(
-        manager,
-        payment,
-        PaymentStatus.REFUNDED,
-        "admin",
-        reason
-      );
-      return this.toResponse(updated);
-    });
+  async refundPayment(id: string, reason: string | undefined, idempotencyKey: string): Promise<PaymentResponseDto> {
+    const idempotencyKeyTrimmed = assertFinancialIdempotencyKey(idempotencyKey, "Idempotency-Key");
+    assertFinancialMutationRunsInIdempotentScope("refundPayment");
+    const em = getIdempotentEntityManager()!;
+    const payment = await findPaymentScopedForActor(
+      em,
+      this.userRepository,
+      this.requestContextService,
+      id
+    );
+    const updated = await this.applyPaymentStatus(
+      em,
+      payment,
+      PaymentStatus.REFUNDED,
+      UserRole.Admin,
+      reason,
+      idempotencyKeyTrimmed
+    );
+    return this.toResponse(updated);
   }
 
   async failTimedOutPendingPayments(): Promise<number> {
@@ -522,12 +641,13 @@ export class PaymentsService {
     payment: PaymentEntity,
     next: PaymentStatus,
     actorId: string,
-    reason?: string
+    reason?: string,
+    ledgerIdempotencyKey?: string
   ): Promise<PaymentEntity> {
     if (payment.status === next) {
       return payment;
     }
-    this.validatePaymentTransition(payment.status, next);
+    assertAllowedPaymentStatusTransition(payment.status, next);
 
     const registration = await manager.findOne(RegistrationEntity, {
       where: { id: payment.registrationId, tenantId: payment.tenantId }
@@ -550,6 +670,19 @@ export class PaymentsService {
     }
 
     const previous = payment.status;
+    const paymentSnapshotBefore = pickFinancialPaymentSnapshot(payment);
+
+    const factsStart = await this.loadBookingFinalizationFacts(manager, registration);
+    const phaseStart = bookingFinalizationPhaseFromFacts(factsStart);
+
+    if (next === PaymentStatus.REFUNDED) {
+      const key =
+        ledgerIdempotencyKey !== undefined && ledgerIdempotencyKey.trim() !== ""
+          ? ledgerIdempotencyKey.trim()
+          : `payment-refund:${payment.id}:${payment.tenantId}`;
+      await this.paymentRefundLedgerAuthority.emitPaymentRefundLedgerReversal(manager, payment, key);
+    }
+
     payment.status = next;
     if (next === PaymentStatus.PAID) {
       payment.paidAt = new Date();
@@ -560,12 +693,65 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.PAID) {
+      assertSingleStepBookingFinalizationAdvance(
+        phaseStart,
+        BookingFinalizationPhase.PAYMENT_CAPTURED,
+        "applyPaymentStatus"
+      );
+      await emitBookingFinalizationPipelineEvent({
+        manager,
+        outboxService: this.outboxService,
+        tenantId: registration.tenantId,
+        registrationId: registration.id,
+        phase: BookingFinalizationPhase.PAYMENT_CAPTURED,
+        metadata: { paymentId: payment.id }
+      });
+
       await this.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.ACCEPTED_PAID,
         actorId
       );
+
+      const otherPending = await manager.exists(PaymentEntity, {
+        where: {
+          registrationId: registration.id,
+          tenantId: registration.tenantId,
+          status: PaymentStatus.PENDING,
+          id: Not(payment.id)
+        }
+      });
+      if (otherPending) {
+        throw new ConflictException({
+          error: {
+            code: "BOOKING_FINALIZATION_INVARIANT_BROKEN",
+            message:
+              "Another pending payment exists for this registration; cannot finalize booking after capture."
+          }
+        });
+      }
+
+      const factsAfterConfirm: BookingFinalizationFacts = {
+        hasPriceSnapshot: factsStart.hasPriceSnapshot,
+        hasPendingPayment: false,
+        hasCapturedPayment: true,
+        registrationFinanciallyConfirmed: registration.status === RegistrationStatus.ACCEPTED_PAID
+      };
+      const phaseAfterConfirm = bookingFinalizationPhaseFromFacts(factsAfterConfirm);
+      assertSingleStepBookingFinalizationAdvance(
+        BookingFinalizationPhase.PAYMENT_CAPTURED,
+        phaseAfterConfirm,
+        "applyPaymentStatus"
+      );
+      await emitBookingFinalizationPipelineEvent({
+        manager,
+        outboxService: this.outboxService,
+        tenantId: registration.tenantId,
+        registrationId: registration.id,
+        phase: BookingFinalizationPhase.BOOKING_CONFIRMED,
+        metadata: { paymentId: payment.id }
+      });
     }
 
     if (next === PaymentStatus.FAILED) {
@@ -594,7 +780,7 @@ export class PaymentsService {
       tenantId: saved.tenantId,
       aggregateType: "Payment",
       aggregateId: payment.id,
-      eventType: this.mapEventType(next),
+      eventType: paymentStatusToOutboxEventType(next),
       payload: {
         entityType: "payment",
         entityId: payment.id,
@@ -604,6 +790,10 @@ export class PaymentsService {
         newStatus: next,
         reason: reason ?? null,
         timestamp: new Date().toISOString()
+      },
+      financialAudit: {
+        stateBefore: paymentSnapshotBefore,
+        stateAfter: pickFinancialPaymentSnapshot(saved)
       }
     });
 
@@ -622,8 +812,8 @@ export class PaymentsService {
     }
     validateStatusTransition(previousStatus, targetStatus, registration.paymentStatus);
     const affectsAcceptedCounter =
-      this.isCapacityConsumingStatus(previousStatus) ||
-      this.isCapacityConsumingStatus(targetStatus);
+      isCapacityConsumingRegistrationStatus(previousStatus) ||
+      isCapacityConsumingRegistrationStatus(targetStatus);
     const lockedTour = affectsAcceptedCounter
       ? await this.requireTourInTenantForUpdate(
           manager,
@@ -642,10 +832,23 @@ export class PaymentsService {
       this.applyAcceptedCounterDelta(lockedTour, previousStatus, targetStatus);
       await manager.save(lockedTour);
     }
-    const saved = await manager.save(registration);
+    let saved: RegistrationEntity;
+    try {
+      saved = await manager.save(registration);
+    } catch (err: unknown) {
+      if (isOptimisticLockVersionMismatchError(err)) {
+        throw new ConflictException({
+          error: {
+            code: "REGISTRATION_ROW_VERSION_CONFLICT",
+            message: "Booking changed concurrently — reload the registration, then try again."
+          }
+        });
+      }
+      throw err;
+    }
     if (
-      this.isCapacityConsumingStatus(previousStatus) &&
-      !this.isCapacityConsumingStatus(targetStatus)
+      isCapacityConsumingRegistrationStatus(previousStatus) &&
+      !isCapacityConsumingRegistrationStatus(targetStatus)
     ) {
       await this.promoteNextWaitlistItem(manager, saved, lockedTour);
     }
@@ -656,7 +859,7 @@ export class PaymentsService {
       actorId,
       previousStatus,
       newStatus: targetStatus,
-      eventType: this.mapRegistrationStatusEvent(targetStatus),
+      eventType: registrationStatusToOutboxEventType(targetStatus),
       source: "payment_flow"
     });
     return saved;
@@ -688,8 +891,8 @@ export class PaymentsService {
     lockedTour?: TourEntity | null
   ): Promise<void> {
     if (
-      this.isCapacityConsumingStatus(registration.status) ||
-      !this.isCapacityConsumingStatus(targetStatus)
+      isCapacityConsumingRegistrationStatus(registration.status) ||
+      !isCapacityConsumingRegistrationStatus(targetStatus)
     ) {
       return;
     }
@@ -717,8 +920,8 @@ export class PaymentsService {
     previousStatus: RegistrationStatus,
     targetStatus: RegistrationStatus
   ): void {
-    const wasAccepted = this.isCapacityConsumingStatus(previousStatus);
-    const willBeAccepted = this.isCapacityConsumingStatus(targetStatus);
+    const wasAccepted = isCapacityConsumingRegistrationStatus(previousStatus);
+    const willBeAccepted = isCapacityConsumingRegistrationStatus(targetStatus);
     if (wasAccepted === willBeAccepted) {
       return;
     }
@@ -791,32 +994,6 @@ export class PaymentsService {
     return true;
   }
 
-  private mapRegistrationStatusEvent(targetStatus: RegistrationStatus): string {
-    switch (targetStatus) {
-      case RegistrationStatus.ACCEPTED:
-        return "registration.accepted";
-      case RegistrationStatus.ACCEPTED_PAID:
-        return "registration.accepted_paid";
-      case RegistrationStatus.REJECTED:
-        return "registration.rejected";
-      case RegistrationStatus.CANCELLED:
-        return "registration.cancelled";
-      case RegistrationStatus.NO_SHOW:
-        return "registration.no_show";
-      case RegistrationStatus.REFUNDED:
-        return "registration.refunded";
-      default:
-        return "registration.status_changed";
-    }
-  }
-
-  private isCapacityConsumingStatus(status: RegistrationStatus): boolean {
-    return (
-      status === RegistrationStatus.ACCEPTED ||
-      status === RegistrationStatus.ACCEPTED_PAID
-    );
-  }
-
   /**
    * Webhooks must ack (200) for benign provider noise; invalid FSM transitions are ignored, not 409.
    */
@@ -830,38 +1007,6 @@ export class PaymentsService {
     }
     const code = (body as { error?: { code?: string } }).error?.code;
     return code === "PAYMENT_STATUS_TRANSITION_INVALID";
-  }
-
-  private validatePaymentTransition(current: PaymentStatus, next: PaymentStatus): void {
-    const allowed: Record<PaymentStatus, PaymentStatus[]> = {
-      [PaymentStatus.PENDING]: [PaymentStatus.PAID, PaymentStatus.FAILED],
-      [PaymentStatus.PAID]: [PaymentStatus.REFUNDED, PaymentStatus.CANCELLED],
-      [PaymentStatus.FAILED]: [],
-      [PaymentStatus.REFUNDED]: [],
-      [PaymentStatus.CANCELLED]: []
-    };
-    if (allowed[current].includes(next)) {
-      return;
-    }
-    throw new ConflictException({
-      error: {
-        code: "PAYMENT_STATUS_TRANSITION_INVALID",
-        message: "Requested payment transition is not allowed"
-      }
-    });
-  }
-
-  private mapEventType(status: PaymentStatus): string {
-    switch (status) {
-      case PaymentStatus.PAID:
-        return "payment.succeeded";
-      case PaymentStatus.FAILED:
-        return "payment.failed";
-      case PaymentStatus.REFUNDED:
-        return "payment.refunded";
-      default:
-        return "payment.status_changed";
-    }
   }
 
   private toResponse(entity: PaymentEntity): PaymentResponseDto {

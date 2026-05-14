@@ -125,6 +125,11 @@ export class ConfigService {
     return this.env.OUTBOX_PROCESSOR_ENABLED === "true";
   }
 
+  /** Unsafe outside dev/tests: in-process domain event bus instead of outbox-only emission. */
+  getEnableInMemoryDomainEvents(): boolean {
+    return this.env.ENABLE_IN_MEMORY_DOMAIN_EVENTS === "true";
+  }
+
   getInternalApiKey(): string {
     return this.env.INTERNAL_API_KEY;
   }
@@ -373,5 +378,18 @@ export class ConfigService {
   /** Trimmed `From` header for Resend; empty means EmailService uses a documented test sender. */
   getResendFrom(): string {
     return (this.env.RESEND_FROM ?? "").trim();
+  }
+
+  /** Stripe secret API key; empty means the live Stripe adapter is not selected by the factory. */
+  getStripeSecretKey(): string {
+    return (this.env.STRIPE_SECRET_KEY ?? "").trim();
+  }
+
+  getZibalMerchant(): string {
+    return (this.env.ZIBAL_MERCHANT ?? "").trim();
+  }
+
+  getZibalCallbackUrl(): string {
+    return (this.env.ZIBAL_CALLBACK_URL ?? "").trim();
   }
 }
