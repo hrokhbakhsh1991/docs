@@ -35,6 +35,11 @@ import { TOUR_DURATION_DAYS_MAX, TOUR_DURATION_DAYS_MIN } from "../utils/tour-du
 export const TOUR_TITLE_MIN_LENGTH = 10;
 export const TOUR_TITLE_MAX_LENGTH = 120;
 
+/**
+ * Request body for `POST /tours` (JSON property names match this class fields).
+ * Root keys are listed in {@link CREATE_TOUR_DTO_WIRE_KEYS} (`@repo/shared-contracts`); update that
+ * constant when adding or removing a top-level field here.
+ */
 export class CreateTourDto {
   @ApiProperty({
     example: "Damavand summit — 2-day climb from the south face",

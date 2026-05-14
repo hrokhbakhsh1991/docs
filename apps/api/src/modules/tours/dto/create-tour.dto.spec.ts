@@ -2,9 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import "reflect-metadata";
 
+import { CREATE_TOUR_DTO_WIRE_KEYS } from "@repo/shared-contracts";
+import { TOUR_FORM_PROFILE_VALUES_LIST, TOUR_TYPES } from "@repo/types";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 
+import { DifficultyLevel } from "../entities/tour-details.entity";
 import { CreateTourDto, TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "./create-tour.dto";
 
 const validBase = {
@@ -111,4 +114,44 @@ test("CreateTourDto rejects durationDays above 60", async () => {
   });
   const errors = await validate(dto, { whitelist: true });
   assert.ok(errors.some((e) => e.property === "durationDays"));
+});
+
+test("CreateTourDto wire keys contract: canonical list is sorted, unique, and validates as a full DTO", async () => {
+  const keys = [...CREATE_TOUR_DTO_WIRE_KEYS];
+  assert.deepEqual(keys, [...keys].sort((a, b) => a.localeCompare(b)));
+  assert.equal(new Set(keys).size, keys.length);
+
+  const payload: Record<string, unknown> = {
+    title: validTitle,
+    total_capacity: 10,
+    lifecycle_status: "Draft",
+    description: "Marketing copy for the tour detail page.",
+    chat_link: "https://t.me/joinchat/example",
+    cost_context: { currency: "USD", totalCost: 1200 },
+    autoAcceptRegistrations: true,
+    tourType: TOUR_TYPES[0],
+    formProfile: TOUR_FORM_PROFILE_VALUES_LIST[0],
+    transportModes: ["bus"],
+    destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    destinationName: "Damavand",
+    elevationM: 5671,
+    difficulty: DifficultyLevel.MODERATE,
+    durationDays: 2,
+    meetingPoint: "Azadi Square, Gate 3",
+    itinerary: [{ day: 1, title: "Approach", description: "Walk-in", distanceKm: 5 }],
+    tripDetails: {
+      overview: { shortIntro: "1234567890", tourThemeIds: [] },
+      logistics: { departureDate: "2026-06-01", returnDate: "2026-06-02" }
+    }
+  };
+  assert.deepEqual(new Set(Object.keys(payload)), new Set(CREATE_TOUR_DTO_WIRE_KEYS));
+
+  const errors = await validatePayload(payload);
+  assert.equal(
+    errors.length,
+    0,
+    `expected zero validation errors, got: ${JSON.stringify(
+      errors.map((e) => ({ property: e.property, constraints: e.constraints }))
+    )}`
+  );
 });

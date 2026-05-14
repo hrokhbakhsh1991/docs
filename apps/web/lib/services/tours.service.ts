@@ -18,8 +18,18 @@ export type TourDetailDto = TourDto;
 
 /**
  * Client payload for creating a tour (maps to Nest `CreateTourDto` on the wire).
+ *
+ * **Server contract:** `apps/api/src/modules/tours/dto/create-tour.dto.ts` — optional top-level
+ * fields such as `destinationName`, `elevationM`, `difficulty`, and legacy `itinerary[]` exist on
+ * the API DTO but are **not** represented on this client type; the wizard today sends structured
+ * data primarily via `tripDetails` + `mapCreateTourDto` / `compactTripDetailsForApi`. Keep in sync
+ * with OpenAPI `POST /api/v2/tours` when adding fields here.
+ *
  * `capacity` → `total_capacity`, `price` / optional `location` → `cost_context`.
  * Tour schedule dates are not part of the MVP API; the client does not send them.
+ *
+ * **Wire keys:** allowed top-level POST properties are enumerated as {@link CREATE_TOUR_DTO_WIRE_KEYS}
+ * in `@repo/shared-contracts` (kept in sync with Nest `CreateTourDto`).
  */
 export type CreateTourDto = {
   title: string;
@@ -144,8 +154,11 @@ function buildCostContextForCreate(dto: CreateTourDto): Record<string, unknown> 
   return Object.keys(ctx).length > 0 ? ctx : undefined;
 }
 
-/** Builds Nest `CreateTourDto` JSON (snake_case). */
-function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
+/**
+ * Builds the JSON body for `POST /api/v2/tours` (mixed snake_case + camelCase, matching Nest `CreateTourDto`).
+ * Exported for contract tests against `CREATE_TOUR_DTO_WIRE_KEYS` (`@repo/shared-contracts`).
+ */
+export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unknown> {
   const body: Record<string, unknown> = {
     title: dto.title.trim(),
     total_capacity: dto.capacity,
@@ -201,7 +214,7 @@ function toCreateTourApiBody(dto: CreateTourDto): Record<string, unknown> {
 export async function createTour(dto: CreateTourDto): Promise<TourDetailDto> {
   const idempotencyKey =
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-  const raw = await apiClient.post<unknown>(API.tours, toCreateTourApiBody(dto), {
+  const raw = await apiClient.post<unknown>(API.tours, buildCreateTourPostBody(dto), {
     idempotencyKey,
     /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
     skip403Redirect: true,

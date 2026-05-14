@@ -84,6 +84,9 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.28.0
         version: 1.40.0
+      '@repo/shared-contracts':
+        specifier: workspace:*
+        version: link:../../packages/shared-contracts
       '@repo/shared-rbac':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -224,6 +227,9 @@ importers:
       '@repo/digit-localization':
         specifier: workspace:*
         version: link:../../packages/digit-localization
+      '@repo/shared-contracts':
+        specifier: workspace:*
+        version: link:../../packages/shared-contracts
       '@repo/shared-rbac':
         specifier: workspace:*
         version: link:../../packages/shared
