@@ -16,7 +16,7 @@ import type {
 import { UserFilters } from "./user-filters";
 import { UserTable } from "./user-table";
 import { USERS_ROUTE_COPY } from "./users-copy";
-import { UsersDirectoryPagination } from "./users-directory-pagination";
+import styles from "./users-page.module.css";
 
 const copy = USERS_ROUTE_COPY.list;
 
@@ -33,14 +33,11 @@ export type UsersDirectoryTableCardProps = {
   sortDir: UserSortDirection;
   onToggleSort: (column: UserSortColumn) => void;
   rows: WorkspaceUserDto[];
-  currentPage: number;
-  totalPages: number;
-  totalUsers: number;
-  hasUnloadedPages: boolean;
+  totalFilteredCount: number;
+  hasMoreBelow: boolean;
   isLoadingMore: boolean;
   isRefreshing: boolean;
-  onPrevPage: () => void;
-  onNextPage: () => void;
+  onRequestLoadMore: () => void;
   onOpenProfile: (userId: string) => void;
   sessionUser: AuthUser | null;
   roleMutation: UseMutationResult<
@@ -54,7 +51,7 @@ export type UsersDirectoryTableCardProps = {
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
 };
 
-/** Card shell: toolbar, member table or “no matches”, pagination (client-side only). */
+/** Card shell: toolbar, virtualized member table or “no matches”, load-more footer. */
 export function UsersDirectoryTableCard({
   searchQuery,
   onSearchQueryChange,
@@ -68,14 +65,11 @@ export function UsersDirectoryTableCard({
   sortDir,
   onToggleSort,
   rows,
-  currentPage,
-  totalPages,
-  totalUsers,
-  hasUnloadedPages,
+  totalFilteredCount,
+  hasMoreBelow,
   isLoadingMore,
   isRefreshing,
-  onPrevPage,
-  onNextPage,
+  onRequestLoadMore,
   onOpenProfile,
   sessionUser,
   roleMutation,
@@ -120,20 +114,38 @@ export function UsersDirectoryTableCard({
             selectedUserIds={selectedUserIds}
             onOpenProfile={onOpenProfile}
             onSelectedUserIdsChange={onSelectedUserIdsChange}
+            hasMoreBelow={hasMoreBelow}
+            onRequestLoadMore={onRequestLoadMore}
           />
         )}
       </CardBody>
-      {(totalPages > 1 || hasUnloadedPages) ? (
+      {rows.length > 0 ? (
         <CardFooter>
-          <UsersDirectoryPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalUsers={totalUsers}
-            hasUnloadedPages={hasUnloadedPages}
-            isLoadingMore={isLoadingMore}
-            onPrev={onPrevPage}
-            onNext={onNextPage}
-          />
+          <div className={styles.directoryFooter}>
+            <div>
+              <p className={styles.directoryFooterMeta}>
+                <span aria-live="polite">
+                  {`${totalFilteredCount} ${copy.directoryMembersWord}`}
+                  {isLoadingMore ? ` — ${copy.loadingMoreUsersLabel}` : null}
+                </span>
+              </p>
+              {hasMoreBelow ? (
+                <p className={styles.directoryFooterMeta}>{copy.directoryMoreAvailableHint}</p>
+              ) : null}
+            </div>
+            {hasMoreBelow ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                loading={isLoadingMore}
+                disabled={isLoadingMore}
+                onClick={onRequestLoadMore}
+              >
+                {copy.directoryLoadMoreButton}
+              </Button>
+            ) : null}
+          </div>
         </CardFooter>
       ) : null}
     </Card>

@@ -71,6 +71,10 @@ export const USERS_ROUTE_COPY = {
     bulkApplyRoleButton: "Apply",
     refreshingLabel: "Refreshing…",
     loadingMoreUsersLabel: "Loading more users…",
+    /** Virtual directory footer: count line (prefix is the numeric count in the UI). */
+    directoryMembersWord: "members",
+    directoryMoreAvailableHint: "More members load as you scroll.",
+    directoryLoadMoreButton: "Load more",
     memberDetailModal: {
       titleFallback: "Member details",
       tabGeneral: "General",

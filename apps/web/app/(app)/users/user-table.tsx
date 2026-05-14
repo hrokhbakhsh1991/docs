@@ -1,7 +1,8 @@
 "use client";
 
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { UseMutationResult } from "@tanstack/react-query";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { Button, Checkbox, Table, TableBody, TableHead, TableHeaderCell, TableRow } from "@tour/ui";
 
@@ -15,6 +16,9 @@ import { USERS_ROUTE_COPY } from "./users-copy";
 import { UserRow } from "./user-row";
 
 const copy = USERS_ROUTE_COPY.list;
+
+/** Fixed row height for virtual windowing (labels cell is clamped in CSS). */
+const VIRTUAL_USER_ROW_HEIGHT_PX = 68;
 
 function ariaSortForColumn(
   column: UserSortColumn,
@@ -36,6 +40,9 @@ type UserTableProps = {
   onToggleSort: (column: UserSortColumn) => void;
   onOpenProfile: (userId: string) => void;
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
+  /** When true, more server pages can be fetched (infinite query). */
+  hasMoreBelow?: boolean;
+  onRequestLoadMore?: () => void;
 };
 
 function UserTableBase({
@@ -48,8 +55,13 @@ function UserTableBase({
   roleMutation,
   onToggleSort,
   onOpenProfile,
-  onSelectedUserIdsChange
+  onSelectedUserIdsChange,
+  hasMoreBelow = false,
+  onRequestLoadMore
 }: UserTableProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRequestedRef = useRef(false);
+
   const selectableVisibleIds = useMemo(() => {
     const sessionUserId = sessionUser?.userId ?? "";
     return rows
@@ -82,54 +94,132 @@ function UserTableBase({
     onSelectedUserIdsChange(next);
   }
 
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => VIRTUAL_USER_ROW_HEIGHT_PX,
+    overscan: 14
+  });
+
+  const requestLoadMore = useCallback(() => {
+    if (!hasMoreBelow || !onRequestLoadMore) {
+      return;
+    }
+    if (loadMoreRequestedRef.current) {
+      return;
+    }
+    loadMoreRequestedRef.current = true;
+    onRequestLoadMore();
+    window.setTimeout(() => {
+      loadMoreRequestedRef.current = false;
+    }, 400);
+  }, [hasMoreBelow, onRequestLoadMore]);
+
+  useEffect(() => {
+    virtualizer.measure();
+  }, [rows, virtualizer]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return undefined;
+    }
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+      if (distanceToBottom < 480) {
+        requestLoadMore();
+      }
+      const items = virtualizer.getVirtualItems();
+      if (items.length === 0) {
+        return;
+      }
+      const last = items[items.length - 1];
+      if (last && last.index >= rows.length - 8) {
+        requestLoadMore();
+      }
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [virtualizer, rows.length, requestLoadMore]);
+
+  const totalSize = virtualizer.getTotalSize();
+
   return (
-    <Table aria-label={copy.tableAriaLabel}>
-      <TableHead>
-        <TableRow>
-          <TableHeaderCell className={styles.selectionCell}>
-            <Checkbox
-              bare
-              aria-label="Select all visible users"
-              checked={allVisibleSelected}
-              disabled={selectableVisibleIds.length === 0}
-              onChange={(event) => toggleSelectAllVisible(event.target.checked)}
-            />
-          </TableHeaderCell>
-          <TableHeaderCell aria-sort={ariaSortForColumn("name", sortColumn, sortDir)}>
-            <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("name")}>
-              Name {sortColumn === "name" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-            </Button>
-          </TableHeaderCell>
-          <TableHeaderCell aria-sort={ariaSortForColumn("email", sortColumn, sortDir)}>
-            <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("email")}>
-              Email {sortColumn === "email" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-            </Button>
-          </TableHeaderCell>
-          <TableHeaderCell>Phone</TableHeaderCell>
-          <TableHeaderCell>Phone verification</TableHeaderCell>
-          <TableHeaderCell>{copy.columnLabels}</TableHeaderCell>
-          <TableHeaderCell>Role</TableHeaderCell>
-          <TableHeaderCell>Status</TableHeaderCell>
-          <TableHeaderCell>Last Login</TableHeaderCell>
-          <TableHeaderCell>Joined At</TableHeaderCell>
-          <TableHeaderCell className={styles.actionsCell}>{copy.columnActions}</TableHeaderCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rows.map((row) => (
-          <UserRow
-            key={row.id}
-            row={row}
-            sessionUser={sessionUser}
-            selected={selectedUserIds.has(row.id)}
-            activeRoleMutationUserId={activeRoleMutationUserId}
-            roleMutation={roleMutation}
-            onOpenProfile={onOpenProfile}
-            onToggleSelected={toggleRowSelection}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <div ref={scrollRef} className={styles.virtualScrollViewport}>
+      <Table aria-label={copy.tableAriaLabel}>
+        <colgroup>
+          <col style={{ width: "2.75rem" }} />
+          <col style={{ width: "15%" }} />
+          <col style={{ width: "19%" }} />
+          <col style={{ width: "11%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "9%" }} />
+          <col />
+        </colgroup>
+        <TableHead className={styles.stickyDirectoryThead}>
+          <TableRow>
+            <TableHeaderCell className={styles.selectionCell}>
+              <Checkbox
+                bare
+                aria-label="Select all loaded users"
+                checked={allVisibleSelected}
+                disabled={selectableVisibleIds.length === 0}
+                onChange={(event) => toggleSelectAllVisible(event.target.checked)}
+              />
+            </TableHeaderCell>
+            <TableHeaderCell aria-sort={ariaSortForColumn("name", sortColumn, sortDir)}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("name")}>
+                Name {sortColumn === "name" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+              </Button>
+            </TableHeaderCell>
+            <TableHeaderCell aria-sort={ariaSortForColumn("email", sortColumn, sortDir)}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("email")}>
+                Email {sortColumn === "email" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+              </Button>
+            </TableHeaderCell>
+            <TableHeaderCell>Phone</TableHeaderCell>
+            <TableHeaderCell>Phone verification</TableHeaderCell>
+            <TableHeaderCell>{copy.columnLabels}</TableHeaderCell>
+            <TableHeaderCell>Role</TableHeaderCell>
+            <TableHeaderCell>Status</TableHeaderCell>
+            <TableHeaderCell>Last Login</TableHeaderCell>
+            <TableHeaderCell>Joined At</TableHeaderCell>
+            <TableHeaderCell className={styles.actionsCell}>{copy.columnActions}</TableHeaderCell>
+          </TableRow>
+        </TableHead>
+        <TableBody className={styles.virtualTbody} style={{ height: `${totalSize}px` }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            if (!row) {
+              return null;
+            }
+            return (
+              <UserRow
+                key={row.id}
+                row={row}
+                sessionUser={sessionUser}
+                selected={selectedUserIds.has(row.id)}
+                activeRoleMutationUserId={activeRoleMutationUserId}
+                roleMutation={roleMutation}
+                onOpenProfile={onOpenProfile}
+                onToggleSelected={toggleRowSelection}
+                trStyle={{
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`
+                }}
+                className={styles.virtualDataRow}
+              />
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

@@ -26,6 +26,7 @@
     "@repo/digit-localization": "workspace:*",
     "@repo/types": "workspace:*",
     "@tanstack/react-query": "^5",
+    "@tanstack/react-virtual": "^3.13.0",
     "@tour/ui": "workspace:*",
     "axios": "^1.15.2",
     "js-cookie": "^3.0.5",

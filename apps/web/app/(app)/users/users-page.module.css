@@ -157,8 +157,56 @@
   max-width: 14rem;
 }
 
+.stickyDirectoryThead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg-surface);
+}
+
+.stickyDirectoryThead :is(th) {
+  box-shadow: 0 1px 0 var(--color-border-subtle);
+}
+
+.virtualScrollViewport {
+  max-height: min(72vh, 720px);
+  overflow: auto;
+}
+
+.virtualTbody {
+  position: relative;
+  display: block;
+}
+
+.virtualDataRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: table;
+  table-layout: fixed;
+  box-sizing: border-box;
+}
+
+.directoryFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.directoryFooterMeta {
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
 .labelBadges {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
+  max-height: 2.75rem;
+  overflow: hidden;
 }

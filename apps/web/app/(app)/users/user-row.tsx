@@ -1,7 +1,7 @@
 "use client";
 
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { memo } from "react";
 
 import { Badge, Checkbox, TableCell, TableRow } from "@tour/ui";
@@ -25,6 +25,9 @@ type UserRowProps = {
   roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onOpenProfile: (userId: string) => void;
   onToggleSelected: (userId: string, checked: boolean) => void;
+  /** Optional layout for virtualized rows (absolute positioning / height). */
+  trStyle?: CSSProperties;
+  className?: string;
 };
 
 function statusBadgeVariant(status: string): "success" | "warning" | "danger" | "neutral" {
@@ -79,7 +82,9 @@ function UserRowBase({
   activeRoleMutationUserId,
   roleMutation,
   onOpenProfile,
-  onToggleSelected
+  onToggleSelected,
+  trStyle,
+  className
 }: UserRowProps) {
   const sessionUserId = sessionUser?.userId ?? "";
   const rowSelectable = normalizeRole(row.role) !== "owner" && row.id !== sessionUserId;
@@ -96,7 +101,11 @@ function UserRowBase({
   }
 
   return (
-      <TableRow className={styles.clickableRow} onClick={handleRowPointerDown}>
+    <TableRow
+      className={[styles.clickableRow, className].filter(Boolean).join(" ")}
+      style={trStyle}
+      onClick={handleRowPointerDown}
+    >
       <TableCell className={styles.selectionCell} onClick={(e) => e.stopPropagation()}>
         <Checkbox
           bare

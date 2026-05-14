@@ -23,7 +23,8 @@ import {
   updateUserRole,
   usersUseLiveApi,
 } from "@/lib/services/users.service";
-import type { UserRole } from "@/lib/auth/user-role";
+import { UserRole } from "@/lib/auth/user-role";
+import { tryParseWorkspaceRole } from "@repo/shared-rbac";
 import { useAppToast } from "@/lib/use-app-toast";
 
 import {
@@ -47,8 +48,16 @@ import { UsersDirectoryPageShell } from "./users-page-shell";
 import { UserDirectoryDetailModal } from "./user-directory-detail-modal";
 
 const copy = USERS_ROUTE_COPY.list;
-const ROLE_FILTER_VALUES: readonly RoleFilter[] = ["all", "owner", "leader", "admin", "member", "viewer"];
-const USERS_PAGE_SIZE = 10;
+const ROLE_FILTER_VALUES: readonly RoleFilter[] = [
+  "all",
+  UserRole.Owner,
+  UserRole.Leader,
+  UserRole.Admin,
+  UserRole.Member,
+  UserRole.Viewer
+];
+/** Matches `GET /api/v2/users` page size and React Query `directoryList` key segment. */
+const DIRECTORY_FETCH_LIMIT = 50;
 
 function parseSortParam(value: string | null): { sortColumn: UserSortColumn; sortDir: "asc" | "desc" } {
   switch ((value ?? "").trim().toLowerCase()) {
@@ -65,8 +74,15 @@ function parseSortParam(value: string | null): { sortColumn: UserSortColumn; sor
 }
 
 function parseRoleParam(value: string | null): RoleFilter {
-  const candidate = (value ?? "").trim().toLowerCase() as RoleFilter;
-  return ROLE_FILTER_VALUES.includes(candidate) ? candidate : "all";
+  const raw = (value ?? "").trim().toLowerCase();
+  if (raw === "" || raw === "all") {
+    return "all";
+  }
+  const parsed = tryParseWorkspaceRole(raw);
+  if (parsed && ROLE_FILTER_VALUES.includes(parsed)) {
+    return parsed;
+  }
+  return "all";
 }
 
 export function UsersPageClient() {
@@ -95,23 +111,23 @@ export function UsersPageClient() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>(initialQuerySearch);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(() => new Set());
   const [bulkRoleSelection, setBulkRoleSelection] = useState<"" | BulkAssignableRole>("");
-  const [directoryPage, setDirectoryPage] = useState(1);
   const [inviteUserModalOpen, setInviteUserModalOpen] = useState(false);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [bulkRemoveConfirmOpen, setBulkRemoveConfirmOpen] = useState(false);
 
   const activeSearchQuery = debouncedSearchQuery.trim();
   const activeRoleFilter = directoryUiState.roleFilter === "all" ? undefined : directoryUiState.roleFilter;
+  const tenantId = sessionUser?.tenantId ?? "";
   const userListQueryKey = useMemo(
-    () => [
-      ...userKeys.lists(),
-      {
-        tenantId: sessionUser?.tenantId ?? "anonymous",
-        search: activeSearchQuery,
-        role: activeRoleFilter
-      }
-    ],
-    [sessionUser?.tenantId, activeSearchQuery, activeRoleFilter]
+    () =>
+      tenantId
+        ? userKeys.directoryList(tenantId, {
+            search: activeSearchQuery,
+            role: activeRoleFilter ?? "all",
+            limit: DIRECTORY_FETCH_LIMIT,
+          })
+        : ([...userKeys.all, "list", "__no-tenant__"] as const),
+    [tenantId, activeSearchQuery, activeRoleFilter],
   );
 
   const {
@@ -127,7 +143,7 @@ export function UsersPageClient() {
     queryKey: userListQueryKey,
     queryFn: ({ pageParam }) =>
       getUsers({
-        limit: 30,
+        limit: DIRECTORY_FETCH_LIMIT,
         cursor: typeof pageParam === "string" ? pageParam : undefined,
         search: activeSearchQuery || undefined,
         role: activeRoleFilter,
@@ -148,45 +164,53 @@ export function UsersPageClient() {
 
   const [activeRoleMutationUserId, setActiveRoleMutationUserId] = useState<string | null>(null);
   const roleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) => updateUserRole(userId, role),
-    onMutate: async (variables) => {
-      setActiveRoleMutationUserId(variables.userId);
-      await queryClient.cancelQueries({ queryKey: userKeys.lists() });
+    mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
+      setActiveRoleMutationUserId(userId);
+      if (tenantId) {
+        await queryClient.cancelQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
       const queryKey = userListQueryKey;
-      const previous = queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey);
-      queryClient.setQueryData<InfiniteData<GetUsersResponseDto>>(queryKey, (current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          pages: current.pages.map((page) => ({
-            ...page,
-            data: page.data.map((row) =>
-              row.id === variables.userId
-                ? {
-                    ...row,
-                    role: variables.role,
-                  }
-                : row,
-            ),
-          })),
-        };
+      return updateUserRole(userId, role, {
+        snapshot: () => queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey),
+        applyOptimistic: (_snapshot) => {
+          queryClient.setQueryData<InfiniteData<GetUsersResponseDto>>(queryKey, (current) => {
+            if (!current) return current;
+            return {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                data: page.data.map((row) =>
+                  row.id === userId
+                    ? {
+                        ...row,
+                        role,
+                      }
+                    : row,
+                ),
+              })),
+            };
+          });
+        },
+        rollback: (previous) => {
+          if (previous !== undefined) {
+            queryClient.setQueryData(queryKey, previous);
+          }
+        },
       });
-      return { previous, queryKey };
     },
     onSuccess: () => {
       toast.success({ message: copy.roleUpdatedToast });
     },
-    onError: (e: unknown, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(context.queryKey, context.previous);
-      }
+    onError: (e: unknown) => {
       toast.error({
         message: e instanceof ApiError ? e.message : copy.roleUpdateErrorToast,
       });
     },
-    onSettled: (_data, _error, _vars, context) => {
+    onSettled: () => {
       setActiveRoleMutationUserId(null);
-      void queryClient.invalidateQueries({ queryKey: context?.queryKey ?? userKeys.lists() });
+      if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
     },
   });
 
@@ -256,15 +280,6 @@ export function UsersPageClient() {
     directoryUiState.sortDir,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / USERS_PAGE_SIZE));
-  const hasUnloadedPages = hasNextPage;
-  const pageStart = (directoryPage - 1) * USERS_PAGE_SIZE;
-  const pageEnd = pageStart + USERS_PAGE_SIZE;
-  const pagedUsers = useMemo(
-    () => sortedUsers.slice(pageStart, pageEnd),
-    [sortedUsers, pageStart, pageEnd],
-  );
-
   const selectableUserIds = useMemo(() => {
     const sessionUserId = sessionUser?.userId ?? "";
     return new Set(
@@ -290,14 +305,6 @@ export function UsersPageClient() {
     }
   }, [selectedUserIds.size]);
 
-  useEffect(() => {
-    setDirectoryPage(1);
-  }, [debouncedSearchQuery, directoryUiState.roleFilter, directoryUiState.sortColumn, directoryUiState.sortDir]);
-
-  useEffect(() => {
-    setDirectoryPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
   const toggleUserSort = useCallback((column: UserSortColumn) => {
     setDirectoryUiState((s) => {
       if (s.sortColumn !== column) {
@@ -309,8 +316,40 @@ export function UsersPageClient() {
   }, []);
 
   const bulkRoleMutation = useMutation({
-    mutationFn: ({ userIds, role }: { userIds: string[]; role: BulkAssignableRole }) =>
-      bulkUpdateUsersRole(userIds, role),
+    mutationFn: async ({ userIds, role }: { userIds: string[]; role: BulkAssignableRole }) => {
+      if (tenantId) {
+        await queryClient.cancelQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
+      const queryKey = userListQueryKey;
+      const idSet = new Set(userIds);
+      return bulkUpdateUsersRole(userIds, role, {
+        snapshot: () => queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey),
+        applyOptimistic: (_snapshot) => {
+          queryClient.setQueryData<InfiniteData<GetUsersResponseDto>>(queryKey, (current) => {
+            if (!current) return current;
+            return {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                data: page.data.map((row) =>
+                  idSet.has(row.id)
+                    ? {
+                        ...row,
+                        role,
+                      }
+                    : row,
+                ),
+              })),
+            };
+          });
+        },
+        rollback: (previous) => {
+          if (previous !== undefined) {
+            queryClient.setQueryData(queryKey, previous);
+          }
+        },
+      });
+    },
     onSuccess: (_result, variables) => {
       toast.success({ message: `Updated ${variables.userIds.length} users.` });
       setSelectedUserIds(new Set());
@@ -322,7 +361,9 @@ export function UsersPageClient() {
       });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
     },
   });
 
@@ -346,7 +387,9 @@ export function UsersPageClient() {
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to suspend selected users." });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
     },
   });
 
@@ -362,7 +405,9 @@ export function UsersPageClient() {
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to reactivate selected users." });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
     },
   });
 
@@ -389,7 +434,9 @@ export function UsersPageClient() {
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to remove selected users." });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      if (tenantId) {
+        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+      }
     },
   });
 
@@ -403,21 +450,12 @@ export function UsersPageClient() {
     bulkRemoveMutation.mutate({ userIds: [...selectedUserIds] });
   }, [selectedUserIds, bulkRemoveMutation]);
 
-  const goToNextPage = useCallback(async () => {
-    if (directoryPage < totalPages) {
-      setDirectoryPage((p) => p + 1);
+  const requestMoreMembers = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage) {
       return;
     }
-    if (!hasUnloadedPages) return;
-    const result = await fetchNextPage();
-    if ((result.data?.pages?.length ?? 0) > (data?.pages?.length ?? 0)) {
-      setDirectoryPage((p) => p + 1);
-    }
-  }, [directoryPage, totalPages, hasUnloadedPages, fetchNextPage, data?.pages?.length]);
-
-  const goToPrevPage = useCallback(() => {
-    setDirectoryPage((p) => Math.max(1, p - 1));
-  }, []);
+    void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const openUserProfile = useCallback((userId: string) => {
     setDetailUserId(userId);
@@ -432,8 +470,12 @@ export function UsersPageClient() {
   }, []);
 
   const refreshUsersListAfterInvite = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: userListQueryKey });
-  }, [queryClient, userListQueryKey]);
+    if (tenantId) {
+      await queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    } else {
+      await queryClient.invalidateQueries({ queryKey: userListQueryKey });
+    }
+  }, [queryClient, tenantId, userListQueryKey]);
 
   const bodyState = resolveUsersDirectoryBodyState({
     isHydrated,
@@ -518,15 +560,12 @@ export function UsersPageClient() {
             sortColumn={directoryUiState.sortColumn}
             sortDir={directoryUiState.sortDir}
             onToggleSort={toggleUserSort}
-            rows={pagedUsers}
-            currentPage={directoryPage}
-            totalPages={totalPages}
-            totalUsers={sortedUsers.length}
-            hasUnloadedPages={hasUnloadedPages}
+            rows={sortedUsers}
+            totalFilteredCount={sortedUsers.length}
+            hasMoreBelow={hasNextPage}
             isLoadingMore={isFetchingNextPage}
             isRefreshing={isFetching && !usersLoadingInitial}
-            onPrevPage={goToPrevPage}
-            onNextPage={() => void goToNextPage()}
+            onRequestLoadMore={requestMoreMembers}
             onOpenProfile={openUserProfile}
             sessionUser={sessionUser}
             roleMutation={roleMutation}
