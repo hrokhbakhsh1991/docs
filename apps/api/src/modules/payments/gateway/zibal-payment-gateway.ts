@@ -1,8 +1,14 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  InternalServerErrorException
+} from "@nestjs/common";
 import { ConfigService } from "../../../config/config.service";
 import type { IPaymentGateway } from "./payment-gateway.interface";
 import type { CreatePaymentIntentGatewayInput, PaymentIntentGatewayResult } from "./payment-gateway.types";
 import type { IdempotencyKeyStore } from "./payment-idempotency-key.store";
+import { PAYMENT_GATEWAY_IDEMPOTENCY_STORE } from "./payment-idempotency-key.store";
 
 type ZibalRequestResponse = {
   message: string;
@@ -21,7 +27,7 @@ export class ZibalPaymentGateway implements IPaymentGateway {
   readonly providerId = "zibal";
 
   constructor(
-    private readonly idempotencyStore: IdempotencyKeyStore,
+    @Inject(PAYMENT_GATEWAY_IDEMPOTENCY_STORE) private readonly idempotencyStore: IdempotencyKeyStore,
     private readonly config: ConfigService
   ) {}
 

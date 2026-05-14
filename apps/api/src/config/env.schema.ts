@@ -188,5 +188,20 @@ export const envSchema = z.object({
    * Absolute HTTPS callback URL registered with Zibal (buyer return + verification handoff).
    * Required for `paymentProvider=zibal` when using the real adapter.
    */
-  ZIBAL_CALLBACK_URL: z.string().default("")
+  ZIBAL_CALLBACK_URL: z.string().default(""),
+
+  /**
+   * Payment-gateway idempotency store: `redis` (durable, multi-instance) or `memory` (single process).
+   * When unset, defaults to `memory` when `NODE_ENV=test`, otherwise `redis`.
+   */
+  PAYMENT_GATEWAY_IDEMPOTENCY_STORE: z.preprocess(
+    (v: unknown) => {
+      const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+      if (s === "redis" || s === "memory") {
+        return s;
+      }
+      return process.env.NODE_ENV === "test" ? "memory" : "redis";
+    },
+    z.enum(["redis", "memory"])
+  )
 });

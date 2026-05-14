@@ -392,4 +392,8 @@ export class ConfigService {
   getZibalCallbackUrl(): string {
     return (this.env.ZIBAL_CALLBACK_URL ?? "").trim();
   }
+
+  getPaymentGatewayIdempotencyStore(): "redis" | "memory" {
+    return this.env.PAYMENT_GATEWAY_IDEMPOTENCY_STORE;
+  }
 }

@@ -1,9 +1,10 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
 import Stripe from "stripe";
 import { ConfigService } from "../../../config/config.service";
 import type { IPaymentGateway } from "./payment-gateway.interface";
 import type { CreatePaymentIntentGatewayInput, PaymentIntentGatewayResult } from "./payment-gateway.types";
 import type { IdempotencyKeyStore } from "./payment-idempotency-key.store";
+import { PAYMENT_GATEWAY_IDEMPOTENCY_STORE } from "./payment-idempotency-key.store";
 
 function mapStripePaymentIntentStatus(status: string): PaymentIntentGatewayResult["status"] {
   switch (status) {
@@ -32,7 +33,7 @@ export class StripePaymentGateway implements IPaymentGateway {
   readonly providerId = "stripe";
 
   constructor(
-    private readonly idempotencyStore: IdempotencyKeyStore,
+    @Inject(PAYMENT_GATEWAY_IDEMPOTENCY_STORE) private readonly idempotencyStore: IdempotencyKeyStore,
     private readonly config: ConfigService
   ) {}
 

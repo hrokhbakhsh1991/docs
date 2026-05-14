@@ -1,8 +1,15 @@
 import { Module } from "@nestjs/common";
+import Redis from "ioredis";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ConfigService } from "../../config/config.service";
 import { DatabaseModule } from "../../database/database.module";
 import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
-import { InMemoryIdempotencyKeyStore } from "./gateway/payment-idempotency-key.store";
+import {
+  InMemoryIdempotencyKeyStore,
+  PAYMENT_GATEWAY_IDEMPOTENCY_STORE,
+  PAYMENTS_GATEWAY_IDEMPOTENCY_REDIS
+} from "./gateway/payment-idempotency-key.store";
+import { RedisPaymentIdempotencyKeyStore } from "./gateway/redis-payment-idempotency-key.store";
 import { MockPaymentGateway } from "./gateway/mock-payment-gateway";
 import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
 import { StripeLikePaymentGatewayPlaceholder } from "./gateway/stripe-like-payment-gateway.placeholder";
@@ -32,6 +39,30 @@ import { PaymentsService } from "./payments.service";
   controllers: [PaymentsController, PaymentsWebhookController],
   providers: [
     InMemoryIdempotencyKeyStore,
+    RedisPaymentIdempotencyKeyStore,
+    {
+      provide: PAYMENTS_GATEWAY_IDEMPOTENCY_REDIS,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const { host, port } = config.getRedisConfig();
+        return new Redis({
+          host,
+          port,
+          maxRetriesPerRequest: 2,
+          lazyConnect: true
+        });
+      }
+    },
+    {
+      provide: PAYMENT_GATEWAY_IDEMPOTENCY_STORE,
+      inject: [ConfigService, RedisPaymentIdempotencyKeyStore, InMemoryIdempotencyKeyStore],
+      useFactory: (
+        config: ConfigService,
+        redisStore: RedisPaymentIdempotencyKeyStore,
+        memoryStore: InMemoryIdempotencyKeyStore
+      ) =>
+        config.getPaymentGatewayIdempotencyStore() === "redis" ? redisStore : memoryStore
+    },
     MockPaymentGateway,
     StripeLikePaymentGatewayPlaceholder,
     StripePaymentGateway,
@@ -46,7 +77,9 @@ import { PaymentsService } from "./payments.service";
   exports: [
     PaymentsService,
     PaymentGatewayFactory,
+    PAYMENT_GATEWAY_IDEMPOTENCY_STORE,
     InMemoryIdempotencyKeyStore,
+    RedisPaymentIdempotencyKeyStore,
     MockPaymentGateway,
     StripeLikePaymentGatewayPlaceholder,
     StripePaymentGateway,
