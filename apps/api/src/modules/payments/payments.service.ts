@@ -620,7 +620,7 @@ export class PaymentsService {
     if (previousStatus === targetStatus) {
       return registration;
     }
-    validateStatusTransition(previousStatus, targetStatus);
+    validateStatusTransition(previousStatus, targetStatus, registration.paymentStatus);
     const affectsAcceptedCounter =
       this.isCapacityConsumingStatus(previousStatus) ||
       this.isCapacityConsumingStatus(targetStatus);

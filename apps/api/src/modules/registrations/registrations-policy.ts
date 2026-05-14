@@ -1,5 +1,13 @@
 import { ConflictException, NotFoundException } from "@nestjs/common";
 import {
+  assertValidBookingTransition,
+  BookingTransitionForbiddenError
+} from "./domain/assert-valid-booking-transition";
+import {
+  toBookingStatusFromRegistration,
+  toBookingStatusFromTargetRegistrationStatus
+} from "./domain/registration-booking-bridge";
+import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "./registration.entity";
@@ -23,48 +31,42 @@ export function assertJwtTenantMatchesTourForAuthenticatedMutation(input: {
   }
 }
 
+/**
+ * Validates a registration status change using the booking state machine
+ * (`BOOKING_ALLOWED_TRANSITIONS` / `BookingTransitionRules`).
+ *
+ * Current and target rows are projected with `toBookingStatusFromRegistration` /
+ * `toBookingStatusFromTargetRegistrationStatus` so legacy `RegistrationStatus` + `payment_status`
+ * stay the persistence source while rules stay single-sourced in the booking domain.
+ */
 export function validateStatusTransition(
   currentStatus: RegistrationStatus,
-  targetStatus: RegistrationStatus
+  targetStatus: RegistrationStatus,
+  currentPaymentStatus: RegistrationPaymentStatus,
+  options?: { treatCurrentAsWaitlisted?: boolean }
 ): void {
-  const allowedTransitions: Record<RegistrationStatus, RegistrationStatus[]> = {
-    [RegistrationStatus.PENDING]: [
-      RegistrationStatus.ACCEPTED,
-      RegistrationStatus.ACCEPTED_PAID,
-      RegistrationStatus.REJECTED,
-      RegistrationStatus.CANCELLED
-    ],
-    [RegistrationStatus.ACCEPTED]: [
-      RegistrationStatus.ACCEPTED_PAID,
-      RegistrationStatus.REJECTED,
-      RegistrationStatus.CANCELLED,
-      RegistrationStatus.NO_SHOW
-    ],
-    [RegistrationStatus.ACCEPTED_PAID]: [
-      RegistrationStatus.REJECTED,
-      RegistrationStatus.CANCELLED,
-      RegistrationStatus.REFUNDED
-    ],
-    [RegistrationStatus.REJECTED]: [],
-    [RegistrationStatus.CANCELLED]: [],
-    [RegistrationStatus.NO_SHOW]: [],
-    [RegistrationStatus.REFUNDED]: []
-  };
-
   if (currentStatus === targetStatus) {
     return;
   }
 
-  if (allowedTransitions[currentStatus].includes(targetStatus)) {
-    return;
-  }
-
-  throw new ConflictException({
-    error: {
-      code: "STATE_TRANSITION_INVALID",
-      message: "Requested registration status transition is not allowed"
-    }
+  const from = toBookingStatusFromRegistration(currentStatus, currentPaymentStatus, {
+    treatAsWaitlisted: options?.treatCurrentAsWaitlisted
   });
+  const to = toBookingStatusFromTargetRegistrationStatus(targetStatus);
+
+  try {
+    assertValidBookingTransition(from, to);
+  } catch (error: unknown) {
+    if (error instanceof BookingTransitionForbiddenError) {
+      throw new ConflictException({
+        error: {
+          code: "STATE_TRANSITION_INVALID",
+          message: "Requested registration status transition is not allowed"
+        }
+      });
+    }
+    throw error;
+  }
 }
 
 export function validatePaymentTransition(

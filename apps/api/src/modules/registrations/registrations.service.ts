@@ -418,7 +418,11 @@ export class RegistrationsService {
         });
       }
       this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
-      validateStatusTransition(registration.status, payload.targetStatus);
+      validateStatusTransition(
+        registration.status,
+        payload.targetStatus,
+        registration.paymentStatus
+      );
 
       const previousStatus = registration.status;
       const statusChanged = previousStatus !== payload.targetStatus;
@@ -1407,7 +1411,11 @@ export class RegistrationsService {
     if (previousStatus === targetStatus) {
       return registration;
     }
-    validateStatusTransition(previousStatus, targetStatus);
+    validateStatusTransition(
+      previousStatus,
+      targetStatus,
+      registration.paymentStatus
+    );
     const affectsAcceptedCounter =
       isCapacityConsumingRegistrationStatus(previousStatus) ||
       isCapacityConsumingRegistrationStatus(targetStatus);
