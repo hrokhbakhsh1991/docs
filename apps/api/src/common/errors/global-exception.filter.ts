@@ -13,15 +13,29 @@ import { LoggerService } from "../logger/logger.service";
 import type { ObservabilityMetricsService } from "../observability/observability-metrics.service";
 import { RequestContextService } from "../request-context/request-context.service";
 
+/** Standard API error JSON (HTTP error responses). */
+export type ApiErrorBody = {
+  code: string;
+  message: string;
+  correlationId: string;
+  retryability: "NO_RETRY" | "SAFE_RETRY" | "RETRY_WITH_BACKOFF" | "RETRY_AFTER_ACTION";
+  details: Record<string, unknown>;
+};
+
 type ErrorEnvelope = {
   success: false;
-  error: {
-    code: string;
-    message: string;
-    traceId: string;
-  };
+  requestId: string;
+  error: ApiErrorBody;
 };
+
 type RequestWithRequestId = Request & { requestId?: string };
+
+const RETRYABILITY_VALUES = new Set<ApiErrorBody["retryability"]>([
+  "NO_RETRY",
+  "SAFE_RETRY",
+  "RETRY_WITH_BACKOFF",
+  "RETRY_AFTER_ACTION"
+]);
 
 const CANONICAL_ERROR_CODES = new Set<string>([
   "VALIDATION_FAILED",
@@ -37,8 +51,10 @@ const CANONICAL_ERROR_CODES = new Set<string>([
   "AUTH_OTP_EXPIRED",
   "AUTH_TOKEN_REVOKED",
   "AUTH_FORBIDDEN_ROLE",
+  "AUTH_FORBIDDEN_ABILITY",
   "TENANT_CONTEXT_INVALID",
   "TENANT_CONTEXT_MISSING",
+  "TENANT_CONTEXT_REQUIRED",
   "TENANT_HOST_UNKNOWN",
   "TENANT_HOST_INVALID",
   "TENANT_HOST_RESERVED",
@@ -82,7 +98,8 @@ const CANONICAL_ERROR_CODES = new Set<string>([
   "RBAC_UNKNOWN_MEMBERSHIP_ROLE",
   "SCHEMA_DRIFT_MISSING_COLUMN",
   "SCHEMA_DRIFT_MISSING_TABLE",
-  "SCHEMA_DRIFT_QUERY_FAILED"
+  "SCHEMA_DRIFT_QUERY_FAILED",
+  "OPS_UNAUTHORIZED"
 ]);
 
 @Catch()
@@ -97,17 +114,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const traceId = this.resolveTraceId(request);
+    const { requestId, correlationId } = this.resolveCorrelationBundle(request);
 
     if (exception instanceof TenantContextMissingError) {
-      const envelope: ErrorEnvelope = {
-        success: false,
-        error: {
+      const envelope = this.buildEnvelope(
+        {
           code: "TENANT_CONTEXT_MISSING",
           message: "Tenant context lost during request processing",
-          traceId
-        }
-      };
+          retryability: "NO_RETRY",
+          details: {}
+        },
+        requestId,
+        correlationId
+      );
       this.observabilityMetricsService?.recordHttpException({
         errorCode: envelope.error.code,
         path: typeof request.path === "string" ? request.path : "",
@@ -118,7 +137,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         status_code: HttpStatus.INTERNAL_SERVER_ERROR,
         route: typeof request.path === "string" ? request.path : request.url,
         error_code: envelope.error.code,
-        trace_id: traceId,
+        trace_id: correlationId,
         exception_message: exception.message,
         exception_stack: exception.stack
       });
@@ -128,7 +147,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      const normalized = this.normalizeHttpException(exception, status, traceId);
+      const normalized = this.normalizeHttpException(
+        exception,
+        status,
+        requestId,
+        correlationId
+      );
 
       this.observabilityMetricsService?.recordHttpException({
         errorCode: normalized.error.code,
@@ -141,7 +165,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         status_code: status,
         route: typeof request.path === "string" ? request.path : request.url,
         error_code: normalized.error.code,
-        trace_id: traceId,
+        trace_id: correlationId,
         exception_message: exception.message,
         exception_stack: exception.stack
       });
@@ -150,7 +174,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    const fallback = this.normalizeUnknownException(exception, traceId);
+    const fallback = this.normalizeUnknownException(exception, requestId, correlationId);
 
     this.observabilityMetricsService?.recordHttpException({
       errorCode: fallback.error.code,
@@ -163,34 +187,65 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status_code: HttpStatus.INTERNAL_SERVER_ERROR,
       route: typeof request.path === "string" ? request.path : request.url,
       error_code: fallback.error.code,
-      trace_id: traceId,
+      trace_id: correlationId,
       exception_name: exception instanceof Error ? exception.name : undefined,
       exception_message: exception instanceof Error ? exception.message : String(exception),
       exception_stack: exception instanceof Error ? exception.stack : undefined
     });
 
-    const fallbackStatus =
-      fallback.error.code === "TENANT_CONTEXT_INVALID" ||
-      fallback.error.code === "TENANT_CONTEXT_MISSING"
-        ? HttpStatus.INTERNAL_SERVER_ERROR
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-    response.status(fallbackStatus).json(fallback);
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json(fallback);
+  }
+
+  private buildEnvelope(
+    partial: Pick<ApiErrorBody, "code" | "message"> &
+      Partial<Pick<ApiErrorBody, "retryability" | "details">>,
+    requestId: string,
+    correlationId: string
+  ): ErrorEnvelope {
+    const retryability = this.normalizeRetryability(partial.retryability);
+    const details =
+      partial.details && typeof partial.details === "object" && !Array.isArray(partial.details)
+        ? (partial.details as Record<string, unknown>)
+        : {};
+    return {
+      success: false,
+      requestId,
+      error: {
+        code: partial.code,
+        message: partial.message,
+        correlationId,
+        retryability,
+        details
+      }
+    };
+  }
+
+  private normalizeRetryability(
+    value: ApiErrorBody["retryability"] | undefined
+  ): ApiErrorBody["retryability"] {
+    if (value && RETRYABILITY_VALUES.has(value)) {
+      return value;
+    }
+    return "NO_RETRY";
   }
 
   private normalizeUnknownException(
     exception: unknown,
-    traceId: string
+    requestId: string,
+    correlationId: string
   ): ErrorEnvelope {
     if (exception instanceof QueryFailedError || this.isTypeOrmQueryFailedError(exception)) {
       const schemaDriftCode = this.resolveSchemaDriftErrorCode(exception);
-      return {
-        success: false,
-        error: {
+      return this.buildEnvelope(
+        {
           code: schemaDriftCode,
           message: "Database schema is out of sync with application expectations",
-          traceId
-        }
-      };
+          retryability: "NO_RETRY",
+          details: {}
+        },
+        requestId,
+        correlationId
+      );
     }
 
     if (
@@ -198,27 +253,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       (exception.message === "TENANT_CONTEXT_INVALID" ||
         exception.message === "TENANT_CONTEXT_MISSING")
     ) {
-      return {
-        success: false,
-        error: {
+      return this.buildEnvelope(
+        {
           code: exception.message,
           message:
             exception.message === "TENANT_CONTEXT_INVALID"
               ? "Trusted tenant context is invalid"
               : "Trusted tenant context required but absent",
-          traceId
-        }
-      };
+          retryability: "NO_RETRY",
+          details: {}
+        },
+        requestId,
+        correlationId
+      );
     }
 
-    return {
-      success: false,
-      error: {
+    return this.buildEnvelope(
+      {
         code: "INTERNAL_ERROR",
         message: "An unexpected error occurred",
-        traceId
-      }
-    };
+        retryability: "NO_RETRY",
+        details: {}
+      },
+      requestId,
+      correlationId
+    );
   }
 
   private isTypeOrmQueryFailedError(exception: unknown): boolean {
@@ -240,57 +299,89 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return "SCHEMA_DRIFT_QUERY_FAILED";
   }
 
-  private resolveTraceId(request: Request): string {
-    const headerValue = request.headers["x-request-id"];
-    if (typeof headerValue === "string" && headerValue.trim() !== "") {
-      return headerValue.trim();
-    }
-    if (Array.isArray(headerValue) && typeof headerValue[0] === "string" && headerValue[0].trim() !== "") {
-      return headerValue[0].trim();
+  private resolveCorrelationBundle(request: Request): { requestId: string; correlationId: string } {
+    const headers = request.headers ?? {};
+    const headerRequestIdRaw = headers["x-request-id"];
+    const headerRequestId =
+      typeof headerRequestIdRaw === "string" && headerRequestIdRaw.trim() !== ""
+        ? headerRequestIdRaw.trim()
+        : Array.isArray(headerRequestIdRaw) &&
+            typeof headerRequestIdRaw[0] === "string" &&
+            headerRequestIdRaw[0].trim() !== ""
+          ? headerRequestIdRaw[0].trim()
+          : undefined;
+
+    const headerCorrRaw = headers["x-correlation-id"];
+    const headerCorrelationId =
+      typeof headerCorrRaw === "string" && headerCorrRaw.trim() !== ""
+        ? headerCorrRaw.trim()
+        : Array.isArray(headerCorrRaw) &&
+            typeof headerCorrRaw[0] === "string" &&
+            headerCorrRaw[0].trim() !== ""
+          ? headerCorrRaw[0].trim()
+          : undefined;
+
+    const fromRequestAug = (request as RequestWithRequestId).requestId;
+    const fromRequestAugId =
+      typeof fromRequestAug === "string" && fromRequestAug.trim() !== "" ? fromRequestAug.trim() : undefined;
+
+    let ctxRequestId: string | undefined;
+    let ctxCorrelationId: string | undefined;
+    try {
+      ctxRequestId = this.requestContextService.tryGetRequestId();
+    } catch {
+      ctxRequestId = undefined;
     }
     try {
-      return this.requestContextService.getRequestId();
+      ctxCorrelationId = this.requestContextService.tryGetCorrelationId();
     } catch {
-      const fromRequest = (request as RequestWithRequestId).requestId;
-      if (typeof fromRequest === "string" && fromRequest.trim() !== "") {
-        return fromRequest;
-      }
-      return randomUUID();
+      ctxCorrelationId = undefined;
     }
+
+    const requestId =
+      ctxRequestId?.trim() ||
+      headerRequestId ||
+      fromRequestAugId ||
+      randomUUID();
+
+    const correlationId =
+      ctxCorrelationId?.trim() || headerCorrelationId || requestId;
+
+    return { requestId, correlationId };
   }
 
   private normalizeHttpException(
     exception: HttpException,
     status: number,
-    traceId: string
+    requestId: string,
+    correlationId: string
   ): ErrorEnvelope {
     const body = exception.getResponse();
 
     if (status === HttpStatus.BAD_REQUEST && this.isValidationPipeErrorBody(body)) {
-      return {
-        success: false,
-        error: {
+      return this.buildEnvelope(
+        {
           code: "VALIDATION_FAILED",
           message: "Request validation failed",
-          traceId
-        }
-      };
+          retryability: "NO_RETRY",
+          details: {}
+        },
+        requestId,
+        correlationId
+      );
     }
 
     if (this.hasStructuredErrorBody(body)) {
-      const code = this.isCanonicalCode(body.error.code)
-        ? body.error.code
-        : "INTERNAL_ERROR";
-      return {
-        success: false,
-        error: {
-          code,
-          message: this.isCanonicalCode(body.error.code)
-            ? body.error.message
-            : this.resolveFallbackMessage(body, exception),
-          traceId
-        }
-      };
+      const raw = body.error;
+      const code = this.isCanonicalCode(raw.code) ? raw.code : "INTERNAL_ERROR";
+      const message = this.isCanonicalCode(raw.code)
+        ? raw.message
+        : this.resolveFallbackMessage(body, exception);
+      const retryability = this.normalizeRetryability(
+        typeof raw.retryability === "string" ? (raw.retryability as ApiErrorBody["retryability"]) : undefined
+      );
+      const details = this.coerceDetails(raw.details);
+      return this.buildEnvelope({ code, message, retryability, details }, requestId, correlationId);
     }
 
     const canonicalFromBody = this.extractCanonicalCodeFromBodyMessage(body);
@@ -299,14 +390,30 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ? canonicalFromBody
       : this.resolveFallbackMessage(body, exception);
 
-    return {
-      success: false,
-      error: {
+    return this.buildEnvelope(
+      {
         code,
         message: fallbackMessage,
-        traceId
-      }
-    };
+        retryability: this.defaultRetryabilityForHttpStatus(status),
+        details: {}
+      },
+      requestId,
+      correlationId
+    );
+  }
+
+  private defaultRetryabilityForHttpStatus(status: number): ApiErrorBody["retryability"] {
+    if (status === HttpStatus.TOO_MANY_REQUESTS || status === HttpStatus.SERVICE_UNAVAILABLE) {
+      return "RETRY_WITH_BACKOFF";
+    }
+    return "NO_RETRY";
+  }
+
+  private coerceDetails(value: unknown): Record<string, unknown> {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    return {};
   }
 
   private mapStatusToErrorCode(status: number): string {
@@ -359,7 +466,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private hasStructuredErrorBody(
     body: unknown
-  ): body is { error: { code: string; message: string } } {
+  ): body is {
+    error: {
+      code: string;
+      message: string;
+      retryability?: unknown;
+      details?: unknown;
+    };
+  } {
     if (!body || typeof body !== "object") {
       return false;
     }

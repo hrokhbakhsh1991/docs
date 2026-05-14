@@ -1,7 +1,8 @@
 /** Shape from {@link apps/api/src/common/errors/global-exception.filter.ts} */
 type GlobalErrorEnvelope = {
   success?: false;
-  error?: { code?: string; message?: string; traceId?: string };
+  requestId?: string;
+  error?: { code?: string; message?: string; correlationId?: string; traceId?: string };
 };
 
 /** Legacy `{ error: { code, message } }` bodies from Nest `HttpException` */

@@ -23,7 +23,8 @@ test("GlobalExceptionFilter returns 500 for TenantContextMissingError", () => {
   const request = {
     path: "/api/v2/tours",
     method: "GET",
-    url: "/api/v2/tours"
+    url: "/api/v2/tours",
+    headers: {} as Record<string, string | string[] | undefined>
   };
 
   const host = {
@@ -42,7 +43,9 @@ test("GlobalExceptionFilter returns 500 for TenantContextMissingError", () => {
     }
   };
   const requestContext = {
-    getRequestId: () => "req-123"
+    getRequestId: () => "req-123",
+    tryGetRequestId: () => "req-123",
+    tryGetCorrelationId: () => "req-123"
   };
   const metrics = {
     recordHttpException: () => undefined
@@ -59,12 +62,14 @@ test("GlobalExceptionFilter returns 500 for TenantContextMissingError", () => {
   assert.equal(statusCode, HttpStatus.INTERNAL_SERVER_ERROR);
   assert.equal(loggedErrorCode, "TENANT_CONTEXT_MISSING");
   assert.deepEqual(payload, {
+    success: false,
+    requestId: "req-123",
     error: {
       code: "TENANT_CONTEXT_MISSING",
       message: "Tenant context lost during request processing",
+      correlationId: "req-123",
       retryability: "NO_RETRY",
       details: {}
-    },
-    requestId: "req-123"
+    }
   });
 });
