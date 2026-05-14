@@ -95,7 +95,7 @@ test("PricingEngine: BASE row drives list price", async () => {
   );
   assert.equal(q.line_items[0].amount_minor, "9999");
   assert.equal(q.total, "9999");
-  assert.match(q.pricing_version, /^fp-shadow-0\.1\.0:[a-f0-9]{16}$/);
+  assert.match(q.pricing_version, /^fp-finance-0\.1\.0:[a-f0-9]{16}$/);
   assert.equal(q.pricing_rule_version, q.pricing_version);
 });
 

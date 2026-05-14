@@ -40,13 +40,13 @@ export type PricingQuoteResult = {
 
 export type PricingEngineQuoteOptions = {
   /**
-   * When true, emits a structured log line with inputs + quote (observability / shadow comparison).
-   * Does not change totals — same authoritative quote as normal mode.
+   * When true, emits a structured log line with inputs + quote (debug / audit only).
+   * Does not change totals — same authoritative finance quote as normal mode.
    */
   shadowLogOnly?: boolean;
   /**
    * When true, runs the legacy catalog quote in parallel and logs `PRICING_SHADOW_DIFF`
-   * against the authoritative finance quote. Intended for drift monitoring only.
+   * against the authoritative finance quote. **Off by default**; drift monitoring only.
    */
   financeShadowCompare?: boolean;
 };
