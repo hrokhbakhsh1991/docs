@@ -117,7 +117,7 @@ Reserved for future themed JSON (not bound to dedicated components today): `cine
 ### 4.3 Related client invariants
 
 - **`compactTripDetailsForApi`**: `apps/web/src/features/tours/models/tourTripDetails.schema.ts` — structural cleanup before API (used inside `mapCreateTourDto`).
-- **Deprecated shim:** `apps/web/lib/mappers/mapTourCreateFormToDto.ts` re-exports the wizard mapper; new code should import from `@/features/tours/wizard/domain/...`.
+- **Submit mapping:** import `mapFormValuesToBackendPayload` from `@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload` and `wizardFormToCreateTourApiPayload` from `@/features/tours/wizard/contract/tour-wizard-contract` (the old `lib/mappers/mapTourCreateFormToDto` shim has been removed).
 
 ---
 

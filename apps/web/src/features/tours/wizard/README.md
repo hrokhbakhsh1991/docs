@@ -7,10 +7,6 @@
 - Mapper: `@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload` (`mapFormValuesToBackendPayload`)
 - Submit: `@/features/tours/wizard/hooks/useTourWizardCreate` → `stripInactiveTourCreateGroupsForProfile` → `createTour` + `mapCreateTourDto` (+ optional theme catalog). Profile→Zod flags: `tourFormProfileToWizardValidationFlags` in `TourCreateWizard` via `tourCreateValidationPolicy.ts`.
 
-## Legacy re-export
-
-`@/lib/mappers/mapTourCreateFormToDto` re-exports the mapper for older imports.
-
 ## Steps config
 
 See `stepConfig.ts` for wizard step IDs, Persian titles, and `trigger()` field lists used before «بعدی».

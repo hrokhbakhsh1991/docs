@@ -20,10 +20,7 @@ export function SettingsSubnav() {
   const guideLanguagesActive =
     pathname === "/settings/guide-languages" || pathname.startsWith("/settings/guide-languages/");
   const tourPresetsActive =
-    pathname === "/settings/tour-presets" ||
-    pathname.startsWith("/settings/tour-presets/") ||
-    pathname === "/settings/tour-form-defaults" ||
-    pathname.startsWith("/settings/tour-form-defaults/");
+    pathname === "/settings/tour-presets" || pathname.startsWith("/settings/tour-presets/");
 
   return (
     <nav className={styles.root} aria-label={t("settingsSubnavAria")}>

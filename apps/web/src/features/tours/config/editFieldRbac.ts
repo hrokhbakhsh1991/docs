@@ -1,3 +1,5 @@
+import { tryParseWorkspaceRole, WorkspaceRole } from "@repo/shared-rbac";
+
 /**
  * # Edit-side field RBAC framework
  *
@@ -19,8 +21,8 @@
  * **Public surface:** identical to what `tripDetailsFieldConfig.ts` previously exported
  * for the RBAC layer (`FieldVisibility`, `FieldRequiredness`, `UserRole`,
  * `FieldRoleConstraint`, `FieldConfigBase`, `ResolvedFieldAccess`, `resolveFieldAccess`,
- * `normalizeFieldUserRole`). Existing call sites can migrate by changing only the import
- * path; behavior is byte-identical.
+ * `normalizeFieldUserRole`). `normalizeFieldUserRole` delegates to `tryParseWorkspaceRole`
+ * so persisted roles (including legacy `operator` → member) stay aligned with workspace RBAC.
  */
 
 export type FieldVisibility = "hidden" | "readonly" | "editable";
@@ -67,10 +69,12 @@ export type ResolvedFieldAccess = {
 };
 
 export function normalizeFieldUserRole(rawRole: string | null | undefined): UserRole {
-  const normalized = (rawRole ?? "").trim().toLowerCase();
-  if (normalized === "owner" || normalized === "admin") return "admin";
-  if (normalized === "leader") return "leader";
-  if (normalized === "member") return "member";
+  const parsed = tryParseWorkspaceRole(rawRole ?? "");
+  if (!parsed) return "guest";
+  if (parsed === WorkspaceRole.Owner || parsed === WorkspaceRole.Admin) return "admin";
+  if (parsed === WorkspaceRole.Leader) return "leader";
+  if (parsed === WorkspaceRole.Member) return "member";
+  if (parsed === WorkspaceRole.Viewer) return "guest";
   return "guest";
 }
 
