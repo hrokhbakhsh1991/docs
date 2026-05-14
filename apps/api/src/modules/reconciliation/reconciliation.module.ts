@@ -7,12 +7,29 @@ import { IdentityModule } from "../identity/identity.module";
 import { OutboxModule } from "../outbox/outbox.module";
 import { RegistrationsModule } from "../registrations/registrations.module";
 import { TourEntity } from "../tours/entities/tour.entity";
+import { PaymentEntity } from "../payments/entities/payment.entity";
+import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
+import { RegistrationEntity } from "../registrations/registration.entity";
+import { OutboxEventEntity } from "../../common/outbox/entities/outbox-event.entity";
+import { ReconciliationJobEntity } from "../finance/reconciliation/entities/reconciliation-job.entity";
+import {
+  LoggingReconciliationJobAlertHooks,
+  RECONCILIATION_JOB_ALERT_HOOKS
+} from "../finance/reconciliation/reconciliation-job-alert-hooks";
+import { PaymentFinanceReconciliationService } from "./payment-finance-reconciliation.service";
 import { ReconciliationProcessor } from "./reconciliation.processor";
 import { ReconciliationService } from "./reconciliation.service";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TourEntity]),
+    TypeOrmModule.forFeature([
+      TourEntity,
+      PaymentEntity,
+      BookingPriceSnapshotEntity,
+      RegistrationEntity,
+      OutboxEventEntity,
+      ReconciliationJobEntity
+    ]),
     DatabaseModule,
     TenantUsageModule,
     TenantAbuseModule,
@@ -20,7 +37,16 @@ import { ReconciliationService } from "./reconciliation.service";
     OutboxModule,
     RegistrationsModule
   ],
-  providers: [ReconciliationService, ReconciliationProcessor],
+  providers: [
+    LoggingReconciliationJobAlertHooks,
+    {
+      provide: RECONCILIATION_JOB_ALERT_HOOKS,
+      useExisting: LoggingReconciliationJobAlertHooks
+    },
+    PaymentFinanceReconciliationService,
+    ReconciliationService,
+    ReconciliationProcessor
+  ],
   exports: [ReconciliationService]
 })
 export class ReconciliationModule {}

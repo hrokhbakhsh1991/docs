@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, In, IsNull, Repository } from "typeorm";
@@ -17,6 +18,7 @@ import { RegistrationsService } from "../registrations/registrations.service";
 import { TenantRateLimitService } from "../../common/tenant-abuse/tenant-rate-limit.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
 import { enforceBackgroundTenantRuntimePolicies } from "../../common/tenant/tenant-runtime-policy";
+import { PaymentFinanceReconciliationService } from "./payment-finance-reconciliation.service";
 
 const TOUR_PAGE_SIZE = 50;
 const MAX_PROMOTIONS_PER_TOUR_PER_RUN = 50;
@@ -29,6 +31,9 @@ export type ReconciliationRuntimeSnapshot = {
   totalDriftsDetected: number;
   totalCorrectionsApplied: number;
   totalPromotionsTriggered: number;
+  /** Last payment–ledger–snapshot reconciliation run (same scheduler as capacity). */
+  lastPaymentFinanceReconciliationAt: string | null;
+  lastPaymentFinanceCriticalFindings: number;
 };
 
 @Injectable()
@@ -48,10 +53,12 @@ export class ReconciliationService {
     private readonly identityTenantRepository: Repository<IdentityTenantEntity>,
     private readonly tenantRateLimitService: TenantRateLimitService,
     private readonly tenantUsageMeteringService: TenantUsageMeteringService,
-    private readonly tenantDbContext: TenantDbContextService
+    private readonly tenantDbContext: TenantDbContextService,
+    private readonly paymentFinanceReconciliation: PaymentFinanceReconciliationService
   ) {}
 
   getSnapshot(): ReconciliationRuntimeSnapshot {
+    const pf = this.paymentFinanceReconciliation.getSnapshot();
     return {
       lastRunAt: this.lastRunAt,
       lastReconciliationAt: this.lastReconciliationAt,
@@ -59,7 +66,9 @@ export class ReconciliationService {
       promotedInLastRun: this.promotedInLastRun,
       totalDriftsDetected: this.totalDriftsDetected,
       totalCorrectionsApplied: this.totalCorrectionsApplied,
-      totalPromotionsTriggered: this.totalPromotionsTriggered
+      totalPromotionsTriggered: this.totalPromotionsTriggered,
+      lastPaymentFinanceReconciliationAt: pf.lastRunAt,
+      lastPaymentFinanceCriticalFindings: pf.lastCriticalFindings
     };
   }
 
@@ -118,6 +127,10 @@ export class ReconciliationService {
     this.lastReconciliationAt = nowIso;
     this.lastRunHadDrift = driftThisRun;
     this.promotedInLastRun = promotedThisRun;
+
+    await this.paymentFinanceReconciliation.runPaymentFinanceReconciliationCycle({
+      cycleBatchId: randomUUID()
+    });
   }
 
   private async reconcileSingleTour(
