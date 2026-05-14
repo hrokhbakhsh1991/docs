@@ -31,6 +31,10 @@ export const API = {
   user: (id: string) => `/api/v2/users/${encodeURIComponent(id)}`,
   userRoleHistory: (id: string) => `/api/v2/users/${encodeURIComponent(id)}/role-history`,
   paymentsIntent: "/api/v2/payments/intent",
+  workspaceAuditEvents: (tenantId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
+  workspaceAuditEventsExport: (tenantId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`
 } as const;
 
 /** Paths where the session cookie must not drive automatic Bearer attachment semantics. */

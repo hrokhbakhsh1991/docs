@@ -1,0 +1,22 @@
+import type { Metadata } from "next";
+import { getTranslations, setRequestLocale } from "next-intl/server";
+
+import { routing } from "@/i18n/routing";
+
+import { AuditTrailExplorerPage } from "./audit-trail-explorer-page";
+
+const LOCALE = routing.defaultLocale;
+
+export async function generateMetadata(): Promise<Metadata> {
+  setRequestLocale(LOCALE);
+  const t = await getTranslations({ locale: LOCALE, namespace: "settings" });
+
+  return {
+    title: t("auditTrailMetadataTitle"),
+    description: t("auditTrailMetadataDescription")
+  };
+}
+
+export default function AuditTrailSettingsPage() {
+  return <AuditTrailExplorerPage />;
+}

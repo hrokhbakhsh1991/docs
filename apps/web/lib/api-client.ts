@@ -341,4 +341,22 @@ export const apiClient = {
       throw toApiError(e);
     }
   },
+
+  /**
+   * Binary GET (CSV export, file downloads). Caller should handle non-JSON error bodies.
+   */
+  async getBlob(path: string, options?: ApiRequestOptions): Promise<Blob> {
+    if (!resolveTourOpsApiBaseUrl().trim()) {
+      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+    }
+    try {
+      const res = await axiosApi.get<Blob>(path, {
+        ...mergeRequestConfig(options),
+        responseType: "blob"
+      });
+      return res.data;
+    } catch (e) {
+      throw toApiError(e);
+    }
+  }
 };

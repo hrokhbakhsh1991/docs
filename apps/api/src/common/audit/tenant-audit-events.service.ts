@@ -1,7 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { EntityManager } from "typeorm";
-import { Repository } from "typeorm";
+import { Brackets, Repository } from "typeorm";
+import { TENANT_AUDIT_LIST_MAX_LIMIT } from "./tenant-audit.constants";
 import { LoggerService } from "../logger/logger.service";
 import { TenantAuditEventEntity } from "./entities/tenant-audit-event.entity";
 import type { TenantAuditActionType } from "./tenant-audit-actions";
@@ -21,6 +22,36 @@ export type TenantAuditAppendInput = {
 };
 
 export const TENANT_AUDIT_EXPORT_MAX_ROWS = 50_000;
+
+export type TenantAuditListCursor = { occurredAt: Date; id: string };
+
+export function encodeTenantAuditListCursor(cursor: TenantAuditListCursor): string {
+  return Buffer.from(
+    JSON.stringify({ at: cursor.occurredAt.toISOString(), id: cursor.id }),
+    "utf8"
+  ).toString("base64url");
+}
+
+export function decodeTenantAuditListCursor(raw: string): TenantAuditListCursor | null {
+  try {
+    const decoded = Buffer.from(raw.trim(), "base64url").toString("utf8");
+    const j = JSON.parse(decoded) as { at?: string; id?: string };
+    if (typeof j.at !== "string" || typeof j.id !== "string") {
+      return null;
+    }
+    const occurredAt = new Date(j.at);
+    if (Number.isNaN(occurredAt.getTime())) {
+      return null;
+    }
+    const id = j.id.trim();
+    if (!id) {
+      return null;
+    }
+    return { occurredAt, id };
+  } catch {
+    return null;
+  }
+}
 
 @Injectable()
 export class TenantAuditEventsService {
@@ -94,6 +125,76 @@ export class TenantAuditEventsService {
         error: msg
       });
     }
+  }
+
+  /**
+   * Keyset-paginated tenant audit stream for admin UI (`occurred_at` + `id` descending).
+   * Fetches `limit + 1` rows to compute `nextCursor`.
+   */
+  async listForTenantPaged(params: {
+    tenantId: string;
+    from?: Date;
+    to?: Date;
+    action?: string;
+    resourceType?: string;
+    resourceId?: string;
+    actorContains?: string;
+    limit: number;
+    after?: TenantAuditListCursor | null;
+  }): Promise<{ rows: TenantAuditEventEntity[]; nextCursor: string | null }> {
+    const tenantId = params.tenantId.trim().toLowerCase();
+    const take = Math.min(Math.max(params.limit, 1), TENANT_AUDIT_LIST_MAX_LIMIT);
+    const qb = this.repo
+      .createQueryBuilder("e")
+      .where("e.tenant_id = :tenantId", { tenantId })
+      .orderBy("e.occurred_at", "DESC")
+      .addOrderBy("e.id", "DESC")
+      .take(take + 1);
+
+    if (params.from) {
+      qb.andWhere("e.occurred_at >= :from", { from: params.from });
+    }
+    if (params.to) {
+      qb.andWhere("e.occurred_at <= :to", { to: params.to });
+    }
+    if (params.action?.trim()) {
+      qb.andWhere("e.action = :action", { action: params.action.trim() });
+    }
+    if (params.resourceType?.trim()) {
+      qb.andWhere("e.resource_type = :resourceType", { resourceType: params.resourceType.trim() });
+    }
+    if (params.resourceId?.trim()) {
+      qb.andWhere("e.resource_id = :resourceId", { resourceId: params.resourceId.trim() });
+    }
+    const ac = params.actorContains?.trim();
+    if (ac) {
+      const stripped = ac.replace(/[%_\\]/g, "");
+      if (stripped) {
+        qb.andWhere("e.actor ILIKE :actorPat", { actorPat: `%${stripped}%` });
+      }
+    }
+    if (params.after) {
+      const cAt = params.after.occurredAt;
+      const cId = params.after.id;
+      qb.andWhere(
+        new Brackets((w) => {
+          w.where("e.occurred_at < :cAt", { cAt }).orWhere(
+            "(e.occurred_at = :cAt2 AND e.id < :cId)",
+            { cAt2: cAt, cId }
+          );
+        })
+      );
+    }
+
+    const rows = await qb.getMany();
+    const hasMore = rows.length > take;
+    const page = hasMore ? rows.slice(0, take) : rows;
+    const tail = page.length > 0 ? page[page.length - 1] : undefined;
+    const nextCursor =
+      hasMore && tail !== undefined
+        ? encodeTenantAuditListCursor({ occurredAt: tail.occurredAt, id: tail.id })
+        : null;
+    return { rows: page, nextCursor };
   }
 
   async listForTenantExport(params: {

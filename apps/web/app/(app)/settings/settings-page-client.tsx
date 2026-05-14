@@ -1,11 +1,15 @@
 "use client";
 
+import { Can } from "@casl/react";
+import type { AppAbility } from "@repo/shared-rbac";
 import { Button, LoadingState } from "@tour/ui";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
 import { Link } from "@/i18n/navigation";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
+import { AbilityAction } from "@/lib/casl/ability-actions";
+import { useAbility } from "@/lib/casl/ability-provider";
 
 import { EmailSettingsPanel } from "./email-settings-panel";
 import { PhoneSettingsPanel } from "./phone-settings-panel";
@@ -17,6 +21,7 @@ import { useWorkspaceMe, WorkspaceMeProvider } from "./workspace-me-provider";
 
 function SettingsWorkspaceBody() {
   const t = useTranslations("settings");
+  const ability = useAbility();
   const { data, isLoading, error, refresh } = useWorkspaceMe();
 
   if (isLoading && !data) {
@@ -68,6 +73,12 @@ function SettingsWorkspaceBody() {
             <p className={styles.hubLinkTitle}>{t("hubTourFormDefaultsLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubTourFormDefaultsBlurb")}</p>
           </Link>
+          <Can<AppAbility> ability={ability} I={AbilityAction.Read} a="Audit">
+            <Link href="/settings/audit-trail" className={styles.hubLink}>
+              <p className={styles.hubLinkTitle}>{t("hubAuditTrailLink")}</p>
+              <p className={styles.hubLinkBlurb}>{t("hubAuditTrailBlurb")}</p>
+            </Link>
+          </Can>
         </div>
       </SettingsSectionCard>
 

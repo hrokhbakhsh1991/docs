@@ -26,11 +26,21 @@ export const bookingKeys = {
 export const userKeys = {
   all: ["users"] as const,
   lists: () => [...userKeys.all, "list"] as const,
+  /**
+   * Prefix for all user-directory list caches in a workspace. Use for invalidation so other
+   * tenants' React Query caches are untouched (no cross-tenant invalidation).
+   */
+  directoryListRoot: (tenantId: string) => [...userKeys.all, "list", tenantId] as const,
+  /**
+   * Workspace user directory infinite list (`GET /api/v2/users`). `tenantId` must match JWT tenant.
+   */
+  directoryList: (tenantId: string, params: { search: string; role: string; limit: number }) =>
+    [...userKeys.directoryListRoot(tenantId), "directory", params] as const,
   details: () => [...userKeys.all, "detail"] as const,
   detail: (tenantScope: string, id: string | number) =>
-    [...userKeys.details(), { tenantScope }, String(id)] as const,
+    [...userKeys.details(), { tenantId: tenantScope }, String(id)] as const,
   roleHistory: (tenantScope: string, id: string | number) =>
-    [...userKeys.all, "role-history", { tenantScope }, String(id)] as const,
+    [...userKeys.all, "role-history", { tenantId: tenantScope }, String(id)] as const,
 };
 
 export const registrationKeys = {
@@ -64,4 +74,10 @@ export const settingsGuideLanguagesKeys = {
 export const settingsTourPresetsKeys = {
   all: ["settings", "tourPresets"] as const,
   list: () => [...settingsTourPresetsKeys.all, "list"] as const,
+};
+
+export const auditTrailKeys = {
+  all: ["auditTrail"] as const,
+  list: (tenantId: string, filters: Record<string, string>) =>
+    [...auditTrailKeys.all, "list", tenantId, filters] as const,
 };

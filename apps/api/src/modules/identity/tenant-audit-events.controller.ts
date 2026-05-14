@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   ForbiddenException,
   Get,
@@ -22,20 +23,29 @@ import { InjectRepository } from "@nestjs/typeorm";
 import type { Response } from "express";
 import { IsNull, Repository } from "typeorm";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
-import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
+import { TENANT_AUDIT_LIST_DEFAULT_LIMIT } from "../../common/audit/tenant-audit.constants";
+import {
+  decodeTenantAuditListCursor,
+  TenantAuditEventsService
+} from "../../common/audit/tenant-audit-events.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { ExportTenantAuditQueryDto } from "./dto/export-tenant-audit-query.dto";
+import { ListTenantAuditQueryDto } from "./dto/list-tenant-audit-query.dto";
 import { UserEntity } from "./entities/user.entity";
 
 @ApiTags("Compliance")
 @Controller("api/v2/workspaces")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
-@Roles(Role.OWNER, Role.ADMIN)
+@Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
 export class TenantAuditEventsController {
   constructor(
     @Inject(TenantAuditEventsService)
@@ -46,12 +56,30 @@ export class TenantAuditEventsController {
     private readonly userRepository: Repository<UserEntity>
   ) {}
 
+  /**
+   * Ensures the JWT workspace tenant matches `:tenantId` (defense in depth vs CASL).
+   */
+  private requireWorkspaceTenantMatch(paramTenantId: string): string {
+    const jwtTenantId = this.requestContextService.resolveEffectiveTenantId()?.trim().toLowerCase();
+    const normalized = paramTenantId.trim().toLowerCase();
+    if (!jwtTenantId || jwtTenantId !== normalized) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_SCOPE_FORBIDDEN",
+          message: "Workspace audit requires a token scoped to this tenant"
+        }
+      });
+    }
+    return normalized;
+  }
+
   @Get(":tenantId/audit-events/export")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Audit"))
   @ApiOperation({
     summary: "Export tenant-scoped audit event stream",
     description:
       "Append-only compliance audit (`tenant_audit_events`) for the workspace. " +
-      "Requires JWT tenant to match `:tenantId`. Owner/admin only."
+      "Requires JWT tenant to match `:tenantId`. Owner, admin, or leader (read Audit)."
   })
   @ApiOkResponse({
     description: "CSV, NDJSON, or JSON array depending on `format`",
@@ -64,19 +92,7 @@ export class TenantAuditEventsController {
     @Query() query: ExportTenantAuditQueryDto,
     @Res({ passthrough: true }) res: Response
   ): Promise<string | Record<string, unknown>[]> {
-    const jwtTenantId = this.requestContextService
-      .resolveEffectiveTenantId()
-      ?.trim()
-      .toLowerCase();
-    const paramTenantId = tenantId.trim().toLowerCase();
-    if (!jwtTenantId || jwtTenantId !== paramTenantId) {
-      throw new ForbiddenException({
-        error: {
-          code: "TENANT_SCOPE_FORBIDDEN",
-          message: "Workspace audit export requires a token scoped to this tenant"
-        }
-      });
-    }
+    const paramTenantId = this.requireWorkspaceTenantMatch(tenantId);
 
     const exporterUserId = this.requestContextService.getUserId();
     if (!exporterUserId) {
@@ -152,5 +168,111 @@ export class TenantAuditEventsController {
       request_id: row.requestId,
       metadata: row.metadata
     }));
+  }
+
+  @Get(":tenantId/audit-events")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Audit"))
+  @ApiOperation({
+    summary: "List tenant-scoped audit events (keyset paginated)",
+    description:
+      "Append-only compliance audit rows for the workspace. Requires JWT tenant to match `:tenantId`. " +
+      "Owner, admin, or leader (read Audit)."
+  })
+  @ApiOkResponse({
+    description: "Paginated audit rows (newest first)",
+    schema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", format: "uuid" },
+              occurredAt: { type: "string", format: "date-time" },
+              actor: { type: "string" },
+              actorUserId: { type: "string", format: "uuid", nullable: true },
+              userId: { type: "string", format: "uuid", nullable: true },
+              action: { type: "string" },
+              resourceType: { type: "string" },
+              resourceId: { type: "string", nullable: true },
+              clientIp: { type: "string" },
+              requestId: { type: "string", nullable: true },
+              metadata: { type: "object", nullable: true, additionalProperties: true }
+            }
+          }
+        },
+        nextCursor: { type: "string", nullable: true }
+      }
+    }
+  })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Tenant mismatch or insufficient role" })
+  async listTenantAudit(
+    @Param("tenantId", ParseUUIDPipe) tenantId: string,
+    @Query() query: ListTenantAuditQueryDto
+  ): Promise<{
+    data: Array<{
+      id: string;
+      occurredAt: string;
+      actor: string;
+      actorUserId: string | null;
+      userId: string | null;
+      action: string;
+      resourceType: string;
+      resourceId: string | null;
+      clientIp: string;
+      requestId: string | null;
+      metadata: Record<string, unknown> | null;
+    }>;
+    nextCursor: string | null;
+  }> {
+    const paramTenantId = this.requireWorkspaceTenantMatch(tenantId);
+
+    let after: ReturnType<typeof decodeTenantAuditListCursor> = null;
+    if (query.cursor?.trim()) {
+      after = decodeTenantAuditListCursor(query.cursor.trim());
+      if (!after) {
+        throw new BadRequestException({
+          error: {
+            code: "AUDIT_CURSOR_INVALID",
+            message: "Invalid pagination cursor"
+          }
+        });
+      }
+    }
+
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+    const limit = query.limit ?? TENANT_AUDIT_LIST_DEFAULT_LIMIT;
+
+    const { rows, nextCursor } = await this.tenantAuditEventsService.listForTenantPaged({
+      tenantId: paramTenantId,
+      from,
+      to,
+      action: query.action,
+      resourceType: query.resourceType,
+      resourceId: query.resourceId,
+      actorContains: query.actorContains,
+      limit,
+      after
+    });
+
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        occurredAt: row.occurredAt.toISOString(),
+        actor: row.actor,
+        actorUserId: row.actorUserId,
+        userId: row.userId,
+        action: row.action,
+        resourceType: row.resourceType,
+        resourceId: row.resourceId,
+        clientIp: row.clientIp,
+        requestId: row.requestId,
+        metadata: row.metadata
+      })),
+      nextCursor
+    };
   }
 }
