@@ -18,7 +18,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -90,6 +90,7 @@ function assertErrorEnvelope(response: Response): void {
   assert.equal(typeof response.body.error, "object");
   assert.equal(typeof response.body.error.code, "string");
   assert.equal(typeof response.body.error.message, "string");
+  assert.equal(typeof response.body.error.correlationId, "string");
   assert.equal(typeof response.body.error.details, "object");
   assert.equal(typeof response.body.error.retryability, "string");
   assert.equal(RETRYABILITY_VALUES.has(response.body.error.retryability), true);
@@ -174,27 +175,27 @@ async function seed(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: admin.id,
-      role: Role.ADMIN
+      role: UserRole.Admin
     }),
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: member.id,
-      role: Role.MEMBER
+      role: UserRole.Member
     }),
     membershipRepo.create({
       tenantId: OTHER_TENANT,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: OTHER_TENANT,
       userId: otherMember.id,
-      role: Role.MEMBER
+      role: UserRole.Member
     })
   ]);
 }
@@ -404,7 +405,7 @@ test("PATCH users: admin cannot assign admin to peer (403 RBAC_INSUFFICIENT)", a
     ds.getRepository(UserTenantEntity).create({
       tenantId: TENANT_ID,
       userId: extra.id,
-      role: Role.ADMIN
+      role: UserRole.Admin
     })
   );
 

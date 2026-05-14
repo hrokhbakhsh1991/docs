@@ -18,7 +18,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -91,6 +91,7 @@ function assertErrorEnvelope(response: Response): void {
   assert.equal(typeof response.body.error, "object");
   assert.equal(typeof response.body.error.code, "string");
   assert.equal(typeof response.body.error.message, "string");
+  assert.equal(typeof response.body.error.correlationId, "string");
   assert.equal(typeof response.body.error.details, "object");
   assert.equal(typeof response.body.error.retryability, "string");
   assert.equal(RETRYABILITY_VALUES.has(response.body.error.retryability), true);
@@ -178,12 +179,12 @@ async function seedTwoTenantsWithRegistration(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_A,
       userId: userA.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: userB.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   ]);
 
@@ -259,7 +260,7 @@ test("userB cannot PATCH registration status in tenantA (403 or 404)", async () 
     .patch(`/api/v2/registrations/${REGISTRATION_A}/status`)
     .set("Authorization", `Bearer ${sessionTokenB}`)
     .set("idempotency-key", randomUUID())
-    .send({ targetStatus: RegistrationStatus.CANCELLED });
+    .send({ targetStatus: RegistrationStatus.CANCELLED, expected_row_version: 1 });
 
   assert.equal([403, 404].includes(response.status), true, `unexpected status ${response.status}`);
   assert.notEqual(response.status, 200);
@@ -299,5 +300,19 @@ test("userB cannot list tenantA registrations (bookings + tour list; no cross-te
     if (tourRegs.status === 404) {
       assertErrorEnvelope(tourRegs);
     }
+  }
+});
+
+test("userB cannot GET tour owned by tenantA (403 or 404)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const response = await request(app.getHttpServer())
+    .get(`/api/v2/tours/${TOUR_A}`)
+    .set("Authorization", `Bearer ${sessionTokenB}`);
+
+  assert.equal([403, 404].includes(response.status), true, `unexpected status ${response.status}`);
+  if (response.status === 404) {
+    assertErrorEnvelope(response);
   }
 });

@@ -18,7 +18,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./e2e/jwt-test-keys";
-import { Role } from "../src/modules/auth/roles.enum";
+import { UserRole } from "../src/common/auth/user-role.enum";
 import { TenantEntity } from "../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../src/modules/identity/entities/user-tenant.entity";
@@ -106,7 +106,7 @@ async function seedLeaderUser(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: OTHER_TENANT_ID,
       userId: otherOwner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   );
 
@@ -127,7 +127,7 @@ async function seedLeaderUser(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: user.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   );
 }
@@ -157,6 +157,7 @@ function assertErrorEnvelope(response: Response): void {
   assert.equal(typeof response.body.error, "object");
   assert.equal(typeof response.body.error.code, "string");
   assert.equal(typeof response.body.error.message, "string");
+  assert.equal(typeof response.body.error.correlationId, "string");
   assert.equal(typeof response.body.error.details, "object");
   assert.equal(typeof response.body.error.retryability, "string");
   assert.equal(RETRYABILITY_VALUES.has(response.body.error.retryability), true);
@@ -350,7 +351,7 @@ test("POST /api/v2/invites/:token/accept valid invite -> 200, membership, invite
   await ds.query(
     `INSERT INTO workspace_invites (id, tenant_id, email, role, token, expires_at, created_by)
      VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid)`,
-    [randomUUID(), OTHER_TENANT_ID, LEADER_EMAIL.toLowerCase(), Role.MEMBER, E2E_INVITE_ACCEPT_TOKEN, leader.id]
+    [randomUUID(), OTHER_TENANT_ID, LEADER_EMAIL.toLowerCase(), UserRole.Member, E2E_INVITE_ACCEPT_TOKEN, leader.id]
   );
 
   const response = await request(app.getHttpServer())
@@ -359,7 +360,7 @@ test("POST /api/v2/invites/:token/accept valid invite -> 200, membership, invite
 
   assert.equal(response.status, 200);
   assert.equal(response.body.tenant_id, OTHER_TENANT_ID);
-  assert.equal(response.body.role, Role.MEMBER);
+  assert.equal(response.body.role, UserRole.Member);
 
   const membership = await ds.getRepository(UserTenantEntity).findOne({
     where: {

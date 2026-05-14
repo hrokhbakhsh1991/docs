@@ -18,7 +18,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -91,6 +91,7 @@ function assertErrorEnvelope(response: Response): void {
   assert.equal(typeof response.body.error, "object");
   assert.equal(typeof response.body.error.code, "string");
   assert.equal(typeof response.body.error.message, "string");
+  assert.equal(typeof response.body.error.correlationId, "string");
   assert.equal(typeof response.body.error.details, "object");
   assert.equal(typeof response.body.error.retryability, "string");
   assert.equal(RETRYABILITY_VALUES.has(response.body.error.retryability), true);
@@ -181,22 +182,22 @@ async function seed(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_A,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: invitee.id,
-      role: Role.MEMBER
+      role: UserRole.Member
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: other.id,
-      role: Role.MEMBER
+      role: UserRole.Member
     })
   ]);
 
@@ -204,7 +205,7 @@ async function seed(ds: DataSource): Promise<void> {
     token: TOKEN_ACCEPT_OK,
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
-    role: Role.MEMBER,
+    role: UserRole.Member,
     createdBy: owner.id
   });
 }
@@ -269,7 +270,7 @@ test("POST /api/v2/invites/:token/accept with valid token -> 200, invite row rem
 
   assert.equal(response.status, 200);
   assert.equal(response.body.tenant_id, TENANT_A);
-  assert.equal(response.body.role, Role.MEMBER);
+  assert.equal(response.body.role, UserRole.Member);
   assert.equal(await inviteCountByToken(ds, TOKEN_ACCEPT_OK), 0);
 
   const inviteeUser = await ds.getRepository(UserEntity).findOneOrFail({ where: { email: INVITEE_EMAIL } });
@@ -319,7 +320,7 @@ test("reuse invite token after successful accept -> 404 INVITE_NOT_FOUND", async
     token: TOKEN_REUSE_FLOW,
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
-    role: Role.MEMBER,
+    role: UserRole.Member,
     createdBy: ownerUserId
   });
   assert.equal(await inviteCountByToken(ds, TOKEN_REUSE_FLOW), 1);
@@ -347,7 +348,7 @@ test("accept with mismatched authenticated email -> 403 INVITE_EMAIL_MISMATCH; i
     token: TOKEN_MISMATCH,
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
-    role: Role.MEMBER,
+    role: UserRole.Member,
     createdBy: ownerUserId
   });
   assert.equal(await inviteCountByToken(ds, TOKEN_MISMATCH), 1);
