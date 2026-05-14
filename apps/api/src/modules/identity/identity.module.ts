@@ -14,8 +14,10 @@ import { EmailVerificationTokenEntity } from "./entities/email-verification-toke
 import { InvitesController } from "./invites.controller";
 import { WorkspaceOwnershipController } from "./workspace-ownership.controller";
 import { TenantAuditEventsController } from "./tenant-audit-events.controller";
-import { UsersAccessService } from "./users-access.service";
+import { UsersListRepository } from "./users/repositories/users-list.repository";
+import { UsersTenantScopeRepository } from "./users/repositories/users-tenant-scope.repository";
 import { UsersReadService } from "./users-read.service";
+import { UsersAccessService } from "./users-access.service";
 import { UsersWriteService } from "./users-write.service";
 import { UsersAuditService } from "./users-audit.service";
 import { UsersInviteService } from "./services/users-invite.service";
@@ -24,9 +26,11 @@ import { MeService } from "./me.service";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { OutboxService } from "../outbox/outbox.service";
 import { OutboxModule } from "../outbox/outbox.module";
+import { AuthModule } from "../auth/auth.module";
 
 @Module({
   imports: [
+    AuthModule,
     IdempotencyModule,
     OutboxModule,
     TypeOrmModule.forFeature([
@@ -46,6 +50,8 @@ import { OutboxModule } from "../outbox/outbox.module";
     MeController
   ],
   providers: [
+    UsersTenantScopeRepository,
+    UsersListRepository,
     UsersAccessService,
     UsersReadService,
     UsersWriteService,
@@ -82,6 +88,12 @@ import { OutboxModule } from "../outbox/outbox.module";
       ]
     }
   ],
-  exports: [TypeOrmModule, UsersReadService, UsersWriteService, UsersAuditService]
+  exports: [
+    TypeOrmModule,
+    UsersAccessService,
+    UsersReadService,
+    UsersWriteService,
+    UsersAuditService
+  ]
 })
 export class IdentityModule {}
