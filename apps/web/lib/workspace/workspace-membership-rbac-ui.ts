@@ -2,15 +2,16 @@
  * UI hints for workspace role PATCH options (must mirror backend policy in
  * `apps/api/src/common/rbac/workspace-membership-rbac.policy.ts`). Security is enforced server-side.
  */
-import { ROLE_RANK } from "@repo/shared-rbac";
+import { ROLE_RANK, tryParseWorkspaceRole, WorkspaceRole } from "@repo/shared";
 
-const RANK: Readonly<Record<string, number>> = ROLE_RANK;
+const RANK = ROLE_RANK;
 
-const PATCH_NEW_ROLES = ["leader", "admin", "member", "viewer"] as const;
-
-function norm(role: string | undefined): string {
-  return (role ?? "").trim().toLowerCase();
-}
+const PATCH_NEW_ROLES: readonly WorkspaceRole[] = [
+  WorkspaceRole.Leader,
+  WorkspaceRole.Admin,
+  WorkspaceRole.Member,
+  WorkspaceRole.Viewer
+];
 
 export type WorkspacePatchRoleChangeInput = {
   actorUserId: string;
@@ -33,9 +34,12 @@ function evaluateWorkspacePatchGate(input: WorkspacePatchRoleChangeInput): Works
   if (input.actorUserId.trim() === input.targetUserId.trim()) {
     return { ok: false, reason: "self" };
   }
-  const actor = norm(input.actorRole);
-  const target = norm(input.targetRole);
-  if (target === "owner") {
+  const actor = tryParseWorkspaceRole(input.actorRole);
+  const target = tryParseWorkspaceRole(input.targetRole);
+  if (!actor || !target) {
+    return { ok: false, reason: "unknown_role" };
+  }
+  if (target === WorkspaceRole.Owner) {
     return { ok: false, reason: "owner_target" };
   }
   const actorRank = RANK[actor];
@@ -49,8 +53,8 @@ function evaluateWorkspacePatchGate(input: WorkspacePatchRoleChangeInput): Works
   return { ok: true, actorRank };
 }
 
-function computeSelectablePatchRoles(actorRank: number): string[] {
-  const out: string[] = [];
+function computeSelectablePatchRoles(actorRank: number): WorkspaceRole[] {
+  const out: WorkspaceRole[] = [];
   for (const r of PATCH_NEW_ROLES) {
     const newRank = RANK[r];
     if (newRank !== undefined && actorRank > newRank) {
@@ -82,8 +86,13 @@ export function resolveWorkspaceRoleSelectUi(
 ): WorkspaceRoleSelectUiResolution {
   const gate = evaluateWorkspacePatchGate(input);
   const rawSelectable = gate.ok ? computeSelectablePatchRoles(gate.actorRank) : [];
-  const assignableOtherThanCurrent = rawSelectable.filter((r) => r !== input.normalizedCurrentRole);
-  const optionValues = Array.from(new Set([input.normalizedCurrentRole, ...rawSelectable]));
+  const currentParsed = tryParseWorkspaceRole(input.normalizedCurrentRole);
+  const assignableOtherThanCurrent = rawSelectable.filter(
+    (r) => String(r) !== String(currentParsed ?? input.normalizedCurrentRole)
+  );
+  const optionValues = Array.from(
+    new Set([input.normalizedCurrentRole, ...rawSelectable.map((r) => String(r))])
+  );
 
   let hintKey: WorkspaceRoleSelectUiHintKey | null = null;
   if (!gate.ok) {
@@ -94,8 +103,8 @@ export function resolveWorkspaceRoleSelectUi(
 
   return {
     optionValues,
-    assignableOtherThanCurrent,
+    assignableOtherThanCurrent: assignableOtherThanCurrent.map(String),
     disabledWithoutMutation: assignableOtherThanCurrent.length === 0,
-    hintKey,
+    hintKey
   };
 }

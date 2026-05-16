@@ -2,7 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: process.env.CI ? ["smoke/**/*.spec.ts"] : ["**/*.spec.ts", "**/*.test.ts"],
+  testMatch: process.env.CI
+    ? ["smoke/**/*.spec.ts", "auth/session-logout.spec.ts"]
+    : ["**/*.spec.ts", "**/*.test.ts"],
   snapshotDir: "./tests/visual/screenshots",
   retries: 1,
   forbidOnly: !!process.env.CI,
@@ -39,11 +41,9 @@ export default defineConfig({
       PORT: "3000",
       HOSTNAME: "127.0.0.1",
       // Point Tour-Ops calls at the same origin as the Next.js server so Playwright can intercept
-      // `http://127.0.0.1:3000/api/v2/**` reliably (matches how `apiClient` resolves `NEXT_PUBLIC_API_URL`).
-      NEXT_PUBLIC_API_URL: "http://127.0.0.1:3000/api/v2",
-      // Prevent developer shells (or machine-wide env) from enabling dynamic-origin mode, which routes
-      // API traffic to `{tenant}.localhost:{NEXT_PUBLIC_API_PORT}` and breaks deterministic mocks.
-      NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "false",
+      // `http://127.0.0.1:3000/api/v2/**` reliably (matches dynamic tenant origin from workspace host).
+      NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "true",
+      NEXT_PUBLIC_API_PORT: "3001",
     },
   },
   reporter: [["list"], ["html", { open: "never" }]],

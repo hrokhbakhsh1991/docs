@@ -18,6 +18,7 @@ import { TourEntity } from "./entities/tour.entity";
 import { TourDepartureEntity } from "./entities/tour-departure.entity";
 import { TourPriceEntity } from "./entities/tour-price.entity";
 import { TourProductEntity } from "./entities/tour-product.entity";
+import { ToursCatalogReadApplicationService } from "./application/tours-catalog-read.application.service";
 import { ToursService } from "./tours.service";
 import { ThrottlerGuard } from "@nestjs/throttler";
 
@@ -39,6 +40,6 @@ import { ThrottlerGuard } from "@nestjs/throttler";
     RegistrationsModule
   ],
   controllers: [ToursController, DashboardAggregateController],
-  providers: [ToursService, ThrottlerGuard]
+  providers: [ToursCatalogReadApplicationService, ToursService, ThrottlerGuard]
 })
 export class ToursModule {}

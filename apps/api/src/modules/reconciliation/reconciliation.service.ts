@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, In, IsNull, Repository } from "typeorm";
 import { TenantUsageMeteringService } from "../../common/billing/tenant-usage-metering.service";
@@ -47,13 +47,14 @@ export class ReconciliationService {
   private totalPromotionsTriggered = 0;
 
   constructor(
-    private readonly outboxService: OutboxService,
-    private readonly registrationsService: RegistrationsService,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
+    @Inject(RegistrationsService) private readonly registrationsService: RegistrationsService,
     @InjectRepository(IdentityTenantEntity)
     private readonly identityTenantRepository: Repository<IdentityTenantEntity>,
-    private readonly tenantRateLimitService: TenantRateLimitService,
-    private readonly tenantUsageMeteringService: TenantUsageMeteringService,
-    private readonly tenantDbContext: TenantDbContextService,
+    @Inject(TenantRateLimitService) private readonly tenantRateLimitService: TenantRateLimitService,
+    @Inject(TenantUsageMeteringService) private readonly tenantUsageMeteringService: TenantUsageMeteringService,
+    @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
+    @Inject(PaymentFinanceReconciliationService)
     private readonly paymentFinanceReconciliation: PaymentFinanceReconciliationService
   ) {}
 

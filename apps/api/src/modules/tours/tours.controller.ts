@@ -21,15 +21,23 @@ import {
   ApiQuery,
   ApiTags
 } from "@nestjs/swagger";
+import { WorkspaceAbilityFactoryService } from "../../common/casl/workspace-ability.factory.service";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { CreateTourDto } from "./dto/create-tour.dto";
 import { ListToursQueryDto } from "./dto/list-tours-query.dto";
 import { PaginatedToursResponseDto } from "./dto/paginated-tours-response.dto";
 import { TourResponseDto } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
+import { assertTourCreateWritePreMerge } from "./policies/assert-tour-create-write-pipeline";
+import { assertTourPatchWritePreMerge } from "./policies/assert-tour-patch-write-pipeline";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import { ToursService } from "./tours.service";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
 import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
@@ -47,7 +55,11 @@ export class ToursController {
   constructor(
     @Inject(ToursService) private readonly toursService: ToursService,
     @Inject(RegistrationsService)
-    private readonly registrationsService: RegistrationsService
+    private readonly registrationsService: RegistrationsService,
+    @Inject(WorkspaceAbilityFactoryService)
+    private readonly abilityFactory: WorkspaceAbilityFactoryService,
+    @Inject(RequestContextService)
+    private readonly requestContext: RequestContextService,
   ) {}
 
   @Post()
@@ -59,9 +71,10 @@ export class ToursController {
   })
   @ApiOperation({ summary: "Create tour" })
   @ApiCreatedResponse({ type: TourResponseDto })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard, ThrottlerGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard, ThrottlerGuard)
   @Throttle({ "tour-create": { ttl: 60_000, limit: 30 } })
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "Tour"))
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours",
@@ -70,6 +83,10 @@ export class ToursController {
     tenantSource: "context"
   })
   async create(@Body() dto: CreateTourDto): Promise<TourResponseDto> {
+    assertTourCreateWritePreMerge({
+      ability: this.abilityFactory.createForActiveRequest(),
+      dto,
+    });
     return this.toursService.createTour(dto);
   }
 
@@ -82,8 +99,9 @@ export class ToursController {
   })
   @ApiOperation({ summary: "Update tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Tour"))
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/tours/:tourId",
@@ -95,6 +113,15 @@ export class ToursController {
     @Param("tourId") tourId: string,
     @Body() dto: UpdateTourDto
   ): Promise<TourResponseDto> {
+    assertTourPatchWritePreMerge({
+      ability: this.abilityFactory.createForActiveRequest(),
+      workspaceRole: this.requestContext.tryGetRole() ?? null,
+      labels: this.requestContext.tryGetAbilityLabels(),
+      capabilities: this.requestContext.tryGetWorkspaceCapabilities(),
+      membershipMetadata: this.requestContext.tryGetMembershipMetadata(),
+      tenantModules: this.requestContext.tryGetTenantEnabledModules(),
+      dto,
+    });
     return this.toursService.updateTour(tourId, dto);
   }
 
@@ -120,8 +147,9 @@ export class ToursController {
     enum: ["active", "completed", "archived"]
   })
   @ApiOkResponse({ type: PaginatedToursResponseDto })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.OWNER)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Member, UserRole.Owner, UserRole.Admin, UserRole.Leader, UserRole.Viewer)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Tour"))
   async list(@Query() query: ListToursQueryDto): Promise<PaginatedToursResponseDto> {
     const { items, total, page, limit } = await this.toursService.listTours(query);
     return { items, total, page, limit };
@@ -131,8 +159,9 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List registrations for tour (Leader workspace)" })
   @ApiOkResponse({ type: RegistrationResponseDto, isArray: true })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.OWNER)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Registration"))
   async listTourRegistrations(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
   ): Promise<RegistrationResponseDto[]> {
@@ -143,8 +172,9 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "List waitlist items for tour (Leader workspace)" })
   @ApiOkResponse({ type: WaitlistItemResponseDto, isArray: true })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.OWNER)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Registration"))
   async listTourWaitlist(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
   ): Promise<WaitlistItemResponseDto[]> {
@@ -155,8 +185,9 @@ export class ToursController {
   @ApiBearerAuth()
   @ApiOperation({ summary: "Get tour by id" })
   @ApiOkResponse({ type: TourResponseDto })
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.PARTICIPANT, Role.OWNER)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Member, UserRole.Owner, UserRole.Admin, UserRole.Leader, UserRole.Viewer)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Tour"))
   async getById(@Param("tourId") tourId: string): Promise<TourResponseDto> {
     return this.toursService.getTourById(tourId);
   }

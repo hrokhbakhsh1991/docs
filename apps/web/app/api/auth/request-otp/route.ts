@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { bffFetch } from "@/lib/api/bff-fetch";
+import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
 import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
-
-function resolveBackendUrl(): string {
-  return process.env.TOUR_OPS_API_URL?.trim() || "http://denali.localhost:3001";
-}
 
 type RequestOtpBody = {
   phone?: unknown;
@@ -22,22 +20,23 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 400 }
     );
   }
-  const backendRes = await fetch(`${resolveBackendUrl()}/api/v2/auth/web/otp/request`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      host: req.headers.get("host") ?? ""
-    },
-    body: JSON.stringify({
-      phone,
-      ...(inviteToken ? { invite_token: inviteToken } : {})
-    }),
-    cache: "no-store"
-  }).catch(() => null);
-  if (!backendRes) {
+  let backendRes: Response;
+  try {
+    backendRes = await bffFetch(req, "/api/v2/auth/web/otp/request", {
+      method: "POST",
+      body: JSON.stringify({
+        phone,
+        ...(inviteToken ? { invite_token: inviteToken } : {}),
+      }),
+    });
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e);
+    if (guard) {
+      return guard;
+    }
     return NextResponse.json(
       { ok: false, error: { code: "BACKEND_UNREACHABLE", message: "Backend unavailable" } },
-      { status: 502 }
+      { status: 502 },
     );
   }
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;

@@ -4,7 +4,9 @@ export const AbilityAction = {
   Create: "create",
   Read: "read",
   Update: "update",
-  Delete: "delete"
+  Delete: "delete",
+  /** Tour lifecycle transition to OPEN (`tour.publish` capability). */
+  Publish: "publish"
 } as const;
 
 export type AbilityAction = (typeof AbilityAction)[keyof typeof AbilityAction];

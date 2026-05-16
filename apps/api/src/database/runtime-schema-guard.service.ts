@@ -19,8 +19,13 @@ const REQUIRED_COLUMNS: RequiredColumn[] = [
   { table: "user_tenants", column: "suspended_at" },
   { table: "user_tenants", column: "session_version" },
   { table: "user_tenants", column: "labels" },
+  { table: "user_tenants", column: "membership_metadata" },
+  { table: "tenants", column: "enabled_modules" },
   { table: "users", column: "profile_row_version" },
-  { table: "registrations", column: "row_version" }
+  { table: "registrations", column: "row_version" },
+  { table: "registrations", column: "quoted_total_minor" },
+  { table: "registrations", column: "quoted_pricing_version" },
+  { table: "registrations", column: "quoted_line_items_json" }
 ];
 
 @Injectable()

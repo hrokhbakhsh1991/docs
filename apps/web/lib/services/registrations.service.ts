@@ -5,8 +5,8 @@ import type {
   WaitlistItemResponseDto,
 } from "@repo/types";
 
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 import type { PaymentIntentResponse } from "./payments.service";
 import { coercePaymentIntentResponse } from "./payments.service";
@@ -27,6 +27,27 @@ function pickNum(o: Record<string, unknown>, key: string): number | null {
   const v = o[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;
   return null;
+}
+
+function pickLockedPricing(
+  o: Record<string, unknown>,
+): BookingDto["lockedPricing"] {
+  const raw = o.lockedPricing ?? o.locked_pricing;
+  if (raw == null || typeof raw !== "object") return null;
+  const lp = raw as Record<string, unknown>;
+  const totalMinor = pickStr(lp, "totalMinor", "total_minor");
+  const currency = pickStr(lp, "currency");
+  const pricingRuleVersion = pickStr(lp, "pricingRuleVersion", "pricing_rule_version");
+  if (!totalMinor || !currency || !pricingRuleVersion) return null;
+  const listRaw = lp.listPriceMinor ?? lp.list_price_minor;
+  const listPriceMinor =
+    listRaw === null ? null : listRaw !== undefined ? String(listRaw) : null;
+  return {
+    totalMinor,
+    currency: currency.trim().toUpperCase(),
+    pricingRuleVersion,
+    listPriceMinor,
+  };
 }
 
 /** Normalizes API JSON (camelCase or occasional snake_case) into `RegistrationResponseDto` shape. */
@@ -56,12 +77,14 @@ export function normalizeRegistrationPayload(raw: unknown): BookingDto {
           ? o.participant_note
           : null,
     status: pickStr(o, "status") as RegistrationStatus,
+    rowVersion: pickNum(o, "rowVersion") ?? pickNum(o, "row_version") ?? 1,
     paymentStatus: pickStr(o, "paymentStatus", "payment_status") as RegistrationPaymentStatus,
     paidAmount: o.paidAmount != null ? String(o.paidAmount) : (o.paid_amount != null ? String(o.paid_amount) : null),
     payment:
       o.payment != null && typeof o.payment === "object"
         ? (o.payment as Record<string, unknown>)
         : null,
+    lockedPricing: pickLockedPricing(o),
     createdAt: pickStr(o, "createdAt", "created_at"),
     updatedAt: pickStr(o, "updatedAt", "updated_at"),
   };
@@ -81,7 +104,7 @@ export type CreateRegistrationPayload = {
 };
 
 export async function createRegistration(payload: CreateRegistrationPayload): Promise<BookingDto> {
-  const raw = await apiClient.post<unknown>(API.registrations, payload, {
+  const raw = await bffBrowserClient.post<unknown>(BFF.registrations, payload, {
     idempotencyKey: true,
   });
   return normalizeRegistrationPayload(raw);
@@ -105,8 +128,8 @@ export async function publicRegisterTour(
   tourId: string,
   payload: CreateRegistrationPayload,
 ): Promise<PublicRegisterOutcome> {
-  const raw = await apiClient.post<unknown>(
-    API.tourRegister(tourId),
+  const raw = await bffBrowserClient.post<unknown>(
+    BFF.tourRegister(tourId),
     { ...payload, tourId },
     { idempotencyKey: true },
   );
@@ -140,8 +163,8 @@ export async function publicWaitlistTour(
   tourId: string,
   payload: CreateWaitlistPayload,
 ): Promise<{ waitlistItemId: string; queuePosition: number }> {
-  return apiClient.post<{ waitlistItemId: string; queuePosition: number }>(
-    API.tourWaitlist(tourId),
+  return bffBrowserClient.post<{ waitlistItemId: string; queuePosition: number }>(
+    BFF.tourWaitlist(tourId),
     { ...payload, tourId },
     { idempotencyKey: true },
   );
@@ -152,34 +175,31 @@ export type CreateWaitlistPayload = Omit<CreateRegistrationPayload, "entryMode">
 };
 
 export async function createWaitlistItem(payload: CreateWaitlistPayload): Promise<WaitlistItemResponseDto> {
-  return apiClient.post<WaitlistItemResponseDto>(API.waitlistItems, payload, {
+  return bffBrowserClient.post<WaitlistItemResponseDto>(BFF.waitlistItems, payload, {
     idempotencyKey: true,
   });
 }
 
 export async function getRegistrationById(registrationId: string): Promise<BookingDto> {
-  const raw = await apiClient.get<unknown>(API.registration(registrationId));
+  const raw = await bffBrowserClient.get<unknown>(BFF.registration(registrationId));
   return normalizeRegistrationPayload(raw);
 }
 
 export async function listRegistrationsForTour(tourId: string): Promise<BookingDto[]> {
-  const raw = await apiClient.get<unknown>(API.tourRegistrations(tourId));
+  const raw = await bffBrowserClient.get<unknown>(BFF.tourRegistrations(tourId));
   return Array.isArray(raw) ? raw.map((row) => normalizeRegistrationPayload(row)) : [];
 }
 
 export async function listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]> {
-  return apiClient.get<WaitlistItemResponseDto[]>(
-    API.tourWaitlistItems(tourId),
-    {}
-  );
+  return bffBrowserClient.get<WaitlistItemResponseDto[]>(BFF.tourWaitlistItems(tourId));
 }
 
 export async function updateRegistrationStatus(
   registrationId: string,
   targetStatus: RegistrationStatus
 ): Promise<BookingDto> {
-  const raw = await apiClient.patch<unknown>(
-    API.registrationStatus(registrationId),
+  const raw = await bffBrowserClient.patch<unknown>(
+    BFF.registrationStatus(registrationId),
     { targetStatus },
     { idempotencyKey: true }
   );
@@ -190,8 +210,8 @@ export async function updateRegistrationPayment(
   registrationId: string,
   body: { paymentStatus: RegistrationPaymentStatus; paidAmount?: number }
 ): Promise<BookingDto> {
-  const raw = await apiClient.patch<unknown>(
-    API.registrationPayment(registrationId),
+  const raw = await bffBrowserClient.patch<unknown>(
+    BFF.registrationPayment(registrationId),
     body,
     { idempotencyKey: true }
   );
@@ -202,8 +222,8 @@ export async function convertWaitlistItem(
   waitlistItemId: string,
   body?: { conversionReason?: string }
 ): Promise<WaitlistItemResponseDto> {
-  return apiClient.post<WaitlistItemResponseDto>(
-    API.waitlistItemConvert(waitlistItemId),
+  return bffBrowserClient.post<WaitlistItemResponseDto>(
+    BFF.waitlistItemConvert(waitlistItemId),
     body ?? {},
     { idempotencyKey: true }
   );

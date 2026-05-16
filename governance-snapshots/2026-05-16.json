@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-05-16T16:00:14.459Z",
+  "capabilityRegistry": [
+    "tour.create",
+    "tour.read",
+    "tour.update",
+    "tour.update.core",
+    "tour.update.tripDetails",
+    "tour.publish",
+    "tour.regional.manage",
+    "settings.read",
+    "settings.themes.manage",
+    "module.finance",
+    "module.form_builder",
+    "marketing.segment.read"
+  ],
+  "capabilityGovernance": [],
+  "tenantModules": [
+    "finance",
+    "form_builder"
+  ],
+  "patchFieldMatrix": [],
+  "lifecycleRules": "tour-lifecycle-governance.ts",
+  "caslGrants": "workspace-ability.factory.service.ts",
+  "roleMatrix": []
+}

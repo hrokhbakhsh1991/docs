@@ -1,5 +1,5 @@
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 
 /** Row from `GET /api/v2/auth/workspaces` (OpenAPI `AuthWorkspaceItemDto`). */
 export type AuthWorkspaceListItem = {
@@ -10,9 +10,8 @@ export type AuthWorkspaceListItem = {
   role: string;
 };
 
-export async function getAuthWorkspaces(authToken?: string): Promise<AuthWorkspaceListItem[]> {
-  return apiClient.get<AuthWorkspaceListItem[]>(API.auth.workspaces, {
+export async function getAuthWorkspaces(): Promise<AuthWorkspaceListItem[]> {
+  return bffBrowserClient.get<AuthWorkspaceListItem[]>(BFF.authWorkspaces, {
     skipGlobalErrorToast: true,
-    authToken,
   });
 }

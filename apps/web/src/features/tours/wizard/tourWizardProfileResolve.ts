@@ -7,11 +7,15 @@ import {
   normalizeTourFormProfileInput,
 } from "@repo/types";
 
+import { TOUR_WIZARD_CONTRACT_VERSION } from "./contract/tour-wizard-contract-version";
+
 export type TourWizardDraftMeta = {
   sourceTourId?: string;
   themeIds?: { main?: string; secondary?: string[] };
   resolvedFormProfile: TourFormProfile;
   formProfileVersion: number;
+  /** Wizard DTO strict-schema generation; see `tour-wizard-contract-version.ts`. */
+  wizardContractVersion?: number;
 };
 
 export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | undefined {
@@ -23,6 +27,10 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
   const profileRaw = m.resolvedFormProfile;
   const profile = isTourFormProfile(profileRaw) ? profileRaw : DEFAULT_TOUR_FORM_PROFILE;
   const version = typeof m.formProfileVersion === "number" && Number.isFinite(m.formProfileVersion) ? m.formProfileVersion : TOUR_FORM_PROFILE_VERSION;
+  const wizardContractVersion =
+    typeof m.wizardContractVersion === "number" && Number.isFinite(m.wizardContractVersion)
+      ? m.wizardContractVersion
+      : TOUR_WIZARD_CONTRACT_VERSION;
   const sourceTourId = typeof m.sourceTourId === "string" ? m.sourceTourId : undefined;
   let themeIds: TourWizardDraftMeta["themeIds"];
   const ti = m.themeIds;
@@ -33,7 +41,7 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
     const secondary = Array.isArray(sec) ? sec.filter((x): x is string => typeof x === "string") : undefined;
     themeIds = { main, secondary };
   }
-  return { sourceTourId, themeIds, resolvedFormProfile: profile, formProfileVersion: version };
+  return { sourceTourId, themeIds, resolvedFormProfile: profile, formProfileVersion: version, wizardContractVersion };
 }
 
 export type ThemeRowForProfile = { id: string; formProfile?: TourFormProfile | string | null };

@@ -1,5 +1,7 @@
 import { ApiError } from "@/lib/api-client";
 
+import { getUIError } from "./error-registry";
+
 export type MapToUserMessageOptions = {
   fallback?: string;
 };
@@ -15,7 +17,16 @@ export function mapToUserMessage(error: unknown, options?: MapToUserMessageOptio
 
   if (error instanceof ApiError) {
     const direct = error.message?.trim();
-    if (direct) return direct;
+    if (direct && error.code === "REQUEST_FAILED") {
+      return direct;
+    }
+    if (error.code && error.code !== "REQUEST_FAILED" && error.code !== "NETWORK_ERROR") {
+      const ui = getUIError(error.code);
+      if (direct && direct !== ui.message) {
+        return direct;
+      }
+      return ui.message;
+    }
 
     switch (error.code) {
       case "NETWORK_ERROR":
@@ -23,13 +34,13 @@ export function mapToUserMessage(error: unknown, options?: MapToUserMessageOptio
       case "TIMEOUT":
         return "Request timed out. Please try again.";
       case "FORBIDDEN":
-        return "You are not allowed to perform this action.";
+        return getUIError("AUTH_FORBIDDEN_ABILITY").message;
       case "UNAUTHORIZED":
-        return "Your session has expired. Please sign in again.";
+        return getUIError("AUTH_UNAUTHENTICATED").message;
       case "SERVER_ERROR":
-        return "Server error. Please try again later.";
+        return getUIError("INTERNAL_ERROR").message;
       default:
-        return fallback;
+        return direct || fallback;
     }
   }
 

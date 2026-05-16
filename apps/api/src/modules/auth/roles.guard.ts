@@ -6,9 +6,9 @@ import {
   Injectable
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import { isWorkspaceUserRole, type UserRole } from "../../common/auth/user-role.enum";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { ROLES_METADATA_KEY } from "./roles.decorator";
-import type { Role } from "./roles.enum";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -20,7 +20,7 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const allowedRoles =
-      this.reflector.getAllAndOverride<Role[]>(ROLES_METADATA_KEY, [
+      this.reflector.getAllAndOverride<UserRole[]>(ROLES_METADATA_KEY, [
         context.getHandler(),
         context.getClass()
       ]) ?? [];
@@ -30,7 +30,7 @@ export class RolesGuard implements CanActivate {
     }
 
     const role = this.requestContextService.getRole();
-    if (!role) {
+    if (!role || !isWorkspaceUserRole(role)) {
       throw new ForbiddenException({
         error: {
           code: "AUTH_FORBIDDEN_ROLE",
@@ -39,8 +39,7 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    const roleStr = String(role);
-    if (!allowedRoles.some((allowed) => String(allowed) === roleStr)) {
+    if (!allowedRoles.includes(role)) {
       throw new ForbiddenException({
         error: {
           code: "AUTH_FORBIDDEN_ROLE",

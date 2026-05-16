@@ -151,7 +151,7 @@ export function TourEditClient({
           <CardBody>
             <EmptyState
               title="Workspace API not configured"
-              description="Set NEXT_PUBLIC_API_URL in your environment to load and edit tours."
+              description="Open this app on your workspace host (e.g. ws1-rbac.localhost) to load and edit tours."
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
                   Back to dashboard

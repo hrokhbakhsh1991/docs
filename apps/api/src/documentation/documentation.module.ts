@@ -2,9 +2,16 @@ import { Module } from "@nestjs/common";
 import { getDataSourceToken } from "@nestjs/typeorm";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "../app.controller";
+import { defineAbilityFor } from "@repo/shared";
+import { AbilitiesGuard } from "../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../common/casl/casl-mirror-abilities.guard";
+import { WorkspaceAbilityFactoryService } from "../common/casl/workspace-ability.factory.service";
 import { LoggerService } from "../common/logger/logger.service";
 import { UserRole, InternalActorRole } from "../common/auth/user-role.enum";
 import { RequestContextService } from "../common/request-context/request-context.service";
+import { AuthAbilityContextService } from "../modules/auth/auth-ability-context.service";
+import { AuthorizationPresenceGuard } from "../modules/auth/authorization-presence.guard";
+import { RolesGuard } from "../modules/auth/roles.guard";
 import { ConfigService } from "../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../jobs/scheduler-runtime-metrics.service";
 import { IdempotencyService } from "../modules/idempotency/idempotency.service";
@@ -41,6 +48,8 @@ import { SettingsTourCreationPresetsController } from "../modules/settings-locat
 import { SettingsTourThemesController } from "../modules/settings-locations/settings-tour-themes.controller";
 import { SettingsRegionsController } from "../modules/settings-locations/settings-regions.controller";
 import { SettingsRegionsService } from "../modules/settings-locations/settings-regions.service";
+import { SafetyProfileController } from "../modules/safety-profile/safety-profile.controller";
+import { SafetyProfileService } from "../modules/safety-profile/safety-profile.service";
 import { ToursController } from "../modules/tours/tours.controller";
 import { ToursService } from "../modules/tours/tours.service";
 
@@ -78,7 +87,8 @@ import { ToursService } from "../modules/tours/tours.service";
     SettingsEquipmentController,
     SettingsGuideLanguagesController,
     SettingsTourThemesController,
-    SettingsTourCreationPresetsController
+    SettingsTourCreationPresetsController,
+    SafetyProfileController
   ],
   providers: [
     {
@@ -92,9 +102,38 @@ import { ToursService } from "../modules/tours/tours.service";
       useValue: {
         info: () => undefined,
         warn: () => undefined,
-        error: () => undefined
+        error: () => undefined,
+        debug: () => undefined
       }
     },
+    {
+      provide: AuthAbilityContextService,
+      useValue: {
+        getMembershipAbilityContext: () => ({
+          labels: [],
+          capabilities: [],
+          effective_capabilities: [],
+          jwt_capability_snapshot: [],
+          allowed_region_ids: [],
+          tenant_modules: ["finance", "form_builder"]
+        })
+      }
+    },
+    {
+      provide: WorkspaceAbilityFactoryService,
+      useValue: {
+        createForActiveRequest: () =>
+          defineAbilityFor({
+            id: "openapi-build-user",
+            role: UserRole.Owner,
+            status: "ACTIVE"
+          })
+      }
+    },
+    AuthorizationPresenceGuard,
+    RolesGuard,
+    AbilitiesGuard,
+    CaslMirrorAbilitiesGuard,
     {
       provide: RequestContextService,
       useValue: {
@@ -133,7 +172,7 @@ import { ToursService } from "../modules/tours/tours.service";
           tenant_id: "00000000-0000-4000-8000-000000000000",
           tenant_name: "OpenAPI Workspace",
           tenant_subdomain: "openapi",
-          role: "owner",
+          role: UserRole.Owner,
           session_version: 1
         })
       }
@@ -147,6 +186,19 @@ import { ToursService } from "../modules/tours/tours.service";
       }
     },
     { provide: ToursService, useValue: {} },
+    {
+      provide: SafetyProfileService,
+      useValue: {
+        listEmergencyContacts: async () => [],
+        replaceEmergencyContacts: async () => [],
+        getMedicalProfile: async () => null,
+        upsertMedicalProfile: async () => ({
+          userId: "00000000-0000-4000-8000-000000000001",
+          encryptionSchemaVersion: 1,
+          plaintextPayloadUtf8: "{}"
+        })
+      }
+    },
     {
       provide: SettingsRegionsService,
       useValue: {
@@ -405,7 +457,9 @@ import { ToursService } from "../modules/tours/tours.service";
           promotedInLastRun: 0,
           totalDriftsDetected: 0,
           totalCorrectionsApplied: 0,
-          totalPromotionsTriggered: 0
+          totalPromotionsTriggered: 0,
+          lastPaymentFinanceReconciliationAt: null,
+          lastPaymentFinanceCriticalFindings: 0
         })
       }
     },

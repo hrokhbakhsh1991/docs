@@ -7,6 +7,8 @@ import { createContext, useContext, useMemo } from "react";
 import { getProfileRules } from "@/features/tours/wizard/profileRules/getProfileRules";
 import type { ProfileRules } from "@/features/tours/wizard/profileRules/types";
 
+import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
+
 import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
 
 /**
@@ -27,6 +29,8 @@ export type TourWizardProfileContextValue = {
    * `prompt.md`).
    */
   rules: ProfileRules;
+  /** Tenant `enabled_modules` overlay on the shared CREATE contract (Phase 8.2.1). */
+  tenantFormContract: TenantTourFormContract;
 };
 
 /** Shape callers may pass; `rules` is optional and filled by the provider. */
@@ -50,8 +54,9 @@ export function TourWizardProfileProvider({
       resolvedProfile: value.resolvedProfile,
       draftMeta: value.draftMeta,
       rules,
+      tenantFormContract: value.tenantFormContract,
     };
-  }, [value.resolvedProfile, value.draftMeta, value.rules]);
+  }, [value.resolvedProfile, value.draftMeta, value.rules, value.tenantFormContract]);
   return (
     <TourWizardProfileContext.Provider value={memo}>{children}</TourWizardProfileContext.Provider>
   );

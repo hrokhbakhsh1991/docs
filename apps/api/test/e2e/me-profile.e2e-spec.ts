@@ -12,7 +12,7 @@ import { resetTestDatabaseWithMigrations } from "./reset-test-database";
 import { tenantTestHost } from "./tenant-test-host";
 import { webSessionOtpToken } from "./web-session-otp.helper";
 import { E2E_JWT_PRIVATE_KEY_PKCS8, E2E_JWT_PUBLIC_KEY_SPKI } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { MembershipStatus } from "../../src/modules/identity/membership-status.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
@@ -93,7 +93,7 @@ async function seed(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: user.id,
-      role: Role.OWNER,
+      role: UserRole.Owner,
       status: MembershipStatus.ACTIVE,
       joinedAt: new Date()
     })
@@ -217,4 +217,19 @@ test("PATCH /api/v2/me with stale If-Match returns PROFILE_ROW_VERSION_CONFLICT"
   assert.equal(patch.status, 409);
   assert.equal(patch.body.success, false);
   assert.equal(patch.body.error?.code, "PROFILE_ROW_VERSION_CONFLICT");
+});
+
+test("PATCH /api/v2/me without concurrency token returns PROFILE_ROW_VERSION_REQUIRED", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const patch = await request(app.getHttpServer())
+    .patch("/api/v2/me")
+    .set("Host", tenantTestHost(SUBDOMAIN))
+    .set("Authorization", `Bearer ${sessionToken}`)
+    .send({ full_name: "No Token Name" });
+
+  assert.equal(patch.status, 400);
+  assert.equal(patch.body.success, false);
+  assert.equal(patch.body.error?.code, "PROFILE_ROW_VERSION_REQUIRED");
 });

@@ -1,0 +1,67 @@
+/**
+ * Global Error Taxonomy for the Tour Management Platform.
+ * Ensures deterministic error handling across BFF, API, and Frontend.
+ */
+export const GlobalErrorTaxonomy = {
+  // Authentication & Session
+  AUTH: {
+    UNAUTHENTICATED: "AUTH_UNAUTHENTICATED",
+    TELEGRAM_CONTEXT_REQUIRED: "AUTH_TELEGRAM_CONTEXT_REQUIRED",
+    PHONE_INVALID: "AUTH_PHONE_INVALID",
+    OTP_INVALID: "AUTH_OTP_INVALID",
+    OTP_EXPIRED: "AUTH_OTP_EXPIRED",
+    TOKEN_REVOKED: "AUTH_TOKEN_REVOKED",
+    SESSION_INVALID: "AUTH_SESSION_INVALID",
+    NO_ACTIVE_MEMBERSHIP: "AUTH_NO_ACTIVE_MEMBERSHIP",
+  },
+
+  // Tenant & Context
+  TENANT: {
+    CONTEXT_MISSING: "TENANT_CONTEXT_MISSING",
+    CONTEXT_INVALID: "TENANT_CONTEXT_INVALID",
+    HOST_UNKNOWN: "TENANT_HOST_UNKNOWN",
+    HOST_MISMATCH: "TENANT_HOST_MISMATCH",
+    SCOPE_FORBIDDEN: "TENANT_SCOPE_FORBIDDEN",
+  },
+
+  // RBAC & Capabilities
+  RBAC: {
+    FORBIDDEN_ROLE: "AUTH_FORBIDDEN_ROLE",
+    FORBIDDEN_ABILITY: "AUTH_FORBIDDEN_ABILITY",
+    INSUFFICIENT_PRIVILEGE: "RBAC_INSUFFICIENT_ROLE_PRIVILEGE",
+    SELF_ROLE_CHANGE_FORBIDDEN: "RBAC_SELF_ROLE_CHANGE_FORBIDDEN",
+  },
+
+  // Validation & Input
+  VALIDATION: {
+    FAILED: "VALIDATION_FAILED",
+    REQUIRED_FIELD_MISSING: "VALIDATION_REQUIRED_FIELD_MISSING",
+    ENUM_INVALID: "VALIDATION_ENUM_INVALID",
+    FIELD_FORMAT_INVALID: "VALIDATION_FIELD_FORMAT_INVALID",
+  },
+
+  // Resource & State
+  RESOURCE: {
+    NOT_FOUND: "RESOURCE_NOT_FOUND",
+    CONFLICT: "STATE_TRANSITION_INVALID",
+    CONCURRENCY_CONFLICT: "CONCURRENCY_CONFLICT",
+    IDEMPOTENCY_REPLAY_MISMATCH: "IDEMPOTENCY_KEY_REPLAY_MISMATCH",
+  },
+
+  // Infrastructure & System
+  SYSTEM: {
+    INTERNAL_ERROR: "INTERNAL_ERROR",
+    BACKEND_UNREACHABLE: "BACKEND_UNREACHABLE",
+    RATE_LIMITED: "RATE_LIMITED",
+    DEPENDENCY_UNAVAILABLE: "DEPENDENCY_TEMPORARY_UNAVAILABLE",
+    SCHEMA_DRIFT: "SCHEMA_DRIFT_QUERY_FAILED",
+  },
+} as const;
+
+export type ErrorCode =
+  | (typeof GlobalErrorTaxonomy.AUTH)[keyof typeof GlobalErrorTaxonomy.AUTH]
+  | (typeof GlobalErrorTaxonomy.TENANT)[keyof typeof GlobalErrorTaxonomy.TENANT]
+  | (typeof GlobalErrorTaxonomy.RBAC)[keyof typeof GlobalErrorTaxonomy.RBAC]
+  | (typeof GlobalErrorTaxonomy.VALIDATION)[keyof typeof GlobalErrorTaxonomy.VALIDATION]
+  | (typeof GlobalErrorTaxonomy.RESOURCE)[keyof typeof GlobalErrorTaxonomy.RESOURCE]
+  | (typeof GlobalErrorTaxonomy.SYSTEM)[keyof typeof GlobalErrorTaxonomy.SYSTEM];

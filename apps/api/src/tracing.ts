@@ -42,6 +42,19 @@ class VoidSpanExporter implements SpanExporter {
  * Injects SaaS context onto every span started while {@link requestContextStorage} is active
  * (HTTP handlers, DB calls under the same async continuation).
  */
+function spanDurationMs(span: ReadableSpan): number {
+  const [seconds, nanoseconds] = span.duration;
+  return seconds * 1_000 + nanoseconds / 1_000_000;
+}
+
+function isDatabaseSpan(span: ReadableSpan): boolean {
+  if (span.attributes["db.system"] !== undefined) {
+    return true;
+  }
+  const name = span.name.toLowerCase();
+  return name.includes("pg.") || name.includes("postgres") || name.includes("typeorm");
+}
+
 class RequestContextSpanProcessor implements SpanProcessor {
   onStart(span: Span, _parentContext: Context): void {
     const store = requestContextStorage.getStore();
@@ -49,6 +62,11 @@ class RequestContextSpanProcessor implements SpanProcessor {
       return;
     }
     span.setAttribute("request_id", store.requestId);
+    const correlationId = store.correlationId?.trim() || store.requestId;
+    span.setAttribute("correlation_id", correlationId);
+    if (store.traceparent !== undefined && store.traceparent !== "") {
+      span.setAttribute("traceparent", store.traceparent);
+    }
     if (store.path !== undefined && store.path !== "") {
       span.setAttribute("route", store.path);
     }
@@ -61,7 +79,17 @@ class RequestContextSpanProcessor implements SpanProcessor {
     }
   }
 
-  onEnd(_span: ReadableSpan): void {}
+  onEnd(span: ReadableSpan): void {
+    if (!isDatabaseSpan(span)) {
+      return;
+    }
+    const store = requestContextStorage.getStore();
+    if (!store) {
+      return;
+    }
+    store.dbDurationMs = (store.dbDurationMs ?? 0) + spanDurationMs(span);
+    store.dbSpanCount = (store.dbSpanCount ?? 0) + 1;
+  }
 
   async shutdown(): Promise<void> {}
 

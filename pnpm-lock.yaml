@@ -84,12 +84,18 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: ^1.28.0
         version: 1.40.0
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@repo/shared-contracts':
         specifier: workspace:*
         version: link:../../packages/shared-contracts
-      '@repo/shared-rbac':
+      '@repo/tenant-host':
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/tenant-host
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -224,15 +230,21 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.75.0(react@18.3.1))
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@repo/digit-localization':
         specifier: workspace:*
         version: link:../../packages/digit-localization
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@repo/shared-contracts':
         specifier: workspace:*
         version: link:../../packages/shared-contracts
-      '@repo/shared-rbac':
+      '@repo/tenant-host':
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/tenant-host
       '@repo/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -301,7 +313,15 @@ importers:
         specifier: ^5.6.2
         version: 5.9.3
 
-  packages/config: {}
+  packages/config:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
 
   packages/digit-localization: {}
 
@@ -320,10 +340,22 @@ importers:
 
   packages/shared-contracts:
     dependencies:
+      '@repo/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+
+  packages/tenant-host:
+    devDependencies:
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
       typescript:
         specifier: ^5.6.2
         version: 5.9.3

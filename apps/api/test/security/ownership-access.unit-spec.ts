@@ -21,6 +21,12 @@ import { createRegistrationsReadRepositoryTestDouble } from "../registrations/st
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 
+const noopRegistrationsForPaymentFlow = {
+  async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
+    return false;
+  }
+} as unknown as RegistrationsService;
+
 type Actor = {
   role?: UserRole;
   tenantId?: string;
@@ -128,7 +134,8 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     { addEvent: async () => undefined } as never,
     stubRegistrationQuoteApplication,
     createRegistrationsReadRepositoryTestDouble(registrationRepository as never),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests)
+    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
+    {} as never // PricingEngineService stub
   );
   return { service };
 }
@@ -312,7 +319,8 @@ test("payment intent denies member access to other member registration", async (
     { addEvent: async () => undefined } as never,
     resolverStub as never,
     noopPaymentRefundLedgerForTests,
-    stubPaymentGatewayFactoryForTests
+    stubPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   await assert.rejects(

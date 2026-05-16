@@ -16,7 +16,12 @@ import { isLeaderReviewAllowed } from "@/lib/auth/leader-review-access";
 import { mapToUserMessage } from "@/lib/errors/mapToUserMessage";
 import { downloadCsv, registrationsToCsv } from "@/lib/export-registrations-csv";
 import { useLeaderTourRegistrations } from "@/lib/hooks/useLeaderTourRegistrations";
-import { registrationKeys, tourKeys } from "@/lib/query-keys";
+import {
+  leaderDashboardSummaryKey,
+  leaderRegistrationIndexKeys,
+  registrationKeys,
+  tourKeys,
+} from "@/lib/query-keys";
 import { registrationsUseLiveApi } from "@/lib/services/registrations.service";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
 import { useAppToast } from "@/lib/use-app-toast";
@@ -56,6 +61,8 @@ export function LeaderReviewClient() {
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: registrationKeys.all });
     await queryClient.invalidateQueries({ queryKey: tourKeys.all });
+    await queryClient.invalidateQueries({ queryKey: leaderDashboardSummaryKey });
+    await queryClient.invalidateQueries({ queryKey: leaderRegistrationIndexKeys.all });
     await leaderData.refetchAll();
   }, [queryClient, leaderData]);
 
@@ -130,20 +137,25 @@ export function LeaderReviewClient() {
   if (!liveApi) {
     return (
       <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
-        <EmptyState title="API not configured" description="NEXT_PUBLIC_API_URL is required." />
+        <EmptyState
+          title="API not configured"
+          description="Open this app on your workspace host (e.g. ws1-rbac.localhost) with the API running."
+        />
       </RegisteredWorkspacePage>
     );
   }
 
-  if (leaderData.toursQuery.isError) {
+  if (leaderData.isError) {
+    const loadError =
+      leaderData.registrationsError ?? leaderData.toursQuery.error ?? new Error("Failed to load review data");
     return (
       <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
         <ErrorState
-          title="Could not load tours"
-          message={mapToUserMessage(leaderData.toursQuery.error, {
-            fallback: "Could not load tours. Check your connection and try again.",
+          title="Could not load registrations"
+          message={mapToUserMessage(loadError, {
+            fallback: "Could not load registrations. Check your connection and try again.",
           })}
-          onRetry={() => void leaderData.refetchTours()}
+          onRetry={() => void leaderData.refetchAll()}
         />
       </RegisteredWorkspacePage>
     );
@@ -202,7 +214,7 @@ export function LeaderReviewClient() {
             </p>
           ) : null}
           <p style={{ margin: 0 }}>
-            Source: <strong>GET /api/v2/tours</strong> + parallel <strong>GET /api/v2/tours/{"{id}"}/registrations</strong>.
+            Source: <strong>GET /api/v2/dashboard/leader-registration-rows</strong> (single tenant index).
             Mutations use <strong>PATCH /api/v2/registrations/{"{id}"}/status</strong> and{" "}
             <strong>PATCH /api/v2/registrations/{"{id}"}/payment</strong>.
           </p>

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { WorkspaceRole } from "@repo/shared-rbac";
+import { WorkspaceRole } from "@repo/shared";
 import type { EntityManager } from "typeorm";
+import { ConfigService } from "../../config/config.service";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity, TourLifecycleStatus } from "../tours/entities/tour.entity";
 import { TourPriceEntity, TourPriceType } from "../tours/entities/tour-price.entity";
@@ -191,6 +192,61 @@ test("PricingEngine: identical quote when invoked twice on same catalog rows", a
   const q1 = await engine.quote(mgr, input);
   const q2 = await engine.quote(mgr, input);
   assert.deepEqual(q1, q2);
+});
+
+test("PricingEngine: financeShadowCompare does not change quote when archive diagnostics disabled", async () => {
+  const engine = new PricingEngineService();
+  const prices: TourPriceEntity[] = [
+    {
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      tourDepartureId: departureId,
+      priceType: TourPriceType.BASE,
+      currencyCode: "USD",
+      amountMinor: "10000",
+      conditionsJson: null,
+      createdAt: new Date()
+    } as TourPriceEntity
+  ];
+  const mgr = mockManager({ tour: baseTour, departure: baseDeparture, prices });
+  const input = {
+    tenantId,
+    tourId,
+    departureId,
+    userRole: WorkspaceRole.Member,
+    discountCode: null
+  };
+  const baseline = await engine.quote(mgr, input);
+  const withShadowFlag = await engine.quote(mgr, input, { financeShadowCompare: true });
+  assert.deepEqual(baseline, withShadowFlag);
+});
+
+test("PricingEngine: financeShadowCompare does not change quote in archive diagnostics mode (logs only)", async () => {
+  const config = {
+    getFinanceLegacyPricingDiagnosticsMode: () => "archive" as const
+  } as ConfigService;
+  const engine = new PricingEngineService(undefined, config);
+  const prices: TourPriceEntity[] = [
+    {
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      tourDepartureId: departureId,
+      priceType: TourPriceType.BASE,
+      currencyCode: "USD",
+      amountMinor: "10000",
+      conditionsJson: null,
+      createdAt: new Date()
+    } as TourPriceEntity
+  ];
+  const mgr = mockManager({ tour: baseTour, departure: baseDeparture, prices });
+  const input = {
+    tenantId,
+    tourId,
+    departureId,
+    userRole: WorkspaceRole.Member,
+    discountCode: null
+  };
+  const baseline = await engine.quote(mgr, input);
+  const withShadowFlag = await engine.quote(mgr, input, { financeShadowCompare: true });
+  assert.deepEqual(baseline, withShadowFlag);
 });
 
 test("PricingEngine: unknown tour is 404", async () => {

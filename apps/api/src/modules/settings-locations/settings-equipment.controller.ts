@@ -14,8 +14,12 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { CreateEquipmentItemDto } from "./dto/create-equipment-item.dto";
 import { ReorderEquipmentItemsDto } from "./dto/reorder-equipment-items.dto";
 import { UpdateEquipmentItemDto } from "./dto/update-equipment-item.dto";
@@ -24,13 +28,14 @@ import { EquipmentSettingsService } from "./equipment-settings.service";
 
 @ApiTags("Settings — Equipment")
 @Controller("api/v2/settings/equipment")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 export class SettingsEquipmentController {
   constructor(private readonly equipment: EquipmentSettingsService) {}
 
   @Get()
-  @Roles(Role.OWNER, Role.ADMIN, Role.PARTICIPANT)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Settings"))
   @ApiOperation({
     summary: "List workspace equipment items",
     description: "Readable by all workspace members (for tour UI). Create/update/delete remain owner/admin only."
@@ -42,7 +47,8 @@ export class SettingsEquipmentController {
 
   @Post()
   @HttpCode(201)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "Settings"))
   @ApiOperation({ summary: "Create workspace equipment item" })
   @ApiCreatedResponse({ type: WorkspaceEquipmentItemResponseDto })
   async create(@Body() dto: CreateEquipmentItemDto): Promise<WorkspaceEquipmentItemResponseDto> {
@@ -50,7 +56,8 @@ export class SettingsEquipmentController {
   }
 
   @Patch("reorder")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Reorder workspace equipment items (full id list)" })
   @ApiOkResponse({ type: WorkspaceEquipmentItemResponseDto, isArray: true })
   async reorder(
@@ -60,7 +67,8 @@ export class SettingsEquipmentController {
   }
 
   @Patch(":id")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Update workspace equipment item" })
   @ApiOkResponse({ type: WorkspaceEquipmentItemResponseDto })
   async update(
@@ -72,7 +80,8 @@ export class SettingsEquipmentController {
 
   @Delete(":id")
   @HttpCode(204)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Delete, "Settings"))
   @ApiOperation({ summary: "Delete workspace equipment item" })
   async remove(@Param("id", new ParseUUIDPipe()) id: string): Promise<void> {
     await this.equipment.remove(id);

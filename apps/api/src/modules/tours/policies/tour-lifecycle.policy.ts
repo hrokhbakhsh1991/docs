@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { isTourLifecycleTransitionAllowed } from "@repo/shared";
 import { TourEntity as Tour, TourLifecycleStatus } from "../entities/tour.entity";
 import { TOUR_DURATION_DAYS_MAX, TOUR_DURATION_DAYS_MIN } from "../utils/tour-duration";
 
@@ -53,18 +54,12 @@ export function assertValidLifecycleTransition(
   current: TourLifecycleStatus,
   next: TourLifecycleStatus
 ): void {
-  if (current === next) {
-    return;
-  }
-
-  const allowed =
-    (current === TourLifecycleStatus.DRAFT &&
-      (next === TourLifecycleStatus.OPEN || next === TourLifecycleStatus.CANCELLED)) ||
-    (current === TourLifecycleStatus.OPEN &&
-      (next === TourLifecycleStatus.CLOSED || next === TourLifecycleStatus.CANCELLED)) ||
-    (current === TourLifecycleStatus.CLOSED && next === TourLifecycleStatus.CANCELLED);
-
-  if (allowed) {
+  if (
+    isTourLifecycleTransitionAllowed(
+      current as "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED",
+      next as "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED",
+    )
+  ) {
     return;
   }
 

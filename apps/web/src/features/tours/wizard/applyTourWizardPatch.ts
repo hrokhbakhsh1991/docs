@@ -2,6 +2,7 @@ import type { TourFormProfile, TourType } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 
+import { parseTourWizardPatchPipelineStrict } from "./contract/tour-wizard-contract";
 import {
   filterFormPatchByActiveGroups,
   sanitizeInactiveRootsForProfile,
@@ -39,7 +40,7 @@ export type ApplyTourWizardPatchInput = {
 };
 
 export type ApplyTourWizardPatchResult = {
-  /** Result of `mergeTourDraft(baseValues, filteredPatch)` after profile-aware filter + sanitize. */
+  /** Typed wizard values after merge + sanitize + {@link parseTourWizardPatchPipelineStrict}. */
   mergedValues: TourCreateFormValues;
   /**
    * Profile the wizard should be in **after** the patch is applied. When the patch
@@ -77,6 +78,9 @@ function pickTrimmedNonEmpty(value: unknown): string | null {
  *   4. **Sanitize** the merged values against the final profile via
  *      {@link sanitizeInactiveRootsForProfile} so any ghost root resurrected by
  *      `mergeTourDraft`'s defaults / normalized day fallbacks is reset.
+ *   5. **Strict schema parse** via {@link parseTourWizardPatchPipelineStrict} so the result
+ *      matches the Zod wizard contract (unknown root keys rejected) without requiring submit-time
+ *      completeness; {@link wizardFormToCreateTourApiPayload} still runs full submit validation.
  *
  * Observable change vs. the previous `presetDefaultsToFormPatch → filter →
  * merge → reset` sequence: when the patch flips `mainTourThemeId` / `tourType`
@@ -114,7 +118,8 @@ export function applyTourWizardPatch(
 
   const filteredPatch = filterFormPatchByActiveGroups(resolvedFormProfile, patch);
   const merged = mergeTourDraft(input.baseValues, filteredPatch);
-  const mergedValues = sanitizeInactiveRootsForProfile(merged, resolvedFormProfile);
+  const sanitized = sanitizeInactiveRootsForProfile(merged, resolvedFormProfile);
+  const mergedValues = parseTourWizardPatchPipelineStrict(resolvedFormProfile, sanitized);
 
   return { mergedValues, resolvedFormProfile, filteredPatch };
 }

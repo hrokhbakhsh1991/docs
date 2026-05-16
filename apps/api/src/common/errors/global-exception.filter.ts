@@ -37,73 +37,63 @@ const RETRYABILITY_VALUES = new Set<ApiErrorBody["retryability"]>([
   "RETRY_AFTER_ACTION"
 ]);
 
-const CANONICAL_ERROR_CODES = new Set<string>([
-  "VALIDATION_FAILED",
-  "VALIDATION_REQUIRED_FIELD_MISSING",
-  "VALIDATION_ENUM_INVALID",
-  "VALIDATION_FIELD_FORMAT_INVALID",
-  "VALIDATION_UNKNOWN_FIELD",
-  "AUTH_TELEGRAM_CONTEXT_REQUIRED",
-  "AUTH_UNAUTHENTICATED",
-  "AUTH_PHONE_INVALID",
-  "AUTH_NO_ACTIVE_MEMBERSHIP",
-  "AUTH_OTP_INVALID",
-  "AUTH_OTP_EXPIRED",
-  "AUTH_TOKEN_REVOKED",
-  "AUTH_FORBIDDEN_ROLE",
-  "AUTH_FORBIDDEN_ABILITY",
-  "TENANT_CONTEXT_INVALID",
-  "TENANT_CONTEXT_MISSING",
-  "TENANT_CONTEXT_REQUIRED",
-  "TENANT_HOST_UNKNOWN",
-  "TENANT_HOST_INVALID",
-  "TENANT_HOST_RESERVED",
-  "TENANT_HOST_MISMATCH",
-  "TENANT_HOST_TOKEN_MISMATCH",
-  "TENANT_SCOPE_CONFLICT",
-  "TENANT_SCOPE_FORBIDDEN",
-  "RESOURCE_NOT_FOUND",
-  "REGISTRATION_DUPLICATE_ACTIVE",
-  "CAPACITY_FULL",
-  "WAITLIST_CONFLICT_ACTIVE_RECORD",
-  "PAYMENT_STATUS_TRANSITION_INVALID",
-  "STATE_TRANSITION_INVALID",
-  "CONCURRENCY_CONFLICT",
-  "IDEMPOTENCY_KEY_REPLAY_MISMATCH",
-  "EXPORT_SNAPSHOT_INCONSISTENT",
-  "RATE_LIMITED",
-  "PROFILE_ROW_VERSION_CONFLICT",
-  "USER_EMAIL_CONFLICT",
-  "USER_NATIONAL_ID_CONFLICT",
-  "USER_NATIONAL_ID_INVALID",
-  "USER_BIRTH_DATE_INVALID",
-  "EMAIL_VERIFICATION_INVALID",
-  "USER_PHONE_UNCHANGED",
-  "USER_PHONE_CONFLICT",
-  "MOBILE_OTP_INVALID_PURPOSE",
-  "USER_NOT_FOUND",
-  "DEPENDENCY_TEMPORARY_UNAVAILABLE",
-  "INTERNAL_ERROR",
-  "INVITE_NOT_FOUND",
-  "INVITE_EMAIL_MISMATCH",
-  "INVITE_EXPIRED",
-  "WEBHOOK_SIGNATURE_INVALID",
-  "WEBHOOK_TIMESTAMP_INVALID",
-  "WEBHOOK_TIMESTAMP_EXPIRED",
-  "WEBHOOK_IP_NOT_ALLOWED",
-  "RBAC_SELF_ROLE_CHANGE_FORBIDDEN",
-  "RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN",
-  "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
-  "RBAC_INSUFFICIENT_ROLE_PRIVILEGE",
-  "RBAC_UNKNOWN_MEMBERSHIP_ROLE",
-  "SCHEMA_DRIFT_MISSING_COLUMN",
-  "SCHEMA_DRIFT_MISSING_TABLE",
-  "SCHEMA_DRIFT_QUERY_FAILED",
-  "OPS_UNAUTHORIZED"
-]);
+import { GlobalErrorTaxonomy } from "@repo/shared";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private static readonly CANONICAL_ERROR_CODES = new Set<string>([
+    ...Object.values(GlobalErrorTaxonomy.AUTH),
+    ...Object.values(GlobalErrorTaxonomy.TENANT),
+    ...Object.values(GlobalErrorTaxonomy.RBAC),
+    ...Object.values(GlobalErrorTaxonomy.VALIDATION),
+    ...Object.values(GlobalErrorTaxonomy.RESOURCE),
+    ...Object.values(GlobalErrorTaxonomy.SYSTEM),
+    "VALIDATION_UNKNOWN_FIELD",
+    "AUTH_NO_ACTIVE_MEMBERSHIP",
+    "AUTH_OTP_INVALID",
+    "AUTH_OTP_EXPIRED",
+    "AUTH_TOKEN_REVOKED",
+    "AUTH_FORBIDDEN_ROLE",
+    "AUTH_FORBIDDEN_ABILITY",
+    "TENANT_HOST_RESERVED",
+    "TENANT_HOST_MISMATCH",
+    "TENANT_HOST_TOKEN_MISMATCH",
+    "TENANT_SCOPE_CONFLICT",
+    "REGISTRATION_DUPLICATE_ACTIVE",
+    "REGISTRATION_ROW_VERSION_CONFLICT",
+    "CAPACITY_FULL",
+    "WAITLIST_CONFLICT_ACTIVE_RECORD",
+    "PAYMENT_STATUS_TRANSITION_INVALID",
+    "INVALID_LIFECYCLE_TRANSITION",
+    "TOUR_NOT_PUBLISHABLE",
+    "TOUR_NOT_OPEN",
+    "TOUR_PATCH_FIELD_FORBIDDEN",
+    "EXPORT_SNAPSHOT_INCONSISTENT",
+    "PROFILE_ROW_VERSION_CONFLICT",
+    "USER_EMAIL_CONFLICT",
+    "USER_NATIONAL_ID_CONFLICT",
+    "USER_NATIONAL_ID_INVALID",
+    "USER_BIRTH_DATE_INVALID",
+    "EMAIL_VERIFICATION_INVALID",
+    "USER_PHONE_UNCHANGED",
+    "USER_PHONE_CONFLICT",
+    "MOBILE_OTP_INVALID_PURPOSE",
+    "USER_NOT_FOUND",
+    "INVITE_NOT_FOUND",
+    "INVITE_EMAIL_MISMATCH",
+    "INVITE_EXPIRED",
+    "WEBHOOK_SIGNATURE_INVALID",
+    "WEBHOOK_TIMESTAMP_INVALID",
+    "WEBHOOK_TIMESTAMP_EXPIRED",
+    "WEBHOOK_IP_NOT_ALLOWED",
+    "RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN",
+    "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
+    "RBAC_UNKNOWN_MEMBERSHIP_ROLE",
+    "SCHEMA_DRIFT_MISSING_COLUMN",
+    "SCHEMA_DRIFT_MISSING_TABLE",
+    "OPS_UNAUTHORIZED"
+  ]);
+
   constructor(
     private readonly loggerService: LoggerService,
     private readonly requestContextService: RequestContextService,
@@ -203,10 +193,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     correlationId: string
   ): ErrorEnvelope {
     const retryability = this.normalizeRetryability(partial.retryability);
-    const details =
+    const baseDetails =
       partial.details && typeof partial.details === "object" && !Array.isArray(partial.details)
         ? (partial.details as Record<string, unknown>)
         : {};
+    let tenantId: string | undefined;
+    try {
+      tenantId = this.requestContextService.tryGetTenantId();
+    } catch {
+      tenantId = undefined;
+    }
+    const details: Record<string, unknown> = {
+      ...baseDetails,
+      requestId,
+      ...(tenantId ? { tenantId } : {}),
+      timestamp: new Date().toISOString(),
+    };
     return {
       success: false,
       requestId,
@@ -461,7 +463,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private isCanonicalCode(value: string): boolean {
-    return CANONICAL_ERROR_CODES.has(value);
+    return GlobalExceptionFilter.CANONICAL_ERROR_CODES.has(value);
   }
 
   private hasStructuredErrorBody(

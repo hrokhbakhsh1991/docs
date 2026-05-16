@@ -6,6 +6,7 @@ import { TenantSessionBindingService } from "./tenant-session-binding.service";
 export class TenantDbContextService {
   constructor(
     @Inject(DataSource) private readonly dataSource: DataSource,
+    @Inject(TenantSessionBindingService)
     private readonly tenantSessionBindingService: TenantSessionBindingService
   ) {}
 

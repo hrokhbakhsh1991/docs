@@ -4,7 +4,7 @@ import { useAbility as useCaslAbility } from "@casl/react";
 import { useMemo, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
-import { defineAbilityFor, type AppAbility, type UserAbilityMembershipStatus } from "@repo/shared-rbac";
+import { defineAbilityFor, type AppAbility, type UserAbilityMembershipStatus } from "@repo/shared";
 
 import { AbilityContext, GUEST_APP_ABILITY } from "./ability-context";
 
@@ -24,7 +24,13 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
       id: user.userId.trim(),
       role: user.role.trim(),
       status,
-      labels: user.abilityLabels ?? null
+      labels: user.abilityLabels ?? null,
+      capabilities: user.capabilities ?? null,
+      tenantModules: user.tenantModules ?? null,
+      membershipMetadata:
+        user.allowedRegionIds && user.allowedRegionIds.length > 0
+          ? { allowedRegionIds: [...user.allowedRegionIds] }
+          : null,
     });
   }, [
     isAuthenticated,
@@ -32,7 +38,10 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
     user?.tenantId,
     user?.role,
     user?.membershipStatus,
-    user?.abilityLabels
+    user?.abilityLabels,
+    user?.capabilities,
+    user?.allowedRegionIds,
+    user?.tenantModules,
   ]);
 
   return <AbilityContext.Provider value={ability}>{children}</AbilityContext.Provider>;

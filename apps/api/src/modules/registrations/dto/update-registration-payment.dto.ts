@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsIn, IsNumber, IsOptional, Min } from "class-validator";
+import { IsIn, IsInt, IsNumber, IsOptional, Min } from "class-validator";
 import { RegistrationPaymentStatus } from "../registration.entity";
 
 const PUBLIC_PAYMENT_STATUS_VALUES = [
@@ -28,4 +28,15 @@ export class UpdateRegistrationPaymentDto {
   @IsNumber()
   @Min(0)
   paidAmount?: number;
+
+  @ApiProperty({
+    description:
+      "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion`). Must match the row at apply time.",
+    example: 1,
+    minimum: 1
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  expected_row_version!: number;
 }

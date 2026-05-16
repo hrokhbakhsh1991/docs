@@ -1,42 +1,46 @@
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
 import type { UserRole } from "@/lib/auth/user-role";
-import { ROLE_RANK, type WorkspaceRole } from "@repo/shared-rbac";
+import { ROLE_RANK, tryParseWorkspaceRole, WorkspaceRole } from "@repo/shared";
 
 export type RoleFilter = "all" | UserRole;
 export type UserSortColumn = "name" | "email";
 export type UserSortDirection = "asc" | "desc";
 
 export function normalizeRole(role: string): string {
-  const r = role.trim().toLowerCase();
-  if (r === "owner") return "owner";
-  if (r === "leader") return "leader";
-  if (r === "admin") return "admin";
-  if (r === "member") return "member";
-  if (r === "viewer") return "viewer";
-  if (r === "operator") return "member";
-  return r || "member";
+  return tryParseWorkspaceRole(role) ?? WorkspaceRole.Member;
 }
 
 function workspaceRoleRank(role: string): number {
-  const key = normalizeRole(role) as WorkspaceRole;
+  const key = tryParseWorkspaceRole(normalizeRole(role));
+  if (!key) {
+    return 0;
+  }
   return ROLE_RANK[key] ?? 0;
 }
 
 export function roleLabel(role: string): string {
-  const r = normalizeRole(role);
-  if (r === "owner") return "Owner";
-  if (r === "leader") return "Leader";
-  if (r === "admin") return "Admin";
-  if (r === "member") return "Member";
-  if (r === "viewer") return "Viewer";
-  return role;
+  const parsed = tryParseWorkspaceRole(normalizeRole(role));
+  switch (parsed) {
+    case WorkspaceRole.Owner:
+      return "Owner";
+    case WorkspaceRole.Leader:
+      return "Leader";
+    case WorkspaceRole.Admin:
+      return "Admin";
+    case WorkspaceRole.Member:
+      return "Member";
+    case WorkspaceRole.Viewer:
+      return "Viewer";
+    default:
+      return role;
+  }
 }
 
 export function roleVariant(role: string): "info" | "warning" | "neutral" {
-  if (normalizeRole(role) === "owner") return "info";
-  if (normalizeRole(role) === "leader") return "warning";
-  if (normalizeRole(role) === "admin") return "warning";
-  if (normalizeRole(role) === "viewer") return "neutral";
+  const parsed = tryParseWorkspaceRole(normalizeRole(role));
+  if (parsed === WorkspaceRole.Owner) return "info";
+  if (parsed === WorkspaceRole.Leader || parsed === WorkspaceRole.Admin) return "warning";
+  if (parsed === WorkspaceRole.Viewer) return "neutral";
   return "neutral";
 }
 

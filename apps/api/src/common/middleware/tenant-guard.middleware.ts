@@ -3,22 +3,54 @@ import type { NextFunction, Request, Response } from "express";
 import { LoggerService } from "../logger/logger.service";
 import { RequestContextService } from "../request-context/request-context.service";
 
+type RequestWithOptionalUserTenant = Request & {
+  user?: { tenantId?: string };
+};
+
+type RequestWithOptionalContextTenant = Request & {
+  context?: { tenantId?: string };
+};
+
 /**
- * Defense-in-depth after {@link TenantMiddleware}: every non-bypassed `/api/v2/**` request
- * must resolve a canonical `tenantId` before handlers run.
+ * Paths that must not require a bound workspace tenant (probes, OpenAPI, auth entry,
+ * internal webhooks/ops, and public registration flows).
  *
- * Keep bypass list aligned with {@link TenantMiddleware} for anonymous/public flows.
+ * **Keep in sync** with {@link TenantMiddleware} bypass rules — a stricter guard here
+ * would 403 legitimate anonymous `POST /api/v2/tours/:id/register|waitlist` (or `GET …/registration-idempotency-key`) traffic after
+ * express middleware skipped binding tenant until the controller bootstraps scope.
  */
 function shouldBypassTenantGuard(req: Request): boolean {
+  const { path, method } = req;
   return (
-    (req.method === "POST" &&
-      /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)) ||
-    (req.method === "GET" && /^\/api\/v2\/registrations\/[^/]+$/.test(req.path)) ||
-    req.path.startsWith("/health") ||
-    req.path.startsWith("/internal") ||
-    req.path.startsWith("/api/docs") ||
-    req.path.startsWith("/api/v2/auth/")
+    path.startsWith("/health") ||
+    path.startsWith("/api/docs") ||
+    path.startsWith("/api/v2/auth/") ||
+    path.startsWith("/internal") ||
+    (method === "POST" && /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(path)) ||
+    (method === "GET" &&
+      /^\/api\/v2\/tours\/[^/]+\/registration-idempotency-key$/.test(path)) ||
+    (method === "GET" && /^\/api\/v2\/registrations\/[^/]+$/.test(path))
   );
+}
+
+/**
+ * Trusted tenant id: only server-populated {@link RequestContextService} (ALS) or
+ * `request.context.tenantId` / `request.user.tenantId` when set by trusted middleware.
+ * Never reads body, query, or route params for tenant selection.
+ */
+function resolveTrustedTenantId(req: Request, requestContextService: RequestContextService): string | undefined {
+  const fromAls = requestContextService.tryGetTenantId()?.trim();
+  if (fromAls) {
+    return fromAls;
+  }
+  const ctxRaw = (req as RequestWithOptionalContextTenant).context?.tenantId;
+  const fromReqContext = typeof ctxRaw === "string" ? ctxRaw.trim() : "";
+  if (fromReqContext !== "") {
+    return fromReqContext.toLowerCase();
+  }
+  const raw = (req as RequestWithOptionalUserTenant).user?.tenantId;
+  const fromUser = typeof raw === "string" ? raw.trim() : "";
+  return fromUser !== "" ? fromUser.toLowerCase() : undefined;
 }
 
 @Injectable()
@@ -34,7 +66,7 @@ export class TenantGuardMiddleware implements NestMiddleware {
       return next();
     }
 
-    const tenantId = this.requestContextService.resolveEffectiveTenantId(req)?.trim();
+    const tenantId = resolveTrustedTenantId(req, this.requestContextService);
     if (!tenantId) {
       this.loggerService.warn("tenant_guard: missing tenant for protected route", {
         path: req.path,
@@ -44,7 +76,7 @@ export class TenantGuardMiddleware implements NestMiddleware {
       throw new ForbiddenException({
         error: {
           code: "TENANT_CONTEXT_REQUIRED",
-          message: "Trusted tenant context is required for this operation"
+          message: "TENANT_CONTEXT_REQUIRED"
         }
       });
     }

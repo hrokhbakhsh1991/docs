@@ -21,7 +21,8 @@
 3. **Environment:** ensure production vars align with host-based tenancy (non-exhaustive checklist):
    - `TENANT_ROOT_DOMAIN` — apex suffix for workspaces (e.g. `app.example.com`).
    - `TRUST_PROXY_HOPS` — matches reverse-proxy depth (CDN + ingress often `2+`).
-   - `CORS_ORIGIN` / `CORS_ALLOW_TENANT_SUBORIGINS` / `PUBLIC_WEB_ORIGIN` — see architecture doc.
+   - `CORS_ORIGIN` / `CORS_ALLOW_TENANT_SUBORIGINS=true` / `PUBLIC_WEB_ORIGIN` — CORS must use `isCorsOriginAllowed` (not open `origin: true`). See **`docs/security/production-cors-cookie-checklist.md`**.
+   - `TENANT_RATE_LIMIT_HOST_PROBE_PER_IP` — throttle workspace slug enumeration on auth routes.
    - JWT keys, `DATABASE_URL`, Redis, `INTERNAL_API_KEY`, webhook secrets.
 4. **Rollout:** rolling update on API pods/processes; maintain at least one healthy instance behind the load balancer.
 5. **Worker (if split):** deploy `APP_RUNTIME_ROLE=worker` images after API if shared migrations; ensure schedulers/outbox config unchanged unless release notes say otherwise.
@@ -31,7 +32,7 @@
 1. **Single image, global build args:** web image is tenant-agnostic (`NEXT_PUBLIC_*` only). Rebuild with correct:
    - `NEXT_PUBLIC_API_URL` **or** dynamic origin (`NEXT_PUBLIC_API_DYNAMIC_ORIGIN`, `NEXT_PUBLIC_API_PORT`).
    - `NEXT_PUBLIC_TENANT_ROOT_DOMAIN` **must match** API `TENANT_ROOT_DOMAIN`.
-   - Cookie domain / SameSite for cross-subdomain sessions (`NEXT_PUBLIC_SESSION_COOKIE_DOMAIN`, `NEXT_PUBLIC_SESSION_COOKIE_SAME_SITE`).
+   - Cookie domain / SameSite for cross-subdomain sessions (`NEXT_PUBLIC_SESSION_COOKIE_DOMAIN`, `NEXT_PUBLIC_SESSION_COOKIE_SAME_SITE`) — same checklist doc.
 2. Deploy web tier (CDN / static host / container) **after** API is compatible with the same hostname strategy (same-origin or gateway-documented split).
 3. Purge CDN cache if HTML/JS caching might serve stale API origins.
 
@@ -111,6 +112,8 @@ The migration **`TenantSubdomain1777575000000`** adds nullable `tenants.subdomai
 | Typos / deleted tenant | Support verifies tenant exists and `deleted_at IS NULL`. |
 
 **Metrics:** `tenant_resolution_failures_total{code="TENANT_HOST_UNKNOWN"}` and `security_events_total{event="TENANT_HOST_UNKNOWN"}` (`/internal/ops/metrics/*`).
+
+**Example alert rules:** `docs/observability/prometheus-alerts-tenant-host.yml` (import into Prometheus/Alertmanager).
 
 ### 3.2 Authentication failures
 
@@ -202,6 +205,41 @@ Run in **staging first**, then **production** with non-destructive checks.
 
 **Automated reference:** API E2E suites under `apps/api/test/e2e/` (e.g. `subdomain-comprehensive.e2e-spec.ts`, `jwt-membership-guard.e2e-spec.ts`) — adapt URLs and **phone + OTP** payloads for prod smoke tooling (never commit real OTP secrets).
 
+### 6.1 Infrastructure closure sign-off (BFF-first + structured errors)
+
+Run from repo root **before** marking a release that touches auth, tenancy, or ingress:
+
+```bash
+pnpm infra:signoff
+```
+
+| Gate | What it proves |
+|------|----------------|
+| Debt scan | No unallowlisted direct `apiClient` / legacy tenant bypass in `apps/web` |
+| Ingress (code) | No browser `/api/v2` fetch in web lib |
+| Ingress (example) | Sample nginx blocks public `/api/v2/` |
+| API errors | `GlobalExceptionFilter` logs `error_code` on failures |
+| ErrorRegistry | All canonical API codes mapped for UI |
+| Log sample | Fixture (or prod drain) has `error_code` on every 4xx/5xx line |
+
+**Staging with stack up** (fixtures `ws1-rbac` … `ws3-rbac`, static OTP only in dev/test):
+
+```bash
+pnpm infra:signoff:live
+```
+
+**Production log drain** (export JSON lines from your log platform, then):
+
+```bash
+PRODUCTION_LOG_SAMPLE=/path/to/drain.ndjson pnpm infra:signoff
+```
+
+**Ingress apply:** copy patterns from `docs/infrastructure/nginx-bff-ingress.example.conf` — browsers must hit Next.js only; Nest `/api/v2/` is internal/mesh.
+
+**Tracing (optional):** `pnpm docker:observability` locally; in prod set `OTEL_EXPORTER_OTLP_ENDPOINT` on API. Jaeger UI: `http://localhost:16686`.
+
+**CI:** `architecture-guardrails` runs static gates; weekly `infrastructure-closure-nightly` (+ `workflow_dispatch` → `live-gate`).
+
 ---
 
 ## Quick reference — canonical error codes (tenant/auth)
@@ -216,4 +254,4 @@ Run in **staging first**, then **production** with non-destructive checks.
 
 ---
 
-**Document version:** 1.0 · **Last updated:** 2026-05-06
+**Document version:** 1.1 · **Last updated:** 2026-05-17

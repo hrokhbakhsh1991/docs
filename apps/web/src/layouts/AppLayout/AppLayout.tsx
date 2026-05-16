@@ -192,6 +192,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
             <Link
               key={pathKey}
               href={href}
+              prefetch={false}
               className={cn(styles.navLink, pathname === href && styles.navLinkActive)}
               onClick={closeSidebar}
             >

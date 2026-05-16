@@ -1,10 +1,81 @@
 import type { EntityManager } from "typeorm";
+import {
+  BOOKING_CREATED_EVENT_TYPE,
+  createBookingCreatedEvent
+} from "../../common/events/booking-created.event";
 import type { OutboxService } from "../outbox/outbox.service";
+import {
+  BookingFinalizationPhase,
+  bookingFinalizationOutboxEventType
+} from "./domain/booking-finalization-pipeline";
 import { RegistrationStatus, type RegistrationEntity } from "./registration.entity";
 import type { WaitlistItemEntity } from "./waitlist-item.entity";
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+/** `booking.created` — same DB transaction as registration persistence (transactional outbox only). */
+export async function emitBookingCreatedOutboxEvent(input: {
+  manager: EntityManager;
+  outboxService: OutboxService;
+  tenantId: string;
+  registrationId: string;
+  tourId: string;
+  correlationId: string | null;
+}): Promise<void> {
+  const event = createBookingCreatedEvent({
+    tenantId: input.tenantId,
+    correlationId: input.correlationId,
+    payload: { registrationId: input.registrationId, tourId: input.tourId }
+  });
+  await input.outboxService.addEvent(input.manager, {
+    tenantId: input.tenantId,
+    aggregateType: "Registration",
+    aggregateId: input.registrationId,
+    eventType: BOOKING_CREATED_EVENT_TYPE,
+    correlationId: input.correlationId ?? undefined,
+    domainEventId: event.eventId,
+    payload: {
+      envelope: {
+        eventId: event.eventId,
+        eventType: event.eventType,
+        occurredAt: event.occurredAt,
+        tenantId: event.tenantId,
+        correlationId: event.correlationId,
+        schemaVersion: event.schemaVersion,
+        payload: event.payload
+      }
+    }
+  });
+}
+
+/** Finance-tied pipeline steps after `booking.created` (step 1 is {@link emitBookingCreatedOutboxEvent}). */
+export async function emitBookingFinalizationPipelineEvent(input: {
+  manager: EntityManager;
+  outboxService: OutboxService;
+  tenantId: string;
+  registrationId: string;
+  phase: BookingFinalizationPhase;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  if (input.phase === BookingFinalizationPhase.BOOKING_CREATED) {
+    return;
+  }
+  const eventType = bookingFinalizationOutboxEventType(input.phase);
+  await input.outboxService.addEvent(input.manager, {
+    tenantId: input.tenantId,
+    aggregateType: "Registration",
+    aggregateId: input.registrationId,
+    eventType,
+    payload: {
+      entityType: "booking",
+      entityId: input.registrationId,
+      phase: input.phase,
+      timestamp: nowIso(),
+      ...(input.metadata ? { metadata: input.metadata } : {})
+    }
+  });
 }
 
 export async function emitRegistrationCreatedEvent(input: {
@@ -70,6 +141,16 @@ export async function emitRegistrationPaymentUpdatedEvent(input: {
   outboxService: OutboxService;
   registration: RegistrationEntity;
   actorId: string;
+  /** @deprecated Prefer `finance.ledger.double_entry_applied` outbox; kept for optional inline summaries. */
+  ledgerFactsSummary?: Array<{
+    id: string;
+    journalId: string;
+    account: string;
+    side: string;
+    amount_minor: string;
+    correlationId: string;
+    idempotencyKey: string;
+  }>;
 }): Promise<void> {
   await input.outboxService.addEvent(input.manager, {
     tenantId: input.registration.tenantId,
@@ -82,7 +163,10 @@ export async function emitRegistrationPaymentUpdatedEvent(input: {
       actorId: input.actorId,
       metadata: {
         paymentStatus: input.registration.paymentStatus,
-        paidAmount: input.registration.paidAmount ?? null
+        paidAmount: input.registration.paidAmount ?? null,
+        ...(input.ledgerFactsSummary && input.ledgerFactsSummary.length > 0
+          ? { ledgerFacts: input.ledgerFactsSummary }
+          : {})
       },
       timestamp: nowIso()
     }

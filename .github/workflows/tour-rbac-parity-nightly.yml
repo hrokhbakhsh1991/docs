@@ -1,0 +1,80 @@
+name: tour-rbac-parity-nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: corepack enable && pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @repo/types run build && pnpm --filter @repo/shared run build
+
+      - name: Tour governance (parity + audit + unit tests)
+        run: node scripts/run-tour-governance.mjs --tests
+
+      - name: Export governance snapshot
+        run: node scripts/export-governance-snapshot.mjs
+
+      - name: Upload governance snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-snapshot
+          path: governance-snapshots/
+          if-no-files-found: ignore
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_WEBHOOK_URL not configured — skipping alert."
+            exit 0
+          fi
+          payload=$(jq -n \
+            --arg text "Tour RBAC parity nightly failed on ${GITHUB_REPOSITORY}@${GITHUB_SHA}" \
+            '{text: $text}')
+          curl -fsS -X POST -H 'Content-type: application/json' \
+            --data "$payload" "$SLACK_WEBHOOK_URL"
+
+      - name: Notify email on failure
+        if: failure()
+        env:
+          GOVERNANCE_ALERT_EMAIL: ${{ secrets.GOVERNANCE_ALERT_EMAIL }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+        run: |
+          if [ -z "${GOVERNANCE_ALERT_EMAIL:-}" ] || [ -z "${SENDGRID_API_KEY:-}" ]; then
+            echo "GOVERNANCE_ALERT_EMAIL or SENDGRID_API_KEY not configured — skipping email alert."
+            exit 0
+          fi
+          subject="Tour RBAC parity nightly failed: ${GITHUB_REPOSITORY}"
+          body="Governance checks failed on ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (commit ${GITHUB_SHA})."
+          jq -n \
+            --arg to "$GOVERNANCE_ALERT_EMAIL" \
+            --arg from "noreply@tour-ops.local" \
+            --arg subject "$subject" \
+            --arg body "$body" \
+            '{
+              personalizations: [{ to: [{ email: $to }] }],
+              from: { email: $from },
+              subject: $subject,
+              content: [{ type: "text/plain", value: $body }]
+            }' | curl -fsS -X POST https://api.sendgrid.com/v3/mail/send \
+            -H "Authorization: Bearer ${SENDGRID_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d @-

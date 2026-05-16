@@ -1,5 +1,5 @@
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 export function workspaceAuditUseLiveApi(): boolean {
@@ -50,9 +50,9 @@ export async function listTenantAuditEvents(
   if (params?.resourceId?.trim()) qs.set("resourceId", params.resourceId.trim());
   if (params?.actorContains?.trim()) qs.set("actorContains", params.actorContains.trim());
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return apiClient.get<ListTenantAuditEventsResponseDto>(
-    `${API.workspaceAuditEvents(tenantId)}${suffix}`,
-    { skip403Redirect: true }
+  return bffBrowserClient.get<ListTenantAuditEventsResponseDto>(
+    `${BFF.workspaceAuditEvents(tenantId)}${suffix}`,
+    { skip403Redirect: true },
   );
 }
 
@@ -72,8 +72,8 @@ export async function downloadTenantAuditExportBlob(
   if (opts.from?.trim()) qs.set("from", opts.from.trim());
   if (opts.to?.trim()) qs.set("to", opts.to.trim());
   if (opts.limit !== undefined) qs.set("limit", String(opts.limit));
-  return apiClient.getBlob(`${API.workspaceAuditEventsExport(tenantId)}?${qs.toString()}`, {
-    skip403Redirect: true
+  return bffBrowserClient.getBlob(`${BFF.workspaceAuditEventsExport(tenantId)}?${qs.toString()}`, {
+    skip403Redirect: true,
   });
 }
 

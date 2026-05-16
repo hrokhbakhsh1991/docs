@@ -5,6 +5,8 @@ import {
   OnModuleDestroy,
   OnModuleInit
 } from "@nestjs/common";
+import { InjectDataSource } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 import { ConfigService } from "../config/config.service";
 import { IdempotencyService } from "../modules/idempotency/idempotency.service";
 import { SchedulerLockService } from "./scheduler-lock.service";
@@ -22,6 +24,7 @@ export class IdempotencyCleanupJob implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @InjectDataSource() private readonly dataSource: DataSource,
     @Inject(SchedulerLockService) private readonly schedulerLock: SchedulerLockService,
     @Inject(SchedulerRuntimeMetricsService)
     private readonly schedulerMetrics: SchedulerRuntimeMetricsService
@@ -56,6 +59,25 @@ export class IdempotencyCleanupJob implements OnModuleInit, OnModuleDestroy {
       const lock = await this.schedulerLock.runWithGlobalLock(this.lockName, async () => {
         const deleted = await this.idempotencyService.deleteExpired();
         this.logger.log(`IdempotencyCleanupJob: deleted ${deleted} expired keys`);
+        let pgPurged = 0;
+        try {
+          const rows = (await this.dataSource.query(
+            `DELETE FROM payment_gateway_idempotency WHERE expires_at < NOW() RETURNING digest`
+          )) as unknown[];
+          pgPurged = Array.isArray(rows) ? rows.length : 0;
+        } catch (error: unknown) {
+          const code =
+            (error as { code?: string })?.code ??
+            (error as { driverError?: { code?: string } })?.driverError?.code;
+          if (code !== "42P01") {
+            throw error;
+          }
+        }
+        if (pgPurged > 0) {
+          this.logger.log(
+            `IdempotencyCleanupJob: purged ${pgPurged} expired payment_gateway_idempotency rows`
+          );
+        }
       });
       if (!lock.acquired) {
         this.schedulerMetrics.noteSkippedDueLock(this.jobName);

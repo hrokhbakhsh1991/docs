@@ -45,6 +45,37 @@
         }
       }
     },
+    "/api/v2/auth/membership-ability-context": {
+      "get": {
+        "operationId": "AuthController_getMembershipAbilityContext",
+        "summary": "Membership labels and capability grants for CASL (active tenant)",
+        "description": "Reads ALS populated by AuthMiddleware from `user_tenants.labels`. Used by the web app to mirror API capability hydration.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipAbilityContextDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/auth/web/session/otp": {
       "post": {
         "operationId": "AuthController_webSessionOtp",
@@ -80,6 +111,40 @@
           },
           "404": {
             "description": "TENANT_HOST_UNKNOWN — slug has no matching tenant row"
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v2/auth/workspace-host": {
+      "get": {
+        "operationId": "AuthController_probeWorkspaceHost",
+        "summary": "Lightweight workspace host probe",
+        "description": "Resolves tenant from HTTP Host only (no request body). Returns tenant metadata when the slug maps to a tenant row; 404 TENANT_HOST_UNKNOWN otherwise. Used by the web middleware lookup cache.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tenant_id": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "TENANT_HOST_UNKNOWN"
           }
         },
         "tags": [
@@ -436,6 +501,7 @@
             "schema": {
               "enum": [
                 "owner",
+                "leader",
                 "admin",
                 "member",
                 "viewer"
@@ -708,6 +774,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for role mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -775,7 +850,17 @@
         "operationId": "UsersController_bulkUpdateUserRole",
         "summary": "Bulk change user roles in tenant scope",
         "description": "Bulk general role update under tenant scope. Each target is evaluated with the same PATCH RBAC policy (no self change, no owner modification/assignment, actor must outrank target and new role). Runs in a single transaction and bumps `session_version` only for memberships whose role actually changes.",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for bulk role mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1042,11 +1127,138 @@
         ]
       }
     },
+    "/api/v2/workspaces/{tenantId}/users/{userId}/capabilities": {
+      "patch": {
+        "operationId": "WorkspaceUsersCapabilitiesController_patchMembershipCapabilities",
+        "summary": "Assign explicit workspace capabilities on a membership",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for capability mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchMembershipCapabilitiesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role, tenant scope, or capability policy"
+          },
+          "404": {
+            "description": "Membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Identity"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/settings/modules": {
+      "patch": {
+        "operationId": "WorkspaceSettingsModulesController_patchTenantModules",
+        "summary": "Enable or disable tenant product modules",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchTenantModulesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated enabled module ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Owner only or tenant scope mismatch"
+          }
+        },
+        "tags": [
+          "Identity"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/workspaces/{tenantId}/audit-events/export": {
       "get": {
         "operationId": "TenantAuditEventsController_exportTenantAudit",
         "summary": "Export tenant-scoped audit event stream",
-        "description": "Append-only compliance audit (`tenant_audit_events`) for the workspace. Requires JWT tenant to match `:tenantId`. Owner/admin only.",
+        "description": "Append-only compliance audit (`tenant_audit_events`) for the workspace. Requires JWT tenant to match `:tenantId`. Owner, admin, or leader (read Audit).",
         "parameters": [
           {
             "name": "tenantId",
@@ -1130,6 +1342,181 @@
         ]
       }
     },
+    "/api/v2/workspaces/{tenantId}/audit-events": {
+      "get": {
+        "operationId": "TenantAuditEventsController_listTenantAudit",
+        "summary": "List tenant-scoped audit events (keyset paginated)",
+        "description": "Append-only compliance audit rows for the workspace. Requires JWT tenant to match `:tenantId`. Owner, admin, or leader (read Audit).",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive lower bound (ISO-8601)",
+            "schema": {
+              "example": "2026-01-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive upper bound (ISO-8601)",
+            "schema": {
+              "example": "2026-12-31T23:59:59.999Z",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size (default 50)",
+            "schema": {
+              "maximum": 200,
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor from the previous page (`nextCursor`)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "description": "Exact `action` filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceType",
+            "required": false,
+            "in": "query",
+            "description": "Exact `resource_type` filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resourceId",
+            "required": false,
+            "in": "query",
+            "description": "Exact `resource_id` filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorContains",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive substring match on `actor` (wildcards not allowed)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated audit rows (newest first)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "actor": {
+                            "type": "string"
+                          },
+                          "actorUserId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "userId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "resourceType": {
+                            "type": "string"
+                          },
+                          "resourceId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "clientIp": {
+                            "type": "string"
+                          },
+                          "requestId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "nullable": true,
+                            "additionalProperties": true
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or insufficient role"
+          }
+        },
+        "tags": [
+          "Compliance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/me": {
       "get": {
         "operationId": "MeController_getMe",
@@ -1178,7 +1565,7 @@
           {
             "name": "If-Match",
             "in": "header",
-            "description": "Optional weak concurrency check from GET `ETag` (e.g. `W/\"3\"` equals `profile_row_version`). Omit for legacy clients.",
+            "description": "Weak concurrency check from GET `ETag` (e.g. `W/\"3\"` equals `profile_row_version`). Required (or send `expected_profile_row_version`) when changing profile fields.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1684,6 +2071,103 @@
         ]
       }
     },
+    "/api/v2/dashboard/leader-summary": {
+      "get": {
+        "operationId": "DashboardAggregateController_getLeaderDashboardSummary",
+        "summary": "Leader dashboard summary",
+        "description": "Single round-trip counts for the leader dashboard (tour total + registration pending/total).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/dashboard/leader-registration-rows": {
+      "get": {
+        "operationId": "DashboardAggregateController_getLeaderRegistrationRows",
+        "summary": "Leader registration index",
+        "description": "All tenant registrations with tour titles in one response (replaces per-tour registration fan-out).",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 5000,
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboard"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/tours/{tourId}/registration-idempotency-key": {
+      "get": {
+        "operationId": "RegistrationsController_mintPublicRegistrationIdempotencyKey",
+        "summary": "Mint a suggested Idempotency-Key for public registration",
+        "description": "Returns a UUID suitable as `Idempotency-Key` for `POST …/register` or `POST …/waitlist`. Validates that the tour exists (tenant bootstrap). Does not reserve server-side state — the client must send the key on the mutation.",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "idempotencyKey": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "idempotencyKey"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        },
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
     "/api/v2/tours/{tourId}/register": {
       "post": {
         "operationId": "RegistrationsController_publicRegister",
@@ -1699,9 +2183,9 @@
           },
           {
             "name": "idempotency-key",
-            "required": false,
+            "required": true,
             "in": "header",
-            "description": "Optional idempotency key for safe replay.",
+            "description": "Required for all public registrations. Reuse the same key only when retrying the identical request body; otherwise mint a fresh key (UUID) or call GET …/registration-idempotency-key.",
             "schema": {
               "type": "string"
             }
@@ -1750,9 +2234,9 @@
           },
           {
             "name": "idempotency-key",
-            "required": false,
+            "required": true,
             "in": "header",
-            "description": "Optional idempotency key for safe replay.",
+            "description": "Required for public waitlist placement (replay-safe).",
             "schema": {
               "type": "string"
             }
@@ -2178,7 +2662,15 @@
             "name": "idempotency-key",
             "required": true,
             "in": "header",
-            "description": "Required idempotency key for payment mutation.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for booking payment attach / mutation (replay-safe).",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2650,6 +3142,14 @@
             }
           },
           {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Idempotency-Key",
             "in": "header",
             "description": "Required idempotency key for refund mutation.",
@@ -2747,6 +3247,134 @@
         },
         "tags": [
           "Payments"
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings": {
+      "get": {
+        "operationId": "ReconciliationFindingsController_listFindings",
+        "summary": "List persisted payment–finance reconciliation findings (triage)",
+        "description": "Keyset-paginated open findings for the workspace. Requires JWT tenant match and read Reconciliation.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or insufficient role"
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/acknowledge": {
+      "post": {
+        "operationId": "ReconciliationFindingsController_acknowledge",
+        "summary": "Acknowledge an open reconciliation finding",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeReconciliationFindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/apply-ledger-adjustment": {
+      "post": {
+        "operationId": "ReconciliationFindingsController_applyLedgerAdjustment",
+        "summary": "Apply a manual clearing↔booking wallet ledger adjustment for a triad mismatch",
+        "description": "Posts `finance.ledger.double_entry_applied` (mandatory financial audit) and appends `reconciliation.ledger.adjustment_applied` on the tenant audit stream. Idempotent via `idempotencyKey` + outbox `domainEventId`.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyReconciliationLedgerAdjustmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -3873,6 +4501,138 @@
           }
         ]
       }
+    },
+    "/api/v2/safety-profiles/{userId}/emergency-contacts": {
+      "get": {
+        "operationId": "SafetyProfileController_listEmergency",
+        "summary": "List emergency contacts for a workspace member",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Safety profile"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "SafetyProfileController_replaceEmergency",
+        "summary": "Replace emergency contacts for a workspace member",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceEmergencyContactsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Safety profile"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/safety-profiles/{userId}/medical-profile": {
+      "get": {
+        "operationId": "SafetyProfileController_getMedical",
+        "summary": "Read decrypted medical profile payload (authorized roles only)",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Safety profile"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "SafetyProfileController_putMedical",
+        "summary": "Upsert medical profile (encrypted at rest)",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMedicalProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Safety profile"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -3897,6 +4657,79 @@
       }
     },
     "schemas": {
+      "MembershipAbilityContextDto": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "description": "Tenant-scoped membership labels (`user_tenants.labels`) used for capability aliases / marketing segments.",
+            "example": [
+              "club_member"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "description": "Explicit capability grants when present on membership (future DB column); empty until wired.",
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effective_capabilities": {
+            "description": "Resolved effective capabilities (role ∪ metadata ∪ labels ∪ tenant modules) from DB hydration.",
+            "example": [
+              "tour.read",
+              "tour.update.core"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "jwt_capability_snapshot": {
+            "description": "Optional JWT `caps` claim snapshot at issuance (informational; re-login after capability changes).",
+            "example": [
+              "tour.read",
+              "tour.update.core"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowed_region_ids": {
+            "description": "Region ids when actor has `tour.regional.manage` (from membership_metadata).",
+            "example": [
+              "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tenant_modules": {
+            "description": "Enabled tenant product modules (`tenants.enabled_modules`).",
+            "example": [
+              "finance"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "labels",
+          "capabilities",
+          "effective_capabilities",
+          "jwt_capability_snapshot",
+          "allowed_region_ids",
+          "tenant_modules"
+        ]
+      },
       "PhoneSessionDto": {
         "type": "object",
         "properties": {
@@ -4314,16 +5147,19 @@
           "role": {
             "type": "string",
             "example": "owner",
+            "enum": [
+              "owner",
+              "leader",
+              "admin",
+              "member",
+              "viewer"
+            ],
             "description": "Tenant-scoped role from user_tenants.role"
           },
-          "status": {
-            "type": "string",
-            "example": "ACTIVE",
-            "enum": [
-              "INVITED",
-              "ACTIVE",
-              "SUSPENDED"
-            ]
+          "profileRowVersion": {
+            "type": "number",
+            "example": 1,
+            "description": "Optimistic concurrency token from `users.profile_row_version` (for ETag / If-Match)."
           },
           "lastLoginAt": {
             "type": "string",
@@ -4348,14 +5184,46 @@
             "format": "date-time",
             "nullable": true,
             "description": "Timestamp when membership was suspended."
+          },
+          "labels": {
+            "description": "Tenant-scoped membership labels from `user_tenants.labels` (e.g. club_member).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assignedCapabilities": {
+            "description": "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedRegionIds": {
+            "description": "Regional scope ids when `tour.regional.manage` is assigned.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effectiveCapabilities": {
+            "description": "Resolved effective capabilities (role ∪ metadata ∪ labels ∪ tenant modules).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "telegramLinked": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when the user account has a linked Telegram id (for in-app indicators)."
           }
         },
         "required": [
           "id",
           "name",
           "email",
-          "role",
-          "status"
+          "role"
         ]
       },
       "ListUsersResponseDto": {
@@ -4429,6 +5297,7 @@
             "type": "string",
             "example": "member",
             "enum": [
+              "leader",
               "admin",
               "member",
               "viewer"
@@ -4448,6 +5317,7 @@
             "type": "string",
             "example": "member",
             "enum": [
+              "leader",
               "admin",
               "member",
               "viewer"
@@ -4497,6 +5367,55 @@
           "tenant_id",
           "previous_owner_user_id",
           "new_owner_user_id"
+        ]
+      },
+      "PatchMembershipCapabilitiesDto": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "description": "Explicit workspace capability grants stored on membership metadata.",
+            "example": [
+              "tour.regional.manage",
+              "tour.update.tripDetails"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedRegionIds": {
+            "description": "Required when granting tour.regional.manage — limits tour list/detail/PATCH scope.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "capabilities"
+        ]
+      },
+      "PatchTenantModulesDto": {
+        "type": "object",
+        "properties": {
+          "enabledModules": {
+            "type": "array",
+            "example": [
+              "finance",
+              "form_builder"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "finance",
+                "form_builder"
+              ]
+            }
+          }
+        },
+        "required": [
+          "enabledModules"
         ]
       },
       "MeProfileResponseDto": {
@@ -4618,7 +5537,7 @@
           },
           "expected_profile_row_version": {
             "type": "number",
-            "description": "Optimistic concurrency token (same value as `profile_row_version` / weak `ETag` on `GET /me`). Omit `If-Match` or keep both equal when both are sent."
+            "description": "Optimistic concurrency token (same value as `profile_row_version` / weak `ETag` on `GET /me`). **Required** (or send matching `If-Match`) when changing any profile field in this request."
           },
           "national_id": {
             "type": "object",
@@ -5879,6 +6798,35 @@
           "limit"
         ]
       },
+      "LockedBookingPricingDto": {
+        "type": "object",
+        "properties": {
+          "totalMinor": {
+            "type": "string",
+            "description": "Payable total in minor units at booking time",
+            "example": "2500000"
+          },
+          "currency": {
+            "type": "string",
+            "example": "IRR"
+          },
+          "pricingRuleVersion": {
+            "type": "string",
+            "description": "Pricing engine / rule-set version frozen at booking time",
+            "example": "catalog:v3"
+          },
+          "listPriceMinor": {
+            "type": "object",
+            "description": "Reference list price minor units when applicable",
+            "nullable": true
+          }
+        },
+        "required": [
+          "totalMinor",
+          "currency",
+          "pricingRuleVersion"
+        ]
+      },
       "RegistrationResponseDto": {
         "type": "object",
         "properties": {
@@ -5952,6 +6900,12 @@
             ],
             "example": "Pending"
           },
+          "rowVersion": {
+            "type": "number",
+            "description": "Optimistic concurrency token (`registrations.row_version`). Send as `expected_row_version` on PATCH status/payment.",
+            "example": 1,
+            "minimum": 1
+          },
           "paymentStatus": {
             "type": "string",
             "enum": [
@@ -5981,6 +6935,15 @@
             },
             "nullable": true
           },
+          "lockedPricing": {
+            "nullable": true,
+            "description": "Authoritative payable price frozen at booking time. Clients must use this (not live tour pricing) for checkout amounts.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LockedBookingPricingDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "example": "2026-04-29T10:00:00.000Z"
@@ -5999,6 +6962,7 @@
           "transportMode",
           "entryMode",
           "status",
+          "rowVersion",
           "paymentStatus",
           "createdAt",
           "updatedAt"
@@ -6146,6 +7110,12 @@
             "description": "Optional participant note",
             "example": "Will arrive 30 minutes earlier",
             "nullable": true
+          },
+          "discountCode": {
+            "type": "string",
+            "description": "Optional promo code; **final price is always computed server-side** — never trust a client-supplied amount.",
+            "example": "PCT10",
+            "maxLength": 64
           }
         },
         "required": [
@@ -6293,10 +7263,17 @@
               "Refunded"
             ],
             "example": "Accepted"
+          },
+          "expected_row_version": {
+            "type": "number",
+            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion` / `registrations.row_version`). Must match the row at apply time.",
+            "example": 1,
+            "minimum": 1
           }
         },
         "required": [
-          "targetStatus"
+          "targetStatus",
+          "expected_row_version"
         ]
       },
       "UpdateRegistrationPaymentDto": {
@@ -6317,10 +7294,17 @@
             "description": "Optional paid amount (non-negative)",
             "example": 2500000,
             "minimum": 0
+          },
+          "expected_row_version": {
+            "type": "number",
+            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion`). Must match the row at apply time.",
+            "example": 1,
+            "minimum": 1
           }
         },
         "required": [
-          "paymentStatus"
+          "paymentStatus",
+          "expected_row_version"
         ]
       },
       "ConvertWaitlistItemDto": {
@@ -6432,6 +7416,16 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stripe PaymentIntent client secret when applicable."
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Hosted checkout URL (e.g. Zibal) when applicable."
           }
         },
         "required": [
@@ -6495,6 +7489,14 @@
           "providerPaymentId",
           "status"
         ]
+      },
+      "AcknowledgeReconciliationFindingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ApplyReconciliationLedgerAdjustmentDto": {
+        "type": "object",
+        "properties": {}
       },
       "CreateWorkspaceRegionDto": {
         "type": "object",
@@ -7084,6 +8086,64 @@
             "additionalProperties": true
           }
         }
+      },
+      "EmergencyContactItemDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "phoneE164": {
+            "type": "string",
+            "example": "+14155552671"
+          },
+          "relationship": {
+            "type": "string",
+            "example": "spouse"
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "example": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "example": 0
+          }
+        },
+        "required": [
+          "displayName",
+          "phoneE164",
+          "relationship"
+        ]
+      },
+      "ReplaceEmergencyContactsDto": {
+        "type": "object",
+        "properties": {
+          "contacts": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmergencyContactItemDto"
+            }
+          }
+        },
+        "required": [
+          "contacts"
+        ]
+      },
+      "UpsertMedicalProfileDto": {
+        "type": "object",
+        "properties": {
+          "plaintextPayloadUtf8": {
+            "type": "string",
+            "description": "UTF-8 JSON string of medical fields (encrypted at rest server-side). Never logged.",
+            "example": "{\"allergies\":[],\"medications\":[]}"
+          }
+        },
+        "required": [
+          "plaintextPayloadUtf8"
+        ]
       }
     }
   }

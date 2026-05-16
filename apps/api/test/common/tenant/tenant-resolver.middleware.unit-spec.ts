@@ -14,6 +14,13 @@ test("shouldBypassTenantResolver skips health and public registration", () => {
     shouldBypassTenantResolver("/api/v2/tours/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/register", "POST"),
     true
   );
+  assert.equal(
+    shouldBypassTenantResolver(
+      "/api/v2/tours/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/registration-idempotency-key",
+      "GET"
+    ),
+    true
+  );
 });
 
 test("shouldBypassTenantResolver does not skip auth session routes", () => {
@@ -25,5 +32,5 @@ test("isAuthTenantSessionRoute identifies login endpoints", () => {
   assert.equal(isAuthTenantSessionRoute("/api/v2/auth/web/session/otp", "POST"), true);
   assert.equal(isAuthTenantSessionRoute("/api/v2/auth/telegram/session", "POST"), true);
   assert.equal(isAuthTenantSessionRoute("/api/v2/auth/web/session/otp", "GET"), false);
-  assert.equal(isAuthTenantSessionRoute("/api/v2/auth/workspace/session", "POST"), false);
+  assert.equal(isAuthTenantSessionRoute("/api/v2/auth/workspace/session", "POST"), true);
 });

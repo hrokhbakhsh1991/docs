@@ -40,8 +40,8 @@ function compositeKey(scope: PaymentIdempotencyScope): string {
 }
 
 /**
- * In-process {@link IdempotencyKeyStore} (single Node instance). Prefer
- * {@link RedisPaymentIdempotencyKeyStore} with `PAYMENT_GATEWAY_IDEMPOTENCY_STORE=redis` in production.
+ * In-process {@link IdempotencyKeyStore} (single Node instance). **Not** cross-replica or crash-safe.
+ * Use {@link PostgresPaymentIdempotencyKeyStore} (default outside tests) or {@link RedisPaymentIdempotencyKeyStore}.
  */
 @Injectable()
 export class InMemoryIdempotencyKeyStore implements IdempotencyKeyStore {

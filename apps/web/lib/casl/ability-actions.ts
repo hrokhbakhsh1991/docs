@@ -1,4 +1,4 @@
-/** CASL action literals aligned with `@repo/shared-rbac` / API guards. */
+/** CASL action literals aligned with `@repo/shared` / API guards. */
 export const AbilityAction = {
   Manage: "manage",
   Create: "create",

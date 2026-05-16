@@ -23,10 +23,16 @@ export { normalizeTourOpsApiOrigin } from "./tour-ops-api-origin";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
-    /** Do not clear token / redirect when login returns 401 */
-    skipAuthRedirectOn401?: boolean;
-    /** Do not full-page redirect to `/403` on 403 (caller handles inline) */
-    skip403Redirect?: boolean;
+  /**
+   * @deprecated Prefer explicit UX via {@link getUIError} / auth context. When false (default), 401 does not navigate away.
+   */
+  skipAuthRedirectOn401?: boolean;
+  /** Opt-in: clear session and redirect to login on 401 (legacy axios client only). */
+  redirectOn401?: boolean;
+  /** Do not full-page redirect to `/403` on 403 (caller handles inline) */
+  skip403Redirect?: boolean;
+  /** Opt-in: navigate to `/403` on forbidden responses. */
+  redirectOn403?: boolean;
     /** Request interceptor sets Idempotency-Key when true */
     attachIdempotency?: boolean;
     /** Skip global interceptor toasts (500 / connection) for this request */
@@ -208,7 +214,7 @@ export const axiosApi: AxiosInstance = axios.create({
 axiosApi.interceptors.request.use((config) => {
   const base = resolveTourOpsApiBaseUrl().trim();
   if (!base) {
-    return Promise.reject(new Error("NEXT_PUBLIC_API_URL is not configured."));
+    return Promise.reject(new Error("Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true)."));
   }
   config.baseURL = base;
 
@@ -264,19 +270,15 @@ axiosApi.interceptors.response.use(
     const cfg = error.config;
     const status = error.response?.status;
 
-    if (status === 401) {
-      if (!cfg?.skipAuthRedirectOn401) {
-        void clearAuthAndRedirectToLogin();
-      }
+    if (status === 401 && cfg?.redirectOn401 === true) {
+      void clearAuthAndRedirectToLogin();
       return Promise.reject(error);
     }
 
-    if (status === 403) {
-      if (!cfg?.skip403Redirect) {
-        const path = window.location.pathname;
-        if (path !== "/403") {
-          window.location.assign("/403");
-        }
+    if (status === 403 && cfg?.redirectOn403 === true) {
+      const path = window.location.pathname;
+      if (path !== "/403") {
+        window.location.assign("/403");
       }
       return Promise.reject(error);
     }
@@ -296,7 +298,7 @@ axiosApi.interceptors.response.use(
 export const apiClient = {
   async get<T>(path: string, options?: ApiRequestOptions): Promise<T> {
     if (!resolveTourOpsApiBaseUrl().trim()) {
-      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+      throw new ApiError("CONFIG_ERROR", "Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true).");
     }
     try {
       const res = await axiosApi.get<T>(path, mergeRequestConfig(options));
@@ -308,7 +310,7 @@ export const apiClient = {
 
   async post<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<T> {
     if (!resolveTourOpsApiBaseUrl().trim()) {
-      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+      throw new ApiError("CONFIG_ERROR", "Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true).");
     }
     try {
       const res = await axiosApi.post<T>(path, body, mergeRequestConfig(options));
@@ -320,7 +322,7 @@ export const apiClient = {
 
   async patch<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<T> {
     if (!resolveTourOpsApiBaseUrl().trim()) {
-      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+      throw new ApiError("CONFIG_ERROR", "Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true).");
     }
     try {
       const res = await axiosApi.patch<T>(path, body, mergeRequestConfig(options));
@@ -332,7 +334,7 @@ export const apiClient = {
 
   async delete<T = void>(path: string, options?: ApiRequestOptions): Promise<T> {
     if (!resolveTourOpsApiBaseUrl().trim()) {
-      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+      throw new ApiError("CONFIG_ERROR", "Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true).");
     }
     try {
       const res = await axiosApi.delete<T>(path, mergeRequestConfig(options));
@@ -347,7 +349,7 @@ export const apiClient = {
    */
   async getBlob(path: string, options?: ApiRequestOptions): Promise<Blob> {
     if (!resolveTourOpsApiBaseUrl().trim()) {
-      throw new ApiError("CONFIG_ERROR", "NEXT_PUBLIC_API_URL is not configured.");
+      throw new ApiError("CONFIG_ERROR", "Tour-Ops API is not configured (use NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true).");
     }
     try {
       const res = await axiosApi.get<Blob>(path, {

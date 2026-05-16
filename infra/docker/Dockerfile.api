@@ -15,7 +15,7 @@ COPY apps/api ./apps/api
 COPY packages/types ./packages/types
 COPY packages/shared ./packages/shared
 RUN pnpm --filter @repo/types run build \
-  && pnpm --filter @repo/shared-rbac run build \
+  && pnpm --filter @repo/shared run build \
   && pnpm --filter @apps/api run build \
   && pnpm --filter @apps/api deploy --prod /out/api \
   && rm -rf /out/api/test /out/api/src

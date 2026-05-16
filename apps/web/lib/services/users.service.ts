@@ -1,9 +1,10 @@
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { NotFoundError } from "@/lib/api-client";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
-import type { UserRole } from "../auth/user-role";
+import { UserRole } from "../auth/user-role";
 
-/** When true, list/update users against Tour-Ops API (`NEXT_PUBLIC_API_URL`). */
+/** Lists/updates users via same-origin BFF `/api/users`. */
 export function usersUseLiveApi(): boolean {
   return isTourOpsApiConfigured();
 }
@@ -24,7 +25,15 @@ export type WorkspaceUserDto = {
   invitedAt?: string | null;
   suspendedAt?: string | null;
   labels?: string[];
+  assignedCapabilities?: string[];
+  allowedRegionIds?: string[];
+  effectiveCapabilities?: string[];
   telegramLinked?: boolean;
+};
+
+export type PatchMembershipCapabilitiesPayload = {
+  capabilities: string[];
+  allowedRegionIds?: string[];
 };
 
 export type UserRoleHistoryItemDto = {
@@ -59,101 +68,137 @@ export async function getUsers(params?: GetUsersParams): Promise<GetUsersRespons
   if (params?.status) query.set("status", params.status);
   if (params?.lastLoginFrom?.trim()) query.set("lastLoginFrom", params.lastLoginFrom.trim());
   if (params?.lastLoginTo?.trim()) query.set("lastLoginTo", params.lastLoginTo.trim());
-  const queryString = query.toString();
-  const path = queryString ? `${API.users}?${queryString}` : API.users;
-  return apiClient.get<GetUsersResponseDto>(path);
+  return bffBrowserClient.get<GetUsersResponseDto>(BFF.usersQuery(query.toString()));
 }
 
 export async function getUserById(id: string): Promise<WorkspaceUserDto | null> {
-  return apiClient.get<WorkspaceUserDto>(API.user(id));
-}
-
-export type InviteUserPayload = {
-  phone: string;
-  role: Extract<UserRole, "admin" | "member" | "viewer">;
-};
-
-export async function inviteUser(payload: InviteUserPayload): Promise<unknown> {
-  return apiClient.post(`${API.users}/invite`, payload);
-}
-
-export async function resendInvite(userId: string): Promise<unknown> {
-  return apiClient.post(`${API.user(userId)}/resend-invite`, {});
-}
-
-export async function updateUserRole(id: string, role: UserRole): Promise<WorkspaceUserDto> {
-  return apiClient.patch<WorkspaceUserDto>(API.user(id), {
-    role
-  });
-}
-
-export async function bulkUpdateUserRole(
-  userIds: string[],
-  role: Extract<UserRole, "leader" | "admin" | "member" | "viewer">
-): Promise<WorkspaceUserDto[]> {
-  return apiClient.patch<WorkspaceUserDto[]>(API.usersBulkRole, {
-    userIds,
-    role,
-  });
-}
-
-export type OptimisticUsersMutationCallbacks<T> = {
-  onSuccess?: (data: T) => void;
-  /** Invoked when the API call fails after an optimistic UI patch (e.g. TanStack Query `onError`). */
-  onRollback?: () => void;
-};
-
-/**
- * Phase 1 stub: wraps a users-directory mutation so callers can centralize rollback hooks.
- * Phase 2+: pair with TanStack Query `onMutate` snapshot restore for the users list cache.
- */
-export async function withOptimisticUsersRollback<T>(
-  run: () => Promise<T>,
-  callbacks?: OptimisticUsersMutationCallbacks<T>
-): Promise<T> {
   try {
-    const data = await run();
-    callbacks?.onSuccess?.(data);
-    return data;
-  } catch (err) {
-    callbacks?.onRollback?.();
+    return await bffBrowserClient.get<WorkspaceUserDto>(BFF.user(id));
+  } catch (err: unknown) {
+    if (err instanceof NotFoundError) {
+      return null;
+    }
     throw err;
   }
 }
 
-/** Wraps {@link updateUserRole} with {@link withOptimisticUsersRollback} for directory mutations. */
-export function updateUserRoleWithOptimisticUsersRollback(
-  id: string,
-  role: UserRole,
-  callbacks?: OptimisticUsersMutationCallbacks<WorkspaceUserDto>
-): Promise<WorkspaceUserDto> {
-  return withOptimisticUsersRollback(() => updateUserRole(id, role), callbacks);
+export type InvitableWorkspaceRole = UserRole.Admin | UserRole.Member | UserRole.Viewer;
+
+export type InviteUserPayload = {
+  phone: string;
+  role: InvitableWorkspaceRole;
+};
+
+export async function inviteUser(payload: InviteUserPayload): Promise<unknown> {
+  return bffBrowserClient.post(BFF.usersInvite, payload);
 }
 
-/** Wraps {@link bulkUpdateUserRole} with rollback hooks. */
-export function bulkUpdateUserRoleWithOptimisticUsersRollback(
+export async function resendInvite(userId: string): Promise<unknown> {
+  return bffBrowserClient.post(BFF.userAction(userId, "resend-invite"), {});
+}
+
+/**
+ * Handlers for {@link withOptimisticUsersRollback}: capture list state, patch UI/cache, restore on failure.
+ */
+export type OptimisticUsersRollbackHandlers<TSnapshot, TData> = {
+  snapshot: () => TSnapshot;
+  applyOptimistic: (snapshot: TSnapshot) => void;
+  rollback: (snapshot: TSnapshot) => void;
+  onSuccess?: (data: TData) => void;
+};
+
+/**
+ * Runs `snapshot` → `applyOptimistic` → async `run`; on rejection calls `rollback` with the same snapshot
+ * so the UI does not stay optimistically wrong after a failed users-directory mutation.
+ */
+export async function withOptimisticUsersRollback<TData, TSnapshot>(
+  run: () => Promise<TData>,
+  handlers: OptimisticUsersRollbackHandlers<TSnapshot, TData>,
+): Promise<TData> {
+  const snapshot = handlers.snapshot();
+  handlers.applyOptimistic(snapshot);
+  try {
+    const data = await run();
+    handlers.onSuccess?.(data);
+    return data;
+  } catch (err) {
+    handlers.rollback(snapshot);
+    throw err;
+  }
+}
+
+export async function updateUserRole(
+  id: string,
+  role: UserRole,
+  optimistic?: OptimisticUsersRollbackHandlers<unknown, WorkspaceUserDto>,
+): Promise<WorkspaceUserDto> {
+  const run = () => bffBrowserClient.patch<WorkspaceUserDto>(BFF.user(id), { role });
+  if (!optimistic) {
+    return run();
+  }
+  return withOptimisticUsersRollback(run, optimistic);
+}
+
+export type BulkPatchWorkspaceRole =
+  | UserRole.Leader
+  | UserRole.Admin
+  | UserRole.Member
+  | UserRole.Viewer;
+
+export async function bulkUpdateUserRole(
   userIds: string[],
-  role: Extract<UserRole, "leader" | "admin" | "member" | "viewer">,
-  callbacks?: OptimisticUsersMutationCallbacks<WorkspaceUserDto[]>
+  role: BulkPatchWorkspaceRole,
+  optimistic?: OptimisticUsersRollbackHandlers<unknown, WorkspaceUserDto[]>,
 ): Promise<WorkspaceUserDto[]> {
-  return withOptimisticUsersRollback(() => bulkUpdateUserRole(userIds, role), callbacks);
+  const run = () =>
+    bffBrowserClient.patch<WorkspaceUserDto[]>(BFF.usersBulkRole, {
+      userIds,
+      role,
+    });
+  if (!optimistic) {
+    return run();
+  }
+  return withOptimisticUsersRollback(run, optimistic);
 }
 
 /** Backward-compatible alias used by existing callers. */
 export const bulkUpdateUsersRole = bulkUpdateUserRole;
 
 export async function suspendUser(userId: string): Promise<WorkspaceUserDto> {
-  return apiClient.patch<WorkspaceUserDto>(`${API.user(userId)}/suspend`);
+  return bffBrowserClient.patch<WorkspaceUserDto>(BFF.userAction(userId, "suspend"), {});
 }
 
 export async function reactivateUser(userId: string): Promise<WorkspaceUserDto> {
-  return apiClient.patch<WorkspaceUserDto>(`${API.user(userId)}/reactivate`);
+  return bffBrowserClient.patch<WorkspaceUserDto>(BFF.userAction(userId, "reactivate"), {});
 }
 
 export async function removeUser(userId: string): Promise<{ success: true } | void> {
-  return apiClient.delete(`${API.user(userId)}/remove`);
+  return bffBrowserClient.delete(BFF.userAction(userId, "remove"));
 }
 
 export async function getUserRoleHistory(id: string): Promise<UserRoleHistoryItemDto[]> {
-  return apiClient.get<UserRoleHistoryItemDto[]>(API.userRoleHistory(id));
+  return bffBrowserClient.get<UserRoleHistoryItemDto[]>(BFF.userAction(id, "role-history"));
+}
+
+export async function patchMembershipCapabilities(
+  tenantId: string,
+  userId: string,
+  payload: PatchMembershipCapabilitiesPayload,
+): Promise<WorkspaceUserDto> {
+  return bffBrowserClient.patch<WorkspaceUserDto>(
+    BFF.workspaceUserCapabilities(tenantId, userId),
+    payload,
+  );
+}
+
+export async function bulkSuspendUsers(userIds: string[]): Promise<void> {
+  await Promise.all(userIds.map((id) => suspendUser(id)));
+}
+
+export async function bulkReactivateUsers(userIds: string[]): Promise<void> {
+  await Promise.all(userIds.map((id) => reactivateUser(id)));
+}
+
+export async function bulkRemoveUsers(userIds: string[]): Promise<void> {
+  await Promise.all(userIds.map((id) => removeUser(id)));
 }

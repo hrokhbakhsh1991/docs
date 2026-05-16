@@ -1,0 +1,114 @@
+name: infrastructure-closure-nightly
+
+on:
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+
+jobs:
+  static-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Static infrastructure closure gates
+        run: node scripts/run-infrastructure-closure-verify.mjs
+
+  live-gate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tour_ops_dev
+          POSTGRES_USER: tour_ops
+          POSTGRES_PASSWORD: tour_ops
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U tour_ops -d tour_ops_dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @repo/types run build
+          pnpm --filter @repo/shared run build
+          pnpm --filter @repo/shared-contracts run build
+          pnpm --filter @repo/tenant-host run build
+
+      - name: Prepare API env
+        run: |
+          cp apps/api/.env.example apps/api/.env
+          {
+            echo "PORT=3001"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=5433"
+            echo "DB_USER=tour_ops"
+            echo "DB_PASSWORD=tour_ops"
+            echo "DB_NAME=tour_ops_dev"
+            echo "REDIS_URL=redis://127.0.0.1:6379"
+            echo "AUTH_ALLOW_DEV_STATIC_OTP=true"
+            echo "NODE_ENV=development"
+          } >> apps/api/.env
+
+      - name: Migrate and seed RBAC fixtures
+        run: |
+          pnpm --dir apps/api migrate:run
+          pnpm --dir apps/api seed:rbac-rollout
+
+      - name: Build and start API
+        run: |
+          pnpm --filter @apps/api run build
+          cd apps/api && PORT=3001 AUTH_ALLOW_DEV_STATIC_OTP=true pnpm exec node --env-file=.env dist/main.js &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:3001/health && break
+            sleep 2
+          done
+
+      - name: Start Web
+        run: |
+          cp apps/web/.env.example apps/web/.env.local 2>/dev/null || true
+          cd apps/web && pnpm dev &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://ws1-rbac.localhost:3000/login && break
+            sleep 3
+          done
+
+      - name: Live infrastructure reality gate
+        run: node scripts/verify-infrastructure-reality-gate.mjs
+        env:
+          API_PORT: "3001"
+          WEB_PORT: "3000"
+          INFRA_OTP: "1234"

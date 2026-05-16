@@ -1,5 +1,5 @@
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 
 /** Mirrors OpenAPI `PaymentResponseDto` loosely for client use. */
 export type PaymentIntentResponse = {
@@ -85,7 +85,7 @@ export type CreatePaymentIntentPayload = {
 export async function createPaymentIntent(
   payload: CreatePaymentIntentPayload,
 ): Promise<PaymentIntentResponse> {
-  return apiClient.post<PaymentIntentResponse>(API.paymentsIntent, payload, {
+  return bffBrowserClient.post<PaymentIntentResponse>(BFF.paymentsIntent, payload, {
     idempotencyKey: true,
   });
 }

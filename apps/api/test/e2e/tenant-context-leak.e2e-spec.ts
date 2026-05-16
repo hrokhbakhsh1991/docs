@@ -19,7 +19,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -142,12 +142,12 @@ async function seed(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_A,
       userId: userA.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: userB.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   ]);
 

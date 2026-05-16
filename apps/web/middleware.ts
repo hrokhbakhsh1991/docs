@@ -3,18 +3,54 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { SESSION_TOKEN_COOKIE } from "./lib/auth/session-cookie";
+import { lookupWorkspaceTenantExists } from "./lib/tenant/lookup-workspace-tenant";
+import { resolveInboundHostname } from "./lib/tenant/trusted-forwarded-host";
+import { resolveTenantSlugFromHost } from "./lib/tenant/runtime-tenant-context";
+import { evaluateWorkspaceHost, isBareApexHost } from "./lib/tenant/workspace-host-policy";
 import { routing } from "./src/i18n/routing";
+
+import { WORKSPACE_ASSERT_SKIP_HEADER } from "./lib/tenant/workspace-assert-skip";
+
+const PROBE_RATE_WINDOW_MS = Number(process.env.WORKSPACE_PROBE_RATE_WINDOW_MS ?? "60000");
+const PROBE_RATE_MAX_PER_IP = Number(process.env.WORKSPACE_PROBE_RATE_MAX_PER_IP ?? "120");
+const probeHitsByIp = new Map<string, { count: number; windowStart: number }>();
+
+function isProbeRateLimited(ip: string | undefined): boolean {
+  if (!ip?.trim() || !Number.isFinite(PROBE_RATE_WINDOW_MS) || !Number.isFinite(PROBE_RATE_MAX_PER_IP)) {
+    return false;
+  }
+  const now = Date.now();
+  const entry = probeHitsByIp.get(ip);
+  if (!entry || now - entry.windowStart >= PROBE_RATE_WINDOW_MS) {
+    probeHitsByIp.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+  entry.count += 1;
+  return entry.count > PROBE_RATE_MAX_PER_IP;
+}
+
+function inboundHost(request: NextRequest): string | null {
+  return resolveInboundHostname(request.headers, { remoteIp: request.ip });
+}
+
+async function isKnownWorkspaceSlug(slug: string): Promise<boolean> {
+  return lookupWorkspaceTenantExists(slug.trim().toLowerCase());
+}
+
+function forwardTenantSlug(request: NextRequest, response: NextResponse): NextResponse {
+  const slug = resolveTenantSlugFromHost(request.headers.get("host"));
+  if (!slug) {
+    return response;
+  }
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-tenant-slug", slug);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
 
 const intlMiddleware = createMiddleware(routing);
 
-/** Prefixes from the old multi-locale router; redirect to the new locale-less paths. */
 const LEGACY_LOCALE_PREFIXES = ["/fa", "/en"] as const;
 
-/**
- * 1) Strip legacy `/fa` / `/en` URL prefixes (308).
- * 2) `next-intl` middleware (single locale, no path prefix).
- * 3) Session gate on the final pathname (always locale-less).
- */
 function stripLegacyLocalePrefix(pathname: string): string | null {
   for (const prefix of LEGACY_LOCALE_PREFIXES) {
     if (pathname === prefix) {
@@ -37,27 +73,112 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
-export default function middleware(request: NextRequest) {
+function isWorkspaceNotFoundPath(pathname: string): boolean {
+  return pathname === "/workspace-not-found";
+}
+
+function withWorkspaceAssertSkip(request: NextRequest): Headers {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(WORKSPACE_ASSERT_SKIP_HEADER, "1");
+  return requestHeaders;
+}
+
+function rewriteWorkspaceNotFound(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = "/workspace-not-found";
+  url.search = "";
+  return NextResponse.rewrite(url, {
+    request: { headers: withWorkspaceAssertSkip(request) },
+  });
+}
+
+function rewriteOrRateLimitProbe(request: NextRequest): NextResponse {
+  const ip = request.ip ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (isProbeRateLimited(ip)) {
+    return NextResponse.json(
+      { error: { code: "WORKSPACE_HOST_PROBE_RATE_LIMITED", message: "Too many requests" } },
+      { status: 429 },
+    );
+  }
+  return rewriteWorkspaceNotFound(request);
+}
+
+async function ensureWorkspaceHostKnown(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  const host = inboundHost(request) ?? request.headers.get("host");
+  if (isBareApexHost(host)) {
+    return rewriteOrRateLimitProbe(request);
+  }
+
+  const evaluated = evaluateWorkspaceHost(host);
+  if (!evaluated.ok) {
+    return rewriteOrRateLimitProbe(request);
+  }
+
+  const known = await isKnownWorkspaceSlug(evaluated.slug);
+  if (known) {
+    return null;
+  }
+  return rewriteOrRateLimitProbe(request);
+}
+
+import { generateTraceparent } from "./lib/api/tracing-utils";
+
+export default async function middleware(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const traceparent = generateTraceparent();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+  requestHeaders.set("traceparent", traceparent);
+
   const pathname = request.nextUrl.pathname;
+
+  if (isWorkspaceNotFoundPath(pathname)) {
+    const response = NextResponse.next({
+      request: { headers: withWorkspaceAssertSkip(request) },
+    });
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("traceparent", traceparent);
+    return response;
+  }
+
+  const unknownWorkspace = await ensureWorkspaceHostKnown(request);
+  if (unknownWorkspace) {
+    unknownWorkspace.headers.set("x-request-id", requestId);
+    unknownWorkspace.headers.set("traceparent", traceparent);
+    return unknownWorkspace;
+  }
 
   const legacyTarget = stripLegacyLocalePrefix(pathname);
   if (legacyTarget !== null) {
     const url = request.nextUrl.clone();
     url.pathname = legacyTarget;
-    return NextResponse.redirect(url, 308);
+    const response = NextResponse.redirect(url, 308);
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("traceparent", traceparent);
+    return response;
   }
 
   const intlResponse = intlMiddleware(request);
   if (intlResponse.status >= 300 && intlResponse.status < 400) {
+    intlResponse.headers.set("x-request-id", requestId);
+    intlResponse.headers.set("traceparent", traceparent);
     return intlResponse;
   }
 
   if (pathname.startsWith("/static")) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("traceparent", traceparent);
+    return response;
   }
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next();
+    const response = forwardTenantSlug(request, NextResponse.next());
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("traceparent", traceparent);
+    return response;
   }
 
   const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
@@ -66,10 +187,16 @@ export default function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("traceparent", traceparent);
+    return response;
   }
 
-  return NextResponse.next();
+  const response = forwardTenantSlug(request, NextResponse.next());
+  response.headers.set("x-request-id", requestId);
+  response.headers.set("traceparent", traceparent);
+  return response;
 }
 
 export const config = {

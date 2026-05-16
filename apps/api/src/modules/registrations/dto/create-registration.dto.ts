@@ -115,4 +115,17 @@ export class CreateRegistrationDto {
   @IsString()
   @MaxLength(2000)
   participantNote?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Optional promo code; **final price is always computed server-side** — never trust a client-supplied amount.",
+    example: "PCT10",
+    maxLength: 64
+  })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @Matches(/^[A-Za-z0-9_-]{0,64}$/, {
+    message: "discountCode must be alphanumeric with _ or - only"
+  })
+  discountCode?: string;
 }

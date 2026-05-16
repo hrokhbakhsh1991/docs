@@ -3,7 +3,7 @@
  * `leader@test.com` has an owner/leader membership.
  *
  * Emails: leader+1@test.com … leader+100@test.com (unique rows).
- * Tenant role in DB: `owner` (product "leader" — Role.OWNER).
+ * Tenant role in DB: `owner` (product "leader" — UserRole.Owner).
  *
  * Uses raw SQL for `user_tenants` so the script runs whether or not `session_version`
  * migration has been applied yet.
@@ -18,14 +18,14 @@ import { emitScriptInfo } from "./script-log";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
-import { Role } from "../modules/auth/roles.enum";
+import { tryParseWorkspaceUserRole, UserRole } from "../common/auth/user-role.enum";
 
 const ANCHOR_LEADER_EMAIL = "leader@test.com";
 const TEST_USER_COUNT = 100;
 const TEST_PASSWORD = "Test123456!";
 const EMAIL_LOCAL_DOMAIN = "test.com";
 
-const MEMBERSHIP_ROLE = Role.OWNER;
+const MEMBERSHIP_ROLE = UserRole.Owner;
 
 function bulkLeaderEmail(index1Based: number): string {
   return `leader+${index1Based}@${EMAIL_LOCAL_DOMAIN}`.toLowerCase();
@@ -36,8 +36,8 @@ function bulkLeaderPhone(index1Based: number): string {
 }
 
 function isLeaderEquivalentRole(role: string): boolean {
-  const r = role.trim().toLowerCase();
-  return r === "owner" || r === "leader";
+  const p = tryParseWorkspaceUserRole(role);
+  return p === UserRole.Owner || p === UserRole.Leader;
 }
 
 function fail(message: string): never {

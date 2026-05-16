@@ -6,7 +6,15 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  transpilePackages: ["@tour/ui", "@repo/shared-rbac"],
+  transpilePackages: ["@tour/ui", "@repo/shared"],
+  allowedDevOrigins: [
+    "localhost",
+    "*.localhost",
+    "ws1-rbac.localhost",
+    "ws2-rbac.localhost",
+    "ws3-rbac.localhost",
+    "denali.localhost",
+  ],
   async redirects() {
     return [
       {

@@ -13,6 +13,8 @@ import { WorkspaceInviteEntity } from "./entities/workspace-invite.entity";
 import { EmailVerificationTokenEntity } from "./entities/email-verification-token.entity";
 import { InvitesController } from "./invites.controller";
 import { WorkspaceOwnershipController } from "./workspace-ownership.controller";
+import { WorkspaceUsersCapabilitiesController } from "./workspace-users-capabilities.controller";
+import { WorkspaceSettingsModulesController } from "./workspace-settings-modules.controller";
 import { TenantAuditEventsController } from "./tenant-audit-events.controller";
 import { UsersListRepository } from "./users/repositories/users-list.repository";
 import { UsersTenantScopeRepository } from "./users/repositories/users-tenant-scope.repository";
@@ -46,6 +48,8 @@ import { AuthModule } from "../auth/auth.module";
     UsersController,
     InvitesController,
     WorkspaceOwnershipController,
+    WorkspaceUsersCapabilitiesController,
+    WorkspaceSettingsModulesController,
     TenantAuditEventsController,
     MeController
   ],

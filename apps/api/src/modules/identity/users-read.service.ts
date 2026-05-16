@@ -1,14 +1,19 @@
 import { Injectable } from "@nestjs/common";
-import { UserTenantEntity } from "./entities/user-tenant.entity";
 import type { ListUsersQueryDto } from "./dto/list-users-query.dto";
 import type { ListUsersResponseDto } from "./dto/list-users-response.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
-import { MembershipStatus } from "./membership-status.enum";
+import { UsersListRepository } from "./users/repositories/users-list.repository";
 import { UsersAccessService } from "./users-access.service";
 
+/**
+ * **Services = orchestration + policy** (cursors, list shaping). Listing queries delegate to repositories (**persistence only**).
+ */
 @Injectable()
 export class UsersReadService {
-  constructor(private readonly access: UsersAccessService) {}
+  constructor(
+    private readonly access: UsersAccessService,
+    private readonly usersListRepository: UsersListRepository
+  ) {}
 
   async listUsers(query: ListUsersQueryDto): Promise<ListUsersResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
@@ -19,96 +24,18 @@ export class UsersReadService {
     const statusFilter = query.status?.trim().toUpperCase();
     const lastLoginFrom = query.lastLoginFrom?.trim();
     const lastLoginTo = query.lastLoginTo?.trim();
-    const decodedCursor = this.decodeUsersCursor(query.cursor);
+    const decodedCursor = this.decodeUsersCursor(query.cursor, tenantId);
 
-    const qb = this.access.users
-      .createQueryBuilder("u")
-      .innerJoin(
-        UserTenantEntity,
-        "ut",
-        "ut.user_id = u.id AND ut.tenant_id = :tenantId AND ut.deleted_at IS NULL",
-        { tenantId }
-      )
-      .where("u.deleted_at IS NULL");
-
-    if (normalizedSearch.length > 0) {
-      qb.andWhere(
-        "(" +
-          "LOWER(COALESCE(u.full_name, '')) LIKE :search OR " +
-          "LOWER(u.email) LIKE :search OR " +
-          "phone_normalized(COALESCE(u.phone, '')) LIKE phone_normalized(:searchRaw)" +
-          ")",
-        {
-          search: `%${normalizedSearch}%`,
-          searchRaw: `%${normalizedSearch}%`
-        }
-      );
-    }
-    if (roleFilter) {
-      qb.andWhere("LOWER(ut.role) = :roleFilter", { roleFilter });
-    }
-    if (statusFilter) {
-      qb.andWhere("ut.membership_status = :statusFilter", { statusFilter });
-    }
-    if (lastLoginFrom) {
-      qb.andWhere("u.last_login_at >= :lastLoginFrom", { lastLoginFrom });
-    }
-    if (lastLoginTo) {
-      qb.andWhere("u.last_login_at <= :lastLoginTo", { lastLoginTo });
-    }
-
-    if (decodedCursor) {
-      qb.andWhere(
-        "(ut.created_at < :cursorCreatedAt OR (ut.created_at = :cursorCreatedAt AND ut.id < :cursorId))",
-        {
-          cursorCreatedAt: decodedCursor.createdAt,
-          cursorId: decodedCursor.id
-        }
-      );
-    }
-
-    const rows = await qb
-      .select([
-        "u.id AS id",
-        "u.full_name AS full_name",
-        "u.email AS email",
-        "u.phone AS phone",
-        "u.last_login_at AS last_login_at",
-        "u.is_email_verified AS is_email_verified",
-        "u.is_phone_verified AS is_phone_verified",
-        "ut.id AS membership_id",
-        "ut.role AS role",
-        "ut.membership_status AS membership_status",
-        "ut.invited_at AS invited_at",
-        "ut.joined_at AS joined_at",
-        "ut.suspended_at AS suspended_at",
-        "ut.created_at AS membership_created_at",
-        "ut.labels AS labels",
-        "u.profile_row_version AS profile_row_version",
-        "(u.telegram_user_id IS NOT NULL AND btrim(u.telegram_user_id) <> '') AS telegram_linked"
-      ])
-      .orderBy("ut.created_at", "DESC")
-      .addOrderBy("ut.id", "DESC")
-      .limit(limit + 1)
-      .getRawMany<{
-        id: string;
-        full_name: string | null;
-        email: string;
-        phone: string | null;
-        last_login_at: Date | null;
-        is_email_verified: boolean;
-        is_phone_verified: boolean;
-        membership_id: string;
-        membership_created_at: Date;
-        role: string;
-        membership_status: MembershipStatus;
-        invited_at: Date | null;
-        joined_at: Date | null;
-        suspended_at: Date | null;
-        labels: unknown;
-        telegram_linked: boolean | string;
-        profile_row_version: number | null;
-      }>();
+    const rows = await this.usersListRepository.listTenantUsers({
+      tenantId,
+      limit,
+      normalizedSearch,
+      roleFilter: roleFilter || undefined,
+      statusFilter: statusFilter || undefined,
+      lastLoginFrom: lastLoginFrom || undefined,
+      lastLoginTo: lastLoginTo || undefined,
+      cursor: decodedCursor
+    });
 
     const hasNext = rows.length > limit;
     const pageRows = hasNext ? rows.slice(0, limit) : rows;
@@ -137,6 +64,7 @@ export class UsersReadService {
     const nextCursor =
       hasNext && last
         ? this.encodeUsersCursor({
+            tenantId,
             createdAt: new Date(last.membership_created_at).toISOString(),
             id: last.membership_id
           })
@@ -153,30 +81,44 @@ export class UsersReadService {
     return this.access.toUserResponseDto(user);
   }
 
-  private encodeUsersCursor(input: { createdAt: string; id: string }): string {
-    return Buffer.from(JSON.stringify(input)).toString("base64url");
+  private encodeUsersCursor(input: { tenantId: string; createdAt: string; id: string }): string {
+    return Buffer.from(
+      JSON.stringify({ v: 1, t: input.tenantId, c: input.createdAt, i: input.id })
+    ).toString("base64url");
   }
 
   private decodeUsersCursor(
-    rawCursor: string | undefined
+    rawCursor: string | undefined,
+    tenantId: string
   ): { createdAt: string; id: string } | null {
     if (!rawCursor || rawCursor.trim() === "") {
       return null;
     }
     try {
       const decoded = JSON.parse(Buffer.from(rawCursor, "base64url").toString("utf8")) as {
+        v?: unknown;
+        t?: unknown;
+        c?: unknown;
+        i?: unknown;
         createdAt?: unknown;
         id?: unknown;
       };
-      if (typeof decoded.createdAt !== "string" || typeof decoded.id !== "string") {
+      if (decoded.v === 1 && typeof decoded.t === "string" && typeof decoded.c === "string" && typeof decoded.i === "string") {
+        if (decoded.t !== tenantId) {
+          return null;
+        }
+        const createdAt = decoded.c.trim();
+        const id = decoded.i.trim();
+        if (!createdAt || !id || Number.isNaN(Date.parse(createdAt))) {
+          return null;
+        }
+        return { createdAt, id };
+      }
+      /** Legacy cursors lacked tenant binding — reject to avoid ambiguous pagination across workspaces. */
+      if (typeof decoded.createdAt === "string" && typeof decoded.id === "string") {
         return null;
       }
-      const createdAt = decoded.createdAt.trim();
-      const id = decoded.id.trim();
-      if (!createdAt || !id || Number.isNaN(Date.parse(createdAt))) {
-        return null;
-      }
-      return { createdAt, id };
+      return null;
     } catch {
       return null;
     }

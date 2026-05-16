@@ -149,3 +149,37 @@ export function validatePaymentAmountConsistency(
   }
 }
 
+/**
+ * Allowed deviation (in minor units) between a client-supplied total and the server-calculated
+ * `computed_total_minor` from the canonical booking price snapshot.
+ * Set to 1 to absorb any sub-unit rounding while still catching real mismatches.
+ */
+export const PRICING_MISMATCH_TOLERANCE_MINOR = 1;
+
+/**
+ * Throws `PRICING_MISMATCH_ERROR` when the absolute difference between the client-supplied
+ * total and the server's canonical snapshot total exceeds {@link PRICING_MISMATCH_TOLERANCE_MINOR}.
+ *
+ * Call this **before** persisting any registration that receives a client-supplied amount,
+ * e.g. from a payment intent webhook or a checkout DTO with a `totalMinor` field.
+ *
+ * @param clientTotalMinor  — integer minor units supplied by the client (or PSP webhook).
+ * @param snapshotComputedTotalMinor — `computed_total_minor` from the locked `BookingPriceSnapshotEntity`.
+ */
+export function assertPricingMatchOrThrow(
+  clientTotalMinor: number | string,
+  snapshotComputedTotalMinor: number | string
+): void {
+  const clientVal = BigInt(Math.round(Number(clientTotalMinor)));
+  const snapshotVal = BigInt(Math.round(Number(snapshotComputedTotalMinor)));
+  const diff = clientVal > snapshotVal ? clientVal - snapshotVal : snapshotVal - clientVal;
+  if (diff > BigInt(PRICING_MISMATCH_TOLERANCE_MINOR)) {
+    throw new ConflictException({
+      error: {
+        code: "PRICING_MISMATCH_ERROR",
+        message: `Client-supplied total (${clientVal}) disagrees with server-computed snapshot total (${snapshotVal}) beyond the allowed tolerance of ${PRICING_MISMATCH_TOLERANCE_MINOR} minor unit(s).`
+      }
+    });
+  }
+}
+

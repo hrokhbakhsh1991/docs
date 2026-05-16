@@ -18,7 +18,7 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -139,17 +139,17 @@ async function seed(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_A,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: owner.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     }),
     membershipRepo.create({
       tenantId: TENANT_B,
       userId: invitee.id,
-      role: Role.MEMBER
+      role: UserRole.Member
     })
   ]);
 
@@ -157,7 +157,7 @@ async function seed(ds: DataSource): Promise<void> {
     token: TOKEN_PARALLEL,
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
-    role: Role.MEMBER,
+    role: UserRole.Member,
     createdBy: owner.id
   });
 }
@@ -209,5 +209,5 @@ test("two parallel accept attempts for the same invite: one succeeds, invite rem
     where: { userId: invitee.id, tenantId: TENANT_A, deletedAt: IsNull() }
   });
   assert.equal(memberships.length, 1);
-  assert.equal(memberships[0]?.role, Role.MEMBER);
+  assert.equal(memberships[0]?.role, UserRole.Member);
 });

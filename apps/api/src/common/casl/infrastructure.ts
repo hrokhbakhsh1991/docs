@@ -17,4 +17,4 @@ export {
   type WorkspaceAbilityAction,
   type WorkspaceAbilitySubject,
   type UserAbilityMembershipStatus
-} from "@repo/shared-rbac";
+} from "@repo/shared";

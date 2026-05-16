@@ -1,5 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { EmailVerificationTokensCleanupJob } from "./email-verification-tokens-cleanup.job";
+import { DatabaseModule } from "../database/database.module";
 import { IdempotencyModule } from "../modules/idempotency/idempotency.module";
 import { IdempotencyCleanupJob } from "./idempotency-cleanup.job";
 import { SchedulerLockService } from "./scheduler-lock.service";
@@ -7,7 +8,7 @@ import { SchedulerRuntimeMetricsService } from "./scheduler-runtime-metrics.serv
 
 @Global()
 @Module({
-  imports: [IdempotencyModule],
+  imports: [DatabaseModule, IdempotencyModule],
   providers: [
     IdempotencyCleanupJob,
     EmailVerificationTokensCleanupJob,

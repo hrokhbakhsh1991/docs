@@ -31,7 +31,9 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
       promotedInLastRun: 2,
       totalDriftsDetected: 3,
       totalCorrectionsApplied: 3,
-      totalPromotionsTriggered: 5
+      totalPromotionsTriggered: 5,
+      lastPaymentFinanceReconciliationAt: "2026-04-30T12:03:00.000Z",
+      lastPaymentFinanceCriticalFindings: 1
     })
   } as unknown as ReconciliationService;
 
@@ -97,6 +99,10 @@ test("integration: ops controller maps cached outbox and reconciliation snapshot
     capacity: {
       driftDetected: true,
       lastReconciliationAt: "2026-04-30T12:01:00.000Z"
+    },
+    paymentFinance: {
+      lastRunAt: "2026-04-30T12:03:00.000Z",
+      criticalFindingsInLastRun: 1
     },
     waitlist: { promotedInLastRun: 2 },
     payments: {

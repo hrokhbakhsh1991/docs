@@ -1,0 +1,3 @@
+{"level":"warn","status":401,"error_code":"AUTH_UNAUTHENTICATED","message":"Authentication required","request_id":"fd1a6f73-68a2-4fd8-8dd4-e5199929ff04"}
+{"level":"warn","status":401,"error_code":"AUTH_OTP_INVALID","message":"Invalid OTP code","request_id":"5f6db69d-5af2-44f1-b904-a13b19d4bdb5"}
+{"level":"info","status":200,"message":"http_request_completed"}

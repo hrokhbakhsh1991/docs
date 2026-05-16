@@ -20,6 +20,11 @@ const passthroughTenantDbContext = {
     fn({} as EntityManager)
 };
 
+const noopPaymentFinanceReconciliation = {
+  getSnapshot: () => ({ lastRunAt: null, lastCriticalFindings: 0 }),
+  runPaymentFinanceReconciliationCycle: async () => undefined
+};
+
 type ReconcilePriv = (
   manager: EntityManager,
   tour: TourEntity
@@ -84,7 +89,8 @@ test("reconciliation raises acceptedCount when stored counter is below real Acce
     {} as Repository<IdentityTenantEntity>,
     noopTenantRateLimit,
     noopTenantUsage as never,
-    passthroughTenantDbContext as never
+    passthroughTenantDbContext as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   const result = await asReconcile(svc)(manager, tour);
@@ -147,7 +153,8 @@ test("reconciliation lowers acceptedCount when stored counter is above real Acce
     {} as Repository<IdentityTenantEntity>,
     noopTenantRateLimit,
     noopTenantUsage as never,
-    passthroughTenantDbContext as never
+    passthroughTenantDbContext as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   await asReconcile(svc)(manager, tour);
@@ -210,7 +217,8 @@ test("reconciliation triggers canonical promotion while capacity and Waiting ite
     {} as Repository<IdentityTenantEntity>,
     noopTenantRateLimit,
     noopTenantUsage as never,
-    passthroughTenantDbContext as never
+    passthroughTenantDbContext as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   const { drift, promotions } = await asReconcile(svc)(manager, locked);
@@ -261,7 +269,8 @@ test("reconciliation stops promotion loop when promote fails", async () => {
     {} as Repository<IdentityTenantEntity>,
     noopTenantRateLimit,
     noopTenantUsage as never,
-    passthroughTenantDbContext as never
+    passthroughTenantDbContext as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   const { promotions } = await asReconcile(svc)(manager, locked);
@@ -344,7 +353,8 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
         _tenantId: string,
         fn: (m: EntityManager) => Promise<T>
       ) => fn(unifiedMgr as EntityManager)
-    } as never
+    } as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   await svc.runReconciliationCycle();
@@ -435,7 +445,8 @@ test("runReconciliationCycle sets tenant GUC with LOCAL scope (no session bleed)
         await manager.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
         return fn(manager as EntityManager);
       }
-    } as never
+    } as never,
+    noopPaymentFinanceReconciliation as never
   );
 
   await svc.runReconciliationCycle();

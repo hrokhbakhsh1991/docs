@@ -68,6 +68,7 @@ export class StripePaymentGateway implements IPaymentGateway {
             metadata,
             automatic_payment_methods: { enabled: true }
           },
+          // PSP-native idempotency (Stripe); Postgres/Redis store above dedupes before this network call.
           { idempotencyKey: input.idempotencyKey.slice(0, 255) }
         );
         return {

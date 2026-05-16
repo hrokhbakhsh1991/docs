@@ -12,7 +12,7 @@ import { createE2EApp } from "./bootstrap";
 import { E2E_JWT_PRIVATE_KEY_PKCS8, E2E_JWT_PUBLIC_KEY_SPKI } from "./jwt-test-keys";
 import { resetTestDatabaseWithMigrations } from "./reset-test-database";
 import { webSessionOtpToken } from "./web-session-otp.helper";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserRoleAuditEntity } from "../../src/modules/identity/entities/user-role-audit.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -119,14 +119,14 @@ async function seed(ds: DataSource): Promise<void> {
   );
 
   await membershipRepo.save([
-    membershipRepo.create({ tenantId: TENANT_ID, userId: owner.id, role: Role.OWNER }),
-    membershipRepo.create({ tenantId: TENANT_ID, userId: admin.id, role: Role.ADMIN }),
-    membershipRepo.create({ tenantId: TENANT_ID, userId: member.id, role: Role.MEMBER })
+    membershipRepo.create({ tenantId: TENANT_ID, userId: owner.id, role: UserRole.Owner }),
+    membershipRepo.create({ tenantId: TENANT_ID, userId: admin.id, role: UserRole.Admin }),
+    membershipRepo.create({ tenantId: TENANT_ID, userId: member.id, role: UserRole.Member })
   ]);
 
   const seedUsers: UserEntity[] = [];
   for (let i = 0; i < 18; i += 1) {
-    const role = i % 3 === 0 ? Role.ADMIN : i % 3 === 1 ? Role.MEMBER : "viewer";
+    const role = i % 3 === 0 ? UserRole.Admin : i % 3 === 1 ? UserRole.Member : UserRole.Viewer;
     const seeded = await userRepo.save(
       userRepo.create({
         email: `cursor-user-${i}@test.local`,
@@ -161,8 +161,8 @@ async function seed(ds: DataSource): Promise<void> {
   );
 
   await membershipRepo.save([
-    membershipRepo.create({ tenantId: OTHER_TENANT_ID, userId: owner.id, role: Role.OWNER }),
-    membershipRepo.create({ tenantId: OTHER_TENANT_ID, userId: otherTenantUser.id, role: Role.MEMBER })
+    membershipRepo.create({ tenantId: OTHER_TENANT_ID, userId: owner.id, role: UserRole.Owner }),
+    membershipRepo.create({ tenantId: OTHER_TENANT_ID, userId: otherTenantUser.id, role: UserRole.Member })
   ]);
 }
 

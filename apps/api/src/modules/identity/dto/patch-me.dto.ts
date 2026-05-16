@@ -94,7 +94,7 @@ export class PatchMeDto {
 
   @ApiPropertyOptional({
     description:
-      "Optimistic concurrency token (same value as `profile_row_version` / weak `ETag` on `GET /me`). Omit `If-Match` or keep both equal when both are sent."
+      "Optimistic concurrency token (same value as `profile_row_version` / weak `ETag` on `GET /me`). **Required** (or send matching `If-Match`) when changing any profile field in this request."
   })
   @IsOptional()
   @IsInt()

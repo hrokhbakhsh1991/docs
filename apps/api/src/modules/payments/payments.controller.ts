@@ -3,7 +3,9 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
+  Inject,
   Param,
   ParseUUIDPipe,
   Post,
@@ -22,10 +24,15 @@ import {
   ApiTags
 } from "@nestjs/swagger";
 import { SkipThrottle, Throttle, ThrottlerGuard } from "@nestjs/throttler";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
+import { RequireCapability } from "../../common/casl/require-capability.decorator";
 import { PaymentWebhookSignatureGuard } from "./payments-webhook-signature.guard";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
@@ -41,14 +48,15 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 @Controller("api/v2")
 export class PaymentsController {
   constructor(
-    private readonly paymentsService: PaymentsService,
-    private readonly requestContextService: RequestContextService
+    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
   ) {}
 
   @Post("payments/intent")
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
   /** Members (participants) create intents for registrations in their tenant; leaders/admins retain access. */
-  @Roles(Role.OWNER, Role.ADMIN, Role.MEMBER)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "Payment"))
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",
@@ -72,8 +80,10 @@ export class PaymentsController {
   }
 
   @Get("admin/payments")
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Admin)
+  @RequireCapability("module.finance")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Payment"))
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin list of recent payments" })
   @ApiOkResponse({ type: PaymentResponseDto, isArray: true })
@@ -83,8 +93,9 @@ export class PaymentsController {
   }
 
   @Get("admin/payments/:id")
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Payment"))
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin get payment by id" })
   @ApiOkResponse({ type: PaymentResponseDto })
@@ -95,8 +106,9 @@ export class PaymentsController {
   }
 
   @Post("admin/payments/:id/refund")
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Payment"))
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",
@@ -114,9 +126,10 @@ export class PaymentsController {
   })
   async refundPayment(
     @Param("id", new ParseUUIDPipe()) id: string,
-    @Body() body: RefundPaymentDto
+    @Body() body: RefundPaymentDto,
+    @Headers("idempotency-key") idempotencyKey: string
   ): Promise<PaymentResponseDto> {
-    return this.paymentsService.refundPayment(id, body.reason);
+    return this.paymentsService.refundPayment(id, body.reason, idempotencyKey);
   }
 }
 
@@ -127,9 +140,9 @@ export class PaymentsController {
 @UseGuards(ThrottlerGuard, PaymentWebhookSignatureGuard)
 export class PaymentsWebhookController {
   constructor(
-    private readonly paymentsService: PaymentsService,
-    private readonly loggerService: LoggerService,
-    private readonly requestContextService: RequestContextService
+    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(LoggerService) private readonly loggerService: LoggerService,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
   ) {}
 
   @Post("webhook")

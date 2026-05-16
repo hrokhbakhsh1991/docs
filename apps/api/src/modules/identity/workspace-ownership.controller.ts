@@ -11,8 +11,12 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import {
   TransferWorkspaceOwnershipDto,
   TransferWorkspaceOwnershipResponseDto
@@ -21,13 +25,14 @@ import { UsersWriteService } from "./users-write.service";
 
 @ApiTags("Identity")
 @Controller("api/v2/workspaces")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 export class WorkspaceOwnershipController {
   constructor(private readonly usersWriteService: UsersWriteService) {}
 
   @Post(":tenantId/ownership-transfer")
-  @Roles(Role.OWNER)
+  @Roles(UserRole.Owner)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "WorkspaceOwnership"))
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Transfer workspace ownership to another active member."

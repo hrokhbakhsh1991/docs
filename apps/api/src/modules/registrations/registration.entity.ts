@@ -1,7 +1,9 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, VersionColumn } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
+import type { PricingLineItem } from "../pricing/pricing.types";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
+import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
 
 export enum RegistrationStatus {
   PENDING = "Pending",
@@ -95,6 +97,16 @@ export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "varchar", length: 3, name: "quoted_currency_code", nullable: true })
   quotedCurrencyCode?: string | null;
 
+  /** Authoritative payable total in minor units at booking time (see `PricingEngineService`). */
+  @Column({ type: "bigint", name: "quoted_total_minor", nullable: true })
+  quotedTotalMinor?: string | null;
+
+  @Column({ type: "varchar", length: 96, name: "quoted_pricing_version", nullable: true })
+  quotedPricingVersion?: string | null;
+
+  @Column({ type: "jsonb", name: "quoted_line_items_json", nullable: true })
+  quotedLineItemsJson?: PricingLineItem[] | null;
+
   @ManyToOne(() => TourEntity, { nullable: false })
   @JoinColumn({ name: "tour_id", referencedColumnName: "id" })
   tour!: TourEntity;
@@ -102,4 +114,17 @@ export class RegistrationEntity extends BaseTenantEntity {
   @ManyToOne(() => TourDepartureEntity, { nullable: false })
   @JoinColumn({ name: "tour_departure_id", referencedColumnName: "id" })
   tourDeparture!: TourDepartureEntity;
+
+  /**
+   * FK to the **canonical** booking price snapshot created during the checkout flow.
+   * Nullable for backward-compatibility with registrations created before this column was introduced.
+   * All new registrations created through the checkout/acceptance path MUST have this populated.
+   * @see RegistrationsService — enforced via `assertPricingSnapshotRequiredForCheckout`.
+   */
+  @Column({ type: "uuid", name: "snapshot_id", nullable: true })
+  snapshotId?: string | null;
+
+  @ManyToOne(() => BookingPriceSnapshotEntity, { nullable: true, eager: false })
+  @JoinColumn({ name: "snapshot_id", referencedColumnName: "snapshotId" })
+  priceSnapshot?: BookingPriceSnapshotEntity | null;
 }

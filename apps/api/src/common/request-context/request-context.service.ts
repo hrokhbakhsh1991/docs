@@ -4,6 +4,11 @@ import type { RequestActorRole } from "../auth/user-role.enum";
 import { TenantContextMissingError } from "../errors/tenant-context-missing.error";
 import { assertTenantContext } from "./assert-tenant-context";
 import {
+  attachCorrelationMetadata as mergeCorrelationMetadata,
+  getCorrelationId as requireCorrelationId,
+  tryGetCorrelationId as tryReadCorrelationId
+} from "../observability/request-tracing";
+import {
   type RequestContext,
   TenantBindingMode,
   requestContextStorage
@@ -57,10 +62,9 @@ export class RequestContextService {
   }
 
   /**
-   * Safe for logging outside HTTP requests (returns null when ALS has no store).
-   * Uses snake_case keys (`tenant_id`, `request_id`, `route`, …) for log processors / OTLP.
+   * Safe tenant UUID from JWT (`tenantId`) when ALS exists and value set.
+   * Structured log keys use snake_case (`tenant_id`, `user_id`, `correlation_id`, `request_id`, …) for log processors / OTLP.
    */
-  /** Safe tenant UUID from JWT (`tenantId`) when ALS exists and value set. */
   tryGetTenantId(): string | undefined {
     const store = requestContextStorage.getStore();
     const v = store?.tenantId?.trim();
@@ -92,6 +96,22 @@ export class RequestContextService {
     return v && v !== "" ? v : undefined;
   }
 
+  tryGetCorrelationId(): string | undefined {
+    return tryReadCorrelationId();
+  }
+
+  getCorrelationId(): string {
+    return requireCorrelationId();
+  }
+
+  /**
+   * Merges sanitized string metadata into the active ALS context for downstream structured logs.
+   * Reserved keys (tenant_id, tokens, trace ids, …) are dropped — see `request-tracing.ts`.
+   */
+  attachCorrelationMetadata(meta: Record<string, string>): void {
+    mergeCorrelationMetadata(meta);
+  }
+
   tryGetClientIp(): string | undefined {
     const store = requestContextStorage.getStore();
     const v = store?.clientIp?.trim();
@@ -103,12 +123,25 @@ export class RequestContextService {
     if (!store) {
       return null;
     }
-    const fields: StructuredLogContext = { request_id: store.requestId };
+    const correlationId = (store.correlationId?.trim() || store.requestId).trim();
+    const fields: StructuredLogContext = {
+      request_id: store.requestId,
+      correlation_id: correlationId
+    };
     if (store.path !== undefined && store.path !== "") {
       fields.route = store.path;
     }
     if (store.method !== undefined && store.method !== "") {
       fields.method = store.method;
+    }
+    if (store.traceparent !== undefined && store.traceparent !== "") {
+      fields.traceparent = store.traceparent;
+    }
+    if (store.dbDurationMs !== undefined && store.dbDurationMs > 0) {
+      fields.db_duration_ms = String(Math.round(store.dbDurationMs));
+    }
+    if (store.dbSpanCount !== undefined && store.dbSpanCount > 0) {
+      fields.db_span_count = String(store.dbSpanCount);
     }
     const tenantForLog = store.tenantId ?? store.hostTenantId;
     if (tenantForLog !== undefined && tenantForLog !== "") {
@@ -123,6 +156,14 @@ export class RequestContextService {
     const ip = store.clientIp?.trim();
     if (ip !== undefined && ip !== "") {
       fields.client_ip = ip;
+    }
+    const attached = store.attachedLogFields;
+    if (attached) {
+      for (const [k, v] of Object.entries(attached)) {
+        if (v !== undefined && v !== "" && fields[k] === undefined) {
+          fields[k] = v;
+        }
+      }
     }
     return fields;
   }
@@ -176,10 +217,19 @@ export class RequestContextService {
   }
 
   /** Called after JWT membership verification so CASL can mirror DB lifecycle. */
-  setWorkspaceAbilityContext(status: string, labels?: readonly string[]): void {
+  setWorkspaceAbilityContext(
+    status: string,
+    labels?: readonly string[],
+    capabilities?: readonly string[],
+    membershipMetadata?: Record<string, unknown>,
+    tenantEnabledModules?: readonly string[],
+  ): void {
     const context = this.getContext();
     context.workspaceMembershipStatus = status;
     context.abilityLabels = labels;
+    context.workspaceCapabilities = capabilities;
+    context.membershipMetadata = membershipMetadata;
+    context.tenantEnabledModules = tenantEnabledModules;
   }
 
   tryGetWorkspaceMembershipStatus(): string | undefined {
@@ -192,6 +242,36 @@ export class RequestContextService {
     const store = requestContextStorage.getStore();
     const labels = store?.abilityLabels;
     return labels && labels.length > 0 ? labels : undefined;
+  }
+
+  tryGetWorkspaceCapabilities(): readonly string[] | undefined {
+    const store = requestContextStorage.getStore();
+    const caps = store?.workspaceCapabilities;
+    return caps && caps.length > 0 ? caps : undefined;
+  }
+
+  tryGetMembershipMetadata(): Record<string, unknown> | undefined {
+    const store = requestContextStorage.getStore();
+    const meta = store?.membershipMetadata;
+    return meta && Object.keys(meta).length > 0 ? meta : undefined;
+  }
+
+  tryGetTenantEnabledModules(): readonly string[] | undefined {
+    const store = requestContextStorage.getStore();
+    const modules = store?.tenantEnabledModules;
+    return modules && modules.length > 0 ? modules : undefined;
+  }
+
+  setJwtCapabilitySnapshot(capabilities: readonly string[] | undefined): void {
+    const context = this.getContext();
+    context.jwtCapabilitySnapshot =
+      capabilities && capabilities.length > 0 ? [...capabilities] : undefined;
+  }
+
+  tryGetJwtCapabilitySnapshot(): readonly string[] | undefined {
+    const store = requestContextStorage.getStore();
+    const caps = store?.jwtCapabilitySnapshot;
+    return caps && caps.length > 0 ? caps : undefined;
   }
 
   /**

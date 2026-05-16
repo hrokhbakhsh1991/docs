@@ -1,4 +1,6 @@
+import { ConflictException } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
+import { RegistrationEntity } from "../registrations/registration.entity";
 import { BookingPriceSnapshotEntity } from "./entities/booking-price-snapshot.entity";
 
 export type CreatePricingSnapshotInput = {
@@ -21,9 +23,25 @@ export async function createPricingSnapshot(
   manager: EntityManager,
   input: CreatePricingSnapshotInput
 ): Promise<BookingPriceSnapshotEntity> {
+  const tenantId = input.tenantId.trim();
+  const bookingId = input.bookingId.trim();
+  const booking = await manager.findOne(RegistrationEntity, {
+    where: { id: bookingId, tenantId },
+    select: { id: true, tenantId: true }
+  });
+  if (!booking) {
+    throw new ConflictException({
+      error: {
+        code: "BOOKING_PRICE_SNAPSHOT_TENANT_MISMATCH",
+        message:
+          "Cannot persist a booking price snapshot unless the booking exists under the same tenant_id (append-only row rejected)."
+      }
+    });
+  }
+
   const row = manager.create(BookingPriceSnapshotEntity, {
-    tenantId: input.tenantId.trim(),
-    bookingId: input.bookingId.trim(),
+    tenantId,
+    bookingId,
     listPriceMinor: input.listPriceMinor,
     currency: input.currency.trim().toUpperCase(),
     pricingRuleVersion: input.pricingRuleVersion,

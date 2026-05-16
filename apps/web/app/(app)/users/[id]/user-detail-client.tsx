@@ -25,6 +25,7 @@ import { getUserById, usersUseLiveApi } from "@/lib/services/users.service";
 
 import styles from "./user-detail.module.css";
 import { UserAdminActionsCard } from "./user-admin-actions-card";
+import { UserCapabilitiesCard } from "./user-capabilities-card";
 import { UserRoleHistoryCard } from "./user-role-history-card";
 import { USERS_ROUTE_COPY } from "../users-copy";
 
@@ -321,6 +322,12 @@ export function UserDetailClient({ userId }: UserDetailClientProps) {
           currentRole={user.role}
           currentStatus={user.status}
           sessionUserId={sessionUser?.userId}
+          onChanged={() => void refetch()}
+        />
+        <UserCapabilitiesCard
+          tenantId={tenantScope}
+          userId={userId}
+          user={user}
           onChanged={() => void refetch()}
         />
         <UserRoleHistoryCard userId={userId} tenantScope={tenantScope} enabled={queryEnabled} />

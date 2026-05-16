@@ -1,4 +1,4 @@
-import { tryParseWorkspaceRole, WorkspaceRole } from "@repo/shared-rbac";
+import { tryParseWorkspaceRole, WorkspaceRole } from "@repo/shared";
 
 /**
  * # Edit-side field RBAC framework

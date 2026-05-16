@@ -5,10 +5,12 @@ import { useCallback, useMemo, useState } from "react";
 import { Button, FormField, Input, Modal, Select } from "@tour/ui";
 
 import { ApiError } from "@/lib/api-client";
+import { UserRole } from "@/lib/auth/user-role";
 import { inviteUser } from "@/lib/services/users.service";
 import { useAppToast } from "@/lib/use-app-toast";
 
-type InviteRole = "admin" | "member" | "viewer";
+const INVITE_ROLES = [UserRole.Admin, UserRole.Member, UserRole.Viewer] as const;
+type InviteRole = (typeof INVITE_ROLES)[number];
 
 export type InviteUserModalProps = {
   open: boolean;
@@ -17,7 +19,7 @@ export type InviteUserModalProps = {
   onInvited?: () => void | Promise<void>;
 };
 
-const DEFAULT_ROLE: InviteRole = "member";
+const DEFAULT_ROLE: InviteRole = UserRole.Member;
 
 export function InviteUserModal({ open, onClose, onInvited }: InviteUserModalProps): JSX.Element {
   const toast = useAppToast();
@@ -100,9 +102,9 @@ export function InviteUserModal({ open, onClose, onInvited }: InviteUserModalPro
             onChange={(e) => setRole(e.target.value as InviteRole)}
             disabled={isSubmitting}
           >
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
+            <option value={UserRole.Admin}>Admin</option>
+            <option value={UserRole.Member}>Member</option>
+            <option value={UserRole.Viewer}>Viewer</option>
           </Select>
         </FormField>
         {errorMessage ? <small role="alert">{errorMessage}</small> : null}
@@ -110,4 +112,3 @@ export function InviteUserModal({ open, onClose, onInvited }: InviteUserModalPro
     </Modal>
   );
 }
-

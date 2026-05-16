@@ -6,6 +6,7 @@ import {
   ManyToOne,
   Unique
 } from "typeorm";
+import { UserRole } from "../../../common/auth/user-role.enum";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
 import { MembershipStatus } from "../membership-status.enum";
 import { TenantEntity } from "./tenant.entity";
@@ -17,7 +18,7 @@ import { UserEntity } from "./user.entity";
 @Index("idx_user_tenants_user_id", ["userId"])
 @Index("uq_user_tenants_active_owner_per_workspace", ["tenantId"], {
   unique: true,
-  where: `deleted_at IS NULL AND lower(role) = 'owner'`
+  where: `deleted_at IS NULL AND lower(role) = '${UserRole.Owner}'`
 })
 export class UserTenantEntity extends BaseTenantEntity {
   @Column({ type: "uuid", name: "user_id" })
@@ -57,6 +58,12 @@ export class UserTenantEntity extends BaseTenantEntity {
    */
   @Column({ type: "jsonb", name: "labels", default: () => "'[]'::jsonb" })
   labels!: string[];
+
+  /**
+   * Regional scope + explicit capability grants (`allowedRegionIds`, `capabilities`).
+   */
+  @Column({ type: "jsonb", name: "membership_metadata", default: () => "'{}'::jsonb" })
+  membershipMetadata!: Record<string, unknown>;
 
   @ManyToOne(() => UserEntity, (user) => user.memberships, { nullable: false })
   @JoinColumn({ name: "user_id", referencedColumnName: "id" })

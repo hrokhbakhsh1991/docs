@@ -12,10 +12,7 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import { runWithIdempotentEntityManager } from "./idempotent-transaction.context";
 import { IdempotencyService } from "./idempotency.service";
 import { IDEMPOTENCY_POLICY_KEY, type IdempotencyPolicy } from "./idempotent.decorator";
-
-/** Keys are stored in Postgres as `varchar`; reject oversized or binary-looking payloads early. */
-const IDEMPOTENCY_KEY_MAX_LENGTH = 256;
-const IDEMPOTENCY_KEY_PATTERN = /^[\w.~\-]{1,256}$/u;
+import { assertHttpIdempotencyKeyFormat } from "./http-idempotency-key";
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -46,17 +43,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
       ? idempotencyKeyRaw[0]
       : idempotencyKeyRaw;
 
-    if (
-      idempotencyKey &&
-      (idempotencyKey.length > IDEMPOTENCY_KEY_MAX_LENGTH || !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey))
-    ) {
-      throw new BadRequestException({
-        error: {
-          code: "VALIDATION_FIELD_FORMAT_INVALID",
-          message:
-            "Idempotency-Key must be 1–256 characters and contain only letters, digits, underscore, hyphen, or period."
-        }
-      });
+    if (idempotencyKey) {
+      assertHttpIdempotencyKeyFormat(idempotencyKey);
     }
 
     if (!idempotencyKey) {

@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { inflightBffGet } from "./inflight-bff-get";
 import { decodeJwtPayload } from "./decode-jwt-payload";
+import { fetchMembershipAbilityContext } from "./membership-ability-context";
 import { clearSessionToken, persistSessionToken } from "./session";
 import type { WebSessionResponseBody } from "./types";
 
@@ -25,6 +27,12 @@ export type AuthUser = {
   membershipStatus?: string;
   /** Optional marketing / CRM labels for CASL (future: hydrate from API). */
   abilityLabels?: readonly string[] | null;
+  /** Optional explicit capability grants (membership row / session). */
+  capabilities?: readonly string[] | null;
+  /** Regional scope when actor has `tour.regional.manage`. */
+  allowedRegionIds?: readonly string[] | null;
+  /** Tenant product modules from API hydration. */
+  tenantModules?: readonly string[] | null;
 };
 
 /** Canonical copy when the UI exposes leader-only tooling (owner / admin; participants excluded). */
@@ -55,12 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tid = window.setTimeout(() => ac.abort(), timeoutMs);
     void (async () => {
       try {
-        const response = await fetch("/api/auth/session", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-          signal: ac.signal,
-        });
+        const response = await inflightBffGet("/api/auth/session", () =>
+          fetch("/api/auth/session", {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+            signal: ac.signal,
+          }),
+        );
         const payload = (await response.json().catch(() => ({}))) as {
           authenticated?: boolean;
           user?: AuthUser;
@@ -95,10 +105,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!userId || !tenantId) {
             setUser(null);
           } else {
-            setUser({
-              userId,
-              tenantId,
-              role
+            const baseUser = { userId, tenantId, role };
+            setUser(baseUser);
+            void fetchMembershipAbilityContext(ac.signal).then((ctx) => {
+              if (!active || !ctx) {
+                return;
+              }
+              setUser((prev) => {
+                if (!prev || prev.userId !== userId || prev.tenantId !== tenantId) {
+                  return prev;
+                }
+                return {
+                  ...prev,
+                  abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
+                  capabilities:
+                    ctx.capabilities.length > 0 ? ctx.capabilities : null,
+                  allowedRegionIds:
+                    (ctx.allowed_region_ids?.length ?? 0) > 0
+                      ? ctx.allowed_region_ids
+                      : null,
+                  tenantModules:
+                    (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
+                };
+              });
             });
           }
         }
@@ -124,11 +153,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persistSessionToken(session.session_token);
     const claims = decodeJwtPayload(session.session_token);
     const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
-    setUser({
+    const baseUser = {
       userId: session.user_id,
       tenantId: session.tenant_id,
-      role
-    });
+      role,
+    };
+    setUser(baseUser);
+    const ctx = await fetchMembershipAbilityContext();
+    if (ctx) {
+      setUser({
+        ...baseUser,
+        abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
+        capabilities: ctx.capabilities.length > 0 ? ctx.capabilities : null,
+        allowedRegionIds:
+          (ctx.allowed_region_ids?.length ?? 0) > 0 ? ctx.allowed_region_ids : null,
+        tenantModules: (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
+      });
+    }
   }, []);
 
   const clearSession = useCallback(async () => {

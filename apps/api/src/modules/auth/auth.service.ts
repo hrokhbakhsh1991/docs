@@ -15,6 +15,9 @@ import { loadPrivateKey, loadPublicKey } from "../../auth/jwt-key.util";
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { encodeMembershipJwtCapabilitySnapshot } from "../../common/auth/membership-capability-snapshot";
+import { UserRole } from "../../common/auth/user-role.enum";
+import { TenantEntity } from "../identity/entities/tenant.entity";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { ConfigService } from "../../config/config.service";
@@ -130,12 +133,39 @@ export class AuthService {
     }
   }
 
+  private async loadActiveMembershipHydrationRow(
+    userId: string,
+    tenantId: string,
+  ): Promise<{
+    role: string;
+    sessionVersion: number;
+    labels: unknown;
+    membership_metadata: unknown;
+    enabled_modules: unknown;
+  } | null> {
+    return this.userTenantRepository
+      .createQueryBuilder("ut")
+      .innerJoin(TenantEntity, "tenant", "tenant.id = ut.tenant_id")
+      .select("ut.role", "role")
+      .addSelect("ut.session_version", "session_version")
+      .addSelect("ut.labels", "labels")
+      .addSelect("ut.membership_metadata", "membership_metadata")
+      .addSelect("tenant.enabled_modules", "enabled_modules")
+      .where("ut.user_id = :userId", { userId })
+      .andWhere("ut.tenant_id = :tenantId", { tenantId })
+      .andWhere("ut.deleted_at IS NULL")
+      .andWhere("ut.membership_status = 'ACTIVE'")
+      .getRawOne()
+      .then((row) => row ?? null);
+  }
+
   private async signAccessToken(input: {
     userId: string;
     tenantId: string;
     role: string;
     email?: string | null;
     sessionVersion: number;
+    capabilitySnapshot?: string;
   }): Promise<string> {
     const privateKey = await loadPrivateKey(this.configService.getJwtPrivateKey());
 
@@ -147,6 +177,9 @@ export class AuthService {
     if (typeof input.email === "string" && input.email.trim() !== "") {
       payload.email = input.email;
     }
+    if (input.capabilitySnapshot && input.capabilitySnapshot.trim() !== "") {
+      payload.caps = input.capabilitySnapshot;
+    }
 
     return new SignJWT(payload)
       .setProtectedHeader({ alg: "RS256", typ: "JWT" })
@@ -156,6 +189,23 @@ export class AuthService {
       .setIssuedAt()
       .setExpirationTime("1h")
       .sign(privateKey);
+  }
+
+  private async signMembershipAccessToken(input: {
+    userId: string;
+    tenantId: string;
+    role: string;
+    email?: string | null;
+    sessionVersion: number;
+  }): Promise<string> {
+    const hydration = await this.loadActiveMembershipHydrationRow(
+      input.userId,
+      this.normalizeUuidString(input.tenantId),
+    );
+    const capabilitySnapshot = hydration
+      ? encodeMembershipJwtCapabilitySnapshot(input.role, hydration)
+      : undefined;
+    return this.signAccessToken({ ...input, capabilitySnapshot });
   }
 
   private isPhoneOtpCodeValid(otp: string): boolean {
@@ -194,12 +244,14 @@ export class AuthService {
     if (!trimmed) {
       return null;
     }
+    // tenant-isolation:qb-exempt — pre-auth phone lookup (no tenant context yet).
     const user = await this.userRepository
       .createQueryBuilder("u")
       .where("u.deleted_at IS NULL")
       .andWhere("phone_normalized(u.phone) = phone_normalized(:phone)", { phone: trimmed })
       .getOne();
     if (!user) {
+      // tenant-isolation:qb-exempt — diagnostic path for broken phone_normalized() data (same pre-auth scope).
       const userWithBrokenNormalizedPhone = await this.userRepository
         .createQueryBuilder("u")
         .select(["u.id", "u.phone"])
@@ -225,6 +277,7 @@ export class AuthService {
     const normalizedPhone = phone.trim();
     if (!normalizedPhone) return false;
     try {
+      // tenant-isolation:qb-exempt — pre-auth invite lookup by phone (workspace_invites.email holds phone).
       const query = this.workspaceInviteRepository
         .createQueryBuilder("wi")
         .select("wi.id", "id")
@@ -435,7 +488,7 @@ export class AuthService {
 
     let accessToken: string;
     try {
-      accessToken = await this.signAccessToken({
+      accessToken = await this.signMembershipAccessToken({
         userId: user.id,
         tenantId: resolvedTenantId,
         role: membership.role,
@@ -567,7 +620,7 @@ export class AuthService {
       });
     }
 
-    const accessToken = await this.signAccessToken({
+    const accessToken = await this.signMembershipAccessToken({
       userId: user.id,
       tenantId: this.normalizeUuidString(targetTenantId),
       role,
@@ -644,7 +697,7 @@ export class AuthService {
         this.userTenantRepository.create({
           userId: user.id,
           tenantId: onboarding.tenantId,
-          role: "member",
+          role: UserRole.Member,
           status: MembershipStatus.ACTIVE,
           invitedAt: null,
           joinedAt: new Date(),
@@ -658,7 +711,7 @@ export class AuthService {
       membership = await this.userTenantRepository.save(membership);
     }
 
-    const accessToken = await this.signAccessToken({
+    const accessToken = await this.signMembershipAccessToken({
       userId: user.id,
       tenantId: onboarding.tenantId,
       role: membership.role,
@@ -748,7 +801,7 @@ export class AuthService {
       });
     }
 
-    const accessToken = await this.signAccessToken({
+    const accessToken = await this.signMembershipAccessToken({
       userId: user.id,
       tenantId: resolvedTenantId,
       role: membership.role,

@@ -1,0 +1,5 @@
+{"level":"info","status":200,"message":"http_request_completed","request_id":"a1"}
+{"level":"error","status":401,"error_code":"AUTH_UNAUTHENTICATED","message":"http_request_failed","request_id":"b2"}
+{"level":"error","status":403,"error":{"code":"AUTH_FORBIDDEN_ABILITY"},"message":"http_request_failed","request_id":"c3"}
+{"level":"error","status":429,"error_code":"RATE_LIMITED","message":"tenant_rate_limited","request_id":"d4"}
+{"level":"error","status":500,"error_code":"INTERNAL_ERROR","message":"http_request_failed","request_id":"e5"}

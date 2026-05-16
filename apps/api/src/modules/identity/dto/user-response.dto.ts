@@ -67,6 +67,24 @@ export class UserResponseDto {
   labels?: string[];
 
   @ApiPropertyOptional({
+    type: [String],
+    description: "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
+  })
+  assignedCapabilities?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: "Regional scope ids when `tour.regional.manage` is assigned.",
+  })
+  allowedRegionIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: "Resolved effective capabilities (role ∪ metadata ∪ labels ∪ tenant modules).",
+  })
+  effectiveCapabilities?: string[];
+
+  @ApiPropertyOptional({
     example: false,
     description: "True when the user account has a linked Telegram id (for in-app indicators)."
   })

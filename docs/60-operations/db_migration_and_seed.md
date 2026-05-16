@@ -16,6 +16,15 @@ Runner: `node --env-file=.env --import tsx`.
 ```bash
 pnpm --filter @apps/api seed
 pnpm --filter @apps/api seed:bulk-test-users
+pnpm --filter @apps/api seed:rbac-rollout
+```
+
+RBAC rollout (reset + seed + verify) — see repo root `prompt.md`:
+
+```bash
+pnpm --filter @apps/api rbac-rollout:reset-db
+pnpm --filter @apps/api seed:rbac-rollout
+pnpm --filter @apps/api rbac-rollout:verify
 ```
 
 Seed runner: `node --env-file=.env --import tsx`.

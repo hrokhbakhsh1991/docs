@@ -3,6 +3,16 @@ import type { RequestActorRole } from "../auth/user-role.enum";
 
 export interface RequestContext {
   requestId: string;
+  /**
+   * Cross-boundary correlation id (`x-correlation-id` when trusted clients send it; otherwise same as {@link requestId}).
+   * Always set with HTTP via {@link RequestContextMiddleware} and for explicit worker ALS contexts.
+   */
+  correlationId?: string;
+  /**
+   * Optional low-cardinality fields merged into structured logs (see `attachCorrelationMetadata` in observability/request-tracing).
+   * Do not store secrets, tokens, or medical payloads — opaque ids only.
+   */
+  attachedLogFields?: Record<string, string>;
   path?: string;
   /** HTTP method for path-scoped checks (e.g. tenant session binding). */
   method?: string;
@@ -33,6 +43,20 @@ export interface RequestContext {
   workspaceMembershipStatus?: string;
   /** Optional marketing / CRM labels for ability rules (future: load from DB). */
   abilityLabels?: readonly string[];
+  /** Optional explicit capability grants from membership row (Phase 5 hydration). */
+  workspaceCapabilities?: readonly string[];
+  /** Parsed `user_tenants.membership_metadata`. */
+  membershipMetadata?: Record<string, unknown>;
+  /** Parsed `tenants.enabled_modules` for the active tenant. */
+  tenantEnabledModules?: readonly string[];
+  /** Optional JWT `caps` claim decoded at auth (informational; ALS/DB hydration is authoritative). */
+  jwtCapabilitySnapshot?: readonly string[];
+  /** W3C traceparent for distributed tracing. */
+  traceparent?: string;
+  /** Aggregated DB child span time (ms) from OTEL `pg` instrumentation within this request. */
+  dbDurationMs?: number;
+  /** Count of DB spans aggregated into {@link dbDurationMs}. */
+  dbSpanCount?: number;
 }
 
 export enum TenantBindingMode {

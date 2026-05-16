@@ -9,6 +9,21 @@ import {
   RegistrationTransportModeDto
 } from "./create-registration.dto";
 
+/** Immutable booking-time totals (aligned with `booking_price_snapshots` / registration quote columns). */
+export class LockedBookingPricingDto {
+  @ApiProperty({ description: "Payable total in minor units at booking time", example: "2500000" })
+  totalMinor!: string;
+
+  @ApiProperty({ example: "IRR" })
+  currency!: string;
+
+  @ApiProperty({ description: "Pricing engine / rule-set version frozen at booking time", example: "catalog:v3" })
+  pricingRuleVersion!: string;
+
+  @ApiPropertyOptional({ description: "Reference list price minor units when applicable", nullable: true })
+  listPriceMinor?: string | null;
+}
+
 export class RegistrationResponseDto {
   @ApiProperty({ example: "33333333-3333-4333-8333-333333333333" })
   id!: string;
@@ -47,6 +62,13 @@ export class RegistrationResponseDto {
   status!: RegistrationStatus;
 
   @ApiProperty({
+    description: "Optimistic concurrency token (`registrations.row_version`). Send as `expected_row_version` on PATCH status/payment.",
+    example: 1,
+    minimum: 1
+  })
+  rowVersion!: number;
+
+  @ApiProperty({
     enum: RegistrationPaymentStatus,
     example: RegistrationPaymentStatus.NOT_PAID,
     description:
@@ -75,6 +97,14 @@ export class RegistrationResponseDto {
     provider: string;
     providerPaymentId: string | null;
   };
+
+  @ApiPropertyOptional({
+    type: LockedBookingPricingDto,
+    nullable: true,
+    description:
+      "Authoritative payable price frozen at booking time. Clients must use this (not live tour pricing) for checkout amounts."
+  })
+  lockedPricing?: LockedBookingPricingDto | null;
 
   @ApiProperty({ example: "2026-04-29T10:00:00.000Z" })
   createdAt!: string;

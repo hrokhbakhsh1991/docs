@@ -18,6 +18,8 @@ export class TenantMiddleware implements NestMiddleware {
       (req.method === "POST" &&
         /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)) ||
       (req.method === "GET" &&
+        /^\/api\/v2\/tours\/[^/]+\/registration-idempotency-key$/.test(req.path)) ||
+      (req.method === "GET" &&
         /^\/api\/v2\/registrations\/[^/]+$/.test(req.path)) ||
       req.path.startsWith("/health") ||
       req.path.startsWith("/internal") ||

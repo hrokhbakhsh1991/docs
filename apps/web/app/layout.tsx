@@ -9,6 +9,13 @@ import "./globals.css";
 import { routing } from "@/i18n/routing";
 import { vazirmatn } from "@/fonts/vazirmatn";
 
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
+import { WORKSPACE_ASSERT_SKIP_HEADER } from "@/lib/tenant/workspace-assert-skip";
+import { assertWorkspaceRequest } from "@/lib/tenant/assert-workspace-request";
+import { ServerTenantProvider } from "@/lib/tenant/tenant-provider";
+
 import { AppChromeProviders } from "./providers";
 
 const DOCUMENT_LOCALE = routing.defaultLocale;
@@ -34,11 +41,26 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   setRequestLocale(DOCUMENT_LOCALE);
   const messages = await getMessages();
 
+  const headerBag = await headers();
+  const skipWorkspaceAssert = headerBag.get(WORKSPACE_ASSERT_SKIP_HEADER) === "1";
+
+  const tenantWrapped = skipWorkspaceAssert ? (
+    children
+  ) : (
+    await (async () => {
+      const workspace = await assertWorkspaceRequest(headerBag);
+      if (!workspace.ok) {
+        redirect("/workspace-not-found");
+      }
+      return <ServerTenantProvider tenant={workspace.tenant}>{children}</ServerTenantProvider>;
+    })()
+  );
+
   return (
     <html lang="fa" dir="rtl" className={`${vazirmatn.variable} theme-light`}>
       <body className="font-sans">
         <NextIntlClientProvider locale={DOCUMENT_LOCALE} messages={messages}>
-          <AppChromeProviders>{children}</AppChromeProviders>
+          <AppChromeProviders>{tenantWrapped}</AppChromeProviders>
         </NextIntlClientProvider>
       </body>
     </html>

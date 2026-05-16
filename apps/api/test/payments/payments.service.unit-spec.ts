@@ -14,6 +14,13 @@ import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/b
 import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
 import { noopPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+
+const noopRegistrationsForPaymentFlow = {
+  async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
+    return false;
+  }
+} as unknown as RegistrationsService;
 
 /**
  * Stubs `EntityManager.exists` for tests that exercise booking finalization / payment capture.
@@ -166,7 +173,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    noopPaymentGatewayFactoryForTests
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   await service.processWebhook({
@@ -300,7 +308,8 @@ test("timeout processor fails stale pending payments and updates metrics", async
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    noopPaymentGatewayFactoryForTests
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   const timedOut = await service.failTimedOutPendingPayments();
@@ -409,7 +418,8 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    noopPaymentGatewayFactoryForTests
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   const first = await service.processWebhook({
@@ -487,7 +497,8 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    noopPaymentGatewayFactoryForTests
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   const result = await service.listPayments("TENANT-A");
@@ -512,7 +523,8 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    noopPaymentGatewayFactoryForTests
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationsForPaymentFlow
   );
 
   await assert.rejects(

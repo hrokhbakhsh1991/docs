@@ -22,7 +22,7 @@ import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenan
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import { RegistrationEntity, RegistrationPaymentStatus, RegistrationStatus } from "../../src/modules/registrations/registration.entity";
 import { PaymentEntity, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 
 const TENANT_A = "c1c1c1c1-c1c1-41c1-81c1-c1c1c1c1c1c1";
 const TENANT_B = "d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2";
@@ -93,7 +93,7 @@ async function seedPaymentInTenantA(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_A,
       userId: user.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   );
 

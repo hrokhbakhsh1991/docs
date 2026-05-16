@@ -36,7 +36,7 @@ COPY packages/types ./packages/types
 COPY packages/shared ./packages/shared
 
 RUN pnpm --filter @repo/types run build \
-  && pnpm --filter @repo/shared-rbac run build \
+  && pnpm --filter @repo/shared run build \
   && pnpm --filter @apps/web run build
 
 # Runner layout matches Next standalone + https://nextjs.org/docs/app/api-reference/config/next-config-js/output

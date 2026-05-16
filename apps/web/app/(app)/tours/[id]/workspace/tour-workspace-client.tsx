@@ -205,7 +205,7 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
           <CardBody>
             <EmptyState
               title="Workspace API not configured"
-              description="Set NEXT_PUBLIC_API_URL and ensure registrations API is available to load this workspace."
+              description="Use your workspace host and ensure the API is running to load this workspace."
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
                   Back to dashboard

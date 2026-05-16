@@ -1,0 +1,18 @@
+# Local OTLP ingest + Jaeger UI (Infrastructure Closure Phase 3).
+#
+#   docker compose -f infra/docker-compose.observability.yml up -d
+#   # API .env:
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+#
+# UI: http://localhost:16686
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: tour-ops-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"

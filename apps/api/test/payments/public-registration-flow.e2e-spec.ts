@@ -31,7 +31,7 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
       }
     } as never,
     {
-      async createPaymentIntentForRegistration() {
+      async createPaymentIntent() {
         return { id: "pay-1", status: "Pending" };
       }
     } as never,

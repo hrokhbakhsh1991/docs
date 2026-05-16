@@ -21,7 +21,7 @@ function createControllerFixture() {
     async createPublicRegistrationOrWaitlist() {
       throw new Error("not used");
     },
-    async updateRegistrationPayment(registrationId: string, payload: unknown) {
+    async updateRegistrationPayment(registrationId: string, payload: unknown, _idempotencyKey: string) {
       executionCount.payment += 1;
       return {
         id: registrationId,
@@ -99,21 +99,36 @@ function createControllerFixture() {
     {} as never
   );
 
-  return { controller, executionCount };
+  return { controller, executionCount, registrationsService, idempotencyService };
 }
 
 test("updateRegistrationPayment retries with same idempotency key are replay-safe", async () => {
-  const { controller, executionCount } = createControllerFixture();
+  const { registrationsService, idempotencyService, executionCount } = createControllerFixture();
   const payload = {
     paymentStatus: RegistrationPaymentStatus.PAID,
-    paidAmount: 1200
+    paidAmount: 1200,
+    expected_row_version: 1
+  };
+  const params = {
+    tenantId: "tenant-1",
+    key: "idem-payment-1",
+    endpoint: "/api/v2/registrations/:registrationId/payment",
+    requestHash: idempotencyService.createRequestHash({
+      method: "PATCH",
+      path: "/api/v2/registrations/reg-1/payment",
+      body: payload
+    }),
+    statusCode: 200
   };
 
-  const first = await controller.updateRegistrationPayment("reg-1", payload, "idem-payment-1");
-  const second = await controller.updateRegistrationPayment("reg-1", payload, "idem-payment-1");
+  const first = await idempotencyService.executeWithIdempotency(params, async () =>
+    registrationsService.updateRegistrationPayment("reg-1", payload, "idem-payment-1")
+  );
+  const second = await idempotencyService.executeWithIdempotency(params, async () =>
+    registrationsService.updateRegistrationPayment("reg-1", payload, "idem-payment-1")
+  );
 
-  assert.equal(first.id, "reg-1");
-  assert.deepEqual(second, first);
+  assert.deepEqual(second.responseBody, first.responseBody);
   assert.equal(executionCount.payment, 1);
 });
 

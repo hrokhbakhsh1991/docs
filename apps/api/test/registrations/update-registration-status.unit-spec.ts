@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { UserRole } from "../../src/common/auth/user-role.enum";
+import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
+import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
+import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -71,6 +75,7 @@ function buildRegistration(
     entryMode: "web",
     status,
     paymentStatus: RegistrationPaymentStatus.NOT_PAID,
+    rowVersion: 1,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z")
   } as RegistrationEntity;
@@ -159,6 +164,13 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
       }
       return null;
     },
+    async exists(entity: unknown, options: { where: Record<string, unknown> }): Promise<boolean> {
+      const name = (entity as { name?: string }).name;
+      if (name === RegistrationEntity.name) {
+        return store.registrations.has((options.where as { id: string }).id);
+      }
+      return false;
+    },
     async update() {
       return { affected: 1, raw: [], generatedMaps: [] };
     },
@@ -193,8 +205,10 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
       if (!registration.id) {
         registration.id = `promoted-${store.registrations.size + 1}`;
       }
+      const prevVersion = registration.rowVersion ?? 1;
       const saved = {
         ...registration,
+        rowVersion: prevVersion + 1,
         updatedAt: new Date("2026-01-02T00:00:00.000Z")
       } as RegistrationEntity;
       store.registrations.set(saved.id, saved);
@@ -319,6 +333,9 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     /** Leader-facing registration updates (JWT workspace role `owner`). */
     getRole(): UserRole {
       return UserRole.Owner;
+    },
+    getRequestId(): string {
+      return "test-request-id";
     }
   };
 
@@ -337,7 +354,11 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     dataSource as never,
     {} as never,
     requestContextService as never,
-    outboxService as never
+    outboxService as never,
+    stubRegistrationQuoteApplication,
+    createNullStandaloneRegistrationsReadTestDouble(),
+    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
+    {} as never // PricingEngineService stub
   );
 
   return { service, outboxCalls, store };
@@ -393,7 +414,8 @@ test("A) status transition emits one audit event with mapped event name", async 
   for (const item of cases) {
     const { service, outboxCalls } = createServiceFixture({ initialStatus: item.from });
     await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-      targetStatus: item.to
+      targetStatus: item.to,
+      expected_row_version: 1
     });
 
     assert.equal(
@@ -411,7 +433,8 @@ test("B) no-op transition does not emit audit event", async () => {
   });
 
   await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-    targetStatus: RegistrationStatus.PENDING
+    targetStatus: RegistrationStatus.PENDING,
+    expected_row_version: 1
   });
 
   assert.equal(outboxCalls.length, 0);
@@ -423,7 +446,8 @@ test("C) audit payload contains required fields", async () => {
   });
 
   await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-    targetStatus: RegistrationStatus.REJECTED
+    targetStatus: RegistrationStatus.REJECTED,
+    expected_row_version: 1
   });
 
   assert.equal(outboxCalls.length, 1);
@@ -450,7 +474,8 @@ test("counter increments when entering Accepted", async () => {
   });
 
   await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-    targetStatus: RegistrationStatus.ACCEPTED
+    targetStatus: RegistrationStatus.ACCEPTED,
+    expected_row_version: 1
   });
 
   assert.equal(store.tour.acceptedCount, 1);
@@ -464,7 +489,8 @@ test("counter decrements when leaving Accepted", async () => {
   });
 
   await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-    targetStatus: RegistrationStatus.CANCELLED
+    targetStatus: RegistrationStatus.CANCELLED,
+    expected_row_version: 1
   });
 
   assert.equal(store.tour.acceptedCount, 0);
@@ -478,7 +504,8 @@ test("counter never becomes negative", async () => {
   });
 
   await service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
-    targetStatus: RegistrationStatus.REJECTED
+    targetStatus: RegistrationStatus.REJECTED,
+    expected_row_version: 1
   });
 
   assert.equal(store.tour.acceptedCount, 0);
@@ -500,10 +527,12 @@ test("concurrent accepts do not exceed totalCapacity", async () => {
   });
 
   const op1 = service.updateRegistrationStatus(registrationA.id, {
-    targetStatus: RegistrationStatus.ACCEPTED
+    targetStatus: RegistrationStatus.ACCEPTED,
+    expected_row_version: 1
   });
   const op2 = service.updateRegistrationStatus(registrationB.id, {
-    targetStatus: RegistrationStatus.ACCEPTED
+    targetStatus: RegistrationStatus.ACCEPTED,
+    expected_row_version: 1
   });
 
   const results = await Promise.allSettled([op1, op2]);
@@ -541,7 +570,8 @@ test("FIFO promotion promotes oldest waiting item first", async () => {
   });
 
   await service.updateRegistrationStatus(registration.id, {
-    targetStatus: RegistrationStatus.CANCELLED
+    targetStatus: RegistrationStatus.CANCELLED,
+    expected_row_version: 1
   });
 
   const promotedA = store.waitlist.find((item) => item.id === "wait-a");
@@ -565,7 +595,8 @@ test("promotion respects capacity and only one item is accepted", async () => {
   });
 
   await service.updateRegistrationStatus(registration.id, {
-    targetStatus: RegistrationStatus.REJECTED
+    targetStatus: RegistrationStatus.REJECTED,
+    expected_row_version: 1
   });
 
   const convertedCount = store.waitlist.filter(
@@ -594,10 +625,12 @@ test("concurrent promotion triggers do not double-promote same waitlist entry", 
 
   await Promise.all([
     service.updateRegistrationStatus(registrationA.id, {
-      targetStatus: RegistrationStatus.CANCELLED
+      targetStatus: RegistrationStatus.CANCELLED,
+      expected_row_version: 1
     }),
     service.updateRegistrationStatus(registrationB.id, {
-      targetStatus: RegistrationStatus.REJECTED
+      targetStatus: RegistrationStatus.REJECTED,
+      expected_row_version: 1
     })
   ]);
 
@@ -620,11 +653,30 @@ test("counter integrity after promotion equals accepted registrations count", as
   });
 
   await service.updateRegistrationStatus(registration.id, {
-    targetStatus: RegistrationStatus.NO_SHOW
+    targetStatus: RegistrationStatus.NO_SHOW,
+    expected_row_version: 1
   });
 
   const acceptedCountByStatus = Array.from(store.registrations.values()).filter(
     (item) => item.status === RegistrationStatus.ACCEPTED
   ).length;
   assert.equal(store.tour.acceptedCount, acceptedCountByStatus);
+});
+
+test("stale expected_row_version returns REGISTRATION_ROW_VERSION_CONFLICT", async () => {
+  const { service } = createServiceFixture({
+    initialStatus: RegistrationStatus.PENDING
+  });
+
+  await assert.rejects(
+    () =>
+      service.updateRegistrationStatus("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
+        targetStatus: RegistrationStatus.ACCEPTED,
+        expected_row_version: 99
+      }),
+    (err: unknown) =>
+      err instanceof ConflictException &&
+      (err.getResponse() as { error?: { code?: string } }).error?.code ===
+        "REGISTRATION_ROW_VERSION_CONFLICT"
+  );
 });

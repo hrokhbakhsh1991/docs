@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
-
-function resolveBackendUrl(): string {
-  return process.env.TOUR_OPS_API_URL?.trim() || "http://denali.localhost:3001";
-}
+import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
+import { bffFetchAuth, readSessionToken } from "@/lib/api/bff-proxy";
 
 type AcceptInviteBody = {
   invite_token?: unknown;
@@ -19,27 +15,26 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 400 }
     );
   }
-  const sessionToken = cookies().get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  if (!sessionToken) {
+  if (!readSessionToken()) {
     return NextResponse.json(
       { ok: false, error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" } },
       { status: 401 }
     );
   }
-  const backendRes = await fetch(`${resolveBackendUrl()}/api/v2/invites/accept`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      host: req.headers.get("host") ?? "",
-      Authorization: `Bearer ${sessionToken}`
-    },
-    body: JSON.stringify({ inviteToken }),
-    cache: "no-store"
-  }).catch(() => null);
-  if (!backendRes) {
+  let backendRes: Response;
+  try {
+    backendRes = await bffFetchAuth(req, "/api/v2/invites/accept", {
+      method: "POST",
+      body: JSON.stringify({ inviteToken }),
+    });
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e);
+    if (guard) {
+      return guard;
+    }
     return NextResponse.json(
       { ok: false, error: { code: "BACKEND_UNREACHABLE", message: "Backend unavailable" } },
-      { status: 502 }
+      { status: 502 },
     );
   }
   const payload = await backendRes.json().catch(() => ({}));

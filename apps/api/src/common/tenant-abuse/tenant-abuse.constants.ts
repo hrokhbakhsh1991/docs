@@ -7,4 +7,5 @@ export type TenantRateLimitScope =
   | "api_ip"
   | "login_tenant"
   | "login_ip"
+  | "host_probe_ip"
   | "job_tenant";

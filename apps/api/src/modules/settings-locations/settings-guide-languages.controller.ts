@@ -14,8 +14,12 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { CreateGuideLanguageDto } from "./dto/create-guide-language.dto";
 import { ReorderGuideLanguagesDto } from "./dto/reorder-guide-languages.dto";
 import { UpdateGuideLanguageDto } from "./dto/update-guide-language.dto";
@@ -24,13 +28,14 @@ import { GuideLanguagesSettingsService } from "./guide-languages-settings.servic
 
 @ApiTags("Settings — Guide languages")
 @Controller("api/v2/settings/guide-languages")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 export class SettingsGuideLanguagesController {
   constructor(private readonly guideLanguages: GuideLanguagesSettingsService) {}
 
   @Get()
-  @Roles(Role.OWNER, Role.ADMIN, Role.PARTICIPANT)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Settings"))
   @ApiOperation({
     summary: "List workspace guide languages",
     description: "Readable by all workspace members (for tour UI). Create/update/delete remain owner/admin only."
@@ -42,7 +47,8 @@ export class SettingsGuideLanguagesController {
 
   @Post()
   @HttpCode(201)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "Settings"))
   @ApiOperation({ summary: "Create workspace guide language" })
   @ApiCreatedResponse({ type: WorkspaceGuideLanguageResponseDto })
   async create(@Body() dto: CreateGuideLanguageDto): Promise<WorkspaceGuideLanguageResponseDto> {
@@ -50,7 +56,8 @@ export class SettingsGuideLanguagesController {
   }
 
   @Patch("reorder")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Reorder workspace guide languages (full id list)" })
   @ApiOkResponse({ type: WorkspaceGuideLanguageResponseDto, isArray: true })
   async reorder(@Body() dto: ReorderGuideLanguagesDto): Promise<WorkspaceGuideLanguageResponseDto[]> {
@@ -58,7 +65,8 @@ export class SettingsGuideLanguagesController {
   }
 
   @Patch(":id")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Update workspace guide language" })
   @ApiOkResponse({ type: WorkspaceGuideLanguageResponseDto })
   async update(
@@ -70,7 +78,8 @@ export class SettingsGuideLanguagesController {
 
   @Delete(":id")
   @HttpCode(204)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Delete, "Settings"))
   @ApiOperation({ summary: "Delete workspace guide language" })
   async remove(@Param("id", new ParseUUIDPipe()) id: string): Promise<void> {
     await this.guideLanguages.remove(id);

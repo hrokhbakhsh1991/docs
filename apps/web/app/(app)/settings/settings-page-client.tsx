@@ -1,7 +1,7 @@
 "use client";
 
 import { Can } from "@casl/react";
-import type { AppAbility } from "@repo/shared-rbac";
+import type { AppAbility } from "@repo/shared";
 import { Button, LoadingState } from "@tour/ui";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
@@ -77,6 +77,12 @@ function SettingsWorkspaceBody() {
             <Link href="/settings/audit-trail" className={styles.hubLink}>
               <p className={styles.hubLinkTitle}>{t("hubAuditTrailLink")}</p>
               <p className={styles.hubLinkBlurb}>{t("hubAuditTrailBlurb")}</p>
+            </Link>
+          </Can>
+          <Can<AppAbility> ability={ability} I={AbilityAction.Read} a="Reconciliation">
+            <Link href="/settings/reconciliation-triage" className={styles.hubLink}>
+              <p className={styles.hubLinkTitle}>{t("hubReconciliationTriageLink")}</p>
+              <p className={styles.hubLinkBlurb}>{t("hubReconciliationTriageBlurb")}</p>
             </Link>
           </Can>
         </div>

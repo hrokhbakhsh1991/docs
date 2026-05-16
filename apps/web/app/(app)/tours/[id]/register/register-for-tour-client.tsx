@@ -228,6 +228,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
           status: placement.booking.status,
           paymentStatus: placement.booking.paymentStatus,
           tour,
+          lockedPricing: placement.booking.lockedPricing,
         })
       : false;
 
@@ -288,7 +289,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       >
         <EmptyState
           title="Workspace API not configured"
-          description="Set NEXT_PUBLIC_API_URL and registration endpoints so tours and registrations use the live API."
+          description="Use your workspace host so tours and registrations reach the live API."
           action={
             <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
               Back to dashboard

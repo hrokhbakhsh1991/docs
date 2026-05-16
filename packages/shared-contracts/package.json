@@ -9,6 +9,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/shared": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

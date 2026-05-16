@@ -4,6 +4,17 @@ import { tryGetActiveTraceLogFields } from "../observability/active-trace-log-fi
 import { RequestContextService } from "../request-context/request-context.service";
 import { ConfigService } from "../../config/config.service";
 
+/**
+ * Nest-facing **Pino** logger: every line is merged with ALS context (`tenant_id`, `user_id`,
+ * `correlation_id`, `request_id`, …) and optional W3C `trace_id` / `span_id` when OTEL is active.
+ *
+ * **Redaction (call-site discipline — not automatic stripping yet):**
+ * - **Tokens:** never log `Authorization`, bearer strings, refresh/access tokens, session cookies, or webhook secrets.
+ * - **Medical / PHI:** never log free-text diagnoses, medications, or emergency-contact phone bodies — use opaque ids + severity enums only.
+ * - **Secrets:** never log API keys, DB URLs with passwords, private keys, or KMS plaintext.
+ *
+ * TODO: central `pino.redact` paths + serializers for `req`/`err` once log volume grows.
+ */
 type LogMeta = Record<string, unknown>;
 
 @Injectable()

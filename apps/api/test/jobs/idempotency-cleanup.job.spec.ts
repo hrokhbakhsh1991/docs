@@ -46,6 +46,7 @@ test("idempotency cleanup job deletes expired keys and logs deleted count", asyn
         shouldRunSchedulers: () => true,
         getSchedulerJitterMs: () => 0
       } as never,
+      { query: async () => [] } as never,
       {
         runWithGlobalLock: async (_lockName: string, onLocked: () => Promise<void>) => {
           await onLocked();

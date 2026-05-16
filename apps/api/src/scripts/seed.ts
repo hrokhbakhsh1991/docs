@@ -7,7 +7,7 @@ import { emitScriptDebug, emitScriptInfo } from "./script-log";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
-import { Role } from "../modules/auth/roles.enum";
+import { UserRole } from "../common/auth/user-role.enum";
 import { TourEntity, TourLifecycleStatus } from "../modules/tours/entities/tour.entity";
 
 type SeedOutput = {
@@ -106,7 +106,7 @@ async function run(): Promise<void> {
         membershipRepo.create({
           tenantId: localTenant.id,
           userId: localLeader.id,
-          role: Role.OWNER
+          role: UserRole.Owner
         })
       );
     }
@@ -141,7 +141,7 @@ async function run(): Promise<void> {
       membershipRepo.create({
         tenantId: seededTenant.id,
         userId: seededUser.id,
-        role: Role.OWNER
+        role: UserRole.Owner
       })
     );
 
@@ -183,7 +183,7 @@ async function run(): Promise<void> {
         email: userEmail,
         phone: userPhone,
         password: userPassword,
-        role: Role.OWNER
+        role: UserRole.Owner
       },
       tours: seededTours.map((tour) => ({
         id: tour.id,

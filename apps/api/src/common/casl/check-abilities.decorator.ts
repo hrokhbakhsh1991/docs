@@ -1,6 +1,6 @@
 import { SetMetadata } from "@nestjs/common";
 import { subject } from "@casl/ability";
-import type { AppAbility } from "@repo/shared-rbac";
+import type { AppAbility } from "@repo/shared";
 
 export const CHECK_ABILITIES_KEY = "casl:check_abilities_handlers";
 

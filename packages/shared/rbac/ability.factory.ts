@@ -1,15 +1,34 @@
-import { AbilityBuilder, createMongoAbility, type MongoAbility } from "@casl/ability";
+import {
+  AbilityBuilder,
+  createMongoAbility,
+  type ForcedSubject,
+  type MongoAbility
+} from "@casl/ability";
+import type { WorkspaceCapability } from "./capabilities";
+import { resolveEffectiveCapabilities } from "./capability-registry";
+import { tryParseWorkspaceRole, WorkspaceRole } from "./workspace-roles";
 
 /**
  * CASL actions used across Nest + Next. `manage` implies create, read, update, delete
- * on the subject (CASL built-in).
+ * on the subject (CASL built-in). `publish` is used for tour lifecycle OPEN transitions.
  */
-export type WorkspaceAbilityAction = "manage" | "create" | "read" | "update" | "delete";
+export type WorkspaceAbilityAction =
+  | "manage"
+  | "create"
+  | "read"
+  | "update"
+  | "delete"
+  | "publish";
 
 /**
  * Coarse subjects for workspace-scoped product areas. Instance-level rules (e.g. "own"
  * registration) can be layered later via subject objects.
  */
+/** Typed `subject("MedicalProfile", { ownerUserId })` for `ability.can` checks. */
+export type MedicalProfileSubjectRef = { ownerUserId: string } & ForcedSubject<"MedicalProfile">;
+/** Typed `subject("EmergencyContact", { ownerUserId })` for `ability.can` checks. */
+export type EmergencyContactSubjectRef = { ownerUserId: string } & ForcedSubject<"EmergencyContact">;
+
 export type WorkspaceAbilitySubject =
   | "all"
   | "Workspace"
@@ -19,9 +38,22 @@ export type WorkspaceAbilitySubject =
   | "UserDirectoryDocuments"
   /** Admin-only workspace notes about a member; owner & admin via `manage all`. */
   | "UserDirectoryInternalNotes"
+  /** ICE contacts for a workspace member; leader reads broadly; member limited to own rows via field rules. */
+  | "EmergencyContact"
+  /** Encrypted medical/sensitive payload; decrypt only in service — never log plaintext. */
+  | "MedicalProfile"
+  | MedicalProfileSubjectRef
+  | EmergencyContactSubjectRef
   | "Tour"
+  /** Core tour fields (capacity, lifecycle, cost_context) — maps to `tour.update.core`. */
+  | "TourCore"
+  /** `tripDetails` JSON patch surface — maps to `tour.update.tripDetails`. */
+  | "TourTripDetails"
+  /** Urban/cinema pricing & logistics caps inside tripDetails (Phase 8.1). */
+  | "TourTripDetailsSensitive"
   | "Registration"
   | "Payment"
+  | "Reconciliation"
   | "Settings"
   | "Audit"
   | "MarketingSegment";
@@ -37,11 +69,13 @@ export type UserAbilityContext = {
   status?: UserAbilityMembershipStatus | null;
   /** Optional marketing / CRM labels (not workspace system roles). */
   labels?: readonly string[] | null;
+  /** Optional explicit capability grants (membership row / session hydration). */
+  capabilities?: readonly string[] | null;
+  /** Active tenant `enabled_modules` (Phase 6). */
+  tenantModules?: readonly string[] | null;
+  /** `user_tenants.membership_metadata` blob. */
+  membershipMetadata?: unknown;
 };
-
-function normalizeRole(role: string | undefined | null): string {
-  return (role ?? "").trim().toLowerCase();
-}
 
 function isMembershipActive(status: UserAbilityMembershipStatus | null | undefined): boolean {
   if (status === undefined || status === null || status === "") {
@@ -64,54 +98,150 @@ function applyMarketingLabels(can: AbilityBuilder<AppAbility>["can"], labels: re
   }
 }
 
+function applyMarketingCapabilityGrantsFromSet(
+  can: AbilityBuilder<AppAbility>["can"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
+  if (caps.has("marketing.segment.read")) {
+    can("read", "MarketingSegment");
+  }
+}
+
 function grantOwnerActive(can: AbilityBuilder<AppAbility>["can"]): void {
   can("manage", "all");
+  can("update", "TourTripDetailsSensitive");
 }
 
 function grantAdminActive(can: AbilityBuilder<AppAbility>["can"], cannot: AbilityBuilder<AppAbility>["cannot"]): void {
   can("manage", "all");
+  can("update", "TourTripDetailsSensitive");
   cannot("update", "WorkspaceOwnership");
 }
 
-function grantLeaderActive(can: AbilityBuilder<AppAbility>["can"], cannot: AbilityBuilder<AppAbility>["cannot"]): void {
+function applyTourCapabilityGrantsFromSet(
+  can: AbilityBuilder<AppAbility>["can"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
+  if (caps.has("tour.read")) {
+    can("read", "Tour");
+  }
+  if (caps.has("tour.create")) {
+    can("create", "Tour");
+  }
+  if (caps.has("tour.update")) {
+    can("update", "Tour");
+  }
+  if (caps.has("tour.publish")) {
+    can("publish", "Tour");
+  }
+  if (caps.has("tour.update.core")) {
+    can("update", "TourCore");
+  }
+  if (caps.has("tour.update.tripDetails")) {
+    can("update", "TourTripDetails");
+  }
+  if (caps.has("module.form_builder")) {
+    can("update", "TourTripDetailsSensitive");
+  }
+}
+
+function applySettingsCapabilityGrantsFromSet(
+  can: AbilityBuilder<AppAbility>["can"],
+  cannot: AbilityBuilder<AppAbility>["cannot"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
+  if (caps.has("settings.read")) {
+    can("read", "Settings");
+  }
+  if (caps.has("settings.themes.manage")) {
+    can("manage", "Settings");
+  } else {
+    cannot("manage", "Settings");
+  }
+}
+
+/** Tenant module capabilities merged via {@link resolveEffectiveCapabilities}. */
+function applyModuleCapabilityGrantsFromSet(
+  can: AbilityBuilder<AppAbility>["can"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
+  if (caps.has("module.finance")) {
+    can("read", "Reconciliation");
+  }
+  if (caps.has("module.form_builder")) {
+    can("update", "TourTripDetails");
+  }
+}
+
+function grantLeaderActive(
+  can: AbilityBuilder<AppAbility>["can"],
+  cannot: AbilityBuilder<AppAbility>["cannot"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
   can("read", "Workspace");
   can("read", "UserMembership");
-  can("read", "Tour");
-  can("create", "Tour");
-  can("update", "Tour");
+  applyTourCapabilityGrantsFromSet(can, caps);
+  applySettingsCapabilityGrantsFromSet(can, cannot, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps);
   can("read", "Registration");
   can("create", "Registration");
   can("update", "Registration");
   can("read", "Payment");
-  can("read", "Settings");
+  /** Payment intents for participant/leader flows (server still scopes rows). */
+  can("create", "Payment");
   can("read", "Audit");
+  can("read", "Reconciliation");
+  can("read", "MedicalProfile");
+  can("read", "EmergencyContact");
+  can("update", "EmergencyContact");
+  can("update", "TourTripDetailsSensitive");
   cannot("delete", "Workspace");
   cannot("update", "Workspace");
   cannot("update", "WorkspaceOwnership");
-  cannot("manage", "Settings");
 }
 
-function grantMemberActive(can: AbilityBuilder<AppAbility>["can"], cannot: AbilityBuilder<AppAbility>["cannot"]): void {
+function grantMemberActive(
+  can: AbilityBuilder<AppAbility>["can"],
+  cannot: AbilityBuilder<AppAbility>["cannot"],
+  userContext: UserAbilityContext,
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
   can("read", "Workspace");
-  can("read", "Tour");
+  applyTourCapabilityGrantsFromSet(can, caps);
+  applySettingsCapabilityGrantsFromSet(can, cannot, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps);
   can("create", "Registration");
   can("read", "Registration");
   can("update", "Registration");
   can("read", "Payment");
+  can("create", "Payment");
+  can("read", "MedicalProfile", { ownerUserId: userContext.id });
+  can("update", "MedicalProfile", { ownerUserId: userContext.id });
+  can("read", "EmergencyContact", { ownerUserId: userContext.id });
+  can("update", "EmergencyContact", { ownerUserId: userContext.id });
   cannot("update", "Workspace");
   cannot("update", "WorkspaceOwnership");
   cannot("manage", "UserMembership");
 }
 
-function grantViewerActive(can: AbilityBuilder<AppAbility>["can"], cannot: AbilityBuilder<AppAbility>["cannot"]): void {
+function grantViewerActive(
+  can: AbilityBuilder<AppAbility>["can"],
+  cannot: AbilityBuilder<AppAbility>["cannot"],
+  caps: ReadonlySet<WorkspaceCapability>,
+): void {
   can("read", "Workspace");
-  can("read", "Tour");
+  applyTourCapabilityGrantsFromSet(can, caps);
+  applySettingsCapabilityGrantsFromSet(can, cannot, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps);
   can("read", "Registration");
   can("read", "UserMembership");
   can("read", "Payment");
   can("read", "Settings");
   cannot("create", "Tour");
   cannot("update", "Tour");
+  cannot("update", "TourCore");
+  cannot("update", "TourTripDetails");
+  cannot("publish", "Tour");
   cannot("delete", "Tour");
 }
 
@@ -131,23 +261,34 @@ export function defineAbilityFor(userContext: UserAbilityContext): AppAbility {
     return build();
   }
 
+  const effectiveCaps = new Set(
+    resolveEffectiveCapabilities({
+      role: userContext.role,
+      labels: userContext.labels,
+      capabilities: userContext.capabilities,
+      tenantModules: userContext.tenantModules,
+      membershipMetadata: userContext.membershipMetadata,
+    }),
+  );
   applyMarketingLabels(can, userContext.labels);
+  applyMarketingCapabilityGrantsFromSet(can, effectiveCaps);
 
-  switch (normalizeRole(userContext.role)) {
-    case "owner":
+  const workspaceRole = tryParseWorkspaceRole(userContext.role);
+  switch (workspaceRole) {
+    case WorkspaceRole.Owner:
       grantOwnerActive(can);
       break;
-    case "admin":
+    case WorkspaceRole.Admin:
       grantAdminActive(can, cannot);
       break;
-    case "leader":
-      grantLeaderActive(can, cannot);
+    case WorkspaceRole.Leader:
+      grantLeaderActive(can, cannot, effectiveCaps);
       break;
-    case "member":
-      grantMemberActive(can, cannot);
+    case WorkspaceRole.Member:
+      grantMemberActive(can, cannot, userContext, effectiveCaps);
       break;
-    case "viewer":
-      grantViewerActive(can, cannot);
+    case WorkspaceRole.Viewer:
+      grantViewerActive(can, cannot, effectiveCaps);
       break;
     default:
       cannot("manage", "all");

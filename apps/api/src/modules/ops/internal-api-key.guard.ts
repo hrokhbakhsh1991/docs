@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException
 } from "@nestjs/common";
@@ -20,7 +21,7 @@ function timingSafeStringEqual(expected: string, received: string): boolean {
 
 @Injectable()
 export class InternalApiKeyGuard implements CanActivate {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(@Inject(ConfigService) private readonly configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const expected = this.configService.getInternalApiKey();

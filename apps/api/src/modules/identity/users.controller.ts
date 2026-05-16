@@ -10,22 +10,26 @@ import {
   Post,
   Query,
   Res,
-  UseGuards
+  UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import type { Response } from "express";
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiMethodNotAllowedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
+import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { Idempotent } from "../idempotency/idempotent.decorator";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
 import { AbilitiesGuard } from "../../common/casl/abilities.guard";
 import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
@@ -48,11 +52,12 @@ import { UsersWriteService } from "./users-write.service";
 
 @ApiTags("Users")
 @Controller("api/v2/users")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard, CaslMirrorAbilitiesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
-@Roles(Role.OWNER, Role.ADMIN)
+@Roles(UserRole.Owner, UserRole.Admin)
 export class UsersController {
   @Post()
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({
     summary: "Create user (unsupported)",
     description:
@@ -79,7 +84,6 @@ export class UsersController {
   ) {}
 
   @Post("invite")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "UserMembership"))
   @ApiOperation({ summary: "Invite user into tenant workspace" })
   @ApiOkResponse({ type: InviteUserResultDto })
@@ -90,7 +94,6 @@ export class UsersController {
   }
 
   @Post(":id/resend-invite")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Resend pending invite for invited membership" })
   @ApiOkResponse({ type: ResendInviteResultDto })
@@ -105,7 +108,6 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({ summary: "List tenant users" })
   @ApiOkResponse({ type: ListUsersResponseDto })
@@ -116,7 +118,6 @@ export class UsersController {
   }
 
   @Get(":id/role-history")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Audit"))
   @ApiOperation({ summary: "List role change history for a tenant user" })
   @ApiOkResponse({ type: UserRoleHistoryItemDto, isArray: true })
@@ -128,7 +129,6 @@ export class UsersController {
   }
 
   @Get(":id")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({ summary: "Get tenant-scoped user by id" })
   @ApiOkResponse({ type: UserResponseDto })
@@ -145,7 +145,18 @@ export class UsersController {
   }
 
   @Patch("bulk-role")
-  @UseGuards(AbilitiesGuard)
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for bulk role mutation.",
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/users/bulk-role",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context",
+  })
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({
     summary: "Bulk change user roles in tenant scope",
@@ -166,7 +177,18 @@ export class UsersController {
   }
 
   @Patch(":id")
-  @UseGuards(AbilitiesGuard)
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for role mutation.",
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/users/:id",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context",
+  })
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({
     summary: "Change user role in tenant scope",
@@ -190,7 +212,6 @@ export class UsersController {
   }
 
   @Patch(":id/suspend")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Suspend tenant-scoped membership for a user" })
   @ApiOkResponse({ type: UserResponseDto })
@@ -204,7 +225,6 @@ export class UsersController {
   }
 
   @Patch(":id/reactivate")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
   @ApiOperation({ summary: "Reactivate suspended tenant-scoped membership for a user" })
   @ApiOkResponse({ type: UserResponseDto })
@@ -216,7 +236,6 @@ export class UsersController {
   }
 
   @Delete(":id/remove")
-  @UseGuards(AbilitiesGuard)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Delete, "UserMembership"))
   @ApiOperation({ summary: "Remove user membership from current tenant" })
   @ApiOkResponse({ description: "User membership removed" })
@@ -231,6 +250,7 @@ export class UsersController {
   }
 
   @Delete(":id")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({
     summary: "Delete user (unsupported)",
     description:

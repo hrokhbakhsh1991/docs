@@ -4,9 +4,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, FormField, Select } from "@tour/ui";
 
-import { API } from "@/lib/api-paths";
-import { ApiError, apiClient } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { UserRole } from "@/lib/auth/user-role";
 import { userKeys } from "@/lib/query-keys";
+import {
+  reactivateUser,
+  removeUser,
+  resendInvite,
+  suspendUser,
+  updateUserRole,
+} from "@/lib/services/users.service";
 import { useAppToast } from "@/lib/use-app-toast";
 
 type AssignableRole = "admin" | "member" | "viewer";
@@ -38,7 +45,6 @@ export function UserAdminActionsCard({
 }: UserAdminActionsCardProps): JSX.Element {
   const toast = useAppToast();
   const queryClient = useQueryClient();
-  const userPath = API.user(userId);
   const normalizedStatus = normalizeStatus(currentStatus);
   const isSelfTarget = (sessionUserId ?? "") === userId;
   const isOwnerTarget = currentRole.trim().toLowerCase() === "owner";
@@ -46,7 +52,7 @@ export function UserAdminActionsCard({
   async function afterSuccess(message: string) {
     toast.success({ message });
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantScope) }),
       queryClient.invalidateQueries({ queryKey: userKeys.detail(tenantScope, userId) }),
       queryClient.invalidateQueries({ queryKey: userKeys.roleHistory(tenantScope, userId) }),
     ]);
@@ -54,35 +60,35 @@ export function UserAdminActionsCard({
   }
 
   const changeRoleMutation = useMutation({
-    mutationFn: (role: AssignableRole) => apiClient.patch(userPath, { role }),
+    mutationFn: (role: AssignableRole) => updateUserRole(userId, role as UserRole),
     onSuccess: () => void afterSuccess("Role updated."),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to update role." }),
   });
 
   const suspendMutation = useMutation({
-    mutationFn: () => apiClient.patch(`${userPath}/suspend`),
+    mutationFn: () => suspendUser(userId),
     onSuccess: () => void afterSuccess("User suspended."),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to suspend user." }),
   });
 
   const reactivateMutation = useMutation({
-    mutationFn: () => apiClient.patch(`${userPath}/reactivate`),
+    mutationFn: () => reactivateUser(userId),
     onSuccess: () => void afterSuccess("User reactivated."),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to reactivate user." }),
   });
 
   const resendInviteMutation = useMutation({
-    mutationFn: () => apiClient.post(`${userPath}/resend-invite`, {}),
+    mutationFn: () => resendInvite(userId),
     onSuccess: () => void afterSuccess("Invite resent."),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to resend invite." }),
   });
 
   const removeMutation = useMutation({
-    mutationFn: () => apiClient.delete(`${userPath}/remove`),
+    mutationFn: () => removeUser(userId),
     onSuccess: () => void afterSuccess("User removed from workspace."),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to remove user." }),

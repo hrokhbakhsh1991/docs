@@ -5,7 +5,7 @@ import { ApiError } from "../api-client";
  */
 export function resolveAuthUiErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.includes("not configured")) {
-    return "Application configuration is incomplete. Set NEXT_PUBLIC_API_URL (and optionally NEXT_PUBLIC_API_DYNAMIC_ORIGIN / NEXT_PUBLIC_API_PORT) so API requests use the correct tenant host.";
+    return "Application configuration is incomplete. Set NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true and NEXT_PUBLIC_API_PORT so API requests use the workspace host.";
   }
   if (error instanceof ApiError) {
     if (error.code === "AUTH_OTP_INVALID") {

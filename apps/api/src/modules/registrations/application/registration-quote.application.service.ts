@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
 import { tryParseWorkspaceUserRole, UserRole } from "../../../common/auth/user-role.enum";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -17,8 +17,8 @@ import {
 @Injectable()
 export class RegistrationQuoteApplicationService {
   constructor(
-    private readonly pricingEngine: PricingEngineService,
-    private readonly requestContextService: RequestContextService
+    @Inject(PricingEngineService) private readonly pricingEngine: PricingEngineService,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
   ) {}
 
   private resolveQuoteRole(): UserRole {

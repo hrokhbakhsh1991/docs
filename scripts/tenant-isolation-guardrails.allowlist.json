@@ -1,7 +1,16 @@
 {
   "comment": "Explicit exemptions for tenant-isolation guardrails (keep minimal; justify in PR).",
+  "ignoredPathsForQueryBuilderTenant": [
+    "apps/api/src/database/migrations/",
+    "apps/api/src/database/migrations_archive/",
+    "apps/api/src/scripts/",
+    "apps/api/src/modules/auth/auth.service.phone-otp.spec.ts",
+    "apps/api/test/",
+    "apps/api/dist/"
+  ],
   "dataSourceQueryPaths": [
     "apps/api/src/app.controller.ts",
+    "apps/api/src/database/runtime-schema-guard.service.ts",
     "apps/api/src/modules/auth/workspace.service.ts",
     "apps/api/src/modules/identity/workspace-invites.service.ts",
     "apps/api/src/modules/tenant/tenant-bootstrap.service.ts"
@@ -10,7 +19,13 @@
     "PaymentWebhookDto",
     "WorkspaceSessionDto"
   ],
-  "dtoResponseNameSuffixes": ["ResponseDto", "WebhookDto", "ItemDto", "SessionResponseDto"],
+  "dtoResponseNameSuffixes": [
+    "ResponseDto",
+    "ResultDto",
+    "WebhookDto",
+    "ItemDto",
+    "SessionResponseDto"
+  ],
   "ignoredPathsForDataSourceQuery": [
     "apps/api/src/database/migrations/",
     "apps/api/src/scripts/",

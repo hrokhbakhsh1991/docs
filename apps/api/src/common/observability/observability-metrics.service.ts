@@ -2,7 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { tryGetActiveTraceLogFields } from "./active-trace-log-fields";
 import { isAuthSessionLoginRoute } from "../auth/auth-route-policy";
 
-/** Canonical names used by Prometheus `security_events_total{event=...}` and OTLP mapping. */
+/**
+ * In-process security-ish counters (Prometheus text or JSON for adapters).
+ * Canonical names used by Prometheus `security_events_total{event=...}` and OTLP mapping.
+ *
+ * TODO: feed the same dimensions into a **metrics dashboard** (RED/USE, SLO burn) via OTLP or
+ * Prometheus remote-write — keep label cardinality bounded; correlate spikes with `trace_id` in logs.
+ */
 export type SecurityMetricEvent =
   | "TENANT_HOST_UNKNOWN"
   | "TENANT_HOST_TOKEN_MISMATCH"

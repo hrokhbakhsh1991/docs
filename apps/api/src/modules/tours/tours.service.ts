@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Brackets, Repository } from "typeorm";
+import { Repository } from "typeorm";
 
 import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 
@@ -29,6 +29,8 @@ import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
+import { AUDIT_CATEGORY } from "../../common/audit/audit-category";
+import { AuditLogService } from "../../common/audit/audit-log.service";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreateTourDto } from "./dto/create-tour.dto";
@@ -41,10 +43,11 @@ import type { TourTripDetails } from "./types/tour-trip-details.types";
 import { CURRENT_TRIP_DETAILS_SCHEMA_VERSION } from "./types/trip-details-schema";
 import { TourTripDetailsDto } from "./dto/trip-details.dto";
 import {
-  assertTourIsPublishable,
-  assertTourOpenReadiness,
-  assertValidLifecycleTransition
-} from "./policies/tour-lifecycle.policy";
+  assertTourPublishableBeforePatch,
+  assertTourStateReadyForOpenAfterPatch,
+  assertTourStateReadyForOpenOnCreate,
+} from "./policies/assert-tour-publish-transition";
+import { assertValidLifecycleTransition } from "./policies/tour-lifecycle.policy";
 import { mergeTourTripDetails } from "./utils/merge-trip-details";
 import type { TourTransportMode } from "./tour-transport-modes";
 import { computeTourDurationDays } from "./utils/tour-duration";
@@ -77,7 +80,18 @@ import {
   extractTripLogisticsDates,
   listPriceMinorFromCostContext
 } from "./utils/commercial-fields";
+import { TOUR_RESPONSE_RELATIONS } from "./constants/tour-response-relations";
+import { ToursCatalogReadApplicationService } from "./application/tours-catalog-read.application.service";
+import { buildRegionalTourListScopeFromRequest } from "../../common/rbac/capability-grant-context-from-request";
+import {
+  assertDestinationRegionInRegionalScope,
+  assertTourVisibleInRegionalScope,
+} from "./utils/apply-regional-tour-list-scope";
 
+/**
+ * Tour write and read orchestration. Decomposition inventory: `architecture/service-decomposition.map.ts` (`TOURS_GOD_METHODS`).
+ * Reads lean on {@link ToursCatalogReadApplicationService}; `createTour` / `updateTour` remain the main write god surface until split into use-case services.
+ */
 @Injectable()
 export class ToursService {
   constructor(
@@ -100,7 +114,10 @@ export class ToursService {
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
     @Inject(LoggerService)
-    private readonly loggerService: LoggerService
+    private readonly loggerService: LoggerService,
+    @Inject(AuditLogService)
+    private readonly auditLogService: AuditLogService,
+    private readonly toursCatalogRead: ToursCatalogReadApplicationService
   ) {}
 
   /**
@@ -235,10 +252,10 @@ export class ToursService {
     tenantId: string,
     destinationId: string,
     destinationRepository: Repository<WorkspaceDestinationEntity> = this.workspaceDestinationRepository
-  ): Promise<void> {
+  ): Promise<WorkspaceDestinationEntity> {
     const row = await destinationRepository.findOne({
       where: { id: destinationId, tenantId },
-      select: { id: true }
+      select: { id: true, regionId: true },
     });
     if (!row) {
       throw new BadRequestException({
@@ -248,6 +265,7 @@ export class ToursService {
         }
       });
     }
+    return row;
   }
 
   private destinationRelation(
@@ -284,11 +302,6 @@ export class ToursService {
     await assertGuideLanguageIdsBelongToTenant(languagesRepo, tenantId, guideLanguageIds);
   }
 
-  private static readonly tourResponseRelations = {
-    details: true,
-    destination: { region: true }
-  } as const;
-
   /**
    * Loads a tour for PATCH with `FOR UPDATE` so concurrent edits serialize instead of last-write-wins.
    * Uses the same repository (transactional when inside idempotent handler) as the rest of the write path.
@@ -317,7 +330,8 @@ export class ToursService {
       .leftJoinAndSelect("destination.region", "destinationRegion")
       .where("t.id = :tourId", { tourId })
       .andWhere("t.tenantId = :tenantId", { tenantId })
-      .setLock("pessimistic_write")
+      // Lock tour row only — `FOR UPDATE` on nullable LEFT JOIN sides fails on PostgreSQL.
+      .setLock("pessimistic_write", undefined, ["t"])
       .getOne();
   }
 
@@ -691,6 +705,7 @@ export class ToursService {
       try {
         assertIncomingCreateTourDtoBeforeFormProfileStrip(resolvedFormProfile, dto);
         stripCreateTourDtoForFormProfile(resolvedFormProfile, dto);
+        // Draft CREATE: relaxed validation — strict profile gates apply on OPEN/PUBLISH (updateTour).
         assertCreateTourInvariants(dto, resolvedFormProfile);
       } catch (e) {
         if (e instanceof BadRequestException) {
@@ -774,11 +789,7 @@ export class ToursService {
 
       const nextLifecycle = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
       if (nextLifecycle === TourLifecycleStatus.OPEN) {
-        assertTourOpenReadiness({
-          title: tour.title,
-          totalCapacity: tour.totalCapacity,
-          details: tour.details ?? null
-        });
+        assertTourStateReadyForOpenOnCreate(resolvedFormProfile, tour);
       }
 
       const saved = await writeRepos.tour.save(tour);
@@ -787,7 +798,7 @@ export class ToursService {
           id: saved.id,
           tenantId
         },
-        relations: ToursService.tourResponseRelations
+        relations: TOUR_RESPONSE_RELATIONS
       });
 
       if (!loaded) {
@@ -803,6 +814,13 @@ export class ToursService {
         tenant_id: tenantId,
         lifecycle_status: loaded.lifecycleStatus,
         ...(creator ? { created_by_user_id: creator } : {})
+      });
+      void this.auditLogService.logEvent({
+        category: AUDIT_CATEGORY.SECURITY,
+        action: "tour.create",
+        entity: "tour",
+        entityId: loaded.id,
+        after: { lifecycle_status: loaded.lifecycleStatus, title: loaded.title },
       });
 
       logTourFormProfileResolvedForCreate(this.loggerService, {
@@ -854,6 +872,16 @@ export class ToursService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
+    const regionalScope = buildRegionalTourListScopeFromRequest(this.requestContextService);
+    if (!assertTourVisibleInRegionalScope(tour, regionalScope)) {
+      throw new ForbiddenException({
+        error: {
+          code: "TOUR_REGIONAL_SCOPE_FORBIDDEN",
+          message: "This tour is outside your allowed regional scope",
+        },
+      });
+    }
+
     if (
       dto.total_capacity !== undefined &&
       dto.total_capacity < tour.acceptedCount
@@ -870,7 +898,7 @@ export class ToursService {
       dto.lifecycle_status !== undefined
     ) {
       if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
-        assertTourIsPublishable(tour);
+        assertTourPublishableBeforePatch(tour);
       }
       assertValidLifecycleTransition(
         tour.lifecycleStatus,
@@ -940,11 +968,20 @@ export class ToursService {
         if (dto.destinationId === null) {
           tour.destination = null;
         } else {
-          await this.assertDestinationBelongsToTenant(
+          const destination = await this.assertDestinationBelongsToTenant(
             tenantId,
             dto.destinationId,
             writeRepos.workspaceDestination
           );
+          const destinationRegionId = destination.regionId ?? null;
+          if (!assertDestinationRegionInRegionalScope(destinationRegionId, regionalScope)) {
+            throw new ForbiddenException({
+              error: {
+                code: "TOUR_REGIONAL_SCOPE_FORBIDDEN",
+                message: "Destination region is outside your allowed regional scope",
+              },
+            });
+          }
           tour.destination = this.destinationRelation(dto.destinationId);
         }
       }
@@ -1076,10 +1113,39 @@ export class ToursService {
 
       this.applyDenormalizedTourListColumns(tour);
 
+      if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
+        const profileForPublish =
+          tour.formProfileSnapshot ??
+          (await resolveTourFormProfileFromTripDetails(
+            tenantId,
+            tour.details?.tripDetails ?? null,
+            tour.tourType ?? undefined,
+            writeRepos.workspaceTourThemes,
+            dto.formProfile,
+          ));
+        try {
+          assertTourStateReadyForOpenAfterPatch(profileForPublish, tour);
+        } catch (e) {
+          if (e instanceof BadRequestException) {
+            logTourProfileInvariantRejected(
+              this.loggerService,
+              {
+                op: "update_tour_publish",
+                tenant_id: tenantId,
+                tour_id: tour.id,
+                resolved_form_profile: profileForPublish,
+              },
+              e,
+            );
+          }
+          throw e;
+        }
+      }
+
       const saved = await writeRepos.tour.save(tour);
       const reloaded = await writeRepos.tour.findOne({
         where: { id: saved.id, tenantId },
-        relations: ToursService.tourResponseRelations
+        relations: TOUR_RESPONSE_RELATIONS
       });
       if (!reloaded) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
@@ -1093,6 +1159,17 @@ export class ToursService {
         tenant_id: tenantId,
         lifecycle_status: reloaded.lifecycleStatus,
         ...(editor ? { updated_by_user_id: editor } : {})
+      });
+      const published = reloaded.lifecycleStatus === TourLifecycleStatus.OPEN;
+      void this.auditLogService.logEvent({
+        category: AUDIT_CATEGORY.SECURITY,
+        action: published ? "tour.publish" : "tour.patch",
+        entity: "tour",
+        entityId: reloaded.id,
+        after: {
+          lifecycle_status: reloaded.lifecycleStatus,
+          ...(dto.cost_context !== undefined ? { cost_context: reloaded.costContext } : {}),
+        },
       });
 
       return mapTourEntityToResponseDto(reloaded);
@@ -1115,117 +1192,11 @@ export class ToursService {
     page: number;
     limit: number;
   }> {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId();
-    if (!tenantId) {
-      throw new ForbiddenException(tenantContextMissingError());
-    }
-
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    const search = query.search?.trim() ?? "";
-
-    const hasCursorId =
-      typeof query.cursor_id === "string" && query.cursor_id.trim() !== "";
-    const hasCursorAt =
-      typeof query.cursor_created_at === "string" && query.cursor_created_at.trim() !== "";
-    if (hasCursorId !== hasCursorAt) {
-      throw new BadRequestException({
-        error: {
-          code: "VALIDATION_FIELD_FORMAT_INVALID",
-          message: "cursor_id and cursor_created_at must both be provided for keyset pagination"
-        }
-      });
-    }
-    const useKeyset = hasCursorId && hasCursorAt;
-    const cursorAt = useKeyset
-      ? new Date(query.cursor_created_at as string)
-      : null;
-    const cursorId = useKeyset ? (query.cursor_id as string).trim() : null;
-    if (useKeyset && cursorAt !== null && Number.isNaN(cursorAt.getTime())) {
-      throw new BadRequestException({
-        error: {
-          code: "VALIDATION_FIELD_FORMAT_INVALID",
-          message: "cursor_created_at must be a valid ISO-8601 date-time"
-        }
-      });
-    }
-
-    const qb = this.tourRepository
-      .createQueryBuilder("t")
-      .leftJoinAndSelect("t.details", "details")
-      .leftJoinAndSelect("t.destination", "destination")
-      .leftJoinAndSelect("destination.region", "destinationRegion")
-      .where("t.tenantId = :tenantId", { tenantId })
-      .orderBy("t.createdAt", "DESC")
-      .addOrderBy("t.id", "DESC");
-
-    if (search.length > 0) {
-      qb.andWhere("t.search_vector @@ plainto_tsquery('simple', :fts)", {
-        fts: search
-      });
-    }
-
-    if (query.status === "active") {
-      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", {
-        lifecycleStatus: TourLifecycleStatus.DRAFT
-      });
-    } else if (query.status === "completed") {
-      qb.andWhere("t.lifecycleStatus = :lifecycleStatus", {
-        lifecycleStatus: TourLifecycleStatus.OPEN
-      });
-    } else if (query.status === "archived") {
-      qb.andWhere("t.lifecycleStatus IN (:...archivedStatuses)", {
-        archivedStatuses: [TourLifecycleStatus.CLOSED, TourLifecycleStatus.CANCELLED]
-      });
-    }
-
-    if (useKeyset && cursorAt !== null && cursorId !== null) {
-      qb.andWhere(
-        new Brackets((b) => {
-          b.where("t.createdAt < :cAt", { cAt: cursorAt }).orWhere(
-            new Brackets((inner) => {
-              inner
-                .where("t.createdAt = :cAt", { cAt: cursorAt })
-                .andWhere("t.id < :cId", { cId: cursorId });
-            })
-          );
-        })
-      );
-    }
-
-    const includeTotal = query.include_total !== false;
-    const total = includeTotal ? await qb.getCount() : -1;
-
-    const dataQb = qb.clone();
-    if (!useKeyset) {
-      dataQb.skip((page - 1) * limit);
-    }
-    const rows = await dataQb.take(limit).getMany();
-
-    const items = rows.map((row) => mapTourEntityToResponseDto(row));
-
-    return { items, total, page, limit };
+    return this.toursCatalogRead.listTours(query);
   }
 
   async getTourById(tourId: string): Promise<TourResponseDto> {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId();
-    if (!tenantId) {
-      throw new ForbiddenException(tenantContextMissingError());
-    }
-
-    const tour = await this.tourRepository.findOne({
-      where: {
-        id: tourId,
-        tenantId
-      },
-      relations: ToursService.tourResponseRelations
-    });
-
-    if (!tour) {
-      throw new NotFoundException(tenantScopedResourceNotFoundError());
-    }
-
-    return mapTourEntityToResponseDto(tour);
+    return this.toursCatalogRead.getTourById(tourId);
   }
 
   async getLeaderWorkspaceAggregate(limit = 200): Promise<{
@@ -1235,18 +1206,7 @@ export class ToursService {
       total: number;
     };
   }> {
-    const { items, total } = await this.listTours({
-      page: 1,
-      limit,
-      search: ""
-    });
-    return {
-      tours: items,
-      meta: {
-        partial: total > items.length,
-        total
-      }
-    };
+    return this.toursCatalogRead.getLeaderWorkspaceAggregate(limit);
   }
 
 }

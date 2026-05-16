@@ -1,14 +1,14 @@
 import type { TourDto, TourLifecycleStatus, TourFormProfile, TourType } from "@repo/types";
 
 import { ApiError } from "@/lib/api-client";
+import { tourCreateContractSchema } from "@/features/tours/contracts/tour-form-contract";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
-
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
-/** When true, list/read tours from `GET /api/v2/tours` (requires auth cookie). */
+/** When true, list/read tours via same-origin BFF `GET /api/tours` (session cookie). */
 export function toursUseLiveApi(): boolean {
   return isTourOpsApiConfigured();
 }
@@ -116,8 +116,8 @@ export async function getTours(params?: GetToursParams): Promise<PaginatedToursR
   if (st === "active" || st === "completed" || st === "archived") {
     qs.set("status", st);
   }
-  const path = API.toursQuery(qs.toString());
-  const raw = await apiClient.get<PaginatedToursApiBody>(path);
+  const path = BFF.toursQuery(qs.toString());
+  const raw = await bffBrowserClient.get<PaginatedToursApiBody>(path);
   const rows = Array.isArray(raw.items) ? raw.items : [];
   const pageFallback = 1;
   const limitFallback = rows.length || 10;
@@ -131,7 +131,7 @@ export async function getTours(params?: GetToursParams): Promise<PaginatedToursR
 
 export async function getTourById(id: string): Promise<TourDetailDto | null> {
   try {
-    const row = await apiClient.get<unknown>(API.tour(id));
+    const row = await bffBrowserClient.get<unknown>(BFF.tour(id));
     return mapTourResponseToDto(row);
   } catch (error: unknown) {
     if (error instanceof ApiError && error.status === 404) {
@@ -208,13 +208,19 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   if (dto.destinationId != null && dto.destinationId !== "") {
     body.destinationId = dto.destinationId;
   }
+  if (process.env.NODE_ENV !== "production") {
+    const parsed = tourCreateContractSchema.safeParse(body);
+    if (!parsed.success) {
+      console.warn("[tour-create-contract] POST /tours body drift", parsed.error.flatten());
+    }
+  }
   return body;
 }
 
 export async function createTour(dto: CreateTourDto): Promise<TourDetailDto> {
   const idempotencyKey =
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-  const raw = await apiClient.post<unknown>(API.tours, buildCreateTourPostBody(dto), {
+  const raw = await bffBrowserClient.post<unknown>(BFF.tours, buildCreateTourPostBody(dto), {
     idempotencyKey,
     /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
     skip403Redirect: true,
@@ -276,8 +282,8 @@ export async function updateTour(
 ): Promise<TourDetailDto | null> {
   const idempotencyKey =
     typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
-  const raw = await apiClient.patch<unknown>(
-    API.tour(id),
+  const raw = await bffBrowserClient.patch<unknown>(
+    BFF.tour(id),
     toUpdateTourApiBody(dto, options?.existingCostContext ?? null),
     { idempotencyKey }
   );

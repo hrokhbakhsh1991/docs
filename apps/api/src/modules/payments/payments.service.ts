@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
+  forwardRef
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, EntityManager, IsNull, Not, Repository } from "typeorm";
@@ -34,13 +36,11 @@ import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import {
   RegistrationEntity,
-  RegistrationPaymentStatus,
   RegistrationStatus
 } from "../registrations/registration.entity";
 import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
 import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-booking-price-snapshot";
 import { TourEntity } from "../tours/entities/tour.entity";
-import { WaitlistItemEntity, WaitlistItemStatus } from "../registrations/waitlist-item.entity";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
@@ -61,8 +61,7 @@ import {
 } from "../registrations/domain/registration-outbox-event-type";
 import {
   emitBookingFinalizationPipelineEvent,
-  emitRegistrationStatusChangedEvent,
-  emitWaitlistConvertedAndAcceptedEvents
+  emitRegistrationStatusChangedEvent
 } from "../registrations/registrations-effects";
 import {
   assertBookingFinalizationAtLeast,
@@ -73,6 +72,7 @@ import {
 } from "../registrations/domain/booking-finalization-pipeline";
 import { validateStatusTransition } from "../registrations/registrations-policy";
 import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
+import { RegistrationsService } from "../registrations/registrations.service";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
@@ -144,14 +144,18 @@ export class PaymentsService {
     private readonly userRepository: Repository<UserEntity>,
     @InjectRepository(TenantEntity)
     private readonly tenantRepository: Repository<TenantEntity>,
-    private readonly dataSource: DataSource,
-    private readonly requestContextService: RequestContextService,
-    private readonly tenantDbContext: TenantDbContextService,
-    private readonly idempotencyService: IdempotencyService,
-    private readonly outboxService: OutboxService,
+    @Inject(DataSource) private readonly dataSource: DataSource,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
+    @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
+    @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
+    @Inject(PaymentIntentRegistrationResolverApplicationService)
     private readonly paymentIntentRegistrationResolver: PaymentIntentRegistrationResolverApplicationService,
+    @Inject(PaymentRefundLedgerAuthorityService)
     private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
-    private readonly paymentGatewayFactory: PaymentGatewayFactory
+    @Inject(PaymentGatewayFactory) private readonly paymentGatewayFactory: PaymentGatewayFactory,
+    @Inject(forwardRef(() => RegistrationsService))
+    private readonly registrationsService: RegistrationsService
   ) {}
 
   private async loadBookingFinalizationFacts(
@@ -937,61 +941,11 @@ export class PaymentsService {
     registration: RegistrationEntity,
     lockedTour?: TourEntity | null
   ): Promise<boolean> {
-    const tour =
-      lockedTour ??
-      (await this.requireTourInTenantForUpdate(
-        manager,
-        registration.tourId,
-        registration.tenantId
-      ));
-    if (tour.acceptedCount >= tour.totalCapacity) {
-      return false;
-    }
-
-    const waitlistItem = await manager
-      .getRepository(WaitlistItemEntity)
-      .createQueryBuilder("w")
-      .where("w.tenant_id = :tenantId", { tenantId: registration.tenantId })
-      .andWhere("w.tour_id = :tourId", { tourId: registration.tourId })
-      .andWhere("w.status = :status", { status: WaitlistItemStatus.WAITING })
-      .orderBy("w.created_at", "ASC")
-      .setLock("pessimistic_write")
-      .setOnLocked("skip_locked")
-      .getOne();
-
-    if (!waitlistItem) {
-      return false;
-    }
-
-    const promotedRegistration = manager.create(RegistrationEntity, {
-      tenantId: waitlistItem.tenantId,
-      tourId: waitlistItem.tourId,
-      tourDepartureId: waitlistItem.tourDepartureId,
-      participantFullName: waitlistItem.participantFullName,
-      participantContactPhone: waitlistItem.participantContactPhone,
-      transportMode: waitlistItem.transportMode,
-      entryMode: waitlistItem.entryMode,
-      status: RegistrationStatus.ACCEPTED,
-      paymentStatus: RegistrationPaymentStatus.NOT_PAID,
-      paidAmount: undefined
-    });
-
-    const savedPromotedRegistration = await manager.save(promotedRegistration);
-    waitlistItem.status = WaitlistItemStatus.CONVERTED;
-    waitlistItem.promotedRegistrationId = savedPromotedRegistration.id;
-    await manager.save(waitlistItem);
-    tour.acceptedCount += 1;
-    await manager.save(tour);
-
-    await emitWaitlistConvertedAndAcceptedEvents({
+    return this.registrationsService.promoteNextWaitlistItemForPaymentFlow(
       manager,
-      outboxService: this.outboxService,
-      waitlistItem,
-      promotedRegistration: savedPromotedRegistration,
-      actorId: this.requestContextService.getUserId() ?? "system",
-      source: "waitlist_promotion"
-    });
-    return true;
+      registration,
+      lockedTour ?? null
+    );
   }
 
   /**

@@ -5,6 +5,7 @@ import type Redis from "ioredis";
 import { ConfigService } from "../../config/config.service";
 import { LoggerService } from "../logger/logger.service";
 import { RequestContextService } from "../request-context/request-context.service";
+import { isAuthTenantHostStrictRoute } from "../auth/auth-route-policy";
 import {
   getTenantScopeKey,
   isTenantRuntimeApiPath,
@@ -220,6 +221,29 @@ export class TenantRateLimitService implements OnModuleDestroy {
 
   async enforceHttp(req: Request): Promise<void> {
     await this.enforceHttpRateLimit(req);
+  }
+
+  /**
+   * Throttle hostile workspace host probing on strict auth routes (before 404/400 responses).
+   */
+  async enforceHostProbeOnAuthRoute(req: Request): Promise<void> {
+    if (!this.configService.isTenantRateLimitEnabled()) {
+      return;
+    }
+    const path = resolveTenantRuntimePath(req);
+    if (!isAuthTenantHostStrictRoute(path, req.method)) {
+      return;
+    }
+    const ip = this.sanitizeIp(
+      resolveThrottleClientIp(req as unknown as Record<string, unknown>, {
+        trustedProxyCidrs: this.configService.getTrustedProxyCidrs()
+      })
+    );
+    const cfg = this.configService.getTenantRateLimitHostProbeConfig();
+    const ipKey = `trl:v2:host_probe:ip:${ip}`;
+    if (!(await this.slidingAllow(ipKey, cfg.windowMs, cfg.perIp))) {
+      this.throwLimited("host_probe_ip", req);
+    }
   }
 
   private async enforceLogin(req: Request, ipSan: string): Promise<void> {

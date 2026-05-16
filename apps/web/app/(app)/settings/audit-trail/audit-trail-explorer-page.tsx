@@ -17,7 +17,8 @@ import {
   useToast
 } from "@tour/ui";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Link } from "@/i18n/navigation";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
@@ -81,6 +82,26 @@ export function AuditTrailExplorerPage() {
   const [committed, setCommitted] = useState<AuditTrailFilters>({ ...EMPTY_FILTERS });
   const [detail, setDetail] = useState<TenantAuditEventRowDto | null>(null);
   const [exporting, setExporting] = useState(false);
+  const searchParams = useSearchParams();
+  const seededFromUrl = useRef(false);
+
+  useEffect(() => {
+    if (seededFromUrl.current) return;
+    const rt = searchParams.get("resourceType")?.trim();
+    const rid = searchParams.get("resourceId")?.trim();
+    if (!rt && !rid) return;
+    seededFromUrl.current = true;
+    setDraft((d) => ({
+      ...d,
+      ...(rt ? { resourceType: rt } : {}),
+      ...(rid ? { resourceId: rid } : {})
+    }));
+    setCommitted((d) => ({
+      ...d,
+      ...(rt ? { resourceType: rt } : {}),
+      ...(rid ? { resourceId: rid } : {})
+    }));
+  }, [searchParams]);
 
   const filterKey = useMemo(
     () => ({
@@ -174,7 +195,7 @@ export function AuditTrailExplorerPage() {
         actions={null}
       >
         <SettingsLayout>
-          <p className={styles.cellMuted}>NEXT_PUBLIC_API_URL is not configured.</p>
+          <p className={styles.cellMuted}>Workspace API is unreachable. Use your workspace subdomain host.</p>
         </SettingsLayout>
       </RegisteredWorkspacePage>
     );

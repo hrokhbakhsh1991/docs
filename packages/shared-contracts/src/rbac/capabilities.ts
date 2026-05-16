@@ -1,0 +1,36 @@
+/**
+ * FE / contracts mirror of `@repo/shared` capability registry (Phase 5.1).
+ * Re-export only — single source of truth lives in `packages/shared/rbac`.
+ */
+export {
+  PRODUCT_CAPABILITY_ALIASES,
+  SETTINGS_CAPABILITIES,
+  TOUR_CAPABILITIES,
+  WORKSPACE_CAPABILITY_GRANTS,
+  WORKSPACE_CAPABILITY_VALUES,
+  capabilitiesForWorkspaceRole,
+  effectiveCapabilitiesGrant,
+  effectiveCapabilitiesGrantTour,
+  normalizeProductCapabilityId,
+  parseMembershipMetadata,
+  resolveEffectiveCapabilities,
+  allowedRegionIdsFromGrantContext,
+  hasRegionalTourManageCapability,
+  capabilitiesForTenantModules,
+  TENANT_MODULE_IDS,
+  TENANT_MODULE_CAPABILITY_GRANTS,
+  MODULE_CAPABILITIES,
+  MARKETING_CAPABILITIES,
+  MARKETING_LABEL_CAPABILITY_ALIASES,
+  JWT_CAPABILITY_SNAPSHOT_CLAIM,
+  encodeJwtCapabilitySnapshot,
+  decodeJwtCapabilitySnapshot,
+  roleGrantsCapability,
+  roleGrantsTourCapability,
+  type CapabilityGrantContext,
+  type ProductCapabilityAlias,
+  type RegisteredWorkspaceCapability,
+  type SettingsCapability,
+  type TourCapability,
+  type WorkspaceCapability,
+} from "@repo/shared";

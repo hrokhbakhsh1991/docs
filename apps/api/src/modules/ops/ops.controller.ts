@@ -1,4 +1,4 @@
-import { Controller, Get, Header, UseGuards } from "@nestjs/common";
+import { Controller, Get, Header, Inject, UseGuards } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { ConfigService } from "../../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
@@ -16,14 +16,17 @@ import { TenantUsageMeteringService } from "../../common/billing/tenant-usage-me
 @UseGuards(InternalApiKeyGuard)
 export class OpsController {
   constructor(
-    private readonly configService: ConfigService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(SchedulerRuntimeMetricsService)
     private readonly schedulerRuntimeMetrics: SchedulerRuntimeMetricsService,
-    private readonly outboxMetrics: OutboxMetricsService,
-    private readonly reconciliation: ReconciliationService,
-    private readonly paymentsService: PaymentsService,
-    private readonly registrationsService: RegistrationsService,
+    @Inject(OutboxMetricsService) private readonly outboxMetrics: OutboxMetricsService,
+    @Inject(ReconciliationService) private readonly reconciliation: ReconciliationService,
+    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(RegistrationsService) private readonly registrationsService: RegistrationsService,
+    @Inject(ObservabilityMetricsService)
     private readonly observabilityMetrics: ObservabilityMetricsService,
-    private readonly tenantAbuseMetrics: TenantAbuseMetricsService,
+    @Inject(TenantAbuseMetricsService) private readonly tenantAbuseMetrics: TenantAbuseMetricsService,
+    @Inject(TenantUsageMeteringService)
     private readonly tenantUsageMetering: TenantUsageMeteringService
   ) {}
 
@@ -118,6 +121,10 @@ export class OpsController {
   healthSnapshot(): {
     outbox: { pending: number; failed: number };
     capacity: { driftDetected: boolean; lastReconciliationAt: string | null };
+    paymentFinance: {
+      lastRunAt: string | null;
+      criticalFindingsInLastRun: number;
+    };
     waitlist: { promotedInLastRun: number };
     payments: {
       timedOut: number;
@@ -165,6 +172,10 @@ export class OpsController {
       capacity: {
         driftDetected: r.lastRunHadDrift,
         lastReconciliationAt: r.lastReconciliationAt
+      },
+      paymentFinance: {
+        lastRunAt: r.lastPaymentFinanceReconciliationAt,
+        criticalFindingsInLastRun: r.lastPaymentFinanceCriticalFindings
       },
       waitlist: {
         promotedInLastRun: r.promotedInLastRun

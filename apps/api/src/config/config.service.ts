@@ -350,6 +350,13 @@ export class ConfigService {
     };
   }
 
+  getTenantRateLimitHostProbeConfig(): { windowMs: number; perIp: number } {
+    return {
+      windowMs: this.env.TENANT_RATE_LIMIT_HOST_PROBE_WINDOW_MS,
+      perIp: this.env.TENANT_RATE_LIMIT_HOST_PROBE_PER_IP
+    };
+  }
+
   getTenantRateLimitJobConfig(): { windowMs: number; perTenant: number } {
     return {
       windowMs: this.env.TENANT_RATE_LIMIT_JOB_WINDOW_MS,
@@ -393,7 +400,22 @@ export class ConfigService {
     return (this.env.ZIBAL_CALLBACK_URL ?? "").trim();
   }
 
-  getPaymentGatewayIdempotencyStore(): "redis" | "memory" {
+  getPaymentGatewayIdempotencyStore(): "redis" | "memory" | "postgres" {
     return this.env.PAYMENT_GATEWAY_IDEMPOTENCY_STORE;
+  }
+
+  getPaymentFinanceReconciliationLookbackDays(): number {
+    return this.env.PAYMENT_FINANCE_RECONCILIATION_LOOKBACK_DAYS;
+  }
+
+  /**
+   * Legacy catalog math (`computeLegacyCatalogQuote`) + shadow diff logs: **archive-only** diagnostics.
+   * Production always returns `off` so orchestration uses a single finance quote path only.
+   */
+  getFinanceLegacyPricingDiagnosticsMode(): "off" | "archive" {
+    if (this.env.NODE_ENV === "production") {
+      return "off";
+    }
+    return this.env.FINANCE_LEGACY_PRICING_DIAGNOSTICS;
   }
 }

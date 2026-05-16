@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { UserRole } from "../../../src/common/auth/user-role.enum";
 import {
   evaluateGeneralMembershipRoleChange,
   evaluateWorkspaceInviteRole,
@@ -14,13 +15,13 @@ import {
 } from "../../../src/common/rbac/workspace-membership-rbac.policy";
 
 test("normalize maps legacy operator to member", () => {
-  assert.equal(normalizeWorkspaceMembershipRole("operator"), "member");
+  assert.equal(normalizeWorkspaceMembershipRole("operator"), UserRole.Member);
 });
 
 test("leader rank is persisted and participates in normalization", () => {
-  assert.equal(WORKSPACE_MEMBERSHIP_ROLE_RANK.leader, 4);
+  assert.equal(WORKSPACE_MEMBERSHIP_ROLE_RANK[UserRole.Leader], 4);
   assert.equal(getWorkspaceMembershipRoleRank("leader"), 4);
-  assert.equal(normalizeWorkspaceMembershipRole("leader"), "leader");
+  assert.equal(normalizeWorkspaceMembershipRole("leader"), UserRole.Leader);
 });
 
 test("evaluateGeneralMembershipRoleChange forbids self", () => {
@@ -94,11 +95,12 @@ test("evaluateGeneralMembershipRoleChange admin can set member to viewer", () =>
 });
 
 test("GENERAL_PATCH_ASSIGNABLE_ROLES excludes owner", () => {
-  assert.equal((GENERAL_PATCH_ASSIGNABLE_ROLES as readonly string[]).includes("owner"), false);
+  const allowed = new Set<UserRole>([...GENERAL_PATCH_ASSIGNABLE_ROLES]);
+  assert.equal(allowed.has(UserRole.Owner), false);
 });
 
 test("GENERAL_PATCH_ASSIGNABLE_ROLES includes leader", () => {
-  assert.equal((GENERAL_PATCH_ASSIGNABLE_ROLES as readonly string[]).includes("leader"), true);
+  assert.equal(GENERAL_PATCH_ASSIGNABLE_ROLES.includes(UserRole.Leader), true);
 });
 
 test("evaluateGeneralMembershipRoleChange owner can promote admin to leader", () => {

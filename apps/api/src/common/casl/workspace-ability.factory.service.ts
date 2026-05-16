@@ -1,10 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   defineAbilityFor,
   type AppAbility,
   type UserAbilityContext,
   type UserAbilityMembershipStatus
-} from "@repo/shared-rbac";
+} from "@repo/shared";
 import { RequestContextService } from "../request-context/request-context.service";
 
 /**
@@ -13,7 +13,7 @@ import { RequestContextService } from "../request-context/request-context.servic
  */
 @Injectable()
 export class WorkspaceAbilityFactoryService {
-  constructor(private readonly requestContext: RequestContextService) {}
+  constructor(@Inject(RequestContextService) private readonly requestContext: RequestContextService) {}
 
   /**
    * Returns an ability for the authenticated workspace actor.
@@ -34,12 +34,18 @@ export class WorkspaceAbilityFactoryService {
       (this.requestContext.tryGetWorkspaceMembershipStatus() as UserAbilityMembershipStatus | undefined) ??
       "ACTIVE";
     const labels = this.requestContext.tryGetAbilityLabels() ?? null;
+    const capabilities = this.requestContext.tryGetWorkspaceCapabilities() ?? null;
+    const tenantModules = this.requestContext.tryGetTenantEnabledModules() ?? null;
+    const membershipMetadata = this.requestContext.tryGetMembershipMetadata();
 
     const ctx: UserAbilityContext = {
       id,
       role,
       status,
-      labels
+      labels,
+      capabilities,
+      tenantModules,
+      membershipMetadata,
     };
     return defineAbilityFor(ctx);
   }

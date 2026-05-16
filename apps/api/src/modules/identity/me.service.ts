@@ -99,6 +99,7 @@ export class MeService {
     if (trimmed === "") {
       return null;
     }
+    // tenant-isolation:qb-exempt — global email lookup; tenant membership enforced separately.
     return repo
       .createQueryBuilder("u")
       .where("LOWER(TRIM(u.email)) = LOWER(TRIM(:email))", { email: trimmed })
@@ -342,6 +343,7 @@ export class MeService {
 
         await this.persistUserProfileOrNationalIdConflict(repo, u);
 
+        // tenant-isolation:qb-exempt — tokens keyed by authenticated user_id within tenant-scoped transaction.
         await manager
           .createQueryBuilder()
           .delete()
@@ -509,6 +511,7 @@ export class MeService {
     normalizedPhone: string,
     excludeUserId: string
   ): Promise<UserEntity | null> {
+    // tenant-isolation:qb-exempt — global phone uniqueness probe; caller holds tenant-scoped auth context.
     return this.userRepository
       .createQueryBuilder("u")
       .where("u.deleted_at IS NULL")

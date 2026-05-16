@@ -15,6 +15,11 @@ import { OutboxProcessor } from "../../modules/outbox/outbox.processor";
  * (same semantics as the historical {@link OutboxProcessor} timer, moved here for a clear
  * **worker** boundary vs enqueue helpers).
  *
+ * **Activation:** the interval runs only when {@link ConfigService.shouldRunSchedulers}
+ * is true **and** {@link ConfigService.getOutboxProcessorEnabled} is not `false` (env
+ * `OUTBOX_PROCESSOR_ENABLED`, default `true`). API-only deployments (`APP_RUNTIME_ROLE=api`)
+ * skip schedulers — run a **worker** process or `all` for dispatch.
+ *
  * Downstream handlers remain idempotent — redelivery is expected after crashes.
  */
 @Injectable()

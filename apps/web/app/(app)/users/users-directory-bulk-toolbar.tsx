@@ -5,10 +5,16 @@ import { Button, Card, CardBody, Select } from "@tour/ui";
 import { AbilityAction } from "@/lib/casl/ability-actions";
 import { useAbility } from "@/lib/casl/ability-provider";
 
+import { UserRole } from "@/lib/auth/user-role";
+
 import styles from "./users-page.module.css";
 import { USERS_ROUTE_COPY } from "./users-copy";
 
-export type BulkAssignableRole = "leader" | "admin" | "member" | "viewer";
+export type BulkAssignableRole =
+  | typeof UserRole.Leader
+  | typeof UserRole.Admin
+  | typeof UserRole.Member
+  | typeof UserRole.Viewer;
 const copy = USERS_ROUTE_COPY.list;
 
 type UsersDirectoryBulkToolbarProps = {
@@ -64,10 +70,10 @@ export function UsersDirectoryBulkToolbar({
                 onChange={(event) => onSelectedRoleChange(event.target.value as "" | BulkAssignableRole)}
               >
                 <option value="">{copy.bulkChangeRolePlaceholder}</option>
-                <option value="leader">Leader</option>
-                <option value="admin">Admin</option>
-                <option value="member">Member</option>
-                <option value="viewer">Viewer</option>
+                <option value={UserRole.Leader}>Leader</option>
+                <option value={UserRole.Admin}>Admin</option>
+                <option value={UserRole.Member}>Member</option>
+                <option value={UserRole.Viewer}>Viewer</option>
               </Select>
             </label>
             <Button type="button" variant="ghost" onClick={onClearSelection}>

@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 import { after, before, beforeEach, test } from "node:test";
 import { INestApplication } from "@nestjs/common";
 import { DataSource } from "typeorm";
@@ -26,6 +27,9 @@ import {
 } from "../../src/modules/registrations/registration.entity";
 import { WaitlistItemEntity, WaitlistItemStatus } from "../../src/modules/registrations/waitlist-item.entity";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
+import { TourProductEntity } from "../../src/modules/tours/entities/tour-product.entity";
+import { TourDepartureEntity } from "../../src/modules/tours/entities/tour-departure.entity";
+import type { TourTransportMode } from "../../src/modules/tours/tour-transport-modes";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
@@ -107,15 +111,45 @@ async function seedE2eTenant(ds: DataSource): Promise<void> {
 }
 
 async function createTour(totalCapacity: number): Promise<TourEntity> {
+  const tourId = randomUUID();
+  const listMinor = "250000";
+  const currency = "IRR";
+
+  const product = await dataSource.getRepository(TourProductEntity).save(
+    dataSource.getRepository(TourProductEntity).create({
+      tenantId: TENANT_ID,
+      title: `reg-e2e-product-${tourId.slice(0, 8)}`
+    })
+  );
+
+  await dataSource.getRepository(TourDepartureEntity).save(
+    dataSource.getRepository(TourDepartureEntity).create({
+      id: tourId,
+      tourProductId: product.id,
+      tenantId: TENANT_ID,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      capacityTotal: totalCapacity,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      startsOn: "2030-06-01"
+    })
+  );
+
   const repo = dataSource.getRepository(TourEntity);
   return repo.save(
     repo.create({
+      id: tourId,
       tenantId: TENANT_ID,
       title: `tour-${randomUUID()}`,
       totalCapacity,
       acceptedCount: 0,
       lifecycleStatus: TourLifecycleStatus.OPEN,
-      costContext: { requiresPayment: true }
+      costContext: { requiresPayment: true },
+      tourProductId: product.id,
+      tourDepartureId: tourId,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      transportModes: ["bus"] as TourTransportMode[]
     })
   );
 }
@@ -126,6 +160,7 @@ async function publicRegister(
 ): Promise<request.Response> {
   return request(app.getHttpServer())
     .post(`/api/v2/tours/${tourId}/register`)
+    .set("idempotency-key", `e2e-reg-${tourId}-${index}-${randomUUID()}`)
     .send({
       tourId,
       participantFullName: `User ${index}`,
@@ -164,6 +199,24 @@ after(async () => {
   if (container) {
     await container.stop();
   }
+});
+
+test("public register without Idempotency-Key is rejected", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(2);
+  const res = await request(app.getHttpServer())
+    .post(`/api/v2/tours/${tour.id}/register`)
+    .send({
+      tourId: tour.id,
+      participantFullName: "No Key User",
+      participantContactPhone: "+989120009001",
+      transportMode: "group_vehicle",
+      entryMode: "web"
+    });
+  assert.equal(res.status, 400);
+  assert.equal(res.body?.error?.code, "VALIDATION_REQUIRED_FIELD_MISSING");
 });
 
 test("paid registration success updates status to AcceptedPaid", async () => {
@@ -224,12 +277,16 @@ test("cancelling accepted registration promotes waitlist user", async () => {
     {
       requestId: randomUUID(),
       tenantId: TENANT_ID,
-      userId: "system-user",
+      userId: randomUUID(),
       role: UserRole.Owner
     },
     async () => {
+      const reg = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
+        id: firstRegistrationId
+      });
       await registrationsService.updateRegistrationStatus(firstRegistrationId, {
-        targetStatus: RegistrationStatus.CANCELLED
+        targetStatus: RegistrationStatus.CANCELLED,
+        expected_row_version: reg.rowVersion
       });
     }
   );
@@ -313,6 +370,9 @@ test("duplicate webhook event is deduplicated and remains 200", async () => {
     status: "Paid"
   });
   assert.equal(first.status, 200);
+
+  // Replay guard keys on (timestamp, signature); identical body in the same Unix second yields the same HMAC.
+  await sleep(1100);
 
   const second = await postSignedPaymentWebhook({
     tenant_id: TENANT_ID,

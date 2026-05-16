@@ -21,6 +21,35 @@ jobs:
       - name: Tenant isolation guardrails
         run: node scripts/check-tenant-isolation-guardrails.mjs
 
+  tenant-security-static-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Phase 7 tenant security (static + unit)
+        run: node scripts/verify-phase-7-tenant-security.mjs
+
+      - name: Six Lock static checks (no live API required)
+        run: node scripts/verify-six-lock-gate.mjs --static-only
+
+      - name: Security baseline (CSRF/CORS/cookie static)
+        run: node scripts/verify-security-baseline.mjs
+
+      - name: Production env template (CORS/cookie docs in .env.example)
+        run: node scripts/verify-production-env-template.mjs
+
   tour-domain-guardrails:
     runs-on: ubuntu-latest
     steps:
@@ -34,3 +63,177 @@ jobs:
 
       - name: Tour domain guardrails (no EventKind in api tours module or wizard scope)
         run: node scripts/check-tour-domain-guardrails.mjs
+
+  security-ci-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Security CI guardrails (mutation RBAC scan)
+        run: node scripts/check-security-mutation-guardrails.mjs
+
+  capability-registry-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Capability registry mirror parity (@repo/shared-contracts)
+        run: node scripts/check-capability-registry-parity.mjs
+
+  tour-rbac-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: corepack enable && pnpm install --frozen-lockfile
+
+      - name: Build shared packages for parity tests
+        run: pnpm --filter @repo/types run build && pnpm --filter @repo/shared run build
+
+      - name: Tour governance (Phase 9 — parity + registry audit)
+        run: node scripts/run-tour-governance.mjs --tests
+
+  public-registration-idempotency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Public registration idempotency (no bypass of Idempotency-Key)
+        run: node scripts/check-public-registration-idempotency.mjs
+
+  ledger-money-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Ledger-only money (no direct paidAmount assignment)
+        run: node scripts/check-ledger-only-money.mjs
+
+  ledger-double-entry-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Ledger double-entry (postDoubleEntryJournal writers allowlist)
+        run: node scripts/check-ledger-double-entry-writers.mjs
+
+  finance-boundary-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Finance boundary (no tours/registrations/identity imports under finance/)
+        run: node scripts/check-finance-boundary-isolation.mjs
+
+  finance-transactional-outbox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Finance transactional outbox (no direct enqueueOutboxEvent under finance/)
+        run: node scripts/check-finance-transactional-outbox.mjs
+
+  finance-multi-tenant-ledger-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Finance ledger tenant scope (emit / reconciliation / wallet)
+        run: node scripts/check-finance-multi-tenant-ledger-isolation.mjs
+
+  finance-invoice-immutability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Finance invoicing (pure derived artifacts — no persistence/outbox)
+        run: node scripts/check-finance-invoice-immutability.mjs
+
+  ledger-append-only-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Ledger append-only (no update/delete patterns)
+        run: node scripts/check-ledger-append-only.mjs
+
+  infrastructure-debt-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Infrastructure closure (debt, ingress, errors, registry, nginx example, log sample)
+        run: node scripts/run-infrastructure-closure-verify.mjs

@@ -13,9 +13,6 @@ import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetail
 
 import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "@/lib/services/tours.service";
 
-/** @deprecated Use {@link apiLifecycleToFormStatus} from `@/components/tours/tour-lifecycle`. */
-export const apiLifecycleToUi = apiLifecycleToFormStatus;
-
 export { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 
 /**

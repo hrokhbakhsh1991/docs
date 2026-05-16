@@ -7,7 +7,8 @@ export type TourProfileInvariantRejectedPayload = {
   readonly op:
     | "create_tour_invariants"
     | "persisted_trip_details_validate"
-    | "incoming_trip_details_patch_fragment";
+    | "incoming_trip_details_patch_fragment"
+    | "update_tour_publish";
   readonly tenant_id: string;
   readonly tour_id?: string;
   readonly resolved_form_profile: TourFormProfile;

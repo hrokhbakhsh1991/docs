@@ -45,7 +45,12 @@ export class AppController {
   @Get("health/ready")
   async healthReady() {
     try {
-      await this.dataSource.query("SELECT 1 AS ok");
+      await this.requestContextService.runWithoutTenantBinding(
+        "health_ready_probe",
+        async () => {
+          await this.dataSource.query("SELECT 1 AS ok");
+        },
+      );
       return { status: "ready" };
     } catch {
       throw new ServiceUnavailableException({

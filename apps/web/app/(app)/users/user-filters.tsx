@@ -3,7 +3,7 @@
 import { Can } from "@casl/react";
 import { Button, FormField, Input, Select } from "@tour/ui";
 
-import type { AppAbility } from "@repo/shared-rbac";
+import type { AppAbility } from "@repo/shared";
 
 import { AbilityAction } from "@/lib/casl/ability-actions";
 import { useAbility } from "@/lib/casl/ability-provider";

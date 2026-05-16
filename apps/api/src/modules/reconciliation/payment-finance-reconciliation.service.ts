@@ -23,6 +23,7 @@ import {
 import { ReconciliationJobKind } from "../finance/reconciliation/reconciliation-job-kind";
 import { ReconciliationStatus } from "../finance/reconciliation/reconciliation-status";
 import { TenantEntity } from "../identity/entities/tenant.entity";
+import { ReconciliationFindingsService } from "./reconciliation-findings.service";
 
 export type PaymentFinanceReconciliationSnapshot = {
   lastRunAt: string | null;
@@ -57,10 +58,13 @@ export class PaymentFinanceReconciliationService {
   constructor(
     @InjectRepository(TenantEntity)
     private readonly tenantRepository: Repository<TenantEntity>,
-    private readonly tenantDbContext: TenantDbContextService,
+    @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
+    @Inject(TenantUsageMeteringService)
     private readonly tenantUsageMeteringService: TenantUsageMeteringService,
-    private readonly tenantRateLimitService: TenantRateLimitService,
-    private readonly configService: ConfigService,
+    @Inject(TenantRateLimitService) private readonly tenantRateLimitService: TenantRateLimitService,
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(ReconciliationFindingsService)
+    private readonly reconciliationFindings: ReconciliationFindingsService,
     @Inject(RECONCILIATION_JOB_ALERT_HOOKS)
     private readonly alertHooks: ReconciliationJobAlertHooks
   ) {}
@@ -141,6 +145,8 @@ export class PaymentFinanceReconciliationService {
             reportId: jobId
           });
           maxCritical = Math.max(maxCritical, report.summary.criticalCount);
+
+          await this.reconciliationFindings.persistForJob(manager, envelopeTenant, jobId, report.findings);
 
           for (const f of report.findings) {
             if (f.triadMismatch) {

@@ -70,7 +70,7 @@ export function UserDirectoryDetailModal({ open, userId, onClose }: UserDirector
 
   const query = useQuery({
     queryKey:
-      userId && open ? userKeys.detail(tenantScope, userId) : [...userKeys.all, "detail-modal", "idle", tenantScope],
+      userId && open ? userKeys.detail(tenantScope, userId) : [...userKeys.all, "detail-modal", "idle", { tenantId: tenantScope }],
     queryFn: () => getUserById(userId!),
     enabled: open && Boolean(userId?.trim()),
     staleTime: 15_000,

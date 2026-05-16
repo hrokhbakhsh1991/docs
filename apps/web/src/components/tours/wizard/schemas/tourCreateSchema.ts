@@ -10,7 +10,11 @@ import {
 import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "@/features/tours/models/tours-new-validation-messages";
 import { inactiveTourCreateRootKeysForProfile } from "@/features/tours/wizard/fieldGroups";
 
-import { mergeTourValidationFlagsForSchema } from "./tourCreateValidationPolicy";
+import {
+  mergeTourValidationFlagsForSchema,
+  tourFormProfileToWizardValidationFlags,
+  type TourCreateWizardValidationFlags,
+} from "./tourCreateValidationPolicy";
 
 const hhmmRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ymdRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -91,37 +95,58 @@ const itinerarySegmentSchema = z
     }
   });
 
-const itineraryDaySchema = z
-  .object({
-    dayNumber: z.number().int().min(1),
-    title: z.string().trim().optional(),
-    description: z.string().trim().optional(),
-    segments: z.array(itinerarySegmentSchema).min(1, "هر روز باید حداقل یک بخش داشته باشد."),
-  })
-  .superRefine((day, ctx) => {
-    const vf = mergeTourValidationFlagsForSchema();
-    if (!vf.relaxItineraryMinDays && !(day.title ?? "").trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "عنوان روز الزامی است.",
-        path: ["title"],
-      });
-    }
-  });
-
-export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
-  const inactiveRoots = new Set(inactiveTourCreateRootKeysForProfile(profile));
-
+function buildItineraryDaySchemaForProfile(getVf: () => TourCreateWizardValidationFlags) {
   return z
-  .object({
-    /** وقتی true باشد، ثبت‌نام بدون تأیید دستی مستقیماً به وضعیت پذیرفته‌شده می‌رود (مگر جریان پرداخت متفاوت تعریف شود). */
-    autoAcceptRegistrations: z.boolean().optional(),
-    overview: z.object({
-      title: z
+    .object({
+      dayNumber: z.number().int().min(1),
+      title: z.string().trim().optional(),
+      description: z.string().trim().optional(),
+      segments: z.array(itinerarySegmentSchema).min(1, "هر روز باید حداقل یک بخش داشته باشد."),
+    })
+    .superRefine((day, ctx) => {
+      const vf = getVf();
+      if (!vf.relaxItineraryMinDays && !(day.title ?? "").trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "عنوان روز الزامی است.",
+          path: ["title"],
+        });
+      }
+    });
+}
+
+export function buildTourCreateSchemaForFormProfile(
+  profile: TourFormProfile,
+  options?: {
+    strictUnknownKeys?: boolean;
+    useProfileDerivedValidationFlags?: boolean;
+    /**
+     * `submit`: full wizard completeness (default). `draft`: post-merge / RHF-shaped state — strict keys
+     * and profile-aware refinements, but omits submit-time completeness (title length, descriptions,
+     * logistics primary when the logistics group is active).
+     */
+    tourWizardValidationMode?: "submit" | "draft";
+  },
+) {
+  const inactiveRoots = new Set(inactiveTourCreateRootKeysForProfile(profile));
+  const profileDerivedVf = options?.useProfileDerivedValidationFlags === true ? tourFormProfileToWizardValidationFlags(profile) : null;
+  const getVf = (): TourCreateWizardValidationFlags => profileDerivedVf ?? mergeTourValidationFlagsForSchema();
+  const itineraryDayResolved = buildItineraryDaySchemaForProfile(getVf);
+  const isDraftMode = options?.tourWizardValidationMode === "draft";
+
+  const overviewTitleSchema = isDraftMode
+    ? z.string().trim().max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`)
+    : z
         .string()
         .trim()
         .min(TOUR_TITLE_MIN_LENGTH, `عنوان باید حداقل ${TOUR_TITLE_MIN_LENGTH} نویسه باشد.`)
-        .max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`),
+        .max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`);
+
+  const tourWizardRoot = z.object({
+    /** وقتی true باشد، ثبت‌نام بدون تأیید دستی مستقیماً به وضعیت پذیرفته‌شده می‌رود (مگر جریان پرداخت متفاوت تعریف شود). */
+    autoAcceptRegistrations: z.boolean().optional(),
+    overview: z.object({
+      title: overviewTitleSchema,
       slug: z.string().trim().optional(),
       mainTourThemeId: optionalOverviewUuid,
       secondaryTourThemeIds: z.array(z.string().uuid()).optional(),
@@ -154,7 +179,7 @@ export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
       displayLocation: z.string().trim().optional(),
     }),
     itinerary: z.object({
-      days: z.array(itineraryDaySchema),
+      days: z.array(itineraryDayResolved),
     }),
     participation: z.object({
       requiredExperienceLevel: z.string().trim().optional(),
@@ -215,9 +240,10 @@ export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
       weatherPolicy: z.string().trim().optional(),
       reservationRules: z.string().trim().optional(),
     }),
-  })
-  .superRefine((values, ctx) => {
-    const vf = mergeTourValidationFlagsForSchema();
+  });
+  const branch = options?.strictUnknownKeys ? tourWizardRoot.strict() : tourWizardRoot;
+  return branch.superRefine((values, ctx) => {
+    const vf = getVf();
 
     if (!inactiveRoots.has("itinerary") && !vf.relaxItineraryMinDays && values.itinerary.days.length < 1) {
       ctx.addIssue({
@@ -229,7 +255,7 @@ export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
 
     const shortText = (values.overview.shortDescription ?? "").trim();
     const longText = (values.overview.longDescription ?? "").trim();
-    if (!shortText && !longText) {
+    if (!isDraftMode && !shortText && !longText) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "حداقل یکی از توضیح کوتاه یا توضیح کامل باید وارد شود.",
@@ -388,7 +414,7 @@ export function buildTourCreateSchemaForFormProfile(profile: TourFormProfile) {
       });
     }
 
-    if (!inactiveRoots.has("logistics")) {
+    if (!inactiveRoots.has("logistics") && !isDraftMode) {
       if (!vf.relaxLogisticsPrimary && !values.logistics.primaryTransportMode) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

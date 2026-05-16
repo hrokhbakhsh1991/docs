@@ -11,12 +11,16 @@ import { PaymentEntity } from "../payments/entities/payment.entity";
 import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { OutboxEventEntity } from "../../common/outbox/entities/outbox-event.entity";
+import { ReconciliationFindingEntity } from "../finance/reconciliation/entities/reconciliation-finding.entity";
 import { ReconciliationJobEntity } from "../finance/reconciliation/entities/reconciliation-job.entity";
+import { UserEntity } from "../identity/entities/user.entity";
 import {
   LoggingReconciliationJobAlertHooks,
   RECONCILIATION_JOB_ALERT_HOOKS
 } from "../finance/reconciliation/reconciliation-job-alert-hooks";
 import { PaymentFinanceReconciliationService } from "./payment-finance-reconciliation.service";
+import { ReconciliationFindingsController } from "./reconciliation-findings.controller";
+import { ReconciliationFindingsService } from "./reconciliation-findings.service";
 import { ReconciliationProcessor } from "./reconciliation.processor";
 import { ReconciliationService } from "./reconciliation.service";
 
@@ -28,7 +32,9 @@ import { ReconciliationService } from "./reconciliation.service";
       BookingPriceSnapshotEntity,
       RegistrationEntity,
       OutboxEventEntity,
-      ReconciliationJobEntity
+      ReconciliationJobEntity,
+      ReconciliationFindingEntity,
+      UserEntity
     ]),
     DatabaseModule,
     TenantUsageModule,
@@ -43,10 +49,12 @@ import { ReconciliationService } from "./reconciliation.service";
       provide: RECONCILIATION_JOB_ALERT_HOOKS,
       useExisting: LoggingReconciliationJobAlertHooks
     },
+    ReconciliationFindingsService,
     PaymentFinanceReconciliationService,
     ReconciliationService,
     ReconciliationProcessor
   ],
+  controllers: [ReconciliationFindingsController],
   exports: [ReconciliationService]
 })
 export class ReconciliationModule {}

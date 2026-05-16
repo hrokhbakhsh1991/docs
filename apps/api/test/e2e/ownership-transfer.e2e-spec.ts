@@ -15,7 +15,7 @@ import {
 } from "./jwt-test-keys";
 import { resetTestDatabaseWithMigrations } from "./reset-test-database";
 import { webSessionOtpToken } from "./web-session-otp.helper";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
@@ -99,8 +99,8 @@ before(async () => {
   ownerId = owner.id;
   adminId = admin.id;
   await membershipRepo.save([
-    membershipRepo.create({ tenantId: TENANT_ID, userId: ownerId, role: Role.OWNER }),
-    membershipRepo.create({ tenantId: TENANT_ID, userId: adminId, role: Role.ADMIN })
+    membershipRepo.create({ tenantId: TENANT_ID, userId: ownerId, role: UserRole.Owner }),
+    membershipRepo.create({ tenantId: TENANT_ID, userId: adminId, role: UserRole.Admin })
   ]);
   ownerToken = await loginOwner();
 });

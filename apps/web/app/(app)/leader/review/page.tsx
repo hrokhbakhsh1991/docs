@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 
-import { LeaderReviewClient } from "./leader-review-client";
+import { LoadingState } from "@tour/ui";
+
+const LeaderReviewClient = dynamic(
+  () => import("./leader-review-client").then((m) => m.LeaderReviewClient),
+  {
+    ssr: false,
+    loading: () => <LoadingState message="Loading review queue…" />,
+  },
+);
 
 export const metadata: Metadata = {
   title: "Leader review dashboard",

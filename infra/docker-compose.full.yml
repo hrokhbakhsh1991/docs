@@ -9,6 +9,7 @@
 
 include:
   - path: docker-compose.yml
+  - path: docker-compose.observability.yml
 
 services:
   api:

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { UserRole } from "../../src/common/auth/user-role.enum";
+import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
+import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
   RegistrationEntity,
@@ -9,11 +11,16 @@ import {
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
+import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
+import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 
 type MockManager = {
   findOne: (entity: unknown, options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
     Promise<RegistrationEntity | null>;
   save: (entity: RegistrationEntity) => Promise<RegistrationEntity>;
+  exists: (entity: unknown, options: { where: Record<string, unknown> }) => Promise<boolean>;
+  update: (entity: unknown, where: unknown, values: unknown) => Promise<{ affected: number; raw: unknown[]; generatedMaps: unknown[] }>;
+  count: (entity: unknown, options: unknown) => Promise<number>;
 };
 
 function createServiceWithState(initial: RegistrationEntity | null): {
@@ -57,6 +64,16 @@ function createServiceWithState(initial: RegistrationEntity | null): {
         updatedAt: new Date()
       };
       return current;
+    },
+    async exists(): Promise<boolean> {
+      // No snapshots or payments in this harness — snapshot guard short-circuits.
+      return false;
+    },
+    async update() {
+      return { affected: 1, raw: [], generatedMaps: [] };
+    },
+    async count() {
+      return 0;
     }
   };
 
@@ -78,6 +95,9 @@ function createServiceWithState(initial: RegistrationEntity | null): {
     },
     getRole(): UserRole {
       return UserRole.Owner;
+    },
+    getRequestId(): string {
+      return "test-request-id";
     }
   };
   const outboxService = {
@@ -90,7 +110,11 @@ function createServiceWithState(initial: RegistrationEntity | null): {
     dataSource as never,
     {} as never,
     requestContextService as never,
-    outboxService as never
+    outboxService as never,
+    stubRegistrationQuoteApplication,
+    createNullStandaloneRegistrationsReadTestDouble(),
+    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
+    {} as never // PricingEngineService stub
   );
 
   return {

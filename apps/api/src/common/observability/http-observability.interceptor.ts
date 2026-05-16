@@ -12,6 +12,7 @@ import type { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { LoggerService } from "../logger/logger.service";
 import { RequestContextService } from "../request-context/request-context.service";
+import { requestContextStorage } from "../request-context/request-context";
 
 type ExpressRouteRequest = Request & {
   route?: { path?: string };
@@ -52,6 +53,9 @@ export class HttpObservabilityInterceptor implements NestInterceptor {
       if (logCtx.request_id) {
         span.setAttribute("request_id", logCtx.request_id);
       }
+      if (logCtx.correlation_id) {
+        span.setAttribute("correlation_id", logCtx.correlation_id);
+      }
       if (logCtx.route && logCtx.route !== "") {
         span.setAttribute("route", logCtx.route);
       }
@@ -66,12 +70,24 @@ export class HttpObservabilityInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: () => {
-          const res = nestCtx.switchToHttp().getResponse<{ statusCode?: number }>();
+          const res = nestCtx.switchToHttp().getResponse<{ statusCode?: number; setHeader?: (n: string, v: string) => void }>();
+          const durationMs = Date.now() - started;
+          if (typeof res.setHeader === "function") {
+            res.setHeader("x-api-latency", String(durationMs));
+            const dbMs = requestContextStorage.getStore()?.dbDurationMs;
+            if (dbMs !== undefined && dbMs > 0) {
+              res.setHeader("x-db-latency", String(Math.round(dbMs)));
+            }
+          }
+          const logCtx = this.requestContextService.tryGetStructuredLogContext();
           this.loggerService.debug("http_request_completed", {
             status_code: res.statusCode ?? 0,
-            duration_ms: Date.now() - started,
+            duration_ms: durationMs,
             route: routeTemplate || (typeof req.path === "string" ? req.path : undefined),
-            method: typeof req.method === "string" ? req.method : undefined
+            method: typeof req.method === "string" ? req.method : undefined,
+            ...(logCtx?.traceparent ? { traceparent: logCtx.traceparent } : {}),
+            ...(logCtx?.db_duration_ms ? { db_duration_ms: logCtx.db_duration_ms } : {}),
+            ...(logCtx?.db_span_count ? { db_span_count: logCtx.db_span_count } : {})
           });
         }
       })

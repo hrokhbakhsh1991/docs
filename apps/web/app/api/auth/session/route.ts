@@ -2,22 +2,14 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { decodeJwtPayload } from "@/lib/auth/decode-jwt-payload";
+import {
+  buildClearSessionCookieOptions,
+  buildSessionCookieOptions,
+} from "@/lib/auth/build-session-cookie";
 import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
 
-function secureCookieEnabled(): boolean {
-  return process.env.NODE_ENV === "production";
-}
-
 function clearCookie(response: NextResponse): NextResponse {
-  response.cookies.set({
-    name: SESSION_TOKEN_COOKIE,
-    value: "",
-    path: "/",
-    httpOnly: true,
-    sameSite: "strict",
-    secure: secureCookieEnabled(),
-    expires: new Date(0)
-  });
+  response.cookies.set(buildClearSessionCookieOptions());
   return response;
 }
 
@@ -61,16 +53,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     authenticated: true,
     session_token: token,
     user_id: userId,
-    tenant_id: tenantId
+    tenant_id: tenantId,
   });
-  response.cookies.set({
-    name: SESSION_TOKEN_COOKIE,
-    value: token,
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: secureCookieEnabled()
-  });
+  response.cookies.set(buildSessionCookieOptions({ token }));
   return response;
 }
 

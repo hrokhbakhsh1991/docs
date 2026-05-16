@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { AppController } from "./app.controller";
@@ -9,6 +9,7 @@ import {
 } from "./common/throttling/public-registration-throttle";
 import { DatabaseModule } from "./database/database.module";
 import { LoggerModule } from "./common/logger/logger.module";
+import { EventsModule } from "./common/events/events.module";
 import { ObservabilityModule } from "./common/observability/observability.module";
 import { RequestContextModule } from "./common/request-context/request-context.module";
 import { CaslModule } from "./common/casl/casl.module";
@@ -24,6 +25,7 @@ import { ToursModule } from "./modules/tours/tours.module";
 import { OutboxModule } from "./modules/outbox/outbox.module";
 import { OpsModule } from "./modules/ops/ops.module";
 import { SettingsLocationsModule } from "./modules/settings-locations/settings-locations.module";
+import { SafetyProfileModule } from "./modules/safety-profile/safety-profile.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ReconciliationModule } from "./modules/reconciliation/reconciliation.module";
 import { JobSchedulerModule } from "./jobs/job-scheduler.module";
@@ -84,6 +86,7 @@ import { OtpModule } from "./modules/auth/otp.module";
     RequestContextModule,
     CaslModule,
     LoggerModule,
+    EventsModule,
     ObservabilityModule,
     AuditModule,
     TenantModule,
@@ -98,9 +101,14 @@ import { OtpModule } from "./modules/auth/otp.module";
     PaymentsModule,
     ReconciliationModule,
     OpsModule,
-    SettingsLocationsModule
+    SettingsLocationsModule,
+    SafetyProfileModule
   ],
   controllers: [AppController],
   providers: [AuthMiddleware, TenantGuardMiddleware]
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(TenantGuardMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
+  }
+}

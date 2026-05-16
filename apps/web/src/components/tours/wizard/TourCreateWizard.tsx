@@ -49,9 +49,11 @@ import {
   type ValidationResult,
 } from "@/features/tours/wizard/profileRules";
 import { type TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
+import { resolveTenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
 import { emitTourWizardAnalytics } from "@/features/tours/wizard/tourWizardAnalytics";
 import { emitWizardRulesValidationFailure } from "@/features/tours/observability/tourProfileObservability";
 import { TourWizardProfileProvider, useTourWizardProfile } from "@/features/tours/wizard/TourWizardProfileContext";
+import { useAuth } from "@/lib/auth/auth-context";
 import {
   parseWizardDraftRecord,
   serializeWizardDraft,
@@ -260,6 +262,11 @@ function TourCreateWizardShell({
 }) {
   const t = useTranslations("tours.new");
   const router = useRouter();
+  const { user } = useAuth();
+  const tenantFormContract = useMemo(
+    () => resolveTenantTourFormContract(user?.tenantModules),
+    [user?.tenantModules],
+  );
   const themesQuery = useSettingsTourThemes();
   const presetsQuery = useSettingsTourPresets();
   const [currentStep, setCurrentStep] = useState(0);
@@ -616,14 +623,21 @@ function TourCreateWizardShell({
     () => ({
       resolvedProfile,
       draftMeta: draftWizardMeta,
+      tenantFormContract,
     }),
-    [draftWizardMeta, resolvedProfile],
+    [draftWizardMeta, resolvedProfile, tenantFormContract],
   );
 
   return (
     <TourWizardProfileProvider value={profileContextValue}>
       <DirtyBeforeUnloadGate />
-      <Card data-testid="tour-create-wizard" title={t("pageTitle")} description={t("cardDescription")}>
+      <Card
+        data-testid="tour-create-wizard"
+        data-tenant-form-contract={tenantFormContract.tenantModules.join(",") || "none"}
+        data-tenant-advanced-trip-details={tenantFormContract.allowAdvancedTripDetails ? "1" : "0"}
+        title={t("pageTitle")}
+        description={t("cardDescription")}
+      >
         <CardBody>
           {showDraftBanner ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.65rem", flexWrap: "wrap" }}>

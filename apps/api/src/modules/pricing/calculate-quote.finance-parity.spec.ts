@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WorkspaceRole } from "@repo/shared-rbac";
+import { WorkspaceRole } from "@repo/shared";
 import type { CatalogPricingSnapshot } from "../finance/pricing/contracts/catalog-pricing-snapshot.dto";
 import { calculateQuote } from "../finance/pricing/calculate-quote";
 import type { PricingLineItem } from "./pricing.types";

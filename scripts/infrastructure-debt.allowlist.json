@@ -1,0 +1,10 @@
+{
+  "directApiClientPaths": [
+    "apps/web/lib/api-client.ts"
+  ],
+  "genericErrorThrowPaths": [
+    "apps/web/lib/auth/auth-context.tsx",
+    "apps/web/lib/api-client.ts"
+  ],
+  "legacyTenantResolverPaths": []
+}

@@ -189,6 +189,9 @@ export function LoginForm() {
         ok?: boolean;
         requires_registration?: boolean;
         onboarding_token?: string;
+        session_token?: string;
+        user_id?: string;
+        tenant_id?: string;
         error_code?: string;
         message?: string;
       };
@@ -212,32 +215,48 @@ export function LoginForm() {
         router.push(`/auth/register?${params.toString()}`);
         return;
       }
-      const sessionPayload = (await fetch("/api/auth/session", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      })
-        .then((r) => r.json())
-        .catch(() => ({}))) as {
-        authenticated?: boolean;
-        session_token?: string;
-        user_id?: string;
-        tenant_id?: string;
-      };
-      if (
-        sessionPayload.authenticated &&
-        typeof sessionPayload.session_token === "string" &&
-        typeof sessionPayload.user_id === "string" &&
-        typeof sessionPayload.tenant_id === "string"
-      ) {
+      const tokenFromLogin =
+        typeof payload.session_token === "string" ? payload.session_token.trim() : "";
+      const userIdFromLogin =
+        typeof payload.user_id === "string" ? payload.user_id.trim() : "";
+      const tenantIdFromLogin =
+        typeof payload.tenant_id === "string" ? payload.tenant_id.trim() : "";
+
+      if (tokenFromLogin && userIdFromLogin && tenantIdFromLogin) {
         await setSession({
-          session_token: sessionPayload.session_token,
-          user_id: sessionPayload.user_id,
-          tenant_id: sessionPayload.tenant_id,
+          session_token: tokenFromLogin,
+          user_id: userIdFromLogin,
+          tenant_id: tenantIdFromLogin,
           entry_mode: "web",
         });
       } else {
-        throw new Error("Session was not established. Please try again.");
+        const sessionPayload = (await fetch("/api/auth/session", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        })
+          .then((r) => r.json())
+          .catch(() => ({}))) as {
+          authenticated?: boolean;
+          session_token?: string;
+          user_id?: string;
+          tenant_id?: string;
+        };
+        if (
+          sessionPayload.authenticated &&
+          typeof sessionPayload.session_token === "string" &&
+          typeof sessionPayload.user_id === "string" &&
+          typeof sessionPayload.tenant_id === "string"
+        ) {
+          await setSession({
+            session_token: sessionPayload.session_token,
+            user_id: sessionPayload.user_id,
+            tenant_id: sessionPayload.tenant_id,
+            entry_mode: "web",
+          });
+        } else {
+          throw new Error("Session was not established. Please try again.");
+        }
       }
       showToast({ type: "success", message: t("login.toastSuccess") });
       void router.refresh();

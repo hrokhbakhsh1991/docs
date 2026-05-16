@@ -45,6 +45,10 @@ export class TenantEntity {
   @Column({ type: "text", name: "description", nullable: true })
   description?: string;
 
+  /** Product modules enabled for this tenant (`finance`, `form_builder`, …). */
+  @Column({ type: "jsonb", name: "enabled_modules", default: () => "'[]'::jsonb" })
+  enabledModules!: string[];
+
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;
 

@@ -99,6 +99,7 @@ export class UsersInviteService {
       });
     }
 
+    // tenant-isolation:qb-exempt — resolve user by phone across tenants; invite still tenant-scoped.
     const targetUser = await this.userRepository
       .createQueryBuilder("u")
       .where("u.deleted_at IS NULL")

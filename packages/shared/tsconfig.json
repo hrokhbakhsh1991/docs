@@ -4,11 +4,11 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "./dist",
-    "rootDir": "./rbac",
+    "rootDir": ".",
     "declaration": true,
     "noEmit": false,
     "verbatimModuleSyntax": false
   },
-  "include": ["rbac/**/*.ts"],
-  "exclude": ["rbac/**/*.spec.ts"]
+  "include": ["index.ts", "errors/**/*.ts", "rbac/**/*.ts"],
+  "exclude": ["**/*.spec.ts"]
 }

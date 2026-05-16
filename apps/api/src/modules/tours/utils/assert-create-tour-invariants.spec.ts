@@ -277,3 +277,94 @@ test("assertIncomingTripDetailsPatchFragment rejects urban transport in request"
     assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_TRANSPORT_NOT_ALLOWED");
   }
 });
+
+test("assertIncomingTripDetailsPatchFragment rejects urban participation in patch", () => {
+  try {
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "urban_event",
+      { participation: { minimumAge: 18 } },
+      undefined,
+    );
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_PHANTOM_PARTICIPATION");
+  }
+});
+
+test("assertIncomingTripDetailsPatchFragment rejects cinema participation in patch", () => {
+  try {
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "cinema_event",
+      { participation: { gearRequiredIds: ["uuid"] } },
+      undefined,
+    );
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_PHANTOM_PARTICIPATION");
+  }
+});
+
+test("assertIncomingTripDetailsPatchFragment rejects urban non-whitelist logistics key in patch", () => {
+  try {
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "urban_event",
+      { logistics: { primaryTransportMode: "bus", fuelShareToman: 1 } },
+      undefined,
+    );
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_LOGISTICS_EXTRA");
+  }
+});
+
+test("assertIncomingTripDetailsPatchFragment rejects urban itinerary.dayPlans in patch", () => {
+  try {
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "urban_event",
+      { itinerary: { dayPlans: [{ dayNumber: 1, title: "day" }] } },
+      undefined,
+    );
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_PHANTOM_ITINERARY");
+  }
+});
+
+test("assertIncomingTripDetailsPatchFragment rejects cinema itinerary.segmentActivities in patch", () => {
+  try {
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "cinema_event",
+      { itinerary: { segmentActivities: [{ dayNumber: 1, segments: [] }] } },
+      undefined,
+    );
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_PHANTOM_ITINERARY");
+  }
+});
+
+test("assertIncomingTripDetailsPatchFragment allows urban whitelist logistics in patch", () => {
+  assert.doesNotThrow(() =>
+    assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
+      "urban_event",
+      {
+        logistics: {
+          departureDate: "2026-06-01",
+          returnDate: "2026-06-02",
+          meetingPoint: "Tehran",
+        },
+      },
+      undefined,
+    ),
+  );
+});

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
+import { buildSessionCookieOptions } from "@/lib/auth/build-session-cookie";
 import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
+import { bffFetch } from "@/lib/api/bff-fetch";
+import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
+
+import { getRequestIdFromHeaders } from "@/lib/api/tracing-utils";
 
 type LoginPayload = {
   phone?: unknown;
@@ -9,15 +13,8 @@ type LoginPayload = {
   invite_token?: unknown;
 };
 
-function resolveBackendUrl(): string {
-  return process.env.TOUR_OPS_API_URL?.trim() || "http://denali.localhost:3001";
-}
-
-function secureCookieEnabled(): boolean {
-  return process.env.NODE_ENV === "production";
-}
-
 export async function POST(req: Request): Promise<NextResponse> {
+  const requestId = getRequestIdFromHeaders(req.headers);
   const body = (await req.json().catch(() => ({}))) as LoginPayload;
   const phone =
     typeof body.phone === "string" ? normalizeOtpPhoneInput(body.phone) : "";
@@ -25,25 +22,39 @@ export async function POST(req: Request): Promise<NextResponse> {
   const inviteToken = typeof body.invite_token === "string" ? body.invite_token.trim() : undefined;
   if (!phone || !otp) {
     return NextResponse.json(
-      { ok: false, error: { code: "INVALID_INPUT", message: "phone and otp are required" } },
-      { status: 400 }
+      {
+        ok: false,
+        error: {
+          code: "INVALID_INPUT",
+          message: "phone and otp are required",
+          ...(requestId ? { requestId } : {}),
+        },
+      },
+      { status: 400 },
     );
   }
 
-  const backendRes = await fetch(`${resolveBackendUrl()}/api/v2/auth/web/session/otp`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      host: req.headers.get("host") ?? ""
-    },
-    body: JSON.stringify({ phone, otp, ...(inviteToken ? { invite_token: inviteToken } : {}) }),
-    cache: "no-store"
-  }).catch(() => null);
-
-  if (!backendRes) {
+  let backendRes: Response;
+  try {
+    backendRes = await bffFetch(req, "/api/v2/auth/web/session/otp", {
+      method: "POST",
+      body: JSON.stringify({ phone, otp, ...(inviteToken ? { invite_token: inviteToken } : {}) }),
+    });
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e, requestId);
+    if (guard) {
+      return guard;
+    }
     return NextResponse.json(
-      { ok: false, error: { code: "BACKEND_UNREACHABLE", message: "Backend login unavailable" } },
-      { status: 502 }
+      {
+        ok: false,
+        error: {
+          code: "BACKEND_UNREACHABLE",
+          message: "Backend login unavailable",
+          ...(requestId ? { requestId } : {}),
+        },
+      },
+      { status: 502 },
     );
   }
 
@@ -53,7 +64,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     onboarding_token?: unknown;
     user_id?: unknown;
     tenant_id?: unknown;
-    error?: { code?: string; message?: string };
+    error?: { code?: string; message?: string; details?: Record<string, unknown> };
   };
   const sessionToken =
     typeof backendBody.session_token === "string" ? backendBody.session_token.trim() : "";
@@ -75,9 +86,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!backendRes.ok || !sessionToken) {
     const backendErrorCode = backendBody.error?.code ?? "AUTH_FAILED";
     const backendMessage = backendBody.error?.message ?? "Invalid phone or OTP";
+    const backendRequestId = backendRes.headers.get("x-request-id") ?? requestId;
     console.error("auth_login_web_session_backend_error", {
       status: backendRes.status,
-      body: backendBody
+      body: backendBody,
+      requestId: backendRequestId,
     });
     const status =
       backendErrorCode === "AUTH_NO_ACTIVE_MEMBERSHIP"
@@ -88,21 +101,31 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json(
       {
         ok: false,
-        error_code: backendErrorCode,
-        message: backendMessage
+        error: {
+          code: backendErrorCode,
+          message: backendMessage,
+          requestId: backendRequestId,
+          ...(backendBody.error?.details ?? {}),
+        },
       },
       { status }
     );
   }
 
-  const response = NextResponse.json({ ok: true }, { status: 200 });
-  response.cookies.set({
-    name: SESSION_TOKEN_COOKIE,
-    value: sessionToken,
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: secureCookieEnabled()
-  });
+  const userId =
+    typeof backendBody.user_id === "string" ? backendBody.user_id.trim() : "";
+  const tenantId =
+    typeof backendBody.tenant_id === "string" ? backendBody.tenant_id.trim() : "";
+
+  const response = NextResponse.json(
+    {
+      ok: true,
+      session_token: sessionToken,
+      ...(userId ? { user_id: userId } : {}),
+      ...(tenantId ? { tenant_id: tenantId } : {}),
+    },
+    { status: 200 },
+  );
+  response.cookies.set(buildSessionCookieOptions({ token: sessionToken }));
   return response;
 }

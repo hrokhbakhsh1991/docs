@@ -92,14 +92,14 @@ test("kill switch: falsy / nonsense values keep unified path ON", () => {
   }
 });
 
-test("leaderDashboardUseAggregateApi: existing flag still works (regression guard for the shared envFlagEnabled helper)", () => {
+test("leaderDashboardUseAggregateApi: defaults on; explicit false opts out", () => {
   delete process.env.NEXT_PUBLIC_LEADER_DASHBOARD_USE_AGGREGATE_API;
   delete process.env.LEADER_DASHBOARD_USE_AGGREGATE_API;
-  assert.equal(leaderDashboardUseAggregateApi(), false);
-  process.env.LEADER_DASHBOARD_USE_AGGREGATE_API = "yes";
+  assert.equal(leaderDashboardUseAggregateApi(), true);
+  process.env.NEXT_PUBLIC_LEADER_DASHBOARD_USE_AGGREGATE_API = "false";
   try {
-    assert.equal(leaderDashboardUseAggregateApi(), true);
+    assert.equal(leaderDashboardUseAggregateApi(), false);
   } finally {
-    delete process.env.LEADER_DASHBOARD_USE_AGGREGATE_API;
+    delete process.env.NEXT_PUBLIC_LEADER_DASHBOARD_USE_AGGREGATE_API;
   }
 });

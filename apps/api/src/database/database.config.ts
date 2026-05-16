@@ -3,10 +3,10 @@ import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { ConfigService } from "../config/config.service";
 
 const isTs = Boolean(process.env.TS_MIGRATIONS);
-/** Nest emits migrations under dist/apps/api/src/database/migrations (single glob; avoids duplicate dist globs). */
+/** Compiled migrations under dist/database/migrations (tsconfig.build emits src → dist). */
 const migrations = isTs
   ? ["src/database/migrations/*.ts"]
-  : ["dist/apps/api/src/database/migrations/*.js"];
+  : ["dist/database/migrations/*.js"];
 
 export function createTypeOrmOptions(
   configService: ConfigService

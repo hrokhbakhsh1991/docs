@@ -40,11 +40,11 @@ Telegram login remains a separate path: `POST /api/v2/auth/telegram/session`.
 
 The workspace tenant is **always** derived from the subdomain on the request the browser makes to the API.
 
-**Local example:** UI at `http://denali.localhost:3000` with API on the same host or `NEXT_PUBLIC_API_DYNAMIC_ORIGIN` + port so the API sees:
+**Local example:** UI at `http://ws1-rbac.localhost:3000` with API on the same host or `NEXT_PUBLIC_API_DYNAMIC_ORIGIN` + port so the API sees:
 
-- `Host: denali.localhost` (or `denali.<TENANT_ROOT_DOMAIN>` in real deployments)
+- `Host: ws1-rbac.localhost` (or `ws1-rbac.<TENANT_ROOT_DOMAIN>` in real deployments)
 
-The API maps the label `denali` to a `tenants.subdomain` row and enforces `user_tenants` membership for that tenant before issuing the JWT.
+The API maps the workspace label to a `tenants.subdomain` row and enforces `user_tenants` membership for that tenant before issuing the JWT.
 
 ---
 

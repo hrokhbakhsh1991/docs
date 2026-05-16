@@ -28,6 +28,13 @@ export type RegistrationPaymentStatus =
   | "Failed"
   | "Refunded";
 
+export interface LockedBookingPricingDto {
+  totalMinor: string;
+  currency: string;
+  pricingRuleVersion: string;
+  listPriceMinor?: string | null;
+}
+
 export interface RegistrationResponseDto {
   id: string;
   tenantId: string;
@@ -41,9 +48,11 @@ export interface RegistrationResponseDto {
   vehicleSeatCapacity?: number | null;
   participantNote?: string | null;
   status: RegistrationStatus;
+  rowVersion: number;
   paymentStatus: RegistrationPaymentStatus;
   paidAmount?: string | null;
   payment?: Record<string, unknown> | null;
+  lockedPricing?: LockedBookingPricingDto | null;
   createdAt: string;
   updatedAt: string;
 }

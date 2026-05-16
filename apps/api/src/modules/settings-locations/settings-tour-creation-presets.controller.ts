@@ -14,8 +14,12 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
-import { Role } from "../auth/roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "../auth/roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { CreateWorkspaceTourCreationPresetDto } from "./dto/create-workspace-tour-creation-preset.dto";
 import { ReorderWorkspaceTourCreationPresetsDto } from "./dto/reorder-workspace-tour-creation-presets.dto";
 import { UpdateWorkspaceTourCreationPresetDto } from "./dto/update-workspace-tour-creation-preset.dto";
@@ -24,13 +28,14 @@ import { TourCreationPresetsSettingsService } from "./tour-creation-presets-sett
 
 @ApiTags("Settings — Tour creation presets")
 @Controller("api/v2/settings/tour-presets")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard)
+@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 export class SettingsTourCreationPresetsController {
   constructor(private readonly presets: TourCreationPresetsSettingsService) {}
 
   @Get()
-  @Roles(Role.OWNER, Role.ADMIN, Role.PARTICIPANT)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Settings"))
   @ApiOperation({
     summary: "List workspace tour creation presets",
     description: "Readable by all workspace members. Mutations remain owner/admin only."
@@ -42,7 +47,8 @@ export class SettingsTourCreationPresetsController {
 
   @Post()
   @HttpCode(201)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "Settings"))
   @ApiOperation({ summary: "Create workspace tour creation preset" })
   @ApiCreatedResponse({ type: WorkspaceTourCreationPresetResponseDto })
   async create(@Body() dto: CreateWorkspaceTourCreationPresetDto): Promise<WorkspaceTourCreationPresetResponseDto> {
@@ -50,7 +56,8 @@ export class SettingsTourCreationPresetsController {
   }
 
   @Patch("reorder")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Reorder tour creation presets (full id list)" })
   @ApiOkResponse({ type: WorkspaceTourCreationPresetResponseDto, isArray: true })
   async reorder(@Body() dto: ReorderWorkspaceTourCreationPresetsDto): Promise<WorkspaceTourCreationPresetResponseDto[]> {
@@ -58,7 +65,8 @@ export class SettingsTourCreationPresetsController {
   }
 
   @Patch(":id")
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Settings"))
   @ApiOperation({ summary: "Update workspace tour creation preset" })
   @ApiOkResponse({ type: WorkspaceTourCreationPresetResponseDto })
   async update(
@@ -70,7 +78,8 @@ export class SettingsTourCreationPresetsController {
 
   @Delete(":id")
   @HttpCode(204)
-  @Roles(Role.OWNER, Role.ADMIN)
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Delete, "Settings"))
   @ApiOperation({ summary: "Delete workspace tour creation preset" })
   async remove(@Param("id", new ParseUUIDPipe()) id: string): Promise<void> {
     await this.presets.remove(id);

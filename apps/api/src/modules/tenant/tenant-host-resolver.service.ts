@@ -6,22 +6,28 @@ import { Repository } from "typeorm";
 import type Redis from "ioredis";
 import { ObservabilityMetricsService } from "../../common/observability/observability-metrics.service";
 import { ConfigService } from "../../config/config.service";
-import { TENANT_SUBDOMAIN_REGEX, TenantEntity } from "../identity/entities/tenant.entity";
+import {
+  normalizeInboundHostname,
+  parseWorkspaceTenantLabelFromHost,
+  resolveWorkspaceSlugFromNormalizedHost,
+  stripHostPort,
+  TENANT_MAX_HOST_LENGTH,
+  TENANT_SUBDOMAIN_REGEX,
+  type WorkspaceTenantLabelOutcome,
+} from "@repo/tenant-host";
+import { TenantEntity } from "../identity/entities/tenant.entity";
 import {
   TENANT_HOST_CACHE_TTL_SECONDS,
   TENANT_RESOLVER_REDIS
 } from "./tenant-resolver.constants";
 
-/** RFC 1035-ish hostname length bound for DNS over HTTP Host. */
-export const TENANT_MAX_HOST_LENGTH = 255;
-
-export type WorkspaceTenantLabelOutcome =
-  | { kind: "no_root_config" }
-  | { kind: "apex" }
-  | { kind: "outside_workspace" }
-  | { kind: "reserved"; label: string }
-  | { kind: "invalid_label"; label: string }
-  | { kind: "label"; label: string };
+export {
+  normalizeInboundHostname,
+  parseWorkspaceTenantLabelFromHost,
+  TENANT_MAX_HOST_LENGTH,
+  TENANT_SUBDOMAIN_REGEX,
+  type WorkspaceTenantLabelOutcome,
+};
 
 export type TenantHostTrustModel = {
   trustProxy: boolean;
@@ -29,121 +35,21 @@ export type TenantHostTrustModel = {
   baseDomain: string;
 };
 
-/**
- * Validates and normalizes an inbound Host / forwarded-host value:
- * lowercase, port stripped, length ≤255, rejects "..", rejects invalid DNS hostname structure.
- */
-export function normalizeInboundHostname(raw: string): { ok: true; host: string } | { ok: false } {
-  const trimmed = raw.trim().toLowerCase();
-  if (!trimmed) {
-    return { ok: false };
-  }
-
-  const withoutPort = TenantHostResolverService.stripHostPort(trimmed);
-  if (!withoutPort) {
-    return { ok: false };
-  }
-
-  if (withoutPort.length > TENANT_MAX_HOST_LENGTH) {
-    return { ok: false };
-  }
-
-  if (withoutPort.includes("..")) {
-    return { ok: false };
-  }
-
-  if (!isValidHostnameStructure(withoutPort)) {
-    return { ok: false };
-  }
-
-  return { ok: true, host: withoutPort };
-}
-
-function isValidHostnameStructure(host: string): boolean {
-  if (host.startsWith("[") && host.endsWith("]")) {
-    const inner = host.slice(1, -1);
-    return inner.length >= 1 && /^[0-9a-f:]+$/i.test(inner);
-  }
-
-  const labels = host.split(".");
-  if (labels.length < 1 || labels.length > 127) {
-    return false;
-  }
-
-  for (const label of labels) {
-    if (label.length === 0 || label.length > 63) {
-      return false;
-    }
-    if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Pure parsing: maps `{label}.{root}` → workspace label when label matches {@link TENANT_SUBDOMAIN_REGEX}
- * and is not reserved.
- */
-export function parseWorkspaceTenantLabelFromHost(
-  normalizedHost: string,
-  rootDomain: string,
-  reservedLabels: Set<string>
-): WorkspaceTenantLabelOutcome {
-  const root = rootDomain.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
-  if (!root) {
-    return { kind: "no_root_config" };
-  }
-
-  const h = normalizedHost.trim().toLowerCase();
-  if (h === root) {
-    return { kind: "apex" };
-  }
-
-  const suffix = `.${root}`;
-  if (!h.endsWith(suffix)) {
-    return { kind: "outside_workspace" };
-  }
-
-  const label = h.slice(0, -suffix.length);
-  if (!label || label.includes(".")) {
-    return { kind: "outside_workspace" };
-  }
-
-  if (reservedLabels.has(label)) {
-    return { kind: "reserved", label };
-  }
-
-  if (!TENANT_SUBDOMAIN_REGEX.test(label)) {
-    return { kind: "invalid_label", label };
-  }
-
-  return { kind: "label", label };
-}
-
-export function resolveTenantFromHost(host: string, baseDomain: string): string | null {
+export function resolveTenantFromHost(
+  host: string,
+  baseDomain: string,
+  reservedLabels?: Set<string>,
+): string | null {
   const normalizedHost = normalizeInboundHostname(host);
   if (!normalizedHost.ok) {
     return null;
   }
-  const root = baseDomain.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
-  if (!root) {
-    return null;
-  }
-  const h = normalizedHost.host;
-  if (h === root) {
-    return null;
-  }
-  const suffix = `.${root}`;
-  if (!h.endsWith(suffix)) {
-    return null;
-  }
-  const label = h.slice(0, -suffix.length);
-  if (!label || label.includes(".")) {
-    return null;
-  }
-  return label;
+  const reserved = reservedLabels ?? new Set<string>();
+  return resolveWorkspaceSlugFromNormalizedHost(
+    normalizedHost.host,
+    baseDomain,
+    reserved,
+  );
 }
 
 /**
@@ -297,38 +203,14 @@ export class TenantHostResolverService implements OnModuleDestroy {
     return candidate;
   }
 
-  /** Strip `:port` from host[:port]; supports bracketed IPv6. */
-  static stripHostPort(hostWithOptionalPort: string): string {
-    const trimmed = hostWithOptionalPort.trim();
-    if (trimmed.startsWith("[") && trimmed.includes("]")) {
-      const end = trimmed.indexOf("]");
-      return trimmed.slice(0, end + 1);
-    }
-    const colonIndex = trimmed.lastIndexOf(":");
-    if (colonIndex > 0 && trimmed.slice(colonIndex + 1).match(/^\d+$/)) {
-      return trimmed.slice(0, colonIndex);
-    }
-    return trimmed;
-  }
+  static stripHostPort = stripHostPort;
 
   parseWorkspaceTenantLabel(normalizedHost: string): WorkspaceTenantLabelOutcome {
-    const resolved = resolveTenantFromHost(
+    return parseWorkspaceTenantLabelFromHost(
       normalizedHost,
-      this.configService.getTenantRootDomain()
+      this.configService.getTenantRootDomain(),
+      this.configService.getTenantHostReservedSubdomains(),
     );
-    if (resolved === null) {
-      const root = this.configService.getTenantRootDomain();
-      if (!root) return { kind: "no_root_config" };
-      if (normalizedHost.trim().toLowerCase() === root) return { kind: "apex" };
-      return { kind: "outside_workspace" };
-    }
-    if (this.configService.getTenantHostReservedSubdomains().has(resolved)) {
-      return { kind: "reserved", label: resolved };
-    }
-    if (!TENANT_SUBDOMAIN_REGEX.test(resolved)) {
-      return { kind: "invalid_label", label: resolved };
-    }
-    return { kind: "label", label: resolved };
   }
 
   /**
@@ -357,6 +239,7 @@ export class TenantHostResolverService implements OnModuleDestroy {
 
   async resolveTenantEntityByLabel(label: string): Promise<TenantEntity | null> {
     const lowered = label.trim().toLowerCase();
+    // tenant-isolation:qb-exempt — queries tenants root table by subdomain, not tenant-scoped rows.
     return this.tenantRepository
       .createQueryBuilder("t")
       .where("LOWER(t.subdomain) = :sub", { sub: lowered })
@@ -378,6 +261,7 @@ export class TenantHostResolverService implements OnModuleDestroy {
       const cachedTenantId = await this.redis.get(cacheKey);
       if (cachedTenantId && cachedTenantId.trim() !== "") {
         this.observabilityMetrics.recordTenantResolverCacheHit();
+        // tenant-isolation:qb-exempt — loads TenantEntity by primary id from trusted cache entry.
         return this.tenantRepository
           .createQueryBuilder("t")
           .where("t.id = :id", { id: cachedTenantId.trim() })

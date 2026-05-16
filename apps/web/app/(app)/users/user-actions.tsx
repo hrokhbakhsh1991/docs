@@ -6,13 +6,18 @@ import { useId, useMemo } from "react";
 
 import { Button, Select } from "@tour/ui";
 
-import type { AuthUser } from "@/lib/auth/auth-context";
+import { useAuth, type AuthUser } from "@/lib/auth/auth-context";
 import { AbilityAction } from "@/lib/casl/ability-actions";
 import { useAbility } from "@/lib/casl/ability-provider";
-import { API } from "@/lib/api-paths";
-import { ApiError, apiClient } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
+import {
+  reactivateUser,
+  removeUser,
+  resendInvite,
+  suspendUser,
+} from "@/lib/services/users.service";
 import type { UserRole } from "@/lib/auth/user-role";
 import { useAppToast } from "@/lib/use-app-toast";
 import {
@@ -73,6 +78,8 @@ export function UserActions({
   const ability = useAbility();
   const canMutateMembership = ability.can(AbilityAction.Update, "UserMembership");
   const queryClient = useQueryClient();
+  const { user: authUser } = useAuth();
+  const tenantId = authUser?.tenantId ?? "";
   const toast = useAppToast();
   const hintId = useId();
   const currentNorm = normalizeRole(rowRole);
@@ -94,34 +101,41 @@ export function UserActions({
     if (resolved.hintKey) return roleSelectHintForKey(resolved.hintKey);
     return null;
   }, [rowMutationPending, resolved.hintKey]);
-  const baseUserPath = API.user(rowId);
   const suspendMutation = useMutation({
-    mutationFn: () => apiClient.patch<WorkspaceUserDto>(`${baseUserPath}/suspend`),
+    mutationFn: () => suspendUser(rowId),
     onSuccess: () => toast.success({ message: "User suspended." }),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to suspend user." }),
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    onSettled: () => {
+      if (tenantId) void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    }
   });
   const reactivateMutation = useMutation({
-    mutationFn: () => apiClient.patch<WorkspaceUserDto>(`${baseUserPath}/reactivate`),
+    mutationFn: () => reactivateUser(rowId),
     onSuccess: () => toast.success({ message: "User reactivated." }),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to reactivate user." }),
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    onSettled: () => {
+      if (tenantId) void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    }
   });
   const resendInviteMutation = useMutation({
-    mutationFn: () => apiClient.post(`${baseUserPath}/resend-invite`, {}),
+    mutationFn: () => resendInvite(rowId),
     onSuccess: () => toast.success({ message: "Invite resent." }),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to resend invite." }),
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    onSettled: () => {
+      if (tenantId) void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    }
   });
   const removeMutation = useMutation({
-    mutationFn: () => apiClient.delete(`${baseUserPath}/remove`),
+    mutationFn: () => removeUser(rowId),
     onSuccess: () => toast.success({ message: "User removed from workspace." }),
     onError: (e: unknown) =>
       toast.error({ message: e instanceof ApiError ? e.message : "Failed to remove user." }),
-    onSettled: () => void queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    onSettled: () => {
+      if (tenantId) void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    }
   });
   const lifecycleMutationPending =
     suspendMutation.isPending ||

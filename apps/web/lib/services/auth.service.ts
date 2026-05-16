@@ -1,39 +1,79 @@
 import type { WebSessionResponseBody } from "../auth/types";
 import type { PhoneOtpLoginRequest } from "@repo/types";
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { ApiError } from "../api-client";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 import { normalizeOtpPhoneInput } from "../otp-phone-normalize";
-import { resolveTourOpsApiBaseUrl } from "../tour-ops-api-origin";
+
+type BffLoginOk = {
+  ok: true;
+  session_token: string;
+  user_id?: string;
+  tenant_id?: string;
+};
+
+type BffLoginErr = {
+  ok?: false;
+  error?: { code?: string; message?: string };
+  message?: string;
+};
+
+function toWebSession(body: BffLoginOk): WebSessionResponseBody {
+  const userId = body.user_id?.trim() ?? "";
+  const tenantId = body.tenant_id?.trim() ?? "";
+  if (!userId || !tenantId) {
+    throw new ApiError("AUTH_SESSION_INVALID", "Session was not established. Please try again.");
+  }
+  return {
+    session_token: body.session_token,
+    user_id: userId,
+    tenant_id: tenantId,
+    entry_mode: "web",
+  };
+}
 
 /**
- * Web login: `phone` + `otp`; tenant scope comes from the HTTP Host on the API request.
- * Use fixed `NEXT_PUBLIC_API_URL` or `NEXT_PUBLIC_API_DYNAMIC_ORIGIN` (+ optional port); see `tour-ops-api-origin.ts`.
+ * Web login via same-origin BFF (`POST /api/auth/login-web-session`).
+ * Tenant scope comes from HTTP Host on the upstream Nest request.
  */
 export async function loginWebSession(
   phone: string,
-  otp: string
+  otp: string,
+  inviteToken?: string,
 ): Promise<WebSessionResponseBody> {
-  if (!resolveTourOpsApiBaseUrl().trim()) {
-    throw new Error(
-      "Tour-Ops API base URL is not configured (set NEXT_PUBLIC_API_URL for SSR/build, or NEXT_PUBLIC_API_DYNAMIC_ORIGIN in the browser)."
-    );
-  }
-
   const body: PhoneOtpLoginRequest = {
     phone: normalizeOtpPhoneInput(phone),
-    otp: otp.trim()
+    otp: otp.trim(),
   };
-
-  return apiClient.post<WebSessionResponseBody>(API.auth.webSession, body, {
-    skipAuthRedirectOn401: true,
-  });
+  const payload = await bffBrowserClient.post<BffLoginOk & BffLoginErr>(
+    BFF.authLoginWebSession,
+    {
+      ...body,
+      ...(inviteToken?.trim() ? { invite_token: inviteToken.trim() } : {}),
+    },
+    { skipAuthRedirectOn401: true },
+  );
+  if (!payload || payload.ok !== true || !payload.session_token?.trim()) {
+    const code = payload?.error?.code ?? "AUTH_FAILED";
+    const message = payload?.error?.message ?? payload?.message ?? "Login failed";
+    throw new ApiError(code, message);
+  }
+  return toWebSession(payload);
 }
 
 export async function createWorkspaceSession(
-  tenantId: string
+  tenantId: string,
 ): Promise<WebSessionResponseBody> {
   const cleanedTenantId = tenantId.trim();
-  return apiClient.post<WebSessionResponseBody>(API.auth.workspaceSession, {
-    tenant_id: cleanedTenantId
-  });
+  const payload = await bffBrowserClient.post<BffLoginOk & BffLoginErr>(
+    BFF.authWorkspaceSession,
+    { tenant_id: cleanedTenantId },
+    { skipGlobalErrorToast: true },
+  );
+  if (!payload || payload.ok !== true || !payload.session_token?.trim()) {
+    const code = payload?.error?.code ?? "AUTH_FAILED";
+    const message = payload?.error?.message ?? payload?.message ?? "Workspace session failed";
+    throw new ApiError(code, message);
+  }
+  return toWebSession(payload);
 }

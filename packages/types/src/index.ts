@@ -17,6 +17,7 @@ export { ME_PROFILE_GENDER_VALUES } from "./me";
 export type {
   Booking,
   BookingDto,
+  LockedBookingPricingDto,
   RegistrationEntryMode,
   RegistrationPaymentStatus,
   RegistrationResponseDto,
@@ -94,6 +95,21 @@ export {
   type TourDomainProfile,
   type UrbanLogisticsWhitelistKey,
 } from "./tour-domain-profile";
+export {
+  WIZARD_SUBMIT_REQUIRED_FIELD_PATHS,
+  getRequiredSubmitFieldPathsForProfile,
+  isWizardSubmitFieldRequiredForProfile,
+  type WizardSubmitRequiredFieldPath,
+  type WizardSubmitRequiredStepId,
+} from "./tour-profile-submit-required";
+export {
+  TOUR_PATCH_FIELD_RULES,
+  getForbiddenTourPatchDtoKeysForRole,
+  type TourPatchDtoKey,
+  type TourPatchFieldRule,
+  type TourPatchViewerRole,
+} from "./tour-patch-field-policy";
+export { getEditRequiredTripDetailsPathsForProfile } from "./tour-profile-edit-required";
 export {
   TOUR_FORM_PROFILE_DESCRIPTORS,
   getTourFormProfileDescriptor,

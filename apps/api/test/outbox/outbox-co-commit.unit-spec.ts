@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { EntityManager } from "typeorm";
+import type { FinancialMutationAuditService } from "../../src/common/audit/financial-mutation-audit.service";
 import { OutboxService } from "../../src/modules/outbox/outbox.service";
 import { OutboxMetricsService } from "../../src/modules/outbox/outbox-metrics.service";
+
+function noopFinancialAudit(): FinancialMutationAuditService {
+  return {
+    recordOutboxFinancialMutation: async () => {}
+  } as unknown as FinancialMutationAuditService;
+}
 
 test("domain + outbox rolls back together when transaction aborts", async () => {
   const persisted: unknown[] = [];
@@ -29,7 +36,7 @@ test("domain + outbox rolls back together when transaction aborts", async () => 
   };
 
   const metrics = new OutboxMetricsService();
-  const outbox = new OutboxService(metrics);
+  const outbox = new OutboxService(metrics, noopFinancialAudit());
 
   await assert.rejects(
     async () => {

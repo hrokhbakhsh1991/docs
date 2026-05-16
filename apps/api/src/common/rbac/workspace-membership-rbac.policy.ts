@@ -1,5 +1,5 @@
-import { ROLE_RANK } from "@repo/shared-rbac";
-import { UserRole } from "../auth/user-role.enum";
+import { ROLE_RANK, type WorkspaceRole } from "@repo/shared";
+import { tryParseWorkspaceUserRole, UserRole } from "../auth/user-role.enum";
 
 /**
  * Central workspace membership RBAC policy (ordering + transition rules).
@@ -24,7 +24,7 @@ export const RBAC_INSUFFICIENT_ROLE_PRIVILEGE = "RBAC_INSUFFICIENT_ROLE_PRIVILEG
 export const RBAC_UNKNOWN_MEMBERSHIP_ROLE = "RBAC_UNKNOWN_MEMBERSHIP_ROLE";
 
 /** Higher number = higher privilege. Includes structural `leader` for future use. */
-export const WORKSPACE_MEMBERSHIP_ROLE_RANK: Readonly<Record<string, number>> = ROLE_RANK;
+export const WORKSPACE_MEMBERSHIP_ROLE_RANK: Readonly<Record<WorkspaceRole, number>> = ROLE_RANK;
 
 /** Roles that may exist in `user_tenants.role` today (aligned with {@link UserRole}). */
 export const PERSISTED_WORKSPACE_MEMBERSHIP_ROLES = Object.freeze([
@@ -60,9 +60,19 @@ export const INVITE_ASSIGNABLE_ROLES = Object.freeze([
 ] as const);
 export type InviteAssignableRole = (typeof INVITE_ASSIGNABLE_ROLES)[number];
 
-const LEGACY_ROLE_ALIASES: Readonly<Record<string, PersistedWorkspaceMembershipRole>> = Object.freeze({
-  operator: UserRole.Member
-});
+function isPersistedWorkspaceMembershipRole(value: UserRole): value is PersistedWorkspaceMembershipRole {
+  return (PERSISTED_WORKSPACE_MEMBERSHIP_ROLES as readonly UserRole[]).includes(value);
+}
+
+function isGeneralPatchAssignableRole(
+  value: PersistedWorkspaceMembershipRole
+): value is GeneralPatchAssignableRole {
+  return (GENERAL_PATCH_ASSIGNABLE_ROLES as readonly UserRole[]).includes(value);
+}
+
+function isInviteAssignableRole(value: PersistedWorkspaceMembershipRole): value is InviteAssignableRole {
+  return (INVITE_ASSIGNABLE_ROLES as readonly UserRole[]).includes(value);
+}
 
 export function normalizeWorkspaceMembershipRole(
   role: string | undefined | null
@@ -74,11 +84,11 @@ export function normalizeWorkspaceMembershipRole(
   if (key === "") {
     return undefined;
   }
-  if ((PERSISTED_WORKSPACE_MEMBERSHIP_ROLES as readonly string[]).includes(key)) {
-    return key as PersistedWorkspaceMembershipRole;
+  const parsed = tryParseWorkspaceUserRole(key);
+  if (parsed && isPersistedWorkspaceMembershipRole(parsed)) {
+    return parsed;
   }
-  const mapped = LEGACY_ROLE_ALIASES[key];
-  return mapped;
+  return undefined;
 }
 
 export function getWorkspaceMembershipRoleRank(role: string | undefined | null): number | undefined {
@@ -122,19 +132,11 @@ export function evaluateGeneralMembershipRoleChange(input: {
   }
 
   const newNorm = normalizeWorkspaceMembershipRole(input.newRole);
-  if (!newNorm || !(GENERAL_PATCH_ASSIGNABLE_ROLES as readonly string[]).includes(newNorm)) {
+  if (!newNorm || !isGeneralPatchAssignableRole(newNorm)) {
     return {
       ok: false,
       code: RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN,
       message: "The requested role is not allowed for general workspace role updates"
-    };
-  }
-
-  if (newNorm === UserRole.Owner) {
-    return {
-      ok: false,
-      code: RBAC_OWNER_ROLE_ASSIGNMENT_FORBIDDEN,
-      message: "Assigning the owner role is not permitted on this endpoint"
     };
   }
 
@@ -147,7 +149,7 @@ export function evaluateGeneralMembershipRoleChange(input: {
     };
   }
 
-  if (targetNorm === "owner") {
+  if (targetNorm === UserRole.Owner) {
     return {
       ok: false,
       code: RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN,
@@ -206,7 +208,7 @@ export function evaluateWorkspaceInviteRole(input: {
   invitedRole: string;
 }): WorkspaceInviteRoleDecision {
   const invitedNorm = normalizeWorkspaceMembershipRole(input.invitedRole);
-  if (!invitedNorm || !(INVITE_ASSIGNABLE_ROLES as readonly string[]).includes(invitedNorm)) {
+  if (!invitedNorm || !isInviteAssignableRole(invitedNorm)) {
     return {
       ok: false,
       code: RBAC_INSUFFICIENT_ROLE_PRIVILEGE,

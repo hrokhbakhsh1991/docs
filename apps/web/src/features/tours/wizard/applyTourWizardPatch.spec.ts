@@ -30,6 +30,8 @@ import type { ThemeRowForProfile } from "./tourWizardProfileResolve";
 const THEME_CINEMA = "11111111-1111-4111-8111-111111111111";
 const THEME_URBAN = "22222222-2222-4222-8222-222222222222";
 const THEME_MOUNTAIN = "33333333-3333-4333-8333-333333333333";
+/** Valid v4 UUID not present in `themeCatalog` (catalog miss + tourType fallback). */
+const THEME_GHOST = "44444444-4444-4444-8444-444444444444";
 
 const themeCatalog: ThemeRowForProfile[] = [
   { id: THEME_CINEMA, formProfile: "cinema_event" },
@@ -152,7 +154,7 @@ test("urban_event flip also drops logistics from the patch (and from the merged 
 test("falls back to tourType when patch's mainTourThemeId is not in themeCatalog", () => {
   const base = makeBase();
   const patch: Partial<TourCreateFormValues> = {
-    overview: { mainTourThemeId: "ghost-theme-not-in-catalog", tourType: "city" } as TourCreateFormValues["overview"],
+    overview: { mainTourThemeId: THEME_GHOST, tourType: "city" } as TourCreateFormValues["overview"],
   };
   const result = applyTourWizardPatch({
     baseValues: base,

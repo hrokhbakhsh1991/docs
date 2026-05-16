@@ -10,10 +10,13 @@ function envFlagEnabled(raw: string | undefined): boolean {
  * also checked to support build-time toggling in some environments.
  */
 export function leaderDashboardUseAggregateApi(): boolean {
-  return (
-    envFlagEnabled(process.env.NEXT_PUBLIC_LEADER_DASHBOARD_USE_AGGREGATE_API) ||
-    envFlagEnabled(process.env.LEADER_DASHBOARD_USE_AGGREGATE_API)
-  );
+  const raw =
+    process.env.NEXT_PUBLIC_LEADER_DASHBOARD_USE_AGGREGATE_API ??
+    process.env.LEADER_DASHBOARD_USE_AGGREGATE_API;
+  if (raw !== undefined && raw.trim() !== "") {
+    return envFlagEnabled(raw);
+  }
+  return true;
 }
 
 /**

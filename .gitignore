@@ -25,6 +25,9 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# local database dumps
+backups/
+
 # misc
 .DS_Store
 *.tsbuildinfo

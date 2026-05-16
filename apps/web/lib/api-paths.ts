@@ -1,6 +1,6 @@
 /**
  * Canonical Tour-Ops HTTP paths under `/api/v2`.
- * Base URL comes from `resolveTourOpsApiBaseUrl()` (fixed `NEXT_PUBLIC_API_URL` or dynamic host + port).
+ * Base URL comes from `resolveTourOpsApiBaseUrl()` (dynamic workspace host + API port).
  */
 
 export const API = {
@@ -11,6 +11,8 @@ export const API = {
     workspaceSession: "/api/v2/auth/workspace/session",
   },
   dashboardLeaderWorkspace: "/api/v2/dashboard/leader-workspace",
+  dashboardLeaderSummary: "/api/v2/dashboard/leader-summary",
+  dashboardLeaderRegistrationRows: "/api/v2/dashboard/leader-registration-rows",
   tours: "/api/v2/tours",
   toursQuery: (queryString: string) =>
     queryString.trim() ? `/api/v2/tours?${queryString}` : "/api/v2/tours",
@@ -20,6 +22,8 @@ export const API = {
   registrationPayment: (id: string) => `/api/v2/registrations/${encodeURIComponent(id)}/payment`,
   registrationStatus: (id: string) => `/api/v2/registrations/${encodeURIComponent(id)}/status`,
   tourRegister: (tourId: string) => `/api/v2/tours/${encodeURIComponent(tourId)}/register`,
+  tourRegistrationIdempotencyKey: (tourId: string) =>
+    `/api/v2/tours/${encodeURIComponent(tourId)}/registration-idempotency-key`,
   tourWaitlist: (tourId: string) => `/api/v2/tours/${encodeURIComponent(tourId)}/waitlist`,
   tourRegistrations: (tourId: string) => `/api/v2/tours/${encodeURIComponent(tourId)}/registrations`,
   tourWaitlistItems: (tourId: string) => `/api/v2/tours/${encodeURIComponent(tourId)}/waitlist-items`,
@@ -34,7 +38,61 @@ export const API = {
   workspaceAuditEvents: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
   workspaceAuditEventsExport: (tenantId: string) =>
-    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`,
+  workspaceReconciliationFindings: (tenantId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/reconciliation-findings`,
+  workspaceUserCapabilities: (tenantId: string, userId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/capabilities`,
+  workspaceSettingsModules: (tenantId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/settings/modules`,
+  settingsRegions: "/api/v2/settings/regions",
+} as const;
+
+/** Same-origin Next.js BFF handlers under `app/api/*` (cookie session, Host from browser). */
+export const BFF = {
+  authLoginWebSession: "/api/auth/login-web-session",
+  authWorkspaces: "/api/auth/workspaces",
+  authWorkspaceSession: "/api/auth/workspace-session",
+  authMembershipAbilityContext: "/api/auth/membership-ability-context",
+  tours: "/api/tours",
+  toursQuery: (queryString: string) =>
+    queryString.trim() ? `/api/tours?${queryString}` : "/api/tours",
+  tour: (id: string) => `/api/tours/${encodeURIComponent(id)}`,
+  me: "/api/me",
+  users: "/api/users",
+  usersQuery: (queryString: string) =>
+    queryString.trim() ? `/api/users?${queryString}` : "/api/users",
+  user: (id: string) => `/api/users/${encodeURIComponent(id)}`,
+  usersInvite: "/api/users/invite",
+  usersBulkRole: "/api/users/bulk-role",
+  userAction: (userId: string, action: string) =>
+    `/api/users/${encodeURIComponent(userId)}/${encodeURIComponent(action)}`,
+  workspaceUserCapabilities: (tenantId: string, userId: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/capabilities`,
+  bookings: "/api/bookings",
+  registrations: "/api/registrations",
+  registration: (id: string) => `/api/registrations/${encodeURIComponent(id)}`,
+  registrationStatus: (id: string) => `/api/registrations/${encodeURIComponent(id)}/status`,
+  registrationPayment: (id: string) => `/api/registrations/${encodeURIComponent(id)}/payment`,
+  tourRegister: (tourId: string) => `/api/tours/${encodeURIComponent(tourId)}/register`,
+  tourWaitlist: (tourId: string) => `/api/tours/${encodeURIComponent(tourId)}/waitlist`,
+  tourRegistrations: (tourId: string) => `/api/tours/${encodeURIComponent(tourId)}/registrations`,
+  tourWaitlistItems: (tourId: string) => `/api/tours/${encodeURIComponent(tourId)}/waitlist-items`,
+  waitlistItems: "/api/waitlist-items",
+  waitlistItemConvert: (id: string) => `/api/waitlist-items/${encodeURIComponent(id)}/convert`,
+  paymentsIntent: "/api/payments/intent",
+  dashboardLeaderWorkspace: "/api/dashboard/leader-workspace",
+  dashboardLeaderSummary: "/api/dashboard/leader-summary",
+  dashboardLeaderRegistrationRows: "/api/dashboard/leader-registration-rows",
+  workspaceAuditEvents: (tenantId: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
+  workspaceAuditEventsExport: (tenantId: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`,
+  workspaceReconciliationFindings: (tenantId: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/reconciliation-findings`,
+  reconciliationFindingAction: (tenantId: string, findingId: string, action: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/reconciliation-findings/${encodeURIComponent(findingId)}/${encodeURIComponent(action)}`,
+  settingsRegions: "/api/settings/regions",
 } as const;
 
 /** Paths where the session cookie must not drive automatic Bearer attachment semantics. */

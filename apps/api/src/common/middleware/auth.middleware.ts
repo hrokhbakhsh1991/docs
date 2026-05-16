@@ -11,11 +11,17 @@ import type { NextFunction, Request, Response } from "express";
 import type { DataSource } from "typeorm";
 import { loadPublicKey } from "../../auth/jwt-key.util";
 import { ConfigService } from "../../config/config.service";
+import { TenantEntity } from "../../modules/identity/entities/tenant.entity";
 import { UserTenantEntity } from "../../modules/identity/entities/user-tenant.entity";
+import { decodeJwtCapabilitySnapshot } from "@repo/shared";
+
+import { logJwtCapabilitySnapshotDriftIfNeeded } from "../auth/log-jwt-capability-snapshot-drift";
+import { resolveEffectiveCapabilitiesFromHydrationRow } from "../auth/membership-capability-snapshot";
+import { hydrateWorkspaceAbilityContext } from "./hydrate-workspace-ability-context";
 import {
+  AUTH_PUBLIC_HOST_PROBE_ROUTES,
   AUTH_SESSION_LOGIN_ROUTES,
   AUTH_WORKSPACES_ROUTE,
-  AUTH_WORKSPACE_SESSION_ROUTE
 } from "../auth/auth-route-policy";
 import { authRequiredError } from "../errors/error-response-builders";
 import { LoggerService } from "../logger/logger.service";
@@ -28,6 +34,8 @@ type JwtClaims = {
   role?: string;
   email?: string;
   sess_ver?: unknown;
+  /** Comma-separated effective capability snapshot (Phase 8.2). */
+  caps?: string;
 };
 
 /**
@@ -35,13 +43,16 @@ type JwtClaims = {
  * Workspace listing/switch intentionally allows mismatches while exchanging tokens across hosts.
  */
 function skipsJwtHostTenantAlignment(path: string, method: string): boolean {
-  return (
-    (method === "GET" && path === AUTH_WORKSPACES_ROUTE) ||
-    (method === "POST" && path === AUTH_WORKSPACE_SESSION_ROUTE)
-  );
+  return method === "GET" && path === AUTH_WORKSPACES_ROUTE;
 }
 
-const PUBLIC_ROUTES = ["/health", "/internal", "/api/docs", ...AUTH_SESSION_LOGIN_ROUTES];
+const PUBLIC_ROUTES = [
+  "/health",
+  "/internal",
+  "/api/docs",
+  ...AUTH_SESSION_LOGIN_ROUTES,
+  ...AUTH_PUBLIC_HOST_PROBE_ROUTES,
+];
 const JWT_COOKIE_NAME = "jwt";
 const PRIMARY_SESSION_TOKEN_COOKIE = "tour_ops_session";
 const ALT_SESSION_TOKEN_COOKIE = "session";
@@ -80,7 +91,8 @@ export class AuthMiddleware implements NestMiddleware {
   ) {}
 
   /**
-   * For public POST `/api/v2/tours/:id/register|waitlist`, authentication is not required.
+   * For public POST `/api/v2/tours/:id/register|waitlist` (and GET mint for keys), authentication is not required.
+   * Public mutations require a non-blank `Idempotency-Key` header (enforced in {@link RegistrationsController}).
    * When a valid session token is present anyway, attach JWT context so downstream handlers
    * (e.g. tour policies keyed off profile fields) can resolve `userId`.
    */
@@ -147,12 +159,21 @@ export class AuthMiddleware implements NestMiddleware {
         const membershipRow = await queryRunner.manager
           .getRepository(UserTenantEntity)
           .createQueryBuilder("ut")
+          .innerJoin(TenantEntity, "tenant", "tenant.id = ut.tenant_id")
           .select("ut.session_version", "session_version")
+          .addSelect("ut.labels", "labels")
+          .addSelect("ut.membership_metadata", "membership_metadata")
+          .addSelect("tenant.enabled_modules", "enabled_modules")
           .where("ut.user_id = :userId", { userId })
           .andWhere("ut.tenant_id = :tenantId", { tenantId })
           .andWhere("ut.deleted_at IS NULL")
           .andWhere("ut.membership_status = 'ACTIVE'")
-          .getRawOne<{ session_version: string | number }>();
+          .getRawOne<{
+            session_version: string | number;
+            labels: unknown;
+            membership_metadata: unknown;
+            enabled_modules: unknown;
+          }>();
 
         if (!membershipRow) {
           return;
@@ -162,14 +183,25 @@ export class AuthMiddleware implements NestMiddleware {
         if (!Number.isInteger(dbSessionVersion) || dbSessionVersion !== jwtSessionVersion) {
           return;
         }
+
+        this.requestContextService.setUserId(userId);
+        this.requestContextService.setTenantId(tenantId);
+        this.requestContextService.setRole(role);
+        const jwtCaps = decodeJwtCapabilitySnapshot(payload.caps);
+        if (jwtCaps.length > 0) {
+          this.requestContextService.setJwtCapabilitySnapshot(jwtCaps);
+        }
+        hydrateWorkspaceAbilityContext(this.requestContextService, membershipRow);
+        logJwtCapabilitySnapshotDriftIfNeeded(this.loggerService, {
+          userId,
+          tenantId,
+          jwtCapsClaim: payload.caps,
+          effectiveFromDb: resolveEffectiveCapabilitiesFromHydrationRow(role, membershipRow),
+        });
+        return;
       } finally {
         await queryRunner.release();
       }
-
-      this.requestContextService.setUserId(userId);
-      this.requestContextService.setTenantId(tenantId);
-      this.requestContextService.setRole(role);
-      this.requestContextService.setWorkspaceAbilityContext("ACTIVE");
     } catch {
       /* anonymous registration — ignore optional auth failures */
     }
@@ -211,8 +243,10 @@ export class AuthMiddleware implements NestMiddleware {
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       if (
-        req.method === "POST" &&
-        /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)
+        (req.method === "POST" &&
+          /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(req.path)) ||
+        (req.method === "GET" &&
+          /^\/api\/v2\/tours\/[^/]+\/registration-idempotency-key$/.test(req.path))
       ) {
         await this.tryAttachJwtContextForPublicTourPlacement(req);
         return next();
@@ -313,12 +347,21 @@ export class AuthMiddleware implements NestMiddleware {
         const membershipRow = await queryRunner.manager
           .getRepository(UserTenantEntity)
           .createQueryBuilder("ut")
+          .innerJoin(TenantEntity, "tenant", "tenant.id = ut.tenant_id")
           .select("ut.session_version", "session_version")
+          .addSelect("ut.labels", "labels")
+          .addSelect("ut.membership_metadata", "membership_metadata")
+          .addSelect("tenant.enabled_modules", "enabled_modules")
           .where("ut.user_id = :userId", { userId })
           .andWhere("ut.tenant_id = :tenantId", { tenantId })
           .andWhere("ut.deleted_at IS NULL")
           .andWhere("ut.membership_status = 'ACTIVE'")
-          .getRawOne<{ session_version: string | number }>();
+          .getRawOne<{
+            session_version: string | number;
+            labels: unknown;
+            membership_metadata: unknown;
+            enabled_modules: unknown;
+          }>();
 
         if (!membershipRow) {
           this.loggerService.warn(
@@ -351,7 +394,17 @@ export class AuthMiddleware implements NestMiddleware {
             }
           });
         }
-        this.requestContextService.setWorkspaceAbilityContext("ACTIVE");
+        const jwtCaps = decodeJwtCapabilitySnapshot(payload.caps);
+        if (jwtCaps.length > 0) {
+          this.requestContextService.setJwtCapabilitySnapshot(jwtCaps);
+        }
+        hydrateWorkspaceAbilityContext(this.requestContextService, membershipRow);
+        logJwtCapabilitySnapshotDriftIfNeeded(this.loggerService, {
+          userId,
+          tenantId,
+          jwtCapsClaim: payload.caps,
+          effectiveFromDb: resolveEffectiveCapabilitiesFromHydrationRow(role, membershipRow),
+        });
       } finally {
         await queryRunner.release();
       }

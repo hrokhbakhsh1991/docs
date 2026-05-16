@@ -144,6 +144,15 @@ export const envSchema = z.object({
   ).default(60),
   TENANT_RATE_LIMIT_LOGIN_PER_IP: z.preprocess(toNumber, z.number().int().positive()).default(30),
 
+  TENANT_RATE_LIMIT_HOST_PROBE_WINDOW_MS: z.preprocess(
+    toNumber,
+    z.number().int().positive()
+  ).default(60_000),
+  TENANT_RATE_LIMIT_HOST_PROBE_PER_IP: z.preprocess(
+    toNumber,
+    z.number().int().positive()
+  ).default(60),
+
   TENANT_RATE_LIMIT_JOB_WINDOW_MS: z.preprocess(toNumber, z.number().int().positive()).default(
     60_000
   ),
@@ -191,17 +200,35 @@ export const envSchema = z.object({
   ZIBAL_CALLBACK_URL: z.string().default(""),
 
   /**
-   * Payment-gateway idempotency store: `redis` (durable, multi-instance) or `memory` (single process).
-   * When unset, defaults to `memory` when `NODE_ENV=test`, otherwise `redis`.
+   * Payment-gateway idempotency store:
+   * - `postgres` (default outside `NODE_ENV=test`): durable, cross-replica, crash-safe via `payment_gateway_idempotency`.
+   * - `redis`: optional shared cache + NX semantics (legacy / high-throughput).
+   * - `memory`: single-process only (tests / local).
    */
   PAYMENT_GATEWAY_IDEMPOTENCY_STORE: z.preprocess(
     (v: unknown) => {
       const s = typeof v === "string" ? v.trim().toLowerCase() : "";
-      if (s === "redis" || s === "memory") {
+      if (s === "redis" || s === "memory" || s === "postgres") {
         return s;
       }
-      return process.env.NODE_ENV === "test" ? "memory" : "redis";
+      return process.env.NODE_ENV === "test" ? "memory" : "postgres";
     },
-    z.enum(["redis", "memory"])
-  )
+    z.enum(["redis", "memory", "postgres"])
+  ),
+
+  /**
+   * Lookback window (days) for payment–ledger–snapshot reconciliation (`payment.succeeded` / ledger outbox / `payments`).
+   */
+  PAYMENT_FINANCE_RECONCILIATION_LOOKBACK_DAYS: z.preprocess(
+    toNumber,
+    z.number().int().positive().max(365)
+  ).default(30),
+
+  /**
+   * Legacy catalog pricing (`computeLegacyCatalogQuote`) + shadow logs: **read-only / diagnostics only**.
+   * - `off` (default): {@link PricingEngineService.quote} ignores `financeShadowCompare` / `shadowLogOnly` — single production path (finance rules only).
+   * - `archive`: when `NODE_ENV !== "production"`, callers may pass those flags to emit drift logs; never changes persisted totals.
+   * Production always behaves as `off` regardless of this value.
+   */
+  FINANCE_LEGACY_PRICING_DIAGNOSTICS: z.enum(["off", "archive"]).default("off")
 });

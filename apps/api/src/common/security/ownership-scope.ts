@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import type { EntityManager, FindOptionsWhere, Repository } from "typeorm";
 import { IsNull } from "typeorm";
+import { UserRole, tryParseWorkspaceUserRole } from "../auth/user-role.enum";
 import { UserEntity } from "../../modules/identity/entities/user.entity";
 import { PaymentEntity } from "../../modules/payments/entities/payment.entity";
 import { RegistrationEntity } from "../../modules/registrations/registration.entity";
@@ -8,7 +9,7 @@ import { WaitlistItemEntity } from "../../modules/registrations/waitlist-item.en
 import { RequestContextService } from "../request-context/request-context.service";
 
 type ActorScope = {
-  role: string;
+  role: UserRole;
   tenantId?: string;
   userId?: string;
 };
@@ -18,22 +19,20 @@ type MemberIdentity = {
   telegramUserId?: string;
 };
 
-function roleTag(role?: string): string {
-  return (role ?? "").trim().toLowerCase();
+function parseActorWorkspaceRole(ctx: RequestContextService): UserRole | undefined {
+  return tryParseWorkspaceUserRole(String(ctx.getRole() ?? ""));
 }
 
-function isAdminRole(role?: string): boolean {
-  return roleTag(role) === "admin";
+function isAdminRole(role: UserRole): boolean {
+  return role === UserRole.Admin;
 }
 
-function isLeaderRole(role?: string): boolean {
-  const r = roleTag(role);
-  return r === "owner" || r === "admin";
+function isLeaderRole(role: UserRole): boolean {
+  return role === UserRole.Owner || role === UserRole.Admin || role === UserRole.Leader;
 }
 
-function isMemberRole(role?: string): boolean {
-  const r = roleTag(role);
-  return r === "member";
+function isMemberRole(role: UserRole): boolean {
+  return role === UserRole.Member;
 }
 
 export function syntheticBookingContactPhone(userId: string): string {
@@ -43,7 +42,7 @@ export function syntheticBookingContactPhone(userId: string): string {
 }
 
 function requireActorScope(ctx: RequestContextService): ActorScope {
-  const role = roleTag(ctx.getRole());
+  const role = parseActorWorkspaceRole(ctx);
   const userId = ctx.getUserId();
   const tenantId = ctx.resolveEffectiveTenantId();
   if (!role) {

@@ -40,7 +40,7 @@ export function buildTourCreateFormDefaultValues(): TourCreateFormValues {
       days: [
         {
           dayNumber: 1,
-          title: "",
+          title: "روز 1",
           description: "",
           segments: [{ ...wizardDefaultDaySegment }],
         },

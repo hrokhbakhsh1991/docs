@@ -3,7 +3,7 @@ import * as argon2 from "argon2";
 import { DataSource, IsNull } from "typeorm";
 
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
-import { Role } from "../modules/auth/roles.enum";
+import { UserRole } from "../common/auth/user-role.enum";
 import { MembershipStatus } from "../modules/identity/membership-status.enum";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
           mr.create({
             tenantId: tenant.id,
             userId: user!.id,
-            role: Role.MEMBER,
+            role: UserRole.Member,
             status: MembershipStatus.INVITED,
             invitedAt: new Date(),
             joinedAt: null,
@@ -82,7 +82,7 @@ async function main(): Promise<void> {
         );
         actions.push("inserted invited membership");
       } else {
-        membership.role = Role.MEMBER;
+        membership.role = UserRole.Member;
         membership.status = MembershipStatus.INVITED;
         membership.invitedAt = membership.invitedAt ?? new Date();
         membership.joinedAt = null;

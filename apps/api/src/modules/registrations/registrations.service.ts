@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -38,7 +39,7 @@ import {
 import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
 import { TourDetails } from "../tours/entities/tour-details.entity";
-import { TourEntity, TourLifecycleStatus } from "../tours/entities/tour.entity";
+import { TourEntity } from "../tours/entities/tour.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import {
   RegistrationEntity,
@@ -96,6 +97,7 @@ import {
 } from "./domain/booking-finalization-pipeline";
 import { RegistrationsReadRepository } from "./repositories/registrations-read.repository";
 import type { IRegistrationsReadRepository } from "./repositories/registrations-read.repository.interface";
+import { PricingEngineService } from "../pricing/pricing-engine.service";
 
 /**
  * **Services = orchestration + policy** (ownership scopes, transitions, validation).
@@ -106,25 +108,29 @@ import type { IRegistrationsReadRepository } from "./repositories/registrations-
  */
 @Injectable()
 export class RegistrationsService {
+  private readonly logger = new Logger(RegistrationsService.name);
   private registrationCreatedTotal = 0;
   private registrationWaitlistedTotal = 0;
   private registrationPaidTotal = 0;
 
-  // DI-DIAGNOSTIC: If this service is instantiated with undefined fields, root cause is typically missing runtime design:paramtypes metadata in test transpilation pipeline.
-  // TODO(FREEZE-BLOCKER): Validate constructor dependency availability during E2E app bootstrap (registrationRepository, dataSource, requestContextService, outboxService); failures in RegistrationsController suggest upstream provider resolution issues.
+  /** Explicit `@Inject` on non-`@InjectRepository` params keeps tsx E2E DI stable without `design:paramtypes`. */
   constructor(
     @InjectRepository(RegistrationEntity)
     private readonly registrationRepository: Repository<RegistrationEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private readonly dataSource: DataSource,
-    private readonly tenantBootstrapService: TenantBootstrapService,
-    private readonly requestContextService: RequestContextService,
-    private readonly outboxService: OutboxService,
+    @Inject(DataSource) private readonly dataSource: DataSource,
+    @Inject(TenantBootstrapService) private readonly tenantBootstrapService: TenantBootstrapService,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
+    @Inject(RegistrationQuoteApplicationService)
     private readonly registrationQuoteApplication: RegistrationQuoteApplicationService,
     @Inject(RegistrationsReadRepository)
     private readonly registrationsReadRepository: IRegistrationsReadRepository,
-    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService
+    @Inject(BookingLedgerAuthorityService)
+    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService,
+    @Inject(PricingEngineService)
+    private readonly pricingEngineService: PricingEngineService
   ) {}
 
   /**
@@ -139,6 +145,103 @@ export class RegistrationsService {
       return fn(em);
     }
     return this.dataSource.transaction(fn);
+  }
+
+  /**
+   * Creates a pricing snapshot for a **newly saved** registration and stamps `snapshotId` back
+   * onto the entity row in the same transaction. This is the authoritative checkout-path snapshot
+   * creation — called immediately after the first `manager.save(registration)` for new records.
+   *
+   * For registrations that already have `snapshotId` set, this is a no-op.
+   */
+  private async createAndStampSnapshot(
+    manager: EntityManager,
+    saved: RegistrationEntity
+  ): Promise<RegistrationEntity> {
+    if (saved.snapshotId) {
+      // Already has a snapshot from a previous call or idempotent replay.
+      return saved;
+    }
+    if (!saved.id) {
+      return saved;
+    }
+
+    const listMinor = saved.quotedListPriceMinor ?? saved.quotedTotalMinor;
+    if (
+      saved.quotedTotalMinor == null ||
+      saved.quotedPricingVersion == null ||
+      saved.quotedCurrencyCode == null ||
+      listMinor == null
+    ) {
+      // Quote columns incomplete — skip snapshot creation (free/no-cost tours).
+      this.logger.warn(
+        JSON.stringify({
+          event: "SNAPSHOT_SKIPPED_INCOMPLETE_QUOTE",
+          tenant_id: saved.tenantId,
+          registration_id: saved.id,
+          message: "Quote columns incomplete; snapshot not created for this registration."
+        })
+      );
+      return saved;
+    }
+
+    // Shadow Mode: run a diagnostic quote against the PricingEngine to detect any drift
+    // between the stored quote and the authoritative engine output.
+    // Controlled by FINANCE_LEGACY_PRICING_DIAGNOSTICS=archive (non-production only).
+    // This is a read-only operation — it does not affect snapshot values.
+    try {
+      await this.pricingEngineService.quote(
+        manager,
+        {
+          tenantId: saved.tenantId,
+          tourId: saved.tourId,
+          departureId: saved.tourDepartureId,
+          userRole: tryParseWorkspaceUserRole(this.requestContextService.getRole()) ?? UserRole.Member,
+          discountCode: null
+        },
+        { financeShadowCompare: true }
+      );
+    } catch (shadowErr: unknown) {
+      // Shadow mode errors must never block the checkout flow.
+      this.logger.warn(
+        JSON.stringify({
+          event: "PRICING_SHADOW_COMPARE_ERROR",
+          tenant_id: saved.tenantId,
+          registration_id: saved.id,
+          message: shadowErr instanceof Error ? shadowErr.message : String(shadowErr)
+        })
+      );
+    }
+
+    const snapshot = await createPricingSnapshot(manager, {
+      tenantId: saved.tenantId,
+      bookingId: saved.id,
+      listPriceMinor: String(listMinor),
+      currency: String(saved.quotedCurrencyCode),
+      pricingRuleVersion: String(saved.quotedPricingVersion),
+      computedTotalMinor: String(saved.quotedTotalMinor)
+    });
+
+    // Stamp snapshotId back onto the registration row in the same transaction.
+    await manager.update(
+      RegistrationEntity,
+      { id: saved.id, tenantId: saved.tenantId },
+      { snapshotId: snapshot.snapshotId }
+    );
+    saved.snapshotId = snapshot.snapshotId;
+
+    this.logger.log(
+      JSON.stringify({
+        event: "BOOKING_PRICE_SNAPSHOT_CREATED",
+        tenant_id: saved.tenantId,
+        registration_id: saved.id,
+        snapshot_id: snapshot.snapshotId,
+        computed_total_minor: snapshot.computedTotalMinor,
+        currency: snapshot.currency
+      })
+    );
+
+    return saved;
   }
 
   /**
@@ -231,24 +334,23 @@ export class RegistrationsService {
       if (placement.consumesAcceptedCapacity) {
         tour.acceptedCount += 1;
         assertTourCapacityInvariant(tour);
-        if (tour.acceptedCount >= tour.totalCapacity) {
-          tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
-        }
         await manager.save(tour);
         await this.syncTourDepartureFromTour(manager, tour);
       }
 
       const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
+      // Mandatory: create immutable price snapshot and stamp snapshotId onto the row.
+      const savedWithSnapshot = await this.createAndStampSnapshot(manager, saved);
       this.registrationCreatedTotal += 1;
       const actorId = this.requestContextService.getUserId() ?? "unknown";
       await emitRegistrationCreatedEvent({
         manager,
         outboxService: this.outboxService,
-        registration: saved,
+        registration: savedWithSnapshot,
         actorId,
         paymentRequired
       });
-      return this.toRegistrationResponse(saved);
+      return this.toRegistrationResponse(savedWithSnapshot);
     });
 
     return result;
@@ -311,6 +413,68 @@ export class RegistrationsService {
         order: { createdAt: "DESC" }
       });
       return rows.map((row) => this.toRegistrationResponse(row));
+    });
+  }
+
+  /** Tenant-wide registration rows for leader review (one query + tour titles, no per-tour fan-out). */
+  async listLeaderRegistrationIndex(limit = 5_000): Promise<{
+    rows: Array<RegistrationResponseDto & { tourTitle: string }>;
+    partial: boolean;
+  }> {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+
+    const cappedLimit = Math.min(Math.max(1, limit), 10_000);
+
+    return this.dataSource.transaction(async (manager) => {
+      const registrations = await manager.find(RegistrationEntity, {
+        where: { tenantId, deletedAt: IsNull() },
+        order: { createdAt: "DESC" },
+        take: cappedLimit,
+      });
+
+      const tourIds = [...new Set(registrations.map((row) => row.tourId))];
+      const tours =
+        tourIds.length === 0
+          ? []
+          : await manager.find(TourEntity, {
+              where: { id: In(tourIds), tenantId, deletedAt: IsNull() },
+              select: ["id", "title"],
+            });
+      const titleByTourId = new Map(
+        tours.map((tour) => [tour.id, tour.title?.trim() || tour.id] as const),
+      );
+
+      const rows = registrations.map((row) => ({
+        ...this.toRegistrationResponse(row),
+        tourTitle: titleByTourId.get(row.tourId) ?? row.tourId,
+      }));
+
+      return {
+        rows,
+        partial: registrations.length >= cappedLimit,
+      };
+    });
+  }
+
+  /** Tenant-scoped registration counts for leader dashboard (one query, no per-tour fan-out). */
+  async getLeaderRegistrationStats(): Promise<{
+    pending_count: number;
+    total_count: number;
+  }> {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const total_count = await manager.count(RegistrationEntity, { where: { tenantId } });
+      const pending_count = await manager.count(RegistrationEntity, {
+        where: { tenantId, status: RegistrationStatus.PENDING },
+      });
+      return { pending_count, total_count };
     });
   }
 
@@ -712,14 +876,13 @@ export class RegistrationsService {
         manager,
         convertedRegistration
       );
+      // Mandatory: create immutable price snapshot and stamp snapshotId onto the row.
+      const savedRegistrationWithSnapshot = await this.createAndStampSnapshot(manager, savedRegistration);
       waitlistItem.status = WaitlistItemStatus.CONVERTED;
-      waitlistItem.promotedRegistrationId = savedRegistration.id;
+      waitlistItem.promotedRegistrationId = savedRegistrationWithSnapshot.id;
       waitlistItem.conversionReason = payload.conversionReason;
       tour.acceptedCount += 1;
       assertTourCapacityInvariant(tour);
-      if (tour.acceptedCount >= tour.totalCapacity) {
-        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
-      }
       await manager.save(tour);
       await this.syncTourDepartureFromTour(manager, tour);
       const savedWaitlist = await manager.save(waitlistItem);
@@ -729,7 +892,7 @@ export class RegistrationsService {
         manager,
         outboxService: this.outboxService,
         waitlistItem: savedWaitlist,
-        promotedRegistration: savedRegistration,
+        promotedRegistration: savedRegistrationWithSnapshot,
         actorId,
         reason: payload.conversionReason ?? undefined,
         source: "manual_waitlist_conversion"
@@ -1079,6 +1242,8 @@ export class RegistrationsService {
           tourId: saved.tourId,
           correlationId: this.requestContextService.getRequestId()
         });
+      }
+      if (saved.id) {
         await this.ensureBookingPriceSnapshotLockedAndEmit(manager, saved);
       }
       return saved;
@@ -1099,7 +1264,19 @@ export class RegistrationsService {
     manager: EntityManager,
     saved: RegistrationEntity
   ): Promise<void> {
-    if (await manager.exists(BookingPriceSnapshotEntity, { where: { bookingId: saved.id } })) {
+    if (!saved.id) {
+      return;
+    }
+    // Fast-path: new checkout flow already stamped snapshot_id via createAndStampSnapshot().
+    // For existing legacy registrations (snapshotId is null), fall through to the DB check below.
+    if (saved.snapshotId) {
+      return;
+    }
+    if (
+      await manager.exists(BookingPriceSnapshotEntity, {
+        where: { bookingId: saved.id, tenantId: saved.tenantId }
+      })
+    ) {
       return;
     }
     const hasPending = await manager.exists(PaymentEntity, {
@@ -1116,24 +1293,36 @@ export class RegistrationsService {
         status: PaymentStatus.PAID
       }
     });
-    if (hasPending || hasPaid) {
+    const listMinor = saved.quotedListPriceMinor ?? saved.quotedTotalMinor;
+    const quoteComplete =
+      saved.quotedTotalMinor != null &&
+      saved.quotedPricingVersion != null &&
+      saved.quotedCurrencyCode != null &&
+      listMinor != null;
+
+    if (!quoteComplete) {
+      if (hasPending || hasPaid) {
+        throw new ConflictException({
+          error: {
+            code: "BOOKING_PRICING_SNAPSHOT_INCOMPLETE_WITH_PAYMENT",
+            message:
+              "Payment rows exist for this booking but the persisted quote columns are incomplete — cannot build or verify an immutable snapshot."
+          }
+        });
+      }
       return;
     }
-    const listMinor = saved.quotedListPriceMinor ?? saved.quotedTotalMinor;
-    if (
-      saved.quotedTotalMinor == null ||
-      saved.quotedPricingVersion == null ||
-      saved.quotedCurrencyCode == null ||
-      listMinor == null
-    ) {
+
+    if (hasPending || hasPaid) {
       throw new ConflictException({
         error: {
-          code: "BOOKING_PRICING_SNAPSHOT_INCOMPLETE",
+          code: "BOOKING_PRICE_SNAPSHOT_MISSING_WITH_PAYMENT",
           message:
-            "Booking is missing a complete server-side price quote; an immutable pricing snapshot cannot be created. Live catalog prices must not be used without a booking-time quote."
+            "Payment activity exists for this booking without an immutable booking price snapshot — data invariant violated."
         }
       });
     }
+
     const phaseBefore = bookingFinalizationPhaseFromFacts({
       hasPriceSnapshot: false,
       hasPendingPayment: hasPending,
@@ -1280,9 +1469,6 @@ export class RegistrationsService {
     if (willBeAccepted) {
       tour.acceptedCount += 1;
       assertTourCapacityInvariant(tour);
-      if (tour.acceptedCount >= tour.totalCapacity) {
-        tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
-      }
       return;
     }
 
@@ -1323,6 +1509,18 @@ export class RegistrationsService {
       paidAmount: undefined
     });
     return this.promoteNextWaitlistItem(manager, anchor, lockedTour);
+  }
+
+  /**
+   * FIFO waitlist → registration promotion used when the payment processor frees capacity.
+   * Must match manual conversion: {@link RegistrationQuoteApplicationService} quote + append-only snapshot.
+   */
+  async promoteNextWaitlistItemForPaymentFlow(
+    manager: EntityManager,
+    releasedRegistration: RegistrationEntity,
+    lockedTour: TourEntity | null
+  ): Promise<boolean> {
+    return this.promoteNextWaitlistItem(manager, releasedRegistration, lockedTour);
   }
 
   private async promoteNextWaitlistItem(
@@ -1377,15 +1575,14 @@ export class RegistrationsService {
       manager,
       promotedRegistration
     );
+    // Mandatory: create immutable price snapshot and stamp snapshotId onto the row.
+    const savedPromotedWithSnapshot = await this.createAndStampSnapshot(manager, savedPromotedRegistration);
 
     waitlistItem.status = WaitlistItemStatus.CONVERTED;
-    waitlistItem.promotedRegistrationId = savedPromotedRegistration.id;
+    waitlistItem.promotedRegistrationId = savedPromotedWithSnapshot.id;
     await manager.save(waitlistItem);
     tour.acceptedCount += 1;
     assertTourCapacityInvariant(tour);
-    if (tour.acceptedCount >= tour.totalCapacity) {
-      tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
-    }
     await manager.save(tour);
     await this.syncTourDepartureFromTour(manager, tour);
 
@@ -1394,7 +1591,7 @@ export class RegistrationsService {
       manager,
       outboxService: this.outboxService,
       waitlistItem,
-      promotedRegistration: savedPromotedRegistration,
+      promotedRegistration: savedPromotedWithSnapshot,
       actorId,
       source: "waitlist_promotion"
     });
@@ -1598,27 +1795,26 @@ export class RegistrationsService {
       if (placement.consumesAcceptedCapacity) {
         tour.acceptedCount += 1;
         assertTourCapacityInvariant(tour);
-        if (tour.acceptedCount >= tour.totalCapacity) {
-          tour.lifecycleStatus = TourLifecycleStatus.CLOSED;
-        }
         await manager.save(tour);
         await this.syncTourDepartureFromTour(manager, tour);
       }
       const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
+      // Mandatory: create immutable price snapshot and stamp snapshotId onto the row.
+      const savedWithSnapshot = await this.createAndStampSnapshot(manager, saved);
       this.registrationCreatedTotal += 1;
       const actorId = this.requestContextService.getUserId() ?? "public";
       if (placement.status === RegistrationStatus.ACCEPTED) {
         await emitPublicRegistrationAcceptedEvent({
           manager,
           outboxService: this.outboxService,
-          registration: saved,
+          registration: savedWithSnapshot,
           actorId
         });
       } else {
         await emitRegistrationCreatedEvent({
           manager,
           outboxService: this.outboxService,
-          registration: saved,
+          registration: savedWithSnapshot,
           actorId,
           paymentRequired: requiresPayment
         });
@@ -1648,8 +1844,8 @@ export class RegistrationsService {
       };
     };
     if (store) {
-      return requestContextStorage.run(store, () => this.dataSource.transaction(run));
+      return requestContextStorage.run(store, () => this.runInIdempotentOrOwnTransaction(run));
     }
-    return this.dataSource.transaction(run);
+    return this.runInIdempotentOrOwnTransaction(run);
   }
 }

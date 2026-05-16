@@ -9,7 +9,7 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
 import { TenantManagementDbService } from "../tenant/tenant-management-db.service";
-import { Role } from "./roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import type { AuthWorkspaceItemDto } from "./dto/auth-workspace-item.dto";
 import type { CreateWorkspaceDto } from "./dto/create-workspace.dto";
 
@@ -67,14 +67,14 @@ export class WorkspaceService {
           manager.create(UserTenantEntity, {
             tenantId: tenant.id,
             userId,
-            role: Role.OWNER
+            role: UserRole.Owner
           })
         );
         return {
           tenant_id: tenant.id,
           tenant_name: tenant.name,
           tenant_subdomain: tenant.subdomain ?? "",
-          role: Role.OWNER,
+          role: UserRole.Owner,
           session_version: 1
         };
       });

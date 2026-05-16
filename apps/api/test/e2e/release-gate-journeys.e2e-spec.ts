@@ -20,7 +20,7 @@ import {
 import { tenantTestHost } from "./tenant-test-host";
 import { E2E_DEV_OTP } from "./web-session-otp.helper";
 import { ReconciliationService } from "../../src/modules/reconciliation/reconciliation.service";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
@@ -91,7 +91,7 @@ async function seedReleaseGateTenant(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: user.id,
-      role: Role.OWNER
+      role: UserRole.Owner
     })
   );
 }
@@ -146,6 +146,10 @@ async function publicRegister(
 ): Promise<request.Response> {
   const req = request(app.getHttpServer())
     .post(`/api/v2/tours/${tourId}/register`)
+    .set(
+      "idempotency-key",
+      idempotencyKey ?? `release-gate-${tourId}-u${index}-${randomUUID()}`
+    )
     .send({
       tourId,
       participantFullName: `Release User ${index}`,
@@ -153,9 +157,6 @@ async function publicRegister(
       transportMode: "group_vehicle",
       entryMode: "web"
     });
-  if (idempotencyKey) {
-    req.set("idempotency-key", idempotencyKey);
-  }
   return req;
 }
 

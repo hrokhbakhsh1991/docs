@@ -60,6 +60,9 @@ RECONCILIATION_INTERVAL_MS=600000
 
 PAYMENTS_TIMEOUT_ENABLED=true
 PAYMENTS_TIMEOUT_INTERVAL_MS=60000
+
+# Uncomment when using infra/docker-compose.observability.yml (Jaeger all-in-one)
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
 EOF
 
 chmod 600 "${OUT}"

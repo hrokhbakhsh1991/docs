@@ -12,19 +12,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@tour/ui";
 
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
-import { API } from "@/lib/api-paths";
 import { ApiError } from "@/lib/api-client";
-import { apiClient } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
 import {
-  getUsers,
+  bulkReactivateUsers,
+  bulkRemoveUsers,
+  bulkSuspendUsers,
   bulkUpdateUsersRole,
+  getUsers,
   type GetUsersResponseDto,
   updateUserRole,
   usersUseLiveApi,
 } from "@/lib/services/users.service";
 import { UserRole } from "@/lib/auth/user-role";
-import { tryParseWorkspaceRole } from "@repo/shared-rbac";
+import { tryParseWorkspaceRole } from "@repo/shared";
 import { useAppToast } from "@/lib/use-app-toast";
 
 import {
@@ -377,7 +378,7 @@ export function UsersPageClient() {
 
   const bulkSuspendMutation = useMutation({
     mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await Promise.all(userIds.map((id) => apiClient.patch(`${API.user(id)}/suspend`)));
+      await bulkSuspendUsers(userIds);
     },
     onSuccess: (_result, variables) => {
       toast.success({ message: `Suspended ${variables.userIds.length} users.` });
@@ -395,7 +396,7 @@ export function UsersPageClient() {
 
   const bulkReactivateMutation = useMutation({
     mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await Promise.all(userIds.map((id) => apiClient.patch(`${API.user(id)}/reactivate`)));
+      await bulkReactivateUsers(userIds);
     },
     onSuccess: (_result, variables) => {
       toast.success({ message: `Reactivated ${variables.userIds.length} users.` });
@@ -423,7 +424,7 @@ export function UsersPageClient() {
 
   const bulkRemoveMutation = useMutation({
     mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await Promise.all(userIds.map((id) => apiClient.delete(`${API.user(id)}/remove`)));
+      await bulkRemoveUsers(userIds);
     },
     onSuccess: (_result, variables) => {
       toast.success({ message: `Removed ${variables.userIds.length} users from workspace.` });

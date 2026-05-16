@@ -10,8 +10,9 @@ import {
 import type { NextFunction, Request, Response } from "express";
 import { ConfigService } from "../../config/config.service";
 import { TenantHostResolverService } from "../../modules/tenant/tenant-host-resolver.service";
+import { TenantRateLimitService } from "../tenant-abuse/tenant-rate-limit.service";
 import { RequestContextService } from "../request-context/request-context.service";
-import { isAuthSessionLoginRoute } from "../auth/auth-route-policy";
+import { isAuthTenantHostStrictRoute } from "../auth/auth-route-policy";
 
 /**
  * Paths where Host-based tenant lookup must not run (health, docs, public flows).
@@ -21,6 +22,8 @@ import { isAuthSessionLoginRoute } from "../auth/auth-route-policy";
 export function shouldBypassTenantResolver(path: string, method: string): boolean {
   return (
     (method === "POST" && /^\/api\/v2\/tours\/[^/]+\/(register|waitlist)$/.test(path)) ||
+    (method === "GET" &&
+      /^\/api\/v2\/tours\/[^/]+\/registration-idempotency-key$/.test(path)) ||
     (method === "GET" && /^\/api\/v2\/registrations\/[^/]+$/.test(path)) ||
     path.startsWith("/health") ||
     path.startsWith("/internal") ||
@@ -29,7 +32,7 @@ export function shouldBypassTenantResolver(path: string, method: string): boolea
 }
 
 export function isAuthTenantSessionRoute(path: string, method: string): boolean {
-  return isAuthSessionLoginRoute(path, method);
+  return isAuthTenantHostStrictRoute(path, method);
 }
 
 @Injectable()
@@ -39,8 +42,17 @@ export class TenantResolverMiddleware implements NestMiddleware {
     private readonly tenantHostResolver: TenantHostResolverService,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
-    @Inject(ConfigService) private readonly configService: ConfigService
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(TenantRateLimitService)
+    private readonly tenantRateLimitService: TenantRateLimitService
   ) {}
+
+  private async guardHostProbeOnAuthRoute(req: Request, authRoute: boolean): Promise<void> {
+    if (!authRoute) {
+      return;
+    }
+    await this.tenantRateLimitService.enforceHostProbeOnAuthRoute(req);
+  }
 
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
@@ -60,6 +72,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
       );
 
       if (authRoute && !inboundHost) {
+        await this.guardHostProbeOnAuthRoute(req, authRoute);
         throw new BadRequestException({
           error: {
             code: "TENANT_HOST_INVALID",
@@ -79,11 +92,21 @@ export class TenantResolverMiddleware implements NestMiddleware {
         outcome.kind === "outside_workspace" ||
         outcome.kind === "no_root_config"
       ) {
+        if (authRoute) {
+          await this.guardHostProbeOnAuthRoute(req, authRoute);
+          throw new BadRequestException({
+            error: {
+              code: "TENANT_HOST_INVALID",
+              message: "The workspace hostname is missing or invalid"
+            }
+          });
+        }
         return next();
       }
 
       if (outcome.kind === "reserved") {
         if (authRoute) {
+          await this.guardHostProbeOnAuthRoute(req, authRoute);
           throw new ForbiddenException({
             error: {
               code: "TENANT_HOST_RESERVED",
@@ -96,6 +119,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
       if (outcome.kind === "invalid_label") {
         if (authRoute) {
+          await this.guardHostProbeOnAuthRoute(req, authRoute);
           throw new BadRequestException({
             error: {
               code: "TENANT_HOST_INVALID",
@@ -113,6 +137,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
       if (!tenant) {
         if (authRoute) {
+          await this.guardHostProbeOnAuthRoute(req, authRoute);
           throw new NotFoundException({
             error: {
               code: "TENANT_HOST_UNKNOWN",

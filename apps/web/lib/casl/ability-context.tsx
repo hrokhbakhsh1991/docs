@@ -2,8 +2,8 @@
 
 import { createContext } from "react";
 
-import type { AppAbility } from "@repo/shared-rbac";
-import { defineAbilityFor } from "@repo/shared-rbac";
+import type { AppAbility } from "@repo/shared";
+import { defineAbilityFor } from "@repo/shared";
 
 /** Stable guest ability for SSR / pre-hydration (no mutations). */
 export const GUEST_APP_ABILITY: AppAbility = defineAbilityFor({

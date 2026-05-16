@@ -6,7 +6,7 @@ import * as argon2 from "argon2";
 import { randomUUID } from "node:crypto";
 import { DataSource, IsNull } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
-import { Role } from "../modules/auth/roles.enum";
+import { UserRole } from "../common/auth/user-role.enum";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
@@ -156,7 +156,7 @@ async function run(): Promise<void> {
         membershipRepo.create({
           tenantId: tenant!.id,
           userId: user.id,
-          role: Role.OWNER
+          role: UserRole.Owner
         })
       );
       console.log(`Created membership owner for ${EMAIL} on tenant ${tenant!.id}`);

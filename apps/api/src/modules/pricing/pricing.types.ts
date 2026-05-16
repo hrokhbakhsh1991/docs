@@ -1,4 +1,4 @@
-import type { WorkspaceRole } from "@repo/shared-rbac";
+import type { WorkspaceRole } from "@repo/shared";
 
 export type PricingLineItemKind =
   | "base"
@@ -42,11 +42,13 @@ export type PricingEngineQuoteOptions = {
   /**
    * When true, emits a structured log line with inputs + quote (debug / audit only).
    * Does not change totals — same authoritative finance quote as normal mode.
+   * **Honored only** when `FINANCE_LEGACY_PRICING_DIAGNOSTICS=archive` and `NODE_ENV !== "production"`.
    */
   shadowLogOnly?: boolean;
   /**
    * When true, runs the legacy catalog quote in parallel and logs `PRICING_SHADOW_DIFF`
-   * against the authoritative finance quote. **Off by default**; drift monitoring only.
+   * against the authoritative finance quote. **Honored only** in the same archive + non-production gate;
+   * never changes persisted totals.
    */
   financeShadowCompare?: boolean;
 };

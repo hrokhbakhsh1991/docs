@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
+import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
+import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
+import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/booking-price-snapshot.entity";
+import { PaymentEntity } from "../../src/modules/payments/entities/payment.entity";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import {
   WaitlistItemEntity,
@@ -26,6 +31,8 @@ function createServiceHarness() {
     status: RegistrationStatus.PENDING,
     paymentStatus: RegistrationPaymentStatus.NOT_PAID,
     paidAmount: undefined,
+    quotedCurrencyCode: "IRR",
+    rowVersion: 1,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z")
   } as RegistrationEntity;
@@ -100,16 +107,45 @@ function createServiceHarness() {
     async update() {
       return { affected: 1, raw: [], generatedMaps: [] };
     },
+    async exists(
+      entity: unknown,
+      options: { where: Record<string, unknown> | Record<string, unknown>[] }
+    ): Promise<boolean> {
+      const name = (entity as { name?: string }).name;
+      const clauses = Array.isArray(options.where) ? options.where : [options.where];
+      if (name === RegistrationEntity.name) {
+        return clauses.some((c) => (c as { id?: string }).id === registration.id);
+      }
+      if (name === BookingPriceSnapshotEntity.name || name === PaymentEntity.name) {
+        return false;
+      }
+      return false;
+    },
     async findOne(
       entity: unknown,
       options: {
         where:
-          | { id?: string; tenantId?: string; deletedAt?: unknown }
+          | { id?: string; tenantId?: string; deletedAt?: unknown; select?: unknown }
           | Array<{ id?: string; tenantId?: string; participantContactPhone?: string }>;
       }
     ) {
       if ((entity as { name?: string }).name === RegistrationEntity.name) {
         const clauses = Array.isArray(options.where) ? options.where : [options.where];
+        if (clauses.length === 1) {
+          const w = clauses[0] as Record<string, unknown>;
+          if (
+            typeof w.id === "string" &&
+            typeof w.tenantId === "string" &&
+            !("participantContactPhone" in w)
+          ) {
+            if (w.tenantId === registration.tenantId) {
+              if (w.id === registration.id) {
+                return { ...registration };
+              }
+              return { id: w.id, tenantId: w.tenantId };
+            }
+          }
+        }
         const match = clauses.find((clause) => {
           const w = clause as Record<string, unknown>;
           return (
@@ -123,7 +159,16 @@ function createServiceHarness() {
       }
       return null;
     },
-    async save(entity: unknown) {
+    async save(entityOrClass?: unknown, maybeEntity?: unknown) {
+      const target =
+        maybeEntity !== undefined ? (entityOrClass as { name?: string }) : undefined;
+      const entity = maybeEntity !== undefined ? maybeEntity : entityOrClass;
+
+      if (target?.name === BookingPriceSnapshotEntity.name) {
+        const row = entity as Record<string, unknown>;
+        return { ...row, snapshotId: "snap-stub-1" };
+      }
+
       const waitlistCandidate = entity as WaitlistItemEntity;
       if (
         waitlistCandidate.id === waitlist.id &&
@@ -136,7 +181,9 @@ function createServiceHarness() {
       const registrationCandidate = entity as RegistrationEntity;
       if (registrationCandidate.tourId && registrationCandidate.participantContactPhone) {
         if (registrationCandidate.id === registration.id) {
+          const prevV = registration.rowVersion ?? 1;
           Object.assign(registration, registrationCandidate);
+          registration.rowVersion = prevV + 1;
           registration.updatedAt = new Date("2026-01-02T00:00:00.000Z");
           return { ...registration };
         }
@@ -187,7 +234,8 @@ function createServiceHarness() {
     resolveEffectiveTenantId: () => registration.tenantId,
     getTenantId: () => registration.tenantId,
     getUserId: () => "leader-1",
-    getRole: () => "owner"
+    getRole: () => "owner",
+    getRequestId: () => "stub-request-id"
   };
 
   const outboxService = {
@@ -205,20 +253,31 @@ function createServiceHarness() {
     dataSource as never,
     {} as never,
     requestContextService as never,
-    outboxService as never
+    outboxService as never,
+    stubRegistrationQuoteApplication,
+    createNullStandaloneRegistrationsReadTestDouble(),
+    new BookingLedgerAuthorityService(outboxService as never),
+    {} as never // PricingEngineService stub
   );
 
   return { service, registration, waitlist, tour, events };
 }
 
 test("updateRegistrationPayment persists payment status and paid amount", async () => {
-  const { service } = createServiceHarness();
-  const updated = await service.updateRegistrationPayment("reg-1", {
-    paymentStatus: RegistrationPaymentStatus.PAID,
-    paidAmount: 2500
-  });
+  const { service, events } = createServiceHarness();
+  const updated = await service.updateRegistrationPayment(
+    "reg-1",
+    {
+      paymentStatus: RegistrationPaymentStatus.PAID,
+      paidAmount: 2500,
+      expected_row_version: 1
+    },
+    "idem-stub-1"
+  );
   assert.equal(updated.paymentStatus, RegistrationPaymentStatus.PAID);
   assert.equal(updated.paidAmount, "2500");
+  assert.ok(events.includes("finance.ledger.double_entry_applied"));
+  assert.ok(events.includes("registration.payment_updated"));
 });
 
 test("convertWaitlistItem converts waiting item and emits conversion events", async () => {
@@ -229,7 +288,12 @@ test("convertWaitlistItem converts waiting item and emits conversion events", as
   assert.equal(converted.status, WaitlistItemStatus.CONVERTED);
   assert.equal(converted.conversionReason, "capacity_available");
   assert.equal(tour.acceptedCount, 1);
-  assert.deepEqual(events, ["waitlist.converted", "registration.accepted"]);
+  assert.deepEqual(events, [
+    "booking.created",
+    "booking.finalization.price_snapshot_locked",
+    "waitlist.converted",
+    "registration.accepted"
+  ]);
 });
 
 test("cancelWaitlistItem cancels waiting item and emits cancellation event", async () => {

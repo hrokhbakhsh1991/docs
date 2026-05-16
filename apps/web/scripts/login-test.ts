@@ -7,7 +7,7 @@ async function main() {
   const origin = resolveTourOpsApiBaseUrl();
   if (!origin) {
     console.error(
-      "API origin is empty: set NEXT_PUBLIC_API_URL (Node has no browser host for dynamic origin)."
+      "API origin is empty: set NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true and NEXT_PUBLIC_TENANT_ROOT_DOMAIN (Node has no browser host)."
     );
     process.exit(1);
   }

@@ -96,9 +96,11 @@ export class TenantSessionBindingService implements OnModuleInit {
     }
 
     // No ALS context exists (typical background flow): create a scoped worker context.
+    const workerRequestId = `worker-${randomUUID()}`;
     return requestContextStorage.run(
       {
-        requestId: `worker-${randomUUID()}`,
+        requestId: workerRequestId,
+        correlationId: workerRequestId,
         tenantId: normalizedTenantId,
         hostTenantId: normalizedTenantId,
         tenantContextFrozen: true,
@@ -214,7 +216,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         const openedForBinding = qr[TENANT_RLS_OPENED_TX_FOR_BINDING] === true;
         try {
           if (openedForBinding && queryRunner.isTransactionActive) {
-            await queryRunner.commitTransaction();
+            await queryRunner.rollbackTransaction();
           }
         } catch {
           if (openedForBinding && queryRunner.isTransactionActive) {
@@ -548,6 +550,9 @@ export class TenantSessionBindingService implements OnModuleInit {
         normalized.includes(" where id =") || normalized.includes(" where \"id\" =");
       const deletedNull = normalized.includes("deleted_at is null");
       return selectsTours && byPrimaryId && deletedNull;
+    }
+    if (reason === "health_ready_probe") {
+      return /^select 1(?:\s+as\s+\w+)?\s*;?$/.test(normalized);
     }
     return false;
   }

@@ -13,8 +13,8 @@ import { GlobalExceptionFilter } from "./common/errors/global-exception.filter";
 import { LoggerService } from "./common/logger/logger.service";
 import { ObservabilityMetricsService } from "./common/observability/observability-metrics.service";
 import { AuthMiddleware } from "./common/middleware/auth.middleware";
-import { TenantGuardMiddleware } from "./common/middleware/tenant-guard.middleware";
 import { RequestContextMiddleware } from "./common/request-context/request-context.middleware";
+import { RequestTraceMiddleware } from "./common/observability/request-trace.middleware";
 import { RequestContextService } from "./common/request-context/request-context.service";
 import { TenantRateLimitMiddleware } from "./common/tenant-abuse/tenant-rate-limit.middleware";
 import { TenantUsageMiddleware } from "./common/billing/tenant-usage.middleware";
@@ -57,7 +57,13 @@ async function bootstrap() {
   app.use(helmet({ contentSecurityPolicy: false }));
 
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (configService.isCorsOriginAllowed(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true
   });
 
@@ -69,8 +75,8 @@ async function bootstrap() {
   app.use(authMiddleware.use.bind(authMiddleware));
   const tenantMiddleware = app.get(TenantMiddleware);
   app.use(tenantMiddleware.use.bind(tenantMiddleware));
-  const tenantGuardMiddleware = app.get(TenantGuardMiddleware);
-  app.use(tenantGuardMiddleware.use.bind(tenantGuardMiddleware));
+  const requestTraceMiddleware = app.get(RequestTraceMiddleware);
+  app.use(requestTraceMiddleware.use.bind(requestTraceMiddleware));
   const tenantRateLimitMiddleware = app.get(TenantRateLimitMiddleware);
   app.use(tenantRateLimitMiddleware.use.bind(tenantRateLimitMiddleware));
   const tenantUsageMiddleware = app.get(TenantUsageMiddleware);

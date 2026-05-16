@@ -288,9 +288,37 @@ Use this before exposing multi-tenant workspaces on the public internet.
 
 ---
 
+## 9. Phase 7 — Tenant security hardening (DNS + application)
+
+### DNS / wildcard strategy
+
+1. **Single wildcard to ingress** — `*.{{TENANT_ROOT_DOMAIN}}` → one load balancer; do **not** create per-tenant public DNS records. Tenant identity lives only in Postgres (`tenants.subdomain`).
+2. **TLS** — wildcard cert or ACME DNS-01; include apex SAN if marketing uses `{{TENANT_ROOT_DOMAIN}}`.
+3. **Ingress default deny** — nginx/ALB `server_name *.app.example.com`; `default_server` returns 444/404 for unknown hosts.
+4. **Reserved labels** — never provision `www`, `api`, `admin`, etc. as workspace slugs (`TENANT_HOST_RESERVED_SUBDOMAINS`).
+5. **Monitoring** — alert on `tenant_resolution_failures_total{code="TENANT_HOST_UNKNOWN"}` spikes (slug enumeration behind wildcard DNS).
+
+### Application controls (web + API)
+
+| Control | Behavior |
+|---------|----------|
+| Web Host allowlist | `@repo/tenant-host` suffix check — rejects `ws1.evil.com` (`outside_workspace`) |
+| Web apex | `localhost:3000` / bare apex → `/workspace-not-found` (no login UI) |
+| Web SSR | `assertWorkspaceRequest()` in root layout — hard redirect, no silent render |
+| Web BFF | slug from **Host only**; ignores client `x-tenant-slug`; probes workspace before upstream |
+| API strict Host | auth login + `POST /auth/workspace/session` require valid workspace Host |
+| API JWT↔Host | workspace session no longer skips Host alignment |
+| API CORS | `isCorsOriginAllowed` wired in `main.ts` (no `origin: true`) |
+| Host probe RL | `TENANT_RATE_LIMIT_HOST_PROBE_PER_IP` on strict auth routes |
+
+Gate: `node scripts/verify-phase-7-tenant-security.mjs`
+
+---
+
 ## Document history
 
 | Version | Date | Notes |
 |---------|------|--------|
 | 1.0 | 2026-05-06 | Initial doc aligned with subdomain resolver, JWT/Host alignment, web dynamic origin, workspace switch, and RLS binding behavior. |
 | 1.1 | 2026-05-06 | Trust proxy env, CORS tenant suborigins, invite base URL, cookie SameSite, Dockerfile web args, production checklist. |
+| 1.2 | 2026-05-16 | Phase 7: DNS hardening checklist, web Host allowlist, SSR rejection, BFF hardening, CORS + host-probe rate limits. |

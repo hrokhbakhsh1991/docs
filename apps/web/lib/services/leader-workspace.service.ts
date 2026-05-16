@@ -1,6 +1,6 @@
 import type { TourDetailDto } from "@/lib/services/tours.service";
-import { apiClient } from "../api-client";
-import { API } from "../api-paths";
+import { bffBrowserClient } from "@/lib/api/bff-browser-client";
+import { BFF } from "@/lib/api-paths";
 
 export type LeaderWorkspaceAggregateResponse = {
   tours: TourDetailDto[];
@@ -12,6 +12,6 @@ export type LeaderWorkspaceAggregateResponse = {
 };
 
 export async function getLeaderWorkspaceAggregate(): Promise<LeaderWorkspaceAggregateResponse> {
-  return apiClient.get<LeaderWorkspaceAggregateResponse>(API.dashboardLeaderWorkspace);
+  return bffBrowserClient.get<LeaderWorkspaceAggregateResponse>(BFF.dashboardLeaderWorkspace);
 }
 

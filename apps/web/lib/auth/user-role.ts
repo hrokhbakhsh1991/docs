@@ -1,10 +1,14 @@
 /**
- * Workspace directory roles — values must match `UserRole` in Tour-Ops API (`apps/api/src/common/auth/user-role.enum.ts`).
+ * Workspace directory roles — aligned with `@repo/shared` / API `UserRole`.
  */
-export const WORKSPACE_USER_ROLES = ["owner", "leader", "admin", "member", "viewer"] as const;
+import { WorkspaceRole, tryParseWorkspaceRole } from "@repo/shared";
 
-export type UserRole = (typeof WORKSPACE_USER_ROLES)[number];
+export { WorkspaceRole as UserRole };
 
-export function isUserRole(value: string): value is UserRole {
-  return (WORKSPACE_USER_ROLES as readonly string[]).includes(value.trim().toLowerCase());
+export function tryParseWorkspaceUserRole(raw: string): WorkspaceRole | undefined {
+  return tryParseWorkspaceRole(raw);
+}
+
+export function isUserRole(value: string): value is WorkspaceRole {
+  return tryParseWorkspaceRole(value) !== undefined;
 }

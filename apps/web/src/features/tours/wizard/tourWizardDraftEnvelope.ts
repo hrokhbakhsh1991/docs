@@ -2,6 +2,7 @@ import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tou
 
 import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
 import { parseTourWizardDraftMeta } from "./tourWizardProfileResolve";
+import { TOUR_WIZARD_CONTRACT_VERSION } from "./contract/tour-wizard-contract-version";
 
 export const WIZARD_DRAFT_STORAGE_KEY = "tour-create-wizard-draft-v1";
 
@@ -31,7 +32,10 @@ export function serializeWizardDraft(
 ): string {
   const base = { ...(formValues as Record<string, unknown>) };
   if (wizardMeta) {
-    base._wizardMeta = wizardMeta;
+    base._wizardMeta = {
+      ...wizardMeta,
+      wizardContractVersion: TOUR_WIZARD_CONTRACT_VERSION,
+    };
   }
   return JSON.stringify(base);
 }

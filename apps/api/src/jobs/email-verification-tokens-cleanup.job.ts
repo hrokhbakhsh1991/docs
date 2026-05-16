@@ -58,6 +58,7 @@ export class EmailVerificationTokensCleanupJob implements OnModuleInit, OnModule
     this.logger.log(`job_started ${this.jobName}`);
     try {
       const lock = await this.schedulerLock.runWithGlobalLock(this.lockName, async () => {
+        // tenant-isolation:qb-exempt — scheduler janitor; tokens are not tenant-partitioned in SQL here.
         const qb = this.dataSource.manager
           .createQueryBuilder()
           .delete()

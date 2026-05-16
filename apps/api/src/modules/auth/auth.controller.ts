@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Inject,
+  NotFoundException,
   Post,
   Req,
   UnauthorizedException,
@@ -26,12 +27,18 @@ import {
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { AuthService } from "./auth.service";
+import { AuthAbilityContextService } from "./auth-ability-context.service";
 import { WorkspaceService } from "./workspace.service";
+import { MembershipAbilityContextDto } from "./dto/membership-ability-context.dto";
 import { LinkTelegramDto } from "./dto/link-telegram.dto";
 import { AuthorizationPresenceGuard } from "./authorization-presence.guard";
 import { Roles } from "./roles.decorator";
-import { Role } from "./roles.enum";
+import { UserRole } from "../../common/auth/user-role.enum";
 import { RolesGuard } from "./roles.guard";
+import { AbilitiesGuard } from "../../common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
+import { AbilityAction } from "../../common/casl/ability-actions";
+import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { TelegramSessionDto } from "./dto/telegram-session.dto";
 import { PhoneSessionDto } from "./dto/phone-session.dto";
 import { WorkspaceSessionDto } from "./dto/workspace-session.dto";
@@ -62,9 +69,25 @@ export class AuthController {
   constructor(
     @Inject(AuthService) private readonly authService: AuthService,
     @Inject(WorkspaceService) private readonly workspaceService: WorkspaceService,
+    @Inject(AuthAbilityContextService)
+    private readonly authAbilityContextService: AuthAbilityContextService,
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
     @Inject(LoggerService) private readonly loggerService: LoggerService
   ) {}
+
+  @Get("membership-ability-context")
+  @ApiBearerAuth()
+  @UseGuards(AuthorizationPresenceGuard)
+  @ApiOperation({
+    summary: "Membership labels and capability grants for CASL (active tenant)",
+    description:
+      "Reads ALS populated by AuthMiddleware from `user_tenants.labels`. Used by the web app to mirror API capability hydration.",
+  })
+  @ApiOkResponse({ type: MembershipAbilityContextDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  getMembershipAbilityContext(): MembershipAbilityContextDto {
+    return this.authAbilityContextService.getMembershipAbilityContext();
+  }
 
   @Post("web/session/otp")
   @HttpCode(200)
@@ -103,6 +126,41 @@ export class AuthController {
       });
       throw error;
     }
+  }
+
+  @Get("workspace-host")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Lightweight workspace host probe",
+    description:
+      "Resolves tenant from HTTP Host only (no request body). Returns tenant metadata when the slug maps to a tenant row; 404 TENANT_HOST_UNKNOWN otherwise. Used by the web middleware lookup cache.",
+  })
+  @ApiOkResponse({
+    schema: {
+      type: "object",
+      properties: {
+        tenant_id: { type: "string" },
+        slug: { type: "string" }
+      }
+    }
+  })
+  @ApiNotFoundResponse({ description: "TENANT_HOST_UNKNOWN" })
+  probeWorkspaceHost(@Req() req: Request): { tenant_id: string; slug: string } {
+    const tenant = req.tenant;
+    if (!tenant?.id) {
+      /* Reaching here without req.tenant should be impossible if resolution middleware is active */
+      throw new UnauthorizedException("TENANT_CONTEXT_MISSING");
+    }
+    const slug = tenant.subdomain?.trim();
+    if (!slug) {
+      throw new NotFoundException({
+        error: { code: "TENANT_HOST_UNKNOWN", message: "No workspace matches this host" },
+      });
+    }
+    return {
+      tenant_id: tenant.id,
+      slug,
+    };
   }
 
   @Post("web/phone/preflight")
@@ -253,7 +311,7 @@ export class AuthController {
   @Post("link-telegram")
   @HttpCode(200)
   // Fail-closed: link operation requires explicit JWT + role authorization.
-  @UseGuards(AuthorizationPresenceGuard, RolesGuard)
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",
@@ -267,7 +325,8 @@ export class AuthController {
     type: LinkTelegramResponseDto
   })
   @ApiUnauthorizedResponse({ description: "Authentication context missing" })
-  @Roles(Role.MEMBER, Role.OWNER)
+  @Roles(UserRole.Member, UserRole.Owner, UserRole.Admin, UserRole.Leader, UserRole.Viewer)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Workspace"))
   @UseInterceptors(IdempotencyInterceptor)
   @Idempotent({
     endpoint: "/api/v2/auth/link-telegram",

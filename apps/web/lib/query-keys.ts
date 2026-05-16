@@ -43,6 +43,13 @@ export const userKeys = {
     [...userKeys.all, "role-history", { tenantId: tenantScope }, String(id)] as const,
 };
 
+export const leaderDashboardSummaryKey = ["leader", "dashboard-summary"] as const;
+
+export const leaderRegistrationIndexKeys = {
+  all: ["leader", "registration-index"] as const,
+  list: () => [...leaderRegistrationIndexKeys.all, "list"] as const,
+};
+
 export const registrationKeys = {
   all: ["registrations"] as const,
   detail: (id: string) => [...registrationKeys.all, "detail", id] as const,
@@ -80,4 +87,10 @@ export const auditTrailKeys = {
   all: ["auditTrail"] as const,
   list: (tenantId: string, filters: Record<string, string>) =>
     [...auditTrailKeys.all, "list", tenantId, filters] as const,
+};
+
+export const reconciliationTriageKeys = {
+  all: ["reconciliationTriage"] as const,
+  list: (tenantId: string, filters: { status: string }) =>
+    [...reconciliationTriageKeys.all, "list", tenantId, filters] as const,
 };

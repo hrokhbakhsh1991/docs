@@ -1,9 +1,9 @@
 /**
- * Inserts several rich demo tours for tenant subdomain `denali` (workspace Denali).
- * Idempotent: deletes prior rows whose titles start with `[Denali seed] ` then inserts.
+ * Inserts several rich demo tours for tenant subdomain `denali` (legacy workspace Denali).
+ * **Archived:** Six Lock / Phase 7 fixtures use `ws1-rbac` — see `docs/60-operations/denali-seed-archive.md`.
+ * Requires `ALLOW_DENALI_SEED=1` or the script exits without mutating data.
  *
- * Run from repo root: `pnpm --filter @apps/api seed:denali-tours`
- * Or from apps/api: `pnpm exec node --env-file=.env --import tsx src/scripts/seed-denali-tours.ts`
+ * Run: `ALLOW_DENALI_SEED=1 pnpm --filter @apps/api seed:denali-tours`
  */
 import { DataSource } from "typeorm";
 
@@ -61,6 +61,13 @@ function td(
 }
 
 export async function seedDenaliTours(): Promise<void> {
+  if (process.env.ALLOW_DENALI_SEED?.trim() !== "1") {
+    emitScriptInfo(
+      "Denali seed skipped (archived). Set ALLOW_DENALI_SEED=1 to run. Prefer ws1-rbac fixtures.",
+    );
+    return;
+  }
+
   const ds = new DataSource({
     ...createDataSourceOptionsFromEnv(),
     entities: [

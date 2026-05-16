@@ -6,11 +6,13 @@ import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { AuthController } from "../../src/modules/auth/auth.controller";
 import { AuthorizationPresenceGuard } from "../../src/modules/auth/authorization-presence.guard";
 import { RolesGuard } from "../../src/modules/auth/roles.guard";
-import { Role } from "../../src/modules/auth/roles.enum";
+import { AbilitiesGuard } from "../../src/common/casl/abilities.guard";
+import { CaslMirrorAbilitiesGuard } from "../../src/common/casl/casl-mirror-abilities.guard";
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import { ROLES_METADATA_KEY } from "../../src/modules/auth/roles.decorator";
 import { LinkTelegramDto } from "../../src/modules/auth/dto/link-telegram.dto";
 
-test("link-telegram declares explicit AuthorizationPresenceGuard + RolesGuard chain", () => {
+test("link-telegram declares JWT + role + CASL mirror guard chain", () => {
   const guards = Reflect.getMetadata(
     GUARDS_METADATA,
     AuthController.prototype.linkTelegram
@@ -18,18 +20,24 @@ test("link-telegram declares explicit AuthorizationPresenceGuard + RolesGuard ch
   assert.equal(Array.isArray(guards), true);
   assert.equal(guards.includes(AuthorizationPresenceGuard), true);
   assert.equal(guards.includes(RolesGuard as never), true);
+  assert.equal(guards.includes(AbilitiesGuard as never), true);
+  assert.equal(guards.includes(CaslMirrorAbilitiesGuard as never), true);
 
   const roles = Reflect.getMetadata(
     ROLES_METADATA_KEY,
     AuthController.prototype.linkTelegram
-  ) as Role[];
-  assert.deepEqual(roles, [Role.MEMBER, Role.OWNER]);
+  ) as UserRole[];
+  assert.deepEqual(
+    roles,
+    [UserRole.Member, UserRole.Owner, UserRole.Admin, UserRole.Leader, UserRole.Viewer]
+  );
 });
 
 test("link-telegram is fail-closed when request context lacks identity", async () => {
   const controller = new AuthController(
     { linkTelegram: async () => ({}) } as never,
     { listWorkspaces: async () => [] } as never,
+    { getMembershipAbilityContext: async () => ({ labels: [], capabilities: [] }) } as never,
     {
       getUserId: () => undefined,
       resolveEffectiveTenantId: () => undefined,
@@ -58,6 +66,7 @@ test("link-telegram succeeds for authorized caller with explicit identity contex
       })
     } as never,
     { listWorkspaces: async () => [] } as never,
+    { getMembershipAbilityContext: async () => ({ labels: [], capabilities: [] }) } as never,
     {
       getUserId: () => "user-1",
       resolveEffectiveTenantId: () => "tenant-1",

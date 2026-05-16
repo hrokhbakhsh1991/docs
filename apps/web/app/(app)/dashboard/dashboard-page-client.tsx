@@ -1,14 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
-import { useLeaderTourRegistrations } from "@/lib/hooks/useLeaderTourRegistrations";
-import { tourKeys } from "@/lib/query-keys";
-import { getTours, toursUseLiveApi } from "@/lib/services/tours.service";
+import { useLeaderDashboardSummary } from "@/lib/hooks/useLeaderDashboardSummary";
+import { toursUseLiveApi } from "@/lib/services/tours.service";
 import {
   Badge,
   Button,
@@ -31,13 +29,7 @@ export function DashboardPageClient() {
   const liveApi = toursUseLiveApi();
   const enabled = liveApi && isHydrated && isAuthenticated;
 
-  const toursQuery = useQuery({
-    queryKey: tourKeys.list({ search: "" }),
-    queryFn: () => getTours({ search: "" }),
-    enabled,
-  });
-
-  const leaderIndex = useLeaderTourRegistrations(leader && enabled);
+  const summaryQuery = useLeaderDashboardSummary(leader && enabled);
 
   if (liveApi && !isHydrated) {
     return (
@@ -96,7 +88,7 @@ export function DashboardPageClient() {
     );
   }
 
-  const tourTotal = toursQuery.data?.total ?? toursQuery.data?.tours?.length ?? 0;
+  const tourTotal = summaryQuery.data?.tour_total ?? 0;
 
   return (
     <RegisteredWorkspacePage
@@ -115,7 +107,9 @@ export function DashboardPageClient() {
             <CardBody className={styles.cardBody}>
               <p className={styles.metricRow}>
                 Loaded tours:{" "}
-                <Badge variant={toursQuery.isPending ? "neutral" : "info"}>{toursQuery.isPending ? "…" : tourTotal}</Badge>
+                <Badge variant={summaryQuery.isPending ? "neutral" : "info"}>
+                  {summaryQuery.isPending ? "…" : tourTotal}
+                </Badge>
               </p>
             </CardBody>
             <CardFooter>
@@ -169,17 +163,17 @@ export function DashboardPageClient() {
           <Card className={styles.gridCard}>
             <CardHeader>
               <CardTitle>Registration review queue</CardTitle>
-              <CardSubtitle>Pulled from every tour listing your session can fetch as leader.</CardSubtitle>
+              <CardSubtitle>Tenant-wide counts from a single dashboard summary request.</CardSubtitle>
             </CardHeader>
             <CardBody className={styles.cardBody}>
               <p className={styles.metricRow}>
                 Pending registrations:{" "}
-                <Badge variant={leaderIndex.isLoading ? "neutral" : "warning"}>
-                  {leaderIndex.isLoading ? "…" : leaderIndex.pendingCount}
+                <Badge variant={summaryQuery.isPending ? "neutral" : "warning"}>
+                  {summaryQuery.isPending ? "…" : (summaryQuery.data?.registration_pending_count ?? 0)}
                 </Badge>{" "}
                 · Rows loaded:{" "}
-                <Badge variant={leaderIndex.isLoading ? "neutral" : "info"}>
-                  {leaderIndex.isLoading ? "…" : leaderIndex.totalRegistrationCount}
+                <Badge variant={summaryQuery.isPending ? "neutral" : "info"}>
+                  {summaryQuery.isPending ? "…" : (summaryQuery.data?.registration_total_count ?? 0)}
                 </Badge>
               </p>
             </CardBody>
@@ -187,7 +181,7 @@ export function DashboardPageClient() {
               <Button type="button" variant="primary" onClick={() => router.push("/leader/review")}>
                 Open review queue
               </Button>
-              <Button type="button" variant="secondary" onClick={() => void leaderIndex.refetchAll()}>
+              <Button type="button" variant="secondary" onClick={() => void summaryQuery.refetch()}>
                 Refresh counts
               </Button>
               <Link href="/tours" className={styles.inlineLink}>

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import * as argon2 from "argon2";
 import { DataSource } from "typeorm";
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
+import { UserRole } from "../common/auth/user-role.enum";
 
 const TARGET_TENANT_ID = "db87dfa8-477d-4c98-8695-f06b105a1405";
 const EMAIL = "leader@test.com";
@@ -64,14 +65,14 @@ async function run(): Promise<void> {
       await dataSource.query(
         `insert into user_tenants (tenant_id, user_id, role, session_version)
          values ($1, $2, $3, 1)`,
-        [TARGET_TENANT_ID, userId, "owner"]
+        [TARGET_TENANT_ID, userId, UserRole.Owner]
       );
       console.log("created membership owner");
-    } else if ((memberships[0].role as string) !== "owner") {
+    } else if ((memberships[0].role as string) !== UserRole.Owner) {
       await dataSource.query(
         `update user_tenants set role = $1, session_version = session_version + 1, updated_at = now()
          where id = $2`,
-        ["owner", memberships[0].id as string]
+        [UserRole.Owner, memberships[0].id as string]
       );
       console.log("updated membership role owner (session_version bumped)");
     }

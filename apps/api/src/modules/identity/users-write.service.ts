@@ -12,8 +12,14 @@ import {
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { UserRole } from "../../common/auth/user-role.enum";
+import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import { buildCapabilityGrantContextFromRequest } from "../../common/rbac/capability-grant-context-from-request";
+import {
+  assertCapabilityAssignable,
+  buildMembershipMetadataFromAssignment,
+} from "../../common/rbac/assert-capability-assignable";
 import { evaluateGeneralMembershipRoleChange } from "../../common/rbac/workspace-membership-rbac.policy";
+import type { PatchMembershipCapabilitiesDto } from "./dto/patch-membership-capabilities.dto";
 import type {
   TransferWorkspaceOwnershipDto,
   TransferWorkspaceOwnershipResponseDto
@@ -34,11 +40,103 @@ export class UsersWriteService {
     private readonly access: UsersAccessService
   ) {}
 
+  async updateMembershipCapabilities(
+    tenantId: string,
+    userId: string,
+    payload: PatchMembershipCapabilitiesDto,
+  ): Promise<UserResponseDto> {
+    const contextTenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!contextTenantId || contextTenantId !== tenantId) {
+      throw new ForbiddenException({
+        error: {
+          code: "TENANT_SCOPE_FORBIDDEN",
+          message: "Access to tenant denied",
+        },
+      });
+    }
+
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+
+    const membership = await this.access.memberships.findOne({
+      where: { tenantId, userId, deletedAt: IsNull() },
+    });
+    if (!membership) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+
+    const actorGrantContext = buildCapabilityGrantContextFromRequest(this.requestContextService);
+    const decision = assertCapabilityAssignable({
+      actorGrantContext,
+      targetRole: membership.role,
+      payload: {
+        capabilities: payload.capabilities,
+        allowedRegionIds: payload.allowedRegionIds,
+      },
+    });
+    if (!decision.ok) {
+      throw new ForbiddenException({
+        error: {
+          code: decision.code,
+          message: decision.message,
+        },
+      });
+    }
+
+    const nextMetadata = buildMembershipMetadataFromAssignment(
+      membership.membershipMetadata,
+      decision,
+    );
+
+    const actorLabelRecord = await this.access.users.findOne({
+      where: { id: actorUserId, deletedAt: IsNull() },
+    });
+    const actorLabel = actorLabelRecord?.email ?? actorUserId;
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `UPDATE user_tenants SET membership_metadata = $1::jsonb, session_version = session_version + 1, updated_at = now()
+         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
+        [JSON.stringify(nextMetadata), membership.id, tenantId],
+      );
+      await this.tenantAuditEventsService.append(
+        {
+          tenantId,
+          actorUserId,
+          actor: actorLabel,
+          userId,
+          action: TenantAuditAction.MEMBERSHIP_CAPABILITIES_CHANGED,
+          resourceType: "user_membership",
+          resourceId: membership.id,
+          metadata: {
+            capabilities: decision.normalizedCapabilities,
+            allowed_region_ids: decision.allowedRegionIds,
+          },
+          clientIp: this.requestContextService.tryGetClientIp(),
+          requestId: this.requestContextService.tryGetRequestId(),
+        },
+        manager,
+      );
+    });
+
+    return this.access.toUserResponseDto(
+      await this.access.findTenantScopedUserOrThrow(tenantId, userId),
+    );
+  }
+
   async updateUserRole(userId: string, role: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
     await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
-    const normalizedRole = role.trim().toLowerCase();
+    const newRoleValue = tryParseWorkspaceUserRole(role);
+    if (!newRoleValue) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_ENUM_INVALID",
+          message: "Unknown or unsupported workspace role"
+        }
+      });
+    }
 
     const membership = await this.access.memberships.findOne({
       where: { tenantId, userId, deletedAt: IsNull() }
@@ -52,7 +150,7 @@ export class UsersWriteService {
       actorRole,
       targetUserId: userId,
       targetCurrentRole: membership.role,
-      newRole: normalizedRole
+      newRole: newRoleValue
     });
     if (!decision.ok) {
       throw new ForbiddenException({
@@ -63,7 +161,7 @@ export class UsersWriteService {
       });
     }
 
-    if (membership.role.trim().toLowerCase() === normalizedRole) {
+    if (tryParseWorkspaceUserRole(membership.role) === newRoleValue) {
       return this.access.toUserResponseDto(
         await this.access.findTenantScopedUserOrThrow(tenantId, userId)
       );
@@ -77,15 +175,15 @@ export class UsersWriteService {
     await this.dataSource.transaction(async (manager) => {
       await manager.query(
         `UPDATE user_tenants SET role = $1, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND deleted_at IS NULL`,
-        [normalizedRole, membership.id]
+         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
+        [newRoleValue, membership.id, tenantId]
       );
       await manager.insert(UserRoleAuditEntity, {
         tenantId,
         actorUserId,
         targetUserId: userId,
         oldRole: membership.role,
-        newRole: normalizedRole
+        newRole: newRoleValue
       });
       await this.tenantAuditEventsService.append(
         {
@@ -98,7 +196,7 @@ export class UsersWriteService {
           resourceId: membership.id,
           metadata: {
             old_role: membership.role,
-            new_role: normalizedRole,
+            new_role: newRoleValue,
             patch_scope: "single_user"
           },
           clientIp: this.requestContextService.tryGetClientIp(),
@@ -117,7 +215,15 @@ export class UsersWriteService {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
     await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
-    const normalizedRole = role.trim().toLowerCase();
+    const newRoleValue = tryParseWorkspaceUserRole(role);
+    if (!newRoleValue) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_ENUM_INVALID",
+          message: "Unknown or unsupported workspace role"
+        }
+      });
+    }
 
     const normalizedUserIds = Array.from(
       new Set(userIds.map((id) => id.trim()).filter((id) => id.length > 0))
@@ -155,7 +261,7 @@ export class UsersWriteService {
           actorRole,
           targetUserId,
           targetCurrentRole: membership.role,
-          newRole: normalizedRole
+          newRole: newRoleValue
         });
         if (!decision.ok) {
           throw new ForbiddenException({
@@ -168,7 +274,7 @@ export class UsersWriteService {
       }
 
       const changedMemberships = memberships.filter(
-        (membership) => membership.role.trim().toLowerCase() !== normalizedRole
+        (membership) => tryParseWorkspaceUserRole(membership.role) !== newRoleValue
       );
 
       if (changedMemberships.length > 0) {
@@ -180,7 +286,7 @@ export class UsersWriteService {
            WHERE tenant_id = $2
              AND deleted_at IS NULL
              AND id = ANY($3::uuid[])`,
-          [normalizedRole, tenantId, changedMemberships.map((m) => m.id)]
+          [newRoleValue, tenantId, changedMemberships.map((m) => m.id)]
         );
 
         await manager
@@ -193,7 +299,7 @@ export class UsersWriteService {
               actorUserId,
               targetUserId: membership.userId,
               oldRole: membership.role,
-              newRole: normalizedRole
+              newRole: newRoleValue
             }))
           )
           .execute();
@@ -209,7 +315,7 @@ export class UsersWriteService {
             resourceId: membership.id,
             metadata: {
               old_role: membership.role,
-              new_role: normalizedRole,
+              new_role: newRoleValue,
               patch_scope: "bulk"
             },
             clientIp,
@@ -262,9 +368,9 @@ export class UsersWriteService {
           ...user,
           membership_status: user.membership_status,
           role:
-            membership.role.trim().toLowerCase() === normalizedRole
+            tryParseWorkspaceUserRole(membership.role) === newRoleValue
               ? membership.role
-              : normalizedRole
+              : newRoleValue
         });
       });
     });
@@ -291,7 +397,7 @@ export class UsersWriteService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    if (membership.role.trim().toLowerCase() === UserRole.Owner) {
+    if (tryParseWorkspaceUserRole(membership.role) === UserRole.Owner) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -456,7 +562,7 @@ export class UsersWriteService {
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    if (membership.role.trim().toLowerCase() === UserRole.Owner) {
+    if (tryParseWorkspaceUserRole(membership.role) === UserRole.Owner) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -563,7 +669,7 @@ export class UsersWriteService {
         where: { tenantId, userId: actorUserId, deletedAt: IsNull() },
         lock: { mode: "pessimistic_write" }
       });
-      if (!actorMembership || actorMembership.role.trim().toLowerCase() !== UserRole.Owner) {
+      if (!actorMembership || tryParseWorkspaceUserRole(actorMembership.role) !== UserRole.Owner) {
         throw new ForbiddenException({
           error: {
             code: "OWNER_ONLY_TRANSFER",
@@ -585,8 +691,8 @@ export class UsersWriteService {
            SET role = $1,
                session_version = session_version + 1,
                updated_at = now()
-         WHERE id = $2`,
-        [UserRole.Admin, actorMembership.id]
+         WHERE id = $2 AND tenant_id = $3`,
+        [UserRole.Admin, actorMembership.id, tenantId]
       );
 
       await manager.query(
@@ -594,8 +700,8 @@ export class UsersWriteService {
            SET role = $1,
                session_version = session_version + 1,
                updated_at = now()
-         WHERE id = $2`,
-        [UserRole.Owner, targetMembership.id]
+         WHERE id = $2 AND tenant_id = $3`,
+        [UserRole.Owner, targetMembership.id, tenantId]
       );
 
       await manager

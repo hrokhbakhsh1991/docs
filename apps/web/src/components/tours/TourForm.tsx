@@ -384,7 +384,7 @@ export function TourForm({
   return (
     <Card
       title={resolvedMode === "create" ? "Create tour" : "Edit tour"}
-      description="Tour fields; submits to the workspace API when NEXT_PUBLIC_API_URL is set."
+      description="Tour fields; submits to the workspace API on your tenant host."
     >
       <div className={styles.inner}>
         {isSubmitted && fieldMessages.length > 0 ? (

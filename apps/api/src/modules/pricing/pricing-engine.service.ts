@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
+import { ConfigService } from "../../config/config.service";
 import type { PricingContext } from "../finance/pricing/pricing-context";
 import { calculateQuote } from "../finance/pricing/calculate-quote";
 import { normalizeDiscountCode } from "../finance/pricing/internal/parity-helpers";
@@ -13,8 +14,10 @@ import type { PricingEngineInput, PricingEngineQuoteOptions, PricingQuoteResult 
 
 /**
  * Nest façade: **loads catalog via TypeORM** (port/adapter), then runs the **finance** {@link calculateQuote}
- * pipeline (bounded-context {@link PricingEngine}). Legacy {@link computeLegacyCatalogQuote} is retained only
- * for optional shadow diagnostics. No pricing rules query the DB directly.
+ * pipeline (bounded-context {@link PricingEngine}). Legacy {@link computeLegacyCatalogQuote} is **read-only
+ * archive diagnostics** only: invoked from {@link #quote} when `FINANCE_LEGACY_PRICING_DIAGNOSTICS=archive`,
+ * `NODE_ENV !== "production"`, and the caller opts into `financeShadowCompare` / `shadowLogOnly`.
+ * Production orchestration always uses finance totals only. No pricing rules query the DB directly.
  */
 @Injectable()
 export class PricingEngineService {
@@ -23,9 +26,18 @@ export class PricingEngineService {
   private readonly catalogPricingLoad: CatalogPricingLoadPort;
 
   constructor(
-    @Optional() @Inject(CATALOG_PRICING_LOAD_PORT) catalogPricingLoad?: CatalogPricingLoadPort
+    @Optional() @Inject(CATALOG_PRICING_LOAD_PORT) catalogPricingLoad?: CatalogPricingLoadPort,
+    @Optional() private readonly configService?: ConfigService
   ) {
     this.catalogPricingLoad = catalogPricingLoad ?? new CatalogPricingLoadAdapter();
+  }
+
+  /** Legacy/shadow branches are allowed only in non-production when env mode is `archive` (read-only diagnostics). */
+  private isLegacyPricingDiagnosticsArchiveEnabled(): boolean {
+    if (!this.configService) {
+      return false;
+    }
+    return this.configService.getFinanceLegacyPricingDiagnosticsMode() === "archive";
   }
 
   private toPricingContext(input: PricingEngineInput): PricingContext {
@@ -63,7 +75,7 @@ export class PricingEngineService {
     const financeQuote = calculateQuote(context, catalog);
     const result = this.financeQuoteToResult(financeQuote);
 
-    if (options?.shadowLogOnly) {
+    if (this.isLegacyPricingDiagnosticsArchiveEnabled() && options?.shadowLogOnly) {
       const discountCode = normalizeDiscountCode(input.discountCode);
       this.logger.log(
         JSON.stringify({
@@ -74,7 +86,7 @@ export class PricingEngineService {
       );
     }
 
-    if (options?.financeShadowCompare) {
+    if (this.isLegacyPricingDiagnosticsArchiveEnabled() && options?.financeShadowCompare) {
       try {
         const legacyResult = computeLegacyCatalogQuote(input, catalog);
         logPricingShadowDiff(this.logger, {

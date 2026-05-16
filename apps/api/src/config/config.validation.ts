@@ -1,3 +1,4 @@
+import { validateDeployEnv } from "@repo/config/env-validation";
 import { envSchema } from "./env.schema";
 import type { EnvVariables } from "./env.types";
 
@@ -9,6 +10,7 @@ const CRITICAL_ENV_KEYS = [
 ] as const;
 
 export function validateEnvironmentOrThrow(env: NodeJS.ProcessEnv): EnvVariables {
+  validateDeployEnv(env);
   const result = envSchema.safeParse(env);
 
   if (!result.success) {

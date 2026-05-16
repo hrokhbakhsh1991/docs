@@ -63,6 +63,7 @@ If you need strict DB-level secrecy on the outbox table itself, introduce a **de
 
 ## Related code
 
+- **Domain event envelope + dev bus (Phase 2 foundation):** [`apps/api/src/common/events/README.md`](../../../apps/api/src/common/events/README.md) — `DomainEventEnvelope` aligns with outbox-style metadata (`eventId`, `eventType`, `occurredAt`, `tenantId`, `correlationId`, `schemaVersion`, `payload`). Production path: write the same shape (or a projection of it) via `OutboxService` in the aggregate transaction instead of `InMemoryEventBus.publish`.
 - [`apps/api/src/modules/outbox/outbox.service.ts`](../../../apps/api/src/modules/outbox/outbox.service.ts)
 - [`apps/api/src/modules/outbox/outbox.processor.ts`](../../../apps/api/src/modules/outbox/outbox.processor.ts)
 - [`apps/api/src/common/audit/audit.service.ts`](../../../apps/api/src/common/audit/audit.service.ts)

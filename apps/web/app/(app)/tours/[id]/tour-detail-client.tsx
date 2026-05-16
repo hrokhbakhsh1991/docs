@@ -179,7 +179,7 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
           <CardBody>
             <EmptyState
               title="Workspace API not configured"
-              description="Set NEXT_PUBLIC_API_URL in your environment to load tour details."
+              description="Open this app on your workspace host (e.g. ws1-rbac.localhost) to load tour details."
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
                   Back to dashboard

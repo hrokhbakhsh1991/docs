@@ -5,6 +5,7 @@ import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
 import { WorkspaceInviteEntity } from "../identity/entities/workspace-invite.entity";
+import { AuthAbilityContextService } from "./auth-ability-context.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { WorkspaceService } from "./workspace.service";
@@ -16,7 +17,13 @@ import { RolesGuard } from "./roles.guard";
     IdempotencyModule
   ],
   controllers: [AuthController],
-  providers: [AuthService, WorkspaceService, AuthorizationPresenceGuard, RolesGuard],
+  providers: [
+    AuthService,
+    WorkspaceService,
+    AuthAbilityContextService,
+    AuthorizationPresenceGuard,
+    RolesGuard,
+  ],
   exports: [AuthorizationPresenceGuard, RolesGuard]
 })
 export class AuthModule {}

@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
-
-function resolveBackendUrl(): string {
-  return process.env.TOUR_OPS_API_URL?.trim() || "http://denali.localhost:3001";
-}
-
-function secureCookieEnabled(): boolean {
-  return process.env.NODE_ENV === "production";
-}
+import { buildSessionCookieOptions } from "@/lib/auth/build-session-cookie";
+import { bffFetch } from "@/lib/api/bff-fetch";
+import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
 
 type CompleteRegistrationBody = {
   onboarding_token?: unknown;
@@ -34,24 +28,24 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   }
 
-  const backendRes = await fetch(`${resolveBackendUrl()}/api/v2/auth/web/registration/complete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      host: req.headers.get("host") ?? ""
-    },
-    body: JSON.stringify({
-      onboarding_token: onboardingToken,
-      full_name: fullName,
-      ...(email ? { email } : {})
-    }),
-    cache: "no-store"
-  }).catch(() => null);
-
-  if (!backendRes) {
+  let backendRes: Response;
+  try {
+    backendRes = await bffFetch(req, "/api/v2/auth/web/registration/complete", {
+      method: "POST",
+      body: JSON.stringify({
+        onboarding_token: onboardingToken,
+        full_name: fullName,
+        ...(email ? { email } : {}),
+      }),
+    });
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e);
+    if (guard) {
+      return guard;
+    }
     return NextResponse.json(
       { ok: false, error: { code: "BACKEND_UNREACHABLE", message: "Backend unavailable" } },
-      { status: 502 }
+      { status: 502 },
     );
   }
 
@@ -74,13 +68,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const response = NextResponse.json({ ok: true, ...(payload as object) }, { status: 200 });
-  response.cookies.set({
-    name: SESSION_TOKEN_COOKIE,
-    value: sessionToken,
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: secureCookieEnabled()
-  });
+  response.cookies.set(buildSessionCookieOptions({ token: sessionToken }));
   return response;
 }

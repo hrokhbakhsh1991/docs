@@ -1,0 +1,12 @@
+{
+  "comment": "Exemptions for scripts/check-security-mutation-guardrails.mjs — keep minimal; justify in PR.",
+  "filesExcludedFromMutationRbacCheck": [
+    "apps/api/src/modules/auth/auth.controller.ts"
+  ],
+  "methodsAllowingAuthorizationPresenceOnly": {
+    "apps/api/src/modules/identity/invites.controller.ts": ["acceptInvite"]
+  },
+  "methodsAllowingThrottlerOnly": {
+    "apps/api/src/modules/registrations/registrations.controller.ts": ["publicRegister", "publicWaitlist"]
+  }
+}

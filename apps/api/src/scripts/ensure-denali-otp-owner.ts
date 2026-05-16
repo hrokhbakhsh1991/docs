@@ -11,7 +11,7 @@ import * as argon2 from "argon2";
 import { DataSource, IsNull } from "typeorm";
 
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
-import { Role } from "../modules/auth/roles.enum";
+import { UserRole } from "../common/auth/user-role.enum";
 import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { MembershipStatus } from "../modules/identity/membership-status.enum";
 import { UserEntity } from "../modules/identity/entities/user.entity";
@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
     let previousOwnerUserId = "";
     const priorOwnerMb = await membershipRepo.findOne({
-      where: { tenantId: tenant.id, role: Role.OWNER, deletedAt: IsNull() }
+      where: { tenantId: tenant.id, role: UserRole.Owner, deletedAt: IsNull() }
     });
     if (priorOwnerMb) {
       previousOwnerUserId = priorOwnerMb.userId;
@@ -78,10 +78,10 @@ async function main(): Promise<void> {
       const mr = manager.getRepository(UserTenantEntity);
 
       const currentOwner = await mr.findOne({
-        where: { tenantId: tenant.id, role: Role.OWNER, deletedAt: IsNull() }
+        where: { tenantId: tenant.id, role: UserRole.Owner, deletedAt: IsNull() }
       });
       if (currentOwner && currentOwner.userId !== user!.id) {
-        currentOwner.role = Role.MEMBER;
+        currentOwner.role = UserRole.Member;
         await mr.save(currentOwner);
         actions.push("demoted previous owner membership to member");
       }
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
         }
       });
       if (targetMb) {
-        targetMb.role = Role.OWNER;
+        targetMb.role = UserRole.Owner;
         targetMb.status = MembershipStatus.ACTIVE;
         targetMb.joinedAt = targetMb.joinedAt ?? new Date();
         targetMb.suspendedAt = null;
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
           mr.create({
             tenantId: tenant.id,
             userId: user!.id,
-            role: Role.OWNER,
+            role: UserRole.Owner,
             status: MembershipStatus.ACTIVE,
             invitedAt: null,
             joinedAt: new Date(),

@@ -11,7 +11,7 @@ import { ApiError } from "@/lib/api-client";
 import {
   paymentProjectionIsPending,
   registrationNeedsPaymentUi,
-  resolveIntentAmountCurrency,
+  resolvePaymentIntentParamsForBookingCheckout,
 } from "@/lib/payment-flow";
 import { bookingKeys, registrationKeys, tourKeys } from "@/lib/query-keys";
 import { createPaymentIntent } from "@/lib/services/payments.service";
@@ -101,12 +101,11 @@ export function BookingDetailClient({
   const paymentIntentMutation = useMutation({
     mutationFn: async () => {
       const regRow = registrationQuery.data;
-      const tourRow = tourQuery.data;
       if (!regRow) throw new Error("Registration not loaded.");
-      const intentParams = resolveIntentAmountCurrency(tourRow ?? undefined);
+      const intentParams = resolvePaymentIntentParamsForBookingCheckout(regRow);
       if (!intentParams) {
         throw new Error(
-          "Tour price missing for payment intent — set totalCost/currency on the tour or NEXT_PUBLIC_PAYMENT_INTENT_FALLBACK_* in `.env.local`.",
+          "Locked booking price missing for payment intent — refresh the page or contact support. For local dev only, set NEXT_PUBLIC_PAYMENT_INTENT_FALLBACK_AMOUNT and NEXT_PUBLIC_PAYMENT_INTENT_FALLBACK_CURRENCY.",
         );
       }
       return createPaymentIntent({
@@ -220,14 +219,16 @@ export function BookingDetailClient({
     reg.payment && typeof reg.payment === "object" ? reg.payment : null;
   const paymentSnapshotRecord = paymentSnapshot as Record<string, unknown> | null;
   const tour = tourQuery.data;
+  const lockedPricing = reg.lockedPricing;
   const tourPrice = tour ? extractTourPriceUsd(tour.costContext ?? null) : 0;
   const paymentEligible = registrationNeedsPaymentUi({
     status: reg.status,
     paymentStatus: reg.paymentStatus,
     tour,
+    lockedPricing: reg.lockedPricing,
   });
   const hasPendingPaymentProjection = paymentProjectionIsPending(paymentSnapshotRecord);
-  const intentParams = resolveIntentAmountCurrency(tour ?? undefined);
+  const intentParams = resolvePaymentIntentParamsForBookingCheckout(reg);
   const showStartIntentCta =
     paymentEligible && !hasPendingPaymentProjection && Boolean(intentParams);
 
@@ -351,7 +352,14 @@ export function BookingDetailClient({
                     {tour.acceptedCount} accepted / {tour.totalCapacity} total
                   </dd>
                 </div>
-                {tourPrice > 0 ? (
+                {lockedPricing?.totalMinor && lockedPricing.currency ? (
+                  <div>
+                    <dt style={{ fontWeight: 600 }}>Your booked price</dt>
+                    <dd style={{ margin: 0 }}>
+                      {lockedPricing.totalMinor} {lockedPricing.currency} (minor units, locked at booking)
+                    </dd>
+                  </div>
+                ) : tourPrice > 0 ? (
                   <div>
                     <dt style={{ fontWeight: 600 }}>Price</dt>
                     <dd style={{ margin: 0 }}>{formatTourPriceUsd(tourPrice)}</dd>

@@ -41,6 +41,7 @@ test("idempotency cleanup job calls deleteExpired on interval tick", async () =>
         shouldRunSchedulers: () => true,
         getSchedulerJitterMs: () => 0
       } as never,
+      { query: async () => [] } as never,
       {
         runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
           await onLocked();
