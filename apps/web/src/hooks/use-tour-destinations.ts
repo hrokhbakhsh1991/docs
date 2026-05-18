@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { settingsLocationsKeys } from "@/lib/query-keys";
+
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   fetchSettingsDestinations,
   fetchSettingsRegions,
@@ -20,14 +22,17 @@ export type TourDestinationGroup = {
  * Active destinations from `/api/settings/destinations`, grouped by region for tour forms.
  */
 export function useTourDestinations() {
+  const tenantId = useWorkspaceQueryScope();
   const regionsQuery = useQuery({
-    queryKey: settingsLocationsKeys.regions(),
+    queryKey: settingsLocationsKeys.regions(tenantId ?? ""),
     queryFn: fetchSettingsRegions,
+    enabled: Boolean(tenantId),
   });
 
   const destinationsQuery = useQuery({
-    queryKey: settingsLocationsKeys.destinations(),
+    queryKey: settingsLocationsKeys.destinations(tenantId ?? ""),
     queryFn: fetchSettingsDestinations,
+    enabled: Boolean(tenantId),
   });
 
   const allDestinations = destinationsQuery.data ?? [];

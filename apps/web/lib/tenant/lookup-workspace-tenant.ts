@@ -26,6 +26,23 @@ function failOpenWhenApiUnreachable(): boolean {
   return process.env.NODE_ENV !== "production";
 }
 
+/** Edge middleware cannot resolve *.localhost; probe API on tenant subdomain (not 127.0.0.1). */
+function resolveWorkspaceLookupProbeOrigin(tenantSlug: string): string {
+  const override = process.env.WORKSPACE_LOOKUP_PROBE_ORIGIN?.trim();
+  if (override) {
+    return override.replace(/\/$/, "");
+  }
+  const slug = tenantSlug.trim().toLowerCase();
+  const origin = buildTenantSubdomainOrigin(slug);
+  const root = resolveTenantRootDomain();
+  if (root === "localhost") {
+    const port = process.env.NEXT_PUBLIC_API_PORT?.trim() || "3001";
+    // Node fetch to 127.0.0.1 overwrites a custom Host header; subdomain URL preserves tenant Host.
+    return `http://${slug}.${root}:${port}`;
+  }
+  return origin;
+}
+
 /** Legacy wrapper for compatibility. */
 export async function lookupWorkspaceTenantExists(slug: string): Promise<boolean> {
   const meta = await lookupWorkspaceTenantMetadata(slug);
@@ -51,7 +68,7 @@ export async function lookupWorkspaceTenantMetadata(
     return null;
   }
 
-  const origin = buildTenantSubdomainOrigin(normalized);
+  const probeOrigin = resolveWorkspaceLookupProbeOrigin(normalized);
   const host = buildTenantHostHeader(normalized);
 
   const probePath =
@@ -59,7 +76,7 @@ export async function lookupWorkspaceTenantMetadata(
 
   let data: WorkspaceTenantMetadata | null = null;
   try {
-    const res = await fetch(`${origin}${probePath}`, {
+    const res = await fetch(`${probeOrigin}${probePath}`, {
       method: "GET",
       headers: { host, Accept: "application/json" },
       cache: "no-store",

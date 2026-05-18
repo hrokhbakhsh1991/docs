@@ -5,14 +5,7 @@ import { useMemo } from "react";
 import type { TourFormProfile } from "@repo/types";
 
 import { useTourWizardProfile } from "@/features/tours/wizard/TourWizardProfileContext";
-import {
-  getFieldRule,
-  getStepRule,
-  getStepRules,
-  isFieldRecommended,
-  isFieldRequiredAtLevel,
-  isFieldVisible,
-} from "@/features/tours/wizard/profileRules/getProfileRules";
+import { isFieldRequiredAtLevelFromRules } from "@/features/tours/wizard/profileRules/getProfileRules";
 import type {
   FieldRule,
   ProfileRules,
@@ -42,25 +35,35 @@ export function useProfileRules(): ProfileRules {
 }
 
 export function useFieldRule(path: WizardFieldPath | string): FieldRule | undefined {
-  const profile = useCurrentProfile();
-  return useMemo(() => getFieldRule(profile, path), [profile, path]);
+  const rules = useProfileRules();
+  return useMemo(() => rules.fields.get(path as WizardFieldPath), [rules, path]);
 }
 
 export function useStepRule(stepId: TourCreateWizardStepId): StepRule | undefined {
-  const profile = useCurrentProfile();
-  return useMemo(() => getStepRule(profile, stepId), [profile, stepId]);
+  const rules = useProfileRules();
+  return useMemo(() => rules.steps.get(stepId), [rules, stepId]);
 }
 
 /** Step rail rule plus all {@link FieldRule} entries whose `belongsToStep` is `stepId`. */
 export function useStepRules(stepId: TourCreateWizardStepId): StepRules {
-  const profile = useCurrentProfile();
-  return useMemo(() => getStepRules(profile, stepId), [profile, stepId]);
+  const rules = useProfileRules();
+  return useMemo(() => {
+    const step = rules.steps.get(stepId);
+    const fields = [...rules.fields.values()]
+      .filter((f) => f.belongsToStep === stepId)
+      .sort((a, b) => a.path.localeCompare(b.path));
+    return { profile: rules.profile, stepId, step, fields };
+  }, [rules, stepId]);
 }
 
 /** True iff the field's derived rule is not `"hidden"` for the current profile. */
 export function useIsFieldVisible(path: WizardFieldPath | string): boolean {
-  const profile = useCurrentProfile();
-  return useMemo(() => isFieldVisible(profile, path), [profile, path]);
+  const rules = useProfileRules();
+  return useMemo(() => {
+    const rule = rules.fields.get(path as WizardFieldPath);
+    if (!rule) return false;
+    return rule.visibility !== "hidden";
+  }, [rules, path]);
 }
 
 /**
@@ -72,8 +75,12 @@ export function useIsFieldVisible(path: WizardFieldPath | string): boolean {
  * the caller's i18n table (e.g. `t("tourWizard.fieldHint.recommended")`).
  */
 export function useIsFieldRecommended(path: WizardFieldPath | string): boolean {
-  const profile = useCurrentProfile();
-  return useMemo(() => isFieldRecommended(profile, path), [profile, path]);
+  const rules = useProfileRules();
+  return useMemo(() => {
+    const rule = rules.fields.get(path as WizardFieldPath);
+    if (!rule || rule.visibility === "hidden") return false;
+    return rule.required === "recommended";
+  }, [rules, path]);
 }
 
 /**
@@ -88,9 +95,9 @@ export function useIsFieldRequired(
   cursor?: TourCreateWizardStepId,
   visibleSteps?: readonly TourCreateWizardStepId[],
 ): boolean {
-  const profile = useCurrentProfile();
+  const rules = useProfileRules();
   return useMemo(
-    () => isFieldRequiredAtLevel(profile, path, level, cursor, visibleSteps),
-    [profile, path, level, cursor, visibleSteps],
+    () => isFieldRequiredAtLevelFromRules(rules, path, level, cursor, visibleSteps),
+    [rules, path, level, cursor, visibleSteps],
   );
 }

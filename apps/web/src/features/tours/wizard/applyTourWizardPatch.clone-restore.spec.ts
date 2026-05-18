@@ -235,7 +235,7 @@ test("clone → envelope round-trip → restore: pipeline output is stable and g
   assert.equal(restoreResult.resolvedFormProfile, "cinema_event", "snapshot wins on matched theme");
   // Restored form has canonical defaults for inactive roots and active-root data from clone.
   const defaults = buildTourCreateFormDefaultValues();
-  assert.deepEqual(restoreResult.mergedValues.itinerary, defaults.itinerary);
+  assert.deepEqual(restoreResult.mergedValues.itinerary, { days: [] });
   assert.deepEqual(restoreResult.mergedValues.participation, defaults.participation);
   assert.equal(restoreResult.mergedValues.overview.mainTourThemeId, THEME_CINEMA);
 });
@@ -269,7 +269,7 @@ test("restore: legacy envelope without `_wizardMeta` falls back to tourType (cit
   assert.equal(result.resolvedFormProfile, "urban_event");
   // Inactive roots reset on the merged form.
   const defaults = buildTourCreateFormDefaultValues();
-  assert.deepEqual(result.mergedValues.itinerary, defaults.itinerary);
+  assert.deepEqual(result.mergedValues.itinerary, { days: [] });
   assert.deepEqual(result.mergedValues.participation, defaults.participation);
   assert.deepEqual(result.mergedValues.logistics, defaults.logistics);
 });
@@ -359,6 +359,6 @@ test("restore: undefined patch (rare edge — empty envelope) preserves snapshot
   assert.equal(result.filteredPatch, undefined);
   // Merged form has inactive roots reset to defaults (sanitize stage).
   const defaults = buildTourCreateFormDefaultValues();
-  assert.deepEqual(result.mergedValues.itinerary, defaults.itinerary);
+  assert.deepEqual(result.mergedValues.itinerary, { days: [] });
   assert.deepEqual(result.mergedValues.participation, defaults.participation);
 });

@@ -2,6 +2,12 @@ import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import {
+  getVisibleWizardStepsForTenantContract,
+  type TenantTourFormContract,
+} from "@/features/tours/contracts/tenant-tour-form-contract";
+import { composeWizardSteps } from "@/features/tours/wizard/template/compose-wizard-steps";
+import type { TenantWizardStepOverrides } from "@/features/tours/wizard/template/tenant-wizard-template.types";
+import {
   tourFormProfileToWizardValidationFlags,
   type TourCreateWizardValidationFlags,
 } from "@/components/tours/wizard/schemas/tourCreateValidationPolicy";
@@ -91,6 +97,10 @@ export type WizardStepVisibilityRuntime = {
   readonly themesQueryFinishedLoading: boolean;
   /** Number of `isActive` rows in the workspace tour-themes catalog. */
   readonly activeThemeCount: number;
+  /** Workspace module overlay (`form_builder` unlocks itinerary/participation/logistics). */
+  readonly tenantFormContract?: TenantTourFormContract;
+  /** DB template step overrides applied after profile + tenant visibility. */
+  readonly stepOverrides?: TenantWizardStepOverrides;
 };
 
 /** Re-exported here so consumers do not need a second import for the flags shape. */
@@ -180,8 +190,11 @@ export const wizardStepEngine = {
     profile: TourFormProfile,
     runtime: WizardStepVisibilityRuntime,
   ): WizardStepKey[] {
-    const base = getVisibleWizardStepsForProfile(profile);
-    return pruneWizardStepsWithoutActiveThemes(base, runtime);
+    const base = runtime.tenantFormContract
+      ? getVisibleWizardStepsForTenantContract(profile, runtime.tenantFormContract)
+      : getVisibleWizardStepsForProfile(profile);
+    const pruned = pruneWizardStepsWithoutActiveThemes(base, runtime);
+    return composeWizardSteps(pruned, runtime.stepOverrides);
   },
   /** RHF field paths to `trigger(...)` before allowing the user to advance past this step. */
   getTriggerFieldsForStep(

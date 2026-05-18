@@ -2,6 +2,9 @@ import type { TourFormProfile, TourType } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 
+import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
+import { stripTenantGatedTourCreateGroups } from "@/features/tours/contracts/tenant-tour-form-contract";
+
 import { parseTourWizardPatchPipelineStrict } from "./contract/tour-wizard-contract";
 import {
   filterFormPatchByActiveGroups,
@@ -37,6 +40,8 @@ export type ApplyTourWizardPatchInput = {
   tourType?: string;
   /** Optional draft snapshot meta (used by clone/draft callers; preset apply leaves this undefined). */
   snapshot?: TourWizardDraftMeta;
+  /** When `form_builder` is off, strip itinerary/participation/logistics after profile sanitize. */
+  tenantFormContract?: TenantTourFormContract;
 };
 
 export type ApplyTourWizardPatchResult = {
@@ -118,7 +123,10 @@ export function applyTourWizardPatch(
 
   const filteredPatch = filterFormPatchByActiveGroups(resolvedFormProfile, patch);
   const merged = mergeTourDraft(input.baseValues, filteredPatch);
-  const sanitized = sanitizeInactiveRootsForProfile(merged, resolvedFormProfile);
+  let sanitized = sanitizeInactiveRootsForProfile(merged, resolvedFormProfile);
+  if (input.tenantFormContract) {
+    sanitized = stripTenantGatedTourCreateGroups(input.tenantFormContract, sanitized);
+  }
   const mergedValues = parseTourWizardPatchPipelineStrict(resolvedFormProfile, sanitized);
 
   return { mergedValues, resolvedFormProfile, filteredPatch };

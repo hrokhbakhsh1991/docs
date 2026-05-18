@@ -176,6 +176,30 @@ export function getInactiveFieldGroups(
  * (callers should pass the cursor; this default matches the legacy schema's behavior at
  * submit time, which is the safe upper bound).
  */
+export function isFieldRequiredAtLevelFromRules(
+  rules: ProfileRules,
+  path: WizardFieldPath | string,
+  level: ValidationLevel,
+  cursor?: TourCreateWizardStepId,
+  visibleSteps?: readonly TourCreateWizardStepId[],
+): boolean {
+  if (level === "autosave") return false;
+  const rule = rules.fields.get(path as WizardFieldPath);
+  if (!rule || rule.required !== "required") return false;
+  if (rule.visibility === "hidden") return false;
+
+  const step = rules.steps.get(rule.belongsToStep);
+  if (!step || step.visibility === "hidden") return false;
+
+  if (level === "submit") return true;
+
+  if (cursor == null || !visibleSteps) return true;
+  const cursorIdx = visibleSteps.indexOf(cursor);
+  const fieldIdx = visibleSteps.indexOf(rule.belongsToStep);
+  if (cursorIdx === -1 || fieldIdx === -1) return true;
+  return fieldIdx <= cursorIdx;
+}
+
 export function isFieldRequiredAtLevel(
   profile: TourFormProfile,
   path: WizardFieldPath | string,
@@ -183,20 +207,11 @@ export function isFieldRequiredAtLevel(
   cursor?: TourCreateWizardStepId,
   visibleSteps?: readonly TourCreateWizardStepId[],
 ): boolean {
-  if (level === "autosave") return false;
-  const rule = getFieldRule(profile, path);
-  if (!rule || rule.required !== "required") return false;
-  if (rule.visibility === "hidden") return false;
-
-  const step = getStepRule(profile, rule.belongsToStep);
-  if (!step || step.visibility === "hidden") return false;
-
-  if (level === "submit") return true;
-
-  // stepNav: only enforce once the user has reached or passed the field's owning step.
-  if (cursor == null || !visibleSteps) return true;
-  const cursorIdx = visibleSteps.indexOf(cursor);
-  const fieldIdx = visibleSteps.indexOf(rule.belongsToStep);
-  if (cursorIdx === -1 || fieldIdx === -1) return true;
-  return fieldIdx <= cursorIdx;
+  return isFieldRequiredAtLevelFromRules(
+    getProfileRules(profile),
+    path,
+    level,
+    cursor,
+    visibleSteps,
+  );
 }

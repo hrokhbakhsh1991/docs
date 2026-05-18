@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
+import { useEffect } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { Checkbox, FormField, Select } from "@tour/ui";
 
 import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
+import { useNotifyWizardProfileDrivers } from "@/features/tours/wizard/TourWizardProfileDriversContext";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 
 const mutedHelp: CSSProperties = {
@@ -22,6 +24,7 @@ export function ThemeDetailsStep() {
   const { control, getValues, setValue, formState: { errors } } = useFormContext<TourCreateFormValues>();
 
   const tourThemesQuery = useSettingsTourThemes();
+  const notifyProfileDriversChanged = useNotifyWizardProfileDrivers();
   const themes = tourThemesQuery.data ?? [];
   const activeSorted = themes.filter((row) => row.isActive);
   const mainTourThemeId = useWatch({ control, name: "overview.mainTourThemeId" });
@@ -56,6 +59,7 @@ export function ThemeDetailsStep() {
               ) : null}
               {!tourThemesQuery.isLoading && !tourThemesQuery.isError && activeSorted.length > 0 ? (
                 <Select
+                  key="main-theme-select"
                   name={field.name}
                   ref={field.ref}
                   onBlur={field.onBlur}
@@ -71,6 +75,10 @@ export function ThemeDetailsStep() {
                         setValue("overview.secondaryTourThemeIds", filtered, { shouldValidate: true });
                       }
                     }
+                    const hint = next
+                      ? { mainTourThemeId: next, themeCatalog: activeSorted }
+                      : undefined;
+                    notifyProfileDriversChanged?.(hint);
                   }}
                 >
                   <option value="">انتخاب تم اصلی</option>

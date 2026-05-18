@@ -1,6 +1,5 @@
 import type { TenantContext } from "@/lib/tenant/runtime-tenant-context";
 import {
-  buildTenantHostHeader,
   buildTenantSubdomainOrigin,
   resolveBffTenantContext,
 } from "@/lib/tenant/runtime-tenant-context";
@@ -18,7 +17,6 @@ export function buildApiBaseUrlFromTenant(tenant: TenantContext): string {
 export function buildBffProxyHeadersFromTenant(tenant: TenantContext): HeadersInit {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    host: buildTenantHostHeader(tenant.tenantSlug),
   };
   if (tenant.tenantId) {
     headers["x-tenant-id"] = tenant.tenantId;

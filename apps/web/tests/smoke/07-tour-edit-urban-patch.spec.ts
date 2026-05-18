@@ -5,6 +5,7 @@ import {
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
+  SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
 const TOUR_ID = "tour-edit-urban-smoke-1";
@@ -12,7 +13,7 @@ const THEME_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 test.describe("tour edit urban profile PATCH (mocked API)", () => {
   test.beforeEach(async ({ page, context }) => {
-    const baseURL = test.info().project.use.baseURL || "http://127.0.0.1:3000";
+    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
@@ -41,7 +42,8 @@ test.describe("tour edit urban profile PATCH (mocked API)", () => {
         await route.continue();
         return;
       }
-      if (pathname !== `/api/v2/tours/${TOUR_ID}`) {
+      const bffTourPath = `/api/tours/${TOUR_ID}`;
+      if (pathname !== bffTourPath && pathname !== `/api/v2/tours/${TOUR_ID}`) {
         await route.continue();
         return;
       }

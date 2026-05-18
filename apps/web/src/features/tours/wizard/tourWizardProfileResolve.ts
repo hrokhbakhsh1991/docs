@@ -16,6 +16,8 @@ export type TourWizardDraftMeta = {
   formProfileVersion: number;
   /** Wizard DTO strict-schema generation; see `tour-wizard-contract-version.ts`. */
   wizardContractVersion?: number;
+  /** ISO timestamp of last local or server autosave (restore conflict resolution). */
+  savedAt?: string;
 };
 
 export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | undefined {
@@ -26,11 +28,17 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
   const m = w as Record<string, unknown>;
   const profileRaw = m.resolvedFormProfile;
   const profile = isTourFormProfile(profileRaw) ? profileRaw : DEFAULT_TOUR_FORM_PROFILE;
-  const version = typeof m.formProfileVersion === "number" && Number.isFinite(m.formProfileVersion) ? m.formProfileVersion : TOUR_FORM_PROFILE_VERSION;
+  const version =
+    typeof m.formProfileVersion === "number" && Number.isFinite(m.formProfileVersion)
+      ? m.formProfileVersion
+      : TOUR_FORM_PROFILE_VERSION;
   const wizardContractVersion =
     typeof m.wizardContractVersion === "number" && Number.isFinite(m.wizardContractVersion)
       ? m.wizardContractVersion
       : TOUR_WIZARD_CONTRACT_VERSION;
+  if (version > TOUR_FORM_PROFILE_VERSION || wizardContractVersion > TOUR_WIZARD_CONTRACT_VERSION) {
+    return undefined;
+  }
   const sourceTourId = typeof m.sourceTourId === "string" ? m.sourceTourId : undefined;
   let themeIds: TourWizardDraftMeta["themeIds"];
   const ti = m.themeIds;
@@ -41,10 +49,32 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
     const secondary = Array.isArray(sec) ? sec.filter((x): x is string => typeof x === "string") : undefined;
     themeIds = { main, secondary };
   }
-  return { sourceTourId, themeIds, resolvedFormProfile: profile, formProfileVersion: version, wizardContractVersion };
+  const savedAt = typeof m.savedAt === "string" ? m.savedAt : undefined;
+  return {
+    sourceTourId,
+    themeIds,
+    resolvedFormProfile: profile,
+    formProfileVersion: version,
+    wizardContractVersion,
+    savedAt,
+  };
 }
 
 export type ThemeRowForProfile = { id: string; formProfile?: TourFormProfile | string | null };
+
+/** First non-empty theme id from RHF, draft storage, or native `<select>` (Playwright / restore timing). */
+export function coalesceWizardMainTourThemeId(input: {
+  watchedMain?: string | undefined;
+  storageMain?: string | undefined;
+  domMain?: string | undefined;
+}): string | undefined {
+  for (const raw of [input.watchedMain, input.storageMain, input.domMain]) {
+    if (typeof raw === "string" && raw.trim() !== "") {
+      return raw.trim();
+    }
+  }
+  return undefined;
+}
 
 /**
  * Resolves the active form profile for the wizard.
@@ -68,11 +98,25 @@ export function resolveTourFormProfile(input: {
 
   if (useSnapshot && input.snapshot) {
     const snapProfile = normalizeTourFormProfileInput(input.snapshot.resolvedFormProfile);
+    const themeBindingActive = Boolean(snapMain && mainId && snapMain === mainId);
+    if (snapProfile === "general" && themeBindingActive && mainId && input.themeCatalog?.length) {
+      const row = input.themeCatalog.find((t) => t.id === mainId);
+      if (row?.formProfile != null) {
+        const fromTheme = normalizeTourFormProfileInput(row.formProfile);
+        if (fromTheme !== "general") {
+          return fromTheme;
+        }
+      }
+    }
     const tt = input.tourType;
     if (tt && typeof tt === "string" && tt.trim() !== "") {
       const fromTourType = defaultTourFormProfileForTourType(tt as TourType);
       // Snapshot `general` is a weak default (e.g. legacy drafts); explicit tour type should win.
       if (snapProfile === "general" && fromTourType !== "general") {
+        return fromTourType;
+      }
+      // Stale snapshot label when the user has not bound the snapshot main theme (or changed it away).
+      if (!themeBindingActive && fromTourType !== snapProfile) {
         return fromTourType;
       }
     }
@@ -92,6 +136,53 @@ export function resolveTourFormProfile(input: {
   }
 
   return DEFAULT_TOUR_FORM_PROFILE;
+}
+
+/** Keep a non-general draft meta profile when a transient resolve pass still returns `general`. */
+export function preserveWizardMetaResolvedProfile(
+  next: TourFormProfile,
+  prev: TourFormProfile | undefined,
+): TourFormProfile {
+  return next === "general" && prev && prev !== "general" ? prev : next;
+}
+
+/** Final wizard UI profile: resolve output plus theme catalog, snapshot, and tour-type fallbacks. */
+export function coalesceWizardResolvedProfile(input: {
+  raw: TourFormProfile;
+  snapshotProfile?: TourFormProfile;
+  mainTourThemeId?: string;
+  themeCatalog?: ThemeRowForProfile[];
+  tourType?: TourType;
+  persistedTourType?: TourType;
+  /** Workspace wizard template default (e.g. denali → `mountain_outdoor`). */
+  templateBaseProfile?: TourFormProfile;
+}): TourFormProfile {
+  let profile = preserveWizardMetaResolvedProfile(input.raw, input.snapshotProfile);
+  if (profile !== "general") {
+    return profile;
+  }
+  const mainId = input.mainTourThemeId?.trim();
+  if (mainId && input.themeCatalog?.length) {
+    const row = input.themeCatalog.find((t) => t.id === mainId);
+    if (row?.formProfile != null) {
+      const fromTheme = normalizeTourFormProfileInput(row.formProfile);
+      if (fromTheme !== "general") {
+        return fromTheme;
+      }
+    }
+  }
+  for (const tt of [input.tourType, input.persistedTourType]) {
+    if (tt) {
+      const fromTourType = defaultTourFormProfileForTourType(tt);
+      if (fromTourType !== "general") {
+        return fromTourType;
+      }
+    }
+  }
+  if (input.templateBaseProfile && input.templateBaseProfile !== "general") {
+    return input.templateBaseProfile;
+  }
+  return profile;
 }
 
 /** Edit tour / flat `TourForm`: no clone snapshot; same theme + catalog rules as the wizard. */

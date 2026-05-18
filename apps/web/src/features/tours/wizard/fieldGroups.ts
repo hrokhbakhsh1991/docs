@@ -135,7 +135,11 @@ export function stripInactiveTourCreateGroupsForProfile(
   const template = buildTourCreateFormDefaultValues();
   let next: TourCreateFormValues = values;
   for (const root of roots) {
-    next = { ...next, [root]: template[root] };
+    if (root === "itinerary") {
+      next = { ...next, itinerary: { days: [] } };
+    } else {
+      next = { ...next, [root]: template[root] };
+    }
   }
   return next;
 }

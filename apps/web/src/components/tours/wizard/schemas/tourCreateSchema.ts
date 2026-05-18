@@ -62,6 +62,21 @@ function optionalHhmm(fieldLabel: string) {
     });
 }
 
+function optionalInt(minMessage?: string) {
+  return z
+    .union([z.number().int().min(0, minMessage), z.nan(), z.undefined(), z.null(), z.literal("")])
+    .transform((v) => (v == null || Number.isNaN(v) || v === "" ? undefined : v))
+    .optional();
+}
+
+function optionalNumber(minMessage?: string) {
+  return z
+    .union([z.number().min(0, minMessage), z.nan(), z.undefined(), z.null(), z.literal("")])
+    .transform((v) => (v == null || Number.isNaN(v) || v === "" ? undefined : v))
+    .optional();
+}
+
+
 function computeDurationDaysFromYmd(start: string, end: string): number | undefined {
   if (!ymdRegex.test(start) || !ymdRegex.test(end)) return undefined;
   const startDate = new Date(`${start}T00:00:00`);
@@ -76,11 +91,13 @@ const itinerarySegmentSchema = z
   .object({
     title: z.string().trim().optional(),
     description: z.string().trim().optional(),
-    activityType: z.enum(["summit", "trek", "hike", "transfer", "cultural", "social", "rest", "other"]).optional(),
-    maxAltitudeMeters: z.number().int().min(0, "ارتفاع نمی‌تواند منفی باشد.").optional(),
-    elevationGainMeters: z.number().int().min(0, "اختلاف ارتفاع نمی‌تواند منفی باشد.").optional(),
-    distanceKm: z.number().min(0).optional(),
-    estimatedDurationHours: z.number().min(0).optional(),
+    activityType: z
+      .union([z.enum(["summit", "trek", "hike", "transfer", "cultural", "social", "rest", "other"]), z.literal(""), z.undefined(), z.null()])
+      .transform((v) => (v === "" || v == null ? undefined : v)),
+    maxAltitudeMeters: optionalInt("ارتفاع نمی‌تواند منفی باشد."),
+    elevationGainMeters: optionalInt("اختلاف ارتفاع نمی‌تواند منفی باشد."),
+    distanceKm: optionalNumber(),
+    estimatedDurationHours: optionalNumber(),
     startTime: optionalHhmm("زمان شروع"),
     endTime: optionalHhmm("زمان پایان"),
     locationName: z.string().trim().optional(),
@@ -184,9 +201,9 @@ export function buildTourCreateSchemaForFormProfile(
     participation: z.object({
       requiredExperienceLevel: z.string().trim().optional(),
       requiredFitnessLevel: z.string().trim().optional(),
-      minParticipants: z.number().int().min(0).optional(),
-      minimumAge: z.number().int().min(0).optional(),
-      maximumAge: z.number().int().min(0).optional(),
+      minParticipants: optionalInt(),
+      minimumAge: optionalInt(),
+      maximumAge: optionalInt(),
       genderRestriction: z.string().trim().optional(),
       technicalSkillRequired: z.string().trim().optional(),
       medicalRestrictions: z.string().trim().optional(),
@@ -207,7 +224,7 @@ export function buildTourCreateSchemaForFormProfile(
        * Must be false when primary is `private_car` (UI hides; Zod rejects inconsistent payloads).
        */
       supplementalPrivateCar: z.boolean().optional(),
-      fuelShareToman: z.number().int().min(0, "دنگ بنزین نمی‌تواند منفی باشد.").optional(),
+      fuelShareToman: optionalInt("دنگ بنزین نمی‌تواند منفی باشد."),
       includedServices: z.string().trim().optional(),
       excludedServices: z.string().trim().optional(),
       meetingPointDetails: z.string().trim().optional(),
@@ -223,8 +240,8 @@ export function buildTourCreateSchemaForFormProfile(
       leaderProvidesInsurance: z.boolean().optional(),
       leaderInsuranceNotes: z.string().trim().max(500, "توضیح بیمه نباید بیشتر از ۵۰۰ نویسه باشد.").optional(),
       guideLanguageIds: z.array(z.string().trim().refine((id) => !id || uuidV4.test(id), { message: "شناسه نامعتبر" })).optional(),
-      groupSizeMin: z.number().int().min(0).optional(),
-      groupSizeMax: z.number().int().min(0).optional(),
+      groupSizeMin: optionalInt(),
+      groupSizeMax: optionalInt(),
     }),
     policies: z.object({
       cancellationPolicy: z.string().trim().optional(),

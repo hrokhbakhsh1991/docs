@@ -14,6 +14,8 @@ const nextConfig = {
     "ws2-rbac.localhost",
     "ws3-rbac.localhost",
     "denali.localhost",
+    "urban-demo.localhost",
+    "mix-demo.localhost",
   ],
   async redirects() {
     return [

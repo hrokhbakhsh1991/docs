@@ -17,7 +17,6 @@ export const DEFAULT_TENANT_HOST_RESERVED_LABELS = [
   "admin",
   "internal",
   "root",
-  "denali",
 ] as const;
 
 export function parseReservedLabelsCsv(csv: string | undefined): Set<string> {

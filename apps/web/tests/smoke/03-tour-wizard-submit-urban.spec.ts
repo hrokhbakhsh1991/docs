@@ -7,9 +7,11 @@ import {
   installSmokeTourOpsSessionToken,
   installTourWizardRegionsAndDestinationsRoutes,
   installTourWizardSettingsRoutes,
+  SMOKE_WIZARD_DRAFT_STORAGE_KEY,
+  SMOKE_WORKSPACE_BASE_URL,
+  smokeTourWizardNewUrl,
+  SMOKE_WIZARD_URBAN_E2E_QUERY,
 } from "./tour-wizard-smoke-helpers";
-
-const DRAFT_KEY = "tour-create-wizard-draft-v1";
 
 const SUBMIT_URBAN_DRAFT_JSON = JSON.stringify({
   overview: {
@@ -55,7 +57,7 @@ const SUBMIT_URBAN_DRAFT_JSON = JSON.stringify({
 
 test.describe("tour wizard urban submit (mocked API)", () => {
   test.beforeEach(async ({ page, context }) => {
-    const baseURL = test.info().project.use.baseURL || "http://127.0.0.1:3000";
+    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
@@ -75,18 +77,20 @@ test.describe("tour wizard urban submit (mocked API)", () => {
           /* ignore */
         }
       },
-      { key: DRAFT_KEY, json: SUBMIT_URBAN_DRAFT_JSON },
+      { key: SMOKE_WIZARD_DRAFT_STORAGE_KEY, json: SUBMIT_URBAN_DRAFT_JSON },
     );
-    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.goto(smokeTourWizardNewUrl(baseURL, SMOKE_WIZARD_URBAN_E2E_QUERY), {
+      waitUntil: "domcontentloaded",
+    });
 
-    await page.route("**/api/v2/tours**", async (route) => {
+    await page.route("**/api/tours", async (route) => {
       const req = route.request();
       const url = new URL(req.url());
-      const method = req.method().toUpperCase();
-      if (!url.pathname.endsWith("/api/v2/tours")) {
+      if (url.pathname !== "/api/tours") {
         await route.continue();
         return;
       }
+      const method = req.method().toUpperCase();
       if (method === "POST") {
         let postBody: Record<string, unknown> = {};
         try {
@@ -117,7 +121,10 @@ test.describe("tour wizard urban submit (mocked API)", () => {
         });
         return;
       }
-      if (method === "GET") {
+      await route.continue();
+    });
+    await page.route("**/api/v2/tours", async (route) => {
+      if (route.request().method().toUpperCase() === "GET") {
         await route.fulfill({
           status: 200,
           contentType: "application/json",
@@ -130,7 +137,7 @@ test.describe("tour wizard urban submit (mocked API)", () => {
   });
 
   test("restored urban draft reaches review and POST succeeds", async ({ page }) => {
-    const draftPeek = await page.evaluate((k) => localStorage.getItem(k), DRAFT_KEY);
+    const draftPeek = await page.evaluate((k) => localStorage.getItem(k), SMOKE_WIZARD_DRAFT_STORAGE_KEY);
     expect(draftPeek, "draft must be present after beforeEach seed + reload").toContain("urban_event");
     const draftHasMeta = await page.evaluate((k) => {
       try {
@@ -141,10 +148,12 @@ test.describe("tour wizard urban submit (mocked API)", () => {
       } catch {
         return false;
       }
-    }, DRAFT_KEY);
+    }, SMOKE_WIZARD_DRAFT_STORAGE_KEY);
     expect(draftHasMeta, "draft JSON must parse and include _wizardMeta object").toBe(true);
 
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
+    const w = page.getByTestId("tour-create-wizard");
+    await w.locator('select[name="overview.tourType"]').selectOption("city");
     await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute("data-form-profile", "urban_event", {
       timeout: 25_000,
     });

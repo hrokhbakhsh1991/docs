@@ -10,6 +10,23 @@ import { computeTourDurationDays } from "./tour-duration";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** Ignore DTO class-transformer placeholders; only keys with a material value count as "sent". */
+function logisticsObjectKeysWithMaterialValues(log: Record<string, unknown>): string[] {
+  return Object.keys(log).filter((key) => {
+    const value = log[key];
+    if (value === undefined || value === null) {
+      return false;
+    }
+    if (typeof value === "string" && value.trim() === "") {
+      return false;
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function profileUsesTripDetailsStrip(profile: TourFormProfile): boolean {
   const { strip } = getTourFormProfileDescriptor(profile);
   return (
@@ -270,7 +287,7 @@ export function assertIncomingTripDetailsBeforeFormProfileStrip(
   if (strip.logisticsWhitelist != null) {
     if (tripDetails.logistics != null && typeof tripDetails.logistics === "object") {
       const log = tripDetails.logistics as Record<string, unknown>;
-      for (const key of Object.keys(log)) {
+      for (const key of logisticsObjectKeysWithMaterialValues(log)) {
         if (!URBAN_LOGISTICS_WHITELIST.has(key)) {
           throw new BadRequestException({
             error: {
@@ -360,7 +377,7 @@ export function assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
   if (strip.logisticsWhitelist != null) {
     if ("logistics" in patchPlain && patchPlain.logistics != null && typeof patchPlain.logistics === "object") {
       const log = patchPlain.logistics as Record<string, unknown>;
-      for (const key of Object.keys(log)) {
+      for (const key of logisticsObjectKeysWithMaterialValues(log)) {
         if (!URBAN_LOGISTICS_WHITELIST.has(key)) {
           throw new BadRequestException({
             error: {

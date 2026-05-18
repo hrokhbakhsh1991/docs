@@ -59,28 +59,40 @@ export const registrationKeys = {
 
 export const settingsLocationsKeys = {
   all: ["settings", "locations"] as const,
-  regions: () => [...settingsLocationsKeys.all, "regions"] as const,
-  destinations: () => [...settingsLocationsKeys.all, "destinations"] as const,
+  regions: (tenantId: string) => [...settingsLocationsKeys.all, "regions", tenantId] as const,
+  destinations: (tenantId: string) =>
+    [...settingsLocationsKeys.all, "destinations", tenantId] as const,
 };
 
 export const settingsEquipmentKeys = {
   all: ["settings", "equipment"] as const,
-  list: () => [...settingsEquipmentKeys.all, "list"] as const,
+  list: (tenantId: string) => [...settingsEquipmentKeys.all, "list", tenantId] as const,
 };
 
 export const settingsTourThemesKeys = {
   all: ["settings", "tourThemes"] as const,
-  list: () => [...settingsTourThemesKeys.all, "list"] as const,
+  list: (tenantId: string) => [...settingsTourThemesKeys.all, "list", tenantId] as const,
 };
 
 export const settingsGuideLanguagesKeys = {
   all: ["settings", "guideLanguages"] as const,
-  list: () => [...settingsGuideLanguagesKeys.all, "list"] as const,
+  list: (tenantId: string) => [...settingsGuideLanguagesKeys.all, "list", tenantId] as const,
 };
 
 export const settingsTourPresetsKeys = {
   all: ["settings", "tourPresets"] as const,
-  list: () => [...settingsTourPresetsKeys.all, "list"] as const,
+  list: (tenantId: string) => [...settingsTourPresetsKeys.all, "list", tenantId] as const,
+};
+
+export const settingsTourWizardTemplateKeys = {
+  all: ["settings", "tourWizardTemplate"] as const,
+  detail: (tenantId: string) => [...settingsTourWizardTemplateKeys.all, tenantId] as const,
+};
+
+export const settingsTourWizardDraftKeys = {
+  all: ["settings", "tourWizardDraft"] as const,
+  detail: (tenantId: string, userId: string) =>
+    [...settingsTourWizardDraftKeys.all, tenantId, userId] as const,
 };
 
 export const auditTrailKeys = {

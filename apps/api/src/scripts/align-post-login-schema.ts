@@ -189,6 +189,8 @@ async function main(): Promise<void> {
             "workspace_equipment_items",
             "workspace_tour_themes",
             "workspace_tour_creation_presets",
+            "workspace_tour_wizard_templates",
+            "workspace_tour_wizard_drafts",
             "workspace_guide_languages"
           ]
         },

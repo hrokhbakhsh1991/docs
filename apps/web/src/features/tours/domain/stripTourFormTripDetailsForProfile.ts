@@ -27,7 +27,11 @@ export function stripTourFormTripDetailsForFormProfile(
     const it = { ...(root.itinerary as Record<string, unknown>) };
     delete it.dayPlans;
     delete it.segmentActivities;
-    root.itinerary = it;
+    if (Object.keys(it).length === 0) {
+      delete root.itinerary;
+    } else {
+      root.itinerary = it;
+    }
   }
 
   if (profile === "urban_event" && root.logistics != null && typeof root.logistics === "object") {

@@ -6,9 +6,15 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+
+import {
+  removeLegacyWizardDraftFromStorage,
+  removeWizardDraftFromStorage,
+} from "@/features/tours/wizard/tourWizardDraftEnvelope";
 
 import { inflightBffGet } from "./inflight-bff-get";
 import { decodeJwtPayload } from "./decode-jwt-payload";
@@ -55,6 +61,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const prevTenantIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -149,6 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const tenantId = user?.tenantId?.trim() || null;
+    const prev = prevTenantIdRef.current;
+    if (prev && tenantId && prev !== tenantId) {
+      removeWizardDraftFromStorage(prev);
+    }
+    prevTenantIdRef.current = tenantId;
+  }, [user?.tenantId]);
+
   const setSession = useCallback(async (session: WebSessionResponseBody) => {
     await persistSessionToken(session.session_token);
     const claims = decodeJwtPayload(session.session_token);
@@ -173,9 +189,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSession = useCallback(async () => {
+    const tenantId = user?.tenantId?.trim();
+    if (tenantId) {
+      removeWizardDraftFromStorage(tenantId);
+    }
+    removeLegacyWizardDraftFromStorage();
     await clearSessionToken();
     setUser(null);
-  }, []);
+    prevTenantIdRef.current = null;
+  }, [user?.tenantId]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

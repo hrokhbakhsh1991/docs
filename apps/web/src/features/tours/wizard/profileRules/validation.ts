@@ -1,16 +1,19 @@
 import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import {
+  isFieldVisibleForTenantContract,
+  type TenantTourFormContract,
+} from "@/features/tours/contracts/tenant-tour-form-contract";
 import type { TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
 
 import {
   getProfileRules,
-  getStepRule,
-  getStepRules,
   getVisibleStepIds,
   isFieldRequiredAtLevel,
+  isFieldRequiredAtLevelFromRules,
 } from "./getProfileRules";
-import type { WizardFieldPath } from "./types";
+import type { ProfileRules, WizardFieldPath } from "./types";
 
 /**
  * Pure 3-level validation for the Tour Creation Wizard. Each level consults the rules table
@@ -39,6 +42,12 @@ export type ValidationIssue = {
   readonly pathSegments: readonly string[];
   readonly code: ValidationIssueCode;
   readonly message: string;
+};
+
+export type WizardValidationOptions = {
+  readonly tenantFormContract?: TenantTourFormContract;
+  /** Merged profile + template overlay table; defaults to {@link getProfileRules}. */
+  readonly rules?: ProfileRules;
 };
 
 export type ValidationResult = {
@@ -129,6 +138,21 @@ function buildIssue(path: WizardFieldPath, code: ValidationIssueCode, message: s
   return { path, pathSegments: path.split("."), code, message };
 }
 
+function resolveRules(profile: TourFormProfile, options?: WizardValidationOptions): ProfileRules {
+  return options?.rules ?? getProfileRules(profile);
+}
+
+function isFieldEnforcedForValidation(
+  path: string,
+  options?: WizardValidationOptions,
+): boolean {
+  const contract = options?.tenantFormContract;
+  if (contract && !isFieldVisibleForTenantContract(path, contract)) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Autosave-level validation (minimal, never `required`).
  *
@@ -142,13 +166,14 @@ export function validateForAutosave(
   profile: TourFormProfile,
   stepId: TourCreateWizardStepId,
   data: Partial<TourCreateFormValues>,
+  options?: WizardValidationOptions,
 ): ValidationResult {
-  const stepRule = getStepRule(profile, stepId);
+  const rules = resolveRules(profile, options);
+  const stepRule = rules.steps.get(stepId);
   if (!stepRule || stepRule.visibility === "hidden") {
     return buildResult([]);
   }
   void data;
-  void getStepRules(profile, stepId);
   return buildResult([]);
 }
 
@@ -167,15 +192,17 @@ export function validateForStepNavigation(
   stepId: TourCreateWizardStepId,
   data: TourCreateFormValues,
   visibleSteps: readonly TourCreateWizardStepId[],
+  options?: WizardValidationOptions,
 ): ValidationResult {
-  const stepRule = getStepRule(profile, stepId);
+  const rules = resolveRules(profile, options);
+  const stepRule = rules.steps.get(stepId);
   if (!stepRule || stepRule.visibility !== "visible") return buildResult([]);
 
-  const rules = getProfileRules(profile);
   const issues: ValidationIssue[] = [];
   for (const rule of rules.fields.values()) {
     if (rule.belongsToStep !== stepId) continue;
-    if (!isFieldRequiredAtLevel(profile, rule.path, "stepNav", stepId, visibleSteps)) continue;
+    if (!isFieldEnforcedForValidation(rule.path, options)) continue;
+    if (!isFieldRequiredAtLevelFromRules(rules, rule.path, "stepNav", stepId, visibleSteps)) continue;
     if (isEmptyValue(readPath(data, rule.path))) {
       issues.push(buildIssue(rule.path, "required", requiredMessageFor(rule.path)));
     }
@@ -193,11 +220,13 @@ export function validateForStepNavigation(
 export function validateForSubmit(
   profile: TourFormProfile,
   data: TourCreateFormValues,
+  options?: WizardValidationOptions,
 ): ValidationResult {
-  const rules = getProfileRules(profile);
+  const rules = resolveRules(profile, options);
   const issues: ValidationIssue[] = [];
   for (const rule of rules.fields.values()) {
-    if (!isFieldRequiredAtLevel(profile, rule.path, "submit")) continue;
+    if (!isFieldEnforcedForValidation(rule.path, options)) continue;
+    if (!isFieldRequiredAtLevelFromRules(rules, rule.path, "submit")) continue;
     if (isEmptyValue(readPath(data, rule.path))) {
       issues.push(buildIssue(rule.path, "required", requiredMessageFor(rule.path)));
     }

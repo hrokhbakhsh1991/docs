@@ -115,7 +115,7 @@ test("filters patch against the FINAL profile (general preset with itinerary app
   assert.equal(result.mergedValues.overview.mainTourThemeId, THEME_CINEMA);
   // itinerary + participation are inactive for cinema_event → filtered out before merge,
   // and the final sanitize keeps them at canonical defaults.
-  assert.deepEqual(result.mergedValues.itinerary, makeBase().itinerary);
+  assert.deepEqual(result.mergedValues.itinerary, { days: [] });
   assert.equal(result.mergedValues.participation.requirements, "");
   // logistics is *active* for cinema_event → merged from patch.
   assert.equal(result.mergedValues.logistics.primaryTransportMode, "bus");
@@ -146,7 +146,7 @@ test("urban_event flip also drops logistics from the patch (and from the merged 
   assert.equal(result.mergedValues.overview.title, "urban-preset");
   // urban_event makes logistics inactive too → ghost from base must also be reset.
   const defaults = buildTourCreateFormDefaultValues();
-  assert.deepEqual(result.mergedValues.itinerary, defaults.itinerary);
+  assert.deepEqual(result.mergedValues.itinerary, { days: [] });
   assert.deepEqual(result.mergedValues.participation, defaults.participation);
   assert.deepEqual(result.mergedValues.logistics, defaults.logistics);
 });

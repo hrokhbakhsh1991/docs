@@ -3,7 +3,14 @@ import test from "node:test";
 
 import { TOUR_FORM_PROFILE_VALUES, TOUR_FORM_PROFILE_VERSION } from "@repo/types";
 
-import { resolveTourFormProfile, resolveTourFormProfileForTourFormValues, type TourWizardDraftMeta } from "./tourWizardProfileResolve";
+import {
+  coalesceWizardMainTourThemeId,
+  coalesceWizardResolvedProfile,
+  preserveWizardMetaResolvedProfile,
+  resolveTourFormProfile,
+  resolveTourFormProfileForTourFormValues,
+  type TourWizardDraftMeta,
+} from "./tourWizardProfileResolve";
 import { getVisibleWizardStepsForProfile } from "./tourWizardStepPlan";
 
 test("getVisibleWizardStepsForProfile: general keeps itinerary and participation", () => {
@@ -70,6 +77,38 @@ test("resolveTourFormProfile: ignores snapshot when user changed main theme", ()
   assert.equal(r, "mountain_outdoor");
 });
 
+test("coalesceWizardMainTourThemeId prefers RHF then storage then DOM", () => {
+  assert.equal(
+    coalesceWizardMainTourThemeId({
+      watchedMain: "theme-rhf",
+      storageMain: "theme-storage",
+      domMain: "theme-dom",
+    }),
+    "theme-rhf",
+  );
+  assert.equal(
+    coalesceWizardMainTourThemeId({
+      watchedMain: "",
+      storageMain: "theme-storage",
+      domMain: "theme-dom",
+    }),
+    "theme-storage",
+  );
+});
+
+test("resolveTourFormProfile: storage-bound main theme id resolves via catalog before snapshot general", () => {
+  const r = resolveTourFormProfile({
+    snapshot: {
+      resolvedFormProfile: "general",
+      formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+    },
+    mainTourThemeId: "theme-mountain",
+    themeCatalog: [{ id: "theme-mountain", formProfile: "mountain_outdoor" }],
+    tourType: "mountain",
+  });
+  assert.equal(r, "mountain_outdoor");
+});
+
 test("resolveTourFormProfile: theme catalog wins without snapshot", () => {
   const r = resolveTourFormProfile({
     mainTourThemeId: "t1",
@@ -98,6 +137,35 @@ test("resolveTourFormProfile: general snapshot yields to explicit non-general to
     snapshot,
     mainTourThemeId: "theme-a",
     themeCatalog: [{ id: "theme-a", formProfile: "general" }],
+    tourType: "city",
+  });
+  assert.equal(r, "urban_event");
+});
+
+test("resolveTourFormProfile: snapshot theme id without live main binding yields to tourType", () => {
+  const snapshot: TourWizardDraftMeta = {
+    resolvedFormProfile: "general",
+    formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+    themeIds: { main: "theme-a" },
+  };
+  const r = resolveTourFormProfile({
+    snapshot,
+    mainTourThemeId: undefined,
+    themeCatalog: [{ id: "theme-a", formProfile: "cinema_event" }],
+    tourType: "city",
+  });
+  assert.equal(r, "urban_event");
+});
+
+test("resolveTourFormProfile: stale non-general snapshot without theme binding yields to tourType", () => {
+  const snapshot: TourWizardDraftMeta = {
+    resolvedFormProfile: "mountain_outdoor",
+    formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+  };
+  const r = resolveTourFormProfile({
+    snapshot,
+    mainTourThemeId: undefined,
+    themeCatalog: [],
     tourType: "city",
   });
   assert.equal(r, "urban_event");
@@ -189,4 +257,59 @@ test("resolveTourFormProfile: theme row with null formProfile falls through to t
     }),
     "nature_trip",
   );
+});
+
+test("preserveWizardMetaResolvedProfile: does not downgrade mountain_outdoor to general", () => {
+  assert.equal(
+    preserveWizardMetaResolvedProfile("general", "mountain_outdoor"),
+    "mountain_outdoor",
+  );
+  assert.equal(preserveWizardMetaResolvedProfile("urban_event", "mountain_outdoor"), "urban_event");
+  assert.equal(preserveWizardMetaResolvedProfile("general", "general"), "general");
+  assert.equal(preserveWizardMetaResolvedProfile("general", undefined), "general");
+});
+
+test("coalesceWizardResolvedProfile: main theme catalog wins over transient general", () => {
+  assert.equal(
+    coalesceWizardResolvedProfile({
+      raw: "general",
+      mainTourThemeId: "theme-1",
+      themeCatalog: [{ id: "theme-1", formProfile: "mountain_outdoor" }],
+    }),
+    "mountain_outdoor",
+  );
+});
+
+test("resolveTourFormProfile: bound main theme catalog wins over general snapshot label", () => {
+  const snapshot: TourWizardDraftMeta = {
+    resolvedFormProfile: "general",
+    formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+    themeIds: { main: "theme-1" },
+  };
+  assert.equal(
+    resolveTourFormProfile({
+      snapshot,
+      mainTourThemeId: "theme-1",
+      themeCatalog: [{ id: "theme-1", formProfile: "mountain_outdoor" }],
+      tourType: "mountain",
+    }),
+    "mountain_outdoor",
+  );
+});
+
+test("wizard derived profile: preserve snapshot then tourType when resolve returns general", () => {
+  const snapshot: TourWizardDraftMeta = {
+    resolvedFormProfile: "mountain_outdoor",
+    formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+  };
+  const raw = resolveTourFormProfile({
+    snapshot: undefined,
+    mainTourThemeId: undefined,
+    themeCatalog: [],
+    tourType: undefined,
+    ignoreSnapshot: false,
+  });
+  assert.equal(raw, "general");
+  const preserved = preserveWizardMetaResolvedProfile(raw, snapshot.resolvedFormProfile);
+  assert.equal(preserved, "mountain_outdoor");
 });

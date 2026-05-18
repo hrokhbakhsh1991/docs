@@ -93,6 +93,17 @@ test("getStepsForProfile matches getVisibleWizardStepsForProfile for every profi
   }
 });
 
+test("getVisibleStepsForRuntime applies template stepOverrides.skip after profile prune", () => {
+  const steps = wizardStepEngine.getVisibleStepsForRuntime("mountain_outdoor", {
+    themesQueryFinishedLoading: true,
+    activeThemeCount: 3,
+    stepOverrides: { skip: ["itinerary", "participation"], insert: [] },
+  });
+  assert.ok(!steps.includes("itinerary"));
+  assert.ok(!steps.includes("participation"));
+  assert.ok(steps.includes("basic"));
+});
+
 test("getVisibleStepsForRuntime composes profile visibility + theme prune", () => {
   for (const profile of TOUR_FORM_PROFILE_VALUES) {
     const baseProfileSteps = [...getVisibleWizardStepsForProfile(profile)];

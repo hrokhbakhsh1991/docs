@@ -18,6 +18,23 @@ type BffLoginErr = {
   message?: string;
 };
 
+function isBffLoginOk(payload: BffLoginOk | BffLoginErr | null | undefined): payload is BffLoginOk {
+  return Boolean(payload && payload.ok === true && payload.session_token?.trim());
+}
+
+function loginFailureFromPayload(payload: BffLoginOk | BffLoginErr | null | undefined): {
+  code: string;
+  message: string;
+} {
+  if (payload && !isBffLoginOk(payload)) {
+    return {
+      code: payload.error?.code ?? "AUTH_FAILED",
+      message: payload.error?.message ?? payload.message ?? "Login failed",
+    };
+  }
+  return { code: "AUTH_FAILED", message: "Login failed" };
+}
+
 function toWebSession(body: BffLoginOk): WebSessionResponseBody {
   const userId = body.user_id?.trim() ?? "";
   const tenantId = body.tenant_id?.trim() ?? "";
@@ -45,7 +62,7 @@ export async function loginWebSession(
     phone: normalizeOtpPhoneInput(phone),
     otp: otp.trim(),
   };
-  const payload = await bffBrowserClient.post<BffLoginOk & BffLoginErr>(
+  const payload = await bffBrowserClient.post<BffLoginOk | BffLoginErr>(
     BFF.authLoginWebSession,
     {
       ...body,
@@ -53,9 +70,8 @@ export async function loginWebSession(
     },
     { skipAuthRedirectOn401: true },
   );
-  if (!payload || payload.ok !== true || !payload.session_token?.trim()) {
-    const code = payload?.error?.code ?? "AUTH_FAILED";
-    const message = payload?.error?.message ?? payload?.message ?? "Login failed";
+  if (!isBffLoginOk(payload)) {
+    const { code, message } = loginFailureFromPayload(payload);
     throw new ApiError(code, message);
   }
   return toWebSession(payload);
@@ -65,15 +81,17 @@ export async function createWorkspaceSession(
   tenantId: string,
 ): Promise<WebSessionResponseBody> {
   const cleanedTenantId = tenantId.trim();
-  const payload = await bffBrowserClient.post<BffLoginOk & BffLoginErr>(
+  const payload = await bffBrowserClient.post<BffLoginOk | BffLoginErr>(
     BFF.authWorkspaceSession,
     { tenant_id: cleanedTenantId },
     { skipGlobalErrorToast: true },
   );
-  if (!payload || payload.ok !== true || !payload.session_token?.trim()) {
-    const code = payload?.error?.code ?? "AUTH_FAILED";
-    const message = payload?.error?.message ?? payload?.message ?? "Workspace session failed";
-    throw new ApiError(code, message);
+  if (!isBffLoginOk(payload)) {
+    const failure = loginFailureFromPayload(payload);
+    throw new ApiError(
+      failure.code,
+      failure.message === "Login failed" ? "Workspace session failed" : failure.message,
+    );
   }
   return toWebSession(payload);
 }

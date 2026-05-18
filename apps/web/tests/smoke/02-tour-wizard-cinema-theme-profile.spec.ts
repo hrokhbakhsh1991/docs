@@ -4,9 +4,11 @@ import {
   addLeaderSmokeSessionCookie,
   clearTourWizardLocalDraft,
   fillTourWizardBasicInfoStep,
+  purgeTourWizardDraftStorage,
   installLeaderWorkspaceSessionRoute,
   installTourWizardSettingsRoutes,
   setNativeSelectValue,
+  SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
 /**
@@ -16,7 +18,7 @@ import {
  */
 test.describe("tour wizard cinema theme profile (stepper)", () => {
   test.beforeEach(async ({ page, context }) => {
-    const baseURL = test.info().project.use.baseURL || "http://127.0.0.1:3000";
+    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await clearTourWizardLocalDraft(page);
     await installLeaderWorkspaceSessionRoute(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
@@ -44,6 +46,8 @@ test.describe("tour wizard cinema theme profile (stepper)", () => {
   }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
+    await purgeTourWizardDraftStorage(page);
+    await page.reload({ waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
 
@@ -59,10 +63,14 @@ test.describe("tour wizard cinema theme profile (stepper)", () => {
     const mainThemeSelect = page.locator('select[name="overview.mainTourThemeId"]');
     await expect(mainThemeSelect).toBeVisible({ timeout: 10_000 });
     await setNativeSelectValue(mainThemeSelect, "33333333-3333-4333-8333-333333333333");
+    await mainThemeSelect.dispatchEvent("change");
+    await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute("data-form-profile", "cinema_event", {
+      timeout: 15_000,
+    });
 
     const stepper = page.getByLabel("مراحل ایجاد تور");
-    await expect(stepper).not.toContainText("برنامه سفر", { timeout: 8000 });
+    await expect(stepper).not.toContainText("برنامه سفر", { timeout: 15_000 });
     await expect(stepper).not.toContainText("شرایط شرکت");
-    await expect(stepper).toContainText("لجستیک");
+    await expect(stepper).toContainText("لجستیک", { timeout: 15_000 });
   });
 });

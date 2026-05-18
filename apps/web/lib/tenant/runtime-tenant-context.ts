@@ -40,6 +40,10 @@ export function isValidWorkspaceSubdomainLabel(label: string): boolean {
 }
 
 export function resolveTenantDomainMode(): TenantDomainMode {
+  const root = process.env.NEXT_PUBLIC_TENANT_ROOT_DOMAIN?.trim();
+  if (root === "localhost") {
+    return "development";
+  }
   return process.env.NODE_ENV === "production" ? "production" : "development";
 }
 
@@ -55,11 +59,6 @@ export function resolveTenantRootDomain(): string {
     );
   }
   return "localhost";
-}
-
-function stripPortFromHost(host: string): string {
-  const idx = host.indexOf(":");
-  return (idx >= 0 ? host.slice(0, idx) : host).trim().toLowerCase();
 }
 
 export function resolveTenantSlugFromHost(host: string | null | undefined): string | null {

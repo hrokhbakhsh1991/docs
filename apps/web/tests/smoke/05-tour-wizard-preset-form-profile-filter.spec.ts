@@ -4,15 +4,17 @@ import {
   addLeaderSmokeSessionCookie,
   clearTourWizardLocalDraft,
   fillTourWizardBasicInfoStep,
+  purgeTourWizardDraftStorage,
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
   setNativeSelectValue,
+  SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
 test.describe("tour wizard preset picker filters by resolved form profile", () => {
   test.beforeEach(async ({ page, context }) => {
-    const baseURL = test.info().project.use.baseURL || "http://127.0.0.1:3000";
+    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await clearTourWizardLocalDraft(page);
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
@@ -66,6 +68,8 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
   test("after cinema theme, basic step preset select lists only matching form_profile", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
+    await purgeTourWizardDraftStorage(page);
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
 
     await fillTourWizardBasicInfoStep(page, {
@@ -85,6 +89,6 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
     await expect(presetSelect).toBeVisible({ timeout: 10_000 });
     const options = presetSelect.locator("option");
     await expect(options).toHaveCount(1);
-    await expect(options.first()).toHaveValue("preset-cinema-only");
+    await expect(options.first()).toHaveAttribute("value", "preset-cinema-only");
   });
 });

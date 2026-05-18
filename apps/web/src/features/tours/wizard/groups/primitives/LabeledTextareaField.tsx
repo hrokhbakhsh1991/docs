@@ -5,6 +5,8 @@ import { useFormContext, type FieldPath } from "react-hook-form";
 import { FormField, Textarea } from "@tour/ui";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import { FieldGate } from "@/features/tours/wizard/profileRulesReact";
+import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
 
 export type LabeledTextareaFieldProps = {
   name: FieldPath<TourCreateFormValues>;
@@ -17,7 +19,7 @@ export type LabeledTextareaFieldProps = {
 
 /**
  * Wizard primitive: `FormField` + `Textarea` bound via ambient `useFormContext().register(name)`.
- * Intentionally trivial — exists to keep `PoliciesStep` / similar list-shaped configs declarative.
+ * Now wrapped in `FieldGate` so visibility follows profile rules automatically.
  *
  * Coupling (documented for future refactors):
  * - Requires a parent `FormProvider<TourCreateFormValues>`.
@@ -33,8 +35,10 @@ export function LabeledTextareaField({
 }: LabeledTextareaFieldProps) {
   const { register } = useFormContext<TourCreateFormValues>();
   return (
-    <FormField label={label} description={description} error={error}>
-      <Textarea rows={rows} placeholder={placeholder} {...register(name)} />
-    </FormField>
+    <FieldGate field={name as WizardFieldPath}>
+      <FormField label={label} description={description} error={error}>
+        <Textarea rows={rows} placeholder={placeholder} {...register(name)} />
+      </FormField>
+    </FieldGate>
   );
 }

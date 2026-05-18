@@ -3,6 +3,7 @@ import type { TourFormProfile } from "@repo/types";
 import { buildTourCreateSchemaForFormProfile } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import type { CreateTourDto } from "@/lib/services/tours.service";
+import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload";
 
 export { TOUR_WIZARD_CONTRACT_VERSION } from "./tour-wizard-contract-version";
@@ -50,5 +51,6 @@ export function wizardFormToCreateTourApiPayload(
   input: unknown,
 ): CreateTourDto {
   const form = parseTourWizardFormStrict(profile, input);
-  return mapFormValuesToBackendPayload(form);
+  const dto = mapFormValuesToBackendPayload(form);
+  return stripCreateTourDtoForFormProfile(profile, dto);
 }

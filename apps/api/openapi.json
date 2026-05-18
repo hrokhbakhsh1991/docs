@@ -4502,6 +4502,115 @@
         ]
       }
     },
+    "/api/v2/settings/tour-wizard-template": {
+      "get": {
+        "operationId": "SettingsTourWizardTemplateController_getTemplate",
+        "summary": "Workspace tour create wizard template",
+        "description": "Returns the persisted template overlay for /tours/new, or null when none is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourWizardTemplateEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour wizard template"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/settings/tour-wizard-draft": {
+      "get": {
+        "operationId": "SettingsTourWizardDraftController_getDraft",
+        "summary": "Workspace tour create wizard draft for current member",
+        "description": "Server-side autosave envelope for cross-device restore (فاز ۲.۵.۳).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourWizardDraftEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour wizard draft"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "SettingsTourWizardDraftController_upsertDraft",
+        "summary": "Upsert tour wizard draft envelope",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertWorkspaceTourWizardDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourWizardDraftEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour wizard draft"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsTourWizardDraftController_deleteDraft",
+        "summary": "Delete tour wizard draft for current member",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Settings — Tour wizard draft"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/safety-profiles/{userId}/emergency-contacts": {
       "get": {
         "operationId": "SafetyProfileController_listEmergency",
@@ -8086,6 +8195,162 @@
             "additionalProperties": true
           }
         }
+      },
+      "WorkspaceTourWizardStepOverridesDto": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "insert": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "skip",
+          "insert"
+        ]
+      },
+      "WorkspaceTourWizardTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "baseProfile": {
+            "type": "string",
+            "example": "general"
+          },
+          "stepOverrides": {
+            "$ref": "#/components/schemas/WorkspaceTourWizardStepOverridesDto"
+          },
+          "fieldRulesOverlay": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "presetId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "wizardContractVersion": {
+            "type": "number",
+            "example": 1
+          },
+          "formProfileVersion": {
+            "type": "number",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "baseProfile",
+          "stepOverrides",
+          "fieldRulesOverlay",
+          "wizardContractVersion",
+          "formProfileVersion"
+        ]
+      },
+      "WorkspaceTourWizardTemplateEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceTourWizardTemplateResponseDto"
+              }
+            ]
+          }
+        }
+      },
+      "WorkspaceTourWizardDraftResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "envelope": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "wizardContractVersion": {
+            "type": "number"
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "userId",
+          "envelope",
+          "wizardContractVersion",
+          "rowVersion",
+          "updatedAt"
+        ]
+      },
+      "WorkspaceTourWizardDraftEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "draft": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceTourWizardDraftResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "draft"
+        ]
+      },
+      "UpsertWorkspaceTourWizardDraftDto": {
+        "type": "object",
+        "properties": {
+          "envelope": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "rowVersion": {
+            "type": "number",
+            "description": "Optimistic lock version from last GET"
+          },
+          "wizardContractVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "envelope"
+        ]
       },
       "EmergencyContactItemDto": {
         "type": "object",

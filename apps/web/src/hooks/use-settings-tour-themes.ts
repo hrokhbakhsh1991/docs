@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { settingsTourThemesKeys } from "@/lib/query-keys";
+
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   createTourTheme,
   deleteTourTheme,
@@ -21,31 +23,36 @@ function sortTourThemesBySortOrder(data: SettingsTourThemeDto[]): SettingsTourTh
 }
 
 export function useSettingsTourThemes() {
+  const tenantId = useWorkspaceQueryScope();
   return useQuery({
-    queryKey: settingsTourThemesKeys.list(),
+    queryKey: settingsTourThemesKeys.list(tenantId ?? ""),
     queryFn: getTourThemes,
     select: sortTourThemesBySortOrder,
+    enabled: Boolean(tenantId),
   });
 }
 
 export function useCreateTourTheme() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (input: CreateTourThemePayload) => createTourTheme(input),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list() });
+      if (!tenantId) return;
+      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list(tenantId) });
     },
   });
 }
 
 export function useUpdateTourTheme() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTourThemePayload }) => updateTourTheme(id, input),
     onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list());
-      queryClient.setQueryData(settingsTourThemesKeys.list(), (old: SettingsTourThemeDto[] | undefined) => {
+      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list(tenantId ?? ""));
+      queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), (old: SettingsTourThemeDto[] | undefined) => {
         if (!old) {
           return old;
         }
@@ -55,23 +62,24 @@ export function useUpdateTourTheme() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsTourThemesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
     },
   });
 }
 
 export function useDeleteTourTheme() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (id: string) => deleteTourTheme(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list());
-      queryClient.setQueryData(settingsTourThemesKeys.list(), (old: SettingsTourThemeDto[] | undefined) => {
+      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list(tenantId ?? ""));
+      queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), (old: SettingsTourThemeDto[] | undefined) => {
         if (!old) {
           return old;
         }
@@ -81,22 +89,23 @@ export function useDeleteTourTheme() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsTourThemesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
     },
   });
 }
 
 export function useReorderTourThemes() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (itemIds: string[]) => reorderTourThemes(itemIds),
     onMutate: async (itemIds) => {
-      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list()) ?? [];
+      await queryClient.cancelQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsTourThemeDto[]>(settingsTourThemesKeys.list(tenantId ?? "")) ?? [];
       const byId = new Map(previous.map((r) => [r.id, r]));
       if (itemIds.length !== previous.length || itemIds.some((id) => !byId.has(id))) {
         return { previous };
@@ -105,19 +114,19 @@ export function useReorderTourThemes() {
         const row = byId.get(id)!;
         return { ...row, sortOrder: index };
       });
-      queryClient.setQueryData(settingsTourThemesKeys.list(), next);
+      queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), next);
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsTourThemesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(settingsTourThemesKeys.list(), sortTourThemesBySortOrder(data));
+      queryClient.setQueryData(settingsTourThemesKeys.list(tenantId ?? ""), sortTourThemesBySortOrder(data));
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsTourThemesKeys.list(tenantId ?? "") });
     },
   });
 }

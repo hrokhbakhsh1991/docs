@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { settingsGuideLanguagesKeys } from "@/lib/query-keys";
+
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   createGuideLanguage,
   deleteGuideLanguage,
@@ -21,32 +23,36 @@ function sortGuideLanguagesBySortOrder(data: SettingsGuideLanguageDto[]): Settin
 }
 
 export function useSettingsGuideLanguages() {
+  const tenantId = useWorkspaceQueryScope();
   return useQuery({
-    queryKey: settingsGuideLanguagesKeys.list(),
+    queryKey: settingsGuideLanguagesKeys.list(tenantId ?? ""),
     queryFn: getGuideLanguages,
     select: sortGuideLanguagesBySortOrder,
+    enabled: Boolean(tenantId),
   });
 }
 
 export function useCreateGuideLanguage() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (input: CreateGuideLanguagePayload) => createGuideLanguage(input),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
     },
   });
 }
 
 export function useUpdateGuideLanguage() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateGuideLanguagePayload }) =>
       updateGuideLanguage(id, input),
     onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list());
-      queryClient.setQueryData(settingsGuideLanguagesKeys.list(), (old: SettingsGuideLanguageDto[] | undefined) => {
+      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list(tenantId ?? ""));
+      queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), (old: SettingsGuideLanguageDto[] | undefined) => {
         if (!old) {
           return old;
         }
@@ -56,23 +62,24 @@ export function useUpdateGuideLanguage() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsGuideLanguagesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
     },
   });
 }
 
 export function useDeleteGuideLanguage() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (id: string) => deleteGuideLanguage(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list());
-      queryClient.setQueryData(settingsGuideLanguagesKeys.list(), (old: SettingsGuideLanguageDto[] | undefined) => {
+      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list(tenantId ?? ""));
+      queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), (old: SettingsGuideLanguageDto[] | undefined) => {
         if (!old) {
           return old;
         }
@@ -82,22 +89,23 @@ export function useDeleteGuideLanguage() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsGuideLanguagesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
     },
   });
 }
 
 export function useReorderGuideLanguages() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
   return useMutation({
     mutationFn: (itemIds: string[]) => reorderGuideLanguages(itemIds),
     onMutate: async (itemIds) => {
-      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list() });
-      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list()) ?? [];
+      await queryClient.cancelQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsGuideLanguageDto[]>(settingsGuideLanguagesKeys.list(tenantId ?? "")) ?? [];
       const byId = new Map(previous.map((r) => [r.id, r]));
       if (itemIds.length !== previous.length || itemIds.some((id) => !byId.has(id))) {
         return { previous };
@@ -106,19 +114,19 @@ export function useReorderGuideLanguages() {
         const row = byId.get(id)!;
         return { ...row, sortOrder: index };
       });
-      queryClient.setQueryData(settingsGuideLanguagesKeys.list(), next);
+      queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), next);
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsGuideLanguagesKeys.list(), ctx.previous);
+        queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), ctx.previous);
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(settingsGuideLanguagesKeys.list(), sortGuideLanguagesBySortOrder(data));
+      queryClient.setQueryData(settingsGuideLanguagesKeys.list(tenantId ?? ""), sortGuideLanguagesBySortOrder(data));
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list() });
+      await queryClient.invalidateQueries({ queryKey: settingsGuideLanguagesKeys.list(tenantId ?? "") });
     },
   });
 }

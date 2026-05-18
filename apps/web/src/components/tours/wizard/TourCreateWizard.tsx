@@ -3,12 +3,14 @@
 import {
   defaultTourFormProfileForTourType,
   normalizeTourFormProfileInput,
+  TOUR_FORM_PROFILE_VERSION,
   type TourFormProfile,
   type TourType,
 } from "@repo/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import {
   FormProvider,
@@ -39,7 +41,7 @@ import {
   resetTourCreateWizardValidationFlags,
   setTourCreateWizardValidationFlags,
 } from "./schemas/tourCreateValidationPolicy";
-import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
+import { applyWizardDraftRestore } from "@/features/tours/wizard/apply-wizard-draft-restore";
 import { buildTourCreateFormDefaultValues } from "@/features/tours/wizard/tourCreateFormDefaults";
 import { useTourWizardCreate } from "@/features/tours/wizard/hooks/useTourWizardCreate";
 import {
@@ -49,29 +51,68 @@ import {
   type ValidationResult,
 } from "@/features/tours/wizard/profileRules";
 import { type TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
-import { resolveTenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
+import {
+  mergeWizardValidationFlagsWithTenant,
+  resolveTenantTourFormContract,
+  stripTenantGatedTourCreateGroups,
+} from "@/features/tours/contracts/tenant-tour-form-contract";
 import { emitTourWizardAnalytics } from "@/features/tours/wizard/tourWizardAnalytics";
 import { emitWizardRulesValidationFailure } from "@/features/tours/observability/tourProfileObservability";
 import { TourWizardProfileProvider, useTourWizardProfile } from "@/features/tours/wizard/TourWizardProfileContext";
+import {
+  TourWizardProfileDriversProvider,
+  type WizardProfileDriverHint,
+} from "@/features/tours/wizard/TourWizardProfileDriversContext";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
-  parseWizardDraftRecord,
+  readWizardDraftRecordForScope,
   serializeWizardDraft,
-  WIZARD_DRAFT_STORAGE_KEY,
+  type ParsedWizardDraft,
+  type TourWizardDraftEnvelope,
 } from "@/features/tours/wizard/tourWizardDraftEnvelope";
-import { sanitizeInactiveRootsForProfile } from "@/features/tours/wizard/fieldGroups";
+import { isTourWizardServerDraftEnabled } from "@/features/tours/wizard/is-tour-wizard-server-draft-enabled";
+import { pickWizardDraftForRestore } from "@/features/tours/wizard/pick-wizard-draft-for-restore";
+import { syncTourWizardServerDraft } from "@/features/tours/wizard/sync-tour-wizard-server-draft";
+import { setServerDraftRowVersion } from "@/features/tours/wizard/tour-wizard-server-draft-state";
+import { useTourWizardDraftStorageKey } from "@/features/tours/wizard/useTourWizardDraftStorageKey";
+import {
+  resolveWorkspaceDraftScope,
+  useWorkspaceDraftScope,
+  useWorkspaceQueryScope,
+} from "@/hooks/use-workspace-query-scope";
+import { resolveTenantSlugFromHost } from "@/lib/tenant/runtime-tenant-context";
+import { useTenantContext } from "@/lib/tenant/tenant-provider";
+import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
+import { getProfileRulesForWizard } from "@/features/tours/wizard/template/merge-field-rules-overlay";
+import { mergeWizardAutosavePatch } from "@/features/tours/wizard/wizardAutosavePatch";
 import { wizardStepEngine } from "@/features/tours/wizard/wizardStepEngine";
+import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
-import { resolveTourFormProfile } from "@/features/tours/wizard/tourWizardProfileResolve";
+import {
+  coalesceWizardMainTourThemeId,
+  coalesceWizardResolvedProfile,
+  preserveWizardMetaResolvedProfile,
+  resolveTourFormProfile,
+} from "@/features/tours/wizard/tourWizardProfileResolve";
+import { settingsTourThemesKeys } from "@/lib/query-keys";
+import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 import { useSettingsTourPresets } from "@/hooks/use-settings-tour-presets";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
-import { ApiError } from "@/lib/api-client";
+import type { ProfileRules } from "@/features/tours/wizard/profileRules/types";
+import type { TenantTourFormContract } from "@/features/tours/contracts/tour-form-contract";
 
 /** Playwright e2e seed allow-list (inline so minified bundles never mis-bind imported `TOUR_TYPES` in this callback). */
 const E2E_SEEDABLE_TOUR_TYPES = new Set<string>(["mountain", "city", "desert", "nature", "cultural"]);
 
+function e2eWizardSeedEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_E2E_WIZARD_SEED === "true";
+}
+
 /** Loopback / init-script tour type seed — read during render so profile resolves before layout `setValue` flushes. */
 function readBrowserE2eTourTypeSeed(): TourType | undefined {
+  if (!e2eWizardSeedEnabled()) {
+    return undefined;
+  }
   try {
     const loc = typeof globalThis !== "undefined" && "location" in globalThis ? globalThis.location : undefined;
     if (!loc || typeof (loc as Location).search !== "string") {
@@ -92,55 +133,6 @@ function readBrowserE2eTourTypeSeed(): TourType | undefined {
   } catch {
     return undefined;
   }
-}
-
-/** Same as `parseWizardDraftRecord` but safe on SSR; used so profile resolves on first client paint before layout restore. */
-function readWizardDraftFromBrowserStorage(): ReturnType<typeof parseWizardDraftRecord> {
-  try {
-    const ls =
-      typeof globalThis !== "undefined" && "localStorage" in globalThis
-        ? (globalThis as unknown as { localStorage: Storage }).localStorage
-        : null;
-    if (!ls) {
-      return null;
-    }
-    return parseWizardDraftRecord(ls.getItem(WIZARD_DRAFT_STORAGE_KEY));
-  } catch {
-    return null;
-  }
-}
-
-type ParsedWizardDraft = NonNullable<ReturnType<typeof parseWizardDraftRecord>>;
-
-/**
- * Applies a persisted draft envelope on top of wizard defaults. Uses the envelope's
- * saved {@link TourFormProfile} when present, otherwise `tourType` → default profile.
- * `themeCatalog` is omitted on first layout (themes hydrate later); resolution matches
- * {@link resolveTourFormProfile} snapshot → tourType → default precedence.
- */
-function mergeRestoredDraftWithDefaults(
-  parsed: ParsedWizardDraft,
-  defaultValues: TourCreateFormValues,
-): ReturnType<typeof applyTourWizardPatch> {
-  const snapshotProfile = parsed.wizardMeta
-    ? normalizeTourFormProfileInput(parsed.wizardMeta.resolvedFormProfile)
-    : undefined;
-  const tourTypeRaw = parsed.formPatch?.overview?.tourType;
-  const tourTypeForFallback =
-    typeof tourTypeRaw === "string" && tourTypeRaw.trim() !== ""
-      ? (tourTypeRaw as TourType)
-      : undefined;
-  const currentProfileForPipeline =
-    snapshotProfile ?? defaultTourFormProfileForTourType(tourTypeForFallback);
-
-  return applyTourWizardPatch({
-    baseValues: defaultValues,
-    patch: parsed.formPatch,
-    currentProfile: currentProfileForPipeline,
-    themeCatalog: undefined,
-    tourType: tourTypeRaw,
-    snapshot: parsed.wizardMeta,
-  });
 }
 
 function WizardStepper({
@@ -202,28 +194,126 @@ function DirtyBeforeUnloadGate() {
 function WizardFormProfileBadge() {
   const t = useTranslations("tours.new");
   const { resolvedProfile } = useTourWizardProfile();
+  const displayProfile = resolvedProfile;
   return (
     <p
       suppressHydrationWarning
       data-testid="wizard-form-profile"
-      data-form-profile={resolvedProfile}
+      data-form-profile={displayProfile}
       style={{ margin: "0 0 0.35rem", fontSize: "0.8rem", color: "#64748b" }}
     >
-      {t("wizardFormProfileBadge", { profile: resolvedProfile })}
+      {t("wizardFormProfileBadge", { profile: displayProfile })}
     </p>
   );
 }
 
+function WizardAutosave({
+  resolvedProfile,
+  currentStepKey,
+  draftStorageKey,
+  tenantFormContract,
+  draftScope,
+  wizardRules,
+  draftWizardMetaRef,
+  setDraftWizardMeta,
+  serverRestorePending,
+  draftRestoreAttempted,
+  draftAutosaveUnlocked,
+}: {
+  resolvedProfile: TourFormProfile;
+  currentStepKey: TourCreateWizardStepId;
+  draftStorageKey: string;
+  tenantFormContract: TenantTourFormContract;
+  draftScope: string | null;
+  wizardRules: ProfileRules;
+  draftWizardMetaRef: MutableRefObject<TourWizardDraftMeta | undefined>;
+  setDraftWizardMeta: (meta: TourWizardDraftMeta | undefined) => void;
+  serverRestorePending: boolean;
+  draftRestoreAttempted: boolean;
+  draftAutosaveUnlocked: boolean;
+}) {
+  const watched = useWatch();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!draftRestoreAttempted || serverRestorePending || !draftAutosaveUnlocked) {
+      return;
+    }
+    let raf = 0;
+    let timeoutId: number | undefined;
+    raf = window.requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        try {
+          const existingDraft = draftScope != null ? readWizardDraftRecordForScope(draftScope) : null;
+          const mergedPatch = mergeWizardAutosavePatch(
+            existingDraft?.formPatch,
+            (watched ?? {}) as TourCreateFormValues,
+            currentStepKey,
+            resolvedProfile,
+            tenantFormContract,
+          );
+          const existingTitle = existingDraft?.formPatch?.overview?.title;
+          const mergedTitle = mergedPatch.overview?.title;
+          if (
+            typeof existingTitle === "string" &&
+            existingTitle.trim() !== "" &&
+            (typeof mergedTitle !== "string" || mergedTitle.trim() === "")
+          ) {
+            return;
+          }
+          const autoResult = validateForAutosave(resolvedProfile, currentStepKey, mergedPatch, {
+            tenantFormContract,
+            rules: wizardRules,
+          });
+          if (!autoResult.isValid) {
+            emitWizardRulesValidationFailure({
+              level: "autosave",
+              form_profile: resolvedProfile,
+              step_id: currentStepKey,
+              result: autoResult,
+            });
+          }
+          const savedAt = new Date().toISOString();
+          if (draftWizardMetaRef.current) {
+            draftWizardMetaRef.current = { ...draftWizardMetaRef.current, savedAt };
+            setDraftWizardMeta(draftWizardMetaRef.current);
+          }
+          const payload = serializeWizardDraft(mergedPatch, draftWizardMetaRef.current);
+          localStorage.setItem(draftStorageKey, payload);
+          if (isTourWizardServerDraftEnabled()) {
+            syncTourWizardServerDraft(payload);
+          }
+        } catch {
+          /* ignore */
+        }
+      }, 600);
+    });
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    watched,
+    resolvedProfile,
+    currentStepKey,
+    draftStorageKey,
+    tenantFormContract,
+    draftScope,
+    wizardRules,
+    draftRestoreAttempted,
+    serverRestorePending,
+    draftAutosaveUnlocked,
+    draftWizardMetaRef,
+    setDraftWizardMeta,
+  ]);
+
+  return null;
+}
+
 /**
  * Surface a profile-rules-layer {@link ValidationResult} into the React Hook Form error map.
- *
- * Today the rules layer mirrors the Zod schema's required-ness exactly, so the issues
- * reported here for a step's required fields will typically already have a Zod-sourced
- * error on the same path. We `setError` anyway so the rules layer is the authoritative
- * gate: if a future profile/rules change adds a stricter rule than the Zod schema, the user
- * sees the error inline instead of a silently-blocked Next button.
- *
- * Returns `true` when no issues were surfaced (caller should advance), `false` otherwise.
  */
 function applyRulesIssuesToFormErrors(
   result: ValidationResult,
@@ -239,181 +329,720 @@ function applyRulesIssuesToFormErrors(
   return false;
 }
 
-/**
- * Wizard shell. All step-related decisions (visibility, ordering, trigger paths, per-step Zod
- * relaxation flags, titles) are funnelled through `wizardStepEngine`. The shell itself only
- * orchestrates RHF state, profile resolution, draft restore + auto-save, and analytics.
- *
- * **Preparing for autosave per field group (future task):**
- * The engine already exposes `getStepConfig(stepKey).primaryGroup`, which maps each step to a
- * {@link FieldGroupId}. Coupled with `GROUP_TO_TOUR_CREATE_ROOT_KEYS` from `fieldGroups.ts`, an
- * autosave hook can implement "save just this group" in three lines:
- *   1. `const group = wizardStepEngine.getPrimaryGroupForStep(stepKey);`
- *   2. `const roots = group ? GROUP_TO_TOUR_CREATE_ROOT_KEYS[group] : [];`
- *   3. Serialize `pick(formValues, roots)` and PATCH it to the workspace draft endpoint.
- * No changes to the wizard shell itself are required — the engine is the only seam.
- */
 function TourCreateWizardShell({
   defaultValues,
   profileSchemaRef,
+  persistedTourTypeRef,
 }: {
   defaultValues: TourCreateFormValues;
   profileSchemaRef: MutableRefObject<TourFormProfile>;
+  persistedTourTypeRef: MutableRefObject<TourType | undefined>;
 }) {
   const t = useTranslations("tours.new");
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isHydrated } = useAuth();
+  const tenant = useTenantContext();
+  const draftScope = useWorkspaceDraftScope();
+  const draftStorageKey = useTourWizardDraftStorageKey();
   const tenantFormContract = useMemo(
     () => resolveTenantTourFormContract(user?.tenantModules),
     [user?.tenantModules],
   );
+  const queryClient = useQueryClient();
+  const workspaceQueryScope = useWorkspaceQueryScope();
   const themesQuery = useSettingsTourThemes();
   const presetsQuery = useSettingsTourPresets();
+  const wizardTemplateQuery = useTenantWizardTemplate();
   const [currentStep, setCurrentStep] = useState(0);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [draftWizardMeta, setDraftWizardMeta] = useState<TourWizardDraftMeta | undefined>(undefined);
   const draftWizardMetaRef = useRef<TourWizardDraftMeta | undefined>(undefined);
   const draftRestoreAttemptedRef = useRef(false);
-  /** One-shot UI profile from draft/e2e layout until `derivedProfile` catches up (RHF + snapshot timing). */
+  const serverRestorePendingRef = useRef(isTourWizardServerDraftEnabled());
+  const draftAutosaveUnlockedRef = useRef(!isTourWizardServerDraftEnabled());
   const [profileOverride, setProfileOverride] = useState<TourFormProfile | null>(null);
-
-  /** Parsed wizard draft from `localStorage` (synced in draft-restore layout; avoids render-time reads). */
-  const [storageDraftSnapshot, setStorageDraftSnapshot] = useState<ReturnType<typeof parseWizardDraftRecord>>(null);
+  const [storageDraftSnapshot, setStorageDraftSnapshot] = useState<ParsedWizardDraft | null>(null);
 
   const formMethods = useFormContext<TourCreateFormValues>();
-  const { handleSubmit, trigger, reset, getValues, setValue, setError, clearErrors } = formMethods;
+  const { handleSubmit, trigger, reset, getValues, setValue, setError, clearErrors, control } = formMethods;
 
   const emptyOverviewNormalizedRef = useRef(false);
   const e2eTourTypeSeededRef = useRef(false);
+  
+  const mainTourThemeId = useWatch({ control, name: "overview.mainTourThemeId" });
+  const tourTypeWatch = useWatch({ control, name: "overview.tourType" });
+  
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const hostSlug = resolveTenantSlugFromHost(window.location.host);
+    if (!hostSlug) {
+      return;
+    }
+    const parsed = readWizardDraftRecordForScope(hostSlug);
+    const metaProfile = parsed?.wizardMeta?.resolvedFormProfile;
+    if (metaProfile && metaProfile !== "general") {
+      profileSchemaRef.current = metaProfile;
+      setProfileOverride(metaProfile);
+      if (parsed?.wizardMeta) {
+        draftWizardMetaRef.current = parsed.wizardMeta;
+        setDraftWizardMeta(parsed.wizardMeta);
+      }
+      return;
+    }
+    const tourTypeRaw = parsed?.formPatch?.overview?.tourType;
+    if (typeof tourTypeRaw === "string" && tourTypeRaw.trim() !== "") {
+      const fromTourType = defaultTourFormProfileForTourType(tourTypeRaw as TourType);
+      if (fromTourType !== "general") {
+        profileSchemaRef.current = fromTourType;
+        setProfileOverride(fromTourType);
+      }
+    }
+  }, [profileSchemaRef]);
+
   useLayoutEffect(() => {
     if (emptyOverviewNormalizedRef.current) {
       return;
     }
     emptyOverviewNormalizedRef.current = true;
-    if (getValues("overview.mainTourThemeId") === "") {
+    if (mainTourThemeId === "") {
       setValue("overview.mainTourThemeId", undefined, { shouldDirty: false, shouldValidate: false });
     }
-    if (getValues("overview.tourType") === "") {
+    if (tourTypeWatch === "") {
       setValue("overview.tourType", undefined, { shouldDirty: false, shouldValidate: false });
     }
-  }, [getValues, setValue]);
-
-  const watched = useWatch({ control: formMethods.control });
-  const mainTourThemeId = useWatch({ control: formMethods.control, name: "overview.mainTourThemeId" });
-  const tourTypeWatch = useWatch({ control: formMethods.control, name: "overview.tourType" });
+  }, [mainTourThemeId, tourTypeWatch, setValue]);
 
   const storageDraft = storageDraftSnapshot;
-  const snapshotForResolve = draftWizardMeta ?? storageDraft?.wizardMeta;
 
-  const ignoreSnapshot = useMemo(() => {
-    const snapMain = snapshotForResolve?.themeIds?.main?.trim();
-    const main = typeof mainTourThemeId === "string" ? mainTourThemeId.trim() : "";
-    return Boolean(snapMain && main && snapMain !== main);
-  }, [snapshotForResolve?.themeIds?.main, mainTourThemeId]);
+  const hostDraftRecordForProfile = useMemo((): ParsedWizardDraft | null => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    const hostSlug = resolveTenantSlugFromHost(window.location.host);
+    if (hostSlug) {
+      const fromHost = readWizardDraftRecordForScope(hostSlug);
+      if (fromHost) {
+        return fromHost;
+      }
+    }
+    const scope =
+      draftScope?.trim() ||
+      resolveWorkspaceDraftScope(tenant, workspaceQueryScope, window.location.host) ||
+      "";
+    if (!scope) {
+      return null;
+    }
+    return readWizardDraftRecordForScope(scope);
+  }, [draftScope, tenant, workspaceQueryScope]);
 
-  const tourTypeFromStorage =
-    typeof storageDraft?.formPatch?.overview?.tourType === "string" &&
-    storageDraft.formPatch.overview.tourType.trim() !== ""
-      ? (storageDraft.formPatch.overview.tourType as TourType)
-      : undefined;
+  const liveStorageWizardMeta = hostDraftRecordForProfile?.wizardMeta;
 
-  const tourTypeForResolve: TourType | undefined =
+  const snapshotForResolve = useMemo((): TourWizardDraftMeta | undefined => {
+    const candidates = [
+      draftWizardMeta,
+      liveStorageWizardMeta,
+      hostDraftRecordForProfile?.wizardMeta,
+      storageDraft?.wizardMeta,
+    ];
+    for (const meta of candidates) {
+      if (meta?.resolvedFormProfile && meta.resolvedFormProfile !== "general") {
+        return meta;
+      }
+    }
+    return (
+      draftWizardMeta ??
+      liveStorageWizardMeta ??
+      hostDraftRecordForProfile?.wizardMeta ??
+      storageDraft?.wizardMeta
+    );
+  }, [
+    draftWizardMeta,
+    liveStorageWizardMeta,
+    hostDraftRecordForProfile?.wizardMeta,
+    storageDraft?.wizardMeta,
+  ]);
+
+  const draftMetaForUi = useMemo((): TourWizardDraftMeta | undefined => {
+    const candidates = [
+      draftWizardMeta,
+      liveStorageWizardMeta,
+      hostDraftRecordForProfile?.wizardMeta,
+      storageDraft?.wizardMeta,
+    ];
+    for (const meta of candidates) {
+      if (meta?.resolvedFormProfile && meta.resolvedFormProfile !== "general") {
+        return meta;
+      }
+    }
+    return (
+      draftWizardMeta ??
+      liveStorageWizardMeta ??
+      hostDraftRecordForProfile?.wizardMeta ??
+      storageDraft?.wizardMeta
+    );
+  }, [
+    draftWizardMeta,
+    liveStorageWizardMeta,
+    hostDraftRecordForProfile?.wizardMeta,
+    storageDraft?.wizardMeta,
+  ]);
+
+  const tourTypeFromStorage = useMemo((): TourType | undefined => {
+    const raw =
+      storageDraft?.formPatch?.overview?.tourType ??
+      hostDraftRecordForProfile?.formPatch?.overview?.tourType;
+    if (typeof raw === "string" && raw.trim() !== "") {
+      return raw.trim() as TourType;
+    }
+    return undefined;
+  }, [
+    storageDraft?.formPatch?.overview?.tourType,
+    hostDraftRecordForProfile?.formPatch?.overview?.tourType,
+  ]);
+
+  const tourTypeFromWatched =
     typeof tourTypeWatch === "string" && tourTypeWatch.trim() !== ""
       ? (tourTypeWatch as TourType)
-      : tourTypeFromStorage ?? readBrowserE2eTourTypeSeed();
+      : undefined;
 
-  const derivedProfile = useMemo(
+  const tourTypeForResolve: TourType | undefined = useMemo(() => {
+    const candidates = [
+      tourTypeWatch,
+      tourTypeFromWatched,
+      tourTypeFromStorage,
+      persistedTourTypeRef.current,
+      readBrowserE2eTourTypeSeed(),
+    ];
+    for (const raw of candidates) {
+      if (typeof raw === "string" && raw.trim() !== "") {
+        return raw.trim() as TourType;
+      }
+    }
+    return undefined;
+  }, [tourTypeWatch, tourTypeFromWatched, tourTypeFromStorage, persistedTourTypeRef]);
+
+  const wizardTemplateBaseProfile = wizardTemplateQuery.data?.baseProfile;
+
+  const effectiveTourTypeForProfile: TourType | undefined = useMemo(
     () =>
-      resolveTourFormProfile({
-        snapshot: snapshotForResolve,
-        mainTourThemeId: typeof mainTourThemeId === "string" ? mainTourThemeId : undefined,
-        themeCatalog: themesQuery.data,
-        tourType: tourTypeForResolve,
-        ignoreSnapshot,
-      }),
-    [snapshotForResolve, ignoreSnapshot, mainTourThemeId, themesQuery.data, tourTypeForResolve],
+      tourTypeForResolve ??
+      persistedTourTypeRef.current ??
+      tourTypeFromStorage ??
+      readBrowserE2eTourTypeSeed(),
+    [tourTypeForResolve, tourTypeFromStorage, persistedTourTypeRef],
   );
 
   useEffect(() => {
-    if (profileOverride == null) {
+    if (!tourTypeForResolve) {
       return;
     }
-    if (derivedProfile === profileOverride) {
-      setProfileOverride(null);
+    if (persistedTourTypeRef.current === tourTypeForResolve) {
+      return;
     }
-  }, [derivedProfile, profileOverride]);
+    persistedTourTypeRef.current = tourTypeForResolve;
+  }, [tourTypeForResolve, persistedTourTypeRef]);
 
-  const resolvedProfile = profileOverride ?? derivedProfile;
+  const mainTourThemeIdForResolve = useMemo(() => {
+    const storageMain = storageDraft?.formPatch?.overview?.mainTourThemeId;
+    const watchedMain = mainTourThemeId;
+    return coalesceWizardMainTourThemeId({
+      watchedMain,
+      storageMain,
+    });
+  }, [
+    mainTourThemeId,
+    storageDraft?.formPatch?.overview?.mainTourThemeId,
+  ]);
 
-  profileSchemaRef.current = resolvedProfile;
+  const ignoreSnapshot = useMemo(() => {
+    const snapMain = snapshotForResolve?.themeIds?.main?.trim();
+    const main = mainTourThemeIdForResolve?.trim() ?? "";
+    return Boolean(snapMain && main && snapMain !== main);
+  }, [snapshotForResolve?.themeIds?.main, mainTourThemeIdForResolve]);
+
+  const readThemeCatalogForProfile = useCallback((): SettingsTourThemeDto[] | undefined => {
+    if (themesQuery.data?.length) {
+      return themesQuery.data;
+    }
+    const scopeCandidates = [
+      workspaceQueryScope?.trim(),
+      tenant.tenantSlug?.trim(),
+      typeof window !== "undefined" ? resolveTenantSlugFromHost(window.location.host) : "",
+    ].filter((scope): scope is string => Boolean(scope));
+    for (const scope of scopeCandidates) {
+      const cached = queryClient.getQueryData<SettingsTourThemeDto[]>(
+        settingsTourThemesKeys.list(scope),
+      );
+      if (cached?.length) {
+        return cached;
+      }
+    }
+    return themesQuery.data;
+  }, [queryClient, tenant.tenantSlug, themesQuery.data, workspaceQueryScope]);
+
+  const themeCatalogForProfile = readThemeCatalogForProfile();
+  const themeCatalogRef = useRef<SettingsTourThemeDto[] | undefined>(undefined);
+  if (themeCatalogForProfile?.length) {
+    themeCatalogRef.current = themeCatalogForProfile;
+  }
+  const themeCatalogResolved = themeCatalogForProfile ?? themeCatalogRef.current;
+
+  const derivedProfile = useMemo(() => {
+    const raw = resolveTourFormProfile({
+      snapshot: snapshotForResolve,
+      mainTourThemeId: mainTourThemeIdForResolve,
+      themeCatalog: themeCatalogResolved,
+      tourType: effectiveTourTypeForProfile,
+      ignoreSnapshot,
+    });
+    const preserved = preserveWizardMetaResolvedProfile(
+      raw,
+      snapshotForResolve?.resolvedFormProfile,
+    );
+    if (preserved !== "general") {
+      return preserved;
+    }
+    if (effectiveTourTypeForProfile) {
+      const fromTourType = defaultTourFormProfileForTourType(effectiveTourTypeForProfile);
+      if (fromTourType !== "general") {
+        return fromTourType;
+      }
+    }
+    if (wizardTemplateBaseProfile && wizardTemplateBaseProfile !== "general") {
+      return wizardTemplateBaseProfile;
+    }
+    return preserved;
+  }, [
+    snapshotForResolve,
+    ignoreSnapshot,
+    mainTourThemeIdForResolve,
+    themeCatalogResolved,
+    effectiveTourTypeForProfile,
+    wizardTemplateBaseProfile,
+  ]);
+
+  const rawResolvedProfile = useMemo(() => {
+    const snapshotProfile = snapshotForResolve?.resolvedFormProfile;
+    if (snapshotProfile && snapshotProfile !== "general") {
+      const mainFromSnapshot = coalesceWizardMainTourThemeId({
+        watchedMain: mainTourThemeId,
+        storageMain: storageDraft?.formPatch?.overview?.mainTourThemeId,
+      });
+      return coalesceWizardResolvedProfile({
+        raw: snapshotProfile,
+        snapshotProfile,
+        mainTourThemeId: mainFromSnapshot ?? mainTourThemeIdForResolve,
+        themeCatalog: themeCatalogResolved,
+        tourType: tourTypeWatch ?? effectiveTourTypeForProfile,
+        persistedTourType: persistedTourTypeRef.current ?? effectiveTourTypeForProfile,
+        templateBaseProfile: wizardTemplateBaseProfile,
+      });
+    }
+    if (draftWizardMeta?.resolvedFormProfile && draftWizardMeta.resolvedFormProfile !== "general") {
+      return draftWizardMeta.resolvedFormProfile;
+    }
+    
+    const mainFromForm = coalesceWizardMainTourThemeId({
+      watchedMain: mainTourThemeId,
+      storageMain: storageDraft?.formPatch?.overview?.mainTourThemeId,
+    });
+    
+    if (mainFromForm && themeCatalogResolved?.length) {
+      const themeRow = themeCatalogResolved.find((row) => row.id === mainFromForm);
+      if (themeRow?.formProfile != null) {
+        const fromTheme = normalizeTourFormProfileInput(themeRow.formProfile);
+        if (fromTheme !== "general") {
+          return fromTheme;
+        }
+      }
+    }
+    
+    const tourTypeFromForm =
+      typeof tourTypeWatch === "string" && tourTypeWatch.trim() !== ""
+        ? (tourTypeWatch as TourType)
+        : undefined;
+        
+    const metaProfile = snapshotForResolve?.resolvedFormProfile;
+    if (profileOverride && profileOverride !== "general") {
+      return profileOverride;
+    }
+    const profileOverrideForResolve =
+      profileOverride && profileOverride !== "general" ? profileOverride : null;
+    const coalesced = coalesceWizardResolvedProfile({
+      raw: profileOverrideForResolve ?? derivedProfile,
+      snapshotProfile: metaProfile,
+      mainTourThemeId: mainFromForm ?? mainTourThemeIdForResolve,
+      themeCatalog: themeCatalogResolved,
+      tourType: tourTypeFromForm ?? effectiveTourTypeForProfile,
+      persistedTourType: persistedTourTypeRef.current ?? effectiveTourTypeForProfile,
+      templateBaseProfile: wizardTemplateBaseProfile,
+    });
+    if (coalesced !== "general") {
+      return coalesced;
+    }
+    if (effectiveTourTypeForProfile) {
+      const fromTourType = defaultTourFormProfileForTourType(effectiveTourTypeForProfile);
+      if (fromTourType !== "general") {
+        return fromTourType;
+      }
+    }
+    if (wizardTemplateBaseProfile && wizardTemplateBaseProfile !== "general") {
+      return wizardTemplateBaseProfile;
+    }
+    return coalesced;
+  }, [
+    snapshotForResolve,
+    mainTourThemeId,
+    storageDraft?.formPatch?.overview?.mainTourThemeId,
+    mainTourThemeIdForResolve,
+    themeCatalogResolved,
+    effectiveTourTypeForProfile,
+    draftWizardMeta?.resolvedFormProfile,
+    tourTypeWatch,
+    profileOverride,
+    derivedProfile,
+    wizardTemplateBaseProfile,
+    persistedTourTypeRef,
+  ]);
+
+  const lastNonGeneralResolvedProfileRef = useRef<TourFormProfile | undefined>(undefined);
+  const resolvedProfile = useMemo(() => {
+    if (rawResolvedProfile && rawResolvedProfile !== "general") {
+      lastNonGeneralResolvedProfileRef.current = rawResolvedProfile;
+      return rawResolvedProfile;
+    }
+    if (!themesQuery.data?.length && lastNonGeneralResolvedProfileRef.current) {
+      return lastNonGeneralResolvedProfileRef.current;
+    }
+    return rawResolvedProfile || lastNonGeneralResolvedProfileRef.current || "general";
+  }, [rawResolvedProfile, themesQuery.data?.length]);
+
+  const lastNonGeneralSchemaProfileForZodRef = useRef<TourFormProfile | undefined>(undefined);
+  const schemaProfileForZod = useMemo(() => {
+    const raw =
+      draftWizardMeta?.resolvedFormProfile && draftWizardMeta.resolvedFormProfile !== "general"
+        ? draftWizardMeta.resolvedFormProfile
+        : resolvedProfile;
+    if (raw && raw !== "general") {
+      lastNonGeneralSchemaProfileForZodRef.current = raw;
+      return raw;
+    }
+    return lastNonGeneralSchemaProfileForZodRef.current ?? "general";
+  }, [draftWizardMeta?.resolvedFormProfile, resolvedProfile]);
+  profileSchemaRef.current = schemaProfileForZod;
+
+  const notifyProfileDriversChanged = useCallback((hint?: WizardProfileDriverHint) => {
+    if (hint?.mainTourThemeId) {
+      setValue("overview.mainTourThemeId", hint.mainTourThemeId, { shouldDirty: true, shouldValidate: false });
+    }
+  }, [setValue]);
+
+  useEffect(() => {
+    if (!draftRestoreAttemptedRef.current) {
+      return;
+    }
+    const targetProfile =
+      resolvedProfile !== "general"
+        ? resolvedProfile
+        : undefined;
+          
+    const nextMainThemeId = mainTourThemeId;
+
+    if (!targetProfile && !nextMainThemeId) {
+       return;
+    }
+
+    setDraftWizardMeta((prev) => {
+      const currentThemeIds = prev?.themeIds ?? {};
+      const nextThemeId = nextMainThemeId || currentThemeIds.main;
+
+      if (
+        prev?.resolvedFormProfile === targetProfile &&
+        prev?.themeIds?.main === nextThemeId
+      ) {
+        return prev;
+      }
+
+      const nextMeta: TourWizardDraftMeta = {
+        ...(prev ?? {
+          resolvedFormProfile: targetProfile ?? "general",
+          formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+        }),
+        resolvedFormProfile: targetProfile ?? "general",
+        formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+        themeIds: {
+          ...currentThemeIds,
+          ...(nextThemeId ? { main: nextThemeId } : {}),
+        },
+      };
+      draftWizardMetaRef.current = nextMeta;
+      return nextMeta;
+    });
+    
+    if (targetProfile) {
+      profileSchemaRef.current = targetProfile;
+      setProfileOverride(targetProfile);
+    }
+  }, [resolvedProfile, profileSchemaRef, mainTourThemeId]);
 
   const activeThemeCount = useMemo(
     () => (themesQuery.data ?? []).filter((row) => row.isActive).length,
     [themesQuery.data],
   );
 
-  // Single source of truth for the live step rail: profile-based visibility + workspace-theme prune,
-  // both delegated to `wizardStepEngine`. Any future "dynamic step engine" rewrite swaps this one call.
   const visibleSteps = useMemo(
     () =>
       wizardStepEngine.getVisibleStepsForRuntime(resolvedProfile, {
         themesQueryFinishedLoading: !themesQuery.isLoading,
         activeThemeCount,
+        tenantFormContract,
+        stepOverrides: wizardTemplateQuery.data?.stepOverrides,
       }),
-    [resolvedProfile, activeThemeCount, themesQuery.isLoading],
+    [
+      resolvedProfile,
+      activeThemeCount,
+      themesQuery.isLoading,
+      tenantFormContract,
+      wizardTemplateQuery.data?.stepOverrides,
+    ],
   );
 
+  const wizardRules = useMemo(
+    () => getProfileRulesForWizard(resolvedProfile, wizardTemplateQuery.data?.fieldRulesOverlay),
+    [resolvedProfile, wizardTemplateQuery.data?.fieldRulesOverlay],
+  );
+
+  const lastStepKeyRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    setCurrentStep((prev) => Math.min(prev, Math.max(0, visibleSteps.length - 1)));
-  }, [visibleSteps.length]);
+    const prevKey = lastStepKeyRef.current;
+    if (prevKey) {
+      const nextIndex = visibleSteps.indexOf(prevKey as any);
+      if (nextIndex !== -1) {
+        if (nextIndex !== currentStep) {
+          setCurrentStep(nextIndex);
+        }
+      } else {
+        setCurrentStep((prev) => Math.min(prev, Math.max(0, visibleSteps.length - 1)));
+      }
+    }
+    lastStepKeyRef.current = visibleSteps[currentStep];
+  }, [visibleSteps, currentStep]);
 
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === visibleSteps.length - 1;
   const currentStepKey = visibleSteps[currentStep]!;
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const w = window as unknown as {
+      __syncTourWizardProfileDrivers?: (hint?: WizardProfileDriverHint) => void;
+    };
+    w.__syncTourWizardProfileDrivers = (hint?: WizardProfileDriverHint) => {
+      const main = hint?.mainTourThemeId?.trim();
+      notifyProfileDriversChanged({
+        mainTourThemeId: main,
+        themeCatalog:
+          hint?.themeCatalog?.length
+            ? hint.themeCatalog
+            : themeCatalogRef.current ?? themesQuery.data,
+      });
+    };
+    return () => {
+      delete w.__syncTourWizardProfileDrivers;
+    };
+  }, [notifyProfileDriversChanged, themesQuery.data]);
+
   const createMutation = useTourWizardCreate();
+
+  const applyParsedDraft = useCallback(
+    (
+      parsed: ParsedWizardDraft,
+      savedAt?: string,
+      opts?: { unlockAutosave?: boolean },
+    ) => {
+      const { mergedValues, resolvedFormProfile } = applyWizardDraftRestore(parsed, defaultValues);
+      const restoredValues = stripTenantGatedTourCreateGroups(tenantFormContract, mergedValues);
+
+      const mainFromPatch =
+        typeof parsed.formPatch?.overview?.mainTourThemeId === "string"
+          ? parsed.formPatch.overview.mainTourThemeId.trim()
+          : "";
+      const tourTypeFromPatch =
+        typeof parsed.formPatch?.overview?.tourType === "string" &&
+        parsed.formPatch.overview.tourType.trim() !== ""
+          ? (parsed.formPatch.overview.tourType as TourType)
+          : undefined;
+      const explicitMetaProfile =
+        parsed.wizardMeta?.resolvedFormProfile &&
+        parsed.wizardMeta.resolvedFormProfile !== "general"
+          ? parsed.wizardMeta.resolvedFormProfile
+          : undefined;
+      const resolvedFormProfileForMeta =
+        explicitMetaProfile ??
+        coalesceWizardResolvedProfile({
+          raw: resolvedFormProfile,
+          snapshotProfile: parsed.wizardMeta?.resolvedFormProfile,
+          mainTourThemeId: mainFromPatch || parsed.wizardMeta?.themeIds?.main,
+          themeCatalog: readThemeCatalogForProfile(),
+          tourType: tourTypeFromPatch,
+          persistedTourType: tourTypeFromPatch,
+          templateBaseProfile: wizardTemplateQuery.data?.baseProfile,
+        });
+      profileSchemaRef.current = resolvedFormProfileForMeta;
+      const meta: TourWizardDraftMeta = {
+        ...(parsed.wizardMeta ?? {
+          resolvedFormProfile: resolvedFormProfileForMeta,
+          formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+        }),
+        resolvedFormProfile: resolvedFormProfileForMeta,
+        formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+        savedAt: savedAt ?? parsed.wizardMeta?.savedAt ?? new Date().toISOString(),
+        themeIds: {
+          main: mainFromPatch || parsed.wizardMeta?.themeIds?.main,
+          secondary: parsed.wizardMeta?.themeIds?.secondary,
+        },
+      };
+      draftWizardMetaRef.current = meta;
+      setDraftWizardMeta(meta);
+      setProfileOverride(
+        resolvedFormProfileForMeta === "general" ? null : resolvedFormProfileForMeta,
+      );
+      setStorageDraftSnapshot({ formPatch: parsed.formPatch, wizardMeta: meta });
+
+      reset(restoredValues);
+      const restoredTourType = restoredValues.overview?.tourType;
+      if (typeof restoredTourType === "string" && restoredTourType.trim() !== "") {
+        setValue("overview.tourType", restoredTourType as TourType, { shouldDirty: true, shouldValidate: false });
+      }
+      setShowDraftBanner(true);
+      const unlockAutosave = opts?.unlockAutosave !== false;
+      if (unlockAutosave) {
+        if (typeof window !== "undefined") {
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+              draftAutosaveUnlockedRef.current = true;
+            });
+          });
+        } else {
+          draftAutosaveUnlockedRef.current = true;
+        }
+      }
+    },
+    [
+      defaultValues,
+      profileSchemaRef,
+      readThemeCatalogForProfile,
+      reset,
+      setValue,
+      tenantFormContract,
+      wizardTemplateQuery.data?.baseProfile,
+    ],
+  );
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = localStorage.getItem(WIZARD_DRAFT_STORAGE_KEY);
-    const parsed = parseWizardDraftRecord(raw);
+    const scope =
+      draftScope ??
+      resolveWorkspaceDraftScope(tenant, null, window.location.host) ??
+      resolveTenantSlugFromHost(window.location.host);
+    if (!scope) return;
+    const parsed = readWizardDraftRecordForScope(scope);
     setStorageDraftSnapshot(parsed);
     try {
       if (parsed) {
-        const { mergedValues, resolvedFormProfile } = mergeRestoredDraftWithDefaults(parsed, defaultValues);
-
-        profileSchemaRef.current = resolvedFormProfile;
-        if (parsed.wizardMeta) {
-          draftWizardMetaRef.current = parsed.wizardMeta;
-          setDraftWizardMeta(parsed.wizardMeta);
-        }
-        setProfileOverride(resolvedFormProfile);
-
-        reset(mergedValues);
-        const restoredTourType = mergedValues.overview?.tourType;
-        if (typeof restoredTourType === "string" && restoredTourType.trim() !== "") {
-          setValue("overview.tourType", restoredTourType as TourType, { shouldDirty: true, shouldValidate: false });
-        }
-        setShowDraftBanner(true);
+        applyParsedDraft(parsed, undefined, {
+          unlockAutosave: !isTourWizardServerDraftEnabled(),
+        });
       }
     } catch {
       /* ignore */
     } finally {
-      draftRestoreAttemptedRef.current = true;
+      if (!isTourWizardServerDraftEnabled()) {
+        draftRestoreAttemptedRef.current = true;
+        if (!parsed) {
+          draftAutosaveUnlockedRef.current = true;
+        }
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot restore
-  }, []);
+  }, [draftScope, defaultValues, tenant, tenantFormContract, applyParsedDraft]);
 
-  /**
-   * Playwright smoke: seed `overview.tourType` in layout (after draft restore) so `useWatch` / profile resolve
-   * update before paint. Uses `E2E_SEEDABLE_TOUR_TYPES` instead of imported `TOUR_TYPES` to avoid minifier
-   * closure bugs against the wrong binding in production chunks.
-   *
-   * - `?e2eTourType=…` on loopback (`127.0.0.1` / localhost / `[::1]`)
-   * - `window.__E2E_SEED_TOUR_TYPE` (`addInitScript`, any host)
-   */
+  useEffect(() => {
+    if (!isTourWizardServerDraftEnabled()) {
+      serverRestorePendingRef.current = false;
+      if (!draftRestoreAttemptedRef.current) {
+        draftRestoreAttemptedRef.current = true;
+      }
+      return;
+    }
+    if (!isHydrated) {
+      return;
+    }
+    if (!user?.userId) {
+      serverRestorePendingRef.current = false;
+      draftRestoreAttemptedRef.current = true;
+      draftAutosaveUnlockedRef.current = true;
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const scope =
+      draftScope ??
+      resolveWorkspaceDraftScope(tenant, null, window.location.host) ??
+      resolveTenantSlugFromHost(window.location.host);
+    if (!scope) {
+      serverRestorePendingRef.current = false;
+      draftRestoreAttemptedRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { fetchWorkspaceTourWizardDraft } = await import(
+          "@/lib/settings-tour-wizard-draft.client"
+        );
+        const local = readWizardDraftRecordForScope(scope);
+        const { draft: serverDraft } = await fetchWorkspaceTourWizardDraft();
+        const pick = pickWizardDraftForRestore(local, serverDraft);
+        if (pick?.rowVersion != null) {
+          setServerDraftRowVersion(pick.rowVersion);
+        }
+        if (pick) {
+          const savedAt =
+            pick.source === "server" && serverDraft
+              ? serverDraft.updatedAt
+              : pick.parsed.wizardMeta?.savedAt;
+          if (pick.source === "server" || !local) {
+            applyParsedDraft(pick.parsed, savedAt, { unlockAutosave: true });
+            const meta = draftWizardMetaRef.current;
+            const payload = serializeWizardDraft(pick.parsed.formPatch, meta);
+            localStorage.setItem(draftStorageKey, payload);
+          } else {
+            draftAutosaveUnlockedRef.current = true;
+          }
+        } else {
+          draftAutosaveUnlockedRef.current = true;
+        }
+      } catch {
+        /* ignore — local draft remains */
+      } finally {
+        if (!cancelled) {
+          serverRestorePendingRef.current = false;
+          draftRestoreAttemptedRef.current = true;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyParsedDraft, draftScope, draftStorageKey, isHydrated, tenant, user?.userId]);
+
   useLayoutEffect(() => {
-    if (e2eTourTypeSeededRef.current || typeof window === "undefined") {
+    if (!e2eWizardSeedEnabled() || e2eTourTypeSeededRef.current || typeof window === "undefined") {
       return;
     }
     const seeded = readBrowserE2eTourTypeSeed();
@@ -429,65 +1058,14 @@ function TourCreateWizardShell({
     delete w.__E2E_SEED_TOUR_TYPE;
   }, [setValue, profileSchemaRef]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!draftRestoreAttemptedRef.current) {
-      return;
-    }
-    let raf = 0;
-    let timeoutId: number | undefined;
-    raf = window.requestAnimationFrame(() => {
-      timeoutId = window.setTimeout(() => {
-        try {
-          // Sanitize watched snapshot against the **live** resolved profile so the on-disk
-          // draft envelope never persists data owned by groups that are inactive for the
-          // current profile (e.g. itinerary days from a mountain session that the user
-          // later flipped to an urban_event theme). Re-runs on `resolvedProfile` change
-          // so a profile flip eagerly rewrites a clean envelope, even if RHF state is idle.
-          const snapshot = sanitizeInactiveRootsForProfile(
-            (watched ?? {}) as TourCreateFormValues,
-            resolvedProfile,
-          );
-          // L2 autosave gate: minimal, rules-scoped check (never required). v1 is always valid;
-          // keeps a single hook for future shape-only refinements without breaking drafts.
-          const autoResult = validateForAutosave(
-            resolvedProfile,
-            currentStepKey,
-            snapshot as Partial<TourCreateFormValues>,
-          );
-          if (!autoResult.isValid) {
-            emitWizardRulesValidationFailure({
-              level: "autosave",
-              form_profile: resolvedProfile,
-              step_id: currentStepKey,
-              result: autoResult,
-            });
-          }
-          const payload = serializeWizardDraft(
-            snapshot as Partial<TourCreateFormValues>,
-            draftWizardMetaRef.current,
-          );
-          localStorage.setItem(WIZARD_DRAFT_STORAGE_KEY, payload);
-        } catch {
-          /* ignore */
-        }
-      }, 600);
-    });
-    return () => {
-      window.cancelAnimationFrame(raf);
-      if (timeoutId != null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [watched, resolvedProfile, currentStepKey]);
-
   useLayoutEffect(() => {
-    // Position-aware relax flags published to the shared Zod policy module (see
-    // `wizardStepEngine.getValidationFlagsForStep` JSDoc for the composition rule).
     setTourCreateWizardValidationFlags(
-      wizardStepEngine.getValidationFlagsForStep(resolvedProfile, currentStepKey, visibleSteps),
+      mergeWizardValidationFlagsWithTenant(
+        wizardStepEngine.getValidationFlagsForStep(resolvedProfile, currentStepKey, visibleSteps),
+        tenantFormContract,
+      ),
     );
-  }, [resolvedProfile, currentStepKey, visibleSteps]);
+  }, [resolvedProfile, currentStepKey, visibleSteps, tenantFormContract]);
 
   useEffect(() => {
     return () => {
@@ -495,38 +1073,24 @@ function TourCreateWizardShell({
     };
   }, []);
 
-  const stepContent = useMemo(() => {
-    const byStep: Record<TourCreateWizardStepId, JSX.Element> = {
-      basic: <BasicInfoStep tourCreationPresets={presetsQuery.data} resolvedFormProfile={resolvedProfile} />,
-      theme: <ThemeDetailsStep />,
-      capacity: <CapacityPricingStep />,
-      location: <LocationDatesStep />,
-      itinerary: <ItineraryStep />,
-      participation: <ParticipationStep />,
-      logistics: <LogisticsStep />,
-      policies: <PoliciesStep />,
-      review: <ReviewSubmitStep />,
-    };
-    return byStep[currentStepKey];
-  }, [currentStepKey, presetsQuery.data, resolvedProfile]);
-
   useEffect(() => {
     emitTourWizardAnalytics({ type: "wizard_step_view", step: currentStepKey, formProfile: resolvedProfile });
   }, [currentStepKey, resolvedProfile]);
 
   const handleNext = useCallback(async () => {
     setTourCreateWizardValidationFlags(
-      wizardStepEngine.getValidationFlagsForStep(resolvedProfile, currentStepKey, visibleSteps),
+      mergeWizardValidationFlagsWithTenant(
+        wizardStepEngine.getValidationFlagsForStep(resolvedProfile, currentStepKey, visibleSteps),
+        tenantFormContract,
+      ),
     );
     const fields = wizardStepEngine.getTriggerFieldsForStep(currentStepKey);
     const okZod = fields.length === 0 ? true : await trigger(fields as Parameters<typeof trigger>[0]);
 
-    // Rules-layer step-nav gate. This is the canonical "is this step's required-set
-    // satisfied?" check for the wizard — it consults `ProfileRules` (and only that). Today
-    // it returns the same verdict as the Zod schema for every shipped profile (parity is
-    // covered by `profileRules/validation.spec.ts`), but it is wired in additively so any
-    // future rules-only requirement immediately surfaces here without a schema change.
-    const ruleResult = validateForStepNavigation(resolvedProfile, currentStepKey, getValues(), visibleSteps);
+    const ruleResult = validateForStepNavigation(resolvedProfile, currentStepKey, getValues(), visibleSteps, {
+      tenantFormContract,
+      rules: wizardRules,
+    });
     const okRules = applyRulesIssuesToFormErrors(ruleResult, setError);
 
     if (!ruleResult.isValid) {
@@ -549,8 +1113,10 @@ function TourCreateWizardShell({
     getValues,
     resolvedProfile,
     setError,
+    tenantFormContract,
     trigger,
     visibleSteps,
+    wizardRules,
   ]);
 
   const handleBack = useCallback(() => {
@@ -559,32 +1125,55 @@ function TourCreateWizardShell({
 
   const clearDraft = useCallback(() => {
     try {
-      localStorage.removeItem(WIZARD_DRAFT_STORAGE_KEY);
+      localStorage.removeItem(draftStorageKey);
     } catch {
       /* ignore */
     }
-    setStorageDraftSnapshot(readWizardDraftFromBrowserStorage());
+    if (isTourWizardServerDraftEnabled()) {
+      void import("@/lib/settings-tour-wizard-draft.client")
+        .then(({ deleteWorkspaceTourWizardDraft }) => deleteWorkspaceTourWizardDraft())
+        .catch(() => {
+          /* ignore */
+        });
+    }
+    setStorageDraftSnapshot(draftScope ? readWizardDraftRecordForScope(draftScope) : null);
     setDraftWizardMeta(undefined);
     draftWizardMetaRef.current = undefined;
     setProfileOverride(null);
     reset(defaultValues);
     setShowDraftBanner(false);
-  }, [defaultValues, reset]);
+  }, [defaultValues, draftScope, draftStorageKey, reset]);
 
   const onSubmit = useCallback(
     async (values: TourCreateFormValues) => {
-      // Rules-layer submit gate. Runs *after* RHF's Zod resolver has already accepted the
-      // form (handleSubmit only invokes us on success). If the rules layer reports issues
-      // here, that is by definition a drift between the Zod schema and the rules table —
-      // we surface the issues into the RHF error map so the user sees them and abort the
-      // mutation. In parity-mode (today) this branch is never taken.
+      const submitProfile = coalesceWizardResolvedProfile({
+        raw: resolvedProfile,
+        snapshotProfile:
+          draftWizardMetaRef.current?.resolvedFormProfile ??
+          (draftScope ? readWizardDraftRecordForScope(draftScope)?.wizardMeta?.resolvedFormProfile : undefined),
+        mainTourThemeId: coalesceWizardMainTourThemeId({
+          watchedMain: values.overview?.mainTourThemeId,
+          storageMain: storageDraft?.formPatch?.overview?.mainTourThemeId,
+        }),
+        themeCatalog: readThemeCatalogForProfile(),
+        tourType:
+          typeof values.overview?.tourType === "string" && values.overview.tourType.trim() !== ""
+            ? (values.overview.tourType as TourType)
+            : persistedTourTypeRef.current,
+        persistedTourType: persistedTourTypeRef.current,
+        templateBaseProfile: wizardTemplateQuery.data?.baseProfile,
+      });
+      profileSchemaRef.current = submitProfile;
       clearErrors();
-      const submitResult = validateForSubmit(resolvedProfile, values);
+      const submitResult = validateForSubmit(submitProfile, values, {
+        tenantFormContract,
+        rules: getProfileRulesForWizard(submitProfile, wizardTemplateQuery.data?.fieldRulesOverlay),
+      });
       const okRules = applyRulesIssuesToFormErrors(submitResult, setError);
       if (!submitResult.isValid) {
         emitWizardRulesValidationFailure({
           level: "submit",
-          form_profile: resolvedProfile,
+          form_profile: submitProfile,
           result: submitResult,
         });
       }
@@ -594,13 +1183,22 @@ function TourCreateWizardShell({
       try {
         await createMutation.mutateAsync({
           values,
-          themeCatalog: themesQuery.data,
-          formProfile: resolvedProfile,
+          themeCatalog: readThemeCatalogForProfile(),
+          formProfile: submitProfile,
+          tenantFormContract,
         });
         try {
-          localStorage.removeItem(WIZARD_DRAFT_STORAGE_KEY);
+          localStorage.removeItem(draftStorageKey);
         } catch {
           /* ignore */
+        }
+        if (isTourWizardServerDraftEnabled()) {
+          void import("@/lib/settings-tour-wizard-draft.client")
+            .then(({ deleteWorkspaceTourWizardDraft }) => deleteWorkspaceTourWizardDraft())
+            .catch(() => {
+              /* ignore */
+            });
+          setServerDraftRowVersion(undefined);
         }
         router.push("/tours");
         router.refresh();
@@ -608,31 +1206,60 @@ function TourCreateWizardShell({
         /* surfaced via mutation.error */
       }
     },
-    [clearErrors, createMutation, resolvedProfile, router, setError, themesQuery.data],
+    [
+      clearErrors,
+      createMutation,
+      draftScope,
+      readThemeCatalogForProfile,
+      resolvedProfile,
+      router,
+      setError,
+      storageDraft?.formPatch?.overview?.mainTourThemeId,
+      tenantFormContract,
+      wizardTemplateQuery.data?.baseProfile,
+      wizardTemplateQuery.data?.fieldRulesOverlay,
+    ],
   );
 
   const submitError = createMutation.error;
-  const submitErrorMessage = useMemo(() => {
-    if (!submitError) return null;
-    if (submitError instanceof ApiError) return submitError.message;
-    if (submitError instanceof Error) return submitError.message;
-    return "ثبت تور ناموفق بود.";
-  }, [submitError]);
+  const submitErrorMessage = useMemo(
+    () =>
+      submitError
+        ? formatWizardApiErrorMessage(submitError, "ثبت تور ناموفق بود.")
+        : null,
+    [submitError],
+  );
 
   const profileContextValue = useMemo(
     () => ({
       resolvedProfile,
-      draftMeta: draftWizardMeta,
+      draftMeta: draftMetaForUi,
       tenantFormContract,
+      rules: wizardRules,
     }),
-    [draftWizardMeta, resolvedProfile, tenantFormContract],
+    [draftMetaForUi, resolvedProfile, tenantFormContract, wizardRules],
   );
 
   return (
+    <TourWizardProfileDriversProvider notifyProfileDriversChanged={notifyProfileDriversChanged}>
     <TourWizardProfileProvider value={profileContextValue}>
       <DirtyBeforeUnloadGate />
+      <WizardAutosave
+        resolvedProfile={resolvedProfile}
+        currentStepKey={currentStepKey}
+        draftStorageKey={draftStorageKey}
+        tenantFormContract={tenantFormContract}
+        draftScope={draftScope}
+        wizardRules={wizardRules}
+        draftWizardMetaRef={draftWizardMetaRef}
+        setDraftWizardMeta={setDraftWizardMeta}
+        serverRestorePending={serverRestorePendingRef.current}
+        draftRestoreAttempted={draftRestoreAttemptedRef.current}
+        draftAutosaveUnlocked={draftAutosaveUnlockedRef.current}
+      />
       <Card
         data-testid="tour-create-wizard"
+        data-resolved-form-profile={resolvedProfile}
         data-tenant-form-contract={tenantFormContract.tenantModules.join(",") || "none"}
         data-tenant-advanced-trip-details={tenantFormContract.allowAdvancedTripDetails ? "1" : "0"}
         title={t("pageTitle")}
@@ -650,7 +1277,7 @@ function TourCreateWizardShell({
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate style={{ display: "grid", gap: "1rem" }}>
+          <form onSubmit={handleSubmit(onSubmit, (errors) => console.log('[RHF ERRORS]', JSON.stringify(errors, null, 2)))} noValidate style={{ display: "grid", gap: "1rem" }}>
             <WizardFormProfileBadge />
             <WizardStepper steps={visibleSteps} currentIndex={currentStep} />
 
@@ -676,7 +1303,17 @@ function TourCreateWizardShell({
               </div>
             ) : null}
 
-            <div>{stepContent}</div>
+            <div>
+              {currentStepKey === "basic" && <BasicInfoStep tourCreationPresets={presetsQuery.data} resolvedFormProfile={resolvedProfile} />}
+              {currentStepKey === "theme" && <ThemeDetailsStep />}
+              {currentStepKey === "capacity" && <CapacityPricingStep />}
+              {currentStepKey === "location" && <LocationDatesStep />}
+              {currentStepKey === "itinerary" && <ItineraryStep />}
+              {currentStepKey === "participation" && <ParticipationStep />}
+              {currentStepKey === "logistics" && <LogisticsStep />}
+              {currentStepKey === "policies" && <PoliciesStep />}
+              {currentStepKey === "review" && <ReviewSubmitStep />}
+            </div>
 
             <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
               <Button type="button" variant="ghost" onClick={handleBack} disabled={isFirstStep || createMutation.isPending}>
@@ -684,11 +1321,11 @@ function TourCreateWizardShell({
               </Button>
 
               {!isLastStep ? (
-                <Button type="button" variant="primary" onClick={() => void handleNext()} disabled={createMutation.isPending}>
+                <Button key="btn-next" type="button" variant="primary" onClick={() => void handleNext()} disabled={createMutation.isPending}>
                   بعدی
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" disabled={createMutation.isPending}>
+                <Button key="btn-submit" type="submit" variant="primary" disabled={createMutation.isPending}>
                   {createMutation.isPending ? "در حال ثبت…" : "ثبت نهایی تور"}
                 </Button>
               )}
@@ -697,16 +1334,38 @@ function TourCreateWizardShell({
         </CardBody>
       </Card>
     </TourWizardProfileProvider>
+    </TourWizardProfileDriversProvider>
   );
 }
 
 export function TourCreateWizard() {
   const defaultValues = useMemo(() => buildTourCreateFormDefaultValues(), []);
   const profileSchemaRef = useRef<TourFormProfile>("general");
+  /** Last non-empty tour type (basic step unmounts `<select>`; shared with Zod resolver). */
+  const persistedTourTypeRef = useRef<TourType | undefined>(undefined);
+  const lastNonGeneralResolverProfileRef = useRef<TourFormProfile | undefined>(undefined);
   const formMethods = useForm<TourCreateFormValues>({
-    /** Re-read `profileSchemaRef` on each validate so Shell-updated profile matches Zod (static resolver only saw `"general"`). */
+    /** Re-read profile on each validate from shell ref + persisted / URL tour type. */
     resolver: ((values, context, options) => {
-      return (zodResolver(buildTourCreateSchemaForFormProfile(profileSchemaRef.current)) as Resolver<TourCreateFormValues>)(
+      const tourTypeRaw =
+        (typeof values.overview?.tourType === "string" && values.overview.tourType.trim() !== ""
+          ? values.overview.tourType
+          : undefined) ??
+        persistedTourTypeRef.current ??
+        readBrowserE2eTourTypeSeed();
+      let profile = profileSchemaRef.current;
+      if (tourTypeRaw) {
+        const fromTourType = defaultTourFormProfileForTourType(tourTypeRaw as TourType);
+        if (fromTourType !== "general") {
+          profile = fromTourType;
+        }
+      }
+      if (profile && profile !== "general") {
+        lastNonGeneralResolverProfileRef.current = profile;
+      } else if (lastNonGeneralResolverProfileRef.current) {
+        profile = lastNonGeneralResolverProfileRef.current;
+      }
+      return (zodResolver(buildTourCreateSchemaForFormProfile(profile)) as Resolver<TourCreateFormValues>)(
         values,
         context,
         options,
@@ -719,7 +1378,11 @@ export function TourCreateWizard() {
 
   return (
     <FormProvider {...formMethods}>
-      <TourCreateWizardShell defaultValues={defaultValues} profileSchemaRef={profileSchemaRef} />
+      <TourCreateWizardShell
+        defaultValues={defaultValues}
+        profileSchemaRef={profileSchemaRef}
+        persistedTourTypeRef={persistedTourTypeRef}
+      />
     </FormProvider>
   );
 }

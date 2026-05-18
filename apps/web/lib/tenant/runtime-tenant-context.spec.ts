@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { parseWorkspaceTenantLabelFromHost } from "@repo/tenant-host";
+
 import {
   TenantResolutionError,
-  extractRawWorkspaceLabelFromHost,
   isBareApexHost,
   isValidWorkspaceSubdomainLabel,
   resolveBffTenantContext,
@@ -57,8 +58,16 @@ test("resolveTenantSlugFromHost returns null for invalid label shape", () => {
   assert.equal(resolveTenantSlugFromHost("bad_label.localhost:3000"), null);
 });
 
-test("extractRawWorkspaceLabelFromHost keeps invalid labels for middleware probe", () => {
-  assert.equal(extractRawWorkspaceLabelFromHost("ws1-rbklkljac.localhost:3000"), "ws1-rbklkljac");
+test("parseWorkspaceTenantLabelFromHost keeps typo labels for middleware API probe", () => {
+  const outcome = parseWorkspaceTenantLabelFromHost(
+    "ws1-rbklkljac.localhost",
+    "localhost",
+    new Set(["www", "api", "app"]),
+  );
+  assert.equal(outcome.kind, "label");
+  if (outcome.kind === "label") {
+    assert.equal(outcome.label, "ws1-rbklkljac");
+  }
 });
 
 test("isBareApexHost for localhost without workspace label", () => {

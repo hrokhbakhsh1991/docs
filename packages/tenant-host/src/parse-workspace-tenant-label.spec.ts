@@ -32,3 +32,10 @@ test("parseWorkspaceTenantLabelFromHost: reserved", () => {
     { kind: "reserved", label: "www" },
   );
 });
+
+test("parseWorkspaceTenantLabelFromHost: denali is a tenant label (not globally reserved)", () => {
+  assert.deepEqual(
+    parseWorkspaceTenantLabelFromHost("denali.localhost", "localhost", RESERVED),
+    { kind: "label", label: "denali" },
+  );
+});

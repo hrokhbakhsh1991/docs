@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
+
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import { settingsLocationsKeys } from "@/lib/query-keys";
 import {
   createSettingsRegion,
@@ -21,17 +23,19 @@ function sortRegionsBySortOrder(data: SettingsRegionDto[]): SettingsRegionDto[] 
 
 export function useSettingsRegions() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
 
   const query = useQuery({
-    queryKey: settingsLocationsKeys.regions(),
+    queryKey: settingsLocationsKeys.regions(tenantId ?? ""),
     queryFn: fetchSettingsRegions,
     select: sortRegionsBySortOrder,
+    enabled: Boolean(tenantId),
   });
 
   const createMutation = useMutation({
     mutationFn: (input: CreateRegionPayload) => createSettingsRegion(input),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
     },
   });
 
@@ -39,9 +43,9 @@ export function useSettingsRegions() {
     mutationFn: ({ id, input }: { id: string; input: UpdateRegionPayload }) =>
       updateSettingsRegion(id, input),
     onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions() });
-      const previous = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions());
-      queryClient.setQueryData(settingsLocationsKeys.regions(), (old: SettingsRegionDto[] | undefined) => {
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions(tenantId ?? ""));
+      queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), (old: SettingsRegionDto[] | undefined) => {
         if (!old) {
           return old;
         }
@@ -51,11 +55,11 @@ export function useSettingsRegions() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsLocationsKeys.regions(), ctx.previous);
+        queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
     },
   });
 
@@ -75,38 +79,38 @@ export function useSettingsRegions() {
       );
     },
     onMutate: async ({ nextOrdered }) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions() });
-      const previous = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions());
-      queryClient.setQueryData(settingsLocationsKeys.regions(), nextOrdered);
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions(tenantId ?? ""));
+      queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), nextOrdered);
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsLocationsKeys.regions(), ctx.previous);
+        queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSettingsRegion(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions() });
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations() });
-      const previousRegions = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions());
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
+      const previousRegions = queryClient.getQueryData<SettingsRegionDto[]>(settingsLocationsKeys.regions(tenantId ?? ""));
       const previousDestinations = queryClient.getQueryData<SettingsDestinationDto[]>(
-        settingsLocationsKeys.destinations(),
+        settingsLocationsKeys.destinations(tenantId ?? ""),
       );
-      queryClient.setQueryData(settingsLocationsKeys.regions(), (old: SettingsRegionDto[] | undefined) => {
+      queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), (old: SettingsRegionDto[] | undefined) => {
         if (!old) {
           return old;
         }
         return old.filter((r) => r.id !== id);
       });
       queryClient.setQueryData(
-        settingsLocationsKeys.destinations(),
+        settingsLocationsKeys.destinations(tenantId ?? ""),
         (old: SettingsDestinationDto[] | undefined) => {
           if (!old) {
             return old;
@@ -118,15 +122,15 @@ export function useSettingsRegions() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previousRegions) {
-        queryClient.setQueryData(settingsLocationsKeys.regions(), ctx.previousRegions);
+        queryClient.setQueryData(settingsLocationsKeys.regions(tenantId ?? ""), ctx.previousRegions);
       }
       if (ctx?.previousDestinations) {
-        queryClient.setQueryData(settingsLocationsKeys.destinations(), ctx.previousDestinations);
+        queryClient.setQueryData(settingsLocationsKeys.destinations(tenantId ?? ""), ctx.previousDestinations);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions() });
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.regions(tenantId ?? "") });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
     },
   });
 

@@ -3,6 +3,13 @@ import { Checkbox, FormField } from "@tour/ui";
 
 import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
+import { FieldGate } from "@/features/tours/wizard/profileRulesReact";
+import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
+
+const PATHS = {
+  autoAcceptRegistrations: "autoAcceptRegistrations" as WizardFieldPath,
+  basePrice: "pricing.basePrice" as WizardFieldPath,
+} as const;
 
 export function CapacityPricingStep() {
   const {
@@ -12,43 +19,47 @@ export function CapacityPricingStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
-      <FormField
-        label="پذیرش خودکار ثبت‌نام"
-        description="اگر فعال باشد، درخواست شرکت بدون تأیید دستی راهبر بلافاصله به‌عنوان «پذیرفته‌شده» ثبت می‌شود و در ظرفیت تور می‌نشیند. با خاموش کردن، ابتدا در وضعیت «در انتظار تأیید» می‌ماند تا در پنل راهبر تأیید شود."
-      >
-        <Controller
-          control={control}
-          name="autoAcceptRegistrations"
-          render={({ field }) => (
-            <Checkbox
-              label="ثبت‌نام‌ها بدون تأیید دستی مستقیماً در تور پذیرفته شوند."
-              checked={field.value !== false}
-              onChange={(e) => field.onChange(e.target.checked)}
-              onBlur={field.onBlur}
-              ref={field.ref}
-              name={field.name}
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.autoAcceptRegistrations}>
+        <FormField
+          label="پذیرش خودکار ثبت‌نام"
+          description="اگر فعال باشد، درخواست شرکت بدون تأیید دستی راهبر بلافاصله به‌عنوان «پذیرفته‌شده» ثبت می‌شود و در ظرفیت تور می‌نشیند. با خاموش کردن، ابتدا در وضعیت «در انتظار تأیید» می‌ماند تا در پنل راهبر تأیید شود."
+        >
+          <Controller
+            control={control}
+            name="autoAcceptRegistrations"
+            render={({ field }) => (
+              <Checkbox
+                label="ثبت‌نام‌ها بدون تأیید دستی مستقیماً در تور پذیرفته شوند."
+                checked={field.value !== false}
+                onChange={(e) => field.onChange(e.target.checked)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                name={field.name}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
-      <FormField label="قیمت پایه (تومان)" description="قیمت را به تومان وارد کنید." error={errors.pricing?.basePrice?.message}>
-        <Controller
-          name="pricing.basePrice"
-          control={control}
-          render={({ field }) => (
-            <PersianNumberInput
-              numericMode="decimal"
-              formatThousands
-              value={field.value ?? ""}
-              onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
-              onBlur={field.onBlur}
-              name={field.name}
-              ref={field.ref}
-            />
-          )}
-        />
-      </FormField>
+      <FieldGate field={PATHS.basePrice}>
+        <FormField label="قیمت پایه (تومان)" description="قیمت را به تومان وارد کنید." error={errors.pricing?.basePrice?.message}>
+          <Controller
+            name="pricing.basePrice"
+            control={control}
+            render={({ field }) => (
+              <PersianNumberInput
+                numericMode="decimal"
+                formatThousands
+                value={field.value ?? ""}
+                onChange={(v) => field.onChange(v === "" ? undefined : Number(v))}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+              />
+            )}
+          />
+        </FormField>
+      </FieldGate>
 
       <FormField label="واحد پول">
         <div

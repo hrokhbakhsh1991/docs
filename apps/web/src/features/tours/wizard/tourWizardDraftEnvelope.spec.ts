@@ -10,7 +10,8 @@ import { buildTourCreateFormDefaultValues } from "./tourCreateFormDefaults";
 import {
   parseWizardDraftRecord,
   serializeWizardDraft,
-  WIZARD_DRAFT_STORAGE_KEY,
+  WIZARD_DRAFT_STORAGE_KEY_LEGACY,
+  wizardDraftStorageKey,
 } from "./tourWizardDraftEnvelope";
 import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
 
@@ -61,8 +62,10 @@ test("parseWizardDraftRecord returns null for empty string", () => {
   assert.equal(parseWizardDraftRecord("   "), null);
 });
 
-test("WIZARD_DRAFT_STORAGE_KEY is stable contract for TourCreateWizard", () => {
-  assert.equal(WIZARD_DRAFT_STORAGE_KEY, "tour-create-wizard-draft-v1");
+test("wizardDraftStorageKey scopes drafts per workspace", () => {
+  assert.equal(WIZARD_DRAFT_STORAGE_KEY_LEGACY, "tour-create-wizard-draft-v1");
+  assert.equal(wizardDraftStorageKey("tenant-a"), "tour-create-wizard-draft-v1:tenant-a");
+  assert.equal(wizardDraftStorageKey("denali"), "tour-create-wizard-draft-v1:denali");
 });
 
 /* -------------------------------------------------------------------------- *
@@ -147,7 +150,7 @@ test("autosave chain — user flips general → urban: itinerary / participation
   //    on both sides — same canonicalization the envelope itself goes through.
   const defaults = buildTourCreateFormDefaultValues();
   const jsonRoundtrip = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-  assert.deepEqual(parsed!.formPatch.itinerary, jsonRoundtrip(defaults.itinerary));
+  assert.deepEqual(parsed!.formPatch.itinerary, jsonRoundtrip({ days: [] }));
   assert.deepEqual(parsed!.formPatch.participation, jsonRoundtrip(defaults.participation));
   assert.deepEqual(parsed!.formPatch.logistics, jsonRoundtrip(defaults.logistics));
 });

@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
+
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import { settingsLocationsKeys } from "@/lib/query-keys";
 import {
   createSettingsDestination,
@@ -20,17 +22,19 @@ function sortDestinationsBySortOrder(data: SettingsDestinationDto[]): SettingsDe
 
 export function useSettingsDestinations() {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
 
   const query = useQuery({
-    queryKey: settingsLocationsKeys.destinations(),
+    queryKey: settingsLocationsKeys.destinations(tenantId ?? ""),
     queryFn: fetchSettingsDestinations,
     select: sortDestinationsBySortOrder,
+    enabled: Boolean(tenantId),
   });
 
   const createMutation = useMutation({
     mutationFn: (input: CreateDestinationPayload) => createSettingsDestination(input),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
     },
   });
 
@@ -38,10 +42,10 @@ export function useSettingsDestinations() {
     mutationFn: ({ id, input }: { id: string; input: UpdateDestinationPayload }) =>
       updateSettingsDestination(id, input),
     onMutate: async ({ id, input }) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations() });
-      const previous = queryClient.getQueryData<SettingsDestinationDto[]>(settingsLocationsKeys.destinations());
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsDestinationDto[]>(settingsLocationsKeys.destinations(tenantId ?? ""));
       queryClient.setQueryData(
-        settingsLocationsKeys.destinations(),
+        settingsLocationsKeys.destinations(tenantId ?? ""),
         (old: SettingsDestinationDto[] | undefined) => {
           if (!old) {
             return old;
@@ -53,11 +57,11 @@ export function useSettingsDestinations() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsLocationsKeys.destinations(), ctx.previous);
+        queryClient.setQueryData(settingsLocationsKeys.destinations(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
     },
   });
 
@@ -77,30 +81,30 @@ export function useSettingsDestinations() {
       );
     },
     onMutate: async ({ nextDestinations }) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
       const previous = queryClient.getQueryData<SettingsDestinationDto[]>(
-        settingsLocationsKeys.destinations(),
+        settingsLocationsKeys.destinations(tenantId ?? ""),
       );
-      queryClient.setQueryData(settingsLocationsKeys.destinations(), nextDestinations);
+      queryClient.setQueryData(settingsLocationsKeys.destinations(tenantId ?? ""), nextDestinations);
       return { previous };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsLocationsKeys.destinations(), ctx.previous);
+        queryClient.setQueryData(settingsLocationsKeys.destinations(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSettingsDestination(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations() });
-      const previous = queryClient.getQueryData<SettingsDestinationDto[]>(settingsLocationsKeys.destinations());
+      await queryClient.cancelQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
+      const previous = queryClient.getQueryData<SettingsDestinationDto[]>(settingsLocationsKeys.destinations(tenantId ?? ""));
       queryClient.setQueryData(
-        settingsLocationsKeys.destinations(),
+        settingsLocationsKeys.destinations(tenantId ?? ""),
         (old: SettingsDestinationDto[] | undefined) => {
           if (!old) {
             return old;
@@ -112,11 +116,11 @@ export function useSettingsDestinations() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(settingsLocationsKeys.destinations(), ctx.previous);
+        queryClient.setQueryData(settingsLocationsKeys.destinations(tenantId ?? ""), ctx.previous);
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations() });
+      await queryClient.invalidateQueries({ queryKey: settingsLocationsKeys.destinations(tenantId ?? "") });
     },
   });
 

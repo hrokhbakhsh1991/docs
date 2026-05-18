@@ -143,7 +143,7 @@ test("stripInactiveTourCreateGroupsForProfile: cinema_event clears itinerary and
   v.participation.requirements = "nope";
   const out = stripInactiveTourCreateGroupsForProfile("cinema_event", v);
   const d = buildTourCreateFormDefaultValues();
-  assert.deepEqual(out.itinerary, d.itinerary);
+  assert.deepEqual(out.itinerary, { days: [] });
   assert.deepEqual(out.participation, d.participation);
   assert.equal(out.overview, v.overview);
 });
@@ -235,7 +235,7 @@ test("sanitizeInactiveRootsForProfile: cinema_event resets itinerary + participa
   v.logistics.primaryTransportMode = "bus";
   const out = sanitizeInactiveRootsForProfile(v, "cinema_event");
   const d = buildTourCreateFormDefaultValues();
-  assert.deepEqual(out.itinerary, d.itinerary, "itinerary reset to defaults");
+  assert.deepEqual(out.itinerary, { days: [] }, "inactive itinerary cleared for API strip");
   assert.deepEqual(out.participation, d.participation, "participation reset to defaults");
   assert.equal(out.logistics, v.logistics, "logistics reference untouched (active for cinema_event)");
   assert.equal(out.overview, v.overview, "overview reference untouched (active)");
@@ -249,7 +249,7 @@ test("sanitizeInactiveRootsForProfile: urban_event also resets logistics root", 
   v.participation.requirements = "ghost-urban-participation";
   const out = sanitizeInactiveRootsForProfile(v, "urban_event");
   const d = buildTourCreateFormDefaultValues();
-  assert.deepEqual(out.itinerary, d.itinerary);
+  assert.deepEqual(out.itinerary, { days: [] });
   assert.deepEqual(out.participation, d.participation);
   assert.deepEqual(out.logistics, d.logistics);
   assert.equal(out.overview, v.overview);

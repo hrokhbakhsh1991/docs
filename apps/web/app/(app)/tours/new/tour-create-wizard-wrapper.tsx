@@ -2,42 +2,46 @@
 
 import { TOUR_FORM_PROFILE_VERSION } from "@repo/types";
 import { Card, CardBody, LoadingState } from "@tour/ui";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { TourCreateWizard } from "@/components/tours/wizard/TourCreateWizard";
 import { transformTourToWizardValues } from "@/features/tours/clone/transformTourToWizardValues";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import { buildTourCreateFormDefaultValues } from "@/features/tours/wizard/tourCreateFormDefaults";
+import { resolveTenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
 import {
-  WIZARD_DRAFT_STORAGE_KEY,
+  resolveWizardDraftStorageKeyForBrowserHost,
   serializeWizardDraft,
 } from "@/features/tours/wizard/tourWizardDraftEnvelope";
+import { useTourWizardDraftStorageKey } from "@/features/tours/wizard/useTourWizardDraftStorageKey";
 import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
+import { useAuth } from "@/lib/auth/auth-context";
 import { getTourThemes, type SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
 
-function readCloneTourIdFromWindow(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const id = new URLSearchParams(window.location.search).get("clone")?.trim();
-    return id && id !== "" ? id : null;
-  } catch {
-    return null;
-  }
-}
-
 export function TourCreateWizardWrapper() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const cloneTourId = searchParams.get("clone")?.trim() || null;
+  const { user } = useAuth();
+  const draftStorageKey = useTourWizardDraftStorageKey();
+  const tenantFormContract = resolveTenantTourFormContract(user?.tenantModules);
+  const [isLoading, setIsLoading] = useState(() => Boolean(cloneTourId));
   const [error, setError] = useState<string | null>(null);
   const liveApi = toursUseLiveApi();
+  const clonePreparedRef = useRef(false);
+  const tenantFormContractRef = useRef(tenantFormContract);
+  tenantFormContractRef.current = tenantFormContract;
+  const draftStorageKeyRef = useRef(draftStorageKey);
+  draftStorageKeyRef.current = draftStorageKey;
 
   useEffect(() => {
-    const cloneTourId = readCloneTourIdFromWindow();
     if (!cloneTourId) {
+      setIsLoading(false);
+      return;
+    }
+    if (clonePreparedRef.current) {
       setIsLoading(false);
       return;
     }
@@ -47,18 +51,31 @@ export function TourCreateWizardWrapper() {
       return;
     }
 
+    const abort = new AbortController();
+    let fetchTimedOut = false;
+    let effectActive = true;
+    const fetchTimeoutId = window.setTimeout(() => {
+      fetchTimedOut = true;
+      abort.abort();
+    }, 15_000);
+
     const loadAndPrepareClonedTour = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Fetch the tour to clone
         const response = await fetch(`/api/tours/${cloneTourId}`, {
           method: "GET",
+          credentials: "include",
+          signal: abort.signal,
           headers: {
             "Content-Type": "application/json",
           },
         });
+
+        if (!effectActive) {
+          return;
+        }
 
         if (!response.ok) {
           throw new Error(
@@ -82,7 +99,12 @@ export function TourCreateWizardWrapper() {
 
         let themes: SettingsTourThemeDto[] = [];
         try {
-          themes = await getTourThemes();
+          themes = await Promise.race([
+            getTourThemes(),
+            new Promise<SettingsTourThemeDto[]>((_, reject) => {
+              window.setTimeout(() => reject(new Error("theme catalog timeout")), 8_000);
+            }),
+          ]);
         } catch {
           // Theme catalog is optional for clone; pipeline falls back through tourType.
         }
@@ -96,6 +118,7 @@ export function TourCreateWizardWrapper() {
           currentProfile: "general",
           themeCatalog: themes,
           tourType: wizardData.overview?.tourType,
+          tenantFormContract: tenantFormContractRef.current,
         });
 
         const mainThemeId = wizardData.overview?.mainTourThemeId?.trim();
@@ -114,28 +137,46 @@ export function TourCreateWizardWrapper() {
           // Serialize the filtered patch (not the merged form): keeps the LS payload
           // minimal and shape-compatible with what auto-save writes (also a Partial). The
           // restore path will re-merge onto fresh defaults via the same pipeline.
+          const storageKey = resolveWizardDraftStorageKeyForBrowserHost(draftStorageKeyRef.current);
           localStorage.setItem(
-            WIZARD_DRAFT_STORAGE_KEY,
+            storageKey,
             serializeWizardDraft(filteredPatch ?? wizardData, wizardMeta),
           );
         } catch {
           console.warn("Failed to save cloned tour to localStorage");
         }
 
+        if (!effectActive) {
+          return;
+        }
+        clonePreparedRef.current = true;
         router.replace("/tours/new");
-        setIsLoading(false);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error
+        if (!effectActive) {
+          return;
+        }
+        if (abort.signal.aborted && !fetchTimedOut) {
+          return;
+        }
+        const errorMessage = fetchTimedOut
+          ? "زمان بارگذاری تور برای کپی‌کردن به پایان رسید"
+          : err instanceof Error
             ? err.message
             : "خطای نامشخصی در بارگذاری تور رخ داد";
         setError(errorMessage);
+      } finally {
+        window.clearTimeout(fetchTimeoutId);
         setIsLoading(false);
       }
     };
 
-    loadAndPrepareClonedTour();
-  }, [liveApi, router]);
+    void loadAndPrepareClonedTour();
+    return () => {
+      effectActive = false;
+      window.clearTimeout(fetchTimeoutId);
+      abort.abort();
+    };
+  }, [cloneTourId, liveApi, router]);
 
   if (error) {
     return (

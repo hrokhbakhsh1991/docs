@@ -1,7 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 
 import type { TourFormValues } from "@/components/tours/tour-schema";
-import { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
+import { formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 import {
   applyTourThemeOverviewEnrichment,
   injectLocationSectionIntoTripDetails,

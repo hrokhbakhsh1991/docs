@@ -368,3 +368,19 @@ test("assertIncomingTripDetailsPatchFragment allows urban whitelist logistics in
     ),
   );
 });
+
+test("assertIncomingCreateTourDto allows urban logistics after class-transformer (undefined DTO keys ignored)", () => {
+  const { plainToInstance } = require("class-transformer") as typeof import("class-transformer");
+  const { CreateTourDto } = require("../dto/create-tour.dto") as typeof import("../dto/create-tour.dto");
+  const dto = plainToInstance(CreateTourDto, {
+    title: "1234567890 urban logistics dto",
+    total_capacity: 1,
+    lifecycle_status: "Draft",
+    formProfile: "urban_event",
+    tourType: "city",
+    tripDetails: {
+      logistics: { departureDate: "2026-08-10", returnDate: "2026-08-11" },
+    },
+  });
+  assert.doesNotThrow(() => assertIncomingCreateTourDtoBeforeFormProfileStrip("urban_event", dto));
+});

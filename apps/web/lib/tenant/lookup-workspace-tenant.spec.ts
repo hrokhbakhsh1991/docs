@@ -36,10 +36,24 @@ test("lookupWorkspaceTenantExists caches successful probe", async () => {
   let fetchCalls = 0;
   globalThis.fetch = async () => {
     fetchCalls += 1;
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(JSON.stringify({ tenant_id: "t1", slug: "ws1-rbac" }), { status: 200 });
   };
 
   assert.equal(await lookupWorkspaceTenantExists("ws1-rbac"), true);
   assert.equal(await lookupWorkspaceTenantExists("ws1-rbac"), true);
   assert.equal(fetchCalls, 1);
+});
+
+test("localhost root probes loopback with tenant Host header", async () => {
+  let probeUrl = "";
+  let probeHost = "";
+  globalThis.fetch = async (input, init) => {
+    probeUrl = String(input);
+    probeHost = new Headers(init?.headers).get("host") ?? "";
+    return new Response(JSON.stringify({ tenant_id: "t1", slug: "ws1-rbac" }), { status: 200 });
+  };
+
+  assert.equal(await lookupWorkspaceTenantExists("ws1-rbac"), true);
+  assert.match(probeUrl, /^http:\/\/ws1-rbac\.localhost:3001\//);
+  assert.equal(probeHost, "ws1-rbac.localhost:3001");
 });

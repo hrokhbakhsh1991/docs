@@ -57,12 +57,21 @@ Deliver a leader-centric, dual-mode operational platform with strict tenant isol
 
 ## 5. Functional Technical Scope (MVP)
 
+- dynamic tour creation wizard with profile-aware UI
 - tour CRUD and lifecycle
 - registration lifecycle state transitions
 - capacity constraint enforcement
 - waitlist queue handling (FIFO)
 - payment status recording and leader-facing visibility
 - Telegram link access control by registration status
+
+## 5.1 Dynamic Wizard Architecture (Pilot Ready)
+
+- **Profile-Driven UI:** The wizard shell (`TourCreateWizard.tsx`) dynamically resolves a `TourFormProfile` based on the selected theme.
+- **Rules Layer:** Field visibility and required-ness are controlled by `ProfileRules` (L1 pure domain), allowing per-tenant customization without code changes.
+- **Tenant Templates:** `TenantWizardTemplate` (DB/API) supports overriding base profiles, skipping steps, and patching field rules via JSON overlays.
+- **Ghost Data Protection:** Automated strip-on-save (client and server) ensures that data from hidden steps (e.g., itinerary for urban events) never leaks into the domain model.
+- **Cross-Tenant Isolation:** Drafts and templates are strictly scoped to the active workspace subdomain.
 
 ---
 
