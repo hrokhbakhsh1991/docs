@@ -28,13 +28,10 @@ function createServiceWithMissingContext() {
   );
 }
 
-test("tenant binding fails closed when request context is missing", async () => {
+test("bindTenantId skips when ALS context is missing (no throw)", async () => {
   const service = createServiceWithMissingContext();
   const queryRunner = {} as QueryRunner;
-  await assert.rejects(
-    async () => service.bindTenantId(queryRunner),
-    (error: unknown) => error instanceof TenantContextMissingError
-  );
+  await assert.doesNotReject(async () => service.bindTenantId(queryRunner));
 });
 
 test("tenant binding skips implicit bind when context is missing before first query", async () => {

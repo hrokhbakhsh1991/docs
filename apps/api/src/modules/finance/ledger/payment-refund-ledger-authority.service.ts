@@ -5,34 +5,9 @@ import type { PaymentEntity } from "../../payments/entities/payment.entity";
 import { bookingWalletId } from "./booking-ledger-authority.service";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { paymentAmountToLedgerMinorString } from "./payment-amount-to-ledger-minor";
 import { postDoubleEntryJournal, postDoubleEntryReversalJournal } from "./post-double-entry-journal";
 import { stablePaymentCaptureLedgerIdentifiers } from "./stable-payment-capture-ledger-ids";
-
-function paymentAmountToLedgerMinorString(amount: string): string {
-  const normalized = amount.trim().replace(/,/g, "");
-  if (/^\d+$/.test(normalized)) {
-    const n = BigInt(normalized);
-    if (n <= 0n) {
-      throw new Error("LEDGER_PAYMENT_AMOUNT: payment.amount must be a positive integer minor string");
-    }
-    return n.toString();
-  }
-  const m = /^(\d+)\.(\d+)$/.exec(normalized);
-  if (m) {
-    const frac = m[2]!;
-    if (!/^0+$/.test(frac)) {
-      throw new Error(
-        "LEDGER_PAYMENT_AMOUNT: fractional minor units are not supported for synthetic capture anchors"
-      );
-    }
-    const n = BigInt(m[1]!);
-    if (n <= 0n) {
-      throw new Error("LEDGER_PAYMENT_AMOUNT: payment.amount must be positive");
-    }
-    return n.toString();
-  }
-  throw new Error(`LEDGER_PAYMENT_AMOUNT: unsupported payment.amount format: ${amount}`);
-}
 
 /**
  * **Refund money path:** emits a new balanced journal that **reverses** the synthetic payment-capture

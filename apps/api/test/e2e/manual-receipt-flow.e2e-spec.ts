@@ -387,4 +387,20 @@ test("upload receipt → approve → registration paid", async () => {
   const receipt = await ds.getRepository(PaymentReceiptEntity).findOneByOrFail({ id: receiptId });
   assert.equal(receipt.status, ReceiptStatus.APPROVED);
   assert.ok(receipt.fileKey.includes(TENANT_ID));
+
+  const ledgerRes = await request(app.getHttpServer())
+    .get("/api/v2/finance/reports/ledger-events")
+    .set("Host", host)
+    .set("Authorization", `Bearer ${ownerToken}`);
+
+  assert.equal(ledgerRes.status, 200, JSON.stringify(ledgerRes.body));
+  const events = ledgerRes.body as Array<{ eventType: string; registrationId?: string }>;
+  assert.ok(
+    events.some(
+      (e) =>
+        e.eventType === "finance.ledger.double_entry_applied" &&
+        (e.registrationId === REG_ID || e.registrationId === undefined)
+    ),
+    `expected ledger event after approve: ${JSON.stringify(events)}`
+  );
 });

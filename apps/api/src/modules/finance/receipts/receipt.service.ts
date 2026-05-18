@@ -16,6 +16,7 @@ import {
   RegistrationStatus
 } from "../../registrations/registration.entity";
 import { validatePaymentTransition } from "../../registrations/registrations-policy";
+import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-ledger-authority.service";
 import { FinanceReportsService } from "../reports/finance-reports.service";
 import { assertActorMayUploadReceiptForRegistration } from "./receipt-upload-authorization";
 import { assertNoPendingReceiptForPayment } from "./receipt-pending.policy";
@@ -33,7 +34,9 @@ export class ReceiptService {
     @Inject(REGISTRATION_PAYMENT_PORT)
     private readonly registrationPaymentPort: IRegistrationPaymentPort,
     @Inject(FinanceReportsService)
-    private readonly financeReportsService: FinanceReportsService
+    private readonly financeReportsService: FinanceReportsService,
+    @Inject(PaymentCaptureLedgerAuthorityService)
+    private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService
   ) {}
 
   async submitReceipt(params: {
@@ -148,6 +151,11 @@ export class ReceiptService {
       payment.status = PaymentStatus.PAID;
       payment.paidAt = new Date();
       await manager.save(PaymentEntity, payment);
+      await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
+        manager,
+        payment,
+        "manual_receipt_approve"
+      );
 
       const registration = await manager.findOne(RegistrationEntity, {
         where: { id: payment.registrationId, tenantId: params.tenantId }

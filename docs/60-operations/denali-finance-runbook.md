@@ -66,6 +66,6 @@ pnpm test:e2e:ci
 ## Pilot limitations
 
 - **One pending receipt per payment** — duplicate upload returns `409` `RECEIPT_PENDING_ALREADY_EXISTS_FOR_PAYMENT`.
-- **`ledger-events`** does not list all settlements (manual approve / online Paid may omit `finance.ledger.*` until phase-2).
+- **`ledger-events`** lists `finance.ledger.double_entry_applied` for manual receipt approve and online Paid capture; leader-only PATCH paths may still differ.
 - **Summary cache** — at most ~30s stale if Redis invalidation fails (falls back to DB on read errors).
 - **`/health/ready`** is Postgres-only; MinIO degradation appears on `GET /health` → `dependencies.storage`.

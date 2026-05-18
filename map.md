@@ -1,7 +1,8 @@
 # Denali Finance Pilot — فهرست و بک‌لاگ مسائل
 
-**اجرای عملیاتی (فازبندی دقیق):** → [`map-phase.md`](./map-phase.md) — **فاز ۷ تا ۱۲** رفع مسائل زیر  
+**اجرای عملیاتی (فازبندی دقیق):** → [`map-phase.md`](./map-phase.md) — **فاز ۷ تا ۱۲** رفع مسائل · **فاز ۱۳–۲۰** بازبینی [`check.md`](./check.md)  
 **لاگ پیشرفت:** [`map.log`](./map.log)  
+**چک‌لیست بازبینی:** [`check.md`](./check.md) → [`map-phase.md` بخش C](./map-phase.md#بخش-c--بازبینی-و-تأیید-از-checkmd)  
 **Runbook:** [`docs/60-operations/denali-finance-runbook.md`](./docs/60-operations/denali-finance-runbook.md)
 
 | # | مسئله | فاز رفع | اولویت |

@@ -24,7 +24,8 @@ test("submitReceipt rejects non-manual payments", async () => {
       upload: async () => ({ key: "k" })
     } as never,
     {} as never,
-    { invalidateSummaryCache: async () => undefined } as never
+    { invalidateSummaryCache: async () => undefined } as never,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never
   );
 
   await assert.rejects(
@@ -76,7 +77,8 @@ test("submitReceipt rejects upload by unrelated member", async () => {
       }
     } as never,
     {} as never,
-    { invalidateSummaryCache: async () => undefined } as never
+    { invalidateSummaryCache: async () => undefined } as never,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never
   );
 
   await assert.rejects(
@@ -129,7 +131,8 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
       }
     } as never,
     {} as never,
-    { invalidateSummaryCache: async () => undefined } as never
+    { invalidateSummaryCache: async () => undefined } as never,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never
   );
 
   await assert.rejects(
@@ -188,7 +191,8 @@ test("submitReceipt deletes uploaded object when save fails", async () => {
       }
     } as never,
     {} as never,
-    { invalidateSummaryCache: async () => undefined } as never
+    { invalidateSummaryCache: async () => undefined } as never,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never
   );
 
   await assert.rejects(

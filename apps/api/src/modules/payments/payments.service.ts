@@ -25,6 +25,7 @@ import {
   getIdempotentEntityManager
 } from "../idempotency/idempotent-transaction.context";
 import { IdempotencyService } from "../idempotency/idempotency.service";
+import { PaymentCaptureLedgerAuthorityService } from "../finance/ledger/payment-capture-ledger-authority.service";
 import { PaymentRefundLedgerAuthorityService } from "../finance/ledger/payment-refund-ledger-authority.service";
 import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
@@ -144,6 +145,8 @@ export class PaymentsService {
     private readonly paymentIntentRegistrationResolver: PaymentIntentRegistrationResolverApplicationService,
     @Inject(PaymentRefundLedgerAuthorityService)
     private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
+    @Inject(PaymentCaptureLedgerAuthorityService)
+    private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService,
     @Inject(PaymentGatewayFactory) private readonly paymentGatewayFactory: PaymentGatewayFactory,
     @Inject(REGISTRATION_PAYMENT_PORT)
     private readonly registrationPaymentPort: IRegistrationPaymentPort,
@@ -682,6 +685,11 @@ export class PaymentsService {
     payment.status = next;
     if (next === PaymentStatus.PAID) {
       payment.paidAt = new Date();
+      await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
+        manager,
+        payment,
+        "online_webhook_paid"
+      );
     } else if (next === PaymentStatus.FAILED) {
       payment.failedAt = new Date();
     } else if (next === PaymentStatus.REFUNDED) {

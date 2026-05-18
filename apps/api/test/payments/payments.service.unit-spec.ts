@@ -180,6 +180,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -316,6 +317,7 @@ test("timeout processor fails stale pending payments and updates metrics", async
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -427,6 +429,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -507,6 +510,7 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -534,6 +538,7 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
+    { emitPaymentCaptureAtPaid: async () => undefined } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
