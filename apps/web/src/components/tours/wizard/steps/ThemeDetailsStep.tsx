@@ -15,10 +15,6 @@ const mutedHelp: CSSProperties = {
   margin: 0,
 };
 
-/**
- * Phase 3 «Theme Details» shell: workspace theme catalog + main/secondary bindings.
- * (Other `basic_info` fields stay on {@link BasicInfoStep}.)
- */
 export function ThemeDetailsStep() {
   const t = useTranslations("tours.new");
   const { control, getValues, setValue, formState: { errors } } = useFormContext<TourCreateFormValues>();

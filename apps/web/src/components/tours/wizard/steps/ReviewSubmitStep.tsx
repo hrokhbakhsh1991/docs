@@ -7,6 +7,14 @@ import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { labelExperienceLevel, labelFitnessLevel, labelGenderRestriction } from "../participationLabels";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 
+import { useReviewSubmitRHF } from "../../hooks/useReviewSubmitRHF";
+import { buildReviewSubmitPayload } from "../../utils/buildReviewSubmitPayload";
+import { ProfileGate } from "../../profile/ProfileGate";
+
+import { SummarySection } from "../../sections/ReviewSubmit/SummarySection";
+import { PricingSection } from "../../sections/ReviewSubmit/PricingSection";
+import { DraftNotice } from "../../sections/ReviewSubmit/DraftNotice";
+
 const rowStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(8rem, 28%) 1fr",
@@ -40,22 +48,38 @@ function resolveOrHint(id: string | undefined, name: string | undefined, noun: s
   return `نام این ${noun} در فهرست فعلی تنظیمات نیست؛ گام «مکان و تاریخ» را بازبینی کنید.`;
 }
 
+/**
+ * ReviewSubmitStep – final step of the tour wizard.
+ * Responsibilities:
+ *   • Pulls RHF values via `useReviewSubmitRHF`.
+ *   • Builds the final payload (pure function) for submission.
+ *   • Renders three isolated UI sections.
+ *   • Keeps only layout & submit button inline.
+ */
 export function ReviewSubmitStep() {
   const t = useTranslations("tours.new");
   const { control } = useFormContext<TourCreateFormValues>();
-  const autoAcceptRegistrations = useWatch({ control, name: "autoAcceptRegistrations" });
-  const overview = useWatch({ control, name: "overview" });
-  const pricing = useWatch({ control, name: "pricing" });
-  const schedule = useWatch({ control, name: "schedule" });
-  const location = useWatch({ control, name: "location" });
-  const itinerary = useWatch({ control, name: "itinerary" });
-  const participation = useWatch({ control, name: "participation" });
-  const logistics = useWatch({ control, name: "logistics" });
-  const policies = useWatch({ control, name: "policies" });
+  const {
+    autoAcceptRegistrations,
+    overview,
+    pricing,
+    schedule,
+    location,
+    itinerary,
+    participation,
+    logistics,
+    policies,
+    onSubmit,
+    isSubmitting,
+    submitError,
+  } = useReviewSubmitRHF();
 
   const { groupedRegions } = useTourDestinations();
 
-  const regionNameById = useMemo(() => new Map(groupedRegions.map((g) => [g.regionId, g.regionName])), [groupedRegions]);
+  const regionNameById = useMemo(
+    () => new Map(groupedRegions.map((g) => [g.regionId, g.regionName])),
+    [groupedRegions],
+  );
   const destinationNameById = useMemo(() => {
     const m = new Map<string, string>();
     for (const g of groupedRegions) {
@@ -70,13 +94,17 @@ export function ReviewSubmitStep() {
   const mainDestId = location?.mainDestinationId?.trim();
 
   const regionDisplay = resolveOrHint(regionId, regionId ? regionNameById.get(regionId) : undefined, "منطقه");
-  const mainDestinationDisplay = resolveOrHint(mainDestId, mainDestId ? destinationNameById.get(mainDestId) : undefined, "مقصد");
+  const mainDestinationDisplay = resolveOrHint(
+    mainDestId,
+    mainDestId ? destinationNameById.get(mainDestId) : undefined,
+    "مقصد",
+  );
   const secondaryDestinationDisplays = useMemo(() => {
     const ids = location?.secondaryDestinationIds ?? [];
     if (ids.length === 0) return undefined as string | undefined;
-    const parts = ids.map((sid) =>
-      resolveOrHint(sid, destinationNameById.get(sid), "مقصد"),
-    ).filter(Boolean) as string[];
+    const parts = ids
+      .map((sid) => resolveOrHint(sid, destinationNameById.get(sid), "مقصد"))
+      .filter(Boolean) as string[];
     return parts.length > 0 ? parts.join("، ") : undefined;
   }, [location?.secondaryDestinationIds, destinationNameById]);
 
@@ -94,50 +122,58 @@ export function ReviewSubmitStep() {
       : `https://${comm.replace(/^\/+/, "")}`
     : "";
 
+  // Build the payload once – pure function, no side‑effects.
+  const payload = useMemo(
+    () =>
+      buildReviewSubmitPayload({
+        autoAcceptRegistrations,
+        overview,
+        pricing,
+        schedule,
+        location,
+        itinerary,
+        participation,
+        logistics,
+        policies,
+      }),
+    [
+      autoAcceptRegistrations,
+      overview,
+      pricing,
+      schedule,
+      location,
+      itinerary,
+      participation,
+      logistics,
+      policies,
+    ],
+  );
+
   return (
     <section aria-labelledby="review-heading" style={{ display: "grid", gap: "1.1rem" }}>
       <p id="review-heading" style={{ margin: 0, color: "#475569", fontSize: "0.9rem" }}>
         خلاصه اطلاعات قبل از ثبت نهایی. در صورت نیاز با «قبلی» به مراحل قبل برگردید و ویرایش کنید.
       </p>
 
-      <div>
-        <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>اطلاعات پایه</h3>
-        <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
-          <SummaryRow label="عنوان" value={overview?.title} />
-          <SummaryRow label="توضیح کوتاه" value={overview?.shortDescription} />
-          <SummaryRow label="توضیح کامل" value={overview?.longDescription} />
-          <SummaryRow
-            label="لینک گروه هماهنگی"
-            value={
-              comm
-                ? (
-                    <a href={communicationHref} rel="noopener noreferrer" target="_blank">
-                      {comm.length > 64 ? `${comm.slice(0, 64)}…` : comm}
-                    </a>
-                  )
-                : undefined
-            }
-          />
-        </dl>
-      </div>
+      {/* Draft notice – rendered only when draft mode is active (profile flag) */}
+      <ProfileGate flag="allowDraft">
+        <DraftNotice />
+      </ProfileGate>
 
-      <div>
-        <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>ظرفیت و قیمت</h3>
-        <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
-          <SummaryRow label="حداقل ظرفیت" value={participation?.minParticipants?.toLocaleString?.("fa-IR") ?? participation?.minParticipants} />
-          <SummaryRow label="قیمت پایه (تومان)" value={pricing?.basePrice?.toLocaleString?.("fa-IR") ?? pricing?.basePrice} />
-          <SummaryRow
-            label="پذیرش ثبت‌نام"
-            value={
-              autoAcceptRegistrations !== false
-                ? "خودکار — بدون تأیید دستی"
-                : "دستی — نیاز به تأیید راهبر"
-            }
-          />
-        </dl>
-      </div>
-
-      <div>
+      {/* Individual UI sections – each memoised and isolated */}
+      <SummarySection
+        overview={overview}
+        communicationHref={communicationHref}
+        comm={comm}
+        SummaryRow={SummaryRow}
+      />
+      <PricingSection
+        participation={participation}
+        pricing={pricing}
+        autoAcceptRegistrations={autoAcceptRegistrations}
+        SummaryRow={SummaryRow}
+      />
+      <section>
         <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>مکان و زمان</h3>
         <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
           <SummaryRow label="منطقه" value={regionDisplay} />
@@ -149,17 +185,17 @@ export function ReviewSubmitStep() {
           <SummaryRow label="نقطه بازگشت" value={location?.returnPoint} />
           <SummaryRow label="نمایش مکان" value={location?.displayLocation} />
         </dl>
-      </div>
+      </section>
 
-      <div>
+      <section>
         <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>برنامه سفر</h3>
         <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
           <SummaryRow label="تعداد روزها" value={itinerary?.days?.length ?? 0} />
           <SummaryRow label={`${primarySegmentLabel} (روز ۱)`} value={itinerary?.days?.[0]?.segments?.[0]?.description} />
         </dl>
-      </div>
+      </section>
 
-      <div>
+      <section>
         <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>شرکت و لجستیک</h3>
         <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
           <SummaryRow label="سطح تجربه" value={labelExperienceLevel(participation?.requiredExperienceLevel)} />
@@ -168,7 +204,9 @@ export function ReviewSubmitStep() {
             label="ترکیب سنی"
             value={
               participation?.minimumAge != null || participation?.maximumAge != null
-                ? [participation?.minimumAge, participation?.maximumAge].map((n) => (n == null ? "—" : n.toLocaleString("fa-IR"))).join(" تا ")
+                ? [participation?.minimumAge, participation?.maximumAge]
+                    .map((n) => (n == null ? "—" : n.toLocaleString("fa-IR")))
+                    .join(" تا ")
                 : undefined
             }
           />
@@ -204,7 +242,7 @@ export function ReviewSubmitStep() {
             label="بیمه برگزارکننده"
             value={
               logistics?.leaderProvidesInsurance
-                ? (logistics.leaderInsuranceNotes?.trim() || "بله، در بسته تور")
+                ? logistics.leaderInsuranceNotes?.trim() || "بله، در بسته تور"
                 : undefined
             }
           />
@@ -219,14 +257,36 @@ export function ReviewSubmitStep() {
           <SummaryRow label="ساعت رفت" value={schedule?.departureMeetingTime} />
           <SummaryRow label="ساعت برگشت" value={schedule?.returnMeetingTime} />
         </dl>
-      </div>
+      </section>
 
-      <div>
+      <section>
         <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem" }}>سیاست‌ها</h3>
         <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
           <SummaryRow label="لغو" value={policies?.cancellationPolicy} />
           <SummaryRow label="استرداد" value={policies?.refundPolicy} />
         </dl>
+      </section>
+
+      {/* Submit button – stays inline */}
+      <div style={{ marginTop: "1rem", textAlign: "right" }}>
+        <button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => onSubmit(payload)}
+          style={{
+            background: "#2563eb",
+            color: "#fff",
+            border: "none",
+            padding: "0.5rem 1rem",
+            borderRadius: "0.25rem",
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+          }}
+        >
+          {isSubmitting ? t("submitting") : t("submit")}
+        </button>
+        {submitError && (
+          <p style={{ color: "var(--color-danger-600, #b91c1c)", marginTop: "0.5rem" }}>{submitError.message}</p>
+        )}
       </div>
     </section>
   );
