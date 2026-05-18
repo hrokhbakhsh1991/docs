@@ -3,6 +3,7 @@ import type {
   DatabaseConfig,
   EnvVariables,
   LogLevel,
+  MinioConfig,
   RedisConfig
 } from "./env.types";
 import { validateEnvironmentOrThrow } from "./config.validation";
@@ -76,9 +77,22 @@ export class ConfigService {
   }
 
   getRedisConfig(): RedisConfig {
+    const password = this.env.REDIS_PASSWORD.trim();
     return {
       host: this.env.REDIS_HOST,
-      port: this.env.REDIS_PORT
+      port: this.env.REDIS_PORT,
+      ...(password ? { password } : {})
+    };
+  }
+
+  getMinioConfig(): MinioConfig {
+    return {
+      endPoint: this.env.MINIO_ENDPOINT,
+      port: this.env.MINIO_PORT,
+      accessKey: this.env.MINIO_ACCESS_KEY,
+      secretKey: this.env.MINIO_SECRET_KEY,
+      useSSL: this.env.MINIO_USE_SSL,
+      bucket: this.env.MINIO_BUCKET
     };
   }
 
@@ -172,6 +186,10 @@ export class ConfigService {
 
   getPaymentsTimeoutIntervalMs(): number {
     return this.env.PAYMENTS_TIMEOUT_INTERVAL_MS;
+  }
+
+  getDefaultPaymentProvider(): string {
+    return this.env.DEFAULT_PAYMENT_PROVIDER;
   }
 
   /** Parsed explicit allowlist from `CORS_ORIGIN` (trimmed, preserved casing). */

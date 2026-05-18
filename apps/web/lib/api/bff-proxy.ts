@@ -193,6 +193,21 @@ export async function proxyBffPost(req: Request, path: string): Promise<NextResp
   });
 }
 
+/** Forwards multipart/form-data (e.g. receipt file upload) without re-encoding as JSON. */
+export async function proxyBffPostMultipart(req: Request, path: string): Promise<NextResponse> {
+  const formData = await req.formData();
+  const headers = new Headers();
+  const idempotencyKey = req.headers.get("idempotency-key");
+  if (idempotencyKey?.trim()) {
+    headers.set("Idempotency-Key", idempotencyKey.trim());
+  }
+  return proxyBffToNext(req, path, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+}
+
 export async function proxyBffPatch(req: Request, path: string): Promise<NextResponse> {
   const requestId = extractRequestId(req);
   let body: unknown;

@@ -216,6 +216,12 @@ export class RequestContextService {
     context.role = role;
   }
 
+  /** Public bootstrap flows (register/waitlist) load tenant modules without a JWT session. */
+  setTenantEnabledModules(modules: readonly string[]): void {
+    const context = this.getContext();
+    context.tenantEnabledModules = modules.length > 0 ? [...modules] : undefined;
+  }
+
   /** Called after JWT membership verification so CASL can mirror DB lifecycle. */
   setWorkspaceAbilityContext(
     status: string,

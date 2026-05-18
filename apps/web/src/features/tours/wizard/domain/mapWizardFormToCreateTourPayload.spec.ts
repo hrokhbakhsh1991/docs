@@ -5,6 +5,7 @@ import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tou
 import { tourCreateSchema } from "@/components/tours/wizard/schemas/tourCreateSchema";
 
 import { mapFormValuesToBackendPayload } from "./mapWizardFormToCreateTourPayload";
+import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 function minimalValidForm(overrides?: Partial<TourCreateFormValues>): TourCreateFormValues {
   const base: TourCreateFormValues = {
@@ -62,6 +63,18 @@ test("mapFormValuesToBackendPayload maps title capacity price and logistics date
   assert.ok(dto.tripDetails?.logistics?.departureDate);
   assert.ok(dto.tripDetails?.logistics?.returnDate);
   assert.equal(dto.lifecycle_status, "Draft");
+});
+
+test("requiresPayment maps to cost_context when enabled in wizard pricing", () => {
+  const v = minimalValidForm({
+    pricing: { basePrice: 2_000_000, requiresPayment: true },
+  });
+  const dto = mapFormValuesToBackendPayload(v);
+  assert.equal(dto.requiresPayment, true);
+  const wire = buildCreateTourPostBody(dto);
+  const cost = wire.cost_context as Record<string, unknown>;
+  assert.equal(cost.requiresPayment, true);
+  assert.equal(cost.totalCost, 2_000_000);
 });
 
 test("overview communicationLink maps onto create dto when non-empty", () => {

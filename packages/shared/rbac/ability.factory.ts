@@ -54,6 +54,12 @@ export type WorkspaceAbilitySubject =
   | "Registration"
   | "Payment"
   | "Reconciliation"
+  /** Manual debt + receipt upload (tenant `finance` module). */
+  | "FinanceManualPayment"
+  /** Member receipt upload for a pending manual payment. */
+  | "FinanceReceipt"
+  /** Owner/admin receipt review queue. */
+  | "FinanceReceiptReview"
   | "Settings"
   | "Audit"
   | "MarketingSegment";
@@ -164,9 +170,20 @@ function applySettingsCapabilityGrantsFromSet(
 function applyModuleCapabilityGrantsFromSet(
   can: AbilityBuilder<AppAbility>["can"],
   caps: ReadonlySet<WorkspaceCapability>,
+  workspaceRole: WorkspaceRole | null,
 ): void {
   if (caps.has("module.finance")) {
     can("read", "Reconciliation");
+    can("read", "FinanceManualPayment");
+    can("create", "FinanceReceipt");
+    if (
+      workspaceRole === WorkspaceRole.Owner ||
+      workspaceRole === WorkspaceRole.Admin
+    ) {
+      can("create", "FinanceManualPayment");
+      can("read", "FinanceReceiptReview");
+      can("update", "FinanceReceiptReview");
+    }
   }
   if (caps.has("module.form_builder")) {
     can("update", "TourTripDetails");
@@ -182,7 +199,7 @@ function grantLeaderActive(
   can("read", "UserMembership");
   applyTourCapabilityGrantsFromSet(can, caps);
   applySettingsCapabilityGrantsFromSet(can, cannot, caps);
-  applyModuleCapabilityGrantsFromSet(can, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps, WorkspaceRole.Leader);
   can("read", "Registration");
   can("create", "Registration");
   can("update", "Registration");
@@ -209,7 +226,7 @@ function grantMemberActive(
   can("read", "Workspace");
   applyTourCapabilityGrantsFromSet(can, caps);
   applySettingsCapabilityGrantsFromSet(can, cannot, caps);
-  applyModuleCapabilityGrantsFromSet(can, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps, WorkspaceRole.Member);
   can("create", "Registration");
   can("read", "Registration");
   can("update", "Registration");
@@ -232,7 +249,7 @@ function grantViewerActive(
   can("read", "Workspace");
   applyTourCapabilityGrantsFromSet(can, caps);
   applySettingsCapabilityGrantsFromSet(can, cannot, caps);
-  applyModuleCapabilityGrantsFromSet(can, caps);
+  applyModuleCapabilityGrantsFromSet(can, caps, WorkspaceRole.Viewer);
   can("read", "Registration");
   can("read", "UserMembership");
   can("read", "Payment");
@@ -274,6 +291,9 @@ export function defineAbilityFor(userContext: UserAbilityContext): AppAbility {
   applyMarketingCapabilityGrantsFromSet(can, effectiveCaps);
 
   const workspaceRole = tryParseWorkspaceRole(userContext.role);
+  if (workspaceRole === WorkspaceRole.Owner || workspaceRole === WorkspaceRole.Admin) {
+    applyModuleCapabilityGrantsFromSet(can, effectiveCaps, workspaceRole);
+  }
   switch (workspaceRole) {
     case WorkspaceRole.Owner:
       grantOwnerActive(can);

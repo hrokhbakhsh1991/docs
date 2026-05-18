@@ -23,9 +23,9 @@ const path = require('path');
 const vm = require('vm');
 
 // Resolve paths relative to the repository root
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const REPO_ROOT = path.resolve(__dirname, '..');
 const INPUT_PATH = path.join(REPO_ROOT, 'TEST.MD');
-const OUTPUT_PATH = path.join(REPO_ROOT, 'TEST-REPORT.MD');
+const OUTPUT_PATH = path.join(REPO_ROOT, 'test-report.md');
 
 /**
  * Read a file synchronously, exiting on failure.

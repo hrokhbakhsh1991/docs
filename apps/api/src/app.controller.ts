@@ -10,6 +10,7 @@ import type { DataSource } from "typeorm";
 import { LoggerService } from "./common/logger/logger.service";
 import { RequestContextService } from "./common/request-context/request-context.service";
 import { RuntimeSchemaGuardService } from "./database/runtime-schema-guard.service";
+import { StorageHealthService } from "./infra/storage/storage-health.service";
 
 @Controller()
 export class AppController {
@@ -18,20 +19,34 @@ export class AppController {
     private readonly requestContextService: RequestContextService,
     @Inject(LoggerService) private readonly loggerService: LoggerService,
     @InjectDataSource() private readonly dataSource: DataSource,
-    @Optional() private readonly runtimeSchemaGuardService?: RuntimeSchemaGuardService
+    @Optional() private readonly runtimeSchemaGuardService?: RuntimeSchemaGuardService,
+    @Optional() private readonly storageHealthService?: StorageHealthService
   ) {}
 
   @Get("health")
-  health() {
+  async health() {
     this.loggerService.info("health check requested");
 
-    const degraded = this.runtimeSchemaGuardService?.isDegraded() ?? false;
+    const schemaDegraded = this.runtimeSchemaGuardService?.isDegraded() ?? false;
+    const storage = (await this.storageHealthService?.check()) ?? {
+      status: "skipped" as const,
+      reason: "storage_health_unconfigured"
+    };
+    const storageDegraded = storage.status === "unavailable";
+    const degraded = schemaDegraded || storageDegraded;
+
     return {
       status: degraded ? "degraded" : "ok",
       requestId: this.requestContextService.getRequestId(),
-      ...(degraded
+      dependencies: {
+        storage: storage.status,
+        ...(storage.bucket ? { storage_bucket: storage.bucket } : {}),
+        ...(storage.reason ? { storage_reason: storage.reason } : {})
+      },
+      ...(schemaDegraded
         ? { degraded_reasons: { missing_columns: this.runtimeSchemaGuardService?.getMissingColumns() ?? [] } }
-        : {})
+        : {}),
+      ...(storageDegraded ? { degraded_reasons_storage: storage.reason ?? storage.status } : {})
     };
   }
 

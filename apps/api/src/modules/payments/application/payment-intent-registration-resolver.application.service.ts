@@ -1,11 +1,19 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { EntityManager } from "typeorm";
 import { IsNull, Repository, type FindOptionsWhere } from "typeorm";
+import { capabilitiesForTenantModules } from "@repo/shared";
 import { registrationWhereForActor } from "../../../common/security/ownership-scope";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
 import { tryParseWorkspaceUserRole, UserRole } from "../../../common/auth/user-role.enum";
 import { RegistrationEntity } from "../../registrations/registration.entity";
+import { TourEntity } from "../../tours/entities/tour.entity";
 import { UserEntity } from "../../identity/entities/user.entity";
 import type { CreatePaymentIntentDto } from "../dto/create-payment-intent.dto";
 import { tenantContextMissingError } from "../../../common/errors/error-response-builders";
@@ -74,6 +82,47 @@ export class PaymentIntentRegistrationResolverApplicationService {
         error: {
           code: "RESOURCE_NOT_FOUND",
           message: "Registration not found"
+        }
+      });
+    }
+
+    const tenantModules = this.requestContextService.tryGetTenantEnabledModules() ?? [];
+    const financeCaps = capabilitiesForTenantModules(tenantModules);
+    if (!financeCaps.includes("module.finance")) {
+      throw new BadRequestException({
+        error: {
+          code: "FINANCE_MODULE_REQUIRED",
+          message: "Online payment intents require the finance module for this workspace."
+        }
+      });
+    }
+
+    const tour = await manager.findOne(TourEntity, {
+      where: { id: registration.tourId, tenantId: registration.tenantId },
+      select: { id: true, tenantId: true, costContext: true }
+    });
+    if (!tour) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Tour not found for registration"
+        }
+      });
+    }
+
+    const costContext = tour.costContext;
+    const requiresPayment =
+      costContext != null &&
+      typeof costContext === "object" &&
+      Boolean(
+        (costContext as { requiresPayment?: boolean }).requiresPayment ??
+          (costContext as { requires_payment?: boolean }).requires_payment
+      );
+    if (!requiresPayment) {
+      throw new BadRequestException({
+        error: {
+          code: "PAYMENT_NOT_REQUIRED",
+          message: "This tour does not require payment; payment intents are not allowed."
         }
       });
     }

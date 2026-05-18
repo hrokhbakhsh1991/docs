@@ -201,6 +201,7 @@ export function mapFormValuesToBackendPayload(formValues: TourCreateFormValues):
     destinationId: trimToUndefined(formValues.location.mainDestinationId) ?? null,
     capacity: Number.isInteger(resolvedCapacity) && resolvedCapacity > 0 ? resolvedCapacity : 1,
     price: formValues.pricing.basePrice ?? 0,
+    ...(formValues.pricing.requiresPayment === true ? { requiresPayment: true } : {}),
     lifecycle_status: "Draft",
   };
 }

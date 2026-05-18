@@ -15,4 +15,14 @@ export type DatabaseConfig = {
 export type RedisConfig = {
   host: EnvVariables["REDIS_HOST"];
   port: EnvVariables["REDIS_PORT"];
+  password?: string;
+};
+
+export type MinioConfig = {
+  endPoint: EnvVariables["MINIO_ENDPOINT"];
+  port: EnvVariables["MINIO_PORT"];
+  accessKey: EnvVariables["MINIO_ACCESS_KEY"];
+  secretKey: EnvVariables["MINIO_SECRET_KEY"];
+  useSSL: EnvVariables["MINIO_USE_SSL"];
+  bucket: EnvVariables["MINIO_BUCKET"];
 };

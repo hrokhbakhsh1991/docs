@@ -98,6 +98,7 @@ import {
 import { RegistrationsReadRepository } from "./repositories/registrations-read.repository";
 import type { IRegistrationsReadRepository } from "./repositories/registrations-read.repository.interface";
 import { PricingEngineService } from "../pricing/pricing-engine.service";
+import { IRegistrationPaymentPort } from "./ports/registration-payment.port";
 
 /**
  * **Services = orchestration + policy** (ownership scopes, transitions, validation).
@@ -107,7 +108,7 @@ import { PricingEngineService } from "../pricing/pricing-engine.service";
  * Decomposition inventory: `architecture/service-decomposition.map.ts` (`REGISTRATIONS_GOD_METHODS`).
  */
 @Injectable()
-export class RegistrationsService {
+export class RegistrationsService implements IRegistrationPaymentPort {
   private readonly logger = new Logger(RegistrationsService.name);
   private registrationCreatedTotal = 0;
   private registrationWaitlistedTotal = 0;
@@ -357,9 +358,17 @@ export class RegistrationsService {
   }
 
   /**
-   * Authenticated shortcut: body is only `{ tourId }`. Participant profile fields are derived from the user row and a stable synthetic phone for duplicate detection.
+   * Builds participant fields for authenticated booking / placement (JWT user profile).
    */
-  async createBooking(tourId: string): Promise<RegistrationResponseDto> {
+  async resolveAuthenticatedBookingInput(tourId: string): Promise<{
+    tourId: string;
+    participantFullName: string;
+    participantContactPhone: string;
+    transportMode: string;
+    entryMode: string;
+    telegramUserId?: string;
+    telegramUsername?: string;
+  }> {
     const tenantId = this.requestContextService.resolveEffectiveTenantId();
     const userId = this.requestContextService.getUserId();
     if (!tenantId || !userId) {
@@ -385,18 +394,27 @@ export class RegistrationsService {
       user.email.split("@")[0] ??
       "Participant";
 
-    const participantContactPhone = syntheticBookingContactPhone(userId);
-
-    const createDto = {
+    return {
       tourId,
       participantFullName,
-      participantContactPhone,
+      participantContactPhone: syntheticBookingContactPhone(userId),
       transportMode: RegistrationTransportModeDto.GROUP_VEHICLE,
       entryMode: RegistrationEntryModeDto.WEB,
       telegramUserId: user.telegramUserId ?? undefined,
       telegramUsername: undefined
-    } as CreateRegistrationDto;
+    };
+  }
 
+  /**
+   * @deprecated Prefer {@link RegistrationPlacementOrchestrator.createAuthenticatedBooking} for payment-at-booking tours.
+   */
+  async createBooking(tourId: string): Promise<RegistrationResponseDto> {
+    const input = await this.resolveAuthenticatedBookingInput(tourId);
+    const createDto = {
+      ...input,
+      transportMode: input.transportMode as RegistrationTransportModeDto,
+      entryMode: input.entryMode as RegistrationEntryModeDto
+    } as CreateRegistrationDto;
     return this.createRegistration(createDto);
   }
 
@@ -1383,6 +1401,10 @@ export class RegistrationsService {
                   : "Pending",
               amount: entity.paymentMetadata.amount,
               currency: entity.paymentMetadata.currency,
+              method:
+                typeof entity.paymentMetadata.method === "string"
+                  ? entity.paymentMetadata.method
+                  : "Online",
               provider: entity.paymentMetadata.provider,
               providerPaymentId:
                 typeof entity.paymentMetadata.providerPaymentId === "string"

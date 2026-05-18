@@ -4,8 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  NotFoundException,
-  forwardRef
+  NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, EntityManager, IsNull, Not, Repository } from "typeorm";
@@ -31,7 +30,6 @@ import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { UserRole } from "../../common/auth/user-role.enum";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
-import { isOptimisticLockVersionMismatchError } from "../../common/typeorm/optimistic-lock-version-mismatch";
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import {
@@ -40,7 +38,6 @@ import {
 } from "../registrations/registration.entity";
 import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
 import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-booking-price-snapshot";
-import { TourEntity } from "../tours/entities/tour.entity";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
@@ -55,14 +52,7 @@ import {
   assertAllowedPaymentIntentLifecycleTransition,
   PaymentIntentLifecycleStatus
 } from "./domain/payment-intent-lifecycle";
-import {
-  isCapacityConsumingRegistrationStatus,
-  registrationStatusToOutboxEventType
-} from "../registrations/domain/registration-outbox-event-type";
-import {
-  emitBookingFinalizationPipelineEvent,
-  emitRegistrationStatusChangedEvent
-} from "../registrations/registrations-effects";
+import { emitBookingFinalizationPipelineEvent } from "../registrations/registrations-effects";
 import {
   assertBookingFinalizationAtLeast,
   assertSingleStepBookingFinalizationAdvance,
@@ -70,9 +60,9 @@ import {
   bookingFinalizationPhaseFromFacts,
   type BookingFinalizationFacts
 } from "../registrations/domain/booking-finalization-pipeline";
-import { validateStatusTransition } from "../registrations/registrations-policy";
 import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
-import { RegistrationsService } from "../registrations/registrations.service";
+import { REGISTRATION_PAYMENT_PORT, IRegistrationPaymentPort } from "../registrations/ports/registration-payment.port";
+import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
@@ -84,6 +74,7 @@ function pickFinancialPaymentSnapshot(payment: PaymentEntity): Record<string, un
     registrationId: payment.registrationId,
     amount: payment.amount,
     currency: payment.currency,
+    method: payment.method,
     provider: payment.provider,
     providerPaymentId: payment.providerPaymentId,
     status: payment.status,
@@ -154,8 +145,9 @@ export class PaymentsService {
     @Inject(PaymentRefundLedgerAuthorityService)
     private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
     @Inject(PaymentGatewayFactory) private readonly paymentGatewayFactory: PaymentGatewayFactory,
-    @Inject(forwardRef(() => RegistrationsService))
-    private readonly registrationsService: RegistrationsService
+    @Inject(REGISTRATION_PAYMENT_PORT)
+    private readonly registrationPaymentPort: IRegistrationPaymentPort,
+    @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
   ) {}
 
   private async loadBookingFinalizationFacts(
@@ -711,7 +703,7 @@ export class PaymentsService {
         metadata: { paymentId: payment.id }
       });
 
-      await this.transitionRegistrationForPayment(
+      await this.registrationPaymentPort.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.ACCEPTED_PAID,
@@ -759,7 +751,7 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.FAILED) {
-      await this.transitionRegistrationForPayment(
+      await this.registrationPaymentPort.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.REJECTED,
@@ -770,7 +762,7 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.REFUNDED) {
-      await this.transitionRegistrationForPayment(
+      await this.registrationPaymentPort.transitionRegistrationForPayment(
         manager,
         registration,
         RegistrationStatus.REFUNDED,
@@ -801,156 +793,17 @@ export class PaymentsService {
       }
     });
 
+    if (
+      next === PaymentStatus.PAID ||
+      next === PaymentStatus.FAILED ||
+      next === PaymentStatus.REFUNDED
+    ) {
+      await this.financeReportsService.invalidateSummaryCache(saved.tenantId);
+    }
+
     return saved;
   }
 
-  private async transitionRegistrationForPayment(
-    manager: EntityManager,
-    registration: RegistrationEntity,
-    targetStatus: RegistrationStatus,
-    actorId: string
-  ): Promise<RegistrationEntity> {
-    const previousStatus = registration.status;
-    if (previousStatus === targetStatus) {
-      return registration;
-    }
-    validateStatusTransition(previousStatus, targetStatus, registration.paymentStatus);
-    const affectsAcceptedCounter =
-      isCapacityConsumingRegistrationStatus(previousStatus) ||
-      isCapacityConsumingRegistrationStatus(targetStatus);
-    const lockedTour = affectsAcceptedCounter
-      ? await this.requireTourInTenantForUpdate(
-          manager,
-          registration.tourId,
-          registration.tenantId
-        )
-      : null;
-    await this.ensureCapacityForAcceptance(
-      manager,
-      registration,
-      targetStatus,
-      lockedTour
-    );
-    registration.status = targetStatus;
-    if (lockedTour) {
-      this.applyAcceptedCounterDelta(lockedTour, previousStatus, targetStatus);
-      await manager.save(lockedTour);
-    }
-    let saved: RegistrationEntity;
-    try {
-      saved = await manager.save(registration);
-    } catch (err: unknown) {
-      if (isOptimisticLockVersionMismatchError(err)) {
-        throw new ConflictException({
-          error: {
-            code: "REGISTRATION_ROW_VERSION_CONFLICT",
-            message: "Booking changed concurrently — reload the registration, then try again."
-          }
-        });
-      }
-      throw err;
-    }
-    if (
-      isCapacityConsumingRegistrationStatus(previousStatus) &&
-      !isCapacityConsumingRegistrationStatus(targetStatus)
-    ) {
-      await this.promoteNextWaitlistItem(manager, saved, lockedTour);
-    }
-    await emitRegistrationStatusChangedEvent({
-      manager,
-      outboxService: this.outboxService,
-      registration: saved,
-      actorId,
-      previousStatus,
-      newStatus: targetStatus,
-      eventType: registrationStatusToOutboxEventType(targetStatus),
-      source: "payment_flow"
-    });
-    return saved;
-  }
-
-  private async requireTourInTenantForUpdate(
-    manager: EntityManager,
-    tourId: string,
-    tenantId: string
-  ): Promise<TourEntity> {
-    const tour = await manager
-      .getRepository(TourEntity)
-      .createQueryBuilder("tour")
-      .setLock("pessimistic_write")
-      .where("tour.id = :tourId", { tourId })
-      .andWhere("tour.tenant_id = :tenantId", { tenantId })
-      .getOne();
-
-    if (!tour) {
-      throw new NotFoundException(tenantScopedResourceNotFoundError());
-    }
-    return tour;
-  }
-
-  private async ensureCapacityForAcceptance(
-    manager: EntityManager,
-    registration: RegistrationEntity,
-    targetStatus: RegistrationStatus,
-    lockedTour?: TourEntity | null
-  ): Promise<void> {
-    if (
-      isCapacityConsumingRegistrationStatus(registration.status) ||
-      !isCapacityConsumingRegistrationStatus(targetStatus)
-    ) {
-      return;
-    }
-
-    const tour =
-      lockedTour ??
-      (await this.requireTourInTenantForUpdate(
-        manager,
-        registration.tourId,
-        registration.tenantId
-      ));
-
-    if (tour.acceptedCount >= tour.totalCapacity) {
-      throw new ConflictException({
-        error: {
-          code: "CAPACITY_FULL",
-          message: "Tour capacity reached. Cannot accept additional registrations."
-        }
-      });
-    }
-  }
-
-  private applyAcceptedCounterDelta(
-    tour: TourEntity,
-    previousStatus: RegistrationStatus,
-    targetStatus: RegistrationStatus
-  ): void {
-    const wasAccepted = isCapacityConsumingRegistrationStatus(previousStatus);
-    const willBeAccepted = isCapacityConsumingRegistrationStatus(targetStatus);
-    if (wasAccepted === willBeAccepted) {
-      return;
-    }
-    if (willBeAccepted) {
-      tour.acceptedCount += 1;
-      return;
-    }
-    tour.acceptedCount = Math.max(0, tour.acceptedCount - 1);
-  }
-
-  private async promoteNextWaitlistItem(
-    manager: EntityManager,
-    registration: RegistrationEntity,
-    lockedTour?: TourEntity | null
-  ): Promise<boolean> {
-    return this.registrationsService.promoteNextWaitlistItemForPaymentFlow(
-      manager,
-      registration,
-      lockedTour ?? null
-    );
-  }
-
-  /**
-   * Webhooks must ack (200) for benign provider noise; invalid FSM transitions are ignored, not 409.
-   */
   private isWebhookIgnoredInvalidPaymentTransition(error: unknown): boolean {
     if (!(error instanceof ConflictException)) {
       return false;
@@ -970,6 +823,7 @@ export class PaymentsService {
       registrationId: entity.registrationId,
       amount: entity.amount,
       currency: entity.currency,
+      method: entity.method,
       provider: entity.provider,
       providerPaymentId: entity.providerPaymentId,
       status: entity.status,

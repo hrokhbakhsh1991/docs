@@ -14,13 +14,20 @@ import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/b
 import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
 import { noopPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 
-const noopRegistrationsForPaymentFlow = {
+const noopRegistrationPaymentPort = {
   async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
     return false;
+  },
+  async transitionRegistrationForPayment(
+    _manager: unknown,
+    registration: RegistrationEntity,
+    targetStatus: RegistrationStatus
+  ): Promise<RegistrationEntity> {
+    registration.status = targetStatus;
+    return registration;
   }
-} as unknown as RegistrationsService;
+};
 
 /**
  * Stubs `EntityManager.exists` for tests that exercise booking finalization / payment capture.
@@ -174,7 +181,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     {} as never,
     noopPaymentRefundLedgerForTests,
     noopPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   await service.processWebhook({
@@ -309,7 +317,8 @@ test("timeout processor fails stale pending payments and updates metrics", async
     {} as never,
     noopPaymentRefundLedgerForTests,
     noopPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   const timedOut = await service.failTimedOutPendingPayments();
@@ -419,7 +428,8 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     {} as never,
     noopPaymentRefundLedgerForTests,
     noopPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   const first = await service.processWebhook({
@@ -498,7 +508,8 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     noopPaymentRefundLedgerForTests,
     noopPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   const result = await service.listPayments("TENANT-A");
@@ -524,7 +535,8 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     noopPaymentRefundLedgerForTests,
     noopPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   await assert.rejects(

@@ -285,7 +285,10 @@ export class TenantSessionBindingService implements OnModuleInit {
 
     const inTxRows = await this.readPostgresTxStateWithRecovery(queryRunner, originalQuery);
 
-    const inPostgresTx = inTxRows[0]?.in_tx === true;
+    // TypeORM may mark a transaction active before the first SQL hits Postgres; trusting
+    // only txid_current_if_assigned() would autostart a binding-only tx that release() rolls back.
+    const inPostgresTx =
+      queryRunner.isTransactionActive || inTxRows[0]?.in_tx === true;
     if (!inPostgresTx) {
       // Autostart a tx so set_config(..., true) remains LOCAL to this unit of work.
       qr[BYPASS_TENANT_ENSURE] = true;
@@ -547,9 +550,18 @@ export class TenantSessionBindingService implements OnModuleInit {
       const selectsTours =
         normalized.includes(" from tours ") || normalized.includes(" from \"tours\" ");
       const byPrimaryId =
-        normalized.includes(" where id =") || normalized.includes(" where \"id\" =");
+        normalized.includes(" where id =") ||
+        normalized.includes(" where \"id\" =") ||
+        normalized.includes(" where t.id =") ||
+        normalized.includes(" where \"t\".\"id\" =");
       const deletedNull = normalized.includes("deleted_at is null");
-      return selectsTours && byPrimaryId && deletedNull;
+      const referencesTenants =
+        normalized.includes(" tenants ") || normalized.includes(" from \"tenants\" ");
+      const allowedTenantJoin =
+        !referencesTenants ||
+        normalized.includes(" join tenants ") ||
+        normalized.includes(" join \"tenants\" ");
+      return selectsTours && byPrimaryId && deletedNull && allowedTenantJoin;
     }
     if (reason === "health_ready_probe") {
       return /^select 1(?:\s+as\s+\w+)?\s*;?$/.test(normalized);

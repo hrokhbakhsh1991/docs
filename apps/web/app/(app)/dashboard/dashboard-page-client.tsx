@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { useFinanceModuleAccess } from "@/lib/finance/use-finance-module-access";
 import { useLeaderDashboardSummary } from "@/lib/hooks/useLeaderDashboardSummary";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
+
+import { FinanceWorkspaceSummaryCard } from "./finance-workspace-summary-card";
 import {
   Badge,
   Button,
@@ -30,6 +33,8 @@ export function DashboardPageClient() {
   const enabled = liveApi && isHydrated && isAuthenticated;
 
   const summaryQuery = useLeaderDashboardSummary(leader && enabled);
+  const { hasFinanceModule, canReviewReceipts } = useFinanceModuleAccess();
+  const showFinanceSummary = leader && enabled && hasFinanceModule;
 
   if (liveApi && !isHydrated) {
     return (
@@ -159,6 +164,11 @@ export function DashboardPageClient() {
             </CardFooter>
           </Card>
         </li>
+        {showFinanceSummary ? (
+          <li className={styles.gridItem}>
+            <FinanceWorkspaceSummaryCard canReviewReceipts={canReviewReceipts} />
+          </li>
+        ) : null}
         <li className={styles.gridItem}>
           <Card className={styles.gridCard}>
             <CardHeader>

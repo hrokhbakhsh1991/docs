@@ -33,19 +33,24 @@ import { TenantAbuseModule } from "./common/tenant-abuse/tenant-abuse.module";
 import { TenantUsageModule } from "./common/billing/tenant-usage.module";
 import { EmailModule } from "./common/email/email.module";
 import { OtpModule } from "./modules/auth/otp.module";
+import { RedisInfraModule } from "./infra/redis/redis.module";
+import { REDIS_CLIENT } from "./infra/redis/redis.constants";
+import { StorageModule } from "./infra/storage/storage.module";
+import Redis from "ioredis";
 
 @Module({
   imports: [
     ConfigModule,
+    RedisInfraModule,
+    StorageModule,
     EmailModule,
     OtpModule,
     TenantAbuseModule,
     TenantUsageModule,
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const redis = config.getRedisConfig();
+      imports: [ConfigModule, RedisInfraModule],
+      inject: [ConfigService, REDIS_CLIENT],
+      useFactory: (config: ConfigService, redisClient: Redis) => {
         const isTest = config.getNodeEnv() === "test";
         return {
           throttlers: [
@@ -70,10 +75,7 @@ import { OtpModule } from "./modules/auth/otp.module";
               blockDuration: 1
             }
           ],
-          storage: new ThrottlerStorageRedisService({
-            host: redis.host,
-            port: redis.port
-          }),
+          storage: new ThrottlerStorageRedisService(redisClient),
           getTracker: (req: Record<string, unknown>) =>
             resolveThrottleClientIp(req, {
               trustedProxyCidrs: config.getTrustedProxyCidrs()
@@ -95,8 +97,6 @@ import { OtpModule } from "./modules/auth/otp.module";
     ToursModule,
     OutboxModule,
     JobSchedulerModule,
-    // DI-DIAGNOSTIC: RegistrationsModule and PaymentsModule are mutually dependent via forwardRef in submodules; bootstrap stability depends on complete DI metadata at runtime.
-    // TODO(FREEZE-BLOCKER): Re-validate module initialization order for RegistrationsModule/PaymentsModule during E2E bootstrap to rule out transient undefined injections.
     RegistrationsModule,
     PaymentsModule,
     ReconciliationModule,

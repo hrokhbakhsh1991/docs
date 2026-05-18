@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsNumber, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsNumber, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
 
 /**
  * Whitelisted `cost_context` JSONB fields for create/update (avoids silent strip of structured pricing).
@@ -25,4 +25,12 @@ export class CostContextDto {
   @IsString()
   @MaxLength(2048)
   location?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: "Force payment intent creation at registration for this tour. Requires module.finance capability."
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiresPayment?: boolean;
 }

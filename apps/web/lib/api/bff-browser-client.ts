@@ -104,6 +104,24 @@ export const bffBrowserClient = {
     return parseJsonResponse<T>(res, options);
   },
 
+  async postForm<T>(path: string, formData: FormData, options?: ApiRequestOptions): Promise<T> {
+    const headers = new Headers();
+    const idem = options?.idempotencyKey;
+    if (idem === true && typeof crypto !== "undefined" && crypto.randomUUID) {
+      headers.set("Idempotency-Key", crypto.randomUUID());
+    } else if (typeof idem === "string" && idem.trim()) {
+      headers.set("Idempotency-Key", idem.trim());
+    }
+    const res = await fetch(path, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers,
+      body: formData,
+    });
+    return parseJsonResponse<T>(res, options);
+  },
+
   async patch<T>(path: string, body: unknown, options?: ApiRequestOptions): Promise<T> {
     const res = await fetch(path, {
       method: "PATCH",

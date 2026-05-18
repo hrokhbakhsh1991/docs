@@ -46,6 +46,7 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Payments")
 @Controller("api/v2")
+@RequireCapability("module.finance")
 export class PaymentsController {
   constructor(
     @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
@@ -82,7 +83,6 @@ export class PaymentsController {
   @Get("admin/payments")
   @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
   @Roles(UserRole.Admin)
-  @RequireCapability("module.finance")
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Payment"))
   @ApiBearerAuth()
   @ApiOperation({ summary: "Admin list of recent payments" })

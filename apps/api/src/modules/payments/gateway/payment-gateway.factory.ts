@@ -21,6 +21,17 @@ export class PaymentGatewayFactory {
 
   forProvider(paymentProvider: string): IPaymentGateway {
     const p = paymentProvider.trim().toLowerCase();
+    if (
+      this.config.getNodeEnv() === "production" &&
+      (p === "mock_provider" || p === "mock" || p === "")
+    ) {
+      throw new BadRequestException({
+        error: {
+          code: "PAYMENT_PROVIDER_NOT_ALLOWED",
+          message: "Mock payment provider is disabled in production"
+        }
+      });
+    }
     if (p === "stripe") {
       return this.config.getStripeSecretKey().length > 0 ? this.stripeLive : this.stripePlaceholder;
     }

@@ -20,6 +20,8 @@ import {
 } from "./jwt-test-keys";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { requestContextStorage } from "../../src/common/request-context/request-context";
+import { PaymentsService } from "../../src/modules/payments/payments.service";
+import { PaymentEntity, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
 import {
   RegistrationEntity,
@@ -39,6 +41,7 @@ let container: StartedPostgreSqlContainer;
 let app: INestApplication;
 let dataSource: DataSource;
 let registrationsService: RegistrationsService;
+let paymentsService: PaymentsService;
 let e2eUnavailableReason: string | null = null;
 
 function postSignedPaymentWebhook(body: Record<string, unknown>) {
@@ -106,7 +109,8 @@ async function seedE2eTenant(ds: DataSource): Promise<void> {
     id: TENANT_ID,
     name: "Registrations E2E Tenant",
     description: "Seeded for registrations.e2e-spec.ts",
-    subdomain: "reg-e2e"
+    subdomain: "reg-e2e",
+    enabledModules: ["finance"]
   });
 }
 
@@ -182,6 +186,7 @@ before(async () => {
   app = await createE2EApp();
   dataSource = app.get(DataSource);
   registrationsService = app.get(RegistrationsService);
+  paymentsService = app.get(PaymentsService);
 });
 
 beforeEach(async () => {
@@ -352,6 +357,41 @@ test("webhook returns 200 even when transition is invalid", async () => {
     status: "Cancelled"
   });
   assert.equal(webhookResponse.status, 200);
+});
+
+test("failTimedOutPendingPayments marks stale pending payment as failed", async () => {
+  if (e2eUnavailableReason) {
+    return;
+  }
+  const tour = await createTour(2);
+  const registerResponse = await publicRegister(tour.id, 1);
+  assert.equal(registerResponse.status, 201);
+  const registrationId = registerResponse.body.registration.id as string;
+  const providerPaymentId = registerResponse.body.paymentIntent.providerPaymentId as string;
+
+  const payment = await dataSource.getRepository(PaymentEntity).findOneByOrFail({
+    tenantId: TENANT_ID,
+    providerPaymentId
+  });
+  assert.equal(payment.status, PaymentStatus.PENDING);
+
+  const staleCreatedAt = new Date(Date.now() - 20 * 60_000);
+  await dataSource
+    .getRepository(PaymentEntity)
+    .update({ id: payment.id }, { createdAt: staleCreatedAt });
+
+  const timedOut = await paymentsService.failTimedOutPendingPayments();
+  assert.equal(timedOut >= 1, true);
+
+  const refreshedPayment = await dataSource.getRepository(PaymentEntity).findOneByOrFail({
+    id: payment.id
+  });
+  assert.equal(refreshedPayment.status, PaymentStatus.FAILED);
+
+  const registration = await dataSource.getRepository(RegistrationEntity).findOneByOrFail({
+    id: registrationId
+  });
+  assert.equal(registration.status, RegistrationStatus.REJECTED);
 });
 
 test("duplicate webhook event is deduplicated and remains 200", async () => {

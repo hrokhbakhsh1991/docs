@@ -10,6 +10,7 @@ import { Badge, Button, FormField, Modal, Textarea } from "@tour/ui";
 import { useAuth } from "@/lib/auth/auth-context";
 import { AbilityAction } from "@/lib/casl/ability-actions";
 import { useAbility } from "@/lib/casl/ability-provider";
+import { useFinanceModuleAccess } from "@/lib/finance/use-finance-module-access";
 import { userKeys } from "@/lib/query-keys";
 import { getUserById } from "@/lib/services/users.service";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
@@ -20,6 +21,8 @@ import {
   roleVariant,
 } from "./users-page-logic";
 import { USERS_ROUTE_COPY } from "./users-copy";
+import { AdminReceiptReviewPanel } from "./admin-receipt-review-panel";
+import { PaymentReceiptUploadPanel } from "./payment-receipt-upload-panel";
 import styles from "./user-directory-detail-modal.module.css";
 
 const m = USERS_ROUTE_COPY.list.memberDetailModal;
@@ -54,9 +57,13 @@ export function UserDirectoryDetailModal({ open, userId, onClose }: UserDirector
   const router = useRouter();
   const ability = useAbility();
   const { user: sessionUser } = useAuth();
+  const { hasFinanceModule, canListManualPayments, canReviewReceipts } =
+    useFinanceModuleAccess();
   const tenantScope = sessionUser?.tenantId ?? "anonymous";
 
   const canDocuments = ability.can(AbilityAction.Read, "UserDirectoryDocuments");
+  const showFinancePanels =
+    hasFinanceModule && (canListManualPayments || canReviewReceipts);
   const canInternalNotes = ability.can(AbilityAction.Read, "UserDirectoryInternalNotes");
 
   const [tab, setTab] = useState<DetailTab>("general");
@@ -151,6 +158,14 @@ export function UserDirectoryDetailModal({ open, userId, onClose }: UserDirector
             <div>
               <p className={styles.muted}>{m.documentsPlaceholder}</p>
               <p className={styles.hint}>{m.documentsHint}</p>
+              {showFinancePanels ? (
+                <>
+                  <PaymentReceiptUploadPanel />
+                  <AdminReceiptReviewPanel />
+                </>
+              ) : (
+                <p className={styles.muted}>{m.documentsFinanceModuleRequired}</p>
+              )}
             </div>
           ) : null}
           {tab === "notes" && canInternalNotes ? (

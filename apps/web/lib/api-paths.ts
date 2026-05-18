@@ -35,6 +35,20 @@ export const API = {
   user: (id: string) => `/api/v2/users/${encodeURIComponent(id)}`,
   userRoleHistory: (id: string) => `/api/v2/users/${encodeURIComponent(id)}/role-history`,
   paymentsIntent: "/api/v2/payments/intent",
+  financePayments: "/api/v2/finance/payments",
+  financePaymentsManual: "/api/v2/finance/payments/manual",
+  financePaymentReceipt: (paymentId: string) =>
+    `/api/v2/finance/payments/${encodeURIComponent(paymentId)}/receipt`,
+  adminFinanceReceiptApprove: (receiptId: string) =>
+    `/api/v2/admin/finance/receipts/${encodeURIComponent(receiptId)}/approve`,
+  adminFinanceReceiptReject: (receiptId: string) =>
+    `/api/v2/admin/finance/receipts/${encodeURIComponent(receiptId)}/reject`,
+  adminFinanceReceiptUrl: (receiptId: string) =>
+    `/api/v2/admin/finance/receipts/${encodeURIComponent(receiptId)}/url`,
+  adminFinanceReceiptsPending: "/api/v2/admin/finance/receipts",
+  financeReportsSummary: "/api/v2/finance/reports/summary",
+  financeReportsOpenPayments: "/api/v2/finance/reports/open-payments",
+  financeReportsLedgerEvents: "/api/v2/finance/reports/ledger-events",
   workspaceAuditEvents: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
   workspaceAuditEventsExport: (tenantId: string) =>
@@ -81,6 +95,20 @@ export const BFF = {
   waitlistItems: "/api/waitlist-items",
   waitlistItemConvert: (id: string) => `/api/waitlist-items/${encodeURIComponent(id)}/convert`,
   paymentsIntent: "/api/payments/intent",
+  financePayments: "/api/finance/payments",
+  financePaymentsManual: "/api/finance/payments/manual",
+  financePaymentReceipt: (paymentId: string) =>
+    `/api/finance/payments/${encodeURIComponent(paymentId)}/receipt`,
+  adminFinanceReceiptApprove: (receiptId: string) =>
+    `/api/admin/finance/receipts/${encodeURIComponent(receiptId)}/approve`,
+  adminFinanceReceiptReject: (receiptId: string) =>
+    `/api/admin/finance/receipts/${encodeURIComponent(receiptId)}/reject`,
+  adminFinanceReceiptUrl: (receiptId: string) =>
+    `/api/admin/finance/receipts/${encodeURIComponent(receiptId)}/url`,
+  adminFinanceReceiptsPending: "/api/admin/finance/receipts",
+  financeReportsSummary: "/api/finance/reports/summary",
+  financeReportsOpenPayments: "/api/finance/reports/open-payments",
+  financeReportsLedgerEvents: "/api/finance/reports/ledger-events",
   dashboardLeaderWorkspace: "/api/dashboard/leader-workspace",
   dashboardLeaderSummary: "/api/dashboard/leader-summary",
   dashboardLeaderRegistrationRows: "/api/dashboard/leader-registration-rows",

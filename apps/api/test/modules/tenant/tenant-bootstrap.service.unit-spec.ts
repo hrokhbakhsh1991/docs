@@ -62,3 +62,22 @@ test("resolveTenantFromTourId returns null when no rows", async () => {
   );
   assert.equal(result, null);
 });
+
+test("resolvePublicTourBootstrapContext returns tenant modules", async () => {
+  const tid = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const tourId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const dataSource = {
+    async query(_sql: string, params: unknown[]) {
+      assert.deepEqual(params, [tourId]);
+      return [{ tenant_id: tid, enabled_modules: ["finance", "unknown"] }];
+    }
+  };
+  const service = new TenantBootstrapService(
+    dataSource as never,
+    {
+      runWithoutTenantBinding: async <T>(_reason: string, fn: () => Promise<T>) => fn()
+    } as never
+  );
+  const context = await service.resolvePublicTourBootstrapContext(tourId);
+  assert.deepEqual(context, { tenantId: tid, enabledModules: ["finance"] });
+});

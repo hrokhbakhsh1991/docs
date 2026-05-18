@@ -194,16 +194,22 @@ export function LoginForm() {
         tenant_id?: string;
         error_code?: string;
         message?: string;
+        error?: { code?: string; message?: string };
       };
       if (!response.ok || !payload.ok) {
-        const code = payload.error_code ?? "AUTH_FAILED";
+        const code =
+          payload.error?.code?.trim() ||
+          payload.error_code?.trim() ||
+          "AUTH_FAILED";
         if (code === "AUTH_OTP_INVALID" || code === "AUTH_PHONE_INVALID") {
           throw new Error("Invalid phone number or OTP code.");
         }
         if (code === "AUTH_NO_ACTIVE_MEMBERSHIP" || code === "TENANT_SCOPE_FORBIDDEN") {
           throw new Error("No active workspace membership for this account.");
         }
-        throw new Error(payload.message?.trim() || "Login failed");
+        throw new Error(
+          payload.error?.message?.trim() || payload.message?.trim() || "Login failed",
+        );
       }
       if (payload.requires_registration && typeof payload.onboarding_token === "string") {
         const params = new URLSearchParams({

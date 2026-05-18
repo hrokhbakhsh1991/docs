@@ -54,6 +54,8 @@ export type CreateTourDto = {
   destinationId?: string | null;
   capacity: number;
   price: number;
+  /** When true, persisted on `cost_context.requiresPayment` (finance module tours). */
+  requiresPayment?: boolean;
   lifecycle_status: "Draft" | "Open";
 };
 
@@ -66,6 +68,7 @@ export type UpdateTourDto = {
   description?: string;
   capacity: number;
   price: number;
+  requiresPayment?: boolean;
   lifecycle_status: TourLifecycleStatus;
   /** Preserved in `cost_context.location` when present. */
   location?: string;
@@ -150,6 +153,9 @@ function buildCostContextForCreate(dto: CreateTourDto): Record<string, unknown> 
   if (typeof dto.price === "number" && Number.isFinite(dto.price)) {
     ctx.currency = "USD";
     ctx.totalCost = dto.price;
+  }
+  if (dto.requiresPayment === true) {
+    ctx.requiresPayment = true;
   }
   return Object.keys(ctx).length > 0 ? ctx : undefined;
 }
@@ -241,6 +247,11 @@ function toUpdateTourApiBody(
   };
   merged.currency = "USD";
   merged.totalCost = dto.price;
+  if (dto.requiresPayment === true) {
+    merged.requiresPayment = true;
+  } else {
+    delete merged.requiresPayment;
+  }
   const loc = dto.location?.trim();
   if (loc) {
     merged.location = loc;

@@ -85,7 +85,8 @@ export class RegistrationResponseDto {
       status: "Pending",
       amount: "2500000",
       currency: "IRR",
-      provider: "mock_provider",
+      method: "Manual",
+      provider: "manual",
       providerPaymentId: "mock-pay-001"
     },
     nullable: true
@@ -94,6 +95,7 @@ export class RegistrationResponseDto {
     status: string;
     amount: string;
     currency: string;
+    method: string;
     provider: string;
     providerPaymentId: string | null;
   };

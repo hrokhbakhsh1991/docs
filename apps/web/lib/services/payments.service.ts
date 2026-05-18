@@ -8,6 +8,7 @@ export type PaymentIntentResponse = {
   registrationId: string;
   amount: string;
   currency: string;
+  method: string;
   provider: string;
   providerPaymentId: string | null;
   status: string;
@@ -44,6 +45,7 @@ export function coercePaymentIntentResponse(raw: unknown): PaymentIntentResponse
         : pickStr(o, "amount");
   if (!amount) return null;
   const currency = pickStr(o, "currency");
+  const method = pickStr(o, "method") || "Online";
   const provider = pickStr(o, "provider", "paymentProvider", "payment_provider");
   const status = pickStr(o, "status");
   if (!currency || !provider || !status) return null;
@@ -63,6 +65,7 @@ export function coercePaymentIntentResponse(raw: unknown): PaymentIntentResponse
     registrationId,
     amount,
     currency,
+    method,
     provider,
     providerPaymentId,
     status,
@@ -88,4 +91,79 @@ export async function createPaymentIntent(
   return bffBrowserClient.post<PaymentIntentResponse>(BFF.paymentsIntent, payload, {
     idempotencyKey: true,
   });
+}
+
+export type ManualPaymentPayload = {
+  registrationId: string;
+  amount: string;
+  currency: string;
+};
+
+export type PaymentReceiptRow = {
+  id: string;
+  tenantId: string;
+  paymentId: string;
+  fileKey: string;
+  status: string;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  payment?: PaymentIntentResponse;
+};
+
+export async function createManualPayment(
+  payload: ManualPaymentPayload,
+): Promise<PaymentIntentResponse> {
+  return bffBrowserClient.post<PaymentIntentResponse>(BFF.financePaymentsManual, payload);
+}
+
+export async function listManualPayments(): Promise<PaymentIntentResponse[]> {
+  return bffBrowserClient.get<PaymentIntentResponse[]>(BFF.financePayments);
+}
+
+export async function submitReceipt(
+  paymentId: string,
+  file: File,
+  note?: string,
+): Promise<PaymentReceiptRow> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (note?.trim()) {
+    formData.append("note", note.trim());
+  }
+  return bffBrowserClient.postForm<PaymentReceiptRow>(
+    BFF.financePaymentReceipt(paymentId),
+    formData,
+  );
+}
+
+export async function listPendingReceipts(): Promise<PaymentReceiptRow[]> {
+  return bffBrowserClient.get<PaymentReceiptRow[]>(BFF.adminFinanceReceiptsPending);
+}
+
+export async function approveReceipt(
+  receiptId: string,
+  reviewNote?: string,
+): Promise<PaymentReceiptRow> {
+  return bffBrowserClient.post<PaymentReceiptRow>(
+    BFF.adminFinanceReceiptApprove(receiptId),
+    reviewNote?.trim() ? { reviewNote: reviewNote.trim() } : {},
+  );
+}
+
+export async function rejectReceipt(
+  receiptId: string,
+  reviewNote?: string,
+): Promise<PaymentReceiptRow> {
+  return bffBrowserClient.post<PaymentReceiptRow>(
+    BFF.adminFinanceReceiptReject(receiptId),
+    reviewNote?.trim() ? { reviewNote: reviewNote.trim() } : {},
+  );
+}
+
+export async function getReceiptPreviewUrl(receiptId: string): Promise<string> {
+  const res = await bffBrowserClient.get<{ url: string }>(
+    BFF.adminFinanceReceiptUrl(receiptId),
+  );
+  return res.url;
 }

@@ -29,6 +29,18 @@ export const envSchema = z.object({
   AUTH_ALLOW_DEV_STATIC_OTP: z.enum(["true", "false"]).optional(),
   REDIS_HOST: z.string().min(1),
   REDIS_PORT: z.preprocess(toNumber, z.number().int().positive()),
+  /** Optional; leave empty for local Redis without AUTH. */
+  REDIS_PASSWORD: z.string().default(""),
+
+  /** MinIO (S3-compatible) for payment receipt uploads. */
+  MINIO_ENDPOINT: z.string().min(1).default("127.0.0.1"),
+  MINIO_PORT: z.preprocess(toNumber, z.number().int().positive()).default(9000),
+  MINIO_ACCESS_KEY: z.string().min(1).default("minioadmin"),
+  MINIO_SECRET_KEY: z.string().min(1).default("minioadmin"),
+  MINIO_USE_SSL: z
+    .preprocess((v) => v === true || v === "true" || v === "1", z.boolean())
+    .default(false),
+  MINIO_BUCKET: z.string().min(1).default("receipts"),
   ENABLE_SCHEDULERS: z.enum(["true", "false"]).default("true"),
   APP_RUNTIME_ROLE: z.enum(["api", "worker", "all"]).default("all"),
   JOB_SCHEDULER_JITTER_MS: z.preprocess(toNumber, z.number().int().nonnegative()).default(
@@ -70,6 +82,12 @@ export const envSchema = z.object({
   ).default(60000),
   /** Comma-separated browser origins allowed by CORS (e.g. https://app.example.com,https://admin.example.com). Empty disables cross-origin in production/test; in development localhost:3000 and 127.0.0.1:3000 are allowed by ConfigService.getCorsOrigins(). */
   CORS_ORIGIN: z.string().default(""),
+
+  /**
+   * Default payment provider for public registration when none is specified.
+   * e.g. "stripe", "zibal", or "mock_provider".
+   */
+  DEFAULT_PAYMENT_PROVIDER: z.string().default("mock_provider"),
 
   /**
    * When `true`, browser origins whose hostname equals `TENANT_ROOT_DOMAIN` or is a subdomain of it
@@ -231,4 +249,17 @@ export const envSchema = z.object({
    * Production always behaves as `off` regardless of this value.
    */
   FINANCE_LEGACY_PRICING_DIAGNOSTICS: z.enum(["off", "archive"]).default("off")
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV !== "production") {
+    return;
+  }
+  const provider = data.DEFAULT_PAYMENT_PROVIDER.trim().toLowerCase();
+  if (provider === "mock_provider" || provider === "mock") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["DEFAULT_PAYMENT_PROVIDER"],
+      message:
+        "DEFAULT_PAYMENT_PROVIDER must not be mock_provider in production; use stripe, zibal, or another live PSP."
+    });
+  }
 });

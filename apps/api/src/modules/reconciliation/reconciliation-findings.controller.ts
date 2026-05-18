@@ -43,6 +43,7 @@ import {
 @ApiTags("Finance")
 @Controller("api/v2/workspaces")
 @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+@RequireCapability("module.finance")
 @ApiBearerAuth()
 export class ReconciliationFindingsController {
   constructor(
@@ -81,7 +82,6 @@ export class ReconciliationFindingsController {
 
   @Get(":tenantId/reconciliation-findings")
   @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
-  @RequireCapability("module.finance")
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Reconciliation"))
   @ApiOperation({
     summary: "List persisted payment–finance reconciliation findings (triage)",

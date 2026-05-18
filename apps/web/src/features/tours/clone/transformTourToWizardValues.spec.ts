@@ -359,6 +359,14 @@ test("P1 price_from_cost_context_total_cost", () => {
   assert.equal(wf.pricing?.basePrice, 1_500_000);
 });
 
+test("requiresPayment round-trips from costContext", () => {
+  const api = makeApiTour({
+    costContext: { currency: "IRR", totalCost: 900_000, requiresPayment: true },
+  });
+  const wf = transformTourToWizardValues(api);
+  assert.equal(wf.pricing?.requiresPayment, true);
+});
+
 test("P2 price_no_cost_context_zero", () => {
   const wf = transformTourToWizardValues(makeApiTour({ costContext: null }));
   assert.equal(wf.pricing?.basePrice, 0);

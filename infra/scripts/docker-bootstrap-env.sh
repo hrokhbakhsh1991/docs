@@ -43,6 +43,13 @@ TELEGRAM_BOT_TOKEN=dummy-telegram-token-docker-only
 REDIS_HOST=redis
 REDIS_PORT=6379
 
+MINIO_ENDPOINT=minio
+MINIO_PORT=9002
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_USE_SSL=false
+MINIO_BUCKET=receipts
+
 CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
 
 ENABLE_SCHEDULERS=true

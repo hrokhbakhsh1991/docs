@@ -47,6 +47,7 @@ import {
   assertTourStateReadyForOpenAfterPatch,
   assertTourStateReadyForOpenOnCreate,
 } from "./policies/assert-tour-publish-transition";
+import { assertRequiresPaymentHasPositiveAmount } from "./policies/assert-requires-payment-cost";
 import { assertValidLifecycleTransition } from "./policies/tour-lifecycle.policy";
 import { mergeTourTripDetails } from "./utils/merge-trip-details";
 import type { TourTransportMode } from "./tour-transport-modes";
@@ -333,6 +334,22 @@ export class ToursService {
       // Lock tour row only — `FOR UPDATE` on nullable LEFT JOIN sides fails on PostgreSQL.
       .setLock("pessimistic_write", undefined, ["t"])
       .getOne();
+  }
+
+  private assertFinanceCapabilityForPaymentTour(): void {
+    const enabledModules = this.requestContextService.tryGetTenantEnabledModules() ?? [];
+    const hasFinanceModule = enabledModules.some(
+      (id) => id === "finance" || id === "module.finance"
+    );
+    if (!hasFinanceModule) {
+      throw new BadRequestException({
+        error: {
+          code: "FINANCE_MODULE_REQUIRED",
+          message:
+            "Tours with required payment can only be created or updated when the finance module is enabled for this workspace."
+        }
+      });
+    }
   }
 
   /** Align API casing (`Draft`) with Postgres enum (`DRAFT`) when class-transformer metadata is missing (e.g. tsx E2E). */
@@ -752,9 +769,14 @@ export class ToursService {
           d.durationDays = derived;
         }
         details = d;
-      }
+        }
 
-      if (details?.tripDetails) {
+        if (dto.cost_context?.requiresPayment === true) {
+        this.assertFinanceCapabilityForPaymentTour();
+        }
+
+        if (details?.tripDetails) {
+
         await this.assertTripDetailsCatalogRefsForTenant(tenantId, details.tripDetails, {
           workspaceEquipment: writeRepos.workspaceEquipment,
           workspaceTourThemes: writeRepos.workspaceTourThemes,
@@ -789,6 +811,10 @@ export class ToursService {
 
       const nextLifecycle = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
       if (nextLifecycle === TourLifecycleStatus.OPEN) {
+        assertRequiresPaymentHasPositiveAmount({
+          costContext: tour.costContext,
+          listPriceMinor: tour.listPriceMinor
+        });
         assertTourStateReadyForOpenOnCreate(resolvedFormProfile, tour);
       }
 
@@ -923,6 +949,9 @@ export class ToursService {
         tour.chatLink = dto.chat_link;
       }
       if (dto.cost_context !== undefined) {
+        if (dto.cost_context.requiresPayment === true) {
+          this.assertFinanceCapabilityForPaymentTour();
+        }
         tour.costContext = instanceToPlain(dto.cost_context) as Record<string, unknown>;
       }
       if (dto.autoAcceptRegistrations !== undefined) {
@@ -1112,6 +1141,15 @@ export class ToursService {
       }
 
       this.applyDenormalizedTourListColumns(tour);
+
+      const effectiveLifecycle =
+        dto.lifecycle_status !== undefined ? dto.lifecycle_status : tour.lifecycleStatus;
+      if (effectiveLifecycle === TourLifecycleStatus.OPEN) {
+        assertRequiresPaymentHasPositiveAmount({
+          costContext: tour.costContext,
+          listPriceMinor: tour.listPriceMinor
+        });
+      }
 
       if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
         const profileForPublish =

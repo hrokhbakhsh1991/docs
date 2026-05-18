@@ -194,3 +194,33 @@ export function verifyPaymentWebhookRequest(
     PAYMENTS_WEBHOOK_REPLAY_TTL_MS
   );
 }
+
+/** HMAC + IP checks without replay dedupe (caller handles replay via Redis or memory). */
+export function verifyPaymentWebhookRequestWithoutReplay(
+  req: RequestWithRawBody,
+  opts: PaymentWebhookVerifyOptions
+): { timestampNorm: string; signatureHex: string } {
+  assertPaymentWebhookIpAllowed(req, opts.allowedIps, opts.trustedProxyCidrs);
+  assertPaymentWebhookRawBodyPresent(req.rawBody);
+
+  const tsHeader =
+    req.header(PAYMENTS_WEBHOOK_TIMESTAMP_HEADER) ??
+    req.header(PAYMENTS_WEBHOOK_TIMESTAMP_HEADER.toUpperCase());
+  const sigHeader =
+    req.header(PAYMENTS_WEBHOOK_SIGNATURE_HEADER) ??
+    req.header(PAYMENTS_WEBHOOK_SIGNATURE_HEADER.toUpperCase());
+  if (!tsHeader?.trim() || !sigHeader?.trim()) {
+    throw new UnauthorizedException({
+      error: {
+        code: "WEBHOOK_SIGNATURE_INVALID",
+        message: "Missing webhook timestamp or signature headers"
+      }
+    });
+  }
+
+  assertPaymentWebhookTimestampFresh(tsHeader, opts.nowSec, PAYMENTS_WEBHOOK_MAX_SKEW_SEC);
+  assertPaymentWebhookHmacValid(req.rawBody, tsHeader, sigHeader, opts.secrets);
+
+  const provided = sigHeader.trim().toLowerCase().replace(/^v1=/, "");
+  return { timestampNorm: tsHeader.trim(), signatureHex: provided };
+}

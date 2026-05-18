@@ -21,11 +21,19 @@ import { createRegistrationsReadRepositoryTestDouble } from "../registrations/st
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 
-const noopRegistrationsForPaymentFlow = {
+const noopRegistrationPaymentPort = {
   async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
     return false;
+  },
+  async transitionRegistrationForPayment(
+    _manager: unknown,
+    registration: { status: string },
+    targetStatus: string
+  ) {
+    registration.status = targetStatus;
+    return registration;
   }
-} as unknown as RegistrationsService;
+};
 
 type Actor = {
   role?: UserRole;
@@ -320,7 +328,8 @@ test("payment intent denies member access to other member registration", async (
     resolverStub as never,
     noopPaymentRefundLedgerForTests,
     stubPaymentGatewayFactoryForTests,
-    noopRegistrationsForPaymentFlow
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
   );
 
   await assert.rejects(

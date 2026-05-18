@@ -7,13 +7,14 @@ import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { labelExperienceLevel, labelFitnessLevel, labelGenderRestriction } from "../participationLabels";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 
-import { useReviewSubmitRHF } from "../../hooks/useReviewSubmitRHF";
-import { buildReviewSubmitPayload } from "../../utils/buildReviewSubmitPayload";
-import { ProfileGate } from "../../profile/ProfileGate";
+import { useReviewSubmitRHF } from "../hooks/useReviewSubmitRHF";
+import { buildReviewSubmitPayload } from "../utils/buildReviewSubmitPayload";
+import { ProfileGate } from "../profile/ProfileGate";
+import { useTourWizardProfile } from "@/features/tours/wizard/TourWizardProfileContext";
 
-import { SummarySection } from "../../sections/ReviewSubmit/SummarySection";
-import { PricingSection } from "../../sections/ReviewSubmit/PricingSection";
-import { DraftNotice } from "../../sections/ReviewSubmit/DraftNotice";
+import { SummarySection } from "../sections/ReviewSubmit/SummarySection";
+import { PricingSection } from "../sections/ReviewSubmit/PricingSection";
+import { DraftNotice } from "../sections/ReviewSubmit/DraftNotice";
 
 const rowStyle: CSSProperties = {
   display: "grid",
@@ -59,6 +60,7 @@ function resolveOrHint(id: string | undefined, name: string | undefined, noun: s
 export function ReviewSubmitStep() {
   const t = useTranslations("tours.new");
   const { control } = useFormContext<TourCreateFormValues>();
+  const { tenantFormContract } = useTourWizardProfile();
   const {
     autoAcceptRegistrations,
     overview,
@@ -171,6 +173,7 @@ export function ReviewSubmitStep() {
         participation={participation}
         pricing={pricing}
         autoAcceptRegistrations={autoAcceptRegistrations}
+        showRequiresPayment={tenantFormContract.allowFinanceSurfaces}
         SummaryRow={SummaryRow}
       />
       <section>

@@ -382,6 +382,55 @@ test("buildTourCreateSchemaForFormProfile(cinema_event): empty itinerary.days wi
   }
 });
 
+test("submit mode rejects requiresPayment without positive basePrice", () => {
+  setTourCreateWizardValidationFlags({ relaxItineraryMinDays: true, relaxLogisticsPrimary: true });
+  try {
+    const base = buildTourCreateFormDefaultValues();
+    const v = {
+      ...base,
+      overview: {
+        ...base.overview,
+        title: "abcdefghijabcdefghij",
+        shortDescription: "خلاصه برای تست پولی",
+        longDescription: "توضیح کامل برای تست requiresPayment.",
+      },
+      pricing: { ...base.pricing, basePrice: 0, requiresPayment: true },
+    };
+    const schema = buildTourCreateSchemaForFormProfile("general");
+    const r = schema.safeParse(v);
+    assert.equal(r.success, false);
+    if (r.success) return;
+    const paths = r.error.issues.map((i) => i.path.join("."));
+    assert.ok(paths.includes("pricing.basePrice"));
+  } finally {
+    resetTourCreateWizardValidationFlags();
+  }
+});
+
+test("draft mode allows requiresPayment with zero basePrice", () => {
+  setTourCreateWizardValidationFlags({ relaxItineraryMinDays: true, relaxLogisticsPrimary: true });
+  try {
+    const base = buildTourCreateFormDefaultValues();
+    const v = {
+      ...base,
+      overview: {
+        ...base.overview,
+        title: "abc",
+        shortDescription: "s",
+        longDescription: "l",
+      },
+      pricing: { ...base.pricing, basePrice: 0, requiresPayment: true },
+    };
+    const schema = buildTourCreateSchemaForFormProfile("general", {
+      tourWizardValidationMode: "draft",
+    });
+    const r = schema.safeParse(v);
+    assert.equal(r.success, true, r.success ? "" : JSON.stringify(r.error.issues));
+  } finally {
+    resetTourCreateWizardValidationFlags();
+  }
+});
+
 test("buildTourCreateSchemaForFormProfile(urban_event): skips logistics primaryTransport when logistics inactive", () => {
   resetTourCreateWizardValidationFlags();
   try {

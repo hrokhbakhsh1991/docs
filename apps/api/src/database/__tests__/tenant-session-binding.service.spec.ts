@@ -282,3 +282,49 @@ test("normal request path injects app.tenant_id before first DB query", async ()
   assert.ok(firstBusinessQueryIndex >= 0);
   assert.ok(firstSetConfigIndex < firstBusinessQueryIndex);
 });
+
+test("TypeORM-active transaction skips binding-only autostart when PG txid not yet assigned", async () => {
+  const tenantId = "33333333-3333-4333-8333-333333333333";
+  let bindingAutostartCount = 0;
+
+  const queryRunner = {
+    isTransactionActive: true,
+    isReleased: false,
+    connect: async () => undefined,
+    startTransaction: async () => {
+      bindingAutostartCount += 1;
+    },
+    commitTransaction: async () => undefined,
+    rollbackTransaction: async () => undefined,
+    release: async () => undefined,
+    query: async (sql: string) => {
+      const normalized = sql.trim().replace(/\s+/g, " ");
+      if (normalized.includes("txid_current_if_assigned")) {
+        return [{ in_tx: false }];
+      }
+      return [];
+    }
+  };
+
+  const dataSource = { createQueryRunner: () => queryRunner };
+  const service = new TenantSessionBindingService(
+    dataSource as never,
+    {
+      getContext: () => ({
+        requestId: "req-typeorm-tx",
+        method: "POST",
+        path: "/api/v2/finance/payments/x/receipt",
+        tenantId,
+        tenantBindingMode: TenantBindingMode.Normal
+      })
+    } as never,
+    { error: () => undefined, warn: () => undefined } as never
+  );
+  service.onModuleInit();
+
+  const patched = (dataSource as { createQueryRunner: () => QueryRunner }).createQueryRunner();
+  await patched.connect();
+  await patched.query("SELECT 1");
+
+  assert.equal(bindingAutostartCount, 0);
+});

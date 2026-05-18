@@ -24,7 +24,15 @@ import { TenantUsageMeteringService } from "../common/billing/tenant-usage-meter
 import { OpsController } from "../modules/ops/ops.controller";
 import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
 import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
+import {
+  FinanceAdminReceiptsController,
+  FinancePaymentsController
+} from "../modules/payments/finance-payments.controller";
+import { FinanceReportsController } from "../modules/finance/reports/finance-reports.controller";
+import { FinanceReportsService } from "../modules/finance/reports/finance-reports.service";
 import { PaymentsService } from "../modules/payments/payments.service";
+import { ManualPaymentService } from "../modules/payments/manual-payment.service";
+import { ReceiptService } from "../modules/finance/receipts/receipt.service";
 import { ReconciliationService } from "../modules/reconciliation/reconciliation.service";
 import { MeController } from "../modules/identity/me.controller";
 import { MeService } from "../modules/identity/me.service";
@@ -35,6 +43,7 @@ import { UsersReadService } from "../modules/identity/users-read.service";
 import { UsersWriteService } from "../modules/identity/users-write.service";
 import { RegistrationsController } from "../modules/registrations/registrations.controller";
 import { RegistrationsService } from "../modules/registrations/registrations.service";
+import { RegistrationPlacementOrchestrator } from "../modules/registrations/application/registration-placement.orchestrator";
 import { TenantBootstrapService } from "../modules/tenant/tenant-bootstrap.service";
 import { EquipmentSettingsService } from "../modules/settings-locations/equipment-settings.service";
 import { GuideLanguagesSettingsService } from "../modules/settings-locations/guide-languages-settings.service";
@@ -79,6 +88,9 @@ import { ToursService } from "../modules/tours/tours.service";
     RegistrationsController,
     PaymentsController,
     PaymentsWebhookController,
+    FinancePaymentsController,
+    FinanceAdminReceiptsController,
+    FinanceReportsController,
     OpsController,
     MeController,
     UsersController,
@@ -370,7 +382,11 @@ import { ToursService } from "../modules/tours/tours.service";
       }
     },
     { provide: RegistrationsService, useValue: {} },
+    { provide: RegistrationPlacementOrchestrator, useValue: {} },
     { provide: PaymentsService, useValue: {} },
+    { provide: ManualPaymentService, useValue: {} },
+    { provide: ReceiptService, useValue: {} },
+    { provide: FinanceReportsService, useValue: {} },
     { provide: UsersReadService, useValue: {} },
     { provide: UsersWriteService, useValue: {} },
     { provide: UsersAuditService, useValue: {} },

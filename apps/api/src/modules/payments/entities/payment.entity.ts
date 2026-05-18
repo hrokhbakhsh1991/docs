@@ -10,10 +10,16 @@ export enum PaymentStatus {
   CANCELLED = "Cancelled"
 }
 
+export enum PaymentMethod {
+  ONLINE = "Online",
+  MANUAL = "Manual"
+}
+
 @Entity("payments")
 @Index("idx_payments_tenant_id", ["tenantId"])
 @Index("idx_payments_registration_id", ["registrationId"])
 @Index("idx_payments_status", ["status"])
+@Index("idx_payments_method", ["method"])
 @Index("idx_payments_provider_payment_id", ["providerPaymentId"], {
   unique: true,
   where: `"provider_payment_id" IS NOT NULL`
@@ -31,6 +37,15 @@ export class PaymentEntity extends BaseTenantEntity {
 
   @Column({ type: "varchar", name: "currency", length: 8 })
   currency!: string;
+
+  @Column({
+    type: "enum",
+    enum: PaymentMethod,
+    enumName: "payment_method_enum",
+    name: "method",
+    default: PaymentMethod.ONLINE
+  })
+  method!: PaymentMethod;
 
   @Column({ type: "varchar", name: "provider", length: 64 })
   provider!: string;

@@ -24,15 +24,16 @@ function makeContext(req: { rawBody?: Buffer; header: (name: string) => string |
 
 function makeGuard() {
   const configService = {
+    getNodeEnv: () => "test",
     getPaymentsWebhookAllowedIps: () => [],
     getTrustedProxyCidrs: () => [],
     getPaymentsWebhookSigningSecret: () => SECRET,
     getPaymentsWebhookSigningSecretPrevious: () => ""
   };
-  return new PaymentWebhookSignatureGuard(configService as never);
+  return new PaymentWebhookSignatureGuard(configService as never, null);
 }
 
-test("rejects webhook when signature headers are missing", () => {
+test("rejects webhook when signature headers are missing", async () => {
   const guard = makeGuard();
   const rawBody = Buffer.from('{"hello":"world"}');
   const req = {
@@ -40,8 +41,8 @@ test("rejects webhook when signature headers are missing", () => {
     header: (_name: string) => undefined
   };
 
-  assert.throws(
-    () => guard.canActivate(makeContext(req)),
+  await assert.rejects(
+    async () => guard.canActivate(makeContext(req)),
     (error: unknown) => {
       assert.ok(error instanceof UnauthorizedException);
       const response = error.getResponse() as { error?: { code?: string } };
@@ -51,7 +52,7 @@ test("rejects webhook when signature headers are missing", () => {
   );
 });
 
-test("rejects webhook when signature is invalid", () => {
+test("rejects webhook when signature is invalid", async () => {
   const guard = makeGuard();
   const rawBody = Buffer.from('{"providerPaymentId":"x"}');
   const ts = String(NOW_SEC);
@@ -64,8 +65,8 @@ test("rejects webhook when signature is invalid", () => {
     }
   };
 
-  assert.throws(
-    () => guard.canActivate(makeContext(req)),
+  await assert.rejects(
+    async () => guard.canActivate(makeContext(req)),
     (error: unknown) => {
       assert.ok(error instanceof UnauthorizedException);
       const response = error.getResponse() as { error?: { code?: string } };
@@ -75,7 +76,7 @@ test("rejects webhook when signature is invalid", () => {
   );
 });
 
-test("rejects webhook when timestamp is expired", () => {
+test("rejects webhook when timestamp is expired", async () => {
   const guard = makeGuard();
   const rawBody = Buffer.from('{"providerPaymentId":"x"}');
   const ts = String(NOW_SEC - 1000);
@@ -89,8 +90,8 @@ test("rejects webhook when timestamp is expired", () => {
     }
   };
 
-  assert.throws(
-    () => guard.canActivate(makeContext(req)),
+  await assert.rejects(
+    async () => guard.canActivate(makeContext(req)),
     (error: unknown) => {
       assert.ok(error instanceof UnauthorizedException);
       const response = error.getResponse() as { error?: { code?: string } };
@@ -100,7 +101,7 @@ test("rejects webhook when timestamp is expired", () => {
   );
 });
 
-test("rejects replayed webhook signature+timestamp pair", () => {
+test("rejects replayed webhook signature+timestamp pair", async () => {
   const guard = makeGuard();
   const rawBody = Buffer.from('{"providerPaymentId":"x","status":"Paid"}');
   const ts = String(Math.floor(Date.now() / 1000));
@@ -114,9 +115,9 @@ test("rejects replayed webhook signature+timestamp pair", () => {
     }
   };
 
-  assert.equal(guard.canActivate(makeContext(req)), true);
-  assert.throws(
-    () => guard.canActivate(makeContext(req)),
+  assert.equal(await guard.canActivate(makeContext(req)), true);
+  await assert.rejects(
+    async () => guard.canActivate(makeContext(req)),
     (error: unknown) => {
       assert.ok(error instanceof UnauthorizedException);
       const response = error.getResponse() as { error?: { code?: string } };

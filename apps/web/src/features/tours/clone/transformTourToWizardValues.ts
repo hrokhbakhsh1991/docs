@@ -120,6 +120,16 @@ function priceFromCostContext(costContext: Record<string, unknown> | null | unde
   return typeof total === "number" && Number.isFinite(total) ? total : 0;
 }
 
+function readRequiresPaymentFromCostContext(
+  costContext: Record<string, unknown> | null | undefined,
+): boolean | undefined {
+  if (!costContext) return undefined;
+  const flag =
+    (costContext as { requiresPayment?: boolean }).requiresPayment ??
+    (costContext as { requires_payment?: boolean }).requires_payment;
+  return flag === true ? true : undefined;
+}
+
 type WizardDay = TourCreateFormValues["itinerary"]["days"][number];
 type WizardSegment = WizardDay["segments"][number];
 
@@ -229,6 +239,7 @@ export function transformTourToWizardValues(
       basePrice: priceFromCostContext(apiTour.costContext),
       currency: "TOMAN",
       discountNotes: "",
+      requiresPayment: readRequiresPaymentFromCostContext(apiTour.costContext),
     },
 
     schedule: {

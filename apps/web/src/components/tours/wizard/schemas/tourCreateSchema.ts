@@ -179,6 +179,7 @@ export function buildTourCreateSchemaForFormProfile(
     pricing: z.object({
       basePrice: z.number().min(0, "قیمت نمی‌تواند منفی باشد."),
       currency: z.string().trim().optional(),
+      requiresPayment: z.boolean().optional(),
       discountNotes: z.string().trim().optional(),
     }),
     schedule: z.object({
@@ -326,6 +327,18 @@ export function buildTourCreateSchemaForFormProfile(
         code: z.ZodIssueCode.custom,
         message: "ساعت بازگشت باید بعد از ساعت رفت باشد.",
         path: ["schedule", "returnMeetingTime"],
+      });
+    }
+
+    if (
+      !isDraftMode &&
+      values.pricing.requiresPayment === true &&
+      (!(Number.isFinite(values.pricing.basePrice) && values.pricing.basePrice > 0))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "برای تور پولی باید قیمت پایه بیشتر از صفر باشد.",
+        path: ["pricing", "basePrice"],
       });
     }
 

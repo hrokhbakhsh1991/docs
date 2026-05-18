@@ -1,5 +1,4 @@
-import { Module, forwardRef } from "@nestjs/common";
-import Redis from "ioredis";
+import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigService } from "../../config/config.service";
 import { DatabaseModule } from "../../database/database.module";
@@ -23,40 +22,52 @@ import { OutboxModule } from "../outbox/outbox.module";
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { PaymentEntity } from "./entities/payment.entity";
+import { RegistrationEntity } from "../registrations/registration.entity";
+import { PaymentReceiptEntity } from "./entities/payment-receipt.entity";
 import { PaymentGatewayIdempotencyEntity } from "./entities/payment-gateway-idempotency.entity";
 import { PaymentsController, PaymentsWebhookController } from "./payments.controller";
+import { FinancePaymentsController, FinanceAdminReceiptsController } from "./finance-payments.controller";
+import { FinanceReportsModule } from "../finance/reports/finance-reports.module";
 import { PaymentsProcessor } from "./payments.processor";
 import { PaymentIntentRegistrationResolverApplicationService } from "./application/payment-intent-registration-resolver.application.service";
 import { PaymentsService } from "./payments.service";
-import { RegistrationsModule } from "../registrations/registrations.module";
+import { ManualPaymentService } from "./manual-payment.service";
+
+import { REDIS_CLIENT } from "../../infra/redis/redis.constants";
+import { StorageModule } from "../../infra/storage/storage.module";
+import { ReceiptsModule } from "../finance/receipts/receipts.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PaymentEntity, UserEntity, PaymentGatewayIdempotencyEntity]),
+    TypeOrmModule.forFeature([
+      PaymentEntity,
+      PaymentReceiptEntity,
+      RegistrationEntity,
+      UserEntity,
+      PaymentGatewayIdempotencyEntity
+    ]),
     TypeOrmModule.forFeature([TenantEntity]),
     DatabaseModule,
     OutboxModule,
     IdempotencyModule,
     FinanceLedgerModule,
-    forwardRef(() => RegistrationsModule)
+    StorageModule,
+    ReceiptsModule,
+    FinanceReportsModule
   ],
-  controllers: [PaymentsController, PaymentsWebhookController],
+  controllers: [
+    PaymentsController,
+    PaymentsWebhookController,
+    FinancePaymentsController,
+    FinanceAdminReceiptsController
+  ],
   providers: [
     InMemoryIdempotencyKeyStore,
     RedisPaymentIdempotencyKeyStore,
     PostgresPaymentIdempotencyKeyStore,
     {
       provide: PAYMENTS_GATEWAY_IDEMPOTENCY_REDIS,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const { host, port } = config.getRedisConfig();
-        return new Redis({
-          host,
-          port,
-          maxRetriesPerRequest: 2,
-          lazyConnect: true
-        });
-      }
+      useExisting: REDIS_CLIENT
     },
     {
       provide: PAYMENT_GATEWAY_IDEMPOTENCY_STORE,
@@ -89,6 +100,7 @@ import { RegistrationsModule } from "../registrations/registrations.module";
     PaymentGatewayFactory,
     PaymentIntentRegistrationResolverApplicationService,
     PaymentsService,
+    ManualPaymentService,
     PaymentsProcessor,
     InternalApiKeyGuard,
     PaymentWebhookSignatureGuard

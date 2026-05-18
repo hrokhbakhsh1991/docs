@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { Checkbox, FormField } from "@tour/ui";
 
@@ -5,17 +6,28 @@ import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { FieldGate } from "@/features/tours/wizard/profileRulesReact";
 import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
+import { useTourWizardProfile } from "@/features/tours/wizard/TourWizardProfileContext";
 
 const PATHS = {
   autoAcceptRegistrations: "autoAcceptRegistrations" as WizardFieldPath,
   basePrice: "pricing.basePrice" as WizardFieldPath,
+  requiresPayment: "pricing.requiresPayment" as WizardFieldPath,
 } as const;
 
 export function CapacityPricingStep() {
   const {
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<TourCreateFormValues>();
+  const { tenantFormContract } = useTourWizardProfile();
+  const allowFinance = tenantFormContract.allowFinanceSurfaces;
+
+  useEffect(() => {
+    if (!allowFinance) {
+      setValue("pricing.requiresPayment", false, { shouldDirty: true });
+    }
+  }, [allowFinance, setValue]);
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
@@ -60,6 +72,31 @@ export function CapacityPricingStep() {
           />
         </FormField>
       </FieldGate>
+
+      {allowFinance ? (
+        <FieldGate field={PATHS.requiresPayment}>
+          <FormField
+            label="الزام پرداخت در هنگام ثبت‌نام"
+            description="اگر فعال باشد، کاربر برای نهایی کردن ثبت‌نام خود باید هزینه تور را به صورت آنلاین پرداخت کند. این گزینه نیازمند فعال بودن ماژول مالی در فضای کاری شماست."
+            error={errors.pricing?.requiresPayment?.message}
+          >
+            <Controller
+              control={control}
+              name="pricing.requiresPayment"
+              render={({ field }) => (
+                <Checkbox
+                  label="ایجاد تراکنش پرداخت آنلاین بلافاصله پس از ثبت‌نام الزامی باشد."
+                  checked={field.value === true}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  name={field.name}
+                />
+              )}
+            />
+          </FormField>
+        </FieldGate>
+      ) : null}
 
       <FormField label="واحد پول">
         <div

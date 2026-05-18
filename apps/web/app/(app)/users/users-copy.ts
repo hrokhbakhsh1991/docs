@@ -85,6 +85,8 @@ export const USERS_ROUTE_COPY = {
       activityPlaceholder: "Registered tours will appear here.",
       documentsPlaceholder: "Payment receipts and uploads will be listed here (MinIO).",
       documentsHint: "This tab is visible only to workspace owners and admins.",
+      documentsFinanceModuleRequired:
+        "Enable the finance module for this workspace to upload and review payment receipts.",
       internalNotesLabel: "Private notes",
       internalNotesPlaceholder: "Notes are visible only to owners and admins. Server save is not wired yet.",
       internalNotesHint: "This tab is visible only to workspace owners and admins.",

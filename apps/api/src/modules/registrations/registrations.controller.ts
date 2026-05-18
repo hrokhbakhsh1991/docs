@@ -38,6 +38,7 @@ import { AbilitiesGuard } from "../../common/casl/abilities.guard";
 import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
 import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
+import { RequireCapability } from "../../common/casl/require-capability.decorator";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
 import { CreateBookingDto } from "./dto/create-booking.dto";
@@ -48,12 +49,11 @@ import {
   RegistrationResponseDto,
   WaitlistItemResponseDto
 } from "./dto/get-registration.dto";
+import { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
-import { RegistrationEntity } from "./registration.entity";
 import { RegistrationsService } from "./registrations.service";
-import { PaymentsService } from "../payments/payments.service";
-import { CreatePaymentIntentDto } from "../payments/dto/create-payment-intent.dto";
+import { RegistrationPlacementOrchestrator } from "./application/registration-placement.orchestrator";
 import { IdempotencyService } from "../idempotency/idempotency.service";
 import { runWithIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 import { requestContextStorage } from "../../common/request-context/request-context";
@@ -75,11 +75,27 @@ export class RegistrationsController {
   /** Explicit `@Inject` keeps E2E (tsx) DI stable when `emitDecoratorMetadata` paramtypes are absent. */
   constructor(
     @Inject(RegistrationsService) private readonly registrationsService: RegistrationsService,
-    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(RegistrationPlacementOrchestrator)
+    private readonly registrationPlacementOrchestrator: RegistrationPlacementOrchestrator,
     @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
     @Inject(TenantBootstrapService) private readonly tenantBootstrapService: TenantBootstrapService
   ) {}
+
+  private async bootstrapPublicTourTenant(tourId: string): Promise<string> {
+    const bootstrap = await this.tenantBootstrapService.resolvePublicTourBootstrapContext(tourId);
+    if (!bootstrap) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Resource not found in tenant scope"
+        }
+      });
+    }
+    this.requestContextService.setTenantId(bootstrap.tenantId);
+    this.requestContextService.setTenantEnabledModules(bootstrap.enabledModules);
+    return bootstrap.tenantId;
+  }
 
   @Get("tours/:tourId/registration-idempotency-key")
   @UseGuards(ThrottlerGuard)
@@ -106,15 +122,7 @@ export class RegistrationsController {
   async mintPublicRegistrationIdempotencyKey(
     @Param("tourId", new ParseUUIDPipe()) tourId: string
   ): Promise<{ idempotencyKey: string }> {
-    const tenantScope = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
-    if (!tenantScope) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
-    }
+    await this.bootstrapPublicTourTenant(tourId);
     return { idempotencyKey: randomUUID() };
   }
 
@@ -146,74 +154,16 @@ export class RegistrationsController {
     @Body() payload: CreateRegistrationDto,
     @Headers("idempotency-key") idempotencyKeyHeader?: string
   ): Promise<Record<string, unknown>> {
-    // Tenant bootstrap for public flow — resolves tenant before first RLS-bound repository query.
-    const tenantScope = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
-    if (!tenantScope) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
-    }
+    const tenantScope = await this.bootstrapPublicTourTenant(tourId);
     const idempotencyKey = assertPublicRegistrationIdempotencyKey(idempotencyKeyHeader);
-    this.requestContextService.setTenantId(tenantScope);
     /** TypeORM idempotency / transaction callbacks can drop ALS; re-enter for downstream `RequestContextService` reads. */
     const requestContextSnapshot = requestContextStorage.getStore();
 
     const executePlacement = async () => {
-      const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
-        ...payload,
+      return this.registrationPlacementOrchestrator.publicRegister({
         tourId,
-        createPaymentIntent: async (_manager, registration: RegistrationEntity) => {
-          const totalMinorNum =
-            registration.quotedTotalMinor != null
-              ? Number(String(registration.quotedTotalMinor).trim())
-              : NaN;
-          if (
-            !Number.isFinite(totalMinorNum) ||
-            totalMinorNum < 1 ||
-            !Number.isSafeInteger(totalMinorNum)
-          ) {
-            throw new BadRequestException({
-              error: {
-                code: "BOOKING_PAYABLE_AMOUNT_INVALID",
-                message:
-                  "This tour requires payment at signup, but the locked booking price is missing or cannot be used for a payment intent."
-              }
-            });
-          }
-          const currency = String(registration.quotedCurrencyCode ?? "").trim().toUpperCase();
-          if (!currency) {
-            throw new BadRequestException({
-              error: {
-                code: "BOOKING_PAYABLE_AMOUNT_INVALID",
-                message: "Locked booking currency is missing; cannot create payment intent."
-              }
-            });
-          }
-          return this.paymentsService.createPaymentIntent({
-            registrationId: registration.id,
-            amount: totalMinorNum,
-            currency,
-            paymentProvider: "mock_provider",
-            providerPaymentId: `mock-${registration.id}`
-          } satisfies CreatePaymentIntentDto);
-        }
+        payload
       });
-      if (result.type === "waitlist") {
-        return {
-          registration: null,
-          paymentIntent: null,
-          waitlistItemId: result.waitlistItem.id,
-          waitlistPosition: result.queuePosition
-        };
-      }
-      return {
-        registration: result.registration,
-        paymentIntent: result.paymentIntent,
-        waitlistPosition: null
-      };
     };
 
     const requestHash = this.idempotencyService.createRequestHash({
@@ -271,18 +221,8 @@ export class RegistrationsController {
     @Body() payload: CreateWaitlistItemDto,
     @Headers("idempotency-key") idempotencyKeyHeader?: string
   ): Promise<{ waitlistItemId: string; queuePosition: number }> {
-    // Tenant bootstrap for public flow — resolves tenant before first RLS-bound repository query.
-    const tenantScope = await this.tenantBootstrapService.resolveTenantFromTourId(tourId);
-    if (!tenantScope) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Resource not found in tenant scope"
-        }
-      });
-    }
+    const tenantScope = await this.bootstrapPublicTourTenant(tourId);
     const idempotencyKey = assertPublicRegistrationIdempotencyKey(idempotencyKeyHeader);
-    this.requestContextService.setTenantId(tenantScope);
     const requestContextSnapshot = requestContextStorage.getStore();
     const executeWaitlistOnly = async () => {
       const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
@@ -402,8 +342,11 @@ export class RegistrationsController {
     required: true,
     tenantSource: "context"
   })
-  async createBooking(@Body() payload: CreateBookingDto): Promise<RegistrationResponseDto> {
-    return this.registrationsService.createBooking(payload.tourId);
+  async createBooking(@Body() payload: CreateBookingDto): Promise<{
+    registration: RegistrationResponseDto;
+    paymentIntent: PaymentResponseDto | null;
+  }> {
+    return this.registrationPlacementOrchestrator.createAuthenticatedBooking(payload.tourId);
   }
 
   @Get("bookings")
@@ -480,6 +423,7 @@ export class RegistrationsController {
 
   @Patch("registrations/:registrationId/payment")
   @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @RequireCapability("module.finance")
   @ApiBearerAuth()
   @ApiHeader({
     name: "Idempotency-Key",

@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
+import { Test, type TestingModuleBuilder } from "@nestjs/testing";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import express from "express";
 import { AppModule } from "../../src/app.module";
@@ -65,15 +65,21 @@ function loadDotEnvTest(): void {
   process.env.FRONTEND_BASE_URL ??= "";
 }
 
-export async function createE2EApp(): Promise<INestApplication> {
+export async function createE2EApp(
+  configure?: (builder: TestingModuleBuilder) => TestingModuleBuilder
+): Promise<INestApplication> {
   loadDotEnvTest();
   const { startTracing } = await import("../../src/tracing");
   startTracing();
 
   // DI-DIAGNOSTIC: E2E uses runtime transpilation (tsx); if decorator metadata is not preserved, Nest constructor DI can instantiate classes with undefined dependencies.
-  const moduleRef = await Test.createTestingModule({
+  let builder = Test.createTestingModule({
     imports: [AppModule]
-  }).compile();
+  });
+  if (configure) {
+    builder = configure(builder);
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     bodyParser: false

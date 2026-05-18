@@ -5,6 +5,7 @@ import { PaymentGatewayFactory } from "./payment-gateway.factory";
 
 test("forProvider(zibal) throws when merchant is missing", () => {
   const config = {
+    getNodeEnv: () => "development",
     getStripeSecretKey: () => "",
     getZibalMerchant: () => "",
     getZibalCallbackUrl: () => "https://example.com/cb"
@@ -21,6 +22,7 @@ test("forProvider(zibal) throws when merchant is missing", () => {
 
 test("forProvider(zibal) throws when callback URL is missing", () => {
   const config = {
+    getNodeEnv: () => "development",
     getStripeSecretKey: () => "",
     getZibalMerchant: () => "123456",
     getZibalCallbackUrl: () => ""
@@ -39,6 +41,7 @@ test("forProvider(stripe) uses placeholder when secret is empty", () => {
   const placeholder = { providerId: "stripe_placeholder" };
   const live = { providerId: "stripe_live" };
   const config = {
+    getNodeEnv: () => "development",
     getStripeSecretKey: () => "",
     getZibalMerchant: () => "",
     getZibalCallbackUrl: () => ""
@@ -53,10 +56,28 @@ test("forProvider(stripe) uses placeholder when secret is empty", () => {
   assert.equal(factory.forProvider("stripe"), placeholder);
 });
 
+test("forProvider(mock) throws in production", () => {
+  const config = {
+    getNodeEnv: () => "production",
+    getStripeSecretKey: () => "",
+    getZibalMerchant: () => "",
+    getZibalCallbackUrl: () => ""
+  };
+  const factory = new PaymentGatewayFactory(
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    config as never
+  );
+  assert.throws(() => factory.forProvider("mock_provider"), BadRequestException);
+});
+
 test("forProvider(stripe) prefers live gateway when secret is set", () => {
   const placeholder = { providerId: "stripe_placeholder" };
   const live = { providerId: "stripe_live" };
   const config = {
+    getNodeEnv: () => "development",
     getStripeSecretKey: () => "sk_test_123",
     getZibalMerchant: () => "",
     getZibalCallbackUrl: () => ""

@@ -161,6 +161,43 @@ test("tenant finance module grants Reconciliation read for member", () => {
   assert.equal(a.can("read", "Reconciliation"), true);
 });
 
+test("tenant finance module grants manual payment + receipt upload for member", () => {
+  const a = defineAbilityFor({
+    id: "u1",
+    role: "member",
+    status: "ACTIVE",
+    tenantModules: ["finance"],
+  });
+  assert.equal(a.can("read", "FinanceManualPayment"), true);
+  assert.equal(a.can("create", "FinanceManualPayment"), false);
+  assert.equal(a.can("create", "FinanceReceipt"), true);
+  assert.equal(a.can("read", "FinanceReceiptReview"), false);
+  assert.equal(a.can("update", "FinanceReceiptReview"), false);
+});
+
+test("tenant finance module grants receipt review for owner", () => {
+  const a = defineAbilityFor({
+    id: "u1",
+    role: "owner",
+    status: "ACTIVE",
+    tenantModules: ["finance"],
+  });
+  assert.equal(a.can("create", "FinanceManualPayment"), true);
+  assert.equal(a.can("read", "FinanceReceiptReview"), true);
+  assert.equal(a.can("update", "FinanceReceiptReview"), true);
+});
+
+test("workspace without finance module denies finance receipt subjects for member", () => {
+  const a = defineAbilityFor({
+    id: "u1",
+    role: "member",
+    status: "ACTIVE",
+    tenantModules: ["form_builder"],
+  });
+  assert.equal(a.can("read", "FinanceManualPayment"), false);
+  assert.equal(a.can("create", "FinanceReceipt"), false);
+});
+
 test("tour.form.architect alias grants TourTripDetails update via labels", () => {
   const a = defineAbilityFor({
     id: "u1",
