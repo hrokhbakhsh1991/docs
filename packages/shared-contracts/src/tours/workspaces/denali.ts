@@ -2,6 +2,8 @@ import { DENALI_ROOTS } from "../denali-wizard.contract";
 import type { TourWorkspaceDefinition } from "../workspace-definition";
 import { checkDenaliPilotCapacity, checkDenaliPilotTripDetails } from "./denali-invariants";
 
+export { checkDenaliPilotPublishGeolocationZones } from "./denali-invariants";
+
 /**
  * Denali-specific workspace strategy (map.md §B).
  */

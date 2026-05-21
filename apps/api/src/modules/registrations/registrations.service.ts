@@ -46,6 +46,7 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "./registration.entity";
+import { lockRegistrationForFinancialMutation } from "./utils/lock-registration-for-financial-mutation";
 import { WaitlistItemEntity, WaitlistItemStatus } from "./waitlist-item.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
@@ -590,8 +591,8 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         this.requestContextService,
         registrationId
       );
-      const registration = await this.registrationsReadRepository.findOneInManager(manager, where);
-      if (!registration) {
+      const peek = await this.registrationsReadRepository.findOneInManager(manager, where);
+      if (!peek) {
         throw new NotFoundException({
           error: {
             code: "RESOURCE_NOT_FOUND",
@@ -599,14 +600,10 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           }
         });
       }
-      this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
-      validateStatusTransition(
-        registration.status,
-        payload.targetStatus,
-        registration.paymentStatus
-      );
+      this.assertExpectedRegistrationRowVersion(peek, payload.expected_row_version);
+      validateStatusTransition(peek.status, payload.targetStatus, peek.paymentStatus);
 
-      const previousStatus = registration.status;
+      const previousStatus = peek.status;
       const statusChanged = previousStatus !== payload.targetStatus;
       const affectsAcceptedCounter =
         isCapacityConsumingRegistrationStatus(previousStatus) ||
@@ -614,12 +611,10 @@ export class RegistrationsService implements IRegistrationPaymentPort {
 
       const lockedTour =
         statusChanged && affectsAcceptedCounter
-          ? await this.requireTourInTenantForUpdate(
-              manager,
-              registration.tourId,
-              registration.tenantId
-            )
+          ? await this.requireTourInTenantForUpdate(manager, peek.tourId, peek.tenantId)
           : null;
+
+      const registration = await lockRegistrationForFinancialMutation(manager, where);
 
       await this.ensureCapacityForAcceptance(
         manager,
@@ -674,8 +669,8 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         this.requestContextService,
         registrationId
       );
-      const registration = await this.registrationsReadRepository.findOneInManager(manager, where);
-      if (!registration) {
+      const peek = await this.registrationsReadRepository.findOneInManager(manager, where);
+      if (!peek) {
         throw new NotFoundException({
           error: {
             code: "RESOURCE_NOT_FOUND",
@@ -683,6 +678,8 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           }
         });
       }
+      await this.requireTourInTenantForUpdate(manager, peek.tourId, peek.tenantId);
+      const registration = await lockRegistrationForFinancialMutation(manager, where);
       this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
       validatePaymentTransition(
         registration.status,

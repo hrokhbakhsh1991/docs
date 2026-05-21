@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
+import type { EntityManager } from "typeorm";
 import { freezePostDoubleEntryJournalResult } from "./freeze-ledger-journal";
+import { persistLedgerJournal } from "./persist-ledger-journal";
 import type { LedgerJournalLine, LedgerPostingSide } from "./ledger-journal-line";
 
 export type PostDoubleEntryJournalInput = {
@@ -146,6 +148,16 @@ export function postDoubleEntryJournal(input: PostDoubleEntryJournalInput): Post
   return freezePostDoubleEntryJournalResult({ journalId, lines: [debitLine, creditLine] });
 }
 
+/** Materialize + persist a balanced journal on `manager` (SQL durability anchor). */
+export async function postAndPersistDoubleEntryJournal(
+  manager: EntityManager,
+  input: PostDoubleEntryJournalInput
+): Promise<PostDoubleEntryJournalResult & { anyLineInserted: boolean }> {
+  const result = postDoubleEntryJournal(input);
+  const { anyLineInserted } = await persistLedgerJournal(manager, result);
+  return { ...result, anyLineInserted };
+}
+
 export type PostDoubleEntryReversalJournalInput = {
   tenantId: string;
   /** The two lines from {@link postDoubleEntryJournal} in canonical order `[debit, credit]`. */
@@ -215,4 +227,14 @@ export function postDoubleEntryReversalJournal(
   });
 
   return freezePostDoubleEntryJournalResult({ journalId, lines: [debitLine, creditLine] });
+}
+
+/** Materialize + persist a reversal journal on `manager`. */
+export async function postAndPersistDoubleEntryReversalJournal(
+  manager: EntityManager,
+  input: PostDoubleEntryReversalJournalInput
+): Promise<PostDoubleEntryJournalResult & { anyLineInserted: boolean }> {
+  const result = postDoubleEntryReversalJournal(input);
+  const { anyLineInserted } = await persistLedgerJournal(manager, result);
+  return { ...result, anyLineInserted };
 }

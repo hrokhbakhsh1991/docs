@@ -37,6 +37,7 @@ import {
   RegistrationEntity,
   RegistrationStatus
 } from "../registrations/registration.entity";
+import { lockRegistrationByTenantAndId } from "../registrations/utils/lock-registration-for-financial-mutation";
 import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
 import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-booking-price-snapshot";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
@@ -648,17 +649,23 @@ export class PaymentsService {
     }
     assertAllowedPaymentStatusTransition(payment.status, next);
 
-    const registration = await manager.findOne(RegistrationEntity, {
-      where: { id: payment.registrationId, tenantId: payment.tenantId }
+    const regPeek = await manager.findOne(RegistrationEntity, {
+      where: { id: payment.registrationId, tenantId: payment.tenantId },
+      select: { id: true, tourId: true, tenantId: true }
     });
-    if (!registration) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Registration not found for payment"
-        }
-      });
+    if (!regPeek) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
+    await this.registrationPaymentPort.lockTourRowForUpdate(
+      manager,
+      regPeek.tourId,
+      regPeek.tenantId
+    );
+    const registration = await lockRegistrationByTenantAndId(
+      manager,
+      payment.tenantId,
+      payment.registrationId
+    );
     if (registration.tenantId !== payment.tenantId) {
       throw new ForbiddenException({
         error: {
@@ -685,11 +692,12 @@ export class PaymentsService {
     payment.status = next;
     if (next === PaymentStatus.PAID) {
       payment.paidAt = new Date();
-      await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
+      const { journalId } = await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
         manager,
         payment,
         "online_webhook_paid"
       );
+      payment.ledgerJournalId = journalId;
     } else if (next === PaymentStatus.FAILED) {
       payment.failedAt = new Date();
     } else if (next === PaymentStatus.REFUNDED) {

@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
-import { IsNull, Repository } from "typeorm";
+import { EntityManager, IsNull, Repository } from "typeorm";
 
 import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 
@@ -127,11 +127,7 @@ export class ToursService {
     private readonly fileStorage: FileStoragePort
   ) {}
 
-  /**
-   * When {@link executeWithIdempotency} runs the handler, the same PostgreSQL transaction must be used
-   * for tour rows and catalog assertions; otherwise idempotency keys and tours can diverge.
-   */
-  private reposForWrite(): {
+  private reposFromManager(em: EntityManager): {
     tour: Repository<TourEntity>;
     tourProduct: Repository<TourProductEntity>;
     tourDeparture: Repository<TourDepartureEntity>;
@@ -142,19 +138,27 @@ export class ToursService {
     workspaceTourWizardTemplate: Repository<WorkspaceTourWizardTemplateEntity>;
     workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
   } {
+    return {
+      tour: em.getRepository(TourEntity),
+      tourProduct: em.getRepository(TourProductEntity),
+      tourDeparture: em.getRepository(TourDepartureEntity),
+      tourPrice: em.getRepository(TourPriceEntity),
+      workspaceDestination: em.getRepository(WorkspaceDestinationEntity),
+      workspaceEquipment: em.getRepository(WorkspaceEquipmentItemEntity),
+      workspaceTourThemes: em.getRepository(WorkspaceTourThemeEntity),
+      workspaceTourWizardTemplate: em.getRepository(WorkspaceTourWizardTemplateEntity),
+      workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity)
+    };
+  }
+
+  /**
+   * When {@link executeWithIdempotency} runs the handler, the same PostgreSQL transaction must be used
+   * for tour rows and catalog assertions; otherwise idempotency keys and tours can diverge.
+   */
+  private reposForWrite(): ReturnType<ToursService["reposFromManager"]> {
     const em = getIdempotentEntityManager();
     if (em) {
-      return {
-        tour: em.getRepository(TourEntity),
-        tourProduct: em.getRepository(TourProductEntity),
-        tourDeparture: em.getRepository(TourDepartureEntity),
-        tourPrice: em.getRepository(TourPriceEntity),
-        workspaceDestination: em.getRepository(WorkspaceDestinationEntity),
-        workspaceEquipment: em.getRepository(WorkspaceEquipmentItemEntity),
-        workspaceTourThemes: em.getRepository(WorkspaceTourThemeEntity),
-        workspaceTourWizardTemplate: em.getRepository(WorkspaceTourWizardTemplateEntity),
-        workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity)
-      };
+      return this.reposFromManager(em);
     }
     return {
       tour: this.tourRepository,
@@ -171,17 +175,37 @@ export class ToursService {
 
   /**
    * Keeps `tour_products`, `tour_departures`, and base `tour_prices` in sync with the legacy `tours` row (dual-write).
+   * Joins the idempotency transaction when present; otherwise runs inside `manager.transaction`.
    */
-  private async syncProductDepartureForTour(
+  private async syncProductDepartureForTour(tour: TourEntity): Promise<void> {
+    const idempotentEm = getIdempotentEntityManager();
+    if (idempotentEm) {
+      await this.syncProductDepartureForTourWithRepos(this.reposFromManager(idempotentEm), tour);
+      return;
+    }
+    await this.tourRepository.manager.transaction(async (transactionalEntityManager) => {
+      await this.syncProductDepartureForTourWithRepos(
+        this.reposFromManager(transactionalEntityManager),
+        tour
+      );
+    });
+  }
+
+  private throwCatalogSyncIntegrityBroken(message: string): never {
+    throw new InternalServerErrorException({
+      error: {
+        code: "CATALOG_SYNC_INTEGRITY_BROKEN",
+        message
+      }
+    });
+  }
+
+  private async syncProductDepartureForTourWithRepos(
     writeRepos: {
       tour: Repository<TourEntity>;
       tourProduct: Repository<TourProductEntity>;
       tourDeparture: Repository<TourDepartureEntity>;
       tourPrice: Repository<TourPriceEntity>;
-      workspaceDestination: Repository<WorkspaceDestinationEntity>;
-      workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
-      workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
-      workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
     },
     tour: TourEntity
   ): Promise<void> {
@@ -229,32 +253,38 @@ export class ToursService {
     const product = await writeRepos.tourProduct.findOne({
       where: { id: tour.tourProductId }
     });
-    if (product) {
-      product.title = tour.title;
-      product.description = tour.description ?? null;
-      await writeRepos.tourProduct.save(product);
+    if (!product) {
+      this.throwCatalogSyncIntegrityBroken(
+        "tour_products row missing for tour.tourProductId"
+      );
     }
+    product.title = tour.title;
+    product.description = tour.description ?? null;
+    await writeRepos.tourProduct.save(product);
 
     const departureId = tour.tourDepartureId ?? tour.id;
     const dep = await writeRepos.tourDeparture.findOne({ where: { id: departureId } });
-    if (dep) {
-      dep.startsOn = startsOn ?? undefined;
-      dep.endsOn = endsOn ?? undefined;
-      dep.currencyCode = currency;
-      dep.listPriceMinor = listMinor ?? undefined;
-      dep.lifecycleStatus = tour.lifecycleStatus;
-      dep.capacityTotal = tour.totalCapacity;
-      dep.soldCount = tour.acceptedCount;
-      await writeRepos.tourDeparture.save(dep);
+    if (!dep) {
+      this.throwCatalogSyncIntegrityBroken(
+        "tour_departures row missing for tour.tourDepartureId"
+      );
+    }
+    dep.startsOn = startsOn ?? undefined;
+    dep.endsOn = endsOn ?? undefined;
+    dep.currencyCode = currency;
+    dep.listPriceMinor = listMinor ?? undefined;
+    dep.lifecycleStatus = tour.lifecycleStatus;
+    dep.capacityTotal = tour.totalCapacity;
+    dep.soldCount = tour.acceptedCount;
+    await writeRepos.tourDeparture.save(dep);
 
-      const basePrice = await writeRepos.tourPrice.findOne({
-        where: { tourDepartureId: dep.id, priceType: TourPriceType.BASE }
-      });
-      if (basePrice) {
-        basePrice.currencyCode = currency;
-        basePrice.amountMinor = listMinor ?? basePrice.amountMinor;
-        await writeRepos.tourPrice.save(basePrice);
-      }
+    const basePrice = await writeRepos.tourPrice.findOne({
+      where: { tourDepartureId: dep.id, priceType: TourPriceType.BASE }
+    });
+    if (basePrice) {
+      basePrice.currencyCode = currency;
+      basePrice.amountMinor = listMinor ?? basePrice.amountMinor;
+      await writeRepos.tourPrice.save(basePrice);
     }
   }
 
@@ -852,7 +882,7 @@ export class ToursService {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
 
-      await this.syncProductDepartureForTour(writeRepos, loaded);
+      await this.syncProductDepartureForTour(loaded);
 
       const creator = this.requestContextService.getUserId();
       this.loggerService.info("tour.created", {
@@ -1185,7 +1215,7 @@ export class ToursService {
       if (!reloaded) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
-      await this.syncProductDepartureForTour(writeRepos, reloaded);
+      await this.syncProductDepartureForTour(reloaded);
 
       const editor = this.requestContextService.getUserId();
       this.loggerService.info("tour.updated", {

@@ -8,11 +8,56 @@ import type {
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
 import type { LedgerJournalLine } from "./ledger-journal-line";
-import { postDoubleEntryJournal } from "./post-double-entry-journal";
+import { postAndPersistDoubleEntryJournal } from "./post-double-entry-journal";
 
 /** Wallet id for booking / registration monetary projection (not a persisted wallet row yet). */
 export function bookingWalletId(registrationId: string): string {
   return `booking:${registrationId}`;
+}
+
+/** Leader PATCH paid amount — positive integer only; no float coercion. */
+export function positiveIntegerMinorStringFromLeaderAmount(amount: number): string {
+  if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount <= 0) {
+    throw new Error("LEDGER_LEADER_PAID_AMOUNT: must be a positive integer minor amount");
+  }
+  return BigInt(amount).toString();
+}
+
+function paidAmountPayloadPositiveMinor(
+  paidAmount: number | string | undefined
+): string | null {
+  if (paidAmount === undefined) {
+    return null;
+  }
+  if (typeof paidAmount === "string") {
+    const t = paidAmount.trim();
+    if (!/^\d+$/.test(t)) {
+      return null;
+    }
+    const n = BigInt(t);
+    return n > 0n ? t : null;
+  }
+  if (!Number.isFinite(paidAmount) || !Number.isInteger(paidAmount) || paidAmount <= 0) {
+    return null;
+  }
+  return BigInt(paidAmount).toString();
+}
+
+function isPaidAmountCleared(paidAmount: number | string | undefined): boolean {
+  if (paidAmount === undefined) {
+    return false;
+  }
+  if (typeof paidAmount === "string") {
+    const t = paidAmount.trim();
+    if (t === "" || t === "0") {
+      return true;
+    }
+    if (!/^\d+$/.test(t)) {
+      return false;
+    }
+    return BigInt(t) <= 0n;
+  }
+  return paidAmount <= 0;
 }
 
 function parsePreviousPaidMinor(previous: string | undefined): bigint {
@@ -47,12 +92,13 @@ function projectPaidAmountString(
     }
   }
   const clearing =
-    payload.paymentStatus === "NotPaid" || (payload.paidAmount !== undefined && payload.paidAmount <= 0);
+    payload.paymentStatus === "NotPaid" || isPaidAmountCleared(payload.paidAmount);
   if (clearing && parsePreviousPaidMinor(previousPaidAmount) === 0n) {
     return undefined;
   }
-  if (payload.paidAmount !== undefined) {
-    return payload.paidAmount.toString();
+  const minor = paidAmountPayloadPositiveMinor(payload.paidAmount);
+  if (minor !== null) {
+    return minor;
   }
   return previousPaidAmount;
 }
@@ -60,7 +106,7 @@ function projectPaidAmountString(
 /**
  * **System of record (money):** append-only {@link postDoubleEntryJournal} journals (two lines each).
  * **`registrations.paid_amount`** is a **projection** derived from those facts in-process until a
- * durable `ledger_journal_lines` table + worker lands.
+ * durable `ledger_journal_lines` rows and `account_balances` snapshots on the same `EntityManager`.
  *
  * Every journal batch is also written to the **transactional outbox** on the same `EntityManager`
  * as the caller’s domain transaction (`finance.ledger.double_entry_applied`).
@@ -70,6 +116,37 @@ function projectPaidAmountString(
 @Injectable()
 export class BookingLedgerAuthorityService {
   constructor(private readonly outboxService: OutboxService) {}
+
+  /**
+   * Derives `registrations.paid_amount` from ledger lines (shared by leader PATCH and payment capture).
+   */
+  projectPaidAmountFromLedgerLines(
+    registrationId: string,
+    payload: LeaderRegistrationPaymentPatchPayload,
+    lines: readonly LedgerJournalLine[],
+    previousPaidAmount?: string | null
+  ): string | undefined {
+    return projectPaidAmountString(
+      registrationId,
+      payload,
+      [...lines],
+      previousPaidAmount ?? undefined
+    );
+  }
+
+  /** Assigns `paidAmount` on a registration row from ledger facts (payment capture / receipt approve). */
+  applyPaidAmountProjectionToRegistration(
+    registration: BookingLedgerLeaderRegistrationRow,
+    payload: LeaderRegistrationPaymentPatchPayload,
+    lines: readonly LedgerJournalLine[]
+  ): void {
+    registration.paidAmount = projectPaidAmountString(
+      registration.id,
+      payload,
+      [...lines],
+      registration.paidAmount
+    );
+  }
 
   /**
    * Mutates `registration.paymentStatus` and `registration.paidAmount` **only** after emitting
@@ -87,12 +164,13 @@ export class BookingLedgerAuthorityService {
     const previousPaid = registration.paidAmount;
     const ledgerFacts: LedgerJournalLine[] = [];
 
-    if (payload.paidAmount !== undefined && payload.paidAmount > 0) {
-      const { lines } = postDoubleEntryJournal({
+    const receiveMinor = paidAmountPayloadPositiveMinor(payload.paidAmount);
+    if (receiveMinor !== null) {
+      const { lines } = await postAndPersistDoubleEntryJournal(manager, {
         tenantId: registration.tenantId,
         debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
         creditAccount: bookingAccount,
-        amount_minor: Math.round(payload.paidAmount).toString(),
+        amount_minor: receiveMinor,
         currency,
         correlationId: `${correlationBase}:${idempotencyKey}`,
         idempotencyKey: `${idempotencyKey}:receive`,
@@ -103,10 +181,10 @@ export class BookingLedgerAuthorityService {
         }
       });
       ledgerFacts.push(...lines);
-    } else if (payload.paymentStatus === "NotPaid" || (payload.paidAmount !== undefined && payload.paidAmount <= 0)) {
+    } else if (payload.paymentStatus === "NotPaid" || isPaidAmountCleared(payload.paidAmount)) {
       const prevMinor = parsePreviousPaidMinor(previousPaid);
       if (prevMinor > 0n) {
-        const { lines } = postDoubleEntryJournal({
+        const { lines } = await postAndPersistDoubleEntryJournal(manager, {
           tenantId: registration.tenantId,
           debitAccount: bookingAccount,
           creditAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,

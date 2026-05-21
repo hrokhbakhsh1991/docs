@@ -17,6 +17,7 @@ export type BookingLedgerLeaderRegistrationRow = {
 /** PATCH-shaped payload; `expected_row_version` is owned by the registrations API and ignored here. */
 export type LeaderRegistrationPaymentPatchPayload = {
   paymentStatus: string;
-  paidAmount?: number;
+  /** Leader PATCH: positive integer minor units. Receipt/capture may omit when ledger lines drive projection. */
+  paidAmount?: number | string;
   expected_row_version?: number;
 };

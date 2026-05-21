@@ -7,8 +7,17 @@ import { PaymentStatus } from "../../payments/entities/payment.entity";
 import {
   formatPaymentReconciliationReportMarkdown,
   generatePaymentReconciliationReport,
-  PaymentReconciliationFindingKind
+  PaymentReconciliationFindingKind,
+  type PaymentReconciliationReportInput
 } from "./payment-reconciliation-report";
+
+function reco(
+  input: Omit<PaymentReconciliationReportInput, "walletBalanceMinorByBookingId"> & {
+    walletBalanceMinorByBookingId?: PaymentReconciliationReportInput["walletBalanceMinorByBookingId"];
+  }
+): PaymentReconciliationReportInput {
+  return { walletBalanceMinorByBookingId: {}, ...input };
+}
 import { ReconciliationMismatchReason } from "./reconciliation-mismatch";
 
 const tenantId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -42,20 +51,20 @@ test("rejects ledger lines that do not belong to report tenantId (strict isolati
   }).lines;
   assert.throws(
     () =>
-      generatePaymentReconciliationReport({
+      generatePaymentReconciliationReport(reco({
         tenantId,
         ledgerLines: [...foreignLines],
         internalPayments: [],
         providerCapturedPayments: [],
         bookingSnapshots: [],
         registrations: []
-      }),
+      })),
     /FINANCE_LEDGER_TENANT_MISMATCH/
   );
 });
 
 test("report is clean when PSP, ledger, snapshot, registration projection align", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: ledgerReceiveMinor("1000", "USD"),
     internalPayments: [
@@ -85,8 +94,9 @@ test("report is clean when PSP, ledger, snapshot, registration projection align"
         paymentStatus: "Paid"
       }
     ],
-    reportId: "rep-clean"
-  });
+    reportId: "rep-clean",
+    walletBalanceMinorByBookingId: { [bookingId]: "1000" }
+  }));
   assert.equal(report.id, "rep-clean");
   assert.equal(report.summary.bookingIdsExamined >= 1, true);
   const triads = report.findings.filter((f) => f.kind === PaymentReconciliationFindingKind.AMOUNT_TRIAD_MISMATCH);
@@ -96,7 +106,7 @@ test("report is clean when PSP, ledger, snapshot, registration projection align"
 });
 
 test("detects amount triad mismatch (PSP vs ledger)", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: ledgerReceiveMinor("1000", "USD"),
     internalPayments: [
@@ -118,15 +128,16 @@ test("detects amount triad mismatch (PSP vs ledger)", () => {
       }
     ],
     bookingSnapshots: [{ bookingId, computedTotalMinor: "1000", currency: "USD" }],
-    registrations: [{ bookingId, paidAmountMinor: "1000", paymentStatus: "Paid" }]
-  });
+    registrations: [{ bookingId, paidAmountMinor: "1000", paymentStatus: "Paid" }],
+    walletBalanceMinorByBookingId: { [bookingId]: "1000" }
+  }));
   const m = report.findings.find((f) => f.kind === PaymentReconciliationFindingKind.AMOUNT_TRIAD_MISMATCH);
   assert.ok(m?.triadMismatch);
   assert.equal(m!.triadMismatch!.reason, ReconciliationMismatchReason.AMOUNT_TRIAD_MISMATCH);
 });
 
 test("detects duplicate Paid internal payments for same booking", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: [],
     internalPayments: [
@@ -150,14 +161,14 @@ test("detects duplicate Paid internal payments for same booking", () => {
     providerCapturedPayments: [],
     bookingSnapshots: [],
     registrations: []
-  });
+  }));
   assert.ok(
     report.findings.some((f) => f.kind === PaymentReconciliationFindingKind.DUPLICATE_PAID_INTERNAL_PAYMENT)
   );
 });
 
 test("detects missing provider capture for internal Paid", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: [],
     internalPayments: [
@@ -173,14 +184,14 @@ test("detects missing provider capture for internal Paid", () => {
     providerCapturedPayments: [],
     bookingSnapshots: [],
     registrations: []
-  });
+  }));
   assert.ok(
     report.findings.some((f) => f.kind === PaymentReconciliationFindingKind.MISSING_PROVIDER_CAPTURE)
   );
 });
 
 test("detects missing internal settlement for provider capture", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: [],
     internalPayments: [
@@ -203,14 +214,14 @@ test("detects missing internal settlement for provider capture", () => {
     ],
     bookingSnapshots: [],
     registrations: []
-  });
+  }));
   assert.ok(
     report.findings.some((f) => f.kind === PaymentReconciliationFindingKind.MISSING_INTERNAL_SETTLEMENT)
   );
 });
 
 test("detects duplicate providerPaymentId in provider feed", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: [],
     internalPayments: [],
@@ -230,27 +241,27 @@ test("detects duplicate providerPaymentId in provider feed", () => {
     ],
     bookingSnapshots: [],
     registrations: []
-  });
+  }));
   assert.ok(
     report.findings.some((f) => f.kind === PaymentReconciliationFindingKind.DUPLICATE_PROVIDER_PAYMENT_ID_IN_FEED)
   );
 });
 
 test("markdown formatter includes header", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: [],
     internalPayments: [],
     providerCapturedPayments: [],
     bookingSnapshots: [],
     registrations: []
-  });
+  }));
   const md = formatPaymentReconciliationReportMarkdown(report);
   assert.match(md, /Payment reconciliation/);
 });
 
 test("detects ledger booking wallet vs registration paid_amount drift", () => {
-  const report = generatePaymentReconciliationReport({
+  const report = generatePaymentReconciliationReport(reco({
     tenantId,
     ledgerLines: ledgerReceiveMinor("1000", "USD"),
     internalPayments: [
@@ -279,8 +290,9 @@ test("detects ledger booking wallet vs registration paid_amount drift", () => {
         quotedCurrencyCode: "USD",
         paymentStatus: "Paid"
       }
-    ]
-  });
+    ],
+    walletBalanceMinorByBookingId: { [bookingId]: "1000" }
+  }));
   assert.ok(
     report.findings.some((f) => f.kind === PaymentReconciliationFindingKind.LEDGER_VS_REGISTRATION_PAID_MISMATCH)
   );

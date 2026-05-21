@@ -16,6 +16,9 @@ import { noopPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gatew
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
 
 const noopRegistrationPaymentPort = {
+  async lockTourRowForUpdate(): Promise<TourEntity> {
+    return { id: "tour-1" } as TourEntity;
+  },
   async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
     return false;
   },
@@ -180,7 +183,36 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "booking:reg-1",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -317,7 +349,36 @@ test("timeout processor fails stale pending payments and updates metrics", async
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "booking:reg-1",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -429,7 +490,36 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     outboxService,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "booking:reg-1",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -510,7 +600,36 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "booking:reg-1",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never
@@ -538,7 +657,36 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     {} as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-1",
+            account: "booking:reg-1",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     noopPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort,
     { invalidateSummaryCache: async () => undefined } as never

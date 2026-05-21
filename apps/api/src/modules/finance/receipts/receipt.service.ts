@@ -15,7 +15,9 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../registrations/registration.entity";
+import { lockRegistrationByTenantAndId } from "../../registrations/utils/lock-registration-for-financial-mutation";
 import { validatePaymentTransition } from "../../registrations/registrations-policy";
+import { BookingLedgerAuthorityService } from "../ledger/booking-ledger-authority.service";
 import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-ledger-authority.service";
 import { FinanceReportsService } from "../reports/finance-reports.service";
 import { assertActorMayUploadReceiptForRegistration } from "./receipt-upload-authorization";
@@ -36,7 +38,9 @@ export class ReceiptService {
     @Inject(FinanceReportsService)
     private readonly financeReportsService: FinanceReportsService,
     @Inject(PaymentCaptureLedgerAuthorityService)
-    private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService
+    private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService,
+    @Inject(BookingLedgerAuthorityService)
+    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService
   ) {}
 
   async submitReceipt(params: {
@@ -129,7 +133,7 @@ export class ReceiptService {
     return this.tenantDbContext.runInTenantScope(params.tenantId, async (manager) => {
       const receipt = await manager.findOne(PaymentReceiptEntity, {
         where: { id: params.receiptId, tenantId: params.tenantId },
-        relations: ["payment", "payment.registration"]
+        relations: ["payment"]
       });
 
       if (!receipt) {
@@ -140,6 +144,35 @@ export class ReceiptService {
         throw new BadRequestException(`Receipt already ${receipt.status}`);
       }
 
+      const payment = receipt.payment;
+      if (!payment) {
+        throw new NotFoundException("Payment not found for receipt");
+      }
+
+      const regPeek = await manager.findOne(RegistrationEntity, {
+        where: { id: payment.registrationId, tenantId: params.tenantId },
+        select: { id: true, tourId: true, tenantId: true }
+      });
+      if (!regPeek) {
+        throw new NotFoundException("Registration not found for receipt payment");
+      }
+      await this.registrationPaymentPort.lockTourRowForUpdate(
+        manager,
+        regPeek.tourId,
+        regPeek.tenantId
+      );
+      const registration = await lockRegistrationByTenantAndId(
+        manager,
+        params.tenantId,
+        payment.registrationId
+      );
+
+      if (payment.status !== PaymentStatus.PENDING) {
+        throw new BadRequestException(
+          `Cannot approve receipt for payment with status ${payment.status}`
+        );
+      }
+
       receipt.status = ReceiptStatus.APPROVED;
       receipt.reviewedByUserId = params.actorId;
       receipt.reviewedAt = new Date();
@@ -147,22 +180,20 @@ export class ReceiptService {
 
       const savedReceipt = await manager.save(PaymentReceiptEntity, receipt);
 
-      const payment = receipt.payment;
       payment.status = PaymentStatus.PAID;
       payment.paidAt = new Date();
       await manager.save(PaymentEntity, payment);
-      await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
+
+      const { journalId, lines } = await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
         manager,
         payment,
         "manual_receipt_approve"
       );
 
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: payment.registrationId, tenantId: params.tenantId }
-      });
-      if (!registration) {
-        throw new NotFoundException("Registration not found for payment");
-      }
+      payment.ledgerJournalId = journalId;
+      await manager.save(PaymentEntity, payment);
+      savedReceipt.ledgerJournalId = journalId;
+      await manager.save(PaymentReceiptEntity, savedReceipt);
 
       const updatedRegistration = await this.registrationPaymentPort.transitionRegistrationForPayment(
         manager,
@@ -176,7 +207,11 @@ export class ReceiptService {
         RegistrationPaymentStatus.PAID
       );
       updatedRegistration.paymentStatus = RegistrationPaymentStatus.PAID;
-      updatedRegistration.paidAmount = payment.amount;
+      this.bookingLedgerAuthority.applyPaidAmountProjectionToRegistration(
+        updatedRegistration,
+        { paymentStatus: RegistrationPaymentStatus.PAID },
+        lines
+      );
       await manager.save(RegistrationEntity, updatedRegistration);
 
       await this.financeReportsService.invalidateSummaryCache(params.tenantId);

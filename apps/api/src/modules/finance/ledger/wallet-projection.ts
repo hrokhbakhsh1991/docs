@@ -1,13 +1,10 @@
+import type { EntityManager } from "typeorm";
+import { AccountBalanceEntity } from "./entities/account-balance.entity";
 import { normalizeFinanceTenantId } from "./ledger-tenant-scope";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 
 /**
- * **Read model** snapshot for a wallet — derived from append-only facts, never authoritative storage.
- * Production balances may come from materialized views, projections, or cached aggregates.
- *
- * TODO: Reconciliation vs PSP settlement files and internal `payments` rows.
- * TODO: Settlement windows / batched payout entries.
- * TODO: Credit expiration policy and scheduled ledger rows.
+ * Read model snapshot for a wallet — authoritative when loaded via {@link calculateWalletBalance}.
  */
 export type WalletProjection = {
   tenantId: string;
@@ -16,22 +13,53 @@ export type WalletProjection = {
   /** Sum of signed `amount_minor` for included rows (minor units): credits +, debits −. */
   balance_minor: string;
   currency: string;
-  /** Monotonic cursor for incremental projection rebuilds (e.g. last `createdAt` / last `id`). */
   asOfLineId: string | null;
   asOfCreatedAt: string | null;
   entryCount: number;
 };
 
 /**
- * **Placeholder** wallet balance from an in-memory slice of ledger lines.
- * Replace with SQL aggregation `GROUP BY tenant_id, account` or stream processor in production.
- *
- * **Tenant isolation:** throws `FINANCE_WALLET_TENANT_SCOPE` if `lines` contains any row whose
- * `tenantId` does not match the requested scope (no silent dropping of foreign-tenant rows).
- *
- * @param ledgerAccount — typically {@link bookingWalletId} or another `LedgerJournalLine.account`.
+ * Authoritative wallet balance: single-row read from `account_balances`.
  */
-export function calculateWalletBalance(
+export async function calculateWalletBalance(
+  manager: EntityManager,
+  tenantId: string,
+  ledgerAccount: string,
+  currency: string
+): Promise<WalletProjection> {
+  const tenantNorm = normalizeFinanceTenantId(tenantId);
+  const currencyNorm = currency.trim() || "UNK";
+  const row = await manager.findOne(AccountBalanceEntity, {
+    where: { tenantId: tenantNorm, account: ledgerAccount, currency: currencyNorm }
+  });
+
+  if (!row) {
+    return {
+      tenantId: tenantNorm,
+      ledgerAccount,
+      balance_minor: "0",
+      currency: "",
+      asOfLineId: null,
+      asOfCreatedAt: null,
+      entryCount: 0
+    };
+  }
+
+  return {
+    tenantId: tenantNorm,
+    ledgerAccount,
+    balance_minor: row.balanceMinor,
+    currency: row.currency,
+    asOfLineId: null,
+    asOfCreatedAt: row.updatedAt.toISOString(),
+    entryCount: -1
+  };
+}
+
+/**
+ * Derived balance from an in-memory line slice (non-authoritative; invoices / legacy tests).
+ */
+export function sumWalletBalanceFromLedgerLines(
   tenantId: string,
   ledgerAccount: string,
   lines: LedgerJournalLine[]
@@ -64,12 +92,11 @@ export function calculateWalletBalance(
     balance += line.side === "credit" ? a : -a;
   }
   const last = scoped[scoped.length - 1]!;
-  const currency = last.currency;
   return {
     tenantId: tenantNorm,
     ledgerAccount,
     balance_minor: balance.toString(),
-    currency,
+    currency: last.currency,
     asOfLineId: last.id,
     asOfCreatedAt: last.createdAt,
     entryCount: scoped.length

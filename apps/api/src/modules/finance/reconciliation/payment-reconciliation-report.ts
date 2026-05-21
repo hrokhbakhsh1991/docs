@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { bookingWalletId } from "../ledger/booking-ledger-authority.service";
+import {
+  findClearingZeroSumViolationsFromBalances,
+  findClearingZeroSumViolationsFromLines
+} from "../ledger/clearing-account-zero-sum";
 import { assertLedgerLinesFinanceTenantScope, normalizeFinanceTenantId } from "../ledger/ledger-tenant-scope";
 import type { LedgerJournalLine } from "../ledger/ledger-journal-line";
-import { calculateWalletBalance } from "../ledger/wallet-projection";
 import { PaymentStatus } from "../../payments/entities/payment.entity";
 import { detectPaymentMismatch } from "./detect-payment-mismatch";
 import type { ReconciliationMismatch } from "./reconciliation-mismatch";
@@ -50,7 +52,8 @@ export const PaymentReconciliationFindingKind = {
   LEDGER_VS_REGISTRATION_PAID_MISMATCH: "ledger_vs_registration_paid_mismatch",
   MISSING_BOOKING_PRICE_SNAPSHOT: "missing_booking_price_snapshot",
   MIXED_PROVIDER_CURRENCY_FOR_BOOKING: "mixed_provider_currency_for_booking",
-  INVALID_PROVIDER_AMOUNT_IN_FEED: "invalid_provider_amount_in_feed"
+  INVALID_PROVIDER_AMOUNT_IN_FEED: "invalid_provider_amount_in_feed",
+  CLEARING_ACCOUNT_NET_NONZERO: "clearing_account_net_nonzero"
 } as const;
 
 export type PaymentReconciliationFindingKind =
@@ -84,10 +87,19 @@ export type PaymentReconciliationReport = {
   readonly findings: readonly PaymentReconciliationFinding[];
 };
 
+export type ClearingBalanceRow = {
+  currency: string;
+  balanceMinor: string;
+};
+
 export type PaymentReconciliationReportInput = {
   /** Workspace scope — all `ledgerLines` must carry this tenant_id (normalized). */
   tenantId: string;
   ledgerLines: readonly LedgerJournalLine[];
+  /** Authoritative `account_balances` snapshot per booking id (`booking:{id}` wallet). */
+  walletBalanceMinorByBookingId: Readonly<Record<string, string>>;
+  /** Optional persisted clearing-account buckets for zero-sum validation (Section 4.3). */
+  leaderClearingBalances?: readonly ClearingBalanceRow[];
   internalPayments: readonly InternalPaymentRow[];
   providerCapturedPayments: readonly ProviderCaptureFact[];
   bookingSnapshots: readonly BookingSnapshotRow[];
@@ -225,6 +237,31 @@ export function generatePaymentReconciliationReport(
   const generatedAt = new Date().toISOString();
   const findings: PaymentReconciliationFinding[] = [];
 
+  for (const v of findClearingZeroSumViolationsFromLines(tenantId, input.ledgerLines)) {
+    findings.push(
+      finding(
+        PaymentReconciliationFindingKind.CLEARING_ACCOUNT_NET_NONZERO,
+        tenantId,
+        "critical",
+        `Leader clearing account net non-zero for currency ${v.currency} (${v.source})`,
+        { currency: v.currency, netMinor: v.netMinor, source: v.source }
+      )
+    );
+  }
+  if (input.leaderClearingBalances && input.leaderClearingBalances.length > 0) {
+    for (const v of findClearingZeroSumViolationsFromBalances(input.leaderClearingBalances)) {
+      findings.push(
+        finding(
+          PaymentReconciliationFindingKind.CLEARING_ACCOUNT_NET_NONZERO,
+          tenantId,
+          "critical",
+          `Leader clearing account balance non-zero for currency ${v.currency} (${v.source})`,
+          { currency: v.currency, netMinor: v.netMinor, source: v.source }
+        )
+      );
+    }
+  }
+
   const bookingIds = collectBookingIds(input);
   const internalByProviderId = new Map<string, InternalPaymentRow[]>();
   for (const p of input.internalPayments) {
@@ -341,9 +378,7 @@ export function generatePaymentReconciliationReport(
   const registrationByBooking = new Map(input.registrations.map((r) => [r.bookingId, r]));
 
   for (const bookingId of bookingIds) {
-    const wallet = bookingWalletId(bookingId);
-    const projection = calculateWalletBalance(tenantId, wallet, [...input.ledgerLines]);
-    const ledgerMinor = projection.balance_minor.trim() || "0";
+    const ledgerMinor = (input.walletBalanceMinorByBookingId[bookingId] ?? "0").trim() || "0";
     const reg = registrationByBooking.get(bookingId);
     if (reg) {
       const paidProj = reg.paidAmountMinor?.trim() ?? "";

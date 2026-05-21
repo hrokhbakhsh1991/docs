@@ -5,6 +5,49 @@ import { ReceiptStatus } from "../../src/modules/payments/entities/payment-recei
 import { ReceiptService } from "../../src/modules/finance/receipts/receipt.service";
 import { PaymentMethod, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { UserRole } from "../../src/common/auth/user-role.enum";
+import type { LedgerJournalLine } from "../../src/modules/finance/ledger/ledger-journal-line";
+
+function mockCaptureLines(
+  registrationId: string,
+  amountMinor = "1200000"
+): [LedgerJournalLine, LedgerJournalLine] {
+  const journalId = "journal-mock";
+  const createdAt = "2030-01-01T00:00:00.000Z";
+  return [
+    {
+      id: "line-debit",
+      journalId,
+      tenantId: "tenant-1",
+      account: "gl:leader-registration-payment-clearing",
+      side: "debit",
+      amount_minor: amountMinor,
+      currency: "IRR",
+      correlationId: "mock:debit",
+      idempotencyKey: "mock:debit",
+      createdAt
+    },
+    {
+      id: "line-credit",
+      journalId,
+      tenantId: "tenant-1",
+      account: `booking:${registrationId}`,
+      side: "credit",
+      amount_minor: amountMinor,
+      currency: "IRR",
+      correlationId: "mock:credit",
+      idempotencyKey: "mock:credit",
+      createdAt
+    }
+  ];
+}
+
+const noopCaptureLedger = {
+  emitPaymentCaptureAtPaid: async () => ({ lines: mockCaptureLines("reg-1") })
+} as never;
+
+const noopBookingLedger = {
+  applyPaidAmountProjectionToRegistration: () => undefined
+} as never;
 
 test("submitReceipt rejects non-manual payments", async () => {
   const service = new ReceiptService(
@@ -25,7 +68,8 @@ test("submitReceipt rejects non-manual payments", async () => {
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never
+    noopCaptureLedger,
+    noopBookingLedger
   );
 
   await assert.rejects(
@@ -78,7 +122,8 @@ test("submitReceipt rejects upload by unrelated member", async () => {
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never
+    noopCaptureLedger,
+    noopBookingLedger
   );
 
   await assert.rejects(
@@ -132,7 +177,8 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never
+    noopCaptureLedger,
+    noopBookingLedger
   );
 
   await assert.rejects(
@@ -192,7 +238,8 @@ test("submitReceipt deletes uploaded object when save fails", async () => {
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never
+    noopCaptureLedger,
+    noopBookingLedger
   );
 
   await assert.rejects(

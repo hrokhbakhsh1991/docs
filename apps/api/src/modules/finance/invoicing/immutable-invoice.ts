@@ -3,7 +3,7 @@ import type { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-
 import { bookingWalletId } from "../ledger/booking-ledger-authority.service";
 import { assertLedgerLinesFinanceTenantScope } from "../ledger/ledger-tenant-scope";
 import type { LedgerJournalLine } from "../ledger/ledger-journal-line";
-import { calculateWalletBalance } from "../ledger/wallet-projection";
+import { sumWalletBalanceFromLedgerLines } from "../ledger/wallet-projection";
 
 export const IMMUTABLE_INVOICE_SCHEMA_VERSION = 1 as const;
 
@@ -205,7 +205,7 @@ export function issueImmutableInvoice(input: IssueImmutableInvoiceInput): Immuta
   const snapshot = assertSnapshotRef(input);
   assertLedgerLinesFinanceTenantScope(snapshot.tenantId, input.ledgerLines);
   const ledgerRefs = filterLedgerLinesForBooking(input.tenantId, input.bookingId, input.ledgerLines);
-  const wallet = calculateWalletBalance(
+  const wallet = sumWalletBalanceFromLedgerLines(
     snapshot.tenantId,
     bookingWalletId(snapshot.bookingId),
     [...input.ledgerLines]

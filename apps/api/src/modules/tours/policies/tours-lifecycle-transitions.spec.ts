@@ -198,3 +198,59 @@ test("PATCH→OPEN matrix: DRAFT tour with zero capacity fails post-merge publis
     assert.equal(body.error?.code, "TOUR_NOT_PUBLISHABLE");
   }
 });
+
+function denaliPublishTripDetails(withGeo: boolean): TourDetails["tripDetails"] {
+  const geo = {
+    addressText: "Denali publish gate location",
+    latitude: 35.6892,
+    longitude: 51.389,
+  };
+  return {
+    schemaVersion: 1,
+    overview: {
+      denaliTourKind: "mountain_day",
+      ...(withGeo
+        ? { gatheringPoint: geo, startPoint: geo }
+        : {}),
+    },
+    logistics: {
+      departureDate: "2026-09-01",
+      primaryTransportMode: "bus",
+      groupSizeMax: 12,
+      privateCarMode: "no_private_car",
+    },
+    participation: {
+      minimumAge: 18,
+      fitnessLevel: "moderate",
+      sportsInsuranceRequired: true,
+    },
+    itinerary: {
+      segmentActivities: [{ dayNumber: 1, segments: [{ title: "leg" }] }],
+    },
+  } as TourDetails["tripDetails"];
+}
+
+test("assertTourStateReadyForOpenAfterPatch: denali_pilot without geolocation zones fails", () => {
+  const tour = draftTour({ formProfileSnapshot: "denali_pilot" });
+  tour.costContext = { totalCost: 1_000_000 };
+  tour.transportModes = ["bus"];
+  tour.details = new TourDetails();
+  tour.details.tripDetails = denaliPublishTripDetails(false);
+  try {
+    assertTourStateReadyForOpenAfterPatch("denali_pilot", tour);
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
+  }
+});
+
+test("assertTourStateReadyForOpenAfterPatch: denali_pilot with geolocation zones passes publish geo gate", () => {
+  const tour = draftTour({ formProfileSnapshot: "denali_pilot" });
+  tour.costContext = { totalCost: 1_000_000 };
+  tour.transportModes = ["bus"];
+  tour.details = new TourDetails();
+  tour.details.tripDetails = denaliPublishTripDetails(true);
+  assert.doesNotThrow(() => assertTourStateReadyForOpenAfterPatch("denali_pilot", tour));
+});

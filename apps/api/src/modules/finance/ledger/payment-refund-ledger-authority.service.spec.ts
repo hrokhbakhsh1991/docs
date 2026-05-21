@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PaymentStatus } from "../../payments/entities/payment.entity";
 import { PaymentRefundLedgerAuthorityService } from "./payment-refund-ledger-authority.service";
+import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
 
 test("emitPaymentRefundLedgerReversal enqueues finance.ledger.double_entry_applied with reversal links", async () => {
   const lines: { reversesLineId?: string }[] = [];
@@ -16,7 +17,7 @@ test("emitPaymentRefundLedgerReversal enqueues finance.ledger.double_entry_appli
     }
   };
   const svc = new PaymentRefundLedgerAuthorityService(outbox as never);
-  await svc.emitPaymentRefundLedgerReversal({} as never, {
+  await svc.emitPaymentRefundLedgerReversal(mockLedgerPersistEntityManager(), {
     id: "pay-1",
     tenantId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     registrationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",

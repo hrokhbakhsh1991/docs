@@ -1,4 +1,6 @@
-import type { TourFormProfile } from "@repo/types";
+import { BadRequestException } from "@nestjs/common";
+import type { TourFormProfile, TourTripDetails as TypesTourTripDetails } from "@repo/types";
+import { checkDenaliPilotPublishGeolocationZones } from "@repo/shared-contracts";
 
 import { TourEntity } from "../entities/tour.entity";
 import { assertEditRequiredTripDetailsForPublish } from "../utils/assert-edit-required-trip-details-for-publish";
@@ -11,9 +13,23 @@ import { assertTourIsPublishable, assertTourOpenReadiness } from "./tour-lifecyc
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourEntity): void {
+  const tripDetails = (tour.details?.tripDetails ?? null) as TourTripDetails | null;
+  if (profile === "denali_pilot") {
+    const geoViolation = checkDenaliPilotPublishGeolocationZones(
+      tripDetails as TypesTourTripDetails | null,
+    );
+    if (geoViolation != null) {
+      throw new BadRequestException({
+        error: {
+          code: geoViolation.code,
+          message: geoViolation.message,
+        },
+      });
+    }
+  }
   assertTripDetailsForFormProfile(
     profile,
-    (tour.details?.tripDetails ?? null) as TourTripDetails | null,
+    tripDetails,
     tour.transportModes ?? [],
   );
   assertProfileRequiredFieldsForPublish(

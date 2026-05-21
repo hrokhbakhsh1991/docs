@@ -71,6 +71,9 @@ export class PaymentEntity extends BaseTenantEntity {
   @Column({ type: "timestamptz", name: "refunded_at", nullable: true })
   refundedAt!: Date | null;
 
+  @Column({ type: "uuid", name: "ledger_journal_id", nullable: true })
+  ledgerJournalId!: string | null;
+
   @ManyToOne(() => RegistrationEntity, { nullable: false })
   @JoinColumn({ name: "registration_id", referencedColumnName: "id" })
   registration!: RegistrationEntity;

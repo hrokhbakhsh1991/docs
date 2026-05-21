@@ -3,7 +3,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { DatabaseModule } from "../../../database/database.module";
 import { StorageModule } from "../../../infra/storage/storage.module";
 import { OutboxModule } from "../../outbox/outbox.module";
-import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-ledger-authority.service";
+import { FinanceLedgerModule } from "../finance-ledger.module";
 import { FinanceReportsModule } from "../reports/finance-reports.module";
 import { ReceiptService } from "./receipt.service";
 import { PaymentReceiptEntity } from "../../payments/entities/payment-receipt.entity";
@@ -15,9 +15,10 @@ import { PaymentEntity } from "../../payments/entities/payment.entity";
     DatabaseModule,
     StorageModule,
     OutboxModule,
+    FinanceLedgerModule,
     FinanceReportsModule
   ],
-  providers: [ReceiptService, PaymentCaptureLedgerAuthorityService],
+  providers: [ReceiptService],
   exports: [ReceiptService]
 })
 export class ReceiptsModule {}

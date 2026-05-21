@@ -104,6 +104,15 @@ function createServiceHarness() {
   };
 
   const manager = {
+    async query(sql: string) {
+      if (sql.includes("INSERT INTO ledger_journal_lines")) {
+        return [{ id: "line-inserted" }];
+      }
+      if (sql.includes("ledger_journal_batches") || sql.includes("account_balances")) {
+        return [];
+      }
+      return [];
+    },
     async update() {
       return { affected: 1, raw: [], generatedMaps: [] };
     },

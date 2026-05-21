@@ -6,10 +6,16 @@ import { PaymentEntity, PaymentStatus } from "../../payments/entities/payment.en
 import {
   RegistrationEntity
 } from "../../registrations/registration.entity";
+import { bookingWalletId } from "../ledger/booking-ledger-authority.service";
+import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "../ledger/ledger-accounts";
+import { AccountBalanceEntity } from "../ledger/entities/account-balance.entity";
+import { LedgerJournalLineEntity } from "../ledger/entities/ledger-journal-line.entity";
+import { ledgerJournalLineEntityToDomain } from "../ledger/ledger-journal-line.mapper";
 import type { LedgerJournalLine } from "../ledger/ledger-journal-line";
 import type {
   BookingSnapshotRow,
   InternalPaymentRow,
+  ClearingBalanceRow,
   PaymentReconciliationReportInput,
   ProviderCaptureFact,
   RegistrationProjectionRow
@@ -210,7 +216,29 @@ export async function loadPaymentReconciliationReportInputForTenant(
   const financeRows = outboxRows.filter((r) => r.eventType === "finance.ledger.double_entry_applied");
   const succeededRows = outboxRows.filter((r) => r.eventType === "payment.succeeded");
 
-  const ledgerLines = ledgerLinesFromFinanceOutboxRows(financeRows, tid);
+  const persistedLineRows = await manager.find(LedgerJournalLineEntity, {
+    where: { tenantId: tid, createdAt: MoreThanOrEqual(since) },
+    order: { createdAt: "ASC" },
+    take: MAX_OUTBOX_FINANCE
+  });
+  const ledgerLinesFromDb = persistedLineRows.map(ledgerJournalLineEntityToDomain);
+  const ledgerLinesFromOutbox = ledgerLinesFromFinanceOutboxRows(financeRows, tid);
+  const ledgerLines =
+    ledgerLinesFromDb.length > 0 ? ledgerLinesFromDb : ledgerLinesFromOutbox;
+
+  const registrationById = new Map(registrations.map((r) => [r.id, r]));
+  const walletBalanceMinorByBookingId: Record<string, string> = {};
+  for (const registrationId of registrationIds) {
+    const walletAccount = bookingWalletId(registrationId);
+    const reg = registrationById.get(registrationId);
+    const paymentForReg = payments.find((p) => p.registrationId === registrationId);
+    const currency =
+      reg?.quotedCurrencyCode?.trim() || paymentForReg?.currency?.trim() || "UNK";
+    const balanceRow = await manager.findOne(AccountBalanceEntity, {
+      where: { tenantId: tid, account: walletAccount, currency }
+    });
+    walletBalanceMinorByBookingId[registrationId] = balanceRow?.balanceMinor ?? "0";
+  }
 
   const providerCapturedPayments: ProviderCaptureFact[] = [];
   const seenProviderIds = new Set<string>();
@@ -239,9 +267,19 @@ export async function loadPaymentReconciliationReportInputForTenant(
     });
   }
 
+  const clearingBalanceRows = await manager.find(AccountBalanceEntity, {
+    where: { tenantId: tid, account: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT }
+  });
+  const leaderClearingBalances: ClearingBalanceRow[] = clearingBalanceRows.map((r) => ({
+    currency: r.currency,
+    balanceMinor: r.balanceMinor
+  }));
+
   return {
     tenantId: tid,
     ledgerLines,
+    walletBalanceMinorByBookingId,
+    leaderClearingBalances,
     internalPayments,
     providerCapturedPayments,
     bookingSnapshots,

@@ -4,6 +4,7 @@ import type { OutboxService } from "../../outbox/outbox.service";
 import { BookingLedgerAuthorityService, bookingWalletId } from "./booking-ledger-authority.service";
 import type { BookingLedgerLeaderRegistrationRow } from "./contracts/leader-registration-payment-ledger.contracts";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
 
 function reg(overrides: Partial<BookingLedgerLeaderRegistrationRow> = {}): BookingLedgerLeaderRegistrationRow {
   return {
@@ -25,7 +26,7 @@ test("PAID with amount emits balanced journal and projects paid_amount", async (
   const svc = new BookingLedgerAuthorityService(outbox);
   const registration = reg();
   const { ledgerFacts } = await svc.applyLeaderRegistrationPaymentMutation(
-    {} as never,
+    mockLedgerPersistEntityManager(),
     registration,
     {
       paymentStatus: "Paid",
@@ -62,7 +63,7 @@ test("NOT_PAID emits reversal journal and clears projection when prior paid exis
     paidAmount: "100"
   });
   const { ledgerFacts } = await svc.applyLeaderRegistrationPaymentMutation(
-    {} as never,
+    mockLedgerPersistEntityManager(),
     registration,
     {
       paymentStatus: "NotPaid",
@@ -92,7 +93,7 @@ test("no journal lines skips outbox enqueue", async () => {
   const svc = new BookingLedgerAuthorityService(outbox);
   const registration = reg();
   await svc.applyLeaderRegistrationPaymentMutation(
-    {} as never,
+    mockLedgerPersistEntityManager(),
     registration,
     {
       paymentStatus: "Paid",

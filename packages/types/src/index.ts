@@ -33,6 +33,7 @@ export {
   isDenaliTourKind,
   type DenaliTourKind,
 } from "./denali-tour-kind";
+export { denaliLocationFromApi } from "./denali/locationData";
 export {
   DENALI_TRANSPORT_MODE_VALUES,
   inferDenaliTransportModeFromApiLogistics,

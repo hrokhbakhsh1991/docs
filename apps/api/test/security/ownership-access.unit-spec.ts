@@ -22,6 +22,9 @@ import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 
 const noopRegistrationPaymentPort = {
+  async lockTourRowForUpdate(): Promise<{ id: string }> {
+    return { id: "tour-1" };
+  },
   async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
     return false;
   },
@@ -327,7 +330,36 @@ test("payment intent denies member access to other member registration", async (
     { addEvent: async () => undefined } as never,
     resolverStub as never,
     noopPaymentRefundLedgerForTests,
-    { emitPaymentCaptureAtPaid: async () => undefined } as never,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: "tenant-a",
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: "tenant-a",
+            account: "booking:reg-other",
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
     stubPaymentGatewayFactoryForTests,
     noopRegistrationPaymentPort as never,
     { invalidateSummaryCache: async () => undefined } as never

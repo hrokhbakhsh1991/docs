@@ -5,3 +5,9 @@
  * this clearing account vs. the per-registration liability (`bookingWalletId`).
  */
 export const REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT = "gl:leader-registration-payment-clearing";
+
+/**
+ * Operator price deltas / credit notes must post here (offset journals), never by mutating
+ * immutable `booking_price_snapshots` rows.
+ */
+export const DISCOUNT_ADJUSTMENTS_ACCOUNT = "gl:discount-adjustments";

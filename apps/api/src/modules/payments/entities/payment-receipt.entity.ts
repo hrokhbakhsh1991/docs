@@ -41,6 +41,9 @@ export class PaymentReceiptEntity extends BaseTenantEntity {
   @Column({ type: "text", name: "review_note", nullable: true })
   reviewNote!: string | null;
 
+  @Column({ type: "uuid", name: "ledger_journal_id", nullable: true })
+  ledgerJournalId!: string | null;
+
   @ManyToOne(() => PaymentEntity, { nullable: false })
   @JoinColumn({ name: "payment_id", referencedColumnName: "id" })
   payment!: PaymentEntity;

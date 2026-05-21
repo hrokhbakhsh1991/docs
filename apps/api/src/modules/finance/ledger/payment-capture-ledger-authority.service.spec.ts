@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PaymentCaptureLedgerAuthorityService } from "./payment-capture-ledger-authority.service";
+import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
 
 test("emitPaymentCaptureAtPaid enqueues finance.ledger.double_entry_applied", async () => {
   const events: Array<{ eventType: string; domainEventId?: string | null }> = [];
@@ -10,8 +11,8 @@ test("emitPaymentCaptureAtPaid enqueues finance.ledger.double_entry_applied", as
     }
   } as never);
 
-  await service.emitPaymentCaptureAtPaid(
-    {} as never,
+  const result = await service.emitPaymentCaptureAtPaid(
+    mockLedgerPersistEntityManager(),
     {
       id: "pay-1",
       tenantId: "tenant-1",
@@ -23,6 +24,10 @@ test("emitPaymentCaptureAtPaid enqueues finance.ledger.double_entry_applied", as
     "manual_receipt_approve"
   );
 
+  assert.ok(result.journalId);
+  assert.equal(result.lines.length, 2);
+  assert.equal(result.lines[1]!.account, "booking:reg-1");
+  assert.equal(result.lines[1]!.side, "credit");
   assert.equal(events.length, 1);
   assert.equal(events[0]!.eventType, "finance.ledger.double_entry_applied");
   assert.equal(events[0]!.domainEventId, "payment:pay-1:ledger-capture-anchor");

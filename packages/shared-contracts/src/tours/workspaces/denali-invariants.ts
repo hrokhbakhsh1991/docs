@@ -1,4 +1,5 @@
 import {
+  denaliLocationFromApi,
   isDenaliEventTourKind,
   isDenaliTourKind,
   type TourTripDetails,
@@ -147,5 +148,44 @@ export function checkDenaliPilotTripDetails(
     }
   }
 
+  return null;
+}
+
+const DENALI_PUBLISH_REQUIRED_GEO_ZONES = ["gatheringPoint", "startPoint"] as const;
+
+function denaliPublishLocationIsConcrete(
+  overview: Record<string, unknown> | undefined,
+  zoneKey: (typeof DENALI_PUBLISH_REQUIRED_GEO_ZONES)[number],
+): boolean {
+  const loc = denaliLocationFromApi(overview?.[zoneKey]);
+  if (loc == null) {
+    return false;
+  }
+  if (loc.addressText.trim() === "") {
+    return false;
+  }
+  return (
+    typeof loc.latitude === "number" &&
+    Number.isFinite(loc.latitude) &&
+    typeof loc.longitude === "number" &&
+    Number.isFinite(loc.longitude)
+  );
+}
+
+/**
+ * Publish gate (OPEN): Denali pilot tours must pin gathering and start locations with text + coordinates.
+ */
+export function checkDenaliPilotPublishGeolocationZones(
+  tripDetails: TourTripDetails | null | undefined,
+): WorkspaceInvariantViolation | null {
+  const overview = tripDetails?.overview as Record<string, unknown> | undefined;
+  for (const zoneKey of DENALI_PUBLISH_REQUIRED_GEO_ZONES) {
+    if (!denaliPublishLocationIsConcrete(overview, zoneKey)) {
+      return {
+        code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+        message: `overview.${zoneKey} must include non-empty addressText and finite latitude/longitude for denali_pilot publish.`,
+      };
+    }
+  }
   return null;
 }

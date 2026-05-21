@@ -6,7 +6,8 @@ import { bookingWalletId } from "./booking-ledger-authority.service";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
 import { paymentAmountToLedgerMinorString } from "./payment-amount-to-ledger-minor";
-import { postDoubleEntryJournal } from "./post-double-entry-journal";
+import type { LedgerJournalLine } from "./ledger-journal-line";
+import { postAndPersistDoubleEntryJournal } from "./post-double-entry-journal";
 import { stablePaymentCaptureLedgerIdentifiers } from "./stable-payment-capture-ledger-ids";
 
 export type PaymentCaptureLedgerSource = "manual_receipt_approve" | "online_webhook_paid";
@@ -23,13 +24,13 @@ export class PaymentCaptureLedgerAuthorityService {
     manager: EntityManager,
     payment: Pick<PaymentEntity, "id" | "tenantId" | "registrationId" | "amount" | "currency" | "paidAt">,
     source: PaymentCaptureLedgerSource
-  ): Promise<void> {
+  ): Promise<{ journalId: string; lines: [LedgerJournalLine, LedgerJournalLine] }> {
     const tenantId = payment.tenantId.trim();
     const amountMinor = paymentAmountToLedgerMinorString(String(payment.amount));
     const paidAtIso = payment.paidAt ? payment.paidAt.toISOString() : new Date().toISOString();
     const stableIds = stablePaymentCaptureLedgerIdentifiers(payment.id);
 
-    const { lines } = postDoubleEntryJournal({
+    const { journalId, lines } = await postAndPersistDoubleEntryJournal(manager, {
       tenantId,
       debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
       creditAccount: bookingWalletId(payment.registrationId),
@@ -55,5 +56,6 @@ export class PaymentCaptureLedgerAuthorityService {
       lines,
       domainEventIdOverride: `payment:${payment.id}:ledger-capture-anchor`
     });
+    return { journalId, lines };
   }
 }
