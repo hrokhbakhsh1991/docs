@@ -1,5 +1,6 @@
 import {
   ACCOMMODATION_TYPE_VALUES,
+  DENALI_TOUR_KIND_VALUES,
   MEAL_PLAN_VALUES,
   normalizeAccommodationTypesForDto,
   normalizeMealPlanForDto,
@@ -64,6 +65,14 @@ export const PRIMARY_LOGISTICS_TRANSPORT_MODE_VALUES = [
   "private_car"
 ] as const;
 
+/** Denali wizard `transport.privateCarMode` persisted on logistics JSONB. */
+export const DENALI_PRIVATE_CAR_MODE_VALUES = [
+  "no_private_car",
+  "car_share_fixed_dong",
+  "car_share_friends_only",
+  "driver_gets_dong"
+] as const;
+
 /**
  * Trim/lowercase incoming `tripStyles` entries before validation; preserves order
  * and lets `@IsIn` flag unknown values. Returns `undefined` when the field is omitted.
@@ -102,6 +111,43 @@ export class TripDetailsDayPlanDto {
   @IsOptional()
   @IsInt()
   elevationGainM?: number;
+
+  @ApiPropertyOptional({ type: () => [TripDetailsPhotoDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsPhotoDto)
+  photos?: TripDetailsPhotoDto[];
+
+  @ApiPropertyOptional({
+    type: () => TripDetailsLocationDataDto,
+    description: "Optional structured geolocation for this itinerary day.",
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  location?: TripDetailsLocationDataDto;
+}
+
+/** Denali 5-zone location pin (Phase 7). */
+export class TripDetailsLocationDataDto {
+  @ApiPropertyOptional({ description: "Human-readable address or place label." })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  addressText?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null)
+  @IsNumber()
+  latitude?: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null)
+  @IsNumber()
+  longitude?: number | null;
 }
 
 export class TripDetailsOverviewDto {
@@ -230,6 +276,63 @@ export class TripDetailsOverviewDto {
   @IsString()
   @MaxLength(2000)
   secondaryDestinationIdsRaw?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: "uuid",
+    description: "Workspace tour leader ids."
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID("4", { each: true })
+  leaderUserIds?: string[];
+
+  @ApiPropertyOptional({
+    description: "Display name for the local guide (when not a workspace user)."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  localGuideName?: string;
+
+  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  gatheringPoint?: TripDetailsLocationDataDto;
+
+  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  startPoint?: TripDetailsLocationDataDto;
+
+  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  summitPoint?: TripDetailsLocationDataDto;
+
+  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  campPoint?: TripDetailsLocationDataDto;
+
+  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  endPoint?: TripDetailsLocationDataDto;
+
+  @ApiPropertyOptional({
+    enum: [...DENALI_TOUR_KIND_VALUES],
+    description: "Denali 6-tab wizard tour kind slug (persisted for edit/clone round-trip)."
+  })
+  @IsOptional()
+  @IsIn([...DENALI_TOUR_KIND_VALUES])
+  denaliTourKind?: (typeof DENALI_TOUR_KIND_VALUES)[number];
 }
 
 export class TripDetailsSegmentActivitySegmentDto {
@@ -316,6 +419,13 @@ export class TripDetailsSegmentActivityDayDto {
   @ValidateNested({ each: true })
   @Type(() => TripDetailsSegmentActivitySegmentDto)
   segments?: TripDetailsSegmentActivitySegmentDto[];
+
+  @ApiPropertyOptional({ type: () => [TripDetailsPhotoDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsPhotoDto)
+  photos?: TripDetailsPhotoDto[];
 }
 
 export class TripDetailsItineraryDto {
@@ -495,6 +605,15 @@ export class TripDetailsParticipationDto {
   notSuitableFor?: AudienceGroup[];
 
   @ApiPropertyOptional({
+    description: "Free-text fitness / experience prerequisites (Denali wizard).",
+    maxLength: 2000
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  fitnessPrerequisiteText?: string;
+
+  @ApiPropertyOptional({
     description: "Participant must carry valid sport / mountaineering insurance (leader-enforced)."
   })
   @IsOptional()
@@ -555,6 +674,15 @@ export class TripDetailsLogisticsDto {
   @IsOptional()
   @IsString()
   meetingPoint?: string;
+
+  @ApiPropertyOptional({
+    description: "Precise start village / trailhead (Denali wizard).",
+    maxLength: 500
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  startPointVillage?: string;
 
   @ApiPropertyOptional({
     description: "Local departure meetup time (free text, e.g. 05:30)."
@@ -733,6 +861,14 @@ export class TripDetailsLogisticsDto {
   @Max(10_000_000_000)
   fuelShareToman?: number;
 
+  @ApiPropertyOptional({
+    enum: [...DENALI_PRIVATE_CAR_MODE_VALUES],
+    description: "Denali supplemental private-car / dong mode (wizard transport tab)."
+  })
+  @IsOptional()
+  @IsIn([...DENALI_PRIVATE_CAR_MODE_VALUES])
+  privateCarMode?: (typeof DENALI_PRIVATE_CAR_MODE_VALUES)[number];
+
   @ApiPropertyOptional({ description: "Return / end-of-trip meetup time (24h HH:mm)." })
   @IsOptional()
   @ValidateIf((_, v) => v != null && String(v).trim() !== "")
@@ -806,6 +942,61 @@ export class TripDetailsPoliciesDto {
   safetyPolicy?: string;
 }
 
+/** Denali wizard transport slice persisted on `trip_details.transport` JSONB. */
+export class TripDetailsDenaliTransportDto {
+  @ApiPropertyOptional({
+    description: "Organizer transport fee per person (Toman) — not دنگ.",
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  transportCost?: number;
+
+  @ApiPropertyOptional({
+    description: "Bus/minibus/train: participants may use a personal car.",
+  })
+  @IsOptional()
+  @IsBoolean()
+  allowPersonalCar?: boolean;
+
+  @ApiPropertyOptional({ description: "Personal car fuel share (دنگ) when allowed." })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  dongAmount?: number;
+}
+
+export class TripDetailsPhotoDto {
+  @ApiPropertyOptional({ format: "uuid" })
+  @IsUUID("4")
+  id!: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  url!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  filename?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  size?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  uploadedAt?: string;
+}
+
 export class TourTripDetailsDto {
   @ApiPropertyOptional({ example: 1, minimum: 1 })
   @IsOptional()
@@ -842,4 +1033,17 @@ export class TourTripDetailsDto {
   @ValidateNested()
   @Type(() => TripDetailsPoliciesDto)
   policies?: TripDetailsPoliciesDto;
+
+  @ApiPropertyOptional({ type: () => TripDetailsDenaliTransportDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TripDetailsDenaliTransportDto)
+  transport?: TripDetailsDenaliTransportDto;
+
+  @ApiPropertyOptional({ type: () => [TripDetailsPhotoDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsPhotoDto)
+  photos?: TripDetailsPhotoDto[];
 }

@@ -1,35 +1,26 @@
-import {
-  defaultTourFormProfileForTourType,
-  normalizeTourFormProfileInput,
-  type TourFormProfile,
-  type TourType,
-} from "@repo/types";
+import { normalizeTourFormProfileInput } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import type { ParsedWizardDraft } from "@/features/tours/wizard/tourWizardDraftEnvelope";
+import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
 
-/** Applies persisted draft envelope on top of wizard defaults (shared by local + server restore). */
+/**
+ * Applies persisted draft envelope on top of wizard defaults (local + server restore).
+ * Profile authority: `workspaceTemplate.baseProfile` only (never tourType/theme snapshot).
+ */
 export function applyWizardDraftRestore(
   parsed: ParsedWizardDraft,
   defaultValues: TourCreateFormValues,
+  workspaceTemplate: TenantWizardTemplate,
 ): ReturnType<typeof applyTourWizardPatch> {
-  const snapshotProfile = parsed.wizardMeta
-    ? normalizeTourFormProfileInput(parsed.wizardMeta.resolvedFormProfile)
-    : undefined;
+  const workspaceFormProfile = normalizeTourFormProfileInput(workspaceTemplate.baseProfile);
   const tourTypeRaw = parsed.formPatch?.overview?.tourType;
-  const tourTypeForFallback =
-    typeof tourTypeRaw === "string" && tourTypeRaw.trim() !== ""
-      ? (tourTypeRaw as TourType)
-      : undefined;
-  const currentProfileForPipeline =
-    snapshotProfile ?? defaultTourFormProfileForTourType(tourTypeForFallback);
 
   return applyTourWizardPatch({
     baseValues: defaultValues,
     patch: parsed.formPatch,
-    currentProfile: currentProfileForPipeline as TourFormProfile,
-    themeCatalog: undefined,
+    currentProfile: workspaceFormProfile,
     tourType: tourTypeRaw,
     snapshot: parsed.wizardMeta,
   });

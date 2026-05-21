@@ -1,9 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useFormContext, useWatch } from "react-hook-form";
 
-import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { labelExperienceLevel, labelFitnessLevel, labelGenderRestriction } from "../participationLabels";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 
@@ -59,8 +57,7 @@ function resolveOrHint(id: string | undefined, name: string | undefined, noun: s
  */
 export function ReviewSubmitStep() {
   const t = useTranslations("tours.new");
-  const { control } = useFormContext<TourCreateFormValues>();
-  const { tenantFormContract } = useTourWizardProfile();
+  const { tenantFormContract, submitLocked, isSubmitPending } = useTourWizardProfile();
   const {
     autoAcceptRegistrations,
     overview,
@@ -72,7 +69,6 @@ export function ReviewSubmitStep() {
     logistics,
     policies,
     onSubmit,
-    isSubmitting,
     submitError,
   } = useReviewSubmitRHF();
 
@@ -105,7 +101,7 @@ export function ReviewSubmitStep() {
     const ids = location?.secondaryDestinationIds ?? [];
     if (ids.length === 0) return undefined as string | undefined;
     const parts = ids
-      .map((sid) => resolveOrHint(sid, destinationNameById.get(sid), "مقصد"))
+      .map((sid: string) => resolveOrHint(sid, destinationNameById.get(sid), "مقصد"))
       .filter(Boolean) as string[];
     return parts.length > 0 ? parts.join("، ") : undefined;
   }, [location?.secondaryDestinationIds, destinationNameById]);
@@ -113,7 +109,7 @@ export function ReviewSubmitStep() {
   const accommodationTypesSummary = useMemo(() => {
     const ids = logistics?.accommodationTypes ?? [];
     if (ids.length === 0) return undefined as string | undefined;
-    return ids.map((slug) => t(`trip_accommodation_${slug}`)).join("، ");
+    return ids.map((slug: string) => t(`trip_accommodation_${slug}`)).join("، ");
   }, [logistics?.accommodationTypes, t]);
 
   const primarySegmentLabel = itinerary?.days?.[0]?.segments?.[0]?.title ?? "بخش اول";
@@ -274,7 +270,7 @@ export function ReviewSubmitStep() {
       <div style={{ marginTop: "1rem", textAlign: "right" }}>
         <button
           type="button"
-          disabled={isSubmitting}
+          disabled={submitLocked}
           onClick={() => onSubmit(payload)}
           style={{
             background: "#2563eb",
@@ -282,10 +278,10 @@ export function ReviewSubmitStep() {
             border: "none",
             padding: "0.5rem 1rem",
             borderRadius: "0.25rem",
-            cursor: isSubmitting ? "not-allowed" : "pointer",
+            cursor: submitLocked ? "not-allowed" : "pointer",
           }}
         >
-          {isSubmitting ? t("submitting") : t("submit")}
+          {isSubmitPending ? t("submitting") : t("submit")}
         </button>
         {submitError && (
           <p style={{ color: "var(--color-danger-600, #b91c1c)", marginTop: "0.5rem" }}>{submitError.message}</p>

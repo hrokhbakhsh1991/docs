@@ -45,7 +45,11 @@ const PATCH_SECTION_KEYS = [
   "policies",
 ] as const;
 
-/** Keeps only wizard-known roots from stored JSON (ignore unknown keys). */
+/**
+ * Keeps only wizard-known roots from stored JSON (ignore unknown keys).
+ *
+ * @deprecated Prefer {@link mapPresetToFormPatch} or {@link mapWizardPrefillToFormPatch} at app call sites.
+ */
 export function presetDefaultsToFormPatch(defaults: Record<string, unknown>): Partial<TourCreateFormValues> {
   const patch: Partial<TourCreateFormValues> = {};
   if (typeof defaults.autoAcceptRegistrations === "boolean") {

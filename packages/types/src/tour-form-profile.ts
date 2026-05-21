@@ -14,6 +14,7 @@ export const TOUR_FORM_PROFILE_VALUES = [
   "urban_event",
   "cinema_event",
   "cultural_tour",
+  "denali_pilot",
 ] as const;
 
 export type TourFormProfile = (typeof TOUR_FORM_PROFILE_VALUES)[number];

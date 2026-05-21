@@ -6,9 +6,16 @@ import {
   assertProfileRequiredFieldsForPublish,
   tourEntityToProfileRequiredSubmitShape,
 } from "../utils/assert-profile-required-fields-for-submit";
+import { assertTripDetailsForFormProfile } from "../utils/assert-create-tour-invariants";
 import { assertTourIsPublishable, assertTourOpenReadiness } from "./tour-lifecycle.policy";
+import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourEntity): void {
+  assertTripDetailsForFormProfile(
+    profile,
+    (tour.details?.tripDetails ?? null) as TourTripDetails | null,
+    tour.transportModes ?? [],
+  );
   assertProfileRequiredFieldsForPublish(
     profile,
     tourEntityToProfileRequiredSubmitShape(tour),

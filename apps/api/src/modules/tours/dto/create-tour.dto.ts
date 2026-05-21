@@ -130,9 +130,8 @@ export class CreateTourDto {
     enum: TOUR_FORM_PROFILE_VALUES_LIST,
     example: "mountain_outdoor",
     description:
-      "Canonical **tour creation form profile**. When present, takes precedence over theme-derived profile " +
-      "and `tourType` fallbacks for server strip, invariants, and persisted `formProfileSnapshot`. " +
-      "Omit to resolve from `tripDetails.overview.tourThemeIds[0]` then `tourType`."
+      "Optional client hint (ignored on create). The authoritative form profile is resolved server-side from " +
+      "`workspace_tour_wizard_templates.base_profile` for strip, invariants, and persisted `formProfileSnapshot`."
   })
   @IsOptional()
   @IsIn(TOUR_FORM_PROFILE_VALUES_LIST)
@@ -227,4 +226,14 @@ export class CreateTourDto {
   @ValidateNested()
   @Type(() => TourTripDetailsDto)
   tripDetails?: TourTripDetailsDto;
+
+  @ApiPropertyOptional({ description: "Source preset ID if created from a preset template" })
+  @IsOptional()
+  @IsUUID()
+  sourcePresetId?: string;
+
+  @ApiPropertyOptional({ description: "Source tour ID if created as a clone" })
+  @IsOptional()
+  @IsUUID()
+  sourceTourId?: string;
 }

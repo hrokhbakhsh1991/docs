@@ -151,8 +151,14 @@ describe("TOUR_FORM_PROFILE_DESCRIPTORS — inactiveFieldGroups mirror web getIn
     );
   });
 
-  it("general / mountain_outdoor / nature_trip / cultural_tour show every field group", () => {
-    for (const slug of ["general", "mountain_outdoor", "nature_trip", "cultural_tour"] as const) {
+  it("general / mountain_outdoor / nature_trip / cultural_tour / denali_pilot show every field group", () => {
+    for (const slug of [
+      "general",
+      "mountain_outdoor",
+      "nature_trip",
+      "cultural_tour",
+      "denali_pilot",
+    ] as const) {
       assert.deepEqual(
         TOUR_FORM_PROFILE_DESCRIPTORS[slug].inactiveFieldGroups,
         [],

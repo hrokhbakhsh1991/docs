@@ -14,6 +14,7 @@ test("AuditService.recordAuditEvent merges metadata and calls tenant append", as
     {
       tryGetTenantId: () => "11111111-1111-4111-8111-111111111111",
       tryGetRequestId: () => "req-trace-1",
+      tryGetCorrelationId: () => "req-trace-1",
       tryGetUserId: () => "22222222-2222-4222-8222-222222222222",
       tryGetClientIp: () => "127.0.0.1"
     } as never,

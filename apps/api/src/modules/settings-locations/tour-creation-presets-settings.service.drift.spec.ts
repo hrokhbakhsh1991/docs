@@ -96,6 +96,7 @@ function makeService(catalog: Record<string, TourFormProfile>) {
     presets.stub as never,
     themes.stub as never,
     makeRequestContextStub(),
+    { logEvent: async () => undefined } as never,
   );
   const warnings = attachWarnSpy(svc);
   return { svc, warnings, themes, presets };

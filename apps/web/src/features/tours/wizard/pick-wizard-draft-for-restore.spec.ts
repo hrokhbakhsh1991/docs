@@ -8,7 +8,7 @@ import type { ParsedWizardDraft } from "./tourWizardDraftEnvelope";
 
 function localDraft(savedAt: string): ParsedWizardDraft {
   return {
-    formPatch: { overview: { title: "local title twelve" } },
+    formPatch: { overview: { title: "local title twelve" } as any },
     wizardMeta: {
       resolvedFormProfile: "general",
       formProfileVersion: 1,

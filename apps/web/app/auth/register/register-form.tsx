@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
@@ -23,7 +23,18 @@ export function RegisterForm() {
   const onboardingToken = searchParams.get("onboarding")?.trim() || "";
   const inviteToken = searchParams.get("invite")?.trim() || "";
 
+  useEffect(() => {
+    if (!onboardingToken) {
+      showToast({ type: "error", message: t("register.toastMissingSession") });
+      router.replace("/login");
+    }
+  }, [onboardingToken, router, showToast, t]);
+
   const registerSchema = useMemo(() => buildRegisterFormSchema(t), [t]);
+
+  if (!onboardingToken) {
+    return null;
+  }
 
   const {
     register,
@@ -120,9 +131,8 @@ export function RegisterForm() {
         </Button>
       </form>
       <p className={authStyles.footerNote}>
-        {t("register.footerHaveAccount")}{" "}
         <Link href="/login" className={authStyles.footerLink}>
-          {t("register.footerLogin")}
+          {t("register.footerBackToLogin")}
         </Link>
       </p>
     </>

@@ -210,12 +210,22 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       .min(1, message)
       .max(max);
 
+  const TripDetailsDayPlanPhotoSchema = z.object({
+    id: z.string().uuid(),
+    url: z.string().url(),
+    filename: z.string().max(256),
+    size: z.number().int().min(0),
+    mimeType: z.string().max(128),
+    uploadedAt: z.string(),
+  });
+
   const TripDetailsDayPlanSchema = z.object({
     day: z.preprocess(englishDigitsUnknown, z.coerce.number().int().min(1, msgs.dayMinOne)),
     title: optionalShortText(500),
     description: optionalLongText,
     distanceKm: optionalIntInRange(0, 50_000),
     elevationGainM: optionalIntInRange(-10_000, 30_000),
+    photos: z.array(TripDetailsDayPlanPhotoSchema).optional(),
   });
 
   const TripDetailsOverviewSchema = z
@@ -224,6 +234,8 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       destinationRegion: optionalShortText(500),
       tourThemeIds: optionalTourThemeUuidIdsList,
       tourThemeLabels: optionalTourThemeLabels,
+      leaderUserIds: z.array(z.string().uuid()).optional(),
+      localGuideName: optionalShortText(128),
       tripStyles: z
         .preprocess(
           (raw) => {
@@ -313,6 +325,7 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
                     .strip(),
                 )
                 .optional(),
+              photos: z.array(TripDetailsDayPlanPhotoSchema).optional(),
             })
             .strip(),
         )
@@ -818,6 +831,10 @@ export function compactTripDetailsForApi(value: TourTripDetails | undefined): Re
     const elevationGainM = finiteNumberOrUndefined(o.elevationGainM);
     if (elevationGainM !== undefined && Number.isInteger(elevationGainM)) {
       out.elevationGainM = elevationGainM;
+    }
+    const photos = walk(o.photos, "photos");
+    if (photos !== undefined) {
+      out.photos = photos;
     }
     return out;
   }

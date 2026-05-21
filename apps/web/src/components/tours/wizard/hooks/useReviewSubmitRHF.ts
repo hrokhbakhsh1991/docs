@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useFormContext } from "react-hook-form";
 
-import type { TourCreateFormValues } from "../../schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 
 /**
  * Hook that isolates all RHF interactions needed by ReviewSubmitStep.
@@ -11,8 +11,7 @@ import type { TourCreateFormValues } from "../../schemas/tourCreateSchema";
 export function useReviewSubmitRHF() {
   const {
     control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setError,
     clearErrors,
   } = useFormContext<TourCreateFormValues>();
@@ -35,7 +34,7 @@ export function useReviewSubmitRHF() {
       // Here we just forward the payload to the parent via the form's native submit.
       // The parent component can call `handleSubmit` with this callback.
       // For now we simply resolve – real logic will be injected by the wizard engine.
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      void payload;
       await Promise.resolve();
     },
     [],
@@ -55,7 +54,6 @@ export function useReviewSubmitRHF() {
     logistics,
     policies,
     onSubmit,
-    isSubmitting,
     submitError,
     // expose RHF utilities if needed by future extensions
     setError,

@@ -26,7 +26,7 @@ test("wizardFormToCreateTourApiPayload: urban_event wire omits phantom participa
 
   const stripped = stripInactiveTourCreateGroupsForProfile("urban_event", v);
   const dto = wizardFormToCreateTourApiPayload("urban_event", stripped);
-  const wire = buildCreateTourPostBody(mapCreateTourDto({ ...dto, formProfile: "urban_event" }));
+  const wire = buildCreateTourPostBody(mapCreateTourDto({ ...dto }));
   const json = JSON.stringify(wire);
 
   assert.ok(!json.includes("ghost-participation"));

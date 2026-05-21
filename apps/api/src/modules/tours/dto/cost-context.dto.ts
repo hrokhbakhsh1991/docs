@@ -1,6 +1,10 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsBoolean, IsNumber, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
+
+/** Denali pilot payment channel (offline receipt only). */
+export const TOUR_PAYMENT_MODE_VALUES = ["offline_receipt"] as const;
+export type TourPaymentMode = (typeof TOUR_PAYMENT_MODE_VALUES)[number];
 
 /**
  * Whitelisted `cost_context` JSONB fields for create/update (avoids silent strip of structured pricing).
@@ -33,4 +37,12 @@ export class CostContextDto {
   @IsOptional()
   @IsBoolean()
   requiresPayment?: boolean;
+
+  @ApiPropertyOptional({
+    enum: [...TOUR_PAYMENT_MODE_VALUES],
+    description: "Denali pilot: offline receipt only (no online gateway)."
+  })
+  @IsOptional()
+  @IsIn([...TOUR_PAYMENT_MODE_VALUES])
+  paymentMode?: TourPaymentMode;
 }

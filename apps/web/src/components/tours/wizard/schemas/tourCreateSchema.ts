@@ -483,3 +483,11 @@ export function buildTourCreateSchemaForFormProfile(
 export const tourCreateSchema = buildTourCreateSchemaForFormProfile("general");
 
 export type TourCreateFormValues = z.infer<typeof tourCreateSchema>;
+
+/** Classic 9-step rail vs Denali 6-tab (`denaliTourCreateSchema`). */
+export type { TourWizardMode } from "@/features/tours/wizard/isDenaliWizardContext";
+export {
+  isDenaliWizardContext,
+  isDenaliWizardMode,
+  resolveTourWizardMode,
+} from "@/features/tours/wizard/isDenaliWizardContext";

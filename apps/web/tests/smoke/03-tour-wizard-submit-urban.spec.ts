@@ -6,6 +6,7 @@ import {
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardRegionsAndDestinationsRoutes,
+  expectWizardTemplateProfile,
   installTourWizardSettingsRoutes,
   SMOKE_WIZARD_DRAFT_STORAGE_KEY,
   SMOKE_WORKSPACE_BASE_URL,
@@ -61,7 +62,10 @@ test.describe("tour wizard urban submit (mocked API)", () => {
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
-    await installTourWizardSettingsRoutes(page, { themes: [] });
+    await installTourWizardSettingsRoutes(page, {
+      themes: [],
+      workspaceTemplateProfile: "urban_event",
+    });
     await installTourWizardRegionsAndDestinationsRoutes(page);
 
     /**
@@ -101,7 +105,7 @@ test.describe("tour wizard urban submit (mocked API)", () => {
         }
         const td = postBody.tripDetails as Record<string, unknown> | undefined;
         expect(td?.participation ?? null, "urban strip: no participation sent").toBeNull();
-        expect(postBody.formProfile, "profile-first create: explicit formProfile").toBe("urban_event");
+        expect(postBody.formProfile, "create POST must not send formProfile (workspace template is server authority)").toBeUndefined();
         await route.fulfill({
           status: 201,
           contentType: "application/json",
@@ -154,9 +158,7 @@ test.describe("tour wizard urban submit (mocked API)", () => {
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
     const w = page.getByTestId("tour-create-wizard");
     await w.locator('select[name="overview.tourType"]').selectOption("city");
-    await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute("data-form-profile", "urban_event", {
-      timeout: 25_000,
-    });
+    await expectWizardTemplateProfile(page, "urban_event");
 
     await expect(page.locator("form h2").first()).toContainText("اطلاعات پایه", { timeout: 15_000 });
     await page.getByRole("button", { name: "بعدی" }).click();

@@ -148,22 +148,9 @@ function UserTableBase({
 
   return (
     <div ref={scrollRef} className={styles.virtualScrollViewport}>
-      <Table aria-label={copy.tableAriaLabel}>
-        <colgroup>
-          <col style={{ width: "2.75rem" }} />
-          <col style={{ width: "15%" }} />
-          <col style={{ width: "19%" }} />
-          <col style={{ width: "11%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "13%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "9%" }} />
-          <col />
-        </colgroup>
+      <Table className={styles.directoryTable} aria-label={copy.tableAriaLabel}>
         <TableHead className={styles.stickyDirectoryThead}>
-          <TableRow>
+          <TableRow className={styles.directoryGridRow}>
             <TableHeaderCell className={styles.selectionCell}>
               <Checkbox
                 bare
@@ -213,7 +200,7 @@ function UserTableBase({
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`
                 }}
-                className={styles.virtualDataRow}
+                className={`${styles.directoryGridRow} ${styles.virtualDataRow}`}
               />
             );
           })}

@@ -44,6 +44,28 @@ async function parseJsonOrEmpty(res: Response): Promise<unknown> {
   }
 }
 
+export async function getTourPresetById(id: string): Promise<SettingsTourPresetDto> {
+  const res = await fetch(`/api/settings/tour-presets/${encodeURIComponent(id)}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  const body = await parseJsonOrEmpty(res);
+  if (res.status === 404) {
+    throw new Error("Tour creation preset not found");
+  }
+  if (!res.ok) {
+    throw new Error(pickSettingsErrorMessage(body, "Failed to load tour preset"));
+  }
+  const r = body as SettingsTourPresetDto & { form_profile?: string };
+  const formProfile =
+    typeof r.formProfile === "string" && r.formProfile.trim() !== ""
+      ? r.formProfile
+      : typeof r.form_profile === "string" && r.form_profile.trim() !== ""
+        ? r.form_profile
+        : "general";
+  return { ...r, formProfile };
+}
+
 export async function getTourPresets(): Promise<SettingsTourPresetDto[]> {
   const res = await fetch("/api/settings/tour-presets", { credentials: "include", cache: "no-store" });
   const body = await parseJsonOrEmpty(res);

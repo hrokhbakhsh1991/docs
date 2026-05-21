@@ -35,7 +35,8 @@ export default defineConfig({
     },
     {
       name: "denali-submit",
-      testMatch: /wizard-real-stack\.submit-denali-mountain\.spec\.ts/,
+      testMatch:
+        /wizard-real-stack\.(submit-denali-(mountain|matrix|from-preset|from-clone)|denali-preset-settings|denali-map-fields)\.spec\.ts/,
       use: { baseURL: `http://denali.localhost:${port}` },
       metadata: { ownerPhone: "+989121000001", tenantSlug: "denali" },
     },
@@ -67,6 +68,7 @@ export default defineConfig({
           NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "true",
           NEXT_PUBLIC_API_PORT: "3001",
           NEXT_PUBLIC_TOUR_WIZARD_SERVER_DRAFT: "1",
+          NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD: "1",
         },
       },
   reporter: [["list"]],

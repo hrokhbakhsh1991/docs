@@ -25,6 +25,10 @@ import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity"
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
+import { WorkspaceDestinationEntity } from "../../src/modules/settings-locations/entities/workspace-destination.entity";
+import { WorkspaceRegionEntity } from "../../src/modules/settings-locations/entities/workspace-region.entity";
+import { WorkspaceTourWizardTemplateEntity } from "../../src/modules/settings-locations/entities/workspace-tour-wizard-template.entity";
+import { TenantAuditEventEntity } from "../../src/common/audit/entities/tenant-audit-event.entity";
 
 const TENANT_ID = "b3b3b3b3-b3b3-43b3-83b3-b3b3b3b3b3b3";
 const OWNER_EMAIL = "owner@tours-create-e2e.test";
@@ -102,6 +106,19 @@ async function seed(ds: DataSource): Promise<void> {
       joinedAt: new Date()
     })
   );
+
+  const templateRepo = ds.getRepository(WorkspaceTourWizardTemplateEntity);
+  await templateRepo.save(
+    templateRepo.create({
+      workspaceId: TENANT_ID,
+      baseProfile: "denali_pilot",
+      stepOverrides: { skip: [], insert: [] },
+      fieldRulesOverlay: {},
+      presetId: null,
+      wizardContractVersion: 1,
+      formProfileVersion: 1,
+    }),
+  );
 }
 
 before(async () => {
@@ -122,11 +139,23 @@ before(async () => {
 });
 
 after(async () => {
-  if (app) {
-    await app.close();
+  try {
+    if (app) {
+      await app.close();
+    }
+  } catch {
+    /* Redis / queue teardown may already be closed; tests already passed. */
+  } finally {
+    app = undefined;
   }
-  if (container) {
-    await container.stop();
+  try {
+    if (container) {
+      await container.stop();
+    }
+  } catch {
+    /* Container stop races are non-fatal for CI signal. */
+  } finally {
+    container = undefined;
   }
 });
 
@@ -169,4 +198,196 @@ test("POST /api/v2/tours creates tour with idempotency headers", async () => {
     .expect(201);
 
   assert.equal(res2.body.id, res.body.id);
+});
+
+test("POST /api/v2/tours persists denali_pilot tripDetails snapshot", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const regionRepo = ds.getRepository(WorkspaceRegionEntity);
+  const destRepo = ds.getRepository(WorkspaceDestinationEntity);
+  const region = await regionRepo.save(
+    regionRepo.create({
+      tenantId: TENANT_ID,
+      name: "Denali E2E region",
+      country: "IR",
+      isActive: true,
+    }),
+  );
+  const destination = await destRepo.save(
+    destRepo.create({
+      tenantId: TENANT_ID,
+      regionId: region.id,
+      name: "Denali E2E destination",
+      isActive: true,
+    }),
+  );
+
+  const body = {
+    title: "DenaliPilot E2E Mountain Day Tour Title",
+    total_capacity: 12,
+    lifecycle_status: "Draft",
+    tourType: "mountain",
+    destinationId: destination.id,
+    price: 100_000,
+    requiresPayment: true,
+    formProfile: "denali_pilot",
+    transportModes: ["bus"],
+    tripDetails: {
+      overview: {
+        denaliTourKind: "mountain_day",
+        shortIntro: "Denali e2e probe tour",
+      },
+      logistics: {
+        departureDate: "2026-09-01",
+        departureMeetingTime: "08:00",
+        primaryTransportMode: "bus",
+        groupSizeMax: 12,
+        privateCarMode: "no_private_car",
+      },
+      participation: {
+        minimumAge: 18,
+        fitnessLevel: "moderate",
+        experienceLevel: "basic",
+        sportsInsuranceRequired: true,
+      },
+      policies: {
+        cancellationPolicy: "E2E cancellation policy text for Denali pilot.",
+      },
+    },
+  };
+
+  const res = await request(app.getHttpServer())
+    .post("/api/v2/tours")
+    .set("Host", tenantTestHost(TENANT_SLUG))
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .set("Idempotency-Key", randomUUID())
+    .send(body)
+    .expect(201);
+
+  assert.equal(res.body.formProfileSnapshot, "denali_pilot");
+  const resOverview = res.body.details?.tripDetails?.overview as { denaliTourKind?: string } | undefined;
+  assert.equal(resOverview?.denaliTourKind, "mountain_day");
+
+  const tourRow = await ds.getRepository(TourEntity).findOne({
+    where: { id: res.body.id },
+    relations: ["details"],
+  });
+  assert.ok(tourRow);
+  assert.equal(tourRow.formProfileSnapshot, "denali_pilot");
+  const td = tourRow.details?.tripDetails as
+    | {
+        overview?: { denaliTourKind?: string };
+        logistics?: { privateCarMode?: string };
+      }
+    | null
+    | undefined;
+  assert.equal(td?.overview?.denaliTourKind, "mountain_day");
+  assert.equal(td?.logistics?.privateCarMode, "no_private_car");
+});
+
+async function latestAuditForTour(
+  ds: DataSource,
+  action: string,
+  tourId: string,
+): Promise<TenantAuditEventEntity | null> {
+  return ds.getRepository(TenantAuditEventEntity).findOne({
+    where: { tenantId: TENANT_ID, action, resourceId: tourId },
+    order: { occurredAt: "DESC" },
+  });
+}
+
+test("POST /api/v2/tours persists tenant_audit_events for blank create", async () => {
+  if (e2eUnavailableReason || !app) return;
+
+  const body = {
+    title: "AuditBlankFlow TenCharMinimum Tour Title",
+    total_capacity: 8,
+    lifecycle_status: "Draft",
+    transportModes: [] as string[],
+  };
+
+  const res = await request(app.getHttpServer())
+    .post("/api/v2/tours")
+    .set("Host", tenantTestHost(TENANT_SLUG))
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .set("Idempotency-Key", randomUUID())
+    .send(body)
+    .expect(201);
+
+  const ds = app.get(DataSource);
+  const row = await latestAuditForTour(ds, "tour.create_blank", res.body.id);
+  assert.ok(row);
+  assert.equal(row!.tenantId, TENANT_ID);
+  assert.equal(row!.resourceType, "tour");
+  assert.ok(row!.actorUserId);
+  const after = (row!.metadata as { after?: Record<string, unknown> } | null)?.after;
+  assert.equal(after?.title, body.title);
+});
+
+test("POST /api/v2/tours persists tenant_audit_events for preset create", async () => {
+  if (e2eUnavailableReason || !app) return;
+
+  const presetId = randomUUID();
+  const body = {
+    title: "AuditPresetFlow TenCharMinimum Tour Title",
+    total_capacity: 8,
+    lifecycle_status: "Draft",
+    transportModes: [] as string[],
+    sourcePresetId: presetId,
+  };
+
+  const res = await request(app.getHttpServer())
+    .post("/api/v2/tours")
+    .set("Host", tenantTestHost(TENANT_SLUG))
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .set("Idempotency-Key", randomUUID())
+    .send(body)
+    .expect(201);
+
+  const row = await latestAuditForTour(app.get(DataSource), "tour.create_from_preset", res.body.id);
+  assert.ok(row);
+  const after = (row!.metadata as { after?: Record<string, unknown> } | null)?.after;
+  assert.equal(after?.preset_id, presetId);
+});
+
+test("POST /api/v2/tours persists tenant_audit_events for clone create", async () => {
+  if (e2eUnavailableReason || !app) return;
+
+  const sourceBody = {
+    title: "AuditCloneSource TenCharMinimum Tour Title",
+    total_capacity: 8,
+    lifecycle_status: "Draft",
+    transportModes: [] as string[],
+  };
+
+  const source = await request(app.getHttpServer())
+    .post("/api/v2/tours")
+    .set("Host", tenantTestHost(TENANT_SLUG))
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .set("Idempotency-Key", randomUUID())
+    .send(sourceBody)
+    .expect(201);
+
+  const cloneBody = {
+    title: "AuditCloneChild TenCharMinimum Tour Title",
+    total_capacity: 8,
+    lifecycle_status: "Draft",
+    transportModes: [] as string[],
+    sourceTourId: source.body.id,
+  };
+
+  const res = await request(app.getHttpServer())
+    .post("/api/v2/tours")
+    .set("Host", tenantTestHost(TENANT_SLUG))
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .set("Idempotency-Key", randomUUID())
+    .send(cloneBody)
+    .expect(201);
+
+  const row = await latestAuditForTour(app.get(DataSource), "tour.clone", res.body.id);
+  assert.ok(row);
+  const after = (row!.metadata as { after?: Record<string, unknown> } | null)?.after;
+  assert.equal(after?.source_tour_id, source.body.id);
 });

@@ -11,6 +11,7 @@ import { TOUR_WIZARD_CONTRACT_VERSION } from "./contract/tour-wizard-contract-ve
 
 export type TourWizardDraftMeta = {
   sourceTourId?: string;
+  sourcePresetId?: string;
   themeIds?: { main?: string; secondary?: string[] };
   resolvedFormProfile: TourFormProfile;
   formProfileVersion: number;
@@ -40,6 +41,7 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
     return undefined;
   }
   const sourceTourId = typeof m.sourceTourId === "string" ? m.sourceTourId : undefined;
+  const sourcePresetId = typeof m.sourcePresetId === "string" ? m.sourcePresetId : undefined;
   let themeIds: TourWizardDraftMeta["themeIds"];
   const ti = m.themeIds;
   if (ti && typeof ti === "object" && !Array.isArray(ti)) {
@@ -52,6 +54,7 @@ export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | un
   const savedAt = typeof m.savedAt === "string" ? m.savedAt : undefined;
   return {
     sourceTourId,
+    sourcePresetId,
     themeIds,
     resolvedFormProfile: profile,
     formProfileVersion: version,
@@ -77,8 +80,12 @@ export function coalesceWizardMainTourThemeId(input: {
 }
 
 /**
- * Resolves the active form profile for the wizard.
- * Prefer draft clone snapshot until the user changes the main theme away from the snapshot binding.
+ * Theme/catalog/tourType profile resolver (pre–workspace-template authority).
+ *
+ * @deprecated Wizard create now resolves profile exclusively from
+ * `workspace_tour_wizard_templates.base_profile` (`resolveWorkspaceTourFormProfileFromTemplate`
+ * on web, `resolveWorkspaceTourFormProfile` on API). Retained for unit tests and the Edit tour
+ * form (`resolveTourFormProfileForTourFormValues`).
  */
 export function resolveTourFormProfile(input: {
   snapshot?: TourWizardDraftMeta;
@@ -146,7 +153,10 @@ export function preserveWizardMetaResolvedProfile(
   return next === "general" && prev && prev !== "general" ? prev : next;
 }
 
-/** Final wizard UI profile: resolve output plus theme catalog, snapshot, and tour-type fallbacks. */
+/**
+ * @deprecated Wizard UI uses `workspaceFormProfile` from the template query only.
+ * Retained for unit tests documenting legacy coalesce behaviour.
+ */
 export function coalesceWizardResolvedProfile(input: {
   raw: TourFormProfile;
   snapshotProfile?: TourFormProfile;

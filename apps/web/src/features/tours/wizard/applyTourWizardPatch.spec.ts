@@ -79,7 +79,7 @@ test("does not re-resolve profile when patch carries neither mainTourThemeId nor
   assert.equal(result.mergedValues.pricing.basePrice, 1_000_000);
 });
 
-test("re-resolves profile from patch.mainTourThemeId via themeCatalog (general → cinema_event)", () => {
+test("workspace profile: patch mainTourThemeId does not change resolved profile", () => {
   const base = makeBase();
   const patch: Partial<TourCreateFormValues> = {
     overview: { mainTourThemeId: THEME_CINEMA } as TourCreateFormValues["overview"],
@@ -87,16 +87,34 @@ test("re-resolves profile from patch.mainTourThemeId via themeCatalog (general �
   const result = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "urban_event",
     themeCatalog,
   });
-  assert.equal(result.resolvedFormProfile, "cinema_event");
+  assert.equal(result.resolvedFormProfile, "urban_event");
   assert.equal(result.mergedValues.overview.mainTourThemeId, THEME_CINEMA);
 });
 
-test("filters patch against the FINAL profile (general preset with itinerary applied while flipping to cinema_event drops itinerary)", () => {
+test("wizard: preset theme/tourType does not override workspace currentProfile", () => {
   const base = makeBase();
-  // Simulates a "general"-shaped preset whose mainTourThemeId points to a cinema theme.
+  const patch: Partial<TourCreateFormValues> = {
+    overview: {
+      mainTourThemeId: THEME_CINEMA,
+      tourType: "city",
+    } as TourCreateFormValues["overview"],
+  };
+  const result = applyTourWizardPatch({
+    baseValues: base,
+    patch,
+    currentProfile: "mountain_outdoor",
+    themeCatalog,
+  });
+  assert.equal(result.resolvedFormProfile, "mountain_outdoor");
+  assert.equal(result.mergedValues.overview.mainTourThemeId, THEME_CINEMA);
+  assert.equal(result.mergedValues.overview.tourType, "city");
+});
+
+test("filters patch against workspace cinema profile (preset drops inactive roots)", () => {
+  const base = makeBase();
   const presetDefaults: Record<string, unknown> = {
     overview: { title: "presets", mainTourThemeId: THEME_CINEMA },
     itinerary: { days: [{ dayNumber: 1, segments: [{ title: "must-not-merge" }] }] },
@@ -107,7 +125,7 @@ test("filters patch against the FINAL profile (general preset with itinerary app
   const result = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "cinema_event",
     themeCatalog,
   });
   assert.equal(result.resolvedFormProfile, "cinema_event");
@@ -125,7 +143,7 @@ test("filters patch against the FINAL profile (general preset with itinerary app
   assert.ok("logistics" in result.filteredPatch!);
 });
 
-test("urban_event flip also drops logistics from the patch (and from the merged form)", () => {
+test("urban_event workspace profile drops logistics from preset patch", () => {
   const base = makeBase();
   base.logistics.primaryTransportMode = "bus"; // pre-existing user input
   base.logistics.fuelShareToman = 250_000;
@@ -139,7 +157,7 @@ test("urban_event flip also drops logistics from the patch (and from the merged 
   const result = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "urban_event",
     themeCatalog,
   });
   assert.equal(result.resolvedFormProfile, "urban_event");
@@ -151,7 +169,7 @@ test("urban_event flip also drops logistics from the patch (and from the merged 
   assert.deepEqual(result.mergedValues.logistics, defaults.logistics);
 });
 
-test("falls back to tourType when patch's mainTourThemeId is not in themeCatalog", () => {
+test("workspace profile unchanged when patch has unknown theme id and city tourType", () => {
   const base = makeBase();
   const patch: Partial<TourCreateFormValues> = {
     overview: { mainTourThemeId: THEME_GHOST, tourType: "city" } as TourCreateFormValues["overview"],
@@ -159,14 +177,13 @@ test("falls back to tourType when patch's mainTourThemeId is not in themeCatalog
   const result = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "mountain_outdoor",
     themeCatalog,
   });
-  // City → urban_event per defaultTourFormProfileForTourType.
-  assert.equal(result.resolvedFormProfile, "urban_event");
+  assert.equal(result.resolvedFormProfile, "mountain_outdoor");
 });
 
-test("falls back through resolveTourFormProfile to DEFAULT when nothing resolves", () => {
+test("currentProfile wins when patch carries empty tourType", () => {
   const base = makeBase();
   const patch: Partial<TourCreateFormValues> = {
     overview: { tourType: "" } as TourCreateFormValues["overview"],
@@ -206,9 +223,7 @@ test("pipeline result is observably equivalent to the legacy preset-apply sequen
   assert.deepEqual(mergedValues, legacyMerged);
 });
 
-test("submit-time strip parity: piping the merged values through submit produces the same DTO as the legacy chain", () => {
-  // Even when the new pipeline filters earlier, the canonical submit-time strip in
-  // `useTourWizardCreate` must produce the same payload as before, for every profile.
+test("submit-time strip parity: workspace-profile preset apply matches legacy urban strip DTO", () => {
   const base = makeBase();
   base.overview.title = "submit-parity";
   base.itinerary.days[0]!.title = "user-typed-day";
@@ -222,26 +237,24 @@ test("submit-time strip parity: piping the merged values through submit produces
   };
   const patch = presetDefaultsToFormPatch(presetDefaults);
 
-  // Old chain: filter against general (caller's currentProfile), merge, then run submit-time strip.
-  const oldFiltered = filterFormPatchByActiveGroups("general", patch);
-  const oldMerged = mergeTourDraft(base, oldFiltered);
-  const oldDto = mapFormValuesToBackendPayload(
-    stripInactiveTourCreateGroupsForProfile("urban_event", oldMerged),
+  const legacyFiltered = filterFormPatchByActiveGroups("general", patch);
+  const legacyMerged = mergeTourDraft(base, legacyFiltered);
+  const legacyDto = mapFormValuesToBackendPayload(
+    stripInactiveTourCreateGroupsForProfile("urban_event", legacyMerged),
   );
 
-  // New chain: applyTourWizardPatch → submit-time strip against the resolved profile.
   const { mergedValues, resolvedFormProfile } = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "urban_event",
     themeCatalog,
   });
-  const newDto = mapFormValuesToBackendPayload(
+  const wizardDto = mapFormValuesToBackendPayload(
     stripInactiveTourCreateGroupsForProfile(resolvedFormProfile, mergedValues),
   );
 
   assert.equal(resolvedFormProfile, "urban_event");
-  assert.deepEqual(newDto, oldDto, "final submit DTO must be identical regardless of where the inactive-group strip happens");
+  assert.deepEqual(wizardDto, legacyDto);
 });
 
 test("idempotence: applying the same patch twice produces the same merged values", () => {
@@ -249,10 +262,11 @@ test("idempotence: applying the same patch twice produces the same merged values
   const patch: Partial<TourCreateFormValues> = {
     overview: { title: "stable", mainTourThemeId: THEME_CINEMA } as TourCreateFormValues["overview"],
   };
+  const workspaceProfile = "mountain_outdoor" as const;
   const once = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: workspaceProfile,
     themeCatalog,
   });
   const twice = applyTourWizardPatch({
@@ -281,14 +295,14 @@ test("does not mutate the caller's baseValues or patch", () => {
   applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "urban_event",
     themeCatalog,
   });
   assert.deepEqual(roundTrip(base), baseSnapshot, "baseValues must remain untouched");
   assert.deepEqual(roundTrip(patch), patchSnapshot, "input patch must remain untouched");
 });
 
-test("snapshot path: snapshot resolvedFormProfile wins when patch+base agree on theme", () => {
+test("workspace profile wins over stale snapshot meta on draft restore path", () => {
   const base = makeBase();
   base.overview.mainTourThemeId = THEME_MOUNTAIN;
   const patch: Partial<TourCreateFormValues> = {
@@ -297,7 +311,7 @@ test("snapshot path: snapshot resolvedFormProfile wins when patch+base agree on 
   const result = applyTourWizardPatch({
     baseValues: base,
     patch,
-    currentProfile: "general",
+    currentProfile: "mountain_outdoor",
     themeCatalog,
     tourType: "mountain",
     snapshot: {
@@ -306,6 +320,5 @@ test("snapshot path: snapshot resolvedFormProfile wins when patch+base agree on 
       themeIds: { main: THEME_MOUNTAIN },
     },
   });
-  // Snapshot wins per resolveTourFormProfile contract when main themes match.
-  assert.equal(result.resolvedFormProfile, "cultural_tour");
+  assert.equal(result.resolvedFormProfile, "mountain_outdoor");
 });

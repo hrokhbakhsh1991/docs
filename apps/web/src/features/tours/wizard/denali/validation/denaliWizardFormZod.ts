@@ -1,0 +1,188 @@
+/**
+ * Denali wizard form — validation orchestration (structural Zod + rules + canonical).
+ *
+ * Required / visibility: {@link ../rules/denaliRuleRequired.ts}.
+ * API invariants: {@link assertCreateTourInvariants}.
+ */
+
+import { z } from "zod";
+
+import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
+import type { DenaliRuleModel } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import {
+  collectDenaliRuleRequiredIssues,
+  mapFormPathToCanonical,
+  type DenaliRuleValidationScope,
+} from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
+import type { DenaliUIContextOptions } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
+import {
+  getDenaliStepPickShape,
+  isDenaliFieldVisibleOnStep,
+  resolveDenaliRuleModelFromForm,
+} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import { safeParseDenaliCanonicalFromWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
+import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/schemas/denaliCanonicalIssuePaths";
+import {
+  buildDenaliTourCreateDefaultValues,
+  denaliTourCreateBaseSchema,
+  type DenaliCreateTourWizardForm,
+} from "@/features/tours/wizard/schemas/denaliTourCreateBaseSchema";
+import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import { assertDenaliLegacySchemaAllowed } from "@/features/tours/wizard/schemas/denaliLegacySchemaGuard";
+
+/** Legacy wizard form — shapes, enums, ISO format only (no product requiredness). */
+export const denaliTourCreateFormSchema = denaliTourCreateBaseSchema;
+
+/** @deprecated Use {@link denaliCanonicalTourSchema} on submit. Tests only. */
+export const denaliTourCreateSchema = denaliTourCreateFormSchema;
+
+/** @deprecated Alias for tests. */
+export const denaliTourCreateSchemaRuleAware = denaliTourCreateFormSchema;
+
+export type DenaliWizardValidationOptions = {
+  /** Step: structural + rules for one rail step. Submit: full form + canonical. */
+  scope: DenaliRuleValidationScope;
+  uiOptions?: DenaliUIContextOptions;
+};
+
+function canonicalIssuesToFormIssues(issues: z.ZodIssue[]): z.ZodIssue[] {
+  return issues.map((issue) => ({
+    ...issue,
+    path: canonicalZodPathToFormFieldPath(issue.path as (string | number)[]).split("."),
+  })) as z.ZodIssue[];
+}
+
+function issuePathKey(path: readonly (string | number)[]): string {
+  return path.map(String).join(".");
+}
+
+function dedupeIssuesByPath(issues: z.ZodIssue[]): z.ZodIssue[] {
+  const byPath = new Map<string, z.ZodIssue>();
+  for (const issue of issues) {
+    byPath.set(issuePathKey(issue.path as (string | number)[]), issue);
+  }
+  return [...byPath.values()];
+}
+
+function mergeValidationIssues(
+  normalized: DenaliCreateTourWizardForm,
+  model: DenaliRuleModel | null,
+  options: DenaliWizardValidationOptions,
+): z.ZodIssue[] {
+  const structural = denaliTourCreateFormSchema.safeParse(normalized);
+  const structuralIssues = structural.success ? [] : structural.error.issues;
+
+  const ruleIssues =
+    model == null
+      ? []
+      : collectDenaliRuleRequiredIssues(normalized, model, options.scope, options.uiOptions).map(
+          (issue) => ({
+            ...issue,
+            code: z.ZodIssueCode.custom,
+          }),
+        );
+
+  const includeCanonical = options.scope.mode === "submit";
+  const canonicalParsed = includeCanonical
+    ? safeParseDenaliCanonicalFromWizardForm(normalized)
+    : { success: true as const, data: undefined };
+  const canonicalIssues =
+    includeCanonical && !canonicalParsed.success
+      ? canonicalIssuesToFormIssues(canonicalParsed.error.issues)
+      : [];
+
+  return dedupeIssuesByPath([
+    ...structuralIssues,
+    ...ruleIssues,
+    ...canonicalIssues,
+  ] as z.ZodIssue[]);
+}
+
+const TOUR_TYPE_REQUIRED_ISSUE: z.ZodIssue = {
+  code: z.ZodIssueCode.custom,
+  path: ["basicInfo", "tourType"],
+  message: "نوع تور را انتخاب کنید.",
+};
+
+/**
+ * Single validation pipeline for submit + RHF resolver.
+ * Includes denali_pricing participant rules, multi-day end, dong, price, and canonical MVP checks.
+ */
+export function getDenaliWizardSubmitIssues(
+  form: DenaliCreateTourWizardForm,
+  uiOptions?: DenaliUIContextOptions,
+): z.ZodIssue[] {
+  const normalized = normalizeDenaliWizardForm(form, uiOptions);
+  const model = resolveDenaliRuleModelFromForm(normalized);
+  if (model == null) {
+    return [TOUR_TYPE_REQUIRED_ISSUE];
+  }
+  return mergeValidationIssues(normalized, model, { scope: { mode: "submit" }, uiOptions });
+}
+
+/**
+ * @deprecated Throws in development if called from product code. Tests may use freely.
+ */
+export function parseDenaliTourCreateForm(input: unknown): DenaliCreateTourWizardForm {
+  assertDenaliLegacySchemaAllowed("parseDenaliTourCreateForm");
+  const normalized =
+    input != null && typeof input === "object"
+      ? normalizeDenaliWizardForm(input as DenaliCreateTourWizardForm)
+      : input;
+  const result = validateDenaliWizardForm(normalized as DenaliCreateTourWizardForm);
+  if (!result.success) {
+    throw new z.ZodError(result.issues);
+  }
+  return normalized as DenaliCreateTourWizardForm;
+}
+
+export { buildDenaliTourCreateDefaultValues };
+
+function issueBelongsToWizardStep(
+  issue: z.ZodIssue,
+  form: DenaliCreateTourWizardForm,
+  stepId: DenaliCreateWizardStepId,
+  uiOptions?: DenaliUIContextOptions,
+): boolean {
+  const model = resolveDenaliRuleModelFromForm(form);
+  if (model == null) return true;
+
+  const pathStr = mapFormPathToCanonical(issue.path.join("."));
+  if (!isDenaliFieldVisibleOnStep(model, stepId, pathStr, form, uiOptions)) {
+    return false;
+  }
+
+  const section = issue.path[0] as keyof DenaliCreateTourWizardForm | undefined;
+  if (section == null) return true;
+
+  const pick = getDenaliStepPickShape(model, stepId);
+  return pick[section] === true;
+}
+
+/** Issues that block leaving `stepId` (fields owned by that rail step only). */
+export function getDenaliWizardStepIssues(
+  form: DenaliCreateTourWizardForm,
+  stepId: DenaliCreateWizardStepId,
+  uiOptions?: DenaliUIContextOptions,
+): z.ZodIssue[] {
+  const normalized = normalizeDenaliWizardForm(form, uiOptions);
+  const model = resolveDenaliRuleModelFromForm(normalized);
+  if (model == null) {
+    return [TOUR_TYPE_REQUIRED_ISSUE];
+  }
+
+  const issues = mergeValidationIssues(normalized, model, {
+    scope: { mode: "step", stepId },
+    uiOptions,
+  });
+  return issues.filter((issue) => issueBelongsToWizardStep(issue, normalized, stepId, uiOptions));
+}
+
+/** Full-form validation: structural + rules + canonical (single submit gate). */
+export function validateDenaliWizardForm(form: DenaliCreateTourWizardForm): {
+  success: boolean;
+  issues: z.ZodIssue[];
+} {
+  const issues = getDenaliWizardSubmitIssues(form);
+  return { success: issues.length === 0, issues };
+}

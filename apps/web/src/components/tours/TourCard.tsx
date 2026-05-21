@@ -17,6 +17,8 @@ export type TourCardProps = Omit<HTMLAttributes<HTMLDivElement>, "title"> & {
   onPrimaryActionClick?: () => void;
   secondaryActionLabel?: string;
   onSecondaryActionClick?: () => void;
+  duplicateActionLabel?: string;
+  onDuplicateActionClick?: () => void;
   className?: string;
   /** Optional UI slot (e.g. lifecycle badge — not part of `TourDto`). */
   accessory?: ReactNode;
@@ -29,6 +31,8 @@ export function TourCard({
   onPrimaryActionClick,
   secondaryActionLabel,
   onSecondaryActionClick,
+  duplicateActionLabel,
+  onDuplicateActionClick,
   className,
   accessory,
   ...rest
@@ -49,10 +53,25 @@ export function TourCard({
 
   const hasFooterActions =
     (primaryActionLabel != null && onPrimaryActionClick != null) ||
-    (secondaryActionLabel != null && onSecondaryActionClick != null);
+    (secondaryActionLabel != null && onSecondaryActionClick != null) ||
+    (duplicateActionLabel != null && onDuplicateActionClick != null);
 
   const actions = hasFooterActions ? (
     <>
+      {duplicateActionLabel != null && onDuplicateActionClick != null ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          data-testid={`tour-duplicate-${tour.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicateActionClick();
+          }}
+        >
+          {duplicateActionLabel}
+        </Button>
+      ) : null}
       {secondaryActionLabel != null && onSecondaryActionClick != null ? (
         <Button
           type="button"

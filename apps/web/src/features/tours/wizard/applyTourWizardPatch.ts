@@ -1,4 +1,4 @@
-import type { TourFormProfile, TourType } from "@repo/types";
+import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 
@@ -11,11 +11,7 @@ import {
   sanitizeInactiveRootsForProfile,
 } from "./fieldGroups";
 import { mergeTourDraft } from "./tourCreateWizardMerge";
-import {
-  resolveTourFormProfile,
-  type ThemeRowForProfile,
-  type TourWizardDraftMeta,
-} from "./tourWizardProfileResolve";
+import type { ThemeRowForProfile, TourWizardDraftMeta } from "./tourWizardProfileResolve";
 
 /**
  * Inputs accepted by {@link applyTourWizardPatch}. All fields except `baseValues`
@@ -27,18 +23,16 @@ export type ApplyTourWizardPatchInput = {
   baseValues: TourCreateFormValues;
   /** Partial wizard-shaped patch to merge onto `baseValues`. May be omitted to mean "no-op merge". */
   patch?: Partial<TourCreateFormValues>;
-  /** Profile currently active in the wizard (used as the fallback when the patch does not affect profile inputs). */
-  currentProfile: TourFormProfile;
-  /** Workspace theme catalog used by {@link resolveTourFormProfile}. Optional — when absent we still fall back through tourType / default. */
-  themeCatalog?: ThemeRowForProfile[];
   /**
-   * Optional tourType fallback. The wizard schema types `overview.tourType` as a
-   * `string` (the Zod schema uses `z.string().trim().optional()`), so we accept
-   * the wider `string` here and narrow to {@link TourType} via the same fallback
-   * path `resolveTourFormProfile` uses for unknown values.
+   * Workspace template profile (`workspace_tour_wizard_templates.base_profile`).
+   * Required for all wizard patch applies — theme/tourType in the patch must not change profile.
    */
+  currentProfile: TourFormProfile;
+  /** Optional theme catalog (diagnostics / future use; does not affect profile resolution). */
+  themeCatalog?: ThemeRowForProfile[];
+  /** Optional tourType hint (diagnostics; does not affect profile resolution). */
   tourType?: string;
-  /** Optional draft snapshot meta (used by clone/draft callers; preset apply leaves this undefined). */
+  /** Optional draft snapshot meta (clone/draft provenance; does not affect profile resolution). */
   snapshot?: TourWizardDraftMeta;
   /** When `form_builder` is off, strip itinerary/participation/logistics after profile sanitize. */
   tenantFormContract?: TenantTourFormContract;
@@ -57,22 +51,12 @@ export type ApplyTourWizardPatchResult = {
   filteredPatch: Partial<TourCreateFormValues> | undefined;
 };
 
-function pickTrimmedNonEmpty(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const t = value.trim();
-  return t === "" ? null : t;
-}
-
 /**
  * Single seam for "apply a wizard-shaped patch onto current form values".
  *
  * Pipeline (in order):
- *   1. **Resolve final profile.** If the patch touches `overview.mainTourThemeId`
- *      or `overview.tourType`, we re-run {@link resolveTourFormProfile} with the
- *      patch's new inputs (falling back to the base form values + supplied
- *      catalog/tourType). Otherwise we trust the caller's `currentProfile` so
- *      snapshot-aware profile decisions made in the parent (e.g. mid-catalog-
- *      load draft restore) are not silently overridden.
+ *   1. **Profile.** Always `currentProfile` from the workspace wizard template (never
+ *      theme catalog or tourType).
  *   2. **Filter the patch** by dropping top-level roots owned by groups that are
  *      inactive for the **final** profile (via {@link filterFormPatchByActiveGroups}).
  *      Previously the preset-apply call site filtered against the *incoming* profile;
@@ -103,23 +87,7 @@ export function applyTourWizardPatch(
   input: ApplyTourWizardPatchInput,
 ): ApplyTourWizardPatchResult {
   const patch = input.patch;
-
-  const patchMainTheme = pickTrimmedNonEmpty(patch?.overview?.mainTourThemeId);
-  const baseMainTheme = pickTrimmedNonEmpty(input.baseValues.overview?.mainTourThemeId);
-  const patchTourType = pickTrimmedNonEmpty(patch?.overview?.tourType);
-
-  const patchAffectsProfile = patchMainTheme != null || patchTourType != null;
-
-  let resolvedFormProfile = input.currentProfile;
-  if (patchAffectsProfile) {
-    const tourTypeForResolve = patchTourType ?? input.tourType ?? undefined;
-    resolvedFormProfile = resolveTourFormProfile({
-      snapshot: input.snapshot,
-      mainTourThemeId: patchMainTheme ?? baseMainTheme ?? undefined,
-      themeCatalog: input.themeCatalog,
-      tourType: tourTypeForResolve as TourType | undefined,
-    });
-  }
+  const resolvedFormProfile = input.currentProfile;
 
   const filteredPatch = filterFormPatchByActiveGroups(resolvedFormProfile, patch);
   const merged = mergeTourDraft(input.baseValues, filteredPatch);

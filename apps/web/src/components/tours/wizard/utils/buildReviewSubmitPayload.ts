@@ -1,4 +1,4 @@
-import type { TourCreateFormValues } from "../../schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 
 /**
  * Pure function that builds the final payload sent to the backend.

@@ -329,7 +329,7 @@ test("payment intent denies member access to other member registration", async (
     noopPaymentRefundLedgerForTests,
     { emitPaymentCaptureAtPaid: async () => undefined } as never,
     stubPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
+    noopRegistrationPaymentPort as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 

@@ -82,3 +82,9 @@ textarea:focus-visible,
   outline: var(--focus-ring-weight, 2px) solid var(--focus-ring-color, var(--color-primary-focus));
   outline-offset: 2px;
 }
+
+/* Denali location picker modal — wider panel for Leaflet map */
+.denali-location-modal-panel {
+  width: min(640px, 100%);
+  max-height: min(85vh, 720px);
+}

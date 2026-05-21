@@ -101,7 +101,7 @@ test("listAllTourWizardPresetsSorted: active presets sort before inactive", () =
   assert.equal(out[1]!.id, "inactive");
 });
 
-/** Simulates S11: preset changes mainTourThemeId; profile recompute is a second resolveTourFormProfile call (see tourWizardFormProfile.spec). */
+/** Preset apply filters inactive roots against workspace profile (see applyTourWizardPatch.spec). */
 test("apply template path: merge after filter with cinema profile drops inactive roots from preset patch", () => {
   const base = buildTourCreateFormDefaultValues();
   const defaults: Record<string, unknown> = {

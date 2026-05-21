@@ -5,41 +5,14 @@ import { formLifecycleToApi } from "@/components/tours/tour-lifecycle";
 import {
   applyTourThemeOverviewEnrichment,
   injectLocationSectionIntoTripDetails,
-  mapCreateTourDto,
 } from "@/features/tours/domain/mapCreateTourDto";
 import { stripTourFormTripDetailsForFormProfile } from "@/features/tours/domain/stripTourFormTripDetailsForProfile";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetails.schema";
 
-import type { CreateTourDto, TourDetailDto, UpdateTourDto } from "@/lib/services/tours.service";
+import type { TourDetailDto, UpdateTourDto } from "@/lib/services/tours.service";
 
 export { apiLifecycleToFormStatus, formLifecycleToApi } from "@/components/tours/tour-lifecycle";
-
-/**
- * Maps tour form values → {@link CreateTourDto} for `POST /api/v2/tours`.
- * Create API accepts only Draft or Open → UI `archived` is coerced to Draft.
- */
-export function createTourDtoFromTourFormValues(
-  values: TourFormValues,
-  themeCatalog?: readonly { id: string; name: string }[],
-): CreateTourDto {
-  const lifecycle_status: CreateTourDto["lifecycle_status"] =
-    values.status === "active" ? "Open" : "Draft";
-  return mapCreateTourDto(
-    {
-      title: values.title,
-      description: values.description,
-      communicationLink: values.communicationLink,
-      capacity: values.totalCapacity,
-      price: values.price,
-      lifecycle_status,
-      destinationId: values.destinationId ?? null,
-      locationSection: values.locationSection,
-      tripDetails: values.tripDetails,
-    },
-    { themeCatalog },
-  );
-}
 
 /** Maps edit form → {@link UpdateTourDto}; preserves embedded `cost_context.location` when API returned one. */
 export function updateTourDtoFromTourFormValues(

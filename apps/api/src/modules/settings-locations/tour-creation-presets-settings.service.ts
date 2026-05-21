@@ -30,6 +30,9 @@ import {
 import { parsePresetDefaultsOrThrow } from "./tour-preset-defaults.schema";
 import { mergeLegacyMatchIntoDefaults } from "./tour-preset-defaults-legacy";
 
+import { AuditLogService } from "../../common/audit/audit-log.service";
+import { AUDIT_CATEGORY } from "../../common/audit/audit-category";
+
 const MAX_DEFAULTS_JSON_BYTES = 256 * 1024;
 
 @Injectable()
@@ -41,7 +44,8 @@ export class TourCreationPresetsSettingsService {
     private readonly presetsRepository: Repository<WorkspaceTourCreationPresetEntity>,
     @InjectRepository(WorkspaceTourThemeEntity)
     private readonly themesRepository: Repository<WorkspaceTourThemeEntity>,
-    private readonly requestContext: RequestContextService
+    private readonly requestContext: RequestContextService,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   private resolveWorkspaceOrThrow(): string {
@@ -76,7 +80,10 @@ export class TourCreationPresetsSettingsService {
     return t === "" ? null : t;
   }
 
-  private assertPlainDefaults(value: unknown): Record<string, unknown> {
+  private assertPlainDefaults(
+    value: unknown,
+    formProfile: TourFormProfile,
+  ): Record<string, unknown> {
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
       throw new BadRequestException({
         error: { code: "VALIDATION_FAILED", message: "defaults must be a JSON object" }
@@ -92,7 +99,7 @@ export class TourCreationPresetsSettingsService {
       });
     }
     const plain = value as Record<string, unknown>;
-    parsePresetDefaultsOrThrow(plain);
+    parsePresetDefaultsOrThrow(plain, { formProfile });
     return plain;
   }
 
@@ -172,15 +179,26 @@ export class TourCreationPresetsSettingsService {
     return rows.map((r) => this.toResponse(r));
   }
 
+  async findOneById(id: string): Promise<WorkspaceTourCreationPresetResponseDto> {
+    const workspaceId = this.resolveWorkspaceOrThrow();
+    const row = await this.presetsRepository.findOne({ where: { id, workspaceId } });
+    if (!row) {
+      throw new NotFoundException({
+        error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
+      });
+    }
+    return this.toResponse(row);
+  }
+
   async create(dto: CreateWorkspaceTourCreationPresetDto): Promise<WorkspaceTourCreationPresetResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const defaults = this.assertPlainDefaults(dto.defaults ?? {});
     const matchTourType = this.normalizeOptionalMatchTourType(dto.matchTourType);
     const matchMainTourThemeId = this.normalizeOptionalUuid(dto.matchMainTourThemeId);
     const formProfile =
       dto.formProfile != null && String(dto.formProfile).trim() !== ""
         ? normalizeTourFormProfileInput(dto.formProfile)
         : defaultTourFormProfileForTourType(matchTourType as TourType | null);
+    const defaults = this.assertPlainDefaults(dto.defaults ?? {}, formProfile);
 
     const row = this.presetsRepository.create({
       workspaceId,
@@ -200,6 +218,13 @@ export class TourCreationPresetsSettingsService {
       matchMainTourThemeId,
     });
     const saved = await this.presetsRepository.save(row);
+    void this.auditLogService.logEvent({
+      category: AUDIT_CATEGORY.SECURITY,
+      action: "preset.create",
+      entity: "preset",
+      entityId: saved.id,
+      after: { name: saved.name, formProfile: saved.formProfile },
+    });
     return this.toResponse(saved);
   }
 
@@ -231,7 +256,10 @@ export class TourCreationPresetsSettingsService {
       row.sortOrder = dto.sortOrder;
     }
     if (dto.defaults !== undefined) {
-      row.defaults = this.assertPlainDefaults(dto.defaults);
+      row.defaults = this.assertPlainDefaults(
+        dto.defaults,
+        normalizeTourFormProfileInput(row.formProfile ?? "general"),
+      );
     }
     if (dto.matchTourType !== undefined) {
       row.matchTourType = this.normalizeOptionalMatchTourType(dto.matchTourType);
@@ -259,17 +287,37 @@ export class TourCreationPresetsSettingsService {
       });
     }
     const saved = await this.presetsRepository.save(row);
+    void this.auditLogService.logEvent({
+      category: AUDIT_CATEGORY.SECURITY,
+      action: "preset.update",
+      entity: "preset",
+      entityId: saved.id,
+      after: { name: saved.name, formProfile: saved.formProfile },
+    });
     return this.toResponse(saved);
   }
 
   async remove(id: string): Promise<void> {
     const workspaceId = this.resolveWorkspaceOrThrow();
+    const row = await this.presetsRepository.findOne({ where: { id, workspaceId } });
+    if (!row) {
+      throw new NotFoundException({
+        error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
+      });
+    }
     const res = await this.presetsRepository.delete({ id, workspaceId });
     if (!res.affected) {
       throw new NotFoundException({
         error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
       });
     }
+    await this.auditLogService.logEvent({
+      category: AUDIT_CATEGORY.SECURITY,
+      action: "preset.delete",
+      entity: "preset",
+      entityId: id,
+      before: { name: row.name, formProfile: row.formProfile },
+    });
   }
 
   async reorder(itemIds: string[]): Promise<WorkspaceTourCreationPresetResponseDto[]> {

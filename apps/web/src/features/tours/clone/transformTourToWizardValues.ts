@@ -198,6 +198,8 @@ function inferSupplementalPrivateCar(rawTransportModes: unknown, primaryMode: st
  * Duplicate / Clone flow. Returns a `Partial<TourCreateFormValues>` so the
  * wrapper can pass it into `serializeWizardDraft()` (which deep-merges with
  * the wizard's default values on load).
+ *
+ * @deprecated Prefer {@link mapWizardPrefillToFormPatch} at app call sites.
  */
 export function transformTourToWizardValues(
   apiTour: TourCloneSourceDto,

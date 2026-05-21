@@ -160,10 +160,14 @@ export async function verifyWorkspaceTenant(slug: string): Promise<void> {
     } else if (slug === DENALI_SUBDOMAIN) {
       checks.push({ ok: modules.has("form_builder"), label: "enabled_modules includes form_builder" });
       checks.push({ ok: modules.has("finance"), label: "enabled_modules includes finance" });
+      checks.push({
+        ok: template[0]?.base_profile === "denali_pilot",
+        label: "wizard template base_profile = denali_pilot",
+      });
 
       const themeRows = await ds.query<Array<{ slug: string; form_profile: string; is_active: boolean }>>(
         `SELECT slug, form_profile, is_active FROM workspace_tour_themes
-         WHERE workspace_id = $1 AND slug LIKE 'denali-%'`,
+         WHERE workspace_id = $1`,
         [tenant.id],
       );
       const themeBySlug = new Map(themeRows.map((r) => [r.slug, r]));
@@ -189,10 +193,26 @@ export async function verifyWorkspaceTenant(slug: string): Promise<void> {
         `SELECT count(*)::text AS c FROM workspace_destinations WHERE tenant_id = $1 AND is_active = true`,
         [tenant.id],
       );
+      const destN = Number(destCount[0]?.c ?? 0);
+      const requireEnrichment = process.env.VERIFY_DENALI_ENRICHED === "1";
       checks.push({
-        ok: Number(destCount[0]?.c ?? 0) >= 1,
-        label: "≥1 active destination",
+        ok: destN >= (requireEnrichment ? 50 : 1),
+        label: requireEnrichment ? "≥50 active destinations (enrichment catalog)" : "≥1 active destination",
       });
+
+      const equipCount = await ds.query<Array<{ c: string }>>(
+        `SELECT count(*)::text AS c FROM workspace_equipment_items WHERE workspace_id = $1 AND is_active = true`,
+        [tenant.id],
+      );
+      const equipN = Number(equipCount[0]?.c ?? 0);
+      if (requireEnrichment) {
+        checks.push({
+          ok: equipN >= 10,
+          label: "≥10 active equipment items (seed:denali-equipment)",
+        });
+      } else if (equipN > 0) {
+        emitScriptInfo(`ℹ ${equipN} equipment item(s) present (optional seed:denali-equipment)`);
+      }
 
       const ownerMb = await ds.getRepository(UserTenantEntity).findOne({
         where: {

@@ -96,7 +96,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     "RBAC_UNKNOWN_MEMBERSHIP_ROLE",
     "SCHEMA_DRIFT_MISSING_COLUMN",
     "SCHEMA_DRIFT_MISSING_TABLE",
-    "OPS_UNAUTHORIZED"
+    "OPS_UNAUTHORIZED",
+    "DESTINATION_NOT_IN_WORKSPACE"
   ]);
 
   constructor(
@@ -380,10 +381,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     if (this.hasStructuredErrorBody(body)) {
       const raw = body.error;
-      const code = this.isCanonicalCode(raw.code) ? raw.code : "INTERNAL_ERROR";
-      const message = this.isCanonicalCode(raw.code)
-        ? raw.message
-        : this.resolveFallbackMessage(body, exception);
+      const code =
+        typeof raw.code === "string" && raw.code.trim() !== ""
+          ? this.isCanonicalCode(raw.code)
+            ? raw.code
+            : raw.code.trim()
+          : "INTERNAL_ERROR";
+      const message =
+        typeof raw.message === "string" && raw.message.trim() !== ""
+          ? raw.message.trim()
+          : this.resolveFallbackMessage(body, exception);
       const retryability = this.normalizeRetryability(
         typeof raw.retryability === "string" ? (raw.retryability as ApiErrorBody["retryability"]) : undefined
       );
@@ -468,7 +475,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private isCanonicalCode(value: string): boolean {
-    return GlobalExceptionFilter.CANONICAL_ERROR_CODES.has(value);
+    return (
+      GlobalExceptionFilter.CANONICAL_ERROR_CODES.has(value) || value.startsWith("WORKSPACE_RULE_")
+    );
   }
 
   private hasStructuredErrorBody(

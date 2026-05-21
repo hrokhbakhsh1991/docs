@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { CREATE_TOUR_DTO_WIRE_KEYS } from "@repo/shared-contracts";
+import { CREATE_TOUR_POST_WIRE_KEYS } from "@repo/shared-contracts";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import { tourCreateSchema } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
+import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
+import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload";
+import { submitValidDenaliWizardDefaults } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 function minimalValidForm(): TourCreateFormValues {
@@ -44,9 +47,9 @@ function minimalValidForm(): TourCreateFormValues {
   return tourCreateSchema.parse(raw);
 }
 
-const wireKeySet = new Set<string>(CREATE_TOUR_DTO_WIRE_KEYS);
+const wireKeySet = new Set<string>(CREATE_TOUR_POST_WIRE_KEYS);
 
-test("wizard → mapCreateTourDto → POST body uses only CreateTourDto wire keys", () => {
+test("wizard → mapCreateTourDto → POST body uses only client POST wire keys", () => {
   const form = minimalValidForm();
   const clientDto = mapFormValuesToBackendPayload(form);
   const prepared = mapCreateTourDto(clientDto, { themeCatalog: [] });
@@ -55,8 +58,73 @@ test("wizard → mapCreateTourDto → POST body uses only CreateTourDto wire key
     assert.ok(
       wireKeySet.has(key),
       `unexpected POST key "${key}" — add to server CreateTourDto or fix client serializer; ` +
-        `canonical list is CREATE_TOUR_DTO_WIRE_KEYS (@repo/shared-contracts)`
+        `canonical list is CREATE_TOUR_POST_WIRE_KEYS (@repo/shared-contracts)`
     );
+  }
+  assert.equal("formProfile" in wire, false, "create POST must not include formProfile");
+});
+
+test("buildCreateTourPostBody strips formProfile when DTO still carries it", () => {
+  const form = minimalValidForm();
+  const clientDto = mapFormValuesToBackendPayload(form);
+  const prepared = mapCreateTourDto(
+    { ...clientDto, formProfile: "denali_pilot" } as typeof clientDto & { formProfile: string },
+    { themeCatalog: [] },
+  );
+  assert.equal(prepared.formProfile, undefined);
+  const wire = buildCreateTourPostBody({ ...prepared, formProfile: "denali_pilot" });
+  assert.equal("formProfile" in wire, false);
+});
+
+test("Denali wizard → mapCreateTourDto → POST body uses only client POST wire keys", () => {
+  const form = submitValidDenaliWizardDefaults();
+  let clientDto = mapDenaliWizardToCreateTourPayload(form);
+  clientDto = stripCreateTourDtoForFormProfile("denali_pilot", clientDto);
+  const prepared = mapCreateTourDto({ ...clientDto }, { themeCatalog: [] });
+  const wire = buildCreateTourPostBody(prepared);
+  for (const key of Object.keys(wire)) {
+    assert.ok(
+      wireKeySet.has(key),
+      `unexpected Denali POST key "${key}" — UI-only Denali tab fields must not leak past mapper`,
+    );
+  }
+  assert.equal("formProfile" in wire, false);
+  const overview = (wire.tripDetails as { overview?: Record<string, unknown> } | undefined)?.overview;
+  assert.equal(overview?.denaliTourKind, "mountain_day");
+  const cost = wire.cost_context as Record<string, unknown> | undefined;
+  assert.equal(cost?.requiresPayment, true);
+  assert.equal(cost?.paymentMode, "offline_receipt");
+});
+
+test("create tour POST body never includes formProfile (contract regression)", () => {
+  const pipelines: Array<Record<string, unknown>> = [];
+
+  const classicForm = minimalValidForm();
+  pipelines.push(
+    buildCreateTourPostBody(
+      mapCreateTourDto(mapFormValuesToBackendPayload(classicForm), { themeCatalog: [] }),
+    ),
+  );
+
+  const denaliForm = submitValidDenaliWizardDefaults();
+  let denaliDto = mapDenaliWizardToCreateTourPayload(denaliForm);
+  denaliDto = stripCreateTourDtoForFormProfile("denali_pilot", denaliDto);
+  pipelines.push(buildCreateTourPostBody(mapCreateTourDto({ ...denaliDto }, { themeCatalog: [] })));
+
+  pipelines.push(
+    buildCreateTourPostBody({
+      ...mapCreateTourDto(mapFormValuesToBackendPayload(classicForm), { themeCatalog: [] }),
+      formProfile: "urban_event",
+    } as Parameters<typeof buildCreateTourPostBody>[0]),
+  );
+
+  for (const wire of pipelines) {
+    assert.equal(
+      "formProfile" in wire,
+      false,
+      `formProfile must not appear on POST /tours; keys=${Object.keys(wire).join(",")}`,
+    );
+    assert.equal(wire.formProfile, undefined);
   }
 });
 

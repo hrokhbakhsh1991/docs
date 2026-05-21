@@ -1,6 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 
 import { getTourFormProfileDescriptor, type TourFormProfile } from "@repo/types";
+import { getTourWorkspaceDefinition, type WorkspaceInvariantViolation } from "@repo/shared-contracts";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
 import type { TourTransportMode } from "../tour-transport-modes";
@@ -99,7 +100,12 @@ export function validateTripDetailsCanonical(
 
     const depM = minutesFromHhmm(log.departureMeetingTime);
     const retM = minutesFromHhmm(log.returnMeetingTime);
-    if (depM != null && retM != null && retM <= depM) {
+    const depDate =
+      typeof log.departureDate === "string" ? log.departureDate.trim() : "";
+    const retDate = typeof log.returnDate === "string" ? log.returnDate.trim() : "";
+    const sameCalendarDay =
+      depDate !== "" && retDate !== "" && depDate === retDate;
+    if (sameCalendarDay && depM != null && retM != null && retM <= depM) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_FIELD_FORMAT_INVALID",
@@ -409,11 +415,65 @@ export function assertIncomingCreateTourDtoBeforeFormProfileStrip(
  * Runs {@link validateTripDetailsCanonical} first, then profile-specific rules (e.g. `urban_event` must
  * not retain root `transportModes` after strip; cinema/urban must not retain stripped itinerary/participation rails).
  */
+function throwWorkspaceViolation(violation: WorkspaceInvariantViolation): never {
+  throw new BadRequestException({
+    error: {
+      code: violation.code,
+      message: violation.message,
+    },
+  });
+}
+
+/** Root DTO checks for workspace invariants (defense in depth vs web submit gate). */
+export function assertWorkspaceCapacity(profile: TourFormProfile, capacity: number): void {
+  const workspace = getTourWorkspaceDefinition(profile);
+  if (workspace) {
+    const violation = workspace.validation.checkCapacity(capacity);
+    if (violation != null) {
+      throwWorkspaceViolation(violation);
+    }
+  }
+}
+
+/** @deprecated Use {@link assertWorkspaceCapacity}. */
+export const assertDenaliPilotCapacity = (capacity: number) => assertWorkspaceCapacity("denali_pilot", capacity);
+
+function assertWorkspaceCreateDto(profile: TourFormProfile, dto: CreateTourDto): void {
+  assertWorkspaceCapacity(profile, dto.total_capacity);
+}
+
+/**
+ * Workspace rules (map.md §B): `overview.denaliTourKind` required when tripDetails
+ * is present; event kinds must not carry outdoor difficulty; fixed-dong modes require `fuelShareToman`
+ * when private car is in play; mountain kinds require participation fields.
+ */
+export function assertWorkspaceTripDetails(
+  profile: TourFormProfile,
+  tripDetails: TourTripDetails | null | undefined,
+  rootTransportModes?: readonly TourTransportMode[] | null,
+): void {
+  const workspace = getTourWorkspaceDefinition(profile);
+  if (workspace) {
+    const violation = workspace.validation.checkTripDetails(tripDetails, rootTransportModes);
+    if (violation != null) {
+      throwWorkspaceViolation(violation);
+    }
+  }
+}
+
+/** @deprecated Use {@link assertWorkspaceTripDetails}. */
+export const assertDenaliPilotTripDetails = (
+  tripDetails: TourTripDetails | null | undefined,
+  rootTransportModes?: readonly TourTransportMode[] | null,
+) => assertWorkspaceTripDetails("denali_pilot", tripDetails, rootTransportModes);
+
 export function assertTripDetailsForFormProfile(
   profile: TourFormProfile,
   tripDetails: TourTripDetails | null | undefined,
   rootTransportModes?: readonly TourTransportMode[] | null,
 ): void {
+  assertWorkspaceTripDetails(profile, tripDetails, rootTransportModes);
+
   validateTripDetailsCanonical(tripDetails, rootTransportModes ?? undefined);
 
   const { strip } = getTourFormProfileDescriptor(profile);
@@ -443,6 +503,8 @@ export function assertCreateTourInvariants(
   dto: CreateTourDto,
   resolvedFormProfile: TourFormProfile = "general",
 ): void {
+  assertWorkspaceCreateDto(resolvedFormProfile, dto);
+
   assertTripDetailsForFormProfile(
     resolvedFormProfile,
     dto.tripDetails as TourTripDetails | undefined,

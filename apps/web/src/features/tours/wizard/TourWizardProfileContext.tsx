@@ -31,6 +31,10 @@ export type TourWizardProfileContextValue = {
   rules: ProfileRules;
   /** Tenant `enabled_modules` overlay on the shared CREATE contract (Phase 8.2.1). */
   tenantFormContract: TenantTourFormContract;
+  /** {@link isWizardSubmitLocked} — disables duplicate create submits across wizard chrome. */
+  submitLocked: boolean;
+  /** True while the create mutation is in flight (loading label). */
+  isSubmitPending: boolean;
 };
 
 /** Shape callers may pass; `rules` is optional and filled by the provider. */
@@ -55,8 +59,17 @@ export function TourWizardProfileProvider({
       draftMeta: value.draftMeta,
       rules,
       tenantFormContract: value.tenantFormContract,
+      submitLocked: value.submitLocked ?? false,
+      isSubmitPending: value.isSubmitPending ?? false,
     };
-  }, [value.resolvedProfile, value.draftMeta, value.rules, value.tenantFormContract]);
+  }, [
+    value.resolvedProfile,
+    value.draftMeta,
+    value.rules,
+    value.tenantFormContract,
+    value.submitLocked,
+    value.isSubmitPending,
+  ]);
   return (
     <TourWizardProfileContext.Provider value={memo}>{children}</TourWizardProfileContext.Provider>
   );

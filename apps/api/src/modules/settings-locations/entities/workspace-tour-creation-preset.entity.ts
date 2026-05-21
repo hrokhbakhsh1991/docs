@@ -35,7 +35,7 @@ export class WorkspaceTourCreationPresetEntity {
   @Column({ name: "match_main_tour_theme_id", type: "uuid", nullable: true })
   matchMainTourThemeId!: string | null;
 
-  @Column({ type: "varchar", length: 32, name: "form_profile", default: "general" })
+  @Column({ type: "varchar", length: 32, name: "form_profile", default: "classic" })
   formProfile!: TourFormProfile;
 
   /** Partial tour wizard defaults (JSON). */

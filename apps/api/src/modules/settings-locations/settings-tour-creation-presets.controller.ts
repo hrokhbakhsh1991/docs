@@ -45,6 +45,17 @@ export class SettingsTourCreationPresetsController {
     return this.presets.findAllByWorkspace();
   }
 
+  @Get(":id")
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Settings"))
+  @ApiOperation({ summary: "Get workspace tour creation preset by id" })
+  @ApiOkResponse({ type: WorkspaceTourCreationPresetResponseDto })
+  async getById(
+    @Param("id", new ParseUUIDPipe()) id: string
+  ): Promise<WorkspaceTourCreationPresetResponseDto> {
+    return this.presets.findOneById(id);
+  }
+
   @Post()
   @HttpCode(201)
   @Roles(UserRole.Owner, UserRole.Admin)

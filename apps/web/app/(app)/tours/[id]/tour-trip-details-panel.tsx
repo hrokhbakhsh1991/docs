@@ -64,6 +64,7 @@ function Subheading({ children }: { children: ReactNode }) {
 export function TourTripDetailsPanel({ tour }: Props) {
   const t = useTranslations("tours");
   const tAcc = useTranslations("tours.new");
+  const tDenali = useTranslations("tours.denali");
 
   const td = tour.details?.tripDetails;
   if (td == null || typeof td !== "object" || Array.isArray(td)) {
@@ -92,6 +93,23 @@ export function TourTripDetailsPanel({ tour }: Props) {
       : undefined;
 
   const shortIntro = trimStr(overview?.shortIntro);
+  const denaliTourKindRaw = trimStr(overview?.denaliTourKind);
+  const denaliTourKindLabel = denaliTourKindRaw
+    ? tDenali(`tourKind.${denaliTourKindRaw}` as "tourKind.mountain_day")
+    : "";
+  const privateCarModeRaw = trimStr(logistics?.privateCarMode);
+  const privateCarModeLabel = privateCarModeRaw
+    ? tDenali(`transport.privateCarMode.${privateCarModeRaw}` as "transport.privateCarMode.car_share_fixed_dong")
+    : "";
+  const difficultyRating =
+    typeof overview?.difficultyLevel === "number" && Number.isFinite(overview.difficultyLevel)
+      ? overview.difficultyLevel
+      : undefined;
+  const elevationGainMeters =
+    typeof overview?.elevationGainMeters === "number" && Number.isFinite(overview.elevationGainMeters)
+      ? overview.elevationGainMeters
+      : undefined;
+  const itineraryOutline = trimStr(itinerary?.outline);
   const departureDate = trimStr(logistics?.departureDate);
   const returnDate = trimStr(logistics?.returnDate);
   const departureMeetingTime = trimStr(logistics?.departureMeetingTime);
@@ -234,8 +252,16 @@ export function TourTripDetailsPanel({ tour }: Props) {
 
   const hasItineraryBlock = itineraryBody != null;
 
+  const hasDenaliOverview =
+    denaliTourKindLabel ||
+    privateCarModeLabel ||
+    difficultyRating != null ||
+    elevationGainMeters != null ||
+    itineraryOutline;
+
   if (
     !shortIntro &&
+    !hasDenaliOverview &&
     !hasLogisticsBlock &&
     !hasParticipationBlock &&
     !hasPoliciesBlock &&
@@ -254,6 +280,29 @@ export function TourTripDetailsPanel({ tour }: Props) {
           <>
             <Subheading>{t("detail_tripSummarySection")}</Subheading>
             <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{shortIntro}</p>
+          </>
+        ) : null}
+
+        {hasDenaliOverview ? (
+          <>
+            <Subheading>{tDenali("basic.tourType")}</Subheading>
+            <dl className={styles.meta}>
+              <MetaRow term={tDenali("basic.tourType")}>{denaliTourKindLabel}</MetaRow>
+              <MetaRow term={tDenali("transport.privateCarModeLabel")}>{privateCarModeLabel}</MetaRow>
+              {difficultyRating != null ? (
+                <MetaRow term={tDenali("program.difficultyLevel")}>
+                  {difficultyRating.toLocaleString("fa-IR")}
+                </MetaRow>
+              ) : null}
+              {elevationGainMeters != null ? (
+                <MetaRow term={tDenali("program.altitudeGain")}>
+                  {elevationGainMeters.toLocaleString("fa-IR")} m
+                </MetaRow>
+              ) : null}
+              <MetaRow term={tDenali("program.itineraryOutline")}>
+                {itineraryOutline ? <span style={{ whiteSpace: "pre-wrap" }}>{itineraryOutline}</span> : null}
+              </MetaRow>
+            </dl>
           </>
         ) : null}
 
@@ -279,11 +328,11 @@ export function TourTripDetailsPanel({ tour }: Props) {
                 </MetaRow>
               ) : null}
               {tour.transportModes.length > 1 && transportModesSummary ? (
-                <MetaRow term="ترکیب حمل‌ونقل (ثبت‌شده در سامانه)">{transportModesSummary}</MetaRow>
+                <MetaRow term={t("detail_transportModesCombinedLabel")}>{transportModesSummary}</MetaRow>
               ) : null}
               {fuelShareToman != null ? (
                 <MetaRow term={t("detail_fuelShareLabel")}>
-                  {fuelShareToman.toLocaleString("fa-IR")} تومان
+                  {fuelShareToman.toLocaleString("fa-IR")} {t("detail_currencyToman")}
                 </MetaRow>
               ) : null}
               {accommodationLabels ? (

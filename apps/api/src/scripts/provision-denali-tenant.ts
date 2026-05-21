@@ -17,7 +17,7 @@
 import * as argon2 from "argon2";
 import { DataSource, IsNull, Repository } from "typeorm";
 
-import type { TourFormProfile } from "@repo/types";
+import type { DenaliTourKind, TourFormProfile } from "@repo/types";
 import {
   DENALI_OWNER_EMAIL,
   DENALI_OWNER_NATIONAL_ID,
@@ -45,8 +45,8 @@ import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entit
 import { WorkspaceDestinationEntity } from "../modules/settings-locations/entities/workspace-destination.entity";
 import { WorkspaceRegionEntity } from "../modules/settings-locations/entities/workspace-region.entity";
 import { WorkspaceTourThemeEntity } from "../modules/settings-locations/entities/workspace-tour-theme.entity";
-import { mergeLegacyMatchIntoDefaults } from "../modules/settings-locations/tour-preset-defaults-legacy";
 import { emitScriptInfo } from "./script-log";
+import { buildDenaliPresetDefaults } from "./denali-preset-seeds";
 import { upsertWorkspaceWizardTemplate } from "./upsert-workspace-wizard-template";
 
 const DENALI_OWNER_PHONE = "+989121000001";
@@ -57,9 +57,10 @@ type PresetSeed = {
   name: string;
   description: string;
   formProfile: TourFormProfile;
+  kind: DenaliTourKind;
   matchTourType: string | null;
-  themeSlug: string | null;
-  defaults: Record<string, unknown>;
+  themeSlug: string;
+  shortDescription: string;
 };
 
 function fail(message: string): never {
@@ -256,74 +257,61 @@ async function seedDenaliPresets(
       sortOrder: 10,
       name: "دنالی — کوه یک‌روزه",
       description: "پیش‌فرض ویزارد برای تور کوهستانی تک‌روزه",
-      formProfile: "mountain_outdoor",
+      formProfile: "denali_pilot",
+      kind: "mountain_day",
       matchTourType: "mountain",
-      themeSlug: "denali-mountain-1-day",
-      defaults: {
-        overview: {
-          shortDescription: "برنامه کوهنوردی یک‌روزه — ظرفیت و تاریخ را در ویزارد تکمیل کنید.",
-        },
-        participation: { requirements: "تجهیزات پایه و آمادگی جسمانی مناسب." },
-      },
+      themeSlug: "mountain",
+      shortDescription: "برنامه کوهنوردی یک‌روزه — ظرفیت و تاریخ را در ویزارد تکمیل کنید.",
     },
     {
       sortOrder: 20,
       name: "دنالی — کوه چندروزه",
       description: "پیش‌فرض ویزارد برای کمپ یا صعود چندروزه",
-      formProfile: "mountain_outdoor",
+      formProfile: "denali_pilot",
+      kind: "mountain_multi",
       matchTourType: "mountain",
-      themeSlug: "denali-mountain-multi-day",
-      defaults: {
-        overview: {
-          shortDescription: "برنامه چندروزه — برنامه روزبه‌روز را در گام itinerary وارد کنید.",
-        },
-        logistics: { includedServices: "راهنما، هماهنگی اردوگاه (نمونه)" },
-      },
+      themeSlug: "mountain",
+      shortDescription: "برنامه کوه چندروزه — برنامه روزبه‌روز را در ویزارد تکمیل کنید.",
     },
     {
       sortOrder: 30,
       name: "دنالی — طبیعت یک‌روزه",
-      description: "گشت یا پیمایش طبیعت تک‌روزه (nature_day_trip → nature_trip)",
-      formProfile: "nature_trip",
+      description: "گشت یا پیمایش طبیعت تک‌روزه",
+      formProfile: "denali_pilot",
+      kind: "nature_day",
       matchTourType: "nature",
-      themeSlug: "denali-nature-1-day",
-      defaults: {
-        overview: { shortDescription: "سفر یک‌روزه طبیعت — مکان و تاریخ را در گام location تنظیم کنید." },
-      },
+      themeSlug: "nature",
+      shortDescription: "سفر یک‌روزه طبیعت — مکان و تاریخ را در ویزارد تنظیم کنید.",
     },
     {
       sortOrder: 40,
       name: "دنالی — طبیعت چندروزه",
       description: "سفر طبیعت چندروزه",
-      formProfile: "nature_trip",
+      formProfile: "denali_pilot",
+      kind: "nature_multi",
       matchTourType: "nature",
-      themeSlug: "denali-nature-multi-day",
-      defaults: {
-        overview: { shortDescription: "برنامه چندروزه طبیعت — روزها را در itinerary ثبت کنید." },
-      },
+      themeSlug: "nature",
+      shortDescription: "برنامه چندروزه طبیعت — روزها را در ویزارد ثبت کنید.",
     },
     {
       sortOrder: 50,
       name: "دنالی — جلسه ۱ ساعت",
-      description: "کتاب‌خوانی / فیلم ~۱ ساعت (short_sessions → cinema_event)",
-      formProfile: "cinema_event",
+      description: "کتاب‌خوانی / فیلم ~۱ ساعت",
+      formProfile: "denali_pilot",
+      kind: "event_reading",
       matchTourType: null,
-      themeSlug: "denali-short-session-1h",
-      defaults: {
-        overview: { shortDescription: "جلسه کوتاه یک‌ساعته — قیمت پایه و ظرفیت را در ویزارد وارد کنید." },
-        policies: { attendanceRules: "حضور ۱۰ دقیقه قبل از شروع الزامی است." },
-      },
+      themeSlug: "nature",
+      shortDescription: "جلسه کوتاه یک‌ساعته — قیمت پایه و ظرفیت را در ویزارد وارد کنید.",
     },
     {
       sortOrder: 60,
       name: "دنالی — جلسه ۲ ساعت",
       description: "کارگاه یا نمایش ~۲ ساعت",
-      formProfile: "cinema_event",
+      formProfile: "denali_pilot",
+      kind: "event_cinema",
       matchTourType: null,
-      themeSlug: "denali-short-session-2h",
-      defaults: {
-        overview: { shortDescription: "جلسه دو ساعته — مکان برگزاری را در گام location مشخص کنید." },
-      },
+      themeSlug: "nature",
+      shortDescription: "جلسه دو ساعته — مکان برگزاری را در ویزارد مشخص کنید.",
     },
   ];
 
@@ -334,20 +322,10 @@ async function seedDenaliPresets(
 
   for (const row of presets) {
     const mainThemeId = theme(row.themeSlug);
-    const defaultsMerged = mergeLegacyMatchIntoDefaults(
-      {
-        ...row.defaults,
-        overview: {
-          ...(typeof row.defaults.overview === "object" && row.defaults.overview
-            ? row.defaults.overview
-            : {}),
-          ...(mainThemeId ? { mainTourThemeId: mainThemeId } : {}),
-          ...(row.matchTourType ? { tourType: row.matchTourType } : {}),
-        },
-      },
-      row.matchTourType,
-      mainThemeId,
-    );
+    if (!mainThemeId) {
+      fail(`seedDenaliPresets: theme slug "${row.themeSlug}" not found`);
+    }
+    const defaultsMerged = buildDenaliPresetDefaults(row.kind, mainThemeId, row.shortDescription);
     await dataSource.query(
       `INSERT INTO workspace_tour_creation_presets
         (workspace_id, name, description, is_active, sort_order, match_tour_type, match_main_tour_theme_id, form_profile, defaults)
@@ -415,7 +393,7 @@ export async function provisionDenaliTenant(): Promise<DenaliProvisionSummary> {
     );
     await ensureMinimalLocationCatalog(dataSource, tenant.id);
     const presetCount = await seedDenaliPresets(dataSource, tenant.id, themeIds);
-    await upsertWorkspaceWizardTemplate(dataSource, tenant.id, { baseProfile: "mountain_outdoor" });
+    await upsertWorkspaceWizardTemplate(dataSource, tenant.id, { baseProfile: "denali_pilot" });
 
     const summary: DenaliProvisionSummary = {
       tenantId: tenant.id,
@@ -432,7 +410,7 @@ export async function provisionDenaliTenant(): Promise<DenaliProvisionSummary> {
     emitScriptInfo(JSON.stringify(summary, null, 2));
     emitScriptInfo(`Owner login: ${DENALI_OWNER_EMAIL} / ${DENALI_OWNER_PASSWORD} (or OTP if configured for ${DENALI_OWNER_PHONE})`);
     emitScriptInfo(
-      "Profile mapping: mountain_outdoor | nature_day_trip→nature_trip | short_sessions→cinema_event",
+      "Wizard profile: denali_pilot (themes + presets); legacy aliases in DENALI_PROFILE_ALIASES for docs only.",
     );
     return summary;
   } finally {

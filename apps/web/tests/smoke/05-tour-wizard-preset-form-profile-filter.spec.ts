@@ -8,7 +8,6 @@ import {
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
-  setNativeSelectValue,
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
@@ -21,6 +20,7 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
     await addLeaderSmokeSessionCookie(context, baseURL);
     const now = new Date().toISOString();
     await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: "cinema_event",
       themes: [
         {
           id: "33333333-3333-4333-8333-333333333333",
@@ -65,7 +65,7 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
     });
   });
 
-  test("after cinema theme, basic step preset select lists only matching form_profile", async ({ page }) => {
+  test("cinema workspace template filters preset select by form_profile", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
     await purgeTourWizardDraftStorage(page);
@@ -77,13 +77,6 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
       shortDescription: "خلاصه برای تست فیلتر قالب سینما",
       longDescription: "توضیح کامل برای عبور از اعتبارسنجی گام اول.",
     });
-    await page.getByRole("button", { name: "بعدی" }).click();
-
-    await expect(page.locator("form h2").first()).toContainText("تم و برچسب", { timeout: 15_000 });
-    const mainThemeSelect = page.locator('select[name="overview.mainTourThemeId"]');
-    await expect(mainThemeSelect).toBeVisible({ timeout: 10_000 });
-    await setNativeSelectValue(mainThemeSelect, "33333333-3333-4333-8333-333333333333");
-    await page.getByRole("button", { name: "قبلی" }).click();
 
     const presetSelect = page.locator("#tour-creation-preset-select");
     await expect(presetSelect).toBeVisible({ timeout: 10_000 });

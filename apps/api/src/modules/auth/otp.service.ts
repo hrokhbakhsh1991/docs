@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { randomUUID } from "node:crypto";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { ConfigService } from "../../config/config.service";
@@ -16,6 +16,8 @@ export class OtpService {
   constructor(
     @InjectRepository(MobileOtpChallengeEntity)
     private readonly challengeRepository: Repository<MobileOtpChallengeEntity>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     private readonly configService: ConfigService
   ) {}
 
@@ -35,14 +37,10 @@ export class OtpService {
     const id = randomUUID();
     const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS);
 
-    await this.challengeRepository.save(
-      this.challengeRepository.create({
-        id,
-        mobile: normalized,
-        purpose,
-        expiresAt,
-        used: false
-      })
+    await this.dataSource.query(
+      `INSERT INTO mobile_otp_challenges (id, mobile, purpose, expires_at, used)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, normalized, purpose, expiresAt, false]
     );
 
     return { challengeId: id };
@@ -71,7 +69,20 @@ export class OtpService {
       });
     }
 
-    const row = await this.challengeRepository.findOne({ where: { id: challengeId.trim() } });
+    const rows = (await this.dataSource.query(
+      `SELECT id, mobile, purpose, expires_at AS "expiresAt", used
+       FROM mobile_otp_challenges
+       WHERE id = $1
+       LIMIT 1`,
+      [challengeId.trim()]
+    )) as Array<{
+      id: string;
+      mobile: string;
+      purpose: MobileOtpPurpose;
+      expiresAt: Date;
+      used: boolean;
+    }>;
+    const row = rows[0];
     if (!row) {
       throw new UnauthorizedException({
         error: {

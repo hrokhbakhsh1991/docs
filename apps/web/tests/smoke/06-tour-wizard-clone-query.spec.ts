@@ -68,8 +68,7 @@ const CLONE_THEME_META_ID = "clone-smoke-theme-tour";
 const CLONE_THEME_ROW_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 /**
- * Clone wrapper resolves `resolvedFormProfile` from `getTourThemes()` when `mainTourThemeId` matches
- * (`tour-create-wizard-wrapper.tsx:247-254`). Smoke asserts `_wizardMeta` written to localStorage.
+ * Clone prefill writes `_wizardMeta.resolvedFormProfile` from the workspace template (not theme row).
  */
 test.describe("tour wizard clone draft _wizardMeta (smoke)", () => {
   test.beforeEach(async ({ page, context }) => {
@@ -80,6 +79,7 @@ test.describe("tour wizard clone draft _wizardMeta (smoke)", () => {
     await addLeaderSmokeSessionCookie(context, baseURL);
     const now = new Date().toISOString();
     await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: "cinema_event",
       themes: [
         {
           id: CLONE_THEME_ROW_ID,
@@ -121,7 +121,7 @@ test.describe("tour wizard clone draft _wizardMeta (smoke)", () => {
     });
   });
 
-  test("clone stores _wizardMeta.resolvedFormProfile from workspace theme row", async ({ page }) => {
+  test("clone stores _wizardMeta.resolvedFormProfile from workspace template", async ({ page }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     const res = await page.goto(`${baseURL}/tours/new?clone=${CLONE_THEME_META_ID}`, { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);

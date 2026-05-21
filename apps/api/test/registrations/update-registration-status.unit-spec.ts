@@ -121,6 +121,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
 
   let activeReleasers: Array<() => void> = [];
 
+  let promotedCounter = 0;
   const manager = {
     async findOne(
       entity: unknown,
@@ -203,7 +204,8 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
       }
       const registration = entity as RegistrationEntity;
       if (!registration.id) {
-        registration.id = `promoted-${store.registrations.size + 1}`;
+        promotedCounter += 1;
+        registration.id = `promoted-${promotedCounter}`;
       }
       const prevVersion = registration.rowVersion ?? 1;
       const saved = {

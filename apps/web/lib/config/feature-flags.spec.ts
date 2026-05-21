@@ -7,6 +7,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  denaliCanonicalUiModeEnabled,
+  denaliSixTabWizardTenantGatingEnabled,
   leaderDashboardUseAggregateApi,
   legacyEditResolverKillSwitchEnabled,
   useUnifiedTourDomainProfileForEditResolver,
@@ -89,6 +91,35 @@ test("kill switch: falsy / nonsense values keep unified path ON", () => {
     } finally {
       clearTourEnv();
     }
+  }
+});
+
+test("denaliSixTabWizardTenantGatingEnabled: explicit 1 enables; 0 disables", () => {
+  delete process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD;
+  delete process.env.DENALI_SIX_TAB_WIZARD;
+  process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD = "1";
+  try {
+    assert.equal(denaliSixTabWizardTenantGatingEnabled(), true);
+  } finally {
+    delete process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD;
+  }
+  process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD = "0";
+  try {
+    assert.equal(denaliSixTabWizardTenantGatingEnabled(), false);
+  } finally {
+    delete process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD;
+  }
+});
+
+test("denaliCanonicalUiModeEnabled: default on; explicit 0 disables", () => {
+  delete process.env.NEXT_PUBLIC_DENALI_CANONICAL_UI_MODE;
+  delete process.env.DENALI_CANONICAL_UI_MODE;
+  assert.equal(denaliCanonicalUiModeEnabled(), true);
+  process.env.NEXT_PUBLIC_DENALI_CANONICAL_UI_MODE = "0";
+  try {
+    assert.equal(denaliCanonicalUiModeEnabled(), false);
+  } finally {
+    delete process.env.NEXT_PUBLIC_DENALI_CANONICAL_UI_MODE;
   }
 });
 

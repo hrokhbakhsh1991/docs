@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 import { TourCard } from "@/components/tours/TourCard";
 
@@ -16,11 +17,13 @@ export type TourListProps = {
   tours: TourDetailDto[];
   /** Selection / navigation — e.g. push to `/tours/:id/edit`. */
   onSelectTour?: (tourId: string) => void;
+  onDuplicateTour?: (tour: TourDetailDto) => void;
   onDeleteTour?: (tour: TourDetailDto) => void;
   emptyState?: ReactNode;
 };
 
-function TourListComponent({ tours, onSelectTour, onDeleteTour, emptyState }: TourListProps) {
+function TourListComponent({ tours, onSelectTour, onDuplicateTour, onDeleteTour, emptyState }: TourListProps) {
+  const t = useTranslations("tours.list");
   if (tours.length === 0) {
     return (
       emptyState ?? (
@@ -38,8 +41,14 @@ function TourListComponent({ tours, onSelectTour, onDeleteTour, emptyState }: To
             accessory={<TourStatusBadge lifecycleStatus={tour.lifecycleStatus} />}
             {...(onSelectTour
               ? {
-                  primaryActionLabel: "View details" as const,
+                  primaryActionLabel: t("viewDetails"),
                   onPrimaryActionClick: () => onSelectTour(tour.id),
+                }
+              : {})}
+            {...(onDuplicateTour
+              ? {
+                  duplicateActionLabel: t("duplicate"),
+                  onDuplicateActionClick: () => onDuplicateTour(tour),
                 }
               : {})}
             {...(onDeleteTour

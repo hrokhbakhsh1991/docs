@@ -1,13 +1,21 @@
 import { z } from "zod";
-import { CREATE_TOUR_DTO_WIRE_KEYS, type CreateTourDtoWireKey } from "./create-tour-wire-keys";
+import { CREATE_TOUR_POST_WIRE_KEYS, type CreateTourPostWireKey } from "./create-tour-wire-keys";
 
-/** Single source for tour CREATE wire shape (API DTO, BFF, FE forms). */
-export type TourCreateContract = Partial<Record<CreateTourDtoWireKey, unknown>>;
+/** Client POST `/api/v2/tours` wire shape (excludes ignored server hints such as `formProfile`). */
+export type TourCreatePostContract = Partial<Record<CreateTourPostWireKey, unknown>>;
 
-const createFieldShape = Object.fromEntries(
-  CREATE_TOUR_DTO_WIRE_KEYS.map((key) => [key, z.unknown().optional()]),
-) as Record<CreateTourDtoWireKey, z.ZodOptional<z.ZodUnknown>>;
+const postFieldShape = Object.fromEntries(
+  CREATE_TOUR_POST_WIRE_KEYS.map((key) => [key, z.unknown().optional()]),
+) as Record<CreateTourPostWireKey, z.ZodOptional<z.ZodUnknown>>;
 
-export const tourCreateContractSchema = z.object(createFieldShape).strict();
+export const tourCreatePostContractSchema = z.object(postFieldShape).strict();
 
-export const TOUR_CREATE_CONTRACT_FIELDS = CREATE_TOUR_DTO_WIRE_KEYS;
+/** @deprecated Use {@link tourCreatePostContractSchema} — alias kept for existing imports. */
+export const tourCreateContractSchema = tourCreatePostContractSchema;
+
+export const TOUR_CREATE_POST_CONTRACT_FIELDS = CREATE_TOUR_POST_WIRE_KEYS;
+
+/** @deprecated Use {@link TOUR_CREATE_POST_CONTRACT_FIELDS}. */
+export const TOUR_CREATE_CONTRACT_FIELDS = CREATE_TOUR_POST_WIRE_KEYS;
+
+export type TourCreateContract = TourCreatePostContract;

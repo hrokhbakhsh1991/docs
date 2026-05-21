@@ -118,6 +118,13 @@ export function ToursListView() {
     [router]
   );
 
+  const handleDuplicateTour = useCallback(
+    (tour: { id: string }) => {
+      router.push(`/tours/new?clone=${encodeURIComponent(tour.id)}`);
+    },
+    [router],
+  );
+
   const handlePrev = useCallback(() => updateQuery({ page: page - 1 }), [page, updateQuery]);
 
   const handleNext = useCallback(() => updateQuery({ page: page + 1 }), [page, updateQuery]);
@@ -305,7 +312,11 @@ export function ToursListView() {
           {tours.length === 0 ? (
             <EmptyState embedded title="No results found" description={noMatchDescription(query.search, statusUi)} />
           ) : (
-            <TourList tours={tours} onSelectTour={handleSelectTour} />
+            <TourList
+              tours={tours}
+              onSelectTour={handleSelectTour}
+              onDuplicateTour={leaderToolbar ? handleDuplicateTour : undefined}
+            />
           )}
         </CardBody>
         {total > 0 ? (

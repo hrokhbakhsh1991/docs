@@ -1,51 +1,66 @@
 "use client";
 
-import { TOUR_FORM_PROFILE_VERSION } from "@repo/types";
 import { Card, CardBody, LoadingState } from "@tour/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { TourCreateWizard } from "@/components/tours/wizard/TourCreateWizard";
-import { transformTourToWizardValues } from "@/features/tours/clone/transformTourToWizardValues";
-import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
-import { buildTourCreateFormDefaultValues } from "@/features/tours/wizard/tourCreateFormDefaults";
 import { resolveTenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
-import {
-  resolveWizardDraftStorageKeyForBrowserHost,
-  serializeWizardDraft,
-} from "@/features/tours/wizard/tourWizardDraftEnvelope";
+import { resolveWizardDraftStorageKeyForBrowserHost } from "@/features/tours/wizard/tourWizardDraftEnvelope";
 import { useTourWizardDraftStorageKey } from "@/features/tours/wizard/useTourWizardDraftStorageKey";
-import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
+import {
+  loadWizardPrefill,
+  parseWizardPrefillQuery,
+  wizardPrefillNeedsBootstrap,
+} from "@/features/tours/wizard/sources";
 import { useAuth } from "@/lib/auth/auth-context";
-import { getTourThemes, type SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
+import { resolveTenantSlugFromHost } from "@/lib/tenant/runtime-tenant-context";
+import { useTenantContext } from "@/lib/tenant/tenant-provider";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
+
+const PREFILL_FETCH_TIMEOUT_MS = 15_000;
 
 export function TourCreateWizardWrapper() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const cloneTourId = searchParams.get("clone")?.trim() || null;
+  const prefillQuery = parseWizardPrefillQuery(searchParams);
+  const cloneTourId = prefillQuery.kind === "clone" ? prefillQuery.cloneTourId : null;
+  const presetId = prefillQuery.kind === "preset" ? prefillQuery.presetId : null;
+  const prefillBootstrapKey = useMemo(
+    () => (cloneTourId ? `clone:${cloneTourId}` : presetId ? `preset:${presetId}` : "blank"),
+    [cloneTourId, presetId],
+  );
   const { user } = useAuth();
+  const { tenantSlug: tenantSlugFromContext } = useTenantContext();
   const draftStorageKey = useTourWizardDraftStorageKey();
   const tenantFormContract = resolveTenantTourFormContract(user?.tenantModules);
-  const [isLoading, setIsLoading] = useState(() => Boolean(cloneTourId));
+  const [isLoading, setIsLoading] = useState(() => wizardPrefillNeedsBootstrap(prefillQuery));
+  const [wizardBootstrapKey, setWizardBootstrapKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const liveApi = toursUseLiveApi();
-  const clonePreparedRef = useRef(false);
+  const preparedBootstrapKeyRef = useRef<string | null>(null);
   const tenantFormContractRef = useRef(tenantFormContract);
   tenantFormContractRef.current = tenantFormContract;
   const draftStorageKeyRef = useRef(draftStorageKey);
   draftStorageKeyRef.current = draftStorageKey;
 
   useEffect(() => {
-    if (!cloneTourId) {
+    if (wizardPrefillNeedsBootstrap(prefillQuery)) {
+      setIsLoading(true);
+      setError(null);
+    }
+  }, [prefillBootstrapKey, prefillQuery]);
+
+  useEffect(() => {
+    if (!wizardPrefillNeedsBootstrap(prefillQuery)) {
       setIsLoading(false);
       return;
     }
-    if (clonePreparedRef.current) {
+    if (preparedBootstrapKeyRef.current === prefillBootstrapKey) {
       setIsLoading(false);
       return;
     }
-    if (!liveApi) {
+    if (prefillQuery.kind === "clone" && !liveApi) {
       setIsLoading(false);
       setError("کپی‌کردن تور در این محیط در دسترس نیست (API پیکربندی نشده).");
       return;
@@ -57,99 +72,34 @@ export function TourCreateWizardWrapper() {
     const fetchTimeoutId = window.setTimeout(() => {
       fetchTimedOut = true;
       abort.abort();
-    }, 15_000);
+    }, PREFILL_FETCH_TIMEOUT_MS);
 
-    const loadAndPrepareClonedTour = async () => {
+    void (async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/tours/${cloneTourId}`, {
-          method: "GET",
-          credentials: "include",
-          signal: abort.signal,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const tenantSlug =
+          tenantSlugFromContext?.trim() ||
+          (typeof window !== "undefined"
+            ? resolveTenantSlugFromHost(window.location.host)
+            : null);
 
-        if (!effectActive) {
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            response.status === 404
-              ? "تور برای کپی‌کردن یافت نشد"
-              : `خطا در بارگذاری تور: ${response.status}`,
-          );
-        }
-
-        const tour = await response.json();
-
-        // Phase-2 pipeline migration for clone bootstrap. The previous flow built the
-        // resolved profile inline (default-from-tourType, then catalog lookup) and stored
-        // the **unfiltered** `wizardData` in localStorage — leaking inactive-group ghost
-        // data for any source tour whose profile differed from the workspace's mapping of
-        // its theme. `applyTourWizardPatch` runs the same `resolveTourFormProfile`
-        // (snapshot/theme/tourType/default chain) but additionally filters & sanitizes the
-        // patch against the FINAL profile so the on-disk envelope is symmetric with the
-        // submit-time strip in `useTourWizardCreate` and with the auto-save sanitize hook.
-        const wizardData = transformTourToWizardValues(tour);
-
-        let themes: SettingsTourThemeDto[] = [];
-        try {
-          themes = await Promise.race([
-            getTourThemes(),
-            new Promise<SettingsTourThemeDto[]>((_, reject) => {
-              window.setTimeout(() => reject(new Error("theme catalog timeout")), 8_000);
-            }),
-          ]);
-        } catch {
-          // Theme catalog is optional for clone; pipeline falls back through tourType.
-        }
-
-        const { filteredPatch, resolvedFormProfile } = applyTourWizardPatch({
-          baseValues: buildTourCreateFormDefaultValues(),
-          patch: wizardData,
-          // Pipeline re-resolves whenever the patch carries mainTourThemeId or tourType
-          // (always true for transform output); this `currentProfile` is the contractual
-          // fallback only used when neither is present.
-          currentProfile: "general",
-          themeCatalog: themes,
-          tourType: wizardData.overview?.tourType,
+        const loaded = await loadWizardPrefill(prefillQuery, {
+          tenantSlug,
           tenantFormContract: tenantFormContractRef.current,
+          signal: abort.signal,
         });
 
-        const mainThemeId = wizardData.overview?.mainTourThemeId?.trim();
-        const secondaries = wizardData.overview?.secondaryTourThemeIds ?? [];
-        const wizardMeta: TourWizardDraftMeta = {
-          sourceTourId: cloneTourId,
-          themeIds: {
-            main: mainThemeId || undefined,
-            secondary: secondaries.length > 0 ? secondaries : undefined,
-          },
-          resolvedFormProfile,
-          formProfileVersion: TOUR_FORM_PROFILE_VERSION,
-        };
-
-        try {
-          // Serialize the filtered patch (not the merged form): keeps the LS payload
-          // minimal and shape-compatible with what auto-save writes (also a Partial). The
-          // restore path will re-merge onto fresh defaults via the same pipeline.
-          const storageKey = resolveWizardDraftStorageKeyForBrowserHost(draftStorageKeyRef.current);
-          localStorage.setItem(
-            storageKey,
-            serializeWizardDraft(filteredPatch ?? wizardData, wizardMeta),
-          );
-        } catch {
-          console.warn("Failed to save cloned tour to localStorage");
-        }
-
-        if (!effectActive) {
+        if (!effectActive || !loaded) {
           return;
         }
-        clonePreparedRef.current = true;
+
+        const storageKey = resolveWizardDraftStorageKeyForBrowserHost(draftStorageKeyRef.current);
+        localStorage.setItem(storageKey, loaded.serializedDraft);
+
+        preparedBootstrapKeyRef.current = prefillBootstrapKey;
+        setWizardBootstrapKey((k) => k + 1);
         router.replace("/tours/new");
       } catch (err) {
         if (!effectActive) {
@@ -159,24 +109,29 @@ export function TourCreateWizardWrapper() {
           return;
         }
         const errorMessage = fetchTimedOut
-          ? "زمان بارگذاری تور برای کپی‌کردن به پایان رسید"
+          ? prefillQuery.kind === "clone"
+            ? "زمان بارگذاری تور برای کپی‌کردن به پایان رسید"
+            : "زمان بارگذاری قالب تور به پایان رسید"
           : err instanceof Error
             ? err.message
-            : "خطای نامشخصی در بارگذاری تور رخ داد";
+            : prefillQuery.kind === "clone"
+              ? "خطای نامشخصی در بارگذاری تور رخ داد"
+              : "خطا در بارگذاری قالب تور";
         setError(errorMessage);
       } finally {
         window.clearTimeout(fetchTimeoutId);
-        setIsLoading(false);
+        if (effectActive) {
+          setIsLoading(false);
+        }
       }
-    };
+    })();
 
-    void loadAndPrepareClonedTour();
     return () => {
       effectActive = false;
       window.clearTimeout(fetchTimeoutId);
       abort.abort();
     };
-  }, [cloneTourId, liveApi, router]);
+  }, [prefillBootstrapKey, prefillQuery, liveApi, router, tenantSlugFromContext]);
 
   if (error) {
     return (
@@ -192,7 +147,7 @@ export function TourCreateWizardWrapper() {
             }}
           >
             <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
-              خطا در کپی‌کردن تور
+              {prefillQuery.kind === "preset" ? "خطا در بارگذاری قالب" : "خطا در کپی‌کردن تور"}
             </p>
             <p style={{ margin: 0 }}>{error}</p>
           </div>
@@ -205,11 +160,17 @@ export function TourCreateWizardWrapper() {
     return (
       <Card>
         <CardBody>
-          <LoadingState message="در حال بارگذاری تور برای کپی‌کردن…" />
+          <LoadingState
+            message={
+              presetId && !cloneTourId
+                ? "در حال بارگذاری قالب تور…"
+                : "در حال بارگذاری تور برای کپی‌کردن…"
+            }
+          />
         </CardBody>
       </Card>
     );
   }
 
-  return <TourCreateWizard />;
+  return <TourCreateWizard key={wizardBootstrapKey} />;
 }

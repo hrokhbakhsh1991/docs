@@ -55,6 +55,7 @@ const EXPECTED: Readonly<
     cultural_tour: { required: ["overview.title"] },
     cinema_event: { required: ["overview.title"] },
     urban_event: { required: ["overview.title"] },
+    denali_pilot: { required: ["overview.title"] },
   },
   participation: {
     general: {
@@ -84,6 +85,7 @@ const EXPECTED: Readonly<
     cultural_tour: { required: [] },
     cinema_event: { visible: [], required: [] },
     urban_event: { visible: [], required: [] },
+    denali_pilot: { required: [] },
   },
   logistics: {
     general: {
@@ -114,6 +116,7 @@ const EXPECTED: Readonly<
     cultural_tour: { required: ["logistics.primaryTransportMode"] },
     cinema_event: { required: ["logistics.primaryTransportMode"] },
     urban_event: { visible: [], required: [] },
+    denali_pilot: { required: ["logistics.primaryTransportMode"] },
   },
 };
 

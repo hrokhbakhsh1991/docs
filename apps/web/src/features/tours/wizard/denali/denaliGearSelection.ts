@@ -1,0 +1,39 @@
+import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
+
+export function upsertGearItem(
+  items: DenaliGearItem[] | undefined,
+  id: string,
+  patch: Partial<DenaliGearItem>,
+): DenaliGearItem[] {
+  const list = [...(items ?? [])];
+  const idx = list.findIndex((row) => row.id === id);
+  if (idx >= 0) {
+    list[idx] = { ...list[idx]!, ...patch, id };
+    return list;
+  }
+  return [...list, { id, isRequired: patch.isRequired ?? false }];
+}
+
+export function removeGearItem(items: DenaliGearItem[] | undefined, id: string): DenaliGearItem[] {
+  return (items ?? []).filter((row) => row.id !== id);
+}
+
+export function normalizeGearItems(items: DenaliGearItem[] | undefined): DenaliGearItem[] | undefined {
+  return items != null && items.length > 0 ? items : undefined;
+}
+
+export function splitGearByRequired(items: DenaliGearItem[] | undefined): {
+  required: DenaliGearItem[];
+  optional: DenaliGearItem[];
+} {
+  const required: DenaliGearItem[] = [];
+  const optional: DenaliGearItem[] = [];
+  for (const row of items ?? []) {
+    if (row.isRequired === true) {
+      required.push(row);
+    } else {
+      optional.push(row);
+    }
+  }
+  return { required, optional };
+}

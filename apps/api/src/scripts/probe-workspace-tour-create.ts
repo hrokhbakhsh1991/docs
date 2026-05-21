@@ -9,6 +9,10 @@
 import { randomUUID } from "node:crypto";
 
 import { DENALI_OWNER_PHONE, DENALI_SUBDOMAIN } from "./denali-tenant.fixture";
+import { DataSource } from "typeorm";
+
+import { createDataSourceOptionsFromEnv } from "../database/database.config";
+import { WorkspaceDestinationEntity } from "../modules/settings-locations/entities/workspace-destination.entity";
 import { emitScriptInfo } from "./script-log";
 import { MIX_DEMO_OWNER_PHONE, MIX_DEMO_SUBDOMAIN } from "./mix-demo-tenant.fixture";
 import { URBAN_DEMO_OWNER_PHONE, URBAN_DEMO_SUBDOMAIN } from "./urban-demo-tenant.fixture";
@@ -73,18 +77,23 @@ export async function probeWorkspaceTourCreate(slug: string): Promise<void> {
   }
 
   const title = `Probe ${slug} ${randomUUID().slice(0, 8)} TenChars`;
+  const body =
+    slug === DENALI_SUBDOMAIN
+      ? await buildDenaliProbeCreateBody(title)
+      : {
+          title,
+          total_capacity: 10,
+          lifecycle_status: "Draft",
+          transportModes: [],
+        };
+
   const tour = await fetchJson(`${base}/api/v2/tours`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Idempotency-Key": randomUUID(),
     },
-    body: JSON.stringify({
-      title,
-      total_capacity: 10,
-      lifecycle_status: "Draft",
-      transportModes: [],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (tour.status !== 201) {
@@ -93,6 +102,58 @@ export async function probeWorkspaceTourCreate(slug: string): Promise<void> {
 
   const tourId = (tour.body as { id?: string }).id;
   emitScriptInfo(`✓ ${slug}: created tour id=${tourId} title="${title}"`);
+}
+
+async function buildDenaliProbeCreateBody(title: string): Promise<Record<string, unknown>> {
+  const ds = new DataSource({
+    ...createDataSourceOptionsFromEnv(),
+    entities: [WorkspaceDestinationEntity],
+  });
+  await ds.initialize();
+  try {
+    const dest = await ds.getRepository(WorkspaceDestinationEntity).findOne({
+      where: { isActive: true },
+      order: { sortOrder: "ASC" },
+    });
+    const destinationId = dest?.id;
+    if (!destinationId) {
+      throw new Error("Denali probe: no active destination — run provision:denali first.");
+    }
+    return {
+      title,
+      total_capacity: 12,
+      lifecycle_status: "Draft",
+      tourType: "mountain",
+      destinationId,
+      price: 100_000,
+      requiresPayment: true,
+      formProfile: "denali_pilot",
+      transportModes: ["bus"],
+      tripDetails: {
+        overview: {
+          denaliTourKind: "mountain_day",
+          shortIntro: "Denali probe tour",
+        },
+        logistics: {
+          departureDate: "2026-09-01",
+          departureMeetingTime: "08:00",
+          primaryTransportMode: "bus",
+          groupSizeMax: 12,
+        },
+        participation: {
+          minimumAge: 18,
+          fitnessLevel: "moderate",
+          experienceLevel: "basic",
+          sportsInsuranceRequired: true,
+        },
+        policies: {
+          cancellationPolicy: "Probe cancellation policy text.",
+        },
+      },
+    };
+  } finally {
+    await ds.destroy();
+  }
 }
 
 const slug = resolveTenantSlugFromArgv(process.argv.slice(2));

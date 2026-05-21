@@ -26,6 +26,47 @@ export type {
 } from "./registration";
 export { TOUR_TYPES, type TourType } from "./tour-classification";
 export {
+  DENALI_TOUR_KIND_VALUES,
+  denaliTourKindToIsMultiDay,
+  isDenaliEventTourKind,
+  isDenaliOutdoorTourKind,
+  isDenaliTourKind,
+  type DenaliTourKind,
+} from "./denali-tour-kind";
+export {
+  DENALI_TRANSPORT_MODE_VALUES,
+  inferDenaliTransportModeFromApiLogistics,
+  isDenaliTransportMode,
+  migrateLegacyDenaliTransportForm,
+  normalizeDenaliTransportForm,
+  type DenaliTransportFormFields,
+  type DenaliTransportMode,
+  type LegacyDenaliTransportFormFields,
+} from "./denali-transport-mode";
+export {
+  DENALI_EVENT_VARIANT_VALUES,
+  DENALI_TOUR_CATEGORY_VALUES,
+  DENALI_TOUR_DURATION_VALUES,
+  denaliApiTourTypeFromCategory,
+  denaliCanonicalBasicsFromTourKind,
+  denaliCategoryRequiresEventVariant,
+  denaliDifficultyTypeFromCategory,
+  denaliTourKindFromCanonical,
+  deriveDenaliPersistenceView,
+  isDenaliMountainCategory,
+  isDenaliOutdoorCategory,
+  type DenaliCanonicalBasicsSelection,
+  type DenaliCanonicalTourModel,
+  type DenaliDerivedPersistenceView,
+  type DenaliDifficultyLevel,
+  type DenaliEventVariant,
+  type DenaliFieldKind,
+  type DenaliFitnessLevel,
+  type DenaliMobilityMode,
+  type DenaliTourCategory,
+  type DenaliTourDuration,
+} from "./denali-canonical-tour-model";
+export {
   DEFAULT_TOUR_FORM_PROFILE,
   TOUR_FORM_PROFILE_VALUES,
   TOUR_FORM_PROFILE_VALUES_LIST,

@@ -10,7 +10,7 @@ import { Button, FormField, Input, useToast } from "@tour/ui";
 
 import { useSearchParams } from "next/navigation";
 
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { resolveAuthUiErrorMessage } from "@/lib/errors/auth-ui-error-message";
@@ -49,12 +49,6 @@ function loginToastMessage(err: unknown, t: (key: string) => string): string {
     if (m === "Invalid phone number or OTP code.") {
       return t("login.toastInvalidPhoneOrOtp");
     }
-    if (m === "No active workspace membership for this account.") {
-      return t("login.toastNoMembership");
-    }
-    if (m === "Could not continue with this phone") {
-      return t("login.toastCouldNotContinuePhone");
-    }
     if (m === "Failed to request OTP") {
       return t("login.toastFailedRequestOtp");
     }
@@ -80,6 +74,7 @@ export function LoginForm() {
   const locale = useLocale();
   const { toPersian, toDisplayPersianDigits } = useDigitLocalization();
   const [step, setStep] = useState<LoginStep>("phone");
+  const [otpChallengeId, setOtpChallengeId] = useState<string | null>(null);
   const inviteToken = searchParams.get("invite")?.trim() || "";
 
   const loginSchema = useMemo(
@@ -126,27 +121,6 @@ export function LoginForm() {
       if (step === "phone") {
         if (!data.phone) return;
         const normalizedPhone = normalizeOtpPhoneInput(data.phone);
-        const preflightResponse = await fetch("/api/auth/phone-preflight", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: normalizedPhone,
-            ...(inviteToken ? { invite_token: inviteToken } : {}),
-          }),
-        });
-        const preflightPayload = (await preflightResponse.json().catch(() => ({}))) as {
-          ok?: boolean;
-          error_code?: string;
-          message?: string;
-          error?: { message?: string };
-        };
-        const preflightMessage =
-          preflightPayload.message ??
-          (typeof preflightPayload.error?.message === "string" ? preflightPayload.error.message : undefined);
-        if (!preflightResponse.ok || !preflightPayload.ok) {
-          throw new Error(preflightMessage ?? "Could not continue with this phone");
-        }
         const otpRequestResponse = await fetch("/api/auth/request-otp", {
           method: "POST",
           credentials: "include",
@@ -158,6 +132,7 @@ export function LoginForm() {
         });
         const otpRequestPayload = (await otpRequestResponse.json().catch(() => ({}))) as {
           ok?: boolean;
+          challenge_id?: string;
           error_code?: string;
           message?: string;
           error?: { message?: string };
@@ -168,6 +143,11 @@ export function LoginForm() {
         if (!otpRequestResponse.ok || !otpRequestPayload.ok) {
           throw new Error(otpRequestMessage ?? "Failed to request OTP");
         }
+        const challengeId =
+          typeof otpRequestPayload.challenge_id === "string"
+            ? otpRequestPayload.challenge_id.trim()
+            : "";
+        setOtpChallengeId(challengeId || null);
         setStep("otp");
         clearErrors();
         return;
@@ -175,17 +155,26 @@ export function LoginForm() {
       if (step === "otp") {
         if (!data.phone) return;
       }
-      const response = await fetch("/api/auth/login-web-session", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: normalizeOtpPhoneInput(data.phone),
-          otp: toEnglishIntegerString(data.otp.trim()),
-          ...(inviteToken ? { invite_token: inviteToken } : {}),
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
+      const loginBody = {
+        phone: normalizeOtpPhoneInput(data.phone),
+        otp: toEnglishIntegerString(data.otp.trim()),
+        ...(inviteToken ? { invite_token: inviteToken } : {}),
+        // Dev static OTP path does not require challenge rows; sending a stale/missing
+        // challenge_id yields AUTH_OTP_INVALID and blocks registration redirect.
+        ...(process.env.NODE_ENV !== "development" && otpChallengeId
+          ? { challenge_id: otpChallengeId }
+          : {}),
+      };
+      const postLoginWebSession = (body: Record<string, string>) =>
+        fetch("/api/auth/login-web-session", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+      let response = await postLoginWebSession(loginBody);
+      let payload = (await response.json().catch(() => ({}))) as {
         ok?: boolean;
         requires_registration?: boolean;
         onboarding_token?: string;
@@ -196,6 +185,31 @@ export function LoginForm() {
         message?: string;
         error?: { code?: string; message?: string };
       };
+      const loginErrorCode =
+        payload.error?.code?.trim() || payload.error_code?.trim() || "";
+      if (
+        (!response.ok || !payload.ok) &&
+        loginErrorCode === "AUTH_OTP_INVALID" &&
+        "challenge_id" in loginBody
+      ) {
+        const { challenge_id: _dropped, ...loginBodyWithoutChallenge } = loginBody;
+        response = await postLoginWebSession(loginBodyWithoutChallenge);
+        payload = (await response.json().catch(() => ({}))) as typeof payload;
+      }
+      if (
+        payload.requires_registration === true &&
+        typeof payload.onboarding_token === "string" &&
+        payload.onboarding_token.trim() !== ""
+      ) {
+        const params = new URLSearchParams({
+          onboarding: payload.onboarding_token.trim(),
+        });
+        if (inviteToken) {
+          params.set("invite", inviteToken);
+        }
+        router.push(`/auth/register?${params.toString()}`);
+        return;
+      }
       if (!response.ok || !payload.ok) {
         const code =
           payload.error?.code?.trim() ||
@@ -204,22 +218,9 @@ export function LoginForm() {
         if (code === "AUTH_OTP_INVALID" || code === "AUTH_PHONE_INVALID") {
           throw new Error("Invalid phone number or OTP code.");
         }
-        if (code === "AUTH_NO_ACTIVE_MEMBERSHIP" || code === "TENANT_SCOPE_FORBIDDEN") {
-          throw new Error("No active workspace membership for this account.");
-        }
         throw new Error(
           payload.error?.message?.trim() || payload.message?.trim() || "Login failed",
         );
-      }
-      if (payload.requires_registration && typeof payload.onboarding_token === "string") {
-        const params = new URLSearchParams({
-          onboarding: payload.onboarding_token,
-        });
-        if (inviteToken) {
-          params.set("invite", inviteToken);
-        }
-        router.push(`/auth/register?${params.toString()}`);
-        return;
       }
       const tokenFromLogin =
         typeof payload.session_token === "string" ? payload.session_token.trim() : "";
@@ -320,6 +321,7 @@ export function LoginForm() {
           <p
             onClick={() => {
               setStep("phone");
+              setOtpChallengeId(null);
               clearErrors();
               setValue("otp", "");
             }}
@@ -335,12 +337,6 @@ export function LoginForm() {
           {step === "phone" ? t("login.continue") : t("login.submit")}
         </Button>
       </form>
-      <p className={authStyles.footerNote}>
-        {t("login.footerNoAccount")}{" "}
-        <Link href="/auth/register" className={authStyles.footerLink}>
-          {t("login.footerRegister")}
-        </Link>
-      </p>
     </>
   );
 }

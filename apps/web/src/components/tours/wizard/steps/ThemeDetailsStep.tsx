@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { useEffect } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 

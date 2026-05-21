@@ -61,15 +61,10 @@ test("GlobalExceptionFilter returns 500 for TenantContextMissingError", () => {
 
   assert.equal(statusCode, HttpStatus.INTERNAL_SERVER_ERROR);
   assert.equal(loggedErrorCode, "TENANT_CONTEXT_MISSING");
-  assert.deepEqual(payload, {
-    success: false,
-    requestId: "req-123",
-    error: {
-      code: "TENANT_CONTEXT_MISSING",
-      message: "Tenant context lost during request processing",
-      correlationId: "req-123",
-      retryability: "NO_RETRY",
-      details: {}
-    }
-  });
+  
+  const res = payload as { success: boolean; error: { code: string; details: Record<string, unknown> } };
+  assert.equal(res.success, false);
+  assert.equal(res.error.code, "TENANT_CONTEXT_MISSING");
+  assert.equal(res.error.details.requestId, "req-123");
+  assert.ok(res.error.details.timestamp);
 });

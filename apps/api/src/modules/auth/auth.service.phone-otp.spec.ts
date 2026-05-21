@@ -7,6 +7,77 @@ import type { UserEntity } from "../identity/entities/user.entity";
 import { AuthService } from "./auth.service";
 import type { PhoneSessionDto } from "./dto/phone-session.dto";
 
+function membershipRepoActive(): {
+  findOne: () => Promise<{ role: string; sessionVersion: number; status: string }>;
+  createQueryBuilder: () => {
+    innerJoin: () => {
+      select: () => {
+        addSelect: () => {
+          addSelect: () => {
+            addSelect: () => {
+              addSelect: () => {
+                where: () => {
+                  andWhere: () => {
+                    andWhere: () => {
+                      andWhere: () => {
+                        getRawOne: () => Promise<{
+                          role: string;
+                          session_version: number;
+                          labels: null;
+                          membership_metadata: null;
+                          enabled_modules: null;
+                        }>;
+                      };
+                    };
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+} {
+  const activeMembershipRow = {
+    role: "member",
+    session_version: 1,
+    labels: null,
+    membership_metadata: null,
+    enabled_modules: null
+  };
+  return {
+    findOne: async () => ({
+      role: "member",
+      sessionVersion: 1,
+      status: "ACTIVE"
+    }),
+    createQueryBuilder: () => ({
+      innerJoin: () => ({
+        select: () => ({
+          addSelect: () => ({
+            addSelect: () => ({
+              addSelect: () => ({
+                addSelect: () => ({
+                  where: () => ({
+                    andWhere: () => ({
+                      andWhere: () => ({
+                        andWhere: () => ({
+                          getRawOne: async () => activeMembershipRow
+                        })
+                      })
+                    })
+                  })
+                })
+              })
+            })
+          })
+        })
+      })
+    })
+  };
+}
+
 function userRepoChain(result: UserEntity | null): {
   createQueryBuilder: () => {
     where: () => {
@@ -80,8 +151,8 @@ function makeAuthService(deps: {
   });
   const privatePem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   const publicPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+  const membershipRepo = deps.membershipRepo ?? membershipRepoActive();
   const userRepo = deps.userRepo ?? userRepoChain(null);
-  const membershipRepo = deps.membershipRepo ?? { findOne: async () => null };
   const workspaceInviteRepo = deps.workspaceInviteRepo ?? {
     createQueryBuilder: () => ({
       select: () => ({
@@ -240,7 +311,7 @@ test("createWebSessionOtp throws AUTH_OTP_INVALID when OTP is invalid", async ()
   }
 });
 
-test("createWebSessionOtp throws TENANT_SCOPE_FORBIDDEN when user has no membership", async () => {
+test("createWebSessionOtp returns registration_required when user has no workspace membership", async () => {
   const prev = process.env.NODE_ENV;
   process.env.NODE_ENV = "test";
   try {
@@ -254,17 +325,13 @@ test("createWebSessionOtp throws TENANT_SCOPE_FORBIDDEN when user has no members
         setTenantId: () => {}
       }
     });
-    await assert.rejects(
-      () =>
-        svc.createWebSessionOtp({
-          phone: "+15550000001",
-          otp: "1234"
-        } as PhoneSessionDto),
-      (err: unknown) =>
-        err instanceof ForbiddenException &&
-        (err.getResponse() as { error?: { code?: string } }).error?.code ===
-          "AUTH_NO_ACTIVE_MEMBERSHIP"
-    );
+    const result = await svc.createWebSessionOtp({
+      phone: "+15550000001",
+      otp: "1234"
+    } as PhoneSessionDto);
+    assert.equal(result.requires_registration, true);
+    assert.equal(typeof result.onboarding_token, "string");
+    assert.equal(result.tenant_id, tenantId);
   } finally {
     process.env.NODE_ENV = prev;
   }
@@ -281,13 +348,7 @@ test("createWebSessionOtp returns session for existing user with ACTIVE membersh
     } as UserEntity;
     const svc = makeAuthService({
       userRepo: userRepoChain(user),
-      membershipRepo: {
-        findOne: async () => ({
-          role: "member",
-          sessionVersion: 1,
-          status: "ACTIVE"
-        })
-      },
+      membershipRepo: membershipRepoActive(),
       requestContext: {
         resolveEffectiveTenantId: () => tenantId,
         setTenantId: () => {}
@@ -354,6 +415,33 @@ test("createWebSessionOtp fails when static OTP feature is disabled even with ot
         err instanceof UnauthorizedException &&
         (err.getResponse() as { error?: { code?: string } }).error?.code === "AUTH_PHONE_INVALID"
     );
+  } finally {
+    process.env.NODE_ENV = prev;
+  }
+});
+
+test("createWebSessionOtp returns registration_required for new user when challenge_id verifies OTP", async () => {
+  const prev = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    const tenantId = randomUUID();
+    const challengeId = randomUUID();
+    const svc = makeAuthService({
+      nodeEnv: "production",
+      allowDevStaticOtp: false,
+      requestContext: {
+        resolveEffectiveTenantId: () => tenantId,
+        setTenantId: () => {}
+      }
+    });
+    const result = await svc.createWebSessionOtp({
+      phone: "+15550000001",
+      otp: "1234",
+      challenge_id: challengeId
+    } as PhoneSessionDto);
+    assert.equal(result.requires_registration, true);
+    assert.equal(typeof result.onboarding_token, "string");
+    assert.equal(result.tenant_id, tenantId);
   } finally {
     process.env.NODE_ENV = prev;
   }

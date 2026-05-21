@@ -34,6 +34,8 @@ export function eventKindForDomainProfile(profile: TourDomainProfile): EventKind
       return "generic";
     case "general":
       return "generic";
+    case "denali_pilot":
+      return "generic";
   }
 }
 

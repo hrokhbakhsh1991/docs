@@ -206,3 +206,23 @@ in the same PR.
 | API create: resolve theme profile + strip `tripDetails` | `apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts` (`ToursService.createTour`) |
 | API update (PATCH): same strip on merged `tripDetails` | `ToursService.updateTour` → `applyTourFormProfileStripToPersistedTripDetails` |
 | API trip-details invariants | `apps/api/src/modules/tours/utils/assert-create-tour-invariants.ts` (`validateTripDetailsCanonical`, **`assertTripDetailsForFormProfile`**: `VALIDATION_PROFILE_TRANSPORT_NOT_ALLOWED`, **`VALIDATION_PROFILE_PHANTOM_PARTICIPATION`**, **`VALIDATION_PROFILE_PHANTOM_ITINERARY`**); **pre-strip incoming** phantoms: `assertIncomingTripDetailsBeforeFormProfileStrip` → `VALIDATION_PROFILE_INCOMING_*` |
+
+---
+
+## 8. Denali 6-tab wizard (profile `denali_pilot`, tenant-gated)
+
+Product spec: [`map.md`](../../map.md) · **field placement (v1):** [`denali-field-placement-v1.md`](./denali-field-placement-v1.md) · field mapping: [`denali-wizard-field-mapping.md`](./denali-wizard-field-mapping.md) · execution: [`map-phase.md`](../../map-phase.md) phases 1–8.
+
+Denali uses a **separate** RHF model (`DenaliCreateTourWizardForm` in `denaliTourCreateSchema.ts`), not the flat `TourCreateFormValues` rail. Classic 9-step tenants are unchanged (`isDenaliWizardContext`).
+
+| Denali tab | Step id | Primary field groups (classic registry) | Owner |
+|------------|---------|-------------------------------------------|--------|
+| Basic | `denali_basic` | `basic_info`, `pricing_capacity`, `schedule_location` (partial) | `DenaliBasicInfoStep` |
+| Program & Nature | `denali_program` | `basic_info` (descriptions, themes) | `DenaliProgramNatureStep` |
+| Transport & Dong | `denali_transport` | `logistics` | `DenaliTransportStep` |
+| Pricing & Payment | `denali_pricing` | `pricing_capacity`, `cost_context` | `DenaliPricingPaymentStep` |
+| Review | `review` | `participation` (mountain `submit_only`), `policies` (optional cancellation) | `DenaliReviewStep`, `DenaliReviewParticipantSection` |
+
+**Schema / mapping:** `denaliTourCreateSchema.ts` · `denaliWizardFieldGroups.ts` (`DENALI_STEP_TO_FIELD_GROUPS`). Snapshot `tripDetails.overview.denaliTourKind` (8 slugs); root `tours.tourType` stays 5-value `TOUR_TYPES`. `logistics.privateCarMode` for dong round-trip.
+
+**Gating:** `isDenaliWizardContext` · subdomain `denali` + `NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD` · or `formProfile: denali_pilot` (see `map.log` W0.4).

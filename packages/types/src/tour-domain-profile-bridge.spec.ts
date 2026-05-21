@@ -21,6 +21,7 @@ test("eventKindForDomainProfile: total mapping covering all canonical profiles",
     ["urban_event", "city_tour"],
     ["cinema_event", "workshop"],
     ["cultural_tour", "cultural"],
+    ["denali_pilot", "generic"],
   ]);
 });
 

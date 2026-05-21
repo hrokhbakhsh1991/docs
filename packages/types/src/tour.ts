@@ -110,6 +110,14 @@ export interface TourTripDetails {
   participation?: TourTripDetailsParticipation;
   logistics?: TourTripDetailsLogistics;
   policies?: Record<string, unknown>;
+  photos?: Array<{
+    id: string;
+    url: string;
+    filename: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string;
+  }>;
 }
 
 export interface TourDetailsDto {

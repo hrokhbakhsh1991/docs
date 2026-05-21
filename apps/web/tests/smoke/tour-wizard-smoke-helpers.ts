@@ -240,9 +240,60 @@ export async function fillTourWizardBasicInfoStep(
   }
 }
 
+export type TourWizardSmokeTemplateProfile =
+  | "general"
+  | "mountain_outdoor"
+  | "nature_trip"
+  | "urban_event"
+  | "cinema_event"
+  | "cultural_tour"
+  | "denali_pilot";
+
+/**
+ * Default `baseProfile` when smoke tests do not override `workspaceTemplateProfile`.
+ * Matches typical ws1-rbac urban workspace and avoids client fallback to `general`.
+ */
+export const SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE: TourWizardSmokeTemplateProfile = "urban_event";
+
+/** Minimal workspace template envelope for smoke (`useTenantWizardTemplate`). */
+export function buildSmokeWizardTemplateEnvelope(baseProfile: TourWizardSmokeTemplateProfile): {
+  template: Record<string, unknown>;
+} {
+  return {
+    template: {
+      id: "11111111-1111-4111-8111-111111111111",
+      workspaceId: SMOKE_WIZARD_JWT_TENANT_ID,
+      baseProfile,
+      stepOverrides: { skip: [], insert: [] },
+      fieldRulesOverlay: {},
+      presetId: null,
+      wizardContractVersion: 1,
+      formProfileVersion: 1,
+    },
+  };
+}
+
+/** Asserts `data-form-profile` on the wizard shell (workspace template authority). */
+export async function expectWizardTemplateProfile(
+  page: Page,
+  workspaceTemplateProfile: TourWizardSmokeTemplateProfile,
+): Promise<void> {
+  await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute(
+    "data-form-profile",
+    workspaceTemplateProfile,
+    { timeout: 20_000 },
+  );
+}
+
 export type TourWizardSmokeRoutesOptions = {
   themes?: unknown[];
   presets?: unknown[];
+  /**
+   * Mocks `GET /api/settings/tour-wizard-template` `baseProfile`.
+   * Omit to use {@link SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE} (`urban_event`).
+   * Pass `null` for `{ template: null }` (client falls back to `general`).
+   */
+  workspaceTemplateProfile?: TourWizardSmokeTemplateProfile | null;
 };
 
 /**
@@ -284,10 +335,16 @@ export async function installTourWizardSettingsRoutes(
       await route.continue();
       return;
     }
+    const profile =
+      opts.workspaceTemplateProfile === null
+        ? null
+        : opts.workspaceTemplateProfile ?? SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE;
+    const body =
+      profile != null ? buildSmokeWizardTemplateEnvelope(profile) : { template: null };
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ template: null }),
+      body: JSON.stringify(body),
     });
   });
 }

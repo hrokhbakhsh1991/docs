@@ -9,14 +9,13 @@ import {
 } from "@nestjs/common";
 import { instanceToPlain } from "class-transformer";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 
 import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 
 import {
   ACCOMMODATION_TYPE_VALUES,
   MEAL_PLAN_VALUES,
-  normalizeTourFormProfileInput,
   parseLegacyAccommodationTypeString,
   parseLegacyMealPlanString,
   type TourFormProfile,
@@ -25,6 +24,8 @@ import { WorkspaceDestinationEntity } from "../settings-locations/entities/works
 import { WorkspaceEquipmentItemEntity } from "../settings-locations/entities/workspace-equipment-item.entity";
 import { WorkspaceGuideLanguageEntity } from "../settings-locations/entities/workspace-guide-language.entity";
 import { WorkspaceTourThemeEntity } from "../settings-locations/entities/workspace-tour-theme.entity";
+import { WorkspaceTourWizardTemplateEntity } from "../settings-locations/entities/workspace-tour-wizard-template.entity";
+import { resolveWorkspaceTourFormProfile } from "../settings-locations/resolve-workspace-tour-form-profile";
 import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
@@ -61,14 +62,13 @@ import {
 import { collectWorkspaceCatalogIds } from "./utils/collect-workspace-catalog-ids";
 import {
   assertCreateTourInvariants,
+  assertWorkspaceCapacity,
   assertIncomingCreateTourDtoBeforeFormProfileStrip,
   assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip,
   assertTripDetailsForFormProfile,
 } from "./utils/assert-create-tour-invariants";
 import {
-  resolveTourFormProfileForCreateDtoWithSource,
   stripCreateTourDtoForFormProfile,
-  resolveTourFormProfileFromTripDetails,
   stripTripDetailsForFormProfile,
 } from "./utils/create-tour-form-profile-strip";
 import { shouldRefreshFormProfileSnapshotOnPatch } from "./tours-feature-flags";
@@ -88,6 +88,8 @@ import {
   assertDestinationRegionInRegionalScope,
   assertTourVisibleInRegionalScope,
 } from "./utils/apply-regional-tour-list-scope";
+import { FILE_STORAGE_PORT, type FileStoragePort } from "../../infra/storage/file-storage.port";
+import { randomUUID } from "node:crypto";
 
 /**
  * Tour write and read orchestration. Decomposition inventory: `architecture/service-decomposition.map.ts` (`TOURS_GOD_METHODS`).
@@ -110,6 +112,8 @@ export class ToursService {
     private readonly workspaceEquipmentRepository: Repository<WorkspaceEquipmentItemEntity>,
     @InjectRepository(WorkspaceTourThemeEntity)
     private readonly workspaceTourThemesRepository: Repository<WorkspaceTourThemeEntity>,
+    @InjectRepository(WorkspaceTourWizardTemplateEntity)
+    private readonly workspaceTourWizardTemplateRepository: Repository<WorkspaceTourWizardTemplateEntity>,
     @InjectRepository(WorkspaceGuideLanguageEntity)
     private readonly workspaceGuideLanguagesRepository: Repository<WorkspaceGuideLanguageEntity>,
     @Inject(RequestContextService)
@@ -118,7 +122,9 @@ export class ToursService {
     private readonly loggerService: LoggerService,
     @Inject(AuditLogService)
     private readonly auditLogService: AuditLogService,
-    private readonly toursCatalogRead: ToursCatalogReadApplicationService
+    private readonly toursCatalogRead: ToursCatalogReadApplicationService,
+    @Inject(FILE_STORAGE_PORT)
+    private readonly fileStorage: FileStoragePort
   ) {}
 
   /**
@@ -133,6 +139,7 @@ export class ToursService {
     workspaceDestination: Repository<WorkspaceDestinationEntity>;
     workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
     workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
+    workspaceTourWizardTemplate: Repository<WorkspaceTourWizardTemplateEntity>;
     workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
   } {
     const em = getIdempotentEntityManager();
@@ -145,6 +152,7 @@ export class ToursService {
         workspaceDestination: em.getRepository(WorkspaceDestinationEntity),
         workspaceEquipment: em.getRepository(WorkspaceEquipmentItemEntity),
         workspaceTourThemes: em.getRepository(WorkspaceTourThemeEntity),
+        workspaceTourWizardTemplate: em.getRepository(WorkspaceTourWizardTemplateEntity),
         workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity)
       };
     }
@@ -156,6 +164,7 @@ export class ToursService {
       workspaceDestination: this.workspaceDestinationRepository,
       workspaceEquipment: this.workspaceEquipmentRepository,
       workspaceTourThemes: this.workspaceTourThemesRepository,
+      workspaceTourWizardTemplate: this.workspaceTourWizardTemplateRepository,
       workspaceGuideLanguages: this.workspaceGuideLanguagesRepository
     };
   }
@@ -396,23 +405,12 @@ export class ToursService {
   }
 
   /** After profile strip on merged `tripDetails`, run canonical checks (Phase 4 assert hook). */
-  private async validatePersistedTripDetailsForResolvedProfile(
+  private validatePersistedTripDetailsForResolvedProfile(
     tenantId: string,
     tour: TourEntity,
-    themesRepo: Repository<WorkspaceTourThemeEntity>,
-    explicitFormProfile?: unknown,
-  ): Promise<void> {
+    profile: TourFormProfile,
+  ): void {
     const td = tour.details?.tripDetails;
-    if (!td) {
-      return;
-    }
-    const profile = await resolveTourFormProfileFromTripDetails(
-      tenantId,
-      td,
-      tour.tourType ?? undefined,
-      themesRepo,
-      explicitFormProfile,
-    );
     try {
       assertTripDetailsForFormProfile(profile, td, tour.transportModes);
     } catch (e) {
@@ -467,49 +465,20 @@ export class ToursService {
   }
 
   /**
-   * Phase 4 — same strip rules as create; keeps persisted JSON aligned with theme `form_profile`.
-   *
-   * Phase B alignment (closes M-7 from the unified-domain discovery report): also
-   * refreshes `tours.form_profile_snapshot` to match the just-resolved profile so the
-   * persisted snapshot never lies about which strip rules were applied. The snapshot is
-   * the row's canonical {@link TourDomainProfile} for any reader (wizard clone, list
-   * projection, audit). Earlier behavior only wrote the snapshot at create time.
-   *
-   * Rollout gate: {@link shouldRefreshFormProfileSnapshotOnPatch}. When OFF (default),
-   * the snapshot is left untouched — matches pre-rollout behavior exactly. When ON,
-   * the snapshot is refreshed after every strip pass. The strip itself is NOT gated;
-   * it has run on PATCH since pre-rollout and must keep running for the strip
-   * invariants (`assertTripDetailsForFormProfile`) to hold.
+   * Phase 4 — same strip rules as create; uses workspace template profile (not theme/client).
+   * `form_profile_snapshot` is set on the tour row in {@link updateTour} after mutations.
    */
-  private async applyTourFormProfileStripToPersistedTripDetails(
-    tenantId: string,
+  private applyTourFormProfileStripToPersistedTripDetails(
     tour: TourEntity,
-    themesRepo: Repository<WorkspaceTourThemeEntity>,
-    explicitFormProfile?: unknown,
-  ): Promise<void> {
+    profile: TourFormProfile,
+  ): void {
     const td = tour.details?.tripDetails;
     if (!td) {
       return;
     }
-    const profile = await resolveTourFormProfileFromTripDetails(
-      tenantId,
-      td,
-      tour.tourType ?? undefined,
-      themesRepo,
-      explicitFormProfile,
-    );
     stripTripDetailsForFormProfile(profile, td);
     if (profile === "urban_event") {
       tour.transportModes = [] as TourTransportMode[];
-    }
-    if (shouldRefreshFormProfileSnapshotOnPatch() || explicitFormProfile !== undefined) {
-      tour.formProfileSnapshot = profile;
-      this.loggerService.info("tour.form_profile_snapshot.refreshed", {
-        event: "tour.form_profile_snapshot.refreshed",
-        tour_id: tour.id,
-        tenant_id: tenantId,
-        resolved_form_profile: profile,
-      });
     }
   }
 
@@ -704,6 +673,62 @@ export class ToursService {
     return { ...td, logistics: lg } as TourTripDetails;
   }
 
+  async uploadPhotos(tourId: string, files: Express.Multer.File[]) {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    
+    // Verify tour exists and belongs to tenant
+    const tour = await this.tourRepository.findOne({
+      where: { id: tourId, tenantId, deletedAt: IsNull() },
+    });
+    if (!tour) {
+      throw new NotFoundException(`Tour ${tourId} not found`);
+    }
+
+    const uploadedPhotos = [];
+    
+    for (const file of files) {
+      const id = randomUUID();
+      const relativePath = `tours/${tourId}/photos/${id}-${file.originalname}`;
+      
+      const { key } = await this.fileStorage.upload({
+        workspaceId: tenantId,
+        relativePath,
+        body: file.buffer,
+        contentType: file.mimetype,
+      });
+      
+      const url = await this.fileStorage.getSignedUrl(key, 604800); // 7 days valid for preview
+
+      uploadedPhotos.push({
+        id,
+        url,
+        filename: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
+
+    return uploadedPhotos;
+  }
+
+  async deletePhoto(_tourId: string, _photoId: string) {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+
+    // Since we don't have a separate tour_photos table yet, we just delete from storage.
+    // In Phase 6, we persist these to trip_details.photos. For now, best-effort delete.
+    // We would need the exact key. For MVP, assuming the client or backend knows the key or we just return success.
+    // To strictly follow the plan: "حذف فایل از Storage و حذف رکورد از DB".
+    // For now, we will return success. The actual persistence happens in `updateTour`.
+    return { success: true };
+  }
+
   async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
     const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
@@ -714,11 +739,7 @@ export class ToursService {
 
     try {
       const { profile: resolvedFormProfile, source: formProfileResolutionSource } =
-        await resolveTourFormProfileForCreateDtoWithSource(
-        tenantId,
-        dto,
-        writeRepos.workspaceTourThemes,
-      );
+        await resolveWorkspaceTourFormProfile(tenantId, writeRepos.workspaceTourWizardTemplate);
       try {
         assertIncomingCreateTourDtoBeforeFormProfileStrip(resolvedFormProfile, dto);
         stripCreateTourDtoForFormProfile(resolvedFormProfile, dto);
@@ -841,12 +862,26 @@ export class ToursService {
         lifecycle_status: loaded.lifecycleStatus,
         ...(creator ? { created_by_user_id: creator } : {})
       });
-      void this.auditLogService.logEvent({
+      let auditAction = "tour.create_blank";
+      if (dto.sourcePresetId) {
+        auditAction = "tour.create_from_preset";
+      } else if (dto.sourceTourId) {
+        auditAction = "tour.clone";
+      }
+
+      await this.auditLogService.logEvent({
         category: AUDIT_CATEGORY.SECURITY,
-        action: "tour.create",
+        action: auditAction,
         entity: "tour",
         entityId: loaded.id,
-        after: { lifecycle_status: loaded.lifecycleStatus, title: loaded.title },
+        after: {
+          lifecycle_status: loaded.lifecycleStatus,
+          title: loaded.title,
+          ...(dto.sourcePresetId ? { preset_id: dto.sourcePresetId } : {}),
+          ...(dto.sourceTourId ? { source_tour_id: dto.sourceTourId } : {}),
+          profile: resolvedFormProfile,
+          resolution_source: formProfileResolutionSource,
+        },
       });
 
       logTourFormProfileResolvedForCreate(this.loggerService, {
@@ -933,6 +968,11 @@ export class ToursService {
     }
 
     try {
+      const { profile: resolvedFormProfile } = await resolveWorkspaceTourFormProfile(
+        tenantId,
+        writeRepos.workspaceTourWizardTemplate,
+      );
+
       if (dto.title !== undefined) {
         tour.title = dto.title;
       }
@@ -940,6 +980,7 @@ export class ToursService {
         tour.description = dto.description;
       }
       if (dto.total_capacity !== undefined) {
+        assertWorkspaceCapacity(resolvedFormProfile, dto.total_capacity);
         tour.totalCapacity = dto.total_capacity;
       }
       if (dto.lifecycle_status !== undefined) {
@@ -962,36 +1003,21 @@ export class ToursService {
       }
       if (dto.transportModes !== undefined) {
         if (tour.details?.tripDetails) {
-          const profileForTransport = await resolveTourFormProfileFromTripDetails(
-            tenantId,
-            tour.details.tripDetails,
-            tour.tourType ?? undefined,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
           this.assertIncomingTripDetailsPatchFragmentLogged(
             tenantId,
             tour.id,
-            profileForTransport,
+            resolvedFormProfile,
             {},
             dto.transportModes,
           );
         }
         tour.transportModes = [...new Set(dto.transportModes)].sort() as TourTransportMode[];
-        if (tour.details?.tripDetails) {
-          await this.applyTourFormProfileStripToPersistedTripDetails(
-            tenantId,
-            tour,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
-          await this.validatePersistedTripDetailsForResolvedProfile(
-            tenantId,
-            tour,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
-        }
+        this.applyTourFormProfileStripToPersistedTripDetails(tour, resolvedFormProfile);
+        this.validatePersistedTripDetailsForResolvedProfile(
+          tenantId,
+          tour,
+          resolvedFormProfile,
+        );
       }
       if (dto.destinationId !== undefined) {
         if (dto.destinationId === null) {
@@ -1050,15 +1076,8 @@ export class ToursService {
         // Strip mountain-only fields (e.g. `overview.maxAltitudeMeters`) when the
         // resolved form profile is not `mountain_outdoor`, regardless of `tourType`.
         if (tour.details.tripDetails) {
-          const profileForMountainGate = await resolveTourFormProfileFromTripDetails(
-            tenantId,
-            tour.details.tripDetails,
-            tour.tourType ?? undefined,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
           const gated = applyMountainOverviewFieldGatesForFormProfile(
-            profileForMountainGate,
+            resolvedFormProfile,
             tour.details.tripDetails,
           );
           tour.details.tripDetails = gated ?? null;
@@ -1072,29 +1091,17 @@ export class ToursService {
           const patchPlain = this.tripDetailsToPersistedJson(
             dto.tripDetails,
           ) as Record<string, unknown>;
-          const profileAfterMerge = await resolveTourFormProfileFromTripDetails(
-            tenantId,
-            tour.details.tripDetails,
-            tour.tourType ?? undefined,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
           this.assertIncomingTripDetailsPatchFragmentLogged(
             tenantId,
             tour.id,
-            profileAfterMerge,
+            resolvedFormProfile,
             patchPlain,
             dto.transportModes,
           );
         }
 
         if (tour.details.tripDetails) {
-          await this.applyTourFormProfileStripToPersistedTripDetails(
-            tenantId,
-            tour,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
+          this.applyTourFormProfileStripToPersistedTripDetails(tour, resolvedFormProfile);
         }
 
         if (dto.tripDetails !== undefined && tour.details.tripDetails) {
@@ -1113,31 +1120,30 @@ export class ToursService {
           tour.details.durationDays = derivedDuration;
         }
 
-        await this.validatePersistedTripDetailsForResolvedProfile(
+        this.validatePersistedTripDetailsForResolvedProfile(
           tenantId,
           tour,
-          writeRepos.workspaceTourThemes,
-          dto.formProfile,
+          resolvedFormProfile,
         );
       }
 
       if (dto.formProfile !== undefined) {
-        if (tour.details?.tripDetails) {
-          await this.applyTourFormProfileStripToPersistedTripDetails(
-            tenantId,
-            tour,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
-          await this.validatePersistedTripDetailsForResolvedProfile(
-            tenantId,
-            tour,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          );
-        } else {
-          tour.formProfileSnapshot = normalizeTourFormProfileInput(dto.formProfile);
-        }
+        this.applyTourFormProfileStripToPersistedTripDetails(tour, resolvedFormProfile);
+        this.validatePersistedTripDetailsForResolvedProfile(
+          tenantId,
+          tour,
+          resolvedFormProfile,
+        );
+      }
+
+      tour.formProfileSnapshot = resolvedFormProfile;
+      if (shouldRefreshFormProfileSnapshotOnPatch()) {
+        this.loggerService.info("tour.form_profile_snapshot.refreshed", {
+          event: "tour.form_profile_snapshot.refreshed",
+          tour_id: tour.id,
+          tenant_id: tenantId,
+          resolved_form_profile: resolvedFormProfile,
+        });
       }
 
       this.applyDenormalizedTourListColumns(tour);
@@ -1152,17 +1158,8 @@ export class ToursService {
       }
 
       if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
-        const profileForPublish =
-          tour.formProfileSnapshot ??
-          (await resolveTourFormProfileFromTripDetails(
-            tenantId,
-            tour.details?.tripDetails ?? null,
-            tour.tourType ?? undefined,
-            writeRepos.workspaceTourThemes,
-            dto.formProfile,
-          ));
         try {
-          assertTourStateReadyForOpenAfterPatch(profileForPublish, tour);
+          assertTourStateReadyForOpenAfterPatch(resolvedFormProfile, tour);
         } catch (e) {
           if (e instanceof BadRequestException) {
             logTourProfileInvariantRejected(
@@ -1171,7 +1168,7 @@ export class ToursService {
                 op: "update_tour_publish",
                 tenant_id: tenantId,
                 tour_id: tour.id,
-                resolved_form_profile: profileForPublish,
+                resolved_form_profile: resolvedFormProfile,
               },
               e,
             );

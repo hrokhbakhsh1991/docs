@@ -21,7 +21,7 @@ test("createManualPayment persists under tenant scope", async () => {
   const saved: Array<Record<string, unknown>> = [];
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           ...makeManager([]),
           save: async (_entity: unknown, row: Record<string, unknown>) => {
@@ -49,7 +49,7 @@ test("createManualPayment persists under tenant scope", async () => {
 test("createManualPayment rejects when registration already has Paid payment", async () => {
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId, fn) => fn(makeManager([{ status: PaymentStatus.PAID }]) as never)
+      runInTenantScope: async (_tenantId: string, fn: any) => fn(makeManager([{ status: PaymentStatus.PAID }]) as never)
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never
@@ -74,7 +74,7 @@ test("createManualPayment rejects when registration already has Paid payment", a
 test("createManualPayment allows manual debt after Failed online payment", async () => {
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId, fn) => fn(makeManager([{ status: PaymentStatus.FAILED }]) as never)
+      runInTenantScope: async (_tenantId: string, fn: any) => fn(makeManager([{ status: PaymentStatus.FAILED }]) as never)
     } as never,
     {} as never,
     { invalidateSummaryCache: async () => undefined } as never
@@ -92,7 +92,7 @@ test("createManualPayment allows manual debt after Failed online payment", async
 test("createManualPayment rejects unknown registration", async () => {
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           findOne: async () => null
         } as never)

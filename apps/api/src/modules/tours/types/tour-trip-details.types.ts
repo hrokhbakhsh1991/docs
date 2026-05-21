@@ -36,12 +36,29 @@ export const EXPERIENCE_LEVEL_VALUES = ["none", "basic", "intermediate", "advanc
 export type ExperienceLevel = (typeof EXPERIENCE_LEVEL_VALUES)[number];
 
 /** Structured day-by-day plan (same shape as legacy `tour_details.itinerary` JSON). */
+export interface TripDetailsDayPlanPhoto {
+  id: string;
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  uploadedAt: string;
+}
+
 export interface TripDetailsDayPlan {
   day: number;
   title?: string;
   description?: string;
   distanceKm?: number;
   elevationGainM?: number;
+  photos?: TripDetailsDayPlanPhoto[];
+  location?: TripDetailsLocationData;
+}
+
+export interface TripDetailsLocationData {
+  addressText?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface TripDetailsOverview {
@@ -51,6 +68,15 @@ export interface TripDetailsOverview {
   tourThemeIds?: string[];
   /** Optional id → display label snapshot when a catalog entry was removed. */
   tourThemeLabels?: Record<string, string>;
+  /** Workspace tour leader ids. */
+  leaderUserIds?: string[];
+  /** Display name for the local guide (when not a workspace user). */
+  localGuideName?: string;
+  gatheringPoint?: TripDetailsLocationData;
+  startPoint?: TripDetailsLocationData;
+  summitPoint?: TripDetailsLocationData;
+  campPoint?: TripDetailsLocationData;
+  endPoint?: TripDetailsLocationData;
   /**
    * Multi-select execution style (orthogonal to top-level `tourType`).
    * Replaces a legacy singular overview style field. Empty/omitted = unspecified.
@@ -79,6 +105,27 @@ export interface TripDetailsOverview {
   shortIntro?: string;
 }
 
+export interface TripDetailsSegmentActivitySegment {
+  title?: string;
+  description?: string;
+  activityType?: string;
+  startTime?: string;
+  endTime?: string;
+  estimatedDurationHours?: number;
+  distanceKm?: number;
+  elevationGainMeters?: number;
+  maxAltitudeMeters?: number;
+  locationName?: string;
+}
+
+export interface TripDetailsSegmentActivityDay {
+  dayNumber: number;
+  title?: string;
+  description?: string;
+  segments?: TripDetailsSegmentActivitySegment[];
+  photos?: TripDetailsDayPlanPhoto[];
+}
+
 export interface TripDetailsItinerary {
   highlights?: string[];
   includedVisits?: string[];
@@ -89,6 +136,7 @@ export interface TripDetailsItinerary {
   programNotes?: string;
   specialExperiences?: string[];
   dayPlans?: TripDetailsDayPlan[];
+  segmentActivities?: TripDetailsSegmentActivityDay[];
 }
 
 export interface TripDetailsParticipation {
@@ -116,6 +164,8 @@ export interface TripDetailsParticipation {
   notSuitableFor?: AudienceGroup[];
   /** Participant must carry valid sport / mountaineering insurance (leader-enforced). */
   sportsInsuranceRequired?: boolean;
+  /** Free-text fitness / experience prerequisites (Denali wizard). */
+  fitnessPrerequisiteText?: string;
   /**
    * When true, registration is allowed only for authenticated users whose profile includes a national ID.
    * Enforced in {@link RegistrationsService}.
@@ -126,6 +176,8 @@ export interface TripDetailsParticipation {
 export interface TripDetailsLogistics {
   /** Primary meetup location before departure. */
   meetingPoint?: string;
+  /** Precise start village / trailhead (Denali wizard). */
+  startPointVillage?: string;
   /** Local meetup time at the departure point (`HH:mm`). */
   departureMeetingTime?: string;
   /** Calendar departure date (`YYYY-MM-DD`). */
@@ -197,4 +249,12 @@ export interface TourTripDetails {
   participation?: TripDetailsParticipation;
   logistics?: TripDetailsLogistics;
   policies?: TripDetailsPolicies;
+  photos?: Array<{
+    id: string;
+    url: string;
+    filename: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string;
+  }>;
 }

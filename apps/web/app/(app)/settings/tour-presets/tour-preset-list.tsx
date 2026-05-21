@@ -18,6 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { useCallback, useMemo } from "react";
@@ -60,6 +61,7 @@ function SortableTourPresetRow({
   mutating,
 }: SortableTourPresetRowProps) {
   const t = useTranslations("settings");
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -143,6 +145,18 @@ function SortableTourPresetRow({
               />
               <span>{t("tourPresetsFieldActive")}</span>
             </label>
+            {item.formProfile === "denali_pilot" && item.isActive ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={mutating}
+                data-testid={`tour-preset-create-tour-${item.id}`}
+                onClick={() => router.push(`/tours/new?presetId=${encodeURIComponent(item.id)}`)}
+              >
+                {t("tourPresetsCreateTourFromTemplate")}
+              </Button>
+            ) : null}
             <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(item)} disabled={mutating}>
               {t("tourPresetsEdit")}
             </Button>
@@ -187,6 +201,7 @@ export function TourPresetList({
   readOnly = false,
 }: TourPresetListProps) {
   const t = useTranslations("settings");
+  const router = useRouter();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -236,6 +251,19 @@ export function TourPresetList({
                     <span className={panelStyles.listItemBadge}>— {t("tourPresetsInactiveBadge")}</span>
                   ) : null}
                 </div>
+                {item.formProfile === "denali_pilot" && item.isActive ? (
+                  <div className={panelStyles.listItemActions}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      data-testid={`tour-preset-create-tour-${item.id}`}
+                      onClick={() => router.push(`/tours/new?presetId=${encodeURIComponent(item.id)}`)}
+                    >
+                      {t("tourPresetsCreateTourFromTemplate")}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </li>

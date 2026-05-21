@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   addLeaderSmokeSessionCookie,
   clearTourWizardLocalDraft,
+  expectWizardTemplateProfile,
   fillTourWizardBasicInfoStep,
   installLeaderWorkspaceSessionRoute,
   installTourWizardSettingsRoutes,
@@ -15,11 +16,14 @@ const THEME_URBAN = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const THEME_MOUNTAIN = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const THEME_CINEMA = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
+/** Fixed workspace template; theme rows carry other profiles but must not flip the wizard shell. */
+const WORKSPACE_TEMPLATE_PROFILE = "mountain_outdoor" as const;
+
 /**
- * Mix-theme profile flip (فاز ۷.۳.۲): selecting main theme drives `data-form-profile` and stepper.
- * Mirrors `mix-demo` tenant seeds without requiring a dedicated smoke host.
+ * Wizard profile is controlled by the workspace template.
+ * Main-theme selection must not change `data-form-profile` or template-driven stepper visibility.
  */
-test.describe("tour wizard mix profile flip (stepper)", () => {
+test.describe("tour wizard theme selection (profile stable)", () => {
   const now = new Date().toISOString();
 
   test.beforeEach(async ({ page, context }) => {
@@ -28,6 +32,7 @@ test.describe("tour wizard mix profile flip (stepper)", () => {
     await installLeaderWorkspaceSessionRoute(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
     await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: WORKSPACE_TEMPLATE_PROFILE,
       themes: [
         {
           id: THEME_URBAN,
@@ -72,9 +77,10 @@ test.describe("tour wizard mix profile flip (stepper)", () => {
     await purgeTourWizardDraftStorage(page);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
     await fillTourWizardBasicInfoStep(page, {
       title: "abcdefghijabcdefghij",
-      shortDescription: "خلاصه برای تست flip پروفایل",
+      shortDescription: "خلاصه برای تست انتخاب تم",
       longDescription: "توضیح کامل برای عبور از اعتبارسنجی گام اول.",
     });
     await page.getByRole("button", { name: "بعدی" }).click();
@@ -86,29 +92,29 @@ test.describe("tour wizard mix profile flip (stepper)", () => {
     await expect(mainThemeSelect).toBeVisible({ timeout: 10_000 });
     await setNativeSelectValue(mainThemeSelect, themeId);
     await mainThemeSelect.dispatchEvent("change");
+    await expect(mainThemeSelect).toHaveValue(themeId);
   }
 
-  test("urban → mountain → cinema updates form profile and stepper", async ({ page }) => {
+  test("switching main theme does not change workspace template profile or stepper", async ({ page }) => {
     await openThemeStep(page);
     const stepper = page.getByLabel("مراحل ایجاد تور");
-    const profile = page.getByTestId("wizard-form-profile");
 
     await selectMainTheme(page, THEME_URBAN);
-    await expect(profile).toHaveAttribute("data-form-profile", "urban_event", { timeout: 15_000 });
-    await expect(stepper).not.toContainText("برنامه سفر");
-    await expect(stepper).not.toContainText("شرایط شرکت");
-    await expect(stepper).not.toContainText("لجستیک");
-
-    await selectMainTheme(page, THEME_MOUNTAIN);
-    await expect(profile).toHaveAttribute("data-form-profile", "mountain_outdoor", { timeout: 15_000 });
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
     await expect(stepper).toContainText("برنامه سفر", { timeout: 15_000 });
     await expect(stepper).toContainText("شرایط شرکت");
     await expect(stepper).toContainText("لجستیک");
 
+    await selectMainTheme(page, THEME_MOUNTAIN);
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
+    await expect(stepper).toContainText("برنامه سفر");
+    await expect(stepper).toContainText("شرایط شرکت");
+    await expect(stepper).toContainText("لجستیک");
+
     await selectMainTheme(page, THEME_CINEMA);
-    await expect(profile).toHaveAttribute("data-form-profile", "cinema_event", { timeout: 15_000 });
-    await expect(stepper).not.toContainText("برنامه سفر");
-    await expect(stepper).not.toContainText("شرایط شرکت");
-    await expect(stepper).toContainText("لجستیک", { timeout: 15_000 });
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
+    await expect(stepper).toContainText("برنامه سفر");
+    await expect(stepper).toContainText("شرایط شرکت");
+    await expect(stepper).toContainText("لجستیک");
   });
 });

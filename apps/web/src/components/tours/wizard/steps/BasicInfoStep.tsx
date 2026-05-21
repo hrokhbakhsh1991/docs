@@ -1,6 +1,5 @@
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 import { TOUR_TYPES, type TourFormProfile } from "@repo/types";
-import { useEffect } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { FormField, Input, Select, Textarea } from "@tour/ui";

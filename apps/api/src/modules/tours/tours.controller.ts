@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Delete,
   Query,
   UseGuards,
   UseInterceptors
@@ -47,6 +48,8 @@ import {
   RegistrationResponseDto,
   WaitlistItemResponseDto
 } from "../registrations/dto/get-registration.dto";
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { UploadedFiles, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from "@nestjs/common";
 
 @ApiTags("Tours")
 @Controller("api/v2/tours")
@@ -88,6 +91,41 @@ export class ToursController {
       dto,
     });
     return this.toursService.createTour(dto);
+  }
+
+  @Post(":tourId/photos")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Upload photos for a tour" })
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Tour"))
+  @UseInterceptors(FilesInterceptor("photos", 10))
+  async uploadPhotos(
+    @Param("tourId") tourId: string,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    files: Express.Multer.File[],
+  ) {
+    return this.toursService.uploadPhotos(tourId, files);
+  }
+
+  @Delete(":tourId/photos/:photoId")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Delete a photo for a tour" })
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Tour"))
+  async deletePhoto(
+    @Param("tourId") tourId: string,
+    @Param("photoId") photoId: string,
+  ) {
+    return this.toursService.deletePhoto(tourId, photoId);
   }
 
   @Patch(":tourId")

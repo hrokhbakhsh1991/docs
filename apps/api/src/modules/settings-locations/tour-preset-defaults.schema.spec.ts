@@ -97,8 +97,8 @@ test("passthrough inside known sections: nested unknown keys do NOT trigger erro
     overview: { someFutureWizardField: "x", title: "Y" },
     logistics: { newKnobInWizard: { nested: true } },
   });
-  assert.equal(out.overview?.someFutureWizardField, "x");
-  assert.equal(out.overview?.title, "Y");
+  assert.equal((out as any).overview?.someFutureWizardField, "x");
+  assert.equal((out as any).overview?.title, "Y");
 });
 
 test("PRESET_DEFAULTS_ROOT_KEYS includes the nine wizard-known roots and stays in sync with mapper", () => {
@@ -113,4 +113,36 @@ test("PRESET_DEFAULTS_ROOT_KEYS includes the nine wizard-known roots and stays i
     "logistics",
     "policies",
   ]);
+});
+
+test("denali_pilot: accepts 6-tab preset defaults", () => {
+  const healthy = {
+    basicInfo: { tourType: "nature_day", title: "abcdefghijabcdefghij" },
+    programNature: { mainTourThemeId: "uuid", shortDescription: "طبیعت" },
+    transport: { primaryTransportMode: "bus" },
+    pricingPayment: { requiresPayment: true },
+    participantRequirements: { minimumAge: 16 },
+    policies: { cancellationPolicy: "قانون" },
+  };
+  const out = parsePresetDefaultsOrThrow(healthy, { formProfile: "denali_pilot" });
+  assert.deepEqual((out as any).basicInfo, healthy.basicInfo);
+});
+
+test("denali_pilot: strips unknown keys instead of rejecting", () => {
+  const input = {
+    basicInfo: { tourType: "nature_day" },
+    legacyRoot: { someValue: 123 }, // Should be stripped
+    anotherUnknownField: "foo", // Should be stripped
+  };
+  const out = parsePresetDefaultsOrThrow(input, { formProfile: "denali_pilot" });
+  assert.deepEqual(out, { basicInfo: { tourType: "nature_day" } });
+  assert.ok(!("legacyRoot" in out));
+  assert.ok(!("anotherUnknownField" in out));
+});
+
+test("denali_pilot: strips legacy overview root (denali schema uses .strip())", () => {
+  const broken = { overview: { shortDescription: "x" } };
+  const out = parsePresetDefaultsOrThrow(broken, { formProfile: "denali_pilot" });
+  assert.deepEqual(out, {});
+  assert.ok(!("overview" in out));
 });

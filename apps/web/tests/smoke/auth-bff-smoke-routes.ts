@@ -37,7 +37,10 @@ export async function installAuthBffSmokeRoutes(page: Page, opts: AuthBffSmokeRo
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ ok: true }),
+      body: JSON.stringify({
+        ok: true,
+        challenge_id: "00000000-0000-4000-8000-000000000001",
+      }),
     });
   });
 

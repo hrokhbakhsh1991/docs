@@ -87,7 +87,7 @@ test("stripTenantGatedTourCreateGroups resets itinerary/participation/logistics 
     ...base,
     itinerary: { ...base.itinerary, days: [{ dayNumber: 1, title: "x", segments: [] }] },
     participation: { ...base.participation, minimumAge: 18 },
-    logistics: { ...base.logistics, primaryTransportMode: "bus" },
+    logistics: { ...base.logistics, primaryTransportMode: "bus" as const },
   };
   const out = stripTenantGatedTourCreateGroups(c, dirty);
   assert.deepEqual(out.itinerary, base.itinerary);

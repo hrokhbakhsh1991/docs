@@ -1,17 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Repository } from "typeorm";
 
 import { TOUR_FORM_PROFILE_DESCRIPTORS, URBAN_LOGISTICS_WHITELIST_KEYS } from "@repo/types";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
-import { WorkspaceTourThemeEntity } from "../../settings-locations/entities/workspace-tour-theme.entity";
 
 import {
   URBAN_LOGISTICS_WHITELIST,
-  resolveTourFormProfileForCreateDto,
-  resolveTourFormProfileForCreateDtoWithSource,
-  resolveTourFormProfileFromTripDetails,
   stripCreateTourDtoForFormProfile,
   stripTripDetailsForFormProfile,
 } from "./create-tour-form-profile-strip";
@@ -23,9 +18,28 @@ function sampleDto(overrides?: Partial<CreateTourDto>): CreateTourDto {
     total_capacity: 10,
     tourType: "mountain",
     tripDetails: {
-      overview: { tourThemeIds: ["theme-main-uuid"] },
+      overview: {
+        tourThemeIds: ["theme-main-uuid"],
+        leaderUserIds: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
+        localGuideName: "Ali",
+      },
       itinerary: {
-        dayPlans: [{ day: 1, title: "ghost day" }],
+        dayPlans: [
+          {
+            day: 1,
+            title: "ghost day",
+            photos: [
+              {
+                id: "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+                url: "https://example.com/d1.jpg",
+                filename: "d1.jpg",
+                size: 100,
+                mimeType: "image/jpeg",
+                uploadedAt: "2026-06-01T08:00:00.000Z",
+              },
+            ],
+          },
+        ],
         highlights: ["keep-me"],
       },
       participation: { minimumAge: 12, requirements: "ghost" },
@@ -42,6 +56,17 @@ function sampleDto(overrides?: Partial<CreateTourDto>): CreateTourDto {
     ...overrides,
   } as CreateTourDto;
 }
+
+test("stripCreateTourDtoForFormProfile: denali_pilot preserves crew and itinerary photos", () => {
+  const dto = sampleDto();
+  stripCreateTourDtoForFormProfile("denali_pilot", dto);
+  const overview = dto.tripDetails?.overview as any;
+  assert.deepEqual(overview?.leaderUserIds, ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"]);
+  assert.equal(overview?.localGuideName, "Ali");
+  const day1 = dto.tripDetails?.itinerary?.dayPlans?.[0] as any;
+  assert.ok(Array.isArray(day1?.photos) && day1.photos.length === 1);
+  assert.equal(day1.photos[0].id, "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22");
+});
 
 test("stripCreateTourDtoForFormProfile: general does not mutate dto", () => {
   const dto = sampleDto();
@@ -101,97 +126,6 @@ test("stripCreateTourDtoForFormProfile: cinema_event satisfies assertTripDetails
   assert.doesNotThrow(() =>
     assertTripDetailsForFormProfile("cinema_event", dto.tripDetails as never, dto.transportModes ?? undefined),
   );
-});
-
-test("resolveTourFormProfileFromTripDetails: explicit formProfile overrides theme row", async () => {
-  const repo = {
-    async findOne() {
-      return { formProfile: "cinema_event" as const };
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto();
-  const p = await resolveTourFormProfileFromTripDetails(
-    "tenant-1",
-    dto.tripDetails as never,
-    dto.tourType,
-    repo,
-    "mountain_outdoor",
-  );
-  assert.equal(p, "mountain_outdoor");
-});
-
-test("resolveTourFormProfileFromTripDetails uses theme row when present", async () => {
-  const repo = {
-    async findOne() {
-      return { formProfile: "cinema_event" as const };
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto();
-  const p = await resolveTourFormProfileFromTripDetails(
-    "tenant-1",
-    dto.tripDetails as never,
-    dto.tourType,
-    repo,
-  );
-  assert.equal(p, "cinema_event");
-});
-
-test("resolveTourFormProfileForCreateDtoWithSource: explicit wins over theme row", async () => {
-  const repo = {
-    async findOne() {
-      return { formProfile: "cinema_event" as const };
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto({ formProfile: "urban_event" } as Partial<CreateTourDto>);
-  const r = await resolveTourFormProfileForCreateDtoWithSource("tenant-1", dto, repo);
-  assert.equal(r.profile, "urban_event");
-  assert.equal(r.source, "explicit_client");
-});
-
-test("resolveTourFormProfileForCreateDtoWithSource: theme row when no explicit", async () => {
-  const repo = {
-    async findOne() {
-      return { formProfile: "cinema_event" as const };
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto();
-  const r = await resolveTourFormProfileForCreateDtoWithSource("tenant-1", dto, repo);
-  assert.equal(r.profile, "cinema_event");
-  assert.equal(r.source, "workspace_theme");
-});
-
-test("resolveTourFormProfileForCreateDtoWithSource: tour_type when theme id missing", async () => {
-  const repo = {
-    async findOne() {
-      return null;
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto({ tripDetails: { overview: { tourThemeIds: [] } } } as Partial<CreateTourDto>);
-  const r = await resolveTourFormProfileForCreateDtoWithSource("tenant-1", dto, repo);
-  assert.equal(r.profile, "mountain_outdoor");
-  assert.equal(r.source, "tour_type_default");
-});
-
-test("resolveTourFormProfileForCreateDto: falls back to tourType when theme missing", async () => {
-  const repo = {
-    async findOne() {
-      return null;
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto({ tripDetails: { overview: { tourThemeIds: [] } } } as Partial<CreateTourDto>);
-  const p = await resolveTourFormProfileForCreateDto("tenant-1", dto, repo);
-  assert.equal(p, "mountain_outdoor");
-});
-
-test("resolveTourFormProfileForCreateDto: general when no themes and no tourType", async () => {
-  const repo = {
-    async findOne() {
-      return null;
-    },
-  } as unknown as Repository<WorkspaceTourThemeEntity>;
-  const dto = sampleDto({ tourType: undefined, tripDetails: { overview: {} } } as Partial<CreateTourDto>);
-  const p = await resolveTourFormProfileForCreateDto("tenant-1", dto, repo);
-  assert.equal(p, "general");
 });
 
 /* ---------------------------------------------------------------------------------------------

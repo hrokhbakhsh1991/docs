@@ -10,7 +10,7 @@ test("submitReceipt rejects non-manual payments", async () => {
   const service = new ReceiptService(
     {} as never,
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           findOne: async () => ({
             id: "pay-1",
@@ -46,9 +46,9 @@ test("submitReceipt rejects upload by unrelated member", async () => {
   const service = new ReceiptService(
     {} as never,
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
-          findOne: async (entity: unknown, opts: { where: { id?: string } }) => {
+          findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
             if (opts.where.id === "pay-1") {
               return {
                 id: "pay-1",
@@ -99,7 +99,7 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
   const service = new ReceiptService(
     {} as never,
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
             if (opts.where.id === "pay-1") {
@@ -154,7 +154,7 @@ test("submitReceipt deletes uploaded object when save fails", async () => {
   const service = new ReceiptService(
     {} as never,
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
             if (opts.where.id === "pay-1") {

@@ -15,7 +15,7 @@ import type { TourTripDetails } from "../types/tour-trip-details.types";
  *
  * Phase P4 (promptq.md): the legacy `applyTourTypeFieldGates(td, tourType)` helper has
  * been retired. All write paths must resolve the {@link TourFormProfile} first (server
- * does this via `resolveTourFormProfileFromTripDetails`) and call this function.
+ * does this via `resolveWorkspaceTourFormProfile`) and call this function.
  *
  * Phase P10+ housekeeping: the key list is read from the declarative profile descriptor
  * (`packages/types/src/tour-form-profile-descriptors.ts`) — parity-tested against

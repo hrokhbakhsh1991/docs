@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
+    "@repo/types": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

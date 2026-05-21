@@ -5,7 +5,7 @@ import { PaymentCaptureLedgerAuthorityService } from "./payment-capture-ledger-a
 test("emitPaymentCaptureAtPaid enqueues finance.ledger.double_entry_applied", async () => {
   const events: Array<{ eventType: string; domainEventId?: string | null }> = [];
   const service = new PaymentCaptureLedgerAuthorityService({
-    addEvent: async (_manager, event) => {
+    addEvent: async (_manager: any, event: any) => {
       events.push({ eventType: event.eventType, domainEventId: event.domainEventId });
     }
   } as never);

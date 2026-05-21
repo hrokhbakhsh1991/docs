@@ -54,8 +54,13 @@ export type TourFormProfileResolutionPayload = {
   readonly op: "create_tour";
   readonly tenant_id: string;
   readonly resolved_form_profile: TourFormProfile;
-  /** Which branch of `resolveTourFormProfileFromTripDetails` precedence won (Phase P9). */
-  readonly resolution_source: "explicit_client" | "workspace_theme" | "tour_type_default";
+  /** Which branch of workspace template profile resolution won (Phase P9+). */
+  readonly resolution_source:
+    | "explicit_client"
+    | "workspace_theme"
+    | "tour_type_default"
+    | "workspace_template"
+    | "workspace_template_missing";
 };
 
 /**

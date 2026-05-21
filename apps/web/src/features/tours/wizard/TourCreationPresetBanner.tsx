@@ -9,25 +9,46 @@ import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
+import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
-import { applyTourWizardPatch } from "./applyTourWizardPatch";
-import { listAllTourWizardPresetsSorted, presetDefaultsToFormPatch } from "./tourCreationPresetMatch";
+import { applyTourCreationPreset } from "./tourCreationPresetApply";
+import { listAllTourWizardPresetsSorted } from "./tourCreationPresetMatch";
+import { resolveWorkspaceTourFormProfileFromTemplate } from "./resolveWorkspaceTourFormProfile";
 
 export type TourCreationPresetBannerProps = {
   presets: SettingsTourPresetDto[] | undefined;
-  /** When set, only presets whose `formProfile` matches are listed. */
+  /**
+   * @deprecated Banner reads profile from {@link useTenantWizardTemplate} (`base_profile`).
+   * Parent may still pass `resolvedFormProfile` for display parity; apply is blocked until template loads.
+   */
   resolvedFormProfile?: TourFormProfile;
 };
 
-export function TourCreationPresetBanner({ presets, resolvedFormProfile }: TourCreationPresetBannerProps) {
+export function TourCreationPresetBanner({ presets }: TourCreationPresetBannerProps) {
   const t = useTranslations("tours.new");
   const { getValues, reset } = useFormContext<TourCreateFormValues>();
   const themesQuery = useSettingsTourThemes();
+  const wizardTemplateQuery = useTenantWizardTemplate();
+
+  const templateReady =
+    !wizardTemplateQuery.isLoading &&
+    !wizardTemplateQuery.isError &&
+    wizardTemplateQuery.data != null;
+
+  const workspaceFormProfile = useMemo((): TourFormProfile | undefined => {
+    if (!wizardTemplateQuery.data) {
+      return undefined;
+    }
+    return resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data);
+  }, [wizardTemplateQuery.data]);
 
   const choiceList = useMemo(
-    () => listAllTourWizardPresetsSorted(presets, resolvedFormProfile),
-    [presets, resolvedFormProfile],
+    () =>
+      templateReady && workspaceFormProfile != null
+        ? listAllTourWizardPresetsSorted(presets, workspaceFormProfile)
+        : [],
+    [presets, templateReady, workspaceFormProfile],
   );
 
   const [selectedId, setSelectedId] = useState<string>("");
@@ -46,35 +67,37 @@ export function TourCreationPresetBanner({ presets, resolvedFormProfile }: TourC
   const appliedForCurrentChoice = selected != null && lastAppliedPresetId === selected.id;
 
   const applySelected = useCallback(() => {
-    if (!selected?.isActive) return;
-    const patch = presetDefaultsToFormPatch(selected.defaults);
-    const baseValues = getValues();
-    // `overview.tourType` is already typed as the canonical union (`TourType | undefined`)
-    // on `TourCreateFormValues`, so no narrowing/casting is needed here.
-    const baseTourType = baseValues.overview?.tourType;
-    // Phase-1 pipeline migration: preset apply now goes through `applyTourWizardPatch`,
-    // which (a) re-resolves the form profile when the preset flips `mainTourThemeId`
-    // or `tourType` and (b) filters/sanitizes against that FINAL profile so the call
-    // site stays symmetric with the submit-time strip in `useTourWizardCreate`.
-    // When no profile is known (consumer omits the prop), the pipeline still runs
-    // with `currentProfile = "general"` and is a no-op for inactive-group filtering.
-    const { mergedValues } = applyTourWizardPatch({
-      baseValues,
-      patch,
-      currentProfile: resolvedFormProfile ?? "general",
+    if (!selected?.isActive || workspaceFormProfile == null) {
+      return;
+    }
+    const mergedValues = applyTourCreationPreset({
+      resolvedFormProfile: workspaceFormProfile,
+      defaults: selected.defaults,
+      baseValues: getValues(),
       themeCatalog: themesQuery.data,
-      tourType: baseTourType,
+      ctx: {
+        matchTourType: selected.matchTourType,
+        matchMainTourThemeId: selected.matchMainTourThemeId,
+      },
     });
     reset(mergedValues);
     setLastAppliedPresetId(selected.id);
-  }, [getValues, reset, selected, resolvedFormProfile, themesQuery.data]);
+  }, [getValues, reset, selected, workspaceFormProfile, themesQuery.data]);
 
   const onSelectChange = useCallback((nextId: string) => {
     setSelectedId(nextId);
     setLastAppliedPresetId(null);
   }, []);
 
-  if (!presets?.length || choiceList.length === 0) {
+  if (!presets?.length) {
+    return null;
+  }
+
+  if (!templateReady || workspaceFormProfile == null) {
+    return null;
+  }
+
+  if (choiceList.length === 0) {
     return null;
   }
 
@@ -127,7 +150,12 @@ export function TourCreationPresetBanner({ presets, resolvedFormProfile }: TourC
               {t("wizardPresetAppliedStatus")}
             </span>
           ) : null}
-          <Button type="button" variant="primary" onClick={applySelected} disabled={!selected?.isActive}>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={applySelected}
+            disabled={!selected?.isActive || workspaceFormProfile == null}
+          >
             {t("wizardPresetApply")}
           </Button>
         </span>

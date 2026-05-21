@@ -20,5 +20,5 @@ test("composeWizardSteps: skip removes known step ids", () => {
 
 test("composeWizardSteps: ignores unknown skip ids", () => {
   const base = ["basic", "review"] as const;
-  assert.deepEqual(composeWizardSteps(base, { skip: ["not-a-step"], insert: [] }), ["basic", "review"]);
+  assert.deepEqual(composeWizardSteps(base, { skip: ["not-a-step"] as any, insert: [] }), ["basic", "review"]);
 });

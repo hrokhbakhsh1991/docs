@@ -1,0 +1,45 @@
+name: Denali Wizard CI/CD Template
+version: 1.1.0
+description: |
+  Field-safe CI/CD for the Denali 6-tab create wizard.
+  Primary entry: run-denali-field-update.ts (manifest-driven add/remove + verify + test).
+
+entrypoints:
+  field_update: packages/ci-templates/denali-wizard/run-denali-field-update.ts
+  full_gates: packages/ci-templates/denali-wizard/run-tests.sh
+
+manifest:
+  format: YAML or JSON
+  example_embedded_in: run-denali-field-update.ts
+  fields:
+    - name: string          # wizard field id (see FIELD_REGISTRY in script)
+    - tab: string           # Basic Info | Program | Transport | Pricing | Participants | Policies
+    - type: string | number | enum | boolean
+    - required: boolean
+    - read-only: boolean
+    - conditional: optional # documented; wire in denaliRuleModel manually
+    - default: optional
+
+pipeline_phases:
+  - id: apply_registry
+    description: Idempotent sync of DENALI_WIZARD_CANONICAL_FIELD_PATHS and CANONICAL_TO_FORM_PATH_MAP
+  - id: verify_layers
+    description: Canonical, Rules, Normalization, UI Sync, Projection presence checks
+  - id: static_gates
+    description: check-canonical|rules|normalization|projection|ui-sync-gate.ts
+  - id: tests
+    description: apps/web pnpm test + apps/api denali-negative-invariants E2E
+
+gates:
+  - name: Canonical Gate
+    script: check-canonical-gate.ts
+  - name: Rules Gate
+    script: check-rules-gate.ts
+  - name: Normalization Gate
+    script: check-normalization-gate.ts
+  - name: Projection Gate
+    script: check-projection-gate.ts
+  - name: UI Sync Gate
+    script: check-ui-sync-gate.ts
+  - name: Test & CI Gate
+    script: run-tests.sh

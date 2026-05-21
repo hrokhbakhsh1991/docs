@@ -26,9 +26,12 @@ export type MapCreateTourDtoInput = Pick<
       | "autoAcceptRegistrations"
       | "tripDetails"
       | "tourType"
-      | "formProfile"
       | "transportModes"
       | "destinationId"
+      | "requiresPayment"
+      | "paymentMode"
+      | "sourcePresetId"
+      | "sourceTourId"
     >
   > & {
     description?: string;
@@ -157,7 +160,6 @@ export function mapCreateTourDto(
     ...(communicationLink ? { communicationLink } : {}),
     autoAcceptRegistrations: payload.autoAcceptRegistrations ?? true,
     ...(payload.tourType ? { tourType: payload.tourType } : {}),
-    ...(payload.formProfile ? { formProfile: payload.formProfile } : {}),
     ...(payload.transportModes && payload.transportModes.length > 0
       ? { transportModes: [...new Set(payload.transportModes)].sort() as CreateTourDto["transportModes"] }
       : {}),
@@ -170,5 +172,9 @@ export function mapCreateTourDto(
     ...(payload.destinationId != null && payload.destinationId !== ""
       ? { destinationId: payload.destinationId }
       : {}),
+    ...(payload.requiresPayment === true ? { requiresPayment: true } : {}),
+    ...(payload.paymentMode === "offline_receipt" ? { paymentMode: "offline_receipt" } : {}),
+    ...(payload.sourcePresetId ? { sourcePresetId: payload.sourcePresetId } : {}),
+    ...(payload.sourceTourId ? { sourceTourId: payload.sourceTourId } : {}),
   };
 }

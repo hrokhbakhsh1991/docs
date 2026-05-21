@@ -317,6 +317,22 @@ export class AuthService {
     }
   }
 
+  private async buildWebRegistrationRequiredResponse(input: {
+    phone: string;
+    tenantId: string;
+    inviteToken?: string;
+  }): Promise<WebSessionResponseDto> {
+    const onboardingToken = await this.issueOnboardingToken(input);
+    return {
+      session_token: "",
+      user_id: "",
+      tenant_id: input.tenantId,
+      entry_mode: "web",
+      requires_registration: true,
+      onboarding_token: onboardingToken
+    };
+  }
+
   private async issueOnboardingToken(input: {
     phone: string;
     tenantId: string;
@@ -397,6 +413,7 @@ export class AuthService {
     const challengeId = dto.challenge_id?.trim();
 
     let user: UserEntity | null;
+    let verifiedPhone = normalizeOtpPhoneInput(dto.phone);
     if (challengeId) {
       const verified = await this.otpService.verifyMobileOtp(challengeId, trimmedOtp);
       if (verified.purpose !== "login") {
@@ -407,8 +424,8 @@ export class AuthService {
           }
         });
       }
-      const phoneNorm = normalizeOtpPhoneInput(dto.phone);
-      if (phoneNorm !== verified.mobile) {
+      verifiedPhone = verified.mobile;
+      if (verifiedPhone !== normalizeOtpPhoneInput(dto.phone)) {
         throw new UnauthorizedException({
           error: {
             code: "AUTH_OTP_INVALID",
@@ -416,7 +433,7 @@ export class AuthService {
           }
         });
       }
-      user = await this.findUserByPhone(verified.mobile);
+      user = await this.findUserByPhone(verifiedPhone);
     } else {
       const isDevStaticOtpEnabled = this.isDevStaticOtpEnabled();
       if (isDevStaticOtpEnabled && trimmedOtp !== "1234") {
@@ -431,7 +448,8 @@ export class AuthService {
       user = await this.validatePhoneOtp(dto.phone, dto.otp);
     }
     if (!user) {
-      if (!this.isDevStaticOtpEnabled()) {
+      const otpVerified = Boolean(challengeId) || this.isDevStaticOtpEnabled();
+      if (!otpVerified) {
         throw new UnauthorizedException({
           error: {
             code: "AUTH_PHONE_INVALID",
@@ -439,19 +457,11 @@ export class AuthService {
           }
         });
       }
-      const onboardingToken = await this.issueOnboardingToken({
-        phone: dto.phone.trim(),
+      return this.buildWebRegistrationRequiredResponse({
+        phone: verifiedPhone,
         tenantId: resolvedTenantId,
         inviteToken: dto.invite_token
       });
-      return {
-        session_token: "",
-        user_id: "",
-        tenant_id: resolvedTenantId,
-        entry_mode: "web",
-        requires_registration: true,
-        onboarding_token: onboardingToken
-      };
     }
 
     const membership = await this.userTenantRepository.findOne({
@@ -462,27 +472,12 @@ export class AuthService {
         status: MembershipStatus.ACTIVE
       }
     });
-    const anyMembership = membership
-      ? membership
-      : await this.userTenantRepository.findOne({
-          where: {
-            userId: user.id,
-            tenantId: resolvedTenantId,
-            deletedAt: IsNull()
-          }
-        });
 
     if (!membership) {
-      const membershipStatus = anyMembership?.status ?? "NONE";
-      throw new ForbiddenException({
-        error: {
-          code: "AUTH_NO_ACTIVE_MEMBERSHIP",
-          message: "User does not have an ACTIVE membership in this workspace tenant"
-        },
-        tenant_id: resolvedTenantId,
-        user_id: user.id,
-        membership_status: membershipStatus,
-        no_active_membership: true
+      return this.buildWebRegistrationRequiredResponse({
+        phone: verifiedPhone,
+        tenantId: resolvedTenantId,
+        inviteToken: dto.invite_token
       });
     }
 

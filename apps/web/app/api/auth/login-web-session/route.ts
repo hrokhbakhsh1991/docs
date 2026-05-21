@@ -11,6 +11,7 @@ type LoginPayload = {
   phone?: unknown;
   otp?: unknown;
   invite_token?: unknown;
+  challenge_id?: unknown;
 };
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -20,6 +21,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     typeof body.phone === "string" ? normalizeOtpPhoneInput(body.phone) : "";
   const otp = typeof body.otp === "string" ? body.otp.trim() : "";
   const inviteToken = typeof body.invite_token === "string" ? body.invite_token.trim() : undefined;
+  const challengeId =
+    typeof body.challenge_id === "string" ? body.challenge_id.trim() : undefined;
   if (!phone || !otp) {
     return NextResponse.json(
       {
@@ -38,7 +41,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   try {
     backendRes = await bffFetch(req, "/api/v2/auth/web/session/otp", {
       method: "POST",
-      body: JSON.stringify({ phone, otp, ...(inviteToken ? { invite_token: inviteToken } : {}) }),
+      body: JSON.stringify({
+        phone,
+        otp,
+        ...(inviteToken ? { invite_token: inviteToken } : {}),
+        ...(challengeId ? { challenge_id: challengeId } : {}),
+      }),
     });
   } catch (e) {
     const guard = bffGuardErrorResponse(e, requestId);
@@ -77,9 +85,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       {
         ok: true,
         requires_registration: true,
-        onboarding_token: onboardingToken
+        onboarding_token: onboardingToken,
       },
-      { status: 200 }
+      { status: 200 },
     );
   }
 
@@ -92,12 +100,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       body: backendBody,
       requestId: backendRequestId,
     });
-    const status =
-      backendErrorCode === "AUTH_NO_ACTIVE_MEMBERSHIP"
-        ? 200
-        : backendRes.status >= 400
-          ? backendRes.status
-          : 401;
+    const status = backendRes.status >= 400 ? backendRes.status : 401;
     return NextResponse.json(
       {
         ok: false,

@@ -322,6 +322,26 @@ const culturalTour: TourFormProfileDescriptor = {
   edit: { tripDetailsPresetOverrides: [] },
 };
 
+/** Denali 6-tab wizard — classic field groups stay active; UI rail is separate (`denaliWizardSteps`). */
+const denaliPilot: TourFormProfileDescriptor = {
+  slug: "denali_pilot",
+  displayKeyFa: "tours.profiles.denali_pilot",
+  defaultTourType: null,
+  inactiveFieldGroups: [],
+  wizardCapacityStepRedundant: false,
+  strip: {
+    clearsTripDetailsRoots: [],
+    itineraryKeysToDelete: [],
+    clearsRootTransportModes: false,
+  },
+  invariants: {
+    allowsMountainOnlyOverviewKeys: false,
+    requiresEmptyRootTransportModes: false,
+    mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+  },
+  edit: { tripDetailsPresetOverrides: [] },
+};
+
 export const TOUR_FORM_PROFILE_DESCRIPTORS: Readonly<
   Record<TourFormProfile, TourFormProfileDescriptor>
 > = {
@@ -331,6 +351,7 @@ export const TOUR_FORM_PROFILE_DESCRIPTORS: Readonly<
   urban_event: urbanEvent,
   cinema_event: cinemaEvent,
   cultural_tour: culturalTour,
+  denali_pilot: denaliPilot,
 };
 
 /**

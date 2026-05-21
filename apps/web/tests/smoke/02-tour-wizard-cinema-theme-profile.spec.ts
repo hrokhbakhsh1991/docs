@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   addLeaderSmokeSessionCookie,
   clearTourWizardLocalDraft,
+  expectWizardTemplateProfile,
   fillTourWizardBasicInfoStep,
   purgeTourWizardDraftStorage,
   installLeaderWorkspaceSessionRoute,
@@ -11,12 +12,15 @@ import {
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
+const THEME_CINEMA = "33333333-3333-4333-8333-333333333333";
+/** Workspace template profile for this smoke (wizard shell authority). */
+const WORKSPACE_TEMPLATE_PROFILE = "cinema_event" as const;
+
 /**
- * Theme-bound `cinema_event`: same strip as urban for itinerary + participation, but **logistics**
- * stays active (`fieldGroups.getInactiveFieldGroupsForProfile`).
- * @see `prompt.md` §17 (E2E cross-profile).
+ * Wizard profile is controlled by the workspace template (`cinema_event` here).
+ * Selecting a cinema theme updates overview fields only; it does not change `data-form-profile`.
  */
-test.describe("tour wizard cinema theme profile (stepper)", () => {
+test.describe("tour wizard cinema workspace template (stepper)", () => {
   test.beforeEach(async ({ page, context }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await clearTourWizardLocalDraft(page);
@@ -25,9 +29,10 @@ test.describe("tour wizard cinema theme profile (stepper)", () => {
 
     const now = new Date().toISOString();
     await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: WORKSPACE_TEMPLATE_PROFILE,
       themes: [
         {
-          id: "33333333-3333-4333-8333-333333333333",
+          id: THEME_CINEMA,
           name: "سینما smoke",
           slug: "cinema-smoke",
           description: null,
@@ -41,15 +46,14 @@ test.describe("tour wizard cinema theme profile (stepper)", () => {
     });
   });
 
-  test("selecting cinema theme hides itinerary and participation but keeps logistics in stepper", async ({
-    page,
-  }) => {
+  test("cinema template stepper stays stable when main theme is selected", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
     await purgeTourWizardDraftStorage(page);
     await page.reload({ waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
 
     await fillTourWizardBasicInfoStep(page, {
       title: "abcdefghijabcdefghij",
@@ -62,11 +66,10 @@ test.describe("tour wizard cinema theme profile (stepper)", () => {
 
     const mainThemeSelect = page.locator('select[name="overview.mainTourThemeId"]');
     await expect(mainThemeSelect).toBeVisible({ timeout: 10_000 });
-    await setNativeSelectValue(mainThemeSelect, "33333333-3333-4333-8333-333333333333");
+    await setNativeSelectValue(mainThemeSelect, THEME_CINEMA);
     await mainThemeSelect.dispatchEvent("change");
-    await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute("data-form-profile", "cinema_event", {
-      timeout: 15_000,
-    });
+    await expect(mainThemeSelect).toHaveValue(THEME_CINEMA);
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
 
     const stepper = page.getByLabel("مراحل ایجاد تور");
     await expect(stepper).not.toContainText("برنامه سفر", { timeout: 15_000 });

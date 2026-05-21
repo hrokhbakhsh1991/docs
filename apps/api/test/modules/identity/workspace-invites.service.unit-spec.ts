@@ -38,8 +38,12 @@ function buildService(mocks: {
       transaction: async (fn: (manager: any) => Promise<unknown>) =>
         fn({
           create: (_entity: unknown, e: unknown) => e,
-          save: async (e: unknown) => e,
-          getRepository: () => ({ findOne: async () => ({ email: "owner@example.com" }) })
+          save: mocks.saveImpl ?? (async (e: unknown) => e),
+          getRepository: () => ({ 
+            findOne: async () => ({ email: "owner@example.com" }),
+            create: (e: unknown) => e,
+            save: mocks.saveImpl ?? (async (e: unknown) => e)
+          })
         })
     }
   };

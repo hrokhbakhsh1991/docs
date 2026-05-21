@@ -60,3 +60,37 @@ export function legacyEditResolverKillSwitchEnabled(): boolean {
     envFlagEnabled(process.env.LEGACY_EDIT_RESOLVER_ENABLED)
   );
 }
+
+/**
+ * Rollout gate for the Denali **subdomain** (`denali.{root}`) 6-tab create rail.
+ *
+ * - `denali_pilot` form profile and explicit `wizardMode: "denali"` are **not** gated by this flag.
+ * - When env is unset: enabled in non-production (local `denali.localhost`), disabled in production until
+ *   `NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD=1` is set.
+ * - Set to `0` / `false` to force the classic 9-step wizard on the Denali tenant (emergency rollback).
+ */
+export function denaliSixTabWizardTenantGatingEnabled(): boolean {
+  const raw =
+    process.env.NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD ?? process.env.DENALI_SIX_TAB_WIZARD;
+  if (raw === undefined || raw.trim() === "") {
+    return process.env.NODE_ENV !== "production";
+  }
+  return envFlagEnabled(raw);
+}
+
+/** Phase 5 canonical UI: default ON. Set `NEXT_PUBLIC_DENALI_CANONICAL_UI_MODE=0` to rollback. */
+export const DENALI_CANONICAL_UI_MODE = true;
+
+/**
+ * Phase 5: Denali wizard UI reads/writes via {@link DenaliCanonicalTourModel} context.
+ * Default ON — set env to `0` / `false` for emergency rollback to form-derived mirror.
+ */
+export function denaliCanonicalUiModeEnabled(): boolean {
+  const raw =
+    process.env.NEXT_PUBLIC_DENALI_CANONICAL_UI_MODE ?? process.env.DENALI_CANONICAL_UI_MODE;
+  if (raw === undefined || raw.trim() === "") {
+    return DENALI_CANONICAL_UI_MODE;
+  }
+  return envFlagEnabled(raw);
+}
+

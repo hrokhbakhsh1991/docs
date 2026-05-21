@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   addLeaderSmokeSessionCookie,
   clearTourWizardLocalDraft,
+  expectWizardTemplateProfile,
   fillTourWizardBasicInfoStep,
   installLeaderWorkspaceSessionRoute,
   installTourWizardSettingsRoutes,
@@ -10,31 +11,35 @@ import {
   SMOKE_WIZARD_URBAN_E2E_QUERY,
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
+
+/** Workspace template profile for this smoke (wizard shell authority). */
+const WORKSPACE_TEMPLATE_PROFILE = "urban_event" as const;
+
 /**
- * Cross-profile smoke: `tourType` → `defaultTourFormProfileForTourType("city")` = `urban_event`
- * without a main theme; stepper must omit itinerary / participation / logistics steps.
- * @see `resolveTourFormProfile` + `getVisibleWizardStepsForProfile`
+ * Wizard profile is controlled by the workspace template (`urban_event` here).
+ * `tourType` may still be seeded for form defaults; it does not change `data-form-profile`.
  */
-test.describe("tour wizard urban profile (stepper)", () => {
+test.describe("tour wizard urban workspace template (stepper)", () => {
   test.beforeEach(async ({ page, context }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await clearTourWizardLocalDraft(page);
     await installUrbanWizardE2eSeed(page);
     await installLeaderWorkspaceSessionRoute(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
-    await installTourWizardSettingsRoutes(page);
+    await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: WORKSPACE_TEMPLATE_PROFILE,
+    });
     await page.goto(smokeTourWizardNewUrl(baseURL, SMOKE_WIZARD_URBAN_E2E_QUERY), {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
     });
   });
 
-  test("city tour type hides urban-skipped steps in stepper", async ({ page }) => {
+  test("urban template hides inactive steps regardless of tour type seed", async ({ page }) => {
     const w = page.getByTestId("tour-create-wizard");
     await expect(w).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute("data-form-profile", "urban_event", {
-      timeout: 15_000,
-    });
+    await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
+
     const tourTypeSelect = w.locator('select[name="overview.tourType"]');
     await expect(tourTypeSelect).toHaveValue("city", { timeout: 5_000 });
 

@@ -31,17 +31,32 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
       }
     } as never,
     {
-      async createPaymentIntent() {
-        return { id: "pay-1", status: "Pending" };
+      async publicRegister() {
+        return {
+          registration: { id: "reg-1" } as any,
+          paymentIntent: { id: "pay-1", status: "Pending" } as any,
+          waitlistItemId: null,
+          waitlistPosition: null
+        };
       }
     } as never,
-    {} as never,
+    {
+      createRequestHash: () => "hash-1",
+      async executeWithIdempotency(params: any, handler: any) {
+        const res = await handler();
+        return { statusCode: params.statusCode ?? 201, responseBody: res, replayed: false };
+      }
+    } as never,
     {
       setTenantId: () => {},
+      setTenantEnabledModules: () => {},
       resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1"
     } as never,
     {
+      async resolvePublicTourBootstrapContext() {
+        return { tenantId: "tenant-1", enabledModules: [] };
+      },
       async resolveTenantFromTourId() {
         return "tenant-1";
       }
@@ -54,7 +69,7 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
     participantContactPhone: "+1",
     transportMode: RegistrationTransportModeDto.GROUP_VEHICLE,
     entryMode: RegistrationEntryModeDto.WEB
-  });
+  }, "test-idempotency-key");
 
   assert.equal(response.registration !== null, true);
   assert.equal(response.paymentIntent !== null, true);
@@ -71,14 +86,33 @@ test("public register returns waitlist position when capacity full", async () =>
         };
       }
     } as never,
-    {} as never,
-    {} as never,
+    {
+      async publicRegister() {
+        return {
+          registration: null,
+          paymentIntent: null,
+          waitlistItemId: "w-1",
+          waitlistPosition: 2
+        };
+      }
+    } as never,
+    {
+      createRequestHash: () => "hash-1",
+      async executeWithIdempotency(params: any, handler: any) {
+        const res = await handler();
+        return { statusCode: params.statusCode ?? 201, responseBody: res, replayed: false };
+      }
+    } as never,
     {
       setTenantId: () => {},
+      setTenantEnabledModules: () => {},
       resolveEffectiveTenantId: () => "tenant-1",
       getTenantId: () => "tenant-1"
     } as never,
     {
+      async resolvePublicTourBootstrapContext() {
+        return { tenantId: "tenant-1", enabledModules: [] };
+      },
       async resolveTenantFromTourId() {
         return "tenant-1";
       }
@@ -91,7 +125,7 @@ test("public register returns waitlist position when capacity full", async () =>
     participantContactPhone: "+1",
     transportMode: RegistrationTransportModeDto.GROUP_VEHICLE,
     entryMode: RegistrationEntryModeDto.WEB
-  });
+  }, "test-idempotency-key");
 
   assert.equal(response.registration, null);
   assert.equal(response.waitlistPosition, 2);

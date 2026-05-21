@@ -8,7 +8,7 @@ test("getSummary aggregates payment and receipt counts", async () => {
   let countCalls = 0;
   const service = new FinanceReportsService(
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           count: async () => {
             countCalls += 1;
@@ -34,7 +34,7 @@ test("getSummary aggregates payment and receipt counts", async () => {
 test("listLedgerEvents maps finance.ledger outbox rows", async () => {
   const service = new FinanceReportsService(
     {
-      runInTenantScope: async (_tenantId, fn) =>
+      runInTenantScope: async (_tenantId: string, fn: any) =>
         fn({
           find: async () => [
             {

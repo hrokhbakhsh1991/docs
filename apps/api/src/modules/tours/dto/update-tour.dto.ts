@@ -118,9 +118,8 @@ export class UpdateTourDto {
     enum: TOUR_FORM_PROFILE_VALUES_LIST,
     example: "urban_event",
     description:
-      "Canonical **tour creation form profile** for this write. When present, takes precedence over theme-derived profile " +
-      "and `tourType` for strip, invariants, and (when applicable) `formProfileSnapshot`. " +
-      "Omit to resolve from stored `tripDetails.overview.tourThemeIds[0]` then `tourType`."
+      "Optional client hint (ignored on update). The authoritative form profile is resolved server-side from " +
+      "`workspace_tour_wizard_templates.base_profile` for strip, invariants, and `formProfileSnapshot`."
   })
   @IsOptional()
   @IsIn(TOUR_FORM_PROFILE_VALUES_LIST)

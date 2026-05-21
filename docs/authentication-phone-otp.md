@@ -4,11 +4,15 @@ Canonical reference for workspace **web** login. Password-based **web** login is
 
 ---
 
-## 1. Authentication flow
+## 1. Authentication flow (unified sign-in / sign-up)
 
-1. **Phone** — User enters a phone number (UI step 1). The client normalizes formatting (digits and optional leading `+`) before calling the API.
+1. **Phone** — User enters a phone number on `/login` (single entry point). The client normalizes formatting (digits and optional leading `+`), then calls `POST /api/v2/auth/web/otp/request` and stores `challenge_id`.
 2. **OTP** — User enters the one-time code (UI step 2).
-3. **Session creation** — `POST /api/v2/auth/web/session/otp` returns a JWT (`session_token`) scoped to the tenant resolved from the HTTP **Host** (subdomain). The web app stores it in the session cookie and attaches it as `Authorization: Bearer …` on subsequent requests.
+3. **Session or onboarding** — `POST /api/v2/auth/web/session/otp` (with `phone`, `otp`, and `challenge_id` when available):
+   - **Existing user** with active workspace membership → `session_token` (JWT) scoped to the tenant from **Host**; web sets the session cookie.
+   - **New phone** (OTP verified, no `users` row) → `requires_registration: true` and short-lived `onboarding_token`; UI redirects to `/auth/register` to collect name (and optional email), then `POST /api/v2/auth/web/registration/complete` issues the session.
+
+There is no separate “do you have an account?” step. `/auth/register` without `?onboarding=` redirects back to `/login`.
 
 Telegram login remains a separate path: `POST /api/v2/auth/telegram/session`.
 
@@ -26,13 +30,16 @@ Telegram login remains a separate path: `POST /api/v2/auth/telegram/session`.
 ```json
 {
   "phone": "+989121236598",
-  "otp": "1234"
+  "otp": "1234",
+  "challenge_id": "uuid-from-otp-request"
 }
 ```
 
-**Success (200):** `session_token`, `user_id`, `tenant_id`, `entry_mode: "web"` (see OpenAPI `WebSessionResponseDto`).
+**Success (200), existing user:** `session_token`, `user_id`, `tenant_id`, `entry_mode: "web"` (see OpenAPI `WebSessionResponseDto`).
 
-**Common errors:** `AUTH_UNAUTHENTICATED` (wrong OTP / unknown phone for tenant), `TENANT_HOST_UNKNOWN`, `TENANT_CONTEXT_MISSING`, `TENANT_SCOPE_FORBIDDEN` (user not a member of the resolved workspace).
+**Success (200), new user:** `requires_registration: true`, `onboarding_token` (no session cookie until registration completes).
+
+**Common errors:** `AUTH_OTP_INVALID`, `AUTH_PHONE_INVALID` (OTP not verified), `TENANT_HOST_UNKNOWN`, `TENANT_CONTEXT_MISSING`, `AUTH_NO_ACTIVE_MEMBERSHIP` (user exists but no active membership in this workspace).
 
 ---
 
@@ -70,13 +77,16 @@ Relevant columns on **`users`** (see migration `1777582000000-AddUsersPhoneOtpFi
 
 ---
 
-## 6. Frontend login steps
+## 6. Frontend steps
 
-Implemented in `apps/web/app/auth/login/login-form.tsx`:
+Implemented in `apps/web/app/auth/login/login-form.tsx` and `apps/web/app/auth/register/register-form.tsx`:
 
-1. **Step 1 — Phone:** Collect and validate phone; advance to OTP step (OTP field does not block this step).
-2. **Step 2 — OTP:** Submit `loginWebSession(phone, otp)` → `POST /api/v2/auth/web/session/otp` with normalized phone.
-3. After success: optional workspace picker, `GET /api/v2/auth/workspaces`, then redirect (e.g. `/dashboard` vs `/tours` by role).
+1. **Step 1 — Phone:** `POST /api/auth/request-otp` (BFF → `web/otp/request`); store `challenge_id`.
+2. **Step 2 — OTP:** `POST /api/auth/login-web-session` (BFF → `web/session/otp`) with `phone`, `otp`, `challenge_id`.
+3. **Branch:** session cookie + `/dashboard`, or redirect to `/auth/register?onboarding=…` for profile completion.
+4. **Register:** `POST /api/auth/complete-registration` (BFF → `web/registration/complete`), then session + `/dashboard`.
+
+BFF routes: `apps/web/app/api/auth/request-otp`, `login-web-session`, `complete-registration`. Optional legacy `phone-preflight` remains on the API but is not used by the login UI.
 
 ---
 

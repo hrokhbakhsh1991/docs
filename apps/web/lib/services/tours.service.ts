@@ -6,6 +6,7 @@ import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.sc
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 import { bffBrowserClient } from "@/lib/api/bff-browser-client";
 import { BFF } from "@/lib/api-paths";
+import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 /** When true, list/read tours via same-origin BFF `GET /api/tours` (session cookie). */
@@ -28,7 +29,7 @@ export type TourDetailDto = TourDto;
  * `capacity` → `total_capacity`, `price` / optional `location` → `cost_context`.
  * Tour schedule dates are not part of the MVP API; the client does not send them.
  *
- * **Wire keys:** allowed top-level POST properties are enumerated as {@link CREATE_TOUR_DTO_WIRE_KEYS}
+ * **Wire keys:** allowed top-level POST properties are {@link CREATE_TOUR_POST_WIRE_KEYS}
  * in `@repo/shared-contracts` (kept in sync with Nest `CreateTourDto`).
  */
 export type CreateTourDto = {
@@ -38,7 +39,10 @@ export type CreateTourDto = {
   location?: string;
   autoAcceptRegistrations: boolean;
   tourType?: TourType;
-  /** Nest `CreateTourDto.formProfile` — canonical profile for strip/invariants (optional). */
+  /**
+   * Not sent on tour create POST — server resolves profile from workspace template.
+   * Retained on the type for callers that still carry profile in memory (client strip only).
+   */
   formProfile?: TourFormProfile;
   /** Multi-select; omit or `[]` when none. No `mixed` — pick every mode that applies. */
   transportModes?: ("bus" | "train" | "plane" | "private_car")[];
@@ -48,6 +52,10 @@ export type CreateTourDto = {
   durationDays?: number;
   /** Nest `CreateTourDto.meetingPoint` (camelCase JSON). */
   meetingPoint?: string;
+  /** Sent to API for audit logging (Gap 1). */
+  sourcePresetId?: string;
+  /** Sent to API for audit logging (Gap 1). */
+  sourceTourId?: string;
   /** Nest `CreateTourDto.tripDetails` → `tour_details.trip_details` (JSONB). */
   tripDetails?: TourTripDetails;
   /** Nest `CreateTourDto.destinationId` → `tours.destination_id`. */
@@ -56,6 +64,8 @@ export type CreateTourDto = {
   price: number;
   /** When true, persisted on `cost_context.requiresPayment` (finance module tours). */
   requiresPayment?: boolean;
+  /** Denali pilot: persisted on `cost_context.paymentMode` when `requiresPayment` is true. */
+  paymentMode?: "offline_receipt";
   lifecycle_status: "Draft" | "Open";
 };
 
@@ -157,12 +167,16 @@ function buildCostContextForCreate(dto: CreateTourDto): Record<string, unknown> 
   if (dto.requiresPayment === true) {
     ctx.requiresPayment = true;
   }
+  if (dto.paymentMode === "offline_receipt") {
+    ctx.paymentMode = "offline_receipt";
+  }
   return Object.keys(ctx).length > 0 ? ctx : undefined;
 }
 
 /**
  * Builds the JSON body for `POST /api/v2/tours` (mixed snake_case + camelCase, matching Nest `CreateTourDto`).
- * Exported for contract tests against `CREATE_TOUR_DTO_WIRE_KEYS` (`@repo/shared-contracts`).
+ * Exported for contract tests against `CREATE_TOUR_POST_WIRE_KEYS` (`@repo/shared-contracts`).
+ * Never includes `formProfile` even if the in-memory {@link CreateTourDto} carries it.
  */
 export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unknown> {
   const body: Record<string, unknown> = {
@@ -185,9 +199,6 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   }
   if (dto.tourType) {
     body.tourType = dto.tourType;
-  }
-  if (dto.formProfile) {
-    body.formProfile = dto.formProfile;
   }
   if (dto.transportModes && dto.transportModes.length > 0) {
     body.transportModes = dto.transportModes;
@@ -214,6 +225,13 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   if (dto.destinationId != null && dto.destinationId !== "") {
     body.destinationId = dto.destinationId;
   }
+  if (dto.sourcePresetId) {
+    body.sourcePresetId = dto.sourcePresetId;
+  }
+  if (dto.sourceTourId) {
+    body.sourceTourId = dto.sourceTourId;
+  }
+  delete body.formProfile;
   if (process.env.NODE_ENV !== "production") {
     const parsed = tourCreateContractSchema.safeParse(body);
     if (!parsed.success) {
@@ -223,9 +241,22 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   return body;
 }
 
-export async function createTour(dto: CreateTourDto): Promise<TourDetailDto> {
+export type CreateTourOptions = {
+  /** Reuse until create succeeds (map-phase P1.2); defaults to a new UUID per call. */
+  idempotencyKey?: string;
+};
+
+export async function createTour(
+  dto: CreateTourDto,
+  options?: CreateTourOptions,
+): Promise<TourDetailDto> {
   const idempotencyKey =
-    typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    options?.idempotencyKey?.trim() ||
+    (typeof window !== "undefined"
+      ? getWizardSubmitIdempotencyKey()
+      : typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`);
   const raw = await bffBrowserClient.post<unknown>(BFF.tours, buildCreateTourPostBody(dto), {
     idempotencyKey,
     /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */

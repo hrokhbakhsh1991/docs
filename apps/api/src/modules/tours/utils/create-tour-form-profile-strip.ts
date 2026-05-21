@@ -1,109 +1,12 @@
 import type { TourFormProfile } from "@repo/types";
 import {
   URBAN_LOGISTICS_WHITELIST_KEYS,
-  defaultTourFormProfileForTourType,
   getTourFormProfileDescriptor,
-  normalizeTourFormProfileInput,
+  isDenaliTourKind,
 } from "@repo/types";
-import type { Repository } from "typeorm";
-
-import type { TourType } from "../entities/tour.entity";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
-import { WorkspaceTourThemeEntity } from "../../settings-locations/entities/workspace-tour-theme.entity";
-
-/**
- * Which branch of the profile-first precedence chain produced the resolved profile
- * (Phase P9 adoption telemetry — `promptq.md`).
- */
-export type FormProfileWriteResolutionSource = "explicit_client" | "workspace_theme" | "tour_type_default";
-
-/**
- * Resolves {@link TourFormProfile} for writes (strip, invariants, `form_profile_snapshot`) **and**
- * records which precedence branch won.
- *
- * First id in `tripDetails.overview.tourThemeIds` is the **primary** theme (same ordering as the web
- * wizard mapper), used to load the theme row's `form_profile` when no explicit profile is sent.
- *
- * **Precedence (profile-first):**
- * 1. `explicitFormProfile` when the client sent the field (invalid values normalize to `general`).
- * 2. Workspace theme row for `tourThemeIds[0]`.
- * 3. {@link defaultTourFormProfileForTourType} from commercial `tourType` (compatibility adapter).
- */
-export async function resolveTourFormProfileFromTripDetailsWithSource(
-  tenantId: string,
-  tripDetails: TourTripDetails | null | undefined,
-  tourType: TourType | null | undefined,
-  themesRepo: Repository<WorkspaceTourThemeEntity>,
-  explicitFormProfile?: unknown,
-): Promise<{ profile: TourFormProfile; source: FormProfileWriteResolutionSource }> {
-  if (explicitFormProfile !== undefined) {
-    return {
-      profile: normalizeTourFormProfileInput(explicitFormProfile),
-      source: "explicit_client",
-    };
-  }
-  const ids = tripDetails?.overview?.tourThemeIds;
-  const mainId =
-    Array.isArray(ids) && ids.length > 0 && typeof ids[0] === "string" ? ids[0].trim() : "";
-  if (mainId.length > 0) {
-    const row = await themesRepo.findOne({
-      where: { id: mainId, workspaceId: tenantId },
-      select: { formProfile: true },
-    });
-    if (row) {
-      return {
-        profile: normalizeTourFormProfileInput(row.formProfile),
-        source: "workspace_theme",
-      };
-    }
-  }
-  return {
-    profile: defaultTourFormProfileForTourType(tourType ?? undefined),
-    source: "tour_type_default",
-  };
-}
-
-export async function resolveTourFormProfileFromTripDetails(
-  tenantId: string,
-  tripDetails: TourTripDetails | null | undefined,
-  tourType: TourType | null | undefined,
-  themesRepo: Repository<WorkspaceTourThemeEntity>,
-  explicitFormProfile?: unknown,
-): Promise<TourFormProfile> {
-  const { profile } = await resolveTourFormProfileFromTripDetailsWithSource(
-    tenantId,
-    tripDetails,
-    tourType,
-    themesRepo,
-    explicitFormProfile,
-  );
-  return profile;
-}
-
-export async function resolveTourFormProfileForCreateDtoWithSource(
-  tenantId: string,
-  dto: CreateTourDto,
-  themesRepo: Repository<WorkspaceTourThemeEntity>,
-): Promise<{ profile: TourFormProfile; source: FormProfileWriteResolutionSource }> {
-  return resolveTourFormProfileFromTripDetailsWithSource(
-    tenantId,
-    dto.tripDetails as TourTripDetails | undefined,
-    dto.tourType ?? undefined,
-    themesRepo,
-    dto.formProfile,
-  );
-}
-
-export async function resolveTourFormProfileForCreateDto(
-  tenantId: string,
-  dto: CreateTourDto,
-  themesRepo: Repository<WorkspaceTourThemeEntity>,
-): Promise<TourFormProfile> {
-  const { profile } = await resolveTourFormProfileForCreateDtoWithSource(tenantId, dto, themesRepo);
-  return profile;
-}
 
 /**
  * Logistics keys that remain when `urban_event` strips the logistics wizard group (dates / meet).
@@ -113,6 +16,19 @@ export async function resolveTourFormProfileForCreateDto(
  * — those call sites can be migrated to the array form in Phase C without re-touching the constant.
  */
 export const URBAN_LOGISTICS_WHITELIST: ReadonlySet<string> = new Set(URBAN_LOGISTICS_WHITELIST_KEYS);
+
+/** Clears returnDate/Time for single-day Denali tours (ghost logistics). */
+function stripDenaliSingleDayLogistics(td: TourTripDetails): void {
+  const overview = td.overview as Record<string, unknown> | undefined;
+  const kind = overview?.denaliTourKind;
+  if (typeof kind === "string" && isDenaliTourKind(kind) && kind.endsWith("_day")) {
+    if (td.logistics != null && typeof td.logistics === "object") {
+      const log = td.logistics as Record<string, unknown>;
+      delete log.returnDate;
+      delete log.returnMeetingTime;
+    }
+  }
+}
 
 /**
  * Server mirror of web `stripInactiveTourCreateGroupsForProfile` (Phase 4): drop tripDetails branches
@@ -186,5 +102,10 @@ export function stripCreateTourDtoForFormProfile(profile: TourFormProfile, dto: 
 
   if (strip.clearsRootTransportModes) {
     delete dto.transportModes;
+  }
+
+  // Phase 6 backlog: strip returnDate for Denali single-day (mvp-only logic)
+  if (profile === "denali_pilot" && dto.tripDetails != null) {
+    stripDenaliSingleDayLogistics(dto.tripDetails as TourTripDetails);
   }
 }

@@ -41,7 +41,7 @@ export function TourFormDefaultsSettingsPanel() {
   const t = useTranslations("settings");
   const { showToast } = useToast();
   const { user } = useAuth();
-  const canManageWorkspace = isLeaderRole(user?.role);
+  const canManageWorkspace = isLeaderRole(user?.role) || isWorkspaceOwner(user?.role);
   const canDuplicatePreset = isWorkspaceOwner(user?.role);
   const readOnlyList = !canManageWorkspace;
 
