@@ -41,12 +41,21 @@ export class RequestContextService {
       ? this.normalizeTenantId(context.hostTenantId)
       : undefined;
 
-    if (context.tenantContextFrozen && current && current !== next) {
+    const allowJwtOverride = context.allowJwtTenantOverrideHost === true;
+    if (context.tenantContextFrozen && current && current !== next && !allowJwtOverride) {
       throw new Error("TENANT_CONTEXT_INVALID");
     }
-    if (hostCurrent && hostCurrent !== next) {
+    if (hostCurrent && hostCurrent !== next && !allowJwtOverride) {
       throw new Error("TENANT_CONTEXT_INVALID");
     }
+  }
+
+  /**
+   * Allows JWT `tenant_id` to replace a host-resolved tenant for cross-host auth flows.
+   */
+  enableJwtTenantOverrideHost(): void {
+    const context = this.getContext();
+    context.allowJwtTenantOverrideHost = true;
   }
 
   getContext(): RequestContext {

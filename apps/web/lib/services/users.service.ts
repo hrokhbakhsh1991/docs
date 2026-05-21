@@ -25,6 +25,8 @@ export type WorkspaceUserDto = {
   invitedAt?: string | null;
   suspendedAt?: string | null;
   labels?: string[];
+  permanentDiscountPercentage?: number;
+  rewardBadges?: string[];
   assignedCapabilities?: string[];
   allowedRegionIds?: string[];
   effectiveCapabilities?: string[];

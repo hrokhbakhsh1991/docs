@@ -1257,11 +1257,48 @@ export class ToursService {
     page: number;
     limit: number;
   }> {
-    return this.toursCatalogRead.listTours(query);
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const qb = this.tourRepository
+      .createQueryBuilder("t")
+      .leftJoinAndSelect("t.details", "details")
+      .leftJoinAndSelect("t.destination", "destination")
+      .leftJoinAndSelect("destination.region", "destinationRegion")
+      .where("t.tenantId = :tenantId", { tenantId })
+      .orderBy("t.createdAt", "DESC")
+      .addOrderBy("t.id", "DESC");
+    if (query.status === "active") {
+      qb.andWhere("t.lifecycleStatus = :ls", { ls: TourLifecycleStatus.DRAFT });
+    } else if (query.status === "completed") {
+      qb.andWhere("t.lifecycleStatus = :ls", { ls: TourLifecycleStatus.OPEN });
+    } else if (query.status === "archived") {
+      qb.andWhere("t.lifecycleStatus IN (:...archivedStatuses)", {
+        archivedStatuses: [TourLifecycleStatus.CLOSED, TourLifecycleStatus.CANCELLED]
+      });
+    }
+    const includeTotal = query.include_total !== false;
+    const total = includeTotal ? await qb.getCount() : -1;
+    const rows = await qb.clone().skip((page - 1) * limit).take(limit).getMany();
+    return { items: rows.map(mapTourEntityToResponseDto), total, page, limit };
   }
 
   async getTourById(tourId: string): Promise<TourResponseDto> {
-    return this.toursCatalogRead.getTourById(tourId);
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    const tour = await this.tourRepository.findOne({
+      where: { id: tourId, tenantId },
+      relations: TOUR_RESPONSE_RELATIONS
+    });
+    if (!tour) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+    return mapTourEntityToResponseDto(tour);
   }
 
   async getLeaderWorkspaceAggregate(limit = 200): Promise<{

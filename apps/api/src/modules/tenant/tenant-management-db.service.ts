@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import type { DataSource, QueryRunner } from "typeorm";
 import { LoggerService } from "../../common/logger/logger.service";
@@ -27,8 +27,9 @@ type AcceptInviteResult =
 export class TenantManagementDbService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
-    private readonly loggerService: LoggerService
+    @Inject(LoggerService) private readonly loggerService: LoggerService
   ) {}
 
   async listUserWorkspacesForAuth(userId: string): Promise<

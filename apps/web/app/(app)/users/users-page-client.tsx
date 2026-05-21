@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@tour/ui";
 
-import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { isLeaderRole, isWorkspaceOwner, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
 import {
@@ -23,7 +23,9 @@ import {
   type GetUsersResponseDto,
   updateUserRole,
   usersUseLiveApi,
+  type WorkspaceUserDto,
 } from "@/lib/services/users.service";
+import { patchWorkspaceUserRole } from "@/shared/api/workspace-users.client";
 import { UserRole } from "@/lib/auth/user-role";
 import { tryParseWorkspaceRole } from "@repo/shared";
 import { useAppToast } from "@/lib/use-app-toast";
@@ -42,6 +44,7 @@ import {
 import { USERS_ROUTE_COPY } from "./users-copy";
 import { UsersDirectoryBulkToolbar, type BulkAssignableRole } from "./users-directory-bulk-toolbar";
 import { InviteUserModal } from "./components/invite-user-modal";
+import { WorkspaceUserRewardsModal } from "./components/workspace-user-rewards-modal";
 import { UsersDirectoryLockedPanel } from "./users-directory-locked-panel";
 import { UsersDirectoryTableCard } from "./users-directory-table-card";
 import { resolveUsersDirectoryBodyState } from "./users-directory-gate";
@@ -115,6 +118,8 @@ export function UsersPageClient() {
   const [inviteUserModalOpen, setInviteUserModalOpen] = useState(false);
   const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [bulkRemoveConfirmOpen, setBulkRemoveConfirmOpen] = useState(false);
+  const [rewardsModalOpen, setRewardsModalOpen] = useState(false);
+  const [rewardsModalUser, setRewardsModalUser] = useState<WorkspaceUserDto | null>(null);
 
   const activeSearchQuery = debouncedSearchQuery.trim();
   const activeRoleFilter = directoryUiState.roleFilter === "all" ? undefined : directoryUiState.roleFilter;
@@ -171,9 +176,9 @@ export function UsersPageClient() {
         await queryClient.cancelQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
       }
       const queryKey = userListQueryKey;
-      return updateUserRole(userId, role, {
+      const optimistic = {
         snapshot: () => queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey),
-        applyOptimistic: (_snapshot) => {
+        applyOptimistic: (_snapshot: unknown) => {
           queryClient.setQueryData<InfiniteData<GetUsersResponseDto>>(queryKey, (current) => {
             if (!current) return current;
             return {
@@ -192,12 +197,16 @@ export function UsersPageClient() {
             };
           });
         },
-        rollback: (previous) => {
+        rollback: (previous: unknown) => {
           if (previous !== undefined) {
             queryClient.setQueryData(queryKey, previous);
           }
         },
-      });
+      };
+      if (sessionUser && isWorkspaceOwner(sessionUser.role)) {
+        return patchWorkspaceUserRole(userId, role, optimistic);
+      }
+      return updateUserRole(userId, role, optimistic);
     },
     onSuccess: () => {
       toast.success({ message: copy.roleUpdatedToast });
@@ -500,6 +509,22 @@ export function UsersPageClient() {
     setDebouncedSearchQuery("");
   }, []);
 
+  const openRewardsModal = useCallback((user: WorkspaceUserDto) => {
+    setRewardsModalUser(user);
+    setRewardsModalOpen(true);
+  }, []);
+
+  const closeRewardsModal = useCallback(() => {
+    setRewardsModalOpen(false);
+    setRewardsModalUser(null);
+  }, []);
+
+  const refreshUsersListAfterRewards = useCallback(async () => {
+    if (tenantId) {
+      await queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
+    }
+  }, [queryClient, tenantId]);
+
   const exportUsersCsv = useCallback(() => {
     const headers = ["Name", "Email", "Role", "Status", "Labels", "TelegramLinked"];
     const escapeCsv = (value: string) => `"${value.replace(/"/g, "\"\"")}"`;
@@ -573,6 +598,7 @@ export function UsersPageClient() {
             activeRoleMutationUserId={activeRoleMutationUserId}
             selectedUserIds={selectedUserIds}
             onSelectedUserIdsChange={setSelectedUserIds}
+            onManageRewards={isLeaderRole(sessionUser?.role) ? openRewardsModal : undefined}
           />
           <Modal
             open={bulkRemoveConfirmOpen}
@@ -614,6 +640,12 @@ export function UsersPageClient() {
             open={detailUserId !== null}
             userId={detailUserId}
             onClose={() => setDetailUserId(null)}
+          />
+          <WorkspaceUserRewardsModal
+            open={rewardsModalOpen}
+            user={rewardsModalUser}
+            onClose={closeRewardsModal}
+            onSaved={refreshUsersListAfterRewards}
           />
         </>
       ) : (

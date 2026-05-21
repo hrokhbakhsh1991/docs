@@ -57,6 +57,10 @@ export const API = {
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/reconciliation-findings`,
   workspaceUserCapabilities: (tenantId: string, userId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/capabilities`,
+  workspaceUserRole: (userId: string) =>
+    `/api/v2/workspaces/users/${encodeURIComponent(userId)}/role`,
+  workspaceUserRewards: (userId: string) =>
+    `/api/v2/workspaces/users/${encodeURIComponent(userId)}/rewards`,
   workspaceSettingsModules: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/settings/modules`,
   settingsRegions: "/api/v2/settings/regions",
@@ -83,6 +87,10 @@ export const BFF = {
     `/api/users/${encodeURIComponent(userId)}/${encodeURIComponent(action)}`,
   workspaceUserCapabilities: (tenantId: string, userId: string) =>
     `/api/workspaces/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/capabilities`,
+  workspaceUserRole: (userId: string) =>
+    `/api/workspaces/users/${encodeURIComponent(userId)}/role`,
+  workspaceUserRewards: (userId: string) =>
+    `/api/workspaces/users/${encodeURIComponent(userId)}/rewards`,
   bookings: "/api/bookings",
   registrations: "/api/registrations",
   registration: (id: string) => `/api/registrations/${encodeURIComponent(id)}`,

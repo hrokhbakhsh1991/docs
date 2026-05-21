@@ -14,6 +14,8 @@ import { EmailVerificationTokenEntity } from "./entities/email-verification-toke
 import { InvitesController } from "./invites.controller";
 import { WorkspaceOwnershipController } from "./workspace-ownership.controller";
 import { WorkspaceUsersCapabilitiesController } from "./workspace-users-capabilities.controller";
+import { WorkspaceUsersController } from "./workspace-users.controller";
+import { WorkspaceUsersService } from "./workspace-users.service";
 import { WorkspaceSettingsModulesController } from "./workspace-settings-modules.controller";
 import { TenantAuditEventsController } from "./tenant-audit-events.controller";
 import { UsersListRepository } from "./users/repositories/users-list.repository";
@@ -49,6 +51,7 @@ import { AuthModule } from "../auth/auth.module";
     InvitesController,
     WorkspaceOwnershipController,
     WorkspaceUsersCapabilitiesController,
+    WorkspaceUsersController,
     WorkspaceSettingsModulesController,
     TenantAuditEventsController,
     MeController
@@ -61,6 +64,7 @@ import { AuthModule } from "../auth/auth.module";
     UsersWriteService,
     UsersAuditService,
     UsersInviteService,
+    WorkspaceUsersService,
     {
       provide: MeService,
       useFactory: (

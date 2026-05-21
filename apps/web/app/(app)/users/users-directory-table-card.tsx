@@ -49,6 +49,7 @@ export type UsersDirectoryTableCardProps = {
   activeRoleMutationUserId: string | null;
   selectedUserIds: ReadonlySet<string>;
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
+  onManageRewards?: (user: WorkspaceUserDto) => void;
 };
 
 /** Card shell: toolbar, virtualized member table or “no matches”, load-more footer. */
@@ -76,6 +77,7 @@ export function UsersDirectoryTableCard({
   activeRoleMutationUserId,
   selectedUserIds,
   onSelectedUserIdsChange,
+  onManageRewards,
 }: UsersDirectoryTableCardProps) {
   return (
     <Card>
@@ -116,6 +118,7 @@ export function UsersDirectoryTableCard({
             onSelectedUserIdsChange={onSelectedUserIdsChange}
             hasMoreBelow={hasMoreBelow}
             onRequestLoadMore={onRequestLoadMore}
+            onManageRewards={onManageRewards}
           />
         )}
       </CardBody>

@@ -6,7 +6,7 @@ import { useId, useMemo } from "react";
 
 import { Button, Select } from "@tour/ui";
 
-import { useAuth, type AuthUser } from "@/lib/auth/auth-context";
+import { isLeaderRole, useAuth, type AuthUser } from "@/lib/auth/auth-context";
 import { AbilityAction } from "@/lib/casl/ability-actions";
 import { useAbility } from "@/lib/casl/ability-provider";
 import { ApiError } from "@/lib/api-client";
@@ -61,6 +61,7 @@ type UserActionsProps = {
   activeRoleMutationUserId: string | null;
   roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onOpenProfile: () => void;
+  onManageRewards?: () => void;
 };
 
 export function UserActions({
@@ -73,13 +74,15 @@ export function UserActions({
   sessionUser,
   activeRoleMutationUserId,
   roleMutation,
-  onOpenProfile
+  onOpenProfile,
+  onManageRewards
 }: UserActionsProps) {
   const ability = useAbility();
   const canMutateMembership = ability.can(AbilityAction.Update, "UserMembership");
   const queryClient = useQueryClient();
   const { user: authUser } = useAuth();
   const tenantId = authUser?.tenantId ?? "";
+  const canManageRewards = isLeaderRole(sessionUser?.role);
   const toast = useAppToast();
   const hintId = useId();
   const currentNorm = normalizeRole(rowRole);
@@ -172,6 +175,11 @@ export function UserActions({
           </small>
         ) : null}
       </div>
+      {onManageRewards && canManageRewards && canMutateMembership && !isSelf && !isOwner ? (
+        <Button type="button" variant="ghost" size="sm" data-skip-row-open="true" onClick={onManageRewards}>
+          {copy.manageRewardsButton}
+        </Button>
+      ) : null}
       <Button type="button" variant="ghost" size="sm" aria-label={`${copy.viewDetailsButton}, ${rowName}`} onClick={onOpenProfile}>
         {copy.viewDetailsButton}
       </Button>

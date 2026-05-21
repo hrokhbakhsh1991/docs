@@ -31,6 +31,7 @@ export type TenantUsersListRow = {
   joined_at: Date | null;
   suspended_at: Date | null;
   labels: unknown;
+  membership_metadata: unknown;
   telegram_linked: boolean | string;
   profile_row_version: number | null;
 };

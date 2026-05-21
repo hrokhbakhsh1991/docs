@@ -288,6 +288,38 @@ test("scoped routes reject JWT when tenant does not match HTTP Host (TENANT_HOST
   assertErrorEnvelope(response);
 });
 
+test("JWT rejected with AUTH_TOKEN_STALE when membership role changes without session_version bump", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const freshToken = await webSessionOtpToken(app, { phone: USER_X_PHONE, tenantSubdomain: "jwt-tb" });
+  const ds = app.get(DataSource);
+  await ds.query(
+    `UPDATE user_tenants SET role = $1
+     WHERE user_id = (SELECT id FROM users WHERE email = $2 AND deleted_at IS NULL)
+       AND tenant_id = $3::uuid
+       AND deleted_at IS NULL`,
+    [UserRole.Member, USER_X_EMAIL, TENANT_B]
+  );
+
+  const response = await request(app.getHttpServer())
+    .get("/api/v2/tours")
+    .set("Host", tenantTestHost("jwt-tb"))
+    .set("Authorization", `Bearer ${freshToken}`);
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body?.error?.code, "AUTH_TOKEN_STALE");
+  assertErrorEnvelope(response);
+
+  await ds.query(
+    `UPDATE user_tenants SET role = $1
+     WHERE user_id = (SELECT id FROM users WHERE email = $2 AND deleted_at IS NULL)
+       AND tenant_id = $3::uuid
+       AND deleted_at IS NULL`,
+    [UserRole.Owner, USER_X_EMAIL, TENANT_B]
+  );
+});
+
 test("JWT rejected with AUTH_TOKEN_REVOKED after session_version bump on membership row", async () => {
   if (e2eUnavailableReason || !app) {
     return;

@@ -53,6 +53,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     "AUTH_OTP_INVALID",
     "AUTH_OTP_EXPIRED",
     "AUTH_TOKEN_REVOKED",
+    "AUTH_TOKEN_STALE",
     "AUTH_FORBIDDEN_ROLE",
     "AUTH_FORBIDDEN_ABILITY",
     "TENANT_HOST_RESERVED",

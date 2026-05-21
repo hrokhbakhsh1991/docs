@@ -32,7 +32,7 @@ export class UserEntity {
   })
   telegramUserId?: string | null;
 
-  @Column({ type: "varchar", name: "hashed_password", length: 255 })
+  @Column({ type: "varchar", name: "hashed_password", length: 255, select: false })
   hashedPassword!: string;
 
   @Column({ type: "varchar", name: "full_name", length: 255, nullable: true })

@@ -25,6 +25,7 @@ type UserRowProps = {
   roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
   onOpenProfile: (userId: string) => void;
   onToggleSelected: (userId: string, checked: boolean) => void;
+  onManageRewards?: (user: WorkspaceUserDto) => void;
   /** Optional layout for virtualized rows (absolute positioning / height). */
   trStyle?: CSSProperties;
   className?: string;
@@ -83,6 +84,7 @@ function UserRowBase({
   roleMutation,
   onOpenProfile,
   onToggleSelected,
+  onManageRewards,
   trStyle,
   className
 }: UserRowProps) {
@@ -150,6 +152,24 @@ function UserRowBase({
           {roleLabel(row.role)}
         </Badge>
       </TableCell>
+      <TableCell className={styles.discountCell}>
+        {row.permanentDiscountPercentage !== undefined && row.permanentDiscountPercentage !== null
+          ? `${row.permanentDiscountPercentage}%`
+          : copy.emptyDiscountCell}
+      </TableCell>
+      <TableCell className={styles.labelsCell}>
+        {row.rewardBadges && row.rewardBadges.length > 0 ? (
+          <div className={styles.labelBadges}>
+            {row.rewardBadges.map((badge) => (
+              <Badge key={badge} variant="neutral" className={styles.rewardBadgeHighContrast}>
+                {badge.replace(/_/g, " ")}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          copy.emptyRewardBadgesCell
+        )}
+      </TableCell>
       <TableCell>
         <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
       </TableCell>
@@ -167,6 +187,7 @@ function UserRowBase({
           activeRoleMutationUserId={activeRoleMutationUserId}
           roleMutation={roleMutation}
           onOpenProfile={() => onOpenProfile(row.id)}
+          onManageRewards={onManageRewards ? () => onManageRewards(row) : undefined}
         />
       </TableCell>
     </TableRow>

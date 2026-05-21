@@ -34,3 +34,21 @@ export function isAuthTenantHostStrictRoute(path: string, method: string): boole
   );
 }
 
+const INVITE_ACCEPT_BY_TOKEN_PATH = /^\/api\/v2\/invites\/[^/]+\/accept$/;
+
+/**
+ * Routes where JWT `tenant_id` may differ from HTTP Host tenant (workspace switch, invite accept).
+ */
+export function skipsJwtHostTenantAlignment(path: string, method: string): boolean {
+  if (method === "GET" && path === AUTH_WORKSPACES_ROUTE) {
+    return true;
+  }
+  if (method === "POST" && path === AUTH_WORKSPACE_SESSION_ROUTE) {
+    return true;
+  }
+  if (method === "POST" && INVITE_ACCEPT_BY_TOKEN_PATH.test(path)) {
+    return true;
+  }
+  return false;
+}
+

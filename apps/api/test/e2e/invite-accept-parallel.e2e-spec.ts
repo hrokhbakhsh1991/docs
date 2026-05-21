@@ -77,15 +77,15 @@ async function insertWorkspaceInvite(
   }
 ): Promise<void> {
   await ds.query(
-    `INSERT INTO workspace_invites (id, tenant_id, email, role, token, expires_at, created_by)
-     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid)`,
+    `INSERT INTO workspace_invites (id, tenant_id, email, role, invite_token, expires_at, invited_by_user_id, status)
+     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid, 'PENDING')`,
     [randomUUID(), params.tenantId, params.email.trim().toLowerCase(), params.role, params.token, params.createdBy]
   );
 }
 
 async function inviteCountByToken(ds: DataSource, token: string): Promise<number> {
   const rows = await ds.query<{ c: string }[]>(
-    `SELECT COUNT(*)::text AS c FROM workspace_invites WHERE token = $1`,
+    `SELECT COUNT(*)::text AS c FROM workspace_invites WHERE invite_token = $1`,
     [token]
   );
   return Number(rows[0]?.c ?? "0");

@@ -20,6 +20,11 @@ export interface RequestContext {
   hostTenantId?: string;
   /** Once true, tenant context cannot be changed to a different tenant within this request/job. */
   tenantContextFrozen?: boolean;
+  /**
+   * When true, {@link RequestContextService.setTenantId} may replace a host-frozen tenant
+   * with the JWT workspace (workspace session exchange, invite accept by URL token).
+   */
+  allowJwtTenantOverrideHost?: boolean;
   tenantId?: string;
   userId?: string;
   /** Workspace or synthetic actor role (see {@link RequestActorRole}). */

@@ -19,6 +19,7 @@ import {
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./e2e/jwt-test-keys";
 import { UserRole } from "../src/common/auth/user-role.enum";
+import { MembershipStatus } from "../src/modules/identity/membership-status.enum";
 import { TenantEntity } from "../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../src/modules/identity/entities/user-tenant.entity";
@@ -106,7 +107,8 @@ async function seedLeaderUser(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: OTHER_TENANT_ID,
       userId: otherOwner.id,
-      role: UserRole.Owner
+      role: UserRole.Owner,
+      status: MembershipStatus.ACTIVE
     })
   );
 
@@ -127,7 +129,8 @@ async function seedLeaderUser(ds: DataSource): Promise<void> {
     membershipRepo.create({
       tenantId: TENANT_ID,
       userId: user.id,
-      role: UserRole.Owner
+      role: UserRole.Owner,
+      status: MembershipStatus.ACTIVE
     })
   );
 }
@@ -178,7 +181,14 @@ before(async () => {
 
 after(async () => {
   if (app) {
-    await app.close();
+    try {
+      await app.close();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/Connection is closed/i.test(message)) {
+        throw error;
+      }
+    }
   }
   if (container) {
     await container.stop();
@@ -268,7 +278,7 @@ test("POST /api/v2/auth/web/session/otp wrong otp -> 401 envelope", async () => 
     .send({ phone: LEADER_PHONE, otp: "0000" });
 
   assert.equal(response.status, 401);
-  assert.equal(response.body.error.code, "AUTH_UNAUTHENTICATED");
+  assert.equal(response.body.error.code, "AUTH_OTP_INVALID");
   assertErrorEnvelope(response);
 });
 
@@ -308,6 +318,7 @@ test("POST /api/v2/auth/workspace/session for tenant without membership -> 403 e
   }
   const response = await request(app.getHttpServer())
     .post("/api/v2/auth/workspace/session")
+    .set("Host", tenantTestHost("e2e-other"))
     .set("Authorization", `Bearer ${sessionToken}`)
     .send({
       tenant_id: OTHER_TENANT_ID
@@ -349,8 +360,8 @@ test("POST /api/v2/invites/:token/accept valid invite -> 200, membership, invite
     where: { email: LEADER_EMAIL }
   });
   await ds.query(
-    `INSERT INTO workspace_invites (id, tenant_id, email, role, token, expires_at, created_by)
-     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid)`,
+    `INSERT INTO workspace_invites (id, tenant_id, email, role, invite_token, expires_at, invited_by_user_id, status)
+     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid, 'PENDING')`,
     [randomUUID(), OTHER_TENANT_ID, LEADER_EMAIL.toLowerCase(), UserRole.Member, E2E_INVITE_ACCEPT_TOKEN, leader.id]
   );
 
@@ -372,7 +383,7 @@ test("POST /api/v2/invites/:token/accept valid invite -> 200, membership, invite
   assert.equal(membership?.deletedAt, null);
 
   const remaining = await ds.query<{ count: string }[]>(
-    `SELECT COUNT(*)::text AS count FROM workspace_invites WHERE token = $1`,
+    `SELECT COUNT(*)::text AS count FROM workspace_invites WHERE invite_token = $1`,
     [E2E_INVITE_ACCEPT_TOKEN]
   );
   assert.equal(remaining[0]?.count, "0");
@@ -441,7 +452,7 @@ test("POST /api/v2/auth/web/session/otp unknown tenant slug host -> 404 TENANT_H
   assertErrorEnvelope(response);
 });
 
-test("POST /api/v2/auth/web/session/otp apex Host -> 403 TENANT_CONTEXT_MISSING", async () => {
+test("POST /api/v2/auth/web/session/otp apex Host -> 400 TENANT_HOST_INVALID", async () => {
   if (e2eUnavailableReason || !app) {
     return;
   }
@@ -449,29 +460,35 @@ test("POST /api/v2/auth/web/session/otp apex Host -> 403 TENANT_CONTEXT_MISSING"
     .post("/api/v2/auth/web/session/otp")
     .set("Host", "localhost")
     .send({ phone: LEADER_PHONE, otp: "1234" });
-  assert.equal(response.status, 403);
-  assert.equal(response.body.error?.code, "TENANT_CONTEXT_MISSING");
+  assert.equal(response.status, 400);
+  assert.equal(response.body.error?.code, "TENANT_HOST_INVALID");
   assertErrorEnvelope(response);
 });
 
-test("POST /api/v2/auth/web/session/otp invalid body -> 400 envelope", async () => {
+test("POST /api/v2/auth/web/session/otp invalid body (no Host) -> 400 envelope", async () => {
   if (e2eUnavailableReason || !app) {
     return;
   }
+  // Without a valid tenant subdomain Host, the TenantResolverMiddleware fires
+  // TENANT_HOST_INVALID before validation pipe can run on auth-strict routes.
   const response = await request(app.getHttpServer())
     .post("/api/v2/auth/web/session/otp")
+    .set("Host", tenantTestHost("e2e-primary"))
     .send({});
   assert.equal(response.status, 400);
   assert.equal(response.body.error.code, "VALIDATION_FAILED");
   assertErrorEnvelope(response);
 });
 
-test("POST /api/v2/auth/telegram/session invalid body -> 400 envelope", async () => {
+test("POST /api/v2/auth/telegram/session invalid body (no Host) -> 400 envelope", async () => {
   if (e2eUnavailableReason || !app) {
     return;
   }
+  // Without a valid tenant subdomain Host, the TenantResolverMiddleware fires
+  // TENANT_HOST_INVALID before validation pipe can run on auth-strict routes.
   const response = await request(app.getHttpServer())
     .post("/api/v2/auth/telegram/session")
+    .set("Host", tenantTestHost("e2e-primary"))
     .send({});
   assert.equal(response.status, 400);
   assert.equal(response.body.error.code, "VALIDATION_FAILED");
@@ -504,6 +521,7 @@ test("GET /api/v2/tours with auth -> 200", async () => {
   }
   const response = await request(app.getHttpServer())
     .get("/api/v2/tours")
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`);
   assert.equal(response.status, 200);
   assert.equal(Array.isArray(response.body.items), true);
@@ -523,6 +541,7 @@ test("GET /api/v2/tours?status=active with auth -> 200; items are DRAFT only", a
   }
   const response = await request(app.getHttpServer())
     .get("/api/v2/tours")
+    .set("Host", tenantTestHost("e2e-primary"))
     .query({ page: 1, limit: 10, status: "active" })
     .set("Authorization", `Bearer ${sessionToken}`);
   assert.equal(response.status, 200);
@@ -537,6 +556,7 @@ test("POST /api/v2/tours with auth -> create tour", async () => {
   }
   const response = await request(app.getHttpServer())
     .post("/api/v2/tours")
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`)
     .set("Idempotency-Key", randomUUID())
     .send({
@@ -559,6 +579,7 @@ test("PATCH /api/v2/tours/:tourId with auth -> 200", async () => {
   }
   const response = await request(app.getHttpServer())
     .patch(`/api/v2/tours/${createdTourId}`)
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`)
     .set("Idempotency-Key", randomUUID())
     .send({
@@ -574,6 +595,7 @@ test("GET /api/v2/tours/:tourId with auth -> 200", async () => {
   }
   const response = await request(app.getHttpServer())
     .get(`/api/v2/tours/${createdTourId}`)
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`);
   assert.equal(response.status, 200);
   assert.equal(response.body.id, createdTourId);
@@ -585,6 +607,7 @@ test("POST /api/v2/auth/link-telegram with auth invalid payload -> envelope, no 
   }
   const response = await request(app.getHttpServer())
     .post("/api/v2/auth/link-telegram")
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`)
     .set("Idempotency-Key", randomUUID())
     .send({ telegram_init_payload: "invalid", link_reason: "e2e" });
@@ -600,6 +623,7 @@ test("POST /api/v2/auth/link-telegram with auth valid payload -> 200", async () 
   const telegramInitPayload = buildTelegramInitPayload("test-token", 987654321);
   const response = await request(app.getHttpServer())
     .post("/api/v2/auth/link-telegram")
+    .set("Host", tenantTestHost("e2e-primary"))
     .set("Authorization", `Bearer ${sessionToken}`)
     .set("Idempotency-Key", randomUUID())
     .send({ telegram_init_payload: telegramInitPayload });

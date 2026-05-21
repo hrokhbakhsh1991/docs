@@ -11,6 +11,7 @@ export const TenantAuditAction = {
   USER_REMOVED: "user.removed",
   MEMBERSHIP_ROLE_CHANGED: "membership.role.changed",
   MEMBERSHIP_CAPABILITIES_CHANGED: "membership.capabilities.changed",
+  MEMBERSHIP_REWARDS_CHANGED: "membership.rewards.changed",
   MEMBERSHIP_REMOVED: "membership.removed",
   WORKSPACE_OWNERSHIP_TRANSFERRED: "workspace.ownership.transferred",
   WORKSPACE_MODULES_CHANGED: "workspace.modules.changed",

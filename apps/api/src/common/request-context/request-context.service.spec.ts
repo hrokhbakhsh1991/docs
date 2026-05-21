@@ -20,6 +20,21 @@ test("tenant context is immutable once set within a request", () => {
   );
 });
 
+test("JWT override may replace host-frozen tenant on cross-host auth routes", () => {
+  const service = new RequestContextService();
+  requestContextStorage.run(
+    {
+      requestId: "req-3"
+    },
+    () => {
+      service.setHostTenantId("33333333-3333-4333-8333-333333333333");
+      service.enableJwtTenantOverrideHost();
+      service.setTenantId("11111111-1111-4111-8111-111111111111");
+      assert.equal(service.getTenantId(), "11111111-1111-4111-8111-111111111111");
+    }
+  );
+});
+
 test("host-derived tenant freezes request tenant context", () => {
   const service = new RequestContextService();
   requestContextStorage.run(

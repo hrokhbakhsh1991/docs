@@ -67,6 +67,20 @@ export class UserResponseDto {
   labels?: string[];
 
   @ApiPropertyOptional({
+    example: 10,
+    minimum: 0,
+    maximum: 100,
+    description: "Permanent discount percent from `membership_metadata.permanentDiscountPercentage`."
+  })
+  permanentDiscountPercentage?: number;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: "Reward badge tags from `membership_metadata.badges` (e.g. VIP_MEMBER)."
+  })
+  rewardBadges?: string[];
+
+  @ApiPropertyOptional({
     type: [String],
     description: "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
   })

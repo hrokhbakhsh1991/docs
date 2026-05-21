@@ -30,7 +30,8 @@ import { validateIranNationalIdChecksum } from "./utils/iran-national-id";
 import {
   diffSelfPiiFieldKeys,
   mapUserEntityToMeProfileResponse,
-  snapshotSelfPiiFromUser
+  snapshotSelfPiiFromUser,
+  type MeProfileVisibility
 } from "./me-profile.mapper";
 import type {
   EmailVerifiedResponse,
@@ -114,6 +115,14 @@ export class MeService {
     } catch {
       return undefined;
     }
+  }
+
+  private selfProfileVisibility(userId: string): MeProfileVisibility {
+    return {
+      viewerUserId: userId,
+      subjectUserId: userId,
+      viewerRole: this.tryGetActorRole()
+    };
   }
 
   private workspaceRoleAuditFields(): Record<string, unknown> {
@@ -296,7 +305,7 @@ export class MeService {
       });
     }
 
-    return mapUserEntityToMeProfileResponse(user);
+    return mapUserEntityToMeProfileResponse(user, this.selfProfileVisibility(userId));
   }
 
   async patchMe(
@@ -397,11 +406,12 @@ export class MeService {
         };
       }
 
-      const beforeSelfPii = snapshotSelfPiiFromUser(user);
+      const visibility = this.selfProfileVisibility(userId);
+      const beforeSelfPii = snapshotSelfPiiFromUser(user, visibility);
       await this.applyMePatchDtoToUser(repo, user, dto);
       await this.persistUserProfileOrNationalIdConflict(repo, user);
 
-      const changed = diffSelfPiiFieldKeys(beforeSelfPii, snapshotSelfPiiFromUser(user));
+      const changed = diffSelfPiiFieldKeys(beforeSelfPii, snapshotSelfPiiFromUser(user, visibility));
       if (changed.length > 0) {
         await this.tenantAuditEventsService.append(
           {
@@ -423,7 +433,7 @@ export class MeService {
         );
       }
 
-      return mapUserEntityToMeProfileResponse(user);
+      return mapUserEntityToMeProfileResponse(user, visibility);
     });
   }
 

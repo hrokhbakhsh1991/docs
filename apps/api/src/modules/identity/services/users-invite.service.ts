@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
@@ -24,6 +25,33 @@ import {
 } from "../entities/workspace-invite.entity";
 import { UserEntity } from "../entities/user.entity";
 import { UserTenantEntity } from "../entities/user-tenant.entity";
+
+function assertInviteTargetMatchesUser(invite: WorkspaceInviteEntity, user: UserEntity): void {
+  const inviteTarget = invite.email.trim().toLowerCase();
+  if (inviteTarget.includes("@")) {
+    const userEmail = (user.email ?? "").trim().toLowerCase();
+    if (!userEmail || inviteTarget !== userEmail) {
+      throw new ForbiddenException({
+        error: {
+          code: "INVITE_EMAIL_MISMATCH",
+          message: "Invite was sent to a different email address"
+        }
+      });
+    }
+    return;
+  }
+
+  const invitePhone = normalizeOtpPhoneInput(invite.email);
+  const userPhone = normalizeOtpPhoneInput(user.phone ?? "");
+  if (!invitePhone || invitePhone !== userPhone) {
+    throw new ForbiddenException({
+      error: {
+        code: "INVITE_PHONE_MISMATCH",
+        message: "Invite was sent to a different phone number"
+      }
+    });
+  }
+}
 
 export type InviteUserResult = {
   inviteId: string;
@@ -60,8 +88,10 @@ export type ResendInviteResult = {
 @Injectable()
 export class UsersInviteService {
   constructor(
-    private readonly access: UsersAccessService,
+    @Inject(UsersAccessService) private readonly access: UsersAccessService,
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
+    @Inject(TenantAuditEventsService)
     private readonly tenantAuditEventsService: TenantAuditEventsService,
     @InjectRepository(WorkspaceInviteEntity)
     private readonly workspaceInviteRepository: Repository<WorkspaceInviteEntity>,
@@ -222,7 +252,10 @@ export class UsersInviteService {
     };
   }
 
-  async acceptInvite(dto: AcceptInviteDto): Promise<AcceptInviteResult> {
+  async acceptInvite(
+    dto: AcceptInviteDto,
+    actorContext?: { actorUserId: string; clientIp?: string; requestId?: string }
+  ): Promise<AcceptInviteResult> {
     const inviteToken = dto.inviteToken.trim();
     if (!inviteToken) {
       throw new BadRequestException({
@@ -263,16 +296,20 @@ export class UsersInviteService {
       });
     }
 
+    const tenantAuditEvents = this.tenantAuditEventsService;
+    const actorUserId = actorContext?.actorUserId?.trim() ?? this.requestContextService.getUserId();
+    if (!actorUserId) {
+      throw new ForbiddenException({
+        error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" }
+      });
+    }
+    const auditClientIp = actorContext?.clientIp ?? this.requestContextService.tryGetClientIp();
+    const auditRequestId = actorContext?.requestId ?? this.requestContextService.tryGetRequestId();
+
     const accepted = await this.membershipRepository.manager.transaction(async (manager) => {
       const userRepo = manager.getRepository(UserEntity);
       const inviteRepo = manager.getRepository(WorkspaceInviteEntity);
       const membershipRepo = manager.getRepository(UserTenantEntity);
-      const actorUserId = this.requestContextService.getUserId();
-      if (!actorUserId) {
-        throw new ForbiddenException({
-          error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" }
-        });
-      }
       const user = await userRepo.findOne({
         where: { id: actorUserId, deletedAt: IsNull() }
       });
@@ -281,16 +318,7 @@ export class UsersInviteService {
           error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" }
         });
       }
-      const invitePhone = normalizeOtpPhoneInput(invite.email);
-      const userPhone = normalizeOtpPhoneInput(user.phone ?? "");
-      if (!invitePhone || invitePhone !== userPhone) {
-        throw new ForbiddenException({
-          error: {
-            code: "INVITE_PHONE_MISMATCH",
-            message: "Invite was sent to a different phone number"
-          }
-        });
-      }
+      assertInviteTargetMatchesUser(invite, user);
 
       let membership = await membershipRepo.findOne({
         where: {
@@ -322,10 +350,10 @@ export class UsersInviteService {
       const savedMembership = await membershipRepo.save(membership);
 
       invite.status = WorkspaceInviteStatus.ACCEPTED;
-      await inviteRepo.save(invite);
+      await inviteRepo.remove(invite);
 
       const actorLabel = user.email;
-      await this.tenantAuditEventsService.append(
+      await tenantAuditEvents.append(
         {
           tenantId: invite.tenantId,
           actorUserId: user.id,
@@ -346,22 +374,27 @@ export class UsersInviteService {
               joinedAt: now.toISOString()
             }
           },
-          clientIp: this.requestContextService.tryGetClientIp(),
-          requestId: this.requestContextService.tryGetRequestId()
+          clientIp: auditClientIp,
+          requestId: auditRequestId
         },
         manager
       );
 
-      return { user, membership: savedMembership, invite };
+      return {
+        user,
+        membership: savedMembership,
+        inviteStatus: WorkspaceInviteStatus.ACCEPTED,
+        tenantId: invite.tenantId
+      };
     });
 
     return {
-      tenantId: accepted.invite.tenantId,
+      tenantId: accepted.tenantId,
       userId: accepted.user.id,
       role: accepted.membership.role,
       membershipStatus: accepted.membership.status,
       joinedAt: accepted.membership.joinedAt?.toISOString() ?? now.toISOString(),
-      inviteStatus: accepted.invite.status
+      inviteStatus: accepted.inviteStatus
     };
   }
 

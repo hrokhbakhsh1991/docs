@@ -18,7 +18,7 @@ import { UserRow } from "./user-row";
 const copy = USERS_ROUTE_COPY.list;
 
 /** Fixed row height for virtual windowing (labels cell is clamped in CSS). */
-const VIRTUAL_USER_ROW_HEIGHT_PX = 68;
+const VIRTUAL_USER_ROW_HEIGHT_PX = 76;
 
 function ariaSortForColumn(
   column: UserSortColumn,
@@ -40,6 +40,7 @@ type UserTableProps = {
   onToggleSort: (column: UserSortColumn) => void;
   onOpenProfile: (userId: string) => void;
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
+  onManageRewards?: (user: WorkspaceUserDto) => void;
   /** When true, more server pages can be fetched (infinite query). */
   hasMoreBelow?: boolean;
   onRequestLoadMore?: () => void;
@@ -56,6 +57,7 @@ function UserTableBase({
   onToggleSort,
   onOpenProfile,
   onSelectedUserIdsChange,
+  onManageRewards,
   hasMoreBelow = false,
   onRequestLoadMore
 }: UserTableProps) {
@@ -174,6 +176,8 @@ function UserTableBase({
             <TableHeaderCell>Phone verification</TableHeaderCell>
             <TableHeaderCell>{copy.columnLabels}</TableHeaderCell>
             <TableHeaderCell>Role</TableHeaderCell>
+            <TableHeaderCell>{copy.columnPermanentDiscount}</TableHeaderCell>
+            <TableHeaderCell>{copy.columnRewardBadges}</TableHeaderCell>
             <TableHeaderCell>Status</TableHeaderCell>
             <TableHeaderCell>Last Login</TableHeaderCell>
             <TableHeaderCell>Joined At</TableHeaderCell>
@@ -196,6 +200,7 @@ function UserTableBase({
                 roleMutation={roleMutation}
                 onOpenProfile={onOpenProfile}
                 onToggleSelected={toggleRowSelection}
+                onManageRewards={onManageRewards}
                 trStyle={{
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`

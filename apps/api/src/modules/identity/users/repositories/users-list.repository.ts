@@ -83,6 +83,7 @@ export class UsersListRepository implements IUsersListRepository {
         "ut.suspended_at AS suspended_at",
         "ut.created_at AS membership_created_at",
         "ut.labels AS labels",
+        "ut.membership_metadata AS membership_metadata",
         "u.profile_row_version AS profile_row_version",
         "(u.telegram_user_id IS NOT NULL AND btrim(u.telegram_user_id) <> '') AS telegram_linked"
       ])

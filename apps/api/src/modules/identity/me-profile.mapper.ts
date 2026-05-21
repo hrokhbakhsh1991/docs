@@ -1,7 +1,22 @@
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
+import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
 import type { UserEntity } from "./entities/user.entity";
 import type { MeProfileResponse, SelfPiiSnapshot } from "./me-profile.types";
 import { isSyntheticIdentityPlaceholderEmail } from "./utils/synthetic-identity-email";
+
+export type MeProfileVisibility = {
+  viewerUserId: string;
+  subjectUserId: string;
+  viewerRole?: string;
+};
+
+export function canExposeNationalId(visibility: MeProfileVisibility): boolean {
+  if (visibility.viewerUserId.trim() === visibility.subjectUserId.trim()) {
+    return true;
+  }
+  const role = tryParseWorkspaceUserRole(String(visibility.viewerRole ?? "").trim());
+  return role === UserRole.Owner || role === UserRole.Admin;
+}
 
 export function formatUserDateColumnAsYmd(v: Date | string | null | undefined): string | null {
   if (v === null || v === undefined) {
@@ -19,15 +34,19 @@ export function formatUserDateColumnAsYmd(v: Date | string | null | undefined): 
   return null;
 }
 
-export function mapUserEntityToMeProfileResponse(user: UserEntity): MeProfileResponse {
+export function mapUserEntityToMeProfileResponse(
+  user: UserEntity,
+  visibility: MeProfileVisibility
+): MeProfileResponse {
   const rawPhone = user.phone?.trim() ?? "";
   const storedEmail = user.email?.trim() ?? "";
   const publicEmail =
     storedEmail !== "" && !isSyntheticIdentityPlaceholderEmail(storedEmail) ? storedEmail : null;
+  const exposeNationalId = canExposeNationalId(visibility);
   return {
     id: user.id,
     full_name: user.fullName ?? null,
-    national_id: user.nationalId ?? null,
+    national_id: exposeNationalId ? (user.nationalId ?? null) : null,
     gender: user.gender ?? null,
     birth_date: formatUserDateColumnAsYmd(user.birthDate),
     email: publicEmail,
@@ -39,10 +58,11 @@ export function mapUserEntityToMeProfileResponse(user: UserEntity): MeProfileRes
   };
 }
 
-export function snapshotSelfPiiFromUser(user: UserEntity): SelfPiiSnapshot {
+export function snapshotSelfPiiFromUser(user: UserEntity, visibility: MeProfileVisibility): SelfPiiSnapshot {
+  const exposeNationalId = canExposeNationalId(visibility);
   return {
     full_name: user.fullName ?? null,
-    national_id: user.nationalId ?? null,
+    national_id: exposeNationalId ? (user.nationalId ?? null) : null,
     gender: user.gender ?? null,
     birth_date: formatUserDateColumnAsYmd(user.birthDate)
   };

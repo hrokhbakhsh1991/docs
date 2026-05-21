@@ -55,6 +55,7 @@ export class UsersReadService {
         joined_at: row.joined_at,
         suspended_at: row.suspended_at,
         labels: row.labels,
+        membership_metadata: row.membership_metadata,
         telegram_linked: row.telegram_linked,
         profile_row_version: row.profile_row_version ?? undefined
       })
