@@ -126,4 +126,22 @@ export class UserResponseDto {
     description: "Currency code for `walletBalanceMinor`."
   })
   walletCurrency?: string;
+
+  @ApiPropertyOptional({
+    example: 12,
+    description: "All registrations matched via synthetic booking phone / Telegram."
+  })
+  totalTrips?: number;
+
+  @ApiPropertyOptional({
+    example: 8,
+    description: "Past departures with non-terminal cancellation status."
+  })
+  completedTrips?: number;
+
+  @ApiPropertyOptional({
+    example: 2,
+    description: "Registrations cancelled or rejected."
+  })
+  cancelledTrips?: number;
 }

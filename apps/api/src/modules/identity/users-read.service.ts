@@ -5,6 +5,7 @@ import type { UserResponseDto } from "./dto/user-response.dto";
 import { UsersListRepository } from "./users/repositories/users-list.repository";
 import { UsersAccessService } from "./users-access.service";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
+import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
 
 /**
  * **Services = orchestration + policy** (cursors, list shaping). Listing queries delegate to repositories (**persistence only**).
@@ -14,7 +15,8 @@ export class UsersReadService {
   constructor(
     private readonly access: UsersAccessService,
     private readonly usersListRepository: UsersListRepository,
-    private readonly memberWalletBalances: UsersMemberWalletBalancesService
+    private readonly memberWalletBalances: UsersMemberWalletBalancesService,
+    private readonly bookingSummaries: WorkspaceUserBookingSummaryService
   ) {}
 
   async listUsers(query: ListUsersQueryDto): Promise<ListUsersResponseDto> {
@@ -42,10 +44,11 @@ export class UsersReadService {
     const hasNext = rows.length > limit;
     const pageRows = hasNext ? rows.slice(0, limit) : rows;
 
-    const walletByUserId = await this.memberWalletBalances.loadBalancesForUserIds(
-      tenantId,
-      pageRows.map((row) => row.id)
-    );
+    const pageUserIds = pageRows.map((row) => row.id);
+    const [walletByUserId, bookingByUserId] = await Promise.all([
+      this.memberWalletBalances.loadBalancesForUserIds(tenantId, pageUserIds),
+      this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, pageUserIds)
+    ]);
 
     const data: UserResponseDto[] = pageRows.map((row) =>
       this.access.toUserResponseDto(
@@ -70,7 +73,10 @@ export class UsersReadService {
           telegram_linked: row.telegram_linked,
           profile_row_version: row.profile_row_version ?? undefined
         },
-        { wallet: walletByUserId.get(row.id) }
+        {
+          wallet: walletByUserId.get(row.id),
+          bookingSummary: bookingByUserId.get(row.id)
+        }
       )
     );
 
@@ -92,8 +98,14 @@ export class UsersReadService {
     const { actorUserId } = this.access.resolveActorContextOrThrow();
     await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
     const user = await this.access.findTenantScopedUserOrThrow(tenantId, userId);
-    const walletMap = await this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]);
-    return this.access.toUserResponseDto(user, { wallet: walletMap.get(userId) });
+    const [walletMap, bookingMap] = await Promise.all([
+      this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]),
+      this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId])
+    ]);
+    return this.access.toUserResponseDto(user, {
+      wallet: walletMap.get(userId),
+      bookingSummary: bookingMap.get(userId)
+    });
   }
 
   private encodeUsersCursor(input: { tenantId: string; createdAt: string; id: string }): string {

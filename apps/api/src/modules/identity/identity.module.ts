@@ -32,7 +32,11 @@ import { OutboxService } from "../outbox/outbox.service";
 import { OutboxModule } from "../outbox/outbox.module";
 import { AuthModule } from "../auth/auth.module";
 import { AccountBalanceEntity } from "../finance/ledger/entities/account-balance.entity";
+import { RegistrationEntity } from "../registrations/registration.entity";
+import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
+import { TourEntity } from "../tours/entities/tour.entity";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
+import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
 
 @Module({
   imports: [
@@ -46,7 +50,10 @@ import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances
       UserRoleAuditEntity,
       WorkspaceInviteEntity,
       EmailVerificationTokenEntity,
-      AccountBalanceEntity
+      AccountBalanceEntity,
+      RegistrationEntity,
+      TourDepartureEntity,
+      TourEntity
     ])
   ],
   controllers: [
@@ -64,6 +71,7 @@ import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances
     UsersListRepository,
     UsersAccessService,
     UsersMemberWalletBalancesService,
+    WorkspaceUserBookingSummaryService,
     UsersReadService,
     UsersWriteService,
     UsersAuditService,

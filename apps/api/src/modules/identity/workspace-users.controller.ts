@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Inject,
   Param,
@@ -33,6 +34,7 @@ import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { PatchWorkspaceUserRoleDto } from "./dto/patch-workspace-user-role.dto";
 import { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
 import { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
+import { UserBookingSummaryResponseDto } from "./dto/user-booking-summary-response.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { WorkspaceUsersService } from "./workspace-users.service";
 
@@ -44,6 +46,24 @@ export class WorkspaceUsersController {
   constructor(
     @Inject(WorkspaceUsersService) private readonly workspaceUsersService: WorkspaceUsersService
   ) {}
+
+  @Get(":userId/booking-summary")
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
+  @ApiOperation({
+    summary: "Workspace member booking trip summary (admin)",
+    description:
+      "Matches registrations via synthetic participant phone and optional Telegram id for the target user."
+  })
+  @ApiOkResponse({ type: UserBookingSummaryResponseDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
+  @ApiNotFoundResponse({ description: "User or membership not found in tenant" })
+  async getUserBookingSummary(
+    @Param("userId", new ParseUUIDPipe()) userId: string
+  ): Promise<UserBookingSummaryResponseDto> {
+    return this.workspaceUsersService.getUserBookingSummary(userId);
+  }
 
   @Patch(":userId/role")
   @HttpCode(200)

@@ -19,6 +19,9 @@ export class UsersMemberWalletBalancesService {
     private readonly accountBalances: Repository<AccountBalanceEntity>
   ) {}
 
+  /**
+   * Single batched query (`account IN (...)` + tenant operating currency). Never call per user row.
+   */
   async loadBalancesForUserIds(
     tenantId: string,
     userIds: readonly string[]
@@ -32,7 +35,8 @@ export class UsersMemberWalletBalancesService {
     const rows = await this.accountBalances.find({
       where: {
         tenantId: tenantNorm,
-        account: In(accounts)
+        account: In(accounts),
+        currency: DEFAULT_MEMBER_WALLET_CURRENCY
       }
     });
     for (const row of rows) {
@@ -44,20 +48,10 @@ export class UsersMemberWalletBalancesService {
       if (!userId) {
         continue;
       }
-      const existing = out.get(userId);
-      if (!existing) {
-        out.set(userId, {
-          balanceMinor: row.balanceMinor?.trim() || "0",
-          currency: row.currency?.trim() || DEFAULT_MEMBER_WALLET_CURRENCY
-        });
-        continue;
-      }
-      if (row.currency === DEFAULT_MEMBER_WALLET_CURRENCY) {
-        out.set(userId, {
-          balanceMinor: row.balanceMinor?.trim() || "0",
-          currency: row.currency
-        });
-      }
+      out.set(userId, {
+        balanceMinor: row.balanceMinor?.trim() || "0",
+        currency: DEFAULT_MEMBER_WALLET_CURRENCY
+      });
     }
     for (const userId of userIds) {
       if (!out.has(userId)) {

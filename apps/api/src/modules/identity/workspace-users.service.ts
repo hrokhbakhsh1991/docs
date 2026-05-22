@@ -24,37 +24,19 @@ import {
 import { tenantScopedResourceNotFoundError } from "../../common/errors/error-response-builders";
 import type { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
 import type { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
+import type { UserBookingSummaryResponseDto } from "./dto/user-booking-summary-response.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
 import { UserRoleAuditEntity } from "./entities/user-role-audit.entity";
 import { UsersAccessService } from "./users-access.service";
-
-function mergeMembershipRewardsMetadata(
-  existing: Record<string, unknown> | null | undefined,
-  input: {
-    permanentDiscountPercentage?: number;
-    badges?: WorkspaceRewardBadgeId[];
-  }
-): Record<string, unknown> {
-  const base =
-    existing && typeof existing === "object" && !Array.isArray(existing) ? { ...existing } : {};
-  const next: Record<string, unknown> = { ...base };
-  if (input.permanentDiscountPercentage !== undefined) {
-    next.permanentDiscountPercentage = input.permanentDiscountPercentage;
-  }
-  if (input.badges !== undefined) {
-    if (input.badges.length > 0) {
-      next.badges = input.badges;
-    } else {
-      delete next.badges;
-    }
-  }
-  return next;
-}
+import { applyMembershipMetadataJsonbPatch } from "./membership-metadata-jsonb";
+import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
 
 @Injectable()
 export class WorkspaceUsersService {
   constructor(
     @Inject(UsersAccessService) private readonly access: UsersAccessService,
+    @Inject(WorkspaceUserBookingSummaryService)
+    private readonly bookingSummaries: WorkspaceUserBookingSummaryService,
     @InjectDataSource() private readonly dataSource: DataSource,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
@@ -208,19 +190,23 @@ export class WorkspaceUsersService {
     }
 
     const existingMeta = parseMembershipMetadata(membership.membershipMetadata);
-    let nextMetadata = mergeMembershipRewardsMetadata(membership.membershipMetadata, {
-      permanentDiscountPercentage: normalizedDiscount,
-      badges: normalizedBadges
-    });
+    const metadataPatch: Record<string, unknown> = {};
+    const metadataRemoveKeys: string[] = [];
+    if (normalizedDiscount !== undefined) {
+      metadataPatch.permanentDiscountPercentage = normalizedDiscount;
+    }
+    if (normalizedBadges !== undefined) {
+      if (normalizedBadges.length > 0) {
+        metadataPatch.badges = normalizedBadges;
+      } else {
+        metadataRemoveKeys.push("badges");
+      }
+    }
     if (payload.isSelectableLeader !== undefined) {
-      const nextCapabilities = setSelectableLeaderCapability(
+      metadataPatch.capabilities = setSelectableLeaderCapability(
         existingMeta.capabilities,
         payload.isSelectableLeader
       );
-      nextMetadata = {
-        ...nextMetadata,
-        capabilities: nextCapabilities
-      };
     }
 
     const actorLabelRecord = await this.access.users.findOne({
@@ -229,11 +215,12 @@ export class WorkspaceUsersService {
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
     await this.dataSource.transaction(async (manager) => {
-      await manager.query(
-        `UPDATE user_tenants SET membership_metadata = $1::jsonb, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
-        [JSON.stringify(nextMetadata), membership.id, tenantId]
-      );
+      await applyMembershipMetadataJsonbPatch(manager, {
+        membershipId: membership.id,
+        tenantId,
+        patch: metadataPatch,
+        removeKeys: metadataRemoveKeys
+      });
       await this.tenantAuditEventsService.append(
         {
           tenantId,
@@ -245,11 +232,10 @@ export class WorkspaceUsersService {
           resourceId: membership.id,
           metadata: {
             permanent_discount_percentage:
-              normalizedDiscount ?? parseMembershipMetadata(nextMetadata).permanentDiscountPercentage,
-            badges: normalizedBadges ?? parseMembershipMetadata(nextMetadata).badges ?? [],
+              normalizedDiscount ?? existingMeta.permanentDiscountPercentage,
+            badges: normalizedBadges ?? existingMeta.badges ?? [],
             selectable_leader:
-              payload.isSelectableLeader ??
-              membershipHasSelectableLeader(parseMembershipMetadata(nextMetadata))
+              payload.isSelectableLeader ?? membershipHasSelectableLeader(existingMeta)
           },
           clientIp: this.requestContextService.tryGetClientIp(),
           requestId: this.requestContextService.tryGetRequestId()
@@ -283,14 +269,6 @@ export class WorkspaceUsersService {
       existingMeta.capabilities,
       payload.enabled
     );
-    const nextMetadata: Record<string, unknown> = {
-      ...(membership.membershipMetadata &&
-      typeof membership.membershipMetadata === "object" &&
-      !Array.isArray(membership.membershipMetadata)
-        ? { ...membership.membershipMetadata }
-        : {}),
-      capabilities: nextCapabilities
-    };
 
     const actorLabelRecord = await this.access.users.findOne({
       where: { id: actorUserId, deletedAt: IsNull() }
@@ -298,11 +276,11 @@ export class WorkspaceUsersService {
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
     await this.dataSource.transaction(async (manager) => {
-      await manager.query(
-        `UPDATE user_tenants SET membership_metadata = $1::jsonb, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
-        [JSON.stringify(nextMetadata), membership.id, tenantId]
-      );
+      await applyMembershipMetadataJsonbPatch(manager, {
+        membershipId: membership.id,
+        tenantId,
+        patch: { capabilities: nextCapabilities }
+      });
       await this.tenantAuditEventsService.append(
         {
           tenantId,
@@ -326,5 +304,14 @@ export class WorkspaceUsersService {
     return this.access.toUserResponseDto(
       await this.access.findTenantScopedUserOrThrow(tenantId, userId)
     );
+  }
+
+  async getUserBookingSummary(userId: string): Promise<UserBookingSummaryResponseDto> {
+    const tenantId = this.access.resolveTenantIdOrThrow();
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.findTenantScopedUserOrThrow(tenantId, userId);
+    const map = await this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId]);
+    return map.get(userId) ?? { totalTrips: 0, completedTrips: 0, cancelledTrips: 0 };
   }
 }

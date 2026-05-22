@@ -1,30 +1,43 @@
-# WORKSPACE USERS COMPREHENSIVE PURGE & FEATURE INJECTION (PHASE 14.8 - ULTIMATE)
-Goal: Purge low-level technical capabilities from the UI, implement high-level business privileges, inject live wallet balances, display dynamic avatar fallbacks, and surface user activity metrics without introducing horizontal scrolling. Do not touch map.md or map.log.
+# EXECUTIVE WORKSPACE USERS CRM & LEDGER INTEGRATION (PHASE 14.8)
+Goal: Purge low-level technical capabilities from the UI, bridge the identity-booking graph using synthetic phone matching, expose live wallet balances, display dynamic gender avatars, and surface trip metrics. Do not touch map.md or map.log.
 
 ---
 
-## TASK 14.8.1: Backend - Core Entity Upgrades & Wallet / Activity Surface
+## TASK 14.8.1: Backend - Implement Admin-Scoped Booking History & Stats
 * **Target Files**:
-    - `apps/api/src/modules/identity/entities/user.entity.ts`
-    - `apps/api/src/common/middleware/auth.middleware.ts`
-    - `apps/api/src/modules/identity/workspace-users.service.ts`
+    - `apps/api/src/modules/identity/workspace-users.controller.ts`
+    - `apps/api/src/modules/registrations/registrations.service.ts`
 * **Technical Specification**:
-    - **Last Active Tracker**: Ensure `UserEntity` has a `lastActiveAt` column. Inside `AuthMiddleware`, asynchronously update this timestamp on every successful non-bypass request to track user vitality.
-    - **The Purge**: Hardcode and seal low-level internal technical capabilities behind core roles. Hide them from standard user payload streams.
-    - **Wallet Context**: Expose the live balance from `account_balances` associated with the user's personal account within the active tenant's ledger.
-    - **Metadata Bounds**: Enforce strict limits on `membershipMetadata` (e.g., `permanentDiscountPercentage` bounded between 0 and 100).
+    - Create a new endpoint `GET /api/v2/workspaces/users/:userId/booking-summary` restricted to `Owner` and `Admin`.
+    - Inside the handler, compute the `syntheticBookingContactPhone(userId)`.
+    - Query `RegistrationEntity` where `tenantId` matches context AND (`participantContactPhone` OR `telegramUserId` matches user metrics).
+    - Aggregate metrics into a clean response DTO:
+      - `totalTrips`: Count of all rows.
+      - `completedTrips`: Count where `status` NOT IN ('Cancelled', 'Rejected', 'NoShow') and departure date is past.
+      - `cancelledTrips`: Count where `status` IN ('Cancelled', 'Rejected').
+    - Strip and clean low-level raw capabilities from the core user response payload; hardcode them behind roles.
 
-## TASK 14.8.2: Frontend - Enterprise Clean Layout & Dynamic Asset Fallbacks
-* **Target File**: `apps/web/app/(app)/users/users-page-client.tsx` (and related row/modal components)
+## TASK 14.8.2: Frontend - Enforce 4-Column High-Density CRM Layout
+* **Target File**: `apps/web/app/(app)/users/users-page-client.tsx` (and related row layout sub-components)
 * **Technical Specification**:
-    - **Smart Avatars**: In the "User Profile" column, display the user's profile image. If the image string is null/absent, evaluate the user's `gender` field from the API response. Render a tailored, modern vector avatar indicator based on gender (Male / Female / Neutral fallback).
-    - **Data Compaction (No Horizontal Scroll)**:
-      - Column 1: **User Profile** (~35% width). Stacks: Smart Avatar + Bold Name + Sub-lines containing [Email/Phone] and a small gray relative time indicator for `Last Active` (e.g., "Active 2h ago").
-      - Column 2: **Role** (~15% width). Displays the clean status badge.
-      - Column 3: **Financials & Privileges** (~40% width). Displays the live **Wallet Balance** (formatted beautifully) alongside the wrap layout for `% Discount` and club tiers (`VIP_MEMBER`, `GOLD_CLUB`).
-      - Column 4: **Actions** (~10% width). Right-aligned three-dots menu.
-    - **Rewards Console**: Refactor `WorkspaceUserRewardsModal` to provide clean fields for: Permanent Discount %, Selectable Tour Leader switch, and a Loyalty Club tier select dropdown.
+    - **The Purge**: Completely delete the raw technical capabilities checkbox grid from the interface.
+    - **Column 1: User Profile (~35% width)**:
+      - Mount `user-avatar.tsx` to automatically render the user's `profileImageUrl` or fall back to the SVG glyph dictated by the API's `gender` response.
+      - Stack: Name (bold) -> Email/Phone -> Tiny relative activity label using `formatActiveAgoLabel(row.lastActiveAt)`.
+    - **Column 2: Role (~15% width)**:
+      - Render the custom workspace role badge (`OWNER`, `ADMIN`, `LEADER`, `MEMBER`).
+    - **Column 3: Wallet & Loyalty Analytics (~40% width)**:
+      - Clean vertical stack layout. Top line: Render the live currency balance from `loadBalancesForUserIds` formatted beautifully (e.g., `+۱,۲۰۰,۰۰۰ تومان` or `۰ ریال`).
+      - Bottom line: Display the summary string fetched from Task 14.8.1: `{completedTrips} Ok / {cancelledTrips} Cancel`. Append active reward badges (`VIP_MEMBER`) as dense tags.
+    - **Column 4: Actions (~10% width)**:
+      - Right-aligned three-dots menu (`...`) hiding: "Change Role", "Manage Rewards & Selectable Leader Toggle", and "Remove User".
 
-## TASK 14.8.3: Quality Gate Verification
+## TASK 14.8.3: Verification Gate
 - Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Run `jest test/api.e2e-spec.jest.ts` to ensure 100% green compliance.
+- Ensure all 29/29 E2E API tests remain perfectly green.
+
+## TASK 14.8.4: Defensive Optimization & Clean-Code Constraints (گارد باگ‌زدایی و پرفارمنس)
+* **Performance Rule (Anti N+1)**: Deep-refactor the list query logic. Under NO circumstances should `RegistrationsService` or `UsersMemberWalletBalancesService` execute sequential SQL lookups inside a loop per user row. Booking summaries and wallet balances for the entire page slice (e.g., 50 users) MUST be aggregated using a single `In(userIds)` query or an optimized SQL `GROUP BY` aggregate join.
+* **JSONB Deep Merge Guarantee**: Inside `workspace-users.service.ts`, when modifying `membership_metadata`, use PostgreSQL `jsonb_set` or a strict shallow/deep spread merge. Updating the discount or leader status must NEVER overwrite or nullify existing `allowedRegionIds` or unrelated structural metadata keys.
+* **UI Resiliency**: In `apps/web/app/(app)/users/user-avatar.tsx`, introduce a strict fallback chain for the `gender` prop. If the API returns `null`, empty string, or `prefer_not_to_say`, gracefully default to a clean, highly optimized neutral placeholder icon to avoid runtime client-side crashes.
+* **Currency Isolation**: Ensure the batch wallet balance loader explicitly queries the balance matching the tenant's primary operating currency (e.g., 'IRR'), avoiding cross-currency balance numeric pollution.

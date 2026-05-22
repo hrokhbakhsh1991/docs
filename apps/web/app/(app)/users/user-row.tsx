@@ -12,7 +12,11 @@ import type { UserRole as UserRoleType } from "@/lib/auth/user-role";
 
 import { UserRowActionsMenu } from "./components/user-row-actions-menu";
 import { UserAvatar } from "./user-avatar";
-import { formatActiveAgoLabel, formatWalletBalanceMinor } from "./users-format";
+import {
+  formatActiveAgoLabel,
+  formatTripSummaryLabel,
+  formatWalletBalanceMinor
+} from "./users-format";
 import { normalizeRole, roleLabel, roleVariant } from "./users-page-logic";
 import styles from "./users-page.module.css";
 import { USERS_ROUTE_COPY } from "./users-copy";
@@ -92,9 +96,9 @@ function UserRowBase({
     row.permanentDiscountPercentage !== undefined && row.permanentDiscountPercentage !== null;
   const clubBadges = (row.rewardBadges ?? []).filter((b) => LOYALTY_CLUB_BADGES.has(b));
   const walletLabel = formatWalletBalanceMinor(row.walletBalanceMinor, row.walletCurrency);
+  const tripSummaryLabel = formatTripSummaryLabel(row.completedTrips, row.cancelledTrips);
   const activeLabel =
     formatActiveAgoLabel(row.lastActiveAt ?? row.lastLoginAt) ?? copy.neverActiveLabel;
-  const hasFinancials = walletLabel !== "0 IRR" || hasDiscount || clubBadges.length > 0;
 
   function handleRowPointerDown(event: MouseEvent<HTMLTableRowElement>) {
     const el = event.target as HTMLElement | null;
@@ -153,23 +157,24 @@ function UserRowBase({
         </Badge>
       </TableCell>
       <TableCell className={styles.financialsCell}>
-        {hasFinancials ? (
-          <div className={styles.financialsTags}>
-            <span className={styles.walletBalanceLabel}>{walletLabel}</span>
-            {hasDiscount ? (
-              <Badge variant="neutral" className={styles.privilegeDiscountTag}>
-                {row.permanentDiscountPercentage}%
-              </Badge>
-            ) : null}
-            {clubBadges.map((badge) => (
-              <Badge key={badge} variant="neutral" className={styles.rewardBadgeHighContrast}>
-                {badge.replace(/_/g, " ")}
-              </Badge>
-            ))}
-          </div>
-        ) : (
+        <div className={styles.financialsStack}>
           <span className={styles.walletBalanceLabel}>{walletLabel}</span>
-        )}
+          <span className={styles.tripSummaryLabel}>{tripSummaryLabel}</span>
+          {hasDiscount || clubBadges.length > 0 ? (
+            <div className={styles.financialsBadgeRow}>
+              {hasDiscount ? (
+                <Badge variant="neutral" className={styles.privilegeDiscountTag}>
+                  {row.permanentDiscountPercentage}%
+                </Badge>
+              ) : null}
+              {clubBadges.map((badge) => (
+                <Badge key={badge} variant="neutral" className={styles.rewardBadgeHighContrast}>
+                  {badge.replace(/_/g, " ")}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </TableCell>
       <TableCell className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
         <UserRowActionsMenu

@@ -17,11 +17,13 @@ import { UserEntity } from "./entities/user.entity";
 import type { TenantScopedUserRow } from "./users/users-tenant-scope.types";
 import { UsersTenantScopeRepository } from "./users/repositories/users-tenant-scope.repository";
 import type { MemberWalletBalanceSnapshot } from "./users-member-wallet-balances.service";
+import type { UserBookingSummarySnapshot } from "./workspace-user-booking-summary.service";
 
 export type { TenantScopedUserRow } from "./users/users-tenant-scope.types";
 
 export type UserResponseMappingContext = {
   wallet?: MemberWalletBalanceSnapshot;
+  bookingSummary?: UserBookingSummarySnapshot;
 };
 
 /**
@@ -98,6 +100,7 @@ export class UsersAccessService {
     }
     const meta = parseMembershipMetadata(row.membership_metadata);
     const wallet = ctx?.wallet;
+    const booking = ctx?.bookingSummary;
 
     return {
       id: row.id,
@@ -121,6 +124,9 @@ export class UsersAccessService {
       telegramLinked: coerceTelegramLinked(row.telegram_linked),
       walletBalanceMinor: wallet?.balanceMinor ?? "0",
       walletCurrency: wallet?.currency ?? "IRR",
+      totalTrips: booking?.totalTrips,
+      completedTrips: booking?.completedTrips,
+      cancelledTrips: booking?.cancelledTrips,
       profileRowVersion:
         row.profile_row_version !== undefined && row.profile_row_version !== null
           ? Number(row.profile_row_version)

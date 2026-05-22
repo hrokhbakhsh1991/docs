@@ -20,6 +20,7 @@ import {
 } from "../../common/rbac/assert-capability-assignable";
 import { evaluateGeneralMembershipRoleChange } from "../../common/rbac/workspace-membership-rbac.policy";
 import type { PatchMembershipCapabilitiesDto } from "./dto/patch-membership-capabilities.dto";
+import { applyMembershipMetadataJsonbPatch } from "./membership-metadata-jsonb";
 import type {
   TransferWorkspaceOwnershipDto,
   TransferWorkspaceOwnershipResponseDto
@@ -87,6 +88,18 @@ export class UsersWriteService {
       membership.membershipMetadata,
       decision,
     );
+    const metadataPatch: Record<string, unknown> = {};
+    const metadataRemoveKeys: string[] = [];
+    if (Object.prototype.hasOwnProperty.call(nextMetadata, "capabilities")) {
+      metadataPatch.capabilities = nextMetadata.capabilities;
+    } else {
+      metadataRemoveKeys.push("capabilities");
+    }
+    if (Object.prototype.hasOwnProperty.call(nextMetadata, "allowedRegionIds")) {
+      metadataPatch.allowedRegionIds = nextMetadata.allowedRegionIds;
+    } else {
+      metadataRemoveKeys.push("allowedRegionIds");
+    }
 
     const actorLabelRecord = await this.access.users.findOne({
       where: { id: actorUserId, deletedAt: IsNull() },
@@ -94,11 +107,12 @@ export class UsersWriteService {
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
     await this.dataSource.transaction(async (manager) => {
-      await manager.query(
-        `UPDATE user_tenants SET membership_metadata = $1::jsonb, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
-        [JSON.stringify(nextMetadata), membership.id, tenantId],
-      );
+      await applyMembershipMetadataJsonbPatch(manager, {
+        membershipId: membership.id,
+        tenantId,
+        patch: metadataPatch,
+        removeKeys: metadataRemoveKeys
+      });
       await this.tenantAuditEventsService.append(
         {
           tenantId,

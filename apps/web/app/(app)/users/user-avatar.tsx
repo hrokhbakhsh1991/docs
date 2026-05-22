@@ -1,22 +1,20 @@
 "use client";
 
+import { useState } from "react";
+
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
 
+import {
+  resolveAvatarDisplayGender,
+  type AvatarDisplayGender
+} from "./user-avatar-utils";
 import styles from "./users-page.module.css";
 
-export type UserAvatarGender = "male" | "female" | "non_binary" | "prefer_not_to_say" | null;
+export type { AvatarDisplayGender } from "./user-avatar-utils";
+export { resolveAvatarDisplayGender } from "./user-avatar-utils";
 
-function normalizeGender(gender: WorkspaceUserDto["gender"]): UserAvatarGender {
-  if (!gender) return null;
-  const g = gender.trim().toLowerCase();
-  if (g === "male" || g === "female" || g === "non_binary" || g === "prefer_not_to_say") {
-    return g;
-  }
-  return null;
-}
-
-function GenderFallbackGlyph({ gender }: { gender: UserAvatarGender }) {
-  if (gender === "male") {
+function GenderFallbackGlyph({ displayGender }: { displayGender: AvatarDisplayGender }) {
+  if (displayGender === "male") {
     return (
       <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden focusable="false">
         <circle cx={12} cy={9} r={4} fill="currentColor" opacity={0.9} />
@@ -28,7 +26,7 @@ function GenderFallbackGlyph({ gender }: { gender: UserAvatarGender }) {
       </svg>
     );
   }
-  if (gender === "female") {
+  if (displayGender === "female") {
     return (
       <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden focusable="false">
         <circle cx={12} cy={8.5} r={4} fill="currentColor" opacity={0.9} />
@@ -49,26 +47,39 @@ function GenderFallbackGlyph({ gender }: { gender: UserAvatarGender }) {
   );
 }
 
+function avatarVariantClass(displayGender: AvatarDisplayGender): string {
+  if (displayGender === "male") {
+    return styles.userAvatarMale;
+  }
+  if (displayGender === "female") {
+    return styles.userAvatarFemale;
+  }
+  return styles.userAvatarNeutral;
+}
+
 export type UserAvatarProps = {
   user: Pick<WorkspaceUserDto, "name" | "profileImageUrl" | "gender">;
   className?: string;
 };
 
 export function UserAvatar({ user, className }: UserAvatarProps) {
+  const displayGender = resolveAvatarDisplayGender(user.gender);
   const imageUrl = user.profileImageUrl?.trim() ?? "";
-  const gender = normalizeGender(user.gender);
-  const variant =
-    gender === "male"
-      ? styles.userAvatarMale
-      : gender === "female"
-        ? styles.userAvatarFemale
-        : styles.userAvatarNeutral;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = imageUrl.length > 0 && !imageFailed;
+  const variant = avatarVariantClass(displayGender);
+  const label = user.name?.trim() || "User";
 
-  if (imageUrl) {
+  if (showImage) {
     return (
       <span className={[styles.userAvatar, className].filter(Boolean).join(" ")}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt="" className={styles.userAvatarImage} />
+        <img
+          src={imageUrl}
+          alt=""
+          className={styles.userAvatarImage}
+          onError={() => setImageFailed(true)}
+        />
       </span>
     );
   }
@@ -76,9 +87,10 @@ export function UserAvatar({ user, className }: UserAvatarProps) {
   return (
     <span
       className={[styles.userAvatar, variant, className].filter(Boolean).join(" ")}
-      aria-hidden
+      role="img"
+      aria-label={label}
     >
-      <GenderFallbackGlyph gender={gender} />
+      <GenderFallbackGlyph displayGender={displayGender} />
     </span>
   );
 }

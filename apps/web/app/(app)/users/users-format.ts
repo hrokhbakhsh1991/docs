@@ -55,7 +55,17 @@ export function formatWalletBalanceMinor(
   }
   const code = (currency ?? "IRR").trim().toUpperCase() || "IRR";
   if (code === "IRR") {
-    return `${minor.toLocaleString(undefined)} IRR`;
+    const formatted = minor.toLocaleString("fa-IR");
+    return minor >= 0n ? `+${formatted} ریال` : `${formatted} ریال`;
   }
   return `${minor.toString()} ${code}`;
+}
+
+export function formatTripSummaryLabel(
+  completedTrips: number | undefined,
+  cancelledTrips: number | undefined
+): string {
+  const ok = completedTrips ?? 0;
+  const cancel = cancelledTrips ?? 0;
+  return `${ok} Ok / ${cancel} Cancel`;
 }

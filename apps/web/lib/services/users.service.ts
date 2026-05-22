@@ -34,6 +34,9 @@ export type WorkspaceUserDto = {
   lastActiveAt?: string | null;
   walletBalanceMinor?: string;
   walletCurrency?: string;
+  totalTrips?: number;
+  completedTrips?: number;
+  cancelledTrips?: number;
 };
 
 export type PatchMembershipCapabilitiesPayload = {

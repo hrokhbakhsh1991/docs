@@ -19,11 +19,21 @@ import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
   E2E_JWT_PUBLIC_KEY_SPKI
 } from "./jwt-test-keys";
+import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { MembershipStatus } from "../../src/modules/identity/membership-status.enum";
 import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
+import {
+  RegistrationEntity,
+  RegistrationPaymentStatus,
+  RegistrationStatus
+} from "../../src/modules/registrations/registration.entity";
+import { TourDepartureEntity } from "../../src/modules/tours/entities/tour-departure.entity";
+import { TourProductEntity } from "../../src/modules/tours/entities/tour-product.entity";
+import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
+import type { TourTransportMode } from "../../src/modules/tours/tour-transport-modes";
 
 const TENANT_ID = "f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6";
 const OTHER_TENANT = "a7a7a7a7-a7a7-47a7-87a7-a7a7a7a7a7a7";
@@ -336,6 +346,141 @@ test("POST workspaces/users/:id/rewards: discount 101 rejected (400)", async () 
     .send({ permanentDiscountPercentage: 101 });
 
   assert.equal(res.status, 400);
+  assertErrorEnvelope(res);
+});
+
+test("GET workspaces/users/:id/booking-summary: owner returns trip counts (200)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const tourId = randomUUID();
+  const listMinor = "100000";
+  const currency = "IRR";
+  const product = await ds.getRepository(TourProductEntity).save(
+    ds.getRepository(TourProductEntity).create({
+      tenantId: TENANT_ID,
+      title: "Booking summary e2e"
+    })
+  );
+  await ds.getRepository(TourDepartureEntity).save(
+    ds.getRepository(TourDepartureEntity).create({
+      id: tourId,
+      tourProductId: product.id,
+      tenantId: TENANT_ID,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      capacityTotal: 5,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      startsOn: "2020-01-01"
+    })
+  );
+  await ds.getRepository(TourEntity).save(
+    ds.getRepository(TourEntity).create({
+      id: tourId,
+      tenantId: TENANT_ID,
+      title: "Booking summary e2e",
+      totalCapacity: 5,
+      acceptedCount: 0,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      tourProductId: product.id,
+      tourDepartureId: tourId,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      startsOn: "2020-01-01",
+      transportModes: ["bus"] as TourTransportMode[]
+    })
+  );
+  const phone = syntheticBookingContactPhone(memberUserId);
+  await ds.getRepository(RegistrationEntity).save(
+    ds.getRepository(RegistrationEntity).create({
+      tenantId: TENANT_ID,
+      tourId,
+      tourDepartureId: tourId,
+      participantFullName: "Member",
+      participantContactPhone: phone,
+      transportMode: "bus",
+      entryMode: "web",
+      status: RegistrationStatus.ACCEPTED,
+      paymentStatus: RegistrationPaymentStatus.PAID
+    })
+  );
+  await ds.getRepository(RegistrationEntity).save(
+    ds.getRepository(RegistrationEntity).create({
+      tenantId: TENANT_ID,
+      tourId,
+      tourDepartureId: tourId,
+      participantFullName: "Member",
+      participantContactPhone: phone,
+      transportMode: "bus",
+      entryMode: "web",
+      status: RegistrationStatus.CANCELLED,
+      paymentStatus: RegistrationPaymentStatus.NOT_PAID
+    })
+  );
+
+  const res = await request(app.getHttpServer())
+    .get(`/api/v2/workspaces/users/${memberUserId}/booking-summary`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`);
+
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.totalTrips, 2);
+  assert.equal(res.body.completedTrips, 1);
+  assert.equal(res.body.cancelledTrips, 1);
+});
+
+test("POST workspaces/users/:id/rewards: preserves unrelated membership_metadata keys (jsonb merge)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const regionId = randomUUID();
+  const ut = await ds.getRepository(UserTenantEntity).findOneOrFail({
+    where: { tenantId: TENANT_ID, userId: memberUserId }
+  });
+  await ds.getRepository(UserTenantEntity).update(
+    { id: ut.id },
+    {
+      membershipMetadata: {
+        allowedRegionIds: [regionId],
+        permanentDiscountPercentage: 5,
+        badges: ["VIP_MEMBER"],
+        customRetentionFlag: true
+      }
+    }
+  );
+
+  const res = await request(app.getHttpServer())
+    .post(`/api/v2/workspaces/users/${memberUserId}/rewards`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`)
+    .set("Idempotency-Key", randomUUID())
+    .send({ permanentDiscountPercentage: 15 });
+
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.permanentDiscountPercentage, 15);
+
+  const after = await ds.getRepository(UserTenantEntity).findOneOrFail({
+    where: { id: ut.id }
+  });
+  const meta = after.membershipMetadata as Record<string, unknown>;
+  assert.deepEqual(meta.allowedRegionIds, [regionId]);
+  assert.deepEqual(meta.badges, ["VIP_MEMBER"]);
+  assert.equal(meta.customRetentionFlag, true);
+});
+
+test("GET workspaces/users/:id/booking-summary: member forbidden (403)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const memberToken = await otpSession(MEMBER_PHONE, "wsum-main");
+  const res = await request(app.getHttpServer())
+    .get(`/api/v2/workspaces/users/${memberUserId}/booking-summary`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${memberToken}`);
+
+  assert.equal(res.status, 403);
   assertErrorEnvelope(res);
 });
 
