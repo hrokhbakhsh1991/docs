@@ -7,18 +7,24 @@ import { getUsers, usersUseLiveApi, type WorkspaceUserDto } from "@/lib/services
 
 const TOUR_CREW_ROLES = new Set<string>([UserRole.Owner, UserRole.Admin, UserRole.Leader]);
 
-function isTourCrewMember(user: WorkspaceUserDto): boolean {
-  return user.status === "ACTIVE" && TOUR_CREW_ROLES.has(user.role);
+function isTourLeaderPickerEligible(user: WorkspaceUserDto): boolean {
+  if (user.status !== "ACTIVE") {
+    return false;
+  }
+  if (TOUR_CREW_ROLES.has(user.role)) {
+    return true;
+  }
+  return Boolean(user.isSelectableLeader);
 }
 
-/** Active workspace staff eligible as tour leaders (owner / admin / leader). */
+/** Active workspace members eligible as tour leaders (crew roles + selectable-leader micro-capability). */
 export function useWorkspaceTourCrewMembers() {
   const liveApi = usersUseLiveApi();
   return useQuery({
     queryKey: ["workspace-tour-crew-members"],
     queryFn: async () => {
       const res = await getUsers({ limit: 100, status: "ACTIVE" });
-      return res.data.filter(isTourCrewMember);
+      return res.data.filter(isTourLeaderPickerEligible);
     },
     enabled: liveApi,
     staleTime: 60_000,

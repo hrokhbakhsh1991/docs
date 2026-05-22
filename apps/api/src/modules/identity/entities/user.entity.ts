@@ -71,6 +71,12 @@ export class UserEntity {
   @Column({ type: "timestamptz", name: "last_login_at", nullable: true })
   lastLoginAt?: Date | null;
 
+  @Column({ type: "timestamptz", name: "last_active_at", nullable: true })
+  lastActiveAt?: Date | null;
+
+  @Column({ type: "varchar", name: "profile_image_url", length: 2048, nullable: true })
+  profileImageUrl?: string | null;
+
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;
 

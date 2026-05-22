@@ -17,8 +17,7 @@ import { UserRow } from "./user-row";
 
 const copy = USERS_ROUTE_COPY.list;
 
-/** Fixed row height for virtual windowing (labels cell is clamped in CSS). */
-const VIRTUAL_USER_ROW_HEIGHT_PX = 76;
+const VIRTUAL_USER_ROW_HEIGHT_PX = 88;
 
 function ariaSortForColumn(
   column: UserSortColumn,
@@ -41,7 +40,6 @@ type UserTableProps = {
   onOpenProfile: (userId: string) => void;
   onSelectedUserIdsChange: (userIds: Set<string>) => void;
   onManageRewards?: (user: WorkspaceUserDto) => void;
-  /** When true, more server pages can be fetched (infinite query). */
   hasMoreBelow?: boolean;
   onRequestLoadMore?: () => void;
 };
@@ -59,7 +57,7 @@ function UserTableBase({
   onSelectedUserIdsChange,
   onManageRewards,
   hasMoreBelow = false,
-  onRequestLoadMore
+  onRequestLoadMore,
 }: UserTableProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRequestedRef = useRef(false);
@@ -100,7 +98,7 @@ function UserTableBase({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => VIRTUAL_USER_ROW_HEIGHT_PX,
-    overscan: 14
+    overscan: 14,
   });
 
   const requestLoadMore = useCallback(() => {
@@ -164,24 +162,15 @@ function UserTableBase({
             </TableHeaderCell>
             <TableHeaderCell aria-sort={ariaSortForColumn("name", sortColumn, sortDir)}>
               <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("name")}>
-                Name {sortColumn === "name" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                {copy.columnUserProfile}{" "}
+                {sortColumn === "name" ? (sortDir === "asc" ? "↑" : "↓") : ""}
               </Button>
             </TableHeaderCell>
-            <TableHeaderCell aria-sort={ariaSortForColumn("email", sortColumn, sortDir)}>
-              <Button type="button" variant="ghost" size="sm" onClick={() => onToggleSort("email")}>
-                Email {sortColumn === "email" ? (sortDir === "asc" ? "↑" : "↓") : ""}
-              </Button>
+            <TableHeaderCell>{copy.columnRole}</TableHeaderCell>
+            <TableHeaderCell>{copy.columnFinancialsPrivileges}</TableHeaderCell>
+            <TableHeaderCell className={styles.actionsCell} aria-label={copy.columnActions}>
+              <span className={styles.actionsHeaderLabel}>{copy.columnActions}</span>
             </TableHeaderCell>
-            <TableHeaderCell>Phone</TableHeaderCell>
-            <TableHeaderCell>Phone verification</TableHeaderCell>
-            <TableHeaderCell>{copy.columnLabels}</TableHeaderCell>
-            <TableHeaderCell>Role</TableHeaderCell>
-            <TableHeaderCell>{copy.columnPermanentDiscount}</TableHeaderCell>
-            <TableHeaderCell>{copy.columnRewardBadges}</TableHeaderCell>
-            <TableHeaderCell>Status</TableHeaderCell>
-            <TableHeaderCell>Last Login</TableHeaderCell>
-            <TableHeaderCell>Joined At</TableHeaderCell>
-            <TableHeaderCell className={styles.actionsCell}>{copy.columnActions}</TableHeaderCell>
           </TableRow>
         </TableHead>
         <TableBody className={styles.virtualTbody} style={{ height: `${totalSize}px` }}>
@@ -203,7 +192,7 @@ function UserTableBase({
                 onManageRewards={onManageRewards}
                 trStyle={{
                   height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`
+                  transform: `translateY(${virtualRow.start}px)`,
                 }}
                 className={`${styles.directoryGridRow} ${styles.virtualDataRow}`}
               />

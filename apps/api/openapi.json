@@ -1080,6 +1080,52 @@
         ]
       }
     },
+    "/api/v2/invites/{token}/accept": {
+      "post": {
+        "operationId": "InvitesController_acceptInviteByUrlToken",
+        "summary": "Accept workspace invite by URL token",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite accepted and membership activated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Invite email does not match authenticated user"
+          },
+          "404": {
+            "description": "Invalid or unknown invite token"
+          }
+        },
+        "tags": [
+          "Invites"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/workspaces/{tenantId}/ownership-transfer": {
       "post": {
         "operationId": "WorkspaceOwnershipController_transferOwnership",
@@ -1193,6 +1239,136 @@
         },
         "tags": [
           "Identity"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/users/{userId}/role": {
+      "patch": {
+        "operationId": "WorkspaceUsersController_patchUserRole",
+        "summary": "Change workspace member role (owner only)",
+        "description": "Owner-only role update. Bumps `user_tenants.session_version` so the target user's JWT fails on the next request.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for owner role mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchWorkspaceUserRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Workspace Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/users/{userId}/rewards": {
+      "post": {
+        "operationId": "WorkspaceUsersController_postUserRewards",
+        "summary": "Set permanent discount and reward badges on a membership",
+        "description": "Merges `permanentDiscountPercentage` and `badges` into `membership_metadata` (0–100 discount). Bumps session version.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for membership rewards mutation.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostWorkspaceUserRewardsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Workspace Users"
         ],
         "security": [
           {
@@ -5760,6 +5936,20 @@
               "type": "string"
             }
           },
+          "permanentDiscountPercentage": {
+            "type": "number",
+            "example": 10,
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Permanent discount percent from `membership_metadata.permanentDiscountPercentage`."
+          },
+          "rewardBadges": {
+            "description": "Reward badge tags from `membership_metadata.badges` (e.g. VIP_MEMBER).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "assignedCapabilities": {
             "description": "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
             "type": "array",
@@ -5963,6 +6153,52 @@
         "required": [
           "capabilities"
         ]
+      },
+      "PatchWorkspaceUserRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "member",
+            "enum": [
+              "leader",
+              "admin",
+              "member",
+              "viewer"
+            ],
+            "description": "New tenant-scoped role. Owner-only route; bumps `session_version` so stale JWTs fail membership checks."
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "PostWorkspaceUserRewardsDto": {
+        "type": "object",
+        "properties": {
+          "permanentDiscountPercentage": {
+            "type": "number",
+            "example": 10,
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Permanent discount percentage for this workspace membership (0–100)."
+          },
+          "badges": {
+            "type": "array",
+            "example": [
+              "VIP_MEMBER",
+              "LEADER_BUDDY"
+            ],
+            "description": "Reward badge tags stored on membership metadata.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "VIP_MEMBER",
+                "LEADER_BUDDY"
+              ]
+            }
+          }
+        }
       },
       "PatchTenantModulesDto": {
         "type": "object",
@@ -6454,6 +6690,14 @@
             "items": {
               "$ref": "#/components/schemas/TripDetailsPhotoDto"
             }
+          },
+          "location": {
+            "description": "Optional structured geolocation for this itinerary day.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TripDetailsLocationDataDto"
+              }
+            ]
           }
         }
       },

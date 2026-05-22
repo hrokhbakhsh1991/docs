@@ -2,6 +2,7 @@ import {
   MODULE_CAPABILITIES,
   normalizeProductCapabilityId,
   parseMembershipMetadata,
+  partitionMembershipCapabilityTokens,
   resolveEffectiveCapabilities,
   tryParseWorkspaceRole,
   WORKSPACE_CAPABILITY_VALUES,
@@ -184,8 +185,11 @@ export function buildMembershipMetadataFromAssignment(
   const base =
     existing && typeof existing === "object" && !Array.isArray(existing) ? { ...existing } : {};
   const next: Record<string, unknown> = { ...base };
-  if (assignment.normalizedCapabilities.length > 0) {
-    next.capabilities = assignment.normalizedCapabilities;
+  const existingMeta = parseMembershipMetadata(base);
+  const { micro } = partitionMembershipCapabilityTokens(existingMeta.capabilities);
+  const mergedCapabilities = [...micro, ...assignment.normalizedCapabilities];
+  if (mergedCapabilities.length > 0) {
+    next.capabilities = mergedCapabilities;
   } else {
     delete next.capabilities;
   }

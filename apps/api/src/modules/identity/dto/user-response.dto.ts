@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { UserRole } from "../../../common/auth/user-role.enum";
 import { MembershipStatus } from "../membership-status.enum";
+import { PROFILE_GENDER_VALUES } from "../constants/profile-gender";
 
 export class UserResponseDto {
   @ApiProperty({ example: "11111111-1111-4111-8111-111111111111" })
@@ -29,12 +30,33 @@ export class UserResponseDto {
   status!: MembershipStatus;
 
   @ApiPropertyOptional({
+    nullable: true,
+    enum: PROFILE_GENDER_VALUES,
+    description: "Self-reported gender for avatar fallbacks when no profile image is set."
+  })
+  gender?: (typeof PROFILE_GENDER_VALUES)[number] | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: "Profile image URL when set on the user record."
+  })
+  profileImageUrl?: string | null;
+
+  @ApiPropertyOptional({
     type: String,
     format: "date-time",
     nullable: true,
     description: "Last successful login timestamp when available."
   })
   lastLoginAt?: Date | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: "date-time",
+    nullable: true,
+    description: "Last authenticated request timestamp (async middleware touch)."
+  })
+  lastActiveAt?: Date | null;
 
   @ApiPropertyOptional({
     type: String,
@@ -81,26 +103,27 @@ export class UserResponseDto {
   rewardBadges?: string[];
 
   @ApiPropertyOptional({
-    type: [String],
-    description: "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
-  })
-  assignedCapabilities?: string[];
-
-  @ApiPropertyOptional({
-    type: [String],
-    description: "Regional scope ids when `tour.regional.manage` is assigned.",
-  })
-  allowedRegionIds?: string[];
-
-  @ApiPropertyOptional({
-    type: [String],
-    description: "Resolved effective capabilities (role ∪ metadata ∪ labels ∪ tenant modules).",
-  })
-  effectiveCapabilities?: string[];
-
-  @ApiPropertyOptional({
     example: false,
     description: "True when the user account has a linked Telegram id (for in-app indicators)."
   })
   telegramLinked?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description:
+      "True when `capability.is_selectable_leader` is stored on membership metadata (tour leader picker eligibility)."
+  })
+  isSelectableLeader?: boolean;
+
+  @ApiPropertyOptional({
+    example: "1250000",
+    description: "Live member wallet balance in minor units from `account_balances` (`member:{userId}`)."
+  })
+  walletBalanceMinor?: string;
+
+  @ApiPropertyOptional({
+    example: "IRR",
+    description: "Currency code for `walletBalanceMinor`."
+  })
+  walletCurrency?: string;
 }

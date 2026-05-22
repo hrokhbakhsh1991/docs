@@ -8,6 +8,7 @@ import { WORKSPACE_REWARD_BADGE_IDS, type WorkspaceRewardBadgeId } from "@repo/s
 export type WorkspaceUserRewardsPayload = {
   permanentDiscountPercentage?: number;
   badges?: WorkspaceRewardBadgeId[];
+  isSelectableLeader?: boolean;
 };
 
 export { WORKSPACE_REWARD_BADGE_IDS };
@@ -39,6 +40,23 @@ export async function postWorkspaceUserRewards(
     bffBrowserClient.post<WorkspaceUserDto>(
       BFF.workspaceUserRewards(userId),
       payload,
+      { idempotencyKey: true }
+    );
+  if (!optimistic) {
+    return run();
+  }
+  return withOptimisticUsersRollback(run, optimistic);
+}
+
+export async function postWorkspaceUserSelectableLeader(
+  userId: string,
+  enabled: boolean,
+  optimistic?: OptimisticUsersRollbackHandlers<unknown, WorkspaceUserDto>
+): Promise<WorkspaceUserDto> {
+  const run = () =>
+    bffBrowserClient.post<WorkspaceUserDto>(
+      BFF.workspaceUserSelectableLeader(userId),
+      { enabled },
       { idempotencyKey: true }
     );
   if (!optimistic) {

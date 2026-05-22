@@ -85,6 +85,58 @@ function normalizeTripStylesInput(value: unknown): TripStyle[] | undefined {
     .filter((entry) => typeof entry === "string" && entry.length > 0) as TripStyle[];
 }
 
+/** Denali 5-zone location pin (Phase 7). Declared before nested DTOs that reference it (emitDecoratorMetadata order). */
+export class TripDetailsLocationDataDto {
+  @ApiPropertyOptional({ description: "Human-readable address or place label." })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  addressText?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null)
+  @IsNumber()
+  latitude?: number | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null)
+  @IsNumber()
+  longitude?: number | null;
+}
+
+export class TripDetailsPhotoDto {
+  @ApiPropertyOptional({ format: "uuid" })
+  @IsUUID("4")
+  id!: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  url!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  filename?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  size?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  uploadedAt?: string;
+}
+
 export class TripDetailsDayPlanDto {
   @ApiPropertyOptional({ example: 1 })
   @IsInt()
@@ -127,27 +179,6 @@ export class TripDetailsDayPlanDto {
   @ValidateNested()
   @Type(() => TripDetailsLocationDataDto)
   location?: TripDetailsLocationDataDto;
-}
-
-/** Denali 5-zone location pin (Phase 7). */
-export class TripDetailsLocationDataDto {
-  @ApiPropertyOptional({ description: "Human-readable address or place label." })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  addressText?: string;
-
-  @ApiPropertyOptional({ nullable: true })
-  @IsOptional()
-  @ValidateIf((_, v) => v != null)
-  @IsNumber()
-  latitude?: number | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  @IsOptional()
-  @ValidateIf((_, v) => v != null)
-  @IsNumber()
-  longitude?: number | null;
 }
 
 export class TripDetailsOverviewDto {
@@ -964,37 +995,6 @@ export class TripDetailsDenaliTransportDto {
   @IsInt()
   @Min(1)
   dongAmount?: number;
-}
-
-export class TripDetailsPhotoDto {
-  @ApiPropertyOptional({ format: "uuid" })
-  @IsUUID("4")
-  id!: string;
-
-  @ApiPropertyOptional()
-  @IsString()
-  url!: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  filename?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  size?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  mimeType?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  uploadedAt?: string;
 }
 
 export class TourTripDetailsDto {

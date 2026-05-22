@@ -61,6 +61,8 @@ export const API = {
     `/api/v2/workspaces/users/${encodeURIComponent(userId)}/role`,
   workspaceUserRewards: (userId: string) =>
     `/api/v2/workspaces/users/${encodeURIComponent(userId)}/rewards`,
+  workspaceUserSelectableLeader: (userId: string) =>
+    `/api/v2/workspaces/users/${encodeURIComponent(userId)}/selectable-leader`,
   workspaceSettingsModules: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/settings/modules`,
   settingsRegions: "/api/v2/settings/regions",
@@ -91,6 +93,8 @@ export const BFF = {
     `/api/workspaces/users/${encodeURIComponent(userId)}/role`,
   workspaceUserRewards: (userId: string) =>
     `/api/workspaces/users/${encodeURIComponent(userId)}/rewards`,
+  workspaceUserSelectableLeader: (userId: string) =>
+    `/api/workspaces/users/${encodeURIComponent(userId)}/selectable-leader`,
   bookings: "/api/bookings",
   registrations: "/api/registrations",
   registration: (id: string) => `/api/registrations/${encodeURIComponent(id)}`,

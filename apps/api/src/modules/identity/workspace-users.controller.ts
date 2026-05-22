@@ -32,6 +32,7 @@ import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { PatchWorkspaceUserRoleDto } from "./dto/patch-workspace-user-role.dto";
 import { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
+import { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { WorkspaceUsersService } from "./workspace-users.service";
 
@@ -106,5 +107,37 @@ export class WorkspaceUsersController {
     @Body() payload: PostWorkspaceUserRewardsDto
   ): Promise<UserResponseDto> {
     return this.workspaceUsersService.postUserRewards(userId, payload);
+  }
+
+  @Post(":userId/selectable-leader")
+  @HttpCode(200)
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for selectable-leader micro-capability toggle."
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/workspaces/users/:userId/selectable-leader",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context"
+  })
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
+  @ApiOperation({
+    summary: "Toggle tour leader picker eligibility (micro-capability)",
+    description:
+      "Sets `capability.is_selectable_leader` on membership metadata. Does not grant dashboard or CASL tour admin rights."
+  })
+  @ApiOkResponse({ type: UserResponseDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
+  @ApiNotFoundResponse({ description: "Membership not found in tenant" })
+  async postToggleSelectableLeader(
+    @Param("userId", new ParseUUIDPipe()) userId: string,
+    @Body() payload: PostToggleSelectableLeaderDto
+  ): Promise<UserResponseDto> {
+    return this.workspaceUsersService.toggleSelectableLeader(userId, payload);
   }
 }

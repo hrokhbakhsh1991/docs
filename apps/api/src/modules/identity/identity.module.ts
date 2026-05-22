@@ -31,6 +31,8 @@ import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { OutboxService } from "../outbox/outbox.service";
 import { OutboxModule } from "../outbox/outbox.module";
 import { AuthModule } from "../auth/auth.module";
+import { AccountBalanceEntity } from "../finance/ledger/entities/account-balance.entity";
+import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 
 @Module({
   imports: [
@@ -43,7 +45,8 @@ import { AuthModule } from "../auth/auth.module";
       UserTenantEntity,
       UserRoleAuditEntity,
       WorkspaceInviteEntity,
-      EmailVerificationTokenEntity
+      EmailVerificationTokenEntity,
+      AccountBalanceEntity
     ])
   ],
   controllers: [
@@ -60,6 +63,7 @@ import { AuthModule } from "../auth/auth.module";
     UsersTenantScopeRepository,
     UsersListRepository,
     UsersAccessService,
+    UsersMemberWalletBalancesService,
     UsersReadService,
     UsersWriteService,
     UsersAuditService,

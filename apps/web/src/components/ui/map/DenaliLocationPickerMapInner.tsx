@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
 
@@ -45,21 +45,6 @@ function MapClickHandler({
   return null;
 }
 
-/** Explicit Leaflet teardown when the map unmounts (e.g. modal close). */
-function MapDisposeOnUnmount() {
-  const map = useMap();
-  useEffect(() => {
-    return () => {
-      try {
-        map.remove();
-      } catch {
-        /* map may already be disposed by react-leaflet */
-      }
-    };
-  }, [map]);
-  return null;
-}
-
 function DenaliLocationPickerMapInnerComponent({
   value,
   onChange,
@@ -67,8 +52,19 @@ function DenaliLocationPickerMapInnerComponent({
   height = 220,
   "data-testid": testId,
 }: DenaliLocationPickerMapInnerProps) {
+  /** Defer MapContainer until the wrapper is in the DOM (modal portal + Strict Mode). */
+  const [mapReady, setMapReady] = useState(false);
+
   useEffect(() => {
     ensureLeafletDefaultIcon();
+  }, []);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMapReady(true));
+    return () => {
+      cancelAnimationFrame(frame);
+      setMapReady(false);
+    };
   }, []);
 
   const center: LatLngExpression = value
@@ -88,6 +84,7 @@ function DenaliLocationPickerMapInnerComponent({
         border: "1px solid var(--color-border-subtle, #e2e8f0)",
       }}
     >
+      {mapReady ? (
       <MapContainer
         center={center}
         zoom={zoom}
@@ -99,7 +96,6 @@ function DenaliLocationPickerMapInnerComponent({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapClickHandler onChange={onChange} />
-        <MapDisposeOnUnmount />
         {value ? (
           <>
             <Marker
@@ -116,6 +112,7 @@ function DenaliLocationPickerMapInnerComponent({
           </>
         ) : null}
       </MapContainer>
+      ) : null}
     </div>
   );
 }

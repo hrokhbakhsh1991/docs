@@ -14,6 +14,17 @@ import { USERS_ROUTE_COPY } from "./users-copy";
 
 const copy = USERS_ROUTE_COPY.list;
 
+function ExportCsvIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M12 16 7 11h3V4h4v7h3l-5 5Zm-7 4h14v2H5v-2Z"
+      />
+    </svg>
+  );
+}
+
 type UserFiltersProps = {
   searchQuery: string;
   roleFilter: RoleFilter;
@@ -33,14 +44,14 @@ export function UserFilters({
   onSearchChange,
   onRoleFilterChange,
   onExportCsv,
-  onInviteUser
+  onInviteUser,
 }: UserFiltersProps) {
   const ability = useAbility();
 
   return (
-    <div className={styles.toolbar} role="group" aria-label={copy.membersToolbarAriaLabel}>
-      <div className={styles.toolbarGrow}>
-        <FormField label={copy.searchLabel}>
+    <div className={styles.toolbarRow} role="group" aria-label={copy.membersToolbarAriaLabel}>
+      <div className={styles.toolbarFilters}>
+        <FormField label={copy.searchLabel} className={styles.toolbarSearchField}>
           <Input
             type="search"
             placeholder={copy.searchPlaceholder}
@@ -49,9 +60,7 @@ export function UserFilters({
             autoComplete="off"
           />
         </FormField>
-      </div>
-      <div className={styles.toolbarFixed}>
-        <FormField label={copy.filterRoleLabel}>
+        <FormField label={copy.filterRoleLabel} className={styles.toolbarRoleField}>
           <Select value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}>
             <option value="all">All</option>
             <option value="owner">Owner</option>
@@ -61,22 +70,29 @@ export function UserFilters({
             <option value="viewer">Viewer</option>
           </Select>
         </FormField>
+        {isRefreshing ? <small className={styles.toolbarRefreshing}>{copy.refreshingLabel}</small> : null}
       </div>
-      <div className={styles.toolbarAction}>
+      <div className={styles.toolbarActions}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={styles.toolbarIconButton}
+          aria-label={copy.exportCsvAriaLabel}
+          title={copy.exportCsvAriaLabel}
+          disabled={exportDisabled}
+          onClick={onExportCsv}
+        >
+          <ExportCsvIcon />
+        </Button>
         <Can<AppAbility> ability={ability} I={AbilityAction.Create} a="UserMembership">
           {(allowed) => (
             <Button type="button" variant="primary" onClick={onInviteUser} disabled={!allowed}>
-              Invite User
+              {copy.inviteUserButton}
             </Button>
           )}
         </Can>
       </div>
-      <div className={styles.toolbarAction}>
-        <Button type="button" variant="secondary" onClick={onExportCsv} disabled={exportDisabled}>
-          Export CSV
-        </Button>
-      </div>
-      {isRefreshing ? <small className={styles.toolbarMeta}>{copy.refreshingLabel}</small> : null}
     </div>
   );
 }

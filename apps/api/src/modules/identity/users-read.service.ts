@@ -4,6 +4,7 @@ import type { ListUsersResponseDto } from "./dto/list-users-response.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
 import { UsersListRepository } from "./users/repositories/users-list.repository";
 import { UsersAccessService } from "./users-access.service";
+import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 
 /**
  * **Services = orchestration + policy** (cursors, list shaping). Listing queries delegate to repositories (**persistence only**).
@@ -12,7 +13,8 @@ import { UsersAccessService } from "./users-access.service";
 export class UsersReadService {
   constructor(
     private readonly access: UsersAccessService,
-    private readonly usersListRepository: UsersListRepository
+    private readonly usersListRepository: UsersListRepository,
+    private readonly memberWalletBalances: UsersMemberWalletBalancesService
   ) {}
 
   async listUsers(query: ListUsersQueryDto): Promise<ListUsersResponseDto> {
@@ -40,25 +42,36 @@ export class UsersReadService {
     const hasNext = rows.length > limit;
     const pageRows = hasNext ? rows.slice(0, limit) : rows;
 
+    const walletByUserId = await this.memberWalletBalances.loadBalancesForUserIds(
+      tenantId,
+      pageRows.map((row) => row.id)
+    );
+
     const data: UserResponseDto[] = pageRows.map((row) =>
-      this.access.toUserResponseDto({
-        id: row.id,
-        full_name: row.full_name,
-        email: row.email,
-        phone: row.phone,
-        last_login_at: row.last_login_at,
-        is_email_verified: row.is_email_verified,
-        is_phone_verified: row.is_phone_verified,
-        role: row.role,
-        membership_status: row.membership_status,
-        invited_at: row.invited_at,
-        joined_at: row.joined_at,
-        suspended_at: row.suspended_at,
-        labels: row.labels,
-        membership_metadata: row.membership_metadata,
-        telegram_linked: row.telegram_linked,
-        profile_row_version: row.profile_row_version ?? undefined
-      })
+      this.access.toUserResponseDto(
+        {
+          id: row.id,
+          full_name: row.full_name,
+          email: row.email,
+          phone: row.phone,
+          gender: row.gender,
+          profile_image_url: row.profile_image_url,
+          last_login_at: row.last_login_at,
+          last_active_at: row.last_active_at,
+          is_email_verified: row.is_email_verified,
+          is_phone_verified: row.is_phone_verified,
+          role: row.role,
+          membership_status: row.membership_status,
+          invited_at: row.invited_at,
+          joined_at: row.joined_at,
+          suspended_at: row.suspended_at,
+          labels: row.labels,
+          membership_metadata: row.membership_metadata,
+          telegram_linked: row.telegram_linked,
+          profile_row_version: row.profile_row_version ?? undefined
+        },
+        { wallet: walletByUserId.get(row.id) }
+      )
     );
 
     const last = pageRows.at(-1);
@@ -79,7 +92,8 @@ export class UsersReadService {
     const { actorUserId } = this.access.resolveActorContextOrThrow();
     await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
     const user = await this.access.findTenantScopedUserOrThrow(tenantId, userId);
-    return this.access.toUserResponseDto(user);
+    const walletMap = await this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]);
+    return this.access.toUserResponseDto(user, { wallet: walletMap.get(userId) });
   }
 
   private encodeUsersCursor(input: { tenantId: string; createdAt: string; id: string }): string {

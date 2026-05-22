@@ -21,6 +21,9 @@ export type TenantUsersListRow = {
   email: string;
   phone: string | null;
   last_login_at: Date | null;
+  last_active_at: Date | null;
+  gender: string | null;
+  profile_image_url: string | null;
   is_email_verified: boolean;
   is_phone_verified: boolean;
   membership_id: string;

@@ -8,12 +8,14 @@ import { Badge, Checkbox, TableCell, TableRow } from "@tour/ui";
 
 import type { AuthUser } from "@/lib/auth/auth-context";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
-import type { UserRole } from "@/lib/auth/user-role";
+import type { UserRole as UserRoleType } from "@/lib/auth/user-role";
 
-import { normalizeRole, roleLabel, roleVariant, formatMembershipLabelDisplay } from "./users-page-logic";
+import { UserRowActionsMenu } from "./components/user-row-actions-menu";
+import { UserAvatar } from "./user-avatar";
+import { formatActiveAgoLabel, formatWalletBalanceMinor } from "./users-format";
+import { normalizeRole, roleLabel, roleVariant } from "./users-page-logic";
 import styles from "./users-page.module.css";
 import { USERS_ROUTE_COPY } from "./users-copy";
-import { UserActions } from "./user-actions";
 
 const copy = USERS_ROUTE_COPY.list;
 
@@ -22,48 +24,20 @@ type UserRowProps = {
   sessionUser: AuthUser | null;
   selected: boolean;
   activeRoleMutationUserId: string | null;
-  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
+  roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRoleType }, unknown>;
   onOpenProfile: (userId: string) => void;
   onToggleSelected: (userId: string, checked: boolean) => void;
   onManageRewards?: (user: WorkspaceUserDto) => void;
-  /** Optional layout for virtualized rows (absolute positioning / height). */
   trStyle?: CSSProperties;
   className?: string;
 };
-
-function statusBadgeVariant(status: string): "success" | "warning" | "danger" | "neutral" {
-  const normalized = status.trim().toUpperCase();
-  if (normalized === "ACTIVE") return "success";
-  if (normalized === "INVITED") return "warning";
-  if (normalized === "SUSPENDED") return "danger";
-  return "neutral";
-}
-
-function relativeTimeLabel(value?: string | null): string {
-  if (!value) return "—";
-  const target = new Date(value);
-  if (Number.isNaN(target.getTime())) return "—";
-  const seconds = Math.max(1, Math.floor((Date.now() - target.getTime()) / 1000));
-  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  if (seconds < 60) return formatter.format(-seconds, "second");
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return formatter.format(-minutes, "minute");
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return formatter.format(-hours, "hour");
-  const days = Math.floor(hours / 24);
-  if (days < 30) return formatter.format(-days, "day");
-  const months = Math.floor(days / 30);
-  if (months < 12) return formatter.format(-months, "month");
-  const years = Math.floor(months / 12);
-  return formatter.format(-years, "year");
-}
 
 function TelegramLinkedGlyph() {
   return (
     <svg
       className={styles.telegramLinkedIcon}
-      width={18}
-      height={18}
+      width={14}
+      height={14}
       viewBox="0 0 24 24"
       aria-hidden
       focusable="false"
@@ -76,6 +50,27 @@ function TelegramLinkedGlyph() {
   );
 }
 
+function PhoneVerifiedGlyph({ verified }: { verified: boolean }) {
+  if (!verified) return null;
+  return (
+    <span
+      className={styles.phoneVerifiedIcon}
+      role="img"
+      aria-label={copy.phoneVerifiedAria}
+      title={copy.phoneVerifiedAria}
+    >
+      <svg width={12} height={12} viewBox="0 0 24 24" aria-hidden focusable="false">
+        <path
+          fill="currentColor"
+          d="M9.55 16.45 5.1 12l1.4-1.41 3.05 3.05 7.05-7.05 1.41 1.41-8.46 8.45Z"
+        />
+      </svg>
+    </span>
+  );
+}
+
+const LOYALTY_CLUB_BADGES = new Set(["VIP_MEMBER", "GOLD_CLUB"]);
+
 function UserRowBase({
   row,
   sessionUser,
@@ -86,12 +81,20 @@ function UserRowBase({
   onToggleSelected,
   onManageRewards,
   trStyle,
-  className
+  className,
 }: UserRowProps) {
   const sessionUserId = sessionUser?.userId ?? "";
   const rowSelectable = normalizeRole(row.role) !== "owner" && row.id !== sessionUserId;
   const isSelfTarget = row.id === sessionUserId;
   const isOwnerTarget = normalizeRole(row.role) === "owner";
+  const phoneDisplay = row.phone?.trim() ? row.phone.trim() : null;
+  const hasDiscount =
+    row.permanentDiscountPercentage !== undefined && row.permanentDiscountPercentage !== null;
+  const clubBadges = (row.rewardBadges ?? []).filter((b) => LOYALTY_CLUB_BADGES.has(b));
+  const walletLabel = formatWalletBalanceMinor(row.walletBalanceMinor, row.walletCurrency);
+  const activeLabel =
+    formatActiveAgoLabel(row.lastActiveAt ?? row.lastLoginAt) ?? copy.neverActiveLabel;
+  const hasFinancials = walletLabel !== "0 IRR" || hasDiscount || clubBadges.length > 0;
 
   function handleRowPointerDown(event: MouseEvent<HTMLTableRowElement>) {
     const el = event.target as HTMLElement | null;
@@ -117,66 +120,59 @@ function UserRowBase({
           onChange={(event) => onToggleSelected(row.id, event.target.checked)}
         />
       </TableCell>
-      <TableCell>
-        <span className={styles.nameWithTelegram}>
-          <span>{row.name}</span>
-          {row.telegramLinked ? (
-            <span role="img" aria-label={copy.telegramLinkedAria} title={copy.telegramLinkedAria}>
-              <TelegramLinkedGlyph />
-            </span>
-          ) : null}
-        </span>
-      </TableCell>
-      <TableCell>{row.email}</TableCell>
-      <TableCell>{row.phone?.trim() ? row.phone : "—"}</TableCell>
-      <TableCell>
-        <Badge variant={row.isPhoneVerified ? "success" : "neutral"}>
-          {row.isPhoneVerified ? "Verified" : "Unverified"}
-        </Badge>
-      </TableCell>
-      <TableCell className={styles.labelsCell}>
-        {row.labels && row.labels.length > 0 ? (
-          <div className={styles.labelBadges}>
-            {row.labels.map((label) => (
-              <Badge key={label} variant="neutral">
-                {formatMembershipLabelDisplay(label)}
-              </Badge>
-            ))}
+      <TableCell className={styles.userCell}>
+        <div className={styles.userProfileStack}>
+          <UserAvatar user={row} />
+          <div className={styles.userProfileText}>
+            <div className={styles.userCellPrimary}>
+              <span className={styles.userCellName}>{row.name}</span>
+              {row.telegramLinked ? (
+                <span role="img" aria-label={copy.telegramLinkedAria} title={copy.telegramLinkedAria}>
+                  <TelegramLinkedGlyph />
+                </span>
+              ) : null}
+            </div>
+            <div className={styles.userCellSecondary}>{row.email}</div>
+            <div className={styles.userCellSecondary}>
+              {phoneDisplay ? (
+                <>
+                  <span className={styles.userCellPhone}>{phoneDisplay}</span>
+                  <PhoneVerifiedGlyph verified={Boolean(row.isPhoneVerified)} />
+                </>
+              ) : (
+                <span className={styles.userCellMuted}>—</span>
+              )}
+            </div>
+            <div className={styles.userActiveHint}>{activeLabel}</div>
           </div>
-        ) : (
-          copy.emptyLabelsCell
-        )}
+        </div>
       </TableCell>
-      <TableCell>
+      <TableCell className={styles.roleCell}>
         <Badge className={styles.roleBadge} variant={roleVariant(row.role)}>
           {roleLabel(row.role)}
         </Badge>
       </TableCell>
-      <TableCell className={styles.discountCell}>
-        {row.permanentDiscountPercentage !== undefined && row.permanentDiscountPercentage !== null
-          ? `${row.permanentDiscountPercentage}%`
-          : copy.emptyDiscountCell}
-      </TableCell>
-      <TableCell className={styles.labelsCell}>
-        {row.rewardBadges && row.rewardBadges.length > 0 ? (
-          <div className={styles.labelBadges}>
-            {row.rewardBadges.map((badge) => (
+      <TableCell className={styles.financialsCell}>
+        {hasFinancials ? (
+          <div className={styles.financialsTags}>
+            <span className={styles.walletBalanceLabel}>{walletLabel}</span>
+            {hasDiscount ? (
+              <Badge variant="neutral" className={styles.privilegeDiscountTag}>
+                {row.permanentDiscountPercentage}%
+              </Badge>
+            ) : null}
+            {clubBadges.map((badge) => (
               <Badge key={badge} variant="neutral" className={styles.rewardBadgeHighContrast}>
                 {badge.replace(/_/g, " ")}
               </Badge>
             ))}
           </div>
         ) : (
-          copy.emptyRewardBadgesCell
+          <span className={styles.walletBalanceLabel}>{walletLabel}</span>
         )}
       </TableCell>
-      <TableCell>
-        <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
-      </TableCell>
-      <TableCell>{relativeTimeLabel(row.lastLoginAt)}</TableCell>
-      <TableCell>{relativeTimeLabel(row.joinedAt)}</TableCell>
       <TableCell className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
-        <UserActions
+        <UserRowActionsMenu
           rowId={row.id}
           rowName={row.name}
           rowRole={row.role}
@@ -186,7 +182,6 @@ function UserRowBase({
           sessionUser={sessionUser}
           activeRoleMutationUserId={activeRoleMutationUserId}
           roleMutation={roleMutation}
-          onOpenProfile={() => onOpenProfile(row.id)}
           onManageRewards={onManageRewards ? () => onManageRewards(row) : undefined}
         />
       </TableCell>

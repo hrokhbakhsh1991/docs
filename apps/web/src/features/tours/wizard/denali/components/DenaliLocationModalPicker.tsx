@@ -46,12 +46,21 @@ export function DenaliLocationModalPicker({
   const t = useTranslations("tours.denali");
   const { isSyncing } = useDenaliWizardSync();
   const [mapValue, setMapValue] = useState<DenaliMapCoordinates>(null);
+  const [mapSessionKey, setMapSessionKey] = useState(0);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!open) {
+      setMapReady(false);
       return;
     }
     setMapValue(toMapCoordinates(value));
+    setMapSessionKey((key) => key + 1);
+    const frame = requestAnimationFrame(() => setMapReady(true));
+    return () => {
+      cancelAnimationFrame(frame);
+      setMapReady(false);
+    };
   }, [open, value.latitude, value.longitude]);
 
   const handleConfirm = () => {
@@ -79,14 +88,17 @@ export function DenaliLocationModalPicker({
         </Button>
       }
     >
-      {open ? (
+      {open && mapReady ? (
         <DenaliLocationPickerMap
+          key={`denali-location-map-${testIdKey}-${mapSessionKey}`}
           value={mapValue}
           onChange={(coords) => setMapValue(coords)}
           height={360}
           data-testid={`denali-location-${testIdKey}-modal-map`}
         />
-      ) : null}
+      ) : (
+        <div aria-hidden style={{ height: 360, width: "100%" }} />
+      )}
     </Modal>
   );
 }

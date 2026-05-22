@@ -4,6 +4,7 @@ import { Type } from "class-transformer";
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -36,4 +37,11 @@ export class PostWorkspaceUserRewardsDto {
   @ArrayUnique()
   @IsIn([...WORKSPACE_REWARD_BADGE_IDS], { each: true })
   badges?: string[];
+
+  @ApiPropertyOptional({
+    description: "Tour leader picker eligibility (`capability.is_selectable_leader` micro-capability)."
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSelectableLeader?: boolean;
 }

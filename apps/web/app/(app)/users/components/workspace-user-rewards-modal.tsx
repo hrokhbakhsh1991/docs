@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Button, FormField, Input, Modal } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, Modal, Select } from "@tour/ui";
+import {
+  WORKSPACE_LOYALTY_CLUB_BADGE_IDS,
+  WORKSPACE_REWARD_BADGE_IDS,
+  type WorkspaceLoyaltyClubBadgeId,
+  type WorkspaceRewardBadgeId
+} from "@repo/shared";
 
 import { ApiError } from "@/lib/api-client";
-import {
-  WORKSPACE_REWARD_BADGE_IDS,
-  postWorkspaceUserRewards,
-  type WorkspaceRewardBadgeId
-} from "@/shared/api/workspace-users.client";
+import { postWorkspaceUserRewards } from "@/shared/api/workspace-users.client";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
 import { useAppToast } from "@/lib/use-app-toast";
 
@@ -18,11 +20,23 @@ import styles from "../users-page.module.css";
 
 const copy = USERS_ROUTE_COPY.list.rewardsModal;
 
+const LOYALTY_SET = new Set<string>(WORKSPACE_LOYALTY_CLUB_BADGE_IDS);
+const NON_LOYALTY_BADGES = WORKSPACE_REWARD_BADGE_IDS.filter((id) => !LOYALTY_SET.has(id));
+
 function formatBadgeLabel(id: string): string {
   return id
     .split("_")
     .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
     .join(" ");
+}
+
+function loyaltyFromUser(user: WorkspaceUserDto): "" | WorkspaceLoyaltyClubBadgeId {
+  for (const badge of user.rewardBadges ?? []) {
+    if (LOYALTY_SET.has(badge)) {
+      return badge as WorkspaceLoyaltyClubBadgeId;
+    }
+  }
+  return "";
 }
 
 export type WorkspaceUserRewardsModalProps = {
@@ -40,7 +54,8 @@ export function WorkspaceUserRewardsModal({
 }: WorkspaceUserRewardsModalProps): JSX.Element | null {
   const toast = useAppToast();
   const [discountInput, setDiscountInput] = useState("");
-  const [selectedBadges, setSelectedBadges] = useState<Set<WorkspaceRewardBadgeId>>(new Set());
+  const [loyaltyClub, setLoyaltyClub] = useState<"" | WorkspaceLoyaltyClubBadgeId>("");
+  const [selectableLeader, setSelectableLeader] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -53,7 +68,8 @@ export function WorkspaceUserRewardsModal({
         ? String(user.permanentDiscountPercentage)
         : "";
     setDiscountInput(discount);
-    setSelectedBadges(new Set((user.rewardBadges ?? []) as WorkspaceRewardBadgeId[]));
+    setLoyaltyClub(loyaltyFromUser(user));
+    setSelectableLeader(Boolean(user.isSelectableLeader));
     setErrorMessage(null);
     setIsSubmitting(false);
   }, [open, user]);
@@ -64,18 +80,6 @@ export function WorkspaceUserRewardsModal({
     if (isSubmitting) return;
     onClose();
   }, [isSubmitting, onClose]);
-
-  const toggleBadge = useCallback((badge: WorkspaceRewardBadgeId) => {
-    setSelectedBadges((prev) => {
-      const next = new Set(prev);
-      if (next.has(badge)) {
-        next.delete(badge);
-      } else {
-        next.add(badge);
-      }
-      return next;
-    });
-  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!user || !canSubmit) return;
@@ -90,11 +94,22 @@ export function WorkspaceUserRewardsModal({
       }
       permanentDiscountPercentage = parsed;
     }
+
+    const preservedNonLoyalty = (user.rewardBadges ?? []).filter(
+      (b): b is WorkspaceRewardBadgeId =>
+        (NON_LOYALTY_BADGES as readonly string[]).includes(b)
+    );
+    const badges: WorkspaceRewardBadgeId[] = [...preservedNonLoyalty];
+    if (loyaltyClub) {
+      badges.push(loyaltyClub);
+    }
+
     setIsSubmitting(true);
     try {
       await postWorkspaceUserRewards(user.id, {
         permanentDiscountPercentage,
-        badges: [...selectedBadges]
+        badges,
+        isSelectableLeader: selectableLeader
       });
       toast.success({ message: copy.savedToast });
       await onSaved?.();
@@ -107,7 +122,7 @@ export function WorkspaceUserRewardsModal({
     } finally {
       setIsSubmitting(false);
     }
-  }, [canSubmit, discountInput, onClose, onSaved, selectedBadges, toast, user]);
+  }, [canSubmit, discountInput, loyaltyClub, onClose, onSaved, selectableLeader, toast, user]);
 
   if (!user) {
     return null;
@@ -146,31 +161,30 @@ export function WorkspaceUserRewardsModal({
             onChange={(e) => setDiscountInput(e.target.value)}
           />
         </FormField>
-        <fieldset className={styles.rewardsBadgeFieldset}>
-          <legend className={styles.rewardsBadgeLegend}>{copy.badgesLegend}</legend>
-          <div className={styles.rewardsBadgeToggles}>
-            {WORKSPACE_REWARD_BADGE_IDS.map((badge) => {
-              const active = selectedBadges.has(badge);
-              return (
-                <button
-                  key={badge}
-                  type="button"
-                  className={[
-                    styles.rewardBadgeToggle,
-                    active ? styles.rewardBadgeToggleActive : ""
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-pressed={active}
-                  disabled={isSubmitting}
-                  onClick={() => toggleBadge(badge)}
-                >
-                  {formatBadgeLabel(badge)}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+        <FormField label={copy.selectableLeaderLabel} description={copy.selectableLeaderHint}>
+          <Checkbox
+            label={copy.selectableLeaderLabel}
+            checked={selectableLeader}
+            disabled={isSubmitting}
+            onChange={(e) => setSelectableLeader(e.target.checked)}
+          />
+        </FormField>
+        <FormField label={copy.loyaltyClubLabel} description={copy.loyaltyClubHint}>
+          <Select
+            value={loyaltyClub}
+            disabled={isSubmitting}
+            onChange={(e) =>
+              setLoyaltyClub(e.target.value as "" | WorkspaceLoyaltyClubBadgeId)
+            }
+          >
+            <option value="">{copy.loyaltyClubNone}</option>
+            {WORKSPACE_LOYALTY_CLUB_BADGE_IDS.map((tier) => (
+              <option key={tier} value={tier}>
+                {formatBadgeLabel(tier)}
+              </option>
+            ))}
+          </Select>
+        </FormField>
         {errorMessage ? (
           <p className={styles.rewardsModalError} role="alert">
             {errorMessage}

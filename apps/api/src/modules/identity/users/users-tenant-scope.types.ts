@@ -6,12 +6,15 @@ export type TenantScopedUserRow = {
   full_name: string | null;
   email: string;
   phone: string | null;
+  gender?: string | null;
+  profile_image_url?: string | null;
   is_email_verified: boolean;
   is_phone_verified: boolean;
   role: string;
   membership_status: MembershipStatus;
   profile_row_version?: number;
   last_login_at?: Date | null;
+  last_active_at?: Date | null;
   invited_at?: Date | null;
   joined_at?: Date | null;
   suspended_at?: Date | null;

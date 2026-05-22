@@ -197,6 +197,20 @@ export class AuthMiddleware implements NestMiddleware {
     return undefined;
   }
 
+  /** Fire-and-forget vitality timestamp — must not block request handling. */
+  private touchUserLastActiveAtAsync(userId: string): void {
+    void this.dataSource
+      .query(`UPDATE users SET last_active_at = now() WHERE id = $1 AND deleted_at IS NULL`, [
+        userId
+      ])
+      .catch((err: unknown) => {
+        this.loggerService.debug("AuthMiddleware: last_active_at touch skipped", {
+          userId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      });
+  }
+
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     try {
       if (
@@ -332,6 +346,8 @@ export class AuthMiddleware implements NestMiddleware {
       } finally {
         await queryRunner.release();
       }
+
+      this.touchUserLastActiveAtAsync(userId);
 
       return next();
     } catch (error) {

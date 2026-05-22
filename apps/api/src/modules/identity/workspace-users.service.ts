@@ -7,7 +7,9 @@ import {
 } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import {
+  membershipHasSelectableLeader,
   parseMembershipMetadata,
+  setSelectableLeaderCapability,
   WORKSPACE_REWARD_BADGE_IDS,
   type WorkspaceRewardBadgeId
 } from "@repo/shared";
@@ -20,6 +22,7 @@ import {
   evaluateGeneralMembershipRoleChange
 } from "../../common/rbac/workspace-membership-rbac.policy";
 import { tenantScopedResourceNotFoundError } from "../../common/errors/error-response-builders";
+import type { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
 import type { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
 import { UserRoleAuditEntity } from "./entities/user-role-audit.entity";
@@ -162,12 +165,14 @@ export class WorkspaceUsersService {
 
     if (
       payload.permanentDiscountPercentage === undefined &&
-      payload.badges === undefined
+      payload.badges === undefined &&
+      payload.isSelectableLeader === undefined
     ) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_ERROR",
-          message: "At least one of permanentDiscountPercentage or badges is required"
+          message:
+            "At least one of permanentDiscountPercentage, badges, or isSelectableLeader is required"
         }
       });
     }
@@ -202,10 +207,21 @@ export class WorkspaceUsersService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    const nextMetadata = mergeMembershipRewardsMetadata(membership.membershipMetadata, {
+    const existingMeta = parseMembershipMetadata(membership.membershipMetadata);
+    let nextMetadata = mergeMembershipRewardsMetadata(membership.membershipMetadata, {
       permanentDiscountPercentage: normalizedDiscount,
       badges: normalizedBadges
     });
+    if (payload.isSelectableLeader !== undefined) {
+      const nextCapabilities = setSelectableLeaderCapability(
+        existingMeta.capabilities,
+        payload.isSelectableLeader
+      );
+      nextMetadata = {
+        ...nextMetadata,
+        capabilities: nextCapabilities
+      };
+    }
 
     const actorLabelRecord = await this.access.users.findOne({
       where: { id: actorUserId, deletedAt: IsNull() }
@@ -230,7 +246,75 @@ export class WorkspaceUsersService {
           metadata: {
             permanent_discount_percentage:
               normalizedDiscount ?? parseMembershipMetadata(nextMetadata).permanentDiscountPercentage,
-            badges: normalizedBadges ?? parseMembershipMetadata(nextMetadata).badges ?? []
+            badges: normalizedBadges ?? parseMembershipMetadata(nextMetadata).badges ?? [],
+            selectable_leader:
+              payload.isSelectableLeader ??
+              membershipHasSelectableLeader(parseMembershipMetadata(nextMetadata))
+          },
+          clientIp: this.requestContextService.tryGetClientIp(),
+          requestId: this.requestContextService.tryGetRequestId()
+        },
+        manager
+      );
+    });
+
+    return this.access.toUserResponseDto(
+      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+    );
+  }
+
+  async toggleSelectableLeader(
+    userId: string,
+    payload: PostToggleSelectableLeaderDto
+  ): Promise<UserResponseDto> {
+    const tenantId = this.access.resolveTenantIdOrThrow();
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+
+    const membership = await this.access.memberships.findOne({
+      where: { tenantId, userId, deletedAt: IsNull() }
+    });
+    if (!membership) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+
+    const existingMeta = parseMembershipMetadata(membership.membershipMetadata);
+    const nextCapabilities = setSelectableLeaderCapability(
+      existingMeta.capabilities,
+      payload.enabled
+    );
+    const nextMetadata: Record<string, unknown> = {
+      ...(membership.membershipMetadata &&
+      typeof membership.membershipMetadata === "object" &&
+      !Array.isArray(membership.membershipMetadata)
+        ? { ...membership.membershipMetadata }
+        : {}),
+      capabilities: nextCapabilities
+    };
+
+    const actorLabelRecord = await this.access.users.findOne({
+      where: { id: actorUserId, deletedAt: IsNull() }
+    });
+    const actorLabel = actorLabelRecord?.email ?? actorUserId;
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.query(
+        `UPDATE user_tenants SET membership_metadata = $1::jsonb, session_version = session_version + 1, updated_at = now()
+         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
+        [JSON.stringify(nextMetadata), membership.id, tenantId]
+      );
+      await this.tenantAuditEventsService.append(
+        {
+          tenantId,
+          actorUserId,
+          actor: actorLabel,
+          userId,
+          action: TenantAuditAction.MEMBERSHIP_CAPABILITIES_CHANGED,
+          resourceType: "user_membership",
+          resourceId: membership.id,
+          metadata: {
+            selectable_leader: payload.enabled,
+            capabilities: nextCapabilities
           },
           clientIp: this.requestContextService.tryGetClientIp(),
           requestId: this.requestContextService.tryGetRequestId()

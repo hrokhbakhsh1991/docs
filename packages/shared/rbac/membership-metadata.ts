@@ -1,7 +1,11 @@
 /**
  * `user_tenants.membership_metadata` shape (Phase 6 — regional scoping; Phase 14.6 — rewards).
  */
-export const WORKSPACE_REWARD_BADGE_IDS = ["VIP_MEMBER", "LEADER_BUDDY"] as const;
+export const WORKSPACE_REWARD_BADGE_IDS = ["VIP_MEMBER", "GOLD_CLUB", "LEADER_BUDDY"] as const;
+
+/** Single-select loyalty club tiers shown in the users rewards console. */
+export const WORKSPACE_LOYALTY_CLUB_BADGE_IDS = ["VIP_MEMBER", "GOLD_CLUB"] as const;
+export type WorkspaceLoyaltyClubBadgeId = (typeof WORKSPACE_LOYALTY_CLUB_BADGE_IDS)[number];
 export type WorkspaceRewardBadgeId = (typeof WORKSPACE_REWARD_BADGE_IDS)[number];
 
 export type MembershipMetadata = {

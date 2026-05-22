@@ -1,5 +1,6 @@
 export * from "./workspace-roles";
 export * from "./capabilities";
+export * from "./micro-capabilities";
 export * from "./capability-registry";
 export * from "./membership-metadata";
 export * from "./tour-trip-details-sensitive-paths";

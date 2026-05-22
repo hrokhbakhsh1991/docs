@@ -27,10 +27,13 @@ export type WorkspaceUserDto = {
   labels?: string[];
   permanentDiscountPercentage?: number;
   rewardBadges?: string[];
-  assignedCapabilities?: string[];
-  allowedRegionIds?: string[];
-  effectiveCapabilities?: string[];
+  isSelectableLeader?: boolean;
   telegramLinked?: boolean;
+  gender?: "female" | "male" | "non_binary" | "prefer_not_to_say" | null;
+  profileImageUrl?: string | null;
+  lastActiveAt?: string | null;
+  walletBalanceMinor?: string;
+  walletCurrency?: string;
 };
 
 export type PatchMembershipCapabilitiesPayload = {
