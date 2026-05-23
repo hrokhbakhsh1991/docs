@@ -2,7 +2,11 @@ import { GeocodingProviderError, isProviderFailStatus } from "./geocoding-provid
 import { searchIranMountainLandmarks } from "./iran-mountain-landmarks";
 import { fetchMapIrSearch } from "./map-ir";
 import { fetchNeshanSearch } from "./neshan";
-import { fetchNominatimSearch, type GeocodingSearchResult } from "./nominatim";
+import {
+  fetchNominatimReverse,
+  fetchNominatimSearch,
+  type GeocodingSearchResult,
+} from "./nominatim";
 
 export const GEOCODING_SEARCH_LIMIT = 6;
 export const GEOCODING_FALLBACK_LOG = "GEOCODING_PROVIDER_FAIL_SWITCHING_TO_FALLBACK";
@@ -105,4 +109,12 @@ export async function searchGeocodingWithFallback(
   }
 
   return mergeGeocodingResults(local, remote, limit);
+}
+
+/**
+ * Reverse geocoding: gets human address from coordinates.
+ */
+export async function reverseGeocode(lat: number, lon: number): Promise<string | null> {
+  // We can add MapIr/Neshan reverse later if needed; Nominatim is the current standard.
+  return fetchNominatimReverse(lat, lon);
 }

@@ -16,6 +16,8 @@ import {
   type UpdateEquipmentPayload,
 } from "@/lib/settings-equipment.client";
 
+export type { SettingsEquipmentDto };
+
 function sortEquipmentBySortOrder(data: SettingsEquipmentDto[]): SettingsEquipmentDto[] {
   return [...data].sort(
     (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),

@@ -6,6 +6,12 @@ import {
   OutboxEventEntity,
   OutboxEventStatus
 } from "../../src/modules/outbox/entities/outbox-event.entity";
+import {
+  RegistrationEntity,
+  RegistrationPaymentStatus,
+  RegistrationStatus
+} from "../../src/modules/registrations/registration.entity";
+import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
 
 function buildPendingRow(id: string): OutboxEventEntity {
   const row = new OutboxEventEntity();
@@ -315,4 +321,179 @@ test("processor marks FAILED when retries reach threshold", async () => {
 
   assert.equal(row.retryCount, 5);
   assert.equal(row.status, OutboxEventStatus.FAILED);
+});
+
+function buildProcessorHarness(input: {
+  row: OutboxEventEntity;
+  manager: Record<string, unknown>;
+}): { processor: OutboxProcessor; metrics: OutboxMetricsService; auditDeliveries: { count: number } } {
+  const qb = {
+    where() {
+      return this;
+    },
+    andWhere() {
+      return this;
+    },
+    orderBy() {
+      return this;
+    },
+    take() {
+      return this;
+    },
+    setLock() {
+      return this;
+    },
+    setOnLocked() {
+      return this;
+    },
+    async getMany() {
+      return [input.row];
+    }
+  };
+
+  const manager = {
+    async count() {
+      return 1;
+    },
+    async query() {
+      return [];
+    },
+    createQueryBuilder() {
+      return qb;
+    },
+    ...input.manager
+  };
+
+  const dataSource = {
+    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+      return fn(manager);
+    }
+  };
+
+  const auditDeliveries = { count: 0 };
+  const auditService = {
+    deliverFromOutbox(): void {
+      auditDeliveries.count += 1;
+    }
+  };
+
+  const emailService = {
+    async sendVerificationEmailOutboundStrict(): Promise<void> {}
+  };
+
+  const configService = {
+    getOutboxProcessorEnabled(): boolean {
+      return true;
+    },
+    getOutboxPollIntervalMs(): number {
+      return 5000;
+    },
+    getOutboxMaxRetry(): number {
+      return 5;
+    },
+    getOutboxBatchSize(): number {
+      return 50;
+    }
+  };
+
+  const metrics = new OutboxMetricsService();
+  const processor = new OutboxProcessor(
+    dataSource as never,
+    auditService as never,
+    emailService as never,
+    configService as never,
+    metrics,
+    {
+      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+        fn(manager)
+    } as never
+  );
+
+  return { processor, metrics, auditDeliveries };
+}
+
+test("registration.accepted Pending to Accepted increments SMS gate metric", async () => {
+  const row = buildPendingRow("44444444-4444-4444-8444-444444444444");
+  row.payload = {
+    entityId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    metadata: {
+      previousStatus: RegistrationStatus.PENDING,
+      newStatus: RegistrationStatus.ACCEPTED
+    }
+  };
+
+  const registration = Object.assign(new RegistrationEntity(), {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    tenantId: row.tenantId,
+    tourId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    participantContactPhone: "+989120000001",
+    paymentStatus: RegistrationPaymentStatus.NOT_PAID
+  });
+  const tour = Object.assign(new TourEntity(), {
+    id: registration.tourId,
+    tenantId: row.tenantId,
+    costContext: { requiresPayment: true }
+  });
+
+  const saved: OutboxEventEntity[] = [];
+  const { processor, metrics, auditDeliveries } = buildProcessorHarness({
+    row,
+    manager: {
+      async findOne(entity: unknown, _opts?: { where?: { id?: string } }) {
+        if (entity === OutboxEventEntity) {
+          return row;
+        }
+        if (entity === RegistrationEntity) {
+          return registration;
+        }
+        if (entity === TourEntity) {
+          return tour;
+        }
+        return null;
+      },
+      async save(entity: OutboxEventEntity) {
+        saved.push(entity);
+        return entity;
+      }
+    }
+  });
+
+  await processor.processBatch();
+
+  assert.equal(auditDeliveries.count, 1);
+  assert.equal(saved[0]?.status, OutboxEventStatus.DELIVERED);
+  assert.equal(metrics.getSnapshot().registration_accepted_sms_gate_dispatched_total, 1);
+});
+
+test("registration.accepted without Pending previousStatus skips SMS gate metric", async () => {
+  const row = buildPendingRow("55555555-5555-4555-8555-555555555555");
+  row.payload = {
+    entityId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    metadata: {
+      previousStatus: null,
+      newStatus: RegistrationStatus.ACCEPTED
+    }
+  };
+
+  const saved: OutboxEventEntity[] = [];
+  const { processor, metrics, auditDeliveries } = buildProcessorHarness({
+    row,
+    manager: {
+      async findOne(entity: unknown) {
+        if (entity === OutboxEventEntity) {
+          return row;
+        }
+        return null;
+      },
+      async save(entity: OutboxEventEntity) {
+        saved.push(entity);
+        return entity;
+      }
+    }
+  });
+
+  await processor.processBatch();
+
+  assert.equal(auditDeliveries.count, 1);
+  assert.equal(metrics.getSnapshot().registration_accepted_sms_gate_dispatched_total, 0);
 });

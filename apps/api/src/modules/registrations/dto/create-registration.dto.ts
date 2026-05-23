@@ -1,4 +1,4 @@
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   IsEnum,
   IsInt,
@@ -9,9 +9,12 @@ import {
   Matches,
   MaxLength,
   Min,
-  ValidateIf
+  ValidateIf,
+  ValidateNested
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+import { ParticipantMetadataDto } from "./participant-metadata.dto";
 
 export enum RegistrationTransportModeDto {
   SELF_VEHICLE = "self_vehicle",
@@ -115,6 +118,16 @@ export class CreateRegistrationDto {
   @IsString()
   @MaxLength(2000)
   participantNote?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Optional traveler metadata (e.g. past peak climbs for Peak-Experience auto-approval).",
+    type: ParticipantMetadataDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ParticipantMetadataDto)
+  participantMetadata?: ParticipantMetadataDto;
 
   @ApiPropertyOptional({
     description:

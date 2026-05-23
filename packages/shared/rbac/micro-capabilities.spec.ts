@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  isEligibleTourLeaderMembership,
   membershipHasSelectableLeader,
   SELECTABLE_LEADER_CAPABILITY,
   setSelectableLeaderCapability,
@@ -26,6 +27,18 @@ test("setSelectableLeaderCapability toggles token without dropping product caps"
 
   const off = setSelectableLeaderCapability(on, false);
   assert.deepEqual(off, ["tour.regional.manage"]);
+});
+
+test("isEligibleTourLeaderMembership: crew roles and selectable leader capability", () => {
+  assert.equal(isEligibleTourLeaderMembership("owner", {}), true);
+  assert.equal(isEligibleTourLeaderMembership("admin", {}), true);
+  assert.equal(isEligibleTourLeaderMembership("leader", {}), true);
+  assert.equal(isEligibleTourLeaderMembership("member", {}), false);
+  assert.equal(
+    isEligibleTourLeaderMembership("member", { capabilities: [SELECTABLE_LEADER_CAPABILITY] }),
+    true,
+  );
+  assert.equal(isEligibleTourLeaderMembership("viewer", {}), false);
 });
 
 test("membershipHasSelectableLeader reads metadata", () => {

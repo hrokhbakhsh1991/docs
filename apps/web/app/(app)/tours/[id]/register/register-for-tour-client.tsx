@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -23,6 +23,7 @@ import {
 } from "@tour/ui";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
+import { REGISTER_FOR_TOUR_COPY } from "./register-for-tour-copy";
 import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { registrationNeedsPaymentUi } from "@/lib/payment-flow";
@@ -30,48 +31,64 @@ import { bookingKeys, registrationKeys, tourKeys } from "@/lib/query-keys";
 import { publicRegisterTour, registrationsUseLiveApi } from "@/lib/services/registrations.service";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
 import { useAppToast } from "@/lib/use-app-toast";
+import {
+  tourShowsPeakExperienceIntake,
+  USER_PAST_PEAKS_OPTIONS,
+} from "@/features/tours/domain/peak-experience";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 
 import registerStyles from "./register-for-tour.module.css";
 
 /** Aligned with `CreateRegistrationDto.participantContactPhone` (`@Matches` in apps/api). */
 const PARTICIPANT_PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}$/;
+const transportCopy = REGISTER_FOR_TOUR_COPY.transport;
+const peaksCopy = REGISTER_FOR_TOUR_COPY.peaks;
+const validationCopy = REGISTER_FOR_TOUR_COPY.validation;
 
-const IntakeSchema = z.object({
-  participantFullName: z.string().trim().min(1, "Full name is required.").max(255),
-  participantContactPhone: z
-    .string()
-    .trim()
-    .min(1, "Phone number is required.")
-    .max(64, "Phone number is too long.")
-    .regex(
-      PARTICIPANT_PHONE_REGEX,
-      "Use 7–20 digits (optional + at the start). Spaces, dashes, and parentheses are allowed.",
-    ),
-  /** API: `self_vehicle` (product wording: personal / own vehicle). */
-  transportMode: z.enum(["self_vehicle", "group_vehicle", "other"]),
-  participantNote: z.string().trim().max(2000).optional(),
-  /**
-   * Extra seats for carpooling (`CreateRegistrationDto.vehicleSeatCapacity`).
-   * Shown only when `transportMode === "self_vehicle"` (same as PERSONAL_VEHICLE in UX copy).
-   */
-  vehicleSeatCapacity: z
-    .number()
-    .int()
-    .min(1, "Choose 1, 2, or 3 extra seats.")
-    .max(3, "Choose 1, 2, or 3 extra seats.")
-    .optional(),
-}).superRefine((data, ctx) => {
-  if (data.transportMode !== "self_vehicle" && data.vehicleSeatCapacity != null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Extra seats apply only when you select “Self vehicle”.",
-      path: ["vehicleSeatCapacity"],
+function buildIntakeSchema(requirePeakHistory: boolean) {
+  return z
+    .object({
+      participantFullName: z.string().trim().min(1, validationCopy.fullNameRequired).max(255),
+      participantContactPhone: z
+        .string()
+        .trim()
+        .min(1, validationCopy.phoneRequired)
+        .max(64, validationCopy.phoneTooLong)
+        .regex(PARTICIPANT_PHONE_REGEX, validationCopy.phoneFormat),
+      /** API: `self_vehicle` (product wording: personal / own vehicle). */
+      transportMode: z.enum(["self_vehicle", "group_vehicle", "other"]),
+      participantNote: z.string().trim().max(2000).optional(),
+      /**
+       * Extra seats for carpooling (`CreateRegistrationDto.vehicleSeatCapacity`).
+       * Shown only when `transportMode === "self_vehicle"`.
+       */
+      vehicleSeatCapacity: z
+        .number()
+        .int()
+        .min(1, transportCopy.seatRange)
+        .max(3, transportCopy.seatRange)
+        .optional(),
+      userPastPeaksCount: z.number().int().min(0).max(4).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.transportMode !== "self_vehicle" && data.vehicleSeatCapacity != null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: transportCopy.seatOnlySelfVehicle,
+          path: ["vehicleSeatCapacity"],
+        });
+      }
+      if (requirePeakHistory && data.userPastPeaksCount === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: peaksCopy.required,
+          path: ["userPastPeaksCount"],
+        });
+      }
     });
-  }
-});
+}
 
-type IntakeValues = z.infer<typeof IntakeSchema>;
+type IntakeValues = z.infer<ReturnType<typeof buildIntakeSchema>>;
 
 function registerTourErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) {
@@ -121,6 +138,23 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   const requiresNationalIdRegistration =
     tour?.details?.tripDetails?.participation?.registrationNationalIdRequired === true;
 
+  const tripDetailsRecord =
+    tour?.details?.tripDetails != null && typeof tour.details.tripDetails === "object"
+      ? (tour.details.tripDetails as Record<string, unknown>)
+      : undefined;
+
+  const showPeakExperienceIntake =
+    tour != null &&
+    tourShowsPeakExperienceIntake({
+      tourType: tour.tourType ?? undefined,
+      tripDetails: tripDetailsRecord,
+    });
+
+  const intakeSchema = useMemo(
+    () => buildIntakeSchema(showPeakExperienceIntake),
+    [showPeakExperienceIntake],
+  );
+
   const meProfileQuery = useQuery({
     queryKey: ["me-profile-national-id-guard"],
     enabled: tourQueryEnabled && Boolean(tour) && requiresNationalIdRegistration,
@@ -150,13 +184,14 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
     formState: { errors, isSubmitting },
     reset,
   } = useForm<IntakeValues>({
-    resolver: zodResolver(IntakeSchema),
+    resolver: zodResolver(intakeSchema),
     defaultValues: {
       participantFullName: "",
       participantContactPhone: "",
       transportMode: "group_vehicle",
       participantNote: "",
       vehicleSeatCapacity: undefined,
+      userPastPeaksCount: 0,
     },
   });
 
@@ -189,10 +224,12 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
         values.vehicleSeatCapacity <= 3
           ? values.vehicleSeatCapacity
           : undefined;
-      return publicRegisterTour(
-        tourId,
-        seat !== undefined ? { ...base, vehicleSeatCapacity: seat } : base,
-      );
+      const peaksMeta =
+        showPeakExperienceIntake && typeof values.userPastPeaksCount === "number"
+          ? { participantMetadata: { userPastPeaksCount: values.userPastPeaksCount } }
+          : {};
+      const body = seat !== undefined ? { ...base, vehicleSeatCapacity: seat } : base;
+      return publicRegisterTour(tourId, { ...body, ...peaksMeta });
     },
     onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
@@ -466,6 +503,8 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
             </div>
           ) : (
             <form
+              className={registerStyles.rtlForm}
+              dir="rtl"
               noValidate
               onSubmit={handleSubmit((values) => {
                 placementMutation.mutate(values);
@@ -506,35 +545,79 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
               <FormField label="Contact phone" required error={errors.participantContactPhone?.message}>
                 <Input autoComplete="tel" {...register("participantContactPhone")} />
               </FormField>
-              <FormField label="Transport mode" required error={errors.transportMode?.message}>
-                <Select aria-label="Transport mode" {...register("transportMode")}>
-                  <option value="self_vehicle">Self vehicle</option>
-                  <option value="group_vehicle">Group vehicle</option>
-                  <option value="other">Other</option>
-                </Select>
-              </FormField>
-              {transportMode === "self_vehicle" ? (
+              {showPeakExperienceIntake ? (
                 <FormField
-                  label="Extra seats in your car (optional)"
-                  description="Offer available seats to help other participants carpool."
-                  error={errors.vehicleSeatCapacity?.message}
+                  label={peaksCopy.fieldLabel}
+                  required
+                  description={peaksCopy.hint}
+                  error={errors.userPastPeaksCount?.message}
                 >
                   <Select
-                    aria-label="Extra seats in your car"
-                    {...register("vehicleSeatCapacity", {
-                      setValueAs: (v: unknown) =>
-                        v === "" || v === undefined || v === null ? undefined : Number(v),
-                    })}
+                    data-testid="register-field-user-past-peaks"
+                    defaultValue="0"
+                    {...register("userPastPeaksCount", { valueAsNumber: true })}
                   >
-                    <option value="">Select</option>
-                    <option value={1}>1 seat</option>
-                    <option value={2}>2 seats</option>
-                    <option value={3}>3 seats</option>
+                    {USER_PAST_PEAKS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={String(opt.value)}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </Select>
                 </FormField>
               ) : null}
-              <FormField label="Notes (optional)" error={errors.participantNote?.message}>
-                <Textarea rows={3} {...register("participantNote")} />
+              <fieldset className={registerStyles.transportFieldset}>
+                <legend className={registerStyles.transportLegend}>{transportCopy.fieldLabel}</legend>
+                {errors.transportMode?.message ? (
+                  <p role="alert" style={{ margin: 0, color: "var(--color-danger-fg, #b42318)" }}>
+                    {errors.transportMode.message}
+                  </p>
+                ) : null}
+                <label className={registerStyles.radioOption}>
+                  <input
+                    type="radio"
+                    value="self_vehicle"
+                    {...register("transportMode")}
+                  />
+                  <span>{transportCopy.selfVehicle}</span>
+                </label>
+                <label className={registerStyles.radioOption}>
+                  <input
+                    type="radio"
+                    value="group_vehicle"
+                    {...register("transportMode")}
+                  />
+                  <span>{transportCopy.groupVehicle}</span>
+                </label>
+              </fieldset>
+              {transportMode === "self_vehicle" ? (
+                <FormField
+                  label={transportCopy.seatLabel}
+                  description={transportCopy.seatHint}
+                  error={errors.vehicleSeatCapacity?.message}
+                >
+                  <Input
+                    type="number"
+                    min={1}
+                    max={3}
+                    inputMode="numeric"
+                    className={registerStyles.seatInput}
+                    aria-label={transportCopy.seatLabel}
+                    {...register("vehicleSeatCapacity", {
+                      setValueAs: (v: unknown) => {
+                        if (v === "" || v === undefined || v === null) return undefined;
+                        const n = typeof v === "number" ? v : Number(v);
+                        return Number.isFinite(n) ? n : undefined;
+                      },
+                    })}
+                  />
+                </FormField>
+              ) : null}
+              <FormField label={transportCopy.noteLabel} error={errors.participantNote?.message}>
+                <Textarea
+                  rows={4}
+                  placeholder={transportCopy.notePlaceholder}
+                  {...register("participantNote")}
+                />
               </FormField>
               <div className={registerStyles.submitRow}>
                 <Button

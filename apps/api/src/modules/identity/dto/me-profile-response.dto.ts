@@ -35,7 +35,7 @@ export class MeProfileResponseDto {
   @ApiProperty({
     nullable: true,
     description:
-      "Contact email when set. Phone-only signups store `phone_*@local.invalid` internally — API omits that placeholder (`null` here).",
+      "Contact email when set. Phone-only accounts without an address on file return `null`.",
     format: "email",
     example: "user@example.com"
   })

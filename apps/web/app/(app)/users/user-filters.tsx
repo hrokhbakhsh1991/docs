@@ -62,12 +62,12 @@ export function UserFilters({
         </FormField>
         <FormField label={copy.filterRoleLabel} className={styles.toolbarRoleField}>
           <Select value={roleFilter} onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}>
-            <option value="all">All</option>
-            <option value="owner">Owner</option>
-            <option value="leader">Leader</option>
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
+            <option value="all">{copy.roleFilterAll}</option>
+            <option value="owner">{copy.roleFilterOwner}</option>
+            <option value="leader">{copy.roleFilterLeader}</option>
+            <option value="admin">{copy.roleFilterAdmin}</option>
+            <option value="member">{copy.roleFilterMember}</option>
+            <option value="viewer">{copy.roleFilterViewer}</option>
           </Select>
         </FormField>
         {isRefreshing ? <small className={styles.toolbarRefreshing}>{copy.refreshingLabel}</small> : null}

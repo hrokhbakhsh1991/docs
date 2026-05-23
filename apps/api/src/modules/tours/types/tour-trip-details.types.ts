@@ -56,9 +56,18 @@ export interface TripDetailsDayPlan {
 }
 
 export interface TripDetailsLocationData {
+  id?: string;
   addressText?: string;
   latitude?: number | null;
   longitude?: number | null;
+}
+
+/** Multi-station pickup row (`tripDetails.logistics.gatheringPoints`). */
+export interface TripDetailsGatheringPickupStation {
+  id?: string;
+  title: string;
+  time?: string;
+  location: TripDetailsLocationData;
 }
 
 export interface TripDetailsOverview {
@@ -72,7 +81,6 @@ export interface TripDetailsOverview {
   leaderUserIds?: string[];
   /** Display name for the local guide (when not a workspace user). */
   localGuideName?: string;
-  gatheringPoint?: TripDetailsLocationData;
   startPoint?: TripDetailsLocationData;
   summitPoint?: TripDetailsLocationData;
   campPoint?: TripDetailsLocationData;
@@ -223,6 +231,14 @@ export interface TripDetailsLogistics {
   groupSizeMin?: number;
   /** Maximum participants allowed for the tour. */
   groupSizeMax?: number;
+  /** Multiple gathering pickup stations for the tour (Denali). */
+  gatheringPoints?: TripDetailsGatheringPickupStation[];
+}
+
+/** Tour-side gates for registration placement (Peak-Experience auto-approval). */
+export interface TripDetailsRequirements {
+  /** Minimum past peak count a traveler must report to auto-accept (1–4). */
+  minRequiredPeaks?: number;
 }
 
 export interface TripDetailsPolicies {
@@ -248,6 +264,7 @@ export interface TourTripDetails {
   itinerary?: TripDetailsItinerary;
   participation?: TripDetailsParticipation;
   logistics?: TripDetailsLogistics;
+  requirements?: TripDetailsRequirements;
   policies?: TripDetailsPolicies;
   photos?: Array<{
     id: string;

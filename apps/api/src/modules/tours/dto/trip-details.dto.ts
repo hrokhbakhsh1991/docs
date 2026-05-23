@@ -7,7 +7,7 @@ import {
   type AccommodationTypeSlug,
   type MealPlanSlug
 } from "@repo/types";
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import {
   ArrayUnique,
@@ -87,6 +87,11 @@ function normalizeTripStylesInput(value: unknown): TripStyle[] | undefined {
 
 /** Denali 5-zone location pin (Phase 7). Declared before nested DTOs that reference it (emitDecoratorMetadata order). */
 export class TripDetailsLocationDataDto {
+  @ApiPropertyOptional({ format: "uuid" })
+  @IsOptional()
+  @IsUUID("4")
+  id?: string;
+
   @ApiPropertyOptional({ description: "Human-readable address or place label." })
   @IsOptional()
   @IsString()
@@ -104,6 +109,26 @@ export class TripDetailsLocationDataDto {
   @ValidateIf((_, v) => v != null)
   @IsNumber()
   longitude?: number | null;
+}
+
+/** Multi-station pickup row (`tripDetails.logistics.gatheringPoints`). */
+export class TripDetailsGatheringPickupStationDto {
+  @ApiProperty({ description: "Human label for the pickup station." })
+  @IsString()
+  @MaxLength(200)
+  title!: string;
+
+  @ApiPropertyOptional({ description: "Local assembly time (24h HH:mm)." })
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== "")
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "time must be empty or HH:mm" })
+  time?: string;
+
+  @ApiProperty({ type: () => TripDetailsLocationDataDto })
+  @ValidateNested()
+  @Type(() => TripDetailsLocationDataDto)
+  location!: TripDetailsLocationDataDto;
 }
 
 export class TripDetailsPhotoDto {
@@ -326,12 +351,6 @@ export class TripDetailsOverviewDto {
   @IsString()
   @MaxLength(128)
   localGuideName?: string;
-
-  @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => TripDetailsLocationDataDto)
-  gatheringPoint?: TripDetailsLocationDataDto;
 
   @ApiPropertyOptional({ type: () => TripDetailsLocationDataDto })
   @IsOptional()
@@ -701,7 +720,10 @@ function AudienceGroupsDoNotOverlap(
 }
 
 export class TripDetailsLogisticsDto {
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    deprecated: true,
+    description: "Deprecated. Use `gatheringPoints` array for structured pickup stations."
+  })
   @IsOptional()
   @IsString()
   meetingPoint?: string;
@@ -919,6 +941,16 @@ export class TripDetailsLogisticsDto {
   @IsString()
   @MaxLength(500)
   leaderInsuranceNotes?: string;
+
+  @ApiPropertyOptional({
+    type: () => [TripDetailsGatheringPickupStationDto],
+    description: "Multiple gathering pickup stations for the tour (Denali)."
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TripDetailsGatheringPickupStationDto)
+  gatheringPoints?: TripDetailsGatheringPickupStationDto[];
 }
 
 export class TripDetailsPoliciesDto {

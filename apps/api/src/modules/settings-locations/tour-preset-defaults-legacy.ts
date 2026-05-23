@@ -40,3 +40,34 @@ export function mergeLegacyMatchIntoDefaults(
   }
   return out;
 }
+
+/**
+ * Ensures gatheringPoints array is present in logistics if legacy single points exist.
+ */
+export function migrateGatheringPointsToLogisticsArray(
+  defaults: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...defaults };
+  const overview = (out.overview as Record<string, unknown>) ?? {};
+  const logistics = (out.logistics as Record<string, unknown>) ?? {};
+
+  const legacyGP = overview.gatheringPoint;
+  const legacyMP = overview.meetingPoint;
+
+  if (legacyGP || legacyMP) {
+    if (!Array.isArray(logistics.gatheringPoints) || logistics.gatheringPoints.length === 0) {
+      logistics.gatheringPoints = [
+        {
+          title: typeof legacyMP === "string" ? legacyMP : "نقطه تجمع",
+          location:
+            legacyGP && typeof legacyGP === "object"
+              ? legacyGP
+              : { addressText: typeof legacyMP === "string" ? legacyMP : "" },
+        },
+      ];
+      out.logistics = logistics;
+    }
+  }
+
+  return out;
+}

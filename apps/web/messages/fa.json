@@ -17,7 +17,8 @@
     "tours": "تورها",
     "bookings": "رزروها",
     "settings": "تنظیمات",
-    "reviewQueue": "صف بررسی لیدر",
+    "reviewQueue": "صف بررسی متقاضیان",
+    "finance": "امور مالی",
     "users": "کاربران"
   },
   "auth": {
@@ -169,6 +170,11 @@
         "endDateTime": "پایان برنامه",
         "capacityMax": "حداکثر ظرفیت",
         "capacityMin": "حداقل ظرفیت (اختیاری)",
+        "publishStatus": "وضعیت انتشار",
+        "publishStatusDraft": "پیش‌نویس",
+        "publishStatusActive": "انتشار عمومی (باز)",
+        "loadFromTemplate": "بارگذاری از روی تمپلیت‌های آماده",
+        "loadFromTemplatePlaceholder": "انتخاب تمپلیت (اختیاری)...",
         "startPointLocationText": "محل یا نقطه شروع برنامه",
         "startPointLocationTextPlaceholder": "مثلاً میدان، روستا، یا پایگاه کوهنوردی",
         "approximateReturnTime": "زمان تقریبی بازگشت",
@@ -180,7 +186,7 @@
         "eitaaUrlPlaceholder": "https://eitaa.com/…",
         "meetingPoint": "محل تجمع",
         "meetingPointPlaceholder": "آدرس یا توضیح محل تجمع",
-        "locationZonesSection": "نقاط مکانی (۵ ناحیه)",
+        "locationZonesSection": "نقاط مکانی (۴ ناحیه)",
         "locationZones": {
           "gatheringPoint": "محل تجمع (ناحیه)",
           "startPoint": "نقطه شروع",
@@ -241,7 +247,9 @@
         "includeItem": "افزودن به این تور",
         "markRequired": "اجباری برای شرکت‌کنندگان",
         "reviewRequiredTitle": "تجهیزات اجباری 🚨",
-        "reviewOptionalTitle": "لوازم پیشنهادی / اختیاری 🎒"
+        "reviewOptionalTitle": "لوازم پیشنهادی / اختیاری 🎒",
+        "staleInactiveLabel": "غیرفعال / منقضی",
+        "catalogEmptyWithStaleHint": "فهرست تجهیزات فعال خالی است. موارد زیر از تور قبلی مانده‌اند — برای حذف روی آن‌ها بزنید."
       },
       "transport": {
         "transportModeLabel": "نحوه حمل‌ونقل",
@@ -323,6 +331,8 @@
         "policiesNotes": "قوانین و توضیحات (اختیاری)",
         "policiesNotesPlaceholder": "لغو، بازگشت وجه، ایمنی و…",
         "intro": "خلاصه اطلاعات قبل از ثبت:",
+        "publishDraftOnlyWarning": "این تور به‌صورت پیش‌نویس ذخیره می‌شود چون فیلدهای لازم برای انتشار تکمیل نشده‌اند.",
+        "publishSubmitBlocked": "تا تکمیل فیلدهای انتشار، ثبت با وضعیت «منتشرشده» ممکن نیست. وضعیت را روی پیش‌نویس بگذارید یا موارد بالا را برطرف کنید.",
         "yes": "بله",
         "no": "خیر",
         "submit": "ثبت نهایی تور",
@@ -744,10 +754,12 @@
     "emailVerifyFailedToast": "تأیید ایمیل ناموفق بود. توکن را بررسی کنید.",
     "emailStatusVerified": "تأیید شده",
     "emailStatusPending": "در انتظار تأیید",
+    "emailStatusPendingWithAddr": "در انتظار تأیید: {email}",
     "emailStatusUnverified": "تأیید نشده",
     "emailStatusNoEmail": "بدون ایمیل",
     "emailSummaryNoEmail": "ایمیلی ثبت نشده است.",
     "emailChangeButton": "تغییر ایمیل",
+    "emailResendOrChange": "ارسال مجدد یا ویرایش ایمیل",
     "emailContinueVerification": "ورود کد تأیید",
     "emailEnterCodeManually": "کد تأیید دارم",
     "emailSaveAddress": "ذخیرهٔ ایمیل",

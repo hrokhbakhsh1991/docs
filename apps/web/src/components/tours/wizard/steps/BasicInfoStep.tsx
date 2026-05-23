@@ -4,7 +4,6 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { FormField, Input, Select, Textarea } from "@tour/ui";
 
-import { TourCreationPresetBanner } from "@/features/tours/wizard/TourCreationPresetBanner";
 import { useNotifyWizardProfileDrivers } from "@/features/tours/wizard/TourWizardProfileDriversContext";
 import { FieldGate, useIsFieldRequired } from "@/features/tours/wizard/profileRulesReact";
 import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
@@ -40,7 +39,7 @@ export type BasicInfoStepProps = {
  * in the rules table). No inline `TourFormProfile` policy branches; the preset banner receives
  * `resolvedFormProfile` for display only.
  */
-export function BasicInfoStep({ tourCreationPresets, resolvedFormProfile }: BasicInfoStepProps) {
+export function BasicInfoStep(_: BasicInfoStepProps) {
   const t = useTranslations("tours.new");
   const {
     register,
@@ -53,8 +52,6 @@ export function BasicInfoStep({ tourCreationPresets, resolvedFormProfile }: Basi
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
-      <TourCreationPresetBanner presets={tourCreationPresets} resolvedFormProfile={resolvedFormProfile} />
-
       <FieldGate field={PATHS.title}>
         <FormField label="عنوان تور" error={errors.overview?.title?.message}>
           <Input

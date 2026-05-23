@@ -14,13 +14,13 @@ async function main() {
   const tenantRoot = process.env.TENANT_ROOT_DOMAIN?.trim() || "localhost";
   const slug = process.env.AUTH_LOGIN_SUBDOMAIN?.trim() || "demo";
   const hostHeader =
-    tenantRoot === "localhost" ? `${slug}.localhost` : `${slug}.${tenantRoot}`;
+    tenantRoot === "localhost" ? `${slug}.localhost:3001` : `${slug}.${tenantRoot}`;
 
   const res = await fetch(`${origin}${API.auth.webSession}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Host: hostHeader },
     body: JSON.stringify({
-      phone: "+15551234567",
+      phone: "+989121000001",
       otp: "1234"
     })
   });

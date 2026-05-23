@@ -7,6 +7,7 @@ import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
 import { useSettingsGuideLanguages } from "@/hooks/use-settings-guide-languages";
 import { LogisticsServiceListFields } from "@/features/tours/wizard/groups/logistics/LogisticsServiceListFields";
 import { LogisticsTransportFields } from "@/features/tours/wizard/groups/logistics/LogisticsTransportFields";
+import { DenaliGatheringPointsWidget } from "@/features/tours/wizard/denali/components/DenaliGatheringPointsWidget";
 import { FieldGate, useIsFieldRecommended } from "@/features/tours/wizard/profileRulesReact";
 import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";
 
@@ -68,6 +69,8 @@ export function LogisticsStep() {
   return (
     <div style={{ display: "grid", gap: "0.85rem" }}>
       <LogisticsTransportFields />
+
+      <DenaliGatheringPointsWidget name="logistics.gatheringPoints" />
 
       <FieldGate field={PATHS.includedServices}>
         <FormField

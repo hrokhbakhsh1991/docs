@@ -51,14 +51,24 @@ const REG_ID = "f4f4f4f4-f4f4-44f4-84f4-f4f4f4f4f4f4";
 const REG_ID_2 = "f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6";
 const PAYMENT_ID = "f5f5f5f5-f5f5-45f5-85f5-f5f5f5f5f5f5";
 
+const TENANT_B_ID = "a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1";
+const TENANT_B_SLUG = "receipt-e2e-b";
+const TOUR_B_ID = "b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2";
+const DEPARTURE_B_ID = "c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3";
+const REG_B_ID = "d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4";
+const PAYMENT_B_ID = "e5e5e5e5-e5e5-45e5-85e5-e5e5e5e5e5e5";
+const RECEIPT_B_ID = "f7f7f7f7-f7f7-47f7-87f7-f7f7f7f7f7f7";
+
 const OWNER_PHONE = "+15557300001";
 const MEMBER_PHONE = "+15557300002";
+const OWNER_B_PHONE = "+15557300099";
 
 let container: StartedPostgreSqlContainer | undefined;
 let app: INestApplication | undefined;
 let e2eUnavailableReason: string | null = null;
 let ownerToken = "";
 let memberToken = "";
+let tenantBReceiptId = RECEIPT_B_ID;
 
 function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
   process.env.NODE_ENV = "test";
@@ -260,6 +270,133 @@ async function seedFinanceFixture(ds: DataSource): Promise<void> {
       provider: "manual"
     })
   );
+
+  await tenantRepo.insert({
+    id: TENANT_B_ID,
+    name: "Receipt E2E Tenant B",
+    description: "cross-tenant receipt isolation",
+    subdomain: TENANT_B_SLUG,
+    enabledModules: ["finance"]
+  });
+
+  const ownerB = await userRepo.save(
+    userRepo.create({
+      email: "owner-b@receipt-e2e.test",
+      hashedPassword: hash,
+      fullName: "Receipt Owner B",
+      isEmailVerified: true,
+      phone: OWNER_B_PHONE,
+      isPhoneVerified: true,
+      telegramUserId: null
+    })
+  );
+
+  await membershipRepo.save(
+    membershipRepo.create({
+      tenantId: TENANT_B_ID,
+      userId: ownerB.id,
+      role: UserRole.Owner,
+      status: MembershipStatus.ACTIVE,
+      joinedAt: new Date(),
+      sessionVersion: 1
+    })
+  );
+
+  const productB = await productRepo.save(
+    productRepo.create({
+      tenantId: TENANT_B_ID,
+      title: "Receipt E2E Product B"
+    })
+  );
+
+  await departureRepo.save(
+    departureRepo.create({
+      id: DEPARTURE_B_ID,
+      tourProductId: productB.id,
+      tenantId: TENANT_B_ID,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      capacityTotal: 10,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      startsOn: "2030-09-01"
+    })
+  );
+
+  await tourRepo.save(
+    tourRepo.create({
+      id: TOUR_B_ID,
+      tenantId: TENANT_B_ID,
+      title: "Receipt E2E Tour B",
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+      totalCapacity: 10,
+      acceptedCount: 1,
+      autoAcceptRegistrations: true,
+      costContext: { currency, totalCost: 1_200_000, requiresPayment: true },
+      tourProductId: productB.id,
+      tourDepartureId: DEPARTURE_B_ID,
+      listPriceMinor: listMinor,
+      currencyCode: currency,
+      transportModes: ["bus"] as TourTransportMode[]
+    })
+  );
+
+  await regRepo.save(
+    regRepo.create({
+      id: REG_B_ID,
+      tenantId: TENANT_B_ID,
+      tourId: TOUR_B_ID,
+      tourDepartureId: DEPARTURE_B_ID,
+      participantFullName: "Tenant B Payer",
+      participantContactPhone: "+15557300098",
+      transportMode: "group_vehicle",
+      entryMode: "web",
+      status: RegistrationStatus.ACCEPTED,
+      paymentStatus: RegistrationPaymentStatus.NOT_PAID,
+      quotedListPriceMinor: listMinor,
+      quotedTotalMinor: listMinor,
+      quotedCurrencyCode: currency,
+      quotedPricingVersion: "e2e-receipt-b-v1"
+    })
+  );
+
+  await ds.query(`SELECT set_config('app.tenant_id', $1, false)`, [TENANT_B_ID]);
+  const snapshotB = await snapshotRepo.save(
+    snapshotRepo.create({
+      tenantId: TENANT_B_ID,
+      bookingId: REG_B_ID,
+      listPriceMinor: listMinor,
+      currency,
+      pricingRuleVersion: "e2e-receipt-b-v1",
+      computedTotalMinor: listMinor
+    })
+  );
+  await regRepo.update({ id: REG_B_ID }, { snapshotId: snapshotB.snapshotId });
+
+  await payRepo.save(
+    payRepo.create({
+      id: PAYMENT_B_ID,
+      tenantId: TENANT_B_ID,
+      registrationId: REG_B_ID,
+      amount: listMinor,
+      currency,
+      method: PaymentMethod.MANUAL,
+      status: PaymentStatus.PENDING,
+      provider: "manual"
+    })
+  );
+
+  const receiptRepo = ds.getRepository(PaymentReceiptEntity);
+  await receiptRepo.save(
+    receiptRepo.create({
+      id: RECEIPT_B_ID,
+      tenantId: TENANT_B_ID,
+      paymentId: PAYMENT_B_ID,
+      fileKey: `receipts/${TENANT_B_ID}/${PAYMENT_B_ID}/cross-tenant-probe.png`,
+      status: ReceiptStatus.PENDING,
+      note: "tenant B pending receipt for isolation test"
+    })
+  );
+  tenantBReceiptId = RECEIPT_B_ID;
 }
 
 before(async () => {
@@ -403,4 +540,54 @@ test("upload receipt → approve → registration paid", async () => {
     ),
     `expected ledger event after approve: ${JSON.stringify(events)}`
   );
+});
+
+test("Workspace A admin cannot approve a receipt UUID belonging to Workspace B", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+
+  const hostA = tenantTestHost(TENANT_SLUG);
+  const ds = app.get(DataSource);
+
+  const approveRes = await request(app.getHttpServer())
+    .post(`/api/v2/admin/finance/receipts/${tenantBReceiptId}/approve`)
+    .set("Host", hostA)
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .send({ reviewNote: "cross-tenant probe" });
+
+  assert.equal(approveRes.status, 404, JSON.stringify(approveRes.body));
+
+  await ds.query(`SELECT set_config('app.tenant_id', $1, true)`, [TENANT_B_ID]);
+  const receipt = await ds.getRepository(PaymentReceiptEntity).findOneByOrFail({
+    id: tenantBReceiptId
+  });
+  const payment = await ds.getRepository(PaymentEntity).findOneByOrFail({ id: PAYMENT_B_ID });
+  assert.equal(receipt.status, ReceiptStatus.PENDING);
+  assert.equal(receipt.tenantId, TENANT_B_ID);
+  assert.equal(payment.status, PaymentStatus.PENDING);
+  assert.equal(payment.ledgerJournalId, null);
+});
+
+test("Workspace A admin cannot reject a receipt UUID belonging to Workspace B", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+
+  const hostA = tenantTestHost(TENANT_SLUG);
+
+  const rejectRes = await request(app.getHttpServer())
+    .post(`/api/v2/admin/finance/receipts/${tenantBReceiptId}/reject`)
+    .set("Host", hostA)
+    .set("Authorization", `Bearer ${ownerToken}`)
+    .send({ reviewNote: "cross-tenant reject probe" });
+
+  assert.equal(rejectRes.status, 404, JSON.stringify(rejectRes.body));
+
+  const ds = app.get(DataSource);
+  await ds.query(`SELECT set_config('app.tenant_id', $1, true)`, [TENANT_B_ID]);
+  const receipt = await ds.getRepository(PaymentReceiptEntity).findOneByOrFail({
+    id: tenantBReceiptId
+  });
+  assert.equal(receipt.status, ReceiptStatus.PENDING);
 });

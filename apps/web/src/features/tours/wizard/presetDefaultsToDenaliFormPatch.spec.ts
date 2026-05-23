@@ -75,3 +75,31 @@ test("presetDefaultsUsesLegacyRoots detects classic JSON", () => {
   assert.equal(presetDefaultsUsesLegacyRoots({ overview: {} }), true);
   assert.equal(presetDefaultsUsesLegacyRoots({ basicInfo: {} }), false);
 });
+
+test("presetDefaultsToDenaliFormPatch: legacy participation gear maps to gearItems", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const optId = "22222222-2222-4222-8222-222222222222";
+  const patch = presetDefaultsToDenaliFormPatch({
+    participation: {
+      gearRequiredIds: [reqId],
+      gearOptionalIds: [optId],
+    },
+  });
+
+  assert.deepEqual(patch.participantRequirements?.gearItems, [
+    { id: reqId, isRequired: true },
+    { id: optId, isRequired: false },
+  ]);
+});
+
+test("presetDefaultsToDenaliFormPatch: 6-tab shape merges legacy participation gear", () => {
+  const gearId = "33333333-3333-4333-8333-333333333333";
+  const patch = presetDefaultsToDenaliFormPatch({
+    basicInfo: { tourType: "mountain_day" },
+    participantRequirements: { minimumAge: 18 },
+    participation: { gearRequiredIds: [gearId] },
+  });
+
+  assert.equal(patch.participantRequirements?.minimumAge, 18);
+  assert.deepEqual(patch.participantRequirements?.gearItems, [{ id: gearId, isRequired: true }]);
+});

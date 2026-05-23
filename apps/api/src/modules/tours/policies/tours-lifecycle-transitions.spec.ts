@@ -209,15 +209,16 @@ function denaliPublishTripDetails(withGeo: boolean): TourDetails["tripDetails"] 
     schemaVersion: 1,
     overview: {
       denaliTourKind: "mountain_day",
-      ...(withGeo
-        ? { gatheringPoint: geo, startPoint: geo }
-        : {}),
+      ...(withGeo ? { startPoint: geo } : {}),
     },
     logistics: {
       departureDate: "2026-09-01",
       primaryTransportMode: "bus",
       groupSizeMax: 12,
       privateCarMode: "no_private_car",
+      ...(withGeo
+        ? { gatheringPoints: [{ title: "ایستگاه تجمع", time: "06:00", location: geo }] }
+        : {}),
     },
     participation: {
       minimumAge: 18,

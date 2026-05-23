@@ -34,8 +34,11 @@ export const userKeys = {
   /**
    * Workspace user directory infinite list (`GET /api/v2/users`). `tenantId` must match JWT tenant.
    */
-  directoryList: (tenantId: string, params: { search: string; role: string; limit: number }) =>
-    [...userKeys.directoryListRoot(tenantId), "directory", params] as const,
+  directoryList: (
+    tenantId: string,
+    params: { search: string; role: string; limit: number; status?: string }
+  ) => [...userKeys.directoryListRoot(tenantId), "directory", params] as const,
+  pendingInvites: (tenantId: string) => [...userKeys.all, "pending-invites", tenantId] as const,
   details: () => [...userKeys.all, "detail"] as const,
   detail: (tenantScope: string, id: string | number) =>
     [...userKeys.details(), { tenantId: tenantScope }, String(id)] as const,

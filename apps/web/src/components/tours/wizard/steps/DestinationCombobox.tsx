@@ -8,7 +8,33 @@ export type DestinationOption = {
   name: string;
   regionId: string;
   regionName: string;
+  /** Optional micro-badges (e.g. VIP / Gold) shown beside the name in RTL pills. */
+  badges?: string[];
 };
+
+function OptionBadges({ badges }: { badges: string[] }) {
+  if (badges.length === 0) return null;
+  return (
+    <span style={{ display: "inline-flex", flexWrap: "wrap", gap: "0.2rem", marginInlineStart: "0.35rem" }}>
+      {badges.map((badge) => (
+        <span
+          key={badge}
+          style={{
+            fontSize: "0.68rem",
+            fontWeight: 600,
+            padding: "0.05rem 0.35rem",
+            borderRadius: 999,
+            background: "#f1f5f9",
+            color: "#475569",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          {badge}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 type DestinationComboboxProps = {
   label: string;
@@ -140,7 +166,9 @@ export function DestinationCombobox({
               }}
               aria-label={`حذف ${opt.name}`}
             >
-              {opt.name} <span style={{ color: "#64748b" }}>×</span>
+              {opt.name}
+              {opt.badges?.length ? <OptionBadges badges={opt.badges} /> : null}
+              <span style={{ color: "#64748b" }}> ×</span>
             </button>
           ))}
         </div>
@@ -162,7 +190,10 @@ export function DestinationCombobox({
         >
           <span style={{ color: "#475569" }}>{selectedSingle.regionName}</span>
           <span>/</span>
-          <span>{selectedSingle.name}</span>
+          <span>
+            {selectedSingle.name}
+            {selectedSingle.badges?.length ? <OptionBadges badges={selectedSingle.badges} /> : null}
+          </span>
         </div>
       ) : null}
       <Input
@@ -244,7 +275,10 @@ export function DestinationCombobox({
                         gap: "0.6rem",
                       }}
                     >
-                      <span>{opt.name}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: "0.15rem" }}>
+                        {opt.name}
+                        {opt.badges?.length ? <OptionBadges badges={opt.badges} /> : null}
+                      </span>
                       <span style={{ color: "#64748b", fontSize: "0.75rem" }}>{opt.regionName}</span>
                     </button>
                   );

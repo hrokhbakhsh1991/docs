@@ -12,6 +12,7 @@ import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 import styles from "./AppLayout.module.css";
 
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
+import { userHasFinanceModuleCapability } from "@/lib/finance/finance-module-access";
 import {
   WorkspacePickerModal,
   type WorkspacePickerItem
@@ -39,6 +40,7 @@ const LEADER_KEYS = [
   { path: "/dashboard", msgKey: "dashboard" as const },
   { path: "/tours", msgKey: "tours" as const },
   { path: "/leader/review", msgKey: "reviewQueue" as const },
+  { path: "/finance", msgKey: "finance" as const },
   { path: "/users", msgKey: "users" as const },
   { path: "/settings", msgKey: "settings" as const },
 ];
@@ -116,19 +118,24 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   }, [isHydrated, user?.tenantId, router, setSession, showToast]);
 
   const navigation = useMemo((): NavLink[] => {
+    const hasFinance = userHasFinanceModuleCapability(user);
     if (!(isHydrated && isLeaderRole(user?.role))) {
-      return PARTICIPANT_KEYS.map(({ path, msgKey }) => ({
+      const keys = PARTICIPANT_KEYS.filter(
+        ({ path }) => path !== "/finance" || hasFinance,
+      );
+      return keys.map(({ path, msgKey }) => ({
         href: path,
         pathKey: path,
         label: tNav(msgKey),
       }));
     }
-    return LEADER_KEYS.map(({ path, msgKey }) => ({
+    const keys = LEADER_KEYS.filter(({ path }) => path !== "/finance" || hasFinance);
+    return keys.map(({ path, msgKey }) => ({
       href: path,
       pathKey: path,
       label: tNav(msgKey),
     }));
-  }, [isHydrated, user?.role, tNav]);
+  }, [isHydrated, user, tNav]);
 
   const closeSidebar = () => setSidebarOpen(false);
 

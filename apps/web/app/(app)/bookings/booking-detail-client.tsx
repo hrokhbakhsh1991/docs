@@ -32,11 +32,18 @@ import {
   type BreadcrumbItem,
 } from "@tour/ui";
 
-import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/badges";
+import {
+  BookingStatusBadgeFa,
+  PaymentStatusBadgeFa,
+} from "@/components/registrations/registration-status-badges-fa";
+import {
+  formatRegistrationInstantFa,
+  formatTransportModeFa,
+} from "@/lib/registrations/format-registration-crm";
+import { BOOKING_DETAIL_COPY } from "./booking-detail-copy";
+import bookingStyles from "./booking-detail.module.css";
 import {
   formatRegistrationEntryMode,
-  formatRegistrationInstant,
-  formatTransportMode,
   registrationPollIntervalMs,
 } from "./formatters";
 
@@ -231,6 +238,8 @@ export function BookingDetailClient({
   const intentParams = resolvePaymentIntentParamsForBookingCheckout(reg);
   const showStartIntentCta =
     paymentEligible && !hasPendingPaymentProjection && Boolean(intentParams);
+  const isPendingHostReview = reg.status === "Pending";
+  const pendingCopy = BOOKING_DETAIL_COPY.pendingHostReview;
 
   /** FR-61 (MVP): only leaders resolve the URL; non-leaders never get a trimmed href (no DOM exposure). */
   const leaderCommunicationHref =
@@ -261,26 +270,42 @@ export function BookingDetailClient({
         </Button>
       }
     >
+      <div className={bookingStyles.rtlRoot} dir="rtl">
+        {isPendingHostReview ? (
+          <Alert
+            variant="warning"
+            title={pendingCopy.bannerTitle}
+            className={bookingStyles.pendingBanner}
+            role="status"
+          >
+            {pendingCopy.bannerBody}
+          </Alert>
+        ) : null}
+
       <Card>
         <CardHeader>
-          <CardTitle>Status</CardTitle>
+          <CardTitle>وضعیت ثبت‌نام</CardTitle>
         </CardHeader>
         <CardBody style={{ display: "grid", gap: "1rem" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-            <BookingStatusBadge status={reg.status} />
-            <PaymentStatusBadge payment={reg.paymentStatus} />
+          <div className={bookingStyles.statusRow}>
+            {isPendingHostReview ? (
+              <span className={bookingStyles.pendingHostBadge}>{pendingCopy.statusBadge}</span>
+            ) : (
+              <BookingStatusBadgeFa status={reg.status} />
+            )}
+            {!isPendingHostReview ? <PaymentStatusBadgeFa payment={reg.paymentStatus} /> : null}
           </div>
           <dl style={{ margin: 0, display: "grid", gap: "0.35rem", fontSize: "0.9rem" }}>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <dt style={{ fontWeight: 600 }}>Submitted</dt>
-              <dd style={{ margin: 0 }}>{formatRegistrationInstant(reg.createdAt)}</dd>
+              <dt style={{ fontWeight: 600 }}>ثبت شده</dt>
+              <dd style={{ margin: 0 }}>{formatRegistrationInstantFa(reg.createdAt)}</dd>
             </div>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <dt style={{ fontWeight: 600 }}>Last updated</dt>
-              <dd style={{ margin: 0 }}>{formatRegistrationInstant(reg.updatedAt)}</dd>
+              <dt style={{ fontWeight: 600 }}>آخرین بروزرسانی</dt>
+              <dd style={{ margin: 0 }}>{formatRegistrationInstantFa(reg.updatedAt)}</dd>
             </div>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <dt style={{ fontWeight: 600 }}>Registration ID</dt>
+              <dt style={{ fontWeight: 600 }}>شناسه ثبت‌نام</dt>
               <dd style={{ margin: 0, fontFamily: "ui-monospace, monospace" }}>{reg.id}</dd>
             </div>
           </dl>
@@ -386,8 +411,8 @@ export function BookingDetailClient({
               <dd style={{ margin: 0 }}>{reg.participantContactPhone}</dd>
             </div>
             <div>
-              <dt style={{ fontWeight: 600 }}>Transport</dt>
-              <dd style={{ margin: 0 }}>{formatTransportMode(reg.transportMode)}</dd>
+              <dt style={{ fontWeight: 600 }}>وسیله نقلیه</dt>
+              <dd style={{ margin: 0 }}>{formatTransportModeFa(reg.transportMode)}</dd>
             </div>
             <div>
               <dt style={{ fontWeight: 600 }}>Channel</dt>
@@ -412,13 +437,17 @@ export function BookingDetailClient({
       <div ref={paymentSectionRef}>
       <Card>
         <CardHeader>
-          <CardTitle>Payment</CardTitle>
+          <CardTitle>پرداخت</CardTitle>
         </CardHeader>
         <CardBody>
+          {isPendingHostReview ? (
+            <p className={bookingStyles.paymentLockedNote}>{pendingCopy.paymentLocked}</p>
+          ) : (
+            <>
           <p style={{ marginTop: 0 }}>
-            Summary: <strong>{reg.paymentStatus}</strong>
+            وضعیت: <strong>{reg.paymentStatus}</strong>
             {reg.paidAmount != null && String(reg.paidAmount).trim() !== ""
-              ? ` · Paid amount: ${reg.paidAmount}`
+              ? ` · مبلغ پرداخت‌شده: ${reg.paidAmount}`
               : null}
           </p>
           {paymentEligible && hasPendingPaymentProjection ? (
@@ -473,6 +502,8 @@ export function BookingDetailClient({
           ) : (
             <p style={{ opacity: 0.8 }}>No payment snapshot yet.</p>
           )}
+            </>
+          )}
         </CardBody>
       </Card>
       </div>
@@ -484,6 +515,7 @@ export function BookingDetailClient({
           </Button>
         </CardBody>
       </Card>
+      </div>
     </RegisteredWorkspacePage>
   );
 }

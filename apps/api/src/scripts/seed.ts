@@ -8,7 +8,6 @@ import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { UserEntity } from "../modules/identity/entities/user.entity";
 import { UserTenantEntity } from "../modules/identity/entities/user-tenant.entity";
 import { UserRole } from "../common/auth/user-role.enum";
-import { TourEntity, TourLifecycleStatus } from "../modules/tours/entities/tour.entity";
 
 type SeedOutput = {
   seededAt: string;
@@ -23,18 +22,12 @@ type SeedOutput = {
     password: string;
     role: string;
   };
-  tours: Array<{
-    id: string;
-    title: string;
-    totalCapacity: number;
-    acceptedCount: number;
-  }>;
 };
 
 async function run(): Promise<void> {
   const dataSource = new DataSource({
     ...createDataSourceOptionsFromEnv(),
-    entities: [TenantEntity, UserEntity, UserTenantEntity, TourEntity]
+    entities: [TenantEntity, UserEntity, UserTenantEntity]
   });
 
   await dataSource.initialize();
@@ -42,8 +35,6 @@ async function run(): Promise<void> {
     const tenantRepo = dataSource.getRepository(TenantEntity);
     const userRepo = dataSource.getRepository(UserEntity);
     const membershipRepo = dataSource.getRepository(UserTenantEntity);
-    const tourRepo = dataSource.getRepository(TourEntity);
-
     // Local-dev deterministic leader account requested by product/dev workflows.
     const localTenantName = "demo-tenant";
     const localLeaderEmail = "leader@test.com";
@@ -145,34 +136,6 @@ async function run(): Promise<void> {
       })
     );
 
-    const tourTemplates = [
-      "Freeze QA Tour Alpha",
-      "Freeze QA Tour Beta",
-      "Freeze QA Tour Gamma"
-    ];
-    const seededTours: TourEntity[] = [];
-    for (const title of tourTemplates) {
-      const existing = await tourRepo.findOne({
-        where: { tenantId: seededTenant.id, title, deletedAt: IsNull() }
-      });
-      if (existing) {
-        seededTours.push(existing);
-        continue;
-      }
-      const created = await tourRepo.save(
-        tourRepo.create({
-          tenantId: seededTenant.id,
-          title,
-          description: `${title} seeded for freeze validation`,
-          totalCapacity: 40,
-          acceptedCount: 0,
-          lifecycleStatus: TourLifecycleStatus.OPEN,
-          costContext: { base: 100, requiresPayment: true }
-        })
-      );
-      seededTours.push(created);
-    }
-
     const output: SeedOutput = {
       seededAt: new Date().toISOString(),
       tenantId: seededTenant.id,
@@ -184,13 +147,7 @@ async function run(): Promise<void> {
         phone: userPhone,
         password: userPassword,
         role: UserRole.Owner
-      },
-      tours: seededTours.map((tour) => ({
-        id: tour.id,
-        title: tour.title,
-        totalCapacity: tour.totalCapacity,
-        acceptedCount: tour.acceptedCount
-      }))
+      }
     };
 
     const outputPath = join(process.cwd(), ".seed-output.json");

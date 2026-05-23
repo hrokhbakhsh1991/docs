@@ -10,6 +10,10 @@ import { OutboxMetricsService } from "./outbox-metrics.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
 import { EmailService } from "../../common/email/email.service";
 import { OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND } from "./identity-email-outbox.constants";
+import {
+  dispatchRegistrationAcceptedSmsGateIfEligible,
+  REGISTRATION_ACCEPTED_OUTBOX_EVENT_TYPE
+} from "./registration-accepted-sms-outbox.handler";
 
 /**
  * Transactional outbox dispatcher.
@@ -72,6 +76,16 @@ export class OutboxProcessor {
             const tok = typeof payload.token === "string" ? payload.token : "";
             await this.emailService.sendVerificationEmailOutboundStrict(to, tok);
           } else {
+            if (row.eventType === REGISTRATION_ACCEPTED_OUTBOX_EVENT_TYPE) {
+              await dispatchRegistrationAcceptedSmsGateIfEligible({
+                manager,
+                metrics: this.metrics,
+                logger: this.logger,
+                tenantId,
+                outboxEventId: row.id,
+                payload
+              });
+            }
             this.auditService.deliverFromOutbox({
               tenant_id: tenantId,
               event_id: row.id,

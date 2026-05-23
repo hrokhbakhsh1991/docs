@@ -178,6 +178,92 @@ function buildDenaliTransportJson(
   return Object.keys(slice).length > 0 ? slice : undefined;
 }
 
+type DenaliItineraryDayPlanProjection = {
+  day: number;
+  description: string;
+  title?: string;
+};
+
+type DenaliSegmentActivitiesPayload = NonNullable<
+  NonNullable<TourTripDetails["itinerary"]>["segmentActivities"]
+>;
+
+/**
+ * Maps Denali multi-day `dayPlans` → API `segmentActivities` (classic wizard parity).
+ * Each day gets ≥1 segment with non-empty `title` and `description`.
+ */
+export function denaliDayPlansToSegmentActivities(
+  dayPlans: readonly DenaliItineraryDayPlanProjection[],
+): DenaliSegmentActivitiesPayload {
+  return dayPlans.map((plan) => {
+    const description = plan.description.trim();
+    const segmentTitle = plan.title?.trim() || `روز ${plan.day}`;
+    const segmentDescription = description.length > 0 ? description : segmentTitle;
+    return {
+      dayNumber: plan.day,
+      title: segmentTitle,
+      description: segmentDescription,
+      segments: [
+        {
+          title: segmentTitle,
+          description: segmentDescription,
+          activityType: undefined,
+          startTime: undefined,
+          endTime: undefined,
+          estimatedDurationHours: undefined,
+          distanceKm: undefined,
+          elevationGainMeters: undefined,
+          maxAltitudeMeters: undefined,
+          locationName: undefined,
+        },
+      ],
+    };
+  });
+}
+
+/** Minimal itinerary for classic `itinerary.days` submit-required (single-day Denali has no dayPlans UI). */
+export function buildDenaliSubmitItinerarySlice(input: {
+  dayPlans: Array<DenaliItineraryDayPlanProjection>;
+  programNotes?: string;
+  fallbackSegmentTitle: string;
+}): NonNullable<TourTripDetails["itinerary"]> {
+  const base: NonNullable<TourTripDetails["itinerary"]> = {
+    outline: undefined,
+    programNotes: undefined,
+  };
+  if (input.programNotes != null) {
+    base.programNotes = input.programNotes;
+  }
+  if (input.dayPlans.length > 0) {
+    base.dayPlans = input.dayPlans as any;
+    base.segmentActivities = denaliDayPlansToSegmentActivities(input.dayPlans);
+    return base;
+  }
+  const segmentTitle = input.fallbackSegmentTitle.trim() || "برنامه روز";
+  base.segmentActivities = [
+    {
+      dayNumber: 1,
+      title: segmentTitle,
+      description: segmentTitle,
+      segments: [
+        {
+          title: segmentTitle,
+          description: segmentTitle,
+          activityType: undefined,
+          startTime: undefined,
+          endTime: undefined,
+          estimatedDurationHours: undefined,
+          distanceKm: undefined,
+          elevationGainMeters: undefined,
+          maxAltitudeMeters: undefined,
+          locationName: undefined,
+        },
+      ],
+    },
+  ];
+  return base;
+}
+
 function denaliModeToApiPrimary(mode: DenaliCanonicalTourModel["transport"]["mode"]): string {
   if (mode === "minibus") return "midibus";
   if (mode === "train") return "train";
@@ -195,7 +281,11 @@ function mapCanonicalTransport(transport: DenaliCanonicalTourModel["transport"])
   denaliTransport?: DenaliTransportJsonSlice;
 } {
   if (transport.mode === "none") {
-    return { supplementalPrivateCar: false, transportModes: [] };
+    return {
+      primaryTransportMode: "none",
+      supplementalPrivateCar: false,
+      transportModes: [],
+    };
   }
 
   if (transport.mode === "shared_cars") {
@@ -302,9 +392,11 @@ function buildProjectionFromCanonical(
                 : locationLabel || activities;
             return {
               day: row.day,
-              ...(locationLabel ? { title: locationLabel } : {}),
+              title: locationLabel,
               description,
-              ...(locationDto ? { location: locationDto } : {}),
+              location: locationDto,
+              distanceKm: undefined,
+              elevationGainM: undefined,
               photos: (row.photos ?? [])
                 .filter((p) => p.id && p.url)
                 .map((p) => ({
@@ -360,11 +452,11 @@ function buildProjectionFromCanonical(
         ? { maxAltitudeMeters: canonical.program.altitudeMeasurement }
         : {}),
     },
-    itinerary: {
-      outline: undefined,
-      ...(programNotes != null ? { programNotes } : {}),
-      ...(itineraryDayPlans.length > 0 ? { dayPlans: itineraryDayPlans } : {}),
-    },
+    itinerary: buildDenaliSubmitItinerarySlice({
+      dayPlans: itineraryDayPlans as any,
+      programNotes,
+      fallbackSegmentTitle: canonical.title,
+    }),
     participation: {
       minimumAge: canonical.participants.minimumAge,
       maximumAge: canonical.participants.maximumAge,

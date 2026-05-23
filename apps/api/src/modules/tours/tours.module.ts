@@ -13,12 +13,14 @@ import { WorkspaceDestinationEntity } from "../settings-locations/entities/works
 import { WorkspaceEquipmentItemEntity } from "../settings-locations/entities/workspace-equipment-item.entity";
 import { WorkspaceGuideLanguageEntity } from "../settings-locations/entities/workspace-guide-language.entity";
 import { WorkspaceTourThemeEntity } from "../settings-locations/entities/workspace-tour-theme.entity";
+import { WorkspaceTourCreationPresetEntity } from "../settings-locations/entities/workspace-tour-creation-preset.entity";
 import { WorkspaceTourWizardTemplateEntity } from "../settings-locations/entities/workspace-tour-wizard-template.entity";
 import { TourDetails } from "./entities/tour-details.entity";
 import { TourEntity } from "./entities/tour.entity";
 import { TourWizardDraftEntity } from "./entities/tour-wizard-draft.entity";
 import { TourDepartureEntity } from "./entities/tour-departure.entity";
 import { TourPriceEntity } from "./entities/tour-price.entity";
+import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
 import { TourProductEntity } from "./entities/tour-product.entity";
 import { ToursCatalogReadApplicationService } from "./application/tours-catalog-read.application.service";
 import { ToursCloneService } from "./services/tours-clone.service";
@@ -40,7 +42,9 @@ import { ThrottlerGuard } from "@nestjs/throttler";
       WorkspaceEquipmentItemEntity,
       WorkspaceTourThemeEntity,
       WorkspaceTourWizardTemplateEntity,
+      WorkspaceTourCreationPresetEntity,
       WorkspaceGuideLanguageEntity,
+      UserTenantEntity,
     ]),
     AuthModule,
     IdempotencyModule,

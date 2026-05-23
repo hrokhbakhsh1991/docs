@@ -74,3 +74,32 @@ export async function fetchNominatimSearch(
   const json = (await res.json()) as unknown;
   return parseNominatimRows(json, limit);
 }
+
+const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
+
+export async function fetchNominatimReverse(
+  lat: number,
+  lon: number,
+): Promise<string | null> {
+  const params = new URLSearchParams({
+    format: "json",
+    lat: String(lat),
+    lon: String(lon),
+    zoom: "18",
+    addressdetails: "1",
+  });
+  try {
+    const res = await fetch(`${NOMINATIM_REVERSE_URL}?${params.toString()}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "TourOps-Denali-Wizard/1.0 (location-picker-reverse)",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as any;
+    return (json?.display_name as string) ?? null;
+  } catch {
+    return null;
+  }
+}

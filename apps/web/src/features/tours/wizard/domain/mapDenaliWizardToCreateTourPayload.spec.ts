@@ -10,6 +10,10 @@ import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 import {
+  buildDenaliSubmitItinerarySlice,
+  denaliDayPlansToSegmentActivities,
+} from "./buildDenaliCreateTourPayloadProjection";
+import {
   denaliTourKindToApiTourType,
   mapDenaliWizardToCreateTourPayload,
   splitIsoDateTime,
@@ -72,11 +76,67 @@ test("mapDenaliWizardToCreateTourPayload: organizer_vehicle maps to bus", () => 
   assert.deepEqual(dto.transportModes, ["bus"]);
 });
 
-test("mapDenaliWizardToCreateTourPayload: none clears transport modes", () => {
+test("mapDenaliWizardToCreateTourPayload: none maps primaryTransportMode and clears root modes", () => {
   const form = submitValidForm();
   form.transport.transportMode = "none";
   const dto = mapDenaliWizardToCreateTourPayload(form);
+  assert.equal(dto.tripDetails?.logistics?.primaryTransportMode, "none");
   assert.deepEqual(dto.transportModes, []);
+});
+
+test("denaliDayPlansToSegmentActivities: each day has segment title and description", () => {
+  const rows = denaliDayPlansToSegmentActivities([
+    { day: 1, title: "Camp", description: "Ascent to camp" },
+    { day: 2, description: "Summit day only" },
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0]!.segments![0]!.title, "Camp");
+  assert.equal(rows[0]!.segments![0]!.description, "Ascent to camp");
+  assert.equal(rows[1]!.segments![0]!.title, "روز 2");
+  assert.equal(rows[1]!.segments![0]!.description, "Summit day only");
+});
+
+test("buildDenaliSubmitItinerarySlice: multi-day includes dayPlans and segmentActivities", () => {
+  const slice = buildDenaliSubmitItinerarySlice({
+    dayPlans: [{ day: 1, description: "Summit push" }],
+    fallbackSegmentTitle: "ignored",
+  });
+  assert.ok(Array.isArray(slice.dayPlans) && slice.dayPlans.length === 1);
+  assert.ok(Array.isArray(slice.segmentActivities) && slice.segmentActivities.length === 1);
+  const seg = slice.segmentActivities![0]!.segments![0] as {
+    title?: string;
+    description?: string;
+  };
+  assert.equal(seg.title, "روز 1");
+  assert.equal(seg.description, "Summit push");
+});
+
+test("buildDenaliSubmitItinerarySlice: falls back to segmentActivities when dayPlans empty", () => {
+  const slice = buildDenaliSubmitItinerarySlice({
+    dayPlans: [],
+    programNotes: "notes",
+    fallbackSegmentTitle: "  Day hike  ",
+  });
+  assert.equal(slice.programNotes, "notes");
+  assert.ok(Array.isArray(slice.segmentActivities) && slice.segmentActivities.length === 1);
+  const seg = slice.segmentActivities![0]!.segments![0] as { title?: string };
+  assert.equal(seg.title, "Day hike");
+});
+
+test("mapDenaliWizardToCreateTourPayload: single-day mountain emits segmentActivities for submit-required", () => {
+  const form = submitValidForm();
+  const dto = mapDenaliWizardToCreateTourPayload(form);
+  const itinerary = dto.tripDetails?.itinerary as Record<string, unknown> | undefined;
+  const segmentActivities = itinerary?.segmentActivities as unknown[] | undefined;
+  assert.ok(Array.isArray(segmentActivities) && segmentActivities.length > 0);
+  const first = segmentActivities[0] as {
+    dayNumber?: number;
+    segments?: Array<{ title?: string; description?: string }>;
+  };
+  assert.equal(first.dayNumber, 1);
+  assert.ok(Array.isArray(first.segments) && first.segments.length > 0);
+  assert.ok((first.segments![0]!.title ?? "").length > 0);
+  assert.ok((first.segments![0]!.description ?? "").length > 0);
 });
 
 test("Denali create pipeline: cost_context requiresPayment + paymentMode on wire", () => {
@@ -153,7 +213,7 @@ test("mapDenaliWizardToCreateTourPayload: projects maxAltitudeMeters for mountai
   assert.equal(overview?.maxAltitudeMeters, 5_610);
 });
 
-test("mapDenaliWizardToCreateTourPayload: multi-day itinerary maps to dayPlans", () => {
+test("mapDenaliWizardToCreateTourPayload: multi-day itinerary maps to dayPlans and segmentActivities", () => {
   const form = submitValidForm({
     basicInfo: {
       tourType: "mountain_multi",
@@ -162,15 +222,23 @@ test("mapDenaliWizardToCreateTourPayload: multi-day itinerary maps to dayPlans",
     programNature: {
       itinerary: [
         { day: 1, activities: "روز اول" },
-        { day: 2, activities: "روز دوم" },
+        { day: 2, activities: "روز دوم", locationText: "Camp 2" },
         { day: 3, activities: "روز سوم" },
       ],
     },
   });
   const dto = mapDenaliWizardToCreateTourPayload(form);
-  const dayPlans = dto.tripDetails?.itinerary?.dayPlans;
+  const itinerary = dto.tripDetails?.itinerary;
+  const dayPlans = itinerary?.dayPlans;
   assert.equal(dayPlans?.length, 3);
   assert.equal(dayPlans?.[0]?.description, "روز اول");
+  const segmentActivities = itinerary?.segmentActivities;
+  assert.equal(segmentActivities?.length, 3);
+  assert.equal(segmentActivities?.[0]?.dayNumber, 1);
+  assert.equal(segmentActivities?.[0]?.segments?.[0]?.title, "روز 1");
+  assert.equal(segmentActivities?.[0]?.segments?.[0]?.description, "روز اول");
+  assert.equal(segmentActivities?.[1]?.segments?.[0]?.title, "Camp 2");
+  assert.match(String(segmentActivities?.[1]?.segments?.[0]?.description), /Camp 2/);
 });
 
 test("mapDenaliWizardToCreateTourPayload: gearItems split into required and optional ids", () => {

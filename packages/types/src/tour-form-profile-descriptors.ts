@@ -335,9 +335,9 @@ const denaliPilot: TourFormProfileDescriptor = {
     clearsRootTransportModes: false,
   },
   invariants: {
-    allowsMountainOnlyOverviewKeys: false,
+    allowsMountainOnlyOverviewKeys: true,
     requiresEmptyRootTransportModes: false,
-    mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    mountainOverviewKeysToStripFromOverview: [],
   },
   edit: { tripDetailsPresetOverrides: [] },
 };

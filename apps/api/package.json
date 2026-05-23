@@ -18,6 +18,7 @@
     "provision:denali": "node --env-file=.env --import tsx src/scripts/provision-denali-tenant.ts",
     "reset:denali": "node --env-file=.env --import tsx src/scripts/reset-denali-workspace.ts",
     "reset:denali:provision": "node --env-file=.env --import tsx src/scripts/reset-denali-workspace.ts -- --reprovision",
+    "delete:denali-tours": "node --env-file=.env --import tsx src/scripts/delete-denali-tours.ts",
     "qa:denali:provision": "pnpm run provision:denali && pnpm run verify:tenant -- --slug=denali",
     "qa:denali:enrichment": "pnpm run seed:denali-enrichment && VERIFY_DENALI_ENRICHED=1 pnpm run verify:tenant -- --slug=denali",
     "qa:denali:full": "pnpm run qa:denali:provision && pnpm run qa:denali:enrichment",

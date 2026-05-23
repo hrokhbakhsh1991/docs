@@ -1,7 +1,12 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { tryParseWorkspaceUserRole, type RequestActorRole } from "../../common/auth/user-role.enum";
+import {
+  UserRole,
+  tryParseWorkspaceUserRole,
+  type RequestActorRole
+} from "../../common/auth/user-role.enum";
+import { FALLBACK_OPERATING_CURRENCY_CODE } from "./users-member-wallet-balances.service";
 import {
   authRequiredError,
   tenantContextMissingError,
@@ -32,6 +37,8 @@ export type UserResponseMappingContext = {
  */
 @Injectable()
 export class UsersAccessService {
+  private readonly logger = new Logger(UsersAccessService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
@@ -89,14 +96,12 @@ export class UsersAccessService {
   }
 
   toUserResponseDto(row: TenantScopedUserRow, ctx?: UserResponseMappingContext): UserResponseDto {
-    const membershipRole = tryParseWorkspaceUserRole(row.role);
+    let membershipRole = tryParseWorkspaceUserRole(row.role);
     if (!membershipRole) {
-      throw new ForbiddenException({
-        error: {
-          code: "RBAC_UNKNOWN_MEMBERSHIP_ROLE",
-          message: "Stored membership role is not a known workspace role"
-        }
-      });
+      this.logger.warn(
+        `Unknown membership role "${String(row.role ?? "")}" for user ${row.id}; falling back to ${UserRole.Member}`
+      );
+      membershipRole = UserRole.Member;
     }
     const meta = parseMembershipMetadata(row.membership_metadata);
     const wallet = ctx?.wallet;
@@ -104,8 +109,12 @@ export class UsersAccessService {
 
     return {
       id: row.id,
-      name: row.full_name?.trim() || row.email.split("@")[0] || "User",
-      email: row.email,
+      name:
+        row.full_name?.trim() ||
+        row.email?.split("@")[0]?.trim() ||
+        row.phone?.trim() ||
+        "User",
+      email: row.email ?? null,
       phone: row.phone,
       isPhoneVerified: row.is_phone_verified,
       role: membershipRole,
@@ -123,10 +132,10 @@ export class UsersAccessService {
       isSelectableLeader: membershipHasSelectableLeader(meta),
       telegramLinked: coerceTelegramLinked(row.telegram_linked),
       walletBalanceMinor: wallet?.balanceMinor ?? "0",
-      walletCurrency: wallet?.currency ?? "IRR",
-      totalTrips: booking?.totalTrips,
-      completedTrips: booking?.completedTrips,
-      cancelledTrips: booking?.cancelledTrips,
+      walletCurrency: wallet?.currency ?? FALLBACK_OPERATING_CURRENCY_CODE,
+      totalTrips: booking?.totalTrips ?? 0,
+      completedTrips: booking?.completedTrips ?? 0,
+      cancelledTrips: booking?.cancelledTrips ?? 0,
       profileRowVersion:
         row.profile_row_version !== undefined && row.profile_row_version !== null
           ? Number(row.profile_row_version)

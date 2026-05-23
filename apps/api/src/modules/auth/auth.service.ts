@@ -55,12 +55,6 @@ export class AuthService {
     @Inject(OtpService) private readonly otpService: OtpService
   ) {}
 
-  private makeOnboardingEmailFromPhone(phone: string): string {
-    const digits = phone.replace(/\D/g, "");
-    const suffix = digits.length > 0 ? digits : randomUUID().replace(/-/g, "");
-    return `phone_${suffix}@local.invalid`;
-  }
-
   private maskPhoneForLog(value: string | null | undefined): string | null {
     if (typeof value !== "string") {
       return null;
@@ -503,7 +497,7 @@ export class AuthService {
     void this.tenantAuditEventsService.appendOrWarn({
       tenantId: resolvedTenantId,
       actorUserId: user.id,
-      actor: user.email,
+      actor: user.email ?? user.id,
       userId: user.id,
       action: TenantAuditAction.AUTH_LOGIN_WEB,
       resourceType: "session",
@@ -628,7 +622,7 @@ export class AuthService {
     void this.tenantAuditEventsService.appendOrWarn({
       tenantId: fromTenant,
       actorUserId: user.id,
-      actor: user.email,
+      actor: user.email ?? user.id,
       userId: user.id,
       action: TenantAuditAction.AUTH_WORKSPACE_SWITCH,
       resourceType: "workspace",
@@ -660,7 +654,12 @@ export class AuthService {
     }
 
     const existing = await this.findUserByPhone(onboarding.phone);
-    const normalizedEmail = requestedEmail && requestedEmail !== "" ? requestedEmail : this.makeOnboardingEmailFromPhone(onboarding.phone);
+    const emailForSave =
+      requestedEmail && requestedEmail !== ""
+        ? requestedEmail
+        : existing?.email?.trim()
+          ? existing.email.trim()
+          : null;
 
     const user = existing
       ? await this.userRepository.save({
@@ -668,11 +667,11 @@ export class AuthService {
           fullName,
           phone: onboarding.phone,
           isPhoneVerified: true,
-          email: existing.email?.trim() ? existing.email : normalizedEmail
+          email: emailForSave
         })
       : await this.userRepository.save(
           this.userRepository.create({
-            email: normalizedEmail,
+            email: emailForSave,
             hashedPassword: await argon2.hash(randomUUID()),
             fullName,
             phone: onboarding.phone,
@@ -717,7 +716,7 @@ export class AuthService {
     void this.tenantAuditEventsService.appendOrWarn({
       tenantId: onboarding.tenantId,
       actorUserId: user.id,
-      actor: user.email,
+      actor: user.email ?? user.id,
       userId: user.id,
       action: TenantAuditAction.AUTH_LOGIN_WEB,
       resourceType: "registration",
@@ -769,7 +768,7 @@ export class AuthService {
     if (!user) {
       user = await this.userRepository.save(
         this.userRepository.create({
-          email: `telegram_${telegramUserId}@local.invalid`,
+          email: null,
           hashedPassword: await argon2.hash(randomUUID()),
           telegramUserId
         })
@@ -807,7 +806,7 @@ export class AuthService {
     void this.tenantAuditEventsService.appendOrWarn({
       tenantId: resolvedTenantId,
       actorUserId: user.id,
-      actor: user.email,
+      actor: user.email ?? user.id,
       userId: user.id,
       action: TenantAuditAction.AUTH_LOGIN_TELEGRAM,
       resourceType: "session",

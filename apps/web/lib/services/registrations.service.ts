@@ -90,6 +90,10 @@ export function normalizeRegistrationPayload(raw: unknown): BookingDto {
   };
 }
 
+export type ParticipantMetadataPayload = {
+  userPastPeaksCount?: number;
+};
+
 /** Body fields aligned with `CreateRegistrationDto` (no `tenantId` — tenant is derived server-side). */
 export type CreateRegistrationPayload = {
   tourId: string;
@@ -101,6 +105,7 @@ export type CreateRegistrationPayload = {
   telegramUsername?: string | null;
   vehicleSeatCapacity?: number | null;
   participantNote?: string | null;
+  participantMetadata?: ParticipantMetadataPayload;
 };
 
 export async function createRegistration(payload: CreateRegistrationPayload): Promise<BookingDto> {
@@ -196,11 +201,11 @@ export async function listWaitlistItemsForTour(tourId: string): Promise<Waitlist
 
 export async function updateRegistrationStatus(
   registrationId: string,
-  targetStatus: RegistrationStatus
+  body: { targetStatus: RegistrationStatus; expected_row_version: number }
 ): Promise<BookingDto> {
   const raw = await bffBrowserClient.patch<unknown>(
     BFF.registrationStatus(registrationId),
-    { targetStatus },
+    body,
     { idempotencyKey: true }
   );
   return normalizeRegistrationPayload(raw);
@@ -208,7 +213,11 @@ export async function updateRegistrationStatus(
 
 export async function updateRegistrationPayment(
   registrationId: string,
-  body: { paymentStatus: RegistrationPaymentStatus; paidAmount?: number }
+  body: {
+    paymentStatus: RegistrationPaymentStatus;
+    paidAmount?: number;
+    expected_row_version: number;
+  }
 ): Promise<BookingDto> {
   const raw = await bffBrowserClient.patch<unknown>(
     BFF.registrationPayment(registrationId),

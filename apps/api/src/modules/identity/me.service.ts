@@ -330,12 +330,12 @@ export class MeService {
 
       const wantsEmailVerificationFlow =
         dto.email !== undefined &&
-        dto.email.trim().toLowerCase() !== user.email.trim().toLowerCase();
+        dto.email.trim().toLowerCase() !== (user.email ?? "").trim().toLowerCase();
 
       if (wantsEmailVerificationFlow) {
         const next = dto.email!.trim();
         const u = user;
-        const priorEmail = u.email.trim();
+        const priorEmail = (u.email ?? "").trim();
         await this.applyMePatchDtoToUser(repo, u, dto);
 
         const ownerOfEmail = await repo.findOne({
@@ -483,7 +483,7 @@ export class MeService {
         });
       }
 
-      const priorEmail = user.email.trim();
+      const priorEmail = (user.email ?? "").trim();
       user.email = row.newEmail;
       user.isEmailVerified = true;
       await this.persistUserProfileOrNationalIdConflict(userRepo, user);

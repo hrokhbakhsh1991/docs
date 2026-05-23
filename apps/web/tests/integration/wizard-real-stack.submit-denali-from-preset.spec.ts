@@ -28,7 +28,7 @@ test.describe("real-stack denali create tour from settings preset", () => {
   test("owner opens mountain_day preset → wizard pre-filled → submit", async ({ page }) => {
 
     const runId = `preset-mountain-day-${Date.now()}`;
-    const theme = await fetchTourThemeBySlug(page, "denali-mountain-1-day");
+    const theme = await fetchTourThemeBySlug(page, "mountain");
     expect(theme).toBeTruthy();
 
     await page.goto("/settings/tour-presets", { waitUntil: "domcontentloaded" });
@@ -38,8 +38,8 @@ test.describe("real-stack denali create tour from settings preset", () => {
 
     await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
 
-    const titleInput = page.locator('input[name="basicInfo.title"]');
-    await expect(titleInput).toHaveValue(/abcdefghij/);
+    const titleInput = page.getByLabel("نام تور");
+    await expect(titleInput).toHaveValue("");
     await titleInput.fill(`1234567890 preset ${runId}`);
 
     const location = await fetchWizardLocationIds(page);

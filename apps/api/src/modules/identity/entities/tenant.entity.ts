@@ -49,6 +49,10 @@ export class TenantEntity {
   @Column({ type: "jsonb", name: "enabled_modules", default: () => "'[]'::jsonb" })
   enabledModules!: string[];
 
+  /** Primary ledger/display currency for member wallets and finance surfaces. */
+  @Column({ type: "varchar", name: "operating_currency_code", length: 10, default: "IRR" })
+  operatingCurrencyCode!: string;
+
   @CreateDateColumn({ type: "timestamptz", name: "created_at" })
   createdAt!: Date;
 

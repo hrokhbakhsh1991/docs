@@ -97,6 +97,11 @@ function presetDefaultsEquivalent(): Record<string, unknown> {
         },
       ],
     },
+    tripDetails: {
+      logistics: {
+        gatheringPoints: [],
+      },
+    },
   };
 }
 

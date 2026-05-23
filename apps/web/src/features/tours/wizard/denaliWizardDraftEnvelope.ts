@@ -2,6 +2,7 @@ import { DENALI_ROOTS, getTourWorkspaceDefinition } from "@repo/shared-contracts
 import { normalizeDenaliTransportForm } from "@repo/types";
 
 import { sanitizeDenaliFormPatch } from "./denali/denaliFormSanitize";
+import { stripBlobUrlsFromDenaliDraftPatch } from "./denali/preserveDenaliWizardBlobMedia";
 import { normalizeDenaliWizardForm } from "./denali/validation/denaliRuleAccess";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
@@ -67,7 +68,7 @@ export function serializeDenaliWizardDraft(
   wizardMeta: TourWizardDraftMeta | undefined,
 ): string {
   const base: Record<string, unknown> = {
-    ...sanitizeDenaliFormPatch(formValues),
+    ...sanitizeDenaliFormPatch(stripBlobUrlsFromDenaliDraftPatch(formValues)),
     _wizardRail: DENALI_WIZARD_DRAFT_RAIL,
   };
   if (wizardMeta) {
@@ -94,6 +95,18 @@ export function mergeDenaliWizardDefaults(
     },
     policies: { ...defaults.policies, ...clean.policies },
     photosData: { ...defaults.photosData, ...clean.photosData },
+    tripDetails: {
+      ...defaults.tripDetails,
+      ...clean.tripDetails,
+      logistics: {
+        ...defaults.tripDetails?.logistics,
+        ...clean.tripDetails?.logistics,
+        gatheringPoints:
+          clean.tripDetails?.logistics?.gatheringPoints ??
+          defaults.tripDetails?.logistics?.gatheringPoints ??
+          [],
+      },
+    },
   };
   return normalizeDenaliWizardForm(merged);
 }

@@ -17,7 +17,11 @@ export type WizardPrefillSource =
       defaults: Record<string, unknown>;
       ctx?: PresetMapperContext;
     }
-  | { kind: "clone"; tour: TourCloneSourceDto };
+  | {
+      kind: "clone";
+      tour: TourCloneSourceDto;
+      activeEquipmentIds?: readonly string[];
+    };
 
 /**
  * Public entry for preset/clone → wizard form patch.
@@ -36,7 +40,11 @@ export function mapWizardPrefillToFormPatch(
         ctx: source.ctx,
       });
     }
-    return mapToDenaliWizardPatch({ kind: "clone", tour: source.tour });
+    return mapToDenaliWizardPatch({
+      kind: "clone",
+      tour: source.tour,
+      activeEquipmentIds: source.activeEquipmentIds,
+    });
   }
   if (source.kind === "preset") {
     return mapPresetToFormPatch(formProfile, source.defaults, source.ctx);

@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { randomBytes } from "node:crypto";
-import { IsNull, Repository } from "typeorm";
+import { IsNull, MoreThan, Repository } from "typeorm";
 import { TenantAuditAction } from "../../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../../common/audit/tenant-audit-events.service";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -83,6 +83,21 @@ export type ResendInviteResult = {
   status: WorkspaceInviteStatus;
   expiresAt: string;
   membershipStatus: MembershipStatus;
+};
+
+export type PendingWorkspaceInviteRow = {
+  inviteId: string;
+  phone: string;
+  role: string;
+  status: WorkspaceInviteStatus;
+  expiresAt: string;
+  invitedAt: string | null;
+  userId: string | null;
+};
+
+export type CancelInviteResult = {
+  inviteId: string;
+  status: WorkspaceInviteStatus;
 };
 
 @Injectable()
@@ -352,7 +367,7 @@ export class UsersInviteService {
       invite.status = WorkspaceInviteStatus.ACCEPTED;
       await inviteRepo.remove(invite);
 
-      const actorLabel = user.email;
+      const actorLabel = user.email ?? user.id;
       await tenantAuditEvents.append(
         {
           tenantId: invite.tenantId,
@@ -498,6 +513,216 @@ export class UsersInviteService {
       status: invite.status,
       expiresAt: invite.expiresAt.toISOString(),
       membershipStatus: membership.status
+    };
+  }
+
+  private async resolveUserIdForInvitePhone(
+    tenantId: string,
+    phone: string
+  ): Promise<string | null> {
+    const normalizedPhone = normalizeOtpPhoneInput(phone);
+    if (!normalizedPhone) {
+      return null;
+    }
+    const user = await this.userRepository
+      .createQueryBuilder("u")
+      .select(["u.id"])
+      .where("u.deleted_at IS NULL")
+      .andWhere("phone_normalized(COALESCE(u.phone, '')) = phone_normalized(:phone)", {
+        phone: normalizedPhone
+      })
+      .getOne();
+    if (!user) {
+      return null;
+    }
+    const membership = await this.membershipRepository.findOne({
+      where: {
+        tenantId,
+        userId: user.id,
+        deletedAt: IsNull(),
+        status: MembershipStatus.INVITED
+      },
+      select: ["id", "userId"]
+    });
+    return membership?.userId ?? null;
+  }
+
+  async listPendingInvites(): Promise<PendingWorkspaceInviteRow[]> {
+    const tenantId = this.access.resolveTenantIdOrThrow();
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+
+    const now = new Date();
+    const invites = await this.workspaceInviteRepository.find({
+      where: {
+        tenantId,
+        status: WorkspaceInviteStatus.PENDING,
+        expiresAt: MoreThan(now)
+      },
+      order: { expiresAt: "ASC" }
+    });
+
+    const rows: PendingWorkspaceInviteRow[] = [];
+    for (const invite of invites) {
+      const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+      rows.push({
+        inviteId: invite.id,
+        phone: invite.email,
+        role: invite.role,
+        status: invite.status,
+        expiresAt: invite.expiresAt.toISOString(),
+        invitedAt: invite.invitedAt?.toISOString() ?? invite.createdAt.toISOString(),
+        userId
+      });
+    }
+    return rows;
+  }
+
+  async cancelInvite(inviteId: string): Promise<CancelInviteResult> {
+    const tenantId = this.access.resolveTenantIdOrThrow();
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+
+    const invite = await this.workspaceInviteRepository.findOne({
+      where: { id: inviteId, tenantId }
+    });
+    if (!invite || invite.status !== WorkspaceInviteStatus.PENDING) {
+      throw new NotFoundException({
+        error: { code: "INVITE_NOT_FOUND", message: "Pending invite not found" }
+      });
+    }
+
+    const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+    const now = new Date();
+
+    await this.workspaceInviteRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(WorkspaceInviteEntity).update(
+        { id: invite.id, tenantId },
+        { status: WorkspaceInviteStatus.EXPIRED }
+      );
+      if (userId) {
+        const membership = await manager.getRepository(UserTenantEntity).findOne({
+          where: {
+            tenantId,
+            userId,
+            deletedAt: IsNull(),
+            status: MembershipStatus.INVITED
+          }
+        });
+        if (membership) {
+          await manager.getRepository(UserTenantEntity).delete({ id: membership.id });
+        }
+      }
+
+      const actorLabelRecord = await manager.getRepository(UserEntity).findOne({
+        where: { id: actorUserId, deletedAt: IsNull() }
+      });
+      const actorLabel = actorLabelRecord?.email ?? actorUserId;
+      await this.tenantAuditEventsService.append(
+        {
+          tenantId,
+          actorUserId,
+          actor: actorLabel,
+          userId,
+          action: TenantAuditAction.USER_INVITED,
+          resourceType: "workspace_invite",
+          resourceId: invite.id,
+          metadata: {
+            cancelled: true,
+            inviteStatus: WorkspaceInviteStatus.EXPIRED,
+            timestamp: now.toISOString()
+          },
+          clientIp: this.requestContextService.tryGetClientIp(),
+          requestId: this.requestContextService.tryGetRequestId()
+        },
+        manager
+      );
+    });
+
+    return { inviteId: invite.id, status: WorkspaceInviteStatus.EXPIRED };
+  }
+
+  async resendInviteByInviteId(inviteId: string): Promise<ResendInviteResult> {
+    const tenantId = this.access.resolveTenantIdOrThrow();
+    const { actorUserId } = this.access.resolveActorContextOrThrow();
+    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+
+    const invite = await this.workspaceInviteRepository.findOne({
+      where: { id: inviteId, tenantId, status: WorkspaceInviteStatus.PENDING }
+    });
+    if (!invite) {
+      throw new NotFoundException({
+        error: { code: "INVITE_NOT_FOUND", message: "Pending invite not found" }
+      });
+    }
+
+    const now = new Date();
+    if (invite.expiresAt.getTime() <= now.getTime()) {
+      await this.workspaceInviteRepository.update(
+        { id: invite.id },
+        { status: WorkspaceInviteStatus.EXPIRED }
+      );
+      throw new BadRequestException({
+        error: { code: "INVITE_EXPIRED", message: "Invite has expired" }
+      });
+    }
+
+    const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+    const inviteToken = randomBytes(24).toString("hex");
+    const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    invite.inviteToken = inviteToken;
+    invite.expiresAt = expiresAt;
+    invite.invitedAt = now;
+    await this.workspaceInviteRepository.save(invite);
+
+    if (userId) {
+      const membership = await this.membershipRepository.findOne({
+        where: { tenantId, userId, deletedAt: IsNull() }
+      });
+      if (membership && membership.status === MembershipStatus.INVITED) {
+        membership.invitedAt = now;
+        await this.membershipRepository.save(membership);
+      }
+    }
+
+    const actorLabelRecord = await this.userRepository.findOne({
+      where: { id: actorUserId, deletedAt: IsNull() }
+    });
+    const actorLabel = actorLabelRecord?.email ?? actorUserId;
+    await this.tenantAuditEventsService.append({
+      tenantId,
+      actorUserId,
+      actor: actorLabel,
+      userId,
+      action: TenantAuditAction.USER_INVITE_RESENT,
+      resourceType: "workspace_invite",
+      resourceId: invite.id,
+      metadata: {
+        actorUserId,
+        targetUserId: userId,
+        tenantId,
+        timestamp: now.toISOString(),
+        details: {
+          role: invite.role,
+          inviteStatus: WorkspaceInviteStatus.PENDING,
+          expiresAt: expiresAt.toISOString()
+        }
+      },
+      clientIp: this.requestContextService.tryGetClientIp(),
+      requestId: this.requestContextService.tryGetRequestId()
+    });
+
+    return {
+      inviteId: invite.id,
+      tenantId: invite.tenantId,
+      userId: userId ?? "",
+      phone: invite.email,
+      role: invite.role,
+      inviteToken: invite.inviteToken,
+      status: invite.status,
+      expiresAt: invite.expiresAt.toISOString(),
+      membershipStatus: MembershipStatus.INVITED
     };
   }
 }

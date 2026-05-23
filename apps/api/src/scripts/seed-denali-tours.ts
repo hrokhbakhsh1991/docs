@@ -1,6 +1,6 @@
 /**
  * Inserts several rich demo tours for tenant subdomain `denali` (legacy workspace Denali).
- * **Archived:** Six Lock / Phase 7 fixtures use `ws1-rbac` — see `docs/60-operations/denali-seed-archive.md`.
+ * **Archived:** Six Lock / Phase 7 fixtures use `ws1-rbac` � see `docs/60-operations/denali-seed-archive.md`.
  * Requires `ALLOW_DENALI_SEED=1` or the script exits without mutating data.
  *
  * Run: `ALLOW_DENALI_SEED=1 pnpm --filter @apps/api seed:denali-tours`
@@ -18,6 +18,7 @@ import { TourEntity, TourLifecycleStatus } from "../modules/tours/entities/tour.
 import type { DenaliTourKind } from "@repo/types";
 import type {
   TripDetailsDayPlan,
+  TripDetailsGatheringPickupStation,
   TripDetailsLocationData,
   TourTripDetails,
 } from "../modules/tours/types/tour-trip-details.types";
@@ -94,6 +95,18 @@ type SeedLogisticsInput = Omit<
   "meetingPoint" | "returnPoint"
 >;
 
+function seedGatheringStation(
+  title: string,
+  location: TripDetailsLocationData,
+  time?: string,
+): TripDetailsGatheringPickupStation {
+  return {
+    title,
+    location,
+    ...(time ? { time } : {}),
+  };
+}
+
 function seedLogistics(partial: SeedLogisticsInput): NonNullable<TourTripDetails["logistics"]> {
   return partial;
 }
@@ -154,7 +167,7 @@ export async function seedDenaliTours(): Promise<void> {
     if (dest) {
       emitScriptInfo(`Using workspace destination id=${dest.id} name=${dest.name}`);
     } else {
-      emitScriptInfo("No workspace destinations — tours will have null destination_id.");
+      emitScriptInfo("No workspace destinations � tours will have null destination_id.");
     }
 
     const ownerRows = await ds.query<Array<{ user_id: string }>>(
@@ -178,26 +191,26 @@ export async function seedDenaliTours(): Promise<void> {
     );
     const themeIds = themes.map((r) => r.id);
 
-    const gatherLabel = dest ? `${dest.name} — میدان اصلی` : "محل قرار اعلام می‌شود";
-    const tehranGather = seedLocation("تهران — میدان آزادی", 35.6997, 51.3381);
+    const gatherLabel = dest ? `${dest.name} � ????? ????` : "??? ???? ????? ??????";
+    const tehranGather = seedLocation("????? � ????? ?????", 35.6997, 51.3381);
     const natureGather = seedLocation(gatherLabel, 35.72, 51.42);
     const natureTrail = seedLocation(
-      dest ? `${dest.name} — مسیر جنگلی` : "مسیر پیاده‌روی",
+      dest ? `${dest.name} � ???? ?????` : "???? ?????????",
       36.12,
       51.38,
     );
     const natureCamp = seedLocation(
-      dest ? `${dest.name} — اقامتگاه` : "اقامتگاه گروهی",
+      dest ? `${dest.name} � ????????` : "???????? ?????",
       36.15,
       51.35,
     );
-    const tochalParking = seedLocation("پارکینگ اول توچال", 35.825, 51.002);
-    const damavandGather = seedLocation("میدان آزادی — پارکینگ جنوبی", 35.6997, 51.3381);
-    const damavandCamp = seedLocation("کمپ سوم دماوند", 35.954, 52.109);
-    const damavandSummit = seedLocation("قله دماوند", 35.955, 52.109);
-    const cafeVenue = seedLocation("کافهٔ قرار (آدرس دقیق در کانال)", 35.75, 51.41);
-    const cinemaLobby = seedLocation("لابی پردیس سینمایی (اعلام نهایی)", 35.76, 51.4);
-    const mafiaVenue = seedLocation("فضای رویداد (آدرس خصوصی برای ثبت‌نام‌شدگان)", 35.74, 51.43);
+    const tochalParking = seedLocation("??????? ??? ?????", 35.825, 51.002);
+    const damavandGather = seedLocation("????? ????? � ??????? ?????", 35.6997, 51.3381);
+    const damavandCamp = seedLocation("??? ??? ??????", 35.954, 52.109);
+    const damavandSummit = seedLocation("??? ??????", 35.955, 52.109);
+    const cafeVenue = seedLocation("????? ???? (???? ???? ?? ?????)", 35.75, 51.41);
+    const cinemaLobby = seedLocation("???? ????? ??????? (????? ?????)", 35.76, 51.4);
+    const mafiaVenue = seedLocation("???? ?????? (???? ????? ???? ?????????????)", 35.74, 51.43);
 
     const tourRepo = ds.getRepository(TourEntity);
 
@@ -209,17 +222,17 @@ export async function seedDenaliTours(): Promise<void> {
     emitScriptInfo(`Removed prior seeded tours (matched rows): ${del.affected ?? 0}`);
 
     const commonPolicies: TourTripDetails["policies"] = {
-      cancellationPolicy: "تا ۷ روز قبل از تاریخ حرکت: استرداد کامل منهای کارمزد.",
-      refundPolicy: "در صورت لغو از سوی برگزارکننده، مبلغ کامل عودت داده می‌شود.",
-      safetyPolicy: "شرکت‌کنندگان موظف به رعایت دستورات لیدر و تجهیزات ایمنی هستند.",
-      weatherPolicy: "در شرایط جوی خطرناک، برنامه ممکن است به‌صورت اضطراری تغییر کند.",
+      cancellationPolicy: "?? ? ??? ??? ?? ????? ????: ??????? ???? ????? ??????.",
+      refundPolicy: "?? ???? ??? ?? ??? ???????????? ???? ???? ???? ???? ??????.",
+      safetyPolicy: "???????????? ???? ?? ????? ??????? ???? ? ??????? ????? ?????.",
+      weatherPolicy: "?? ????? ??? ??????? ?????? ???? ??? ??????? ??????? ????? ???.",
     };
 
     const specs: TourSeedSpec[] = [
       {
-        title: `${TITLE_PREFIX}طبیعت‌گردی البرز — دو شب اقامت`,
+        title: `${TITLE_PREFIX}?????????? ????? � ?? ?? ?????`,
         description:
-          "پیاده‌روی جنگلی، آبشارهای منطقه، شب‌مانی در اقامتگاه محلی. مناسب خانواده‌ها و علاقه‌مندان به عکاسی طبیعت.",
+          "????????? ?????? ???????? ?????? ??????? ?? ???????? ????. ????? ?????????? ? ??????????? ?? ????? ?????.",
         tourType: "nature",
         lifecycleStatus: TourLifecycleStatus.OPEN,
         totalCapacity: 22,
@@ -232,25 +245,24 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "nature_multi",
-            shortIntro: "سه روز در جنگل و دامنه‌های البرز با اقامت گروهی.",
+            shortIntro: "?? ??? ?? ???? ? ????????? ????? ?? ????? ?????.",
             tripStyles: ["photography", "familyFriendly"],
             tourThemeIds: themeIds.length ? themeIds : undefined,
             maxAltitudeMeters: 2800,
-            gatheringPoint: natureGather,
             startPoint: natureTrail,
             campPoint: natureCamp,
             endPoint: tehranGather,
           }),
           itinerary: {
-            highlights: ["پیاده‌روی جنگلی", "شب‌نشینی دور آتش", "عکاسی از منظره"],
+            highlights: ["????????? ?????", "???????? ??? ???", "????? ?? ?????"],
             dayPlans: [
               seedDayPlan(
                 1,
                 natureGather,
-                "جمع‌شدن، معرفی مسیر، پیاده‌روی ۳ ساعته در مسیر جنگلی.",
+                "???????? ????? ????? ????????? ? ????? ?? ???? ?????.",
               ),
-              seedDayPlan(2, natureTrail, "صبح زود حرکت؛ مسیر متوسط؛ استراحت طولانی ظهر."),
-              seedDayPlan(3, tehranGather, "صبحانه، جمع‌کردن کمپ، بازگشت به تهران."),
+              seedDayPlan(2, natureTrail, "??? ??? ????? ???? ?????? ??????? ?????? ???."),
+              seedDayPlan(3, tehranGather, "??????? ???????? ???? ?????? ?? ?????."),
             ],
           },
           participation: {
@@ -259,14 +271,21 @@ export async function seedDenaliTours(): Promise<void> {
             experienceLevel: "basic",
             suitableFor: ["families", "beginners"],
             notSuitableFor: ["experienced_hikers"],
-            requirements: "کفش کوه‌پیمایی، بطری آب، لباس گرم.",
+            requirements: "??? ??????????? ???? ??? ???? ???.",
           },
           logistics: seedLogistics({
             departureDate: "2026-06-12",
             returnDate: "2026-06-14",
             departureMeetingTime: "06:30",
-            includedServices: ["ناهار روز دوم", "میان‌وعده", "راهنما"],
-            excludedServices: ["شام شب اول", "بیمه مسافرتی"],
+            gatheringPoints: [
+              seedGatheringStation(
+                natureGather.addressText ?? "Gathering",
+                natureGather,
+                "06:30",
+              ),
+            ],
+            includedServices: ["????? ??? ???", "?????????", "??????"],
+            excludedServices: ["??? ?? ???", "???? ???????"],
             mealPlan: "self_catering",
             groupSizeMin: 8,
             groupSizeMax: 22,
@@ -275,8 +294,8 @@ export async function seedDenaliTours(): Promise<void> {
         }),
       },
       {
-        title: `${TITLE_PREFIX}کوهنوردی یک‌روزه — توچال (مسیر متوسط)`,
-        description: "صعود یک‌روزه با تله‌کابین و پیاده‌روی سنگ‌فرش تا ایستگاه ۵؛ مناسب آمادگی جسمانی متوسط.",
+        title: `${TITLE_PREFIX}???????? ??????? � ????? (???? ?????)`,
+        description: "???? ??????? ?? ????????? ? ????????? ??????? ?? ??????? ?? ????? ?????? ?????? ?????.",
         tourType: "mountain",
         lifecycleStatus: TourLifecycleStatus.OPEN,
         totalCapacity: 16,
@@ -289,11 +308,10 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "mountain_day",
-            shortIntro: "یک روز در ارتفاع با منظرهٔ تهران.",
+            shortIntro: "?? ??? ?? ?????? ?? ?????? ?????.",
             tripStyles: ["adventure", "budget"],
             tourThemeIds: themeIds.length ? [themeIds[0]] : undefined,
             elevationGainMeters: 650,
-            gatheringPoint: tochalParking,
             startPoint: tochalParking,
             endPoint: tochalParking,
           }),
@@ -302,7 +320,7 @@ export async function seedDenaliTours(): Promise<void> {
               seedDayPlan(
                 1,
                 tochalParking,
-                "قرار صبح زود، تله‌کابین، پیاده‌روی تا ایستگاه ۵، ناهار، بازگشت عصر.",
+                "???? ??? ???? ?????????? ????????? ?? ??????? ?? ?????? ?????? ???.",
                 { distanceKm: 8, elevationGainM: 650 },
               ),
             ],
@@ -311,13 +329,20 @@ export async function seedDenaliTours(): Promise<void> {
             fitnessLevel: DifficultyLevel.MODERATE,
             experienceLevel: "basic",
             suitableFor: ["solo_travelers", "beginners"],
-            requirements: "عینک آفتابی، کلاه، ۱٫۵ لیتر آب.",
+            requirements: "???? ??????? ????? ??? ???? ??.",
           },
           logistics: seedLogistics({
             departureDate: "2026-05-24",
             returnDate: "2026-05-24",
             departureMeetingTime: "05:45",
-            transportationNotes: "خودروهای شخصی؛ دنگ بنزین بین سرنشینان.",
+            gatheringPoints: [
+              seedGatheringStation(
+                tochalParking.addressText ?? "Gathering",
+                tochalParking,
+                "05:45",
+              ),
+            ],
+            transportationNotes: "???????? ????? ??? ????? ??? ????????.",
             groupSizeMin: 4,
             groupSizeMax: 16,
           }),
@@ -325,9 +350,9 @@ export async function seedDenaliTours(): Promise<void> {
         }),
       },
       {
-        title: `${TITLE_PREFIX}صعود دماوند — برنامهٔ سه‌روزه`,
+        title: `${TITLE_PREFIX}???? ?????? � ??????? ???????`,
         description:
-          "پلکان، کمپ سوم، سامیت؛ آکلیماسیون و ریتم محافظه‌کارانه. فقط برای کوهنوردان با سابقهٔ صعود چندقله بالای ۴۰۰۰ متر.",
+          "?????? ??? ???? ?????? ?????????? ? ???? ?????????????. ??? ???? ????????? ?? ?????? ???? ?????? ????? ???? ???.",
         tourType: "mountain",
         lifecycleStatus: TourLifecycleStatus.DRAFT,
         totalCapacity: 10,
@@ -340,57 +365,63 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "mountain_multi",
-            shortIntro: "برنامهٔ فشردهٔ سه‌روزه با شب‌مانی در کمپ.",
+            shortIntro: "??????? ?????? ??????? ?? ??????? ?? ???.",
             tripStyles: ["adventure"],
             tourThemeIds: themeIds.length ? themeIds : undefined,
             maxAltitudeMeters: 5610,
             elevationGainMeters: 2700,
-            gatheringPoint: damavandGather,
-            startPoint: seedLocation("پلکان دماوند", 35.951, 52.109),
+            startPoint: seedLocation("????? ??????", 35.951, 52.109),
             campPoint: damavandCamp,
             summitPoint: damavandSummit,
             endPoint: damavandGather,
           }),
           itinerary: {
-            highlights: ["آکلیماسیون", "کمپ سوم", "قله در صورت مساعد بودن هوا"],
+            highlights: ["??????????", "??? ???", "??? ?? ???? ????? ???? ???"],
             dayPlans: [
               seedDayPlan(
                 1,
-                seedLocation("پلکان → گوسفندسرا", 35.951, 52.109),
-                "انتقال، پیاده‌روی سبک، استراحت.",
+                seedLocation("????? ? ?????????", 35.951, 52.109),
+                "??????? ????????? ???? ???????.",
               ),
-              seedDayPlan(2, damavandCamp, "صعود با بار سبک؛ شب در کمپ."),
-              seedDayPlan(3, damavandSummit, "شروع نیمه‌شب؛ بازگشت به پلکان."),
+              seedDayPlan(2, damavandCamp, "???? ?? ??? ???? ?? ?? ???."),
+              seedDayPlan(3, damavandSummit, "???? ???????? ?????? ?? ?????."),
             ],
           },
           participation: {
             fitnessLevel: DifficultyLevel.HARD,
             experienceLevel: "advanced",
-            technicalSkillRequired: "کار با crampon و یخ‌شکن در صورت یخبندان.",
+            technicalSkillRequired: "??? ?? crampon ? ?????? ?? ???? ???????.",
             sportsInsuranceRequired: true,
             suitableFor: ["experienced_hikers"],
             notSuitableFor: ["beginners", "kids"],
-            requirements: "گواهی صعود یا معرفی لیدر قبلی.",
+            requirements: "????? ???? ?? ????? ???? ????.",
           },
           logistics: seedLogistics({
             departureDate: "2026-07-03",
             returnDate: "2026-07-05",
             departureMeetingTime: "04:00",
-            accommodationNotes: "چادر گروهی در کمپ سوم.",
-            includedServices: ["ناهار بسته‌بندی روز دوم", "راهنما", "پشتیبان"],
-            excludedServices: ["چادر شخصی", "گرمایش"],
+            gatheringPoints: [
+              seedGatheringStation(
+                damavandGather.addressText ?? "Gathering",
+                damavandGather,
+                "04:00",
+              ),
+            ],
+            accommodationNotes: "???? ????? ?? ??? ???.",
+            includedServices: ["????? ????????? ??? ???", "??????", "???????"],
+            excludedServices: ["???? ????", "??????"],
             groupSizeMin: 6,
             groupSizeMax: 10,
           }),
           policies: {
             ...commonPolicies,
-            weatherPolicy: "با باد شدید یا طوفان، صعود لغو و برنامه جایگزین اعلام می‌شود.",
+            weatherPolicy: "?? ??? ???? ?? ?????? ???? ??? ? ?????? ??????? ????? ??????.",
           },
         }),
       },
       {
-        title: `${TITLE_PREFIX}کلوپ کتاب — رمان معاصر (شهر)`,
-        description: "جلسهٔ بحث آزاد روی یک رمان انتخابی؛ فنجان قهوه و نوت‌برداری. بدون نیاز به تجهیزات کوه.",
+        title: `${TITLE_PREFIX}???? ???? � ???? ????? (???)`,
+        description: "????? ??? ???? ??? ?? ???? ???????? ????? ???? ? ??????????. ???? ???? ?? ??????? ???.",
         tourType: "cultural",
         lifecycleStatus: TourLifecycleStatus.OPEN,
         totalCapacity: 14,
@@ -403,18 +434,17 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "event_reading",
-            shortIntro: "یک عصر کتاب و گفت‌وگو در فضای آرام.",
+            shortIntro: "?? ??? ???? ? ??????? ?? ???? ????.",
             tripStyles: ["relaxed", "budget"],
-            gatheringPoint: cafeVenue,
             endPoint: cafeVenue,
           }),
           itinerary: {
-            outline: "معرفی کتاب ۲۰ دقیقه؛ بحث آزاد ۹۰ دقیقه؛ جمع‌بندی.",
+            outline: "????? ???? ?? ?????? ??? ???? ?? ?????? ????????.",
             dayPlans: [
               seedDayPlan(
                 1,
                 cafeVenue,
-                "فصل‌های ۱–۳؛ سوالات از پیش اعلام‌شده در کانال.",
+                "??????? ?�?? ?????? ?? ??? ????????? ?? ?????.",
               ),
             ],
           },
@@ -423,14 +453,17 @@ export async function seedDenaliTours(): Promise<void> {
             fitnessLevel: DifficultyLevel.EASY,
             experienceLevel: "none",
             suitableFor: ["solo_travelers", "seniors"],
-            requirements: "خواندن فصل‌های مشخص تا قبل از جلسه.",
+            requirements: "?????? ??????? ???? ?? ??? ?? ????.",
           },
           logistics: seedLogistics({
             departureDate: "2026-05-30",
             returnDate: "2026-05-30",
             departureMeetingTime: "16:00",
-            includedServices: ["فضای نشست", "تسهیلگر"],
-            excludedServices: ["نوشیدنی"],
+            gatheringPoints: [
+              seedGatheringStation(cafeVenue.addressText ?? "Gathering", cafeVenue, "16:00"),
+            ],
+            includedServices: ["???? ????", "???????"],
+            excludedServices: ["???????"],
             groupSizeMin: 6,
             groupSizeMax: 14,
           }),
@@ -438,8 +471,8 @@ export async function seedDenaliTours(): Promise<void> {
         }),
       },
       {
-        title: `${TITLE_PREFIX}سینما — نمایش ویژه + نقد`,
-        description: "بلیت گروهی، سالن اختصاصی یا سانس ویژه، نیم ساعت نقد پس از فیلم.",
+        title: `${TITLE_PREFIX}????? � ????? ???? + ???`,
+        description: "???? ?????? ???? ??????? ?? ???? ????? ??? ???? ??? ?? ?? ????.",
         tourType: "city",
         lifecycleStatus: TourLifecycleStatus.OPEN,
         totalCapacity: 40,
@@ -452,21 +485,27 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "event_cinema",
-            shortIntro: "فیلم، پاپ‌کورن اختیاری، گفت‌وگوی کوتاه.",
+            shortIntro: "????? ???????? ???????? ???????? ?????.",
             tripStyles: ["relaxed", "familyFriendly"],
-            gatheringPoint: cinemaLobby,
             endPoint: cinemaLobby,
           }),
           itinerary: {
             dayPlans: [
-              seedDayPlan(1, cinemaLobby, "سانس ویژه و نقد پس از نمایش."),
+              seedDayPlan(1, cinemaLobby, "???? ???? ? ??? ?? ?? ?????."),
             ],
           },
           logistics: seedLogistics({
             departureDate: "2026-06-06",
             returnDate: "2026-06-06",
             departureMeetingTime: "19:00",
-            transportationNotes: "اتوبوس ترانسفر رفت از نقطهٔ مشخص.",
+            gatheringPoints: [
+              seedGatheringStation(
+                cinemaLobby.addressText ?? "Gathering",
+                cinemaLobby,
+                "19:00",
+              ),
+            ],
+            transportationNotes: "?????? ??????? ??? ?? ????? ????.",
             groupSizeMin: 20,
             groupSizeMax: 40,
           }),
@@ -477,8 +516,8 @@ export async function seedDenaliTours(): Promise<void> {
         }),
       },
       {
-        title: `${TITLE_PREFIX}بازی مافیا — شب گروهی`,
-        description: "میزهای ۱۲–۱۵ نفره، داور و سناریوهای متنوع؛ فقط برای بزرگسالان.",
+        title: `${TITLE_PREFIX}???? ????? � ?? ?????`,
+        description: "?????? ??�?? ????? ???? ? ????????? ?????? ??? ???? ?????????.",
         tourType: "city",
         lifecycleStatus: TourLifecycleStatus.OPEN,
         totalCapacity: 24,
@@ -491,9 +530,8 @@ export async function seedDenaliTours(): Promise<void> {
         tripDetails: td({
           overview: seedOverview({
             denaliTourKind: "event_reading",
-            shortIntro: "شب بازی گروهی با فضای امن و قوانین روشن.",
+            shortIntro: "?? ???? ????? ?? ???? ??? ? ?????? ????.",
             tripStyles: ["relaxed", "budget"],
-            gatheringPoint: mafiaVenue,
             endPoint: mafiaVenue,
           }),
           itinerary: {
@@ -501,7 +539,7 @@ export async function seedDenaliTours(): Promise<void> {
               seedDayPlan(
                 1,
                 mafiaVenue,
-                "آموزش قوانین ۱۵ دقیقه؛ ۴ راند بازی؛ استراحت میانی.",
+                "????? ?????? ?? ?????? ? ???? ????? ??????? ?????.",
               ),
             ],
           },
@@ -510,18 +548,25 @@ export async function seedDenaliTours(): Promise<void> {
             fitnessLevel: DifficultyLevel.EASY,
             experienceLevel: "none",
             suitableFor: ["solo_travelers", "beginners"],
-            requirements: "رعایت احترام متقابل؛ تلفن همراه روی حالت سکوت.",
+            requirements: "????? ?????? ??????? ???? ????? ??? ???? ????.",
           },
           logistics: seedLogistics({
             departureDate: "2026-06-13",
             returnDate: "2026-06-13",
             departureMeetingTime: "20:00",
+            gatheringPoints: [
+              seedGatheringStation(
+                mafiaVenue.addressText ?? "Gathering",
+                mafiaVenue,
+                "20:00",
+              ),
+            ],
             groupSizeMin: 12,
             groupSizeMax: 24,
           }),
           policies: {
             ...commonPolicies,
-            reservationRules: "ثبت‌نام قطعی تا ۴۸ ساعت قبل؛ جایگزینی با هماهنگی لیدر.",
+            reservationRules: "??????? ???? ?? ?? ???? ???? ???????? ?? ??????? ????.",
           },
         }),
       },
@@ -534,7 +579,10 @@ export async function seedDenaliTours(): Promise<void> {
         elevationM: spec.tripDetails.overview?.maxAltitudeMeters ?? null,
         difficulty: spec.difficulty ?? null,
         durationDays: spec.durationDays ?? null,
-        meetingPoint: spec.tripDetails.overview?.gatheringPoint?.addressText ?? null,
+        meetingPoint:
+          spec.tripDetails.logistics?.gatheringPoints?.[0]?.title ??
+          spec.tripDetails.logistics?.gatheringPoints?.[0]?.location?.addressText ??
+          null,
         itinerary: null,
         tripDetails: spec.tripDetails,
       });

@@ -5,22 +5,19 @@ import {
   type InfiniteData,
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Modal } from "@tour/ui";
 
 import { isLeaderRole, isWorkspaceOwner, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
 import {
-  bulkReactivateUsers,
-  bulkRemoveUsers,
-  bulkSuspendUsers,
-  bulkUpdateUsersRole,
   getUsers,
   type GetUsersResponseDto,
+  listPendingInvites,
   updateUserRole,
   usersUseLiveApi,
   type WorkspaceUserDto,
@@ -35,21 +32,19 @@ import {
   type DirectoryListUiState,
 } from "./users-directory-ui-state";
 import {
-  filterUsers,
-  normalizeRole,
   sortUsers,
   type RoleFilter,
   type UserSortColumn,
 } from "./users-page-logic";
 import { USERS_ROUTE_COPY } from "./users-copy";
-import { UsersDirectoryBulkToolbar, type BulkAssignableRole } from "./users-directory-bulk-toolbar";
-import { InviteUserModal } from "./components/invite-user-modal";
+import type { DirectoryTabId } from "./components/directory-tabs";
+import { PendingInvitesTable } from "./components/pending-invites-table";
+import { WorkspaceInviteModal } from "./components/workspace-invite-modal";
 import { WorkspaceUserRewardsModal } from "./components/workspace-user-rewards-modal";
 import { UsersDirectoryLockedPanel } from "./users-directory-locked-panel";
 import { UsersDirectoryTableCard } from "./users-directory-table-card";
 import { resolveUsersDirectoryBodyState } from "./users-directory-gate";
 import { UsersDirectoryPageShell } from "./users-page-shell";
-import { UserDirectoryDetailModal } from "./user-directory-detail-modal";
 
 const copy = USERS_ROUTE_COPY.list;
 const ROLE_FILTER_VALUES: readonly RoleFilter[] = [
@@ -113,11 +108,8 @@ export function UsersPageClient() {
     };
   });
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>(initialQuerySearch);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(() => new Set());
-  const [bulkRoleSelection, setBulkRoleSelection] = useState<"" | BulkAssignableRole>("");
+  const [directoryTab, setDirectoryTab] = useState<DirectoryTabId>("active");
   const [inviteUserModalOpen, setInviteUserModalOpen] = useState(false);
-  const [detailUserId, setDetailUserId] = useState<string | null>(null);
-  const [bulkRemoveConfirmOpen, setBulkRemoveConfirmOpen] = useState(false);
   const [rewardsModalOpen, setRewardsModalOpen] = useState(false);
   const [rewardsModalUser, setRewardsModalUser] = useState<WorkspaceUserDto | null>(null);
 
@@ -131,9 +123,15 @@ export function UsersPageClient() {
             search: activeSearchQuery,
             role: activeRoleFilter ?? "all",
             limit: DIRECTORY_FETCH_LIMIT,
+            status: "ACTIVE",
           })
         : ([...userKeys.all, "list", "__no-tenant__"] as const),
     [tenantId, activeSearchQuery, activeRoleFilter],
+  );
+
+  const pendingInvitesQueryKey = useMemo(
+    () => (tenantId ? userKeys.pendingInvites(tenantId) : ([...userKeys.all, "pending-invites", "__no-tenant__"] as const)),
+    [tenantId],
   );
 
   const {
@@ -153,6 +151,7 @@ export function UsersPageClient() {
         cursor: typeof pageParam === "string" ? pageParam : undefined,
         search: activeSearchQuery || undefined,
         role: activeRoleFilter,
+        status: "ACTIVE",
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -168,13 +167,24 @@ export function UsersPageClient() {
   const hasNextPage = Boolean(data?.pages?.at(-1)?.nextCursor);
   const usersLoadingInitial = usersLoading && rosterRows.length === 0;
 
+  const {
+    data: pendingInvitesData,
+    isPending: pendingInvitesLoading,
+    isError: pendingInvitesError,
+  } = useQuery({
+    queryKey: pendingInvitesQueryKey,
+    queryFn: listPendingInvites,
+    enabled: listQueryEnabled && directoryTab === "pending",
+    staleTime: 15_000,
+  });
+
+  const pendingInviteRows = pendingInvitesData?.data ?? [];
+
   const [activeRoleMutationUserId, setActiveRoleMutationUserId] = useState<string | null>(null);
   const roleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
       setActiveRoleMutationUserId(userId);
-      if (tenantId) {
-        await queryClient.cancelQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
+      await queryClient.cancelQueries({ queryKey: userListQueryKey });
       const queryKey = userListQueryKey;
       const optimistic = {
         snapshot: () => queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey),
@@ -218,9 +228,6 @@ export function UsersPageClient() {
     },
     onSettled: () => {
       setActiveRoleMutationUserId(null);
-      if (tenantId) {
-        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
     },
   });
 
@@ -230,17 +237,6 @@ export function UsersPageClient() {
     }, 350);
     return () => clearTimeout(timer);
   }, [directoryUiState.searchQuery]);
-
-  useEffect(() => {
-    const rosterIdSet = new Set(rosterRows.map((row) => row.id));
-    setSelectedUserIds((current) => {
-      const next = new Set<string>();
-      for (const userId of current) {
-        if (rosterIdSet.has(userId)) next.add(userId);
-      }
-      return next;
-    });
-  }, [rosterRows]);
 
   const updateQueryParams = useCallback((next: DirectoryListUiState, searchOverride?: string) => {
     const params = new URLSearchParams();
@@ -267,53 +263,14 @@ export function UsersPageClient() {
     directoryUiState.sortDir,
   ]);
 
-  const normalizedSearchQuery = useMemo(
-    () => directoryUiState.searchQuery.trim().toLowerCase(),
-    [directoryUiState.searchQuery],
+  const sortedUsers = useMemo(
+    () =>
+      sortUsers(rosterRows, {
+        sortColumn: directoryUiState.sortColumn,
+        sortDir: directoryUiState.sortDir,
+      }),
+    [rosterRows, directoryUiState.sortColumn, directoryUiState.sortDir],
   );
-
-  const filteredUsers = useMemo(() => {
-    return filterUsers(rosterRows, {
-      roleFilter: directoryUiState.roleFilter,
-      queryNorm: normalizedSearchQuery,
-    });
-  }, [rosterRows, directoryUiState.roleFilter, normalizedSearchQuery]);
-
-  const sortedUsers = useMemo(() => {
-    return sortUsers(filteredUsers, {
-      sortColumn: directoryUiState.sortColumn,
-      sortDir: directoryUiState.sortDir,
-    });
-  }, [
-    filteredUsers,
-    directoryUiState.sortColumn,
-    directoryUiState.sortDir,
-  ]);
-
-  const selectableUserIds = useMemo(() => {
-    const sessionUserId = sessionUser?.userId ?? "";
-    return new Set(
-      sortedUsers
-        .filter((row) => normalizeRole(row.role) !== "owner" && row.id !== sessionUserId)
-        .map((row) => row.id),
-    );
-  }, [sortedUsers, sessionUser?.userId]);
-
-  useEffect(() => {
-    setSelectedUserIds((current) => {
-      const next = new Set<string>();
-      for (const userId of current) {
-        if (selectableUserIds.has(userId)) next.add(userId);
-      }
-      return next;
-    });
-  }, [selectableUserIds]);
-
-  useEffect(() => {
-    if (selectedUserIds.size === 0) {
-      setBulkRoleSelection("");
-    }
-  }, [selectedUserIds.size]);
 
   const toggleUserSort = useCallback((column: UserSortColumn) => {
     setDirectoryUiState((s) => {
@@ -325,151 +282,12 @@ export function UsersPageClient() {
     });
   }, []);
 
-  const bulkRoleMutation = useMutation({
-    mutationFn: async ({ userIds, role }: { userIds: string[]; role: BulkAssignableRole }) => {
-      if (tenantId) {
-        await queryClient.cancelQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
-      const queryKey = userListQueryKey;
-      const idSet = new Set(userIds);
-      return bulkUpdateUsersRole(userIds, role, {
-        snapshot: () => queryClient.getQueryData<InfiniteData<GetUsersResponseDto>>(queryKey),
-        applyOptimistic: (_snapshot) => {
-          queryClient.setQueryData<InfiniteData<GetUsersResponseDto>>(queryKey, (current) => {
-            if (!current) return current;
-            return {
-              ...current,
-              pages: current.pages.map((page) => ({
-                ...page,
-                data: page.data.map((row) =>
-                  idSet.has(row.id)
-                    ? {
-                        ...row,
-                        role,
-                      }
-                    : row,
-                ),
-              })),
-            };
-          });
-        },
-        rollback: (previous) => {
-          if (previous !== undefined) {
-            queryClient.setQueryData(queryKey, previous);
-          }
-        },
-      });
-    },
-    onSuccess: (_result, variables) => {
-      toast.success({ message: `Updated ${variables.userIds.length} users.` });
-      setSelectedUserIds(new Set());
-      setBulkRoleSelection("");
-    },
-    onError: (e: unknown) => {
-      toast.error({
-        message: e instanceof ApiError ? e.message : copy.roleUpdateErrorToast,
-      });
-    },
-    onSettled: () => {
-      if (tenantId) {
-        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
-    },
-  });
-
-  const applyBulkRoleChange = useCallback(() => {
-    if (!bulkRoleSelection || selectedUserIds.size === 0) return;
-    bulkRoleMutation.mutate({
-      userIds: [...selectedUserIds],
-      role: bulkRoleSelection,
-    });
-  }, [bulkRoleSelection, selectedUserIds, bulkRoleMutation]);
-
-  const bulkSuspendMutation = useMutation({
-    mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await bulkSuspendUsers(userIds);
-    },
-    onSuccess: (_result, variables) => {
-      toast.success({ message: `Suspended ${variables.userIds.length} users.` });
-      setSelectedUserIds(new Set());
-    },
-    onError: (e: unknown) => {
-      toast.error({ message: e instanceof ApiError ? e.message : "Failed to suspend selected users." });
-    },
-    onSettled: () => {
-      if (tenantId) {
-        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
-    },
-  });
-
-  const bulkReactivateMutation = useMutation({
-    mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await bulkReactivateUsers(userIds);
-    },
-    onSuccess: (_result, variables) => {
-      toast.success({ message: `Reactivated ${variables.userIds.length} users.` });
-      setSelectedUserIds(new Set());
-    },
-    onError: (e: unknown) => {
-      toast.error({ message: e instanceof ApiError ? e.message : "Failed to reactivate selected users." });
-    },
-    onSettled: () => {
-      if (tenantId) {
-        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
-    },
-  });
-
-  const applyBulkSuspend = useCallback(() => {
-    if (selectedUserIds.size === 0) return;
-    bulkSuspendMutation.mutate({ userIds: [...selectedUserIds] });
-  }, [selectedUserIds, bulkSuspendMutation]);
-
-  const applyBulkReactivate = useCallback(() => {
-    if (selectedUserIds.size === 0) return;
-    bulkReactivateMutation.mutate({ userIds: [...selectedUserIds] });
-  }, [selectedUserIds, bulkReactivateMutation]);
-
-  const bulkRemoveMutation = useMutation({
-    mutationFn: async ({ userIds }: { userIds: string[] }) => {
-      await bulkRemoveUsers(userIds);
-    },
-    onSuccess: (_result, variables) => {
-      toast.success({ message: `Removed ${variables.userIds.length} users from workspace.` });
-      setSelectedUserIds(new Set());
-      setBulkRemoveConfirmOpen(false);
-    },
-    onError: (e: unknown) => {
-      toast.error({ message: e instanceof ApiError ? e.message : "Failed to remove selected users." });
-    },
-    onSettled: () => {
-      if (tenantId) {
-        void queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-      }
-    },
-  });
-
-  const openBulkRemoveConfirm = useCallback(() => {
-    if (selectedUserIds.size === 0) return;
-    setBulkRemoveConfirmOpen(true);
-  }, [selectedUserIds.size]);
-
-  const confirmBulkRemove = useCallback(() => {
-    if (selectedUserIds.size === 0) return;
-    bulkRemoveMutation.mutate({ userIds: [...selectedUserIds] });
-  }, [selectedUserIds, bulkRemoveMutation]);
-
   const requestMoreMembers = useCallback(() => {
     if (!hasNextPage || isFetchingNextPage) {
       return;
     }
     void fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const openUserProfile = useCallback((userId: string) => {
-    setDetailUserId(userId);
-  }, []);
 
   const openInviteUserModal = useCallback(() => {
     setInviteUserModalOpen(true);
@@ -479,13 +297,20 @@ export function UsersPageClient() {
     setInviteUserModalOpen(false);
   }, []);
 
-  const refreshUsersListAfterInvite = useCallback(async () => {
-    if (tenantId) {
-      await queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-    } else {
-      await queryClient.invalidateQueries({ queryKey: userListQueryKey });
+  const refreshDirectoryQueries = useCallback(async () => {
+    if (!tenantId) {
+      return;
     }
-  }, [queryClient, tenantId, userListQueryKey]);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) }),
+      queryClient.invalidateQueries({ queryKey: pendingInvitesQueryKey }),
+    ]);
+  }, [queryClient, tenantId, pendingInvitesQueryKey]);
+
+  const refreshUsersListAfterInvite = useCallback(async () => {
+    await refreshDirectoryQueries();
+    setDirectoryTab("pending");
+  }, [refreshDirectoryQueries]);
 
   const bodyState = resolveUsersDirectoryBodyState({
     isHydrated,
@@ -520,13 +345,11 @@ export function UsersPageClient() {
   }, []);
 
   const refreshUsersListAfterRewards = useCallback(async () => {
-    if (tenantId) {
-      await queryClient.invalidateQueries({ queryKey: userKeys.directoryListRoot(tenantId) });
-    }
-  }, [queryClient, tenantId]);
+    await queryClient.invalidateQueries({ queryKey: userListQueryKey });
+  }, [queryClient, userListQueryKey]);
 
   const exportUsersCsv = useCallback(() => {
-    const headers = ["Name", "Email", "Role", "Status", "Labels", "TelegramLinked"];
+    const headers = [...copy.exportCsvHeaders];
     const escapeCsv = (value: string) => `"${value.replace(/"/g, "\"\"")}"`;
     const lines = [headers.join(",")];
     for (const row of sortedUsers) {
@@ -534,11 +357,11 @@ export function UsersPageClient() {
       lines.push(
         [
           escapeCsv(row.name),
-          escapeCsv(row.email),
+          escapeCsv(row.email ?? ""),
           escapeCsv(row.role),
           escapeCsv(row.status),
           escapeCsv(labelsJoined),
-          escapeCsv(row.telegramLinked ? "yes" : "no"),
+          escapeCsv(row.telegramLinked ? copy.exportCsvYes : copy.exportCsvNo),
         ].join(","),
       );
     }
@@ -553,27 +376,15 @@ export function UsersPageClient() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success({ message: `Exported ${sortedUsers.length} users.` });
+    toast.success({
+      message: copy.exportCsvSuccessToast.replace("{n}", String(sortedUsers.length)),
+    });
   }, [sortedUsers, toast]);
 
   return (
     <UsersDirectoryPageShell>
       {bodyState.type === "directory" ? (
         <>
-          <UsersDirectoryBulkToolbar
-            selectedCount={selectedUserIds.size}
-            selectedRole={bulkRoleSelection}
-            onSelectedRoleChange={setBulkRoleSelection}
-            onApplyRole={applyBulkRoleChange}
-            onSuspendUsers={applyBulkSuspend}
-            onReactivateUsers={applyBulkReactivate}
-            onRemoveUsers={openBulkRemoveConfirm}
-            isApplying={bulkRoleMutation.isPending}
-            isSuspending={bulkSuspendMutation.isPending}
-            isReactivating={bulkReactivateMutation.isPending}
-            isRemoving={bulkRemoveMutation.isPending}
-            onClearSelection={() => setSelectedUserIds(new Set())}
-          />
           <UsersDirectoryTableCard
             searchQuery={directoryUiState.searchQuery}
             onSearchQueryChange={(value) => updateDirectoryUiState({ searchQuery: value })}
@@ -592,54 +403,26 @@ export function UsersPageClient() {
             isLoadingMore={isFetchingNextPage}
             isRefreshing={isFetching && !usersLoadingInitial}
             onRequestLoadMore={requestMoreMembers}
-            onOpenProfile={openUserProfile}
             sessionUser={sessionUser}
             roleMutation={roleMutation}
             activeRoleMutationUserId={activeRoleMutationUserId}
-            selectedUserIds={selectedUserIds}
-            onSelectedUserIdsChange={setSelectedUserIds}
             onManageRewards={isLeaderRole(sessionUser?.role) ? openRewardsModal : undefined}
-          />
-          <Modal
-            open={bulkRemoveConfirmOpen}
-            onClose={() => setBulkRemoveConfirmOpen(false)}
-            title="Remove selected users?"
-            footer={
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setBulkRemoveConfirmOpen(false)}
-                  disabled={bulkRemoveMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={confirmBulkRemove}
-                  loading={bulkRemoveMutation.isPending}
-                >
-                  Remove users
-                </Button>
-              </>
+            directoryListQueryKey={userListQueryKey}
+            directoryTab={directoryTab}
+            onDirectoryTabChange={setDirectoryTab}
+            pendingPanel={
+              <PendingInvitesTable
+                rows={pendingInviteRows}
+                isLoading={pendingInvitesLoading}
+                isError={pendingInvitesError}
+                onRefresh={refreshDirectoryQueries}
+              />
             }
-          >
-            <p>
-              {`You are about to remove ${selectedUserIds.size} selected users from this workspace. This action cannot be undone.`}
-            </p>
-          </Modal>
-          {inviteUserModalOpen ? (
-            <InviteUserModal
-              open={inviteUserModalOpen}
-              onClose={handleInviteUserModalClose}
-              onInvited={refreshUsersListAfterInvite}
-            />
-          ) : null}
-          <UserDirectoryDetailModal
-            open={detailUserId !== null}
-            userId={detailUserId}
-            onClose={() => setDetailUserId(null)}
+          />
+          <WorkspaceInviteModal
+            open={inviteUserModalOpen}
+            onClose={handleInviteUserModalClose}
+            onInvited={refreshUsersListAfterInvite}
           />
           <WorkspaceUserRewardsModal
             open={rewardsModalOpen}

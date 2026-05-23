@@ -1,0 +1,68 @@
+# Dependencies and Caches
+node_modules/
+.pnpm-store/
+.nx/
+.cursor/
+.cache/
+.vscode/
+
+# Build Outputs
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Lock Files (Usually very large)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs and Temporary Files
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+temp/
+
+# Large Project-Specific Files/Dirs
+backups/
+governance-snapshots/
+denali-full-audit-report.md
+denali-wizard-final-audit.md
+maplog.md
+p.txt
+
+# Media and Assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+*.mp3
+*.mp4
+*.wav
+
+# Git
+.git/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Test Results
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/blob-report/

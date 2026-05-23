@@ -8,7 +8,13 @@ import type {
 
 import type { RegistrationStatus } from "@repo/types";
 import { Button, FormField, Input, Select } from "@tour/ui";
+
+import { formatRegistrationStatusFa } from "@/lib/registrations/format-registration-status-fa";
+
+import { LEADER_REVIEW_COPY } from "../leader-review-copy";
 import styles from "./ReviewFilters.module.css";
+
+const copy = LEADER_REVIEW_COPY.filters;
 
 const STATUS_FILTER_OPTIONS: readonly (ReviewStatusFilter | RegistrationStatus)[] = [
   "all",
@@ -20,6 +26,11 @@ const STATUS_FILTER_OPTIONS: readonly (ReviewStatusFilter | RegistrationStatus)[
   "Refunded",
   "NoShow",
 ];
+
+function statusFilterLabel(opt: ReviewStatusFilter | RegistrationStatus): string {
+  if (opt === "all") return copy.statusAll;
+  return formatRegistrationStatusFa(opt);
+}
 
 export type ReviewFiltersProps = {
   value: ReviewFiltersState;
@@ -51,28 +62,28 @@ export function ReviewFilters({
   return (
     <div className={styles.filtersBar}>
       <div className={styles.fieldCompact}>
-        <FormField label="Queue">
+        <FormField label={copy.queueLabel}>
           <Select
-            aria-label="Queue scope"
+            aria-label={copy.queueLabel}
             value={value.queueFilter}
             onChange={(e) => onQueueFilterChange(e.target.value as QueueFilter)}
           >
-            <option value="pending">Pending only</option>
-            <option value="all">All statuses</option>
+            <option value="pending">{copy.queuePending}</option>
+            <option value="all">{copy.queueAll}</option>
           </Select>
         </FormField>
       </div>
 
       <div className={styles.fieldCompact}>
-        <FormField label="Status">
+        <FormField label={copy.statusLabel}>
           <Select
-            aria-label="Filter by status"
+            aria-label={copy.statusLabel}
             value={value.statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as ReviewStatusFilter)}
           >
             {STATUS_FILTER_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
-                {opt === "all" ? "All review statuses" : opt}
+                {statusFilterLabel(opt)}
               </option>
             ))}
           </Select>
@@ -80,34 +91,34 @@ export function ReviewFilters({
       </div>
 
       <div className={styles.fieldCompact}>
-        <FormField label="Participant">
+        <FormField label={copy.participantLabel}>
           <Input
             value={value.participantFilter}
             onChange={(e) => onParticipantFilterChange(e.target.value)}
-            placeholder="Name / phone"
-            aria-label="Filter by participant"
+            placeholder={copy.participantPlaceholder}
+            aria-label={copy.participantLabel}
           />
         </FormField>
       </div>
 
       <div className={styles.fieldCompact}>
-        <FormField label="From">
+        <FormField label={copy.fromLabel}>
           <Input
             type="date"
             value={value.fromDate}
             onChange={(e) => onFromDateChange(e.target.value)}
-            aria-label="Updated from"
+            aria-label={copy.fromLabel}
           />
         </FormField>
       </div>
 
       <div className={styles.fieldCompact}>
-        <FormField label="To">
+        <FormField label={copy.toLabel}>
           <Input
             type="date"
             value={value.toDate}
             onChange={(e) => onToDateChange(e.target.value)}
-            aria-label="Updated to"
+            aria-label={copy.toLabel}
           />
         </FormField>
       </div>
@@ -115,21 +126,20 @@ export function ReviewFilters({
       <div className={styles.actionsRow}>
         <div className={styles.actionsGroup}>
           <Button type="button" variant="secondary" disabled={!canExport} onClick={onExportCsv}>
-            Export CSV
+            {copy.exportCsv}
           </Button>
         </div>
         <div className={styles.actionsGroup}>
           <Button type="button" variant="secondary" disabled={isLoading} onClick={onRefresh}>
-            Refresh data
+            {copy.refresh}
           </Button>
         </div>
         <div className={styles.actionsGroup}>
           <Button type="button" variant="ghost" onClick={onClearFilters}>
-            Clear filters
+            {copy.clearFilters}
           </Button>
         </div>
       </div>
     </div>
   );
 }
-

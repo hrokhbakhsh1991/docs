@@ -15,6 +15,7 @@ import {
   loginWithPhoneOtp,
   ownerPhoneFromProject,
   seedWizardDraft,
+  recoverDenaliWizardDraftIfPresent,
   submitWizardAndExpectTourList,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
@@ -30,6 +31,7 @@ async function gotoDenaliWizardWithDraft(
   await seedWizardDraft(page, slug, draftJson);
   await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+  await recoverDenaliWizardDraftIfPresent(page);
 }
 
 async function openDenaliProgramStep(
@@ -144,7 +146,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     await page.getByRole("button", { name: "بعدی" }).click();
     await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
     await page.getByRole("button", { name: "بعدی" }).click();
-    await expect(page.locator("form h2").first()).toContainText(/حمل/, { timeout: 20_000 });
+    await expect(page.locator("form h2").first()).toContainText(/لجستیک|خدمات/, { timeout: 20_000 });
     await page.getByRole("button", { name: "بعدی" }).click();
     await expect(page.locator("form h2").first()).toContainText(/هزینه/, { timeout: 20_000 });
 

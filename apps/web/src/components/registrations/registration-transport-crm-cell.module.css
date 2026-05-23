@@ -1,0 +1,41 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 10rem;
+  max-width: 18rem;
+}
+
+.transportRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.transportLabel {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.seatBadge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--color-surface-muted, #f0f0f0);
+  color: var(--color-text-secondary, #555);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary, #444);
+  word-break: break-word;
+}
+
+.noteMuted {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.65;
+}

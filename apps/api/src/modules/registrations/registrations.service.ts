@@ -31,6 +31,8 @@ import {
   RegistrationEntryModeDto,
   RegistrationTransportModeDto
 } from "./dto/create-registration.dto";
+import type { ParticipantMetadataDto } from "./dto/participant-metadata.dto";
+import { qualifiesForPeakExperienceAutoApproval } from "./utils/peak-experience-placement";
 import { CreateWaitlistItemDto } from "./dto/create-waitlist-item.dto";
 import {
   RegistrationResponseDto,
@@ -313,7 +315,12 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         typeof tour.costContext?.requiresPayment === "boolean"
           ? Boolean(tour.costContext.requiresPayment)
           : false;
-      const placement = this.resolveInitialRegistrationPlacement(tour);
+      const tripDetails = await this.loadTourTripDetailsForPlacement(manager, tour.id);
+      const placement = this.resolveInitialRegistrationPlacement(
+        tour,
+        createDto.participantMetadata,
+        tripDetails,
+      );
 
       const registration = manager.create(RegistrationEntity, {
         tenantId,
@@ -328,6 +335,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         telegramUsername: createDto.telegramUsername,
         vehicleSeatCapacity: createDto.vehicleSeatCapacity,
         participantNote: createDto.participantNote,
+        participantMetadata: this.participantMetadataForPersistence(createDto.participantMetadata),
         status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
@@ -392,7 +400,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       (user.fullName?.trim() && user.fullName.trim().length > 0
         ? user.fullName.trim()
         : undefined) ??
-      user.email.split("@")[0] ??
+      user.email?.split("@")[0] ??
       "Participant";
 
     return {
@@ -600,21 +608,24 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           }
         });
       }
-      this.assertExpectedRegistrationRowVersion(peek, payload.expected_row_version);
-      validateStatusTransition(peek.status, payload.targetStatus, peek.paymentStatus);
-
-      const previousStatus = peek.status;
-      const statusChanged = previousStatus !== payload.targetStatus;
       const affectsAcceptedCounter =
-        isCapacityConsumingRegistrationStatus(previousStatus) ||
+        isCapacityConsumingRegistrationStatus(peek.status) ||
         isCapacityConsumingRegistrationStatus(payload.targetStatus);
 
       const lockedTour =
-        statusChanged && affectsAcceptedCounter
+        peek.status !== payload.targetStatus && affectsAcceptedCounter
           ? await this.requireTourInTenantForUpdate(manager, peek.tourId, peek.tenantId)
           : null;
 
       const registration = await lockRegistrationForFinancialMutation(manager, where);
+      this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
+      validateStatusTransition(
+        registration.status,
+        payload.targetStatus,
+        registration.paymentStatus
+      );
+
+      const previousStatus = registration.status;
 
       await this.ensureCapacityForAcceptance(
         manager,
@@ -945,23 +956,67 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     });
   }
 
+  private tourRequiresPayment(costContext: TourEntity["costContext"]): boolean {
+    if (costContext == null || typeof costContext !== "object") {
+      return false;
+    }
+    const ctx = costContext as { requiresPayment?: boolean; requires_payment?: boolean };
+    return Boolean(ctx.requiresPayment ?? ctx.requires_payment);
+  }
+
+  private async loadTourTripDetailsForPlacement(
+    manager: EntityManager,
+    tourId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const detailsRow = await manager.findOne(TourDetails, {
+      where: { tourId },
+      select: { tripDetails: true },
+    });
+    const raw = detailsRow?.tripDetails;
+    if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+    return raw as Record<string, unknown>;
+  }
+
+  private participantMetadataForPersistence(
+    metadata: ParticipantMetadataDto | undefined,
+  ): Record<string, unknown> | undefined {
+    if (metadata == null) {
+      return undefined;
+    }
+    const count = metadata.userPastPeaksCount;
+    if (count === undefined) {
+      return undefined;
+    }
+    return { userPastPeaksCount: count };
+  }
+
   /**
    * Decides first-class registration status and whether this row consumes `tours.accepted_count`.
-   * Payment-required tours reserve capacity immediately (`Accepted`). Otherwise, explicit
-   * `tour.autoAcceptRegistrations === true` accepts immediately; `false`/`null` stays `Pending` for manual approval.
+   * Payment-required tours start `Pending` until host acceptance (Phase 16.3). Paid tours never
+   * auto-accept via `autoAcceptRegistrations` alone (PLACE-02). Peak-Experience (Phase 16.9) may
+   * auto-accept when `requirements.minRequiredPeaks` is met by traveler `userPastPeaksCount`.
    */
-  private resolveInitialRegistrationPlacement(tour: TourEntity): {
+  private resolveInitialRegistrationPlacement(
+    tour: TourEntity,
+    participantMetadata: ParticipantMetadataDto | undefined,
+    tripDetails: Record<string, unknown> | null,
+  ): {
     status: RegistrationStatus;
     consumesAcceptedCapacity: boolean;
   } {
-    const paymentRequired =
-      typeof tour.costContext?.requiresPayment === "boolean"
-        ? Boolean(tour.costContext.requiresPayment)
-        : false;
-    if (paymentRequired) {
+    if (
+      qualifiesForPeakExperienceAutoApproval({
+        tripDetails,
+        participantMetadata,
+      })
+    ) {
       return { status: RegistrationStatus.ACCEPTED, consumesAcceptedCapacity: true };
     }
-    if (tour.autoAcceptRegistrations === true) {
+
+    const requiresPayment = this.tourRequiresPayment(tour.costContext);
+    if (tour.autoAcceptRegistrations === true && !requiresPayment) {
       return { status: RegistrationStatus.ACCEPTED, consumesAcceptedCapacity: true };
     }
     return { status: RegistrationStatus.PENDING, consumesAcceptedCapacity: false };
@@ -1699,6 +1754,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     telegramUsername?: string;
     vehicleSeatCapacity?: number;
     participantNote?: string;
+    participantMetadata?: ParticipantMetadataDto;
     discountCode?: string | null;
     createPaymentIntent?: (
       manager: EntityManager,
@@ -1788,7 +1844,12 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         };
       }
 
-      const placement = this.resolveInitialRegistrationPlacement(tour);
+      const tripDetails = await this.loadTourTripDetailsForPlacement(manager, tour.id);
+      const placement = this.resolveInitialRegistrationPlacement(
+        tour,
+        input.participantMetadata,
+        tripDetails,
+      );
       const requiresPayment =
         typeof tour.costContext?.requiresPayment === "boolean"
           ? Boolean(tour.costContext.requiresPayment)
@@ -1807,6 +1868,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         telegramUsername: input.telegramUsername,
         vehicleSeatCapacity: input.vehicleSeatCapacity,
         participantNote: input.participantNote,
+        participantMetadata: this.participantMetadataForPersistence(input.participantMetadata),
         status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
@@ -1838,28 +1900,11 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           paymentRequired: requiresPayment
         });
       }
-      let paymentIntent: PaymentResponseDto | null = null;
-      if (
-        requiresPayment &&
-        input.createPaymentIntent &&
-        placement.status === RegistrationStatus.ACCEPTED
-      ) {
-        if (!getIdempotentEntityManager()) {
-          throw new BadRequestException({
-            error: {
-              code: "FINANCIAL_IDEMPOTENCY_CONTEXT_REQUIRED",
-              message:
-                "Idempotency-Key header is required when this tour collects payment at registration so payment creation is replay-safe."
-            }
-          });
-        }
-        paymentIntent = await input.createPaymentIntent!(manager, saved);
-      }
       return {
         type: "registration" as const,
         registration: this.toRegistrationResponse(saved),
         requiresPayment,
-        paymentIntent
+        paymentIntent: null
       };
     };
     if (store) {

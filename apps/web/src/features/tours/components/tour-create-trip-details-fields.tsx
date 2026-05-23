@@ -12,7 +12,7 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import { Button, Checkbox, FormField, Input, JalaliDatePicker, JalaliTimePicker, Select, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, JalaliDatePicker, Select, Textarea } from "@tour/ui";
 
 import {
   type FieldRequiredness,
@@ -33,6 +33,7 @@ import {
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { useSettingsGuideLanguages } from "@/hooks/use-settings-guide-languages";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
+import { DenaliGatheringPointsWidget } from "@/features/tours/wizard/denali/components/DenaliGatheringPointsWidget";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { uiLocaleDigits, convertNumbers } from "../../../lib/number-utils";
 import { computeTourDurationDays } from "../domain/computeTourDurationDays";
@@ -158,8 +159,6 @@ export type TripDetailsNestedFormProps = {
   /** Canonical profile used for visibility/requiredness in Edit flow. */
   formProfile?: TourFormProfile;
   viewerRole?: UserRole;
-  /** When true, meeting/return points are collected in `TourLocationSection` instead. */
-  suppressLogisticsMeetingAndReturn?: boolean;
 };
 
 function OptionalEnumSelect({
@@ -522,7 +521,6 @@ export function TourCreateTripDetailsFields({
   isPending,
   formProfile = "general",
   viewerRole = normalizeFieldUserRole(undefined),
-  suppressLogisticsMeetingAndReturn = false,
 }: TripDetailsNestedFormProps) {
   const t = useTranslations("tours.new");
   const locale = useLocale();
@@ -1223,42 +1221,7 @@ export function TourCreateTripDetailsFields({
       </CollapsibleSection>
 
       <CollapsibleSection title={t("trip_sectionLogistics")}>
-        {!suppressLogisticsMeetingAndReturn && !isHidden("logistics.meetingPoint") ? (
-          <FormField
-            label={labelWithRequiredness(t("trip_meetingPointLabel"), "logistics.meetingPoint")}
-            description={mergeDescription(undefined, "logistics.meetingPoint")}
-            error={td?.logistics?.meetingPoint?.message as string | undefined}
-          >
-            <Input disabled={isDisabled("logistics.meetingPoint")} autoComplete="off" {...register("tripDetails.logistics.meetingPoint")} />
-          </FormField>
-        ) : null}
-        <Controller
-          control={control}
-          name="tripDetails.logistics.departureMeetingTime"
-          render={({ field }) => (
-            <FormField
-              label={t("trip_departureMeetingTimeLabel")}
-              error={td?.logistics?.departureMeetingTime?.message as string | undefined}
-            >
-              <JalaliTimePicker
-                ref={field.ref}
-                name={field.name}
-                value={typeof field.value === "string" ? field.value : ""}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                disabled={isPending}
-                invalid={Boolean(td?.logistics?.departureMeetingTime)}
-                minuteStep={5}
-                hourLabel={t("trip_timeHourLabel")}
-                minuteLabel={t("trip_timeMinuteLabel")}
-                confirmLabel={t("trip_timeConfirm")}
-                cancelLabel={t("trip_timeCancel")}
-                clearLabel={t("trip_timeClear")}
-                openPickerAriaLabel={t("trip_timeOpenPickerAria")}
-              />
-            </FormField>
-          )}
-        />
+        <DenaliGatheringPointsWidget name="tripDetails.logistics.gatheringPoints" />
         {isHidden("logistics.departureDate") ? null : (
           <Controller
             control={control}
@@ -1330,11 +1293,6 @@ export function TourCreateTripDetailsFields({
               }
               dir="rtl"
             />
-          </FormField>
-        ) : null}
-        {!suppressLogisticsMeetingAndReturn ? (
-          <FormField label={t("trip_returnPointLabel")} error={td?.logistics?.returnPoint?.message as string | undefined}>
-            <Input disabled={isPending} autoComplete="off" {...register("tripDetails.logistics.returnPoint")} />
           </FormField>
         ) : null}
         {isHidden("logistics.transportationNotes") ? null : (

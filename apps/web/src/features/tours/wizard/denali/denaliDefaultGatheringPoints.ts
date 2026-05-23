@@ -2,10 +2,9 @@ import type { DenaliGatheringPickupStationFormValue } from "@/features/tours/wiz
 
 import { EMPTY_DENALI_LOCATION } from "./components/denaliLocationFieldUtils";
 
-/** Stable row ids for default wizard gathering slots (SSR-safe, not workspace catalog rows). */
+/** Stable row id for the initial empty gathering slot (SSR-safe). */
 export const DENALI_WIZARD_DEFAULT_GATHERING_ROW_IDS = [
   "e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01",
-  "e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a02",
 ] as const;
 
 export function buildEmptyDenaliGatheringPointRow(

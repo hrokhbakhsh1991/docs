@@ -38,24 +38,24 @@ export function FinanceWorkspaceSummaryCard({
   return (
     <Card className={styles.gridCard}>
       <CardHeader>
-        <CardTitle>Finance workspace</CardTitle>
-        <CardSubtitle>Manual payments and receipt review queue for this tenant.</CardSubtitle>
+        <CardTitle>امور مالی ورک‌اسپیس</CardTitle>
+        <CardSubtitle>پرداخت‌های دستی و صف بررسی فیش واریزی این ورک‌اسپیس.</CardSubtitle>
       </CardHeader>
       <CardBody className={styles.cardBody}>
         <p className={styles.metricRow}>
-          Pending manual payments:{" "}
+          پرداخت‌های دستی در انتظار:{" "}
           <Badge variant={summaryQuery.isPending ? "neutral" : pendingManual > 0 ? "warning" : "info"}>
             {summaryQuery.isPending ? "…" : pendingManual}
           </Badge>
         </p>
         <p className={styles.metricRow}>
-          Receipts awaiting review:{" "}
+          فیش‌های در انتظار بررسی:{" "}
           <Badge variant={summaryQuery.isPending ? "neutral" : pendingReceipts > 0 ? "warning" : "info"}>
             {summaryQuery.isPending ? "…" : pendingReceipts}
           </Badge>
         </p>
         <p className={styles.metricRow}>
-          Paid · Failed:{" "}
+          پرداخت‌شده · ناموفق:{" "}
           <Badge variant={summaryQuery.isPending ? "neutral" : "success"}>
             {summaryQuery.isPending ? "…" : paid}
           </Badge>{" "}
@@ -65,7 +65,7 @@ export function FinanceWorkspaceSummaryCard({
           </Badge>
         </p>
         <p className={styles.metricRow}>
-          Recent ledger journals:{" "}
+          دفتر رویدادهای اخیر:{" "}
           <Badge variant={ledgerQuery.isPending ? "neutral" : "info"}>
             {ledgerQuery.isPending ? "…" : (ledgerQuery.data?.length ?? 0)}
           </Badge>
@@ -75,9 +75,9 @@ export function FinanceWorkspaceSummaryCard({
         <Button
           type="button"
           variant={canReviewReceipts ? "primary" : "secondary"}
-          onClick={() => router.push("/users")}
+          onClick={() => router.push("/finance")}
         >
-          {canReviewReceipts ? "Open users & receipts" : "Open users directory"}
+          {canReviewReceipts ? "باز کردن مرکز امور مالی" : "مشاهده مرکز امور مالی"}
         </Button>
         <Button
           type="button"
@@ -87,7 +87,7 @@ export function FinanceWorkspaceSummaryCard({
             void ledgerQuery.refetch();
           }}
         >
-          Refresh
+          به‌روزرسانی
         </Button>
       </CardFooter>
     </Card>

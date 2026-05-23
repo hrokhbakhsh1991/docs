@@ -95,6 +95,7 @@ const denaliCanonicalParticipantsSchema = z
     fitnessLevel: z.enum(["low", "medium", "high"]).optional(),
     nationalIdRequired: z.boolean().optional(),
     sportsInsuranceRequired: z.boolean().optional(),
+    minRequiredPeaks: z.number().int().min(1).max(4).optional(),
     fitnessPrerequisiteText: z.string().trim().optional(),
     gearItems: z.array(denaliCanonicalGearItemSchema).optional(),
   })
@@ -150,6 +151,16 @@ const denaliCanonicalTourObjectSchema = z
     meetingPoint: z.string().trim().optional(),
     startPointLocationText: z.string().trim().optional(),
     gatheringPoint: denaliLocationDataSchema.optional(),
+    gatheringPoints: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          title: z.string().default(""),
+          time: z.string().optional(),
+          location: denaliLocationDataSchema,
+        }),
+      )
+      .optional(),
     startPoint: denaliLocationDataSchema.optional(),
     summitPoint: denaliLocationDataSchema.optional(),
     campPoint: denaliLocationDataSchema.optional(),
@@ -160,6 +171,8 @@ const denaliCanonicalTourObjectSchema = z
     localGuideName: z.string().trim().optional(),
     requiresManualAdminApproval: z.boolean().optional(),
     socialMediaLink: z.string().trim().max(2048).optional(),
+    /** Wizard-only: maps to API `lifecycle_status` on submit (`draft` → DRAFT, `active` → OPEN). */
+    publishStatus: z.enum(["draft", "active"]).optional(),
 
     program: denaliCanonicalProgramSchema,
     transport: denaliCanonicalTransportSchema,

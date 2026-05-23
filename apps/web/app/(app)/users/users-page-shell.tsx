@@ -7,7 +7,7 @@ import { USERS_ROUTE_COPY } from "./users-copy";
 const copy = USERS_ROUTE_COPY.list;
 
 const breadcrumbItems = [
-  { label: "Home", href: "/dashboard" },
+  { label: copy.breadcrumbHome, href: "/dashboard" },
   { label: copy.breadcrumbUsers },
 ] as const;
 

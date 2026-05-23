@@ -63,8 +63,15 @@ export function useLeaderReviewState(
   const [amountDraft, setAmountDraft] = useState<Record<string, string>>({});
 
   const statusMutation = useMutation({
-    mutationFn: async ({ id, targetStatus }: { id: string; targetStatus: RegistrationStatus }) =>
-      updateRegistrationStatus(id, targetStatus),
+    mutationFn: async ({
+      id,
+      targetStatus,
+      expected_row_version,
+    }: {
+      id: string;
+      targetStatus: RegistrationStatus;
+      expected_row_version: number;
+    }) => updateRegistrationStatus(id, { targetStatus, expected_row_version }),
     onSuccess: async () => {
       await onRefreshData();
     },
@@ -75,7 +82,13 @@ export function useLeaderReviewState(
       id: string;
       paymentStatus: RegistrationPaymentStatus;
       paidAmount?: number;
-    }) => updateRegistrationPayment(args.id, args),
+      expected_row_version: number;
+    }) =>
+      updateRegistrationPayment(args.id, {
+        paymentStatus: args.paymentStatus,
+        paidAmount: args.paidAmount,
+        expected_row_version: args.expected_row_version,
+      }),
     onSuccess: async () => {
       await onRefreshData();
     },
@@ -246,14 +259,18 @@ export function useLeaderReviewState(
     setPayDraft: (id: string, next: RegistrationPaymentStatus) => setPayDraft((d) => ({ ...d, [id]: next })),
     setAmountDraft: (id: string, next: string) => setAmountDraft((d) => ({ ...d, [id]: next })),
     onApplyStatus: (id: string, targetStatus: RegistrationStatus) => {
-      const row = visibleRows.find((r) => r.id === id);
+      const row = rows.find((r) => r.id === id) ?? visibleRows.find((r) => r.id === id);
       if (!row) return;
       if (isTerminalBookingState(row.status)) return;
       if (statusPendingRowId === row.id) return;
-      statusMutation.mutate({ id, targetStatus });
+      statusMutation.mutate({
+        id,
+        targetStatus,
+        expected_row_version: row.rowVersion,
+      });
     },
     onSavePayment: (id: string, nextStatus: RegistrationPaymentStatus, rawAmount: string) => {
-      const row = visibleRows.find((r) => r.id === id);
+      const row = rows.find((r) => r.id === id) ?? visibleRows.find((r) => r.id === id);
       if (!row) return;
       if (isTerminalBookingState(row.status) || isTerminalPaymentState(persistPaymentWire(row))) return;
       if (paymentPendingRowId === row.id) return;
@@ -262,6 +279,7 @@ export function useLeaderReviewState(
       paymentMutation.mutate({
         id,
         paymentStatus: nextStatus,
+        expected_row_version: row.rowVersion,
         ...(typeof paidAmount === "number" && !Number.isNaN(paidAmount) ? { paidAmount } : {}),
       });
     },

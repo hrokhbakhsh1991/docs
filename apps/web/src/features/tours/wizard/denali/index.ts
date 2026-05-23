@@ -7,7 +7,6 @@ export {
 } from "./rules";
 export { DenaliCanonicalProvider, useDenaliCanonical } from "./DenaliCanonicalContext";
 export { DenaliWizardSyncProvider, useDenaliWizardSync } from "./DenaliWizardSyncContext";
-export { DenaliDraftRecoveryProvider, useDenaliDraftRecovery } from "./DenaliDraftRecoveryContext";
 export { DenaliBasicInfoStep } from "./steps/DenaliBasicInfoStep";
 export { DenaliProgramNatureStep } from "./steps/DenaliProgramNatureStep";
 export { DenaliLogisticsStep } from "./steps/DenaliLogisticsStep";

@@ -66,6 +66,7 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const [editingEmail, setEditingEmail] = useState(false);
   const [manualTokenOpen, setManualTokenOpen] = useState(false);
   const [emailChangePending, setEmailChangePending] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [emailVerifyToken, setEmailVerifyToken] = useState("");
   const [tokenError, setTokenError] = useState<string | undefined>(undefined);
   const [verifySuccessInline, setVerifySuccessInline] = useState("");
@@ -108,14 +109,19 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
       sessionStorage.removeItem(storageKey);
     }
     setEmailChangePending(false);
+    setPendingEmail(null);
   }, [storageKey]);
 
-  const persistPending = useCallback(() => {
-    if (typeof window !== "undefined" && storageKey) {
-      sessionStorage.setItem(storageKey, "1");
-    }
-    setEmailChangePending(true);
-  }, [storageKey]);
+  const persistPending = useCallback(
+    (email: string) => {
+      if (typeof window !== "undefined" && storageKey) {
+        sessionStorage.setItem(storageKey, email);
+      }
+      setEmailChangePending(true);
+      setPendingEmail(email);
+    },
+    [storageKey],
+  );
 
   const openTokenEntry = useCallback(() => {
     setManualTokenOpen(true);
@@ -127,8 +133,10 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
     if (typeof window === "undefined" || !storageKey) {
       return;
     }
-    if (sessionStorage.getItem(storageKey) === "1") {
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored) {
       setEmailChangePending(true);
+      setPendingEmail(stored === "1" ? null : stored);
     }
   }, [storageKey]);
 
@@ -205,7 +213,9 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
     badgeKind === "verified"
       ? t("emailStatusVerified")
       : badgeKind === "pending"
-        ? t("emailStatusPending")
+        ? pendingEmail
+          ? t("emailStatusPendingWithAddr", { email: pendingEmail })
+          : t("emailStatusPending")
         : badgeKind === "unverified"
           ? t("emailStatusUnverified")
           : t("emailStatusNoEmail");
@@ -232,7 +242,7 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
         if (typeof body.profile_row_version === "number") {
           profileRowVersionRef.current = body.profile_row_version;
         }
-        persistPending();
+        persistPending(formData.email.trim());
         setEditingEmail(false);
         showToast({ type: "success", message: t("toastEmailVerificationSent") });
         await refresh();
@@ -313,9 +323,25 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
         {showIdleActions ? (
           <div className={styles.actions}>
             {badgeKind === "pending" ? (
-              <Button type="button" variant="primary" onClick={() => openTokenEntry()}>
-                {t("emailContinueVerification")}
-              </Button>
+              <>
+                <Button type="button" variant="primary" onClick={() => openTokenEntry()}>
+                  {t("emailContinueVerification")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setVerifySuccessInline("");
+                    setManualTokenOpen(false);
+                    if (pendingEmail) {
+                      reset({ email: pendingEmail });
+                    }
+                    setEditingEmail(true);
+                  }}
+                >
+                  {t("emailResendOrChange")}
+                </Button>
+              </>
             ) : (
               <>
                 <Button

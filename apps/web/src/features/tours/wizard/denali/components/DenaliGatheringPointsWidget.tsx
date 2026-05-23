@@ -40,6 +40,9 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
   };
 
   const handleRemove = (index: number) => {
+    if (fields.length <= 1) {
+      return;
+    }
     remove(index);
     const current = [...(getValues(name) ?? [])];
     current.splice(index, 1);
@@ -112,15 +115,17 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
                 />
               </FormField>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemove(index)}
-                style={{ color: "var(--color-danger-600, #dc2626)", height: "2.5rem" }}
-              >
-                حذف این ایستگاه
-              </Button>
+              {fields.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemove(index)}
+                  style={{ color: "var(--color-danger-600, #dc2626)", height: "2.5rem" }}
+                >
+                  حذف این ایستگاه
+                </Button>
+              ) : null}
             </div>
 
             <Controller

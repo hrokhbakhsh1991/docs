@@ -24,3 +24,10 @@ test("canonicalZodPathToFormFieldPath maps itinerary day photos", () => {
     "programNature.itinerary.2.photos",
   );
 });
+
+test("canonicalZodPathToFormFieldPath maps participants.gearItems id issues", () => {
+  assert.equal(
+    canonicalZodPathToFormFieldPath(["participants", "gearItems", 0, "id"]),
+    "participantRequirements.gearItems.0.id",
+  );
+});

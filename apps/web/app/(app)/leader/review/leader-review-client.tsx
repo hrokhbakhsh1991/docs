@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import { ReviewFilters } from "./components/ReviewFilters";
 import { ReviewInspectionPanel } from "./components/ReviewInspectionPanel";
@@ -10,6 +10,8 @@ import { ReviewSummaryCards } from "./components/ReviewSummaryCards";
 import { ReviewTable } from "./components/ReviewTable";
 import { useLeaderReviewFilters } from "./hooks/useLeaderReviewFilters";
 import { useLeaderReviewState } from "./hooks/useLeaderReviewState";
+import { LEADER_REVIEW_COPY } from "./leader-review-copy";
+import pageStyles from "./leader-review-page.module.css";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { useAuth } from "@/lib/auth/auth-context";
 import { isLeaderReviewAllowed } from "@/lib/auth/leader-review-access";
@@ -39,10 +41,8 @@ import {
   type BreadcrumbItem,
 } from "@tour/ui";
 
-const breadcrumbItems: BreadcrumbItem[] = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Review queue" },
-];
+const copy = LEADER_REVIEW_COPY.page;
+const reportingCopy = LEADER_REVIEW_COPY.reporting;
 
 const REVIEWABLE_TARGETS: readonly RegistrationStatus[] = ["Accepted", "Rejected"];
 
@@ -55,6 +55,15 @@ export function LeaderReviewClient() {
   const hasTenantId = Boolean(user?.tenantId?.trim());
   const liveApi = toursUseLiveApi() && registrationsUseLiveApi();
   const hookEnabled = Boolean(leader && hasTenantId && liveApi && isHydrated && isAuthenticated);
+
+  const breadcrumbItems: BreadcrumbItem[] = useMemo(
+    () => [
+      { label: copy.breadcrumbHome, href: "/dashboard" },
+      { label: copy.breadcrumbDashboard, href: "/dashboard" },
+      { label: copy.breadcrumbQueue },
+    ],
+    [],
+  );
 
   const leaderData = useLeaderTourRegistrations(hookEnabled);
 
@@ -73,16 +82,26 @@ export function LeaderReviewClient() {
     const csv = registrationsToCsv(leaderData.rows);
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     downloadCsv(`registrations-reconciliation-${stamp}.csv`, csv);
-    toast.success({ message: `Exported ${leaderData.rows.length} row(s).` });
+    toast.success({ message: copy.exportToast(leaderData.rows.length) });
   };
 
+  const statusErrorMessage = mapToUserMessage(reviewState.statusMutation.error, {
+    fallback: copy.mutationErrorFallback,
+  });
+  const paymentErrorMessage = mapToUserMessage(reviewState.paymentMutation.error, {
+    fallback: copy.mutationErrorFallback,
+  });
 
   if (toursUseLiveApi() && !isHydrated) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <Card>
           <CardBody>
-            <LoadingState message="Loading session…" />
+            <LoadingState message={copy.loadingSession} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -91,14 +110,18 @@ export function LeaderReviewClient() {
 
   if (liveApi && isHydrated && !isAuthenticated) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <Card>
           <CardBody>
             <EmptyState
-              title="Sign in required"
+              title={copy.signInTitle}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in
+                  {copy.signInButton}
                 </Button>
               }
             />
@@ -110,10 +133,17 @@ export function LeaderReviewClient() {
 
   if (isHydrated && isAuthenticated && !leader) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <Card>
           <CardBody>
-            <EmptyState title="Access restricted" description="Leader access is required for this dashboard." />
+            <EmptyState
+              title={copy.accessRestrictedTitle}
+              description={copy.accessRestrictedDescription}
+            />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -122,11 +152,15 @@ export function LeaderReviewClient() {
 
   if (isHydrated && isAuthenticated && leader && !hasTenantId) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <Card>
           <CardBody>
             <p dir="rtl" style={{ margin: 0 }}>
-              Tenant شما معتبر نیست. لطفاً دوباره وارد شوید.
+              {copy.tenantInvalid}
             </p>
           </CardBody>
         </Card>
@@ -136,10 +170,14 @@ export function LeaderReviewClient() {
 
   if (!liveApi) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <EmptyState
-          title="API not configured"
-          description="Open this app on your workspace host (e.g. ws1-rbac.localhost) with the API running."
+          title={copy.apiNotConfiguredTitle}
+          description={copy.apiNotConfiguredDescription}
         />
       </RegisteredWorkspacePage>
     );
@@ -147,14 +185,16 @@ export function LeaderReviewClient() {
 
   if (leaderData.isError) {
     const loadError =
-      leaderData.registrationsError ?? leaderData.toursQuery.error ?? new Error("Failed to load review data");
+      leaderData.registrationsError ?? leaderData.toursQuery.error ?? new Error("Failed to load");
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
         <ErrorState
-          title="Could not load registrations"
-          message={mapToUserMessage(loadError, {
-            fallback: "Could not load registrations. Check your connection and try again.",
-          })}
+          title={copy.loadErrorTitle}
+          message={mapToUserMessage(loadError, { fallback: copy.loadErrorFallback })}
           onRetry={() => void leaderData.refetchAll()}
         />
       </RegisteredWorkspacePage>
@@ -163,99 +203,101 @@ export function LeaderReviewClient() {
 
   if (leaderData.isLoading) {
     return (
-      <RegisteredWorkspacePage documentTitle="Review queue" title="Review queue" breadcrumbItems={breadcrumbItems}>
-        <LoadingState message="Loading registrations across tours…" />
+      <RegisteredWorkspacePage
+        documentTitle={copy.documentTitle}
+        title={copy.documentTitle}
+        breadcrumbItems={breadcrumbItems}
+      >
+        <LoadingState message={copy.loadingRows} />
       </RegisteredWorkspacePage>
     );
   }
 
   return (
     <RegisteredWorkspacePage
-      documentTitle="Leader review queue"
-      title="Leader review dashboard"
-      description={`${filters.overview.pending} pending · ${filters.overview.total} total registrations across tenant tours.`}
+      documentTitle={copy.documentTitle}
+      title={LEADER_REVIEW_COPY.metadata.title}
+      description={copy.description(filters.overview.pending, filters.overview.total)}
       breadcrumbItems={breadcrumbItems}
     >
-      <Card style={{ marginBottom: "1rem" }}>
-        <CardHeader>
-          <ReviewFilters
-            value={filters.filtersState}
-            isLoading={leaderData.isLoading}
-            canExport={leaderData.rows.length > 0}
-            onQueueFilterChange={filters.setQueueFilter}
-            onStatusFilterChange={filters.setStatusFilter}
-            onParticipantFilterChange={filters.setParticipantFilter}
-            onFromDateChange={filters.setFromDate}
-            onToDateChange={filters.setToDate}
-            onExportCsv={exportCsv}
-            onRefresh={() => void invalidateAll()}
-            onClearFilters={filters.clearFilters}
-          />
-        </CardHeader>
-      </Card>
+      <div className={pageStyles.rtlRoot} dir="rtl">
+        <Card style={{ marginBottom: "1rem" }}>
+          <CardHeader>
+            <ReviewFilters
+              value={filters.filtersState}
+              isLoading={leaderData.isLoading}
+              canExport={leaderData.rows.length > 0}
+              onQueueFilterChange={filters.setQueueFilter}
+              onStatusFilterChange={filters.setStatusFilter}
+              onParticipantFilterChange={filters.setParticipantFilter}
+              onFromDateChange={filters.setFromDate}
+              onToDateChange={filters.setToDate}
+              onExportCsv={exportCsv}
+              onRefresh={() => void invalidateAll()}
+              onClearFilters={filters.clearFilters}
+            />
+          </CardHeader>
+        </Card>
 
-      <ReviewSummaryCards overview={filters.overview} />
+        <ReviewSummaryCards overview={filters.overview} />
 
-      <Card style={{ marginBottom: "1rem" }}>
-        <CardHeader>
-          <CardTitle>Reporting data sources</CardTitle>
-        </CardHeader>
-        <CardBody>
-          {leaderData.partial ? (
-            <p
-              role="status"
-              style={{
-                marginTop: 0,
-                marginBottom: "0.75rem",
-                color: "var(--color-warning-fg, #b54708)",
-              }}
-            >
-              Showing partial data (pagination limit)
-            </p>
-          ) : null}
-          <p style={{ margin: 0 }}>
-            Source: <strong>GET /api/v2/dashboard/leader-registration-rows</strong> (single tenant index).
-            Mutations use <strong>PATCH /api/v2/registrations/{"{id}"}/status</strong> and{" "}
-            <strong>PATCH /api/v2/registrations/{"{id}"}/payment</strong>.
-          </p>
-          {leaderData.registrationsError ? (
-            <p role="alert" style={{ marginTop: "0.75rem", color: "var(--color-danger-fg, #b42318)" }}>
-              Some tours failed to load registrations. Try Refresh data.
-            </p>
-          ) : null}
-        </CardBody>
-      </Card>
+        <Card style={{ marginBottom: "1rem" }}>
+          <CardHeader>
+            <CardTitle>{reportingCopy.title}</CardTitle>
+          </CardHeader>
+          <CardBody>
+            {leaderData.partial ? (
+              <p
+                role="status"
+                style={{
+                  marginTop: 0,
+                  marginBottom: "0.75rem",
+                  color: "var(--color-warning-fg, #b54708)",
+                }}
+              >
+                {reportingCopy.partial}
+              </p>
+            ) : null}
+            <p style={{ margin: 0 }}>{reportingCopy.sourceNote}</p>
+            {leaderData.registrationsError ? (
+              <p role="alert" style={{ marginTop: "0.75rem", color: "var(--color-danger-fg, #b42318)" }}>
+                {reportingCopy.partialLoadWarning}
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
 
-      <ReviewTable
-        rows={filters.visibleRows}
-        amountDraft={reviewState.amountDraft}
-        statusPendingRowId={reviewState.statusPendingRowId}
-        paymentPendingRowId={reviewState.paymentPendingRowId}
-        statusFor={reviewState.statusFor}
-        paymentFor={reviewState.paymentFor}
-        canQuickTransition={reviewState.canQuickTransition}
-        registrationStatusOptions={reviewState.registrationStatusOptions}
-        paymentStatusOptions={reviewState.paymentStatusOptions}
-        paymentSaveIsNoOpForRow={reviewState.paymentSaveIsNoOpForRow}
-        isTerminalBookingState={reviewState.isTerminalBookingState}
-        isTerminalPaymentStateForRow={reviewState.isTerminalPaymentStateForRow}
-        statusMutationIsErrorForRow={reviewState.statusMutationIsErrorForRow}
-        paymentMutationIsErrorForRow={reviewState.paymentMutationIsErrorForRow}
-        statusMutationErrorMessage={mapToUserMessage(reviewState.statusMutation.error, { fallback: "Request failed." })}
-        paymentMutationErrorMessage={mapToUserMessage(reviewState.paymentMutation.error, { fallback: "Request failed." })}
-        onStatusDraftChange={reviewState.setStatusDraft}
-        onPayDraftChange={reviewState.setPayDraft}
-        onAmountDraftChange={reviewState.setAmountDraft}
-        onApplyStatus={reviewState.onApplyStatus}
-        onSavePayment={reviewState.onSavePayment}
-        onInspectRow={filters.setSelectedRegistrationId}
-        reviewableTargets={REVIEWABLE_TARGETS}
-      />
+        <ReviewTable
+          rows={filters.visibleRows}
+          amountDraft={reviewState.amountDraft}
+          statusPendingRowId={reviewState.statusPendingRowId}
+          paymentPendingRowId={reviewState.paymentPendingRowId}
+          statusFor={reviewState.statusFor}
+          paymentFor={reviewState.paymentFor}
+          canQuickTransition={reviewState.canQuickTransition}
+          registrationStatusOptions={reviewState.registrationStatusOptions}
+          paymentStatusOptions={reviewState.paymentStatusOptions}
+          paymentSaveIsNoOpForRow={reviewState.paymentSaveIsNoOpForRow}
+          isTerminalBookingState={reviewState.isTerminalBookingState}
+          isTerminalPaymentStateForRow={reviewState.isTerminalPaymentStateForRow}
+          statusMutationIsErrorForRow={reviewState.statusMutationIsErrorForRow}
+          paymentMutationIsErrorForRow={reviewState.paymentMutationIsErrorForRow}
+          statusMutationErrorMessage={statusErrorMessage}
+          paymentMutationErrorMessage={paymentErrorMessage}
+          onStatusDraftChange={reviewState.setStatusDraft}
+          onPayDraftChange={reviewState.setPayDraft}
+          onAmountDraftChange={reviewState.setAmountDraft}
+          onApplyStatus={reviewState.onApplyStatus}
+          onSavePayment={reviewState.onSavePayment}
+          onInspectRow={filters.setSelectedRegistrationId}
+          reviewableTargets={REVIEWABLE_TARGETS}
+        />
 
-      <ReviewInspectionPanel
-        selectedRegistrationId={filters.selectedRegistrationId}
-        selectedRegistrationFallback={filters.selectedRegistration}
-      />
+        <ReviewInspectionPanel
+          selectedRegistrationId={filters.selectedRegistrationId}
+          selectedRegistrationFallback={filters.selectedRegistration}
+        />
+      </div>
     </RegisteredWorkspacePage>
   );
 }

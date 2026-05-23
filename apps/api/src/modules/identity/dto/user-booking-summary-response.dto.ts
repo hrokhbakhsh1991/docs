@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { UserBookingTripRowDto } from "./user-booking-trip-row.dto";
 
 export class UserBookingSummaryResponseDto {
   @ApiProperty({ example: 12, description: "All tenant-scoped registrations matched to this user." })
@@ -16,4 +17,10 @@ export class UserBookingSummaryResponseDto {
     description: "Registrations with status Cancelled or Rejected."
   })
   cancelledTrips!: number;
+
+  @ApiProperty({
+    type: [UserBookingTripRowDto],
+    description: "Recent registrations matched to this member (newest departure first)."
+  })
+  trips!: UserBookingTripRowDto[];
 }

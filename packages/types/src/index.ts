@@ -35,6 +35,15 @@ export {
 } from "./denali-tour-kind";
 export { denaliLocationFromApi } from "./denali/locationData";
 export {
+  EMPTY_GATHERING_PICKUP_STATION,
+  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationIsConcrete,
+  gatheringPickupStationToPersisted,
+  normalizeGatheringPickupStation,
+  normalizeGatheringPickupStations,
+  type DenaliGatheringPickupStation,
+} from "./denali/gatheringPickupStation";
+export {
   DENALI_TRANSPORT_MODE_VALUES,
   inferDenaliTransportModeFromApiLogistics,
   isDenaliTransportMode,
@@ -53,20 +62,16 @@ export {
   denaliCategoryRequiresEventVariant,
   denaliDifficultyTypeFromCategory,
   denaliTourKindFromCanonical,
-  deriveDenaliPersistenceView,
   isDenaliMountainCategory,
   isDenaliOutdoorCategory,
   type DenaliCanonicalBasicsSelection,
   type DenaliCanonicalTourModel,
-  type DenaliDerivedPersistenceView,
   type DenaliDifficultyLevel,
   type DenaliEventVariant,
-  type DenaliFieldKind,
   type DenaliFitnessLevel,
-  type DenaliMobilityMode,
   type DenaliTourCategory,
   type DenaliTourDuration,
-} from "./denali-canonical-tour-model";
+} from "./denali/denaliCanonicalTourModel";
 export {
   DEFAULT_TOUR_FORM_PROFILE,
   TOUR_FORM_PROFILE_VALUES,

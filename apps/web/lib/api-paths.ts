@@ -86,6 +86,10 @@ export const BFF = {
     queryString.trim() ? `/api/users?${queryString}` : "/api/users",
   user: (id: string) => `/api/users/${encodeURIComponent(id)}`,
   usersInvite: "/api/users/invite",
+  usersInvites: "/api/users/invites",
+  userInvite: (inviteId: string) => `/api/users/invites/${encodeURIComponent(inviteId)}`,
+  userInviteResend: (inviteId: string) =>
+    `/api/users/invites/${encodeURIComponent(inviteId)}/resend`,
   usersBulkRole: "/api/users/bulk-role",
   userAction: (userId: string, action: string) =>
     `/api/users/${encodeURIComponent(userId)}/${encodeURIComponent(action)}`,

@@ -1048,8 +1048,8 @@ function TourCreateWizardShell({
         description={t("cardDescription")}
       >
         <CardBody>
-          {showDraftBanner ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.65rem", flexWrap: "wrap" }}>
+          {showDraftBanner && isFirstStep ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.65rem", flexWrap: "wrap", marginBottom: '1rem' }}>
               <p role="status" style={{ margin: 0, fontSize: "0.875rem", color: "#64748b" }}>
                 پیش‌نویس ذخیره‌شده از مرورگر بازیابی شد.
               </p>

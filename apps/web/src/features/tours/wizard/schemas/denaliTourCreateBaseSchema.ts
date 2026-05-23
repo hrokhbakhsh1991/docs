@@ -216,7 +216,6 @@ export type DenaliCreateTourWizardForm = z.infer<typeof denaliTourCreateBaseSche
 export const DENALI_WIZARD_TEST_DESTINATION_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 export const DENALI_WIZARD_TEST_THEME_ID = "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22";
 
-import { buildDenaliDefaultGatheringPoints } from "@/features/tours/wizard/denali/denaliDefaultGatheringPoints";
 export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm {
   return {
     basicInfo: {
@@ -279,7 +278,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     },
     tripDetails: {
       logistics: {
-        gatheringPoints: buildDenaliDefaultGatheringPoints(),
+        gatheringPoints: [],
       },
     },
   };

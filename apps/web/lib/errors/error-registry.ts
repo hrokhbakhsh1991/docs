@@ -183,8 +183,8 @@ const CORE_REGISTRY: Record<string, UIError> = {
     action: "none",
   },
   REGISTRATION_ROW_VERSION_CONFLICT: {
-    title: "Registration Updated Elsewhere",
-    message: "Refresh and retry your registration change.",
+    title: "به‌روزرسانی همزمان",
+    message: "این ثبت‌نام در جای دیگری ویرایش شده است. صفحه را تازه‌سازی کنید و دوباره تلاش کنید.",
     action: "retry",
   },
   CAPACITY_FULL: {
@@ -198,8 +198,20 @@ const CORE_REGISTRY: Record<string, UIError> = {
     action: "none",
   },
   TOUR_NOT_PUBLISHABLE: {
-    title: "Cannot Publish",
-    message: "Complete required tour fields before publishing.",
+    title: "اطلاعات تور ناقص",
+    message:
+      "اطلاعات تور ناقص است. لطفاً پیش از انتشار، تمامی فیلدهای اجباری را تکمیل کنید.",
+    action: "none",
+  },
+  VALIDATION_PROFILE_EDIT_REQUIRED_FIELD: {
+    title: "برنامه روزانه ناقص",
+    message: "لطفاً فعالیت‌ها و برنامه‌ریزی روزهای تور را به طور کامل پر کنید.",
+    action: "none",
+  },
+  VALIDATION_PROFILE_REQUIRED_FIELD: {
+    title: "اطلاعات تور ناقص",
+    message:
+      "اطلاعات ساختاری تور (مانند عنوان، قیمت پایه یا روزهای سفر) ناقص است. لطفاً ابتدا فرم پیش‌نویس را کامل کنید.",
     action: "none",
   },
   TOUR_NOT_OPEN: {
@@ -218,8 +230,19 @@ const CORE_REGISTRY: Record<string, UIError> = {
     action: "contact_support",
   },
   INVALID_LIFECYCLE_TRANSITION: {
-    title: "Status Change Not Allowed",
-    message: "This status change is not valid for the current record.",
+    title: "تغییر وضعیت مجاز نیست",
+    message: "تغییر وضعیت درخواستی برای این تور مجاز نمی‌باشد.",
+    action: "none",
+  },
+  DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES: {
+    title: "نقاط جغرافیایی ناقص",
+    message:
+      "انتشار تورهای دنالی نیازمند حداقل یک ایستگاه تجمع (عنوان، آدرس و مختصات) و نقطه آغاز سفر روی نقشه است.",
+    action: "none",
+  },
+  PAID_TOUR_REQUIRES_AMOUNT: {
+    title: "مبلغ تور الزامی است",
+    message: "برای تورهای پولی، وارد کردن مبلغ کل هزینه الزامی است.",
     action: "none",
   },
   USER_NOT_FOUND: {

@@ -12,7 +12,16 @@ export type DenaliWizardPatchSource =
       defaults: Record<string, unknown>;
       ctx?: PresetToDenaliContext;
     }
-  | { kind: "clone"; tour: TourCloneSourceDto }
+  | {
+      kind: "clone";
+      tour: TourCloneSourceDto;
+      activeEquipmentIds?: readonly string[];
+    }
+  | {
+      kind: "create";
+      tour: TourCloneSourceDto;
+      activeEquipmentIds?: readonly string[];
+    }
   | { kind: "blank" };
 
 /**
@@ -25,7 +34,16 @@ export function mapToDenaliWizardPatch(
     return {};
   }
   if (source.kind === "clone") {
-    return transformTourToDenaliWizardValues(source.tour);
+    return transformTourToDenaliWizardValues(source.tour, {
+      mode: "clone",
+      activeEquipmentIds: source.activeEquipmentIds,
+    });
+  }
+  if (source.kind === "create") {
+    return transformTourToDenaliWizardValues(source.tour, {
+      mode: "create",
+      activeEquipmentIds: source.activeEquipmentIds,
+    });
   }
   return presetDefaultsToDenaliFormPatch(source.defaults, source.ctx ?? {});
 }

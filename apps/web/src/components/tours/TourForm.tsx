@@ -15,10 +15,11 @@ import {
   type UseFormRegister,
 } from "react-hook-form";
 
-import { Alert, Button, Card, FormField, Input, Select, Textarea } from "@tour/ui";
+import { Alert, Button, Card, FormField, Input, Textarea } from "@tour/ui";
 
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { ApiError } from "@/lib/api-client";
+import { ErrorRegistry } from "@/lib/errors/error-registry";
 import { getCatalogErrorMessageKey, logTenantCatalogMismatchDev } from "@/lib/errors/tenant-catalog-tour-errors";
 import { TourCreateTripDetailsFields } from "@/features/tours/components/tour-create-trip-details-fields";
 import { TourDestinationSelectField } from "@/features/tours/components/tour-destination-select-field";
@@ -47,8 +48,18 @@ import type { ThemeRowForProfile } from "@/features/tours/wizard/tourWizardProfi
 import { useAuth } from "@/lib/auth/auth-context";
 import { useUnifiedTourDomainProfileForEditResolver } from "@/lib/config/feature-flags";
 
+import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
+import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
+
 import { apiLifecycleToFormStatus } from "./tour-lifecycle";
 import { extractTourPriceUsd } from "./formatters";
+import { DenaliGatheringPointsWidget } from "@/features/tours/wizard/denali/components/DenaliGatheringPointsWidget";
+import { TourEditDenaliGeoSection } from "./TourEditDenaliGeoSection";
+import { TourEditLeadersParticipationSection } from "./TourEditLeadersParticipationSection";
+import { TourEditPeakExperienceSection } from "./TourEditPeakExperienceSection";
+import { TourPublishStatusField } from "./TourPublishStatusField";
+import type { TourFormLifecycleStatus } from "./tour-lifecycle";
+import { DENALI_FIELD_HINTS } from "@/features/tours/wizard/denali/denaliFieldHints";
 import { createTourSchemaForProfile, type TourFormInput, type TourFormValues } from "./tour-schema";
 
 import styles from "./TourForm.module.css";
@@ -231,18 +242,25 @@ export function TourForm({
    * scheduled for removal in Phase P8 along with `legacyEventKindFromEditFormValues`).
    */
   const unifiedEditResolverEnabled = useUnifiedTourDomainProfileForEditResolver();
+  const wizardTemplateQuery = useTenantWizardTemplate();
+  const workspaceFormProfile = useMemo(
+    () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
+    [wizardTemplateQuery.data],
+  );
   const resolver = useCallback(
     (values: TourFormInput, context: unknown, options: any) => {
       const tripStyles = values.tripDetails?.overview?.tripStyles as string[] | undefined;
-      const formProfile = domainProfileFromEditFormValues({
+      const themeProfile = domainProfileFromEditFormValues({
         themeCatalog: themeCatalogForFormProfile,
         tourType: values.tourType,
         mainTourThemeId: extractMainTourThemeIdFromValues(values),
         tripStyles,
       });
-      return zodResolver(createTourSchemaForProfile(formProfile))(values, context, options);
+      const profileForSchema =
+        workspaceFormProfile === "denali_pilot" ? "denali_pilot" : themeProfile;
+      return zodResolver(createTourSchemaForProfile(profileForSchema))(values, context, options);
     },
-    [themeCatalogForFormProfile],
+    [themeCatalogForFormProfile, workspaceFormProfile],
   );
 
   const formMethods = useForm<TourFormInput, unknown, TourFormValues>({
@@ -299,6 +317,10 @@ export function TourForm({
 
   const resolvedFormProfileForEdit: TourFormProfile | undefined =
     editClassification?.domainProfile;
+  const showDenaliPublishGeoSection =
+    workspaceFormProfile === "denali_pilot" || resolvedFormProfileForEdit === "denali_pilot";
+  const showDenaliAdminFields =
+    workspaceFormProfile === "denali_pilot" || resolvedFormProfileForEdit === "denali_pilot";
   const currentTourId = tour && "id" in tour ? (tour as TourDto).id : undefined;
 
   useEffect(() => {
@@ -344,9 +366,13 @@ export function TourForm({
 
   async function submitValid(data: TourFormValues) {
     try {
+      const profileForSave =
+        workspaceFormProfile === "denali_pilot"
+          ? "denali_pilot"
+          : resolvedFormProfileForEdit;
       await onSubmit(
         data,
-        resolvedFormProfileForEdit != null ? { resolvedFormProfile: resolvedFormProfileForEdit } : undefined,
+        profileForSave != null ? { resolvedFormProfile: profileForSave } : undefined,
       );
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
@@ -364,6 +390,14 @@ export function TourForm({
           setError("root", {
             type: "server",
             message: tCatalog(catalogKey),
+          });
+          return;
+        }
+        const registryEntry = err.code ? ErrorRegistry[err.code] : undefined;
+        if (registryEntry) {
+          setError("root", {
+            type: "server",
+            message: registryEntry.message,
           });
           return;
         }
@@ -405,9 +439,14 @@ export function TourForm({
 
         <FormProvider {...formMethods}>
         <form className={styles.form} onSubmit={handleSubmit(submitValid)} noValidate>
-          <FormField label="Title" required error={errors.title?.message}>
+          <FormField
+            label="Title"
+            required
+            description={showDenaliPublishGeoSection ? DENALI_FIELD_HINTS.title : undefined}
+            error={errors.title?.message}
+          >
             <Input
-              placeholder="e.g. Sunset kayak tour"
+              placeholder={showDenaliPublishGeoSection ? "مثلاً صعود زمستانه به دماوند" : "e.g. Sunset kayak tour"}
               autoComplete="off"
               data-testid="tour-field-name"
               aria-invalid={errors.title ? true : undefined}
@@ -434,7 +473,26 @@ export function TourForm({
             disabled={isSubmitting || tourDestinationsLoading}
           />
 
-          <TourLocationSection regions={[]} destinations={[]} hideRegionDestinationPickers />
+          <TourLocationSection
+            regions={[]}
+            destinations={[]}
+            hideRegionDestinationPickers
+            hideLogisticsMeetingAndReturn={showDenaliPublishGeoSection}
+          />
+
+          {showDenaliPublishGeoSection ? (
+            <>
+              <DenaliGatheringPointsWidget name="tripDetails.logistics.gatheringPoints" />
+              <TourEditDenaliGeoSection
+                control={control as never}
+                errors={errors as never}
+              />
+            </>
+          ) : null}
+
+          {showDenaliAdminFields ? (
+            <TourEditPeakExperienceSection control={control as never} errors={errors as never} />
+          ) : null}
 
           {capacityAccess.canView ? (
             <FormField label="Total capacity" required error={errors.totalCapacity?.message}>
@@ -485,13 +543,19 @@ export function TourForm({
             />
           </FormField>
 
-          <FormField label="Status" required error={errors.status?.message}>
-            <Select data-testid="tour-field-status" invalid={Boolean(errors.status)} {...register("status")}>
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              {resolvedMode === "edit" ? <option value="archived">Archived</option> : null}
-            </Select>
-          </FormField>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <TourPublishStatusField
+                value={(field.value as TourFormLifecycleStatus) ?? "draft"}
+                onChange={field.onChange}
+                disabled={isSubmitting}
+                allowArchived={resolvedMode === "edit"}
+                data-testid="tour-field-status"
+              />
+            )}
+          />
 
           <FormField
             label="Communication link (optional)"
@@ -508,6 +572,10 @@ export function TourForm({
             />
           </FormField>
 
+          {showDenaliAdminFields ? (
+            <TourEditLeadersParticipationSection disabled={isSubmitting} />
+          ) : null}
+
           <TourCreateTripDetailsFields
             register={register as unknown as UseFormRegister<FieldValues>}
             control={control as unknown as Control<FieldValues>}
@@ -515,7 +583,6 @@ export function TourForm({
             isPending={isSubmitting}
             formProfile={resolvedFormProfileForEdit}
             viewerRole={viewerRole}
-            suppressLogisticsMeetingAndReturn
           />
 
           <div className={styles.actions}>

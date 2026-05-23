@@ -111,13 +111,6 @@ const CAPACITY_MIN_FIELD: DenaliRuleFieldDefinition = {
   step: "denali_basic",
 };
 
-const MEETING_POINT_FIELD: DenaliRuleFieldDefinition = {
-  path: "meetingPoint",
-  required: false,
-  hidden: false,
-  step: "denali_basic",
-};
-
 const START_POINT_LOCATION_FIELD: DenaliRuleFieldDefinition = {
   path: "startPointLocationText",
   required: false,
@@ -471,7 +464,6 @@ const EVENT_HIDDEN_PROGRAM_FIELDS: readonly DenaliRuleFieldDefinition[] = [
 
 const OPTIONAL_BASIC_FIELDS: readonly DenaliRuleFieldDefinition[] = [
   CAPACITY_MIN_FIELD,
-  MEETING_POINT_FIELD,
   START_POINT_LOCATION_FIELD,
   SOCIAL_MEDIA_LINK_FIELD,
   APPROXIMATE_RETURN_TIME_FIELD,

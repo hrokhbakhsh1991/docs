@@ -1,6 +1,8 @@
 import {
+  denaliCanonicalBasicsFromTourKind,
   denaliTourKindToIsMultiDay,
   inferDenaliTransportModeFromApiLogistics,
+  isDenaliMountainCategory,
   isDenaliTourKind,
   type DenaliTourKind,
 } from "@repo/types";
@@ -15,12 +17,35 @@ import {
 } from "@repo/types/denali";
 
 import { readTourMinRequiredPeaks } from "@/features/tours/domain/peak-experience";
-import { gearCatalogIdsToGearItems } from "@/features/tours/wizard/denali/denaliGearSelection";
+import {
+  gearCatalogIdsToGearItems,
+  normalizeGearItems,
+} from "@/features/tours/wizard/denali/denaliGearSelection";
+import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { combineYmdAndTimeToIso } from "@/features/tours/wizard/denali/denaliDatetime";
 
 import type { TourCloneSourceDto } from "./transformTourToWizardValues";
+
+/** New-tour wizard hydration only — clone path leaves API values unchanged. */
+export type DenaliWizardTourTransformMode = "clone" | "create";
+
+export type TransformTourToDenaliWizardOptions = {
+  /**
+   * `clone` (default): clone/edit mapping; gear filtered to `activeEquipmentIds` when provided.
+   * `create`: new Denali wizard — mountain submit defaults (gear uses same catalog filter).
+   */
+  mode?: DenaliWizardTourTransformMode;
+  /**
+   * Workspace active equipment row ids (`useSettingsEquipment` rows with `isActive`).
+   * When set, gear from the source tour is filtered to this catalog (clone + create).
+   */
+  activeEquipmentIds?: readonly string[];
+};
+
+/** Mountain altitude fallback for create mode (canonical gate requires a positive integer). */
+const CREATE_MOUNTAIN_ALTITUDE_FALLBACK_M = 1;
 
 const LEGACY_FITNESS_TO_DENALI: Record<string, DenaliCreateTourWizardForm["participantRequirements"]["fitnessLevel"]> =
   {
@@ -295,12 +320,93 @@ function resolveCloneLocationZones(
   };
 }
 
+/** Active workspace equipment ids for clone/create gear hydration. */
+export function denaliActiveEquipmentIdsFromRows(
+  rows: readonly { id: string; isActive: boolean }[] | undefined,
+): readonly string[] {
+  return (rows ?? [])
+    .filter((row) => row.isActive)
+    .map((row) => row.id.trim())
+    .filter((id) => id.length > 0);
+}
+
+/**
+ * Drops gear rows whose id is not in the workspace active equipment catalog.
+ * When `activeEquipmentIds` is omitted, returns `gearItems` unchanged.
+ */
+export function filterGearItemsToActiveEquipmentCatalog(
+  gearItems: DenaliGearItem[] | undefined,
+  activeEquipmentIds: readonly string[] | undefined,
+): DenaliGearItem[] | undefined {
+  if (gearItems == null || gearItems.length === 0) {
+    return gearItems;
+  }
+  if (activeEquipmentIds == null) {
+    return gearItems;
+  }
+  const allowed = new Set(
+    activeEquipmentIds.map((id) => id.trim()).filter((id) => id.length > 0),
+  );
+  const filtered = gearItems.filter((row) => allowed.has(row.id.trim()));
+  return normalizeGearItems(filtered);
+}
+
+/**
+ * Post-processes a mapped Denali form for **new-tour** wizard (`mode: "create"`).
+ * Gear catalog filtering runs in {@link transformTourToDenaliWizardValues} for clone and create.
+ */
+export function applyDenaliCreateWizardHydrationGuards(
+  form: Partial<DenaliCreateTourWizardForm>,
+  denaliKind: DenaliTourKind,
+  _options?: Pick<TransformTourToDenaliWizardOptions, "activeEquipmentIds">,
+): Partial<DenaliCreateTourWizardForm> {
+  const basics = denaliCanonicalBasicsFromTourKind(denaliKind);
+  const isMountain =
+    basics != null && isDenaliMountainCategory(basics.category);
+
+  const programNature: Partial<DenaliCreateTourWizardForm["programNature"]> = {
+    ...form.programNature,
+  };
+  if (
+    isMountain &&
+    (programNature.altitudeMeasurement == null ||
+      !Number.isFinite(programNature.altitudeMeasurement))
+  ) {
+    programNature.altitudeMeasurement = CREATE_MOUNTAIN_ALTITUDE_FALLBACK_M;
+  }
+
+  const participantRequirements: Partial<DenaliCreateTourWizardForm["participantRequirements"]> = {
+    ...form.participantRequirements,
+  };
+
+  if (isMountain) {
+    if (participantRequirements.fitnessLevel == null) {
+      participantRequirements.fitnessLevel = "medium";
+    }
+    if (participantRequirements.sportsInsuranceRequired !== true) {
+      participantRequirements.sportsInsuranceRequired = true;
+    }
+    if (participantRequirements.minimumAge == null) {
+      participantRequirements.minimumAge = 18;
+    }
+  }
+
+  return {
+    ...form,
+    programNature: programNature as DenaliCreateTourWizardForm["programNature"],
+    participantRequirements:
+      participantRequirements as DenaliCreateTourWizardForm["participantRequirements"],
+  };
+}
+
 /**
  * Maps canonical Tour API → Denali 6-tab wizard form (clone / edit bootstrap).
  */
 export function transformTourToDenaliWizardValues(
   apiTour: TourCloneSourceDto,
+  options?: TransformTourToDenaliWizardOptions,
 ): Partial<DenaliCreateTourWizardForm> {
+  const mode = options?.mode ?? "clone";
   const tripDetails = asObject(apiTour.details?.tripDetails);
   const overview = asObject(tripDetails.overview);
   const itinerary = asObject(tripDetails.itinerary);
@@ -368,13 +474,20 @@ export function transformTourToDenaliWizardValues(
     ];
   }
 
-  const gearItems =
+  const gearItemsFromSource =
     gearCatalogIdsToGearItems(
       stringArray(participation.gearRequiredIds),
       stringArray(participation.gearOptionalIds),
     ) ?? [];
+  const gearItems =
+    options?.activeEquipmentIds !== undefined
+      ? (filterGearItemsToActiveEquipmentCatalog(
+          gearItemsFromSource,
+          options.activeEquipmentIds,
+        ) ?? [])
+      : gearItemsFromSource;
 
-  return normalizeDenaliWizardForm({
+  const mapped = normalizeDenaliWizardForm({
     basicInfo: {
       title: strOrEmpty(apiTour.title),
       leaderUserIds,
@@ -441,4 +554,12 @@ export function transformTourToDenaliWizardValues(
       },
     },
   });
+
+  if (mode === "create") {
+    return applyDenaliCreateWizardHydrationGuards(mapped, denaliKind, {
+      activeEquipmentIds: options?.activeEquipmentIds,
+    });
+  }
+
+  return mapped;
 }

@@ -4,7 +4,7 @@ import type { MembershipStatus } from "../membership-status.enum";
 export type TenantScopedUserRow = {
   id: string;
   full_name: string | null;
-  email: string;
+  email: string | null;
   phone: string | null;
   gender?: string | null;
   profile_image_url?: string | null;

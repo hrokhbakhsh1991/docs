@@ -1,4 +1,5 @@
 import { parseMembershipMetadata, type MembershipMetadata } from "./membership-metadata";
+import { tryParseWorkspaceRole, WorkspaceRole } from "./workspace-roles";
 
 /**
  * Membership metadata capability tokens that do NOT map to CASL / dashboard gates.
@@ -39,6 +40,27 @@ export function partitionMembershipCapabilityTokens(
     }
   }
   return { micro, product };
+}
+
+const TOUR_CREW_ELIGIBLE_ROLES = new Set<WorkspaceRole>([
+  WorkspaceRole.Owner,
+  WorkspaceRole.Admin,
+  WorkspaceRole.Leader,
+]);
+
+/**
+ * Whether an ACTIVE workspace membership may appear in tour `leaderUserIds` pickers
+ * (owner / admin / leader roles, or explicit `capability.is_selectable_leader`).
+ */
+export function isEligibleTourLeaderMembership(
+  role: string,
+  membershipMetadata: MembershipMetadata | Record<string, unknown> | null | undefined,
+): boolean {
+  const parsed = tryParseWorkspaceRole(role);
+  if (parsed && TOUR_CREW_ELIGIBLE_ROLES.has(parsed)) {
+    return true;
+  }
+  return membershipHasSelectableLeader(membershipMetadata);
 }
 
 export function membershipHasSelectableLeader(

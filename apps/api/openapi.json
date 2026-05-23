@@ -615,6 +615,138 @@
         ]
       }
     },
+    "/api/v2/users/invites": {
+      "get": {
+        "operationId": "UsersController_listPendingInvites",
+        "summary": "List pending workspace invites for current tenant",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPendingWorkspaceInvitesResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/invites/{inviteId}/resend": {
+      "post": {
+        "operationId": "UsersController_resendInviteByInviteId",
+        "summary": "Resend pending workspace invite by invite id",
+        "parameters": [
+          {
+            "name": "inviteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for invite resend.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendInviteResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Pending invite not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/users/invites/{inviteId}": {
+      "delete": {
+        "operationId": "UsersController_cancelInvite",
+        "summary": "Cancel a pending workspace invite",
+        "parameters": [
+          {
+            "name": "inviteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelWorkspaceInviteResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Pending invite not found"
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/users/{id}/resend-invite": {
       "post": {
         "operationId": "UsersController_resendInvite",
@@ -1247,6 +1379,52 @@
         ]
       }
     },
+    "/api/v2/workspaces/users/{userId}/booking-summary": {
+      "get": {
+        "operationId": "WorkspaceUsersController_getUserBookingSummary",
+        "summary": "Workspace member booking trip summary (admin)",
+        "description": "Matches registrations via synthetic participant phone and optional Telegram id for the target user.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserBookingSummaryResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "User or membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Workspace Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/workspaces/users/{userId}/role": {
       "patch": {
         "operationId": "WorkspaceUsersController_patchUserRole",
@@ -1342,6 +1520,71 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PostWorkspaceUserRewardsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Insufficient role or tenant context"
+          },
+          "404": {
+            "description": "Membership not found in tenant"
+          }
+        },
+        "tags": [
+          "Workspace Users"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/users/{userId}/selectable-leader": {
+      "post": {
+        "operationId": "WorkspaceUsersController_postToggleSelectableLeader",
+        "summary": "Toggle tour leader picker eligibility (micro-capability)",
+        "description": "Sets `capability.is_selectable_leader` on membership metadata. Does not grant dashboard or CASL tour admin rights.",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for selectable-leader micro-capability toggle.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostToggleSelectableLeaderDto"
               }
             }
           }
@@ -5802,9 +6045,61 @@
           "expiresAt"
         ]
       },
-      "ResendInviteDto": {
+      "PendingWorkspaceInviteDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "inviteId": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Normalized phone stored in `workspace_invites.email` for phone invites."
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "invitedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "object",
+            "description": "Tenant user id when an INVITED membership already exists for this phone."
+          }
+        },
+        "required": [
+          "inviteId",
+          "phone",
+          "role",
+          "status",
+          "expiresAt"
+        ]
+      },
+      "ListPendingWorkspaceInvitesResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingWorkspaceInviteDto"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
       },
       "ResendInviteResultDto": {
         "type": "object",
@@ -5863,6 +6158,26 @@
           "membershipStatus"
         ]
       },
+      "CancelWorkspaceInviteResponseDto": {
+        "type": "object",
+        "properties": {
+          "inviteId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "EXPIRED"
+          }
+        },
+        "required": [
+          "inviteId",
+          "status"
+        ]
+      },
+      "ResendInviteDto": {
+        "type": "object",
+        "properties": {}
+      },
       "UserResponseDto": {
         "type": "object",
         "properties": {
@@ -5875,7 +6190,8 @@
             "example": "Ava Chen"
           },
           "email": {
-            "type": "string",
+            "type": "object",
+            "nullable": true,
             "example": "ava.chen@example.com"
           },
           "phone": {
@@ -5905,11 +6221,33 @@
             "example": 1,
             "description": "Optimistic concurrency token from `users.profile_row_version` (for ETag / If-Match)."
           },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "female",
+              "male",
+              "non_binary",
+              "prefer_not_to_say"
+            ],
+            "description": "Self-reported gender for avatar fallbacks when no profile image is set."
+          },
+          "profileImageUrl": {
+            "type": "object",
+            "nullable": true,
+            "description": "Profile image URL when set on the user record."
+          },
           "lastLoginAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
             "description": "Last successful login timestamp when available."
+          },
+          "lastActiveAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Last authenticated request timestamp (async middleware touch)."
           },
           "joinedAt": {
             "type": "string",
@@ -5950,37 +6288,45 @@
               "type": "string"
             }
           },
-          "assignedCapabilities": {
-            "description": "Explicit capability grants from `user_tenants.membership_metadata.capabilities`.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "allowedRegionIds": {
-            "description": "Regional scope ids when `tour.regional.manage` is assigned.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "effectiveCapabilities": {
-            "description": "Resolved effective capabilities (role ∪ metadata ∪ labels ∪ tenant modules).",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "telegramLinked": {
             "type": "boolean",
             "example": false,
             "description": "True when the user account has a linked Telegram id (for in-app indicators)."
+          },
+          "isSelectableLeader": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when `capability.is_selectable_leader` is stored on membership metadata (tour leader picker eligibility)."
+          },
+          "walletBalanceMinor": {
+            "type": "string",
+            "example": "1250000",
+            "description": "Live member wallet balance in minor units from `account_balances` (`member:{userId}`)."
+          },
+          "walletCurrency": {
+            "type": "string",
+            "example": "IRR",
+            "description": "Currency code for `walletBalanceMinor`."
+          },
+          "totalTrips": {
+            "type": "number",
+            "example": 12,
+            "description": "All registrations matched via synthetic booking phone / Telegram."
+          },
+          "completedTrips": {
+            "type": "number",
+            "example": 8,
+            "description": "Past departures with non-terminal cancellation status."
+          },
+          "cancelledTrips": {
+            "type": "number",
+            "example": 2,
+            "description": "Registrations cancelled or rejected."
           }
         },
         "required": [
           "id",
           "name",
-          "email",
           "role"
         ]
       },
@@ -6154,6 +6500,66 @@
           "capabilities"
         ]
       },
+      "UserBookingTripRowDto": {
+        "type": "object",
+        "properties": {
+          "tourTitle": {
+            "type": "string",
+            "example": "Denali Explorer Weekend"
+          },
+          "departureDate": {
+            "type": "object",
+            "example": "2026-06-15",
+            "description": "Departure date (ISO date)."
+          },
+          "registrationStatus": {
+            "type": "string",
+            "example": "AcceptedPaid"
+          },
+          "paymentStatus": {
+            "type": "string",
+            "example": "Paid"
+          }
+        },
+        "required": [
+          "tourTitle",
+          "registrationStatus",
+          "paymentStatus"
+        ]
+      },
+      "UserBookingSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "totalTrips": {
+            "type": "number",
+            "example": 12,
+            "description": "All tenant-scoped registrations matched to this user."
+          },
+          "completedTrips": {
+            "type": "number",
+            "example": 8,
+            "description": "Registrations whose status is not Cancelled/Rejected/NoShow and whose departure date is before today (UTC)."
+          },
+          "cancelledTrips": {
+            "type": "number",
+            "example": 2,
+            "description": "Registrations with status Cancelled or Rejected."
+          },
+          "trips": {
+            "description": "Recent registrations matched to this member (newest departure first).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserBookingTripRowDto"
+            }
+          }
+        },
+        "required": [
+          "totalTrips",
+          "completedTrips",
+          "cancelledTrips",
+          "trips"
+        ]
+      },
       "PatchWorkspaceUserRoleDto": {
         "type": "object",
         "properties": {
@@ -6177,7 +6583,7 @@
         "type": "object",
         "properties": {
           "permanentDiscountPercentage": {
-            "type": "number",
+            "type": "object",
             "example": 10,
             "minimum": 0,
             "maximum": 100,
@@ -6194,11 +6600,39 @@
               "type": "string",
               "enum": [
                 "VIP_MEMBER",
+                "GOLD_CLUB",
                 "LEADER_BUDDY"
               ]
             }
+          },
+          "isSelectableLeader": {
+            "type": "boolean",
+            "description": "Tour leader picker eligibility (`capability.is_selectable_leader` micro-capability)."
+          },
+          "labels": {
+            "example": [
+              "vip_client",
+              "repeat_guest"
+            ],
+            "description": "CRM labels stored on `user_tenants.labels` (replaces array when provided).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
+      },
+      "PostToggleSelectableLeaderDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "When true, adds `capability.is_selectable_leader` to membership metadata (tour leader picker only; no dashboard grant)."
+          }
+        },
+        "required": [
+          "enabled"
+        ]
       },
       "PatchTenantModulesDto": {
         "type": "object",
@@ -6262,7 +6696,7 @@
           "email": {
             "type": "object",
             "nullable": true,
-            "description": "Contact email when set. Phone-only signups store `phone_*@local.invalid` internally — API omits that placeholder (`null` here).",
+            "description": "Contact email when set. Phone-only accounts without an address on file return `null`.",
             "format": "email",
             "example": "user@example.com"
           },
@@ -6501,6 +6935,10 @@
       "TripDetailsLocationDataDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "addressText": {
             "type": "string",
             "description": "Human-readable address or place label."
@@ -6606,9 +7044,6 @@
           "localGuideName": {
             "type": "string",
             "description": "Display name for the local guide (when not a workspace user)."
-          },
-          "gatheringPoint": {
-            "$ref": "#/components/schemas/TripDetailsLocationDataDto"
           },
           "startPoint": {
             "$ref": "#/components/schemas/TripDetailsLocationDataDto"
@@ -6942,11 +7377,33 @@
           }
         }
       },
+      "TripDetailsGatheringPickupStationDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Human label for the pickup station."
+          },
+          "time": {
+            "type": "string",
+            "description": "Local assembly time (24h HH:mm)."
+          },
+          "location": {
+            "$ref": "#/components/schemas/TripDetailsLocationDataDto"
+          }
+        },
+        "required": [
+          "title",
+          "location"
+        ]
+      },
       "TripDetailsLogisticsDto": {
         "type": "object",
         "properties": {
           "meetingPoint": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated. Use `gatheringPoints` array for structured pickup stations."
           },
           "startPointVillage": {
             "type": "string",
@@ -7105,6 +7562,13 @@
           "leaderInsuranceNotes": {
             "type": "string",
             "maxLength": 500
+          },
+          "gatheringPoints": {
+            "description": "Multiple gathering pickup stations for the tour (Denali).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TripDetailsGatheringPickupStationDto"
+            }
           }
         }
       },
@@ -8098,6 +8562,18 @@
           "version"
         ]
       },
+      "ParticipantMetadataDto": {
+        "type": "object",
+        "properties": {
+          "userPastPeaksCount": {
+            "type": "number",
+            "description": "Count of successful peak climbs with this agency (0 = none, 4 = four or more). Used with tour tripDetails.requirements.minRequiredPeaks.",
+            "minimum": 0,
+            "maximum": 4,
+            "example": 2
+          }
+        }
+      },
       "CreateRegistrationDto": {
         "type": "object",
         "properties": {
@@ -8159,6 +8635,14 @@
             "description": "Optional participant note",
             "example": "Will arrive 30 minutes earlier",
             "nullable": true
+          },
+          "participantMetadata": {
+            "description": "Optional traveler metadata (e.g. past peak climbs for Peak-Experience auto-approval).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ParticipantMetadataDto"
+              }
+            ]
           },
           "discountCode": {
             "type": "string",

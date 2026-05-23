@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { ListUsersQueryDto } from "./dto/list-users-query.dto";
 import type { ListUsersResponseDto } from "./dto/list-users-response.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
@@ -13,9 +13,11 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
 @Injectable()
 export class UsersReadService {
   constructor(
-    private readonly access: UsersAccessService,
-    private readonly usersListRepository: UsersListRepository,
+    @Inject(UsersAccessService) private readonly access: UsersAccessService,
+    @Inject(UsersListRepository) private readonly usersListRepository: UsersListRepository,
+    @Inject(UsersMemberWalletBalancesService)
     private readonly memberWalletBalances: UsersMemberWalletBalancesService,
+    @Inject(WorkspaceUserBookingSummaryService)
     private readonly bookingSummaries: WorkspaceUserBookingSummaryService
   ) {}
 

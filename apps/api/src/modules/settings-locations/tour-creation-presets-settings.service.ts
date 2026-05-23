@@ -28,7 +28,10 @@ import {
   type ThemeLookup,
 } from "./tour-preset-defaults-drift";
 import { parsePresetDefaultsOrThrow } from "./tour-preset-defaults.schema";
-import { mergeLegacyMatchIntoDefaults } from "./tour-preset-defaults-legacy";
+import {
+  mergeLegacyMatchIntoDefaults,
+  migrateGatheringPointsToLogisticsArray,
+} from "./tour-preset-defaults-legacy";
 
 import { AuditLogService } from "../../common/audit/audit-log.service";
 import { AUDIT_CATEGORY } from "../../common/audit/audit-category";
@@ -155,6 +158,7 @@ export class TourCreationPresetsSettingsService {
       row.matchTourType ?? null,
       row.matchMainTourThemeId ?? null,
     );
+    const fullyEnriched = migrateGatheringPointsToLogisticsArray(enrichedDefaults);
     return {
       id: row.id,
       name: row.name,
@@ -164,7 +168,7 @@ export class TourCreationPresetsSettingsService {
       matchTourType: row.matchTourType ?? null,
       matchMainTourThemeId: row.matchMainTourThemeId ?? null,
       formProfile: normalizeTourFormProfileInput(row.formProfile ?? "general"),
-      defaults: enrichedDefaults,
+      defaults: fullyEnriched,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString()
     };

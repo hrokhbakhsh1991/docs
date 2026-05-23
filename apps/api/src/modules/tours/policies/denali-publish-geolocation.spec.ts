@@ -13,17 +13,30 @@ function validGeoZone() {
   };
 }
 
+function validGatheringStation() {
+  return {
+    title: "میدان رسالت",
+    time: "06:30",
+    location: validGeoZone(),
+  };
+}
+
 function denaliTripDetails(
   overview: Record<string, unknown> = {},
+  logistics: Record<string, unknown> = {},
 ): TourTripDetails {
   return {
     overview: {
       denaliTourKind: "mountain_day",
-      gatheringPoint: validGeoZone(),
       startPoint: validGeoZone(),
       ...overview,
     },
-    logistics: { primaryTransportMode: "bus", groupSizeMax: 12 },
+    logistics: {
+      primaryTransportMode: "bus",
+      groupSizeMax: 12,
+      gatheringPoints: [validGatheringStation()],
+      ...logistics,
+    },
     participation: {
       minimumAge: 18,
       fitnessLevel: "moderate",
@@ -43,20 +56,24 @@ test("checkDenaliPilotPublishGeolocationZones accepts concrete gathering and sta
 test("checkDenaliPilotPublishGeolocationZones rejects missing zones", () => {
   const violation = checkDenaliPilotPublishGeolocationZones(
     asTypesTripDetails(
-      denaliTripDetails({ gatheringPoint: undefined, startPoint: undefined }),
+      denaliTripDetails({ startPoint: undefined }, { gatheringPoints: [] }),
     ),
   );
   assert.ok(violation);
   assert.equal(violation.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
-  assert.match(violation.message, /gatheringPoint/);
+  assert.match(violation.message, /gatheringPoints/);
 });
 
 test("checkDenaliPilotPublishGeolocationZones rejects text-only pins", () => {
   const violation = checkDenaliPilotPublishGeolocationZones(
-    asTypesTripDetails(denaliTripDetails({
-      gatheringPoint: { addressText: "Text only", latitude: null, longitude: null },
-      startPoint: validGeoZone(),
-    })),
+    asTypesTripDetails(denaliTripDetails(
+      { startPoint: validGeoZone() },
+      {
+        gatheringPoints: [
+          { title: "بدون مختصات", location: { addressText: "Text only", latitude: null, longitude: null } },
+        ],
+      }
+    )),
   );
   assert.ok(violation);
   assert.equal(violation.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
@@ -64,10 +81,10 @@ test("checkDenaliPilotPublishGeolocationZones rejects text-only pins", () => {
 
 test("checkDenaliPilotPublishGeolocationZones rejects latitude without longitude", () => {
   const violation = checkDenaliPilotPublishGeolocationZones(
-    asTypesTripDetails(denaliTripDetails({
-      gatheringPoint: validGeoZone(),
-      startPoint: { addressText: "Start", latitude: 35.7, longitude: null },
-    })),
+    asTypesTripDetails(denaliTripDetails(
+      { startPoint: { addressText: "Start", latitude: 35.7, longitude: null } },
+      { gatheringPoints: [validGatheringStation()] }
+    )),
   );
   assert.ok(violation);
   assert.match(violation.message, /startPoint/);

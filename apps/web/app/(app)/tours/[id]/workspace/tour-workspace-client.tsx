@@ -30,6 +30,7 @@ import {
 
 import { RegistrationsTable } from "./RegistrationsTable";
 import { WaitlistTable } from "./WaitlistTable";
+import { TOUR_WORKSPACE_COPY } from "./tour-workspace-copy";
 import {
   isTourReadOnlyForWorkspace,
   workspaceReadOnlyBannerText,
@@ -37,6 +38,8 @@ import {
 
 import stateStyles from "./tour-workspace-state.module.css";
 import styles from "./tour-workspace.module.css";
+
+const copy = TOUR_WORKSPACE_COPY.page;
 
 export type TourWorkspaceClientProps = {
   tourId: string;
@@ -85,16 +88,16 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   const tourErrorMessage =
     tourError instanceof ApiError
       ? tourError.status === 404
-        ? "No tour was found with this id."
-        : tourError.message.trim() || "Could not load tour details. Please try again."
-      : "Could not load tour details. Please try again.";
+        ? copy.loadTourNotFound
+        : tourError.message.trim() || copy.loadTourFallback
+      : copy.loadTourFallback;
 
   const breadcrumbItems: BreadcrumbItem[] = useMemo(
     () => [
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Tours", href: "/tours" },
-      { label: tour?.title ?? "Tour" },
-      { label: "Registrations workspace" },
+      { label: copy.breadcrumbHome, href: "/dashboard" },
+      { label: copy.breadcrumbTours, href: "/tours" },
+      { label: tour?.title ?? copy.tourFallback },
+      { label: copy.breadcrumbWorkspace },
     ],
     [tour?.title],
   );
@@ -104,14 +107,14 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (toursUseLiveApi() && !isHydrated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading session…" />
+            <LoadingState message={copy.loadingSession} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -121,19 +124,19 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (liveApi && isHydrated && !isAuthenticated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Sign in required"
-              description="Your session is missing or expired. Sign in to open the leader workspace."
+              title={copy.signInTitle}
+              description={copy.signInDescription}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in
+                  {copy.signInButton}
                 </Button>
               }
             />
@@ -146,19 +149,19 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (isHydrated && isAuthenticated && !leader) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Leader access required"
-              description="Only users with the leader role can open the registrations workspace."
+              title={copy.leaderRequiredTitle}
+              description={copy.leaderRequiredDescription}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-                  Back to tours
+                  {copy.backToTours}
                 </Button>
               }
             />
@@ -171,19 +174,19 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (isHydrated && isAuthenticated && leader && !hasTenantId) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Tenant not available"
-              description="Your session is missing tenant context. Sign in again to continue."
+              title={copy.tenantUnavailableTitle}
+              description={copy.tenantUnavailableDescription}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in again
+                  {copy.signInAgain}
                 </Button>
               }
             />
@@ -196,19 +199,19 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (!liveApi && isHydrated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Workspace API not configured"
-              description="Use your workspace host and ensure the API is running to load this workspace."
+              title={copy.apiNotConfiguredTitle}
+              description={copy.apiNotConfiguredDescription}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-                  Back to dashboard
+                  {copy.backToDashboard}
                 </Button>
               }
             />
@@ -221,14 +224,14 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (tourLoading) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading tour…" />
+            <LoadingState message={copy.loadingTour} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -238,15 +241,15 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (tourIsError) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <ErrorState
-              title="Could not load tour"
+              title={copy.loadTourErrorTitle}
               message={tourErrorMessage}
               onRetry={() => void refetchTour()}
             />
@@ -259,19 +262,19 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   if (!tour) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Workspace"
-        title="Leader workspace"
+        documentTitle={copy.documentTitle}
+        title={copy.title}
         breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={stateStyles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Tour not found"
-              description="No tour exists with this id."
+              title={copy.tourNotFoundTitle}
+              description={copy.tourNotFoundDescription}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-                  Back to tours
+                  {copy.backToTours}
                 </Button>
               }
             />
@@ -288,9 +291,9 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
 
   return (
     <RegisteredWorkspacePage
-      documentTitle={`Workspace · ${tour.title}`}
-      title="Registrations workspace"
-      description={`${tour.title} · ${tour.acceptedCount}/${tour.totalCapacity} accepted`}
+      documentTitle={`${copy.documentTitle} · ${tour.title}`}
+      title={TOUR_WORKSPACE_COPY.metadata.title}
+      description={copy.description(tour.title, tour.acceptedCount, tour.totalCapacity)}
       breadcrumbItems={breadcrumbItems}
       actions={
         <Button
@@ -298,23 +301,24 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
           variant="secondary"
           onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
         >
-          Tour details
+          {copy.tourDetails}
         </Button>
       }
     >
       <div
         className={cn(styles.workspaceRoot, workspaceRefreshing ? styles.workspaceRootRefreshing : undefined)}
+        dir="rtl"
         aria-busy={workspaceRefreshing ? true : undefined}
       >
         {workspaceRefreshing ? (
           <span className={styles.liveRegion} aria-live="polite">
-            Updating workspace data
+            {copy.updatingLive}
           </span>
         ) : null}
         <div className={styles.workspaceSection}>
           <Card>
             <CardHeader>
-              <CardTitle>Overview (J‑L‑02)</CardTitle>
+              <CardTitle>{copy.overviewTitle}</CardTitle>
             </CardHeader>
             <CardBody>
               {readOnly ? (
@@ -323,13 +327,11 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
                 </p>
               ) : null}
               <p>
-                Pending review: <strong>{pendingCount}</strong> · Total registrations in list:{" "}
-                <strong>{registrations.length}</strong> · Waitlist entries: <strong>{waitlist.length}</strong>
+                {copy.pendingReview}: <strong>{pendingCount}</strong> · {copy.totalRegistrations}:{" "}
+                <strong>{registrations.length}</strong> · {copy.waitlistEntries}:{" "}
+                <strong>{waitlist.length}</strong>
               </p>
-              <p className={styles.helperHint}>
-                Cross-tour reconciliation: use Dashboard → Review queue → Export CSV (built from live list
-                endpoints).
-              </p>
+              <p className={styles.helperHint}>{copy.reconciliationHint}</p>
             </CardBody>
           </Card>
         </div>

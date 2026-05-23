@@ -1,34 +1,32 @@
 "use client";
 
 import type { UseMutationResult } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { BookingDto } from "@repo/types";
 import type { RegistrationPaymentStatus, RegistrationStatus } from "@repo/types";
 
-import { BookingStatusBadge, PaymentStatusBadge } from "@/components/shared/badges";
+import { TOUR_WORKSPACE_COPY } from "./tour-workspace-copy";
+import { RegistrationTableRow } from "./RegistrationTableRow";
 
 import {
-  Button,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
   EmptyState,
   ErrorState,
-  Input,
   LoadingState,
   Select,
 } from "@tour/ui";
 
 import { ApiError } from "@/lib/api-client";
-import type { BookingAggregatePaymentStatus } from "@/lib/booking-transition-policy";
 import {
   getAllowedBookingTransitions,
-  getAllowedPaymentTransitions,
   isTerminalBookingState,
   isTerminalPaymentState,
 } from "@/lib/booking-transition-policy";
+import type { BookingAggregatePaymentStatus } from "@/lib/booking-transition-policy";
 
 import styles from "./tour-workspace.module.css";
 
@@ -43,31 +41,19 @@ export type RegistrationsTableProps = {
   statusMutation: UseMutationResult<
     BookingDto,
     Error,
-    { id: string; targetStatus: RegistrationStatus }
+    { id: string; targetStatus: RegistrationStatus; expected_row_version: number }
   >;
   paymentMutation: UseMutationResult<
     BookingDto,
     Error,
-    { id: string; paymentStatus: RegistrationPaymentStatus; paidAmount?: number }
+    {
+      id: string;
+      paymentStatus: RegistrationPaymentStatus;
+      paidAmount?: number;
+      expected_row_version: number;
+    }
   >;
 };
-
-const PUBLIC_PATCH_PAYMENT: ReadonlySet<string> = new Set(["NotPaid", "Partial", "Paid"]);
-
-function uniqueOrdered<T extends string>(items: readonly T[]): T[] {
-  const seen = new Set<T>();
-  const out: T[] = [];
-  for (const x of items) {
-    if (seen.has(x)) continue;
-    seen.add(x);
-    out.push(x);
-  }
-  return out;
-}
-
-function persistPaymentWire(reg: BookingDto): BookingAggregatePaymentStatus {
-  return reg.paymentStatus as BookingAggregatePaymentStatus;
-}
 
 /** Compare PATCH payload shape to persisted row — disables Save when unchanged. */
 function paymentSaveIsNoOp(
@@ -88,12 +74,15 @@ function paymentSaveIsNoOp(
   return Number.isFinite(a) && Number.isFinite(b) && a === b;
 }
 
+const copy = TOUR_WORKSPACE_COPY.registrations;
+const pageCopy = TOUR_WORKSPACE_COPY.page;
+
 function mutationRowMessage(error: Error | null): string {
-  if (!error) return "Request failed.";
+  if (!error) return pageCopy.mutationErrorFallback;
   if (error instanceof ApiError) {
-    return error.message.trim() || "Request failed.";
+    return error.message.trim() || pageCopy.mutationErrorFallback;
   }
-  return error.message.trim() || "Request failed.";
+  return error.message.trim() || pageCopy.mutationErrorFallback;
 }
 
 export function RegistrationsTable({
@@ -113,6 +102,13 @@ export function RegistrationsTable({
 
   const statusPendingRowId = statusMutation.isPending ? statusMutation.variables?.id ?? null : null;
   const paymentPendingRowId = paymentMutation.isPending ? paymentMutation.variables?.id ?? null : null;
+
+  const statusMutationErrorMessage = statusMutation.isError
+    ? mutationRowMessage(statusMutation.error)
+    : null;
+  const paymentMutationErrorMessage = paymentMutation.isError
+    ? mutationRowMessage(paymentMutation.error)
+    : null;
 
   const prevStatusMutationStatusRef = useRef(statusMutation.status);
   useEffect(() => {
@@ -214,238 +210,115 @@ export function RegistrationsTable({
     return registrations;
   }, [filter, registrations]);
 
-  function statusFor(reg: BookingDto): RegistrationStatus {
-    return statusDraft[reg.id] ?? reg.status;
-  }
+  const onStatusDraftChange = useCallback((id: string, status: RegistrationStatus) => {
+    setStatusDraft((d) => ({ ...d, [id]: status }));
+  }, []);
 
-  function paymentFor(reg: BookingDto): RegistrationPaymentStatus {
-    return payDraft[reg.id] ?? reg.paymentStatus;
-  }
+  const onPayDraftChange = useCallback((id: string, payment: RegistrationPaymentStatus) => {
+    setPayDraft((d) => ({ ...d, [id]: payment }));
+  }, []);
 
-  function registrationStatusOptions(reg: BookingDto): RegistrationStatus[] {
-    const persisted = reg.status;
-    const draft = statusFor(reg);
-    if (readOnly || isTerminalBookingState(persisted)) {
-      return uniqueOrdered([draft, persisted]);
-    }
-    const allowed = [...getAllowedBookingTransitions(persisted)];
-    const legal = new Set<RegistrationStatus>([persisted, ...allowed]);
-    return uniqueOrdered([persisted, draft, ...allowed]).filter((s) => legal.has(s));
-  }
+  const onAmountDraftChange = useCallback((id: string, amount: string) => {
+    setAmountDraft((d) => ({ ...d, [id]: amount }));
+  }, []);
 
-  function paymentStatusOptions(reg: BookingDto): RegistrationPaymentStatus[] {
-    const persistedWire = persistPaymentWire(reg);
-    const persistedPublic = reg.paymentStatus as RegistrationPaymentStatus;
-    const draft = paymentFor(reg);
-    if (readOnly || isTerminalBookingState(reg.status) || isTerminalPaymentState(persistedWire)) {
-      return uniqueOrdered([draft, persistedPublic]);
-    }
-    const patchAllowed = [...getAllowedPaymentTransitions(persistedWire, reg.status)].filter(
-      (p): p is RegistrationPaymentStatus => PUBLIC_PATCH_PAYMENT.has(p),
-    );
-    const legal = new Set<RegistrationPaymentStatus>([persistedPublic, ...patchAllowed]);
-    return uniqueOrdered([persistedPublic, draft, ...patchAllowed]).filter((s) => legal.has(s));
-  }
+  const onApplyStatus = useCallback(
+    (reg: BookingDto, targetStatus: RegistrationStatus) => {
+      if (readOnly || isTerminalBookingState(reg.status)) return;
+      if (statusPendingRowId === reg.id) return;
+      statusMutation.mutate({
+        id: reg.id,
+        targetStatus,
+        expected_row_version: reg.rowVersion,
+      });
+    },
+    [readOnly, statusMutation, statusPendingRowId],
+  );
+
+  const onSavePayment = useCallback(
+    (reg: BookingDto, paymentStatus: RegistrationPaymentStatus, rawAmount: string) => {
+      if (readOnly || isTerminalBookingState(reg.status)) return;
+      if (isTerminalPaymentState(reg.paymentStatus as BookingAggregatePaymentStatus)) return;
+      if (paymentPendingRowId === reg.id) return;
+      const raw = rawAmount.trim();
+      const paidAmount = raw === "" ? undefined : Number(raw);
+      paymentMutation.mutate({
+        id: reg.id,
+        paymentStatus,
+        expected_row_version: reg.rowVersion,
+        ...(typeof paidAmount === "number" && !Number.isNaN(paidAmount) ? { paidAmount } : {}),
+      });
+    },
+    [readOnly, paymentMutation, paymentPendingRowId],
+  );
 
   return (
     <Card>
       <CardHeader>
         <div className={styles.workspaceHeader}>
-          <CardTitle className={styles.workspaceCardTitle}>Registrations</CardTitle>
+          <CardTitle className={styles.workspaceCardTitle}>{copy.title}</CardTitle>
           <Select
-            aria-label="Filter registrations list"
+            aria-label={copy.title}
             value={filter}
             onChange={(e) => onFilterChange(e.target.value as "all" | "pending")}
           >
-            <option value="all">All</option>
-            <option value="pending">Pending review</option>
+            <option value="all">{copy.filterAll}</option>
+            <option value="pending">{copy.filterPending}</option>
           </Select>
         </div>
       </CardHeader>
       <CardBody>
         {isLoading ? (
-          <LoadingState message="Loading registrations…" />
+          <LoadingState message={copy.loading} />
         ) : isError ? (
-          <ErrorState title="Could not load registrations" onRetry={onRetry} />
+          <ErrorState title={copy.loadErrorTitle} onRetry={onRetry} />
         ) : displayedRegistrations.length === 0 ? (
           <EmptyState
             embedded
-            title={
-              filter === "pending" ? "No pending registrations" : "No registrations yet"
-            }
+            title={filter === "pending" ? copy.emptyPendingTitle : copy.emptyAllTitle}
             description={
-              filter === "pending"
-                ? "There are no registrations awaiting review for this tour."
-                : "Registrations will appear here once participants sign up."
+              filter === "pending" ? copy.emptyPendingDescription : copy.emptyAllDescription
             }
           />
         ) : (
           <div className={styles.tableWrap}>
-            <table className={styles.table} aria-label="Tour registrations">
+            <table className={styles.table} aria-label={copy.title}>
               <thead>
                 <tr>
-                  <th scope="col">Participant</th>
-                  <th scope="col">Statuses</th>
-                  <th scope="col">Update status</th>
-                  <th scope="col">Payment ops</th>
+                  <th scope="col">{copy.colParticipant}</th>
+                  <th scope="col">{copy.colTransportNotes}</th>
+                  <th scope="col">{copy.colStatuses}</th>
+                  <th scope="col">{copy.colUpdateStatus}</th>
+                  <th scope="col">{copy.colPaymentOps}</th>
                 </tr>
               </thead>
               <tbody>
-                {displayedRegistrations.map((reg) => {
-                  const bookingTerminal = isTerminalBookingState(reg.status);
-                  const paymentWire = persistPaymentWire(reg);
-                  const paymentTerminal = isTerminalPaymentState(paymentWire);
-
-                  const statusSelectDisabled =
-                    readOnly ||
-                    bookingTerminal ||
-                    (statusMutation.isPending && statusPendingRowId === reg.id);
-                  const statusApplyHidden = readOnly || bookingTerminal;
-                  const statusApplyDisabled =
-                    statusMutation.isPending && statusPendingRowId === reg.id
-                      ? true
-                      : statusFor(reg) === reg.status;
-
-                  const paymentSelectDisabled =
-                    readOnly ||
-                    bookingTerminal ||
-                    paymentTerminal ||
-                    (paymentMutation.isPending && paymentPendingRowId === reg.id);
-                  const paymentSaveHidden = readOnly || bookingTerminal || paymentTerminal;
-                  const paymentSaveDisabled =
-                    (paymentMutation.isPending && paymentPendingRowId === reg.id) ||
-                    paymentSaveIsNoOp(reg, payDraft, amountDraft);
-
-                  const statusRowError =
-                    statusMutation.isError && statusMutation.variables?.id === reg.id;
-                  const paymentRowError =
-                    paymentMutation.isError && paymentMutation.variables?.id === reg.id;
-                  const rowErrored = statusRowError || paymentRowError;
-
-                  return (
-                    <tr key={reg.id} className={rowErrored ? styles.workspaceRowErrored : undefined}>
-                      <th scope="row" className={styles.rowHeader}>
-                        <div>{reg.participantFullName}</div>
-                        <div className={styles.muted}>{reg.participantContactPhone}</div>
-                        <div className={styles.mono}>{reg.id.slice(0, 8)}…</div>
-                      </th>
-                      <td>
-                        <div className={styles.badgeRow}>
-                          <BookingStatusBadge status={reg.status} />
-                          <PaymentStatusBadge payment={reg.paymentStatus} />
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.controls}>
-                          <Select
-                            aria-label={`Status for ${reg.id}`}
-                            value={statusFor(reg)}
-                            disabled={statusSelectDisabled}
-                            onChange={(e) =>
-                              setStatusDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value as RegistrationStatus,
-                              }))
-                            }
-                          >
-                            {registrationStatusOptions(reg).map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </Select>
-                          {statusApplyHidden ? null : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              disabled={statusApplyDisabled}
-                              onClick={() => {
-                                if (readOnly || bookingTerminal) return;
-                                if (statusPendingRowId === reg.id) return;
-                                statusMutation.mutate({
-                                  id: reg.id,
-                                  targetStatus: statusFor(reg),
-                                });
-                              }}
-                            >
-                              Apply
-                            </Button>
-                          )}
-                          {statusRowError ? (
-                            <span className={styles.waitlistInlineError} role="alert">
-                              {mutationRowMessage(statusMutation.error)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.controls}>
-                          <Select
-                            aria-label={`Payment for ${reg.id}`}
-                            value={paymentFor(reg)}
-                            disabled={paymentSelectDisabled}
-                            onChange={(e) =>
-                              setPayDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value as RegistrationPaymentStatus,
-                              }))
-                            }
-                          >
-                            {paymentStatusOptions(reg).map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </Select>
-                          <Input
-                            type="number"
-                            min={0}
-                            placeholder="Paid amount"
-                            disabled={paymentSelectDisabled}
-                            value={amountDraft[reg.id] ?? ""}
-                            aria-label={`Paid amount for ${reg.participantFullName}`}
-                            onChange={(e) =>
-                              setAmountDraft((d) => ({
-                                ...d,
-                                [reg.id]: e.target.value,
-                              }))
-                            }
-                          />
-                          {paymentSaveHidden ? null : (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              disabled={paymentSaveDisabled}
-                              onClick={() => {
-                                if (readOnly || bookingTerminal || paymentTerminal) return;
-                                if (paymentPendingRowId === reg.id) return;
-                                const raw = amountDraft[reg.id]?.trim();
-                                const paidAmount =
-                                  raw === "" || raw === undefined ? undefined : Number(raw);
-                                paymentMutation.mutate({
-                                  id: reg.id,
-                                  paymentStatus: paymentFor(reg),
-                                  ...(typeof paidAmount === "number" && !Number.isNaN(paidAmount)
-                                    ? { paidAmount }
-                                    : {}),
-                                });
-                              }}
-                            >
-                              Save payment
-                            </Button>
-                          )}
-                          {paymentRowError ? (
-                            <span className={styles.waitlistInlineError} role="alert">
-                              {mutationRowMessage(paymentMutation.error)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {displayedRegistrations.map((reg) => (
+                  <RegistrationTableRow
+                    key={reg.id}
+                    reg={reg}
+                    statusValue={statusDraft[reg.id] ?? reg.status}
+                    paymentValue={payDraft[reg.id] ?? reg.paymentStatus}
+                    amountValue={amountDraft[reg.id] ?? ""}
+                    readOnly={readOnly}
+                    statusPendingRowId={statusPendingRowId}
+                    paymentPendingRowId={paymentPendingRowId}
+                    statusRowError={
+                      statusMutation.isError && statusMutation.variables?.id === reg.id
+                    }
+                    paymentRowError={
+                      paymentMutation.isError && paymentMutation.variables?.id === reg.id
+                    }
+                    statusErrorMessage={statusMutationErrorMessage}
+                    paymentErrorMessage={paymentMutationErrorMessage}
+                    paymentSaveIsNoOp={paymentSaveIsNoOp(reg, payDraft, amountDraft)}
+                    onStatusDraftChange={onStatusDraftChange}
+                    onPayDraftChange={onPayDraftChange}
+                    onAmountDraftChange={onAmountDraftChange}
+                    onApplyStatus={onApplyStatus}
+                    onSavePayment={onSavePayment}
+                  />
+                ))}
               </tbody>
             </table>
           </div>

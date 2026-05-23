@@ -15,7 +15,7 @@ export function usersUseLiveApi(): boolean {
 export type WorkspaceUserDto = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone?: string | null;
   isPhoneVerified?: boolean;
   role: UserRole;
@@ -97,12 +97,53 @@ export type InviteUserPayload = {
   role: InvitableWorkspaceRole;
 };
 
-export async function inviteUser(payload: InviteUserPayload): Promise<unknown> {
-  return bffBrowserClient.post(BFF.usersInvite, payload);
+export type InviteUserResult = {
+  inviteId: string;
+  tenantId: string;
+  phone: string;
+  role: string;
+  inviteToken: string;
+  status: string;
+  expiresAt: string;
+  membershipStatus: string | null;
+};
+
+export type PendingWorkspaceInviteDto = {
+  inviteId: string;
+  phone: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  invitedAt: string | null;
+  userId: string | null;
+};
+
+export type ListPendingWorkspaceInvitesResponse = {
+  data: PendingWorkspaceInviteDto[];
+};
+
+export async function inviteUser(payload: InviteUserPayload): Promise<InviteUserResult> {
+  return bffBrowserClient.post<InviteUserResult>(BFF.usersInvite, payload, {
+    idempotencyKey: true
+  });
+}
+
+export async function listPendingInvites(): Promise<ListPendingWorkspaceInvitesResponse> {
+  return bffBrowserClient.get<ListPendingWorkspaceInvitesResponse>(BFF.usersInvites);
+}
+
+export async function cancelWorkspaceInvite(inviteId: string): Promise<{ inviteId: string; status: string }> {
+  return bffBrowserClient.delete<{ inviteId: string; status: string }>(BFF.userInvite(inviteId));
+}
+
+export async function resendWorkspaceInvite(inviteId: string): Promise<InviteUserResult> {
+  return bffBrowserClient.post<InviteUserResult>(BFF.userInviteResend(inviteId), {}, {
+    idempotencyKey: true
+  });
 }
 
 export async function resendInvite(userId: string): Promise<unknown> {
-  return bffBrowserClient.post(BFF.userAction(userId, "resend-invite"), {});
+  return bffBrowserClient.post(BFF.userAction(userId, "resend-invite"), {}, { idempotencyKey: true });
 }
 
 /**

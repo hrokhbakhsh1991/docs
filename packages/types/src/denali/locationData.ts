@@ -10,7 +10,6 @@ export type DenaliLocationData = {
 };
 
 export const DENALI_LOCATION_ZONE_KEYS = [
-  "gatheringPoint",
   "startPoint",
   "summitPoint",
   "campPoint",

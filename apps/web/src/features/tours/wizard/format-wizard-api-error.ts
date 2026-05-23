@@ -1,4 +1,6 @@
 import { ApiError } from "@/lib/api-client";
+import { getUIError } from "@/lib/errors/error-registry";
+import { mapToUserMessage } from "@/lib/errors/mapToUserMessage";
 
 function readRequestIdFromApiError(error: ApiError): string | undefined {
   const data = error.data;
@@ -10,17 +12,31 @@ function readRequestIdFromApiError(error: ApiError): string | undefined {
   return typeof id === "string" && id.trim() !== "" ? id.trim() : undefined;
 }
 
-/** User-facing wizard error text; appends API `requestId` when present for support correlation. */
+/**
+ * User-facing wizard error text.
+ * Tour activation / publish codes (`DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES`,
+ * `PAID_TOUR_REQUIRES_AMOUNT`, `INVALID_LIFECYCLE_TRANSITION`, …) resolve via {@link getUIError}
+ * and Persian entries in `error-registry.ts`.
+ */
 export function formatWizardApiErrorMessage(error: unknown, fallback: string): string {
+  let mapped: string;
+  if (
+    error instanceof ApiError &&
+    error.code &&
+    error.code !== "REQUEST_FAILED" &&
+    error.code !== "NETWORK_ERROR"
+  ) {
+    mapped = getUIError(error.code).message;
+  } else {
+    mapped = mapToUserMessage(error, { fallback });
+  }
+
   if (error instanceof ApiError) {
     const requestId = readRequestIdFromApiError(error);
     if (requestId) {
-      return `${error.message} (شناسه درخواست: ${requestId})`;
+      return `${mapped} (شناسه درخواست: ${requestId})`;
     }
-    return error.message;
   }
-  if (error instanceof Error && error.message.trim() !== "") {
-    return error.message;
-  }
-  return fallback;
+
+  return mapped;
 }

@@ -7,13 +7,13 @@ import { Checkbox, FormField, Select, Textarea } from "@tour/ui";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
+import { DenaliPeakExperienceField } from "../components/DenaliPeakExperienceField";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
 
 const PATH_MINIMUM_AGE = "participants.minimumAge";
 const PATH_MAXIMUM_AGE = "participants.maximumAge";
 const PATH_FITNESS_LEVEL = "participants.fitnessLevel";
-const PATH_NATIONAL_ID = "participants.nationalIdRequired";
-const PATH_SPORTS_INSURANCE = "participants.sportsInsuranceRequired";
 
 /** Mountain participant requirements — owner step `denali_pricing` (placement v1). */
 export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTourWizardForm }) {
@@ -26,20 +26,12 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
   const showMinimumAge = ui.isVisible("denali_pricing", PATH_MINIMUM_AGE, form);
   const showMaximumAge = ui.isVisible("denali_pricing", PATH_MAXIMUM_AGE, form);
   const showFitnessLevel = ui.isVisible("denali_pricing", PATH_FITNESS_LEVEL, form);
-  const showNationalId = ui.isVisible("denali_pricing", PATH_NATIONAL_ID, form);
-  const showSportsInsurance = ui.isVisible("denali_pricing", PATH_SPORTS_INSURANCE, form);
+  const showNationalId = true;
+  const showSportsInsurance = true;
   const showPolicies = ui.isVisible("denali_pricing", "policies.policiesText", form);
 
-  if (
-    !showMinimumAge &&
-    !showMaximumAge &&
-    !showFitnessLevel &&
-    !showNationalId &&
-    !showSportsInsurance &&
-    !showPolicies
-  ) {
-    return null;
-  }
+  const showParticipantBlock =
+    showMinimumAge || showMaximumAge || showFitnessLevel || showNationalId || showSportsInsurance;
 
   return (
     <section
@@ -51,7 +43,9 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
         borderTop: "1px solid var(--color-border-subtle, #e2e8f0)",
       }}
     >
-      {(showMinimumAge || showMaximumAge || showFitnessLevel || showSportsInsurance) ? (
+      <DenaliPeakExperienceField />
+
+      {showParticipantBlock ? (
         <>
           <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
             {t("review.participantsSection")}
@@ -125,6 +119,12 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
                 <option value="high">{t("participants.fitnessHigh")}</option>
               </Select>
             </FormField>
+          ) : null}
+
+          {(showNationalId || showSportsInsurance) ? (
+            <p style={denaliFieldHintStyle} dir="rtl">
+              {DENALI_FIELD_HINTS.insuranceAndNationalId}
+            </p>
           ) : null}
 
           {showNationalId ? (

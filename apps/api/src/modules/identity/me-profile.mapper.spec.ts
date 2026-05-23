@@ -9,8 +9,9 @@ import {
 } from "./me-profile.mapper";
 import type { SelfPiiSnapshot } from "./me-profile.types";
 
-function stubUser(partial: Partial<UserEntity> & Pick<UserEntity, "id" | "email">): UserEntity {
+function stubUser(partial: Partial<UserEntity> & Pick<UserEntity, "id">): UserEntity {
   return {
+    email: null,
     fullName: null,
     nationalId: null,
     gender: null,
@@ -30,10 +31,9 @@ const selfVisibility = (userId: string) => ({
   viewerRole: UserRole.Member
 });
 
-test("mapUserEntityToMeProfileResponse omits phone onboarding placeholder email", () => {
+test("mapUserEntityToMeProfileResponse returns null email when unset", () => {
   const user = stubUser({
     id: "u1",
-    email: "phone_989174070937@local.invalid",
     phone: "+989174070937",
     isPhoneVerified: true
   });
@@ -41,15 +41,7 @@ test("mapUserEntityToMeProfileResponse omits phone onboarding placeholder email"
   assert.equal(r.email, null);
 });
 
-test("mapUserEntityToMeProfileResponse omits telegram onboarding placeholder email", () => {
-  const user = stubUser({
-    id: "u2",
-    email: "telegram_12345@local.invalid"
-  });
-  assert.equal(mapUserEntityToMeProfileResponse(user, selfVisibility("u2")).email, null);
-});
-
-test("mapUserEntityToMeProfileResponse passes through real stored email", () => {
+test("mapUserEntityToMeProfileResponse passes through stored email", () => {
   const user = stubUser({
     id: "u3",
     email: "person@example.com",

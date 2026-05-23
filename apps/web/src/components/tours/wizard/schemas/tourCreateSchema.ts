@@ -226,6 +226,21 @@ export function buildTourCreateSchemaForFormProfile(
        */
       supplementalPrivateCar: z.boolean().optional(),
       fuelShareToman: optionalInt("دنگ بنزین نمی‌تواند منفی باشد."),
+      gatheringPoints: z
+        .array(
+          z.object({
+            id: z.string().optional(),
+            title: z.string().default(""),
+            time: z.string().optional(),
+            location: z.object({
+              id: z.string().optional(),
+              addressText: z.string().optional(),
+              latitude: z.number().nullable().optional(),
+              longitude: z.number().nullable().optional(),
+            }),
+          }),
+        )
+        .optional(),
       includedServices: z.string().trim().optional(),
       excludedServices: z.string().trim().optional(),
       meetingPointDetails: z.string().trim().optional(),

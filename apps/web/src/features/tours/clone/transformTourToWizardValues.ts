@@ -35,6 +35,7 @@ export type TourCloneSourceDto = {
   destinationId?: string | null;
   costContext?: Record<string, unknown> | null;
   formProfileSnapshot?: string | null;
+  lifecycleStatus?: string | null;
   details?:
     | {
         tripDetails?: Record<string, unknown> | null;

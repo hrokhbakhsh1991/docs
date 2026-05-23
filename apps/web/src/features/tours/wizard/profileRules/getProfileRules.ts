@@ -148,13 +148,25 @@ export function getInactiveFieldGroups(
   profile: TourFormProfile,
 ): readonly FieldGroupId[] {
   const rules = getProfileRules(profile);
-  const groups = new Set<FieldGroupId>();
+  const activeGroups = new Set<FieldGroupId>();
+  const inactiveGroups = new Set<FieldGroupId>();
+
   for (const rule of rules.fields.values()) {
-    if (rule.visibility === "hidden" && rule.belongsToGroup !== "always") {
-      groups.add(rule.belongsToGroup);
+    if (rule.belongsToGroup === "always") continue;
+    if (rule.visibility !== "hidden") {
+      activeGroups.add(rule.belongsToGroup);
+    } else {
+      inactiveGroups.add(rule.belongsToGroup);
     }
   }
-  return [...groups];
+
+  const out: FieldGroupId[] = [];
+  for (const g of inactiveGroups) {
+    if (!activeGroups.has(g)) {
+      out.push(g);
+    }
+  }
+  return out;
 }
 
 /**

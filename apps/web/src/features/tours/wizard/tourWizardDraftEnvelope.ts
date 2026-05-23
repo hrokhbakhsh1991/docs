@@ -87,6 +87,32 @@ export function removeLegacyWizardDraftFromStorage(): void {
   }
 }
 
+/** Removes legacy global, resolved host key, and every tenant-scoped draft envelope. */
+export function purgeAllWizardDraftLocalStorageKeys(resolvedStorageKey?: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    if (resolvedStorageKey?.trim()) {
+      window.localStorage.removeItem(resolvedStorageKey.trim());
+    }
+    window.localStorage.removeItem(WIZARD_DRAFT_STORAGE_KEY_LEGACY);
+    const scopedPrefix = `${WIZARD_DRAFT_STORAGE_KEY_LEGACY}:`;
+    const keysToRemove: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(scopedPrefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    for (const key of keysToRemove) {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function looksLikeTenantIdScope(scope: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scope);
 }

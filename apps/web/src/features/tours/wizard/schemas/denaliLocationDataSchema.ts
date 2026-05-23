@@ -5,6 +5,7 @@ const LNG_RANGE = { min: -180, max: 180 } as const;
 
 export const denaliLocationDataSchema = z
   .object({
+    id: z.string().uuid().optional(),
     addressText: z.string().trim().default(""),
     latitude: z
       .union([z.number(), z.null(), z.undefined()])

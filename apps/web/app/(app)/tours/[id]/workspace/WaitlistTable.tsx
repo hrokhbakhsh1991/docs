@@ -18,10 +18,23 @@ import {
   LoadingState,
 } from "@tour/ui";
 
+import { TOUR_WORKSPACE_COPY } from "./tour-workspace-copy";
 import styles from "./tour-workspace.module.css";
 
-const FIFO_NON_HEAD_TOOLTIP =
-  "Only the earliest waitlisted participant can be converted (FIFO rule).";
+const copy = TOUR_WORKSPACE_COPY.waitlist;
+
+function waitlistStatusFa(status: WaitlistItemResponseDto["status"]): string {
+  switch (status) {
+    case "Waiting":
+      return "در انتظار";
+    case "Converted":
+      return "تبدیل‌شده";
+    case "Cancelled":
+      return "لغو شده";
+    default:
+      return status;
+  }
+}
 
 function parseCreatedMs(iso: string): number {
   const n = Date.parse(iso);
@@ -51,14 +64,14 @@ function fifoHeadWaitingId(items: WaitlistItemResponseDto[]): string | null {
 }
 
 function convertRowErrorMessage(error: Error | null): string {
-  if (!error) return "Conversion failed.";
+  if (!error) return copy.convertFailed;
   if (error instanceof ApiError) {
     if (error.code === "STATE_TRANSITION_INVALID") {
-      return error.message.trim() || "This conversion is not allowed.";
+      return error.message.trim() || copy.notAllowed;
     }
-    return error.message.trim() || "Conversion failed.";
+    return error.message.trim() || copy.convertFailed;
   }
-  return error.message.trim() || "Conversion failed.";
+  return error.message.trim() || copy.convertFailed;
 }
 
 export type WaitlistTableProps = {
@@ -84,27 +97,23 @@ export function WaitlistTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Waitlist (J‑L‑03)</CardTitle>
+        <CardTitle>{copy.title}</CardTitle>
       </CardHeader>
       <CardBody>
         {isLoading ? (
-          <LoadingState message="Loading waitlist…" />
+          <LoadingState message={copy.loading} />
         ) : isError ? (
-          <ErrorState title="Could not load waitlist" onRetry={onRetry} />
+          <ErrorState title={copy.loadErrorTitle} onRetry={onRetry} />
         ) : sortedWaitlist.length === 0 ? (
-          <EmptyState
-            embedded
-            title="No waitlist entries yet"
-            description="When the tour is full, new sign-ups may appear here as waitlisted participants."
-          />
+          <EmptyState embedded title={copy.emptyTitle} description={copy.emptyDescription} />
         ) : (
           <div className={styles.tableWrap}>
-            <table className={styles.table} aria-label="Tour waitlist">
+            <table className={styles.table} aria-label={copy.title}>
               <thead>
                 <tr>
-                  <th scope="col">Participant</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Convert</th>
+                  <th scope="col">{copy.colParticipant}</th>
+                  <th scope="col">{copy.colStatus}</th>
+                  <th scope="col">{copy.colConvert}</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,7 +135,7 @@ export function WaitlistTable({
                         <div>{w.participantFullName}</div>
                         <div className={styles.muted}>{w.participantContactPhone}</div>
                       </th>
-                      <td>{w.status}</td>
+                      <td>{waitlistStatusFa(w.status)}</td>
                       <td>
                         {isFifoHead ? (
                           <div className={styles.waitlistConvertStack}>
@@ -141,7 +150,7 @@ export function WaitlistTable({
                                 convertMutation.mutate(w.id);
                               }}
                             >
-                              Convert
+                              {convertPendingThisRow ? copy.converting : copy.convert}
                             </Button>
                             {rowErrored ? (
                               <span className={styles.waitlistInlineError} role="alert">
@@ -154,12 +163,12 @@ export function WaitlistTable({
                             className={styles.muted}
                             title={
                               w.status === "Waiting" && fifoHeadId !== null && w.id !== fifoHeadId
-                                ? FIFO_NON_HEAD_TOOLTIP
+                                ? copy.fifoTooltip
                                 : undefined
                             }
                             aria-label={
                               w.status === "Waiting" && fifoHeadId !== null && w.id !== fifoHeadId
-                                ? FIFO_NON_HEAD_TOOLTIP
+                                ? copy.fifoTooltip
                                 : undefined
                             }
                           >

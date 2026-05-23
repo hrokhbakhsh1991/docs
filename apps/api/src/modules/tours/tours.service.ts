@@ -24,6 +24,7 @@ import { WorkspaceDestinationEntity } from "../settings-locations/entities/works
 import { WorkspaceEquipmentItemEntity } from "../settings-locations/entities/workspace-equipment-item.entity";
 import { WorkspaceGuideLanguageEntity } from "../settings-locations/entities/workspace-guide-language.entity";
 import { WorkspaceTourThemeEntity } from "../settings-locations/entities/workspace-tour-theme.entity";
+import { WorkspaceTourCreationPresetEntity } from "../settings-locations/entities/workspace-tour-creation-preset.entity";
 import { WorkspaceTourWizardTemplateEntity } from "../settings-locations/entities/workspace-tour-wizard-template.entity";
 import { resolveWorkspaceTourFormProfile } from "../settings-locations/resolve-workspace-tour-form-profile";
 import {
@@ -59,6 +60,8 @@ import {
   assertGuideLanguageIdsBelongToTenant,
   assertTourThemeIdsBelongToTenant,
 } from "./utils/assert-workspace-catalog-ids";
+import { assertLeaderUserIdsBelongToTenant } from "./utils/assert-leader-user-ids-belong-to-tenant";
+import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
 import { collectWorkspaceCatalogIds } from "./utils/collect-workspace-catalog-ids";
 import {
   assertCreateTourInvariants,
@@ -114,8 +117,12 @@ export class ToursService {
     private readonly workspaceTourThemesRepository: Repository<WorkspaceTourThemeEntity>,
     @InjectRepository(WorkspaceTourWizardTemplateEntity)
     private readonly workspaceTourWizardTemplateRepository: Repository<WorkspaceTourWizardTemplateEntity>,
+    @InjectRepository(WorkspaceTourCreationPresetEntity)
+    private readonly workspaceTourCreationPresetRepository: Repository<WorkspaceTourCreationPresetEntity>,
     @InjectRepository(WorkspaceGuideLanguageEntity)
     private readonly workspaceGuideLanguagesRepository: Repository<WorkspaceGuideLanguageEntity>,
+    @InjectRepository(UserTenantEntity)
+    private readonly userTenantRepository: Repository<UserTenantEntity>,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
     @Inject(LoggerService)
@@ -136,7 +143,9 @@ export class ToursService {
     workspaceEquipment: Repository<WorkspaceEquipmentItemEntity>;
     workspaceTourThemes: Repository<WorkspaceTourThemeEntity>;
     workspaceTourWizardTemplate: Repository<WorkspaceTourWizardTemplateEntity>;
+    workspaceTourCreationPreset: Repository<WorkspaceTourCreationPresetEntity>;
     workspaceGuideLanguages: Repository<WorkspaceGuideLanguageEntity>;
+    userTenant: Repository<UserTenantEntity>;
   } {
     return {
       tour: em.getRepository(TourEntity),
@@ -147,7 +156,9 @@ export class ToursService {
       workspaceEquipment: em.getRepository(WorkspaceEquipmentItemEntity),
       workspaceTourThemes: em.getRepository(WorkspaceTourThemeEntity),
       workspaceTourWizardTemplate: em.getRepository(WorkspaceTourWizardTemplateEntity),
-      workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity)
+      workspaceTourCreationPreset: em.getRepository(WorkspaceTourCreationPresetEntity),
+      workspaceGuideLanguages: em.getRepository(WorkspaceGuideLanguageEntity),
+      userTenant: em.getRepository(UserTenantEntity),
     };
   }
 
@@ -169,7 +180,9 @@ export class ToursService {
       workspaceEquipment: this.workspaceEquipmentRepository,
       workspaceTourThemes: this.workspaceTourThemesRepository,
       workspaceTourWizardTemplate: this.workspaceTourWizardTemplateRepository,
-      workspaceGuideLanguages: this.workspaceGuideLanguagesRepository
+      workspaceTourCreationPreset: this.workspaceTourCreationPresetRepository,
+      workspaceGuideLanguages: this.workspaceGuideLanguagesRepository,
+      userTenant: this.userTenantRepository,
     };
   }
 
@@ -340,6 +353,18 @@ export class ToursService {
     await assertEquipmentIdsBelongToTenant(equipmentRepo, tenantId, equipmentIds);
     await assertTourThemeIdsBelongToTenant(themesRepo, tenantId, tourThemeIds);
     await assertGuideLanguageIdsBelongToTenant(languagesRepo, tenantId, guideLanguageIds);
+  }
+
+  private async assertTripDetailsLeaderRefsForTenant(
+    tenantId: string,
+    tripDetails: TourTripDetails | null | undefined,
+    membershipRepository: Repository<UserTenantEntity> = this.userTenantRepository,
+  ): Promise<void> {
+    if (tripDetails == null) {
+      return;
+    }
+    const leaderUserIds = tripDetails.overview?.leaderUserIds;
+    await assertLeaderUserIdsBelongToTenant(membershipRepository, tenantId, leaderUserIds);
   }
 
   /**
@@ -769,7 +794,12 @@ export class ToursService {
 
     try {
       const { profile: resolvedFormProfile, source: formProfileResolutionSource } =
-        await resolveWorkspaceTourFormProfile(tenantId, writeRepos.workspaceTourWizardTemplate);
+        await resolveWorkspaceTourFormProfile(
+          tenantId,
+          writeRepos.workspaceTourWizardTemplate,
+          writeRepos.workspaceTourCreationPreset,
+          dto.sourcePresetId,
+        );
       try {
         assertIncomingCreateTourDtoBeforeFormProfileStrip(resolvedFormProfile, dto);
         stripCreateTourDtoForFormProfile(resolvedFormProfile, dto);
@@ -833,6 +863,11 @@ export class ToursService {
           workspaceTourThemes: writeRepos.workspaceTourThemes,
           workspaceGuideLanguages: writeRepos.workspaceGuideLanguages
         });
+        await this.assertTripDetailsLeaderRefsForTenant(
+          tenantId,
+          details.tripDetails,
+          writeRepos.userTenant,
+        );
       }
 
       const tour = writeRepos.tour.create({
@@ -951,13 +986,29 @@ export class ToursService {
       });
     }
 
-    const writeRepos = this.reposForWrite();
+    const idempotentEm = getIdempotentEntityManager();
+    if (idempotentEm) {
+      return this.executeUpdateTour(idempotentEm, tourId, dto, tenantId);
+    }
 
-    const tour = await this.loadTourForUpdateLocking(
-      writeRepos.tour,
-      tourId,
-      tenantId
+    return this.tourRepository.manager.transaction((em) =>
+      this.executeUpdateTour(em, tourId, dto, tenantId)
     );
+  }
+
+  /**
+   * Tour PATCH write path: pessimistic row lock, capacity check, and save run in one transaction
+   * (or the idempotency handler's shared EntityManager) to close TOCTOU vs live `acceptedCount`.
+   */
+  private async executeUpdateTour(
+    em: EntityManager,
+    tourId: string,
+    dto: UpdateTourDto,
+    tenantId: string
+  ): Promise<TourResponseDto> {
+    const writeRepos = this.reposFromManager(em);
+
+    const tour = await this.loadTourForUpdateLocking(writeRepos.tour, tourId, tenantId);
 
     if (!tour) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
@@ -973,10 +1024,7 @@ export class ToursService {
       });
     }
 
-    if (
-      dto.total_capacity !== undefined &&
-      dto.total_capacity < tour.acceptedCount
-    ) {
+    if (dto.total_capacity !== undefined && dto.total_capacity < tour.acceptedCount) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_FIELD_FORMAT_INVALID",
@@ -985,22 +1033,18 @@ export class ToursService {
       });
     }
 
-    if (
-      dto.lifecycle_status !== undefined
-    ) {
+    if (dto.lifecycle_status !== undefined) {
       if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
         assertTourPublishableBeforePatch(tour);
       }
-      assertValidLifecycleTransition(
-        tour.lifecycleStatus,
-        dto.lifecycle_status
-      );
+      assertValidLifecycleTransition(tour.lifecycleStatus, dto.lifecycle_status);
     }
 
     try {
       const { profile: resolvedFormProfile } = await resolveWorkspaceTourFormProfile(
         tenantId,
         writeRepos.workspaceTourWizardTemplate,
+        writeRepos.workspaceTourCreationPreset,
       );
 
       if (dto.title !== undefined) {
@@ -1140,6 +1184,11 @@ export class ToursService {
             workspaceTourThemes: writeRepos.workspaceTourThemes,
             workspaceGuideLanguages: writeRepos.workspaceGuideLanguages
           });
+          await this.assertTripDetailsLeaderRefsForTenant(
+            tenantId,
+            tour.details.tripDetails,
+            writeRepos.userTenant,
+          );
         }
 
         const derivedDuration = computeTourDurationDays(
@@ -1215,7 +1264,7 @@ export class ToursService {
       if (!reloaded) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
-      await this.syncProductDepartureForTour(reloaded);
+      await this.syncProductDepartureForTourWithRepos(writeRepos, reloaded);
 
       const editor = this.requestContextService.getUserId();
       this.loggerService.info("tour.updated", {

@@ -82,7 +82,7 @@ export function DenaliPricingPaymentStep() {
         data-testid="denali-pricing-tour-insurance"
       />
 
-      {ui.isVisible("denali_pricing", "participants.gearItems", form) ? <DenaliGearSection /> : null}
+      <DenaliGearSection />
 
       <DenaliPricingParticipantSection form={form} />
     </div>

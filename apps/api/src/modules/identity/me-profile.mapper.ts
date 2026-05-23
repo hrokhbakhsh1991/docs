@@ -2,8 +2,6 @@ import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
 import type { UserEntity } from "./entities/user.entity";
 import type { MeProfileResponse, SelfPiiSnapshot } from "./me-profile.types";
-import { isSyntheticIdentityPlaceholderEmail } from "./utils/synthetic-identity-email";
-
 export type MeProfileVisibility = {
   viewerUserId: string;
   subjectUserId: string;
@@ -40,8 +38,7 @@ export function mapUserEntityToMeProfileResponse(
 ): MeProfileResponse {
   const rawPhone = user.phone?.trim() ?? "";
   const storedEmail = user.email?.trim() ?? "";
-  const publicEmail =
-    storedEmail !== "" && !isSyntheticIdentityPlaceholderEmail(storedEmail) ? storedEmail : null;
+  const publicEmail = storedEmail !== "" ? storedEmail : null;
   const exposeNationalId = canExposeNationalId(visibility);
   return {
     id: user.id,

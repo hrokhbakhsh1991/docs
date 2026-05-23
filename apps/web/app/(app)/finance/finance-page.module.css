@@ -1,0 +1,31 @@
+.rtlRoot {
+  direction: rtl;
+  text-align: start;
+}
+
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .gridReviewFullWidth {
+    grid-column: 1 / -1;
+  }
+}
+
+.sectionCardBody {
+  padding-top: 0.25rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}

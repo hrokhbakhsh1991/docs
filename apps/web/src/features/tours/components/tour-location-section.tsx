@@ -16,6 +16,8 @@ export interface TourLocationSectionProps {
   destinations: TourLocationDestinationOption[];
   /** When true, region / main destination pickers are hidden (e.g. workspace destination is chosen above). */
   hideRegionDestinationPickers?: boolean;
+  /** When true, legacy logistics meeting/return text fields are hidden (Denali map zones used instead). */
+  hideLogisticsMeetingAndReturn?: boolean;
 }
 
 /**
@@ -26,6 +28,7 @@ export function TourLocationSection({
   regions,
   destinations,
   hideRegionDestinationPickers = false,
+  hideLogisticsMeetingAndReturn = false,
 }: TourLocationSectionProps) {
   const { register, control, formState } = useFormContext<FieldValues>();
   const { errors } = formState;
@@ -94,19 +97,23 @@ export function TourLocationSection({
             <Input autoComplete="off" {...register("locationSection.displayLocationOverride")} />
           </FormField>
 
-          <FormField
-            label="محل قرار (meeting point)"
-            error={(err.tripDetails as { logistics?: { meetingPoint?: { message?: string } } } | undefined)?.logistics?.meetingPoint?.message}
-          >
-            <Input autoComplete="off" {...register("tripDetails.logistics.meetingPoint")} />
-          </FormField>
+          {!hideLogisticsMeetingAndReturn ? (
+            <>
+              <FormField
+                label="محل قرار (meeting point)"
+                error={(err.tripDetails as { logistics?: { meetingPoint?: { message?: string } } } | undefined)?.logistics?.meetingPoint?.message}
+              >
+                <Input autoComplete="off" {...register("tripDetails.logistics.meetingPoint")} />
+              </FormField>
 
-          <FormField
-            label="محل بازگشت"
-            error={(err.tripDetails as { logistics?: { returnPoint?: { message?: string } } } | undefined)?.logistics?.returnPoint?.message}
-          >
-            <Input autoComplete="off" {...register("tripDetails.logistics.returnPoint")} />
-          </FormField>
+              <FormField
+                label="محل بازگشت"
+                error={(err.tripDetails as { logistics?: { returnPoint?: { message?: string } } } | undefined)?.logistics?.returnPoint?.message}
+              >
+                <Input autoComplete="off" {...register("tripDetails.logistics.returnPoint")} />
+              </FormField>
+            </>
+          ) : null}
 
           {/* Placeholder for future multi-select secondary destinations */}
           <FormField

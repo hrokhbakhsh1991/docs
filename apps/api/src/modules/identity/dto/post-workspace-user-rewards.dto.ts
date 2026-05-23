@@ -2,14 +2,18 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 import { WORKSPACE_REWARD_BADGE_IDS } from "@repo/shared";
 import { Type } from "class-transformer";
 import {
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
+  IsString,
   Max,
-  Min
+  MaxLength,
+  Min,
+  ValidateIf
 } from "class-validator";
 
 export class PostWorkspaceUserRewardsDto {
@@ -20,11 +24,12 @@ export class PostWorkspaceUserRewardsDto {
     description: "Permanent discount percentage for this workspace membership (0–100)."
   })
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @Type(() => Number)
   @IsInt()
   @Min(0)
   @Max(100)
-  permanentDiscountPercentage?: number;
+  permanentDiscountPercentage?: number | null;
 
   @ApiPropertyOptional({
     example: ["VIP_MEMBER", "LEADER_BUDDY"],
@@ -44,4 +49,17 @@ export class PostWorkspaceUserRewardsDto {
   @IsOptional()
   @IsBoolean()
   isSelectableLeader?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["vip_client", "repeat_guest"],
+    description: "CRM labels stored on `user_tenants.labels` (replaces array when provided)."
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  @MaxLength(64, { each: true })
+  @ArrayMaxSize(32)
+  labels?: string[];
 }

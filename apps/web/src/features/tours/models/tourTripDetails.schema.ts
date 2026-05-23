@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 import {
+  denaliLocationFromApi,
+  gatheringPickupStationFromLegacyLocation,
+  normalizeGatheringPickupStations,
+} from "@repo/types";
+
+import { denaliGatheringPickupStationFormSchema } from "@/features/tours/wizard/schemas/denaliGatheringPickupStation.schema";
+import { denaliLocationDataSchema } from "@/features/tours/wizard/schemas/denaliLocationDataSchema";
+
+import {
   ACCOMMODATION_TYPE_VALUES,
   MEAL_PLAN_VALUES,
   normalizeLegacyOverviewTripStyleToTripStyles,
@@ -228,6 +237,15 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
     photos: z.array(TripDetailsDayPlanPhotoSchema).optional(),
   });
 
+  const optionalTimeHhmm = z
+    .string()
+    .max(5)
+    .optional()
+    .transform((v) => (v === undefined || v.trim() === "" ? undefined : v.trim()))
+    .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
+      message: msgs.timeFormatInvalid,
+    });
+
   const TripDetailsOverviewSchema = z
     .object({
       mainDestination: optionalShortText(500),
@@ -286,17 +304,13 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       settingsRegionId: optionalShortText(64),
       settingsMainDestinationId: optionalShortText(64),
       secondaryDestinationIdsRaw: optionalLongText,
+      /** Denali pilot publish pins (classic edit + wizard parity). */
+      denaliTourKind: optionalShortText(64),
+      startPoint: denaliLocationDataSchema.optional(),
     })
     .strip();
 
-  const optionalTimeHhmm = z
-    .string()
-    .max(5)
-    .optional()
-    .transform((v) => (v === undefined || v.trim() === "" ? undefined : v.trim()))
-    .refine((v) => v === undefined || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), {
-      message: msgs.timeFormatInvalid,
-    });
+
 
   const TripDetailsItinerarySchema = z
     .object({
@@ -378,11 +392,15 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       /** Workspace preset / clone only — wizard field `logistics.supplementalPrivateCar`. */
       supplementalPrivateCar: z.boolean().optional(),
       fuelShareToman: optionalIntInRange(0, 10_000_000_000),
+      /** @deprecated Use `gatheringPoints` array for structured pickup stations. */
       meetingPoint: optionalShortText(2048),
+      gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).optional(),
+      /** @deprecated Use `gatheringPoints` array. */
       departureMeetingTime: optionalTimeHhmm,
       returnMeetingTime: optionalTimeHhmm,
       departureDate: optionalShortText(32),
       returnDate: optionalShortText(32),
+      /** @deprecated Legacy point. */
       returnPoint: optionalShortText(2048),
       transportationNotes: optionalShortText(1000),
       /** @deprecated Legacy key — merged into `transportationNotes` in `normalizeTripDetailsFormDefault`. */
@@ -409,6 +427,23 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       guideLanguageIds: optionalGearUuidIdsList,
       groupSizeMin: optionalIntInRange(0, 10_000),
       groupSizeMax: optionalIntInRange(0, 10_000),
+    })
+    .strip();
+
+  const TripDetailsRequirementsSchema = z
+    .object({
+      minRequiredPeaks: z.preprocess(
+        (raw) => {
+          if (raw === "" || raw === null || raw === undefined || raw === 0) {
+            return undefined;
+          }
+          return emptyToUndefined(englishDigitsUnknown(raw));
+        },
+        z.union([
+          z.undefined(),
+          z.coerce.number().int().min(1, "حداقل ۱ قله").max(4, "حداکثر ۴ قله"),
+        ]),
+      ),
     })
     .strip();
 
@@ -439,6 +474,7 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       itinerary: TripDetailsItinerarySchema.optional(),
       participation: TripDetailsParticipationSchema.optional(),
       logistics: TripDetailsLogisticsSchema.optional(),
+      requirements: TripDetailsRequirementsSchema.optional(),
       policies: TripDetailsPoliciesSchema.optional(),
     })
     .strip();
@@ -639,6 +675,26 @@ export function normalizeTripDetailsFormDefault(
         delete ov.tourThemeLabels;
       }
     }
+    for (const zoneKey of ["startPoint"] as const) {
+      const normalized = denaliLocationFromApi(ov[zoneKey]);
+      if (normalized) {
+        ov[zoneKey] = normalized;
+      }
+    }
+    // Phase 16.13: Migrate legacy overview.gatheringPoint → logistics.gatheringPoints[0]
+    const legacyGP = denaliLocationFromApi(ov.gatheringPoint);
+    if (legacyGP) {
+      const logRaw = o.logistics;
+      const lg =
+        typeof logRaw === "object" && logRaw !== null && !Array.isArray(logRaw)
+          ? (logRaw as Record<string, unknown>)
+          : {};
+      if (!Array.isArray(lg.gatheringPoints) || lg.gatheringPoints.length === 0) {
+        lg.gatheringPoints = [gatheringPickupStationFromLegacyLocation(legacyGP)];
+        o.logistics = lg;
+      }
+      delete ov.gatheringPoint;
+    }
   }
   const partRaw = o.participation;
   if (partRaw && typeof partRaw === "object" && !Array.isArray(partRaw)) {
@@ -689,6 +745,15 @@ export function normalizeTripDetailsFormDefault(
       lg.transportationNotes = legacy;
     }
     delete lg.transportation;
+
+    if (Array.isArray(lg.gatheringPoints)) {
+      const normalized = normalizeGatheringPickupStations(lg.gatheringPoints);
+      if (normalized.length > 0) {
+        lg.gatheringPoints = normalized;
+      } else {
+        delete lg.gatheringPoints;
+      }
+    }
 
     const rawAccTypes = lg.accommodationTypes;
     let accTypes: string[] = [];

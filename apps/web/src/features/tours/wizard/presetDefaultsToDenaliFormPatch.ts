@@ -9,7 +9,9 @@ import {
   type DenaliTourKind,
 } from "@repo/types";
 
+import { gearCatalogIdsToGearItems } from "@/features/tours/wizard/denali/denaliGearSelection";
 import { sanitizeDenaliFormPatch } from "@/features/tours/wizard/denali/denaliFormSanitize";
+import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
 import { normalizeDenaliFormPatch } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import {
   buildDenaliTourCreateDefaultValues,
@@ -45,6 +47,56 @@ function sectionObject(value: unknown): Record<string, unknown> | undefined {
     return value as Record<string, unknown>;
   }
   return undefined;
+}
+
+function uuidStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const ids = value.filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+  return ids.length > 0 ? ids : undefined;
+}
+
+function denaliGearItemsFromSection(
+  section: Record<string, unknown> | undefined,
+): DenaliGearItem[] | undefined {
+  if (section == null) return undefined;
+  const rawItems = section.gearItems;
+  if (Array.isArray(rawItems) && rawItems.length > 0) {
+    const parsed: DenaliGearItem[] = [];
+    for (const row of rawItems) {
+      if (row == null || typeof row !== "object") continue;
+      const id = typeof (row as { id?: unknown }).id === "string" ? (row as { id: string }).id.trim() : "";
+      if (!id) continue;
+      parsed.push({
+        id,
+        isRequired: (row as { isRequired?: unknown }).isRequired === true,
+      });
+    }
+    return gearCatalogIdsToGearItems(
+      parsed.filter((r) => r.isRequired).map((r) => r.id),
+      parsed.filter((r) => !r.isRequired).map((r) => r.id),
+    );
+  }
+  return (
+    gearCatalogIdsToGearItems(
+      uuidStringArray(section.gearRequiredIds),
+      uuidStringArray(section.gearOptionalIds),
+    ) ??
+    gearCatalogIdsToGearItems(
+      uuidStringArray(section.requiredGearIds),
+      uuidStringArray(section.optionalGearIds),
+    )
+  );
+}
+
+function mergeParticipantGearIntoPatch(
+  patch: Partial<DenaliCreateTourWizardForm>,
+  gearItems: DenaliGearItem[] | undefined,
+): void {
+  if (gearItems == null || gearItems.length === 0) return;
+  patch.participantRequirements = {
+    ...(patch.participantRequirements ?? {}),
+    gearItems,
+  };
 }
 
 function inferDenaliKindFromLegacy(
@@ -129,6 +181,10 @@ function legacyDefaultsToDenaliPatch(
   if (typeof participation.sportsInsuranceRequired === "boolean") {
     participantRequirements.sportsInsuranceRequired = participation.sportsInsuranceRequired;
   }
+  const gearItems = denaliGearItemsFromSection(participation);
+  if (gearItems != null) {
+    participantRequirements.gearItems = gearItems;
+  }
   if (Object.keys(participantRequirements).length > 0) {
     patch.participantRequirements =
       participantRequirements as DenaliCreateTourWizardForm["participantRequirements"];
@@ -169,6 +225,14 @@ export function presetDefaultsToDenaliFormPatch(
         }
       }
     }
+    const legacyParticipationGear = denaliGearItemsFromSection(sectionObject(defaults.participation));
+    const denaliParticipationGear = denaliGearItemsFromSection(
+      sectionObject(defaults.participantRequirements),
+    );
+    mergeParticipantGearIntoPatch(
+      patch,
+      denaliParticipationGear ?? legacyParticipationGear,
+    );
     return normalizeDenaliFormPatch(
       sanitizeDenaliFormPatch(patch),
       buildDenaliTourCreateDefaultValues(),

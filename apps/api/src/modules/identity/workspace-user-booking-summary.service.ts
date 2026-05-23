@@ -1,69 +1,76 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { In, IsNull, Repository } from "typeorm";
+import { Brackets, In, IsNull, Repository } from "typeorm";
 import { syntheticBookingContactPhone } from "../../common/security/ownership-scope";
 import { RegistrationEntity, RegistrationStatus } from "../registrations/registration.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
+import { TourProductEntity } from "../tours/entities/tour-product.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
 import { UserEntity } from "./entities/user.entity";
+import type { UserBookingTripRowDto } from "./dto/user-booking-trip-row.dto";
 import type { UserBookingSummaryResponseDto } from "./dto/user-booking-summary-response.dto";
 
-export type UserBookingSummarySnapshot = UserBookingSummaryResponseDto;
+export type UserBookingSummaryCounts = Pick<
+  UserBookingSummaryResponseDto,
+  "totalTrips" | "completedTrips" | "cancelledTrips"
+>;
+export type UserBookingSummarySnapshot = UserBookingSummaryCounts;
 
-const CANCELLED_STATUSES = new Set<string>([
-  RegistrationStatus.CANCELLED,
-  RegistrationStatus.REJECTED
-]);
+const TRIP_LIST_CAP = 50;
 
-const NON_COMPLETED_STATUSES = new Set<string>([
+const CANCELLED_STATUSES = [RegistrationStatus.CANCELLED, RegistrationStatus.REJECTED];
+const NON_COMPLETED_STATUSES = [
   RegistrationStatus.CANCELLED,
   RegistrationStatus.REJECTED,
   RegistrationStatus.NO_SHOW
-]);
+];
 
-type RegistrationTripRow = {
-  status: string;
-  departure_on: string | null;
+type GroupedTripAggRow = {
+  bridge_key: string;
+  total_trips: string;
+  cancelled_trips: string;
+  completed_trips: string;
 };
 
-function utcTodayYmd(): string {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(now.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function departureIsPast(departureOn: string | null, todayYmd: string): boolean {
-  if (!departureOn || departureOn.trim() === "") {
-    return false;
-  }
-  return departureOn.trim().slice(0, 10) < todayYmd;
-}
-
-function aggregateTripRows(rows: RegistrationTripRow[]): UserBookingSummarySnapshot {
-  const todayYmd = utcTodayYmd();
-  let cancelledTrips = 0;
-  let completedTrips = 0;
-  for (const row of rows) {
-    const status = String(row.status ?? "").trim();
-    if (CANCELLED_STATUSES.has(status)) {
-      cancelledTrips += 1;
-      continue;
-    }
-    if (!NON_COMPLETED_STATUSES.has(status) && departureIsPast(row.departure_on, todayYmd)) {
-      completedTrips += 1;
-    }
-  }
-  return {
-    totalTrips: rows.length,
-    completedTrips,
-    cancelledTrips
-  };
-}
-
-function emptySummary(): UserBookingSummarySnapshot {
+function emptySummary(): UserBookingSummaryCounts {
   return { totalTrips: 0, completedTrips: 0, cancelledTrips: 0 };
+}
+
+function formatDepartureDate(value: string | Date | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+  const s = String(value).trim();
+  if (s.length === 0) {
+    return null;
+  }
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
+type TripRawRow = {
+  tour_title: string;
+  departure_on: string | Date | null;
+  registration_status: string;
+  payment_status: string;
+};
+
+function parseCount(value: string | number | null | undefined): number {
+  const n = typeof value === "number" ? value : Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function mergeSummaries(
+  target: UserBookingSummarySnapshot,
+  addition: UserBookingSummarySnapshot
+): UserBookingSummarySnapshot {
+  return {
+    totalTrips: target.totalTrips + addition.totalTrips,
+    completedTrips: target.completedTrips + addition.completedTrips,
+    cancelledTrips: target.cancelledTrips + addition.cancelledTrips
+  };
 }
 
 @Injectable()
@@ -75,8 +82,71 @@ export class WorkspaceUserBookingSummaryService {
     private readonly users: Repository<UserEntity>
   ) {}
 
+  private buildRegistrationAggQueryBuilder(tenantId: string) {
+    return this.registrations
+      .createQueryBuilder("r")
+      .leftJoin(
+        TourDepartureEntity,
+        "td",
+        "td.id = r.tour_departure_id AND td.tenant_id = r.tenant_id"
+      )
+      .leftJoin(TourEntity, "tour", "tour.id = r.tour_id AND tour.tenant_id = r.tenant_id")
+      .where("r.tenant_id = :tenantId", { tenantId })
+      .andWhere("r.deleted_at IS NULL");
+  }
+
+  private async loadGroupedByPhones(
+    tenantId: string,
+    phones: readonly string[]
+  ): Promise<GroupedTripAggRow[]> {
+    if (phones.length === 0) {
+      return [];
+    }
+    const cancelledList = CANCELLED_STATUSES.map((s) => `'${s}'`).join(", ");
+    const nonCompletedList = NON_COMPLETED_STATUSES.map((s) => `'${s}'`).join(", ");
+    return this.buildRegistrationAggQueryBuilder(tenantId)
+      .select("r.participant_contact_phone", "bridge_key")
+      .addSelect("COUNT(r.id)::int", "total_trips")
+      .addSelect(
+        `COUNT(r.id) FILTER (WHERE r.status IN (${cancelledList}))::int`,
+        "cancelled_trips"
+      )
+      .addSelect(
+        `COUNT(r.id) FILTER (WHERE r.status NOT IN (${nonCompletedList}) AND COALESCE(td.starts_on, tour.starts_on)::date < CURRENT_DATE)::int`,
+        "completed_trips"
+      )
+      .andWhere("r.participant_contact_phone IN (:...phones)", { phones })
+      .groupBy("r.participant_contact_phone")
+      .getRawMany<GroupedTripAggRow>();
+  }
+
+  private async loadGroupedByTelegrams(
+    tenantId: string,
+    telegrams: readonly string[]
+  ): Promise<GroupedTripAggRow[]> {
+    if (telegrams.length === 0) {
+      return [];
+    }
+    const cancelledList = CANCELLED_STATUSES.map((s) => `'${s}'`).join(", ");
+    const nonCompletedList = NON_COMPLETED_STATUSES.map((s) => `'${s}'`).join(", ");
+    return this.buildRegistrationAggQueryBuilder(tenantId)
+      .select("r.telegram_user_id", "bridge_key")
+      .addSelect("COUNT(r.id)::int", "total_trips")
+      .addSelect(
+        `COUNT(r.id) FILTER (WHERE r.status IN (${cancelledList}))::int`,
+        "cancelled_trips"
+      )
+      .addSelect(
+        `COUNT(r.id) FILTER (WHERE r.status NOT IN (${nonCompletedList}) AND COALESCE(td.starts_on, tour.starts_on)::date < CURRENT_DATE)::int`,
+        "completed_trips"
+      )
+      .andWhere("r.telegram_user_id IN (:...telegrams)", { telegrams })
+      .groupBy("r.telegram_user_id")
+      .getRawMany<GroupedTripAggRow>();
+  }
+
   /**
-   * One registration query for the whole page slice (`IN` phones/telegrams). Never call per user row.
+   * SQL GROUP BY aggregations per phone/telegram bridge (no raw registration row fan-out).
    */
   async loadBookingSummariesForUserIds(
     tenantId: string,
@@ -111,57 +181,84 @@ export class WorkspaceUserBookingSummaryService {
 
     const phones = [...phoneToUserId.keys()];
     const telegrams = [...telegramToUserId.keys()];
-    if (phones.length === 0 && telegrams.length === 0) {
-      return out;
-    }
 
-    const qb = this.registrations
-      .createQueryBuilder("r")
-      .leftJoin(TourDepartureEntity, "td", "td.id = r.tour_departure_id AND td.tenant_id = r.tenant_id")
-      .leftJoin(TourEntity, "tour", "tour.id = r.tour_id AND tour.tenant_id = r.tenant_id")
-      .select("r.status", "status")
-      .addSelect("r.participant_contact_phone", "participant_contact_phone")
-      .addSelect("r.telegram_user_id", "telegram_user_id")
-      .addSelect("COALESCE(td.starts_on::text, tour.starts_on::text)", "departure_on")
-      .where("r.tenant_id = :tenantId", { tenantId })
-      .andWhere("r.deleted_at IS NULL");
+    const [phoneRows, telegramRows] = await Promise.all([
+      this.loadGroupedByPhones(tenantId, phones),
+      this.loadGroupedByTelegrams(tenantId, telegrams)
+    ]);
 
-    const matchParts: string[] = [];
-    const params: Record<string, unknown> = { tenantId };
-    if (phones.length > 0) {
-      matchParts.push("r.participant_contact_phone IN (:...phones)");
-      params.phones = phones;
-    }
-    if (telegrams.length > 0) {
-      matchParts.push("r.telegram_user_id IN (:...telegrams)");
-      params.telegrams = telegrams;
-    }
-    qb.andWhere(`(${matchParts.join(" OR ")})`, params);
-
-    const rawRows = await qb.getRawMany<{
-      status: string;
-      participant_contact_phone: string;
-      telegram_user_id: string | null;
-      departure_on: string | null;
-    }>();
-
-    const rowsByUserId = new Map<string, RegistrationTripRow[]>();
-    for (const raw of rawRows) {
-      let ownerId = phoneToUserId.get(raw.participant_contact_phone?.trim() ?? "");
-      if (!ownerId && raw.telegram_user_id) {
-        ownerId = telegramToUserId.get(raw.telegram_user_id.trim());
+    const applyGrouped = (
+      rows: GroupedTripAggRow[],
+      keyToUserId: Map<string, string>
+    ): void => {
+      for (const row of rows) {
+        const ownerId = keyToUserId.get(row.bridge_key?.trim() ?? "");
+        if (!ownerId) {
+          continue;
+        }
+        const slice: UserBookingSummarySnapshot = {
+          totalTrips: parseCount(row.total_trips),
+          cancelledTrips: parseCount(row.cancelled_trips),
+          completedTrips: parseCount(row.completed_trips)
+        };
+        out.set(ownerId, mergeSummaries(out.get(ownerId) ?? emptySummary(), slice));
       }
-      if (!ownerId) {
-        continue;
-      }
-      const bucket = rowsByUserId.get(ownerId) ?? [];
-      bucket.push({ status: raw.status, departure_on: raw.departure_on });
-      rowsByUserId.set(ownerId, bucket);
-    }
+    };
 
-    for (const userId of uniqueIds) {
-      out.set(userId, aggregateTripRows(rowsByUserId.get(userId) ?? []));
-    }
+    applyGrouped(phoneRows, phoneToUserId);
+    applyGrouped(telegramRows, telegramToUserId);
+
     return out;
+  }
+
+  async loadBookingTripsForUser(
+    tenantId: string,
+    userId: string
+  ): Promise<UserBookingTripRowDto[]> {
+    const user = await this.users.findOne({
+      where: { id: userId, deletedAt: IsNull() },
+      select: ["id", "telegramUserId"]
+    });
+    if (!user) {
+      return [];
+    }
+
+    const phone = syntheticBookingContactPhone(userId);
+    const telegram =
+      typeof user.telegramUserId === "string" && user.telegramUserId.trim() !== ""
+        ? user.telegramUserId.trim()
+        : null;
+
+    const rows = await this.buildRegistrationAggQueryBuilder(tenantId)
+      .leftJoin(
+        TourProductEntity,
+        "product",
+        "product.id = tour.tour_product_id AND product.tenant_id = r.tenant_id"
+      )
+      .select(
+        `COALESCE(NULLIF(TRIM(tour.title), ''), NULLIF(TRIM(product.title), ''), '—')`,
+        "tour_title"
+      )
+      .addSelect("COALESCE(td.starts_on, tour.starts_on)", "departure_on")
+      .addSelect("r.status", "registration_status")
+      .addSelect("r.payment_status", "payment_status")
+      .andWhere(
+        new Brackets((sub) => {
+          sub.where("r.participant_contact_phone = :phone", { phone });
+          if (telegram) {
+            sub.orWhere("r.telegram_user_id = :telegram", { telegram });
+          }
+        })
+      )
+      .orderBy("COALESCE(td.starts_on, tour.starts_on)", "DESC", "NULLS LAST")
+      .limit(TRIP_LIST_CAP)
+      .getRawMany<TripRawRow>();
+
+    return rows.map((row) => ({
+      tourTitle: row.tour_title ?? "—",
+      departureDate: formatDepartureDate(row.departure_on),
+      registrationStatus: row.registration_status,
+      paymentStatus: row.payment_status
+    }));
   }
 }

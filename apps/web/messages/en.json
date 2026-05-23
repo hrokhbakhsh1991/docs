@@ -18,6 +18,7 @@
     "bookings": "Bookings",
     "settings": "Settings",
     "reviewQueue": "Review queue",
+    "finance": "Finance",
     "users": "Users"
   },
   "auth": {
@@ -241,7 +242,9 @@
         "includeItem": "Include on this tour",
         "markRequired": "Required for participants",
         "reviewRequiredTitle": "Required Equipment 🚨",
-        "reviewOptionalTitle": "Optional / Suggested Items 🎒"
+        "reviewOptionalTitle": "Optional / Suggested Items 🎒",
+        "staleInactiveLabel": "Stale / inactive",
+        "catalogEmptyWithStaleHint": "The active equipment catalog is empty. The items below are left over from a previous tour — click to remove them."
       },
       "transport": {
         "transportModeLabel": "Transport",
@@ -323,6 +326,8 @@
         "policiesNotes": "Policies & notes (optional)",
         "policiesNotesPlaceholder": "Cancellation, refund, safety, etc.",
         "intro": "Summary before submit:",
+        "publishDraftOnlyWarning": "This tour is saved as a Draft because it lacks required fields for publication.",
+        "publishSubmitBlocked": "You cannot submit as Published until publication requirements are met. Switch to Draft or fix the items listed above.",
         "yes": "Yes",
         "no": "No",
         "submit": "Create tour",

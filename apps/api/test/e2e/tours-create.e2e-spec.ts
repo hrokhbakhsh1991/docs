@@ -245,6 +245,13 @@ test("POST /api/v2/tours persists denali_pilot tripDetails snapshot", async () =
         primaryTransportMode: "bus",
         groupSizeMax: 12,
         privateCarMode: "no_private_car",
+        gatheringPoints: [
+          {
+            title: "E2E Gathering Point",
+            time: "07:30",
+            location: { addressText: "Azadi SQ", latitude: 35.7, longitude: 51.3 }
+          }
+        ]
       },
       participation: {
         minimumAge: 18,

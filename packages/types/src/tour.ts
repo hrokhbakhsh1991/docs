@@ -1,5 +1,6 @@
 import type { AccommodationTypeSlug } from "./accommodation-types";
 import type { MealPlanSlug } from "./meal-plan";
+import type { DenaliGatheringPickupStation } from "./denali/gatheringPickupStation";
 import type { TourFormProfile } from "./tour-form-profile";
 import type { TourType } from "./tour-classification";
 
@@ -18,10 +19,13 @@ export interface TourItineraryItem {
 }
 
 export interface TourTripDetailsLogistics {
+  /** @deprecated Use `gatheringPoints` array for structured pickup stations. */
   meetingPoint?: string;
+  /** @deprecated Favor logistics.gatheringPoints[].time. */
   departureMeetingTime?: string;
   departureDate?: string;
   returnDate?: string;
+  /** @deprecated Legacy singular point. */
   returnPoint?: string;
   /** Planned transportation notes (mode, route, operator). */
   transportationNotes?: string;
@@ -29,6 +33,8 @@ export interface TourTripDetailsLogistics {
    * @deprecated Legacy JSONB key — use `transportationNotes`. Kept until all stored tours are migrated.
    */
   transportation?: string;
+  /** Multi-station pickup rows (Denali wizard). */
+  gatheringPoints?: DenaliGatheringPickupStation[];
   /** Accommodation categories (multi-select). */
   accommodationTypes?: AccommodationTypeSlug[];
   /** Extra accommodation context (not covered by fixed types). */

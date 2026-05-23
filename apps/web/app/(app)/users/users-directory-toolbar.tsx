@@ -51,17 +51,17 @@ export function UsersDirectoryToolbar({
             value={roleFilter}
             onChange={(e) => onRoleFilterChange(e.target.value as RoleFilter)}
           >
-            <option value="all">All</option>
-            <option value="owner">Owner</option>
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-            <option value="viewer">Viewer</option>
+            <option value="all">{copy.roleFilterAll}</option>
+            <option value="owner">{copy.roleFilterOwner}</option>
+            <option value="admin">{copy.roleFilterAdmin}</option>
+            <option value="member">{copy.roleFilterMember}</option>
+            <option value="viewer">{copy.roleFilterViewer}</option>
           </Select>
         </FormField>
       </div>
       <div className={styles.toolbarAction}>
         <Button type="button" variant="secondary" onClick={onExportCsv} disabled={exportDisabled}>
-          Export CSV
+          {copy.exportCsvButton}
         </Button>
       </div>
       {isRefreshing ? <small className={styles.toolbarMeta}>{copy.refreshingLabel}</small> : null}

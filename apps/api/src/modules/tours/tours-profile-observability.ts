@@ -59,6 +59,7 @@ export type TourFormProfileResolutionPayload = {
     | "explicit_client"
     | "workspace_theme"
     | "tour_type_default"
+    | "selected_preset"
     | "workspace_template"
     | "workspace_template_missing";
 };

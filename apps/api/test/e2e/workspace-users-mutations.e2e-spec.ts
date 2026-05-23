@@ -349,6 +349,40 @@ test("POST workspaces/users/:id/rewards: discount 101 rejected (400)", async () 
   assertErrorEnvelope(res);
 });
 
+test("GET /api/v2/users list includes wallet currency and booking summary scalars", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const res = await request(app.getHttpServer())
+    .get("/api/v2/users?limit=10")
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`);
+
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(Array.isArray(res.body.data), true);
+  assert.equal(res.body.data.length > 0, true);
+
+  const memberRow = res.body.data.find((row: { id: string }) => row.id === memberUserId);
+  assert.ok(memberRow, "member row missing from directory list");
+
+  for (const row of res.body.data as Array<{
+    walletCurrency?: unknown;
+    walletBalanceMinor?: unknown;
+    totalTrips?: unknown;
+    completedTrips?: unknown;
+    cancelledTrips?: unknown;
+  }>) {
+    assert.equal(typeof row.walletCurrency, "string");
+    if (typeof row.walletCurrency === "string") {
+      assert.equal(row.walletCurrency.trim().length > 0, true);
+    }
+    assert.equal(typeof row.walletBalanceMinor, "string");
+    assert.equal(typeof row.totalTrips, "number");
+    assert.equal(typeof row.completedTrips, "number");
+    assert.equal(typeof row.cancelledTrips, "number");
+  }
+});
+
 test("GET workspaces/users/:id/booking-summary: owner returns trip counts (200)", async () => {
   if (e2eUnavailableReason || !app) {
     return;
@@ -428,6 +462,85 @@ test("GET workspaces/users/:id/booking-summary: owner returns trip counts (200)"
   assert.equal(res.body.totalTrips, 2);
   assert.equal(res.body.completedTrips, 1);
   assert.equal(res.body.cancelledTrips, 1);
+  assert.equal(Array.isArray(res.body.trips), true);
+  assert.equal(res.body.trips.length, 2);
+  const titles = (res.body.trips as Array<{ tourTitle: string }>).map((t) => t.tourTitle);
+  assert.ok(titles.includes("Booking summary e2e"));
+  const paidRow = (res.body.trips as Array<{ registrationStatus: string; paymentStatus: string }>).find(
+    (t) => t.registrationStatus === RegistrationStatus.ACCEPTED
+  );
+  assert.ok(paidRow);
+  assert.equal(paidRow?.paymentStatus, RegistrationPaymentStatus.PAID);
+});
+
+test("GET /api/v2/users/invites: lists pending invite after POST invite; DELETE cancels", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const invitePhone = "+15557300999";
+  const create = await request(app.getHttpServer())
+    .post("/api/v2/users/invite")
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`)
+    .set("Idempotency-Key", randomUUID())
+    .send({ phone: invitePhone, role: "viewer" });
+
+  assert.equal(create.status, 201, JSON.stringify(create.body));
+  const inviteId = create.body.inviteId as string;
+  assert.ok(inviteId);
+
+  const list = await request(app.getHttpServer())
+    .get("/api/v2/users/invites")
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`);
+
+  assert.equal(list.status, 200, JSON.stringify(list.body));
+  assert.equal(Array.isArray(list.body.data), true);
+  const row = (list.body.data as Array<{ inviteId: string; phone: string }>).find(
+    (r) => r.inviteId === inviteId
+  );
+  assert.ok(row, "pending invite row missing from list");
+  assert.equal(row?.phone, invitePhone);
+
+  const cancel = await request(app.getHttpServer())
+    .delete(`/api/v2/users/invites/${inviteId}`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`);
+
+  assert.equal(cancel.status, 200, JSON.stringify(cancel.body));
+  assert.equal(cancel.body.status, "EXPIRED");
+
+  const listAfter = await request(app.getHttpServer())
+    .get("/api/v2/users/invites")
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`);
+
+  assert.equal(listAfter.status, 200);
+  const stillPending = (listAfter.body.data as Array<{ inviteId: string }>).some(
+    (r) => r.inviteId === inviteId
+  );
+  assert.equal(stillPending, false);
+});
+
+test("POST workspaces/users/:id/rewards: owner persists labels on membership (200)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const res = await request(app.getHttpServer())
+    .post(`/api/v2/workspaces/users/${memberUserId}/rewards`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`)
+    .set("Idempotency-Key", randomUUID())
+    .send({ labels: ["vip_client", "repeat_guest"] });
+
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.deepEqual(res.body.labels, ["vip_client", "repeat_guest"]);
+
+  const ut = await ds.getRepository(UserTenantEntity).findOneOrFail({
+    where: { tenantId: TENANT_ID, userId: memberUserId }
+  });
+  assert.deepEqual(ut.labels, ["vip_client", "repeat_guest"]);
 });
 
 test("POST workspaces/users/:id/rewards: preserves unrelated membership_metadata keys (jsonb merge)", async () => {
@@ -468,6 +581,45 @@ test("POST workspaces/users/:id/rewards: preserves unrelated membership_metadata
   assert.deepEqual(meta.allowedRegionIds, [regionId]);
   assert.deepEqual(meta.badges, ["VIP_MEMBER"]);
   assert.equal(meta.customRetentionFlag, true);
+});
+
+test("POST workspaces/users/:id/selectable-leader: preserves custom capability tokens (raw jsonb)", async () => {
+  if (e2eUnavailableReason || !app) {
+    return;
+  }
+  const ds = app.get(DataSource);
+  const customToken = "custom.legacy.workspace.cap";
+  const ut = await ds.getRepository(UserTenantEntity).findOneOrFail({
+    where: { tenantId: TENANT_ID, userId: memberUserId }
+  });
+  await ds.getRepository(UserTenantEntity).update(
+    { id: ut.id },
+    {
+      membershipMetadata: {
+        capabilities: [customToken, "tour.regional.manage"]
+      }
+    }
+  );
+
+  const res = await request(app.getHttpServer())
+    .post(`/api/v2/workspaces/users/${memberUserId}/selectable-leader`)
+    .set("Host", tenantTestHost("wsum-main"))
+    .set("Authorization", `Bearer ${tokenOwner}`)
+    .set("Idempotency-Key", randomUUID())
+    .send({ enabled: true });
+
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.isSelectableLeader, true);
+
+  const after = await ds.getRepository(UserTenantEntity).findOneOrFail({
+    where: { id: ut.id }
+  });
+  const meta = after.membershipMetadata as Record<string, unknown>;
+  const caps = meta.capabilities as string[];
+  assert.ok(Array.isArray(caps));
+  assert.ok(caps.includes(customToken));
+  assert.ok(caps.includes("tour.regional.manage"));
+  assert.ok(caps.includes("capability.is_selectable_leader"));
 });
 
 test("GET workspaces/users/:id/booking-summary: member forbidden (403)", async () => {

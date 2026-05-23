@@ -10,8 +10,8 @@ export class UserResponseDto {
   @ApiProperty({ example: "Ava Chen" })
   name!: string;
 
-  @ApiProperty({ example: "ava.chen@example.com" })
-  email!: string;
+  @ApiPropertyOptional({ nullable: true, example: "ava.chen@example.com" })
+  email!: string | null;
 
   @ApiPropertyOptional({ nullable: true, example: "+989121236598" })
   phone?: string | null;

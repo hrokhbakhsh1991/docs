@@ -70,10 +70,10 @@ export function UsersDirectoryBulkToolbar({
                 onChange={(event) => onSelectedRoleChange(event.target.value as "" | BulkAssignableRole)}
               >
                 <option value="">{copy.bulkChangeRolePlaceholder}</option>
-                <option value={UserRole.Leader}>Leader</option>
-                <option value={UserRole.Admin}>Admin</option>
-                <option value={UserRole.Member}>Member</option>
-                <option value={UserRole.Viewer}>Viewer</option>
+                <option value={UserRole.Leader}>{copy.roleFilterLeader}</option>
+                <option value={UserRole.Admin}>{copy.roleFilterAdmin}</option>
+                <option value={UserRole.Member}>{copy.roleFilterMember}</option>
+                <option value={UserRole.Viewer}>{copy.roleFilterViewer}</option>
               </Select>
             </label>
             <Button type="button" variant="ghost" onClick={onClearSelection}>
@@ -86,7 +86,7 @@ export function UsersDirectoryBulkToolbar({
               loading={isSuspending}
               disabled={!canMutateMembership}
             >
-              Suspend users
+              {copy.bulkSuspendUsersButton}
             </Button>
             <Button
               type="button"
@@ -95,7 +95,7 @@ export function UsersDirectoryBulkToolbar({
               loading={isReactivating}
               disabled={!canMutateMembership}
             >
-              Reactivate users
+              {copy.bulkReactivateUsersButton}
             </Button>
             <Button
               type="button"
@@ -104,7 +104,7 @@ export function UsersDirectoryBulkToolbar({
               loading={isRemoving}
               disabled={!canMutateMembership}
             >
-              Remove users
+              {copy.bulkRemoveUsersButton}
             </Button>
             <Button
               type="button"

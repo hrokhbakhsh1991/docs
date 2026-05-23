@@ -39,7 +39,7 @@ export function UsersDirectoryLockedPanel({ state, onRetryList }: UsersDirectory
               description={copy.signInDescription}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in
+                  {copy.signInButton}
                 </Button>
               }
             />
@@ -55,7 +55,7 @@ export function UsersDirectoryLockedPanel({ state, onRetryList }: UsersDirectory
               description={LEADER_WORKSPACE_ACCESS_DENIED.description}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-                  Dashboard
+                  {copy.dashboardButton}
                 </Button>
               }
             />

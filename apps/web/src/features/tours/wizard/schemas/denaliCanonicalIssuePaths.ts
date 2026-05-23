@@ -87,6 +87,10 @@ export function canonicalZodPathToFormFieldPath(
         return "participantRequirements.sportsInsuranceRequired";
       if (tail === "fitnessPrerequisiteText")
         return "participantRequirements.fitnessPrerequisiteText";
+      if (tail === "gearItems" || tail.startsWith("gearItems.")) {
+        return `participantRequirements.${tail}` as FieldPath<DenaliCreateTourWizardForm>;
+      }
+      if (tail === "minRequiredPeaks") return "participantRequirements.minRequiredPeaks";
       return "participantRequirements.minimumAge";
     case "policies":
       if (tail === "policiesText") return "policies.policiesText";

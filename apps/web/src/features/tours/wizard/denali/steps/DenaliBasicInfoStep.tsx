@@ -10,7 +10,7 @@ import {
 } from "@repo/types";
 import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Button, Checkbox, FormField, Input, Select } from "@tour/ui";
+import { Checkbox, FormField, Input, Select } from "@tour/ui";
 
 import { DestinationCombobox } from "@/components/tours/wizard/steps/DestinationCombobox";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
@@ -19,7 +19,6 @@ import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-mem
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliDraftRecovery } from "../DenaliDraftRecoveryContext";
 import { DenaliApproximateReturnTimeField } from "../DenaliApproximateReturnTimeField";
 import { DenaliDatetimeField } from "../DenaliDatetimeField";
 
@@ -29,10 +28,8 @@ export function DenaliBasicInfoStep() {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, basicsSelection, ui, updateCanonical, updateCanonicalBasics, resetWizard } =
+  const { canonicalModel, basicsSelection, ui, updateCanonical, updateCanonicalBasics } =
     useDenaliCanonical();
-
-  const { hasRecoverableDraft, recoverDraft } = useDenaliDraftRecovery();
 
   const showEventVariant = basicsSelection?.category === "event";
   const showEndDateTime = ui.isVisible("denali_basic", "endDateTime");
@@ -63,47 +60,6 @@ export function DenaliBasicInfoStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-basics">
-      {hasRecoverableDraft ? (
-        <div
-          data-testid="denali-draft-recovery-banner"
-          style={{
-            padding: "0.75rem",
-            background: "var(--color-primary-50, #eff6ff)",
-            border: "1px solid var(--color-primary-200, #bfdbfe)",
-            borderRadius: "0.5rem",
-            fontSize: "0.9rem",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <span>{t("basic.draftRecoveryNotice")}</span>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={recoverDraft}
-            data-testid="denali-draft-recovery-action"
-          >
-            {t("basic.draftRecoveryAction")}
-          </Button>
-        </div>
-      ) : null}
-
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={resetWizard}
-          style={{ color: "var(--color-danger-600, #dc2626)", padding: 0 }}
-          data-testid="denali-wizard-clear-draft-top"
-        >
-          پاک کردن پیش‌نویس
-        </Button>
-      </div>
-
       <FormField label={t("basic.title")} error={errors.basicInfo?.title?.message}>
         <Input
           type="text"
@@ -259,15 +215,6 @@ export function DenaliBasicInfoStep() {
           value={canonicalModel.socialMediaLink ?? ""}
           onChange={(e) => updateCanonical({ socialMediaLink: e.target.value || undefined })}
           data-testid="denali-basics-social-media-link"
-        />
-      </FormField>
-
-      <FormField label={t("basic.meetingPoint")} error={errors.basicInfo?.meetingPoint?.message}>
-        <Input
-          type="text"
-          placeholder={t("basic.meetingPointPlaceholder")}
-          value={canonicalModel.meetingPoint ?? ""}
-          onChange={(e) => updateCanonical({ meetingPoint: e.target.value || undefined })}
         />
       </FormField>
 

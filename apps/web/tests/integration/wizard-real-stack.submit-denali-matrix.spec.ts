@@ -12,6 +12,7 @@ import {
   ownerPhoneFromProject,
   submitWizardAndExpectTourList,
   seedWizardDraft,
+  recoverDenaliWizardDraftIfPresent,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
 
@@ -23,20 +24,20 @@ const DENALI_MATRIX: ReadonlyArray<{
   themeSlug: string;
   meetingPoint?: string;
 }> = [
-  { kind: "mountain_day", label: "کوه یک‌روزه", themeSlug: "denali-mountain-1-day" },
-  { kind: "mountain_multi", label: "کوه چندروزه", themeSlug: "denali-mountain-multi-day" },
-  { kind: "nature_day", label: "طبیعت یک‌روزه", themeSlug: "denali-nature-1-day" },
-  { kind: "nature_multi", label: "طبیعت چندروزه", themeSlug: "denali-nature-multi-day" },
+  { kind: "mountain_day", label: "کوه یک‌روزه", themeSlug: "mountain" },
+  { kind: "mountain_multi", label: "کوه چندروزه", themeSlug: "mountain" },
+  { kind: "nature_day", label: "طبیعت یک‌روزه", themeSlug: "nature" },
+  { kind: "nature_multi", label: "طبیعت چندروزه", themeSlug: "nature" },
   {
     kind: "event_reading",
     label: "جلسه کتاب‌خوانی",
-    themeSlug: "denali-short-session-1h",
+    themeSlug: "nature",
     meetingPoint: "کافه کتابخانه — میز اصلی",
   },
   {
     kind: "event_cinema",
     label: "جلسه فیلم در کافه",
-    themeSlug: "denali-short-session-2h",
+    themeSlug: "nature",
     meetingPoint: "کافه فیلم — سالن کوچک",
   },
 ];
@@ -57,8 +58,8 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
     const slug = tenantSlugFromProject(testInfo.project.metadata);
     const runId = `mountain_day-shared_cars-${Date.now()}`;
     const location = await fetchWizardLocationIds(page);
-    const theme = await fetchTourThemeBySlug(page, "denali-mountain-1-day");
-    expect(theme, "theme denali-mountain-1-day").toBeTruthy();
+    const theme = await fetchTourThemeBySlug(page, "mountain");
+    expect(theme, "theme mountain").toBeTruthy();
 
     const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
       tourType: "mountain_day",
@@ -70,6 +71,7 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
 
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await recoverDenaliWizardDraftIfPresent(page);
 
     await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: "mountain_day" });
     await submitWizardAndExpectTourList(page);
@@ -92,6 +94,7 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
 
       await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
       await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+      await recoverDenaliWizardDraftIfPresent(page);
 
       await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: row.kind });
       await submitWizardAndExpectTourList(page);

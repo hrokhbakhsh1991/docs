@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  Inject,
   MethodNotAllowedException,
   ParseUUIDPipe,
   Param,
@@ -36,8 +38,10 @@ import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilitie
 import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { BulkUpdateUserRoleDto } from "./dto/bulk-update-user-role.dto";
+import { CancelWorkspaceInviteResponseDto } from "./dto/cancel-workspace-invite-response.dto";
 import { InviteUserDto } from "./dto/invite-user.dto";
 import { InviteUserResultDto } from "./dto/invite-user-result.dto";
+import { ListPendingWorkspaceInvitesResponseDto } from "./dto/pending-workspace-invite.dto";
 import { ListUsersQueryDto } from "./dto/list-users-query.dto";
 import { ListUsersResponseDto } from "./dto/list-users-response.dto";
 import { ResendInviteDto } from "./dto/resend-invite.dto";
@@ -56,6 +60,13 @@ import { UsersWriteService } from "./users-write.service";
 @ApiBearerAuth()
 @Roles(UserRole.Owner, UserRole.Admin)
 export class UsersController {
+  constructor(
+    @Inject(UsersReadService) private readonly usersReadService: UsersReadService,
+    @Inject(UsersWriteService) private readonly usersWriteService: UsersWriteService,
+    @Inject(UsersAuditService) private readonly usersAuditService: UsersAuditService,
+    @Inject(UsersInviteService) private readonly usersInviteService: UsersInviteService
+  ) {}
+
   @Post()
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
   @ApiOperation({
@@ -76,13 +87,6 @@ export class UsersController {
     });
   }
 
-  constructor(
-    private readonly usersReadService: UsersReadService,
-    private readonly usersWriteService: UsersWriteService,
-    private readonly usersAuditService: UsersAuditService,
-    private readonly usersInviteService: UsersInviteService
-  ) {}
-
   @Post("invite")
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "UserMembership"))
   @ApiOperation({ summary: "Invite user into tenant workspace" })
@@ -91,6 +95,56 @@ export class UsersController {
   @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
   async inviteUser(@Body() payload: InviteUserDto): Promise<InviteUserResultDto> {
     return this.usersInviteService.inviteUser(payload.phone, payload.role);
+  }
+
+  @Get("invites")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "UserMembership"))
+  @ApiOperation({ summary: "List pending workspace invites for current tenant" })
+  @ApiOkResponse({ type: ListPendingWorkspaceInvitesResponseDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
+  async listPendingInvites(): Promise<ListPendingWorkspaceInvitesResponseDto> {
+    const data = await this.usersInviteService.listPendingInvites();
+    return { data };
+  }
+
+  @Post("invites/:inviteId/resend")
+  @HttpCode(200)
+  @ApiHeader({
+    name: "Idempotency-Key",
+    required: true,
+    description: "Required idempotency key for invite resend."
+  })
+  @UseInterceptors(IdempotencyInterceptor)
+  @Idempotent({
+    endpoint: "/api/v2/users/invites/:inviteId/resend",
+    statusCode: 200,
+    required: true,
+    tenantSource: "context"
+  })
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
+  @ApiOperation({ summary: "Resend pending workspace invite by invite id" })
+  @ApiOkResponse({ type: ResendInviteResultDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
+  @ApiNotFoundResponse({ description: "Pending invite not found" })
+  async resendInviteByInviteId(
+    @Param("inviteId", new ParseUUIDPipe()) inviteId: string
+  ): Promise<ResendInviteResultDto> {
+    return this.usersInviteService.resendInviteByInviteId(inviteId);
+  }
+
+  @Delete("invites/:inviteId")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "UserMembership"))
+  @ApiOperation({ summary: "Cancel a pending workspace invite" })
+  @ApiOkResponse({ type: CancelWorkspaceInviteResponseDto })
+  @ApiUnauthorizedResponse({ description: "Authentication required" })
+  @ApiForbiddenResponse({ description: "Insufficient role or tenant context" })
+  @ApiNotFoundResponse({ description: "Pending invite not found" })
+  async cancelInvite(
+    @Param("inviteId", new ParseUUIDPipe()) inviteId: string
+  ): Promise<CancelWorkspaceInviteResponseDto> {
+    return this.usersInviteService.cancelInvite(inviteId);
   }
 
   @Post(":id/resend-invite")

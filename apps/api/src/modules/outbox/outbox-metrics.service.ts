@@ -8,6 +8,7 @@ import { Injectable } from "@nestjs/common";
 export class OutboxMetricsService {
   private pendingTotal = 0;
   private failedTotal = 0;
+  private registrationAcceptedSmsGateDispatchedTotal = 0;
   private lastBatchLatencyMs = 0;
   private lastBatchProcessedAt: string | null = null;
 
@@ -32,15 +33,22 @@ export class OutboxMetricsService {
     this.pendingTotal += 1;
   }
 
+  incrementRegistrationAcceptedSmsGateDispatched(): void {
+    this.registrationAcceptedSmsGateDispatchedTotal += 1;
+  }
+
   getSnapshot(): {
     outbox_pending_total: number;
     outbox_failed_total: number;
+    registration_accepted_sms_gate_dispatched_total: number;
     outbox_processing_latency_ms: number;
     last_batch_processed_at: string | null;
   } {
     return {
       outbox_pending_total: this.pendingTotal,
       outbox_failed_total: this.failedTotal,
+      registration_accepted_sms_gate_dispatched_total:
+        this.registrationAcceptedSmsGateDispatchedTotal,
       outbox_processing_latency_ms: this.lastBatchLatencyMs,
       last_batch_processed_at: this.lastBatchProcessedAt
     };

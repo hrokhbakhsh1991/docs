@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import { Button, Card, CardBody, CardFooter, CardHeader, EmptyState } from "@tour/ui";
@@ -13,6 +14,7 @@ import type {
   UserSortColumn,
   UserSortDirection,
 } from "./users-page-logic";
+import { DirectoryTabs, type DirectoryTabId } from "./components/directory-tabs";
 import { UserFilters } from "./user-filters";
 import { UserTable } from "./user-table";
 import { USERS_ROUTE_COPY } from "./users-copy";
@@ -38,7 +40,6 @@ export type UsersDirectoryTableCardProps = {
   isLoadingMore: boolean;
   isRefreshing: boolean;
   onRequestLoadMore: () => void;
-  onOpenProfile: (userId: string) => void;
   sessionUser: AuthUser | null;
   roleMutation: UseMutationResult<
     WorkspaceUserDto,
@@ -47,9 +48,11 @@ export type UsersDirectoryTableCardProps = {
     unknown
   >;
   activeRoleMutationUserId: string | null;
-  selectedUserIds: ReadonlySet<string>;
-  onSelectedUserIdsChange: (userIds: Set<string>) => void;
   onManageRewards?: (user: WorkspaceUserDto) => void;
+  directoryListQueryKey: readonly unknown[];
+  directoryTab: DirectoryTabId;
+  onDirectoryTabChange: (tab: DirectoryTabId) => void;
+  pendingPanel: ReactNode;
 };
 
 /** Card shell: toolbar, virtualized member table or “no matches”, load-more footer. */
@@ -71,16 +74,17 @@ export function UsersDirectoryTableCard({
   isLoadingMore,
   isRefreshing,
   onRequestLoadMore,
-  onOpenProfile,
   sessionUser,
   roleMutation,
   activeRoleMutationUserId,
-  selectedUserIds,
-  onSelectedUserIdsChange,
   onManageRewards,
+  directoryListQueryKey,
+  directoryTab,
+  onDirectoryTabChange,
+  pendingPanel,
 }: UsersDirectoryTableCardProps) {
   return (
-    <Card>
+    <Card className={styles.directoryRtlRoot} dir="rtl">
       <CardHeader>
         <UserFilters
           searchQuery={searchQuery}
@@ -93,8 +97,16 @@ export function UsersDirectoryTableCard({
           isRefreshing={isRefreshing}
         />
       </CardHeader>
+      <DirectoryTabs
+        activeTab={directoryTab}
+        onTabChange={onDirectoryTabChange}
+        activeLabel={copy.directoryTabActive}
+        pendingLabel={copy.directoryTabPending}
+      />
       <CardBody>
-        {rows.length === 0 ? (
+        {directoryTab === "pending" ? (
+          pendingPanel
+        ) : rows.length === 0 ? (
           <EmptyState
             title={copy.noResultsTitle}
             description={copy.noResultsDescription}
@@ -113,16 +125,14 @@ export function UsersDirectoryTableCard({
             sessionUser={sessionUser}
             roleMutation={roleMutation}
             activeRoleMutationUserId={activeRoleMutationUserId}
-            selectedUserIds={selectedUserIds}
-            onOpenProfile={onOpenProfile}
-            onSelectedUserIdsChange={onSelectedUserIdsChange}
             hasMoreBelow={hasMoreBelow}
             onRequestLoadMore={onRequestLoadMore}
             onManageRewards={onManageRewards}
+            directoryListQueryKey={directoryListQueryKey}
           />
         )}
       </CardBody>
-      {rows.length > 0 ? (
+      {directoryTab === "active" && rows.length > 0 ? (
         <CardFooter>
           <div className={styles.directoryFooter}>
             <div>

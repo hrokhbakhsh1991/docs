@@ -11,7 +11,6 @@ test("ToursCloneService.cloneTripDetailsForWizard preserves 5-zone pins and itin
       denaliTourKind: "mountain_multi",
       leaderUserIds: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"],
       localGuideName: "Guide Ali",
-      gatheringPoint: { addressText: "Tehran", latitude: 35.7, longitude: 51.4 },
       startPoint: { addressText: "Rineh", latitude: 35.9, longitude: 52.1 },
       summitPoint: { addressText: "Summit", latitude: 35.95, longitude: 52.11 },
       campPoint: { addressText: "Camp", latitude: 35.92, longitude: 52.05 },
@@ -19,6 +18,14 @@ test("ToursCloneService.cloneTripDetailsForWizard preserves 5-zone pins and itin
       difficultyLevel: 6,
       tourThemeIds: ["b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
       shortIntro: "Short",
+    },
+    logistics: {
+      gatheringPoints: [
+        {
+          title: "Tehran",
+          location: { id: "s1", addressText: "Tehran", latitude: 35.7, longitude: 51.4 },
+        },
+      ],
     },
     itinerary: {
       dayPlans: [
@@ -56,11 +63,28 @@ test("ToursCloneService.cloneTripDetailsForWizard preserves 5-zone pins and itin
   assert.ok(cloned);
   assert.deepEqual(cloned!.overview?.leaderUserIds, source.overview?.leaderUserIds);
   assert.equal(cloned!.overview?.localGuideName, "Guide Ali");
-  assert.equal(cloned!.overview?.gatheringPoint?.latitude, 35.7);
+  assert.equal(cloned!.logistics?.gatheringPoints?.[0]?.title, "Tehran");
+  assert.equal(cloned!.logistics?.gatheringPoints?.[0]?.location?.latitude, 35.7);
+  assert.ok(cloned!.logistics?.gatheringPoints?.[0]?.location?.id);
+  assert.notEqual(cloned!.logistics?.gatheringPoints?.[0]?.location?.id, "s1");
   assert.equal(cloned!.itinerary?.dayPlans?.[0]?.location?.longitude, 52.2);
   assert.equal(cloned!.itinerary?.dayPlans?.[0]?.photos?.length, 1);
+  const sourceDayPhotoId = source.itinerary?.dayPlans?.[0]?.photos?.[0]?.id;
+  const clonedDayPhotoId = cloned!.itinerary?.dayPlans?.[0]?.photos?.[0]?.id;
+  assert.ok(sourceDayPhotoId);
+  assert.ok(clonedDayPhotoId);
+  assert.notEqual(clonedDayPhotoId, sourceDayPhotoId);
+  assert.equal(
+    cloned!.itinerary?.dayPlans?.[0]?.photos?.[0]?.url,
+    source.itinerary?.dayPlans?.[0]?.photos?.[0]?.url,
+  );
   assert.equal(cloned!.photos?.length, 1);
-  assert.notEqual(cloned!.overview?.gatheringPoint, source.overview?.gatheringPoint);
+  const sourceTourPhotoId = source.photos?.[0]?.id;
+  const clonedTourPhotoId = cloned!.photos?.[0]?.id;
+  assert.ok(sourceTourPhotoId);
+  assert.ok(clonedTourPhotoId);
+  assert.notEqual(clonedTourPhotoId, sourceTourPhotoId);
+  assert.equal(cloned!.photos?.[0]?.url, source.photos?.[0]?.url);
 });
 
 test("ToursCloneService.tripDetailsToDenaliPresetDefaults maps nested itinerary location", () => {
@@ -68,9 +92,13 @@ test("ToursCloneService.tripDetailsToDenaliPresetDefaults maps nested itinerary 
   const defaults = service.tripDetailsToDenaliPresetDefaults({
     overview: {
       denaliTourKind: "mountain_day",
-      gatheringPoint: { addressText: "Meet", latitude: 1, longitude: 2 },
       tourThemeIds: [],
       shortIntro: "x",
+    },
+    logistics: {
+      gatheringPoints: [
+        { title: "Meet", location: { addressText: "Meet", latitude: 1, longitude: 2 } },
+      ],
     },
     itinerary: {
       dayPlans: [
@@ -85,6 +113,10 @@ test("ToursCloneService.tripDetailsToDenaliPresetDefaults maps nested itinerary 
   } as TourTripDetails);
   const program = defaults.programNature as { itinerary?: Array<{ location?: { latitude?: number } }> };
   assert.equal(program.itinerary?.[0]?.location?.latitude, 3);
-  const basic = defaults.basicInfo as { gatheringPoint?: { latitude?: number } };
-  assert.equal(basic.gatheringPoint?.latitude, 1);
+  const tripDetails = defaults.tripDetails as {
+    logistics?: {
+      gatheringPoints?: Array<{ title?: string; location?: { latitude?: number } }>;
+    };
+  };
+  assert.equal(tripDetails.logistics?.gatheringPoints?.[0]?.location?.latitude, 1);
 });

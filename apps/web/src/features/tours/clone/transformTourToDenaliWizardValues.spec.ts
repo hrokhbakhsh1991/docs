@@ -305,3 +305,78 @@ test("transformTourToDenaliWizardValues defaults gearItems to empty array when p
   const form = transformTourToDenaliWizardValues(makeApiTour());
   assert.deepEqual(form.participantRequirements?.gearItems, []);
 });
+
+test("transformTourToDenaliWizardValues clone mode keeps stale gear when catalog not supplied", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const optId = "22222222-2222-4222-8222-222222222222";
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.participation = {
+    ...(td.participation as Record<string, unknown>),
+    gearRequiredIds: [reqId],
+    gearOptionalIds: [optId],
+  };
+  const form = transformTourToDenaliWizardValues(api, { mode: "clone" });
+  assert.deepEqual(form.participantRequirements?.gearItems, [
+    { id: reqId, isRequired: true },
+    { id: optId, isRequired: false },
+  ]);
+});
+
+test("transformTourToDenaliWizardValues clone mode drops stale gear ids against active catalog", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const optId = "22222222-2222-4222-8222-222222222222";
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.participation = {
+    ...(td.participation as Record<string, unknown>),
+    gearRequiredIds: [reqId],
+    gearOptionalIds: [optId],
+  };
+  const form = transformTourToDenaliWizardValues(api, {
+    mode: "clone",
+    activeEquipmentIds: [reqId],
+  });
+  assert.deepEqual(form.participantRequirements?.gearItems, [{ id: reqId, isRequired: true }]);
+});
+
+test("transformTourToDenaliWizardValues clone mode clears all gear when workspace catalog is empty", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.participation = {
+    ...(td.participation as Record<string, unknown>),
+    gearRequiredIds: [reqId],
+  };
+  const form = transformTourToDenaliWizardValues(api, {
+    mode: "clone",
+    activeEquipmentIds: [],
+  });
+  assert.deepEqual(form.participantRequirements?.gearItems, []);
+});
+
+test("transformTourToDenaliWizardValues create mode filters gear to active equipment catalog", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const optId = "22222222-2222-4222-8222-222222222222";
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.participation = {
+    ...(td.participation as Record<string, unknown>),
+    gearRequiredIds: [reqId],
+    gearOptionalIds: [optId],
+  };
+  const form = transformTourToDenaliWizardValues(api, {
+    mode: "create",
+    activeEquipmentIds: [reqId],
+  });
+  assert.deepEqual(form.participantRequirements?.gearItems, [{ id: reqId, isRequired: true }]);
+});
+
+test("transformTourToDenaliWizardValues create mode applies mountain defaults when altitude missing", () => {
+  const api = makeApiTour();
+  const form = transformTourToDenaliWizardValues(api, { mode: "create" });
+  assert.equal(form.programNature?.altitudeMeasurement, 1);
+  assert.equal(form.participantRequirements?.fitnessLevel, "medium");
+  assert.equal(form.participantRequirements?.sportsInsuranceRequired, true);
+  assert.equal(form.participantRequirements?.minimumAge, 18);
+});

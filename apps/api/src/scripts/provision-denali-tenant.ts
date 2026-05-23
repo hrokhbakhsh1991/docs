@@ -60,7 +60,6 @@ type PresetSeed = {
   kind: DenaliTourKind;
   matchTourType: string | null;
   themeSlug: string;
-  shortDescription: string;
 };
 
 function fail(message: string): never {
@@ -261,7 +260,6 @@ async function seedDenaliPresets(
       kind: "mountain_day",
       matchTourType: "mountain",
       themeSlug: "mountain",
-      shortDescription: "برنامه کوهنوردی یک‌روزه — ظرفیت و تاریخ را در ویزارد تکمیل کنید.",
     },
     {
       sortOrder: 20,
@@ -271,7 +269,6 @@ async function seedDenaliPresets(
       kind: "mountain_multi",
       matchTourType: "mountain",
       themeSlug: "mountain",
-      shortDescription: "برنامه کوه چندروزه — برنامه روزبه‌روز را در ویزارد تکمیل کنید.",
     },
     {
       sortOrder: 30,
@@ -281,7 +278,6 @@ async function seedDenaliPresets(
       kind: "nature_day",
       matchTourType: "nature",
       themeSlug: "nature",
-      shortDescription: "سفر یک‌روزه طبیعت — مکان و تاریخ را در ویزارد تنظیم کنید.",
     },
     {
       sortOrder: 40,
@@ -291,7 +287,6 @@ async function seedDenaliPresets(
       kind: "nature_multi",
       matchTourType: "nature",
       themeSlug: "nature",
-      shortDescription: "برنامه چندروزه طبیعت — روزها را در ویزارد ثبت کنید.",
     },
     {
       sortOrder: 50,
@@ -301,7 +296,6 @@ async function seedDenaliPresets(
       kind: "event_reading",
       matchTourType: null,
       themeSlug: "nature",
-      shortDescription: "جلسه کوتاه یک‌ساعته — قیمت پایه و ظرفیت را در ویزارد وارد کنید.",
     },
     {
       sortOrder: 60,
@@ -311,12 +305,12 @@ async function seedDenaliPresets(
       kind: "event_cinema",
       matchTourType: null,
       themeSlug: "nature",
-      shortDescription: "جلسه دو ساعته — مکان برگزاری را در ویزارد مشخص کنید.",
     },
   ];
 
   await dataSource.query(
-    `DELETE FROM workspace_tour_creation_presets WHERE workspace_id = $1 AND name LIKE 'دنالی —%'`,
+    `DELETE FROM workspace_tour_creation_presets
+     WHERE workspace_id = $1 AND (name LIKE 'دنالی —%' OR name LIKE 'دنالی-%')`,
     [workspaceId],
   );
 
@@ -325,7 +319,7 @@ async function seedDenaliPresets(
     if (!mainThemeId) {
       fail(`seedDenaliPresets: theme slug "${row.themeSlug}" not found`);
     }
-    const defaultsMerged = buildDenaliPresetDefaults(row.kind, mainThemeId, row.shortDescription);
+    const defaultsMerged = buildDenaliPresetDefaults(row.kind, mainThemeId);
     await dataSource.query(
       `INSERT INTO workspace_tour_creation_presets
         (workspace_id, name, description, is_active, sort_order, match_tour_type, match_main_tour_theme_id, form_profile, defaults)

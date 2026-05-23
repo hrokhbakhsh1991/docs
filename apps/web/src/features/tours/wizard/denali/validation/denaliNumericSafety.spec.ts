@@ -51,6 +51,7 @@ test("canonical parse rejects missing capacityMax after adapter passthrough", ()
 /** Projection layer only — submit gate would block dong/capacity zero before map in production. */
 test("buildDenaliCreateTourPayloadProjection omits fuelShareToman when dong is zero", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.capacityMax = 10;
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = 0;
   const dto = buildDenaliCreateTourPayloadProjection(form);

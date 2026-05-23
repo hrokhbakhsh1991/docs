@@ -247,6 +247,33 @@ test("GET /api/v2/users includes phone and phone verification fields", async () 
   }
 });
 
+test("GET /api/v2/users includes wallet currency and booking summary scalars", async () => {
+  if (unavailableReason || !app) return;
+
+  const res = await request(app.getHttpServer())
+    .get("/api/v2/users?limit=5")
+    .set("Authorization", `Bearer ${ownerToken}`);
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(Array.isArray(res.body.data), true);
+  assert.equal(res.body.data.length > 0, true);
+  for (const row of res.body.data as Array<{
+    walletCurrency?: unknown;
+    walletBalanceMinor?: unknown;
+    totalTrips?: unknown;
+    completedTrips?: unknown;
+    cancelledTrips?: unknown;
+  }>) {
+    assert.equal(typeof row.walletCurrency, "string");
+    if (typeof row.walletCurrency === "string") {
+      assert.equal(row.walletCurrency.trim().length > 0, true);
+    }
+    assert.equal(typeof row.walletBalanceMinor, "string");
+    assert.equal(typeof row.totalTrips, "number");
+    assert.equal(typeof row.completedTrips, "number");
+    assert.equal(typeof row.cancelledTrips, "number");
+  }
+});
+
 test("PATCH /api/v2/users/bulk-role mixed invalid input rolls back updates and audit writes", async () => {
   if (unavailableReason || !app) return;
 

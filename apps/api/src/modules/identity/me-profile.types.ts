@@ -5,7 +5,7 @@ export type MeProfileResponse = {
   national_id: string | null;
   gender: string | null;
   birth_date: string | null;
-  /** `null` when the row holds only an internal placeholder (`*@local.invalid`) until the user adds a real address. */
+  /** Contact email when set; `null` for phone-first accounts without an address on file. */
   email: string | null;
   is_email_verified: boolean;
   phone: string | null;

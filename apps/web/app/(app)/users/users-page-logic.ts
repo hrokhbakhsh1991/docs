@@ -18,19 +18,34 @@ function workspaceRoleRank(role: string): number {
   return ROLE_RANK[key] ?? 0;
 }
 
+export function systemRoleBadgeLabel(role: string): string {
+  return roleLabel(role);
+}
+
+const INVITE_ROLE_LABELS_FA: Record<string, string> = {
+  admin: "مدیر",
+  member: "عضو عادی",
+  viewer: "بیننده"
+};
+
+export function inviteRoleLabelFa(role: string): string {
+  const key = normalizeRole(role);
+  return INVITE_ROLE_LABELS_FA[key] ?? roleLabel(role);
+}
+
 export function roleLabel(role: string): string {
   const parsed = tryParseWorkspaceRole(normalizeRole(role));
   switch (parsed) {
     case WorkspaceRole.Owner:
-      return "Owner";
+      return "مالک";
     case WorkspaceRole.Leader:
-      return "Leader";
+      return "راهبر";
     case WorkspaceRole.Admin:
-      return "Admin";
+      return "مدیر";
     case WorkspaceRole.Member:
-      return "Member";
+      return "عضو عادی";
     case WorkspaceRole.Viewer:
-      return "Viewer";
+      return "بیننده";
     default:
       return role;
   }
@@ -99,7 +114,7 @@ export function filterUsers(
 
   return byRole.filter((user) => {
     if (!options.queryNorm) return true;
-    const hay = `${user.name}\n${user.email}`.toLowerCase();
+    const hay = `${user.name}\n${user.email ?? ""}`.toLowerCase();
     return hay.includes(options.queryNorm);
   });
 }
@@ -118,7 +133,7 @@ export function sortUsers(
     if (options.sortColumn === "name") {
       cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
     } else {
-      cmp = a.email.localeCompare(b.email, undefined, { sensitivity: "base" });
+      cmp = (a.email ?? "").localeCompare(b.email ?? "", undefined, { sensitivity: "base" });
     }
     if (cmp !== 0) {
       return factor * cmp;

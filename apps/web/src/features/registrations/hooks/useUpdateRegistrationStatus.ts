@@ -11,8 +11,15 @@ export function useUpdateRegistrationStatus(tourId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, targetStatus }: { id: string; targetStatus: RegistrationStatus }) =>
-      updateRegistrationStatus(id, targetStatus),
+    mutationFn: async ({
+      id,
+      targetStatus,
+      expected_row_version,
+    }: {
+      id: string;
+      targetStatus: RegistrationStatus;
+      expected_row_version: number;
+    }) => updateRegistrationStatus(id, { targetStatus, expected_row_version }),
     onSuccess: () => {
       invalidateWorkspaceQueries(queryClient, tourId);
     },

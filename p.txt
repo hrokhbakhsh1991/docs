@@ -1,0 +1,1 @@
+Check modified files. Create audit.md in root. List files, JSON structure of gatheringPoints, and tsc output. No terminal text.

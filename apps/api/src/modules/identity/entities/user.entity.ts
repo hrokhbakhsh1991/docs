@@ -16,9 +16,12 @@ export class UserEntity {
   @PrimaryGeneratedColumn("uuid", { name: "id" })
   id!: string;
 
-  @Index("uq_users_email", { unique: true })
-  @Column({ type: "varchar", name: "email", length: 320 })
-  email!: string;
+  @Index("idx_user_email_unique", ["email"], {
+    unique: true,
+    where: `"email" IS NOT NULL AND "deleted_at" IS NULL`
+  })
+  @Column({ type: "varchar", name: "email", length: 320, nullable: true })
+  email!: string | null;
 
   @Index("uq_users_phone", { unique: true })
   @Column({ type: "varchar", name: "phone", nullable: true })

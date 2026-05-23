@@ -12,7 +12,7 @@ export interface MeProfileWire {
   national_id?: string | null;
   gender?: MeProfileGenderWire | null;
   birth_date?: string | null;
-  /** Absent as contact email while DB holds internal `*@local.invalid` onboarding placeholder only. */
+  /** Contact email when set; omitted or `null` for phone-first accounts without an address on file. */
   email?: string | null;
   is_email_verified?: boolean;
   phone?: string | null;

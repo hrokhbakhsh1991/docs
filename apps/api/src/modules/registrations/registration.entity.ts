@@ -66,6 +66,10 @@ export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "text", name: "participant_note", nullable: true })
   participantNote?: string;
 
+  /** Traveler intake metadata (e.g. `userPastPeaksCount` for Peak-Experience placement). */
+  @Column({ type: "jsonb", name: "participant_metadata", nullable: true })
+  participantMetadata?: Record<string, unknown>;
+
   @Column({
     type: "enum",
     enum: RegistrationStatus,

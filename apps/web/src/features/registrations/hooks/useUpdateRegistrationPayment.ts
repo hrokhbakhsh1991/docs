@@ -15,11 +15,18 @@ export function useUpdateRegistrationPayment(tourId: string) {
       id,
       paymentStatus,
       paidAmount,
+      expected_row_version,
     }: {
       id: string;
       paymentStatus: RegistrationPaymentStatus;
       paidAmount?: number;
-    }) => updateRegistrationPayment(id, { paymentStatus, paidAmount }),
+      expected_row_version: number;
+    }) =>
+      updateRegistrationPayment(id, {
+        paymentStatus,
+        paidAmount,
+        expected_row_version,
+      }),
     onSuccess: () => {
       invalidateWorkspaceQueries(queryClient, tourId);
     },

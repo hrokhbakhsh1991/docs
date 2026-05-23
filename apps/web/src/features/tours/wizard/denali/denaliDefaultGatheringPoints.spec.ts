@@ -8,16 +8,12 @@ import {
   buildEmptyDenaliGatheringPointRow,
   denaliGatheringPointHasContent,
 } from "./denaliDefaultGatheringPoints";
-import { hasRecoverableDenaliFormPatch } from "./denaliDraftRecovery";
 
-test("buildDenaliDefaultGatheringPoints: seeds two empty rows with stable ids", () => {
+test("buildDenaliDefaultGatheringPoints: seeds one empty row with stable id", () => {
   const rows = buildDenaliDefaultGatheringPoints();
-  assert.equal(rows.length, 2);
+  assert.equal(rows.length, 1);
   assert.ok(rows[0]?.id);
-  assert.ok(rows[1]?.id);
-  assert.notEqual(rows[0]?.id, rows[1]?.id);
   assert.equal(denaliGatheringPointHasContent(rows[0]), false);
-  assert.equal(denaliGatheringPointHasContent(rows[1]), false);
 });
 
 test("denaliGatheringPointHasContent: detects title, time, or coordinates", () => {
@@ -35,18 +31,20 @@ test("denaliGatheringPointHasContent: detects title, time, or coordinates", () =
   );
 });
 
-test("buildDenaliTourCreateDefaultValues includes two default gathering rows", () => {
+test("buildDenaliTourCreateDefaultValues includes empty gathering points array", () => {
   const defaults = buildDenaliTourCreateDefaultValues();
-  assert.equal(defaults.tripDetails.logistics.gatheringPoints.length, 2);
-  assert.equal(hasRecoverableDenaliFormPatch(defaults), false);
+  assert.equal(defaults.tripDetails.logistics.gatheringPoints.length, 0);
 });
 
-test("hasRecoverableDenaliFormPatch: filled gathering station makes draft recoverable", () => {
-  const patch = buildDenaliTourCreateDefaultValues();
-  patch.tripDetails.logistics.gatheringPoints[0] = {
-    ...patch.tripDetails.logistics.gatheringPoints[0]!,
-    title: "میدان رسالت",
-    time: "02:30",
-  };
-  assert.equal(hasRecoverableDenaliFormPatch(patch), true);
+test("denaliGatheringPointHasContent: filled gathering station is detected", () => {
+  const row = buildEmptyDenaliGatheringPointRow("row-1");
+  assert.equal(
+    denaliGatheringPointHasContent({
+      ...row,
+      title: "میدان رسالت",
+      time: "02:30",
+      location: { addressText: "", latitude: null, longitude: null },
+    }),
+    true,
+  );
 });

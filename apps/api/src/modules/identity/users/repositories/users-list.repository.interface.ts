@@ -18,7 +18,7 @@ export type TenantUsersListQuery = {
 export type TenantUsersListRow = {
   id: string;
   full_name: string | null;
-  email: string;
+  email: string | null;
   phone: string | null;
   last_login_at: Date | null;
   last_active_at: Date | null;

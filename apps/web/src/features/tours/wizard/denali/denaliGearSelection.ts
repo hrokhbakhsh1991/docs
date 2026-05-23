@@ -22,6 +22,28 @@ export function normalizeGearItems(items: DenaliGearItem[] | undefined): DenaliG
   return items != null && items.length > 0 ? items : undefined;
 }
 
+/** Maps settings/preset `gearRequiredIds` + `gearOptionalIds` into wizard `gearItems`. */
+export function gearCatalogIdsToGearItems(
+  gearRequiredIds: string[] | undefined,
+  gearOptionalIds: string[] | undefined,
+): DenaliGearItem[] | undefined {
+  const required = new Set((gearRequiredIds ?? []).map((id) => id.trim()).filter(Boolean));
+  const optional = new Set((gearOptionalIds ?? []).map((id) => id.trim()).filter(Boolean));
+  if (required.size === 0 && optional.size === 0) {
+    return undefined;
+  }
+  const items: DenaliGearItem[] = [];
+  for (const id of required) {
+    items.push({ id, isRequired: true });
+  }
+  for (const id of optional) {
+    if (!required.has(id)) {
+      items.push({ id, isRequired: false });
+    }
+  }
+  return normalizeGearItems(items);
+}
+
 export function splitGearByRequired(items: DenaliGearItem[] | undefined): {
   required: DenaliGearItem[];
   optional: DenaliGearItem[];

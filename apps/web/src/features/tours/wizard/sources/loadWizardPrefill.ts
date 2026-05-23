@@ -26,7 +26,9 @@ import { buildTourCreateFormDefaultValues } from "@/features/tours/wizard/tourCr
 import { serializeWizardDraft } from "@/features/tours/wizard/tourWizardDraftEnvelope";
 import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
 import { getTourPresetById } from "@/lib/settings-tour-presets.client";
+import { getEquipment } from "@/lib/settings-equipment.client";
 import { getTourThemes } from "@/lib/settings-tour-themes.client";
+import { denaliActiveEquipmentIdsFromRows } from "@/features/tours/clone/transformTourToDenaliWizardValues";
 
 import type {
   LoadWizardPrefillContext,
@@ -61,6 +63,12 @@ function defaultFetchPreset(presetId: string): Promise<TourPresetForPrefill> {
   return getTourPresetById(presetId);
 }
 
+async function defaultFetchEquipment(
+  _signal?: AbortSignal,
+): Promise<Awaited<ReturnType<typeof getEquipment>>> {
+  return getEquipment();
+}
+
 async function defaultFetchThemes(signal?: AbortSignal): Promise<Awaited<ReturnType<typeof getTourThemes>>> {
   return Promise.race([
     getTourThemes(),
@@ -89,18 +97,23 @@ async function loadClonePrefill(
   const fetchTour = ctx.fetchTour ?? defaultFetchTour;
   const fetchWizardTemplate = ctx.fetchWizardTemplate ?? defaultFetchWizardTemplate;
   
-  const [tour, templateEnv] = await Promise.all([
+  const fetchEquipment = ctx.fetchEquipment ?? defaultFetchEquipment;
+
+  const [tour, templateEnv, equipmentRows] = await Promise.all([
     fetchTour(cloneTourId, ctx.signal) as Promise<TourCloneSourceDto>,
     fetchWizardTemplate(ctx.signal),
+    fetchEquipment(ctx.signal).catch(() => [] as Awaited<ReturnType<typeof getEquipment>>),
   ]);
 
   const formProfile = resolveWorkspaceTourFormProfileFromTemplate(templateEnv);
   const useDenaliRail = resolveUseDenaliRail(formProfile);
+  const activeEquipmentIds = denaliActiveEquipmentIdsFromRows(equipmentRows);
 
   if (useDenaliRail) {
     const denaliPatch = mapWizardPrefillToFormPatch(formProfile, {
       kind: "clone",
       tour,
+      activeEquipmentIds,
     }) as Partial<DenaliCreateTourWizardForm>;
     const mergedClone = mergeDenaliWizardDefaults(
       buildDenaliTourCreateDefaultValues(),

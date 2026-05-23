@@ -265,7 +265,18 @@ export async function createTour(
   return mapTourResponseToDto(raw);
 }
 
-function toUpdateTourApiBody(
+/** Reads `requiresPayment` from persisted `cost_context` (camelCase or snake_case). */
+export function costContextRequiresPayment(
+  ctx: Record<string, unknown> | null | undefined,
+): boolean {
+  if (!ctx || typeof ctx !== "object" || Array.isArray(ctx)) {
+    return false;
+  }
+  return Boolean(ctx.requiresPayment ?? ctx.requires_payment);
+}
+
+/** @internal Exported for unit tests — maps edit DTO to Nest PATCH body. */
+export function toUpdateTourApiBody(
   dto: UpdateTourDto,
   existingCostContext?: Record<string, unknown> | null
 ): Record<string, unknown> {
@@ -278,7 +289,9 @@ function toUpdateTourApiBody(
   };
   merged.currency = "USD";
   merged.totalCost = dto.price;
-  if (dto.requiresPayment === true) {
+  const preserveRequiresPayment =
+    dto.requiresPayment === true || costContextRequiresPayment(existingCostContext);
+  if (preserveRequiresPayment) {
     merged.requiresPayment = true;
   } else {
     delete merged.requiresPayment;

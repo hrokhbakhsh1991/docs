@@ -1,8 +1,16 @@
+import { randomUUID } from "node:crypto";
+
 import { Injectable } from "@nestjs/common";
+
+import {
+  normalizeGatheringPickupStation,
+  gatheringPickupStationToPersisted,
+} from "@repo/types";
 
 import type {
   TripDetailsDayPlan,
   TripDetailsDayPlanPhoto,
+  TripDetailsGatheringPickupStation,
   TripDetailsItinerary,
   TripDetailsOverview,
   TripDetailsLocationData,
@@ -13,7 +21,7 @@ import type {
 export const DENALI_CLONE_TRIP_DETAILS_WHITELIST = [
   "overview.leaderUserIds",
   "overview.localGuideName",
-  "overview.gatheringPoint",
+  "logistics.gatheringPoints",
   "overview.startPoint",
   "overview.summitPoint",
   "overview.campPoint",
@@ -28,17 +36,22 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function cloneLocation(loc: TripDetailsLocationData | undefined): TripDetailsLocationData | undefined {
+function cloneLocation(
+  loc: TripDetailsLocationData | undefined,
+  options?: { remintId?: boolean }
+): TripDetailsLocationData | undefined {
   if (!loc) return undefined;
   return {
+    ...(options?.remintId ? { id: randomUUID() } : loc.id ? { id: loc.id } : {}),
     addressText: loc.addressText,
     latitude: loc.latitude ?? null,
     longitude: loc.longitude ?? null,
   };
 }
 
+/** Clone isolation: new primary key per photo; URL/metadata unchanged. */
 function clonePhoto(photo: TripDetailsDayPlanPhoto): TripDetailsDayPlanPhoto {
-  return { ...photo };
+  return { ...photo, id: randomUUID() };
 }
 
 function cloneDayPlan(row: TripDetailsDayPlan): TripDetailsDayPlan {
@@ -68,12 +81,37 @@ export class ToursCloneService {
     if (overview) {
       cloned.overview = {
         ...overview,
-        ...(overview.gatheringPoint ? { gatheringPoint: cloneLocation(overview.gatheringPoint) } : {}),
         ...(overview.startPoint ? { startPoint: cloneLocation(overview.startPoint) } : {}),
         ...(overview.summitPoint ? { summitPoint: cloneLocation(overview.summitPoint) } : {}),
         ...(overview.campPoint ? { campPoint: cloneLocation(overview.campPoint) } : {}),
         ...(overview.endPoint ? { endPoint: cloneLocation(overview.endPoint) } : {}),
         ...(overview.leaderUserIds ? { leaderUserIds: [...overview.leaderUserIds] } : {}),
+      };
+    }
+    const logistics = cloned.logistics;
+    if (logistics?.gatheringPoints?.length) {
+      cloned.logistics = {
+        ...logistics,
+        gatheringPoints: logistics.gatheringPoints
+          .map((raw) => {
+            const normalized = normalizeGatheringPickupStation(raw);
+            if (!normalized) {
+              return null;
+            }
+            const persisted = gatheringPickupStationToPersisted(normalized);
+            const clonedLoc = cloneLocation(persisted.location, { remintId: true });
+            if (!clonedLoc) {
+              return null;
+            }
+            const row: TripDetailsGatheringPickupStation = {
+              id: randomUUID(),
+              title: persisted.title,
+              ...(persisted.time ? { time: persisted.time } : {}),
+              location: clonedLoc,
+            };
+            return row;
+          })
+          .filter((row): row is TripDetailsGatheringPickupStation => row != null),
       };
     }
     const itinerary = cloned.itinerary as TripDetailsItinerary | undefined;
@@ -97,12 +135,13 @@ export class ToursCloneService {
     }
     const overview = (td.overview ?? {}) as TripDetailsOverview & Record<string, unknown>;
     const itinerary = td.itinerary ?? {};
-    const logistics = (td.logistics ?? {}) as Record<string, unknown>;
+    const logistics = (td.logistics ?? {}) as Record<string, unknown> & {
+      gatheringPoints?: TripDetailsGatheringPickupStation[];
+    };
     const participation = td.participation ?? {};
     const policies = td.policies ?? {};
     const defaults: Record<string, unknown> = {
       basicInfo: {
-        gatheringPoint: overview.gatheringPoint,
         startPoint: overview.startPoint,
         summitPoint: overview.summitPoint,
         campPoint: overview.campPoint,
@@ -110,6 +149,11 @@ export class ToursCloneService {
         leaderUserIds: overview.leaderUserIds,
         localGuideName: overview.localGuideName,
         tourType: overview.denaliTourKind,
+      },
+      tripDetails: {
+        logistics: {
+          gatheringPoints: logistics.gatheringPoints ?? [],
+        },
       },
       programNature: {
         themeIds: overview.tourThemeIds ?? [],

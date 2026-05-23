@@ -143,7 +143,10 @@ test("loadWizardPrefill: clone denali carries 5-zone locations and itinerary geo
   );
   assert.ok(result);
   const parsed = parseDenaliWizardDraftRecord(result!.serializedDraft);
-  assert.equal(parsed?.formPatch.basicInfo?.gatheringPoint?.latitude, 35.7);
+  assert.equal(
+    parsed?.formPatch.tripDetails?.logistics?.gatheringPoints?.[0]?.location?.latitude,
+    35.7,
+  );
   assert.equal(parsed?.formPatch.basicInfo?.summitPoint?.addressText, "Peak");
   assert.equal(parsed?.formPatch.programNature?.itinerary?.[0]?.location?.latitude, 36);
   assert.equal(parsed?.formPatch.programNature?.itinerary?.[0]?.photos?.length, 1);

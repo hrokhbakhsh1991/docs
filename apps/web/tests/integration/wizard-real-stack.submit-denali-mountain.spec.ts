@@ -9,6 +9,7 @@ import {
   loginWithPhoneOtp,
   ownerPhoneFromProject,
   seedWizardDraft,
+  recoverDenaliWizardDraftIfPresent,
   submitWizardAndExpectTourList,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
@@ -39,6 +40,7 @@ test.describe("real-stack denali 6-tab wizard submit", () => {
 
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await recoverDenaliWizardDraftIfPresent(page);
 
     await advanceDenaliWizardToReview(page, { mainTourTheme: theme! });
     await submitWizardAndExpectTourList(page);

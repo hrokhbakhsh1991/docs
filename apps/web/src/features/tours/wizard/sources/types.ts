@@ -1,6 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
+import type { SettingsEquipmentDto } from "@/lib/settings-equipment.client";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 
 /** Discriminated wizard bootstrap source (map.md §1). */
@@ -29,6 +30,7 @@ export type LoadWizardPrefillContext = {
   fetchTour?: (tourId: string, signal?: AbortSignal) => Promise<unknown>;
   fetchPreset?: (presetId: string, signal?: AbortSignal) => Promise<TourPresetForPrefill>;
   fetchThemes?: (signal?: AbortSignal) => Promise<SettingsTourThemeDto[]>;
+  fetchEquipment?: (signal?: AbortSignal) => Promise<SettingsEquipmentDto[]>;
   fetchWizardTemplate?: (signal?: AbortSignal) => Promise<import("@/features/tours/wizard/template/tenant-wizard-template.types").TenantWizardTemplateEnvelope>;
 };
 

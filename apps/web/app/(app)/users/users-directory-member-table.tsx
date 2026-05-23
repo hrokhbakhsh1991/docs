@@ -1,7 +1,6 @@
 "use client";
 
 import type { UseMutationResult } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 
 import type { AuthUser } from "@/lib/auth/auth-context";
 import type { WorkspaceUserDto } from "@/lib/services/users.service";
@@ -23,8 +22,6 @@ export type UsersDirectoryMemberTableProps = {
     unknown
   >;
   activeRoleMutationUserId: string | null;
-  selectedUserIds: ReadonlySet<string>;
-  onSelectedUserIdsChange: (userIds: Set<string>) => void;
 };
 
 /**
@@ -39,10 +36,7 @@ export function UsersDirectoryMemberTable({
   sessionUser,
   roleMutation,
   activeRoleMutationUserId,
-  selectedUserIds,
-  onSelectedUserIdsChange
 }: UsersDirectoryMemberTableProps) {
-  const router = useRouter();
   return (
     <UserTable
       rows={rows}
@@ -52,9 +46,6 @@ export function UsersDirectoryMemberTable({
       sessionUser={sessionUser}
       roleMutation={roleMutation}
       activeRoleMutationUserId={activeRoleMutationUserId}
-      selectedUserIds={selectedUserIds}
-      onSelectedUserIdsChange={onSelectedUserIdsChange}
-      onOpenProfile={(userId) => router.push(`/users/${userId}`)}
     />
   );
 }

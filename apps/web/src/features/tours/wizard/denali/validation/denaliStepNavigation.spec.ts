@@ -18,6 +18,16 @@ test("step navigation: clear hidden fields when moving forward", () => {
   assert.equal(safe.basicInfo.endDateTime, undefined, "endDateTime should be cleared for mountain_day");
 });
 
+test("step navigation: empty meetingPoint does not block denali_basic", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.meetingPoint = undefined;
+
+  const meetingPointIssues = getDenaliWizardStepIssues(form, "denali_basic").filter((issue) =>
+    issue.path.join(".").includes("meetingPoint"),
+  );
+  assert.equal(meetingPointIssues.length, 0);
+});
+
 test("step navigation: preserve valid fields on next step", () => {
   const form = buildDenaliTourCreateTestValues();
   form.basicInfo.title = "Valid Mountain Tour Title";

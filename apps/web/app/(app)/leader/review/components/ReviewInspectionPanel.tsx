@@ -2,11 +2,25 @@
 
 import Link from "next/link";
 
+import type { BookingDto } from "@repo/types";
+
 import { useRegistrationDetails } from "@/hooks/useRegistrationDetails";
 import type { ReviewInspectionSelection } from "@/features/leader-review/types";
 import { mapToUserMessage } from "@/lib/errors/mapToUserMessage";
+import {
+  formatRegistrationCrmSummary,
+  formatRegistrationInstantFa,
+} from "@/lib/registrations/format-registration-crm";
+import {
+  formatPaymentStatusFa,
+  formatRegistrationStatusFa,
+} from "@/lib/registrations/format-registration-status-fa";
+
+import { LEADER_REVIEW_COPY } from "../leader-review-copy";
 
 import { Card, CardBody, CardHeader, CardTitle, EmptyState, ErrorState, LoadingState } from "@tour/ui";
+
+const copy = LEADER_REVIEW_COPY.inspection;
 
 export type ReviewInspectionPanelProps = {
   selectedRegistrationId: string | null;
@@ -14,9 +28,80 @@ export type ReviewInspectionPanelProps = {
 };
 
 function renderMaybeValue(value: unknown): string {
-  if (value == null) return "—";
+  if (value == null) return copy.none;
   const s = String(value).trim();
-  return s === "" ? "—" : s;
+  return s === "" ? copy.none : s;
+}
+
+function InspectionDetailsBody({
+  registration,
+  tourTitle,
+  showFallbackWarning,
+}: {
+  registration: BookingDto;
+  tourTitle: string;
+  showFallbackWarning: boolean;
+}) {
+  const crm = formatRegistrationCrmSummary(registration);
+
+  return (
+    <div style={{ display: "grid", gap: "0.4rem" }}>
+      <div>
+        <strong>{registration.participantFullName}</strong> · {registration.participantContactPhone}
+      </div>
+      <div>
+        {copy.tour}: {tourTitle} ({registration.tourId})
+      </div>
+      <div>
+        {copy.status}: {formatRegistrationStatusFa(registration.status)} · {copy.payment}:{" "}
+        {formatPaymentStatusFa(registration.paymentStatus)}
+      </div>
+      <div>
+        {copy.paidAmount}: {renderMaybeValue(registration.paidAmount)}
+      </div>
+      <div>
+        {copy.transport}: {crm.transportLabel}
+        {crm.seatBadge ? ` · ${crm.seatBadge}` : ""}
+      </div>
+      <div>
+        {copy.entryMode}: {registration.entryMode === "telegram" ? "تلگرام" : "وب"}
+      </div>
+      <div>
+        {copy.telegram}:{" "}
+        {renderMaybeValue(registration.telegramUsername ?? registration.telegramUserId)}
+      </div>
+      <div>
+        {copy.participantNote}: {renderMaybeValue(registration.participantNote)}
+      </div>
+      <div>
+        {copy.paymentContext}:{" "}
+        {renderMaybeValue(registration.payment ? JSON.stringify(registration.payment) : null)}
+      </div>
+      <div>
+        {copy.reasonContext}:{" "}
+        {renderMaybeValue(
+          registration.payment &&
+            typeof registration.payment === "object" &&
+            ("reason" in registration.payment
+              ? (registration.payment as Record<string, unknown>).reason
+              : "conversionReason" in registration.payment
+                ? (registration.payment as Record<string, unknown>).conversionReason
+                : null),
+        )}
+      </div>
+      <div>
+        {copy.updated}: {formatRegistrationInstantFa(registration.updatedAt)}
+      </div>
+      {showFallbackWarning ? (
+        <p role="status" style={{ margin: 0, color: "var(--color-warning-fg, #b54708)" }}>
+          {copy.fallbackWarning}
+        </p>
+      ) : null}
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <Link href={`/tours/${registration.tourId}/workspace`}>{copy.openWorkspace}</Link>
+      </div>
+    </div>
+  );
 }
 
 export function ReviewInspectionPanel({
@@ -29,76 +114,37 @@ export function ReviewInspectionPanel({
   );
 
   const registration = details.registration;
-  const tourTitle = selectedRegistrationFallback?.tourTitle ?? "—";
+  const tourTitle = selectedRegistrationFallback?.tourTitle ?? copy.none;
 
   return (
     <Card style={{ marginTop: "1rem" }}>
       <CardHeader>
-        <CardTitle>Inspection panel</CardTitle>
+        <CardTitle>{copy.title}</CardTitle>
       </CardHeader>
       <CardBody>
         {!selectedRegistrationId ? (
-          <EmptyState
-            title="No item selected"
-            description="Use “Inspect details” from the review table to inspect a registration."
-          />
+          <EmptyState title={copy.emptyTitle} description={copy.emptyDescription} />
         ) : details.isLoading ? (
-          <LoadingState message="Loading registration details…" />
+          <LoadingState message={copy.loading} />
         ) : details.isError ? (
           <ErrorState
-            title="Could not load registration details"
-            message={mapToUserMessage(details.error, { fallback: "Request failed." })}
+            title={copy.loadErrorTitle}
+            message={mapToUserMessage(details.error, { fallback: copy.loadErrorFallback })}
             onRetry={details.refetch}
           />
         ) : registration ? (
-          <div style={{ display: "grid", gap: "0.4rem" }}>
-            <div>
-              <strong>{registration.participantFullName}</strong> ·{" "}
-              {registration.participantContactPhone}
-            </div>
-            <div>
-              Tour: {tourTitle} ({registration.tourId})
-            </div>
-            <div>
-              Status: {registration.status} · Payment: {registration.paymentStatus}
-            </div>
-            <div>Paid amount: {renderMaybeValue(registration.paidAmount)}</div>
-            <div>Transport: {renderMaybeValue(registration.transportMode)}</div>
-            <div>Entry mode: {renderMaybeValue(registration.entryMode)}</div>
-            <div>Telegram user: {renderMaybeValue(registration.telegramUsername ?? registration.telegramUserId)}</div>
-            <div>Vehicle seats: {renderMaybeValue(registration.vehicleSeatCapacity)}</div>
-            <div>Participant note: {renderMaybeValue(registration.participantNote)}</div>
-            <div>Payment context: {renderMaybeValue(registration.payment ? JSON.stringify(registration.payment) : null)}</div>
-            <div>
-              Reason/context:{" "}
-              {renderMaybeValue(
-                registration.payment &&
-                  typeof registration.payment === "object" &&
-                  ("reason" in registration.payment
-                    ? (registration.payment as Record<string, unknown>).reason
-                    : "conversionReason" in registration.payment
-                      ? (registration.payment as Record<string, unknown>).conversionReason
-                      : null),
-              )}
-            </div>
-            <div>Updated: {new Date(registration.updatedAt).toLocaleString()}</div>
-            {details.source === "fallback" ? (
-              <p role="status" style={{ margin: 0, color: "var(--color-warning-fg, #b54708)" }}>
-                Showing fallback row projection (details endpoint unavailable).
-              </p>
-            ) : null}
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-              <Link href={`/tours/${registration.tourId}/workspace`}>Open tour workspace</Link>
-            </div>
-          </div>
+          <InspectionDetailsBody
+            registration={registration}
+            tourTitle={tourTitle}
+            showFallbackWarning={details.source === "fallback"}
+          />
         ) : (
           <EmptyState
-            title="No details available"
-            description="Select another registration or refresh details."
+            title={copy.emptyTitle}
+            description="ردی دیگری انتخاب کنید یا داده را بروزرسانی کنید."
           />
         )}
       </CardBody>
     </Card>
   );
 }
-

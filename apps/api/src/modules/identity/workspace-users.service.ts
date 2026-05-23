@@ -14,6 +14,7 @@ import {
   type WorkspaceRewardBadgeId
 } from "@repo/shared";
 import { DataSource, IsNull } from "typeorm";
+import { normalizeMembershipLabels } from "../../common/rbac/normalize-membership-labels";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
@@ -25,10 +26,13 @@ import { tenantScopedResourceNotFoundError } from "../../common/errors/error-res
 import type { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
 import type { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
 import type { UserBookingSummaryResponseDto } from "./dto/user-booking-summary-response.dto";
+import { UserTenantEntity } from "./entities/user-tenant.entity";
 import type { UserResponseDto } from "./dto/user-response.dto";
 import { UserRoleAuditEntity } from "./entities/user-role-audit.entity";
 import { UsersAccessService } from "./users-access.service";
 import { applyMembershipMetadataJsonbPatch } from "./membership-metadata-jsonb";
+import { readRawCapabilityTokens } from "./membership-raw-capabilities";
+import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
 
 @Injectable()
@@ -37,12 +41,26 @@ export class WorkspaceUsersService {
     @Inject(UsersAccessService) private readonly access: UsersAccessService,
     @Inject(WorkspaceUserBookingSummaryService)
     private readonly bookingSummaries: WorkspaceUserBookingSummaryService,
+    @Inject(UsersMemberWalletBalancesService)
+    private readonly memberWalletBalances: UsersMemberWalletBalancesService,
     @InjectDataSource() private readonly dataSource: DataSource,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
     @Inject(TenantAuditEventsService)
     private readonly tenantAuditEventsService: TenantAuditEventsService
   ) {}
+
+  private async toEnrichedUserResponse(tenantId: string, userId: string): Promise<UserResponseDto> {
+    const row = await this.access.findTenantScopedUserOrThrow(tenantId, userId);
+    const [walletMap, bookingMap] = await Promise.all([
+      this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]),
+      this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId])
+    ]);
+    return this.access.toUserResponseDto(row, {
+      wallet: walletMap.get(userId),
+      bookingSummary: bookingMap.get(userId)
+    });
+  }
 
   async patchUserRole(userId: string, role: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
@@ -148,19 +166,23 @@ export class WorkspaceUsersService {
     if (
       payload.permanentDiscountPercentage === undefined &&
       payload.badges === undefined &&
-      payload.isSelectableLeader === undefined
+      payload.isSelectableLeader === undefined &&
+      payload.labels === undefined
     ) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_ERROR",
           message:
-            "At least one of permanentDiscountPercentage, badges, or isSelectableLeader is required"
+            "At least one of permanentDiscountPercentage, badges, isSelectableLeader, or labels is required"
         }
       });
     }
 
     let normalizedDiscount: number | undefined;
-    if (payload.permanentDiscountPercentage !== undefined) {
+    let clearPermanentDiscount = false;
+    if (payload.permanentDiscountPercentage === null) {
+      clearPermanentDiscount = true;
+    } else if (payload.permanentDiscountPercentage !== undefined) {
       const raw = payload.permanentDiscountPercentage;
       if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0 || raw > 100) {
         throw new BadRequestException({
@@ -192,7 +214,9 @@ export class WorkspaceUsersService {
     const existingMeta = parseMembershipMetadata(membership.membershipMetadata);
     const metadataPatch: Record<string, unknown> = {};
     const metadataRemoveKeys: string[] = [];
-    if (normalizedDiscount !== undefined) {
+    if (clearPermanentDiscount) {
+      metadataRemoveKeys.push("permanentDiscountPercentage");
+    } else if (normalizedDiscount !== undefined) {
       metadataPatch.permanentDiscountPercentage = normalizedDiscount;
     }
     if (normalizedBadges !== undefined) {
@@ -204,7 +228,7 @@ export class WorkspaceUsersService {
     }
     if (payload.isSelectableLeader !== undefined) {
       metadataPatch.capabilities = setSelectableLeaderCapability(
-        existingMeta.capabilities,
+        readRawCapabilityTokens(membership.membershipMetadata),
         payload.isSelectableLeader
       );
     }
@@ -212,6 +236,9 @@ export class WorkspaceUsersService {
     const actorLabelRecord = await this.access.users.findOne({
       where: { id: actorUserId, deletedAt: IsNull() }
     });
+    const normalizedLabels =
+      payload.labels === undefined ? undefined : normalizeMembershipLabels(payload.labels);
+
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
     await this.dataSource.transaction(async (manager) => {
@@ -221,6 +248,22 @@ export class WorkspaceUsersService {
         patch: metadataPatch,
         removeKeys: metadataRemoveKeys
       });
+      if (normalizedLabels !== undefined) {
+        await manager.getRepository(UserTenantEntity).update(
+          { id: membership.id, tenantId },
+          { labels: normalizedLabels }
+        );
+      }
+      const auditMetadata: Record<string, unknown> = {
+        permanent_discount_percentage:
+          normalizedDiscount ?? existingMeta.permanentDiscountPercentage,
+        badges: normalizedBadges ?? existingMeta.badges ?? [],
+        selectable_leader:
+          payload.isSelectableLeader ?? membershipHasSelectableLeader(existingMeta)
+      };
+      if (normalizedLabels !== undefined) {
+        auditMetadata.labels = normalizedLabels;
+      }
       await this.tenantAuditEventsService.append(
         {
           tenantId,
@@ -230,13 +273,7 @@ export class WorkspaceUsersService {
           action: TenantAuditAction.MEMBERSHIP_REWARDS_CHANGED,
           resourceType: "user_membership",
           resourceId: membership.id,
-          metadata: {
-            permanent_discount_percentage:
-              normalizedDiscount ?? existingMeta.permanentDiscountPercentage,
-            badges: normalizedBadges ?? existingMeta.badges ?? [],
-            selectable_leader:
-              payload.isSelectableLeader ?? membershipHasSelectableLeader(existingMeta)
-          },
+          metadata: auditMetadata,
           clientIp: this.requestContextService.tryGetClientIp(),
           requestId: this.requestContextService.tryGetRequestId()
         },
@@ -244,9 +281,7 @@ export class WorkspaceUsersService {
       );
     });
 
-    return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
-    );
+    return this.toEnrichedUserResponse(tenantId, userId);
   }
 
   async toggleSelectableLeader(
@@ -264,9 +299,8 @@ export class WorkspaceUsersService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    const existingMeta = parseMembershipMetadata(membership.membershipMetadata);
     const nextCapabilities = setSelectableLeaderCapability(
-      existingMeta.capabilities,
+      readRawCapabilityTokens(membership.membershipMetadata),
       payload.enabled
     );
 
@@ -301,9 +335,7 @@ export class WorkspaceUsersService {
       );
     });
 
-    return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
-    );
+    return this.toEnrichedUserResponse(tenantId, userId);
   }
 
   async getUserBookingSummary(userId: string): Promise<UserBookingSummaryResponseDto> {
@@ -312,6 +344,8 @@ export class WorkspaceUsersService {
     await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
     await this.access.findTenantScopedUserOrThrow(tenantId, userId);
     const map = await this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId]);
-    return map.get(userId) ?? { totalTrips: 0, completedTrips: 0, cancelledTrips: 0 };
+    const counts = map.get(userId) ?? { totalTrips: 0, completedTrips: 0, cancelledTrips: 0 };
+    const trips = await this.bookingSummaries.loadBookingTripsForUser(tenantId, userId);
+    return { ...counts, trips };
   }
 }

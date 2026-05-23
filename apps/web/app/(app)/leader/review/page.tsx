@@ -3,17 +3,19 @@ import dynamic from "next/dynamic";
 
 import { LoadingState } from "@tour/ui";
 
+import { LEADER_REVIEW_COPY } from "./leader-review-copy";
+
 const LeaderReviewClient = dynamic(
   () => import("./leader-review-client").then((m) => m.LeaderReviewClient),
   {
     ssr: false,
-    loading: () => <LoadingState message="Loading review queue…" />,
+    loading: () => <LoadingState message={LEADER_REVIEW_COPY.page.loadingSession} />,
   },
 );
 
 export const metadata: Metadata = {
-  title: "Leader review dashboard",
-  description: "Leader-only review and reporting dashboard across tenant tour registrations.",
+  title: LEADER_REVIEW_COPY.metadata.title,
+  description: LEADER_REVIEW_COPY.metadata.description,
 };
 
 export default function LeaderReviewPage() {

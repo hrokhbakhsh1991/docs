@@ -117,7 +117,7 @@ test("PRESET_DEFAULTS_ROOT_KEYS includes the nine wizard-known roots and stays i
 
 test("denali_pilot: accepts 6-tab preset defaults", () => {
   const healthy = {
-    basicInfo: { tourType: "nature_day", title: "abcdefghijabcdefghij" },
+    basicInfo: { tourType: "nature_day", title: "تور نمونه" },
     programNature: { mainTourThemeId: "uuid", shortDescription: "طبیعت" },
     transport: { primaryTransportMode: "bus" },
     pricingPayment: { requiresPayment: true },

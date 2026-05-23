@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useFormContext } from "react-hook-form";
+import { useEffect, useMemo, useRef } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -15,6 +15,12 @@ import { flattenDenaliFormErrors } from "../flattenDenaliFormErrors";
 import { parseIsoToYmdAndTime } from "../denaliDatetime";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { splitGearByRequired } from "../denaliGearSelection";
+import { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
+import { TourPublishStatusField } from "@/components/tours/TourPublishStatusField";
+import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
+import { denaliLocationAddressText } from "@repo/types/denali";
+
+import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
@@ -112,10 +118,39 @@ function formatScheduleLine(iso: string | undefined): string | undefined {
 
 export function DenaliReviewStep() {
   const t = useTranslations("tours.denali");
-  const { getValues, formState: { errors } } = useFormContext<DenaliCreateTourWizardForm>();
+  const {
+    control,
+    getValues,
+    setValue,
+    formState: { errors },
+  } = useFormContext<DenaliCreateTourWizardForm>();
+
+  const publishStatus =
+    (useWatch({ control, name: "basicInfo.publishStatus" }) as "draft" | "active" | undefined) ??
+    "draft";
+  const formSnapshot = useWatch({ control }) as DenaliCreateTourWizardForm | undefined;
 
   const { canonicalModel, basicsSelection, ui } = useDenaliCanonical();
-  const formForUi = getValues();
+  const formForUi = formSnapshot ?? getValues();
+
+  const publishReadinessIssues = useMemo(
+    () => getDenaliWizardPublishReadinessIssues(formForUi),
+    [formForUi],
+  );
+  const publishReadinessBlocked = publishStatus === "active" && publishReadinessIssues.length > 0;
+  const equipmentQuery = useSettingsEquipment();
+  const diagnosticLoggedRef = useRef(false);
+
+  useEffect(() => {
+    if (diagnosticLoggedRef.current) return;
+    if (equipmentQuery.isLoading) return;
+    diagnosticLoggedRef.current = true;
+    logDenaliWizardDiagnosticReport({
+      form: getValues(),
+      activeEquipment: equipmentQuery.data,
+      source: "review-step-mount",
+    });
+  }, [equipmentQuery.data, equipmentQuery.isLoading, getValues]);
 
   const showOutdoorProgram = ui.arePathsVisible(
     "review",
@@ -163,7 +198,6 @@ export function DenaliReviewStep() {
     return min != null ? String(min) : undefined;
   }, [canonicalModel.capacityMax, canonicalModel.capacityMin]);
 
-  const equipmentQuery = useSettingsEquipment();
   const crewMembersQuery = useWorkspaceTourCrewMembers();
   const flatErrors = flattenDenaliFormErrors(errors);
 
@@ -173,7 +207,7 @@ export function DenaliReviewStep() {
     return ids
       .map((id) => {
         const hit = crewMembersQuery.data?.find((m) => m.id === id);
-        return hit?.name?.trim() || hit?.email || id;
+        return hit?.name?.trim() || hit?.email || hit?.phone || id;
       })
       .filter(Boolean)
       .join("، ");
@@ -214,6 +248,45 @@ export function DenaliReviewStep() {
       )}
 
       <p style={{ margin: 0, color: "#64748b" }}>{t("review.intro")}</p>
+
+      {publishReadinessBlocked ? (
+        <div
+          role="alert"
+          style={{
+            padding: "1rem",
+            background: "#fffbeb",
+            color: "#92400e",
+            border: "1px solid #fcd34d",
+            borderRadius: "8px",
+          }}
+          data-testid="denali-review-publish-readiness-warning"
+        >
+          <p style={{ fontWeight: 600, margin: "0 0 0.5rem" }}>
+            {t("review.publishDraftOnlyWarning")}
+          </p>
+          <ul style={{ margin: 0, paddingRight: "1.25rem" }}>
+            {publishReadinessIssues.map((issue) => (
+              <li key={`${issue.code}-${issue.path ?? issue.message}`}>{issue.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <TourPublishStatusField
+        value={publishStatus === "active" ? "active" : "draft"}
+        onChange={(next: TourFormLifecycleStatus) => {
+          if (next === "archived") return;
+          if (next === "active" && publishReadinessIssues.length > 0) {
+            return;
+          }
+          setValue("basicInfo.publishStatus", next === "active" ? "active" : "draft", {
+            shouldDirty: true,
+          });
+        }}
+        disableValues={publishReadinessIssues.length > 0 ? (["active"] as const) : undefined}
+        data-testid="denali-review-publish-status"
+      />
+
       <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
         <ReviewRow label={t("basic.title")} value={canonicalModel.title} />
         <ReviewRow label={t("basic.categoryLabel")} value={categoryLabel} />
@@ -406,7 +479,32 @@ export function DenaliReviewStep() {
               : t("review.no")
           }
         />
-        <ReviewRow label={t("basic.meetingPoint")} value={canonicalModel.meetingPoint} />
+        {(canonicalModel.gatheringPoints ?? []).map((station, index) => (
+          <ReviewRow
+            key={station.id ?? `gathering-${index}`}
+            label={
+              station.title.trim()
+                ? `${t("basic.locationZones.gatheringPoint")} — ${station.title}`
+                : `${t("basic.locationZones.gatheringPoint")} ${index + 1}`
+            }
+            value={[
+              station.time?.trim(),
+              denaliLocationAddressText(station.location),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
+        ))}
+        <ReviewRow
+          label={t("basic.locationZones.startPoint")}
+          value={denaliLocationAddressText(canonicalModel.startPoint)}
+        />
+        {canonicalModel.participants.minRequiredPeaks != null ? (
+          <ReviewRow
+            label="حداقل قله‌های صعودشده (تایید خودکار)"
+            value={String(canonicalModel.participants.minRequiredPeaks)}
+          />
+        ) : null}
         <ReviewRow
           label={t("participants.fitnessPrerequisite")}
           value={canonicalModel.participants.fitnessPrerequisiteText}

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { API } from "../lib/api-paths";
+import { LEADER_REVIEW_COPY } from "../app/(app)/leader/review/leader-review-copy";
 
 function makeSessionToken(role: string): string {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
@@ -102,7 +103,7 @@ test.describe("leader review RBAC", () => {
     const res = await page.goto("/leader/review");
     expect(res?.status()).toBe(200);
     await expect(page).toHaveURL(/\/leader\/review$/);
-    await expect(page.locator("body")).toContainText("Review queue");
+    await expect(page.locator("body")).toContainText(LEADER_REVIEW_COPY.metadata.title);
   });
 });
 
