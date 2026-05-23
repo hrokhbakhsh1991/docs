@@ -20,6 +20,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import {
   applyCanonicalMvpToForm,
@@ -44,6 +45,10 @@ export type DenaliCanonicalContextValue = {
   updateCanonical: (patch: DenaliCanonicalPartial) => void;
   updateCanonicalBasics: (patch: Partial<DenaliCanonicalBasicsSelection>) => void;
   resetWizard: () => void;
+  /** Re-hydrate canonical UI from current RHF values (e.g. immediately after `reset`). */
+  flushCanonicalFromForm: () => void;
+  /** Bumped when draft clear forces title input remount (DOM hard-reset). */
+  readonly titleInputResetKey: number;
 };
 
 const DenaliCanonicalContext = createContext<DenaliCanonicalContextValue | null>(null);
@@ -51,25 +56,31 @@ const DenaliCanonicalContext = createContext<DenaliCanonicalContextValue | null>
 function basicsSelectionFromTourType(
   tourType: DenaliCreateTourWizardForm["basicInfo"]["tourType"],
 ): DenaliCanonicalBasicsSelection {
-  return (
-    readDenaliCanonicalBasics(tourType) ?? {
-      category: "mountain",
-      duration: "single_day",
-    }
-  );
+  const fromType = readDenaliCanonicalBasics(tourType);
+  if (fromType) {
+    return fromType;
+  }
+  return {
+    category: "" as DenaliTourCategory,
+    duration: "" as DenaliTourDuration,
+  };
 }
 
 export function DenaliCanonicalProvider({
   children,
   formMethods,
   syncToken = 0,
-  resetWizard,
+  onResetWizard,
+  onCanonicalSyncAfterClear,
 }: {
   children: ReactNode;
   formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
   /** Increment after RHF `reset` (draft restore) to re-hydrate canonical state from form. */
   syncToken?: number;
-  resetWizard: () => void;
+  /** Parent clears RHF + step index (no canonical sync token bump). */
+  onResetWizard: () => void;
+  /** Parent bumps canonical sync token after hard title clear (avoids reactive lag). */
+  onCanonicalSyncAfterClear?: () => void;
 }) {
   const { control, getValues, setValue } = formMethods;
 
@@ -83,10 +94,15 @@ export function DenaliCanonicalProvider({
   const [canonicalModel, setCanonicalModel] = useState<DenaliCanonicalTourModel>(() =>
     denaliFormToCanonical(getValues()),
   );
+  const [titleInputResetKey, setTitleInputResetKey] = useState(0);
 
   useEffect(() => {
     const form = getValues();
-    setCanonicalModel(denaliFormToCanonical(form));
+    const next = denaliFormToCanonical(form);
+    setCanonicalModel({
+      ...next,
+      title: form.basicInfo.title?.trim() ?? "",
+    });
   }, [syncToken, getValues]);
 
   const basicsSelection = useMemo(
@@ -134,6 +150,35 @@ export function DenaliCanonicalProvider({
     [canonicalModel, commitCanonical, getValues],
   );
 
+  const flushCanonicalFromForm = useCallback(() => {
+    const form = getValues();
+    const next = denaliFormToCanonical(form);
+    setCanonicalModel({
+      ...next,
+      title: form.basicInfo.title?.trim() ?? "",
+    });
+  }, [getValues]);
+
+  const forceCanonicalTitleEmpty = useCallback(() => {
+    const defaults = buildDenaliTourCreateDefaultValues();
+    const fromDefaults = denaliFormToCanonical(defaults);
+    setCanonicalModel({
+      ...fromDefaults,
+      title: "",
+    });
+    setValue("basicInfo.title", "", {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+    setTitleInputResetKey((key) => key + 1);
+  }, [setValue]);
+
+  const resetWizard = useCallback(() => {
+    onResetWizard();
+    forceCanonicalTitleEmpty();
+    onCanonicalSyncAfterClear?.();
+  }, [forceCanonicalTitleEmpty, onCanonicalSyncAfterClear, onResetWizard]);
+
   const value = useMemo(
     (): DenaliCanonicalContextValue => ({
       canonicalModel,
@@ -142,8 +187,19 @@ export function DenaliCanonicalProvider({
       updateCanonical,
       updateCanonicalBasics,
       resetWizard,
+      flushCanonicalFromForm,
+      titleInputResetKey,
     }),
-    [basicsSelection, canonicalModel, ui, updateCanonical, updateCanonicalBasics, resetWizard],
+    [
+      basicsSelection,
+      canonicalModel,
+      flushCanonicalFromForm,
+      resetWizard,
+      titleInputResetKey,
+      ui,
+      updateCanonical,
+      updateCanonicalBasics,
+    ],
   );
 
   return <DenaliCanonicalContext.Provider value={value}>{children}</DenaliCanonicalContext.Provider>;

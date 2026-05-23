@@ -84,11 +84,11 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
     ...base,
     startPointLocationText:
       form.basicInfo.startPointLocationText ?? base.startPointLocationText,
-    gatheringPoint: form.basicInfo.gatheringPoint ?? base.gatheringPoint,
     startPoint: form.basicInfo.startPoint ?? base.startPoint,
     summitPoint: form.basicInfo.summitPoint ?? base.summitPoint,
     campPoint: form.basicInfo.campPoint ?? base.campPoint,
     endPoint: form.basicInfo.endPoint ?? base.endPoint,
+    gatheringPoints: form.tripDetails.logistics.gatheringPoints ?? base.gatheringPoints,
     approximateReturnTime: form.basicInfo.approximateReturnTime ?? base.approximateReturnTime,
     socialMediaLink:
       form.basicInfo.socialMediaLink ??
@@ -114,6 +114,7 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       form.basicInfo.requiresManualAdminApproval === true
         ? true
         : base.requiresManualAdminApproval,
+    publishStatus: form.basicInfo.publishStatus ?? "draft",
     program: {
       ...base.program,
       difficultyLevel: form.programNature.difficultyLevel,
@@ -130,6 +131,7 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       maximumAge: form.participantRequirements.maximumAge,
       nationalIdRequired: form.participantRequirements.nationalIdRequired,
       sportsInsuranceRequired: form.participantRequirements.sportsInsuranceRequired,
+      minRequiredPeaks: form.participantRequirements.minRequiredPeaks,
       fitnessPrerequisiteText: form.participantRequirements.fitnessPrerequisiteText,
       gearItems: form.participantRequirements.gearItems,
     },
@@ -179,7 +181,6 @@ export function denaliCanonicalToForm(
       capacityMin: canonical.capacityMin,
       meetingPoint: canonical.meetingPoint,
       startPointLocationText: canonical.startPointLocationText,
-      gatheringPoint: canonical.gatheringPoint,
       startPoint: canonical.startPoint,
       summitPoint: canonical.summitPoint,
       campPoint: canonical.campPoint,
@@ -190,6 +191,7 @@ export function denaliCanonicalToForm(
       localGuideName: canonical.localGuideName,
       requiresManualAdminApproval: canonical.requiresManualAdminApproval === true,
       socialMediaLink: canonical.socialMediaLink,
+      publishStatus: canonical.publishStatus ?? "draft",
     },
     programNature: {
       ...existingForm.programNature,
@@ -211,6 +213,13 @@ export function denaliCanonicalToForm(
       dongAmount: canonical.transport.dongAmount,
       transportNotes: canonical.transport.transportNotes,
     },
+    tripDetails: {
+      ...existingForm.tripDetails,
+      logistics: {
+        ...existingForm.tripDetails?.logistics,
+        gatheringPoints: canonical.gatheringPoints ?? [],
+      },
+    },
     pricingPayment: {
       ...existingForm.pricingPayment,
       requiresPayment: canonical.pricing.requiresPayment === true,
@@ -225,6 +234,7 @@ export function denaliCanonicalToForm(
       fitnessLevel: canonical.participants.fitnessLevel,
       nationalIdRequired: canonical.participants.nationalIdRequired === true,
       sportsInsuranceRequired: canonical.participants.sportsInsuranceRequired,
+      minRequiredPeaks: canonical.participants.minRequiredPeaks,
       fitnessPrerequisiteText: canonical.participants.fitnessPrerequisiteText,
       gearItems: canonical.participants.gearItems,
     },
@@ -323,6 +333,7 @@ export function applyCanonicalMvpToForm(
     sync,
   );
   setValue("photosData", { photos: next.photosData.photos }, sync);
+  setValue("tripDetails", next.tripDetails, sync);
 
   return next;
 }

@@ -58,6 +58,10 @@ function cloneDenaliFormSections(form: DenaliCreateTourWizardForm): DenaliCreate
     participantRequirements: { ...form.participantRequirements },
     policies: { ...form.policies },
     photosData: { ...form.photosData, photos: form.photosData?.photos ? [...form.photosData.photos] : [] },
+    tripDetails: {
+      ...form.tripDetails,
+      logistics: { ...form.tripDetails?.logistics },
+    },
   };
 }
 
@@ -131,6 +135,14 @@ function mergeDenaliFormSections(
       ...patch.participantRequirements,
     },
     policies: { ...defaults.policies, ...patch.policies },
+    tripDetails: {
+      ...defaults.tripDetails,
+      ...patch.tripDetails,
+      logistics: {
+        ...defaults.tripDetails?.logistics,
+        ...patch.tripDetails?.logistics,
+      },
+    },
   };
 }
 

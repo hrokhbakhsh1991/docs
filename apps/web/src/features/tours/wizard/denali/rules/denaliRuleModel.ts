@@ -269,35 +269,35 @@ const TRANSPORT_MODE_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.mode",
   required: true,
   hidden: false,
-  step: "denali_transport",
+  step: "denali_logistics",
 };
 
 const TRANSPORT_COST_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.transportCost",
   required: false,
   hidden: false,
-  step: "denali_transport",
+  step: "denali_logistics",
 };
 
 const ALLOW_PERSONAL_CAR_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.allowPersonalCar",
   required: false,
   hidden: false,
-  step: "denali_transport",
+  step: "denali_logistics",
 };
 
 const DONG_AMOUNT_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.dongAmount",
   required: false,
   hidden: false,
-  step: "denali_transport",
+  step: "denali_logistics",
 };
 
 const TRANSPORT_NOTES_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.transportNotes",
   required: false,
   hidden: false,
-  step: "denali_transport",
+  step: "denali_logistics",
 };
 
 const REQUIRES_PAYMENT_FIELD: DenaliRuleFieldDefinition = {
@@ -324,6 +324,13 @@ const SOCIAL_MEDIA_LINK_FIELD: DenaliRuleFieldDefinition = {
 const MANUAL_ADMIN_APPROVAL_FIELD: DenaliRuleFieldDefinition = {
   path: "requiresManualAdminApproval",
   required: false,
+  hidden: false,
+  step: "denali_basic",
+};
+
+const PUBLISH_STATUS_FIELD: DenaliRuleFieldDefinition = {
+  path: "publishStatus",
+  required: true,
   hidden: false,
   step: "denali_basic",
 };
@@ -478,6 +485,7 @@ const OPTIONAL_PROGRAM_FIELDS: readonly DenaliRuleFieldDefinition[] = [LONG_DESC
 
 const CORE_WIZARD_FIELDS: readonly DenaliRuleFieldDefinition[] = [
   TITLE_FIELD,
+  PUBLISH_STATUS_FIELD,
   CATEGORY_FIELD,
   START_DATETIME_FIELD,
   CAPACITY_MAX_FIELD,

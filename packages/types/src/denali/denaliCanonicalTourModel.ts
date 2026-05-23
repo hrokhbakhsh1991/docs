@@ -7,6 +7,8 @@
  * @see packages/types/src/denali-canonical-tour-model.ts — prior nested model (superseded in Phase 4)
  */
 
+import type { TourType } from "../tour-classification";
+import type { DenaliTourKind } from "../denali-tour-kind";
 import type { DenaliLocationData } from "./locationData";
 
 export type { DenaliLocationData, DenaliLocationZoneKey } from "./locationData";
@@ -26,6 +28,31 @@ export type DenaliCanonicalDuration = "single" | "multi";
 
 export const DENALI_CANONICAL_DURATION_VALUES = ["single", "multi"] as const;
 
+/** Product category — one control instead of 8 `denaliTourKind` slugs. */
+export type DenaliTourCategory = DenaliCanonicalCategory;
+
+export const DENALI_TOUR_CATEGORY_VALUES = DENALI_CANONICAL_CATEGORY_VALUES;
+
+/** Schedule duration — one control instead of `isMultiDay` + slug suffix. */
+export type DenaliTourDuration = "single_day" | "multi_day";
+
+export const DENALI_TOUR_DURATION_VALUES = ["single_day", "multi_day"] as const;
+
+/** Event sub-type when {@link DenaliCanonicalTourModel.category} is `"event"`. */
+export type DenaliEventVariant = "reading" | "cinema";
+
+export const DENALI_EVENT_VARIANT_VALUES = ["reading", "cinema"] as const;
+
+/** Canonical basics slice stored indirectly as legacy `denaliTourKind` in the wizard form. */
+export type DenaliCanonicalBasicsSelection = {
+  category: DenaliTourCategory;
+  duration: DenaliTourDuration;
+  eventVariant?: DenaliEventVariant;
+};
+
+export type DenaliDifficultyLevel = "easy" | "medium" | "hard";
+export type DenaliFitnessLevel = "low" | "medium" | "high";
+
 export type DenaliCanonicalTransportMode =
   | "organizer_vehicle"
   | "bus"
@@ -42,6 +69,12 @@ export const DENALI_CANONICAL_TRANSPORT_MODE_VALUES = [
   "shared_cars",
   "none",
 ] as const;
+
+export type { DenaliGatheringPickupStation } from "./gatheringPickupStation";
+export { EMPTY_GATHERING_PICKUP_STATION } from "./gatheringPickupStation";
+
+/** @deprecated Use {@link DenaliGatheringPickupStation}. */
+export type DenaliGatheringPointStation = import("./gatheringPickupStation").DenaliGatheringPickupStation;
 
 /**
  * Canonical Denali tour — MVP wizard user inputs only.
@@ -60,8 +93,10 @@ export interface DenaliCanonicalTourModel {
   meetingPoint?: string;
   /** Start location (village, square, trailhead, base camp, etc.). */
   startPointLocationText?: string;
-  /** Where passengers assemble (maps to legacy `meetingPoint` when unset). */
+  /** @deprecated Read via `gatheringPoints`; not written on new saves. */
   gatheringPoint?: DenaliLocationData;
+  /** Multi-station pickups (`tripDetails.logistics.gatheringPoints`). */
+  gatheringPoints?: import("./gatheringPickupStation").DenaliGatheringPickupStation[];
   /** Trailhead where hiking begins. */
   startPoint?: DenaliLocationData;
   /** Geographical peak coordinate. */
@@ -80,6 +115,8 @@ export interface DenaliCanonicalTourModel {
   localGuideName?: string;
   /** When true, registrations need admin approval before confirmation (Telegram workflow). */
   requiresManualAdminApproval?: boolean;
+  /** Wizard-only: maps to API `lifecycle_status` on submit (`draft` → DRAFT, `active` → OPEN). */
+  publishStatus?: "draft" | "active";
   /** Coordination channel URL (primary wire: `chat_link` from Telegram, Bale, Eitaa, Instagram, etc.). */
   socialMediaLink?: string;
 
@@ -151,6 +188,8 @@ export interface DenaliCanonicalTourModel {
       id: string;
       isRequired: boolean;
     }>;
+    /** Auto-accept returning climbers with at least this many past peaks with the agency (1–4). */
+    minRequiredPeaks?: number;
   };
 
   policies: {
@@ -169,4 +208,85 @@ export interface DenaliCanonicalTourModel {
     mimeType: string;
     uploadedAt: string;
   }>;
+}
+
+export function isDenaliOutdoorCategory(
+  category: DenaliTourCategory,
+): category is "mountain" | "nature" | "desert" {
+  return category !== "event";
+}
+
+export function denaliCategoryRequiresEventVariant(category: DenaliTourCategory): boolean {
+  return category === "event";
+}
+
+/** Derive legacy `denaliTourKind` slug from canonical category + duration + event variant. */
+/** Inverse of {@link denaliTourKindFromCanonical} for wizard UI controls. */
+export function denaliCanonicalBasicsFromTourKind(
+  kind: DenaliTourKind | undefined,
+): DenaliCanonicalBasicsSelection | null {
+  if (kind == null) return null;
+  if (kind === "event_cinema") {
+    return { category: "event", duration: "single_day", eventVariant: "cinema" };
+  }
+  if (kind === "event_reading") {
+    return { category: "event", duration: "single_day", eventVariant: "reading" };
+  }
+  const duration: DenaliTourDuration = kind.endsWith("_multi") ? "multi_day" : "single_day";
+  if (kind.startsWith("mountain_")) return { category: "mountain", duration };
+  if (kind.startsWith("nature_")) return { category: "nature", duration };
+  if (kind.startsWith("desert_")) return { category: "desert", duration };
+  return null;
+}
+
+export function isDenaliMountainCategory(category: DenaliTourCategory): boolean {
+  return category === "mountain";
+}
+
+export function denaliTourKindFromCanonical(input: {
+  category: DenaliTourCategory;
+  duration: DenaliCanonicalDuration | DenaliTourDuration;
+  eventVariant?: DenaliEventVariant;
+}): DenaliTourKind {
+  const multi = input.duration === "multi" || input.duration === "multi_day";
+  switch (input.category) {
+    case "mountain":
+      return multi ? "mountain_multi" : "mountain_day";
+    case "nature":
+      return multi ? "nature_multi" : "nature_day";
+    case "desert":
+      return multi ? "desert_multi" : "desert_day";
+    case "event": {
+      const variant = input.eventVariant ?? "reading";
+      if (variant === "cinema") return "event_cinema";
+      return "event_reading";
+    }
+    default: {
+      const _exhaustive: never = input.category;
+      return _exhaustive;
+    }
+  }
+}
+
+export function denaliApiTourTypeFromCategory(category: DenaliTourCategory): TourType {
+  switch (category) {
+    case "mountain":
+      return "mountain";
+    case "nature":
+      return "nature";
+    case "desert":
+      return "desert";
+    case "event":
+      return "cultural";
+    default: {
+      const _exhaustive: never = category;
+      return _exhaustive;
+    }
+  }
+}
+
+export function denaliDifficultyTypeFromCategory(
+  category: DenaliTourCategory,
+): "physical" | "none" {
+  return category === "event" ? "none" : "physical";
 }

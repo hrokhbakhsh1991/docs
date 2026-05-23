@@ -6,7 +6,7 @@
 export const denaliWizardSteps = [
   "denali_basic",
   "denali_program",
-  "denali_transport",
+  "denali_logistics",
   "denali_pricing",
   "denali_photos",
   "review",
@@ -30,12 +30,16 @@ export const DENALI_MVP_REMOVED_STEPS = [
     reason:
       "Separate policies step removed; optional policies textarea on review writes `policies.cancellationPolicy` for MVP.",
   },
+  {
+    id: "denali_transport" as const,
+    reason: "Renamed to denali_logistics in Phase 16.15.",
+  },
 ] as const;
 
 export const denaliStepTitlesFa: Record<DenaliCreateWizardStepId, string> = {
   denali_basic: "اطلاعات پایه",
   denali_program: "برنامه",
-  denali_transport: "حمل‌ونقل",
+  denali_logistics: "لجستیک و خدمات",
   denali_pricing: "هزینه",
   denali_photos: "عکس‌ها",
   review: "بازبینی و ثبت",

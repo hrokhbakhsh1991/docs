@@ -13,6 +13,7 @@ import {
   hasDenaliLocationCoordinates,
 } from "./denaliLocationFieldUtils";
 import { useDebouncedLocationSearch } from "../hooks/useDebouncedLocationSearch";
+import { reverseGeocode } from "@/lib/geocoding/geocoding-search";
 
 export type DenaliLocationPickerEditorProps = {
   testIdKey: string;
@@ -190,8 +191,17 @@ function DenaliLocationPickerEditorComponent({
   const openMapModal = useCallback(() => setMapModalOpen(true), []);
   const closeMapModal = useCallback(() => setMapModalOpen(false), []);
   const handleMapConfirm = useCallback(
-    (coords: { latitude: number; longitude: number }) => patch(coords),
-    [patch],
+    async (coords: { latitude: number; longitude: number }) => {
+      // Two-way sync: Fetch address from map coordinates
+      const address = await reverseGeocode(coords.latitude, coords.longitude);
+      if (address) {
+        patch({ ...coords, addressText: address });
+        setQuery(address);
+      } else {
+        patch(coords);
+      }
+    },
+    [patch, setQuery],
   );
 
   const coordError = denaliLocationCoordinateErrorMessage(fieldErrors);

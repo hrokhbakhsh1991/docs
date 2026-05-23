@@ -11,7 +11,7 @@ export const DENALI_STEP_TO_FIELD_GROUPS: Record<
 > = {
   denali_basic: ["basic_info", "pricing_capacity", "schedule_location"],
   denali_program: ["basic_info"],
-  denali_transport: ["logistics"],
+  denali_logistics: ["logistics"],
   denali_pricing: ["pricing_capacity", "participation", "policies"],
   denali_photos: [],
   review: ["policies", "participation"],

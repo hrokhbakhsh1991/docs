@@ -11,6 +11,7 @@ import type { DenaliLocationDataForm } from "@/features/tours/wizard/schemas/den
 import { DenaliLocationPickerEditor } from "./DenaliLocationPickerEditor";
 import { denaliLocationDataOrEmpty, EMPTY_DENALI_LOCATION } from "./denaliLocationFieldUtils";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
 
 type DenaliLocationZoneFieldProps = {
   zoneKey: DenaliLocationZoneKey;
@@ -76,6 +77,9 @@ export function DenaliLocationZonesSection() {
       <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>
         {t("basic.locationZonesSection")}
       </summary>
+      <p style={{ ...denaliFieldHintStyle, marginTop: "0.5rem" }} dir="rtl">
+        {DENALI_FIELD_HINTS.locationZones}
+      </p>
       <div style={{ display: "grid", gap: "0.85rem", marginTop: "0.75rem" }}>
         {DENALI_LOCATION_ZONE_KEYS.map((zoneKey) => (
           <DenaliLocationZoneField key={zoneKey} zoneKey={zoneKey} />

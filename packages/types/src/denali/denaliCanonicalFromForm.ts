@@ -19,6 +19,11 @@ import {
   denaliLocationFromText,
   type DenaliLocationData,
 } from "./locationData";
+import {
+  gatheringPickupStationFromLegacyLocation,
+  normalizeGatheringPickupStations,
+  type DenaliGatheringPickupStation,
+} from "./gatheringPickupStation";
 import type {
   DenaliCanonicalDuration,
   DenaliCanonicalTourModel,
@@ -49,6 +54,7 @@ export type DenaliWizardFormLike = {
     requiresLocalGuide?: boolean;
     localGuideName?: string;
     requiresManualAdminApproval?: boolean;
+    publishStatus?: string;
     socialMediaLink?: string;
     /** @deprecated Use socialMediaLink. */
     telegramUrl?: string;
@@ -115,6 +121,7 @@ export type DenaliWizardFormLike = {
     experienceLevel?: string;
     nationalIdRequired?: boolean;
     sportsInsuranceRequired?: boolean;
+    minRequiredPeaks?: number;
     fitnessPrerequisiteText?: string;
     medicalNotes?: string;
     technicalSkillNotes?: string;
@@ -133,7 +140,25 @@ export type DenaliWizardFormLike = {
     safetyPolicy?: string;
     weatherPolicy?: string;
   };
+  tripDetails?: {
+    logistics?: {
+      gatheringPoints?: unknown[];
+    };
+  };
 };
+
+function resolveGatheringPointsFromForm(form: DenaliWizardFormLike): DenaliGatheringPickupStation[] {
+  const fromLogistics = normalizeGatheringPickupStations(form.tripDetails?.logistics?.gatheringPoints);
+  if (fromLogistics.length > 0) {
+    return fromLogistics;
+  }
+  const legacyPin =
+    form.basicInfo.gatheringPoint ?? denaliLocationFromText(trimOptionalString(form.basicInfo.meetingPoint));
+  if (legacyPin) {
+    return [gatheringPickupStationFromLegacyLocation(legacyPin)];
+  }
+  return [];
+}
 
 function formDurationToCanonical(duration: "single_day" | "multi_day"): DenaliCanonicalDuration {
   return duration === "multi_day" ? "multi" : "single";
@@ -274,6 +299,8 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
 
   const requiresPayment = pricingRequiresPaymentFromForm(form.pricingPayment);
   const locations = resolveLocationZonesFromForm(form.basicInfo);
+  const gatheringPoints = resolveGatheringPointsFromForm(form);
+  const primaryGathering = gatheringPoints[0];
 
   return {
     category: basics.category,
@@ -285,9 +312,13 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
     endDateTime: trimOptionalString(form.basicInfo.endDateTime),
     capacityMax: denaliFormCapacityMaxToCanonical(form.basicInfo.capacityMax),
     capacityMin: form.basicInfo.capacityMin,
-    meetingPoint: locations.meetingPoint,
+    meetingPoint:
+      primaryGathering?.title.trim() ||
+      denaliLocationAddressText(primaryGathering?.location) ||
+      locations.meetingPoint,
     startPointLocationText: locations.startPointLocationText,
-    gatheringPoint: locations.gatheringPoint,
+    gatheringPoint: primaryGathering?.location ?? locations.gatheringPoint,
+    gatheringPoints: gatheringPoints.length > 0 ? gatheringPoints : undefined,
     startPoint: locations.startPoint,
     summitPoint: locations.summitPoint,
     campPoint: locations.campPoint,
@@ -301,6 +332,8 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
         : undefined,
     requiresManualAdminApproval:
       form.basicInfo.requiresManualAdminApproval === true ? true : undefined,
+    publishStatus:
+      form.basicInfo.publishStatus === "active" ? "active" : "draft",
     socialMediaLink:
       trimOptionalString(form.basicInfo.socialMediaLink) ??
       trimOptionalString(form.basicInfo.telegramUrl) ??
@@ -368,6 +401,13 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
       nationalIdRequired:
         form.participantRequirements.nationalIdRequired !== false,
       sportsInsuranceRequired: form.participantRequirements.sportsInsuranceRequired,
+      minRequiredPeaks:
+        typeof form.participantRequirements.minRequiredPeaks === "number" &&
+        Number.isInteger(form.participantRequirements.minRequiredPeaks) &&
+        form.participantRequirements.minRequiredPeaks >= 1 &&
+        form.participantRequirements.minRequiredPeaks <= 4
+          ? form.participantRequirements.minRequiredPeaks
+          : undefined,
       fitnessPrerequisiteText: trimOptionalString(
         form.participantRequirements.fitnessPrerequisiteText,
       ),

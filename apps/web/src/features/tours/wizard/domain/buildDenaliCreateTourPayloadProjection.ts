@@ -5,6 +5,7 @@
 import {
   denaliApiTourTypeFromCategory,
   denaliTourKindFromCanonical,
+  gatheringPickupStationToPersisted,
   isDenaliMountainCategory,
   type DenaliEventVariant,
   type DenaliTourCategory,
@@ -341,9 +342,6 @@ function buildProjectionFromCanonical(
       shortIntro,
       leaderUserIds: canonical.leaderUserIds ?? [],
       localGuideName: trimToUndefined(canonical.localGuideName),
-      ...(locationToTripDetailsDto(canonical.gatheringPoint)
-        ? { gatheringPoint: locationToTripDetailsDto(canonical.gatheringPoint) }
-        : {}),
       ...(locationToTripDetailsDto(canonical.startPoint)
         ? { startPoint: locationToTripDetailsDto(canonical.startPoint) }
         : {}),
@@ -399,9 +397,22 @@ function buildProjectionFromCanonical(
       returnDate: endParts.date,
       departureMeetingTime: startParts.time,
       returnMeetingTime,
-      meetingPoint:
-        denaliLocationAddressText(canonical.gatheringPoint) ??
-        trimToUndefined(canonical.meetingPoint),
+      meetingPoint: (() => {
+        const primary = canonical.gatheringPoints?.[0];
+        return (
+          primary?.title.trim() ||
+          denaliLocationAddressText(primary?.location) ||
+          denaliLocationAddressText(canonical.gatheringPoint) ||
+          trimToUndefined(canonical.meetingPoint)
+        );
+      })(),
+      ...(canonical.gatheringPoints != null && canonical.gatheringPoints.length > 0
+        ? {
+            gatheringPoints: canonical.gatheringPoints.map((station) =>
+              gatheringPickupStationToPersisted(station),
+            ),
+          }
+        : {}),
       ...(() => {
         const startVillage =
           denaliLocationAddressText(canonical.startPoint) ??
@@ -424,6 +435,12 @@ function buildProjectionFromCanonical(
     policies: {
       cancellationPolicy: buildDenaliCancellationPolicyText(canonical.policies),
     },
+    ...(typeof canonical.participants.minRequiredPeaks === "number" &&
+    Number.isInteger(canonical.participants.minRequiredPeaks) &&
+    canonical.participants.minRequiredPeaks >= 1 &&
+    canonical.participants.minRequiredPeaks <= 4
+      ? { requirements: { minRequiredPeaks: canonical.participants.minRequiredPeaks } }
+      : {}),
     ...(canonical.photos && canonical.photos.length > 0
       ? {
           photos: canonical.photos
@@ -478,6 +495,12 @@ function buildProjectionFromCanonical(
   };
 }
 
+function denaliWizardLifecycleStatus(
+  publishStatus: DenaliCreateTourWizardForm["basicInfo"]["publishStatus"],
+): "Draft" | "Open" {
+  return publishStatus === "active" ? "Open" : "Draft";
+}
+
 /** Resolves Denali wizard form → fully expanded create-tour projection (submit pipeline). */
 export function buildDenaliCreateTourPayloadProjection(
   form: DenaliCreateTourWizardForm,
@@ -487,7 +510,11 @@ export function buildDenaliCreateTourPayloadProjection(
     form.basicInfo.tourType as DenaliTourKind | undefined,
   );
 
-  return buildProjectionFromCanonical(canonical, {
+  const projection = buildProjectionFromCanonical(canonical, {
     eventVariant: basics?.eventVariant,
   });
+  return {
+    ...projection,
+    lifecycle_status: denaliWizardLifecycleStatus(form.basicInfo.publishStatus),
+  };
 }

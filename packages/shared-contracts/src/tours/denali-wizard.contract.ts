@@ -1,6 +1,5 @@
 /** Denali wizard location zone keys (Phase 7 — clone / server draft round-trip). */
 export const DENALI_LOCATION_ZONE_KEYS = [
-  "gatheringPoint",
   "startPoint",
   "summitPoint",
   "campPoint",
@@ -17,6 +16,7 @@ export const DENALI_ROOTS = [
   "participantRequirements",
   "policies",
   "photosData",
+  "tripDetails",
 ] as const;
 
 export type DenaliRoot = typeof DENALI_ROOTS[number];

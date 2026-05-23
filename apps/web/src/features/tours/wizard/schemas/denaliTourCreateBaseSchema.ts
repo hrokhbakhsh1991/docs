@@ -16,6 +16,7 @@ import {
   denaliItineraryDayRowSchema,
   optionalApproximateReturnTimeSchema,
 } from "./denaliItineraryDaySchema";
+import { denaliGatheringPickupStationFormSchema } from "./denaliGatheringPickupStation.schema";
 import { denaliLocationDataSchema } from "./denaliLocationDataSchema";
 
 function optionalInt(minMessage?: string) {
@@ -46,8 +47,11 @@ const denaliBasicInfoSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(TOUR_TITLE_MIN_LENGTH, `عنوان باید حداقل ${TOUR_TITLE_MIN_LENGTH} نویسه باشد.`)
-    .max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`),
+    .max(TOUR_TITLE_MAX_LENGTH, `عنوان نباید بیشتر از ${TOUR_TITLE_MAX_LENGTH} نویسه باشد.`)
+    .refine(
+      (v) => v.length === 0 || v.length >= TOUR_TITLE_MIN_LENGTH,
+      `عنوان باید حداقل ${TOUR_TITLE_MIN_LENGTH} نویسه باشد.`,
+    ),
   tourType: denaliTourKindSchema,
   destinationId: z.string().trim().optional(),
   startDateTime: z
@@ -66,7 +70,6 @@ const denaliBasicInfoSchema = z.object({
   capacityMax: z.number().int().optional(),
   meetingPoint: z.string().trim().optional(),
   startPointLocationText: z.string().trim().optional(),
-  gatheringPoint: denaliLocationDataSchema.optional(),
   startPoint: denaliLocationDataSchema.optional(),
   summitPoint: denaliLocationDataSchema.optional(),
   campPoint: denaliLocationDataSchema.optional(),
@@ -77,6 +80,8 @@ const denaliBasicInfoSchema = z.object({
   localGuideName: z.string().trim().optional(),
   requiresManualAdminApproval: z.boolean().optional(),
   socialMediaLink: z.string().trim().max(2048).optional(),
+  /** Wizard-only: maps to API `lifecycle_status` on submit (`draft` → DRAFT, `active` → OPEN). */
+  publishStatus: z.enum(["draft", "active"]).optional(),
 });
 
 const denaliProgramNatureSchema = z.object({
@@ -121,6 +126,7 @@ const denaliParticipantRequirementsSchema = z.object({
   fitnessLevel: z.enum(["low", "medium", "high"]).optional(),
   nationalIdRequired: z.boolean().optional(),
   sportsInsuranceRequired: z.boolean().optional(),
+  minRequiredPeaks: z.number().int().min(1).max(4).optional(),
   fitnessPrerequisiteText: z.string().trim().optional(),
   gearItems: z.array(denaliGearItemSchema).optional(),
 });
@@ -154,6 +160,11 @@ const denaliTourCreateObjectSchema = z.object({
   participantRequirements: denaliParticipantRequirementsSchema,
   policies: denaliPoliciesSchema,
   photosData: denaliPhotosSchema,
+  tripDetails: z.object({
+    logistics: z.object({
+      gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
+    }).default({ gatheringPoints: [] }),
+  }).default({ logistics: { gatheringPoints: [] } }),
 });
 
 function rejectZeroAmount(
@@ -205,17 +216,17 @@ export type DenaliCreateTourWizardForm = z.infer<typeof denaliTourCreateBaseSche
 export const DENALI_WIZARD_TEST_DESTINATION_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 export const DENALI_WIZARD_TEST_THEME_ID = "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22";
 
-/** Empty catalog refs — user must pick destination/theme from workspace settings. */
+import { buildDenaliDefaultGatheringPoints } from "@/features/tours/wizard/denali/denaliDefaultGatheringPoints";
 export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm {
   return {
     basicInfo: {
-      title: "abcdefghijabcdefghij",
-      tourType: "mountain_day",
+      title: "",
+      tourType: undefined as unknown as import("@repo/types").DenaliTourKind,
       destinationId: undefined,
-      startDateTime: "2026-06-01T08:00:00.000Z",
+      startDateTime: "",
       endDateTime: undefined,
       capacityMin: undefined,
-      capacityMax: 20,
+      capacityMax: undefined,
       meetingPoint: undefined,
       startPointLocationText: undefined,
       approximateReturnTime: undefined,
@@ -224,35 +235,37 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       localGuideName: undefined,
       requiresManualAdminApproval: false,
       socialMediaLink: undefined,
+      publishStatus: "draft",
     },
     programNature: {
       themeIds: [],
-      shortDescription: "توضیح کوتاه نمونه",
+      shortDescription: undefined,
       longDescription: undefined,
-      difficultyLevel: 5,
-      hikingHoursApprox: 4,
+      difficultyLevel: undefined,
+      hikingHoursApprox: undefined,
       hikingGoHours: undefined,
       hikingReturnHours: undefined,
-      altitudeMeasurement: 4_200,
+      altitudeMeasurement: undefined,
       itinerary: [],
     },
     transport: {
-      transportMode: "organizer_vehicle",
+      transportMode: "none",
       dongAmount: undefined,
       transportNotes: undefined,
     },
     pricingPayment: {
-      requiresPayment: true,
-      basePricePerPerson: 500_000,
-      paymentMode: "offline_receipt",
+      requiresPayment: false,
+      basePricePerPerson: undefined,
+      paymentMode: undefined,
       includesTourInsurance: false,
     },
     participantRequirements: {
-      minimumAge: 18,
+      minimumAge: undefined,
       maximumAge: undefined,
-      fitnessLevel: "medium",
-      nationalIdRequired: true,
-      sportsInsuranceRequired: true,
+      fitnessLevel: undefined,
+      nationalIdRequired: false,
+      sportsInsuranceRequired: false,
+      minRequiredPeaks: undefined,
       fitnessPrerequisiteText: undefined,
       gearItems: [],
     },
@@ -264,6 +277,11 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
     photosData: {
       photos: [],
     },
+    tripDetails: {
+      logistics: {
+        gatheringPoints: buildDenaliDefaultGatheringPoints(),
+      },
+    },
   };
 }
 
@@ -274,11 +292,30 @@ export function buildDenaliTourCreateTestValues(): DenaliCreateTourWizardForm {
     ...base,
     basicInfo: {
       ...base.basicInfo,
+      title: "صعود به قله دماوند - جبهه جنوبی",
       destinationId: DENALI_WIZARD_TEST_DESTINATION_ID,
+      capacityMax: 15,
+      publishStatus: "draft",
     },
     programNature: {
       ...base.programNature,
       themeIds: [DENALI_WIZARD_TEST_THEME_ID],
+      shortDescription: "یک برنامه جذاب برای صعود به بام ایران.",
+      difficultyLevel: 5,
+      hikingHoursApprox: 8,
+      altitudeMeasurement: 5610,
+    },
+    pricingPayment: {
+      ...base.pricingPayment,
+      requiresPayment: true,
+      paymentMode: "offline_receipt",
+      basePricePerPerson: 500_000,
+    },
+    participantRequirements: {
+      ...base.participantRequirements,
+      minimumAge: 18,
+      fitnessLevel: "medium",
+      sportsInsuranceRequired: true,
     },
   };
 }

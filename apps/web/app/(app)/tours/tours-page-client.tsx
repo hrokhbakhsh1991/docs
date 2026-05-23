@@ -19,7 +19,7 @@ export function ToursPageClient() {
     if (!isHydrated || !isAuthenticated || !isLeaderRole(user?.role)) return null;
     return (
       <PageActions>
-        <Button type="button" variant="secondary" onClick={() => router.push("/tours/new")}>
+        <Button type="button" variant="secondary" onClick={() => router.push("/tours/new?new=true")}>
           {CREATE_TOUR_ACTION_LABEL}
         </Button>
       </PageActions>

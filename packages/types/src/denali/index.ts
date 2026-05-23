@@ -13,6 +13,16 @@ export {
 } from "./locationData";
 
 export {
+  EMPTY_GATHERING_PICKUP_STATION,
+  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationIsConcrete,
+  gatheringPickupStationToPersisted,
+  normalizeGatheringPickupStation,
+  normalizeGatheringPickupStations,
+  type DenaliGatheringPickupStation,
+} from "./gatheringPickupStation";
+
+export {
   DENALI_CANONICAL_CATEGORY_VALUES,
   DENALI_CANONICAL_DURATION_VALUES,
   DENALI_CANONICAL_TRANSPORT_MODE_VALUES,

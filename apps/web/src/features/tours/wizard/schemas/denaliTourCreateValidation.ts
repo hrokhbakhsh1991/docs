@@ -27,7 +27,7 @@ export function getDenaliWizardStepSchemaRoot(
     return {
       denali_basic: "basicInfo",
       denali_program: "programNature",
-      denali_transport: "transport",
+      denali_logistics: "transport",
       denali_pricing: "pricingPayment",
       review: null,
     };
@@ -40,7 +40,7 @@ export function getDenaliWizardStepSchemaRoot(
   for (const stepId of [
     "denali_basic",
     "denali_program",
-    "denali_transport",
+    "denali_logistics",
     "denali_pricing",
   ] as const) {
     const pick = getDenaliStepPickShape(model, stepId);

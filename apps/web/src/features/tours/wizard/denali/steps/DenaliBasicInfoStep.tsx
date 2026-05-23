@@ -19,7 +19,7 @@ import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-mem
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { DenaliLocationZonesSection } from "../components/DenaliLocationZoneField";
+import { useDenaliDraftRecovery } from "../DenaliDraftRecoveryContext";
 import { DenaliApproximateReturnTimeField } from "../DenaliApproximateReturnTimeField";
 import { DenaliDatetimeField } from "../DenaliDatetimeField";
 
@@ -31,6 +31,8 @@ export function DenaliBasicInfoStep() {
 
   const { canonicalModel, basicsSelection, ui, updateCanonical, updateCanonicalBasics, resetWizard } =
     useDenaliCanonical();
+
+  const { hasRecoverableDraft, recoverDraft } = useDenaliDraftRecovery();
 
   const showEventVariant = basicsSelection?.category === "event";
   const showEndDateTime = ui.isVisible("denali_basic", "endDateTime");
@@ -45,7 +47,7 @@ export function DenaliBasicInfoStep() {
   };
   const leaderOptions = (crewMembersQuery.data ?? []).map((member) => ({
     id: member.id,
-    name: member.name?.trim() || member.email,
+    name: String(member.name?.trim() || member.email || member.phone || member.id),
     regionId: member.role,
     regionName: crewRoleLabel(member.role),
   }));
@@ -61,6 +63,34 @@ export function DenaliBasicInfoStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-basics">
+      {hasRecoverableDraft ? (
+        <div
+          data-testid="denali-draft-recovery-banner"
+          style={{
+            padding: "0.75rem",
+            background: "var(--color-primary-50, #eff6ff)",
+            border: "1px solid var(--color-primary-200, #bfdbfe)",
+            borderRadius: "0.5rem",
+            fontSize: "0.9rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <span>{t("basic.draftRecoveryNotice")}</span>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={recoverDraft}
+            data-testid="denali-draft-recovery-action"
+          >
+            {t("basic.draftRecoveryAction")}
+          </Button>
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           type="button"
@@ -220,21 +250,6 @@ export function DenaliBasicInfoStep() {
         />
       </FormField>
 
-      <FormField
-        label={t("basic.startPointLocationText")}
-        error={errors.basicInfo?.startPointLocationText?.message}
-      >
-        <Input
-          type="text"
-          placeholder={t("basic.startPointLocationTextPlaceholder")}
-          value={canonicalModel.startPointLocationText ?? ""}
-          onChange={(e) =>
-            updateCanonical({ startPointLocationText: e.target.value || undefined })
-          }
-          data-testid="denali-basics-start-point"
-        />
-      </FormField>
-
       <DenaliApproximateReturnTimeField label={t("basic.approximateReturnTime")} />
 
       <FormField label="لینک یا آیدی شبکه اجتماعی برنامه" error={errors.basicInfo?.socialMediaLink?.message}>
@@ -255,8 +270,6 @@ export function DenaliBasicInfoStep() {
           onChange={(e) => updateCanonical({ meetingPoint: e.target.value || undefined })}
         />
       </FormField>
-
-      <DenaliLocationZonesSection />
 
       <Checkbox
         label={t("basic.requiresManualAdminApproval")}

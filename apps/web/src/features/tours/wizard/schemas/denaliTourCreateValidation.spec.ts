@@ -24,7 +24,7 @@ test("getDenaliWizardStepIssues: transport step catches missing dong", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = undefined;
-  const issues = getDenaliWizardStepIssues(form, "denali_transport");
+  const issues = getDenaliWizardStepIssues(form, "denali_logistics");
   assert.ok(issues.some((i) => i.path.join(".") === "transport.dongAmount"));
 });
 

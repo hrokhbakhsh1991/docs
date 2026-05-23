@@ -67,7 +67,16 @@ function assertNoIssue(issues: { path: any[] }[], path: string): void {
 }
 
 function mountainForm(): ReturnType<typeof buildDenaliTourCreateDefaultValues> {
-  return buildDenaliTourCreateDefaultValues();
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.title = "Valid Mountain Title";
+  form.basicInfo.capacityMax = 10;
+  form.programNature.shortDescription = "Valid Description";
+  form.programNature.difficultyLevel = 5;
+  form.participantRequirements.minimumAge = 18;
+  form.participantRequirements.fitnessLevel = "medium";
+  form.participantRequirements.sportsInsuranceRequired = true;
+  form.programNature.altitudeMeasurement = 4000;
+  return form;
 }
 
 // --- Mountain participant requirements (submit_only) ---
@@ -214,7 +223,7 @@ test("transport step: shared_cars missing dong blocks step advance", () => {
   const form = mountainForm();
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = undefined;
-  const issues = getDenaliWizardStepIssues(form, "denali_transport");
+  const issues = getDenaliWizardStepIssues(form, "denali_logistics");
   assertHasIssue(issues, "transport.dongAmount");
 });
 
@@ -294,7 +303,7 @@ test("ui.isVisible: transport.dongAmount when shared_cars or bus+allowPersonalCa
 
   form.transport.transportMode = "shared_cars";
   assert.equal(
-    (ui as any).isVisible("denali_transport", "transport.dongAmount", form),
+    (ui as any).isVisible("denali_logistics", "transport.dongAmount", form),
     true,
     "dong row shown for shared_cars",
   );
@@ -302,7 +311,7 @@ test("ui.isVisible: transport.dongAmount when shared_cars or bus+allowPersonalCa
   form.transport.transportMode = "bus";
   form.transport.allowPersonalCar = true;
   assert.equal(
-    (ui as any).isVisible("denali_transport", "transport.dongAmount", form),
+    (ui as any).isVisible("denali_logistics", "transport.dongAmount", form),
     true,
     "dong row shown for bus + personal car",
   );
@@ -310,7 +319,7 @@ test("ui.isVisible: transport.dongAmount when shared_cars or bus+allowPersonalCa
   form.transport.transportMode = "organizer_vehicle";
   form.transport.allowPersonalCar = undefined;
   assert.equal(
-    (ui as any).isVisible("denali_transport", "transport.dongAmount", form),
+    (ui as any).isVisible("denali_logistics", "transport.dongAmount", form),
     false,
     "dong row hidden otherwise",
   );

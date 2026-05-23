@@ -1,7 +1,9 @@
 import {
   denaliLocationFromApi,
+  gatheringPickupStationIsConcrete,
   isDenaliEventTourKind,
   isDenaliTourKind,
+  normalizeGatheringPickupStations,
   type TourTripDetails,
 } from "@repo/types";
 
@@ -151,13 +153,8 @@ export function checkDenaliPilotTripDetails(
   return null;
 }
 
-const DENALI_PUBLISH_REQUIRED_GEO_ZONES = ["gatheringPoint", "startPoint"] as const;
-
-function denaliPublishLocationIsConcrete(
-  overview: Record<string, unknown> | undefined,
-  zoneKey: (typeof DENALI_PUBLISH_REQUIRED_GEO_ZONES)[number],
-): boolean {
-  const loc = denaliLocationFromApi(overview?.[zoneKey]);
+function isLocationConcrete(locRaw: unknown): boolean {
+  const loc = denaliLocationFromApi(locRaw);
   if (loc == null) {
     return false;
   }
@@ -179,13 +176,32 @@ export function checkDenaliPilotPublishGeolocationZones(
   tripDetails: TourTripDetails | null | undefined,
 ): WorkspaceInvariantViolation | null {
   const overview = tripDetails?.overview as Record<string, unknown> | undefined;
-  for (const zoneKey of DENALI_PUBLISH_REQUIRED_GEO_ZONES) {
-    if (!denaliPublishLocationIsConcrete(overview, zoneKey)) {
-      return {
-        code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
-        message: `overview.${zoneKey} must include non-empty addressText and finite latitude/longitude for denali_pilot publish.`,
-      };
-    }
+  const logistics = tripDetails?.logistics as Record<string, unknown> | undefined;
+
+  const gatheringPoints = normalizeGatheringPickupStations(logistics?.gatheringPoints);
+  if (gatheringPoints.length === 0) {
+    return {
+      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      message: "logistics.gatheringPoints must include at least one station for denali_pilot publish.",
+    };
   }
+
+  const incompleteStation = gatheringPoints.find((station) => !gatheringPickupStationIsConcrete(station));
+  if (incompleteStation) {
+    return {
+      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      message:
+        "Each logistics.gatheringPoints station must have title, non-empty addressText, and finite latitude/longitude for denali_pilot publish.",
+    };
+  }
+
+  if (!isLocationConcrete(overview?.startPoint)) {
+    return {
+      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      message:
+        "overview.startPoint must include non-empty addressText and finite latitude/longitude for denali_pilot publish.",
+    };
+  }
+
   return null;
 }

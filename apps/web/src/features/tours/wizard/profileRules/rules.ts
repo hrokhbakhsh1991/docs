@@ -113,13 +113,17 @@ const BASE_FIELD_RULES: readonly FieldRule[] = [
   // ------------------------------------------------------------- schedule_location
   fieldRule("schedule.startDate", { step: "location", group: "schedule_location" }),
   fieldRule("schedule.endDate", { step: "location", group: "schedule_location" }),
-  fieldRule("schedule.departureMeetingTime", { step: "location", group: "schedule_location" }),
-  fieldRule("schedule.returnMeetingTime", { step: "location", group: "schedule_location" }),
+  /** @deprecated Favor logistics.gatheringPoints stations. */
+  fieldRule("schedule.departureMeetingTime", { step: "location", group: "schedule_location", visibility: "hidden" }),
+  /** @deprecated Favor logistics.gatheringPoints stations. */
+  fieldRule("schedule.returnMeetingTime", { step: "location", group: "schedule_location", visibility: "hidden" }),
   fieldRule("location.regionId", { step: "location", group: "schedule_location" }),
   fieldRule("location.mainDestinationId", { step: "location", group: "schedule_location" }),
   fieldRule("location.secondaryDestinationIds", { step: "location", group: "schedule_location" }),
-  fieldRule("location.meetingPoint", { step: "location", group: "schedule_location" }),
-  fieldRule("location.returnPoint", { step: "location", group: "schedule_location" }),
+  /** @deprecated Favor logistics.gatheringPoints stations. */
+  fieldRule("location.meetingPoint", { step: "location", group: "schedule_location", visibility: "hidden" }),
+  /** @deprecated Favor logistics.gatheringPoints stations. */
+  fieldRule("location.returnPoint", { step: "location", group: "schedule_location", visibility: "hidden" }),
   fieldRule("location.displayLocation", { step: "location", group: "schedule_location" }),
 
   // ------------------------------------------------------------- itinerary
@@ -132,8 +136,13 @@ const BASE_FIELD_RULES: readonly FieldRule[] = [
 
   // ------------------------------------------------------------- logistics
   fieldRule("logistics.primaryTransportMode", { required: "required", step: "logistics", group: "logistics" }),
+  fieldRule("logistics.gatheringPoints", { step: "logistics", group: "logistics" }),
   ...logisticsKeys().map((k) =>
-    fieldRule(`logistics.${k}`, { step: "logistics", group: "logistics" }),
+    fieldRule(`logistics.${k}`, {
+      step: "logistics",
+      group: "logistics",
+      visibility: k === "meetingPointDetails" ? "hidden" : "active",
+    }),
   ),
   // legacy: group-size lives on the logistics root but is edited via the `capacity` step.
   fieldRule("logistics.groupSizeMin", { step: "capacity", group: "logistics" }),

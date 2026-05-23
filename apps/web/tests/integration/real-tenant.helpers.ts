@@ -359,6 +359,14 @@ export async function seedWizardDraft(
   );
 }
 
+/** Opt-in restore after Denali wizard stopped auto-applying local/server drafts on load. */
+export async function recoverDenaliWizardDraftIfPresent(page: Page): Promise<void> {
+  const recoveryAction = page.getByTestId("denali-draft-recovery-action");
+  if (await recoveryAction.isVisible().catch(() => false)) {
+    await recoveryAction.click();
+  }
+}
+
 export function buildMountainSubmitDraftJson(
   location: LocationIds,
   titleSuffix: string,

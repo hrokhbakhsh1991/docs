@@ -229,7 +229,7 @@ export function ToursListView() {
             }
             action={
               leaderToolbar ? (
-                <Button type="button" variant="primary" onClick={() => router.push("/tours/new")}>
+                <Button type="button" variant="primary" onClick={() => router.push("/tours/new?new=true")}>
                   {CREATE_TOUR_ACTION_LABEL}
                 </Button>
               ) : undefined

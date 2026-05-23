@@ -16,16 +16,16 @@ test("ui: transportCost visible for organized modes not shared_cars", () => {
   const ui = getDenaliUIFromForm(form);
 
   form.transport.transportMode = "bus";
-  assert.equal(ui.isVisible("denali_transport", "transport.transportCost", form), true);
+  assert.equal(ui.isVisible("denali_logistics", "transport.transportCost", form), true);
 
   form.transport.transportMode = "train";
-  assert.equal(ui.isVisible("denali_transport", "transport.transportCost", form), true);
+  assert.equal(ui.isVisible("denali_logistics", "transport.transportCost", form), true);
 
   form.transport.transportMode = "shared_cars";
-  assert.equal(ui.isVisible("denali_transport", "transport.transportCost", form), false);
+  assert.equal(ui.isVisible("denali_logistics", "transport.transportCost", form), false);
 
   form.transport.transportMode = "none";
-  assert.equal(ui.isVisible("denali_transport", "transport.transportCost", form), false);
+  assert.equal(ui.isVisible("denali_logistics", "transport.transportCost", form), false);
 });
 
 test("ui: allowPersonalCar visible only for bus, minibus, or train", () => {
@@ -34,25 +34,25 @@ test("ui: allowPersonalCar visible only for bus, minibus, or train", () => {
 
   form.transport.transportMode = "bus";
   assert.equal(
-    ui.isVisible("denali_transport", "transport.allowPersonalCar", form),
+    ui.isVisible("denali_logistics", "transport.allowPersonalCar", form),
     true,
   );
 
   form.transport.transportMode = "minibus";
   assert.equal(
-    ui.isVisible("denali_transport", "transport.allowPersonalCar", form),
+    ui.isVisible("denali_logistics", "transport.allowPersonalCar", form),
     true,
   );
 
   form.transport.transportMode = "train";
   assert.equal(
-    ui.isVisible("denali_transport", "transport.allowPersonalCar", form),
+    ui.isVisible("denali_logistics", "transport.allowPersonalCar", form),
     true,
   );
 
   form.transport.transportMode = "organizer_vehicle";
   assert.equal(
-    ui.isVisible("denali_transport", "transport.allowPersonalCar", form),
+    ui.isVisible("denali_logistics", "transport.allowPersonalCar", form),
     false,
   );
 });
@@ -63,10 +63,10 @@ test("ui: dongAmount visible for bus when allowPersonalCar checked", () => {
 
   form.transport.transportMode = "bus";
   form.transport.allowPersonalCar = undefined;
-  assert.equal(ui.isVisible("denali_transport", "transport.dongAmount", form), false);
+  assert.equal(ui.isVisible("denali_logistics", "transport.dongAmount", form), false);
 
   form.transport.allowPersonalCar = true;
-  assert.equal(ui.isVisible("denali_transport", "transport.dongAmount", form), true);
+  assert.equal(ui.isVisible("denali_logistics", "transport.dongAmount", form), true);
 });
 
 test("submit: bus + allowPersonalCar requires dongAmount", () => {
@@ -95,7 +95,7 @@ test("transport step: bus + allowPersonalCar missing dong blocks step", () => {
   form.transport.allowPersonalCar = true;
   form.transport.dongAmount = undefined;
 
-  const issues = getDenaliWizardStepIssues(form, "denali_transport");
+  const issues = getDenaliWizardStepIssues(form, "denali_logistics");
   assert.ok(issues.some((i) => i.path.join(".") === "transport.dongAmount"));
 });
 

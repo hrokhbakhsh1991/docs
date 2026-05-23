@@ -7,9 +7,10 @@ export {
 } from "./rules";
 export { DenaliCanonicalProvider, useDenaliCanonical } from "./DenaliCanonicalContext";
 export { DenaliWizardSyncProvider, useDenaliWizardSync } from "./DenaliWizardSyncContext";
+export { DenaliDraftRecoveryProvider, useDenaliDraftRecovery } from "./DenaliDraftRecoveryContext";
 export { DenaliBasicInfoStep } from "./steps/DenaliBasicInfoStep";
 export { DenaliProgramNatureStep } from "./steps/DenaliProgramNatureStep";
-export { DenaliTransportStep } from "./steps/DenaliTransportStep";
+export { DenaliLogisticsStep } from "./steps/DenaliLogisticsStep";
 export { DenaliPricingPaymentStep } from "./steps/DenaliPricingPaymentStep";
 export { DenaliReviewStep } from "./steps/DenaliReviewStep";
 export { DenaliPhotosStep } from "./steps/DenaliPhotosStep";

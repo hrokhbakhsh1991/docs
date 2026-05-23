@@ -101,7 +101,7 @@ const EXPECTED: Readonly<
         "logistics.leaderProvidesInsurance",
         "logistics.mealNotes",
         "logistics.mealPlan",
-        "logistics.meetingPointDetails",
+        "logistics.gatheringPoints",
         "logistics.optionalServices",
         "logistics.primaryTransportMode",
         "logistics.supplementalPrivateCar",

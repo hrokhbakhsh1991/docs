@@ -9,7 +9,7 @@ test("denaliWizardSteps: MVP 6-step rail", () => {
   assert.deepEqual([...denaliWizardSteps], [
     "denali_basic",
     "denali_program",
-    "denali_transport",
+    "denali_logistics",
     "denali_pricing",
     "denali_photos",
     "review",
