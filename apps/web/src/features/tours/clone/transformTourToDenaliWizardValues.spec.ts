@@ -119,8 +119,8 @@ test("transformTourToDenaliWizardValues maps 5-zone locations from overview and 
       },
     }),
   );
-  assert.equal(form.basicInfo?.gatheringPoint?.addressText, "Tehran Azadi");
-  assert.equal(form.basicInfo?.gatheringPoint?.latitude, 35.7);
+  assert.equal(form.tripDetails?.logistics?.gatheringPoints?.[0]?.title, "Tehran Azadi");
+  assert.equal(form.tripDetails?.logistics?.gatheringPoints?.[0]?.location?.latitude, 35.7);
   assert.equal(form.basicInfo?.startPoint?.addressText, "Rineh trailhead");
   assert.equal(form.basicInfo?.summitPoint?.addressText, "Damavand summit");
   assert.equal(form.basicInfo?.endPoint?.addressText, "Tehran drop-off");
@@ -152,7 +152,7 @@ test("transformTourToDenaliWizardValues preserves itinerary day location pin on 
   assert.equal(row?.location?.longitude, 52.1);
 });
 
-test("transformTourToDenaliWizardValues preserves itinerary day photos on multi-day clone", () => {
+test("transformTourToDenaliWizardValues remints itinerary day photo ids on multi-day clone", () => {
   const photoId = "c1eebc99-9c0b-4ef8-bb6d-6bb9bd380c33";
   const api = makeApiTour();
   const td = api.details!.tripDetails as Record<string, unknown>;
@@ -183,7 +183,7 @@ test("transformTourToDenaliWizardValues preserves itinerary day photos on multi-
   assert.equal(form.basicInfo?.tourType, "mountain_multi");
   const row = form.programNature?.itinerary?.[0];
   assert.equal(row?.photos?.length, 1);
-  assert.equal(row?.photos?.[0]?.id, photoId);
+  assert.notEqual(row?.photos?.[0]?.id, photoId);
   assert.equal(row?.photos?.[0]?.url, "https://example.com/day1.jpg");
 });
 
@@ -218,6 +218,9 @@ test("transformTourToDenaliWizardValues reads itinerary.days and trip-level phot
   assert.equal(form.programNature?.itinerary?.[0]?.day, 2);
   assert.equal(form.programNature?.itinerary?.[0]?.location?.addressText, "Lake camp");
   assert.equal(form.photosData?.photos?.length, 1);
+  const gallerySourceId = "d1eebc99-9c0b-4ef8-bb6d-6bb9bd380d44";
+  assert.notEqual(form.photosData?.photos?.[0]?.id, gallerySourceId);
+  assert.equal(form.photosData?.photos?.[0]?.url, "https://example.com/gallery.jpg");
 });
 
 test("transformTourToDenaliWizardValues maps segmentActivities locationName fallback", () => {
@@ -260,7 +263,7 @@ test("should successfully transform legacy minimal tours with completely empty p
 
   assert.equal(typeof form.basicInfo?.title, "string");
   assert.equal(form.basicInfo?.tourType, "mountain_day");
-  assert.equal(form.basicInfo?.gatheringPoint, undefined);
+  assert.equal(form.tripDetails?.logistics?.gatheringPoints?.length ?? 0, 0);
   assert.equal(form.basicInfo?.startPoint, undefined);
   assert.equal(form.basicInfo?.summitPoint, undefined);
   assert.equal(form.programNature?.itinerary, undefined);
@@ -279,4 +282,26 @@ test("transformTourToDenaliWizardValues forbids difficulty carry for event kinds
   const form = transformTourToDenaliWizardValues(api);
   assert.equal(form.basicInfo?.tourType, "event_cinema");
   assert.equal(form.programNature?.difficultyLevel, undefined);
+});
+
+test("transformTourToDenaliWizardValues maps participation gear ids to gearItems", () => {
+  const reqId = "11111111-1111-4111-8111-111111111111";
+  const optId = "22222222-2222-4222-8222-222222222222";
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.participation = {
+    ...(td.participation as Record<string, unknown>),
+    gearRequiredIds: [reqId],
+    gearOptionalIds: [optId],
+  };
+  const form = transformTourToDenaliWizardValues(api);
+  assert.deepEqual(form.participantRequirements?.gearItems, [
+    { id: reqId, isRequired: true },
+    { id: optId, isRequired: false },
+  ]);
+});
+
+test("transformTourToDenaliWizardValues defaults gearItems to empty array when participation has no gear", () => {
+  const form = transformTourToDenaliWizardValues(makeApiTour());
+  assert.deepEqual(form.participantRequirements?.gearItems, []);
 });

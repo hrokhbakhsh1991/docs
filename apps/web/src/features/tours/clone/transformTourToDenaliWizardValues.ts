@@ -5,11 +5,17 @@ import {
   type DenaliTourKind,
 } from "@repo/types";
 import {
+  gatheringPickupStationFromLegacyLocation,
+  normalizeGatheringPickupStations,
+} from "@repo/types";
+import {
   denaliLocationFromApi,
   denaliLocationFromText,
   type DenaliLocationData,
 } from "@repo/types/denali";
 
+import { readTourMinRequiredPeaks } from "@/features/tours/domain/peak-experience";
+import { gearCatalogIdsToGearItems } from "@/features/tours/wizard/denali/denaliGearSelection";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { combineYmdAndTimeToIso } from "@/features/tours/wizard/denali/denaliDatetime";
@@ -76,6 +82,13 @@ function parseHikingGoReturnFromProgramNotes(notes: unknown): {
   return { hikingGoHours, hikingReturnHours };
 }
 
+function remintClonePhotoId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function mapDayPlanPhotos(
   raw: unknown,
 ): Array<{
@@ -91,11 +104,10 @@ function mapDayPlanPhotos(
     .filter((p) => p && typeof p === "object")
     .map((p) => {
       const row = p as Record<string, unknown>;
-      const id = typeof row.id === "string" ? row.id.trim() : "";
       const url = typeof row.url === "string" ? row.url.trim() : "";
-      if (!id || !url) return null;
+      if (!url) return null;
       return {
-        id,
+        id: remintClonePhotoId(),
         url,
         ...(typeof row.filename === "string" ? { filename: row.filename } : {}),
         ...(typeof row.size === "number" ? { size: row.size } : {}),
@@ -342,6 +354,26 @@ export function transformTourToDenaliWizardValues(
   const localGuideName = localGuideNameFromOverview(overview);
   const locations = resolveCloneLocationZones(overview, logistics);
 
+  const rawGps = logistics.gatheringPoints;
+  let gatheringPointsMapped = normalizeGatheringPickupStations(rawGps).map((station) => ({
+    ...station,
+    id: station.id ?? remintClonePhotoId(),
+  }));
+  if (gatheringPointsMapped.length === 0 && locations.gatheringPoint) {
+    gatheringPointsMapped = [
+      {
+        ...gatheringPickupStationFromLegacyLocation(locations.gatheringPoint),
+        id: remintClonePhotoId(),
+      },
+    ];
+  }
+
+  const gearItems =
+    gearCatalogIdsToGearItems(
+      stringArray(participation.gearRequiredIds),
+      stringArray(participation.gearOptionalIds),
+    ) ?? [];
+
   return normalizeDenaliWizardForm({
     basicInfo: {
       title: strOrEmpty(apiTour.title),
@@ -358,13 +390,16 @@ export function transformTourToDenaliWizardValues(
       capacityMax: numberOrUndefined(logistics.groupSizeMax) ?? 1,
       meetingPoint: locations.meetingPoint,
       startPointLocationText: locations.startPointLocationText,
-      ...(locations.gatheringPoint ? { gatheringPoint: locations.gatheringPoint } : {}),
       ...(locations.startPoint ? { startPoint: locations.startPoint } : {}),
       ...(locations.summitPoint ? { summitPoint: locations.summitPoint } : {}),
       ...(locations.campPoint ? { campPoint: locations.campPoint } : {}),
       ...(locations.endPoint ? { endPoint: locations.endPoint } : {}),
       approximateReturnTime,
       requiresManualAdminApproval: apiTour.autoAcceptRegistrations === false,
+      publishStatus:
+        apiTour.lifecycleStatus === "OPEN" || apiTour.lifecycleStatus === "open"
+          ? "active"
+          : "draft",
       socialMediaLink: chatLink,
     },
     programNature: {
@@ -391,12 +426,19 @@ export function transformTourToDenaliWizardValues(
       fitnessLevel: LEGACY_FITNESS_TO_DENALI[fitnessLegacy],
       nationalIdRequired: participation.registrationNationalIdRequired !== false,
       sportsInsuranceRequired: participation.sportsInsuranceRequired === true,
+      minRequiredPeaks: readTourMinRequiredPeaks(tripDetails as Record<string, unknown>),
       fitnessPrerequisiteText:
         strOrEmpty(participation.fitnessPrerequisiteText) || undefined,
+      gearItems,
     },
     policies: {
       policiesText: strOrEmpty(policies.cancellationPolicy) || undefined,
     },
     photosData: tourPhotos != null ? { photos: tourPhotos as DenaliCreateTourWizardForm["photosData"]["photos"] } : {},
+    tripDetails: {
+      logistics: {
+        gatheringPoints: gatheringPointsMapped as any,
+      },
+    },
   });
 }
