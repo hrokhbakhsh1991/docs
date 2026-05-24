@@ -180,7 +180,7 @@ export function DenaliGearSection() {
           }}
           data-testid="denali-gear-list"
         >
-          {displayEquipment.map((item) => {
+          {displayEquipment.map((item, index) => {
             const equipmentId = item.id.trim();
             const selected = selectedById.get(equipmentId);
             const isIncluded = selected != null;
@@ -245,7 +245,7 @@ export function DenaliGearSection() {
 
             return (
               <div
-                key={item.id}
+                key={`${item.id}-${index}`}
                 onClick={() => handleIncludeChange(equipmentId, !isIncluded)}
                 style={activeStyle}
                 data-testid={`denali-gear-pill-${item.slug}`}

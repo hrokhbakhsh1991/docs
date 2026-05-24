@@ -1,4 +1,5 @@
 import type { TourFormProfile } from "@repo/types";
+import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 import {
   Column,
   CreateDateColumn,
@@ -25,11 +26,20 @@ export class WorkspaceTourWizardTemplateEntity {
   @Column({ name: "base_profile", type: "varchar", length: 32, default: "general" })
   baseProfile!: TourFormProfile;
 
+  /** @deprecated Denali uses {@link canonicalData} only; kept empty for schema compatibility. */
   @Column({ name: "step_overrides", type: "jsonb", default: () => `'{"skip":[],"insert":[]}'` })
   stepOverrides!: WorkspaceTourWizardStepOverrides;
 
+  /** @deprecated Denali uses {@link canonicalData} only; kept empty for schema compatibility. */
   @Column({ name: "field_rules_overlay", type: "jsonb", default: () => `'{}'` })
   fieldRulesOverlay!: Record<string, unknown>;
+
+  /**
+   * Partial {@link DenaliCanonicalTourModel} workspace seed (JSONB).
+   * Hydrated in the Denali wizard via the same rule-engine path as saved drafts.
+   */
+  @Column({ name: "canonical_data", type: "jsonb", default: () => `'{}'` })
+  canonicalData!: DenaliCanonicalTemplateData;
 
   @Column({ name: "preset_id", type: "uuid", nullable: true })
   presetId!: string | null;

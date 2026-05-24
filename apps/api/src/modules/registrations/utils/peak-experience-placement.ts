@@ -1,3 +1,5 @@
+import { BadRequestException } from "@nestjs/common";
+
 import type { TourTripDetails } from "../../tours/types/tour-trip-details.types";
 
 export type ParticipantMetadataIntake = {
@@ -52,4 +54,29 @@ export function qualifiesForPeakExperienceAutoApproval(input: {
     return false;
   }
   return userPeaks >= minRequired;
+}
+
+/**
+ * Hard gate: when the tour sets `requirements.minRequiredPeaks`, registration is rejected
+ * unless the traveler reports sufficient past peaks in `participantMetadata`.
+ */
+export function assertTravelerMeetsPeakRequirementOrThrow(
+  tripDetails: TourTripDetails | Record<string, unknown> | null | undefined,
+  participantMetadata?: ParticipantMetadataIntake | null,
+): void {
+  const minRequired = readTourMinRequiredPeaks(tripDetails);
+  if (minRequired == null) {
+    return;
+  }
+
+  const userPeaks = readUserPastPeaksCount(participantMetadata);
+  if (userPeaks == null || userPeaks < minRequired) {
+    throw new BadRequestException({
+      error: {
+        code: "PEAK_REQUIREMENT_NOT_MET",
+        message:
+          "Traveler past peak count does not meet this tour's minimum requirement.",
+      },
+    });
+  }
 }

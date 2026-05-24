@@ -113,6 +113,25 @@
       "invalidGuideLanguageIdsTenant": "برخی از زبان‌های راهنما دیگر در این ورک‌اسپیس وجود ندارند. لطفاً زبان‌های راهنما را بررسی و به‌روزرسانی کنید.",
       "genericInvalidCatalogTenant": "برخی از تنظیمات این تور دیگر معتبر نیستند. لطفاً مقادیر انتخاب‌شده را بررسی کنید."
     },
+    "form": {
+      "validationSummaryTitle": "لطفاً خطاهای زیر را برطرف کنید",
+      "validationSummaryIntro": "تا رفع موارد زیر، ذخیره‌سازی ممکن نیست:",
+      "couldNotSaveTitle": "ذخیره ناموفق بود",
+      "communicationLink": "لینک ارتباطی",
+      "destination": "مقصد",
+      "gatheringPoints": "ایستگاه‌های تجمع",
+      "gatheringPointIndex": "ایستگاه تجمع {index}",
+      "minRequiredPeaks": "حداقل قله‌های صعودشده (تایید خودکار)",
+      "unknownField": "فیلد ({path})",
+      "regionId": "منطقه",
+      "mainDestinationId": "مقصد اصلی",
+      "secondaryDestinationIdsRaw": "مقصدهای فرعی",
+      "displayLocationOverride": "مکان نمایشی",
+      "cancel": "انصراف",
+      "saving": "در حال ذخیره…",
+      "saveChanges": "ذخیره تغییرات",
+      "saveFailed": "ذخیره ناموفق بود. دوباره تلاش کنید."
+    },
     "denali": {
       "selectPlaceholder": "انتخاب کنید…",
       "datetimeOptionalHint": "اختیاری — برای تورهای تک‌روزه",
@@ -324,6 +343,10 @@
         "safety": "نکات ایمنی",
         "weather": "سیاست آب‌وهوا"
       },
+      "draftHydration": {
+        "loadDraft": "بارگذاری پیش‌نویس ذخیره‌شده",
+        "clearDraft": "حذف پیش‌نویس"
+      },
       "review": {
         "capacity": "ظرفیت",
         "dailyItinerary": "برنامه روزانه",
@@ -337,6 +360,10 @@
         "no": "خیر",
         "submit": "ثبت نهایی تور",
         "submitPhase5Hint": "ثبت نهایی پس از تکمیل mapper (فاز ۵) فعال می‌شود."
+      },
+      "edit": {
+        "pageTitle": "ویرایش تور",
+        "pageDescription": "فیلدهای تور را مطابق ویزارد Denali ویرایش کنید؛ تغییرات با PATCH ذخیره می‌شوند."
       }
     },
     "new": {
@@ -620,6 +647,7 @@
       "viewDetails": "جزئیات",
       "duplicate": "کپی تور"
     },
+    "detail_equipment": "تجهیزات",
     "detail_requiredEquipment": "تجهیزات الزامی",
     "detail_optionalEquipment": "تجهیزات پیشنهادی",
     "detail_equipmentLoadError": "نام تجهیزات بارگذاری نشد.",
@@ -665,6 +693,23 @@
     "detail_safetyPolicyLabel": "ایمنی",
     "detail_weatherPolicyLabel": "آب‌وهوا",
     "detail_reservationRulesLabel": "ریسک و رزرو",
+    "detail_locked_title": "محتوای محدود",
+    "detail_locked_heading_exclusive": "جزئیات اختصاصی تور",
+    "detail_locked_heading_gps_soon": "لوکیشن ۴۸ ساعت قبل از سفر فعال می‌شود",
+    "detail_locked_body_guest": "این اطلاعات پس از ثبت‌نام و تأیید رزرو شما قابل مشاهده خواهد بود. مختصات دقیق محل تجمع برای شرکت‌کنندگان تأییدشده، ۴۸ ساعت مانده به سفر فعال می‌شود.",
+    "detail_locked_body_gps": "نقاط دقیق تجمع و مختصات GPS برای شرکت‌کنندگان تأییدشده، ۴۸ ساعت قبل از حرکت فعال می‌شود.",
+    "detail_locked_gps_countdown": "فعال‌سازی تا {remaining}",
+    "detail_locked_gps_unlock_at": "از {time} در دسترس است",
+    "detail_locked_register_cta": "ثبت‌نام در این تور",
+    "detail_locked_itinerary_title": "برنامه روزبه‌روز",
+    "detail_locked_program_notes_title": "یادداشت برنامه",
+    "detail_locked_gathering_title": "محل تجمع و مختصات",
+    "detail_locked_itinerary": "مسیر روزبه‌روز پس از تأیید ثبت‌نام شما در دسترس است.",
+    "detail_locked_gps": "مختصات دقیق محل تجمع برای شرکت‌کنندگان تأییدشده، نزدیک زمان حرکت باز می‌شود.",
+    "detail_locked_gps_with_time": "مختصات دقیق در {time} در دسترس می‌شود.",
+    "detail_locked_logistics": "جزئیات محل تجمع و یادداشت‌های حمل‌ونقل پس از رزرو نمایش داده می‌شود.",
+    "detail_locked_participation": "شرایط شرکت پس از تأیید ثبت‌نام شما نمایش داده می‌شود.",
+    "detail_locked_policies": "سیاست‌های کامل لغو و ایمنی پس از رزرو در دسترس است.",
     "detail_currencyToman": "تومان"
   },
   "settings": {
@@ -1326,6 +1371,7 @@
     "guideLanguagesValidationName": "نام را وارد کنید.",
     "guideLanguagesValidationSlug": "اسلاگ را وارد کنید.",
     "guideLanguagesValidationSortOrder": "ترتیب باید عدد باشد.",
+    "detail_equipment": "تجهیزات",
     "detail_requiredEquipment": "تجهیزات الزامی",
     "detail_optionalEquipment": "تجهیزات پیشنهادی",
     "detail_equipmentLoadError": "نام تجهیزات بارگذاری نشد.",
@@ -1370,6 +1416,23 @@
     "detail_safetyPolicyLabel": "ایمنی",
     "detail_weatherPolicyLabel": "آب‌وهوا",
     "detail_reservationRulesLabel": "ریسک و رزرو",
+    "detail_locked_title": "محتوای محدود",
+    "detail_locked_heading_exclusive": "جزئیات اختصاصی تور",
+    "detail_locked_heading_gps_soon": "لوکیشن ۴۸ ساعت قبل از سفر فعال می‌شود",
+    "detail_locked_body_guest": "این اطلاعات پس از ثبت‌نام و تأیید رزرو شما قابل مشاهده خواهد بود. مختصات دقیق محل تجمع برای شرکت‌کنندگان تأییدشده، ۴۸ ساعت مانده به سفر فعال می‌شود.",
+    "detail_locked_body_gps": "نقاط دقیق تجمع و مختصات GPS برای شرکت‌کنندگان تأییدشده، ۴۸ ساعت قبل از حرکت فعال می‌شود.",
+    "detail_locked_gps_countdown": "فعال‌سازی تا {remaining}",
+    "detail_locked_gps_unlock_at": "از {time} در دسترس است",
+    "detail_locked_register_cta": "ثبت‌نام در این تور",
+    "detail_locked_itinerary_title": "برنامه روزبه‌روز",
+    "detail_locked_program_notes_title": "یادداشت برنامه",
+    "detail_locked_gathering_title": "محل تجمع و مختصات",
+    "detail_locked_itinerary": "مسیر روزبه‌روز پس از تأیید ثبت‌نام شما در دسترس است.",
+    "detail_locked_gps": "مختصات دقیق محل تجمع برای شرکت‌کنندگان تأییدشده، نزدیک زمان حرکت باز می‌شود.",
+    "detail_locked_gps_with_time": "مختصات دقیق در {time} در دسترس می‌شود.",
+    "detail_locked_logistics": "جزئیات محل تجمع و یادداشت‌های حمل‌ونقل پس از رزرو نمایش داده می‌شود.",
+    "detail_locked_participation": "شرایط شرکت پس از تأیید ثبت‌نام شما نمایش داده می‌شود.",
+    "detail_locked_policies": "سیاست‌های کامل لغو و ایمنی پس از رزرو در دسترس است.",
     "tourFormDefaults_equipmentLoading": "در حال بارگذاری فهرست تجهیزات…",
     "tourFormDefaults_equipmentLoadError": "بارگذاری تجهیزات ناموفق بود.",
     "tourFormDefaults_equipmentEmptyCatalog": "در تنظیمات → تجهیزات هنوز آیتم فعالی نیست؛ برای قالب کوهنوردی ابتدا تجهیزات (کرامپون، کوله، سرماگرم و غیره) را در همان بخش تعریف کنید.",

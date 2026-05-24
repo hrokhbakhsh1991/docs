@@ -8,19 +8,19 @@ export class MakeUserEmailTrulyNullable1777600500000 implements MigrationInterfa
   name = "MakeUserEmailTrulyNullable1777600500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      UPDATE "users"
-      SET "email" = NULL
-      WHERE "email" IS NOT NULL
-        AND LOWER(TRIM("email")) LIKE '%@local.invalid'
-    `);
-
     await queryRunner.query(`DROP INDEX IF EXISTS "public"."uq_users_email"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "uq_users_email"`);
 
     await queryRunner.query(`
       ALTER TABLE "users"
       ALTER COLUMN "email" DROP NOT NULL
+    `);
+
+    await queryRunner.query(`
+      UPDATE "users"
+      SET "email" = NULL
+      WHERE "email" IS NOT NULL
+        AND LOWER(TRIM("email")) LIKE '%@local.invalid'
     `);
 
     await queryRunner.query(`

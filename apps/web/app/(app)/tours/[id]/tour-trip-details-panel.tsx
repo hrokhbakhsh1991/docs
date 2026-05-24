@@ -1,21 +1,29 @@
 "use client";
 
-import type { TourDto } from "@repo/types";
+import type { TourDetailAccessLevel, TourDetailViewHints, TourDto } from "@repo/types";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { Card, CardBody, CardHeader, CardTitle } from "@tour/ui";
 
 import {
+  TourDetailLockedContent,
+  type TourDetailLockedReason,
+  type TourDetailLockedVariant,
+} from "@/components/tours/TourDetailLockedContent";
+import {
   labelExperienceLevel,
   labelFitnessLevel,
   labelGenderRestriction,
 } from "@/components/tours/wizard/participationLabels";
-
 import styles from "./tour-detail-client.module.css";
 
 type Props = {
   tour: TourDto;
+  accessLevel?: TourDetailAccessLevel;
+  viewHints?: TourDetailViewHints;
+  showRegister?: boolean;
+  onRegister?: () => void;
 };
 
 function formatTransportModesList(modes: TourDto["transportModes"] | undefined): string | undefined {
@@ -61,10 +69,20 @@ function Subheading({ children }: { children: ReactNode }) {
   );
 }
 
-export function TourTripDetailsPanel({ tour }: Props) {
+export function TourTripDetailsPanel({
+  tour,
+  accessLevel = "GUEST",
+  viewHints = { gpsUnlocked: false, gpsUnlockAt: null },
+  showRegister = false,
+  onRegister,
+}: Props) {
   const t = useTranslations("tours");
   const tAcc = useTranslations("tours.new");
   const tDenali = useTranslations("tours.denali");
+
+  const isGuest = accessLevel === "GUEST";
+  const isPurchased = accessLevel === "PURCHASED_USER";
+  const showGpsLocked = isPurchased && !viewHints.gpsUnlocked;
 
   const td = tour.details?.tripDetails;
   if (td == null || typeof td !== "object" || Array.isArray(td)) {
@@ -110,6 +128,10 @@ export function TourTripDetailsPanel({ tour }: Props) {
       ? overview.elevationGainMeters
       : undefined;
   const itineraryOutline = trimStr(itinerary?.outline);
+  const programNotes = trimStr(itinerary?.programNotes);
+  const gatheringPoints = logistics?.gatheringPoints;
+  const hasGatheringPoints =
+    Array.isArray(gatheringPoints) && gatheringPoints.length > 0;
   const departureDate = trimStr(logistics?.departureDate);
   const returnDate = trimStr(logistics?.returnDate);
   const departureMeetingTime = trimStr(logistics?.departureMeetingTime);
@@ -211,24 +233,29 @@ export function TourTripDetailsPanel({ tour }: Props) {
       ? accommodationSlugs.map((slug) => tAcc(`trip_accommodation_${slug}` as Parameters<typeof tAcc>[0])).join("، ")
       : "";
 
+  const hasGuestLogisticsDates =
+    isGuest && (departureDate || returnDate || departureMeetingTime || returnMeetingTime);
+
   const hasLogisticsBlock =
-    departureDate ||
-    returnDate ||
-    departureMeetingTime ||
-    returnMeetingTime ||
-    meetingPoint ||
-    returnPoint ||
-    primaryTransportMode ||
-    tour.transportModes.length > 1 ||
-    fuelShareToman != null ||
-    accommodationLabels ||
-    accommodationNotes ||
-    transportationNotes ||
-    mealNotes ||
-    leaderProvidesInsurance ||
-    leaderInsuranceNotes ||
-    groupSizeMin != null ||
-    groupSizeMax != null;
+    hasGuestLogisticsDates ||
+    (!isGuest &&
+      (departureDate ||
+        returnDate ||
+        departureMeetingTime ||
+        returnMeetingTime ||
+        meetingPoint ||
+        returnPoint ||
+        primaryTransportMode ||
+        tour.transportModes.length > 1 ||
+        fuelShareToman != null ||
+        accommodationLabels ||
+        accommodationNotes ||
+        transportationNotes ||
+        mealNotes ||
+        leaderProvidesInsurance ||
+        leaderInsuranceNotes ||
+        groupSizeMin != null ||
+        groupSizeMax != null));
 
   const hasParticipationBlock =
     requirements ||
@@ -251,6 +278,24 @@ export function TourTripDetailsPanel({ tour }: Props) {
     reservationRules;
 
   const hasItineraryBlock = itineraryBody != null;
+  const hasProgramNotesBlock = programNotes.length > 0;
+
+  const renderLocked = (
+    reason: TourDetailLockedReason,
+    variant: TourDetailLockedVariant,
+    options?: { unlockAt?: string | null; withRegisterCta?: boolean },
+  ) => (
+    <TourDetailLockedContent
+      reason={reason}
+      variant={variant}
+      unlockAt={options?.unlockAt}
+      onRegister={onRegister}
+      showRegister={Boolean(showRegister && options?.withRegisterCta && variant === "guest")}
+    />
+  );
+
+  const showLogisticsSection =
+    hasGuestLogisticsDates || hasLogisticsBlock || isGuest || showGpsLocked;
 
   const hasDenaliOverview =
     denaliTourKindLabel ||
@@ -259,14 +304,18 @@ export function TourTripDetailsPanel({ tour }: Props) {
     elevationGainMeters != null ||
     itineraryOutline;
 
-  if (
-    !shortIntro &&
-    !hasDenaliOverview &&
-    !hasLogisticsBlock &&
-    !hasParticipationBlock &&
-    !hasPoliciesBlock &&
-    !hasItineraryBlock
-  ) {
+  const showPanel =
+    Boolean(shortIntro) ||
+    hasDenaliOverview ||
+    showLogisticsSection ||
+    hasParticipationBlock ||
+    hasPoliciesBlock ||
+    hasItineraryBlock ||
+    hasProgramNotesBlock ||
+    isGuest ||
+    showGpsLocked;
+
+  if (!showPanel) {
     return null;
   }
 
@@ -306,64 +355,107 @@ export function TourTripDetailsPanel({ tour }: Props) {
           </>
         ) : null}
 
-        {hasLogisticsBlock ? (
+        {showLogisticsSection ? (
           <>
             <Subheading>{t("detail_scheduleLogisticsSection")}</Subheading>
-            <dl className={styles.meta}>
-              {departureDate || returnDate ? (
-                <MetaRow term={t("detail_datesLabel")}>
-                  {[departureDate, returnDate].filter(Boolean).join(" → ")}
-                </MetaRow>
-              ) : null}
-              {departureMeetingTime || returnMeetingTime ? (
-                <MetaRow term={t("detail_timesLabel")}>
-                  {[departureMeetingTime, returnMeetingTime].filter(Boolean).join(" → ")}
-                </MetaRow>
-              ) : null}
-              <MetaRow term={t("detail_meetingPointLabel")}>{meetingPoint}</MetaRow>
-              <MetaRow term={t("detail_returnPointLabel")}>{returnPoint}</MetaRow>
-              {primaryTransportMode ? (
-                <MetaRow term={t("detail_primaryTransportLabel")}>
-                  {TRANSPORT_LABELS[primaryTransportMode] ?? primaryTransportMode}
-                </MetaRow>
-              ) : null}
-              {tour.transportModes.length > 1 && transportModesSummary ? (
-                <MetaRow term={t("detail_transportModesCombinedLabel")}>{transportModesSummary}</MetaRow>
-              ) : null}
-              {fuelShareToman != null ? (
-                <MetaRow term={t("detail_fuelShareLabel")}>
-                  {fuelShareToman.toLocaleString("fa-IR")} {t("detail_currencyToman")}
-                </MetaRow>
-              ) : null}
-              {accommodationLabels ? (
-                <MetaRow term={t("detail_accommodationTypesLabel")}>{accommodationLabels}</MetaRow>
-              ) : null}
-              <MetaRow term={t("detail_accommodationNotesLabel")}>{accommodationNotes}</MetaRow>
-              <MetaRow term={t("detail_transportationNotesLabel")}>{transportationNotes}</MetaRow>
-              <MetaRow term={t("detail_mealNotesLabel")}>{mealNotes}</MetaRow>
-              {leaderProvidesInsurance ? (
-                <MetaRow term={t("detail_leaderInsuranceLabel")}>
-                  {leaderInsuranceNotes || t("detail_leaderInsuranceYes")}
-                </MetaRow>
-              ) : null}
-              {groupSizeMin != null || groupSizeMax != null ? (
-                <MetaRow term={t("detail_groupSizeLabel")}>
-                  {groupSizeMin != null ? groupSizeMin.toLocaleString("fa-IR") : "—"} –{" "}
-                  {groupSizeMax != null ? groupSizeMax.toLocaleString("fa-IR") : "—"}
-                </MetaRow>
-              ) : null}
-            </dl>
+            {(hasGuestLogisticsDates ||
+              (!isGuest &&
+                (departureDate ||
+                  returnDate ||
+                  departureMeetingTime ||
+                  returnMeetingTime))) && (
+              <dl className={styles.meta}>
+                {departureDate || returnDate ? (
+                  <MetaRow term={t("detail_datesLabel")}>
+                    {[departureDate, returnDate].filter(Boolean).join(" → ")}
+                  </MetaRow>
+                ) : null}
+                {departureMeetingTime || returnMeetingTime ? (
+                  <MetaRow term={t("detail_timesLabel")}>
+                    {[departureMeetingTime, returnMeetingTime].filter(Boolean).join(" → ")}
+                  </MetaRow>
+                ) : null}
+              </dl>
+            )}
+            {isGuest
+              ? renderLocked("gathering", "guest", { withRegisterCta: false })
+              : null}
+            {showGpsLocked
+              ? renderLocked("gps", "gps_pending", { unlockAt: viewHints.gpsUnlockAt })
+              : null}
+            {!isGuest ? (
+              <dl className={styles.meta}>
+                <MetaRow term={t("detail_meetingPointLabel")}>{meetingPoint}</MetaRow>
+                <MetaRow term={t("detail_returnPointLabel")}>{returnPoint}</MetaRow>
+                {hasGatheringPoints ? (
+                  <MetaRow term={t("detail_meetingPointLabel")}>
+                    {(gatheringPoints as { title?: string }[])
+                      .map((row) => trimStr(row?.title))
+                      .filter(Boolean)
+                      .join("، ")}
+                  </MetaRow>
+                ) : null}
+                {primaryTransportMode ? (
+                  <MetaRow term={t("detail_primaryTransportLabel")}>
+                    {TRANSPORT_LABELS[primaryTransportMode] ?? primaryTransportMode}
+                  </MetaRow>
+                ) : null}
+                {tour.transportModes.length > 1 && transportModesSummary ? (
+                  <MetaRow term={t("detail_transportModesCombinedLabel")}>{transportModesSummary}</MetaRow>
+                ) : null}
+                {fuelShareToman != null ? (
+                  <MetaRow term={t("detail_fuelShareLabel")}>
+                    {fuelShareToman.toLocaleString("fa-IR")} {t("detail_currencyToman")}
+                  </MetaRow>
+                ) : null}
+                {accommodationLabels ? (
+                  <MetaRow term={t("detail_accommodationTypesLabel")}>{accommodationLabels}</MetaRow>
+                ) : null}
+                <MetaRow term={t("detail_accommodationNotesLabel")}>{accommodationNotes}</MetaRow>
+                <MetaRow term={t("detail_transportationNotesLabel")}>{transportationNotes}</MetaRow>
+                <MetaRow term={t("detail_mealNotesLabel")}>{mealNotes}</MetaRow>
+                {leaderProvidesInsurance ? (
+                  <MetaRow term={t("detail_leaderInsuranceLabel")}>
+                    {leaderInsuranceNotes || t("detail_leaderInsuranceYes")}
+                  </MetaRow>
+                ) : null}
+                {groupSizeMin != null || groupSizeMax != null ? (
+                  <MetaRow term={t("detail_groupSizeLabel")}>
+                    {groupSizeMin != null ? groupSizeMin.toLocaleString("fa-IR") : "—"} –{" "}
+                    {groupSizeMax != null ? groupSizeMax.toLocaleString("fa-IR") : "—"}
+                  </MetaRow>
+                ) : null}
+              </dl>
+            ) : null}
           </>
         ) : null}
 
-        {hasItineraryBlock ? (
+        {isGuest || hasProgramNotesBlock ? (
+          <>
+            <Subheading>{t("detail_locked_program_notes_title")}</Subheading>
+            {isGuest || !hasProgramNotesBlock
+              ? renderLocked("program_notes", isGuest ? "guest" : "section")
+              : (
+                <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{programNotes}</p>
+              )}
+          </>
+        ) : null}
+
+        {isGuest || hasItineraryBlock ? (
           <>
             <Subheading>{t("detail_itinerarySection")}</Subheading>
-            {itineraryBody}
+            {isGuest
+              ? renderLocked("itinerary", "guest", { withRegisterCta: true })
+              : itineraryBody}
           </>
         ) : null}
 
-        {hasParticipationBlock ? (
+        {isGuest ? (
+          <>
+            <Subheading>{t("detail_participationSection")}</Subheading>
+            {renderLocked("participation", "guest")}
+          </>
+        ) : hasParticipationBlock ? (
           <>
             <Subheading>{t("detail_participationSection")}</Subheading>
             <dl className={styles.meta}>
@@ -393,7 +485,12 @@ export function TourTripDetailsPanel({ tour }: Props) {
           </>
         ) : null}
 
-        {hasPoliciesBlock ? (
+        {isGuest ? (
+          <>
+            <Subheading>{t("detail_policiesSection")}</Subheading>
+            {renderLocked("policies", "guest")}
+          </>
+        ) : hasPoliciesBlock ? (
           <>
             <Subheading>{t("detail_policiesSection")}</Subheading>
             <dl className={styles.meta}>

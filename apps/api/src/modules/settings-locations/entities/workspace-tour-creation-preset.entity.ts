@@ -1,4 +1,5 @@
 import type { TourFormProfile } from "@repo/types";
+import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 import {
   Column,
   CreateDateColumn,
@@ -38,8 +39,15 @@ export class WorkspaceTourCreationPresetEntity {
   @Column({ type: "varchar", length: 32, name: "form_profile", default: "classic" })
   formProfile!: TourFormProfile;
 
-  /** Partial tour wizard defaults (JSON). */
-  @Column({ type: "jsonb" })
+  /**
+   * Partial {@link DenaliCanonicalTourModel} (JSONB). Authoritative preset payload for Denali;
+   * validated via {@link parseDenaliCanonicalTemplateDataOrThrow}. Legacy `defaults` is empty.
+   */
+  @Column({ name: "canonical_data", type: "jsonb", default: () => `'{}'` })
+  canonicalData!: DenaliCanonicalTemplateData;
+
+  /** @deprecated Classic wizard only — kept empty for Denali; use {@link canonicalData}. */
+  @Column({ type: "jsonb", default: () => `'{}'` })
   defaults!: Record<string, unknown>;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })

@@ -10,7 +10,10 @@ import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { DenaliDailyItinerarySection } from "./DenaliDailyItinerarySection";
+
+const STEP = "denali_program" as const;
 
 function toggleThemeId(current: string[], themeId: string, checked: boolean): string[] {
   if (checked) {
@@ -26,20 +29,27 @@ export function DenaliProgramNatureStep() {
     getValues,
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, ui, updateCanonical } = useDenaliCanonical();
+  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const form = getValues();
+  const { isVisible, arePathsVisible } = useDenaliStepFieldRules(STEP);
 
-  const showOutdoorProgram = ui.arePathsVisible("denali_program", [
-    "program.difficultyLevel",
-    "program.hikingHoursApprox",
-  ]);
-  const showAltitude = ui.isVisible("denali_program", "program.altitudeMeasurement", getValues());
-  const showDailyItinerary = ui.isVisible("denali_program", "program.itinerary", getValues());
+  const showOutdoorProgram = arePathsVisible(
+    ["program.difficultyLevel", "program.hikingHoursApprox"],
+    form,
+  );
+  const showAltitude = isVisible("program.altitudeMeasurement", form);
+  const showDailyItinerary = isVisible("program.itinerary", form);
 
   const themesQuery = useSettingsTourThemes();
-  const activeThemes = useMemo(
-    () => (themesQuery.data ?? []).filter((row) => row.isActive),
-    [themesQuery.data],
-  );
+  const activeThemes = useMemo(() => {
+    const seen = new Set<string>();
+    return (themesQuery.data ?? []).filter((row) => {
+      if (!row.isActive) return false;
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
+  }, [themesQuery.data]);
   const selectedThemeIds = useMemo(
     () => new Set(canonicalModel.program.themeIds ?? []),
     [canonicalModel.program.themeIds],

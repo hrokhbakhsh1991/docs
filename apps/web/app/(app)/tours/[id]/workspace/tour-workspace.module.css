@@ -35,6 +35,10 @@
   margin-bottom: 0;
 }
 
+.workspaceTabPanel {
+  min-height: 12rem;
+}
+
 .workspaceHeader {
   display: flex;
   flex-wrap: wrap;

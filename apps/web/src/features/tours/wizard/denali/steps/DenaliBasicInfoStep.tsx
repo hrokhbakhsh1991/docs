@@ -10,8 +10,9 @@ import {
 } from "@repo/types";
 import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Checkbox, FormField, Input, Select } from "@tour/ui";
+import { Button, Checkbox, FormField, Input, Select } from "@tour/ui";
 
+import quickAddStyles from "@/components/shared/quick-add/QuickAddModal.module.css";
 import { DestinationCombobox } from "@/components/tours/wizard/steps/DestinationCombobox";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
@@ -21,18 +22,24 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DenaliApproximateReturnTimeField } from "../DenaliApproximateReturnTimeField";
 import { DenaliDatetimeField } from "../DenaliDatetimeField";
+import { useDenaliDestinationQuickAdd } from "../hooks/useDenaliDestinationQuickAdd";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+
+const STEP = "denali_basic" as const;
 
 export function DenaliBasicInfoStep() {
   const t = useTranslations("tours.denali");
   const {
+    getValues,
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, basicsSelection, ui, updateCanonical, updateCanonicalBasics } =
+  const { canonicalModel, basicsSelection, updateCanonical, updateCanonicalBasics } =
     useDenaliCanonical();
 
-  const showEventVariant = basicsSelection?.category === "event";
-  const showEndDateTime = ui.isVisible("denali_basic", "endDateTime");
+  const form = getValues();
+  const { isVisible, isDurationAllowed } = useDenaliStepFieldRules(STEP);
+  const openDestinationQuickAdd = useDenaliDestinationQuickAdd();
 
   const destinationsQuery = useTourDestinations();
   const crewMembersQuery = useWorkspaceTourCrewMembers();
@@ -96,7 +103,7 @@ export function DenaliBasicInfoStep() {
           <option value="">{t("selectPlaceholder")}</option>
           {DENALI_TOUR_DURATION_VALUES.map((duration) => {
             const category = basicsSelection?.category;
-            const disabled = category != null && !ui.isDurationAllowed(duration);
+            const disabled = category != null && !isDurationAllowed(duration);
             return (
               <option key={duration} value={duration} disabled={disabled}>
                 {t(`basic.durations.${duration}`)}
@@ -106,7 +113,7 @@ export function DenaliBasicInfoStep() {
         </Select>
       </FormField>
 
-      {showEventVariant ? (
+      {isVisible("eventVariant", form) ? (
         <FormField label={t("basic.eventVariantLabel")} error={errors.basicInfo?.tourType?.message}>
           <Select
             value={basicsSelection?.eventVariant ?? ""}
@@ -124,14 +131,27 @@ export function DenaliBasicInfoStep() {
         </FormField>
       ) : null}
 
-      <DestinationCombobox
-        label={t("basic.destination")}
-        placeholder={t("basic.destinationPlaceholder")}
-        options={activeDestinations}
-        value={canonicalModel.destinationId}
-        onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
-        error={errors.basicInfo?.destinationId?.message}
-      />
+      <div style={{ display: "grid", gap: "0.5rem" }}>
+        <DestinationCombobox
+          label={t("basic.destination")}
+          placeholder={t("basic.destinationPlaceholder")}
+          options={activeDestinations}
+          value={canonicalModel.destinationId}
+          onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
+          error={errors.basicInfo?.destinationId?.message}
+        />
+        <div className={quickAddStyles.quickAddRow} dir="rtl">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={openDestinationQuickAdd}
+            data-testid="denali-quick-add-destination"
+          >
+            + مقصد
+          </Button>
+        </div>
+      </div>
 
       <DestinationCombobox
         label={t("basic.workspaceLeaders")}
@@ -147,20 +167,22 @@ export function DenaliBasicInfoStep() {
         error={errors.basicInfo?.leaderUserIds?.message}
       />
 
-      <Checkbox
-        label={t("basic.requiresLocalGuide")}
-        checked={canonicalModel.requiresLocalGuide === true}
-        onChange={(e) => {
-          const checked = e.target.checked;
-          updateCanonical({
-            requiresLocalGuide: checked,
-            localGuideName: checked ? canonicalModel.localGuideName : undefined,
-          });
-        }}
-        data-testid="denali-basics-requires-local-guide"
-      />
+      {isVisible("requiresLocalGuide", form) ? (
+        <Checkbox
+          label={t("basic.requiresLocalGuide")}
+          checked={canonicalModel.requiresLocalGuide === true}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            updateCanonical({
+              requiresLocalGuide: checked,
+              localGuideName: checked ? canonicalModel.localGuideName : undefined,
+            });
+          }}
+          data-testid="denali-basics-requires-local-guide"
+        />
+      ) : null}
 
-      {canonicalModel.requiresLocalGuide === true ? (
+      {isVisible("localGuideName", form) ? (
         <FormField
           label={t("basic.localGuideName")}
           error={errors.basicInfo?.localGuideName?.message}
@@ -182,7 +204,7 @@ export function DenaliBasicInfoStep() {
 
       <DenaliDatetimeField field="startDateTime" label={t("basic.startDateTime")} />
 
-      {showEndDateTime ? (
+      {isVisible("endDateTime", form) ? (
         <DenaliDatetimeField field="endDateTime" label={t("basic.endDateTime")} />
       ) : null}
 

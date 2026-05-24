@@ -93,7 +93,10 @@ export function logDenaliWizardDiagnosticReport(
 ): DenaliWizardDiagnosticReport {
   const report = buildDenaliWizardDiagnosticReport(input);
   const json = JSON.stringify(report, null, 2);
-  if (typeof console !== "undefined") {
+  if (
+    typeof console !== "undefined" &&
+    process.env.NEXT_PUBLIC_DENALI_WIZARD_DIAGNOSTIC === "1"
+  ) {
     console.log("[denali-wizard-diagnostic]", json);
   }
   return report;

@@ -190,3 +190,27 @@ function trimOptional(value: unknown): string | undefined {
   const t = value.trim();
   return t === "" ? undefined : t;
 }
+
+/**
+ * Submit/publish gate value for classic path `logistics.primaryTransportMode`.
+ * Denali `transportMode === "none"` (or empty root modes with no primary) satisfies the requirement.
+ */
+export function denaliPrimaryTransportSubmitValue(input: {
+  primaryTransportMode?: string | null;
+  rootTransportModes?: readonly string[] | null;
+  denaliTransportMode?: DenaliTransportMode | null;
+}): string | undefined {
+  if (input.denaliTransportMode === "none") {
+    return "none";
+  }
+  const primary =
+    typeof input.primaryTransportMode === "string" ? input.primaryTransportMode.trim() : "";
+  if (primary !== "") {
+    return primary;
+  }
+  const modes = input.rootTransportModes ?? [];
+  if (modes.length === 0) {
+    return "none";
+  }
+  return undefined;
+}

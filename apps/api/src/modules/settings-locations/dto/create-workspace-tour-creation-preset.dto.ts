@@ -65,7 +65,16 @@ export class CreateWorkspaceTourCreationPresetDto {
   @ApiPropertyOptional({
     type: "object",
     additionalProperties: true,
-    description: "Partial tour create wizard defaults (JSON object)."
+    description: "Partial Denali canonical tour model (Denali templates).",
+  })
+  @IsOptional()
+  @IsObject()
+  canonicalData?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    type: "object",
+    additionalProperties: true,
+    description: "@deprecated Classic wizard partial defaults.",
   })
   @IsOptional()
   @IsObject()

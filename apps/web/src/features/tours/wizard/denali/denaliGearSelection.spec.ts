@@ -39,6 +39,17 @@ describe("denaliGearSelection", () => {
     assert.equal(optional[0]?.id, "o");
   });
 
+  it("splitGearByRequired dedupes duplicate ids (first row wins)", () => {
+    const { required, optional } = splitGearByRequired([
+      { id: "dup", isRequired: true },
+      { id: "dup", isRequired: false },
+      { id: "dup", isRequired: true },
+    ]);
+    assert.equal(required.length, 1);
+    assert.equal(optional.length, 0);
+    assert.equal(required[0]?.id, "dup");
+  });
+
   it("normalizeGearItems omits empty arrays", () => {
     assert.equal(normalizeGearItems([]), undefined);
     assert.deepEqual(normalizeGearItems([{ id: "x", isRequired: false }]), [

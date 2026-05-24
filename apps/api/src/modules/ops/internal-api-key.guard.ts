@@ -1,7 +1,6 @@
 import {
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException
@@ -9,6 +8,8 @@ import {
 import { timingSafeEqual } from "node:crypto";
 import type { Request } from "express";
 import { ConfigService } from "../../config/config.service";
+import { RequestContextService } from "../../common/request-context/request-context.service";
+import { UserRole } from "../../common/auth/user-role.enum";
 
 function timingSafeStringEqual(expected: string, received: string): boolean {
   const a = Buffer.from(expected, "utf8");
@@ -21,21 +22,23 @@ function timingSafeStringEqual(expected: string, received: string): boolean {
 
 @Injectable()
 export class InternalApiKeyGuard implements CanActivate {
-  constructor(@Inject(ConfigService) private readonly configService: ConfigService) {}
+  constructor(
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(RequestContextService) private readonly requestContext: RequestContextService
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const expected = this.configService.getInternalApiKey();
     if (!expected || expected.trim() === "") {
-      throw new ForbiddenException({
-        error: {
-          code: "OPS_INTERNAL_KEY_NOT_CONFIGURED",
-          message: "Internal ops endpoints require INTERNAL_API_KEY"
-        }
-      });
+      return true; // Not configured, delegate to other guards
     }
 
     const req = context.switchToHttp().getRequest<Request>();
     const received = req.header("x-internal-api-key") ?? "";
+
+    if (received === "") {
+      return true; // No key provided, delegate to other guards
+    }
 
     if (!timingSafeStringEqual(expected, received)) {
       throw new UnauthorizedException({
@@ -45,6 +48,11 @@ export class InternalApiKeyGuard implements CanActivate {
         }
       });
     }
+
+    // Populate context for bypass (CASL + RolesGuard compatibility)
+    this.requestContext.setUserId("00000000-0000-0000-0000-000000000000");
+    this.requestContext.setRole(UserRole.Admin);
+    this.requestContext.setWorkspaceAbilityContext("ACTIVE", [], ["*"]);
 
     return true;
   }

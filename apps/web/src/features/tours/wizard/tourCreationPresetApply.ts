@@ -2,7 +2,8 @@ import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
-import { mergeDenaliWizardDefaults } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
+import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
+import { templateToCanonical, type DenaliCanonicalTemplateData } from "@repo/types/denali";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 
@@ -13,7 +14,9 @@ import type { PresetMapperContext } from "./profiles/mapPresetToFormPatch";
 /** Shared input for preset apply (banner + `?presetId=` bootstrap). */
 export type ApplyWizardPresetInput = {
   workspaceFormProfile: TourFormProfile;
-  defaults: Record<string, unknown>;
+  /** @deprecated Classic wizard roots; use {@link canonicalData} for Denali. */
+  defaults?: Record<string, unknown>;
+  canonicalData?: DenaliCanonicalTemplateData;
   ctx?: PresetMapperContext;
   themeCatalog?: SettingsTourThemeDto[];
   tenantFormContract?: TenantTourFormContract;
@@ -27,7 +30,7 @@ export function applyClassicWizardPreset(
 ): TourCreateFormValues {
   const patch = mapWizardPrefillToFormPatch(input.workspaceFormProfile, {
     kind: "preset",
-    defaults: input.defaults,
+    defaults: input.defaults ?? {},
     ctx: input.ctx,
   }) as Partial<TourCreateFormValues>;
 
@@ -43,18 +46,21 @@ export function applyClassicWizardPreset(
 }
 
 /**
- * Denali preset pipeline: {@link mapWizardPrefillToFormPatch} → merge onto defaults.
- * (Denali has no `applyTourWizardPatch` yet; mapping entry point is unified.)
+ * Denali preset pipeline: {@link templateToCanonical} → {@link tryHydrateCanonicalTemplate}.
+ * Legacy `defaults` roots are discarded (not merged).
  */
 export function applyDenaliWizardPreset(
   input: ApplyWizardPresetInput & { baseValues: DenaliCreateTourWizardForm },
 ): DenaliCreateTourWizardForm {
-  const patch = mapWizardPrefillToFormPatch(input.workspaceFormProfile, {
-    kind: "preset",
+  const canonicalPatch = templateToCanonical({
+    canonicalData: input.canonicalData,
     defaults: input.defaults,
-    ctx: input.ctx,
-  }) as Partial<DenaliCreateTourWizardForm>;
-  return mergeDenaliWizardDefaults(input.baseValues, patch);
+  });
+  if (Object.keys(canonicalPatch).length === 0) {
+    return input.baseValues;
+  }
+  const hydrated = tryHydrateCanonicalTemplate(canonicalPatch, input.baseValues);
+  return hydrated?.formValues ?? input.baseValues;
 }
 
 /** Banner / in-wizard apply (classic rail). */

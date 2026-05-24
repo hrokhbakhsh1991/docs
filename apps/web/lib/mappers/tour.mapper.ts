@@ -1,11 +1,16 @@
 import {
   normalizeLegacyOverviewTripStyleToTripStyles,
   normalizeTourFormProfileInput,
+  resolveTourAllowPrivateCar,
+  TOUR_DETAIL_ACCESS_LEVEL_VALUES,
   type DifficultyLevel,
+  type TourDetailAccessLevel,
+  type TourDetailViewHints,
   type TourDetailsDto,
   type TourDto,
   type TourItineraryItem,
   type TourLifecycleStatus,
+  type TourRegistrationPolicyDto,
 } from "@repo/types";
 
 import type { TourDetailDto } from "../services/tours.service";
@@ -141,6 +146,26 @@ function normalizeTransportModesRow(o: Record<string, unknown>): TourDto["transp
  * Maps a loose JSON row from `GET /api/v2/tours` (serialized entity + OpenAPI fields)
  * into {@link TourDto} + `lifecycleStatus` for list/detail UI.
  */
+function normalizeAccessLevel(value: unknown): TourDetailAccessLevel {
+  const raw = String(value ?? "").trim().toUpperCase();
+  if ((TOUR_DETAIL_ACCESS_LEVEL_VALUES as readonly string[]).includes(raw)) {
+    return raw as TourDetailAccessLevel;
+  }
+  return "GUEST";
+}
+
+function normalizeViewHints(value: unknown): TourDetailViewHints | undefined {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const o = value as Record<string, unknown>;
+  const gpsUnlocked = o.gpsUnlocked === true || o.gps_unlocked === true;
+  const unlockRaw = o.gpsUnlockAt ?? o.gps_unlock_at;
+  const gpsUnlockAt =
+    typeof unlockRaw === "string" && unlockRaw.trim() !== "" ? unlockRaw.trim() : null;
+  return { gpsUnlocked, gpsUnlockAt };
+}
+
 export function mapTourResponseToDto(raw: unknown): TourDetailDto {
   if (!raw || typeof raw !== "object") {
     throw new Error("Invalid tour payload");
@@ -157,6 +182,19 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
   );
 
   const lifecycleStatus = normalizeLifecycle(o.lifecycleStatus ?? o.lifecycle_status);
+
+  const registrationPolicyRaw = o.registrationPolicy ?? o.registration_policy;
+  let registrationPolicy: TourRegistrationPolicyDto | undefined;
+  if (
+    registrationPolicyRaw != null &&
+    typeof registrationPolicyRaw === "object" &&
+    !Array.isArray(registrationPolicyRaw)
+  ) {
+    const rp = registrationPolicyRaw as Record<string, unknown>;
+    registrationPolicy = {
+      allowPrivateCar: rp.allowPrivateCar === true || rp.allow_private_car === true,
+    };
+  }
 
   const tour: TourDto = {
     id: String(o.id ?? ""),
@@ -189,10 +227,23 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
       o.destinationRegionName ?? o.destination_region_name,
     ),
     details: normalizeTourDetails(o.details),
+    registrationPolicy:
+      registrationPolicy ??
+      (() => {
+        const details = normalizeTourDetails(o.details);
+        return {
+          allowPrivateCar: resolveTourAllowPrivateCar({
+            transportModes: normalizeTransportModesRow(o),
+            details: details ? { tripDetails: details.tripDetails ?? undefined } : undefined,
+          }),
+        };
+      })(),
     /** UI/forms legacy alias — same resolved value as `chatLink`. */
     communicationLink: link,
     createdAt: String(o.createdAt ?? ""),
     updatedAt: String(o.updatedAt ?? ""),
+    accessLevel: normalizeAccessLevel(o.accessLevel ?? o.access_level),
+    viewHints: normalizeViewHints(o.viewHints ?? o.view_hints),
   };
 
   return tour;

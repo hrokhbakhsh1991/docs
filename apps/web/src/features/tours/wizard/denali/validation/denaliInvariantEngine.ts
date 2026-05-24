@@ -4,8 +4,8 @@ import {
   computeDenaliTourDayCountFromKind,
   syncDenaliItineraryRows,
 } from "../denaliItinerarySync";
-import type { DenaliUIContextOptions } from "../rules/denaliUIAdapter";
-import { normalizeDenaliWizardForm } from "./denaliRuleAccess";
+import { resolveDenaliRuleModelFromForm, normalizeDenaliWizardForm } from "./denaliRuleAccess";
+import { isDenaliFieldVisibleInModel, type DenaliUIContextOptions } from "../rules/denaliUIAdapter";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import type { DenaliTourKind } from "@repo/types";
 
@@ -74,6 +74,15 @@ function applyDenaliStructuralInvariants(
       next.programNature.itinerary,
       dayCount,
     );
+  }
+
+  const model = resolveDenaliRuleModelFromForm(next);
+  if (
+    model != null &&
+    isDenaliFieldVisibleInModel(model, "program.difficultyLevel", next, _uiOptions) &&
+    next.programNature.difficultyLevel == null
+  ) {
+    next.programNature.difficultyLevel = 5;
   }
 
   return next;

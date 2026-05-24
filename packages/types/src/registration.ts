@@ -35,6 +35,18 @@ export interface LockedBookingPricingDto {
   listPriceMinor?: string | null;
 }
 
+/** Private-car intake under `participantMetadata.transportIntake` (API JSONB). */
+export interface RegistrationTransportIntakeDto {
+  isDriver?: boolean;
+  plateNumber?: string;
+  shareFuelCost?: boolean;
+}
+
+export interface RegistrationParticipantMetadataDto {
+  userPastPeaksCount?: number;
+  transportIntake?: RegistrationTransportIntakeDto;
+}
+
 export interface RegistrationResponseDto {
   id: string;
   tenantId: string;
@@ -47,6 +59,7 @@ export interface RegistrationResponseDto {
   telegramUsername?: string | null;
   vehicleSeatCapacity?: number | null;
   participantNote?: string | null;
+  participantMetadata?: RegistrationParticipantMetadataDto | null;
   status: RegistrationStatus;
   rowVersion: number;
   paymentStatus: RegistrationPaymentStatus;

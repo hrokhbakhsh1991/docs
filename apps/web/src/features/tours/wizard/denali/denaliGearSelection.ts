@@ -50,7 +50,11 @@ export function splitGearByRequired(items: DenaliGearItem[] | undefined): {
 } {
   const required: DenaliGearItem[] = [];
   const optional: DenaliGearItem[] = [];
+  const seen = new Set<string>();
   for (const row of items ?? []) {
+    const id = row.id?.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
     if (row.isRequired === true) {
       required.push(row);
     } else {

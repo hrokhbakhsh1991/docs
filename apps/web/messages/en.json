@@ -113,6 +113,25 @@
       "invalidGuideLanguageIdsTenant": "Some selected guide languages are no longer in this workspace. Please review and update guide languages.",
       "genericInvalidCatalogTenant": "Some of this tour’s settings are no longer valid. Please review the selected catalog values."
     },
+    "form": {
+      "validationSummaryTitle": "Please fix the following fields",
+      "validationSummaryIntro": "Save is blocked until these issues are resolved:",
+      "couldNotSaveTitle": "Could not save",
+      "communicationLink": "Communication link",
+      "destination": "Destination",
+      "gatheringPoints": "Gathering stations",
+      "gatheringPointIndex": "Gathering station {index}",
+      "minRequiredPeaks": "Minimum summited peaks (auto-approval)",
+      "unknownField": "Field ({path})",
+      "regionId": "Region",
+      "mainDestinationId": "Main destination",
+      "secondaryDestinationIdsRaw": "Secondary destinations",
+      "displayLocationOverride": "Display location",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "saveChanges": "Save changes",
+      "saveFailed": "Could not save. Please try again."
+    },
     "denali": {
       "selectPlaceholder": "Select…",
       "datetimeOptionalHint": "Optional — for multi-day tours",
@@ -319,6 +338,10 @@
         "safety": "Safety policy",
         "weather": "Weather policy"
       },
+      "draftHydration": {
+        "loadDraft": "Load saved draft",
+        "clearDraft": "Discard draft"
+      },
       "review": {
         "capacity": "Capacity",
         "dailyItinerary": "Daily itinerary",
@@ -332,6 +355,10 @@
         "no": "No",
         "submit": "Create tour",
         "submitPhase5Hint": "Final submit activates after the Phase 5 API mapper."
+      },
+      "edit": {
+        "pageTitle": "Edit tour",
+        "pageDescription": "Edit tour fields aligned with the Denali wizard; changes are saved via PATCH."
       }
     },
     "new": {
@@ -615,6 +642,7 @@
       "viewDetails": "View details",
       "duplicate": "Duplicate"
     },
+    "detail_equipment": "Equipment",
     "detail_requiredEquipment": "Required equipment",
     "detail_optionalEquipment": "Recommended equipment",
     "detail_equipmentLoadError": "Could not load equipment names.",
@@ -660,6 +688,23 @@
     "detail_safetyPolicyLabel": "Safety",
     "detail_weatherPolicyLabel": "Weather",
     "detail_reservationRulesLabel": "Risk & reservations",
+    "detail_locked_title": "Locked content",
+    "detail_locked_heading_exclusive": "Exclusive tour details",
+    "detail_locked_heading_gps_soon": "Location unlocks 48 hours before departure",
+    "detail_locked_body_guest": "This information becomes available after you register and your booking is confirmed. Exact meeting coordinates unlock 48 hours before the trip for confirmed participants.",
+    "detail_locked_body_gps": "Exact meeting points and GPS coordinates unlock 48 hours before departure for confirmed participants.",
+    "detail_locked_gps_countdown": "Unlocks in {remaining}",
+    "detail_locked_gps_unlock_at": "Available from {time}",
+    "detail_locked_register_cta": "Register for this tour",
+    "detail_locked_itinerary_title": "Day-by-day itinerary",
+    "detail_locked_program_notes_title": "Program notes",
+    "detail_locked_gathering_title": "Meeting points & coordinates",
+    "detail_locked_itinerary": "The detailed day-by-day route is available after your registration is accepted.",
+    "detail_locked_gps": "Exact meeting coordinates unlock before departure for confirmed participants.",
+    "detail_locked_gps_with_time": "Exact coordinates unlock on {time}.",
+    "detail_locked_logistics": "Detailed meeting points and transport notes are available after booking.",
+    "detail_locked_participation": "Participant requirements are shown after your registration is accepted.",
+    "detail_locked_policies": "Full cancellation and safety policies are available after booking.",
     "detail_currencyToman": "Toman"
   },
   "settings": {
@@ -1319,6 +1364,7 @@
     "guideLanguagesValidationName": "Enter a name.",
     "guideLanguagesValidationSlug": "Enter a slug.",
     "guideLanguagesValidationSortOrder": "Sort order must be a number.",
+    "detail_equipment": "Equipment",
     "detail_requiredEquipment": "Required equipment",
     "detail_optionalEquipment": "Recommended equipment",
     "detail_equipmentLoadError": "Could not load equipment names.",
@@ -1363,6 +1409,23 @@
     "detail_safetyPolicyLabel": "Safety",
     "detail_weatherPolicyLabel": "Weather",
     "detail_reservationRulesLabel": "Risk & reservations",
+    "detail_locked_title": "Locked content",
+    "detail_locked_heading_exclusive": "Exclusive tour details",
+    "detail_locked_heading_gps_soon": "Location unlocks 48 hours before departure",
+    "detail_locked_body_guest": "This information becomes available after you register and your booking is confirmed. Exact meeting coordinates unlock 48 hours before the trip for confirmed participants.",
+    "detail_locked_body_gps": "Exact meeting points and GPS coordinates unlock 48 hours before departure for confirmed participants.",
+    "detail_locked_gps_countdown": "Unlocks in {remaining}",
+    "detail_locked_gps_unlock_at": "Available from {time}",
+    "detail_locked_register_cta": "Register for this tour",
+    "detail_locked_itinerary_title": "Day-by-day itinerary",
+    "detail_locked_program_notes_title": "Program notes",
+    "detail_locked_gathering_title": "Meeting points & coordinates",
+    "detail_locked_itinerary": "The detailed day-by-day route is available after your registration is accepted.",
+    "detail_locked_gps": "Exact meeting coordinates unlock before departure for confirmed participants.",
+    "detail_locked_gps_with_time": "Exact coordinates unlock on {time}.",
+    "detail_locked_logistics": "Detailed meeting points and transport notes are available after booking.",
+    "detail_locked_participation": "Participant requirements are shown after your registration is accepted.",
+    "detail_locked_policies": "Full cancellation and safety policies are available after booking.",
     "tourFormDefaults_equipmentLoading": "Loading equipment catalog…",
     "tourFormDefaults_equipmentLoadError": "Could not load equipment.",
     "tourFormDefaults_equipmentEmptyCatalog": "No active equipment rows yet. Define gear (crampons, harness, sleeping bag, …) under Settings → Equipment so presets can require them.",

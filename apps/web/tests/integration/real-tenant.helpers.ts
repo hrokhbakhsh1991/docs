@@ -99,8 +99,7 @@ export async function loginWithPhoneOtp(
     data: {
       phone,
       otp,
-      // Bypassing challenge_id in dev/test to use static OTP without hitting database sync issues
-      // ...(challengeId ? { challenge_id: challengeId } : {}),
+      ...(challengeId ? { challenge_id: challengeId } : {}),
     },
   });
   expect(session.ok(), `login-web-session failed: ${session.status()}`).toBeTruthy();
@@ -702,7 +701,7 @@ export async function ensureActiveEquipment(
   return { id: row.id, name: row.name, slug: row.slug ?? row.id };
 }
 
-/** Pricing step: select first gear item when list is shown (phase 3). */
+/** Logistics step: select first gear item when list is shown (phase 3). */
 export async function fillDenaliGearStepGaps(page: Page): Promise<void> {
   const w = page.getByTestId("denali-create-tour-wizard");
   const gearList = w.getByTestId("denali-gear-list");
@@ -802,13 +801,16 @@ export async function advanceDenaliWizardToReview(
   await fillDenaliProgramStepGaps(page, { tourType });
 
   const stepHeadings: Array<{ pattern: RegExp; fill?: () => Promise<void> }> = [
-    { pattern: /لجستیک|خدمات/, fill: () => fillDenaliTransportStepGaps(page) },
     {
-      pattern: /هزینه/,
+      pattern: /لجستیک|خدمات/,
       fill: async () => {
-        await fillDenaliParticipantsStepGaps(page, tourType);
+        await fillDenaliTransportStepGaps(page);
         await fillDenaliGearStepGaps(page);
       },
+    },
+    {
+      pattern: /هزینه/,
+      fill: () => fillDenaliParticipantsStepGaps(page, tourType),
     },
     { pattern: /عکس/ },
     { pattern: /بازبینی/ },

@@ -8,8 +8,10 @@ import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { DenaliGearSection } from "./DenaliGearSection";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { DenaliPricingParticipantSection } from "./DenaliPricingParticipantSection";
+
+const STEP = "denali_pricing" as const;
 
 export function DenaliPricingPaymentStep() {
   const t = useTranslations("tours.denali");
@@ -18,8 +20,9 @@ export function DenaliPricingPaymentStep() {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, ui, updateCanonical } = useDenaliCanonical();
+  const { canonicalModel, updateCanonical } = useDenaliCanonical();
   const form = getValues();
+  const { isVisible } = useDenaliStepFieldRules(STEP);
   const requiresPayment = canonicalModel.pricing.requiresPayment === true;
 
   return (
@@ -44,7 +47,7 @@ export function DenaliPricingPaymentStep() {
         data-testid="denali-pricing-requires-payment"
       />
 
-      {ui.isVisible("denali_pricing", "pricing.basePricePerPerson", form) ? (
+      {isVisible("pricing.basePricePerPerson", form) ? (
         <FormField
           label={t("pricing.basePricePerPerson")}
           description={t("pricing.basePricePerPersonHint")}
@@ -81,8 +84,6 @@ export function DenaliPricingPaymentStep() {
         }
         data-testid="denali-pricing-tour-insurance"
       />
-
-      <DenaliGearSection />
 
       <DenaliPricingParticipantSection form={form} />
     </div>

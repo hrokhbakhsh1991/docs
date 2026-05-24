@@ -8305,6 +8305,20 @@
             ],
             "example": "web"
           },
+          "bookingTarget": {
+            "type": "string",
+            "enum": [
+              "self",
+              "guest"
+            ],
+            "example": "self",
+            "default": "self"
+          },
+          "participantNationalId": {
+            "type": "string",
+            "example": "0123456789",
+            "nullable": true
+          },
           "telegramUserId": {
             "type": "string",
             "example": "123456789",
@@ -8323,6 +8337,11 @@
           "participantNote": {
             "type": "string",
             "example": "Will arrive 30 minutes earlier",
+            "nullable": true
+          },
+          "participantMetadata": {
+            "type": "object",
+            "description": "Traveler intake metadata (e.g. transportIntake.isDriver for private car).",
             "nullable": true
           },
           "status": {
@@ -8562,6 +8581,24 @@
           "version"
         ]
       },
+      "RegistrationTransportIntakeMetadataDto": {
+        "type": "object",
+        "properties": {
+          "isDriver": {
+            "type": "boolean",
+            "description": "Whether the registrant drives their own vehicle."
+          },
+          "plateNumber": {
+            "type": "string",
+            "description": "Vehicle plate when isDriver is true.",
+            "maxLength": 32
+          },
+          "shareFuelCost": {
+            "type": "boolean",
+            "description": "Passenger willingness to share fuel cost (دنگ); optional."
+          }
+        }
+      },
       "ParticipantMetadataDto": {
         "type": "object",
         "properties": {
@@ -8571,6 +8608,14 @@
             "minimum": 0,
             "maximum": 4,
             "example": 2
+          },
+          "transportIntake": {
+            "description": "Private-car registration details when transportMode is self_vehicle.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationTransportIntakeMetadataDto"
+              }
+            ]
           }
         }
       },
@@ -8593,6 +8638,22 @@
             "description": "Primary participant contact phone",
             "example": "+989121234567",
             "maxLength": 64
+          },
+          "bookingTarget": {
+            "type": "string",
+            "description": "Whether the authenticated user registers for themselves or for another guest participant",
+            "enum": [
+              "self",
+              "guest"
+            ],
+            "example": "self",
+            "default": "self"
+          },
+          "participantNationalId": {
+            "type": "string",
+            "description": "National ID of the guest participant (10 digits). Relevant when bookingTarget is guest and the tour requires national ID on the traveler.",
+            "example": "0123456789",
+            "maxLength": 10
           },
           "transportMode": {
             "type": "string",
@@ -8624,11 +8685,25 @@
             "example": "ali_trip",
             "nullable": true
           },
+          "isDriver": {
+            "type": "boolean",
+            "description": "Whether the registrant is the driver (required when transportMode is self_vehicle)."
+          },
+          "plateNumber": {
+            "type": "string",
+            "description": "Vehicle plate number when isDriver is true.",
+            "maxLength": 32
+          },
+          "shareFuelCost": {
+            "type": "boolean",
+            "description": "Passenger willingness to share fuel cost; optional when not driver."
+          },
           "vehicleSeatCapacity": {
             "type": "number",
             "description": "Optional vehicle seat capacity if participant is driver",
             "example": 3,
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 3
           },
           "participantNote": {
             "type": "string",

@@ -46,6 +46,7 @@ export {
 export {
   DENALI_TRANSPORT_MODE_VALUES,
   inferDenaliTransportModeFromApiLogistics,
+  denaliPrimaryTransportSubmitValue,
   isDenaliTransportMode,
   migrateLegacyDenaliTransportForm,
   normalizeDenaliTransportForm,
@@ -112,10 +113,27 @@ export type {
   TourDto,
   TourItineraryItem,
   TourLifecycleStatus,
+  TourRegistrationPolicyDto,
   TourResponseDto,
   TourTripDetails,
   TourTripDetailsOverviewFields,
 } from "./tour";
+export {
+  resolveTourAllowPrivateCar,
+  type TourAllowPrivateCarInput,
+} from "./tours/resolve-tour-allow-private-car";
+export {
+  TOUR_DETAIL_ACCESS_LEVEL_VALUES,
+  TOUR_DETAIL_PURCHASED_REGISTRATION_STATUSES,
+  canViewTourDetailChatLink,
+  hasFullTourDetailAccess,
+  hasMinTourDetailAccess,
+  hasPurchasedTourDetailAccess,
+  tourDetailAccessRank,
+  type TourDetailAccessLevel,
+  type TourDetailPurchasedRegistrationStatus,
+  type TourDetailViewHints,
+} from "./tours/tour-detail-access";
 export { TOUR_AUDIENCE_GROUP_VALUES } from "./tour";
 export type { WaitlistItemResponseDto, WaitlistItemStatus } from "./waitlist";
 /**

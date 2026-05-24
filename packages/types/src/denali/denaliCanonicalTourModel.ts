@@ -163,6 +163,8 @@ export interface DenaliCanonicalTourModel {
     /** Personal car fuel share (دنگ) — only when `shared_cars` or `allowPersonalCar`. */
     dongAmount?: number;
     transportNotes?: string;
+    /** Train-only: window / aisle / any seat preference. */
+    seatPreference?: "window" | "aisle" | "any";
   };
 
   pricing: {

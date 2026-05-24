@@ -28,6 +28,20 @@ test("step navigation: empty meetingPoint does not block denali_basic", () => {
   assert.equal(meetingPointIssues.length, 0);
 });
 
+test("step navigation: seeds default difficulty when outdoor field is visible", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.programNature.difficultyLevel = undefined;
+
+  const safe = applyDenaliInvariantState(form);
+
+  assert.equal(safe.programNature.difficultyLevel, 5);
+  const difficultyIssues = getDenaliWizardStepIssues(safe, "denali_program").filter((issue) =>
+    issue.path.join(".").includes("difficultyLevel"),
+  );
+  assert.equal(difficultyIssues.length, 0);
+});
+
 test("step navigation: preserve valid fields on next step", () => {
   const form = buildDenaliTourCreateTestValues();
   form.basicInfo.title = "Valid Mountain Tour Title";

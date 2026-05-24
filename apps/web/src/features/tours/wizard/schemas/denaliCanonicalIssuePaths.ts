@@ -71,6 +71,7 @@ export function canonicalZodPathToFormFieldPath(
       if (tail === "transportCost") return "transport.transportCost";
       if (tail === "allowPersonalCar") return "transport.allowPersonalCar";
       if (tail === "dongAmount") return "transport.dongAmount";
+      if (tail === "seatPreference") return "transport.seatPreference";
       return "transport.transportMode";
     case "pricing":
       if (tail === "requiresPayment") return "pricingPayment.requiresPayment";

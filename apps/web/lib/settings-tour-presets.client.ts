@@ -10,6 +10,7 @@ export type SettingsTourPresetDto = {
   matchMainTourThemeId: string | null;
   /** Resolved form profile for wizard preset filtering. */
   formProfile: string;
+  canonicalData?: Record<string, unknown>;
   defaults: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +25,7 @@ export type CreateTourPresetPayload = {
   matchMainTourThemeId?: string | null;
   /** When omitted, API infers from tour type or defaults to `general`. */
   formProfile?: string | null;
+  canonicalData?: Record<string, unknown>;
   defaults?: Record<string, unknown>;
 };
 

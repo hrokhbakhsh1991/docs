@@ -28,11 +28,18 @@ import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
 import {
   CreateRegistrationDto,
+  RegistrationBookingTargetDto,
   RegistrationEntryModeDto,
   RegistrationTransportModeDto
 } from "./dto/create-registration.dto";
+import { validateIranNationalIdChecksum } from "../identity/utils/iran-national-id";
 import type { ParticipantMetadataDto } from "./dto/participant-metadata.dto";
-import { qualifiesForPeakExperienceAutoApproval } from "./utils/peak-experience-placement";
+import {
+  assertTravelerMeetsPeakRequirementOrThrow,
+  qualifiesForPeakExperienceAutoApproval,
+} from "./utils/peak-experience-placement";
+import { participantMetadataRecordForPersistence } from "./utils/registration-transport-intake";
+import { resolveTourAllowPrivateCar } from "@repo/types";
 import { CreateWaitlistItemDto } from "./dto/create-waitlist-item.dto";
 import {
   RegistrationResponseDto,
@@ -276,7 +283,10 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         tourPeek.tenantId
       );
       assertTourIsOpenForRegistration(tour);
-      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, createDto.tourId);
+      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, createDto.tourId, {
+        bookingTarget: createDto.bookingTarget,
+        participantNationalId: createDto.participantNationalId
+      });
       assertJwtTenantMatchesTourForAuthenticatedMutation({
         role: this.requestContextService.getRole(),
         jwtTenantId: this.requestContextService.resolveEffectiveTenantId(),
@@ -316,6 +326,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           ? Boolean(tour.costContext.requiresPayment)
           : false;
       const tripDetails = await this.loadTourTripDetailsForPlacement(manager, tour.id);
+      this.assertPrivateCarRegistrationAllowed(tour, tripDetails, createDto.transportMode);
       const placement = this.resolveInitialRegistrationPlacement(
         tour,
         createDto.participantMetadata,
@@ -329,13 +340,15 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, createDto.discountCode ?? null)),
         participantFullName: createDto.participantFullName,
         participantContactPhone: createDto.participantContactPhone,
+        bookingTarget: createDto.bookingTarget ?? RegistrationBookingTargetDto.SELF,
+        participantNationalId: createDto.participantNationalId,
         transportMode: createDto.transportMode,
         entryMode: createDto.entryMode,
         telegramUserId: createDto.telegramUserId,
         telegramUsername: createDto.telegramUsername,
         vehicleSeatCapacity: createDto.vehicleSeatCapacity,
         participantNote: createDto.participantNote,
-        participantMetadata: this.participantMetadataForPersistence(createDto.participantMetadata),
+        participantMetadata: this.participantMetadataForPersistence(createDto),
         status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined
@@ -980,16 +993,44 @@ export class RegistrationsService implements IRegistrationPaymentPort {
   }
 
   private participantMetadataForPersistence(
-    metadata: ParticipantMetadataDto | undefined,
+    dto: Pick<
+      CreateRegistrationDto,
+      | "participantMetadata"
+      | "transportMode"
+      | "isDriver"
+      | "plateNumber"
+      | "shareFuelCost"
+    >,
   ): Record<string, unknown> | undefined {
-    if (metadata == null) {
-      return undefined;
+    return participantMetadataRecordForPersistence({
+      participantMetadata: dto.participantMetadata,
+      transportMode: dto.transportMode,
+      isDriver: dto.isDriver,
+      plateNumber: dto.plateNumber,
+      shareFuelCost: dto.shareFuelCost,
+    });
+  }
+
+  private assertPrivateCarRegistrationAllowed(
+    tour: TourEntity,
+    tripDetails: Record<string, unknown> | null,
+    transportMode: RegistrationTransportModeDto,
+  ): void {
+    if (transportMode !== RegistrationTransportModeDto.SELF_VEHICLE) {
+      return;
     }
-    const count = metadata.userPastPeaksCount;
-    if (count === undefined) {
-      return undefined;
+    const allowPrivateCar = resolveTourAllowPrivateCar({
+      transportModes: tour.transportModes,
+      details: tripDetails != null ? { tripDetails } : undefined,
+    });
+    if (!allowPrivateCar) {
+      throw new BadRequestException({
+        error: {
+          code: "REGISTRATION_PRIVATE_CAR_NOT_ALLOWED",
+          message: "Private car registration is not allowed for this tour",
+        },
+      });
     }
-    return { userPastPeaksCount: count };
   }
 
   /**
@@ -1024,11 +1065,13 @@ export class RegistrationsService implements IRegistrationPaymentPort {
 
   /**
    * When the tour's trip details set `participation.registrationNationalIdRequired`,
-   * require an authenticated user (JWT context) with non-empty `users.national_id`.
+   * branch logic: validate against users.national_id if bookingTarget === 'self',
+   * otherwise validate the DTO’s participantNationalId if bookingTarget === 'guest'.
    */
   private async assertTourNationalIdRegistrationPolicyOrThrow(
     manager: EntityManager,
-    tourId: string
+    tourId: string,
+    payload: { bookingTarget?: RegistrationBookingTargetDto; participantNationalId?: string }
   ): Promise<void> {
     const detailsRow = await manager.findOne(TourDetails, {
       where: { tourId },
@@ -1038,6 +1081,29 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       | { registrationNationalIdRequired?: boolean }
       | undefined;
     if (participation?.registrationNationalIdRequired !== true) {
+      return;
+    }
+
+    const bookingTarget = payload.bookingTarget ?? RegistrationBookingTargetDto.SELF;
+
+    if (bookingTarget === RegistrationBookingTargetDto.GUEST) {
+      const guestNationalId = payload.participantNationalId?.trim();
+      if (!guestNationalId) {
+        throw new BadRequestException({
+          error: {
+            code: "REGISTRATION_GUEST_NATIONAL_ID_REQUIRED",
+            message: "Guest national ID is required for this tour."
+          }
+        });
+      }
+      if (!validateIranNationalIdChecksum(guestNationalId)) {
+        throw new BadRequestException({
+          error: {
+            code: "REGISTRATION_GUEST_NATIONAL_ID_INVALID",
+            message: "Provided guest national ID is mathematically invalid."
+          }
+        });
+      }
       return;
     }
 
@@ -1431,12 +1497,15 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       tourId: entity.tourId,
       participantFullName: entity.participantFullName,
       participantContactPhone: entity.participantContactPhone,
+      bookingTarget: entity.bookingTarget,
+      participantNationalId: entity.participantNationalId,
       transportMode: entity.transportMode,
       entryMode: entity.entryMode,
       telegramUserId: entity.telegramUserId,
       telegramUsername: entity.telegramUsername,
       vehicleSeatCapacity: entity.vehicleSeatCapacity,
       participantNote: entity.participantNote,
+      participantMetadata: entity.participantMetadata ?? null,
       status: entity.status,
       rowVersion: entity.rowVersion,
       paymentStatus: entity.paymentStatus,
@@ -1746,12 +1815,17 @@ export class RegistrationsService implements IRegistrationPaymentPort {
 
   async createPublicRegistrationOrWaitlist(input: {
     tourId: string;
+    bookingTarget?: RegistrationBookingTargetDto;
     participantFullName: string;
     participantContactPhone: string;
+    participantNationalId?: string;
     transportMode: string;
     entryMode: string;
     telegramUserId?: string;
     telegramUsername?: string;
+    isDriver?: boolean;
+    plateNumber?: string;
+    shareFuelCost?: boolean;
     vehicleSeatCapacity?: number;
     participantNote?: string;
     participantMetadata?: ParticipantMetadataDto;
@@ -1791,7 +1865,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         tenantId
       );
       assertTourIsOpenForRegistration(tour);
-      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, input.tourId);
+      await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, input.tourId, input);
       const existingRegistrations = await manager.find(RegistrationEntity, {
         where: {
           tenantId,
@@ -1845,6 +1919,12 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       }
 
       const tripDetails = await this.loadTourTripDetailsForPlacement(manager, tour.id);
+      this.assertPrivateCarRegistrationAllowed(
+        tour,
+        tripDetails,
+        input.transportMode as RegistrationTransportModeDto,
+      );
+      assertTravelerMeetsPeakRequirementOrThrow(tripDetails, input.participantMetadata);
       const placement = this.resolveInitialRegistrationPlacement(
         tour,
         input.participantMetadata,
@@ -1862,13 +1942,21 @@ export class RegistrationsService implements IRegistrationPaymentPort {
         ...(await this.registrationQuoteApplication.buildQuoteSnapshot(manager, tour, input.discountCode ?? null)),
         participantFullName: input.participantFullName,
         participantContactPhone: input.participantContactPhone,
+        bookingTarget: input.bookingTarget ?? RegistrationBookingTargetDto.SELF,
+        participantNationalId: input.participantNationalId,
         transportMode: input.transportMode,
         entryMode: input.entryMode,
         telegramUserId: input.telegramUserId,
         telegramUsername: input.telegramUsername,
         vehicleSeatCapacity: input.vehicleSeatCapacity,
         participantNote: input.participantNote,
-        participantMetadata: this.participantMetadataForPersistence(input.participantMetadata),
+        participantMetadata: this.participantMetadataForPersistence({
+          participantMetadata: input.participantMetadata,
+          transportMode: input.transportMode as RegistrationTransportModeDto,
+          isDriver: input.isDriver,
+          plateNumber: input.plateNumber,
+          shareFuelCost: input.shareFuelCost,
+        }),
         status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,
         paidAmount: undefined

@@ -9,9 +9,66 @@ import { logBffError } from "@/lib/logging/bff-logger";
 
 import { getRequestIdFromHeaders } from "@/lib/api/tracing-utils";
 
-export function readSessionToken(): string | null {
-  const token = cookies().get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  return token || null;
+function extractSessionTokenFromCookieHeader(cookieHeader: string | null): string | null {
+  if (!cookieHeader?.trim()) {
+    return null;
+  }
+  const match = cookieHeader.match(
+    new RegExp(`(?:^|;\\s*)${SESSION_TOKEN_COOKIE}=([^;]+)`),
+  );
+  const raw = match?.[1]?.trim();
+  if (!raw) {
+    return null;
+  }
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+/**
+ * Resolves the workspace JWT for BFF upstream calls.
+ * Prefer the incoming Route Handler `req` (curl/browser Cookie / Authorization),
+ * then fall back to Next `cookies()` for same-origin client navigations.
+ */
+export function readSessionToken(req?: Request): string | null {
+  if (req) {
+    const authorization = req.headers.get("authorization")?.trim();
+    if (authorization?.toLowerCase().startsWith("bearer ")) {
+      const bearer = authorization.slice(7).trim();
+      if (bearer) {
+        return bearer;
+      }
+    }
+    const fromRequestCookie = extractSessionTokenFromCookieHeader(req.headers.get("cookie"));
+    if (fromRequestCookie) {
+      return fromRequestCookie;
+    }
+  }
+
+  const fromNextCookies = cookies().get(SESSION_TOKEN_COOKIE)?.value?.trim();
+  return fromNextCookies || null;
+}
+
+/**
+ * Forwards the caller session to Nest (Bearer + Cookie). Nest accepts either;
+ * both improves tenant hydration when only one is present on the inbound request.
+ */
+function applyInboundSessionHeaders(req: Request, headers: Headers): string | null {
+  const token = readSessionToken(req);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const inboundCookie = req.headers.get("cookie")?.trim();
+  if (inboundCookie) {
+    headers.set("Cookie", inboundCookie);
+  } else if (token) {
+    headers.set("Cookie", `${SESSION_TOKEN_COOKIE}=${encodeURIComponent(token)}`);
+  }
+
+  return token;
 }
 
 function extractRequestId(req: Request): string | undefined {
@@ -23,17 +80,36 @@ export async function bffFetchAuth(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const token = readSessionToken();
+  const headers = new Headers(init.headers);
+  const token = applyInboundSessionHeaders(req, headers);
   if (!token) {
     throw createAppError("AUTH_SESSION_INVALID", "Authentication required");
   }
 
-  const headers = new Headers(init.headers);
-  if (!headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
   return bffFetch(req, path, { ...init, headers });
+}
+
+/**
+ * Server-only catalog reads for BFF aggregation (tour detail gear/themes).
+ * Sends `x-internal-api-key` so API {@link InternalApiKeyGuard} can elevate to admin read
+ * while the user session still supplies tenant context via `Authorization`.
+ */
+export async function bffFetchWithInternalKey(
+  req: Request,
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const internalKey = process.env.INTERNAL_API_KEY?.trim();
+  if (!internalKey) {
+    throw createAppError(
+      "BFF_CONFIG_MISSING",
+      "INTERNAL_API_KEY is not configured for server-side catalog aggregation",
+    );
+  }
+  const headers = new Headers(init.headers);
+  headers.set("x-internal-api-key", internalKey);
+  // Session headers (Authorization + Cookie) are applied inside bffFetchAuth.
+  return bffFetchAuth(req, path, { ...init, headers });
 }
 
 function unauthorized(requestId?: string): NextResponse {

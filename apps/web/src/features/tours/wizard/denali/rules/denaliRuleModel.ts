@@ -69,6 +69,13 @@ const CATEGORY_FIELD: DenaliRuleFieldDefinition = {
   step: "denali_basic",
 };
 
+const EVENT_VARIANT_FIELD: DenaliRuleFieldDefinition = {
+  path: "eventVariant",
+  required: false,
+  hidden: false,
+  step: "denali_basic",
+};
+
 const DESTINATION_FIELD: DenaliRuleFieldDefinition = {
   path: "destinationId",
   required: true,
@@ -255,7 +262,7 @@ const GEAR_ITEMS_FIELD: DenaliRuleFieldDefinition = {
   path: "participants.gearItems",
   required: false,
   hidden: false,
-  step: "denali_pricing",
+  step: "denali_logistics",
 };
 
 const TRANSPORT_MODE_FIELD: DenaliRuleFieldDefinition = {
@@ -288,6 +295,14 @@ const DONG_AMOUNT_FIELD: DenaliRuleFieldDefinition = {
 
 const TRANSPORT_NOTES_FIELD: DenaliRuleFieldDefinition = {
   path: "transport.transportNotes",
+  required: false,
+  hidden: false,
+  step: "denali_logistics",
+};
+
+/** Static row; visibility/required when `transport.mode === "train"` (see denaliUIAdapter). */
+const SEAT_PREFERENCE_FIELD: DenaliRuleFieldDefinition = {
+  path: "transport.seatPreference",
   required: false,
   hidden: false,
   step: "denali_logistics",
@@ -487,6 +502,7 @@ const CORE_WIZARD_FIELDS: readonly DenaliRuleFieldDefinition[] = [
   TRANSPORT_COST_FIELD,
   ALLOW_PERSONAL_CAR_FIELD,
   DONG_AMOUNT_FIELD,
+  SEAT_PREFERENCE_FIELD,
   REQUIRES_PAYMENT_FIELD,
   BASE_PRICE_PER_PERSON_FIELD,
   PAYMENT_MODE_FIELD,
@@ -494,7 +510,8 @@ const CORE_WIZARD_FIELDS: readonly DenaliRuleFieldDefinition[] = [
   PHOTOS_FIELD,
 ];
 
-function assertUniqueDenaliFieldPaths(
+/** Rejects duplicate `path` rows — there is no runtime “last rule wins” merge. */
+export function assertUniqueDenaliFieldPaths(
   model: DenaliRuleModel,
 ): void {
   const seen = new Set<string>();
@@ -645,6 +662,7 @@ export const denaliRuleSet: DenaliRuleSet = {
       fields: [
         ...CORE_WIZARD_FIELDS,
         ...OPTIONAL_BASIC_FIELDS,
+        EVENT_VARIANT_FIELD,
         DESTINATION_FIELD,
         END_DATETIME_HIDDEN,
         ...EVENT_HIDDEN_PROGRAM_FIELDS,

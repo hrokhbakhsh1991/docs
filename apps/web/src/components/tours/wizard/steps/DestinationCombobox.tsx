@@ -151,9 +151,9 @@ export function DestinationCombobox({
       <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#334155" }}>{label}</label>
       {multiple && selected.length > 0 ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-          {selected.map((opt) => (
+          {selected.map((opt, index) => (
             <button
-              key={opt.id}
+              key={`selected-${opt.id}-${index}`}
               type="button"
               onClick={() => commitMultiToggle(opt.id)}
               style={{
@@ -248,13 +248,13 @@ export function DestinationCombobox({
                 >
                   منطقه: {group.regionName}
                 </div>
-                {group.items.map((opt) => {
+                {group.items.map((opt, itemIndex) => {
                   const idx = flat.findIndex((f) => f.id === opt.id);
                   const isActive = idx === activeIndex;
                   const isSelected = selectedIds.includes(opt.id);
                   return (
                     <button
-                      key={opt.id}
+                      key={`${group.regionId}-${opt.id}-${itemIndex}`}
                       type="button"
                       role="option"
                       aria-selected={isSelected}

@@ -1,18 +1,24 @@
 import { Transform, Type } from "class-transformer";
 import {
+  IsBoolean,
+  IsDefined,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Length,
   Matches,
+  Max,
   MaxLength,
   Min,
   ValidateIf,
   ValidateNested
 } from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+import { asciiDigitsFromNationalIdRaw } from "../../identity/utils/iran-national-id";
 
 import { ParticipantMetadataDto } from "./participant-metadata.dto";
 
@@ -25,6 +31,11 @@ export enum RegistrationTransportModeDto {
 export enum RegistrationEntryModeDto {
   TELEGRAM = "telegram",
   WEB = "web"
+}
+
+export enum RegistrationBookingTargetDto {
+  SELF = "self",
+  GUEST = "guest"
 }
 
 export class CreateRegistrationDto {
@@ -63,6 +74,45 @@ export class CreateRegistrationDto {
   })
   participantContactPhone!: string;
 
+  @ApiPropertyOptional({
+    description:
+      "Whether the authenticated user registers for themselves or for another guest participant",
+    enum: RegistrationBookingTargetDto,
+    example: RegistrationBookingTargetDto.SELF,
+    default: RegistrationBookingTargetDto.SELF
+  })
+  @IsOptional()
+  @IsEnum(RegistrationBookingTargetDto)
+  bookingTarget?: RegistrationBookingTargetDto;
+
+  @ApiPropertyOptional({
+    description:
+      "National ID of the guest participant (10 digits). Relevant when bookingTarget is guest and the tour requires national ID on the traveler.",
+    example: "0123456789",
+    maxLength: 10
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== "string") {
+      return value;
+    }
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      return undefined;
+    }
+    return asciiDigitsFromNationalIdRaw(trimmed);
+  })
+  @ValidateIf((_dto, value) => value !== undefined && value !== null)
+  @IsString()
+  @Length(10, 10)
+  @Matches(/^[0-9]{10}$/, {
+    message: "participantNationalId must be exactly 10 decimal digits"
+  })
+  participantNationalId?: string;
+
   @ApiProperty({
     description: "Participant transport mode",
     enum: RegistrationTransportModeDto,
@@ -100,13 +150,50 @@ export class CreateRegistrationDto {
   telegramUsername?: string;
 
   @ApiPropertyOptional({
+    description: "Whether the registrant is the driver (required when transportMode is self_vehicle).",
+  })
+  @ValidateIf((dto: CreateRegistrationDto) => dto.transportMode === RegistrationTransportModeDto.SELF_VEHICLE)
+  @IsDefined()
+  @IsBoolean()
+  isDriver?: boolean;
+
+  @ApiPropertyOptional({
+    description: "Vehicle plate number when isDriver is true.",
+    maxLength: 32,
+  })
+  @ValidateIf(
+    (dto: CreateRegistrationDto) =>
+      dto.transportMode === RegistrationTransportModeDto.SELF_VEHICLE && dto.isDriver === true,
+  )
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  plateNumber?: string;
+
+  @ApiPropertyOptional({
+    description: "Passenger willingness to share fuel cost; optional when not driver.",
+  })
+  @ValidateIf(
+    (dto: CreateRegistrationDto) =>
+      dto.transportMode === RegistrationTransportModeDto.SELF_VEHICLE && dto.isDriver === false,
+  )
+  @IsOptional()
+  @IsBoolean()
+  shareFuelCost?: boolean;
+
+  @ApiPropertyOptional({
     description: "Optional vehicle seat capacity if participant is driver",
     example: 3,
-    minimum: 1
+    minimum: 1,
+    maximum: 3,
   })
-  @IsOptional()
+  @ValidateIf(
+    (dto: CreateRegistrationDto) =>
+      dto.transportMode === RegistrationTransportModeDto.SELF_VEHICLE && dto.isDriver === true,
+  )
   @IsInt()
   @Min(1)
+  @Max(3)
   vehicleSeatCapacity?: number;
 
   @ApiPropertyOptional({

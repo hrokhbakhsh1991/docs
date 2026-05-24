@@ -198,6 +198,7 @@ async function loadPresetPrefill(
   if (useDenaliRail) {
     const merged = applyDenaliWizardPreset({
       workspaceFormProfile: resolvedProfile,
+      canonicalData: preset.canonicalData as import("@repo/types/denali").DenaliCanonicalTemplateData | undefined,
       defaults: preset.defaults ?? {},
       ctx: presetCtx,
       baseValues: buildDenaliTourCreateDefaultValues(),

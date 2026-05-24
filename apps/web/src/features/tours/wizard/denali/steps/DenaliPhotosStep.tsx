@@ -1,71 +1,54 @@
 "use client";
 
-import { useFormContext, useFieldArray } from "react-hook-form";
-import { FormField, Input, Button } from "@tour/ui";
+import { useFormContext } from "react-hook-form";
+import { Button } from "@tour/ui";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { DENALI_MAX_PHOTO_COUNT } from "@/features/tours/wizard/schemas/denaliFileAssetSchema";
 
+import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { FileUploadField } from "../components/FileUploadField";
+
+const STEP = "denali_photos" as const;
 export function DenaliPhotosStep() {
-  const { control, formState: { errors } } = useFormContext<DenaliCreateTourWizardForm>();
+  const {
+    getValues,
+    setValue,
+    formState: { errors },
+  } = useFormContext<DenaliCreateTourWizardForm>();
+  const { updateCanonical } = useDenaliCanonical();
+  const { isRequired } = useDenaliStepFieldRules(STEP);
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "photosData.photos",
-  });
-
+  const rows = getValues().photosData.photos ?? [];
   const photoErrors = errors.photosData?.photos;
   const rootError = Array.isArray(photoErrors) ? undefined : photoErrors?.message;
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    // Simulate async upload
-    const newPhotos = await Promise.all(
-      Array.from(files).map(async (file) => {
-        const id = crypto.randomUUID();
-        // Zod URL validation requires a valid URL (http/https). 
-        // Using blob URL for now until the actual API is wired up.
-        const mockUrl = URL.createObjectURL(file);
-        
-        return {
-          id,
-          url: mockUrl,
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type,
-          uploadedAt: new Date().toISOString(),
-        };
-      })
-    );
-
-    // Respect max 10 photos limit roughly here before upload
-    const availableSlots = 10 - fields.length;
-    const toAppend = newPhotos.slice(0, availableSlots);
-    
-    append(toAppend);
-    
-    // Clear input
-    e.target.value = "";
-  };
+  const required = isRequired("photos", getValues());
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-photos">
-      <div data-testid="denali-photos-container">
-        <FormField label={"آپلود عکس (حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"} error={rootError}>
-          <Input
-            type="file"
-            multiple
-            accept="image/jpeg, image/png, image/webp"
-            onChange={handleFileChange}
-            data-testid="denali-photos-upload"
-          />
-        </FormField>
-      </div>
+      <FileUploadField
+        label={
+          required
+            ? "آپلود عکس (الزامی - حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
+            : "آپلود عکس (حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
+        }
+        error={rootError}
+        value={rows}
+        maxFiles={DENALI_MAX_PHOTO_COUNT}
+        dataTestId="denali-photos-container"
+        onChange={(next) => {
+          setValue("photosData.photos", next ?? [], {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+          updateCanonical({ photos: next ?? [] });
+        }}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
-        {fields.map((field, index) => (
-          <div key={field.id} style={{ border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
+        {rows.map((field, index) => (
+          <div key={`${field.id}-${index}`} style={{ border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
             <img 
               src={field.url} 
               alt={field.filename} 
@@ -81,8 +64,12 @@ export function DenaliPhotosStep() {
               size="sm"
               style={{ position: "absolute", top: "4px", right: "4px" }}
               onClick={() => {
-                // TODO: Phase 3 - Call API to delete if it was uploaded
-                remove(index);
+                const next = rows.filter((_, i) => i !== index);
+                setValue("photosData.photos", next, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                updateCanonical({ photos: next });
               }}
               data-testid={`denali-photos-remove-${index}`}
             >

@@ -26,6 +26,10 @@ export function parseTenantWizardTemplate(raw: unknown): TenantWizardTemplate | 
         ? (o.fieldRulesOverlay as Record<string, unknown>)
         : {},
     presetId: typeof o.presetId === "string" && o.presetId.trim() !== "" ? o.presetId.trim() : null,
+    canonicalData:
+      o.canonicalData && typeof o.canonicalData === "object" && !Array.isArray(o.canonicalData)
+        ? (o.canonicalData as Record<string, unknown>)
+        : {},
     wizardContractVersion:
       typeof o.wizardContractVersion === "number" && Number.isFinite(o.wizardContractVersion)
         ? o.wizardContractVersion

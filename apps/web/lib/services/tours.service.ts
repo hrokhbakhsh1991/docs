@@ -1,4 +1,11 @@
-import type { TourDto, TourLifecycleStatus, TourFormProfile, TourType } from "@repo/types";
+import type {
+  TourDetailAccessLevel,
+  TourDetailViewHints,
+  TourDto,
+  TourFormProfile,
+  TourLifecycleStatus,
+  TourType,
+} from "@repo/types";
 
 import { ApiError } from "@/lib/api-client";
 import { tourCreateContractSchema } from "@/features/tours/contracts/tour-form-contract";
@@ -7,6 +14,7 @@ import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 import { bffBrowserClient } from "@/lib/api/bff-browser-client";
 import { BFF } from "@/lib/api-paths";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
+import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-session-log";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 /** When true, list/read tours via same-origin BFF `GET /api/tours` (session cookie). */
@@ -14,8 +22,11 @@ export function toursUseLiveApi(): boolean {
   return isTourOpsApiConfigured();
 }
 
-/** Tour row from `GET /api/v2/tours` after {@link mapTourResponseToDto}. */
-export type TourDetailDto = TourDto;
+/** Tour row from BFF `GET /api/tours/:id` after {@link mapTourResponseToDto}. */
+export type TourDetailDto = TourDto & {
+  accessLevel?: TourDetailAccessLevel;
+  viewHints?: TourDetailViewHints;
+};
 
 /**
  * Client payload for creating a tour (maps to Nest `CreateTourDto` on the wire).
@@ -90,6 +101,9 @@ export type UpdateTourDto = {
   tripDetails?: TourTripDetails;
   /** Nest `UpdateTourDto.destinationId` → `tours.destination_id` (send `null` to clear). */
   destinationId?: string | null;
+  autoAcceptRegistrations?: boolean;
+  paymentMode?: "offline_receipt";
+  transportModes?: ("bus" | "train" | "plane" | "private_car")[];
 };
 
 
@@ -257,12 +271,45 @@ export async function createTour(
       : typeof crypto !== "undefined" && crypto.randomUUID
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random()}`);
-  const raw = await bffBrowserClient.post<unknown>(BFF.tours, buildCreateTourPostBody(dto), {
-    idempotencyKey,
-    /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
-    skip403Redirect: true,
-  });
-  return mapTourResponseToDto(raw);
+  const body = buildCreateTourPostBody(dto);
+  debugSessionLog(
+    "tours.service.ts:createTour",
+    "POST /tours wire body summary",
+    {
+      ...summarizeDenaliCreatePayload(dto),
+      wireKeys: Object.keys(body),
+      wireTransportModes: body.transportModes,
+      wireLifecycle: body.lifecycle_status,
+    },
+    "A",
+  );
+  try {
+    const raw = await bffBrowserClient.post<unknown>(BFF.tours, body, {
+      idempotencyKey,
+      /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
+      skip403Redirect: true,
+    });
+    debugSessionLog(
+      "tours.service.ts:createTour",
+      "POST /tours succeeded",
+      { tourId: (raw as { id?: string })?.id ?? "unknown" },
+      "E",
+    );
+    return mapTourResponseToDto(raw);
+  } catch (err) {
+    debugSessionLog(
+      "tours.service.ts:createTour",
+      "POST /tours rejected",
+      {
+        status: err instanceof ApiError ? err.status : undefined,
+        code: err instanceof ApiError ? err.code : undefined,
+        message: err instanceof ApiError ? err.message : err instanceof Error ? err.message : String(err),
+        primaryTransportMode: summarizeDenaliCreatePayload(dto).primaryTransportMode,
+      },
+      "E",
+    );
+    throw err;
+  }
 }
 
 /** Reads `requiresPayment` from persisted `cost_context` (camelCase or snake_case). */
@@ -295,6 +342,10 @@ export function toUpdateTourApiBody(
     merged.requiresPayment = true;
   } else {
     delete merged.requiresPayment;
+    delete merged.paymentMode;
+  }
+  if (dto.paymentMode === "offline_receipt" && preserveRequiresPayment) {
+    merged.paymentMode = "offline_receipt";
   }
   const loc = dto.location?.trim();
   if (loc) {
@@ -326,6 +377,12 @@ export function toUpdateTourApiBody(
   }
   if (dto.formProfile) {
     body.formProfile = dto.formProfile;
+  }
+  if (dto.autoAcceptRegistrations !== undefined) {
+    body.autoAcceptRegistrations = dto.autoAcceptRegistrations;
+  }
+  if (dto.transportModes !== undefined) {
+    body.transportModes = dto.transportModes;
   }
   return body;
 }

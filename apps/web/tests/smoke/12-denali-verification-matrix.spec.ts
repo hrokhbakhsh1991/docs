@@ -51,13 +51,13 @@ test.describe("denali verification matrix", () => {
   });
 
   test("2c) draft restore clears ghost fields after reload", async ({ page }) => {
-    // Fill something, then reload
     await page.getByPlaceholder(/عنوان|title/i).fill("Draft Restore Test");
-    
-    // Simulate auto-save (waiting a bit or just re-loading assuming it saved)
+    await page.waitForTimeout(700);
     await page.reload({ waitUntil: "domcontentloaded" });
-    
-    // Check if value persists (normalized)
+
+    await expect(page.getByTestId("denali-draft-load")).toBeVisible();
+    await page.getByTestId("denali-draft-load").click();
+
     await expect(page.getByPlaceholder(/عنوان|title/i)).toHaveValue("Draft Restore Test");
   });
 });

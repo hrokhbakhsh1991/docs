@@ -135,6 +135,7 @@ function mergeDenaliFormSections(
       ...patch.participantRequirements,
     },
     policies: { ...defaults.policies, ...patch.policies },
+    photosData: { ...defaults.photosData, ...patch.photosData },
     tripDetails: {
       ...defaults.tripDetails,
       ...patch.tripDetails,

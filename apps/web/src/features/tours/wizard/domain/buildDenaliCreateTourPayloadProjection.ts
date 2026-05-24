@@ -22,6 +22,7 @@ import {
 } from "@repo/types/denali";
 
 import { buildDenaliCancellationPolicyText } from "@/features/tours/wizard/denali/denaliCancellationPolicy";
+import { isClientBlobUrl } from "@/features/tours/wizard/denali/preserveDenaliWizardBlobMedia";
 import { denaliFormToCanonical } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
 import { readDenaliCanonicalBasics } from "@/features/tours/wizard/denali/denaliCanonicalBasicsControl";
 import type { CreateTourDto } from "@/lib/services/tours.service";
@@ -282,7 +283,6 @@ function mapCanonicalTransport(transport: DenaliCanonicalTourModel["transport"])
 } {
   if (transport.mode === "none") {
     return {
-      primaryTransportMode: "none",
       supplementalPrivateCar: false,
       transportModes: [],
     };
@@ -398,7 +398,7 @@ function buildProjectionFromCanonical(
               distanceKm: undefined,
               elevationGainM: undefined,
               photos: (row.photos ?? [])
-                .filter((p) => p.id && p.url)
+                .filter((p) => p.id && p.url && !isClientBlobUrl(p.url))
                 .map((p) => ({
                   id: p.id,
                   url: p.url,
@@ -484,7 +484,9 @@ function buildProjectionFromCanonical(
       ...(gearOptionalIds.length > 0 ? { gearOptionalIds } : {}),
     },
     logistics: {
-      primaryTransportMode: transport.primaryTransportMode,
+      ...(transport.primaryTransportMode != null
+        ? { primaryTransportMode: transport.primaryTransportMode }
+        : {}),
       departureDate: startParts.date,
       returnDate: endParts.date,
       departureMeetingTime: startParts.time,
@@ -536,7 +538,7 @@ function buildProjectionFromCanonical(
     ...(canonical.photos && canonical.photos.length > 0
       ? {
           photos: canonical.photos
-            .filter((p) => p.id && p.url)
+            .filter((p) => p.id && p.url && !isClientBlobUrl(p.url))
             .map((p) => ({
               id: p.id,
               url: p.url,

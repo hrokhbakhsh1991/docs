@@ -144,6 +144,11 @@ export interface TourDetailsDto {
 
 export type TourDetails = TourDetailsDto;
 
+/** BFF-enriched policy for registration intake (e.g. private car gating). */
+export type TourRegistrationPolicyDto = {
+  allowPrivateCar: boolean;
+};
+
 /**
  * Mirrors Nest/OpenAPI `TourResponseDto` (`apps/api/openapi.json` components.schemas.TourResponseDto).
  * JSON uses camelCase. Tour schedule dates are not part of the MVP contract.
@@ -172,6 +177,8 @@ export interface TourResponseDto {
   /** Region name for the linked destination (list/detail UI). */
   destinationRegionName?: string | null;
   details?: TourDetailsDto | null;
+  /** Present when tour is loaded via BFF aggregation. */
+  registrationPolicy?: TourRegistrationPolicyDto;
 }
 
 /**

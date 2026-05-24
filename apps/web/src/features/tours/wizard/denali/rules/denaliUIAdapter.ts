@@ -1,5 +1,6 @@
 import {
   isDenaliAllowPersonalCarVisible,
+  isDenaliSeatPreferenceVisible,
   isDenaliTransportCostVisible,
   isDenaliTransportDongAmountVisible,
   type DenaliCanonicalTourModel,
@@ -174,12 +175,18 @@ function isDenaliFieldContextuallyVisible(
       allowPersonalCar: form.transport.allowPersonalCar,
     });
   }
+  if (path === "transport.seatPreference") {
+    return isDenaliSeatPreferenceVisible(form.transport.transportMode);
+  }
   if (path === "pricing.basePricePerPerson") {
     return form.pricingPayment.requiresPayment === true;
   }
   if (path === "program.altitudeMeasurement") {
     const basics = readDenaliCanonicalBasics(form.basicInfo.tourType as DenaliTourKind | undefined);
     return isDenaliAltitudeVisibleForCategory(basics?.category);
+  }
+  if (path === "localGuideName") {
+    return form.basicInfo.requiresLocalGuide === true;
   }
   return true;
 }

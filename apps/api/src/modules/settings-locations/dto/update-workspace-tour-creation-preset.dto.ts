@@ -63,6 +63,15 @@ export class UpdateWorkspaceTourCreationPresetDto {
   @IsIn(TOUR_FORM_PROFILE_VALUES_LIST)
   formProfile?: TourFormProfile | null;
 
+  @ApiPropertyOptional({
+    type: "object",
+    additionalProperties: true,
+    description: "Partial Denali canonical tour model.",
+  })
+  @IsOptional()
+  @IsObject()
+  canonicalData?: Record<string, unknown>;
+
   @ApiPropertyOptional({ type: "object", additionalProperties: true })
   @IsOptional()
   @IsObject()

@@ -9,6 +9,6 @@
     "noEmit": false,
     "verbatimModuleSyntax": false
   },
-  "include": ["index.ts", "errors/**/*.ts", "rbac/**/*.ts"],
+  "include": ["index.ts", "errors/**/*.ts", "form-rule-engine/**/*.ts", "rbac/**/*.ts"],
   "exclude": ["**/*.spec.ts"]
 }

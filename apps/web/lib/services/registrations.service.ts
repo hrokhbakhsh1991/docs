@@ -1,5 +1,6 @@
 import type {
   BookingDto,
+  RegistrationParticipantMetadataDto,
   RegistrationPaymentStatus,
   RegistrationStatus,
   WaitlistItemResponseDto,
@@ -27,6 +28,33 @@ function pickNum(o: Record<string, unknown>, key: string): number | null {
   const v = o[key];
   if (typeof v === "number" && Number.isFinite(v)) return v;
   return null;
+}
+
+function normalizeParticipantMetadata(raw: unknown): RegistrationParticipantMetadataDto | null {
+  if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const meta = raw as Record<string, unknown>;
+  const intakeRaw = meta.transportIntake;
+  let transportIntake: RegistrationParticipantMetadataDto["transportIntake"];
+  if (intakeRaw != null && typeof intakeRaw === "object" && !Array.isArray(intakeRaw)) {
+    const intake = intakeRaw as Record<string, unknown>;
+    transportIntake = {
+      ...(typeof intake.isDriver === "boolean" ? { isDriver: intake.isDriver } : {}),
+      ...(typeof intake.plateNumber === "string" ? { plateNumber: intake.plateNumber } : {}),
+      ...(typeof intake.shareFuelCost === "boolean" ? { shareFuelCost: intake.shareFuelCost } : {}),
+    };
+  }
+  const peaks = meta.userPastPeaksCount;
+  const userPastPeaksCount =
+    typeof peaks === "number" && Number.isInteger(peaks) ? peaks : undefined;
+  if (transportIntake == null && userPastPeaksCount === undefined) {
+    return null;
+  }
+  return {
+    ...(userPastPeaksCount !== undefined ? { userPastPeaksCount } : {}),
+    ...(transportIntake != null ? { transportIntake } : {}),
+  };
 }
 
 function pickLockedPricing(
@@ -76,6 +104,7 @@ export function normalizeRegistrationPayload(raw: unknown): BookingDto {
         : typeof o.participant_note === "string"
           ? o.participant_note
           : null,
+    participantMetadata: normalizeParticipantMetadata(o.participantMetadata ?? o.participant_metadata),
     status: pickStr(o, "status") as RegistrationStatus,
     rowVersion: pickNum(o, "rowVersion") ?? pickNum(o, "row_version") ?? 1,
     paymentStatus: pickStr(o, "paymentStatus", "payment_status") as RegistrationPaymentStatus,
@@ -97,12 +126,17 @@ export type ParticipantMetadataPayload = {
 /** Body fields aligned with `CreateRegistrationDto` (no `tenantId` — tenant is derived server-side). */
 export type CreateRegistrationPayload = {
   tourId: string;
+  bookingTarget?: "self" | "guest";
   participantFullName: string;
   participantContactPhone: string;
+  participantNationalId?: string;
   transportMode: BookingDto["transportMode"];
   entryMode: BookingDto["entryMode"];
   telegramUserId?: string | null;
   telegramUsername?: string | null;
+  isDriver?: boolean;
+  plateNumber?: string;
+  shareFuelCost?: boolean;
   vehicleSeatCapacity?: number | null;
   participantNote?: string | null;
   participantMetadata?: ParticipantMetadataPayload;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  denaliPrimaryTransportSubmitValue,
   inferDenaliTransportModeFromApiLogistics,
   migrateLegacyDenaliTransportForm,
   normalizeDenaliTransportForm,
@@ -56,4 +57,29 @@ test("inferDenaliTransportModeFromApiLogistics: bus + private_car → bus + allo
   assert.equal(out.transportMode, "bus");
   assert.equal(out.allowPersonalCar, true);
   assert.equal(out.dongAmount, 80_000);
+});
+
+test("denaliPrimaryTransportSubmitValue: none mode satisfies submit gate", () => {
+  assert.equal(
+    denaliPrimaryTransportSubmitValue({
+      denaliTransportMode: "none",
+      primaryTransportMode: undefined,
+      rootTransportModes: [],
+    }),
+    "none",
+  );
+  assert.equal(
+    denaliPrimaryTransportSubmitValue({
+      primaryTransportMode: undefined,
+      rootTransportModes: [],
+    }),
+    "none",
+  );
+  assert.equal(
+    denaliPrimaryTransportSubmitValue({
+      primaryTransportMode: "bus",
+      rootTransportModes: ["bus"],
+    }),
+    "bus",
+  );
 });

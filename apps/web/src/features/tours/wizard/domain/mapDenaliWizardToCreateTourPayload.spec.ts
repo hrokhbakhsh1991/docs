@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
+import { buildDenaliTourCreateTestValues, normalizeDenaliWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { assertSubmitValidDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
@@ -76,12 +76,35 @@ test("mapDenaliWizardToCreateTourPayload: organizer_vehicle maps to bus", () => 
   assert.deepEqual(dto.transportModes, ["bus"]);
 });
 
-test("mapDenaliWizardToCreateTourPayload: none maps primaryTransportMode and clears root modes", () => {
-  const form = submitValidForm();
-  form.transport.transportMode = "none";
+test("mapDenaliWizardToCreateTourPayload: none omits primaryTransportMode and clears root modes", () => {
+  const base = buildDenaliTourCreateTestValues();
+  const form = normalizeDenaliWizardForm({
+    ...base,
+    basicInfo: { ...base.basicInfo, tourType: "mountain_day", capacityMax: 12 },
+    transport: { ...base.transport, transportMode: "none" },
+  });
   const dto = mapDenaliWizardToCreateTourPayload(form);
-  assert.equal(dto.tripDetails?.logistics?.primaryTransportMode, "none");
+  assert.equal(dto.tripDetails?.logistics?.primaryTransportMode, undefined);
   assert.deepEqual(dto.transportModes, []);
+});
+
+test("mapDenaliWizardToCreateTourPayload: strips blob gallery photos from wire payload", () => {
+  const base = buildDenaliTourCreateTestValues();
+  const form = normalizeDenaliWizardForm({
+    ...base,
+    basicInfo: { ...base.basicInfo, tourType: "mountain_day", capacityMax: 12 },
+    photosData: {
+      photos: [
+        { id: "p-blob", url: "blob:http://localhost/abc", filename: "a.jpg" },
+        { id: "p-http", url: "https://cdn.example.com/a.jpg", filename: "b.jpg" },
+      ],
+    },
+  });
+  const dto = mapDenaliWizardToCreateTourPayload(form);
+  const photos = dto.tripDetails?.photos as { id: string; url: string }[] | undefined;
+  assert.equal(photos?.length, 1);
+  assert.equal(photos?.[0]?.id, "p-http");
+  assert.equal(photos?.[0]?.url, "https://cdn.example.com/a.jpg");
 });
 
 test("denaliDayPlansToSegmentActivities: each day has segment title and description", () => {

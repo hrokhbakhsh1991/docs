@@ -10,6 +10,9 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { DenaliPeakExperienceField } from "../components/DenaliPeakExperienceField";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+
+const STEP = "denali_pricing" as const;
 
 const PATH_MINIMUM_AGE = "participants.minimumAge";
 const PATH_MAXIMUM_AGE = "participants.maximumAge";
@@ -21,14 +24,15 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
   const {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
-  const { canonicalModel, ui, updateCanonical } = useDenaliCanonical();
+  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const { isVisible } = useDenaliStepFieldRules(STEP);
 
-  const showMinimumAge = ui.isVisible("denali_pricing", PATH_MINIMUM_AGE, form);
-  const showMaximumAge = ui.isVisible("denali_pricing", PATH_MAXIMUM_AGE, form);
-  const showFitnessLevel = ui.isVisible("denali_pricing", PATH_FITNESS_LEVEL, form);
-  const showNationalId = true;
-  const showSportsInsurance = true;
-  const showPolicies = ui.isVisible("denali_pricing", "policies.policiesText", form);
+  const showMinimumAge = isVisible(PATH_MINIMUM_AGE, form);
+  const showMaximumAge = isVisible(PATH_MAXIMUM_AGE, form);
+  const showFitnessLevel = isVisible(PATH_FITNESS_LEVEL, form);
+  const showNationalId = isVisible("participants.nationalIdRequired", form);
+  const showSportsInsurance = isVisible("participants.sportsInsuranceRequired", form);
+  const showPolicies = isVisible("policies.policiesText", form);
 
   const showParticipantBlock =
     showMinimumAge || showMaximumAge || showFitnessLevel || showNationalId || showSportsInsurance;

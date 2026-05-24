@@ -136,6 +136,24 @@ test("cinema_event: full required subset passes", () => {
   );
 });
 
+test("denali_pilot: empty primaryTransportMode with empty transportModes passes submit gate", () => {
+  assert.doesNotThrow(() =>
+    assertProfileRequiredFieldsForSubmit(
+      "denali_pilot",
+      minimalDto({
+        cost_context: { totalCost: 500_000 },
+        transportModes: [],
+        tripDetails: {
+          itinerary: {
+            segmentActivities: [{ dayNumber: 1, segments: [{ title: "leg" }] }],
+          },
+          logistics: {},
+        },
+      } as CreateTourDto),
+    ),
+  );
+});
+
 test("tourEntityToProfileRequiredSubmitShape maps title, cost, and tripDetails", () => {
   const tour = new TourEntity();
   tour.title = "1234567890ab";

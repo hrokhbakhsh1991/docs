@@ -54,6 +54,12 @@ export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "varchar", name: "entry_mode", length: 16 })
   entryMode!: string;
 
+  @Column({ type: "varchar", name: "booking_target", length: 16, default: "self" })
+  bookingTarget!: string;
+
+  @Column({ type: "varchar", name: "participant_national_id", length: 10, nullable: true })
+  participantNationalId?: string;
+
   @Column({ type: "varchar", name: "telegram_user_id", length: 255, nullable: true })
   telegramUserId?: string;
 

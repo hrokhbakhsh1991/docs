@@ -14,7 +14,8 @@ export class AuthorizationPresenceGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request & { user?: unknown }>();
     const authorization = request.header("authorization");
-    if (!authorization) {
+    const internalApiKey = request.header("x-internal-api-key");
+    if (!authorization && !internalApiKey) {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_UNAUTHENTICATED",

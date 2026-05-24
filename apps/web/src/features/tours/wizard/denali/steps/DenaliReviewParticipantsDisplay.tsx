@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
   if (value == null || (typeof value === "string" && !value.trim())) return null;
@@ -19,13 +20,14 @@ function ReviewRow({ label, value }: { label: string; value: string | undefined 
 /** Read-only participant summary on review (placement v1 — no input on review). */
 export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTourWizardForm }) {
   const t = useTranslations("tours.denali");
-  const { canonicalModel, ui } = useDenaliCanonical();
+  const { canonicalModel } = useDenaliCanonical();
+  const { isVisible } = useDenaliStepFieldRules("review");
 
-  const showMinimumAge = ui.isVisible("review", "participants.minimumAge", form);
-  const showMaximumAge = ui.isVisible("review", "participants.maximumAge", form);
-  const showFitnessLevel = ui.isVisible("review", "participants.fitnessLevel", form);
-  const showNationalId = ui.isVisible("review", "participants.nationalIdRequired", form);
-  const showSportsInsurance = ui.isVisible("review", "participants.sportsInsuranceRequired", form);
+  const showMinimumAge = isVisible("participants.minimumAge", form);
+  const showMaximumAge = isVisible("participants.maximumAge", form);
+  const showFitnessLevel = isVisible("participants.fitnessLevel", form);
+  const showNationalId = isVisible("participants.nationalIdRequired", form);
+  const showSportsInsurance = isVisible("participants.sportsInsuranceRequired", form);
 
   if (!showMinimumAge && !showMaximumAge && !showFitnessLevel && !showNationalId && !showSportsInsurance) {
     return null;

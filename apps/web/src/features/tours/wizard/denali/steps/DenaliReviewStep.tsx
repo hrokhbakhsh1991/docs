@@ -14,6 +14,7 @@ import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-mem
 import { flattenDenaliFormErrors } from "../flattenDenaliFormErrors";
 import { parseIsoToYmdAndTime } from "../denaliDatetime";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { splitGearByRequired } from "../denaliGearSelection";
 import { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
 import { TourPublishStatusField } from "@/components/tours/TourPublishStatusField";
@@ -69,9 +70,9 @@ function GearReviewLists({
         <div data-testid="denali-review-gear-required">
           <dt style={{ fontWeight: 600 }}>{requiredTitle}</dt>
           <dd style={pillContainerStyle}>
-            {requiredNames.map((name) => (
+            {requiredNames.map((name, index) => (
               <span
-                key={name}
+                key={`required-${name}-${index}`}
                 style={{
                   ...pillStyle,
                   backgroundColor: "var(--color-danger-50, #fef2f2)",
@@ -89,9 +90,9 @@ function GearReviewLists({
         <div data-testid="denali-review-gear-optional">
           <dt style={{ fontWeight: 600 }}>{optionalTitle}</dt>
           <dd style={pillContainerStyle}>
-            {optionalNames.map((name) => (
+            {optionalNames.map((name, index) => (
               <span
-                key={name}
+                key={`optional-${name}-${index}`}
                 style={{
                   ...pillStyle,
                   backgroundColor: "var(--color-primary-50, #eff6ff)",
@@ -130,8 +131,10 @@ export function DenaliReviewStep() {
     "draft";
   const formSnapshot = useWatch({ control }) as DenaliCreateTourWizardForm | undefined;
 
-  const { canonicalModel, basicsSelection, ui } = useDenaliCanonical();
+  const { canonicalModel, basicsSelection } = useDenaliCanonical();
   const formForUi = formSnapshot ?? getValues();
+  const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
+    useDenaliStepFieldRules("review");
 
   const publishReadinessIssues = useMemo(
     () => getDenaliWizardPublishReadinessIssues(formForUi),
@@ -152,16 +155,21 @@ export function DenaliReviewStep() {
     });
   }, [equipmentQuery.data, equipmentQuery.isLoading, getValues]);
 
-  const showOutdoorProgram = ui.arePathsVisible(
-    "review",
+  const showOutdoorProgram = areReviewPathsVisible(
     ["program.difficultyLevel", "program.hikingHoursApprox"],
     formForUi,
   );
-  const showEventVariant = basicsSelection?.category === "event";
+  const showEventVariant = isReviewFieldVisible("eventVariant", formForUi);
 
   const themesQuery = useSettingsTourThemes();
   const themeLabels = useMemo(() => {
-    const ids = canonicalModel.program.themeIds ?? [];
+    const seen = new Set<string>();
+    const ids = (canonicalModel.program.themeIds ?? []).filter((id) => {
+      const trimmed = id?.trim();
+      if (!trimmed || seen.has(trimmed)) return false;
+      seen.add(trimmed);
+      return true;
+    });
     if (ids.length === 0) return undefined;
     const names = ids
       .map((id) => themesQuery.data?.find((row) => row.id === id)?.name ?? id)
@@ -202,7 +210,13 @@ export function DenaliReviewStep() {
   const flatErrors = flattenDenaliFormErrors(errors);
 
   const workspaceLeaderLabels = useMemo(() => {
-    const ids = canonicalModel.leaderUserIds ?? [];
+    const seen = new Set<string>();
+    const ids = (canonicalModel.leaderUserIds ?? []).filter((id) => {
+      const trimmed = id?.trim();
+      if (!trimmed || seen.has(trimmed)) return false;
+      seen.add(trimmed);
+      return true;
+    });
     if (ids.length === 0) return undefined;
     return ids
       .map((id) => {
@@ -223,6 +237,17 @@ export function DenaliReviewStep() {
     };
   }, [canonicalModel.participants.gearItems, equipmentQuery.data]);
 
+  const gatheringPointsForReview = useMemo(() => {
+    const seen = new Set<string>();
+    return (canonicalModel.gatheringPoints ?? []).filter((station) => {
+      const id = station.id?.trim();
+      if (!id) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [canonicalModel.gatheringPoints]);
+
   return (
     <div style={{ display: "grid", gap: "0.85rem", fontSize: "0.9rem" }} data-testid="denali-step-review">
       {flatErrors.length > 0 && (
@@ -240,8 +265,8 @@ export function DenaliReviewStep() {
             خطاهای زیر در فرم وجود دارد. لطفاً به مراحل قبل بازگشته و آن‌ها را برطرف کنید:
           </p>
           <ul style={{ margin: 0, paddingLeft: "1.5rem" }}>
-            {flatErrors.map((entry) => (
-              <li key={entry.path}>{`${entry.path}: ${entry.message}`}</li>
+            {flatErrors.map((entry, index) => (
+              <li key={`${entry.path}-${index}`}>{`${entry.path}: ${entry.message}`}</li>
             ))}
           </ul>
         </div>
@@ -265,8 +290,10 @@ export function DenaliReviewStep() {
             {t("review.publishDraftOnlyWarning")}
           </p>
           <ul style={{ margin: 0, paddingRight: "1.25rem" }}>
-            {publishReadinessIssues.map((issue) => (
-              <li key={`${issue.code}-${issue.path ?? issue.message}`}>{issue.message}</li>
+            {publishReadinessIssues.map((issue, index) => (
+              <li key={`${issue.code}-${issue.path ?? issue.message}-${index}`}>
+                {issue.message}
+              </li>
             ))}
           </ul>
         </div>
@@ -364,7 +391,7 @@ export function DenaliReviewStep() {
                   : undefined
               }
             />
-            {ui.isVisible("review", "program.altitudeMeasurement", formForUi) ? (
+            {isReviewFieldVisible("program.altitudeMeasurement", formForUi) ? (
               <ReviewRow
                 label={t("program.altitudeMeasurement")}
                 value={
@@ -376,13 +403,13 @@ export function DenaliReviewStep() {
             ) : null}
           </>
         ) : null}
-        {ui.isVisible("review", "program.itinerary", formForUi) &&
+        {isReviewFieldVisible("program.itinerary", formForUi) &&
         (canonicalModel.program.itinerary?.length ?? 0) > 0 ? (
           <div>
             <dt style={{ fontWeight: 600 }}>{t("review.dailyItinerary")}</dt>
             <dd style={{ margin: "0.15rem 0 0", display: "grid", gap: "0.35rem" }}>
-              {canonicalModel.program.itinerary!.map((row) => (
-                <div key={row.day}>
+              {canonicalModel.program.itinerary!.map((row, itineraryIndex) => (
+                <div key={`itinerary-day-${row.day}-${itineraryIndex}`}>
                   <strong>{t("program.dailyActivitiesDay", { day: row.day })}</strong>
                   {row.locationText?.trim() || row.location?.addressText?.trim() ? (
                     <span>
@@ -403,10 +430,10 @@ export function DenaliReviewStep() {
                         flexWrap: "wrap",
                       }}
                     >
-                      {row.photos!.map((photo) =>
+                      {row.photos!.map((photo, photoIndex) =>
                         photo.url?.trim() ? (
                           <img
-                            key={photo.id}
+                            key={`${photo.id ?? "photo"}-${photoIndex}`}
                             src={photo.url}
                             alt=""
                             style={{
@@ -429,19 +456,19 @@ export function DenaliReviewStep() {
           label={t("transport.transportModeLabel")}
           value={t(`transport.transportMode.${canonicalModel.transport.mode}`)}
         />
-        {ui.isVisible("review", "transport.transportCost", formForUi) && canonicalModel.transport.transportCost != null ? (
+        {isReviewFieldVisible("transport.transportCost", formForUi) && canonicalModel.transport.transportCost != null ? (
           <ReviewRow
             label={t("transport.transportCost")}
             value={String(canonicalModel.transport.transportCost)}
           />
         ) : null}
-        {ui.isVisible("review", "transport.allowPersonalCar", formForUi) ? (
+        {isReviewFieldVisible("transport.allowPersonalCar", formForUi) ? (
           <ReviewRow
             label={t("transport.allowPersonalCar")}
             value={canonicalModel.transport.allowPersonalCar ? t("review.yes") : t("review.no")}
           />
         ) : null}
-        {ui.isVisible("review", "transport.dongAmount", formForUi) ? (
+        {isReviewFieldVisible("transport.dongAmount", formForUi) ? (
           <ReviewRow
             label={t("transport.dongAmount")}
             value={String(canonicalModel.transport.dongAmount ?? "")}
@@ -479,22 +506,20 @@ export function DenaliReviewStep() {
               : t("review.no")
           }
         />
-        {(canonicalModel.gatheringPoints ?? []).map((station, index) => (
-          <ReviewRow
-            key={station.id ?? `gathering-${index}`}
-            label={
-              station.title.trim()
-                ? `${t("basic.locationZones.gatheringPoint")} — ${station.title}`
-                : `${t("basic.locationZones.gatheringPoint")} ${index + 1}`
-            }
-            value={[
-              station.time?.trim(),
-              denaliLocationAddressText(station.location),
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          />
-        ))}
+        {gatheringPointsForReview.map((station, index) => {
+          const rowKey = `gathering-${station.id?.trim() || "row"}-${index}`;
+          const label = station.title.trim()
+            ? `${t("basic.locationZones.gatheringPoint")} — ${station.title}`
+            : `${t("basic.locationZones.gatheringPoint")} ${index + 1}`;
+          const value = [station.time?.trim(), denaliLocationAddressText(station.location)]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <div key={rowKey}>
+              <ReviewRow label={label} value={value} />
+            </div>
+          );
+        })}
         <ReviewRow
           label={t("basic.locationZones.startPoint")}
           value={denaliLocationAddressText(canonicalModel.startPoint)}
@@ -509,7 +534,7 @@ export function DenaliReviewStep() {
           label={t("participants.fitnessPrerequisite")}
           value={canonicalModel.participants.fitnessPrerequisiteText}
         />
-        {ui.isVisible("review", "policies.policiesText", formForUi) &&
+        {isReviewFieldVisible("policies.policiesText", formForUi) &&
         canonicalModel.policies.policiesText?.trim() ? (
           <ReviewRow label={t("policies.notes")} value={canonicalModel.policies.policiesText} />
         ) : null}

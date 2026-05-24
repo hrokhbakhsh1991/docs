@@ -1,0 +1,213 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.metricGrid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 36rem) {
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 56rem) {
+  .metricGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-surface-muted));
+}
+
+.metricLabel {
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  font-weight: var(--text-small-strong-weight);
+  color: var(--color-text-secondary);
+}
+
+.metricValue {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricHint {
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.gaugeSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.gaugeHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.gaugeTitle {
+  margin: 0;
+  font-size: var(--text-body-size);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.gaugeCaption {
+  margin: 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.gaugeTrack {
+  position: relative;
+  height: 0.75rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
+}
+
+.gaugeFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary, #2563eb) 85%, transparent),
+    color-mix(in srgb, var(--color-primary, #2563eb) 55%, #0ea5e9)
+  );
+  transition: width 0.25s ease;
+}
+
+.gaugeFillOver {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-warning, #d97706) 90%, transparent),
+    color-mix(in srgb, var(--color-danger, #dc2626) 75%, transparent)
+  );
+}
+
+.gaugeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.gaugeLegend strong {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mutedNote {
+  margin: 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.balancePositive {
+  color: var(--color-text-primary);
+}
+
+.balanceNegative {
+  color: var(--color-danger-fg, #b42318);
+}
+
+.actionCenter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-bg-surface-muted) 40%, var(--color-bg-surface));
+}
+
+.actionCenterTitle {
+  margin: 0;
+  font-size: var(--text-body-size);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.actionCenterHint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.actionCenterButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.assignedNames {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-micro-size, 0.75rem);
+  color: var(--color-text-secondary);
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unassignedHint {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-small-size);
+  color: var(--color-text-secondary);
+}
+
+.assignField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.assignLabel {
+  font-size: var(--text-small-size);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.manualForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.assignModalLead {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}

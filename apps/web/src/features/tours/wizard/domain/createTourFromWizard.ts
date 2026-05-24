@@ -11,6 +11,7 @@ import { wizardFormToCreateTourApiPayload } from "@/features/tours/wizard/contra
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import { createTour } from "@/lib/services/tours.service";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
+import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-session-log";
 
 import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTourPayload";
 import type { DenaliCreateTourWizardForm } from "../schemas/denaliTourCreateSchema";
@@ -59,16 +60,65 @@ export async function createTourFromWorkspaceWizardForm(input: {
 }): Promise<unknown> {
   const normalized = normalizeDenaliWizardForm(input.values);
   const submitIssues = getDenaliWizardSubmitIssues(normalized);
+  debugSessionLog(
+    "createTourFromWorkspaceWizardForm.ts:submit-gate",
+    "Denali submit gate evaluated",
+    {
+      issueCount: submitIssues.length,
+      issuePaths: submitIssues.slice(0, 8).map((i) => i.path?.join(".") ?? i.message),
+      publishStatus: normalized.basicInfo.publishStatus,
+      transportMode: normalized.transport.transportMode,
+    },
+    "C",
+  );
   if (submitIssues.length > 0) {
     throw new z.ZodError(submitIssues);
   }
   let dto: CreateTourDto = mapDenaliWizardToCreateTourPayload(normalized);
   dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);
-  return createTour(
-    mapCreateTourDto(
-      { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
-      { themeCatalog: input.themeCatalog },
-    ),
-    { idempotencyKey: getWizardSubmitIdempotencyKey() },
+  debugSessionLog(
+    "createTourFromWorkspaceWizardForm.ts:payload",
+    "Denali create DTO built",
+    summarizeDenaliCreatePayload(dto),
+    "A",
   );
+  debugSessionLog(
+    "createTourFromWorkspaceWizardForm.ts:photos",
+    "Denali photo URL scan",
+    {
+      galleryBlobCount: (normalized.photosData?.photos ?? []).filter((p) =>
+        String(p?.url ?? "").startsWith("blob:"),
+      ).length,
+      galleryTotal: normalized.photosData?.photos?.length ?? 0,
+    },
+    "B",
+  );
+  try {
+    return await createTour(
+      mapCreateTourDto(
+        { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
+        { themeCatalog: input.themeCatalog },
+      ),
+      { idempotencyKey: getWizardSubmitIdempotencyKey() },
+    );
+  } catch (err) {
+    debugSessionLog(
+      "createTourFromWorkspaceWizardForm.ts:api-error",
+      "Denali createTour failed",
+      {
+        errorName: err instanceof Error ? err.name : typeof err,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorCode:
+          err != null && typeof err === "object" && "code" in err
+            ? String((err as { code: unknown }).code)
+            : undefined,
+        errorStatus:
+          err != null && typeof err === "object" && "status" in err
+            ? (err as { status: unknown }).status
+            : undefined,
+      },
+      "E",
+    );
+    throw err;
+  }
 }

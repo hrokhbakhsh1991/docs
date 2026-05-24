@@ -71,6 +71,7 @@ Relevant columns on **`users`** (see migration `1777582000000-AddUsersPhoneOtpFi
 |------|-------------|
 | **`users.phone`** | Nullable `varchar`; unique index `uq_users_phone` where set. Store E.164-style values when possible. |
 | **`users.is_phone_verified`** | Boolean; default `false`. Product policy may require verification before login in future. |
+| **`users.email`** | **Nullable** `varchar(320)` after migration `MakeUserEmailTrulyNullable1777600500000`. Phone-first registration may leave `email IS NULL`; uniqueness applies only when set (`idx_user_email_unique` partial index). Legacy synthetic `@local.invalid` addresses are cleared on migrate. |
 | **`phone_normalized(text)`** | PostgreSQL **function** (same migration) used in OTP login to compare normalized forms (strip whitespace and characters other than digits and `+`). **There is no `users.phone_normalized` column** in the current schema—matching uses `phone_normalized(users.phone)` vs `phone_normalized(:input)`. |
 
 `users.hashed_password` remains a **required** column for ORM/legacy reasons (e.g. Telegram-provisioned users); it is **not** used for web OTP login.
@@ -84,7 +85,9 @@ Implemented in `apps/web/app/auth/login/login-form.tsx` and `apps/web/app/auth/r
 1. **Step 1 — Phone:** `POST /api/auth/request-otp` (BFF → `web/otp/request`); store `challenge_id`.
 2. **Step 2 — OTP:** `POST /api/auth/login-web-session` (BFF → `web/session/otp`) with `phone`, `otp`, `challenge_id`.
 3. **Branch:** session cookie + `/dashboard`, or redirect to `/auth/register?onboarding=…` for profile completion.
-4. **Register:** `POST /api/auth/complete-registration` (BFF → `web/registration/complete`), then session + `/dashboard`.
+4. **Register:** `POST /api/auth/complete-registration` (BFF → `web/registration/complete`) with `full_name` and optional `email`; phone-only users are stored with `email = null`, then session + `/dashboard`.
+
+Settings shows **«ایمیلی ثبت نشده است»** when `email` is null (`EmailSettingsPanel`); users can add email later from workspace settings.
 
 BFF routes: `apps/web/app/api/auth/request-otp`, `login-web-session`, `complete-registration`. Optional legacy `phone-preflight` remains on the API but is not used by the login UI.
 

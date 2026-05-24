@@ -4,8 +4,22 @@ import { normalizeDenaliTransportForm } from "@repo/types";
 import { sanitizeDenaliFormPatch } from "./denali/denaliFormSanitize";
 import { stripBlobUrlsFromDenaliDraftPatch } from "./denali/preserveDenaliWizardBlobMedia";
 import { normalizeDenaliWizardForm } from "./denali/validation/denaliRuleAccess";
+import {
+  DENALI_WIZARD_DRAFT_VERSION_HASH_KEY,
+  getDenaliWizardDraftVersionHash,
+  readDenaliWizardDraftVersionHashFromRecord,
+} from "./denali/denaliWizardDraftVersion";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+
+export {
+  DENALI_WIZARD_DRAFT_VERSION_HASH_KEY,
+  DENALI_WIZARD_DRAFT_VERSION_HASH_KEY_LEGACY,
+  getDenaliWizardDraftVersionHash,
+  readDenaliWizardDraftVersionHashFromRecord,
+  isDenaliWizardDraftVersionCompatible,
+  computeDenaliWizardDraftVersionHash,
+} from "./denali/denaliWizardDraftVersion";
 
 import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
 import { parseTourWizardDraftMeta } from "./tourWizardProfileResolve";
@@ -15,6 +29,10 @@ export const DENALI_WIZARD_DRAFT_RAIL = "denali" as const;
 export type ParsedDenaliWizardDraft = {
   formPatch: Partial<DenaliCreateTourWizardForm>;
   wizardMeta?: TourWizardDraftMeta;
+  /** Structural compatibility hash (steps + rule set). */
+  versionHash?: string;
+  /** @deprecated Use {@link versionHash}. */
+  formStructureVersionHash?: string;
 };
 
 function isDenaliFormPatch(value: unknown): value is Partial<DenaliCreateTourWizardForm> {
@@ -34,7 +52,12 @@ export function parseDenaliWizardDraftEnvelope(
     if (!isDenaliRail && !isDenaliFormPatch(parsed)) {
       return null;
     }
-    const { _wizardMeta: _m, _wizardRail: _r, ...rest } = parsed as any;
+    const {
+      _wizardMeta: _m,
+      _wizardRail: _r,
+      [DENALI_WIZARD_DRAFT_VERSION_HASH_KEY]: _versionHash,
+      ...rest
+    } = parsed as Record<string, unknown>;
     if (!isDenaliFormPatch(rest)) {
       return null;
     }
@@ -45,9 +68,12 @@ export function parseDenaliWizardDraftEnvelope(
         (sanitized as Record<string, unknown>)[key] = v;
       }
     }
+    const versionHash = readDenaliWizardDraftVersionHashFromRecord(parsed);
     return {
       formPatch: sanitizeDenaliFormPatch(sanitized),
       wizardMeta,
+      versionHash,
+      formStructureVersionHash: versionHash,
     };
   } catch {
     return null;
@@ -70,6 +96,7 @@ export function serializeDenaliWizardDraft(
   const base: Record<string, unknown> = {
     ...sanitizeDenaliFormPatch(stripBlobUrlsFromDenaliDraftPatch(formValues)),
     _wizardRail: DENALI_WIZARD_DRAFT_RAIL,
+    [DENALI_WIZARD_DRAFT_VERSION_HASH_KEY]: getDenaliWizardDraftVersionHash(),
   };
   if (wizardMeta) {
     base._wizardMeta = wizardMeta;

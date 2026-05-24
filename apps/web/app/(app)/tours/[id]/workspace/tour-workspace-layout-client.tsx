@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
@@ -28,8 +28,8 @@ import {
   type BreadcrumbItem,
 } from "@tour/ui";
 
-import { RegistrationsTable } from "./RegistrationsTable";
-import { WaitlistTable } from "./WaitlistTable";
+import { WorkspaceSubnav } from "./WorkspaceSubnav";
+import { TourWorkspaceProvider } from "./tour-workspace-context";
 import { TOUR_WORKSPACE_COPY } from "./tour-workspace-copy";
 import {
   isTourReadOnlyForWorkspace,
@@ -41,11 +41,12 @@ import styles from "./tour-workspace.module.css";
 
 const copy = TOUR_WORKSPACE_COPY.page;
 
-export type TourWorkspaceClientProps = {
+export type TourWorkspaceLayoutClientProps = {
   tourId: string;
+  children: ReactNode;
 };
 
-export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
+export function TourWorkspaceLayoutClient({ tourId, children }: TourWorkspaceLayoutClientProps) {
   const router = useRouter();
   const { isHydrated, isAuthenticated, user } = useAuth();
   const leader = isLeaderRole(user?.role);
@@ -82,8 +83,6 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   const statusMutation = useUpdateRegistrationStatus(tourId);
   const paymentMutation = useUpdateRegistrationPayment(tourId);
   const convertMutation = useConvertWaitlistItem(tourId);
-
-  const [registrationListFilter, setRegistrationListFilter] = useState<"all" | "pending">("all");
 
   const tourErrorMessage =
     tourError instanceof ApiError
@@ -289,6 +288,23 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
   const workspaceRefreshing =
     (tourFetching && !tourLoading) || (regFetching && !regLoading) || (waitFetching && !waitLoading);
 
+  const contextValue = {
+    tourId,
+    tour,
+    readOnly,
+    registrations,
+    waitlist,
+    regLoading,
+    regIsError,
+    refetchRegistrations,
+    waitLoading,
+    waitIsError,
+    refetchWaitlist,
+    statusMutation,
+    paymentMutation,
+    convertMutation,
+  };
+
   return (
     <RegisteredWorkspacePage
       documentTitle={`${copy.documentTitle} · ${tour.title}`}
@@ -305,62 +321,43 @@ export function TourWorkspaceClient({ tourId }: TourWorkspaceClientProps) {
         </Button>
       }
     >
-      <div
-        className={cn(styles.workspaceRoot, workspaceRefreshing ? styles.workspaceRootRefreshing : undefined)}
-        dir="rtl"
-        aria-busy={workspaceRefreshing ? true : undefined}
-      >
-        {workspaceRefreshing ? (
-          <span className={styles.liveRegion} aria-live="polite">
-            {copy.updatingLive}
-          </span>
-        ) : null}
-        <div className={styles.workspaceSection}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{copy.overviewTitle}</CardTitle>
-            </CardHeader>
-            <CardBody>
-              {readOnly ? (
-                <p role="status" className={styles.readOnlyBanner}>
-                  {workspaceReadOnlyBannerText(tour.lifecycleStatus)}
+      <TourWorkspaceProvider value={contextValue}>
+        <div
+          className={cn(styles.workspaceRoot, workspaceRefreshing ? styles.workspaceRootRefreshing : undefined)}
+          dir="rtl"
+          aria-busy={workspaceRefreshing ? true : undefined}
+        >
+          {workspaceRefreshing ? (
+            <span className={styles.liveRegion} aria-live="polite">
+              {copy.updatingLive}
+            </span>
+          ) : null}
+          <div className={styles.workspaceSection}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{copy.overviewTitle}</CardTitle>
+              </CardHeader>
+              <CardBody>
+                {readOnly ? (
+                  <p role="status" className={styles.readOnlyBanner}>
+                    {workspaceReadOnlyBannerText(tour.lifecycleStatus)}
+                  </p>
+                ) : null}
+                <p>
+                  {copy.pendingReview}: <strong>{pendingCount}</strong> · {copy.totalRegistrations}:{" "}
+                  <strong>{registrations.length}</strong> · {copy.waitlistEntries}:{" "}
+                  <strong>{waitlist.length}</strong>
                 </p>
-              ) : null}
-              <p>
-                {copy.pendingReview}: <strong>{pendingCount}</strong> · {copy.totalRegistrations}:{" "}
-                <strong>{registrations.length}</strong> · {copy.waitlistEntries}:{" "}
-                <strong>{waitlist.length}</strong>
-              </p>
-              <p className={styles.helperHint}>{copy.reconciliationHint}</p>
-            </CardBody>
-          </Card>
-        </div>
+                <p className={styles.helperHint}>{copy.reconciliationHint}</p>
+              </CardBody>
+            </Card>
+          </div>
 
-        <div className={styles.workspaceSection}>
-          <RegistrationsTable
-            registrations={registrations}
-            filter={registrationListFilter}
-            onFilterChange={setRegistrationListFilter}
-            readOnly={readOnly}
-            isLoading={regLoading}
-            isError={regIsError}
-            onRetry={() => void refetchRegistrations()}
-            statusMutation={statusMutation}
-            paymentMutation={paymentMutation}
-          />
-        </div>
+          <WorkspaceSubnav tourId={tourId} />
 
-        <div className={styles.workspaceSection}>
-          <WaitlistTable
-            waitlist={waitlist}
-            readOnly={readOnly}
-            isLoading={waitLoading}
-            isError={waitIsError}
-            onRetry={() => void refetchWaitlist()}
-            convertMutation={convertMutation}
-          />
+          <div className={styles.workspaceTabPanel}>{children}</div>
         </div>
-      </div>
+      </TourWorkspaceProvider>
     </RegisteredWorkspacePage>
   );
 }

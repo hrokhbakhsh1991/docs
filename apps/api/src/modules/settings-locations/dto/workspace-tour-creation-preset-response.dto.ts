@@ -28,7 +28,14 @@ export class WorkspaceTourCreationPresetResponseDto {
   formProfile!: string;
 
   @ApiProperty({ type: "object", additionalProperties: true })
-  defaults!: Record<string, unknown>;
+  canonicalData!: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    type: "object",
+    additionalProperties: true,
+    description: "Classic wizard defaults (empty for Denali presets).",
+  })
+  defaults?: Record<string, unknown>;
 
   @ApiProperty()
   createdAt!: string;

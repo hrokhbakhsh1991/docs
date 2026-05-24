@@ -27,6 +27,13 @@ import {
   formatPresetDriftWarning,
   type ThemeLookup,
 } from "./tour-preset-defaults-drift";
+import {
+  canonicalToTemplate,
+  templateToCanonical,
+  type DenaliCanonicalTemplateData,
+} from "@repo/types/denali";
+
+import { parseDenaliCanonicalTemplateDataOrThrow } from "./denali-canonical-template-data.schema";
 import { parsePresetDefaultsOrThrow } from "./tour-preset-defaults.schema";
 import {
   mergeLegacyMatchIntoDefaults,
@@ -83,6 +90,44 @@ export class TourCreationPresetsSettingsService {
     return t === "" ? null : t;
   }
 
+  private isDenaliFormProfile(formProfile: TourFormProfile): boolean {
+    return formProfile === "denali";
+  }
+
+  private rejectDenaliLegacyDefaults(value: unknown): void {
+    if (
+      value != null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value as Record<string, unknown>).length > 0
+    ) {
+      throw new BadRequestException({
+        error: {
+          code: "DENALI_TEMPLATE_LEGACY_DEFAULTS_REJECTED",
+          message: "Denali templates use canonicalData only; legacy defaults are not supported.",
+        },
+      });
+    }
+  }
+
+  private assertCanonicalData(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      throw new BadRequestException({
+        error: { code: "VALIDATION_FAILED", message: "canonicalData must be a JSON object" },
+      });
+    }
+    const encoded = JSON.stringify(value);
+    if (encoded.length > MAX_DEFAULTS_JSON_BYTES) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_FAILED",
+          message: `canonicalData JSON must be at most ${MAX_DEFAULTS_JSON_BYTES} bytes`,
+        },
+      });
+    }
+    return parseDenaliCanonicalTemplateDataOrThrow(value) as Record<string, unknown>;
+  }
+
   private assertPlainDefaults(
     value: unknown,
     formProfile: TourFormProfile,
@@ -116,17 +161,29 @@ export class TourCreationPresetsSettingsService {
   private async checkAndLogThemeProfileDrift(opts: {
     workspaceId: string;
     presetFormProfile: TourFormProfile | null | undefined;
-    defaults: Record<string, unknown>;
+    canonicalData?: Record<string, unknown>;
+    defaults?: Record<string, unknown>;
     matchMainTourThemeId: string | null;
   }): Promise<void> {
     if (!opts.presetFormProfile) return;
-    const overviewRaw = opts.defaults.overview;
+    const program = opts.canonicalData?.program;
+    const programThemeIds =
+      program != null &&
+      typeof program === "object" &&
+      !Array.isArray(program) &&
+      Array.isArray((program as { themeIds?: unknown }).themeIds)
+        ? ((program as { themeIds: unknown[] }).themeIds.filter(
+            (id): id is string => typeof id === "string" && id.trim() !== "",
+          )[0] ?? null)
+        : null;
+    const overviewRaw = opts.defaults?.overview;
     const overview =
       overviewRaw && typeof overviewRaw === "object" && !Array.isArray(overviewRaw)
         ? (overviewRaw as Record<string, unknown>)
         : {};
     const defaultsOverviewMainTourThemeId =
-      typeof overview.mainTourThemeId === "string" ? overview.mainTourThemeId : null;
+      programThemeIds ??
+      (typeof overview.mainTourThemeId === "string" ? overview.mainTourThemeId : null);
 
     const lookup: ThemeLookup = async (themeId) => {
       const theme = await this.themesRepository.findOne({
@@ -149,6 +206,27 @@ export class TourCreationPresetsSettingsService {
   }
 
   private toResponse(row: WorkspaceTourCreationPresetEntity): WorkspaceTourCreationPresetResponseDto {
+    const formProfile = normalizeTourFormProfileInput(row.formProfile ?? "general");
+    const canonicalData =
+      row.canonicalData && typeof row.canonicalData === "object" && !Array.isArray(row.canonicalData)
+        ? (row.canonicalData as Record<string, unknown>)
+        : {};
+    if (this.isDenaliFormProfile(formProfile)) {
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description ?? null,
+        isActive: row.isActive,
+        sortOrder: row.sortOrder,
+        matchTourType: row.matchTourType ?? null,
+        matchMainTourThemeId: row.matchMainTourThemeId ?? null,
+        formProfile,
+        canonicalData: templateToCanonical(row),
+        defaults: {},
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    }
     const defaults =
       row.defaults && typeof row.defaults === "object" && !Array.isArray(row.defaults)
         ? (row.defaults as Record<string, unknown>)
@@ -167,10 +245,11 @@ export class TourCreationPresetsSettingsService {
       sortOrder: row.sortOrder,
       matchTourType: row.matchTourType ?? null,
       matchMainTourThemeId: row.matchMainTourThemeId ?? null,
-      formProfile: normalizeTourFormProfileInput(row.formProfile ?? "general"),
+      formProfile,
+      canonicalData: {},
       defaults: fullyEnriched,
       createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString()
+      updatedAt: row.updatedAt.toISOString(),
     };
   }
 
@@ -202,7 +281,19 @@ export class TourCreationPresetsSettingsService {
       dto.formProfile != null && String(dto.formProfile).trim() !== ""
         ? normalizeTourFormProfileInput(dto.formProfile)
         : defaultTourFormProfileForTourType(matchTourType as TourType | null);
-    const defaults = this.assertPlainDefaults(dto.defaults ?? {}, formProfile);
+    const denali = this.isDenaliFormProfile(formProfile);
+    if (denali) {
+      this.rejectDenaliLegacyDefaults(dto.defaults);
+    }
+    const canonicalPayload = denali
+      ? canonicalToTemplate(
+          this.assertCanonicalData(dto.canonicalData ?? {}) as DenaliCanonicalTemplateData,
+          { name: dto.name.trim(), formProfile },
+        ).canonicalData
+      : ({} as DenaliCanonicalTemplateData);
+    const defaults = denali
+      ? {}
+      : this.assertPlainDefaults(dto.defaults ?? {}, formProfile);
 
     const row = this.presetsRepository.create({
       workspaceId,
@@ -213,11 +304,13 @@ export class TourCreationPresetsSettingsService {
       matchTourType,
       matchMainTourThemeId,
       formProfile,
-      defaults
+      canonicalData: canonicalPayload,
+      defaults,
     });
     await this.checkAndLogThemeProfileDrift({
       workspaceId,
       presetFormProfile: formProfile,
+      canonicalData: canonicalPayload as Record<string, unknown>,
       defaults,
       matchMainTourThemeId,
     });
@@ -259,11 +352,17 @@ export class TourCreationPresetsSettingsService {
     if (dto.sortOrder !== undefined) {
       row.sortOrder = dto.sortOrder;
     }
+    const formProfile = normalizeTourFormProfileInput(row.formProfile ?? "general");
+    if (dto.canonicalData !== undefined) {
+      row.canonicalData = this.assertCanonicalData(dto.canonicalData);
+    }
     if (dto.defaults !== undefined) {
-      row.defaults = this.assertPlainDefaults(
-        dto.defaults,
-        normalizeTourFormProfileInput(row.formProfile ?? "general"),
-      );
+      if (this.isDenaliFormProfile(normalizeTourFormProfileInput(row.formProfile ?? "general"))) {
+        this.rejectDenaliLegacyDefaults(dto.defaults);
+        row.defaults = {};
+      } else {
+        row.defaults = this.assertPlainDefaults(dto.defaults, formProfile);
+      }
     }
     if (dto.matchTourType !== undefined) {
       row.matchTourType = this.normalizeOptionalMatchTourType(dto.matchTourType);
@@ -279,6 +378,7 @@ export class TourCreationPresetsSettingsService {
     }
 
     if (
+      dto.canonicalData !== undefined ||
       dto.defaults !== undefined ||
       dto.formProfile !== undefined ||
       dto.matchMainTourThemeId !== undefined
@@ -286,6 +386,7 @@ export class TourCreationPresetsSettingsService {
       await this.checkAndLogThemeProfileDrift({
         workspaceId,
         presetFormProfile: row.formProfile,
+        canonicalData: row.canonicalData as Record<string, unknown>,
         defaults: row.defaults,
         matchMainTourThemeId: row.matchMainTourThemeId,
       });

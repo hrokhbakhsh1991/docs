@@ -46,6 +46,7 @@ function TourEditDenaliLocationZone({ zoneKey, control, zoneErrors }: ZoneEditor
     <fieldset
       className={styles.zoneFieldset}
       data-testid={`tour-edit-denali-zone-${zoneKey}`}
+      data-field-path={fieldPath}
     >
       <legend className={styles.zoneLegend}>{t(`basic.locationZones.${zoneKey}`)}</legend>
       <Controller

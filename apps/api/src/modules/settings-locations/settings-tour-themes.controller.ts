@@ -25,10 +25,17 @@ import { ReorderWorkspaceTourThemesDto } from "./dto/reorder-workspace-tour-them
 import { UpdateWorkspaceTourThemeDto } from "./dto/update-workspace-tour-theme.dto";
 import { WorkspaceTourThemeResponseDto } from "./dto/workspace-tour-theme-response.dto";
 import { TourThemesSettingsService } from "./tour-themes-settings.service";
+import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
 
 @ApiTags("Settings — Tour themes")
 @Controller("api/v2/settings/tour-themes")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+@UseGuards(
+  AuthorizationPresenceGuard,
+  InternalApiKeyGuard,
+  RolesGuard,
+  AbilitiesGuard,
+  CaslMirrorAbilitiesGuard,
+)
 @ApiBearerAuth()
 export class SettingsTourThemesController {
   constructor(private readonly tourThemes: TourThemesSettingsService) {}

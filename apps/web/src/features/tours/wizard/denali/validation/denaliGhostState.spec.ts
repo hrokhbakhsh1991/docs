@@ -35,13 +35,12 @@ test("ghost state: mountain -> event -> mountain sequence", () => {
   assert.equal(safe.programNature.hikingHoursApprox, undefined, "hiking hours should be cleared on event");
   assert.equal(safe.participantRequirements.minimumAge, undefined, "min age should be cleared on event");
 
-  // 3. Switch back to Mountain (Fields should stay cleared/reset)
+  // 3. Switch back to Mountain (hidden outdoor fields re-seed to product defaults)
   safe.basicInfo.tourType = "mountain_day";
   safe = applyDenaliInvariantState(safe);
-  
-  // Note: normalization clears hidden fields, but it doesn't "restore" old values.
-  // When switching back, difficulty and hiking are now undefined.
-  assert.equal(safe.programNature.difficultyLevel, undefined, "difficulty should stay undefined after switch-back");
+
+  assert.equal(safe.programNature.difficultyLevel, 5, "difficulty defaults to 5 when outdoor field becomes visible");
+  assert.equal(safe.programNature.hikingHoursApprox, undefined, "hiking hours stay unset until user enters a value");
 });
 
 test("ghost state: pricing clears basePricePerPerson when requiresPayment off", () => {

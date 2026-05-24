@@ -61,6 +61,11 @@ import { TourPublishStatusField } from "./TourPublishStatusField";
 import type { TourFormLifecycleStatus } from "./tour-lifecycle";
 import { DENALI_FIELD_HINTS } from "@/features/tours/wizard/denali/denaliFieldHints";
 import { createTourSchemaForProfile, type TourFormInput, type TourFormValues } from "./tour-schema";
+import {
+  collectTourFormValidationIssues,
+  scrollTourFormToFirstError,
+  type TourFormErrorLabelContext,
+} from "./tourFormValidationSummary";
 
 import styles from "./TourForm.module.css";
 
@@ -200,6 +205,9 @@ export function TourForm({
   themeCatalogForFormProfile,
 }: TourFormProps) {
   const tCatalog = useTranslations("tours.catalogErrors");
+  const tNew = useTranslations("tours.new");
+  const tDenali = useTranslations("tours.denali");
+  const tForm = useTranslations("tours.form");
   const resolvedMode = mode === "edit" || tour?.id ? "edit" : "create";
   const { user } = useAuth();
   const { groupedRegions, allDestinations, isLoading: tourDestinationsLoading } = useTourDestinations();
@@ -359,10 +367,27 @@ export function TourForm({
     reset(toDefaultValues(tour));
   }, [tour, reset]);
 
-  const fieldMessages = Object.entries(errors)
-    .filter(([key]) => key !== "root")
-    .map(([, err]) => err?.message)
-    .filter(Boolean) as string[];
+  const errorLabelContext = useMemo(
+    (): TourFormErrorLabelContext => ({
+      tNew,
+      tDenali,
+      tForm,
+    }),
+    [tNew, tDenali, tForm],
+  );
+
+  const validationIssues = useMemo(
+    () => collectTourFormValidationIssues(errors, errorLabelContext),
+    [errors, errorLabelContext],
+  );
+
+  const onInvalid = useCallback(
+    (fieldErrors: typeof errors) => {
+      const issues = collectTourFormValidationIssues(fieldErrors, errorLabelContext);
+      scrollTourFormToFirstError(issues);
+    },
+    [errorLabelContext],
+  );
 
   async function submitValid(data: TourFormValues) {
     try {
@@ -421,24 +446,32 @@ export function TourForm({
       description="Tour fields; submits to the workspace API on your tenant host."
     >
       <div className={styles.inner}>
-        {isSubmitted && fieldMessages.length > 0 ? (
-          <Alert variant="error" title="Please fix the form" role="alert">
+        {isSubmitted && validationIssues.length > 0 ? (
+          <Alert
+            variant="error"
+            title={tForm("validationSummaryTitle")}
+            role="alert"
+            data-testid="tour-form-validation-summary"
+          >
+            <p style={{ margin: "0 0 0.5rem" }}>{tForm("validationSummaryIntro")}</p>
             <ul className={styles.fieldErrorList} id="tour-form-field-error-list">
-              {fieldMessages.map((msg) => (
-                <li key={msg}>{msg}</li>
+              {validationIssues.map((issue) => (
+                <li key={issue.path}>
+                  <strong>{issue.label}</strong>: {issue.message}
+                </li>
               ))}
             </ul>
           </Alert>
         ) : null}
 
         {errors.root?.message ? (
-          <Alert variant="error" title="Could not save" role="alert">
+          <Alert variant="error" title={tForm("couldNotSaveTitle")} role="alert">
             {errors.root.message}
           </Alert>
         ) : null}
 
         <FormProvider {...formMethods}>
-        <form className={styles.form} onSubmit={handleSubmit(submitValid)} noValidate>
+        <form className={styles.form} onSubmit={handleSubmit(submitValid, onInvalid)} noValidate>
           <FormField
             label="Title"
             required
@@ -449,6 +482,7 @@ export function TourForm({
               placeholder={showDenaliPublishGeoSection ? "مثلاً صعود زمستانه به دماوند" : "e.g. Sunset kayak tour"}
               autoComplete="off"
               data-testid="tour-field-name"
+              data-field-path="title"
               aria-invalid={errors.title ? true : undefined}
               {...register("title")}
             />

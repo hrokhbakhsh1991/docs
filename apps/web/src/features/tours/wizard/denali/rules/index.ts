@@ -4,6 +4,11 @@ export {
   ruleModelDurationToCanonicalDuration,
 } from "./denaliCanonicalRuleAdapter";
 export {
+  DENALI_TEMPLATE_SCHEMA,
+  deriveDenaliTemplateSchema,
+  listDenaliTemplateCanonicalFieldPaths,
+} from "./deriveDenaliTemplateSchema";
+export {
   denaliRuleSet,
   denaliRuleModelMountainMultiDay,
   findDenaliRuleField,

@@ -36,7 +36,7 @@ export default defineConfig({
     {
       name: "denali-submit",
       testMatch:
-        /wizard-real-stack\.(submit-denali-(mountain|matrix|from-preset|from-clone)|denali-preset-settings|denali-map-fields)\.spec\.ts/,
+        /wizard-real-stack\.(submit-denali-(mountain|matrix|from-preset|from-preset-in-wizard|from-clone)|denali-preset-settings|denali-map-fields)\.spec\.ts/,
       use: { baseURL: `http://denali.localhost:${port}` },
       metadata: { ownerPhone: "+989121000001", tenantSlug: "denali" },
     },
@@ -50,6 +50,12 @@ export default defineConfig({
       name: "tenant-isolation",
       testMatch: /wizard-draft-tenant-isolation\.spec\.ts/,
       use: { baseURL: `http://denali.localhost:${port}` },
+    },
+    {
+      name: "denali-tour-detail",
+      testMatch: /tour-detail-catalog-aggregation\.spec\.ts/,
+      use: { baseURL: `http://denali.localhost:${port}` },
+      metadata: { ownerPhone: "+989121000001", tenantSlug: "denali" },
     },
   ],
   webServer: process.env.PW_NO_WEB_SERVER

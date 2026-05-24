@@ -17,14 +17,17 @@ import {
   LoadingState,
 } from "@tour/ui";
 
+import {
+  isTourDetailGearAggregationIncomplete,
+  shouldShowTourDetailEquipmentCard,
+} from "@/lib/tours/tour-detail-visibility";
+import { canViewTourDetailChatLink } from "@/lib/tours/tour-detail-access-ui";
 import { formatTourLocationV2 } from "@/app/(app)/tours/tour-location-formatters";
 import { extractTourPriceUsd, formatTourPriceUsd } from "@/components/tours/formatters";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { ApiError } from "@/lib/api-client";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
-import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
-import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 
 import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
@@ -47,53 +50,67 @@ const breadcrumbTrail = [
 export function TourDetailClient({ tourId }: TourDetailClientProps) {
   const router = useRouter();
   const tTours = useTranslations("tours");
-  const equipmentQuery = useSettingsEquipment();
-  const themesQuery = useSettingsTourThemes();
   const { isHydrated, isAuthenticated, user } = useAuth();
+
   const liveApi = toursUseLiveApi();
   const queryEnabled = Boolean(tourId) && liveApi && isHydrated && isAuthenticated;
   const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
 
-  const equipmentNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const row of equipmentQuery.data ?? []) {
-      m.set(row.id, row.name);
-    }
-    return m;
-  }, [equipmentQuery.data]);
-
-  const themeNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const row of themesQuery.data ?? []) {
-      m.set(row.id, row.name);
-    }
-    return m;
-  }, [themesQuery.data]);
+  const tripOverview = tour?.details?.tripDetails?.overview as
+    | {
+        tourThemeIds?: unknown;
+        tourThemeLabels?: Record<string, string>;
+        resolvedThemes?: { id: string; name: string }[];
+      }
+    | undefined;
 
   const themeIdList = useMemo(() => {
-    const o = tour?.details?.tripDetails?.overview as
-      | { tourThemeIds?: unknown; tourThemeLabels?: Record<string, string> }
-      | undefined;
-    const raw = o?.tourThemeIds;
+    const fromResolved = tripOverview?.resolvedThemes?.map((row) => row.id) ?? [];
+    if (fromResolved.length > 0) {
+      return fromResolved;
+    }
+    const raw = tripOverview?.tourThemeIds;
     if (!Array.isArray(raw)) {
       return [];
     }
     return raw.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-  }, [tour]);
+  }, [tripOverview]);
 
-  const gearIdLists = useMemo(() => {
-    const participation = tour?.details?.tripDetails?.participation as
-      | { gearRequiredIds?: unknown[]; gearOptionalIds?: unknown[] }
-      | undefined;
-    const asIds = (arr: unknown[] | undefined) =>
-      (arr ?? []).filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-    return {
-      required: asIds(participation?.gearRequiredIds),
-      optional: asIds(participation?.gearOptionalIds),
-    };
-  }, [tour]);
+  const themeNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const row of tripOverview?.resolvedThemes ?? []) {
+      m.set(row.id, row.name);
+    }
+    return m;
+  }, [tripOverview?.resolvedThemes]);
+
+  const participation = tour?.details?.tripDetails?.participation as
+    | {
+        gearRequiredIds?: string[];
+        gearOptionalIds?: string[];
+        resolvedGear?: { required: { id: string; name: string }[]; optional: { id: string; name: string }[] };
+      }
+    | undefined;
+
+  const gearLists = participation?.resolvedGear ?? { required: [], optional: [] };
+
+  const gearRequiredIds = participation?.gearRequiredIds;
+  const gearOptionalIds = participation?.gearOptionalIds;
+
+  const showEquipmentCard = shouldShowTourDetailEquipmentCard({
+    gearLists,
+    gearRequiredIds,
+    gearOptionalIds,
+  });
+
+  const gearAggregationIncomplete = isTourDetailGearAggregationIncomplete({
+    participationPresent: Boolean(participation),
+    gearLists,
+    gearRequiredIds,
+    gearOptionalIds,
+  });
 
   const errorMessage =
     error instanceof ApiError
@@ -260,9 +277,14 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
       ? String(tour.totalCapacity)
       : "—";
 
-  /** FR-61 (MVP): chat link is not shown in the DOM for non-leader roles. */
+  const accessLevel = tour.accessLevel ?? "GUEST";
+  const viewHints = tour.viewHints ?? { gpsUnlocked: false, gpsUnlockAt: null };
+
+  /** FR-61 (MVP): chat link only for owner/admin tiers (BFF also strips for others). */
   const leaderVisibleChatLink =
-    isLeaderRole(user?.role) && typeof tour.communicationLink === "string"
+    isLeaderRole(user?.role) &&
+    canViewTourDetailChatLink(accessLevel) &&
+    typeof tour.communicationLink === "string"
       ? tour.communicationLink.trim()
       : "";
   const showTourChatLink = leaderVisibleChatLink.length > 0;
@@ -333,17 +355,20 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
           </CardBody>
         </Card>
 
-        <TourTripDetailsPanel tour={tour} />
+        <TourTripDetailsPanel
+          tour={tour}
+          accessLevel={accessLevel}
+          viewHints={viewHints}
+          showRegister={accessLevel === "GUEST" && tour.lifecycleStatus === "OPEN"}
+          onRegister={() => router.push(`/tours/${tourId}/register`)}
+        />
 
         {themeIdList.length > 0 ? (
-          <Card>
+          <Card data-testid="tour-detail-themes">
             <CardHeader>
               <CardTitle>{tTours("detail_tourThemes")}</CardTitle>
             </CardHeader>
             <CardBody className={styles.panelBody}>
-              {themesQuery.isError ? (
-                <p className={styles.equipmentMuted}>{tTours("detail_themeLoadError")}</p>
-              ) : null}
               <ul className={styles.equipmentList}>
                 {themeIdList.map((id) => (
                   <li key={id}>{resolveThemeLabel(id)}</li>
@@ -353,31 +378,49 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
           </Card>
         ) : null}
 
-        {gearIdLists.required.length > 0 || gearIdLists.optional.length > 0 ? (
-          <Card>
+        {showEquipmentCard ? (
+          <Card data-testid="tour-detail-equipment">
             <CardHeader>
-              <CardTitle>Equipment</CardTitle>
+              <CardTitle>{tTours("detail_equipment")}</CardTitle>
             </CardHeader>
             <CardBody className={styles.panelBody}>
-              {equipmentQuery.isError ? (
+              {gearAggregationIncomplete ? (
                 <p className={styles.equipmentMuted}>{tTours("detail_equipmentLoadError")}</p>
               ) : null}
-              {gearIdLists.required.length > 0 ? (
+              {gearLists.required.length > 0 ? (
                 <>
                   <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
                   <ul className={styles.equipmentList}>
-                    {gearIdLists.required.map((id) => (
-                      <li key={`req-${id}`}>{equipmentNameById.get(id) ?? tTours("detail_equipmentUnknown")}</li>
+                    {gearLists.required.map((gear) => (
+                      <li key={`req-${gear.id}`}>{gear.name}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (gearRequiredIds?.length ?? 0) > 0 ? (
+                <>
+                  <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
+                  <ul className={styles.equipmentList}>
+                    {(gearRequiredIds ?? []).map((id) => (
+                      <li key={`req-id-${id}`}>{id}</li>
                     ))}
                   </ul>
                 </>
               ) : null}
-              {gearIdLists.optional.length > 0 ? (
+              {gearLists.optional.length > 0 ? (
                 <>
                   <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
                   <ul className={styles.equipmentList}>
-                    {gearIdLists.optional.map((id) => (
-                      <li key={`opt-${id}`}>{equipmentNameById.get(id) ?? tTours("detail_equipmentUnknown")}</li>
+                    {gearLists.optional.map((gear) => (
+                      <li key={`opt-${gear.id}`}>{gear.name}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (gearOptionalIds?.length ?? 0) > 0 ? (
+                <>
+                  <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
+                  <ul className={styles.equipmentList}>
+                    {(gearOptionalIds ?? []).map((id) => (
+                      <li key={`opt-id-${id}`}>{id}</li>
                     ))}
                   </ul>
                 </>

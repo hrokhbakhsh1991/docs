@@ -86,13 +86,6 @@ export function DenaliCanonicalProvider({
   useEffect(() => {
     const form = getValues();
     const next = denaliFormToCanonical(form);
-    if (syncToken > 0) {
-      console.log("[DenaliCanonical] syncToken hydrate (not updateCanonical)", {
-        syncToken,
-        formGearItems: form.participantRequirements.gearItems,
-        canonicalGearItems: next.participants.gearItems,
-      });
-    }
     setCanonicalModel({
       ...next,
       title: form.basicInfo.title?.trim() ?? "",
@@ -157,8 +150,12 @@ export function DenaliCanonicalProvider({
   return <DenaliCanonicalContext.Provider value={value}>{children}</DenaliCanonicalContext.Provider>;
 }
 
+export function useDenaliCanonicalOptional(): DenaliCanonicalContextValue | null {
+  return useContext(DenaliCanonicalContext);
+}
+
 export function useDenaliCanonical(): DenaliCanonicalContextValue {
-  const ctx = useContext(DenaliCanonicalContext);
+  const ctx = useDenaliCanonicalOptional();
   if (ctx == null) {
     throw new Error("useDenaliCanonical must be used within DenaliCanonicalProvider");
   }

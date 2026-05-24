@@ -5,6 +5,7 @@ import {
 } from "../registration.entity";
 import { WaitlistItemStatus } from "../waitlist-item.entity";
 import {
+  RegistrationBookingTargetDto,
   RegistrationEntryModeDto,
   RegistrationTransportModeDto
 } from "./create-registration.dto";
@@ -46,6 +47,16 @@ export class RegistrationResponseDto {
   @ApiProperty({ enum: RegistrationEntryModeDto, example: RegistrationEntryModeDto.WEB })
   entryMode!: string;
 
+  @ApiPropertyOptional({
+    enum: RegistrationBookingTargetDto,
+    example: RegistrationBookingTargetDto.SELF,
+    default: RegistrationBookingTargetDto.SELF
+  })
+  bookingTarget?: string;
+
+  @ApiPropertyOptional({ example: "0123456789", nullable: true })
+  participantNationalId?: string;
+
   @ApiPropertyOptional({ example: "123456789", nullable: true })
   telegramUserId?: string;
 
@@ -57,6 +68,12 @@ export class RegistrationResponseDto {
 
   @ApiPropertyOptional({ example: "Will arrive 30 minutes earlier", nullable: true })
   participantNote?: string;
+
+  @ApiPropertyOptional({
+    description: "Traveler intake metadata (e.g. transportIntake.isDriver for private car).",
+    nullable: true,
+  })
+  participantMetadata?: Record<string, unknown> | null;
 
   @ApiProperty({ enum: RegistrationStatus, example: RegistrationStatus.PENDING })
   status!: RegistrationStatus;

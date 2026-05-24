@@ -508,3 +508,110 @@ test("preflightPhone does not throw when workspace_invites missing invited_by_us
   assert.equal(result.mode, "existing_user");
   assert.equal(result.invite_pending, false);
 });
+
+function userRepoForCompleteRegistration(options: {
+  existingUser?: UserEntity | null;
+  onSave?: (user: UserEntity) => void;
+}): {
+  createQueryBuilder: ReturnType<typeof userRepoChain>["createQueryBuilder"];
+  create: (input: Partial<UserEntity>) => UserEntity;
+  save: (user: UserEntity) => Promise<UserEntity>;
+} {
+  const existing = options.existingUser ?? null;
+  return {
+    createQueryBuilder: userRepoChain(existing).createQueryBuilder,
+    create: (input) =>
+      ({
+        id: randomUUID(),
+        ...input
+      }) as UserEntity,
+    save: async (user) => {
+      options.onSave?.(user);
+      return user;
+    }
+  };
+}
+
+function membershipRepoForCompleteRegistration(options?: {
+  existing?: { role: string; sessionVersion: number; status: string } | null;
+}): ReturnType<typeof membershipRepoActive> & {
+  create: (input: Record<string, unknown>) => Record<string, unknown>;
+  save: (row: Record<string, unknown>) => Promise<Record<string, unknown>>;
+} {
+  const existing = options?.existing ?? null;
+  const base = membershipRepoActive();
+  return {
+    ...base,
+    findOne: async () => existing,
+    create: (input) => input,
+    save: async (row) => row
+  };
+}
+
+test("completeRegistration creates phone-first user with null email when email omitted", async () => {
+  const tenantId = randomUUID();
+  let savedUser: UserEntity | undefined;
+  const svc = makeAuthService({
+    userRepo: userRepoForCompleteRegistration({
+      onSave: (user) => {
+        savedUser = user;
+      }
+    }),
+    membershipRepo: membershipRepoForCompleteRegistration(),
+    requestContext: {
+      resolveEffectiveTenantId: () => tenantId,
+      setTenantId: () => {}
+    }
+  });
+
+  const onboarding = await svc.createWebSessionOtp({
+    phone: "+989123456789",
+    otp: "1234"
+  } as PhoneSessionDto);
+  assert.equal(onboarding.requires_registration, true);
+  assert.equal(typeof onboarding.onboarding_token, "string");
+
+  const session = await svc.completeRegistration({
+    onboarding_token: onboarding.onboarding_token!,
+    full_name: "علی جهانی"
+  });
+
+  assert.equal(typeof session.session_token, "string");
+  assert.equal(session.tenant_id, tenantId);
+  assert.equal(session.entry_mode, "web");
+  assert.equal(savedUser?.email, null);
+  assert.equal(savedUser?.fullName, "علی جهانی");
+  assert.equal(savedUser?.phone, "+989123456789");
+  assert.equal(savedUser?.isPhoneVerified, true);
+});
+
+test("completeRegistration persists optional email when provided at signup", async () => {
+  const tenantId = randomUUID();
+  let savedUser: UserEntity | undefined;
+  const svc = makeAuthService({
+    userRepo: userRepoForCompleteRegistration({
+      onSave: (user) => {
+        savedUser = user;
+      }
+    }),
+    membershipRepo: membershipRepoForCompleteRegistration(),
+    requestContext: {
+      resolveEffectiveTenantId: () => tenantId,
+      setTenantId: () => {}
+    }
+  });
+
+  const onboarding = await svc.createWebSessionOtp({
+    phone: "+989123456780",
+    otp: "1234"
+  } as PhoneSessionDto);
+
+  await svc.completeRegistration({
+    onboarding_token: onboarding.onboarding_token!,
+    full_name: "Jane Operator",
+    email: "jane@example.com"
+  });
+
+  assert.equal(savedUser?.email, "jane@example.com");
+  assert.equal(savedUser?.fullName, "Jane Operator");
+});

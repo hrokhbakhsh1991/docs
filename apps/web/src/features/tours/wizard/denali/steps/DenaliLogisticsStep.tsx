@@ -1,14 +1,12 @@
 "use client";
 
 import { DENALI_TRANSPORT_MODE_VALUES } from "@repo/types";
-import {
-  isDenaliOrganizedTransportWithPersonalCarOption,
-  isDenaliTransportDongAmountVisible,
-} from "@repo/types/denali";
+import type { DenaliTransportMode } from "@repo/types";
 import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Checkbox, FormField, Select, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Select, Textarea } from "@tour/ui";
 
+import quickAddStyles from "@/components/shared/quick-add/QuickAddModal.module.css";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
@@ -16,6 +14,12 @@ import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
 import { DenaliGatheringPointsWidget } from "../components/DenaliGatheringPointsWidget";
 import { DenaliLocationZonesSection } from "../components/DenaliLocationZoneField";
+import { useDenaliEquipmentQuickAdd } from "../hooks/useDenaliEquipmentQuickAdd";
+import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { patchDenaliTransportForMode } from "../transport/patchDenaliTransportForMode";
+import { DenaliGearSection } from "./DenaliGearSection";
+
+const STEP = "denali_logistics" as const;
 
 export function DenaliLogisticsStep() {
   const t = useTranslations("tours.denali");
@@ -24,9 +28,13 @@ export function DenaliLogisticsStep() {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, ui, updateCanonical } = useDenaliCanonical();
-  const transportMode = canonicalModel.transport.mode;
+  const { canonicalModel, updateCanonical } = useDenaliCanonical();
   const form = getValues();
+  const { isVisible } = useDenaliStepFieldRules(STEP);
+  const openEquipmentQuickAdd = useDenaliEquipmentQuickAdd();
+  const showGear = isVisible("participants.gearItems", form);
+
+  const transportMode = canonicalModel.transport.mode;
 
   return (
     <div style={{ display: "grid", gap: "1.25rem" }} data-testid="denali-step-logistics">
@@ -39,6 +47,27 @@ export function DenaliLogisticsStep() {
 
       <DenaliLocationZonesSection />
 
+      {showGear ? (
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          <div
+            className={quickAddStyles.quickAddRow}
+            data-testid="denali-logistics-quick-add"
+            dir="rtl"
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={openEquipmentQuickAdd}
+              data-testid="denali-quick-add-equipment"
+            >
+              + تجهیز
+            </Button>
+          </div>
+          <DenaliGearSection />
+        </div>
+      ) : null}
+
       <hr style={{ margin: "0.5rem 0", border: 0, borderTop: "1px solid var(--color-border-subtle, #e2e8f0)" }} />
 
       <div style={{ display: "grid", gap: "0.85rem" }}>
@@ -46,25 +75,9 @@ export function DenaliLogisticsStep() {
           <Select
             value={transportMode ?? ""}
             onChange={(e) => {
-              const mode = e.target.value as (typeof DENALI_TRANSPORT_MODE_VALUES)[number];
-              const hasPersonalCarOption = isDenaliOrganizedTransportWithPersonalCarOption(mode);
-              const allowPersonalCar = hasPersonalCarOption
-                ? canonicalModel.transport.allowPersonalCar
-                : undefined;
-              const dongVisible = isDenaliTransportDongAmountVisible({
-                mode,
-                allowPersonalCar,
-              });
+              const mode = e.target.value as DenaliTransportMode;
               updateCanonical({
-                transport: {
-                  ...canonicalModel.transport,
-                  mode,
-                  transportCost: mode === "none" || mode === "shared_cars"
-                    ? undefined
-                    : canonicalModel.transport.transportCost,
-                  allowPersonalCar,
-                  dongAmount: dongVisible ? canonicalModel.transport.dongAmount : undefined,
-                },
+                transport: patchDenaliTransportForMode(canonicalModel.transport, mode),
               });
             }}
             data-testid="denali-transport-mode"
@@ -78,7 +91,7 @@ export function DenaliLogisticsStep() {
           </Select>
         </FormField>
 
-        {ui.isVisible("denali_logistics", "transport.transportCost", form) ? (
+        {isVisible("transport.transportCost", form) ? (
           <FormField
             label={t("transport.transportCost")}
             error={errors.transport?.transportCost?.message}
@@ -100,7 +113,7 @@ export function DenaliLogisticsStep() {
           </FormField>
         ) : null}
 
-        {ui.isVisible("denali_logistics", "transport.allowPersonalCar", form) ? (
+        {isVisible("transport.allowPersonalCar", form) ? (
           <Checkbox
             checked={canonicalModel.transport.allowPersonalCar === true}
             onChange={(e) => {
@@ -118,7 +131,7 @@ export function DenaliLogisticsStep() {
           />
         ) : null}
 
-        {ui.isVisible("denali_logistics", "transport.dongAmount", form) ? (
+        {isVisible("transport.dongAmount", form) ? (
           <FormField label={t("transport.dongAmount")} error={errors.transport?.dongAmount?.message}>
             <PersianNumberInput
               numericMode="integer"

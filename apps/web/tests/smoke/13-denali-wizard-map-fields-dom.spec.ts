@@ -53,17 +53,17 @@ test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
     await expect(w.getByTestId("denali-program-altitude")).toBeVisible();
   });
 
-  test("pricing step mounts gear section without crashing", async ({ page }) => {
+  test("logistics step mounts gear section without crashing", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res!.status()).toBeLessThan(500);
 
     await requireDenaliWizard(page);
     const next = page.getByRole("button", { name: /بعدی|next/i });
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       await next.click();
     }
 
-    await expect(page.getByTestId("denali-step-pricing")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("denali-step-logistics")).toBeVisible({ timeout: 15_000 });
     const w = page.getByTestId("denali-create-tour-wizard");
     const gearList = w.getByTestId("denali-gear-list");
     const gearLoading = w.getByText(/در حال بارگذاری|loading/i);

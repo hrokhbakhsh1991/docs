@@ -1,8 +1,9 @@
 "use client";
 
-import { Button, FormField, Input } from "@tour/ui";
+import { Button } from "@tour/ui";
 
 import type { DenaliItineraryDayPhoto } from "../denaliItinerarySync";
+import { FileUploadField } from "./FileUploadField";
 
 const MAX_PHOTOS_PER_DAY = 3;
 
@@ -24,46 +25,18 @@ export function DenaliItineraryDayPhotos({
   error,
 }: DenaliItineraryDayPhotosProps) {
   const rows = photos ?? [];
-  const atLimit = rows.length >= MAX_PHOTOS_PER_DAY;
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newPhotos = await Promise.all(
-      Array.from(files).map(async (file) => {
-        const id = crypto.randomUUID();
-        const mockUrl = URL.createObjectURL(file);
-        return {
-          id,
-          url: mockUrl,
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type,
-          uploadedAt: new Date().toISOString(),
-        } satisfies DenaliItineraryDayPhoto;
-      }),
-    );
-
-    const slots = MAX_PHOTOS_PER_DAY - rows.length;
-    const toAppend = newPhotos.slice(0, Math.max(0, slots));
-    const next = [...rows, ...toAppend];
-    onChange(next.length > 0 ? next : undefined);
-    e.target.value = "";
-  };
 
   return (
     <div data-testid={`denali-itinerary-photos-${day}`}>
-      <FormField label={label} description={hint} error={error}>
-        <Input
-          type="file"
-          multiple
-          accept="image/jpeg, image/png, image/webp"
-          disabled={atLimit}
-          onChange={(e) => void handleFileChange(e)}
-          data-testid={`denali-itinerary-photos-upload-${day}`}
-        />
-      </FormField>
+      <FileUploadField
+        label={label}
+        hint={hint}
+        error={error}
+        value={rows}
+        maxFiles={MAX_PHOTOS_PER_DAY}
+        dataTestId={`denali-itinerary-photos-upload-${day}`}
+        onChange={(next) => onChange(next as DenaliItineraryDayPhoto[] | undefined)}
+      />
       {rows.length > 0 ? (
         <div
           style={{

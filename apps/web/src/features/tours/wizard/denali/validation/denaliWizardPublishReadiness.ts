@@ -2,18 +2,15 @@
  * Client-side OPEN/publish gate parity with API
  * {@link ../../../../../../../api/src/modules/tours/policies/assert-tour-publish-transition.ts}
  * (`assertProfileRequiredFieldsForPublish` + `checkDenaliPilotPublishGeolocationZones`).
+ *
+ * Required fields: {@link ../rules/denaliRuleRequired.ts} (`collectDenaliRuleRequiredIssues`).
  */
 
 import {
   checkDenaliPilotPublishGeolocationZones,
   type WorkspaceInvariantViolation,
 } from "@repo/shared-contracts";
-import {
-  getRequiredSubmitFieldPathsForProfile,
-  type TourFormProfile,
-  type TourTripDetails,
-  type WizardSubmitRequiredFieldPath,
-} from "@repo/types";
+import type { TourFormProfile, TourTripDetails, WizardSubmitRequiredFieldPath } from "@repo/types";
 
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import type { CreateTourDto } from "@/lib/services/tours.service";
@@ -21,94 +18,17 @@ import type { CreateTourDto } from "@/lib/services/tours.service";
 import { mapDenaliWizardToCreateTourPayload } from "../../domain/mapDenaliWizardToCreateTourPayload";
 import { normalizeDenaliWizardForm } from "../../schemas/denaliTourCreateFormModel";
 import type { DenaliCreateTourWizardForm } from "../../schemas/denaliTourCreateSchema";
+import {
+  collectDenaliRuleRequiredIssues,
+  type DenaliRuleRequiredIssue,
+} from "../rules/denaliRuleRequired";
+import { resolveDenaliRuleModelFromForm } from "./denaliRuleAccess";
 
 export type DenaliWizardPublishReadinessIssue = {
   code: string;
   message: string;
-  path?: WizardSubmitRequiredFieldPath;
+  path?: WizardSubmitRequiredFieldPath | string;
 };
-
-/** Mirrors API `ProfileRequiredSubmitShape` / `readDtoValueForWizardPath`. */
-type ProfileRequiredSubmitShape = {
-  title: string;
-  cost_context?: { totalCost?: number | null } | null;
-  tripDetails?: CreateTourDto["tripDetails"] | null;
-};
-
-const PUBLISH_REQUIRED_MESSAGES: Readonly<Record<WizardSubmitRequiredFieldPath, string>> = {
-  "overview.title": "عنوان تور را وارد کنید.",
-  "pricing.basePrice": "قیمت تور را وارد کنید.",
-  "itinerary.days": "حداقل یک روز برای برنامه سفر تعریف کنید.",
-  "logistics.primaryTransportMode": "حمل‌ونقل اصلی سفر را انتخاب کنید.",
-};
-
-function isEmptyRequiredValue(value: unknown): boolean {
-  if (value === undefined || value === null) {
-    return true;
-  }
-  if (typeof value === "string") {
-    return value.trim() === "";
-  }
-  if (Array.isArray(value)) {
-    return value.length === 0;
-  }
-  if (typeof value === "number") {
-    return Number.isNaN(value);
-  }
-  return false;
-}
-
-function readDtoValueForWizardPath(
-  dto: ProfileRequiredSubmitShape,
-  path: WizardSubmitRequiredFieldPath,
-): unknown {
-  switch (path) {
-    case "overview.title":
-      return dto.title;
-    case "pricing.basePrice":
-      return dto.cost_context?.totalCost;
-    case "itinerary.days": {
-      const itinerary = dto.tripDetails?.itinerary as
-        | {
-            segmentActivities?: unknown[];
-            dayPlans?: unknown[];
-          }
-        | undefined;
-      if (itinerary == null) {
-        return [];
-      }
-      const segmentActivities = itinerary.segmentActivities;
-      if (Array.isArray(segmentActivities) && segmentActivities.length > 0) {
-        return segmentActivities;
-      }
-      const dayPlans = itinerary.dayPlans;
-      if (Array.isArray(dayPlans) && dayPlans.length > 0) {
-        return dayPlans;
-      }
-      return [];
-    }
-    case "logistics.primaryTransportMode": {
-      const logistics = dto.tripDetails?.logistics as
-        | { primaryTransportMode?: string | null }
-        | undefined;
-      return logistics?.primaryTransportMode;
-    }
-    default: {
-      const _exhaustive: never = path;
-      return _exhaustive;
-    }
-  }
-}
-
-function createTourDtoToProfileRequiredSubmitShape(dto: CreateTourDto): ProfileRequiredSubmitShape {
-  const totalCost =
-    typeof dto.price === "number" && Number.isFinite(dto.price) ? dto.price : undefined;
-  return {
-    title: dto.title,
-    cost_context: totalCost !== undefined ? { totalCost } : undefined,
-    tripDetails: dto.tripDetails,
-  };
-}
 
 function geoViolationMessage(violation: WorkspaceInvariantViolation): string {
   if (violation.message.includes("startPoint")) {
@@ -120,21 +40,12 @@ function geoViolationMessage(violation: WorkspaceInvariantViolation): string {
   return "مختصات جغرافیایی نقاط تجمع و شروع برای انتشار الزامی است.";
 }
 
-function collectProfileRequiredFieldIssues(
-  profile: TourFormProfile,
-  shape: ProfileRequiredSubmitShape,
-): DenaliWizardPublishReadinessIssue[] {
-  const issues: DenaliWizardPublishReadinessIssue[] = [];
-  for (const path of getRequiredSubmitFieldPathsForProfile(profile)) {
-    if (isEmptyRequiredValue(readDtoValueForWizardPath(shape, path))) {
-      issues.push({
-        code: "VALIDATION_PROFILE_REQUIRED_FIELD",
-        path,
-        message: PUBLISH_REQUIRED_MESSAGES[path],
-      });
-    }
-  }
-  return issues;
+function ruleRequiredIssueToPublishIssue(issue: DenaliRuleRequiredIssue): DenaliWizardPublishReadinessIssue {
+  return {
+    code: "VALIDATION_RULE_REQUIRED_FIELD",
+    message: issue.message,
+    path: issue.path.join("."),
+  };
 }
 
 /**
@@ -150,6 +61,17 @@ export function getDenaliWizardPublishReadinessIssues(
     return [];
   }
 
+  const model = resolveDenaliRuleModelFromForm(form);
+  if (model == null) {
+    return [
+      {
+        code: "DENALI_TOUR_TYPE_REQUIRED",
+        message: "نوع تور را انتخاب کنید.",
+        path: "basicInfo.tourType",
+      },
+    ];
+  }
+
   let dto: CreateTourDto;
   try {
     dto = stripCreateTourDtoForFormProfile(profile, mapDenaliWizardToCreateTourPayload(form));
@@ -162,7 +84,9 @@ export function getDenaliWizardPublishReadinessIssues(
     ];
   }
 
-  const issues: DenaliWizardPublishReadinessIssue[] = [];
+  const issues: DenaliWizardPublishReadinessIssue[] = collectDenaliRuleRequiredIssues(form, model, {
+    mode: "submit",
+  }).map(ruleRequiredIssueToPublishIssue);
 
   if (profile === "denali_pilot") {
     const geoViolation = checkDenaliPilotPublishGeolocationZones(
@@ -175,13 +99,6 @@ export function getDenaliWizardPublishReadinessIssues(
       });
     }
   }
-
-  issues.push(
-    ...collectProfileRequiredFieldIssues(
-      profile,
-      createTourDtoToProfileRequiredSubmitShape(dto),
-    ),
-  );
 
   return issues;
 }

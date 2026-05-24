@@ -2,6 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 
 import {
   getRequiredSubmitFieldPathsForProfile,
+  denaliPrimaryTransportSubmitValue,
   type TourFormProfile,
   type WizardSubmitRequiredFieldPath,
 } from "@repo/types";
@@ -20,6 +21,7 @@ export type ProfileRequiredSubmitShape = {
   title: string;
   cost_context?: { totalCost?: number | null } | null;
   tripDetails?: CreateTourDto["tripDetails"] | null;
+  transportModes?: readonly string[] | null;
 };
 
 /** Projects a merged tour row to the same shape used by POST create asserts. */
@@ -37,6 +39,7 @@ export function tourEntityToProfileRequiredSubmitShape(tour: TourEntity): Profil
     title: tour.title,
     cost_context: totalCost !== undefined ? { totalCost } : undefined,
     tripDetails: (tour.details?.tripDetails ?? undefined) as ProfileRequiredSubmitShape["tripDetails"],
+    transportModes: tour.transportModes ?? [],
   };
 }
 
@@ -60,6 +63,7 @@ function isEmptyRequiredValue(value: unknown): boolean {
 }
 
 function readDtoValueForWizardPath(
+  profile: TourFormProfile,
   dto: ProfileRequiredSubmitShape,
   path: WizardSubmitRequiredFieldPath,
 ): unknown {
@@ -92,6 +96,12 @@ function readDtoValueForWizardPath(
       const logistics = dto.tripDetails?.logistics as
         | { primaryTransportMode?: string | null }
         | undefined;
+      if (profile === "denali_pilot") {
+        return denaliPrimaryTransportSubmitValue({
+          primaryTransportMode: logistics?.primaryTransportMode,
+          rootTransportModes: dto.transportModes,
+        });
+      }
       return logistics?.primaryTransportMode;
     }
     default: {
@@ -113,7 +123,7 @@ export function assertProfileRequiredFieldsForSubmit(
   const missing: WizardSubmitRequiredFieldPath[] = [];
 
   for (const path of requiredPaths) {
-    const value = readDtoValueForWizardPath(dto, path);
+    const value = readDtoValueForWizardPath(profile, dto, path);
     if (isEmptyRequiredValue(value)) {
       missing.push(path);
     }

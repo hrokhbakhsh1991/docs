@@ -14,6 +14,7 @@ export type TenantWizardTemplate = {
   readonly stepOverrides: TenantWizardStepOverrides;
   readonly fieldRulesOverlay: Readonly<Record<string, unknown>>;
   readonly presetId: string | null;
+  readonly canonicalData: Readonly<Record<string, unknown>>;
   readonly wizardContractVersion: number;
   readonly formProfileVersion: number;
 };

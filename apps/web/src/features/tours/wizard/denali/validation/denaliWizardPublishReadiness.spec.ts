@@ -84,3 +84,25 @@ test("isDenaliWizardReadyForOpenPublish: mountain form with geo and active passe
   const form = publishGateMountainForm({ basicInfo: { publishStatus: "active" } });
   assert.equal(isDenaliWizardReadyForOpenPublish(form), true);
 });
+
+test("getDenaliWizardPublishReadinessIssues: active with transport none skips primaryTransportMode gate", () => {
+  const form = publishGateMountainForm({
+    basicInfo: { publishStatus: "active" },
+    transport: {
+      transportMode: "none",
+      transportNotes: undefined,
+      dongAmount: undefined,
+      allowPersonalCar: undefined,
+    },
+  });
+  const issues = getDenaliWizardPublishReadinessIssues(form);
+  assert.ok(
+    !issues.some(
+      (row) =>
+        String(row.path ?? "").includes("transport") ||
+        String(row.message).includes("حمل‌ونقل"),
+    ),
+    `unexpected transport issue: ${JSON.stringify(issues)}`,
+  );
+  assert.equal(isDenaliWizardReadyForOpenPublish(form), true);
+});

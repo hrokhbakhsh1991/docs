@@ -13,6 +13,10 @@ import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "@/features/tours/m
 
 import { denaliGearItemSchema } from "./denaliGearItemSchema";
 import {
+  denaliImageFileAssetSchema,
+  DENALI_MAX_PHOTO_COUNT,
+} from "./denaliFileAssetSchema";
+import {
   denaliItineraryDayRowSchema,
   optionalApproximateReturnTimeSchema,
 } from "./denaliItineraryDaySchema";
@@ -110,6 +114,7 @@ const denaliTransportSchema = z.object({
   transportCost: optionalInt("هزینه حمل‌ونقل نمی‌تواند منفی باشد."),
   allowPersonalCar: z.boolean().optional(),
   dongAmount: optionalInt("مبلغ دنگ نمی‌تواند منفی باشد."),
+  seatPreference: z.enum(["window", "aisle", "any"]).optional(),
   transportNotes: z.string().trim().optional(),
 });
 
@@ -139,16 +144,8 @@ const denaliPoliciesSchema = z.object({
 
 export const denaliPhotosSchema = z.object({
   photos: z
-    .array(
-      z.object({
-        id: z.string(),
-        url: z.string(),
-        filename: z.string(),
-        size: z.number(),
-        mimeType: z.string(),
-        uploadedAt: z.string(),
-      }),
-    )
+    .array(denaliImageFileAssetSchema)
+    .max(DENALI_MAX_PHOTO_COUNT, "حداکثر ۱۰ عکس مجاز است.")
     .optional(),
 });
 
@@ -240,7 +237,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       themeIds: [],
       shortDescription: undefined,
       longDescription: undefined,
-      difficultyLevel: undefined,
+      difficultyLevel: 5,
       hikingHoursApprox: undefined,
       hikingGoHours: undefined,
       hikingReturnHours: undefined,

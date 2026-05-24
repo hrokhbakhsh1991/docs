@@ -125,7 +125,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     });
   });
 
-  test("pricing step shows gear list when workspace has equipment", async ({ page }, testInfo) => {
+  test("logistics step shows gear list when workspace has equipment", async ({ page }, testInfo) => {
     const slug = tenantSlugFromProject(testInfo.project.metadata);
     const runId = `map-gear-ui-${Date.now()}`;
     const gear = await ensureActiveEquipment(page);
@@ -147,8 +147,6 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
     await page.getByRole("button", { name: "بعدی" }).click();
     await expect(page.locator("form h2").first()).toContainText(/لجستیک|خدمات/, { timeout: 20_000 });
-    await page.getByRole("button", { name: "بعدی" }).click();
-    await expect(page.locator("form h2").first()).toContainText(/هزینه/, { timeout: 20_000 });
 
     const w = page.getByTestId("denali-create-tour-wizard");
     await expect(w.getByTestId("denali-gear-list")).toBeVisible({ timeout: 20_000 });

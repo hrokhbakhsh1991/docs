@@ -6,6 +6,7 @@
 
 import { denaliTourKindToIsMultiDay } from "@repo/types";
 import {
+  isDenaliSeatPreferenceRequired,
   isDenaliTransportDongAmountRequired,
 } from "@repo/types/denali";
 
@@ -60,6 +61,7 @@ export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set([
   "transport.transportCost",
   "transport.allowPersonalCar",
   "transport.dongAmount",
+  "transport.seatPreference",
   "transport.transportNotes",
   "pricing.requiresPayment",
   "pricing.basePricePerPerson",
@@ -112,6 +114,7 @@ const CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "transport.transportCost": "transport.transportCost",
   "transport.allowPersonalCar": "transport.allowPersonalCar",
   "transport.dongAmount": "transport.dongAmount",
+  "transport.seatPreference": "transport.seatPreference",
   "transport.transportNotes": "transport.transportNotes",
   "pricing.requiresPayment": "pricingPayment.requiresPayment",
   "pricing.basePricePerPerson": "pricingPayment.basePricePerPerson",
@@ -149,6 +152,7 @@ function isEmptyRequiredValue(value: unknown, path: string): boolean {
   if (value == null) return true;
   if (typeof value === "string") return value.trim() === "";
   if (typeof value === "boolean") return value !== true;
+  if (Array.isArray(value)) return value.length === 0;
   
   const formPath = mapDenaliCanonicalToFormPath(path);
   if (
@@ -220,6 +224,9 @@ export function isDenaliFieldRequired(
       mode: form.transport.transportMode,
       allowPersonalCar: form.transport.allowPersonalCar,
     });
+  }
+  if (formPath === "transport.seatPreference") {
+    return isDenaliSeatPreferenceRequired(form.transport.transportMode);
   }
   if (formPath === "pricingPayment.basePricePerPerson") {
     return form.pricingPayment.requiresPayment === true;

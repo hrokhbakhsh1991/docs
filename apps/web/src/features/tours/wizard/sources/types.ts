@@ -36,6 +36,7 @@ export type LoadWizardPrefillContext = {
 
 export type TourPresetForPrefill = {
   formProfile?: TourFormProfile | string | null;
+  canonicalData?: Record<string, unknown>;
   defaults?: Record<string, unknown>;
   matchTourType?: string | null;
   matchMainTourThemeId?: string | null;

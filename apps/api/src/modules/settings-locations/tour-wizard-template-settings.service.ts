@@ -6,6 +6,8 @@ import { normalizeTourFormProfileInput } from "@repo/types";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { templateToCanonical } from "@repo/types/denali";
+
 import type { WorkspaceTourWizardTemplateResponseDto } from "./dto/workspace-tour-wizard-template-response.dto";
 import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
 
@@ -46,6 +48,11 @@ export class TourWizardTemplateSettingsService {
           ? row.fieldRulesOverlay
           : {},
       presetId: row.presetId ?? null,
+      canonicalData: templateToCanonical({
+        canonicalData: row.canonicalData,
+        fieldRulesOverlay: row.fieldRulesOverlay,
+        stepOverrides: row.stepOverrides,
+      }) as Record<string, unknown>,
       wizardContractVersion: row.wizardContractVersion,
       formProfileVersion: row.formProfileVersion,
     };

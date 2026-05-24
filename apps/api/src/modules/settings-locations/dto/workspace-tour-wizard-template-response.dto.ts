@@ -28,6 +28,9 @@ export class WorkspaceTourWizardTemplateResponseDto {
   @ApiPropertyOptional({ format: "uuid", nullable: true })
   presetId!: string | null;
 
+  @ApiProperty({ type: "object", additionalProperties: true })
+  canonicalData!: Record<string, unknown>;
+
   @ApiProperty({ example: 1 })
   wizardContractVersion!: number;
 

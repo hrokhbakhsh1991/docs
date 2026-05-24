@@ -25,10 +25,17 @@ import { ReorderEquipmentItemsDto } from "./dto/reorder-equipment-items.dto";
 import { UpdateEquipmentItemDto } from "./dto/update-equipment-item.dto";
 import { WorkspaceEquipmentItemResponseDto } from "./dto/workspace-equipment-item-response.dto";
 import { EquipmentSettingsService } from "./equipment-settings.service";
+import { InternalApiKeyGuard } from "../ops/internal-api-key.guard";
 
 @ApiTags("Settings — Equipment")
 @Controller("api/v2/settings/equipment")
-@UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+@UseGuards(
+  AuthorizationPresenceGuard,
+  InternalApiKeyGuard,
+  RolesGuard,
+  AbilitiesGuard,
+  CaslMirrorAbilitiesGuard
+)
 @ApiBearerAuth()
 export class SettingsEquipmentController {
   constructor(private readonly equipment: EquipmentSettingsService) {}

@@ -52,3 +52,16 @@ export function isDenaliTransportDongAmountRequired(input: {
 }): boolean {
   return isDenaliTransportDongAmountVisible(input);
 }
+
+/** Train-only: seat preference intake (window / aisle / any). */
+export function isDenaliSeatPreferenceVisible(
+  mode: DenaliCanonicalTransportMode | undefined,
+): boolean {
+  return mode === "train";
+}
+
+export function isDenaliSeatPreferenceRequired(
+  mode: DenaliCanonicalTransportMode | undefined,
+): boolean {
+  return isDenaliSeatPreferenceVisible(mode);
+}

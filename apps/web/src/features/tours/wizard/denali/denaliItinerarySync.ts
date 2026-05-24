@@ -10,6 +10,8 @@ export type DenaliItineraryDayPhoto = {
   size?: number;
   mimeType?: string;
   uploadedAt?: string;
+  assetId?: string;
+  uploadStatus?: "pending" | "uploading" | "uploaded" | "failed";
 };
 
 export type DenaliItineraryDayRow = {
