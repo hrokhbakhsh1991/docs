@@ -16,6 +16,7 @@ import {
   denaliCanonicalFromForm,
   type DenaliCanonicalDuration,
   type DenaliCanonicalTourModel,
+  type DenaliCanonicalTransportMode,
 } from "@repo/types/denali";
 
 import type { UseFormSetValue } from "react-hook-form";
@@ -23,7 +24,128 @@ import type { UseFormSetValue } from "react-hook-form";
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
+import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+
+function transportModeToCanonical(
+  mode: DenaliCreateTourWizardForm["transport"]["transportMode"] | undefined,
+): DenaliCanonicalTransportMode {
+  if (
+    mode === "organizer_vehicle" ||
+    mode === "bus" ||
+    mode === "minibus" ||
+    mode === "train" ||
+    mode === "shared_cars" ||
+    mode === "none"
+  ) {
+    return mode;
+  }
+  return "none";
+}
+
+/** True when `basicInfo.tourType` resolves to a known Denali tour kind slug. */
+export function isDenaliWizardTourTypeSelected(form: DenaliCreateTourWizardForm): boolean {
+  return readDenaliCanonicalBasics(form.basicInfo.tourType) != null;
+}
+
+/**
+ * Unclassified canonical shell for first paint / empty tour-type — no {@link denaliCanonicalFromForm}.
+ * `category` / `duration` are structural placeholders only; provider `basicsSelection`
+ * (empty until tour kind is chosen) drives rule UI.
+ */
+export function createInitialDenaliCanonicalModel(
+  form: DenaliCreateTourWizardForm,
+): DenaliCanonicalTourModel {
+  const requiresPayment = form.pricingPayment.requiresPayment === true;
+  const gatheringPoints = form.tripDetails?.logistics?.gatheringPoints;
+  return {
+    category: "mountain",
+    duration: "single",
+    title: form.basicInfo.title?.trim() ?? "",
+    destinationId: form.basicInfo.destinationId?.trim() ?? "",
+    startDateTime: form.basicInfo.startDateTime?.trim() ?? "",
+    endDateTime: form.basicInfo.endDateTime?.trim() || undefined,
+    capacityMax: form.basicInfo.capacityMax,
+    capacityMin: form.basicInfo.capacityMin,
+    startPointLocationText: form.basicInfo.startPointLocationText,
+    startPoint: form.basicInfo.startPoint,
+    summitPoint: form.basicInfo.summitPoint,
+    campPoint: form.basicInfo.campPoint,
+    endPoint: form.basicInfo.endPoint,
+    gatheringPoints:
+      gatheringPoints != null && gatheringPoints.length > 0 ? gatheringPoints : undefined,
+    approximateReturnTime: form.basicInfo.approximateReturnTime,
+    leaderUserIds:
+      form.basicInfo.leaderUserIds != null && form.basicInfo.leaderUserIds.length > 0
+        ? form.basicInfo.leaderUserIds
+        : undefined,
+    requiresLocalGuide: form.basicInfo.requiresLocalGuide === true ? true : undefined,
+    localGuideName:
+      form.basicInfo.requiresLocalGuide === true
+        ? form.basicInfo.localGuideName
+        : undefined,
+    requiresManualAdminApproval:
+      form.basicInfo.requiresManualAdminApproval === true ? true : undefined,
+    publishStatus: form.basicInfo.publishStatus === "active" ? "active" : "draft",
+    socialMediaLink:
+      form.basicInfo.socialMediaLink ??
+      (form.basicInfo as { telegramUrl?: string }).telegramUrl ??
+      (form.basicInfo as { baleUrl?: string }).baleUrl ??
+      (form.basicInfo as { eitaaUrl?: string }).eitaaUrl,
+    program: {
+      themeIds: form.programNature.themeIds ?? [],
+      shortDescription: form.programNature.shortDescription?.trim() ?? "",
+      longDescription: form.programNature.longDescription,
+      difficultyLevel: form.programNature.difficultyLevel,
+      hikingHoursApprox: form.programNature.hikingHoursApprox,
+      hikingGoHours: form.programNature.hikingGoHours,
+      hikingReturnHours: form.programNature.hikingReturnHours,
+      altitudeMeasurement: form.programNature.altitudeMeasurement,
+      itinerary: form.programNature.itinerary,
+    },
+    transport: {
+      mode: transportModeToCanonical(form.transport.transportMode),
+      dongAmount: form.transport.dongAmount,
+      transportNotes: form.transport.transportNotes,
+      allowPersonalCar: form.transport.allowPersonalCar === true ? true : undefined,
+      adminCapacityApproval:
+        form.transport.adminCapacityApproval === true ? true : undefined,
+    },
+    pricing: {
+      requiresPayment: requiresPayment ? true : undefined,
+      basePricePerPerson: requiresPayment ? form.pricingPayment.basePricePerPerson : undefined,
+      paymentMode: "offline_receipt",
+      includesTourInsurance: form.pricingPayment.includesTourInsurance === true,
+    },
+    participants: {
+      minimumAge: form.participantRequirements.minimumAge,
+      maximumAge: form.participantRequirements.maximumAge,
+      fitnessLevel: form.participantRequirements.fitnessLevel,
+      nationalIdRequired: form.participantRequirements.nationalIdRequired !== false,
+      sportsInsuranceRequired: form.participantRequirements.sportsInsuranceRequired,
+      minRequiredPeaks: form.participantRequirements.minRequiredPeaks,
+      fitnessPrerequisiteText: form.participantRequirements.fitnessPrerequisiteText,
+      gearItems: form.participantRequirements.gearItems,
+    },
+    policies: {
+      policiesText: form.policies.policiesText,
+      cancellationDeadlineHours: form.policies.cancellationDeadlineHours,
+      cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
+    },
+    photos: form.photosData?.photos,
+  };
+}
+
+/**
+ * Render-safe mapping — avoids {@link DenaliCanonicalTourTypeRequiredError} before tour type is chosen.
+ * Submit / upload paths must use {@link denaliFormToCanonical} (strict).
+ */
+export function safeDenaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliCanonicalTourModel {
+  if (!isDenaliWizardTourTypeSelected(form)) {
+    return createInitialDenaliCanonicalModel(form);
+  }
+  return denaliFormToCanonical(form);
+}
 
 function canonicalDurationToFormDuration(duration: DenaliCanonicalDuration): DenaliTourDuration {
   return duration === "multi" ? "multi_day" : "single_day";

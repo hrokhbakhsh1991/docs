@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildDenaliCanonicalMapFromRegistry,
+  buildDenaliConditionallyRequiredCanonicalPathsFromRegistry,
   buildDenaliRuleSetFromRegistry,
 } from "../src/features/tours/wizard/denali/registry/denaliRegistryCodegen";
 import {
@@ -329,6 +330,11 @@ function formatCanonicalMapExport(map: Record<string, string>): string {
   return `export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {\n${body}\n};`;
 }
 
+function formatConditionallyRequiredPathsExport(paths: readonly string[]): string {
+  const body = paths.map((path) => `  "${path}",`).join("\n");
+  return `export const DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS = [\n${body}\n] as const;`;
+}
+
 function main(): void {
   const ruleSet = buildDenaliRuleSetFromRegistry();
 
@@ -359,6 +365,10 @@ export const denaliRuleModelMountainMultiDay = denaliRuleSet.mountain.multi_day!
 ${formatCanonicalMapExport(buildCanonicalMap())}
 `;
 
+  const conditionalRequiredTs = `${BANNER}
+${formatConditionallyRequiredPathsExport(buildDenaliConditionallyRequiredCanonicalPathsFromRegistry())}
+`;
+
   mkdirSync(GENERATED_DIR, { recursive: true });
   writeFileSync(join(GENERATED_DIR, "denaliRuleSet.generated.ts"), ruleSetTs, "utf8");
   writeFileSync(
@@ -366,11 +376,17 @@ ${formatCanonicalMapExport(buildCanonicalMap())}
     canonicalMapTs,
     "utf8",
   );
+  writeFileSync(
+    join(GENERATED_DIR, "denaliConditionallyRequiredPaths.generated.ts"),
+    conditionalRequiredTs,
+    "utf8",
+  );
   writeFileSync(SCHEMA_GENERATED, buildZodSchemaFile(), "utf8");
 
   console.log("Generated:");
   console.log(" -", join(GENERATED_DIR, "denaliRuleSet.generated.ts"));
   console.log(" -", join(GENERATED_DIR, "denaliCanonicalPathMap.generated.ts"));
+  console.log(" -", join(GENERATED_DIR, "denaliConditionallyRequiredPaths.generated.ts"));
   console.log(" -", SCHEMA_GENERATED);
 }
 

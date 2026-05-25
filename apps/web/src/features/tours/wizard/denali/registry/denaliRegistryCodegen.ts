@@ -93,6 +93,13 @@ export function buildDenaliCanonicalMapFromRegistry(): Record<string, string> {
   return map;
 }
 
+/** Canonical paths validated at submit when `contextualRequired` is set on the registry row. */
+export function buildDenaliConditionallyRequiredCanonicalPathsFromRegistry(): readonly string[] {
+  return DENALI_FIELD_DEFINITIONS.filter((def) => def.contextualRequired != null)
+    .map((def) => def.canonicalPath)
+    .sort();
+}
+
 function serializeRuleSet(ruleSet: DenaliRuleSet): string {
   const snapshot: Record<string, unknown> = {};
   for (const category of DENALI_RULE_MODEL_CATEGORIES) {

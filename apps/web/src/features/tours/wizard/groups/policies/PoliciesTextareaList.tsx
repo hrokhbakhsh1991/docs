@@ -1,6 +1,6 @@
 "use client";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 
 import { LabeledTextareaField } from "../primitives/LabeledTextareaField";
 

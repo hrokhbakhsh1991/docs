@@ -1,7 +1,7 @@
 import {
   type TourCreateFormValues,
   sanitizeWizardAccommodationTypes,
-} from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+} from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 
 export const wizardDefaultDaySegment = {
   title: "",

@@ -64,6 +64,7 @@ export {
 
 export {
   denaliCanonicalFromForm,
+  DenaliCanonicalTourTypeRequiredError,
   type DenaliWizardFormLike,
 } from "./denaliCanonicalFromForm";
 

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:clean": "rm -rf .next && next dev -p 3000",
-    "build": "pnpm --filter @repo/tenant-host run build && next build",
+    "verify:denali-architecture": "tsx scripts/verify-denali-architecture.ts",
+    "build": "pnpm --filter @repo/tenant-host run build && pnpm run verify:denali-architecture && next build",
     "build:smoke": "NEXT_PUBLIC_TENANT_ROOT_DOMAIN=localhost NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true NEXT_PUBLIC_API_PORT=3001 NEXT_PUBLIC_E2E_WIZARD_SEED=true NEXT_PUBLIC_TOUR_WIZARD_SERVER_DRAFT=1 next build && node scripts/copy-standalone-static.mjs",
     "start": "next start -p 3000",
     "lint": "tsc --noEmit",
@@ -29,7 +30,8 @@
     "qa:integration:wizard-tenants:all": "PW_REAL_STACK=1 PW_NO_WEB_SERVER=1 playwright test -c playwright.integration.config.ts tests/integration/",
     "auth:test": "node --env-file=.env.local --import tsx scripts/login-test.ts",
     "generate:denali-wizard": "tsx scripts/generate-denali-wizard-config.ts",
-    "audit:denali-registry": "tsx scripts/registry-integrity-audit.ts"
+    "audit:denali-registry": "tsx scripts/registry-integrity-audit.ts",
+    "verify:schema-parity": "tsx --tsconfig tsconfig.json ../../scripts/verify-schema-parity.ts"
   },
   "dependencies": {
     "@casl/react": "^6.0.0",

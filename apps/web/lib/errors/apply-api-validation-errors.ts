@@ -1,6 +1,6 @@
 import type { FieldPath, FieldValues, UseFormSetError } from "react-hook-form";
 
-import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/schemas/denaliCanonicalIssuePaths";
+import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/denali/rules/denaliCanonicalPathLookup";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import type { ApiError } from "@/lib/api-client";
 

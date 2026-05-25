@@ -71,6 +71,7 @@ const denaliBasicInfoSchema = z.object({
     })
     .transform((v) => (v == null || v === "" ? undefined : v)),
   endPoint: denaliLocationDataSchema.optional(),
+  gatheringPoint: denaliLocationDataSchema.optional(),
   leaderUserIds: z.array(z.string().trim()).default([]),
   localGuideName: z.string().trim().optional(),
   meetingPoint: z.string().trim().optional(),
@@ -112,8 +113,10 @@ const denaliTransportSchema = z.object({
   adminCapacityApproval: z.boolean().optional(),
   allowPersonalCar: z.boolean().optional(),
   dongAmount: optionalInt("مقدار نمی‌تواند منفی باشد."),
+  seatPreference: z.string().trim().optional(),
   transportCost: optionalInt("مقدار نمی‌تواند منفی باشد."),
   transportMode: denaliTransportModeSchema,
+  transportNotes: z.string().trim().optional(),
 });
 
 const denaliPricingPaymentSchema = z.object({

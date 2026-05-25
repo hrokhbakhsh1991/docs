@@ -3,7 +3,7 @@
 import type { TourFormProfile } from "@repo/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 /**
  * Classic 9-step wizard only. Denali 6-tab create uses {@link useDenaliTourWizardCreate}
  * → {@link createTourFromDenaliWizardForm} (same mapCreateTourDto pipeline, separate hook to avoid rules-of-hooks branching).

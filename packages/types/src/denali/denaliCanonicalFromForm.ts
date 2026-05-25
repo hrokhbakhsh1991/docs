@@ -5,7 +5,10 @@
  * Does not import `apps/web`; structural input type mirrors `DenaliCreateTourWizardForm`.
  */
 
-import { denaliCanonicalBasicsFromTourKind } from "../denali-canonical-tour-model";
+import {
+  denaliCanonicalBasicsFromTourKind,
+  type DenaliCanonicalBasicsSelection,
+} from "../denali-canonical-tour-model";
 import type { DenaliTourKind } from "../denali-tour-kind";
 import type { DenaliTransportMode } from "../denali-transport-mode";
 
@@ -286,16 +289,34 @@ function difficultyLevelFromForm(
   return undefined;
 }
 
+/** Thrown when `basicInfo.tourType` is missing or not a recognized Denali tour kind slug. */
+export class DenaliCanonicalTourTypeRequiredError extends Error {
+  readonly code = "DENALI_TOUR_TYPE_REQUIRED" as const;
+
+  constructor(tourType: unknown) {
+    super(
+      `basicInfo.tourType is required and must be a valid Denali tour kind slug (got ${String(tourType)}).`,
+    );
+    this.name = "DenaliCanonicalTourTypeRequiredError";
+  }
+}
+
+function resolveCanonicalBasicsFromFormTourType(
+  tourType: DenaliTourKind | undefined,
+): DenaliCanonicalBasicsSelection {
+  const basics = denaliCanonicalBasicsFromTourKind(tourType);
+  if (basics == null) {
+    throw new DenaliCanonicalTourTypeRequiredError(tourType);
+  }
+  return basics;
+}
+
 /**
  * Maps legacy `DenaliCreateTourWizardForm` to the Phase 4 canonical MVP model.
- * Missing classification defaults to mountain / single; missing strings default to "".
+ * Requires a valid `basicInfo.tourType`; missing strings default to "".
  */
 export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanonicalTourModel {
-  const basics =
-    denaliCanonicalBasicsFromTourKind(form.basicInfo.tourType) ?? {
-      category: "mountain" as const,
-      duration: "single_day" as const,
-    };
+  const basics = resolveCanonicalBasicsFromFormTourType(form.basicInfo.tourType);
 
   const requiresPayment = pricingRequiresPaymentFromForm(form.pricingPayment);
   const locations = resolveLocationZonesFromForm(form.basicInfo);

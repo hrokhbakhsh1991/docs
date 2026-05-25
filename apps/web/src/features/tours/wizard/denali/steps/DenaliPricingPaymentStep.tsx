@@ -7,7 +7,10 @@ import { Checkbox, FormField } from "@tour/ui";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { DenaliPricingParticipantSection } from "./DenaliPricingParticipantSection";
 
@@ -20,10 +23,11 @@ export function DenaliPricingPaymentStep() {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const { updateCanonical } = useDenaliCanonical();
+  const pricing = useDenaliCanonicalValue<DenaliCanonicalTourModel["pricing"]>("pricing");
   const form = getValues();
   const { isVisible } = useDenaliStepFieldRules(STEP);
-  const requiresPayment = canonicalModel.pricing.requiresPayment === true;
+  const requiresPayment = pricing.requiresPayment === true;
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-pricing">
@@ -36,11 +40,9 @@ export function DenaliPricingPaymentStep() {
           const checked = e.target.checked;
           updateCanonical({
             pricing: {
-              ...canonicalModel.pricing,
+              ...pricing,
               requiresPayment: checked ? true : undefined,
-              basePricePerPerson: checked
-                ? canonicalModel.pricing.basePricePerPerson
-                : undefined,
+              basePricePerPerson: checked ? pricing.basePricePerPerson : undefined,
             },
           });
         }}
@@ -56,11 +58,11 @@ export function DenaliPricingPaymentStep() {
           <PersianNumberInput
             numericMode="integer"
             formatThousands
-            value={canonicalModel.pricing.basePricePerPerson ?? ""}
+            value={pricing.basePricePerPerson ?? ""}
             onChange={(v) =>
               updateCanonical({
                 pricing: {
-                  ...canonicalModel.pricing,
+                  ...pricing,
                   requiresPayment: true,
                   basePricePerPerson: v === "" ? undefined : Number(v),
                 },
@@ -73,11 +75,11 @@ export function DenaliPricingPaymentStep() {
 
       <Checkbox
         label={t("pricing.includesTourInsurance")}
-        checked={canonicalModel.pricing.includesTourInsurance === true}
+        checked={pricing.includesTourInsurance === true}
         onChange={(e) =>
           updateCanonical({
             pricing: {
-              ...canonicalModel.pricing,
+              ...pricing,
               includesTourInsurance: e.target.checked,
             },
           })

@@ -1,7 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 
-import { buildTourCreateSchemaForFormProfile } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import { buildTourCreateSchemaForFormProfile } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload";

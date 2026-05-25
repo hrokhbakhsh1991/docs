@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canonicalZodPathToFormFieldPath } from "./denaliCanonicalIssuePaths";
+import { canonicalZodPathToFormFieldPath } from "./denaliCanonicalPathLookup";
 
 test("canonicalZodPathToFormFieldPath maps 5-zone nested coordinates", () => {
   assert.equal(
@@ -29,5 +29,20 @@ test("canonicalZodPathToFormFieldPath maps participants.gearItems id issues", ()
   assert.equal(
     canonicalZodPathToFormFieldPath(["participants", "gearItems", 0, "id"]),
     "participantRequirements.gearItems.0.id",
+  );
+});
+
+test("canonicalZodPathToFormFieldPath maps duration and transport.seatPreference via registry", () => {
+  assert.equal(canonicalZodPathToFormFieldPath(["duration"]), "basicInfo.tourType");
+  assert.equal(
+    canonicalZodPathToFormFieldPath(["transport", "seatPreference"]),
+    "transport.seatPreference",
+  );
+});
+
+test("canonicalZodPathToFormFieldPath uses root defaults for unknown nested program fields", () => {
+  assert.equal(
+    canonicalZodPathToFormFieldPath(["program", "unknownField"]),
+    "programNature.themeIds",
   );
 });

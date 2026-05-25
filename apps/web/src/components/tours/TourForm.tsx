@@ -35,7 +35,7 @@ import {
   resetTourFlatFormProfileValidationFlags,
   setTourFlatFormProfileValidationFlags,
   tourFormProfileToWizardValidationFlags,
-} from "@/components/tours/wizard/legacy/schemas/tourCreateValidationPolicy";
+} from "@/features/tours/wizard/schemas/classic/tourCreateValidationPolicy";
 import {
   dualClassificationForEditForm,
   domainProfileFromEditFormValues,

@@ -1,19 +1,27 @@
+import { denaliTourKindToIsMultiDay, type DenaliTourKind, type TourFormProfile } from "@repo/types";
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 import {
   isDenaliAdminCapacityApprovalVisible,
   isDenaliAllowPersonalCarVisible,
+  isDenaliSeatPreferenceRequired,
   isDenaliTransportCostVisible,
+  isDenaliTransportDongAmountRequired,
   isDenaliTransportDongAmountVisible,
-  type DenaliCanonicalTourModel,
+  type DenaliCanonicalTransportMode,
 } from "@repo/types/denali";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-import type { DenaliTourKind, TourFormProfile } from "@repo/types";
-
-import { isDenaliAltitudeVisibleForCategory } from "../denaliAltitudeVisibility";
 import { readDenaliCanonicalBasics } from "../denaliCanonicalBasicsControl";
+import { getDenaliFormPathValue } from "../denaliFormPathUtils";
+import {
+  DENALI_FIELD_DEFINITIONS,
+  type DenaliFieldDefinition,
+} from "../registry/denaliFieldRegistryData";
+import type { DenaliContextualRule } from "../registry/DenaliFieldRegistry.types";
 import { getDenaliRulesFromCanonical } from "./denaliCanonicalRuleAdapter";
+import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
 import { isDenaliFieldRequired, mapFormPathToCanonical } from "./denaliRuleRequired";
 import type {
   DenaliRuleFieldDefinition,
@@ -73,6 +81,92 @@ export type DenaliUIAdapterInput = {
   duration: DenaliRuleModelDuration;
   ruleSet?: DenaliRuleSet;
 };
+
+const DEFINITION_BY_CANONICAL_PATH = new Map<string, DenaliFieldDefinition>(
+  DENALI_FIELD_DEFINITIONS.map((def) => [def.canonicalPath, def]),
+);
+
+export function getDenaliFieldDefinitionByCanonicalPath(
+  canonicalPath: string,
+): DenaliFieldDefinition | undefined {
+  return DEFINITION_BY_CANONICAL_PATH.get(canonicalPath);
+}
+
+function readCanonicalPathValue(form: DenaliCreateTourWizardForm, watchCanonical: string): unknown {
+  const formPath = DENALI_CANONICAL_TO_FORM_PATH_MAP[watchCanonical] ?? watchCanonical;
+  return getDenaliFormPathValue(form, formPath);
+}
+
+function isTruthyFormValue(value: unknown): boolean {
+  if (value === true) return true;
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.length > 0;
+  return false;
+}
+
+function transportModeFromForm(form: DenaliCreateTourWizardForm): DenaliCanonicalTransportMode {
+  return form.transport.transportMode as DenaliCanonicalTransportMode;
+}
+
+function transportPersonalCarInput(form: DenaliCreateTourWizardForm): {
+  mode: DenaliCanonicalTransportMode;
+  allowPersonalCar?: boolean;
+} {
+  return {
+    mode: transportModeFromForm(form),
+    allowPersonalCar: form.transport.allowPersonalCar,
+  };
+}
+
+/** Maps registry `contextualVisibility` / `contextualRequired` kinds to `@repo/types/denali` predicates. */
+export function evaluateDenaliContextualRule(
+  rule: DenaliContextualRule,
+  form: DenaliCreateTourWizardForm,
+  mode: "visibility" | "required",
+): boolean {
+  switch (rule.kind) {
+    case "whenTruthy":
+      return isTruthyFormValue(readCanonicalPathValue(form, rule.watchCanonical));
+    case "transportOrganizedCostVisible":
+      return isDenaliTransportCostVisible(transportModeFromForm(form));
+    case "transportPersonalCarOptionVisible":
+      return isDenaliAllowPersonalCarVisible(transportModeFromForm(form));
+    case "transportDongVisible":
+      return mode === "required"
+        ? isDenaliTransportDongAmountRequired(transportPersonalCarInput(form))
+        : isDenaliTransportDongAmountVisible(transportPersonalCarInput(form));
+    case "transportAdminCapacityVisible":
+      return isDenaliAdminCapacityApprovalVisible(transportPersonalCarInput(form));
+    case "transportTrainSeatVisible":
+      return isDenaliSeatPreferenceRequired(transportModeFromForm(form));
+    case "multiDayEndDateTimeRequired":
+      return denaliTourKindToIsMultiDay(form.basicInfo.tourType as DenaliTourKind);
+    default: {
+      const _exhaustive: never = rule;
+      return _exhaustive;
+    }
+  }
+}
+
+export function evaluateDenaliContextualVisibility(
+  canonicalPath: string,
+  form: DenaliCreateTourWizardForm | undefined,
+): boolean {
+  if (form == null) return true;
+  const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+  if (def?.contextualVisibility == null) return true;
+  return evaluateDenaliContextualRule(def.contextualVisibility, form, "visibility");
+}
+
+export function evaluateDenaliContextualRequired(
+  canonicalPath: string,
+  form: DenaliCreateTourWizardForm,
+): boolean | null {
+  const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+  if (def?.contextualRequired == null) return null;
+  return evaluateDenaliContextualRule(def.contextualRequired, form, "required");
+}
 
 function resolveDenaliRuleModel(
   category: DenaliRuleModelCategory,
@@ -162,36 +256,7 @@ function isDenaliFieldContextuallyVisible(
   form: DenaliCreateTourWizardForm | undefined,
   _options?: DenaliUIContextOptions,
 ): boolean {
-  if (form == null) return true;
-  if (path === "transport.transportCost") {
-    return isDenaliTransportCostVisible(form.transport.transportMode);
-  }
-  if (path === "transport.allowPersonalCar") {
-    return isDenaliAllowPersonalCarVisible(form.transport.transportMode);
-  }
-  if (path === "transport.dongAmount") {
-    return isDenaliTransportDongAmountVisible({
-      mode: form.transport.transportMode,
-      allowPersonalCar: form.transport.allowPersonalCar,
-    });
-  }
-  if (path === "transport.adminCapacityApproval") {
-    return isDenaliAdminCapacityApprovalVisible({
-      mode: form.transport.transportMode,
-      allowPersonalCar: form.transport.allowPersonalCar,
-    });
-  }
-  if (path === "pricing.basePricePerPerson") {
-    return form.pricingPayment.requiresPayment === true;
-  }
-  if (path === "program.altitudeMeasurement") {
-    const basics = readDenaliCanonicalBasics(form.basicInfo.tourType as DenaliTourKind | undefined);
-    return isDenaliAltitudeVisibleForCategory(basics?.category);
-  }
-  if (path === "localGuideName") {
-    return form.basicInfo.requiresLocalGuide === true;
-  }
-  return true;
+  return evaluateDenaliContextualVisibility(path, form);
 }
 
 /**
@@ -209,7 +274,12 @@ export function isDenaliFieldVisibleOnStep(
   if (!isDenaliFieldContextuallyVisible(canonicalPath, form, options)) return false;
 
   const field = findDenaliRuleField(model, canonicalPath);
-  if (field == null) return false;
+  if (field == null) {
+    const registryOnly = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+    if (registryOnly?.contextualVisibility == null) return false;
+    if (step === "review") return true;
+    return registryOnly.stepId === step;
+  }
   if (field.hidden) return false;
   if (step === "review") return true;
   return field.step === step;
@@ -226,7 +296,16 @@ export function isDenaliFieldRequiredOnStep(
   const canonicalPath = mapFormPathToCanonical(path);
 
   const field = findDenaliRuleField(model, canonicalPath);
-  if (field == null || field.hidden) return false;
+  if (field == null) {
+    const registryOnly = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+    if (registryOnly?.contextualRequired == null) return false;
+    if (step !== "review" && registryOnly.stepId !== step) return false;
+    if (form != null) {
+      return isDenaliFieldRequired(model, canonicalPath, form, options);
+    }
+    return false;
+  }
+  if (field.hidden) return false;
   if (step !== "review" && field.step !== step) return false;
   if (form != null) {
     return isDenaliFieldRequired(model, canonicalPath, form, options);
@@ -256,7 +335,10 @@ export function isDenaliFieldVisibleInModel(
   const canonicalPath = mapFormPathToCanonical(path);
   if (!isDenaliFieldContextuallyVisible(canonicalPath, form, options)) return false;
   const field = findDenaliRuleField(model, canonicalPath);
-  if (field == null) return false;
+  if (field == null) {
+    const registryOnly = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
+    return registryOnly?.contextualVisibility != null;
+  }
   return !field.hidden;
 }
 

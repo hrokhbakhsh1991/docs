@@ -143,5 +143,6 @@ console.log(
 );
 
 if (issues.length > 0 || ruleNotInRegistry.length > 0) {
+  console.error("\nARCHITECTURAL_DRIFT_DETECTED");
   process.exit(1);
 }

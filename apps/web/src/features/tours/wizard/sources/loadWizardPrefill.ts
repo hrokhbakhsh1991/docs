@@ -6,7 +6,7 @@ import {
 import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
 
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import {
   mergeDenaliWizardDefaults,

@@ -13,7 +13,7 @@ import {
   stepTriggerFields,
   wizardSteps,
 } from "./stepConfig";
-import { tourFormProfileToWizardValidationFlags } from "@/components/tours/wizard/legacy/schemas/tourCreateValidationPolicy";
+import { tourFormProfileToWizardValidationFlags } from "@/features/tours/wizard/schemas/classic/tourCreateValidationPolicy";
 
 import {
   WIZARD_STEP_CONFIGS,

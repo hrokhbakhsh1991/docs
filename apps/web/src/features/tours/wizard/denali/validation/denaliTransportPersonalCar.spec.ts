@@ -165,3 +165,16 @@ test("ui: adminCapacityApproval visible only when allowPersonalCar is checked on
   form.transport.transportMode = "shared_cars";
   assert.equal(ui.isVisible("denali_logistics", "transport.adminCapacityApproval", form), false);
 });
+
+test("ui: seatPreference visible and required only for train (registry contextual rules)", () => {
+  const form = mountainForm();
+  const ui = getDenaliUIFromForm(form);
+
+  form.transport.transportMode = "bus";
+  assert.equal(ui.isVisible("denali_logistics", "transport.seatPreference", form), false);
+  assert.equal(ui.isRequired("denali_logistics", "transport.seatPreference", form), false);
+
+  form.transport.transportMode = "train";
+  assert.equal(ui.isVisible("denali_logistics", "transport.seatPreference", form), true);
+  assert.equal(ui.isRequired("denali_logistics", "transport.seatPreference", form), true);
+});

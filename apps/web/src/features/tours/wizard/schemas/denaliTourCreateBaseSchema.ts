@@ -3,7 +3,7 @@
 // This file only re-exports the generated schema and test fixtures.
 /**
  * @deprecated Removed from submit / wizard / mapper runtime pipeline (Phase 5).
- * Use {@link ./denaliCanonicalTourSchema.ts} via {@link ../denali/validation/denaliSubmitValidation.ts}.
+ * Use {@link ./denaliCanonicalTourSchema.unified.ts} via {@link ../denali/validation/denaliSubmitValidation.ts}.
  *
  * Zod object shape is generated from {@link ../denali/registry/denaliFieldRegistryData.ts}.
  * Run `pnpm --filter web generate:denali-wizard` after registry edits — do not edit
@@ -99,7 +99,9 @@ export function buildDenaliTourCreateTestValues(): DenaliCreateTourWizardForm {
     basicInfo: {
       ...base.basicInfo,
       title: "صعود به قله دماوند - جبهه جنوبی",
+      tourType: "mountain_day",
       destinationId: DENALI_WIZARD_TEST_DESTINATION_ID,
+      startDateTime: "2026-06-01T08:00:00.000Z",
       capacityMax: 15,
       publishStatus: "draft",
     },

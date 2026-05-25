@@ -4,13 +4,19 @@ import { FormField, Select } from "@tour/ui";
 
 import { PEAK_EXPERIENCE_MIN_OPTIONS } from "@/features/tours/domain/peak-experience";
 
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DENALI_FIELD_HINTS } from "../denaliFieldHints";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 
 /** Peak auto-approval threshold — always shown on Denali create wizard (pricing step). */
 export function DenaliPeakExperienceField() {
-  const { canonicalModel, updateCanonical } = useDenaliCanonical();
-  const raw = canonicalModel.participants.minRequiredPeaks;
+  const { updateCanonical } = useDenaliCanonical();
+  const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
+    "participants",
+  );
+  const raw = participants.minRequiredPeaks;
   const selected =
     typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= 4
       ? String(raw)
@@ -28,7 +34,7 @@ export function DenaliPeakExperienceField() {
           const n = Number.parseInt(e.target.value, 10);
           updateCanonical({
             participants: {
-              ...canonicalModel.participants,
+              ...participants,
               minRequiredPeaks: Number.isFinite(n) && n > 0 ? n : undefined,
             },
           });

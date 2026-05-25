@@ -10,9 +10,12 @@ import test from "node:test";
 import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
+import { buildDenaliWizardUploadTourPayload } from "@/features/tours/wizard/denali/createDenaliWizardUploadTour";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
 import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import type { CreateTourDto } from "@/lib/services/tours.service";
+import type { DenaliTourKind } from "@repo/types";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 type LayerStatus = "pass" | "blocked" | "throws";
@@ -32,8 +35,15 @@ type Scenario = {
   expect: ScenarioExpectation;
 };
 
+/** Registry test fixture with explicit classification (no silent mapper default). */
 function mountainForm(): DenaliCreateTourWizardForm {
-  return buildDenaliTourCreateTestValues();
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+  return form;
+}
+
+function clearTourType(form: DenaliCreateTourWizardForm): void {
+  form.basicInfo.tourType = undefined as unknown as DenaliTourKind;
 }
 
 function evaluateWeb(form: DenaliCreateTourWizardForm): LayerStatus {
@@ -80,6 +90,41 @@ function evaluateApiFromMapper(form: DenaliCreateTourWizardForm): {
     return { status: "blocked", code: violation.code };
   }
   return { status: "pass" };
+}
+
+/** Gallery staging shell: {@link buildDenaliWizardUploadTourPayload} + denali_pilot workspace rules. */
+function evaluateStagingUploadApiContract(form: DenaliCreateTourWizardForm): {
+  status: LayerStatus;
+  code?: string;
+  dto?: CreateTourDto;
+} {
+  let dto: CreateTourDto;
+  try {
+    dto = buildDenaliWizardUploadTourPayload({
+      form,
+      ruleSet: denaliRuleSet,
+      workspaceFormProfile: "denali_pilot",
+    });
+  } catch {
+    return { status: "throws" };
+  }
+
+  const ws = getTourWorkspaceDefinition("denali_pilot");
+  if (!ws) {
+    return { status: "throws" };
+  }
+
+  const capViolation = ws.validation.checkCapacity(dto.capacity);
+  if (capViolation) {
+    return { status: "blocked", code: capViolation.code, dto };
+  }
+
+  const tripViolation = ws.validation.checkTripDetails(dto.tripDetails, dto.transportModes as never);
+  if (tripViolation != null) {
+    return { status: "blocked", code: tripViolation.code, dto };
+  }
+
+  return { status: "pass", dto };
 }
 
 function assertLayerParity(scenario: Scenario, actual: {
@@ -180,12 +225,26 @@ const SCENARIOS: Scenario[] = [
   },
   {
     id: "valid_mountain_payload",
-    mutate: () => {},
+    mutate: (f) => {
+      f.basicInfo.tourType = "mountain_day";
+    },
     expect: {
       web: "pass",
       projection: "pass",
       mapper: "pass",
       api: "pass",
+    },
+  },
+  {
+    id: "invalid_payload",
+    mutate: (f) => {
+      clearTourType(f);
+    },
+    expect: {
+      web: "blocked",
+      projection: "throws",
+      mapper: "throws",
+      api: "throws",
     },
   },
 ];
@@ -199,6 +258,61 @@ test("denali api parity: mapped DTO without overview.denaliTourKind fails API cr
   const ws = getTourWorkspaceDefinition("denali_pilot")!;
   const violation = ws.validation.checkTripDetails({ ...dto.tripDetails, overview } as any, dto.transportModes as any);
   assert.equal(violation?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_REQUIRED");
+});
+
+test("denali api parity: valid_mountain_payload — wizard submit and API mapper both pass", () => {
+  const form = mountainForm();
+  form.basicInfo.tourType = "mountain_day";
+
+  assert.equal(evaluateWeb(form), "pass", "wizard submit gate must pass with explicit tourType");
+  assert.equal(evaluateMapper(form), "pass", "mapper must pass with explicit tourType");
+  assert.equal(
+    evaluateApiFromMapper(form).status,
+    "pass",
+    "API invariants must pass after mapper with explicit tourType",
+  );
+
+  const dto = mapDenaliWizardToCreateTourPayload(form);
+  const overview = dto.tripDetails?.overview as { denaliTourKind?: string } | undefined;
+  assert.equal(overview?.denaliTourKind, "mountain_day");
+});
+
+test("denali api parity: invalid_payload — no tourType fails wizard and mapper (no silent default)", () => {
+  const form = mountainForm();
+  clearTourType(form);
+
+  assert.equal(evaluateWeb(form), "blocked", "wizard must block when tourType is omitted");
+  assert.equal(evaluateProjection(form), "throws", "projection must throw when tourType is omitted");
+  assert.equal(evaluateMapper(form), "throws", "mapper must throw when tourType is omitted");
+  assert.equal(
+    evaluateApiFromMapper(form).status,
+    "throws",
+    "API path must not run invariants on a DTO built without tourType",
+  );
+
+  const issues = getDenaliWizardSubmitIssues(form);
+  assert.ok(
+    issues.some((i) => i.path.join(".") === "basicInfo.tourType"),
+    "wizard issue must target basicInfo.tourType",
+  );
+  assert.throws(() => mapDenaliWizardToCreateTourPayload(form), /basicInfo\.tourType is required/);
+});
+
+test("denali api parity: staging upload payload passes denali_pilot API contract (checkTripDetails)", () => {
+  const form = mountainForm();
+  const staging = evaluateStagingUploadApiContract(form);
+  const submit = evaluateApiFromMapper(form);
+
+  assert.equal(
+    staging.status,
+    "pass",
+    staging.code ?? "staging payload failed workspace invariants",
+  );
+  assert.equal(submit.status, "pass", submit.code ?? "submit mapper failed workspace invariants");
+
+  const overview = staging.dto?.tripDetails?.overview as { denaliTourKind?: string } | undefined;
+  assert.equal(overview?.denaliTourKind, "mountain_day");
+  assert.equal(staging.dto?.lifecycle_status, "Draft");
 });
 
 test("denali api parity: valid mapper output includes denaliTourKind and API fitness slug", () => {

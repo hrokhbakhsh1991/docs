@@ -1,6 +1,6 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import type { FieldGroupId } from "@/features/tours/wizard/fieldGroups";
 import type { TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
 

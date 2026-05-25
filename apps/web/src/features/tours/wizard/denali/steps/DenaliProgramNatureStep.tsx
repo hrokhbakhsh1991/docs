@@ -7,9 +7,12 @@ import { Checkbox, FormField, Textarea } from "@tour/ui";
 
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { DenaliDailyItinerarySection } from "./DenaliDailyItinerarySection";
 
@@ -29,7 +32,8 @@ export function DenaliProgramNatureStep() {
     getValues,
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const { updateCanonical } = useDenaliCanonical();
+  const program = useDenaliCanonicalValue<DenaliCanonicalTourModel["program"]>("program");
   const form = getValues();
   const { isVisible, arePathsVisible } = useDenaliStepFieldRules(STEP);
 
@@ -51,8 +55,8 @@ export function DenaliProgramNatureStep() {
     });
   }, [themesQuery.data]);
   const selectedThemeIds = useMemo(
-    () => new Set(canonicalModel.program.themeIds ?? []),
-    [canonicalModel.program.themeIds],
+    () => new Set(program.themeIds ?? []),
+    [program.themeIds],
   );
 
   return (
@@ -77,12 +81,12 @@ export function DenaliProgramNatureStep() {
                 checked={selectedThemeIds.has(theme.id)}
                 onChange={(e) => {
                   const nextIds = toggleThemeId(
-                    canonicalModel.program.themeIds ?? [],
+                    program.themeIds ?? [],
                     theme.id,
                     e.target.checked,
                   );
                   updateCanonical({
-                    program: { ...canonicalModel.program, themeIds: nextIds },
+                    program: { ...program, themeIds: nextIds },
                   });
                 }}
                 data-testid={`denali-theme-select-${theme.slug}`}
@@ -95,9 +99,9 @@ export function DenaliProgramNatureStep() {
       <FormField label={t("program.shortDescription")} error={errors.programNature?.shortDescription?.message}>
         <Textarea
           rows={4}
-          value={canonicalModel.program.shortDescription}
+          value={program.shortDescription}
           onChange={(e) =>
-            updateCanonical({ program: { ...canonicalModel.program, shortDescription: e.target.value } })
+            updateCanonical({ program: { ...program, shortDescription: e.target.value } })
           }
         />
       </FormField>
@@ -105,10 +109,10 @@ export function DenaliProgramNatureStep() {
       <FormField label={t("program.longDescription")} error={errors.programNature?.longDescription?.message}>
         <Textarea
           rows={6}
-          value={canonicalModel.program.longDescription ?? ""}
+          value={program.longDescription ?? ""}
           onChange={(e) =>
             updateCanonical({
-              program: { ...canonicalModel.program, longDescription: e.target.value || undefined },
+              program: { ...program, longDescription: e.target.value || undefined },
             })
           }
         />
@@ -117,7 +121,7 @@ export function DenaliProgramNatureStep() {
       {showOutdoorProgram ? (
         <>
           <FormField
-            label={`${t("program.difficultyLevel")}: ${canonicalModel.program.difficultyLevel ?? 5}`}
+            label={`${t("program.difficultyLevel")}: ${program.difficultyLevel ?? 5}`}
             error={errors.programNature?.difficultyLevel?.message}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -127,11 +131,11 @@ export function DenaliProgramNatureStep() {
                 min="1"
                 max="10"
                 step="0.5"
-                value={canonicalModel.program.difficultyLevel ?? 5}
+                value={program.difficultyLevel ?? 5}
                 onChange={(e) =>
                   updateCanonical({
                     program: {
-                      ...canonicalModel.program,
+                      ...program,
                       difficultyLevel: parseFloat(e.target.value),
                     },
                   })
@@ -146,11 +150,11 @@ export function DenaliProgramNatureStep() {
           <FormField label={t("program.hikingHours")} error={errors.programNature?.hikingHoursApprox?.message}>
             <PersianNumberInput
               numericMode="integer"
-              value={canonicalModel.program.hikingHoursApprox ?? ""}
+              value={program.hikingHoursApprox ?? ""}
               onChange={(v) =>
                 updateCanonical({
                   program: {
-                    ...canonicalModel.program,
+                    ...program,
                     hikingHoursApprox: v === "" ? undefined : Number(v),
                   },
                 })
@@ -166,11 +170,11 @@ export function DenaliProgramNatureStep() {
             >
               <PersianNumberInput
                 numericMode="integer"
-                value={canonicalModel.program.hikingGoHours ?? ""}
+                value={program.hikingGoHours ?? ""}
                 onChange={(v) =>
                   updateCanonical({
                     program: {
-                      ...canonicalModel.program,
+                      ...program,
                       hikingGoHours: v === "" ? undefined : Number(v),
                     },
                   })
@@ -184,11 +188,11 @@ export function DenaliProgramNatureStep() {
             >
               <PersianNumberInput
                 numericMode="integer"
-                value={canonicalModel.program.hikingReturnHours ?? ""}
+                value={program.hikingReturnHours ?? ""}
                 onChange={(v) =>
                   updateCanonical({
                     program: {
-                      ...canonicalModel.program,
+                      ...program,
                       hikingReturnHours: v === "" ? undefined : Number(v),
                     },
                   })
@@ -208,11 +212,11 @@ export function DenaliProgramNatureStep() {
           <PersianNumberInput
             numericMode="integer"
             formatThousands
-            value={canonicalModel.program.altitudeMeasurement ?? ""}
+            value={program.altitudeMeasurement ?? ""}
             onChange={(v) =>
               updateCanonical({
                 program: {
-                  ...canonicalModel.program,
+                  ...program,
                   altitudeMeasurement: v === "" ? undefined : Number(v),
                 },
               })

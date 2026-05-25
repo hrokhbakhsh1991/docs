@@ -25,11 +25,16 @@ export type { DenaliFieldDefinition, DenaliZodFieldKind };
 export { DENALI_FIELD_DEFINITIONS };
 
 export type {
+  DenaliContextualRule,
   DenaliFieldKind,
   DenaliFieldWireProjection,
 } from "./DenaliFieldRegistry.types";
 
-import type { DenaliFieldKind, DenaliFieldWireProjection } from "./DenaliFieldRegistry.types";
+import type {
+  DenaliContextualRule,
+  DenaliFieldKind,
+  DenaliFieldWireProjection,
+} from "./DenaliFieldRegistry.types";
 import {
   DENALI_MATRIX_CELL_TAGS,
   type DenaliMatrixCell,
@@ -59,6 +64,8 @@ export interface DenaliFieldRegistryEntry {
   cellOverrides?: DenaliFieldDefinition["cellOverrides"];
   inRuleModel?: boolean;
   zodKind?: DenaliZodFieldKind;
+  contextualVisibility?: DenaliContextualRule;
+  contextualRequired?: DenaliContextualRule;
   /** Content-quality weight for the wizard completion progress indicator. */
   weight: number;
 }
@@ -77,6 +84,8 @@ function toRegistryEntry(def: DenaliFieldDefinition): DenaliFieldRegistryEntry {
     cellOverrides: def.cellOverrides,
     inRuleModel: def.inRuleModel,
     zodKind: def.zodKind,
+    contextualVisibility: def.contextualVisibility,
+    contextualRequired: def.contextualRequired,
     weight: def.weight ?? getDenaliFieldCompletionWeight(def.canonicalPath),
   };
 }

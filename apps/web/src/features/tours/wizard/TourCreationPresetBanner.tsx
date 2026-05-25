@@ -7,7 +7,7 @@ import { useFormContext } from "react-hook-form";
 
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";

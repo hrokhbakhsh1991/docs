@@ -6,16 +6,12 @@
  * Conditional required (transport dong, paid price, multi-day end) lives here — not in Zod.
  */
 
-import { denaliTourKindToIsMultiDay } from "@repo/types";
-import {
-  isDenaliSeatPreferenceRequired,
-  isDenaliTransportDongAmountRequired,
-} from "@repo/types/denali";
-
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
+import { evaluateDenaliContextualRequired } from "./denaliUIAdapter";
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
+import { DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS } from "./generated/denaliConditionallyRequiredPaths.generated";
 import type { DenaliRuleFieldStep, DenaliRuleModel } from "./denaliRuleModel.types";
 import { findDenaliRuleField, listDenaliRuleFieldPaths } from "./denaliRuleModel";
 import { getDenaliFormPathValue, setDenaliFormPathValue } from "../denaliFormPathUtils";
@@ -28,13 +24,8 @@ export type DenaliRuleValidationScope =
   | { mode: "submit" }
   | { mode: "step"; stepId: DenaliCreateWizardStepId };
 
-/** Contextual required paths (canonical; also declared on the rule model with `required: false`). */
-const CONDITIONALLY_REQUIRED_PATHS = [
-  "endDateTime",
-  "transport.dongAmount",
-  "pricing.basePricePerPerson",
-  "program.altitudeMeasurement",
-] as const;
+/** Contextual required paths (canonical; generated from registry `contextualRequired`). */
+const CONDITIONALLY_REQUIRED_PATHS = DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS;
 
 export type DenaliRuleRequiredIssue = {
   code: "custom";
@@ -133,22 +124,9 @@ export function isDenaliFieldRequired(
     return false;
   }
 
-  const formPath = mapDenaliCanonicalToFormPath(path);
-
-  if (formPath === "transport.dongAmount") {
-    return isDenaliTransportDongAmountRequired({
-      mode: form.transport.transportMode,
-      allowPersonalCar: form.transport.allowPersonalCar,
-    });
-  }
-  if (formPath === "transport.seatPreference") {
-    return isDenaliSeatPreferenceRequired(form.transport.transportMode);
-  }
-  if (formPath === "pricingPayment.basePricePerPerson") {
-    return form.pricingPayment.requiresPayment === true;
-  }
-  if (formPath === "basicInfo.endDateTime") {
-    return denaliTourKindToIsMultiDay(form.basicInfo.tourType);
+  const contextualRequired = evaluateDenaliContextualRequired(path, form);
+  if (contextualRequired != null) {
+    return contextualRequired;
   }
 
   const field = model == null ? undefined : findDenaliRuleField(model, path);

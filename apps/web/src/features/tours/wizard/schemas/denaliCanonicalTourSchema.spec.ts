@@ -4,7 +4,7 @@ import test from "node:test";
 import { denaliCanonicalFromForm } from "@repo/types/denali";
 
 import { buildDenaliTourCreateTestValues } from "./denaliTourCreateSchema";
-import { denaliCanonicalTourSchema } from "./denaliCanonicalTourSchema";
+import { denaliCanonicalTourSchema } from "./denaliCanonicalTourSchema.unified";
 
 test("denaliCanonicalTourSchema accepts unknown legacy keys (backward compatibility)", () => {
   const base = denaliCanonicalFromForm(buildDenaliTourCreateTestValues());

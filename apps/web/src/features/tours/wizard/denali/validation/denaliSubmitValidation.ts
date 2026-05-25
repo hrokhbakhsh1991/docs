@@ -1,7 +1,7 @@
 /**
  * Submit validation — canonical schema only.
  *
- * Runtime: form → {@link denaliFormToCanonical} → {@link denaliCanonicalTourSchema}.
+ * Runtime: form → {@link denaliFormToCanonical} → {@link ../schemas/denaliCanonicalTourSchema.unified}.
  */
 
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
@@ -11,7 +11,7 @@ import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliR
 import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { denaliCanonicalTourSchema } from "@/features/tours/wizard/schemas/denaliCanonicalTourSchema";
+import { denaliCanonicalTourSchema } from "@/features/tours/wizard/schemas/denaliCanonicalTourSchema.unified";
 
 /**
  * Canonical validation issues for a wizard form (no throw).
@@ -26,7 +26,7 @@ export function safeParseDenaliCanonicalFromWizardForm(
 }
 
 /**
- * Submit gate: map legacy form shell → canonical, validate with {@link denaliCanonicalTourSchema} only.
+ * Submit gate: map legacy form shell → canonical, validate with unified canonical schema only.
  * @throws {z.ZodError} when canonical validation fails.
  */
 export function parseDenaliCanonicalFromWizardForm(

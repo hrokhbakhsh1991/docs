@@ -1,6 +1,6 @@
 import { normalizeTourFormProfileInput } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import type { ParsedWizardDraft } from "@/features/tours/wizard/tourWizardDraftEnvelope";
 import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";

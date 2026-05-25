@@ -22,7 +22,7 @@ import {
   resolveDenaliRuleModelFromForm,
 } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { safeParseDenaliCanonicalFromWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
-import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/schemas/denaliCanonicalIssuePaths";
+import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/denali/rules/denaliCanonicalPathLookup";
 import {
   buildDenaliTourCreateDefaultValues,
   denaliTourCreateBaseSchema,
@@ -34,7 +34,7 @@ import { assertDenaliLegacySchemaAllowed } from "@/features/tours/wizard/schemas
 /** Legacy wizard form — shapes, enums, ISO format only (no product requiredness). */
 export const denaliTourCreateFormSchema = denaliTourCreateBaseSchema;
 
-/** @deprecated Use {@link denaliCanonicalTourSchema} on submit. Tests only. */
+/** @deprecated Use {@link ../schemas/denaliCanonicalTourSchema.unified} on submit. Tests only. */
 export const denaliTourCreateSchema = denaliTourCreateFormSchema;
 
 /** @deprecated Alias for tests. */

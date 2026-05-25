@@ -5,9 +5,12 @@ import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { FormField, Textarea } from "@tour/ui";
 
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { DenaliItineraryDayLocationField } from "../components/DenaliItineraryDayLocationField";
 import { DenaliItineraryDayPhotos } from "../components/DenaliItineraryDayPhotos";
 import {
@@ -57,33 +60,36 @@ export function DenaliDailyItinerarySection() {
     getValues,
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const { updateCanonical } = useDenaliCanonical();
+  const startDateTime = useDenaliCanonicalValue<string | undefined>("startDateTime");
+  const endDateTime = useDenaliCanonicalValue<string | undefined>("endDateTime");
+  const program = useDenaliCanonicalValue<DenaliCanonicalTourModel["program"]>("program");
   const form = getValues();
   const dayCount = computeDenaliTourDayCountFromKind(
     form.basicInfo.tourType,
-    canonicalModel.startDateTime,
-    canonicalModel.endDateTime,
+    startDateTime ?? "",
+    endDateTime,
   );
   const rows = useMemo(
-    () => syncDenaliItineraryRows(canonicalModel.program.itinerary, dayCount),
-    [canonicalModel.program.itinerary, dayCount],
+    () => syncDenaliItineraryRows(program.itinerary, dayCount),
+    [program.itinerary, dayCount],
   );
 
   const [draftRows, setDraftRows] = useState<DenaliItineraryDayRow[]>(rows);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const canonicalProgramRef = useRef(canonicalModel.program);
+  const canonicalProgramRef = useRef(program);
 
-  canonicalProgramRef.current = canonicalModel.program;
+  canonicalProgramRef.current = program;
 
   useEffect(() => {
     setDraftRows(rows);
   }, [rows]);
 
   useLayoutEffect(() => {
-    if ((canonicalModel.program.itinerary?.length ?? 0) !== rows.length) {
-      updateCanonical({ program: { ...canonicalModel.program, itinerary: rows } });
+    if ((program.itinerary?.length ?? 0) !== rows.length) {
+      updateCanonical({ program: { ...program, itinerary: rows } });
     }
-  }, [rows.length, canonicalModel.program.itinerary?.length]);
+  }, [rows.length, program.itinerary?.length, program, updateCanonical]);
 
   const scheduleCommit = useCallback(
     (nextRows: DenaliItineraryDayRow[]) => {

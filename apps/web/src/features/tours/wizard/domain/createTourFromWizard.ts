@@ -1,7 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 import { z } from "zod";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";

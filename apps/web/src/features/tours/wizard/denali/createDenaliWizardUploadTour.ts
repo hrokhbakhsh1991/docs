@@ -1,34 +1,51 @@
 import type { TourFormProfile } from "@repo/types";
 
-import { createTour, type CreateTourDto } from "@/lib/services/tours.service";
+import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
+import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
+import type { CreateTourDto } from "@/lib/services/tours.service";
+import { createTour } from "@/lib/services/tours.service";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-const STAGING_TITLE = "پیش‌نویس — در حال تکمیل ویزارد";
+import type { DenaliRuleSet } from "./rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "./validation/denaliRuleAccess";
+
+/** Matches Nest `CreateTourDto` title constraints (`apps/api/.../create-tour.dto.ts`). */
+const CREATE_TOUR_TITLE_MIN_LENGTH = 10;
+
+/** Used only when the mapped title is still below the API minimum (early gallery upload). */
+const STAGING_TITLE_FALLBACK = "پیش‌نویس — در حال تکمیل ویزارد";
+
+/**
+ * Same pipeline as {@link createTourFromWorkspaceWizardForm} (normalize → map → profile strip),
+ * without submit validation. Upload shells are always draft tours.
+ */
+export function buildDenaliWizardUploadTourPayload(input: {
+  form: DenaliCreateTourWizardForm;
+  ruleSet: DenaliRuleSet;
+  workspaceFormProfile: TourFormProfile;
+}): CreateTourDto {
+  const normalized = prepareDenaliWizardFormForSubmit(input.form, input.ruleSet);
+  let dto = mapDenaliWizardToCreateTourPayload(normalized);
+  dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);
+
+  const title = dto.title.trim();
+  return {
+    ...dto,
+    lifecycle_status: "Draft",
+    ...(title.length < CREATE_TOUR_TITLE_MIN_LENGTH ? { title: STAGING_TITLE_FALLBACK } : {}),
+  };
+}
 
 /**
  * Creates a draft tour shell so gallery uploads can use `POST /api/tours/:tourId/photos`
  * before the wizard submit payload is built.
  */
-export async function createDenaliWizardUploadTour(_input: {
+export async function createDenaliWizardUploadTour(input: {
+  form: DenaliCreateTourWizardForm;
+  ruleSet: DenaliRuleSet;
   workspaceFormProfile: TourFormProfile;
 }): Promise<string> {
-  const dto: CreateTourDto = {
-    title: STAGING_TITLE,
-    capacity: 1,
-    lifecycle_status: "Draft",
-    transportModes: [],
-    price: 0,
-    requiresPayment: false,
-    tripDetails: {
-      overview: {
-        shortIntro: STAGING_TITLE,
-      },
-      logistics: {
-        departureDate: new Date().toISOString().slice(0, 10),
-        departureMeetingTime: "08:00",
-        groupSizeMax: 1,
-      },
-    },
-  };
+  const dto = buildDenaliWizardUploadTourPayload(input);
 
   const created = await createTour(dto, {
     idempotencyKey:

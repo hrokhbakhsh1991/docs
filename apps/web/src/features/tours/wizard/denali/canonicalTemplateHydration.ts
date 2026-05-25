@@ -6,7 +6,7 @@ import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProf
 import {
   canonicalDurationToBasicsDuration,
   denaliCanonicalToForm,
-  denaliFormToCanonical,
+  safeDenaliFormToCanonical,
   mergeDenaliCanonicalPartial,
   type DenaliCanonicalPartial,
 } from "./denaliCanonicalFormAdapter";
@@ -44,7 +44,7 @@ export function tryHydrateCanonicalTemplate(
     return null;
   }
 
-  const baseCanonical = denaliFormToCanonical(defaultValues);
+  const baseCanonical = safeDenaliFormToCanonical(defaultValues);
   const mergedCanonical = mergeDenaliCanonicalPartial(baseCanonical, patch);
   const priorBasics = readDenaliCanonicalBasics(defaultValues.basicInfo.tourType);
   const basics = {

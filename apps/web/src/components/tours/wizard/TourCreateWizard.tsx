@@ -5,8 +5,6 @@ import { useMemo } from "react";
 import { Card, CardBody, LoadingState } from "@tour/ui";
 
 import { DenaliCreateTourWizard } from "./DenaliCreateTourWizard";
-import { ClassicTourCreateWizardRoot } from "./legacy/ClassicTourCreateWizard";
-import { isDenaliPilotFormProfile } from "@/features/tours/wizard/isDenaliWizardContext";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import {
   DataLegacyError,
@@ -16,8 +14,8 @@ import { validateWorkspaceTemplateAtWizardLoad } from "@/features/tours/wizard/v
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
 /**
- * Modern tour-create orchestrator: resolves workspace template profile, validates storage,
- * then mounts Denali (6-tab) or classic (9-step) rail. Do not import legacy steps directly.
+ * Tour-create orchestrator: resolves workspace template profile, validates storage,
+ * then mounts the Denali wizard rail.
  */
 export function TourCreateWizard() {
   const t = useTranslations("tours.new");
@@ -109,11 +107,5 @@ export function TourCreateWizard() {
     );
   }
 
-  const profile = resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data);
-
-  if (isDenaliPilotFormProfile(profile)) {
-    return <DenaliCreateTourWizard />;
-  }
-
-  return <ClassicTourCreateWizardRoot />;
+  return <DenaliCreateTourWizard />;
 }

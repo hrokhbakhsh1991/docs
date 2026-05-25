@@ -5,7 +5,12 @@
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliMatrixCell, DenaliMatrixTag } from "./denaliRuleMatrixRecipes";
-import type { DenaliFieldKind, DenaliFieldWireProjection } from "./DenaliFieldRegistry.types";
+import type {
+  DenaliContextualRule,
+  DenaliFieldKind,
+  DenaliFieldWireProjection,
+  DenaliStructuralInvariant,
+} from "./DenaliFieldRegistry.types";
 
 export type DenaliZodFieldKind =
   | "title"
@@ -49,6 +54,12 @@ export interface DenaliFieldDefinition {
   notes?: string;
   /** Override default content-quality weight (see denaliFieldCompletionWeights). */
   weight?: number;
+  /** Shown only when this rule passes (see denaliUIAdapter.ts). */
+  contextualVisibility?: DenaliContextualRule;
+  /** Required only when this rule passes (after visibility). */
+  contextualRequired?: DenaliContextualRule;
+  /** Ghost-state normalize (see denaliInvariantEngine.ts). */
+  structuralInvariant?: DenaliStructuralInvariant;
 }
 
 export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
@@ -90,6 +101,17 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     ruleDefaults: { required: false, hidden: false },
   },
   {
+    canonicalPath: "duration",
+    stepId: "denali_basic",
+    rhfPath: "basicInfo.tourType",
+    zodPath: "basicInfo.tourType",
+    zodKind: "tourType",
+    tags: ["core"] as const,
+    ruleDefaults: { required: true, hidden: false },
+    inRuleModel: false,
+    notes: "Canonical submit schema duration; maps to tourType rail control for issue paths.",
+  },
+  {
     canonicalPath: "destinationId",
     stepId: "denali_basic",
     rhfPath: "basicInfo.destinationId",
@@ -115,6 +137,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "isoDateTimeOptional",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: true },
+    contextualRequired: { kind: "multiDayEndDateTimeRequired" },
 
   cellOverrides: {
     "desert:multi_day": { required: true, hidden: false },
@@ -194,6 +217,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "stringOptional",
     tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "whenTruthy", watchCanonical: "requiresLocalGuide" },
   },
   {
     canonicalPath: "requiresManualAdminApproval",
@@ -248,6 +272,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "difficultyLevel",
     tags: ["outdoor_program", "event_program_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
+    structuralInvariant: { kind: "defaultWhenVisible", value: 5 },
     cellOverrides: {
       "event:single_day": { required: false, hidden: true },
     },
@@ -296,6 +321,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalInt",
     tags: ["altitude_mountain", "altitude_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     cellOverrides: {
       "desert:multi_day": { required: false, hidden: true },
       "desert:single_day": { required: false, hidden: true },
@@ -312,12 +338,28 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "itinerary",
     tags: ["itinerary_hidden", "itinerary_visible"] as const,
     ruleDefaults: { required: false, hidden: true },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
 
   cellOverrides: {
     "desert:multi_day": { required: true, hidden: false },
     "mountain:multi_day": { required: true, hidden: false },
     "nature:multi_day": { required: true, hidden: false },
   }
+  },
+  {
+    canonicalPath: "gatheringPoint",
+    stepId: "denali_logistics",
+    rhfPath: "basicInfo.gatheringPoint",
+    zodPath: "basicInfo.gatheringPoint",
+    zodKind: "locationData",
+    tags: ["outdoor_logistics_location", "event_logistics_hidden"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    cellOverrides: {
+      "event:single_day": { required: false, hidden: true },
+    },
+    inRuleModel: false,
+    wire: { kind: "tripDetails.overview", field: "gatheringPoint" },
+    notes: "Canonical 5-zone gathering point (singular); nested coords use prefix lookup.",
   },
   {
     canonicalPath: "gatheringPoints",
@@ -412,6 +454,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalInt",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "transportOrganizedCostVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     wire: { kind: "tripDetails", field: "transport" },
   },
   {
@@ -422,6 +466,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "booleanOptional",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "transportPersonalCarOptionVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     wire: [{ kind: "tripDetails", field: "transport" }, { kind: "derived", description: "May set logistics.privateCarMode." }],
   },
   {
@@ -432,7 +478,33 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalInt",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "transportDongVisible" },
+    contextualRequired: { kind: "transportDongVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     wire: [{ kind: "tripDetails.logistics", field: "fuelShareToman" }, { kind: "tripDetails", field: "transport" }],
+  },
+  {
+    canonicalPath: "transport.transportNotes",
+    stepId: "denali_logistics",
+    rhfPath: "transport.transportNotes",
+    zodPath: "transport.transportNotes",
+    zodKind: "stringOptional",
+    tags: ["core"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    wire: { kind: "tripDetails.logistics", field: "transportationNotes" },
+  },
+  {
+    canonicalPath: "transport.seatPreference",
+    stepId: "denali_logistics",
+    rhfPath: "transport.seatPreference",
+    zodPath: "transport.seatPreference",
+    zodKind: "stringOptional",
+    tags: ["core"] as const,
+    ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    contextualVisibility: { kind: "transportTrainSeatVisible" },
+    contextualRequired: { kind: "transportTrainSeatVisible" },
+    wire: { kind: "tripDetails", field: "transport" },
   },
   {
     canonicalPath: "transport.adminCapacityApproval",
@@ -442,6 +514,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "adminCapacityApproval",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "transportAdminCapacityVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
     wire: { kind: "tripDetails", field: "transport" },
     notes: "Separate capacity calculation when personal car is permitted on organized transport.",
   },
@@ -474,6 +548,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "optionalInt",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    contextualVisibility: { kind: "whenTruthy", watchCanonical: "pricing.requiresPayment" },
+    contextualRequired: { kind: "whenTruthy", watchCanonical: "pricing.requiresPayment" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
   },
   {
     canonicalPath: "pricing.paymentMode",
@@ -589,6 +666,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "booleanOptional",
     tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
     ruleDefaults: { required: true, hidden: false },
+    structuralInvariant: { kind: "enforceValueWhenCategory", category: "mountain", value: true },
 
   cellOverrides: {
     "desert:multi_day": { required: false, hidden: true },

@@ -1,7 +1,7 @@
 /**
  * Denali wizard form entrypoint (RHF state shape + defaults).
  *
- * **Submit / resolver:** {@link ./denaliCanonicalTourSchema.ts} via
+ * **Submit / resolver:** {@link ./denaliCanonicalTourSchema.unified.ts} via
  * {@link ../denali/validation/denaliSubmitValidation.ts} and {@link ./denaliWizardCanonicalResolver.ts}.
  *
  * **Deprecated:** {@link ./denaliTourCreateBaseSchema.ts} — unit tests only.

@@ -2,10 +2,12 @@
 
 import { useTranslations } from "next-intl";
 
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
   if (value == null || (typeof value === "string" && !value.trim())) return null;
@@ -20,7 +22,9 @@ function ReviewRow({ label, value }: { label: string; value: string | undefined 
 /** Read-only participant summary on review (placement v1 — no input on review). */
 export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTourWizardForm }) {
   const t = useTranslations("tours.denali");
-  const { canonicalModel } = useDenaliCanonical();
+  const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
+    "participants",
+  );
   const { isVisible } = useDenaliStepFieldRules("review");
 
   const showMinimumAge = isVisible("participants.minimumAge", form);
@@ -34,11 +38,11 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
   }
 
   const fitnessLabel =
-    canonicalModel.participants.fitnessLevel === "low"
+    participants.fitnessLevel === "low"
       ? t("participants.fitnessLow")
-      : canonicalModel.participants.fitnessLevel === "medium"
+      : participants.fitnessLevel === "medium"
         ? t("participants.fitnessMedium")
-        : canonicalModel.participants.fitnessLevel === "high"
+        : participants.fitnessLevel === "high"
           ? t("participants.fitnessHigh")
           : undefined;
 
@@ -60,8 +64,8 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
           <ReviewRow
             label={t("participants.minimumAge")}
             value={
-              canonicalModel.participants.minimumAge != null
-                ? String(canonicalModel.participants.minimumAge)
+              participants.minimumAge != null
+                ? String(participants.minimumAge)
                 : undefined
             }
           />
@@ -70,8 +74,8 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
           <ReviewRow
             label={t("participants.maximumAge")}
             value={
-              canonicalModel.participants.maximumAge != null
-                ? String(canonicalModel.participants.maximumAge)
+              participants.maximumAge != null
+                ? String(participants.maximumAge)
                 : undefined
             }
           />
@@ -83,7 +87,7 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
           <ReviewRow
             label={t("participants.nationalIdRequired")}
             value={
-              canonicalModel.participants.nationalIdRequired !== false
+              participants.nationalIdRequired !== false
                 ? t("review.yes")
                 : t("review.no")
             }
@@ -93,7 +97,7 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
           <ReviewRow
             label={t("participants.sportsInsurance")}
             value={
-              canonicalModel.participants.sportsInsuranceRequired
+              participants.sportsInsuranceRequired
                 ? t("review.yes")
                 : t("review.no")
             }

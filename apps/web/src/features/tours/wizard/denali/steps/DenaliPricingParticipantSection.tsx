@@ -7,9 +7,12 @@ import { Checkbox, FormField, Select, Textarea } from "@tour/ui";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
+import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+
 import { DenaliPeakExperienceField } from "../components/DenaliPeakExperienceField";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
 const STEP = "denali_pricing" as const;
@@ -24,7 +27,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
   const {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
-  const { canonicalModel, updateCanonical } = useDenaliCanonical();
+  const { updateCanonical } = useDenaliCanonical();
+  const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
+    "participants",
+  );
+  const policies = useDenaliCanonicalValue<DenaliCanonicalTourModel["policies"]>("policies");
   const { isVisible } = useDenaliStepFieldRules(STEP);
 
   const showMinimumAge = isVisible(PATH_MINIMUM_AGE, form);
@@ -65,11 +72,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
                 <PersianNumberInput
                   data-testid="denali-pricing-minimum-age"
                   numericMode="integer"
-                  value={canonicalModel.participants.minimumAge ?? ""}
+                  value={participants.minimumAge ?? ""}
                   onChange={(v) =>
                     updateCanonical({
                       participants: {
-                        ...canonicalModel.participants,
+                        ...participants,
                         minimumAge: v === "" ? undefined : Number(v),
                       },
                     })
@@ -86,11 +93,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
                 <PersianNumberInput
                   data-testid="denali-pricing-maximum-age"
                   numericMode="integer"
-                  value={canonicalModel.participants.maximumAge ?? ""}
+                  value={participants.maximumAge ?? ""}
                   onChange={(v) =>
                     updateCanonical({
                       participants: {
-                        ...canonicalModel.participants,
+                        ...participants,
                         maximumAge: v === "" ? undefined : Number(v),
                       },
                     })
@@ -107,11 +114,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             >
               <Select
                 data-testid="denali-pricing-fitness-level"
-                value={canonicalModel.participants.fitnessLevel ?? ""}
+                value={participants.fitnessLevel ?? ""}
                 onChange={(e) =>
                   updateCanonical({
                     participants: {
-                      ...canonicalModel.participants,
+                      ...participants,
                       fitnessLevel: (e.target.value as "low" | "medium" | "high") || undefined,
                     },
                   })
@@ -135,11 +142,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             <Checkbox
               data-testid="denali-pricing-national-id"
               label={t("participants.nationalIdRequired")}
-              checked={canonicalModel.participants.nationalIdRequired !== false}
+              checked={participants.nationalIdRequired !== false}
               onChange={(e) =>
                 updateCanonical({
                   participants: {
-                    ...canonicalModel.participants,
+                    ...participants,
                     nationalIdRequired: e.target.checked,
                   },
                 })
@@ -151,11 +158,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             <Checkbox
               data-testid="denali-pricing-sports-insurance"
               label={t("participants.sportsInsurance")}
-              checked={Boolean(canonicalModel.participants.sportsInsuranceRequired)}
+              checked={Boolean(participants.sportsInsuranceRequired)}
               onChange={(e) =>
                 updateCanonical({
                   participants: {
-                    ...canonicalModel.participants,
+                    ...participants,
                     sportsInsuranceRequired: e.target.checked,
                   },
                 })
@@ -171,11 +178,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
               rows={3}
               placeholder={t("participants.fitnessPrerequisitePlaceholder")}
               data-testid="denali-pricing-fitness-prerequisite"
-              value={canonicalModel.participants.fitnessPrerequisiteText ?? ""}
+              value={participants.fitnessPrerequisiteText ?? ""}
               onChange={(e) =>
                 updateCanonical({
                   participants: {
-                    ...canonicalModel.participants,
+                    ...participants,
                     fitnessPrerequisiteText: e.target.value || undefined,
                   },
                 })
@@ -195,11 +202,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
               rows={4}
               placeholder={t("policies.notesPlaceholder")}
               data-testid="denali-pricing-policies-notes"
-              value={canonicalModel.policies.policiesText ?? ""}
+              value={policies.policiesText ?? ""}
               onChange={(e) =>
                 updateCanonical({
                   policies: {
-                    ...canonicalModel.policies,
+                    ...policies,
                     policiesText: e.target.value || undefined,
                   },
                 })
@@ -213,11 +220,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             >
               <PersianNumberInput
                 numericMode="integer"
-                value={canonicalModel.policies.cancellationDeadlineHours ?? ""}
+                value={policies.cancellationDeadlineHours ?? ""}
                 onChange={(v) =>
                   updateCanonical({
                     policies: {
-                      ...canonicalModel.policies,
+                      ...policies,
                       cancellationDeadlineHours: v === "" ? undefined : Number(v),
                     },
                   })
@@ -231,11 +238,11 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             >
               <PersianNumberInput
                 numericMode="integer"
-                value={canonicalModel.policies.cancellationPenaltyPercentage ?? ""}
+                value={policies.cancellationPenaltyPercentage ?? ""}
                 onChange={(v) =>
                   updateCanonical({
                     policies: {
-                      ...canonicalModel.policies,
+                      ...policies,
                       cancellationPenaltyPercentage: v === "" ? undefined : Number(v),
                     },
                   })

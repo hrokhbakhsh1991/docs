@@ -15,7 +15,7 @@ import {
   labelExperienceLevel,
   labelFitnessLevel,
   labelGenderRestriction,
-} from "@/components/tours/wizard/legacy/participationLabels";
+} from "@/features/tours/wizard/participationLabels";
 import styles from "./tour-detail-client.module.css";
 
 type Props = {

@@ -28,7 +28,7 @@ import {
   applyDenaliInvariantState,
   basicsDurationToCanonicalDuration,
   denaliCanonicalToForm,
-  denaliFormToCanonical,
+  safeDenaliFormToCanonical,
   mergeDenaliCanonicalPartial,
   type DenaliCanonicalPartial,
 } from "./denaliCanonicalFormAdapter";
@@ -71,7 +71,10 @@ export type DenaliCanonicalContextValue = {
   clearPhotoPersistenceWarning: () => void;
 };
 
-const DenaliCanonicalContext = createContext<DenaliCanonicalContextValue | null>(null);
+/** Public wizard UI context — no direct `canonicalModel` (use `useDenaliCanonicalValue`). */
+export type DenaliCanonicalPublicContext = Omit<DenaliCanonicalContextValue, "canonicalModel">;
+
+export const DenaliCanonicalContext = createContext<DenaliCanonicalContextValue | null>(null);
 
 function basicsSelectionFromTourType(
   tourType: DenaliCreateTourWizardForm["basicInfo"]["tourType"],
@@ -119,9 +122,11 @@ export function DenaliCanonicalProvider({
     name: "pricingPayment.requiresPayment",
   });
 
-  const [canonicalModel, setCanonicalModel] = useState<DenaliCanonicalTourModel>(() =>
-    denaliFormToCanonical(getValues()),
-  );
+  const [canonicalModel, setCanonicalModel] = useState<DenaliCanonicalTourModel>(() => {
+    const form = getValues();
+    const next = safeDenaliFormToCanonical(form);
+    return { ...next, title: form.basicInfo.title?.trim() ?? "" };
+  });
   const [uploadTourIdState, setUploadTourIdState] = useState<string | null>(
     uploadTourIdProp?.trim() || null,
   );
@@ -135,14 +140,22 @@ export function DenaliCanonicalProvider({
     setUploadTourIdState(next);
   }, [uploadTourIdProp]);
 
-  useEffect(() => {
+  const syncCanonicalFromForm = useCallback(() => {
     const form = getValues();
-    const next = denaliFormToCanonical(form);
+    const next = safeDenaliFormToCanonical(form);
     setCanonicalModel({
       ...next,
       title: form.basicInfo.title?.trim() ?? "",
     });
-  }, [syncToken, getValues]);
+  }, [getValues]);
+
+  useEffect(() => {
+    syncCanonicalFromForm();
+  }, [syncToken, syncCanonicalFromForm]);
+
+  useEffect(() => {
+    syncCanonicalFromForm();
+  }, [tourTypeWatch, syncCanonicalFromForm]);
 
   const basicsSelection = useMemo(
     () => basicsSelectionFromTourType(tourTypeWatch ?? getValues().basicInfo.tourType),
@@ -167,7 +180,7 @@ export function DenaliCanonicalProvider({
 
       applyCanonicalMvpToForm(next, currentForm, { basics, setValue, ruleSet });
 
-      setCanonicalModel(denaliFormToCanonical(safeForm));
+      setCanonicalModel(safeDenaliFormToCanonical(safeForm));
     },
     [getValues, ruleSet, setValue],
   );
@@ -204,7 +217,11 @@ export function DenaliCanonicalProvider({
     if (!workspaceFormProfile) {
       throw new Error("DenaliCanonicalProvider: workspaceFormProfile is required for gallery upload");
     }
-    const promise = createDenaliWizardUploadTour({ workspaceFormProfile }).then((id) => {
+    const promise = createDenaliWizardUploadTour({
+      form: getValues(),
+      ruleSet,
+      workspaceFormProfile,
+    }).then((id) => {
       uploadTourIdRef.current = id;
       setUploadTourIdState(id);
       return id;
@@ -215,7 +232,7 @@ export function DenaliCanonicalProvider({
     } finally {
       ensureUploadPromiseRef.current = null;
     }
-  }, [workspaceFormProfile]);
+  }, [getValues, ruleSet, workspaceFormProfile]);
 
   const checkPhotoPersistence = useCallback(
     (form?: DenaliCreateTourWizardForm): DenaliPhotoPersistenceCheck => {
@@ -270,11 +287,17 @@ export function DenaliCanonicalProvider({
   return <DenaliCanonicalContext.Provider value={value}>{children}</DenaliCanonicalContext.Provider>;
 }
 
-export function useDenaliCanonicalOptional(): DenaliCanonicalContextValue | null {
-  return useContext(DenaliCanonicalContext);
+function toPublicContext(ctx: DenaliCanonicalContextValue): DenaliCanonicalPublicContext {
+  const { canonicalModel: _canonicalModel, ...publicCtx } = ctx;
+  return publicCtx;
 }
 
-export function useDenaliCanonical(): DenaliCanonicalContextValue {
+export function useDenaliCanonicalOptional(): DenaliCanonicalPublicContext | null {
+  const ctx = useContext(DenaliCanonicalContext);
+  return ctx == null ? null : toPublicContext(ctx);
+}
+
+export function useDenaliCanonical(): DenaliCanonicalPublicContext {
   const ctx = useDenaliCanonicalOptional();
   if (ctx == null) {
     throw new Error("useDenaliCanonical must be used within DenaliCanonicalProvider");

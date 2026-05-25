@@ -56,3 +56,42 @@ test("denaliCanonicalFromForm maps event_cinema without outdoor legacy fields", 
   assert.equal(canonical.duration, "single");
   assert.equal(canonical.pricing.basePricePerPerson, undefined);
 });
+
+test("denaliCanonicalFromForm throws when tourType is missing", () => {
+  assert.throws(
+    () =>
+      denaliCanonicalFromForm({
+        basicInfo: {
+          title: "Day hike",
+          destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          startDateTime: "2026-06-01T08:00:00.000Z",
+        },
+        programNature: { shortDescription: "Short" },
+        transport: { transportMode: "none" },
+        pricingPayment: { requiresPayment: false },
+        participantRequirements: {},
+        policies: {},
+      }),
+    /basicInfo\.tourType is required/,
+  );
+});
+
+test("denaliCanonicalFromForm throws when tourType is invalid", () => {
+  assert.throws(
+    () =>
+      denaliCanonicalFromForm({
+        basicInfo: {
+          title: "Day hike",
+          tourType: "not_a_real_kind" as "mountain_day",
+          destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          startDateTime: "2026-06-01T08:00:00.000Z",
+        },
+        programNature: { shortDescription: "Short" },
+        transport: { transportMode: "none" },
+        pricingPayment: { requiresPayment: false },
+        participantRequirements: {},
+        policies: {},
+      }),
+    /basicInfo\.tourType is required/,
+  );
+});

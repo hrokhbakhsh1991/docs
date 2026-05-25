@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Controller, useFormContext, type FieldPathByValue } from "react-hook-form";
 import { FormField, Textarea } from "@tour/ui";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 
 /** Form paths whose Zod-inferred value is `string[] | undefined`. */
 export type NewlineArrayFieldPath = FieldPathByValue<

@@ -18,8 +18,9 @@ import { splitGearByRequired } from "../denaliGearSelection";
 import { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
 import { TourPublishStatusField } from "@/components/tours/TourPublishStatusField";
 import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
-import { denaliLocationAddressText } from "@repo/types/denali";
+import { denaliLocationAddressText, type DenaliCanonicalTourModel } from "@repo/types/denali";
 
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
 import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
 import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
@@ -132,7 +133,37 @@ export function DenaliReviewStep() {
     "draft";
   const formForUi = useDenaliWizardFormSnapshot();
 
-  const { canonicalModel, basicsSelection, ruleSet } = useDenaliCanonical();
+  const { basicsSelection, ruleSet } = useDenaliCanonical();
+  const title = useDenaliCanonicalValue<string>("title");
+  const destinationId = useDenaliCanonicalValue<string | undefined>("destinationId");
+  const capacityMax = useDenaliCanonicalValue<number | undefined>("capacityMax");
+  const capacityMin = useDenaliCanonicalValue<number | undefined>("capacityMin");
+  const leaderUserIds = useDenaliCanonicalValue<string[] | undefined>("leaderUserIds");
+  const requiresLocalGuide = useDenaliCanonicalValue<boolean | undefined>("requiresLocalGuide");
+  const localGuideName = useDenaliCanonicalValue<string | undefined>("localGuideName");
+  const startPointLocationText = useDenaliCanonicalValue<string | undefined>(
+    "startPointLocationText",
+  );
+  const socialMediaLink = useDenaliCanonicalValue<string | undefined>("socialMediaLink");
+  const startDateTime = useDenaliCanonicalValue<string | undefined>("startDateTime");
+  const endDateTime = useDenaliCanonicalValue<string | undefined>("endDateTime");
+  const approximateReturnTime = useDenaliCanonicalValue<string | undefined>(
+    "approximateReturnTime",
+  );
+  const requiresManualAdminApproval = useDenaliCanonicalValue<boolean | undefined>(
+    "requiresManualAdminApproval",
+  );
+  const gatheringPoints = useDenaliCanonicalValue<
+    DenaliCanonicalTourModel["gatheringPoints"]
+  >("gatheringPoints");
+  const startPoint = useDenaliCanonicalValue<DenaliCanonicalTourModel["startPoint"]>("startPoint");
+  const program = useDenaliCanonicalValue<DenaliCanonicalTourModel["program"]>("program");
+  const transport = useDenaliCanonicalValue<DenaliCanonicalTourModel["transport"]>("transport");
+  const pricing = useDenaliCanonicalValue<DenaliCanonicalTourModel["pricing"]>("pricing");
+  const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
+    "participants",
+  );
+  const policies = useDenaliCanonicalValue<DenaliCanonicalTourModel["policies"]>("policies");
   const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
     useDenaliStepFieldRules("review");
 
@@ -177,7 +208,7 @@ export function DenaliReviewStep() {
   const themesQuery = useSettingsTourThemes();
   const themeLabels = useMemo(() => {
     const seen = new Set<string>();
-    const ids = (canonicalModel.program.themeIds ?? []).filter((id) => {
+    const ids = (program.themeIds ?? []).filter((id) => {
       const trimmed = id?.trim();
       if (!trimmed || seen.has(trimmed)) return false;
       seen.add(trimmed);
@@ -188,11 +219,11 @@ export function DenaliReviewStep() {
       .map((id) => themesQuery.data?.find((row) => row.id === id)?.name ?? id)
       .filter(Boolean);
     return names.length > 0 ? names.join("، ") : undefined;
-  }, [canonicalModel.program.themeIds, themesQuery.data]);
+  }, [program.themeIds, themesQuery.data]);
 
   const destinationsQuery = useTourDestinations();
   const destinationLabel = useMemo(() => {
-    const id = canonicalModel.destinationId?.trim();
+    const id = destinationId?.trim();
     if (!id) return undefined;
     for (const group of destinationsQuery.groupedRegions) {
       const hit = group.items.find((item) => item.id === id);
@@ -201,7 +232,7 @@ export function DenaliReviewStep() {
       }
     }
     return id;
-  }, [canonicalModel.destinationId, destinationsQuery.groupedRegions]);
+  }, [destinationId, destinationsQuery.groupedRegions]);
 
   const categoryLabel = basicsSelection ? t(`basic.categories.${basicsSelection.category}`) : "";
   const durationLabel = basicsSelection ? t(`basic.durations.${basicsSelection.duration}`) : "";
@@ -211,19 +242,19 @@ export function DenaliReviewStep() {
       : undefined;
 
   const capacitySummary = useMemo(() => {
-    const max = canonicalModel.capacityMax;
-    const min = canonicalModel.capacityMin;
+    const max = capacityMax;
+    const min = capacityMin;
     if (max == null && min == null) return undefined;
     if (min != null && max != null) return `${min} – ${max}`;
     if (max != null) return String(max);
     return min != null ? String(min) : undefined;
-  }, [canonicalModel.capacityMax, canonicalModel.capacityMin]);
+  }, [capacityMax, capacityMin]);
 
   const crewMembersQuery = useWorkspaceTourCrewMembers();
 
   const workspaceLeaderLabels = useMemo(() => {
     const seen = new Set<string>();
-    const ids = (canonicalModel.leaderUserIds ?? []).filter((id) => {
+    const ids = (leaderUserIds ?? []).filter((id) => {
       const trimmed = id?.trim();
       if (!trimmed || seen.has(trimmed)) return false;
       seen.add(trimmed);
@@ -237,28 +268,28 @@ export function DenaliReviewStep() {
       })
       .filter(Boolean)
       .join("، ");
-  }, [canonicalModel.leaderUserIds, crewMembersQuery.data]);
+  }, [leaderUserIds, crewMembersQuery.data]);
 
   const { requiredGearNames, optionalGearNames } = useMemo(() => {
     const nameForId = (id: string) =>
       equipmentQuery.data?.find((eq) => eq.id === id)?.name ?? id;
-    const { required, optional } = splitGearByRequired(canonicalModel.participants.gearItems);
+    const { required, optional } = splitGearByRequired(participants.gearItems);
     return {
       requiredGearNames: required.map((row) => nameForId(row.id)).filter(Boolean),
       optionalGearNames: optional.map((row) => nameForId(row.id)).filter(Boolean),
     };
-  }, [canonicalModel.participants.gearItems, equipmentQuery.data]);
+  }, [participants.gearItems, equipmentQuery.data]);
 
   const gatheringPointsForReview = useMemo(() => {
     const seen = new Set<string>();
-    return (canonicalModel.gatheringPoints ?? []).filter((station) => {
+    return (gatheringPoints ?? []).filter((station) => {
       const id = station.id?.trim();
       if (!id) return true;
       if (seen.has(id)) return false;
       seen.add(id);
       return true;
     });
-  }, [canonicalModel.gatheringPoints]);
+  }, [gatheringPoints]);
 
   return (
     <div style={{ display: "grid", gap: "0.85rem", fontSize: "0.9rem" }} data-testid="denali-step-review">
@@ -307,7 +338,7 @@ export function DenaliReviewStep() {
       />
 
       <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
-        <ReviewRow label={t("basic.title")} value={canonicalModel.title} />
+        <ReviewRow label={t("basic.title")} value={title} />
         <ReviewRow label={t("basic.categoryLabel")} value={categoryLabel} />
         <ReviewRow label={t("basic.durationLabel")} value={durationLabel} />
         {showEventVariant ? (
@@ -318,68 +349,65 @@ export function DenaliReviewStep() {
         <ReviewRow
           label={t("basic.requiresLocalGuide")}
           value={
-            canonicalModel.requiresLocalGuide === true ? t("review.yes") : t("review.no")
+            requiresLocalGuide === true ? t("review.yes") : t("review.no")
           }
         />
-        {canonicalModel.requiresLocalGuide === true ? (
-          <ReviewRow
-            label={t("basic.localGuideName")}
-            value={canonicalModel.localGuideName?.trim()}
-          />
+        {requiresLocalGuide === true ? (
+          <ReviewRow label={t("basic.localGuideName")} value={localGuideName?.trim()} />
         ) : null}
         <ReviewRow
           label={t("basic.startPointLocationText")}
-          value={canonicalModel.startPointLocationText}
+          value={startPointLocationText}
         />
-        <ReviewRow label="لینک شبکه اجتماعی" value={canonicalModel.socialMediaLink} />
+        <ReviewRow label="لینک شبکه اجتماعی" value={socialMediaLink} />
         <ReviewRow
           label={t("basic.startDateTime")}
-          value={formatScheduleLine(canonicalModel.startDateTime)}
+          value={formatScheduleLine(startDateTime)}
         />
-        {canonicalModel.endDateTime ? (
+        {endDateTime ? (
           <ReviewRow
             label={t("basic.endDateTime")}
-            value={formatScheduleLine(canonicalModel.endDateTime)}
+            value={formatScheduleLine(endDateTime)}
           />
         ) : null}
         <ReviewRow
           label={t("basic.approximateReturnTime")}
-          value={canonicalModel.approximateReturnTime}
+          value={approximateReturnTime}
         />
         <ReviewRow label={t("review.capacity")} value={capacitySummary} />
         <ReviewRow label={t("program.themesLabel")} value={themeLabels} />
-        <ReviewRow label={t("program.shortDescription")} value={canonicalModel.program.shortDescription} />
+        <ReviewRow label={t("program.shortDescription")} value={program.shortDescription} />
         {showOutdoorProgram ? (
           <>
             <ReviewRow
               label={t("program.difficultyLevel")}
               value={
-                canonicalModel.program.difficultyLevel != null
-                  ? String(canonicalModel.program.difficultyLevel)
+                program.difficultyLevel != null
+                  ? String(program.difficultyLevel)
                   : undefined
               }
             />
             <ReviewRow
               label={t("program.hikingHours")}
               value={
-                canonicalModel.program.hikingHoursApprox != null
-                  ? String(canonicalModel.program.hikingHoursApprox)
+                program.hikingHoursApprox != null
+                  ? String(program.hikingHoursApprox)
                   : undefined
               }
             />
             <ReviewRow
               label={t("program.hikingGoHours")}
               value={
-                canonicalModel.program.hikingGoHours != null
-                  ? String(canonicalModel.program.hikingGoHours)
+                program.hikingGoHours != null
+                  ? String(program.hikingGoHours)
                   : undefined
               }
             />
             <ReviewRow
               label={t("program.hikingReturnHours")}
               value={
-                canonicalModel.program.hikingReturnHours != null
-                  ? String(canonicalModel.program.hikingReturnHours)
+                program.hikingReturnHours != null
+                  ? String(program.hikingReturnHours)
                   : undefined
               }
             />
@@ -387,8 +415,8 @@ export function DenaliReviewStep() {
               <ReviewRow
                 label={t("program.altitudeMeasurement")}
                 value={
-                  canonicalModel.program.altitudeMeasurement != null
-                    ? String(canonicalModel.program.altitudeMeasurement)
+                  program.altitudeMeasurement != null
+                    ? String(program.altitudeMeasurement)
                     : undefined
                 }
               />
@@ -396,11 +424,11 @@ export function DenaliReviewStep() {
           </>
         ) : null}
         {isReviewFieldVisible("program.itinerary", formForUi) &&
-        (canonicalModel.program.itinerary?.length ?? 0) > 0 ? (
+        (program.itinerary?.length ?? 0) > 0 ? (
           <div>
             <dt style={{ fontWeight: 600 }}>{t("review.dailyItinerary")}</dt>
             <dd style={{ margin: "0.15rem 0 0", display: "grid", gap: "0.35rem" }}>
-              {canonicalModel.program.itinerary!.map((row, itineraryIndex) => (
+              {program.itinerary!.map((row, itineraryIndex) => (
                 <div key={`itinerary-day-${row.day}-${itineraryIndex}`}>
                   <strong>{t("program.dailyActivitiesDay", { day: row.day })}</strong>
                   {row.locationText?.trim() || row.location?.addressText?.trim() ? (
@@ -446,38 +474,36 @@ export function DenaliReviewStep() {
         ) : null}
         <ReviewRow
           label={t("transport.transportModeLabel")}
-          value={t(`transport.transportMode.${canonicalModel.transport.mode}`)}
+          value={t(`transport.transportMode.${transport.mode}`)}
         />
-        {isReviewFieldVisible("transport.transportCost", formForUi) && canonicalModel.transport.transportCost != null ? (
+        {isReviewFieldVisible("transport.transportCost", formForUi) && transport.transportCost != null ? (
           <ReviewRow
             label={t("transport.transportCost")}
-            value={String(canonicalModel.transport.transportCost)}
+            value={String(transport.transportCost)}
           />
         ) : null}
         {isReviewFieldVisible("transport.allowPersonalCar", formForUi) ? (
           <ReviewRow
             label={t("transport.allowPersonalCar")}
-            value={canonicalModel.transport.allowPersonalCar ? t("review.yes") : t("review.no")}
+            value={transport.allowPersonalCar ? t("review.yes") : t("review.no")}
           />
         ) : null}
         {isReviewFieldVisible("transport.dongAmount", formForUi) ? (
           <ReviewRow
             label={t("transport.dongAmount")}
-            value={String(canonicalModel.transport.dongAmount ?? "")}
+            value={String(transport.dongAmount ?? "")}
           />
         ) : null}
         <ReviewRow
           label={t("pricing.requiresPayment")}
-          value={
-            canonicalModel.pricing.requiresPayment === true ? t("review.yes") : t("review.no")
-          }
+          value={pricing.requiresPayment === true ? t("review.yes") : t("review.no")}
         />
-        {canonicalModel.pricing.requiresPayment === true ? (
+        {pricing.requiresPayment === true ? (
           <ReviewRow
             label={t("pricing.basePricePerPerson")}
             value={
-              canonicalModel.pricing.basePricePerPerson != null
-                ? String(canonicalModel.pricing.basePricePerPerson)
+              pricing.basePricePerPerson != null
+                ? String(pricing.basePricePerPerson)
                 : undefined
             }
           />
@@ -485,18 +511,12 @@ export function DenaliReviewStep() {
         <ReviewRow
           label={t("basic.requiresManualAdminApproval")}
           value={
-            canonicalModel.requiresManualAdminApproval === true
-              ? t("review.yes")
-              : t("review.no")
+            requiresManualAdminApproval === true ? t("review.yes") : t("review.no")
           }
         />
         <ReviewRow
           label={t("pricing.includesTourInsurance")}
-          value={
-            canonicalModel.pricing.includesTourInsurance === true
-              ? t("review.yes")
-              : t("review.no")
-          }
+          value={pricing.includesTourInsurance === true ? t("review.yes") : t("review.no")}
         />
         {gatheringPointsForReview.map((station, index) => {
           const rowKey = `gathering-${station.id?.trim() || "row"}-${index}`;
@@ -514,32 +534,32 @@ export function DenaliReviewStep() {
         })}
         <ReviewRow
           label={t("basic.locationZones.startPoint")}
-          value={denaliLocationAddressText(canonicalModel.startPoint)}
+          value={denaliLocationAddressText(startPoint)}
         />
-        {canonicalModel.participants.minRequiredPeaks != null ? (
+        {participants.minRequiredPeaks != null ? (
           <ReviewRow
             label="حداقل قله‌های صعودشده (تایید خودکار)"
-            value={String(canonicalModel.participants.minRequiredPeaks)}
+            value={String(participants.minRequiredPeaks)}
           />
         ) : null}
         <ReviewRow
           label={t("participants.fitnessPrerequisite")}
-          value={canonicalModel.participants.fitnessPrerequisiteText}
+          value={participants.fitnessPrerequisiteText}
         />
         {isReviewFieldVisible("policies.policiesText", formForUi) &&
-        canonicalModel.policies.policiesText?.trim() ? (
-          <ReviewRow label={t("policies.notes")} value={canonicalModel.policies.policiesText} />
+        policies.policiesText?.trim() ? (
+          <ReviewRow label={t("policies.notes")} value={policies.policiesText} />
         ) : null}
-        {canonicalModel.policies.cancellationDeadlineHours != null ? (
+        {policies.cancellationDeadlineHours != null ? (
           <ReviewRow
             label={t("policies.cancellationDeadlineHours")}
-            value={String(canonicalModel.policies.cancellationDeadlineHours)}
+            value={String(policies.cancellationDeadlineHours)}
           />
         ) : null}
-        {canonicalModel.policies.cancellationPenaltyPercentage != null ? (
+        {policies.cancellationPenaltyPercentage != null ? (
           <ReviewRow
             label={t("policies.cancellationPenaltyPercentage")}
-            value={`${canonicalModel.policies.cancellationPenaltyPercentage}%`}
+            value={`${policies.cancellationPenaltyPercentage}%`}
           />
         ) : null}
         <GearReviewLists

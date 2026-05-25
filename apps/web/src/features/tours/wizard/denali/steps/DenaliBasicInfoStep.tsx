@@ -22,6 +22,7 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { DenaliApproximateReturnTimeField } from "../DenaliApproximateReturnTimeField";
 import { DenaliDatetimeField } from "../DenaliDatetimeField";
+import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { useDenaliDestinationQuickAdd } from "../hooks/useDenaliDestinationQuickAdd";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
@@ -34,8 +35,18 @@ export function DenaliBasicInfoStep() {
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
-  const { canonicalModel, basicsSelection, updateCanonical, updateCanonicalBasics } =
-    useDenaliCanonical();
+  const { basicsSelection, updateCanonical, updateCanonicalBasics } = useDenaliCanonical();
+  const title = useDenaliCanonicalValue<string>("title");
+  const destinationId = useDenaliCanonicalValue<string | undefined>("destinationId");
+  const leaderUserIds = useDenaliCanonicalValue<string[]>("leaderUserIds");
+  const requiresLocalGuide = useDenaliCanonicalValue<boolean | undefined>("requiresLocalGuide");
+  const localGuideName = useDenaliCanonicalValue<string | undefined>("localGuideName");
+  const capacityMax = useDenaliCanonicalValue<number | undefined>("capacityMax");
+  const capacityMin = useDenaliCanonicalValue<number | undefined>("capacityMin");
+  const socialMediaLink = useDenaliCanonicalValue<string | undefined>("socialMediaLink");
+  const requiresManualAdminApproval = useDenaliCanonicalValue<boolean | undefined>(
+    "requiresManualAdminApproval",
+  );
 
   const form = getValues();
   const { isVisible, isDurationAllowed } = useDenaliStepFieldRules(STEP);
@@ -72,7 +83,7 @@ export function DenaliBasicInfoStep() {
           type="text"
           placeholder={t("basic.titlePlaceholder")}
           aria-invalid={Boolean(errors.basicInfo?.title)}
-          value={canonicalModel.title}
+          value={title}
           onChange={(e) => updateCanonical({ title: e.target.value })}
         />
       </FormField>
@@ -137,7 +148,7 @@ export function DenaliBasicInfoStep() {
             label={t("basic.destination")}
             placeholder={t("basic.destinationPlaceholder")}
             options={activeDestinations}
-            value={canonicalModel.destinationId}
+            value={destinationId}
             onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
             error={errors.basicInfo?.destinationId?.message}
           />
@@ -161,7 +172,7 @@ export function DenaliBasicInfoStep() {
           placeholder={t("basic.workspaceLeadersPlaceholder")}
           options={leaderOptions}
           multiple
-          value={canonicalModel.leaderUserIds ?? []}
+          value={leaderUserIds ?? []}
           onChange={(ids) =>
             updateCanonical({
               leaderUserIds: Array.isArray(ids) ? ids : ids ? [ids] : [],
@@ -174,12 +185,12 @@ export function DenaliBasicInfoStep() {
       {isVisible("requiresLocalGuide", form) ? (
         <Checkbox
           label={t("basic.requiresLocalGuide")}
-          checked={canonicalModel.requiresLocalGuide === true}
+          checked={requiresLocalGuide === true}
           onChange={(e) => {
             const checked = e.target.checked;
             updateCanonical({
               requiresLocalGuide: checked,
-              localGuideName: checked ? canonicalModel.localGuideName : undefined,
+              localGuideName: checked ? localGuideName : undefined,
             });
           }}
           data-testid="denali-basics-requires-local-guide"
@@ -194,7 +205,7 @@ export function DenaliBasicInfoStep() {
           <Input
             type="text"
             placeholder={t("basic.localGuideNamePlaceholder")}
-            value={canonicalModel.localGuideName ?? ""}
+            value={localGuideName ?? ""}
             onChange={(e) =>
               updateCanonical({
                 requiresLocalGuide: true,
@@ -219,7 +230,7 @@ export function DenaliBasicInfoStep() {
         >
           <PersianNumberInput
             numericMode="integer"
-            value={canonicalModel.capacityMax ?? ""}
+            value={capacityMax ?? ""}
             onChange={(v) =>
               updateCanonical({ capacityMax: v === "" ? undefined : Number(v) })
             }
@@ -231,7 +242,7 @@ export function DenaliBasicInfoStep() {
         <FormField label={t("basic.capacityMin")} error={errors.basicInfo?.capacityMin?.message}>
           <PersianNumberInput
             numericMode="integer"
-            value={canonicalModel.capacityMin ?? ""}
+            value={capacityMin ?? ""}
             onChange={(v) =>
               updateCanonical({ capacityMin: v === "" ? undefined : Number(v) })
             }
@@ -246,7 +257,7 @@ export function DenaliBasicInfoStep() {
           <Input
             type="text"
             placeholder="مثلاً t.me/tour_group یا @tour_admin"
-            value={canonicalModel.socialMediaLink ?? ""}
+            value={socialMediaLink ?? ""}
             onChange={(e) => updateCanonical({ socialMediaLink: e.target.value || undefined })}
             data-testid="denali-basics-social-media-link"
           />
@@ -255,7 +266,7 @@ export function DenaliBasicInfoStep() {
 
       <Checkbox
         label={t("basic.requiresManualAdminApproval")}
-        checked={canonicalModel.requiresManualAdminApproval === true}
+        checked={requiresManualAdminApproval === true}
         onChange={(e) =>
           updateCanonical({ requiresManualAdminApproval: e.target.checked })
         }
