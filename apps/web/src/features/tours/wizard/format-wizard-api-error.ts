@@ -3,13 +3,19 @@ import { getUIError } from "@/lib/errors/error-registry";
 import { mapToUserMessage } from "@/lib/errors/mapToUserMessage";
 
 function readRequestIdFromApiError(error: ApiError): string | undefined {
+  if (error.requestId?.trim()) {
+    return error.requestId.trim();
+  }
   const data = error.data;
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return undefined;
   }
-  const nested = (data as { error?: { requestId?: unknown } }).error;
-  const id = nested?.requestId;
-  return typeof id === "string" && id.trim() !== "" ? id.trim() : undefined;
+  const envelope = data as { requestId?: unknown; error?: { details?: { requestId?: unknown } } };
+  if (typeof envelope.requestId === "string" && envelope.requestId.trim()) {
+    return envelope.requestId.trim();
+  }
+  const detailsId = envelope.error?.details?.requestId;
+  return typeof detailsId === "string" && detailsId.trim() !== "" ? detailsId.trim() : undefined;
 }
 
 /**

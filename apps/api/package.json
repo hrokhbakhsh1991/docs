@@ -40,7 +40,7 @@
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "start:worker": "APP_RUNTIME_ROLE=worker ENABLE_SCHEDULERS=true node dist/main.js",
-    "dev": "pnpm --filter @repo/config run build && pnpm build && node --env-file=.env dist/main.js",
+    "dev": "pnpm --filter @repo/config run build && pnpm --filter @repo/types run build && pnpm --filter @repo/shared run build && pnpm build && node --env-file=.env dist/main.js",
     "dev:watch": "tsc -w",
     "lint": "tsc --noEmit",
     "lint:fitness": "node --import tsx --test src/modules/tours/fitness.spec.ts",

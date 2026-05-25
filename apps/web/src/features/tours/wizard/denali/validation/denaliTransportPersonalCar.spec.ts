@@ -8,7 +8,9 @@ import { buildDenaliTourCreateTestValues } from "../../schemas/denaliTourCreateB
 import { normalizeDenaliWizardForm } from "./denaliRuleAccess";
 
 function mountainForm() {
-  return buildDenaliTourCreateTestValues();
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+  return form;
 }
 
 test("ui: transportCost visible for organized modes not shared_cars", () => {
@@ -148,4 +150,18 @@ test("projection: bus without allowPersonalCar omits dong and transport slice", 
   const dto = buildDenaliCreateTourPayloadProjection(form);
   assert.equal((dto.tripDetails as any)?.transport, undefined);
   assert.equal(dto.tripDetails?.logistics?.fuelShareToman, undefined);
+});
+
+test("ui: adminCapacityApproval visible only when allowPersonalCar is checked on bus/minibus/train", () => {
+  const form = mountainForm();
+  const ui = getDenaliUIFromForm(form);
+  form.transport.transportMode = "bus";
+  form.transport.allowPersonalCar = undefined;
+  assert.equal(ui.isVisible("denali_logistics", "transport.adminCapacityApproval", form), false);
+
+  form.transport.allowPersonalCar = true;
+  assert.equal(ui.isVisible("denali_logistics", "transport.adminCapacityApproval", form), true);
+
+  form.transport.transportMode = "shared_cars";
+  assert.equal(ui.isVisible("denali_logistics", "transport.adminCapacityApproval", form), false);
 });

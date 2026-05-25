@@ -151,10 +151,13 @@ test.describe("tour edit urban profile PATCH (mocked API)", () => {
     const res = await page.goto(`/tours/${encodeURIComponent(TOUR_ID)}/edit`, { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
 
-    await expect(page.getByTestId("tour-field-name")).toBeVisible({ timeout: 25_000 });
-    await page.getByTestId("tour-field-name").fill("Urban edit smoke tour (updated)");
+    // Urban event is mapped to Denali rail, so it launches DenaliTourEditForm
+    await expect(page.getByTestId("denali-edit-tour-form")).toBeVisible({ timeout: 25_000 });
+    const nameInput = page.getByPlaceholder("مثلاً صعود دماوند از مسیر جنوبی");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Urban edit smoke tour (updated)");
 
-    await page.getByTestId("tour-form-submit").click();
+    await page.getByRole("button", { name: "ذخیره تغییرات" }).click();
 
     await expect(page).toHaveURL(new RegExp(`/tours/${TOUR_ID}(?:/|$)`), { timeout: 25_000 });
   });

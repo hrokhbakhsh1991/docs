@@ -13,7 +13,7 @@ test("mapTemplateToRuleModel applies overlay hidden/required to denali rule set"
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: {
       destinationId: { visibility: "hidden" },
-      "transport.transportNotes": { required: "required" },
+      "transport.dongAmount": { required: "required" },
     },
     presetId: null,
     wizardContractVersion: 1,
@@ -25,9 +25,9 @@ test("mapTemplateToRuleModel applies overlay hidden/required to denali rule set"
   assert.ok(destination);
   assert.equal(destination.hidden, true);
 
-  const notes = mountainSingle.fields.find((f) => f.path === "transport.transportNotes");
-  assert.ok(notes);
-  assert.equal(notes.required, true);
+  const dong = mountainSingle.fields.find((f) => f.path === "transport.dongAmount");
+  assert.ok(dong);
+  assert.equal(dong.required, true);
 
   assert.notEqual(mapped.ruleSet, denaliRuleSet);
   assert.equal(denaliRuleSet.mountain.single_day!.fields.find((f) => f.path === "destinationId")!.hidden, false);

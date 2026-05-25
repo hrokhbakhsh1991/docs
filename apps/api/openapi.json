@@ -5406,6 +5406,41 @@
             "bearer": []
           }
         ]
+      },
+      "patch": {
+        "operationId": "SettingsTourWizardTemplateController_updateTemplate",
+        "summary": "Update workspace tour wizard template (field overlay + canonical seed)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceTourWizardTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceTourWizardTemplateEnvelopeDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Settings — Tour wizard template"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v2/settings/tour-wizard-draft": {
@@ -9593,9 +9628,14 @@
               "denali_pilot"
             ]
           },
-          "defaults": {
+          "canonicalData": {
             "type": "object",
             "additionalProperties": true
+          },
+          "defaults": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Classic wizard defaults (empty for Denali presets)."
           },
           "createdAt": {
             "type": "string"
@@ -9610,7 +9650,7 @@
           "isActive",
           "sortOrder",
           "formProfile",
-          "defaults",
+          "canonicalData",
           "createdAt",
           "updatedAt"
         ]
@@ -9661,10 +9701,15 @@
             ],
             "description": "Form profile this preset targets (wizard compatibility filter)."
           },
+          "canonicalData": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Partial Denali canonical tour model (Denali templates)."
+          },
           "defaults": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Partial tour create wizard defaults (JSON object)."
+            "description": "@deprecated Classic wizard partial defaults."
           }
         },
         "required": [
@@ -9733,6 +9778,11 @@
             ],
             "description": "Form profile this preset targets (wizard compatibility filter)."
           },
+          "canonicalData": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Partial Denali canonical tour model."
+          },
           "defaults": {
             "type": "object",
             "additionalProperties": true
@@ -9789,6 +9839,10 @@
             "format": "uuid",
             "nullable": true
           },
+          "canonicalData": {
+            "type": "object",
+            "additionalProperties": true
+          },
           "wizardContractVersion": {
             "type": "number",
             "example": 1
@@ -9804,6 +9858,7 @@
           "baseProfile",
           "stepOverrides",
           "fieldRulesOverlay",
+          "canonicalData",
           "wizardContractVersion",
           "formProfileVersion"
         ]
@@ -9818,6 +9873,25 @@
                 "$ref": "#/components/schemas/WorkspaceTourWizardTemplateResponseDto"
               }
             ]
+          }
+        }
+      },
+      "UpdateWorkspaceTourWizardTemplateDto": {
+        "type": "object",
+        "properties": {
+          "fieldRulesOverlay": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Denali fieldRulesOverlay keyed by canonical field path"
+          },
+          "canonicalData": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Partial DenaliCanonicalTourModel JSONB"
+          },
+          "publish": {
+            "type": "boolean",
+            "description": "When true, runs stricter publish validation (canonical + overlay must be valid for workspace tours)."
           }
         }
       },

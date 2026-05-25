@@ -1,8 +1,9 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
 import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { templateToCanonical, type DenaliCanonicalTemplateData } from "@repo/types/denali";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
@@ -14,12 +15,18 @@ import type { PresetMapperContext } from "./profiles/mapPresetToFormPatch";
 /** Shared input for preset apply (banner + `?presetId=` bootstrap). */
 export type ApplyWizardPresetInput = {
   workspaceFormProfile: TourFormProfile;
-  /** @deprecated Classic wizard roots; use {@link canonicalData} for Denali. */
+  /** @deprecated Classic wizard roots; ignored by Denali preset apply. */
   defaults?: Record<string, unknown>;
   canonicalData?: DenaliCanonicalTemplateData;
   ctx?: PresetMapperContext;
   themeCatalog?: SettingsTourThemeDto[];
   tenantFormContract?: TenantTourFormContract;
+};
+
+export type ApplyDenaliWizardPresetInput = ApplyWizardPresetInput & {
+  baseValues: DenaliCreateTourWizardForm;
+  /** Tenant overlay rule set from {@link mapTemplateToRuleModel}. */
+  ruleSet: DenaliRuleSet;
 };
 
 /**
@@ -46,20 +53,24 @@ export function applyClassicWizardPreset(
 }
 
 /**
- * Denali preset pipeline: {@link templateToCanonical} → {@link tryHydrateCanonicalTemplate}.
- * Legacy `defaults` roots are discarded (not merged).
+ * Denali preset pipeline: {@link templateToCanonical} → {@link tryHydrateCanonicalTemplate}
+ * with tenant {@link DenaliRuleSet}. Legacy `defaults` roots are not merged.
  */
 export function applyDenaliWizardPreset(
-  input: ApplyWizardPresetInput & { baseValues: DenaliCreateTourWizardForm },
+  input: ApplyDenaliWizardPresetInput,
 ): DenaliCreateTourWizardForm {
   const canonicalPatch = templateToCanonical({
     canonicalData: input.canonicalData,
-    defaults: input.defaults,
   });
   if (Object.keys(canonicalPatch).length === 0) {
     return input.baseValues;
   }
-  const hydrated = tryHydrateCanonicalTemplate(canonicalPatch, input.baseValues);
+  const hydrated = tryHydrateCanonicalTemplate(
+    canonicalPatch,
+    input.baseValues,
+    undefined,
+    input.ruleSet,
+  );
   return hydrated?.formValues ?? input.baseValues;
 }
 

@@ -4,10 +4,13 @@ import {
   computeDenaliTourDayCountFromKind,
   syncDenaliItineraryRows,
 } from "../denaliItinerarySync";
+import type { DenaliRuleSet } from "../rules/denaliRuleModel";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
 import { resolveDenaliRuleModelFromForm, normalizeDenaliWizardForm } from "./denaliRuleAccess";
 import { isDenaliFieldVisibleInModel, type DenaliUIContextOptions } from "../rules/denaliUIAdapter";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import type { DenaliTourKind } from "@repo/types";
+import { isDenaliAllowPersonalCarVisible } from "@repo/types/denali";
 
 /**
  * Denali Invariant Engine (map.md §Phase 1).
@@ -20,8 +23,9 @@ import type { DenaliTourKind } from "@repo/types";
 export function getDenaliSafeFormState(
   form: DenaliCreateTourWizardForm,
   _uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliCreateTourWizardForm {
-  return normalizeDenaliWizardForm(form, _uiOptions);
+  return normalizeDenaliWizardForm(form, _uiOptions, ruleSet);
 }
 
 /**
@@ -30,6 +34,7 @@ export function getDenaliSafeFormState(
 function applyDenaliStructuralInvariants(
   form: DenaliCreateTourWizardForm,
   _uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliCreateTourWizardForm {
   const next = {
     ...form,
@@ -61,6 +66,24 @@ function applyDenaliStructuralInvariants(
     next.transport.dongAmount = undefined;
   }
 
+  if (!isDenaliAllowPersonalCarVisible(next.transport.transportMode)) {
+    next.transport.allowPersonalCar = undefined;
+  }
+
+  const separateCapacityVisible =
+    (next.transport.transportMode === "bus" ||
+      next.transport.transportMode === "minibus" ||
+      next.transport.transportMode === "train") &&
+    next.transport.allowPersonalCar === true;
+
+  if (!separateCapacityVisible) {
+    next.transport.adminCapacityApproval = undefined;
+  }
+
+  if (next.transport.transportMode === "shared_cars") {
+    next.transport.allowPersonalCar = undefined;
+  }
+
   const isMulti = basics?.duration === "multi_day";
   if (!isMulti) {
     next.programNature.itinerary = undefined;
@@ -76,7 +99,7 @@ function applyDenaliStructuralInvariants(
     );
   }
 
-  const model = resolveDenaliRuleModelFromForm(next);
+  const model = resolveDenaliRuleModelFromForm(next, ruleSet);
   if (
     model != null &&
     isDenaliFieldVisibleInModel(model, "program.difficultyLevel", next, _uiOptions) &&
@@ -91,9 +114,11 @@ function applyDenaliStructuralInvariants(
 export function applyDenaliInvariantState(
   form: DenaliCreateTourWizardForm,
   uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliCreateTourWizardForm {
   return getDenaliSafeFormState(
-    applyDenaliStructuralInvariants(form, uiOptions),
+    applyDenaliStructuralInvariants(form, uiOptions, ruleSet),
     uiOptions,
+    ruleSet,
   );
 }

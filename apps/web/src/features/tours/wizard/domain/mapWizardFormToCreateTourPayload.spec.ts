@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
-import { tourCreateSchema } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
+import { tourCreateSchema } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 
 import { mapFormValuesToBackendPayload } from "./mapWizardFormToCreateTourPayload";
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";

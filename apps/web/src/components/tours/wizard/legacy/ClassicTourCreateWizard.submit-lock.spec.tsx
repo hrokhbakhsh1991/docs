@@ -11,7 +11,7 @@ import test from "node:test";
 import { isWizardSubmitLocked } from "@/features/tours/wizard/wizardSubmitLock";
 
 const shellSource = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "TourCreateWizard.tsx"),
+  join(dirname(fileURLToPath(import.meta.url)), "ClassicTourCreateWizard.tsx"),
   "utf8",
 );
 const reviewSubmitSource = readFileSync(
@@ -19,7 +19,7 @@ const reviewSubmitSource = readFileSync(
   "utf8",
 );
 
-test("TourCreateWizard wires submitLocked through isWizardSubmitLocked", () => {
+test("ClassicTourCreateWizard wires submitLocked through isWizardSubmitLocked", () => {
   assert.match(shellSource, /isWizardSubmitLocked\(createMutation\)/);
   assert.match(shellSource, /disabled=\{[^}]*submitLocked/);
   assert.match(shellSource, /submitLocked,/);

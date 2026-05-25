@@ -6,13 +6,14 @@ import {
 import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
 
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import {
   mergeDenaliWizardDefaults,
   serializeDenaliWizardDraft,
 } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
 import { mapWizardPrefillToFormPatch } from "@/features/tours/wizard/profiles/mapWizardPrefillToFormPatch";
+import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import {
   applyClassicWizardPreset,
   applyDenaliWizardPreset,
@@ -194,13 +195,13 @@ async function loadPresetPrefill(
     matchMainTourThemeId: preset.matchMainTourThemeId,
   };
   const resolvedProfile = normalizeTourFormProfileInput(formProfile);
+  const mergedRuleSet = mapTemplateToRuleModel(templateEnv.template ?? null).ruleSet;
 
   if (useDenaliRail) {
     const merged = applyDenaliWizardPreset({
       workspaceFormProfile: resolvedProfile,
+      ruleSet: mergedRuleSet,
       canonicalData: preset.canonicalData as import("@repo/types/denali").DenaliCanonicalTemplateData | undefined,
-      defaults: preset.defaults ?? {},
-      ctx: presetCtx,
       baseValues: buildDenaliTourCreateDefaultValues(),
     });
     const wizardMeta: TourWizardDraftMeta = {

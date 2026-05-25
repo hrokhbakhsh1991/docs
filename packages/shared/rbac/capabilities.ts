@@ -17,7 +17,11 @@ export const TOUR_CAPABILITIES = [
 
 export type TourCapability = (typeof TOUR_CAPABILITIES)[number];
 
-export const SETTINGS_CAPABILITIES = ["settings.read", "settings.themes.manage"] as const;
+export const SETTINGS_CAPABILITIES = [
+  "settings.read",
+  "settings.themes.manage",
+  "settings.templates.manage",
+] as const;
 
 export type SettingsCapability = (typeof SETTINGS_CAPABILITIES)[number];
 
@@ -58,8 +62,18 @@ const ALL_TOUR_CAPABILITIES: readonly TourCapability[] = [...TOUR_CAPABILITIES];
 export const WORKSPACE_CAPABILITY_GRANTS: Readonly<
   Record<WorkspaceRole, readonly WorkspaceCapability[]>
 > = {
-  [WorkspaceRole.Owner]: [...ALL_TOUR_CAPABILITIES, "settings.read", "settings.themes.manage"],
-  [WorkspaceRole.Admin]: [...ALL_TOUR_CAPABILITIES, "settings.read", "settings.themes.manage"],
+  [WorkspaceRole.Owner]: [
+    ...ALL_TOUR_CAPABILITIES,
+    "settings.read",
+    "settings.themes.manage",
+    "settings.templates.manage",
+  ],
+  [WorkspaceRole.Admin]: [
+    ...ALL_TOUR_CAPABILITIES,
+    "settings.read",
+    "settings.themes.manage",
+    "settings.templates.manage",
+  ],
   [WorkspaceRole.Leader]: [...ALL_TOUR_CAPABILITIES, "settings.read"],
   [WorkspaceRole.Member]: ["tour.read", "settings.read"],
   [WorkspaceRole.Viewer]: ["tour.read", "settings.read"],

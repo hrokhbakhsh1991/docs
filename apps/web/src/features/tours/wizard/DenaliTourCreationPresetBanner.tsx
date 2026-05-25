@@ -10,6 +10,7 @@ import type { TourFormProfile } from "@repo/types";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
+import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { applyDenaliWizardPreset } from "./tourCreationPresetApply";
@@ -18,6 +19,7 @@ import { resolveWorkspaceTourFormProfileFromTemplate } from "./resolveWorkspaceT
 
 export type DenaliTourCreationPresetBannerProps = {
   presets: SettingsTourPresetDto[] | undefined;
+  /** Called after preset hydrate + form reset (use to bump canonical sync). */
   onApplied?: (presetId: string) => void;
   /**
    * @deprecated Banner reads profile from {@link useTenantWizardTemplate} (`base_profile`).
@@ -44,6 +46,11 @@ export function DenaliTourCreationPresetBanner({
     }
     return resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data);
   }, [wizardTemplateQuery.data]);
+
+  const mergedRuleSet = useMemo(
+    () => mapTemplateToRuleModel(wizardTemplateQuery.data ?? null).ruleSet,
+    [wizardTemplateQuery.data],
+  );
 
   const choiceList = useMemo(
     () =>
@@ -74,18 +81,14 @@ export function DenaliTourCreationPresetBanner({
     }
     const mergedValues = applyDenaliWizardPreset({
       workspaceFormProfile,
+      ruleSet: mergedRuleSet,
       canonicalData: selected.canonicalData,
-      defaults: selected.defaults ?? {},
       baseValues: getValues(),
-      ctx: {
-        matchTourType: selected.matchTourType,
-        matchMainTourThemeId: selected.matchMainTourThemeId,
-      },
     });
-    reset(mergedValues);
+    reset(mergedValues, { keepDefaultValues: true, keepDirty: true });
     setLastAppliedPresetId(selected.id);
     onApplied?.(selected.id);
-  }, [getValues, onApplied, reset, selected, workspaceFormProfile]);
+  }, [getValues, mergedRuleSet, onApplied, reset, selected, workspaceFormProfile]);
 
   const onSelectChange = useCallback((nextId: string) => {
     setSelectedId(nextId);

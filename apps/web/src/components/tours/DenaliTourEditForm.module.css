@@ -54,3 +54,20 @@
   font-size: 0.875rem;
   color: var(--color-danger-800, #991b1b);
 }
+
+.draftBanner {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--color-warning-50, #fffbeb);
+  color: var(--color-warning-900, #78350f);
+  border: 1px solid var(--color-warning-200, #fde68a);
+  border-radius: 8px;
+}
+
+.draftBannerActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}

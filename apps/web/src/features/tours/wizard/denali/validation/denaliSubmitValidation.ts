@@ -7,7 +7,9 @@
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
 import { denaliFormToCanonical } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
-import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { denaliCanonicalTourSchema } from "@/features/tours/wizard/schemas/denaliCanonicalTourSchema";
 
@@ -16,8 +18,9 @@ import { denaliCanonicalTourSchema } from "@/features/tours/wizard/schemas/denal
  */
 export function safeParseDenaliCanonicalFromWizardForm(
   form: DenaliCreateTourWizardForm,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): ReturnType<typeof denaliCanonicalTourSchema.safeParse> {
-  const normalized = normalizeDenaliWizardForm(form);
+  const normalized = prepareDenaliWizardFormForSubmit(form, ruleSet);
   const canonical = denaliFormToCanonical(normalized);
   return denaliCanonicalTourSchema.safeParse(canonical);
 }

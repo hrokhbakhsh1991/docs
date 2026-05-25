@@ -15,7 +15,7 @@ import {
 } from "./denaliUIAdapter";
 import { evaluateFormFieldRule } from "./evaluateFormRules";
 
-const SEAT_PATH = "transport.seatPreference";
+const ADMIN_CAPACITY_PATH = "transport.adminCapacityApproval";
 const PRICE_PATH = "pricing.basePricePerPerson";
 const LOGISTICS_STEP = "denali_logistics" as const;
 const PRICING_STEP = "denali_pricing" as const;
@@ -57,27 +57,28 @@ test("visibility conflict: static show + contextual hide → field hidden (AND, 
   form.transport.transportMode = "bus";
 
   const model = denaliRuleSet.mountain.single_day!;
-  const field = findDenaliRuleField(model, SEAT_PATH)!;
+  const field = findDenaliRuleField(model, ADMIN_CAPACITY_PATH)!;
   assert.equal(field.hidden, false, "model says show");
 
-  const visible = isDenaliFieldVisibleOnStep(model, LOGISTICS_STEP, SEAT_PATH, form);
-  assert.equal(visible, false, "transport rule hides seatPreference when not train");
+  const visible = isDenaliFieldVisibleOnStep(model, LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form);
+  assert.equal(visible, false, "transport rule hides adminCapacityApproval without allowPersonalCar");
 
-  const rule = evaluateFormFieldRule(form, SEAT_PATH, LOGISTICS_STEP);
+  const rule = evaluateFormFieldRule(form, ADMIN_CAPACITY_PATH, LOGISTICS_STEP);
   assert.equal(rule.staticHidden, false);
   assert.equal(rule.visible, false);
 });
 
 test("visibility conflict: static hide + contextual show → field hidden (static hide wins)", () => {
   const form = mountainDayForm();
-  form.transport.transportMode = "train";
+  form.transport.transportMode = "bus";
+  form.transport.allowPersonalCar = true;
 
   const syntheticModel: DenaliRuleModel = {
     category: "mountain",
     duration: "single_day",
     fields: [
       {
-        path: SEAT_PATH,
+        path: ADMIN_CAPACITY_PATH,
         required: false,
         hidden: true,
         step: LOGISTICS_STEP,
@@ -88,10 +89,10 @@ test("visibility conflict: static hide + contextual show → field hidden (stati
   const visible = isDenaliFieldVisibleOnStep(
     syntheticModel,
     LOGISTICS_STEP,
-    SEAT_PATH,
+    ADMIN_CAPACITY_PATH,
     form,
   );
-  assert.equal(visible, false, "field.hidden must win even when train would show seatPreference");
+  assert.equal(visible, false, "field.hidden must win even when allowPersonalCar would show adminCapacityApproval");
 });
 
 test("required conflict: static required + contextual optional → not required (contextual wins)", () => {
@@ -141,7 +142,7 @@ test("required cannot override visibility: hidden field is never required", () =
   const required = isDenaliFieldRequiredOnStep(
     denaliRuleSet.mountain.single_day!,
     LOGISTICS_STEP,
-    SEAT_PATH,
+    ADMIN_CAPACITY_PATH,
     form,
   );
   assert.equal(required, false, "invisible fields are never required");

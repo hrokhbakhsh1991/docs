@@ -387,6 +387,53 @@ export function toUpdateTourApiBody(
   return body;
 }
 
+/** Row returned by `POST /api/v2/tours/:tourId/photos` (presigned preview URL). */
+export type TourGalleryPhotoDto = {
+  id: string;
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  uploadedAt: string;
+};
+
+function parseTourGalleryPhotoRow(raw: unknown): TourGalleryPhotoDto | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const id = typeof row.id === "string" ? row.id.trim() : "";
+  const url = typeof row.url === "string" ? row.url.trim() : "";
+  if (!id || !url) return null;
+  return {
+    id,
+    url,
+    filename: typeof row.filename === "string" ? row.filename : "photo",
+    size: typeof row.size === "number" && Number.isFinite(row.size) ? row.size : 0,
+    mimeType: typeof row.mimeType === "string" ? row.mimeType : "image/jpeg",
+    uploadedAt:
+      typeof row.uploadedAt === "string" ? row.uploadedAt : new Date().toISOString(),
+  };
+}
+
+/** Upload gallery images for an existing tour (edit mode). */
+export async function uploadTourPhotos(
+  tourId: string,
+  files: readonly File[],
+): Promise<TourGalleryPhotoDto[]> {
+  const trimmedId = tourId.trim();
+  if (!trimmedId || files.length === 0) {
+    return [];
+  }
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("photos", file);
+  }
+  const raw = await bffBrowserClient.postForm<unknown>(BFF.tourPhotos(trimmedId), formData);
+  const rows = Array.isArray(raw) ? raw : Array.isArray((raw as { items?: unknown[] })?.items) ? (raw as { items: unknown[] }).items : [];
+  return rows
+    .map((row) => parseTourGalleryPhotoRow(row))
+    .filter((row): row is TourGalleryPhotoDto => row != null);
+}
+
 export async function updateTour(
   id: string,
   dto: UpdateTourDto,

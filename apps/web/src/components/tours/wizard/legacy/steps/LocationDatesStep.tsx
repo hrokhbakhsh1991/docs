@@ -4,7 +4,7 @@ import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { FormField, Input, JalaliDatePicker, JalaliTimePicker } from "@tour/ui";
 
 import type { TourCreateFormValues } from "../schemas/tourCreateSchema";
-import { DestinationCombobox } from "./DestinationCombobox";
+import { DestinationCombobox } from "@/components/tours/wizard/steps/DestinationCombobox";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { FieldGate } from "@/features/tours/wizard/profileRulesReact";
 import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { createTourFromWorkspaceWizardForm } from "@/features/tours/wizard/domain/createTourFromWizard";
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { deleteTourWizardDraft } from "@/lib/tour-wizard-draft.client";
 import { tourKeys } from "@/lib/query-keys";
@@ -19,6 +20,7 @@ export function useDenaliTourWizardCreate() {
   return useMutation({
     mutationFn: async (input: {
       values: DenaliCreateTourWizardForm;
+      ruleSet: DenaliRuleSet;
       workspaceFormProfile: TourFormProfile;
       themeCatalog?: readonly { id: string; name: string }[];
       sourcePresetId?: string;
@@ -26,6 +28,7 @@ export function useDenaliTourWizardCreate() {
     }) => {
       return createTourFromWorkspaceWizardForm({
         values: input.values,
+        ruleSet: input.ruleSet,
         workspaceFormProfile: input.workspaceFormProfile,
         themeCatalog: input.themeCatalog,
         sourcePresetId: input.sourcePresetId,

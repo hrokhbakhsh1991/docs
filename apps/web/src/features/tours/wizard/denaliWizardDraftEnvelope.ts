@@ -3,7 +3,9 @@ import { normalizeDenaliTransportForm } from "@repo/types";
 
 import { sanitizeDenaliFormPatch } from "./denali/denaliFormSanitize";
 import { stripBlobUrlsFromDenaliDraftPatch } from "./denali/preserveDenaliWizardBlobMedia";
-import { normalizeDenaliWizardForm } from "./denali/validation/denaliRuleAccess";
+import type { DenaliRuleSet } from "./denali/rules/denaliRuleModel";
+import { denaliRuleSet } from "./denali/rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "./denali/validation/denaliRuleAccess";
 import {
   DENALI_WIZARD_DRAFT_VERSION_HASH_KEY,
   getDenaliWizardDraftVersionHash,
@@ -107,6 +109,7 @@ export function serializeDenaliWizardDraft(
 export function mergeDenaliWizardDefaults(
   defaults: DenaliCreateTourWizardForm,
   patch: Partial<DenaliCreateTourWizardForm>,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliCreateTourWizardForm {
   const clean = sanitizeDenaliFormPatch(patch);
   const merged = {
@@ -135,5 +138,5 @@ export function mergeDenaliWizardDefaults(
       },
     },
   };
-  return normalizeDenaliWizardForm(merged);
+  return prepareDenaliWizardFormForSubmit(merged, ruleSet);
 }

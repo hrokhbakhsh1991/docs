@@ -1,6 +1,6 @@
 import {
+  isDenaliAdminCapacityApprovalVisible,
   isDenaliAllowPersonalCarVisible,
-  isDenaliSeatPreferenceVisible,
   isDenaliTransportCostVisible,
   isDenaliTransportDongAmountVisible,
   type DenaliCanonicalTourModel,
@@ -175,8 +175,11 @@ function isDenaliFieldContextuallyVisible(
       allowPersonalCar: form.transport.allowPersonalCar,
     });
   }
-  if (path === "transport.seatPreference") {
-    return isDenaliSeatPreferenceVisible(form.transport.transportMode);
+  if (path === "transport.adminCapacityApproval") {
+    return isDenaliAdminCapacityApprovalVisible({
+      mode: form.transport.transportMode,
+      allowPersonalCar: form.transport.allowPersonalCar,
+    });
   }
   if (path === "pricing.basePricePerPerson") {
     return form.pricingPayment.requiresPayment === true;

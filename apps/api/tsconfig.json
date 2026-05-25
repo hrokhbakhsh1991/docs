@@ -10,7 +10,11 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "paths": {
+      "@repo/types/denali": ["../../packages/types/dist/denali/index.d.ts"],
+      "@repo/types/denali/*": ["../../packages/types/dist/denali/*"]
+    }
   },
   "include": [
     "src/**/*.ts",

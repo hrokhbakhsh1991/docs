@@ -223,6 +223,26 @@ test("transformTourToDenaliWizardValues reads itinerary.days and trip-level phot
   assert.equal(form.photosData?.photos?.[0]?.url, "https://example.com/gallery.jpg");
 });
 
+test("transformTourToDenaliWizardValues preserveGalleryPhotoIds keeps API gallery ids", () => {
+  const api = makeApiTour();
+  const td = api.details!.tripDetails as Record<string, unknown>;
+  td.photos = [
+    {
+      id: "d1eebc99-9c0b-4ef8-bb6d-6bb9bd380d44",
+      url: "https://example.com/gallery.jpg",
+      filename: "gallery.jpg",
+      size: 2048,
+      mimeType: "image/jpeg",
+      uploadedAt: "2026-06-02T00:00:00.000Z",
+    },
+  ];
+  const form = transformTourToDenaliWizardValues(api, {
+    mode: "clone",
+    preserveGalleryPhotoIds: true,
+  });
+  assert.equal(form.photosData?.photos?.[0]?.id, "d1eebc99-9c0b-4ef8-bb6d-6bb9bd380d44");
+});
+
 test("transformTourToDenaliWizardValues maps segmentActivities locationName fallback", () => {
   const api = makeApiTour();
   const td = api.details!.tripDetails as Record<string, unknown>;

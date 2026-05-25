@@ -32,6 +32,11 @@ test("admin grants settings.themes.manage; leader does not", () => {
   assert.equal(roleGrantsCapability(WorkspaceRole.Leader, "settings.read"), true);
 });
 
+test("admin grants settings.templates.manage; leader does not", () => {
+  assert.equal(roleGrantsCapability(WorkspaceRole.Admin, "settings.templates.manage"), true);
+  assert.equal(roleGrantsCapability(WorkspaceRole.Leader, "settings.templates.manage"), false);
+});
+
 test("member grants settings.read", () => {
   assert.equal(roleGrantsCapability(WorkspaceRole.Member, "settings.read"), true);
 });

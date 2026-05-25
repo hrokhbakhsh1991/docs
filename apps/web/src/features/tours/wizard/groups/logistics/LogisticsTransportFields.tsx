@@ -3,7 +3,7 @@
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { Checkbox, FormField, Select } from "@tour/ui";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { FieldGate, useIsFieldRequired } from "@/features/tours/wizard/profileRulesReact";
 import type { WizardFieldPath } from "@/features/tours/wizard/profileRules/types";

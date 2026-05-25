@@ -10,13 +10,19 @@ import {
   useRef,
   useState,
   type MutableRefObject,
+  type ReactNode,
 } from "react";
 import { FormProvider, useForm, useWatch, type UseFormReturn } from "react-hook-form";
 import { Button, Card, CardBody } from "@tour/ui";
 
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
+import { scrollTourFormToFirstError } from "@/components/tours/tourFormValidationSummary";
+import { ApiError } from "@/lib/api-client";
+import { handleDenaliWizardValidationApiError } from "@/lib/errors/apply-api-validation-errors";
 import { DenaliTourCreationPresetBanner } from "@/features/tours/wizard/DenaliTourCreationPresetBanner";
 import { useDenaliTourWizardCreate } from "@/features/tours/wizard/hooks/useDenaliTourWizardCreate";
+import { useTourWizardServerSync } from "@/features/tours/wizard/hooks/useTourWizardServerSync";
+import { isTourWizardServerDraftEnabled } from "@/features/tours/wizard/is-tour-wizard-server-draft-enabled";
 import { useSettingsTourPresets } from "@/hooks/use-settings-tour-presets";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
@@ -27,9 +33,8 @@ import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wi
 import { isWizardSubmitLocked } from "@/features/tours/wizard/wizardSubmitLock";
 import { clearWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
 import { useTenantContext } from "@/lib/tenant/tenant-provider";
-import { deleteTourWizardDraft } from "@/lib/tour-wizard-draft.client";
+import { deleteTourWizardDraft, fetchTourWizardDraft, TOUR_WIZARD_DRAFT_INITIAL_VERSION } from "@/lib/tour-wizard-draft.client";
 import {
-  denaliWizardSteps,
   getDenaliStepTitleFa,
   type DenaliCreateWizardStepId,
 } from "@/features/tours/wizard/denaliStepConfig";
@@ -44,10 +49,22 @@ import {
 import { sanitizeDenaliWizardCatalogRefs } from "@/features/tours/wizard/denali/sanitizeDenaliWizardCatalogRefs";
 import { preserveDenaliWizardBlobMedia } from "@/features/tours/wizard/denali/preserveDenaliWizardBlobMedia";
 import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
-import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import {
+  getDenaliWizardVisibleSteps,
+  prepareDenaliWizardFormForSubmit,
+  resolveDenaliRuleSetFromTemplate,
+  withDenaliWizardRailTestingOverrides,
+} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { getDenaliWizardPublishReadinessIssues } from "@/features/tours/wizard/denali/validation/denaliWizardPublishReadiness";
 import { DenaliCanonicalProvider } from "@/features/tours/wizard/denali/DenaliCanonicalContext";
+import {
+  collectDenaliUnpersistedPhotoBlobIssues,
+  formatDenaliPhotoPersistenceWarning,
+} from "@/features/tours/wizard/denali/denaliPhotoPersistence";
 import { DenaliWizardSyncProvider } from "@/features/tours/wizard/denali/DenaliWizardSyncContext";
+import { DenaliWizardNavigationProvider } from "@/features/tours/wizard/denali/DenaliWizardNavigationContext";
+import { DenaliStepFocusBridge } from "@/features/tours/wizard/denali/DenaliStepFocusBridge";
+import { DenaliWizardSubmitControl } from "@/features/tours/wizard/denali/DenaliWizardSubmitControl";
 import {
   isDenaliCloneOrPresetPrefill,
   readDenaliPrefillFromLocalStorage,
@@ -57,12 +74,18 @@ import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/cano
 import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 import {
   clearDenaliWizardDraftFromStorage,
-  isDenaliWizardDraftLoadable,
+  persistDenaliWizardDraftBackupToStorage,
   persistDenaliWizardDraftToStorage,
+  readDenaliCreateWizardDraftFromStorage,
   readDenaliWizardDraftFromStorage,
+  resolveDenaliWizardDraftHydration,
   tryHydrateDraft,
+  tryMigrateDenaliWizardDraft,
 } from "@/features/tours/wizard/denali/safeDraftHydration";
-import { useTourWizardDraftStorageKey } from "@/features/tours/wizard/useTourWizardDraftStorageKey";
+import { pickDenaliWizardDraftForRestore } from "@/features/tours/wizard/denali/pickDenaliWizardDraftForRestore";
+import { DenaliWizardDraftAutosave } from "@/features/tours/wizard/denali/DenaliWizardDraftAutosave";
+import { DenaliWizardContentQualityHeader } from "@/features/tours/wizard/denali/components/DenaliWizardHeader";
+import { useDenaliCreateWizardDraftStorageKey } from "@/features/tours/wizard/denali/useDenaliCreateWizardDraftStorageKey";
 import {
   resolveWizardDraftStorageKeyForBrowserHost,
   purgeAllWizardDraftLocalStorageKeys,
@@ -71,11 +94,10 @@ import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
 } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-import { denaliCanonicalWizardResolver } from "@/features/tours/wizard/schemas/denaliWizardCanonicalResolver";
+import { createDenaliCanonicalWizardResolver } from "@/features/tours/wizard/schemas/denaliWizardCanonicalResolver";
 import { applyDenaliWizardStepValidation } from "@/features/tours/wizard/schemas/denaliTourCreateValidation";
-import { logDenaliWizardDiagnosticReport } from "@/features/tours/wizard/denali/denaliWizardDiagnostic";
-import { flattenDenaliFormErrors } from "@/features/tours/wizard/denali/flattenDenaliFormErrors";
 import { debugSessionLog } from "@/lib/debug-session-log";
+import { useAuth } from "@/lib/auth/auth-context";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
 import { serializeDenaliWizardDraft } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
 
@@ -131,22 +153,36 @@ function DenaliWizardStepper({
 }
 
 function DenaliStepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
+  let body: ReactNode;
   switch (stepId) {
     case "denali_basic":
-      return <DenaliBasicInfoStep />;
+      body = <DenaliBasicInfoStep />;
+      break;
     case "denali_program":
-      return <DenaliProgramNatureStep />;
+      body = <DenaliProgramNatureStep />;
+      break;
     case "denali_logistics":
-      return <DenaliLogisticsStep />;
+      body = <DenaliLogisticsStep />;
+      break;
     case "denali_pricing":
-      return <DenaliPricingPaymentStep />;
+      body = <DenaliPricingPaymentStep />;
+      break;
     case "denali_photos":
-      return <DenaliPhotosStep />;
+      body = <DenaliPhotosStep />;
+      break;
     case "review":
-      return <DenaliReviewStep />;
+      body = <DenaliReviewStep />;
+      break;
     default:
-      return null;
+      body = null;
   }
+
+  return (
+    <>
+      <DenaliStepFocusBridge stepId={stepId} />
+      {body}
+    </>
+  );
 }
 
 function isAuthenticatedCloneOrPresetPrefill(
@@ -173,44 +209,6 @@ async function purgeDenaliWizardDraftStorage(
   }
 }
 
-function DenaliWizardDraftAutosave({
-  enabled,
-  draftStorageKey,
-  formMethods,
-  draftWizardMetaRef,
-}: {
-  enabled: boolean;
-  draftStorageKey: string;
-  formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
-  draftWizardMetaRef: MutableRefObject<
-    import("@/features/tours/wizard/tourWizardProfileResolve").TourWizardDraftMeta | undefined
-  >;
-}) {
-  const watched = useWatch({ control: formMethods.control });
-
-  useEffect(() => {
-    if (!enabled || typeof window === "undefined") {
-      return;
-    }
-    const timeoutId = window.setTimeout(() => {
-      try {
-        persistDenaliWizardDraftToStorage(
-          draftStorageKey,
-          formMethods.getValues(),
-          draftWizardMetaRef.current,
-        );
-      } catch {
-        /* ignore */
-      }
-    }, 600);
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [draftStorageKey, draftWizardMetaRef, enabled, formMethods, watched]);
-
-  return null;
-}
-
 export function DenaliCreateTourWizard() {
   const t = useTranslations("tours.new");
   const tDenali = useTranslations("tours.denali");
@@ -218,6 +216,7 @@ export function DenaliCreateTourWizard() {
   const searchParams = useSearchParams();
   const tenant = useTenantContext();
   const workspaceId = useWorkspaceQueryScope();
+  const { user, isHydrated } = useAuth();
   const themesQuery = useSettingsTourThemes();
   const destinationsQuery = useTourDestinations();
   const presetsQuery = useSettingsTourPresets();
@@ -225,33 +224,72 @@ export function DenaliCreateTourWizard() {
   const createMutation = useDenaliTourWizardCreate();
   const submitLocked = isWizardSubmitLocked(createMutation);
   const workspaceFormProfile = resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data);
-  const visibleSteps = denaliWizardSteps;
   const [currentStep, setCurrentStep] = useState(0);
+  const lastStepKeyRef = useRef<DenaliCreateWizardStepId | null>(null);
   const [canonicalSyncToken, setCanonicalSyncToken] = useState(0);
   const [wizardReady, setWizardReady] = useState(false);
-  const [isDraftAvailable, setIsDraftAvailable] = useState(false);
+  const [showIncompatibleDraftBanner, setShowIncompatibleDraftBanner] = useState(false);
+  const [serverSyncEnabled, setServerSyncEnabled] = useState(false);
+  const draftVersionRef = useRef(TOUR_WIZARD_DRAFT_INITIAL_VERSION);
 
   const defaultValues = useMemo(() => buildDenaliTourCreateDefaultValues(), []);
+
+  const mergedRuleSet = useMemo(
+    () => resolveDenaliRuleSetFromTemplate(wizardTemplateQuery.data),
+    [wizardTemplateQuery.data],
+  );
+  const ruleSetRef = useRef(mergedRuleSet);
+  ruleSetRef.current = mergedRuleSet;
+
+  const resolver = useMemo(
+    () => createDenaliCanonicalWizardResolver(undefined, () => ruleSetRef.current),
+    [],
+  );
+
   const formMethods = useForm<DenaliCreateTourWizardForm>({
-    resolver: denaliCanonicalWizardResolver,
+    resolver,
     mode: "onBlur",
     reValidateMode: "onBlur",
     defaultValues,
   });
 
-  const { handleSubmit, getValues, setError, clearErrors, reset } = formMethods;
-  const draftStorageKey = useTourWizardDraftStorageKey();
+  const { getValues, setError, clearErrors, reset, control } = formMethods;
+  const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
+  const visibleSteps = useMemo(() => {
+    const form = getValues();
+    const rawSteps = getDenaliWizardVisibleSteps(form, mergedRuleSet);
+    return withDenaliWizardRailTestingOverrides(rawSteps);
+  }, [tourTypeWatch, canonicalSyncToken, mergedRuleSet, getValues]);
+  const { draftStorageKey, legacyDraftStorageKey } = useDenaliCreateWizardDraftStorageKey(
+    wizardTemplateQuery.data?.id,
+  );
+  const activeDraftStorageKey = draftStorageKey ?? legacyDraftStorageKey;
   const hydrateStartedRef = useRef(false);
-  const pendingDraftRef = useRef<ParsedDenaliWizardDraft | null>(null);
+  const pendingIncompatibleDraftRef = useRef<ParsedDenaliWizardDraft | null>(null);
   const draftWizardMetaRef = useRef<
     import("@/features/tours/wizard/tourWizardProfileResolve").TourWizardDraftMeta | undefined
   >(undefined);
+
+  const serverSync = useTourWizardServerSync({
+    workspaceId:
+      isTourWizardServerDraftEnabled() && isWorkspaceUuid(workspaceId) ? workspaceId : null,
+    form: formMethods,
+    currentStepIndex: currentStep,
+    wizardMetaRef: draftWizardMetaRef,
+    enabled:
+      wizardReady &&
+      serverSyncEnabled &&
+      !submitLocked &&
+      !showIncompatibleDraftBanner &&
+      isTourWizardServerDraftEnabled(),
+    draftVersionRef,
+  });
 
   const navLocked = submitLocked;
 
   const quickAddWizardPersistence = useMemo(
     () => ({
-      storageKey: draftStorageKey,
+      storageKey: activeDraftStorageKey,
       getFormValues: () => getValues() as Record<string, unknown>,
       serializeDraft: (values: Record<string, unknown>) =>
         serializeDenaliWizardDraft(
@@ -259,8 +297,22 @@ export function DenaliCreateTourWizard() {
           draftWizardMetaRef.current,
         ),
     }),
-    [draftStorageKey, getValues],
+    [activeDraftStorageKey, getValues],
   );
+
+  const readStoredCreateDraft = useCallback(() => {
+    if (draftStorageKey) {
+      return readDenaliCreateWizardDraftFromStorage(draftStorageKey, legacyDraftStorageKey);
+    }
+    return readDenaliWizardDraftFromStorage(legacyDraftStorageKey);
+  }, [draftStorageKey, legacyDraftStorageKey]);
+
+  const clearStoredCreateDrafts = useCallback(() => {
+    clearDenaliWizardDraftFromStorage(activeDraftStorageKey);
+    if (legacyDraftStorageKey !== activeDraftStorageKey) {
+      clearDenaliWizardDraftFromStorage(legacyDraftStorageKey);
+    }
+  }, [activeDraftStorageKey, legacyDraftStorageKey]);
 
   const handlePresetApplied = useCallback(
     (presetId: string) => {
@@ -295,35 +347,75 @@ export function DenaliCreateTourWizard() {
     [reset, workspaceFormProfile],
   );
 
+  const applyRestoredStepIndex = useCallback(
+    (stepIndex: number | undefined) => {
+      if (stepIndex == null || stepIndex <= 0) {
+        return;
+      }
+      const steps = getDenaliWizardVisibleSteps(getValues(), mergedRuleSet);
+      if (steps.length === 0) {
+        return;
+      }
+      setCurrentStep(Math.min(stepIndex, steps.length - 1));
+    },
+    [getValues, mergedRuleSet],
+  );
+
+  const finishWizardHydrate = useCallback(
+    (options?: { restoredStepIndex?: number }) => {
+      applyRestoredStepIndex(options?.restoredStepIndex);
+      setWizardReady(true);
+      if (isTourWizardServerDraftEnabled()) {
+        setServerSyncEnabled(true);
+      }
+    },
+    [applyRestoredStepIndex],
+  );
+
+  useEffect(() => {
+    if (!wizardReady || !serverSyncEnabled || !isTourWizardServerDraftEnabled()) {
+      return;
+    }
+    serverSync.seedLastSyncedFingerprint();
+  }, [wizardReady, serverSyncEnabled, serverSync.seedLastSyncedFingerprint]);
+
   const clearDraft = useCallback(() => {
-    pendingDraftRef.current = null;
-    setIsDraftAvailable(false);
-    clearDenaliWizardDraftFromStorage(draftStorageKey);
+    pendingIncompatibleDraftRef.current = null;
+    setShowIncompatibleDraftBanner(false);
+    clearStoredCreateDrafts();
     if (isWorkspaceUuid(workspaceId)) {
       void deleteTourWizardDraft(workspaceId).catch(() => {});
     }
     reset(defaultValues);
     setCurrentStep(0);
     setCanonicalSyncToken((token) => token + 1);
-  }, [defaultValues, draftStorageKey, reset, workspaceId]);
+  }, [defaultValues, clearStoredCreateDrafts, reset, workspaceId]);
 
-  const handleLoadDraft = useCallback(() => {
+  const handleMigrateDraft = useCallback(() => {
     const draft =
-      pendingDraftRef.current ?? readDenaliWizardDraftFromStorage(draftStorageKey);
-    const hydrated = tryHydrateDraft(draft, defaultValues);
+      pendingIncompatibleDraftRef.current ?? readStoredCreateDraft();
+    const hydrated = tryMigrateDenaliWizardDraft(draft, defaultValues, { ruleSet: mergedRuleSet });
     if (!hydrated) {
       clearDraft();
       return;
     }
     applyHydratedDraftToForm(hydrated);
-    pendingDraftRef.current = null;
-    setIsDraftAvailable(false);
+    pendingIncompatibleDraftRef.current = null;
+    setShowIncompatibleDraftBanner(false);
     persistDenaliWizardDraftToStorage(
-      draftStorageKey,
+      activeDraftStorageKey,
       hydrated.formValues,
       draftWizardMetaRef.current,
+      { ruleSet: mergedRuleSet },
     );
-  }, [applyHydratedDraftToForm, clearDraft, defaultValues, draftStorageKey]);
+  }, [
+    activeDraftStorageKey,
+    applyHydratedDraftToForm,
+    clearDraft,
+    defaultValues,
+    mergedRuleSet,
+    readStoredCreateDraft,
+  ]);
 
   useEffect(() => {
     if (hydrateStartedRef.current) {
@@ -333,60 +425,114 @@ export function DenaliCreateTourWizard() {
     if (!template) {
       return;
     }
+    if (isTourWizardServerDraftEnabled() && !isHydrated) {
+      return;
+    }
     hydrateStartedRef.current = true;
 
     if (!isWorkspaceUuid(workspaceId)) {
-      setWizardReady(true);
+      finishWizardHydrate();
       return;
     }
 
     void (async () => {
-      const storageKey = resolveWizardDraftStorageKeyForBrowserHost(draftStorageKey);
-      const localPrefill = readDenaliPrefillFromLocalStorage(storageKey);
-
       if (searchParams.get("new") === "true") {
-        clearDenaliWizardDraftFromStorage(draftStorageKey);
-        await purgeDenaliWizardDraftStorage(workspaceId, draftStorageKey);
-        pendingDraftRef.current = null;
-        setIsDraftAvailable(false);
+        clearStoredCreateDrafts();
+        await purgeDenaliWizardDraftStorage(workspaceId, activeDraftStorageKey);
+        pendingIncompatibleDraftRef.current = null;
+        setShowIncompatibleDraftBanner(false);
         reset(defaultValues);
         setCurrentStep(0);
         setCanonicalSyncToken((token) => token + 1);
-        setWizardReady(true);
+        finishWizardHydrate();
         return;
+      }
+
+      let localPrefill = readStoredCreateDraft();
+      let restoredStepIndex: number | undefined;
+
+      if (
+        isTourWizardServerDraftEnabled() &&
+        isWorkspaceUuid(workspaceId) &&
+        user?.userId
+      ) {
+        try {
+          const { draft: serverDraft } = await fetchTourWizardDraft(workspaceId);
+          const pick = pickDenaliWizardDraftForRestore(localPrefill, serverDraft);
+          if (pick) {
+            if (pick.serverVersion != null) {
+              draftVersionRef.current = pick.serverVersion;
+            }
+            restoredStepIndex = pick.currentStepIndex;
+            if (pick.source === "server") {
+              localPrefill = pick.parsed;
+              draftWizardMetaRef.current = {
+                ...pick.parsed.wizardMeta,
+                savedAt: serverDraft?.updatedAt ?? pick.parsed.wizardMeta?.savedAt,
+                resolvedFormProfile: workspaceFormProfile,
+                formProfileVersion: TOUR_FORM_PROFILE_VERSION,
+              };
+            }
+          }
+        } catch {
+          /* local draft remains source of truth */
+        }
       }
 
       const mayApplyCloneOrPreset =
         localPrefill != null && isAuthenticatedCloneOrPresetPrefill(localPrefill);
 
       if (mayApplyCloneOrPreset && localPrefill?.formPatch) {
-        clearDenaliWizardDraftFromStorage(draftStorageKey);
-        const merged = mergeDenaliWizardDefaults(defaultValues, localPrefill.formPatch);
-        const formValues = normalizeDenaliWizardForm(applyDenaliInvariantState(merged));
+        clearStoredCreateDrafts();
+        const formValues = prepareDenaliWizardFormForSubmit(
+          mergeDenaliWizardDefaults(defaultValues, localPrefill.formPatch, mergedRuleSet),
+          mergedRuleSet,
+        );
         applyHydratedDraftToForm({ formValues, wizardMeta: localPrefill.wizardMeta });
         persistDenaliWizardDraftToStorage(
-          draftStorageKey,
+          activeDraftStorageKey,
           formValues,
           draftWizardMetaRef.current,
+          { ruleSet: mergedRuleSet },
         );
-        pendingDraftRef.current = null;
-        setIsDraftAvailable(false);
-        setWizardReady(true);
+        pendingIncompatibleDraftRef.current = null;
+        setShowIncompatibleDraftBanner(false);
+        finishWizardHydrate({ restoredStepIndex });
         return;
       }
 
-      if (localPrefill != null && isDenaliWizardDraftLoadable(localPrefill)) {
-        pendingDraftRef.current = localPrefill;
-        setIsDraftAvailable(true);
+      const draftResolution = resolveDenaliWizardDraftHydration(localPrefill);
+      if (draftResolution.status === "compatible") {
+        const hydrated = tryHydrateDraft(draftResolution.draft, defaultValues, {
+          ruleSet: mergedRuleSet,
+        });
+        if (hydrated) {
+          applyHydratedDraftToForm(hydrated);
+          persistDenaliWizardDraftToStorage(
+            activeDraftStorageKey,
+            hydrated.formValues,
+            draftWizardMetaRef.current,
+            { ruleSet: mergedRuleSet },
+          );
+          pendingIncompatibleDraftRef.current = null;
+          setShowIncompatibleDraftBanner(false);
+          finishWizardHydrate({ restoredStepIndex });
+          return;
+        }
+      }
+
+      if (draftResolution.status === "incompatible") {
+        pendingIncompatibleDraftRef.current = draftResolution.draft;
+        setShowIncompatibleDraftBanner(true);
         reset(defaultValues);
         setCurrentStep(0);
         setCanonicalSyncToken((token) => token + 1);
-        setWizardReady(true);
+        finishWizardHydrate();
         return;
       }
 
-      pendingDraftRef.current = null;
-      setIsDraftAvailable(false);
+      pendingIncompatibleDraftRef.current = null;
+      setShowIncompatibleDraftBanner(false);
 
       const templateCanonical = wizardTemplateQuery.data?.canonicalData;
       if (
@@ -397,10 +543,12 @@ export function DenaliCreateTourWizard() {
         const hydrated = tryHydrateCanonicalTemplate(
           templateCanonical as DenaliCanonicalTemplateData,
           defaultValues,
+          undefined,
+          mergedRuleSet,
         );
         if (hydrated) {
           applyHydratedDraftToForm(hydrated);
-          setWizardReady(true);
+          finishWizardHydrate({ restoredStepIndex });
           return;
         }
       }
@@ -408,15 +556,22 @@ export function DenaliCreateTourWizard() {
       reset(defaultValues);
       setCurrentStep(0);
       setCanonicalSyncToken((token) => token + 1);
-      setWizardReady(true);
+      finishWizardHydrate({ restoredStepIndex });
     })();
   }, [
+    activeDraftStorageKey,
     applyHydratedDraftToForm,
+    clearStoredCreateDrafts,
     defaultValues,
-    draftStorageKey,
+    finishWizardHydrate,
+    isHydrated,
+    mergedRuleSet,
+    readStoredCreateDraft,
     reset,
     searchParams,
+    user?.userId,
     wizardTemplateQuery.data,
+    workspaceFormProfile,
     workspaceId,
   ]);
 
@@ -447,10 +602,30 @@ export function DenaliCreateTourWizard() {
       return;
     }
     catalogSanitizedRef.current = true;
-    const next = applyDenaliInvariantState(sanitized);
+    const next = applyDenaliInvariantState(sanitized, undefined, mergedRuleSet);
     reset(next, { keepDefaultValues: true });
     setCanonicalSyncToken((token) => token + 1);
-  }, [destinationsQuery.groupedRegions, getValues, reset, themesQuery.data, wizardReady]);
+  }, [destinationsQuery.groupedRegions, getValues, mergedRuleSet, reset, themesQuery.data, wizardReady]);
+
+  useEffect(() => {
+    const key = visibleSteps[currentStep];
+    if (key) {
+      lastStepKeyRef.current = key;
+    }
+  }, [currentStep, visibleSteps]);
+
+  useEffect(() => {
+    const prevKey = lastStepKeyRef.current;
+    if (!prevKey || visibleSteps.length === 0) {
+      return;
+    }
+    const nextIndex = visibleSteps.indexOf(prevKey);
+    if (nextIndex === -1) {
+      setCurrentStep((prev) => Math.min(prev, visibleSteps.length - 1));
+      return;
+    }
+    setCurrentStep((prev) => (prev === nextIndex ? prev : nextIndex));
+  }, [visibleSteps]);
 
   const currentStepKey = visibleSteps[currentStep]!;
   const isFirstStep = currentStep === 0;
@@ -471,13 +646,14 @@ export function DenaliCreateTourWizard() {
       getDenaliWizardPublishReadinessIssues(
         formForPublishGate as DenaliCreateTourWizardForm,
         workspaceFormProfile,
+        mergedRuleSet,
       ).length > 0
     );
-  }, [currentStepKey, formForPublishGate, workspaceFormProfile]);
+  }, [currentStepKey, formForPublishGate, mergedRuleSet, workspaceFormProfile]);
 
   const handleNext = useCallback(async () => {
     const values = getValues();
-    const normalized = applyDenaliInvariantState(values);
+    const normalized = applyDenaliInvariantState(values, undefined, mergedRuleSet);
     const withBlobs = preserveDenaliWizardBlobMedia(values, normalized);
     reset(withBlobs, { keepDefaultValues: true, keepDirty: true });
     setCanonicalSyncToken((token) => token + 1);
@@ -487,6 +663,8 @@ export function DenaliCreateTourWizard() {
       currentStepKey,
       setError,
       clearErrors,
+      undefined,
+      mergedRuleSet,
     );
 
     debugSessionLog(
@@ -506,12 +684,33 @@ export function DenaliCreateTourWizard() {
       setCurrentStep((prev) => Math.min(prev + 1, visibleSteps.length - 1));
       window.scrollTo(0, 0);
     }
-  }, [clearErrors, currentStepKey, getValues, reset, setCanonicalSyncToken, setError, visibleSteps.length]);
+  }, [
+    clearErrors,
+    currentStepKey,
+    getValues,
+    mergedRuleSet,
+    reset,
+    setCanonicalSyncToken,
+    setError,
+    visibleSteps.length,
+  ]);
 
   const onSubmit = useCallback(
     async (values: DenaliCreateTourWizardForm) => {
-      const safeValues = applyDenaliInvariantState(values);
-      const publishIssues = getDenaliWizardPublishReadinessIssues(safeValues, workspaceFormProfile);
+      const photoPersistenceIssues = collectDenaliUnpersistedPhotoBlobIssues(values);
+      if (photoPersistenceIssues.length > 0) {
+        setError("root", {
+          type: "manual",
+          message: formatDenaliPhotoPersistenceWarning(photoPersistenceIssues),
+        });
+        return;
+      }
+      const safeValues = prepareDenaliWizardFormForSubmit(values, mergedRuleSet);
+      const publishIssues = getDenaliWizardPublishReadinessIssues(
+        safeValues,
+        workspaceFormProfile,
+        mergedRuleSet,
+      );
       debugSessionLog(
         "DenaliCreateTourWizard.tsx:onSubmit",
         "Final submit clicked",
@@ -541,12 +740,31 @@ export function DenaliCreateTourWizard() {
       try {
         await createMutation.mutateAsync({
           values: safeValues,
+          ruleSet: mergedRuleSet,
           workspaceFormProfile,
           themeCatalog,
           sourcePresetId: draftWizardMetaRef.current?.sourcePresetId,
           sourceTourId: draftWizardMetaRef.current?.sourceTourId,
         });
       } catch (err) {
+        if (
+          err instanceof ApiError &&
+          handleDenaliWizardValidationApiError(err, setError, {
+            clearErrors: () => clearErrors("root"),
+            onApplied: (issues) => {
+              scrollTourFormToFirstError(
+                issues.map((issue) => ({
+                  path: issue.path,
+                  label: issue.path,
+                  message: issue.message,
+                })),
+              );
+            },
+          })
+        ) {
+          createMutation.reset();
+          return;
+        }
         debugSessionLog(
           "DenaliCreateTourWizard.tsx:onSubmit",
           "Create mutation rejected",
@@ -555,11 +773,17 @@ export function DenaliCreateTourWizard() {
           },
           "E",
         );
+        if (err instanceof ApiError) {
+          setError("root", {
+            type: "server",
+            message: formatWizardApiErrorMessage(err, t("mutationGenericFailed")),
+          });
+        }
         return;
       }
       clearWizardSubmitIdempotencyKey();
       if (isWorkspaceUuid(workspaceId)) {
-        void purgeDenaliWizardDraftStorage(workspaceId, draftStorageKey);
+        void purgeDenaliWizardDraftStorage(workspaceId, activeDraftStorageKey);
       }
       router.push("/tours");
       router.refresh();
@@ -567,48 +791,16 @@ export function DenaliCreateTourWizard() {
     [
       clearErrors,
       createMutation,
-      draftStorageKey,
+      activeDraftStorageKey,
+      mergedRuleSet,
       router,
       setError,
+      t,
       tDenali,
       themesQuery.data,
       workspaceFormProfile,
       workspaceId,
     ],
-  );
-
-  const onInvalid = useCallback(
-    (fieldErrors: typeof formMethods.formState.errors) => {
-      const values = getValues();
-      const flat = flattenDenaliFormErrors(fieldErrors);
-      debugSessionLog(
-        "DenaliCreateTourWizard.tsx:onInvalid",
-        "RHF submit blocked by client validation",
-        {
-          errorCount: flat.length,
-          errorPaths: flat.slice(0, 10).map((e) => e.path),
-          errorMessages: flat.slice(0, 5).map((e) => e.message),
-          transportMode: values.transport?.transportMode,
-        },
-        "C",
-      );
-      logDenaliWizardDiagnosticReport({
-        form: values,
-        activeEquipment: undefined,
-        source: "submit-invalid-rhf",
-      });
-      console.warn("[denali-wizard] submit invalid — RHF fieldErrors:", fieldErrors);
-      const firstError = Object.keys(fieldErrors)[0];
-      if (firstError) {
-        const el =
-          document.getElementsByName(firstError)[0] ||
-          document.querySelector(`[data-testid*="${firstError}"]`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
-    },
-    [formMethods.formState.errors, getValues],
   );
 
   const submitErrorMessage = createMutation.error
@@ -623,13 +815,26 @@ export function DenaliCreateTourWizard() {
     <QuickAddModalProvider wizardPersistence={quickAddWizardPersistence}>
       <FormProvider {...formMethods}>
         <DenaliWizardDraftAutosave
-          enabled={wizardReady && !isDraftAvailable && !submitLocked}
-          draftStorageKey={draftStorageKey}
+          enabled={wizardReady && !submitLocked}
+          draftStorageKey={activeDraftStorageKey}
           formMethods={formMethods}
           draftWizardMetaRef={draftWizardMetaRef}
+          ruleSet={mergedRuleSet}
+          canonicalSyncToken={canonicalSyncToken}
+          useBackupStorage={showIncompatibleDraftBanner}
         />
-        <DenaliCanonicalProvider formMethods={formMethods} syncToken={canonicalSyncToken}>
-          <DenaliWizardSyncProvider isSyncing={false}>
+        <DenaliCanonicalProvider
+          formMethods={formMethods}
+          syncToken={canonicalSyncToken}
+          wizardTemplate={wizardTemplateQuery.data}
+          workspaceFormProfile={workspaceFormProfile}
+        >
+          <DenaliWizardSyncProvider isSyncing={serverSync.isSyncing}>
+          <DenaliWizardNavigationProvider
+            visibleSteps={visibleSteps}
+            currentStepIndex={currentStep}
+            setCurrentStep={setCurrentStep}
+          >
           <Card
             data-testid="denali-create-tour-wizard"
             data-denali-wizard-root="true"
@@ -646,34 +851,50 @@ export function DenaliCreateTourWizard() {
                 noValidate
                 style={{ display: "grid", gap: "1rem" }}
               >
-                {isDraftAvailable ? (
+                {showIncompatibleDraftBanner ? (
                   <div
+                    role="status"
                     style={{
-                      display: "flex",
-                      gap: "0.5rem",
-                      flexWrap: "wrap",
-                      alignItems: "center",
+                      display: "grid",
+                      gap: "0.75rem",
+                      padding: "1rem",
+                      background: "var(--color-warning-50, #fffbeb)",
+                      color: "var(--color-warning-900, #78350f)",
+                      border: "1px solid var(--color-warning-200, #fde68a)",
+                      borderRadius: "8px",
                     }}
-                    data-testid="denali-draft-load-banner"
+                    data-testid="denali-draft-incompatible-banner"
                   >
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={handleLoadDraft}
-                      data-testid="denali-draft-load"
+                    <p style={{ margin: 0 }}>{tDenali("draftHydration.incompatibleBanner")}</p>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.5rem",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
                     >
-                      {tDenali("draftHydration.loadDraft")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={clearDraft}
-                      data-testid="denali-draft-clear"
-                    >
-                      {tDenali("draftHydration.clearDraft")}
-                    </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={handleMigrateDraft}
+                        data-testid="denali-draft-migrate"
+                      >
+                        {tDenali("draftHydration.migrateDraft")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={clearDraft}
+                        data-testid="denali-draft-reset-fresh"
+                      >
+                        {tDenali("draftHydration.resetAndStartFresh")}
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
+
+                <DenaliWizardContentQualityHeader />
 
                 <DenaliWizardStepper steps={visibleSteps} currentIndex={currentStep} />
 
@@ -742,20 +963,21 @@ export function DenaliCreateTourWizard() {
                       بعدی
                     </Button>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => void handleSubmit(onSubmit, onInvalid)()}
+                    <DenaliWizardSubmitControl
                       disabled={navLocked || openPublishBlocked}
-                      data-testid="denali-wizard-final-submit"
-                    >
-                      {createMutation.isPending ? t("submitting") : tDenali("review.submit")}
-                    </Button>
+                      isPending={createMutation.isPending}
+                      pendingLabel={t("submitting")}
+                      submitLabel={tDenali("review.submit")}
+                      ruleSet={mergedRuleSet}
+                      visibleSteps={visibleSteps}
+                      onSubmit={onSubmit}
+                    />
                   )}
                 </div>
               </form>
             </CardBody>
           </Card>
+          </DenaliWizardNavigationProvider>
           </DenaliWizardSyncProvider>
         </DenaliCanonicalProvider>
       </FormProvider>

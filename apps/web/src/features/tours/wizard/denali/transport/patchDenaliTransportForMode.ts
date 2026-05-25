@@ -1,5 +1,6 @@
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 import {
+  isDenaliAdminCapacityApprovalVisible,
   isDenaliOrganizedTransportWithPersonalCarOption,
   isDenaliTransportCostVisible,
   isDenaliTransportDongAmountVisible,
@@ -15,6 +16,7 @@ export function patchDenaliTransportForMode(
   const allowPersonalCar = hasPersonalCarOption ? current.allowPersonalCar : undefined;
   const dongVisible = isDenaliTransportDongAmountVisible({ mode, allowPersonalCar });
   const costVisible = isDenaliTransportCostVisible(mode);
+  const separateCapacityVisible = isDenaliAdminCapacityApprovalVisible({ mode, allowPersonalCar });
 
   return {
     ...current,
@@ -22,5 +24,6 @@ export function patchDenaliTransportForMode(
     transportCost: costVisible ? current.transportCost : undefined,
     allowPersonalCar,
     dongAmount: dongVisible ? current.dongAmount : undefined,
+    adminCapacityApproval: separateCapacityVisible ? current.adminCapacityApproval : undefined,
   };
 }

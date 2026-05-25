@@ -1,7 +1,8 @@
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
-import { normalizeDenaliWizardForm } from "./validation/denaliRuleAccess";
+import type { DenaliRuleSet } from "./rules/denaliRuleModel";
+import { denaliRuleSet } from "./rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "./validation/denaliRuleAccess";
 
 /**
  * Final normalization pass shared by draft hydration and canonical template hydration.
@@ -9,6 +10,7 @@ import { normalizeDenaliWizardForm } from "./validation/denaliRuleAccess";
  */
 export function finalizeDenaliWizardHydration(
   form: DenaliCreateTourWizardForm,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliCreateTourWizardForm {
-  return normalizeDenaliWizardForm(applyDenaliInvariantState(form));
+  return prepareDenaliWizardFormForSubmit(form, ruleSet);
 }

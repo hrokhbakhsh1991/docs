@@ -11,6 +11,8 @@ import {
   type DenaliCanonicalPartial,
 } from "./denaliCanonicalFormAdapter";
 import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
+import type { DenaliRuleSet } from "./rules/denaliRuleModel";
+import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { finalizeDenaliWizardHydration } from "./denaliFormHydration";
 import type { HydratedDenaliWizardDraft } from "./safeDraftHydration";
 
@@ -31,6 +33,7 @@ export function tryHydrateCanonicalTemplate(
   canonicalPatch: DenaliCanonicalTemplateData | DenaliCanonicalPartial | null | undefined,
   defaultValues: DenaliCreateTourWizardForm,
   wizardMeta?: TourWizardDraftMeta,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): HydratedDenaliWizardDraft | null {
   if (canonicalPatch == null || typeof canonicalPatch !== "object") {
     return null;
@@ -51,7 +54,7 @@ export function tryHydrateCanonicalTemplate(
   };
 
   const formFromCanonical = denaliCanonicalToForm(mergedCanonical, defaultValues, { basics });
-  const formValues = finalizeDenaliWizardHydration(formFromCanonical);
+  const formValues = finalizeDenaliWizardHydration(formFromCanonical, ruleSet);
 
   return { formValues, wizardMeta };
 }

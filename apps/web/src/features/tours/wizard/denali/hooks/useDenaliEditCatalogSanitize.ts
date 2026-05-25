@@ -9,6 +9,7 @@ import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 
 import { applyDenaliInvariantState } from "../validation/denaliInvariantEngine";
 import { sanitizeDenaliWizardCatalogRefs } from "../sanitizeDenaliWizardCatalogRefs";
+import type { DenaliRuleSet } from "../rules/denaliRuleModel";
 
 /**
  * One-shot catalog ref cleanup after destinations/themes load (edit + clone hydrate).
@@ -17,6 +18,7 @@ import { sanitizeDenaliWizardCatalogRefs } from "../sanitizeDenaliWizardCatalogR
 export function useDenaliEditCatalogSanitize(
   formMethods: Pick<UseFormReturn<DenaliCreateTourWizardForm>, "getValues" | "reset">,
   onSanitized: () => void,
+  mergedRuleSet: DenaliRuleSet,
 ): void {
   const { getValues, reset } = formMethods;
   const themesQuery = useSettingsTourThemes();
@@ -48,13 +50,14 @@ export function useDenaliEditCatalogSanitize(
     if (!clearedDestination && clearedThemeIds === 0) {
       return;
     }
-    const next = applyDenaliInvariantState(sanitized);
+    const next = applyDenaliInvariantState(sanitized, undefined, mergedRuleSet);
     reset(next, { keepDefaultValues: true });
     onSanitized();
   }, [
     destinationsQuery.groupedRegions,
     destinationsQuery.isLoading,
     getValues,
+    mergedRuleSet,
     onSanitized,
     reset,
     themesQuery.data,

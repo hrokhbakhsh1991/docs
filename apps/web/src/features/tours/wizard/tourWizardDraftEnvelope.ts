@@ -1,4 +1,4 @@
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 
 import { resolveTenantSlugFromHost } from "@/lib/tenant/runtime-tenant-context";
 

@@ -7,6 +7,7 @@ import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/sche
 import { buildTourCreateFormDefaultValues } from "@/features/tours/wizard/tourCreateFormDefaults";
 import { parseDenaliWizardDraftRecord } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
 import { parseWizardDraftRecord } from "@/features/tours/wizard/tourWizardDraftEnvelope";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
 import { applyClassicWizardPreset, applyDenaliWizardPreset, applyTourCreationPreset } from "./tourCreationPresetApply";
 import { loadWizardPrefill } from "./sources/loadWizardPrefill";
@@ -143,6 +144,7 @@ test("banner and URL bootstrap share applyDenaliWizardPreset pipeline", async ()
 
   const fromBanner = applyDenaliWizardPreset({
     workspaceFormProfile: profile,
+    ruleSet: denaliRuleSet,
     canonicalData: denaliPresetCanonical,
     defaults: denaliLegacyDefaults,
     baseValues,
@@ -182,6 +184,7 @@ test("banner and URL bootstrap share applyDenaliWizardPreset pipeline", async ()
 
   const fromUrlMerged = applyDenaliWizardPreset({
     workspaceFormProfile: profile,
+    ruleSet: denaliRuleSet,
     canonicalData: denaliPresetCanonical,
     ctx,
     baseValues,

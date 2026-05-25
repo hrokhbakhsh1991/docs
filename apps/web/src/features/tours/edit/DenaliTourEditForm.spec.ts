@@ -33,9 +33,13 @@ import {
   isDenaliFieldRequiredOnStep,
   isDenaliFieldVisibleOnStep,
 } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
+import { finalizeDenaliWizardHydration } from "@/features/tours/wizard/denali/denaliFormHydration";
 import { patchDenaliTransportForMode } from "@/features/tours/wizard/denali/transport/patchDenaliTransportForMode";
 import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
-import { resolveDenaliRuleModelFromForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import {
+  prepareDenaliWizardFormForSubmit,
+  resolveDenaliRuleModelFromForm,
+} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import {
   buildDenaliTourCreateDefaultValues,
   buildDenaliTourCreateTestValues,
@@ -49,7 +53,7 @@ const DENALI_EDIT_FORM_STEPS = denaliWizardSteps.filter(
 );
 
 const LOGISTICS_STEP = "denali_logistics" as const;
-const SEAT_PATH = "transport.seatPreference";
+const ADMIN_CAPACITY_PATH = "transport.adminCapacityApproval";
 
 function makeMockTourForEdit(overrides: Partial<TourCloneSourceDto> = {}): TourCloneSourceDto {
   return {
@@ -95,13 +99,14 @@ function makeMockTourForEdit(overrides: Partial<TourCloneSourceDto> = {}): TourC
   };
 }
 
-/** Flat edit hydrate: tour DTO → merged wizard defaults (same as DenaliTourEditForm). */
+/** Flat edit hydrate: tour DTO → merged defaults → registry cleanup (same as DenaliTourEditForm). */
 function buildFlatEditFormFromMockTour(
   overrides: Partial<TourCloneSourceDto> = {},
 ): DenaliCreateTourWizardForm {
   const patch = transformTourToDenaliWizardValues(makeMockTourForEdit(overrides), { mode: "clone" });
-  return normalizeDenaliWizardForm(
-    mergeDenaliWizardDefaults(buildDenaliTourCreateDefaultValues(), patch),
+  const merged = mergeDenaliWizardDefaults(buildDenaliTourCreateDefaultValues(), patch);
+  return finalizeDenaliWizardHydration(
+    prepareDenaliWizardFormForSubmit(merged),
   );
 }
 
@@ -247,28 +252,29 @@ test("rule-engine: event single_day program outdoor fields hidden in edit and wi
   assert.equal(editFormFieldVisible(stepId, "programNature.themeIds", form), true);
 });
 
-test("transport mode train → seatPreference visible in edit and wizard", () => {
-  const form = setTransportModeLikeEditForm(buildFlatEditFormFromMockTour(), "train");
-
-  assert.equal(form.transport.transportMode, "train");
-  assertEditMatchesWizardVisibility(LOGISTICS_STEP, SEAT_PATH, form);
-  assert.equal(editFormFieldVisible(LOGISTICS_STEP, SEAT_PATH, form), true);
-  assert.equal(editFormFieldRequired(LOGISTICS_STEP, SEAT_PATH, form), true);
-
-  const evaluated = evaluateFormFieldRule(form, SEAT_PATH, LOGISTICS_STEP);
-  assert.equal(evaluated.visible, true);
-  assert.equal(evaluated.required, true);
-});
-
-test("transport mode bus → seatPreference hidden in edit and wizard (same as wizard toggle)", () => {
-  let form = setTransportModeLikeEditForm(buildFlatEditFormFromMockTour(), "train");
-  form = setTransportModeLikeEditForm(form, "bus");
+test("transport bus + allowPersonalCar → adminCapacityApproval visible in edit and wizard", () => {
+  let form = setTransportModeLikeEditForm(buildFlatEditFormFromMockTour(), "bus");
+  form.transport.allowPersonalCar = true;
 
   assert.equal(form.transport.transportMode, "bus");
-  assertEditMatchesWizardVisibility(LOGISTICS_STEP, SEAT_PATH, form);
-  assert.equal(editFormFieldVisible(LOGISTICS_STEP, SEAT_PATH, form), false);
+  assertEditMatchesWizardVisibility(LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form);
+  assert.equal(editFormFieldVisible(LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form), true);
+  assert.equal(editFormFieldRequired(LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form), false);
 
-  const evaluated = evaluateFormFieldRule(form, SEAT_PATH, LOGISTICS_STEP);
+  const evaluated = evaluateFormFieldRule(form, ADMIN_CAPACITY_PATH, LOGISTICS_STEP);
+  assert.equal(evaluated.visible, true);
+  assert.equal(evaluated.required, false);
+});
+
+test("transport bus without allowPersonalCar → adminCapacityApproval hidden in edit and wizard", () => {
+  let form = setTransportModeLikeEditForm(buildFlatEditFormFromMockTour(), "bus");
+  form.transport.allowPersonalCar = undefined;
+
+  assert.equal(form.transport.transportMode, "bus");
+  assertEditMatchesWizardVisibility(LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form);
+  assert.equal(editFormFieldVisible(LOGISTICS_STEP, ADMIN_CAPACITY_PATH, form), false);
+
+  const evaluated = evaluateFormFieldRule(form, ADMIN_CAPACITY_PATH, LOGISTICS_STEP);
   assert.equal(evaluated.visible, false);
   assert.equal(evaluated.required, false);
 });
@@ -291,7 +297,7 @@ test("transport mode toggle: dependent logistics fields stay aligned between edi
       "transport.transportCost",
       "transport.allowPersonalCar",
       "transport.dongAmount",
-      SEAT_PATH,
+      ADMIN_CAPACITY_PATH,
     ] as const;
 
     for (const formPath of dependentPaths) {

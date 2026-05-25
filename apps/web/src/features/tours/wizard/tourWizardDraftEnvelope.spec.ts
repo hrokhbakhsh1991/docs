@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { TOUR_FORM_PROFILE_VERSION, type TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 
 import { sanitizeInactiveRootsForProfile } from "./fieldGroups";
 import { buildTourCreateFormDefaultValues } from "./tourCreateFormDefaults";

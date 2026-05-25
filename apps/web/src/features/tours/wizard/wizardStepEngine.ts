@@ -1,6 +1,6 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import {
   getVisibleWizardStepsForTenantContract,
   type TenantTourFormContract,
@@ -10,7 +10,7 @@ import type { TenantWizardStepOverrides } from "@/features/tours/wizard/template
 import {
   tourFormProfileToWizardValidationFlags,
   type TourCreateWizardValidationFlags,
-} from "@/components/tours/wizard/schemas/tourCreateValidationPolicy";
+} from "@/components/tours/wizard/legacy/schemas/tourCreateValidationPolicy";
 
 import {
   STEP_PRIMARY_FIELD_GROUP,

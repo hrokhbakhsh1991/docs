@@ -306,7 +306,7 @@ export async function installTourWizardSettingsRoutes(
   const themes = opts.themes ?? [];
   const presets = opts.presets ?? [];
 
-  await page.route("**/api/settings/tour-themes", async (route) => {
+  const fulfillThemes = async (route: Route) => {
     if (route.request().method() !== "GET") {
       await route.continue();
       return;
@@ -316,9 +316,9 @@ export async function installTourWizardSettingsRoutes(
       contentType: "application/json",
       body: JSON.stringify(themes),
     });
-  });
+  };
 
-  await page.route("**/api/settings/tour-presets", async (route) => {
+  const fulfillPresets = async (route: Route) => {
     if (route.request().method() !== "GET") {
       await route.continue();
       return;
@@ -328,26 +328,40 @@ export async function installTourWizardSettingsRoutes(
       contentType: "application/json",
       body: JSON.stringify(presets),
     });
-  });
+  };
 
-  await page.route("**/api/settings/tour-wizard-template", async (route) => {
-    if (route.request().method() !== "GET") {
-      await route.continue();
-      return;
+  const fulfillTemplate = async (route: Route) => {
+    try {
+      if (route.request().method() !== "GET") {
+        await route.continue();
+        return;
+      }
+      const profile =
+        opts.workspaceTemplateProfile === null
+          ? null
+          : opts.workspaceTemplateProfile ?? SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE;
+      const body =
+        profile != null ? buildSmokeWizardTemplateEnvelope(profile) : { template: null };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      console.error("[FULFILL TEMPLATE ERROR]", err);
     }
-    const profile =
-      opts.workspaceTemplateProfile === null
-        ? null
-        : opts.workspaceTemplateProfile ?? SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE;
-    const body =
-      profile != null ? buildSmokeWizardTemplateEnvelope(profile) : { template: null };
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(body),
-    });
-  });
+  };
+
+  await page.context().route("**/api/settings/tour-themes", fulfillThemes);
+  await page.route("**/api/settings/tour-themes", fulfillThemes);
+
+  await page.context().route("**/api/settings/tour-presets", fulfillPresets);
+  await page.route("**/api/settings/tour-presets", fulfillPresets);
+
+  await page.context().route("**/api/settings/tour-wizard-template", fulfillTemplate);
+  await page.route("**/api/settings/tour-wizard-template", fulfillTemplate);
 }
+
 
 export type TourWizardServerDraftMock = {
   id?: string;
@@ -384,7 +398,9 @@ export async function installTourWizardServerDraftRoutes(
                 workspaceId: SMOKE_WIZARD_JWT_TENANT_ID,
                 userId: "user-smoke-1",
                 envelope: draft.envelope,
-                wizardContractVersion: 1,
+                payload: draft.envelope,
+                currentStepIndex: opts.getDraft?.currentStepIndex ?? 0,
+                version: draft.rowVersion ?? rowVersion,
                 rowVersion: draft.rowVersion ?? rowVersion,
                 updatedAt: draft.updatedAt,
               }
@@ -411,7 +427,9 @@ export async function installTourWizardServerDraftRoutes(
             workspaceId: SMOKE_WIZARD_JWT_TENANT_ID,
             userId: "user-smoke-1",
             envelope: (body.envelope as Record<string, unknown>) ?? {},
-            wizardContractVersion: 1,
+            payload: (body.payload as Record<string, unknown>) ?? (body.envelope as Record<string, unknown>) ?? {},
+            currentStepIndex: (body.currentStepIndex as number) ?? 0,
+            version: rowVersion,
             rowVersion,
             updatedAt: new Date().toISOString(),
           },
@@ -428,6 +446,8 @@ export async function installTourWizardServerDraftRoutes(
 
   await page.context().route("**/api/settings/tour-wizard-draft", fulfillDraft);
   await page.route("**/api/settings/tour-wizard-draft", fulfillDraft);
+  await page.context().route("**/api/workspaces/*/tours/drafts", fulfillDraft);
+  await page.route("**/api/workspaces/*/tours/drafts", fulfillDraft);
 }
 
 /** Minimal active region + destination for `LocationDatesStep` / `useTourDestinations`. */
@@ -512,6 +532,7 @@ export async function installLeaderWorkspaceSessionRoute(
   };
 
   await page.context().route("**/api/auth/session", fulfill);
+  await page.route("**/api/auth/session", fulfill);
   await installSmokeMembershipAbilityContext(page, opts?.tenantModules ?? ["form_builder"]);
 }
 
@@ -520,19 +541,27 @@ export async function installSmokeMembershipAbilityContext(
   page: Page,
   tenantModules: string[] = ["form_builder"],
 ): Promise<void> {
-  await page.context().route("**/api/auth/membership-ability-context", async (route) => {
-    if (route.request().method() !== "GET") {
-      await route.continue();
-      return;
+  const fulfillAbility = async (route: Route) => {
+    try {
+      if (route.request().method() !== "GET") {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          labels: ["owner"],
+          capabilities: [],
+          tenant_modules: tenantModules,
+        }),
+      });
+    } catch (err) {
+      console.error("[FULFILL ABILITY ERROR]", err);
     }
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        labels: ["owner"],
-        capabilities: [],
-        tenant_modules: tenantModules,
-      }),
-    });
-  });
+  };
+
+  await page.context().route("**/api/auth/membership-ability-context", fulfillAbility);
+  await page.route("**/api/auth/membership-ability-context", fulfillAbility);
 }
+

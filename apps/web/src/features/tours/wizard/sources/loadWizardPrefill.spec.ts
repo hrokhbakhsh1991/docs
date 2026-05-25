@@ -23,7 +23,7 @@ test("loadWizardPrefill: blank returns null", async () => {
   assert.equal(result, null);
 });
 
-test("loadWizardPrefill: preset denali writes 6-tab draft", async () => {
+test("loadWizardPrefill: preset denali writes canonical-hydrated draft", async () => {
   const result = await loadWizardPrefill(
     { kind: "preset", presetId: "preset-1" },
     {
@@ -31,8 +31,10 @@ test("loadWizardPrefill: preset denali writes 6-tab draft", async () => {
       tenantFormContract: emptyContract,
       fetchPreset: async () => ({
         formProfile: "denali_pilot",
-        defaults: {
-          basicInfo: { tourType: "mountain_day", title: "preset title twelve" },
+        canonicalData: {
+          category: "mountain",
+          duration: "single",
+          title: "preset title twelve",
         },
         matchTourType: "mountain_day",
       }),

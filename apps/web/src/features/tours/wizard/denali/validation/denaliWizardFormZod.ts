@@ -8,7 +8,8 @@
 import { z } from "zod";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliRuleModel } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import type { DenaliRuleModel, DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import {
   collectDenaliRuleRequiredIssues,
   mapFormPathToCanonical,
@@ -111,9 +112,10 @@ const TOUR_TYPE_REQUIRED_ISSUE: z.ZodIssue = {
 export function getDenaliWizardSubmitIssues(
   form: DenaliCreateTourWizardForm,
   uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): z.ZodIssue[] {
-  const normalized = normalizeDenaliWizardForm(form, uiOptions);
-  const model = resolveDenaliRuleModelFromForm(normalized);
+  const normalized = normalizeDenaliWizardForm(form, uiOptions, ruleSet);
+  const model = resolveDenaliRuleModelFromForm(normalized, ruleSet);
   if (model == null) {
     return [TOUR_TYPE_REQUIRED_ISSUE];
   }
@@ -143,8 +145,9 @@ function issueBelongsToWizardStep(
   form: DenaliCreateTourWizardForm,
   stepId: DenaliCreateWizardStepId,
   uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): boolean {
-  const model = resolveDenaliRuleModelFromForm(form);
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
   if (model == null) return true;
 
   const pathStr = mapFormPathToCanonical(issue.path.join("."));
@@ -164,9 +167,10 @@ export function getDenaliWizardStepIssues(
   form: DenaliCreateTourWizardForm,
   stepId: DenaliCreateWizardStepId,
   uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): z.ZodIssue[] {
-  const normalized = normalizeDenaliWizardForm(form, uiOptions);
-  const model = resolveDenaliRuleModelFromForm(normalized);
+  const normalized = normalizeDenaliWizardForm(form, uiOptions, ruleSet);
+  const model = resolveDenaliRuleModelFromForm(normalized, ruleSet);
   if (model == null) {
     return [TOUR_TYPE_REQUIRED_ISSUE];
   }
@@ -175,7 +179,9 @@ export function getDenaliWizardStepIssues(
     scope: { mode: "step", stepId },
     uiOptions,
   });
-  return issues.filter((issue) => issueBelongsToWizardStep(issue, normalized, stepId, uiOptions));
+  return issues.filter((issue) =>
+    issueBelongsToWizardStep(issue, normalized, stepId, uiOptions, ruleSet),
+  );
 }
 
 /** Full-form validation: structural + rules + canonical (single submit gate). */

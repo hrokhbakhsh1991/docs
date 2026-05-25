@@ -24,25 +24,26 @@ export function SettingsSubnav() {
 
   return (
     <nav className={styles.root} aria-label={t("settingsSubnavAria")}>
-      <Link href="/settings" className={cn(styles.link, profileActive && styles.linkActive)}>
+      <Link href="/settings" prefetch={false} className={cn(styles.link, profileActive && styles.linkActive)}>
         {t("settingsSubnavProfile")}
       </Link>
-      <Link href="/settings/locations" className={cn(styles.link, locationsActive && styles.linkActive)}>
+      <Link href="/settings/locations" prefetch={false} className={cn(styles.link, locationsActive && styles.linkActive)}>
         {t("locationsSectionTitle")}
       </Link>
-      <Link href="/settings/equipment" className={cn(styles.link, equipmentActive && styles.linkActive)}>
+      <Link href="/settings/equipment" prefetch={false} className={cn(styles.link, equipmentActive && styles.linkActive)}>
         {t("settingsSubnavEquipment")}
       </Link>
-      <Link href="/settings/tour-themes" className={cn(styles.link, tourThemesActive && styles.linkActive)}>
+      <Link href="/settings/tour-themes" prefetch={false} className={cn(styles.link, tourThemesActive && styles.linkActive)}>
         {t("settingsSubnavTourThemes")}
       </Link>
       <Link
         href="/settings/guide-languages"
+        prefetch={false}
         className={cn(styles.link, guideLanguagesActive && styles.linkActive)}
       >
         {t("settingsSubnavGuideLanguages")}
       </Link>
-      <Link href="/settings/tour-presets" className={cn(styles.link, tourPresetsActive && styles.linkActive)}>
+      <Link href="/settings/tour-presets" prefetch={false} className={cn(styles.link, tourPresetsActive && styles.linkActive)}>
         {t("settingsSubnavTourFormDefaults")}
       </Link>
     </nav>

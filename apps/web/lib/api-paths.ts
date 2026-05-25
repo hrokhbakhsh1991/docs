@@ -80,6 +80,7 @@ export const BFF = {
   toursQuery: (queryString: string) =>
     queryString.trim() ? `/api/tours?${queryString}` : "/api/tours",
   tour: (id: string) => `/api/tours/${encodeURIComponent(id)}`,
+  tourPhotos: (tourId: string) => `/api/tours/${encodeURIComponent(tourId)}/photos`,
   me: "/api/me",
   users: "/api/users",
   usersQuery: (queryString: string) =>

@@ -13,7 +13,6 @@ import {
   denaliFormAmountToCanonical,
   denaliFormCapacityMaxToCanonical,
 } from "./denaliNumericFields";
-
 import {
   denaliLocationAddressText,
   denaliLocationFromText,
@@ -103,6 +102,7 @@ export type DenaliWizardFormLike = {
     allowPersonalCar?: boolean;
     dongAmount?: number;
     transportNotes?: string;
+    adminCapacityApproval?: boolean;
   };
   pricingPayment: {
     requiresPayment?: boolean;
@@ -302,6 +302,17 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
   const gatheringPoints = resolveGatheringPointsFromForm(form);
   const primaryGathering = gatheringPoints[0];
 
+  const transport = {
+    mode: transportModeToCanonical(form.transport.transportMode),
+    transportCost: denaliFormAmountToCanonical(form.transport.transportCost),
+    allowPersonalCar:
+      form.transport.allowPersonalCar === true ? true : undefined,
+    dongAmount: denaliFormAmountToCanonical(form.transport.dongAmount),
+    transportNotes: trimOptionalString(form.transport.transportNotes),
+    adminCapacityApproval:
+      form.transport.adminCapacityApproval === true ? true : undefined,
+  };
+
   return {
     category: basics.category,
     duration: formDurationToCanonical(basics.duration),
@@ -372,14 +383,7 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
           : undefined,
     },
 
-    transport: {
-      mode: transportModeToCanonical(form.transport.transportMode),
-      transportCost: denaliFormAmountToCanonical(form.transport.transportCost),
-      allowPersonalCar:
-        form.transport.allowPersonalCar === true ? true : undefined,
-      dongAmount: denaliFormAmountToCanonical(form.transport.dongAmount),
-      transportNotes: trimOptionalString(form.transport.transportNotes),
-    },
+    transport,
 
     pricing: {
       requiresPayment,

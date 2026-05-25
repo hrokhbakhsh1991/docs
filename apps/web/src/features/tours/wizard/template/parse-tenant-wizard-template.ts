@@ -13,8 +13,9 @@ export function parseTenantWizardTemplate(raw: unknown): TenantWizardTemplate | 
   if (!id || !workspaceId) {
     return null;
   }
-  const baseProfile = isTourFormProfile(o.baseProfile)
-    ? normalizeTourFormProfileInput(o.baseProfile)
+  const baseProfileRaw = o.baseProfile ?? o.base_profile ?? o.formProfile;
+  const baseProfile = isTourFormProfile(baseProfileRaw)
+    ? normalizeTourFormProfileInput(baseProfileRaw)
     : "general";
   return {
     id,

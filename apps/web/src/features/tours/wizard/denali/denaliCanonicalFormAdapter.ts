@@ -20,6 +20,8 @@ import {
 
 import type { UseFormSetValue } from "react-hook-form";
 
+import type { DenaliRuleSet } from "./rules/denaliRuleModel";
+import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
@@ -51,7 +53,7 @@ export function mergeDenaliCanonicalPartial(
   base: DenaliCanonicalTourModel,
   patch: DenaliCanonicalPartial,
 ): DenaliCanonicalTourModel {
-  return {
+  const merged = {
     ...base,
     ...patch,
     program: { ...base.program, ...patch.program },
@@ -59,6 +61,10 @@ export function mergeDenaliCanonicalPartial(
     pricing: { ...base.pricing, ...patch.pricing },
     participants: { ...base.participants, ...patch.participants },
     policies: { ...base.policies, ...patch.policies },
+  };
+
+  return {
+    ...merged,
   };
 }
 
@@ -88,7 +94,8 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
     summitPoint: form.basicInfo.summitPoint ?? base.summitPoint,
     campPoint: form.basicInfo.campPoint ?? base.campPoint,
     endPoint: form.basicInfo.endPoint ?? base.endPoint,
-    gatheringPoints: form.tripDetails.logistics.gatheringPoints ?? base.gatheringPoints,
+    gatheringPoints:
+      form.tripDetails?.logistics?.gatheringPoints ?? base.gatheringPoints,
     approximateReturnTime: form.basicInfo.approximateReturnTime ?? base.approximateReturnTime,
     socialMediaLink:
       form.basicInfo.socialMediaLink ??
@@ -212,6 +219,7 @@ export function denaliCanonicalToForm(
       allowPersonalCar: canonical.transport.allowPersonalCar,
       dongAmount: canonical.transport.dongAmount,
       transportNotes: canonical.transport.transportNotes,
+      adminCapacityApproval: canonical.transport.adminCapacityApproval,
     },
     tripDetails: {
       ...existingForm.tripDetails,
@@ -256,16 +264,18 @@ export { applyDenaliInvariantState };
 export type ApplyCanonicalMvpToFormOptions = {
   basics?: DenaliCanonicalBasicsSelection | null;
   setValue: UseFormSetValue<DenaliCreateTourWizardForm>;
+  /** Workspace overlay rule set; defaults to static {@link denaliRuleSet}. */
+  ruleSet?: DenaliRuleSet;
 };
 
 /** Writes MVP slices to RHF without resetting legacy fields. Returns the normalized form. */
 export function applyCanonicalMvpToForm(
   canonical: DenaliCanonicalTourModel,
   existingForm: DenaliCreateTourWizardForm,
-  { basics, setValue }: ApplyCanonicalMvpToFormOptions,
+  { basics, setValue, ruleSet = denaliRuleSet }: ApplyCanonicalMvpToFormOptions,
 ): DenaliCreateTourWizardForm {
   const nextRaw = denaliCanonicalToForm(canonical, existingForm, { basics });
-  const next = applyDenaliInvariantState(nextRaw);
+  const next = applyDenaliInvariantState(nextRaw, undefined, ruleSet);
 
   const sync = { shouldDirty: true, shouldValidate: true } as const;
 
@@ -295,9 +305,11 @@ export function applyCanonicalMvpToForm(
       allowPersonalCar: next.transport.allowPersonalCar,
       dongAmount: next.transport.dongAmount,
       transportNotes: next.transport.transportNotes,
+      adminCapacityApproval: next.transport.adminCapacityApproval,
     },
     sync,
   );
+  setValue("basicInfo.capacityMax", next.basicInfo.capacityMax, sync);
   setValue(
     "pricingPayment",
     {

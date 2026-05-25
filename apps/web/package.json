@@ -27,7 +27,9 @@
     "qa:denali:owner-matrix": "node --env-file=.env.local --import tsx scripts/qa-denali-owner-matrix.ts",
     "qa:denali:preset-wire": "node --env-file=../api/.env --import tsx scripts/qa-denali-preset-wire.ts",
     "qa:integration:wizard-tenants:all": "PW_REAL_STACK=1 PW_NO_WEB_SERVER=1 playwright test -c playwright.integration.config.ts tests/integration/",
-    "auth:test": "node --env-file=.env.local --import tsx scripts/login-test.ts"
+    "auth:test": "node --env-file=.env.local --import tsx scripts/login-test.ts",
+    "generate:denali-wizard": "tsx scripts/generate-denali-wizard-config.ts",
+    "audit:denali-registry": "tsx scripts/registry-integrity-audit.ts"
   },
   "dependencies": {
     "@casl/react": "^6.0.0",

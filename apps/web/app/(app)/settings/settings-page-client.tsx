@@ -53,34 +53,38 @@ function SettingsWorkspaceBody() {
     <SettingsLayout>
       <SettingsSectionCard title={t("hubWorkspaceTitle")} description={t("hubWorkspaceDescription")}>
         <div className={styles.hubGrid}>
-          <Link href="/settings/locations" className={styles.hubLink}>
+          <Link href="/settings/locations" prefetch={false} className={styles.hubLink}>
             <p className={styles.hubLinkTitle}>{t("hubLocationsLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubLocationsBlurb")}</p>
           </Link>
-          <Link href="/settings/equipment" className={styles.hubLink}>
+          <Link href="/settings/equipment" prefetch={false} className={styles.hubLink}>
             <p className={styles.hubLinkTitle}>{t("hubEquipmentLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubEquipmentBlurb")}</p>
           </Link>
-          <Link href="/settings/tour-themes" className={styles.hubLink}>
+          <Link href="/settings/tour-themes" prefetch={false} className={styles.hubLink}>
             <p className={styles.hubLinkTitle}>{t("hubTourThemesLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubTourThemesBlurb")}</p>
           </Link>
-          <Link href="/settings/guide-languages" className={styles.hubLink}>
+          <Link href="/settings/guide-languages" prefetch={false} className={styles.hubLink}>
             <p className={styles.hubLinkTitle}>{t("hubGuideLanguagesLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubGuideLanguagesBlurb")}</p>
           </Link>
-          <Link href="/settings/tour-presets" className={styles.hubLink}>
+          <Link href="/settings/tour-presets" prefetch={false} className={styles.hubLink}>
             <p className={styles.hubLinkTitle}>{t("hubTourFormDefaultsLink")}</p>
             <p className={styles.hubLinkBlurb}>{t("hubTourFormDefaultsBlurb")}</p>
           </Link>
+          <Link href="/settings/tour-wizard-template" prefetch={false} className={styles.hubLink}>
+            <p className={styles.hubLinkTitle}>{t("hubTourWizardTemplateLink")}</p>
+            <p className={styles.hubLinkBlurb}>{t("hubTourWizardTemplateBlurb")}</p>
+          </Link>
           <Can<AppAbility> ability={ability} I={AbilityAction.Read} a="Audit">
-            <Link href="/settings/audit-trail" className={styles.hubLink}>
+            <Link href="/settings/audit-trail" prefetch={false} className={styles.hubLink}>
               <p className={styles.hubLinkTitle}>{t("hubAuditTrailLink")}</p>
               <p className={styles.hubLinkBlurb}>{t("hubAuditTrailBlurb")}</p>
             </Link>
           </Can>
           <Can<AppAbility> ability={ability} I={AbilityAction.Read} a="Reconciliation">
-            <Link href="/settings/reconciliation-triage" className={styles.hubLink}>
+            <Link href="/settings/reconciliation-triage" prefetch={false} className={styles.hubLink}>
               <p className={styles.hubLinkTitle}>{t("hubReconciliationTriageLink")}</p>
               <p className={styles.hubLinkBlurb}>{t("hubReconciliationTriageBlurb")}</p>
             </Link>

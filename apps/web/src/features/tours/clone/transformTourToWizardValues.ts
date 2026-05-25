@@ -1,4 +1,4 @@
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import { UUID_V4_RE } from "@/features/tours/wizard/domain/mappers/wizardMapperHelpers";
 
 /**

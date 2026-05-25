@@ -12,7 +12,12 @@
  * Clears session and redirects on 401 (except login flows).
  */
 
-import axios, { AxiosError, type AxiosInstance } from "axios";
+import axios, {
+  AxiosError,
+  type AxiosInstance,
+  type AxiosResponseHeaders,
+  type RawAxiosResponseHeaders,
+} from "axios";
 
 import { clearAuthAndRedirectToLogin } from "./auth/session";
 import { getStoredSessionToken } from "./auth/session";
@@ -55,18 +60,32 @@ export class ApiError extends Error {
 
   data?: unknown;
 
-  constructor(code: string, message: string, status?: number, data?: unknown) {
+  /** Correlates with API `requestId` / `x-request-id` for support and logging. */
+  requestId?: string;
+
+  constructor(
+    code: string,
+    message: string,
+    status?: number,
+    data?: unknown,
+    requestId?: string,
+  ) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
     this.data = data;
+    this.requestId = requestId;
   }
 }
 
 export class ForbiddenError extends ApiError {
-  constructor(message = "You are not allowed to perform this action.", data?: unknown) {
-    super("FORBIDDEN", message, 403, data);
+  constructor(
+    message = "You are not allowed to perform this action.",
+    data?: unknown,
+    requestId?: string,
+  ) {
+    super("FORBIDDEN", message, 403, data, requestId);
     this.name = "ForbiddenError";
   }
 }
@@ -76,8 +95,9 @@ export class NotFoundError extends ApiError {
     message: string = "The requested resource was not found.",
     code = "RESOURCE_NOT_FOUND",
     data?: unknown,
+    requestId?: string,
   ) {
-    super(code, message, 404, data);
+    super(code, message, 404, data, requestId);
     this.name = "NotFoundError";
   }
 }
@@ -113,54 +133,117 @@ function extractBackendCode(data: unknown): string | undefined {
   return undefined;
 }
 
+type ApiResponseHeaders = AxiosResponseHeaders | Partial<RawAxiosResponseHeaders>;
+
+function readHeaderRequestId(headers?: ApiResponseHeaders): string | undefined {
+  if (!headers) return undefined;
+  const raw =
+    typeof headers.get === "function"
+      ? headers.get("x-request-id")
+      : (headers as Record<string, unknown>)["x-request-id"] ??
+        (headers as Record<string, unknown>)["X-Request-Id"];
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.trim();
+  }
+  if (Array.isArray(raw) && typeof raw[0] === "string" && raw[0].trim()) {
+    return raw[0].trim();
+  }
+  return undefined;
+}
+
+/** Reads API envelope `requestId` (top-level or `error.details.requestId`) and response header. */
+export function extractRequestIdFromResponse(
+  data: unknown,
+  headers?: ApiResponseHeaders,
+): string | undefined {
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const envelope = data as {
+      requestId?: unknown;
+      error?: { details?: { requestId?: unknown } };
+    };
+    if (typeof envelope.requestId === "string" && envelope.requestId.trim()) {
+      return envelope.requestId.trim();
+    }
+    const detailsId = envelope.error?.details?.requestId;
+    if (typeof detailsId === "string" && detailsId.trim()) {
+      return detailsId.trim();
+    }
+  }
+  return readHeaderRequestId(headers);
+}
+
+function createApiError(
+  code: string,
+  message: string,
+  status?: number,
+  data?: unknown,
+  headers?: ApiResponseHeaders,
+): ApiError {
+  return new ApiError(code, message, status, data, extractRequestIdFromResponse(data, headers));
+}
+
 function toApiError(error: unknown): ApiError {
   if (axios.isAxiosError(error)) {
     const ax = error as AxiosError<unknown>;
     const status = ax.response?.status;
     const data = ax.response?.data;
+    const headers = ax.response?.headers;
     const requestUrl = String(ax.config?.url ?? "");
     const errCode = String(ax.code ?? "").toUpperCase();
     const msg = typeof ax.message === "string" ? ax.message.toLowerCase() : "";
     const isTimeout = errCode === "ECONNABORTED" || errCode === "ETIMEDOUT" || msg.includes("timeout");
     if (isTimeout) {
-      return new ApiError("TIMEOUT", "Request timed out. Please try again.", status, data);
+      return createApiError("TIMEOUT", "Request timed out. Please try again.", status, data, headers);
     }
     if (!ax.response) {
       return new ApiError("NETWORK_ERROR", "Connection lost. Please check your network and try again.");
     }
     if (typeof status === "number") {
       const backendCode = extractBackendCode(data);
+      const requestId = extractRequestIdFromResponse(data, headers);
       if (status === 401) {
         const code = backendCode ?? "UNAUTHORIZED";
         const isLoginPath = requestUrl.includes("/api/v2/auth/web/session/otp");
         if (code === "AUTH_OTP_INVALID") {
-          return new ApiError(code, "Invalid OTP code.", status, data);
+          return new ApiError(code, "Invalid OTP code.", status, data, requestId);
         }
         if (code === "AUTH_OTP_EXPIRED") {
-          return new ApiError(code, "OTP has expired. Request a new code and try again.", status, data);
+          return new ApiError(code, "OTP has expired. Request a new code and try again.", status, data, requestId);
         }
         if (code === "AUTH_PHONE_INVALID") {
-          return new ApiError(code, "Invalid phone number or OTP.", status, data);
+          return new ApiError(code, "Invalid phone number or OTP.", status, data, requestId);
         }
         if (isLoginPath && code === "AUTH_UNAUTHENTICATED") {
-          return new ApiError(code, "Invalid phone number or OTP.", status, data);
+          return new ApiError(code, "Invalid phone number or OTP.", status, data, requestId);
         }
         if (code === "AUTH_TOKEN_REVOKED") {
-          return new ApiError(code, "Your session has expired. Please sign in again.", status, data);
+          return new ApiError(code, "Your session has expired. Please sign in again.", status, data, requestId);
         }
-        return new ApiError(code, "Your session has expired. Please sign in again.", status, data);
+        return new ApiError(code, "Your session has expired. Please sign in again.", status, data, requestId);
       }
       if (status === 403) {
-        return new ForbiddenError("You are not allowed to perform this action.", data);
+        return new ForbiddenError("You are not allowed to perform this action.", data, requestId);
       }
       if (status === 404) {
         const code = backendCode ?? "RESOURCE_NOT_FOUND";
-        return new NotFoundError(extractMessage(status, data), code, data);
+        return new NotFoundError(extractMessage(status, data), code, data, requestId);
       }
       if (status === 500) {
-        return new ApiError(backendCode ?? "SERVER_ERROR", "Server error. Please try again later.", status, data);
+        return createApiError(
+          backendCode ?? "SERVER_ERROR",
+          "Server error. Please try again later.",
+          status,
+          data,
+          headers,
+        );
       }
-      return new ApiError(backendCode ?? "REQUEST_FAILED", extractMessage(status, data), status, data);
+      return createApiError(
+        backendCode ?? "REQUEST_FAILED",
+        extractMessage(status, data),
+        status,
+        data,
+        headers,
+      );
     }
     return new ApiError("REQUEST_FAILED", "Request failed.");
   }

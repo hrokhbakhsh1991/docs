@@ -37,9 +37,14 @@ function issuesToFieldErrors(
  */
 export function createDenaliCanonicalWizardResolver(
   resolveUiOptions?: () => import("@/features/tours/wizard/denali/rules/denaliUIAdapter").DenaliUIContextOptions,
+  resolveRuleSet?: () => import("@/features/tours/wizard/denali/rules/denaliRuleModel").DenaliRuleSet,
 ): Resolver<DenaliCreateTourWizardForm> {
   return async (values, _context, _options) => {
-    const issues = getDenaliWizardSubmitIssues(values, resolveUiOptions?.());
+    const issues = getDenaliWizardSubmitIssues(
+      values,
+      resolveUiOptions?.(),
+      resolveRuleSet?.(),
+    );
     if (issues.length === 0) {
       return { values: values as any, errors: {} };
     }

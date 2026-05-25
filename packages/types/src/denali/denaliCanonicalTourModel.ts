@@ -165,6 +165,8 @@ export interface DenaliCanonicalTourModel {
     transportNotes?: string;
     /** Train-only: window / aisle / any seat preference. */
     seatPreference?: "window" | "aisle" | "any";
+    /** Separate capacity calculation when personal car is permitted on organized transport. */
+    adminCapacityApproval?: boolean;
   };
 
   pricing: {

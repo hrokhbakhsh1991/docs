@@ -43,6 +43,7 @@ export const WORKSPACE_CAPABILITY_VALUES = [
   "tour.regional.manage",
   "settings.read",
   "settings.themes.manage",
+  "settings.templates.manage",
   "module.finance",
   "module.form_builder",
   "marketing.segment.read",

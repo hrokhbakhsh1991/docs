@@ -71,6 +71,11 @@ export async function bffFetch(
     });
   }
 
+  // FormData must not carry application/json — fetch sets multipart boundary automatically.
+  if (options.body instanceof FormData) {
+    merged.delete("Content-Type");
+  }
+
   const method = (options.method ?? "GET").toUpperCase();
   logBffEvent("bff_fetch", {
     tenant_slug: tenant.tenantSlug,

@@ -5,8 +5,10 @@ import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-
 import { compactTripDetailsForApi } from "@/features/tours/models/tourTripDetails.schema";
 import type { UpdateTourDto } from "@/lib/services/tours.service";
 import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-import { normalizeDenaliWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 function denaliPublishStatusToApiLifecycle(
   publishStatus: DenaliCreateTourWizardForm["basicInfo"]["publishStatus"],
@@ -20,9 +22,10 @@ export function updateTourDtoFromDenaliWizardForm(
   options?: {
     themeCatalog?: readonly { id: string; name: string }[];
     formProfile?: TourFormProfile;
+    ruleSet?: DenaliRuleSet;
   },
 ): UpdateTourDto {
-  const normalized = normalizeDenaliWizardForm(form);
+  const normalized = prepareDenaliWizardFormForSubmit(form, options?.ruleSet ?? denaliRuleSet);
   const profile = options?.formProfile ?? "denali_pilot";
   let createDto = mapDenaliWizardToCreateTourPayload(normalized);
   createDto = stripCreateTourDtoForFormProfile(profile, createDto);

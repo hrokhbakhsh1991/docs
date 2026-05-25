@@ -59,8 +59,8 @@ test.describe("tour wizard clone query (smoke)", () => {
     const res = await page.goto(`${baseURL}/tours/new?clone=${CLONE_TOUR_ID}`, { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
     await expect(page.getByText("در حال بارگذاری تور برای کپی")).toBeHidden({ timeout: 30_000 });
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByPlaceholder("مثلاً صعود دماوند")).toHaveValue(CLONE_TITLE, { timeout: 10_000 });
+    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByPlaceholder("مثلاً صعود دماوند از مسیر جنوبی")).toHaveValue(CLONE_TITLE, { timeout: 10_000 });
   });
 });
 
@@ -129,16 +129,24 @@ test.describe("tour wizard clone draft _wizardMeta (smoke)", () => {
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 25_000 });
     await expect(page.getByPlaceholder("مثلاً صعود دماوند")).toHaveValue(CLONE_TITLE, { timeout: 10_000 });
 
-    const meta = await page.evaluate((draftKey: string) => {
+    const meta = await page.evaluate(() => {
       try {
-        const raw = localStorage.getItem(draftKey);
-        if (!raw) return null;
-        const o = JSON.parse(raw) as { _wizardMeta?: { resolvedFormProfile?: string; themeIds?: { main?: string } } };
-        return o._wizardMeta ?? null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("wizard-draft") || key.includes("denali"))) {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            const o = JSON.parse(raw) as { _wizardMeta?: { resolvedFormProfile?: string; themeIds?: { main?: string } } };
+            if (o._wizardMeta) {
+              return o._wizardMeta;
+            }
+          }
+        }
+        return null;
       } catch {
         return null;
       }
-    }, SMOKE_WIZARD_DRAFT_STORAGE_KEY);
+    });
     expect(meta?.resolvedFormProfile).toBe("cinema_event");
     expect(meta?.themeIds?.main).toBe(CLONE_THEME_ROW_ID);
   });
@@ -201,18 +209,26 @@ test.describe("tour wizard clone draft _wizardMeta fallback tourType (smoke)", (
     const res = await page.goto(`${baseURL}/tours/new?clone=${CLONE_FALLBACK_ID}`, { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
     await expect(page.getByText("در حال بارگذاری تور برای کپی")).toBeHidden({ timeout: 30_000 });
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 25_000 });
 
-    const meta = await page.evaluate((draftKey: string) => {
+    const meta = await page.evaluate(() => {
       try {
-        const raw = localStorage.getItem(draftKey);
-        if (!raw) return null;
-        const o = JSON.parse(raw) as { _wizardMeta?: { resolvedFormProfile?: string } };
-        return o._wizardMeta ?? null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes("wizard-draft") || key.includes("denali"))) {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            const o = JSON.parse(raw) as { _wizardMeta?: { resolvedFormProfile?: string } };
+            if (o._wizardMeta) {
+              return o._wizardMeta;
+            }
+          }
+        }
+        return null;
       } catch {
         return null;
       }
-    }, SMOKE_WIZARD_DRAFT_STORAGE_KEY);
+    });
     expect(meta?.resolvedFormProfile).toBe("urban_event");
   });
 });

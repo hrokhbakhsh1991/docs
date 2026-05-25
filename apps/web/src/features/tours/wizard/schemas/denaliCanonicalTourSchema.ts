@@ -71,6 +71,7 @@ const denaliCanonicalTransportSchema = z
       .int("مبلغ دنگ باید عدد صحیح باشد.")
       .min(1, "مبلغ دنگ باید بیشتر از صفر باشد.")
       .optional(),
+    adminCapacityApproval: z.boolean().optional(),
     transportNotes: z.string().trim().optional(),
   })
   .strict();

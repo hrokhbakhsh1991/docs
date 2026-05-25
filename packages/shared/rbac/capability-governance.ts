@@ -76,6 +76,13 @@ export const CAPABILITY_GOVERNANCE_REGISTRY: readonly CapabilityGovernanceRecord
     riskLevel: "medium",
   },
   {
+    key: "settings.templates.manage",
+    description: "Manage workspace tour wizard template (field overlay + canonical seed)",
+    owner: "platform",
+    module: "settings",
+    riskLevel: "high",
+  },
+  {
     key: "module.finance",
     description: "Finance module gate",
     owner: "finance",

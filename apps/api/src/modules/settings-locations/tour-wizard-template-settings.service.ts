@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 
@@ -8,8 +8,12 @@ import { authRequiredError, tenantContextMissingError } from "../../common/error
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { templateToCanonical } from "@repo/types/denali";
 
+import { parseDenaliCanonicalTemplateDataOrThrow } from "./denali-canonical-template-data.schema";
+import type { UpdateWorkspaceTourWizardTemplateDto } from "./dto/update-workspace-tour-wizard-template.dto";
 import type { WorkspaceTourWizardTemplateResponseDto } from "./dto/workspace-tour-wizard-template-response.dto";
 import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
+import { collectWorkspaceWizardTemplateValidationErrors } from "./validate-workspace-wizard-template";
+import { throwValidationFailed } from "../../common/errors/throw-validation-failed";
 
 @Injectable()
 export class TourWizardTemplateSettingsService {
@@ -62,5 +66,43 @@ export class TourWizardTemplateSettingsService {
     const workspaceId = this.resolveWorkspaceOrThrow();
     const row = await this.templatesRepository.findOne({ where: { workspaceId } });
     return row ? this.toResponse(row) : null;
+  }
+
+  async updateForWorkspace(
+    body: UpdateWorkspaceTourWizardTemplateDto,
+  ): Promise<WorkspaceTourWizardTemplateResponseDto> {
+    const workspaceId = this.resolveWorkspaceOrThrow();
+    const row = await this.templatesRepository.findOne({ where: { workspaceId } });
+    if (!row) {
+      throw new NotFoundException({
+        error: {
+          code: "RESOURCE_NOT_FOUND",
+          message: "Workspace tour wizard template is not configured",
+        },
+      });
+    }
+
+    const nextOverlay =
+      body.fieldRulesOverlay !== undefined ? body.fieldRulesOverlay : row.fieldRulesOverlay;
+    const nextCanonical =
+      body.canonicalData !== undefined ? body.canonicalData : row.canonicalData;
+
+    const validationErrors = collectWorkspaceWizardTemplateValidationErrors({
+      fieldRulesOverlay: nextOverlay,
+      canonicalData: nextCanonical,
+    });
+    if (validationErrors.length > 0) {
+      throwValidationFailed(validationErrors);
+    }
+
+    if (body.fieldRulesOverlay !== undefined) {
+      row.fieldRulesOverlay = body.fieldRulesOverlay;
+    }
+    if (body.canonicalData !== undefined) {
+      row.canonicalData = parseDenaliCanonicalTemplateDataOrThrow(body.canonicalData);
+    }
+
+    const saved = await this.templatesRepository.save(row);
+    return this.toResponse(saved);
   }
 }

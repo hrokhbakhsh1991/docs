@@ -131,41 +131,45 @@ export function DenaliBasicInfoStep() {
         </FormField>
       ) : null}
 
-      <div style={{ display: "grid", gap: "0.5rem" }}>
-        <DestinationCombobox
-          label={t("basic.destination")}
-          placeholder={t("basic.destinationPlaceholder")}
-          options={activeDestinations}
-          value={canonicalModel.destinationId}
-          onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
-          error={errors.basicInfo?.destinationId?.message}
-        />
-        <div className={quickAddStyles.quickAddRow} dir="rtl">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={openDestinationQuickAdd}
-            data-testid="denali-quick-add-destination"
-          >
-            + مقصد
-          </Button>
+      {isVisible("destinationId", form) ? (
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          <DestinationCombobox
+            label={t("basic.destination")}
+            placeholder={t("basic.destinationPlaceholder")}
+            options={activeDestinations}
+            value={canonicalModel.destinationId}
+            onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
+            error={errors.basicInfo?.destinationId?.message}
+          />
+          <div className={quickAddStyles.quickAddRow} dir="rtl">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={openDestinationQuickAdd}
+              data-testid="denali-quick-add-destination"
+            >
+              + مقصد
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <DestinationCombobox
-        label={t("basic.workspaceLeaders")}
-        placeholder={t("basic.workspaceLeadersPlaceholder")}
-        options={leaderOptions}
-        multiple
-        value={canonicalModel.leaderUserIds ?? []}
-        onChange={(ids) =>
-          updateCanonical({
-            leaderUserIds: Array.isArray(ids) ? ids : ids ? [ids] : [],
-          })
-        }
-        error={errors.basicInfo?.leaderUserIds?.message}
-      />
+      {isVisible("leaderUserIds", form) ? (
+        <DestinationCombobox
+          label={t("basic.workspaceLeaders")}
+          placeholder={t("basic.workspaceLeadersPlaceholder")}
+          options={leaderOptions}
+          multiple
+          value={canonicalModel.leaderUserIds ?? []}
+          onChange={(ids) =>
+            updateCanonical({
+              leaderUserIds: Array.isArray(ids) ? ids : ids ? [ids] : [],
+            })
+          }
+          error={errors.basicInfo?.leaderUserIds?.message}
+        />
+      ) : null}
 
       {isVisible("requiresLocalGuide", form) ? (
         <Checkbox
@@ -208,37 +212,46 @@ export function DenaliBasicInfoStep() {
         <DenaliDatetimeField field="endDateTime" label={t("basic.endDateTime")} />
       ) : null}
 
-      <FormField label={t("basic.capacityMax")} error={errors.basicInfo?.capacityMax?.message}>
-        <PersianNumberInput
-          numericMode="integer"
-          value={canonicalModel.capacityMax ?? ""}
-          onChange={(v) =>
-            updateCanonical({ capacityMax: v === "" ? undefined : Number(v) })
-          }
-        />
-      </FormField>
+      {isVisible("capacityMax", form) ? (
+        <FormField
+          label={t("basic.capacityMax")}
+          error={errors.basicInfo?.capacityMax?.message}
+        >
+          <PersianNumberInput
+            numericMode="integer"
+            value={canonicalModel.capacityMax ?? ""}
+            onChange={(v) =>
+              updateCanonical({ capacityMax: v === "" ? undefined : Number(v) })
+            }
+          />
+        </FormField>
+      ) : null}
 
-      <FormField label={t("basic.capacityMin")} error={errors.basicInfo?.capacityMin?.message}>
-        <PersianNumberInput
-          numericMode="integer"
-          value={canonicalModel.capacityMin ?? ""}
-          onChange={(v) =>
-            updateCanonical({ capacityMin: v === "" ? undefined : Number(v) })
-          }
-        />
-      </FormField>
+      {isVisible("capacityMin", form) ? (
+        <FormField label={t("basic.capacityMin")} error={errors.basicInfo?.capacityMin?.message}>
+          <PersianNumberInput
+            numericMode="integer"
+            value={canonicalModel.capacityMin ?? ""}
+            onChange={(v) =>
+              updateCanonical({ capacityMin: v === "" ? undefined : Number(v) })
+            }
+          />
+        </FormField>
+      ) : null}
 
       <DenaliApproximateReturnTimeField label={t("basic.approximateReturnTime")} />
 
-      <FormField label="لینک یا آیدی شبکه اجتماعی برنامه" error={errors.basicInfo?.socialMediaLink?.message}>
-        <Input
-          type="text"
-          placeholder="مثلاً t.me/tour_group یا @tour_admin"
-          value={canonicalModel.socialMediaLink ?? ""}
-          onChange={(e) => updateCanonical({ socialMediaLink: e.target.value || undefined })}
-          data-testid="denali-basics-social-media-link"
-        />
-      </FormField>
+      {isVisible("socialMediaLink", form) ? (
+        <FormField label="لینک یا آیدی شبکه اجتماعی برنامه" error={errors.basicInfo?.socialMediaLink?.message}>
+          <Input
+            type="text"
+            placeholder="مثلاً t.me/tour_group یا @tour_admin"
+            value={canonicalModel.socialMediaLink ?? ""}
+            onChange={(e) => updateCanonical({ socialMediaLink: e.target.value || undefined })}
+            data-testid="denali-basics-social-media-link"
+          />
+        </FormField>
+      ) : null}
 
       <Checkbox
         label={t("basic.requiresManualAdminApproval")}

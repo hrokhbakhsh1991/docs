@@ -20,7 +20,7 @@ import {
   EXPERIENCE_LEVEL_LABELS,
   FITNESS_LEVEL_LABELS,
   GENDER_RESTRICTION_LABELS,
-} from "@/components/tours/wizard/participationLabels";
+} from "@/components/tours/wizard/legacy/participationLabels";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { Button, Checkbox, FormField, Input, Select, Textarea } from "@tour/ui";

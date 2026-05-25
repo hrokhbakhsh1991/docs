@@ -1,3 +1,5 @@
+// DEPRECATED: DO NOT EDIT CANONICAL_TO_FORM_PATH_MAP here — AUTO-GENERATED from the registry.
+// Edit denaliFieldRegistryData.ts, then: pnpm --filter web generate:denali-wizard
 /**
  * Rule-engine required resolution (visibility + product required flags).
  *
@@ -13,8 +15,12 @@ import {
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-import type { DenaliRuleFieldStep, DenaliRuleModel } from "./denaliRuleModel";
-import { findDenaliRuleField } from "./denaliRuleModel";
+import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
+import type { DenaliRuleFieldStep, DenaliRuleModel } from "./denaliRuleModel.types";
+import { findDenaliRuleField, listDenaliRuleFieldPaths } from "./denaliRuleModel";
+import { getDenaliFormPathValue, setDenaliFormPathValue } from "../denaliFormPathUtils";
+import { patchDenaliCanonicalBasics, readDenaliCanonicalBasics } from "../denaliCanonicalBasicsControl";
+import type { DenaliTourKind } from "@repo/types";
 import { isDenaliFieldVisibleInModel, type DenaliUIContextOptions } from "./denaliUIAdapter";
 
 /** Submit gate: all steps. Step gate: one rail step only (field.step === stepId). */
@@ -36,111 +42,21 @@ export type DenaliRuleRequiredIssue = {
   message: string;
 };
 
-/** Legacy RHF paths that exist on {@link denaliTourCreateBaseSchema}. */
-export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set([
-  "title",
-  "category",
-  "destinationId",
-  "startDateTime",
-  "endDateTime",
-  "capacityMin",
-  "capacityMax",
-  "meetingPoint",
-  "leaderUserIds",
-  "requiresLocalGuide",
-  "localGuideName",
-  "program.themeIds",
-  "program.shortDescription",
-  "program.longDescription",
-  "program.difficultyLevel",
-  "program.hikingHoursApprox",
-  "program.altitudeMeasurement",
-  "program.itinerary",
-  "gatheringPoints",
-  "transport.mode",
-  "transport.transportCost",
-  "transport.allowPersonalCar",
-  "transport.dongAmount",
-  "transport.seatPreference",
-  "transport.transportNotes",
-  "pricing.requiresPayment",
-  "pricing.basePricePerPerson",
-  "pricing.paymentMode",
-  "pricing.includesTourInsurance",
-  "socialMediaLink",
-  "publishStatus",
-  "requiresManualAdminApproval",
-  "participants.nationalIdRequired",
-  "policies.cancellationDeadlineHours",
-  "policies.cancellationPenaltyPercentage",
-  "participants.minimumAge",
-  "participants.maximumAge",
-  "participants.fitnessLevel",
-  "participants.sportsInsuranceRequired",
-  "participants.gearItems",
-  "policies.policiesText",
-  "photos",
-]);
+/** Canonical paths eligible for normalize/clear (union of all rule-model fields). */
+export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set(listDenaliRuleFieldPaths());
 
 /** @deprecated Use {@link DENALI_WIZARD_CANONICAL_FIELD_PATHS} */
 export const DENALI_WIZARD_FORM_FIELD_PATHS = DENALI_WIZARD_CANONICAL_FIELD_PATHS;
 
-const CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
-  title: "basicInfo.title",
-  category: "basicInfo.tourType",
-  destinationId: "basicInfo.destinationId",
-  startDateTime: "basicInfo.startDateTime",
-  endDateTime: "basicInfo.endDateTime",
-  capacityMin: "basicInfo.capacityMin",
-  capacityMax: "basicInfo.capacityMax",
-  meetingPoint: "basicInfo.meetingPoint",
-  leaderUserIds: "basicInfo.leaderUserIds",
-  requiresLocalGuide: "basicInfo.requiresLocalGuide",
-  localGuideName: "basicInfo.localGuideName",
-  startPointLocationText: "basicInfo.startPointLocationText",
-  socialMediaLink: "basicInfo.socialMediaLink",
-  approximateReturnTime: "basicInfo.approximateReturnTime",
-  "program.themeIds": "programNature.themeIds",
-  "program.shortDescription": "programNature.shortDescription",
-  "program.longDescription": "programNature.longDescription",
-  "program.difficultyLevel": "programNature.difficultyLevel",
-  "program.hikingHoursApprox": "programNature.hikingHoursApprox",
-  "program.hikingGoHours": "programNature.hikingGoHours",
-  "program.hikingReturnHours": "programNature.hikingReturnHours",
-  "program.altitudeMeasurement": "programNature.altitudeMeasurement",
-  "program.itinerary": "programNature.itinerary",
-  gatheringPoints: "tripDetails.logistics.gatheringPoints",
-  "transport.mode": "transport.transportMode",
-  "transport.transportCost": "transport.transportCost",
-  "transport.allowPersonalCar": "transport.allowPersonalCar",
-  "transport.dongAmount": "transport.dongAmount",
-  "transport.seatPreference": "transport.seatPreference",
-  "transport.transportNotes": "transport.transportNotes",
-  "pricing.requiresPayment": "pricingPayment.requiresPayment",
-  "pricing.basePricePerPerson": "pricingPayment.basePricePerPerson",
-  "pricing.paymentMode": "pricingPayment.paymentMode",
-  "pricing.includesTourInsurance": "pricingPayment.includesTourInsurance",
-  publishStatus: "basicInfo.publishStatus",
-  requiresManualAdminApproval: "basicInfo.requiresManualAdminApproval",
-  "participants.nationalIdRequired": "participantRequirements.nationalIdRequired",
-  "policies.cancellationDeadlineHours": "policies.cancellationDeadlineHours",
-  "policies.cancellationPenaltyPercentage": "policies.cancellationPenaltyPercentage",
-  "participants.minimumAge": "participantRequirements.minimumAge",
-  "participants.maximumAge": "participantRequirements.maximumAge",
-  "participants.fitnessLevel": "participantRequirements.fitnessLevel",
-  "participants.sportsInsuranceRequired": "participantRequirements.sportsInsuranceRequired",
-  "participants.fitnessPrerequisiteText": "participantRequirements.fitnessPrerequisiteText",
-  "participants.gearItems": "participantRequirements.gearItems",
-  "policies.policiesText": "policies.policiesText",
-  photos: "photosData.photos",
-};
-
 export function mapDenaliCanonicalToFormPath(path: string): string {
-  return CANONICAL_TO_FORM_PATH_MAP[path] ?? path;
+  return DENALI_CANONICAL_TO_FORM_PATH_MAP[path] ?? path;
 }
 
 const FORM_TO_CANONICAL_PATH: Record<string, string> = Object.fromEntries(
-  Object.entries(CANONICAL_TO_FORM_PATH_MAP).map(([canonical, formPath]) => [formPath, canonical]),
+  Object.entries(DENALI_CANONICAL_TO_FORM_PATH_MAP).map(([canonical, formPath]) => [
+    formPath,
+    canonical,
+  ]),
 );
 
 /** RHF dot path → canonical rule path (for UI + step validation). */
@@ -243,11 +159,29 @@ export function readDenaliFormFieldValue(
   form: DenaliCreateTourWizardForm,
   path: string,
 ): unknown {
-  const formPath = mapDenaliCanonicalToFormPath(path);
-  const [section, leaf] = formPath.split(".") as [keyof DenaliCreateTourWizardForm, string];
-  const slice = form[section];
-  if (slice == null || typeof slice !== "object") return undefined;
-  return (slice as Record<string, unknown>)[leaf];
+  if (path === "eventVariant") {
+    return readDenaliCanonicalBasics(form.basicInfo.tourType as DenaliTourKind | undefined)
+      ?.eventVariant;
+  }
+  return getDenaliFormPathValue(form, mapDenaliCanonicalToFormPath(path));
+}
+
+/** Test/helper: write a canonical path on the wizard form (mirrors {@link readDenaliFormFieldValue}). */
+export function writeDenaliFormFieldValue(
+  form: DenaliCreateTourWizardForm,
+  path: string,
+  value: unknown,
+): void {
+  if (path === "eventVariant") {
+    form.basicInfo = {
+      ...form.basicInfo,
+      tourType: patchDenaliCanonicalBasics(form.basicInfo.tourType, {
+        eventVariant: value as "reading" | "cinema" | undefined,
+      }),
+    };
+    return;
+  }
+  setDenaliFormPathValue(form, mapDenaliCanonicalToFormPath(path), value);
 }
 
 function fieldMatchesValidationScope(

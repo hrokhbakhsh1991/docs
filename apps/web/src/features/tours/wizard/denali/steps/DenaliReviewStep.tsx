@@ -11,7 +11,6 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-members";
 
-import { flattenDenaliFormErrors } from "../flattenDenaliFormErrors";
 import { parseIsoToYmdAndTime } from "../denaliDatetime";
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
@@ -21,8 +20,11 @@ import { TourPublishStatusField } from "@/components/tours/TourPublishStatusFiel
 import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
 import { denaliLocationAddressText } from "@repo/types/denali";
 
+import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
 import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
+import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
+import { DenaliReviewValidationSummary } from "../components/DenaliReviewValidationSummary";
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
   if (!value?.trim()) return null;
@@ -123,16 +125,14 @@ export function DenaliReviewStep() {
     control,
     getValues,
     setValue,
-    formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
 
   const publishStatus =
     (useWatch({ control, name: "basicInfo.publishStatus" }) as "draft" | "active" | undefined) ??
     "draft";
-  const formSnapshot = useWatch({ control }) as DenaliCreateTourWizardForm | undefined;
+  const formForUi = useDenaliWizardFormSnapshot();
 
-  const { canonicalModel, basicsSelection } = useDenaliCanonical();
-  const formForUi = formSnapshot ?? getValues();
+  const { canonicalModel, basicsSelection, ruleSet } = useDenaliCanonical();
   const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
     useDenaliStepFieldRules("review");
 
@@ -143,6 +143,19 @@ export function DenaliReviewStep() {
   const publishReadinessBlocked = publishStatus === "active" && publishReadinessIssues.length > 0;
   const equipmentQuery = useSettingsEquipment();
   const diagnosticLoggedRef = useRef(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const submitIssues = getDenaliWizardSubmitIssues(formForUi, undefined, ruleSet);
+    console.log("[DenaliReviewStep] getDenaliWizardSubmitIssues", {
+      count: submitIssues.length,
+      issues: submitIssues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+        code: issue.code,
+      })),
+    });
+  }, [formForUi, ruleSet]);
 
   useEffect(() => {
     if (diagnosticLoggedRef.current) return;
@@ -207,7 +220,6 @@ export function DenaliReviewStep() {
   }, [canonicalModel.capacityMax, canonicalModel.capacityMin]);
 
   const crewMembersQuery = useWorkspaceTourCrewMembers();
-  const flatErrors = flattenDenaliFormErrors(errors);
 
   const workspaceLeaderLabels = useMemo(() => {
     const seen = new Set<string>();
@@ -250,27 +262,7 @@ export function DenaliReviewStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem", fontSize: "0.9rem" }} data-testid="denali-step-review">
-      {flatErrors.length > 0 && (
-        <div
-          style={{
-            padding: "1rem",
-            background: "#fef2f2",
-            color: "#b91c1c",
-            border: "1px solid #fca5a5",
-            borderRadius: "8px",
-          }}
-          data-testid="denali-summary-error"
-        >
-          <p style={{ fontWeight: 600, margin: "0 0 0.5rem" }}>
-            خطاهای زیر در فرم وجود دارد. لطفاً به مراحل قبل بازگشته و آن‌ها را برطرف کنید:
-          </p>
-          <ul style={{ margin: 0, paddingLeft: "1.5rem" }}>
-            {flatErrors.map((entry, index) => (
-              <li key={`${entry.path}-${index}`}>{`${entry.path}: ${entry.message}`}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <DenaliReviewValidationSummary />
 
       <p style={{ margin: 0, color: "#64748b" }}>{t("review.intro")}</p>
 

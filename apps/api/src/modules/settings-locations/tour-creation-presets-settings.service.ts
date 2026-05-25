@@ -91,7 +91,7 @@ export class TourCreationPresetsSettingsService {
   }
 
   private isDenaliFormProfile(formProfile: TourFormProfile): boolean {
-    return formProfile === "denali";
+    return formProfile === "denali_pilot";
   }
 
   private rejectDenaliLegacyDefaults(value: unknown): void {
@@ -207,10 +207,6 @@ export class TourCreationPresetsSettingsService {
 
   private toResponse(row: WorkspaceTourCreationPresetEntity): WorkspaceTourCreationPresetResponseDto {
     const formProfile = normalizeTourFormProfileInput(row.formProfile ?? "general");
-    const canonicalData =
-      row.canonicalData && typeof row.canonicalData === "object" && !Array.isArray(row.canonicalData)
-        ? (row.canonicalData as Record<string, unknown>)
-        : {};
     if (this.isDenaliFormProfile(formProfile)) {
       return {
         id: row.id,

@@ -1,6 +1,6 @@
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 
 import {
   computeDurationDays,

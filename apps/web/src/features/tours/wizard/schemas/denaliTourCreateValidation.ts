@@ -1,5 +1,7 @@
 import type { FieldPath, UseFormClearErrors, UseFormSetError } from "react-hook-form";
 
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import type { DenaliUIContextOptions } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
 import { getDenaliStepPickShape, resolveDenaliRuleModelFromForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import {
@@ -60,10 +62,11 @@ export function applyDenaliWizardStepValidation(
   setError: UseFormSetError<DenaliCreateTourWizardForm>,
   clearErrors: UseFormClearErrors<DenaliCreateTourWizardForm>,
   uiOptions?: DenaliUIContextOptions,
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): boolean {
   if (stepId === "review") {
     clearErrors();
-    const issues = getDenaliWizardSubmitIssues(form, uiOptions);
+    const issues = getDenaliWizardSubmitIssues(form, uiOptions, ruleSet);
     for (const issue of issues) {
       const path = issue.path.join(".") as FieldPath<DenaliCreateTourWizardForm>;
       setError(path, { type: "custom", message: issue.message });
@@ -71,7 +74,7 @@ export function applyDenaliWizardStepValidation(
     return issues.length === 0;
   }
 
-  const model = resolveDenaliRuleModelFromForm(form);
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
   if (model != null) {
     const pickShape = getDenaliStepPickShape(model, stepId);
     for (const section of Object.keys(pickShape) as (keyof DenaliCreateTourWizardForm)[]) {
@@ -79,7 +82,7 @@ export function applyDenaliWizardStepValidation(
     }
   }
 
-  const issues = getDenaliWizardStepIssues(form, stepId, uiOptions);
+  const issues = getDenaliWizardStepIssues(form, stepId, uiOptions, ruleSet);
   for (const issue of issues) {
     const path = issue.path.join(".") as FieldPath<DenaliCreateTourWizardForm>;
     setError(path, { type: "custom", message: issue.message });

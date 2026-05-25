@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 
+import { findDenaliRuleField } from "../rules/denaliRuleModel";
 import {
   clearDenaliNonVisibleFormValues,
   normalizeDenaliFormPatch,
   normalizeDenaliWizardForm,
   resolveDenaliRuleModelFromForm,
+  resolveDenaliRuleSetFromTemplate,
 } from "./denaliRuleAccess";
 
 test("normalizeDenaliWizardForm clears outdoor fields for event_cinema", () => {
@@ -32,6 +35,7 @@ test("normalizeDenaliWizardForm clears endDateTime for single-day kinds", () => 
 
 test("normalizeDenaliWizardForm strips dongAmount when not shared_cars", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
   form.transport.transportMode = "organizer_vehicle";
   form.transport.dongAmount = 50_000;
 
@@ -58,8 +62,35 @@ test("normalizeDenaliFormPatch applies same clears on partial preset shape", () 
   assert.equal(patch.programNature?.hikingHoursApprox, undefined);
 });
 
+test("resolveDenaliRuleModelFromForm uses template-merged ruleSet", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+
+  const ruleSet = resolveDenaliRuleSetFromTemplate({
+    id: "t1",
+    workspaceId: "w1",
+    baseProfile: "denali",
+    stepOverrides: { skip: [], insert: [] },
+    fieldRulesOverlay: { destinationId: { visibility: "hidden" } },
+    presetId: null,
+    canonicalData: {},
+    wizardContractVersion: 1,
+    formProfileVersion: 1,
+  });
+
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet)!;
+  const destination = findDenaliRuleField(model, "destinationId");
+  assert.ok(destination);
+  assert.equal(destination.hidden, true);
+
+  const baseModel = resolveDenaliRuleModelFromForm(form)!;
+  assert.equal(findDenaliRuleField(baseModel, "destinationId")!.hidden, false);
+  assert.notEqual(ruleSet, mapTemplateToRuleModel(null).ruleSet);
+});
+
 test("clearDenaliNonVisibleFormValues matches normalizeDenaliWizardForm for mountain_day", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = 25_000;
   const model = resolveDenaliRuleModelFromForm(form)!;

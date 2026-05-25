@@ -18,6 +18,7 @@ import { TourForm } from "@/components/tours/TourForm";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { updateTourDtoFromDenaliWizardForm } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
 import { isDenaliPilotFormProfile } from "@/features/tours/wizard/isDenaliWizardContext";
+import { resolveDenaliRuleSetFromTemplate } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
@@ -60,6 +61,10 @@ export function TourEditClient({
   const wizardTemplateQuery = useTenantWizardTemplate();
   const workspaceFormProfile = useMemo(
     () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
+    [wizardTemplateQuery.data],
+  );
+  const mergedRuleSet = useMemo(
+    () => resolveDenaliRuleSetFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
   const isDenaliEdit = isDenaliPilotFormProfile(workspaceFormProfile);
@@ -301,6 +306,7 @@ export function TourEditClient({
                 dto: updateTourDtoFromDenaliWizardForm(values, {
                   themeCatalog: tourThemesQuery.data ?? [],
                   formProfile: workspaceFormProfile,
+                  ruleSet: mergedRuleSet,
                 }),
                 mergeCostFrom: tour.costContext ?? null,
               });

@@ -7,6 +7,7 @@
     "node": ">=22.0.0 <23"
   },
   "scripts": {
+    "prepare": "husky",
     "dev": "pnpm --filter @apps/api dev",
     "build": "pnpm --filter @repo/types run build && pnpm --filter @repo/config run build && pnpm --filter @repo/shared-contracts run build && pnpm --filter @repo/shared run build && pnpm --filter \"@apps/*\" run build",
     "lint": "pnpm --filter \"@apps/*\" run lint",
@@ -46,8 +47,9 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^22.7.4",
+    "husky": "^9.1.7",
     "jest": "^30.3.0",
-    "ts-jest": "^29.4.9",
-    "nx": "22.7.1"
+    "nx": "22.7.1",
+    "ts-jest": "^29.4.9"
   }
 }

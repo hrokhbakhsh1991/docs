@@ -1,6 +1,6 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
 import { stripTenantGatedTourCreateGroups } from "@/features/tours/contracts/tenant-tour-form-contract";
 import {

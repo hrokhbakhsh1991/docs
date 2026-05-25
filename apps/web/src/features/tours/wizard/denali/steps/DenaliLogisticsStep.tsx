@@ -1,10 +1,15 @@
 "use client";
 
-import { DENALI_TRANSPORT_MODE_VALUES } from "@repo/types";
-import type { DenaliTransportMode } from "@repo/types";
+import { DENALI_TRANSPORT_MODE_VALUES, type DenaliTransportMode } from "@repo/types";
+import {
+  isDenaliAdminCapacityApprovalVisible,
+  isDenaliAllowPersonalCarVisible,
+  isDenaliTransportCostVisible,
+  isDenaliTransportDongAmountVisible,
+} from "@repo/types/denali";
 import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
-import { Button, Checkbox, FormField, Select, Textarea } from "@tour/ui";
+import { Button, Checkbox, FormField, Select } from "@tour/ui";
 
 import quickAddStyles from "@/components/shared/quick-add/QuickAddModal.module.css";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
@@ -30,22 +35,40 @@ export function DenaliLogisticsStep() {
 
   const { canonicalModel, updateCanonical } = useDenaliCanonical();
   const form = getValues();
-  const { isVisible } = useDenaliStepFieldRules(STEP);
+  const { isVisible, arePathsVisible } = useDenaliStepFieldRules(STEP);
   const openEquipmentQuickAdd = useDenaliEquipmentQuickAdd();
   const showGear = isVisible("participants.gearItems", form);
+  const showGathering = isVisible("gatheringPoints", form);
+  const showLocationZones = arePathsVisible(
+    ["startPoint", "summitPoint", "campPoint", "endPoint"],
+    form,
+  );
 
   const transportMode = canonicalModel.transport.mode;
+  const allowPersonalCar = canonicalModel.transport.allowPersonalCar === true;
+  const showTransportCost = isDenaliTransportCostVisible(transportMode);
+  const showPermitPersonalCar = isDenaliAllowPersonalCarVisible(transportMode);
+  const showDongAmount = isDenaliTransportDongAmountVisible({
+    mode: transportMode,
+    allowPersonalCar,
+  });
+  const showSeparateCapacity = isDenaliAdminCapacityApprovalVisible({
+    mode: transportMode,
+    allowPersonalCar,
+  });
 
   return (
     <div style={{ display: "grid", gap: "1.25rem" }} data-testid="denali-step-logistics">
-      <div style={{ display: "grid", gap: "0.5rem" }}>
-        <p style={{ ...denaliFieldHintStyle, margin: 0 }} dir="rtl">
-          {DENALI_FIELD_HINTS.gatheringStations}
-        </p>
-        <DenaliGatheringPointsWidget name="tripDetails.logistics.gatheringPoints" />
-      </div>
+      {showGathering ? (
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          <p style={{ ...denaliFieldHintStyle, margin: 0 }} dir="rtl">
+            {DENALI_FIELD_HINTS.gatheringStations}
+          </p>
+          <DenaliGatheringPointsWidget name="tripDetails.logistics.gatheringPoints" />
+        </div>
+      ) : null}
 
-      <DenaliLocationZonesSection />
+      {showLocationZones ? <DenaliLocationZonesSection /> : null}
 
       {showGear ? (
         <div style={{ display: "grid", gap: "0.5rem" }}>
@@ -81,6 +104,7 @@ export function DenaliLogisticsStep() {
               });
             }}
             data-testid="denali-transport-mode"
+            data-field-path="transport.transportMode"
             invalid={Boolean(errors.transport?.transportMode)}
           >
             {DENALI_TRANSPORT_MODE_VALUES.map((mode) => (
@@ -91,7 +115,7 @@ export function DenaliLogisticsStep() {
           </Select>
         </FormField>
 
-        {isVisible("transport.transportCost", form) ? (
+        {showTransportCost ? (
           <FormField
             label={t("transport.transportCost")}
             error={errors.transport?.transportCost?.message}
@@ -109,13 +133,14 @@ export function DenaliLogisticsStep() {
                 })
               }
               data-testid="denali-transport-cost"
+              data-field-path="transport.transportCost"
             />
           </FormField>
         ) : null}
 
-        {isVisible("transport.allowPersonalCar", form) ? (
+        {showPermitPersonalCar ? (
           <Checkbox
-            checked={canonicalModel.transport.allowPersonalCar === true}
+            checked={allowPersonalCar}
             onChange={(e) => {
               const checked = e.target.checked;
               updateCanonical({
@@ -123,15 +148,19 @@ export function DenaliLogisticsStep() {
                   ...canonicalModel.transport,
                   allowPersonalCar: checked ? true : undefined,
                   dongAmount: checked ? canonicalModel.transport.dongAmount : undefined,
+                  adminCapacityApproval: checked
+                    ? canonicalModel.transport.adminCapacityApproval
+                    : undefined,
                 },
               });
             }}
             label={t("transport.allowPersonalCar")}
             data-testid="denali-transport-allow-personal-car"
+            data-field-path="transport.allowPersonalCar"
           />
         ) : null}
 
-        {isVisible("transport.dongAmount", form) ? (
+        {showDongAmount ? (
           <FormField label={t("transport.dongAmount")} error={errors.transport?.dongAmount?.message}>
             <PersianNumberInput
               numericMode="integer"
@@ -146,21 +175,28 @@ export function DenaliLogisticsStep() {
                 })
               }
               data-testid="denali-transport-dong-amount"
+              data-field-path="transport.dongAmount"
             />
           </FormField>
         ) : null}
 
-        <FormField label={t("transport.notes")} error={errors.transport?.transportNotes?.message}>
-          <Textarea
-            rows={3}
-            value={canonicalModel.transport.transportNotes ?? ""}
-            onChange={(e) =>
+        {showSeparateCapacity ? (
+          <Checkbox
+            checked={canonicalModel.transport.adminCapacityApproval === true}
+            onChange={(e) => {
+              const checked = e.target.checked;
               updateCanonical({
-                transport: { ...canonicalModel.transport, transportNotes: e.target.value || undefined },
-              })
-            }
+                transport: {
+                  ...canonicalModel.transport,
+                  adminCapacityApproval: checked ? true : undefined,
+                },
+              });
+            }}
+            label={t("transport.adminCapacityApproval")}
+            data-testid="denali-transport-admin-capacity-approval"
+            data-field-path="transport.adminCapacityApproval"
           />
-        </FormField>
+        ) : null}
       </div>
     </div>
   );

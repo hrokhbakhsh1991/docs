@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import { QueryFailedError } from "typeorm";
 import { TenantContextMissingError } from "./tenant-context-missing.error";
+import { mapValidationPipeErrors } from "./validation-errors.mapper";
 import { LoggerService } from "../logger/logger.service";
 import type { ObservabilityMetricsService } from "../observability/observability-metrics.service";
 import { RequestContextService } from "../request-context/request-context.service";
@@ -347,10 +348,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ctxCorrelationId = undefined;
     }
 
+    // Prefer ALS / req.requestId from RequestContextMiddleware over raw headers.
     const requestId =
       ctxRequestId?.trim() ||
-      headerRequestId ||
       fromRequestAugId ||
+      headerRequestId ||
       randomUUID();
 
     const correlationId =
@@ -368,12 +370,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const body = exception.getResponse();
 
     if (status === HttpStatus.BAD_REQUEST && this.isValidationPipeErrorBody(body)) {
+      const validationErrors = mapValidationPipeErrors(body);
       return this.buildEnvelope(
         {
           code: "VALIDATION_FAILED",
           message: "Request validation failed",
           retryability: "NO_RETRY",
-          details: {}
+          details: { validationErrors }
         },
         requestId,
         correlationId

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
@@ -9,6 +9,7 @@ import { AbilitiesGuard } from "../../common/casl/abilities.guard";
 import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
 import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
+import { UpdateWorkspaceTourWizardTemplateDto } from "./dto/update-workspace-tour-wizard-template.dto";
 import { WorkspaceTourWizardTemplateEnvelopeDto } from "./dto/workspace-tour-wizard-template-response.dto";
 import { TourWizardTemplateSettingsService } from "./tour-wizard-template-settings.service";
 
@@ -29,5 +30,16 @@ export class SettingsTourWizardTemplateController {
   @ApiOkResponse({ type: WorkspaceTourWizardTemplateEnvelopeDto })
   async getTemplate(): Promise<WorkspaceTourWizardTemplateEnvelopeDto> {
     return { template: await this.templates.findForWorkspace() };
+  }
+
+  @Patch()
+  @Roles(UserRole.Owner, UserRole.Admin)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "TourWizardTemplate"))
+  @ApiOperation({ summary: "Update workspace tour wizard template (field overlay + canonical seed)" })
+  @ApiOkResponse({ type: WorkspaceTourWizardTemplateEnvelopeDto })
+  async updateTemplate(
+    @Body() body: UpdateWorkspaceTourWizardTemplateDto,
+  ): Promise<WorkspaceTourWizardTemplateEnvelopeDto> {
+    return { template: await this.templates.updateForWorkspace(body) };
   }
 }

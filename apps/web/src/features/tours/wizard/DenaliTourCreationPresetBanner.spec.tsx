@@ -14,9 +14,11 @@ const bannerSource = readFileSync(
 
 test("DenaliTourCreationPresetBanner applies presets via applyDenaliWizardPreset (shared pipeline)", () => {
   assert.match(bannerSource, /applyDenaliWizardPreset\(/);
+  assert.match(bannerSource, /mapTemplateToRuleModel/);
+  assert.match(bannerSource, /ruleSet:\s*mergedRuleSet/);
   assert.doesNotMatch(bannerSource, /mapPresetToFormPatch\(/);
+  assert.doesNotMatch(bannerSource, /presetDefaultsToDenaliFormPatch/);
   assert.doesNotMatch(bannerSource, /getTours\(/);
-  assert.match(bannerSource, /matchTourType:\s*selected\.matchTourType/);
 });
 
 test("DenaliTourCreationPresetBanner waits for workspace template before apply (no general fallback)", () => {

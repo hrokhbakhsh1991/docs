@@ -61,6 +61,8 @@ export type WorkspaceAbilitySubject =
   /** Owner/admin receipt review queue. */
   | "FinanceReceiptReview"
   | "Settings"
+  /** Workspace tour create wizard template (fieldRulesOverlay + canonicalData). */
+  | "TourWizardTemplate"
   | "Audit"
   | "MarketingSegment";
 
@@ -163,6 +165,14 @@ function applySettingsCapabilityGrantsFromSet(
     can("manage", "Settings");
   } else {
     cannot("manage", "Settings");
+  }
+  if (caps.has("settings.templates.manage")) {
+    can("read", "TourWizardTemplate");
+    can("update", "TourWizardTemplate");
+    can("publish", "TourWizardTemplate");
+  } else {
+    cannot("update", "TourWizardTemplate");
+    cannot("publish", "TourWizardTemplate");
   }
 }
 

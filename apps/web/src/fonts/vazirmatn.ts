@@ -23,5 +23,6 @@ export const vazirmatn = localFont({
     },
   ],
   display: "swap",
+  preload: false,
   variable: "--font-vazirmatn",
 });

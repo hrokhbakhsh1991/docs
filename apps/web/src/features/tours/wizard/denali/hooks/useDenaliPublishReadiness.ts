@@ -5,6 +5,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
+import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import {
   getDenaliWizardPublishReadinessIssues,
   type DenaliWizardPublishReadinessIssue,
@@ -24,6 +25,7 @@ export type UseDenaliPublishReadinessOptions = {
  */
 export function useDenaliPublishReadiness(options?: UseDenaliPublishReadinessOptions) {
   const { control, getValues } = useFormContext<DenaliCreateTourWizardForm>();
+  const { ruleSet } = useDenaliCanonical();
   const publishStatus =
     (useWatch({ control, name: "basicInfo.publishStatus" }) as "draft" | "active" | undefined) ??
     "draft";
@@ -31,8 +33,8 @@ export function useDenaliPublishReadiness(options?: UseDenaliPublishReadinessOpt
 
   const issues = useMemo((): DenaliWizardPublishReadinessIssue[] => {
     const form = formSnapshot ?? getValues();
-    return getDenaliWizardPublishReadinessIssues(form);
-  }, [formSnapshot, getValues]);
+    return getDenaliWizardPublishReadinessIssues(form, "denali_pilot", ruleSet);
+  }, [formSnapshot, getValues, ruleSet]);
 
   const publishReadinessBlocked = publishStatus === "active" && issues.length > 0;
   const disableActivePublish =

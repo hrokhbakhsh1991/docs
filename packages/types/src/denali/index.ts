@@ -74,6 +74,7 @@ export {
 } from "./denaliNumericFields";
 
 export {
+  isDenaliAdminCapacityApprovalVisible,
   isDenaliAllowPersonalCarVisible,
   isDenaliOrganizedBusTransportMode,
   isDenaliOrganizedTransportMode,
@@ -84,3 +85,4 @@ export {
   isDenaliSeatPreferenceRequired,
   isDenaliSeatPreferenceVisible,
 } from "./denaliTransportRules";
+

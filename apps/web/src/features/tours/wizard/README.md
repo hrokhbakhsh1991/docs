@@ -2,7 +2,7 @@
 
 ## Entry points
 
-- UI: `@/components/tours/wizard/TourCreateWizard`
+- UI orchestrator: `@/components/tours/wizard/TourCreateWizard` (routes to Denali or `legacy/ClassicTourCreateWizard`)
 - Wrapper (clone / draft restore): `app/(app)/tours/new/tour-create-wizard-wrapper.tsx` — smoke: `tests/smoke/tour-wizard-clone-query.spec.ts`
 - Mapper: `@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload` (`mapFormValuesToBackendPayload`)
 - Submit: `@/features/tours/wizard/hooks/useTourWizardCreate` → `stripInactiveTourCreateGroupsForProfile` → `createTour` + `mapCreateTourDto` (+ optional theme catalog). Profile→Zod flags: `tourFormProfileToWizardValidationFlags` in `TourCreateWizard` via `tourCreateValidationPolicy.ts`.

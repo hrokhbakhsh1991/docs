@@ -9,7 +9,9 @@ import { ARCTIC_WORKSPACE } from "./workspaces/arctic";
 export const TOUR_WORKSPACE_DEFINITIONS: Record<string, TourWorkspaceDefinition> = {
   denali_pilot: DENALI_WORKSPACE,
   nature_trip: ARCTIC_WORKSPACE,
+  urban_event: DENALI_WORKSPACE,
 };
+
 
 export function getTourWorkspaceDefinition(profile: TourFormProfile): TourWorkspaceDefinition | null {
   return TOUR_WORKSPACE_DEFINITIONS[profile] ?? null;

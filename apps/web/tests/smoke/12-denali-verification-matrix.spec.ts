@@ -55,9 +55,7 @@ test.describe("denali verification matrix", () => {
     await page.waitForTimeout(700);
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    await expect(page.getByTestId("denali-draft-load")).toBeVisible();
-    await page.getByTestId("denali-draft-load").click();
-
+    await expect(page.getByTestId("denali-draft-incompatible-banner")).toBeHidden();
     await expect(page.getByPlaceholder(/عنوان|title/i)).toHaveValue("Draft Restore Test");
   });
 });

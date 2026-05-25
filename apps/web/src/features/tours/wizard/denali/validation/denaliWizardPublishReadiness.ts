@@ -22,6 +22,8 @@ import {
   collectDenaliRuleRequiredIssues,
   type DenaliRuleRequiredIssue,
 } from "../rules/denaliRuleRequired";
+import type { DenaliRuleSet } from "../rules/denaliRuleModel";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
 import { resolveDenaliRuleModelFromForm } from "./denaliRuleAccess";
 
 export type DenaliWizardPublishReadinessIssue = {
@@ -55,13 +57,14 @@ function ruleRequiredIssueToPublishIssue(issue: DenaliRuleRequiredIssue): Denali
 export function getDenaliWizardPublishReadinessIssues(
   rawForm: DenaliCreateTourWizardForm,
   profile: TourFormProfile = "denali_pilot",
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliWizardPublishReadinessIssue[] {
-  const form = normalizeDenaliWizardForm(rawForm);
+  const form = normalizeDenaliWizardForm(rawForm, undefined, ruleSet);
   if (form.basicInfo.publishStatus !== "active") {
     return [];
   }
 
-  const model = resolveDenaliRuleModelFromForm(form);
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
   if (model == null) {
     return [
       {
@@ -106,6 +109,7 @@ export function getDenaliWizardPublishReadinessIssues(
 export function isDenaliWizardReadyForOpenPublish(
   form: DenaliCreateTourWizardForm,
   profile: TourFormProfile = "denali_pilot",
+  ruleSet: DenaliRuleSet = denaliRuleSet,
 ): boolean {
-  return getDenaliWizardPublishReadinessIssues(form, profile).length === 0;
+  return getDenaliWizardPublishReadinessIssues(form, profile, ruleSet).length === 0;
 }

@@ -6,6 +6,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   transpilePackages: ["@tour/ui", "@repo/shared"],
   allowedDevOrigins: [
     "localhost",

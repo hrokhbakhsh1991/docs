@@ -2,9 +2,9 @@ import type { TourFormProfile } from "@repo/types";
 import { TOUR_CREATE_CONTRACT_FIELDS } from "@repo/shared-contracts";
 import { TENANT_MODULE_IDS, type TenantModuleId } from "@repo/shared";
 
-import type { TourCreateWizardValidationFlags } from "@/components/tours/wizard/schemas/tourCreateValidationPolicy";
+import type { TourCreateWizardValidationFlags } from "@/components/tours/wizard/legacy/schemas/tourCreateValidationPolicy";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import {
   GROUP_TO_TOUR_CREATE_ROOT_KEYS,
   STEP_PRIMARY_FIELD_GROUP,

@@ -51,3 +51,9 @@
 .controlSlot {
   width: 100%;
 }
+
+.field[data-denali-focus="true"] .controlSlot {
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 0 0 2px var(--color-surface, #fff),
+    0 0 0 4px var(--color-danger-400, #f87171);
+}

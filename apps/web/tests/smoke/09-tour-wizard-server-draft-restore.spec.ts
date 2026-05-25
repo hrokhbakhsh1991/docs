@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { TOUR_FORM_PROFILE_VERSION } from "@repo/types";
+import { getDenaliWizardDraftVersionHash } from "../../src/features/tours/wizard/denaliWizardDraftEnvelope";
 
 import {
   addLeaderSmokeSessionCookie,
@@ -15,35 +16,39 @@ import {
 
 const SERVER_TITLE = "server draft restore title";
 
-const SERVER_ENVELOPE = {
-  overview: {
+const SERVER_ENVELOPE = () => ({
+  basicInfo: {
     title: SERVER_TITLE,
-    shortDescription: "خلاصه از پیش‌نویس سرور",
-    longDescription: "توضیح کامل بازیابی‌شده از سرور برای smoke تست cross-device.",
-    tourType: "city",
+    tourType: "event_reading",
   },
+  versionHash: getDenaliWizardDraftVersionHash(),
   _wizardMeta: {
     resolvedFormProfile: "urban_event",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
   },
-};
+});
 
 test.describe("tour wizard server draft restore", () => {
   test.beforeEach(async ({ page, context }) => {
+    page.on("console", msg => console.log(`[BROWSER CONSOLE] ${msg.type()}: ${msg.text()}`));
+    page.on("pageerror", err => console.error(`[BROWSER ERROR] ${err.stack ?? err.message}`));
+
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await installSmokeServerDraftEnabled(page);
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
-    await installTourWizardSettingsRoutes(page, { themes: [] });
+    await installTourWizardSettingsRoutes(page, { themes: [], workspaceTemplateProfile: "urban_event" });
   });
+
+
 
   test("server draft wins over stale local savedAt (cross-device)", async ({ page }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
 
     await installTourWizardServerDraftRoutes(page, {
       getDraft: {
-        envelope: SERVER_ENVELOPE,
+        envelope: SERVER_ENVELOPE(),
         updatedAt: "2026-05-17T18:00:00.000Z",
         rowVersion: 3,
       },
@@ -52,16 +57,15 @@ test.describe("tour wizard server draft restore", () => {
     await page.goto(`${baseURL}/tours/new`, { waitUntil: "domcontentloaded" });
     await purgeTourWizardDraftStorage(page);
     await page.evaluate(
-      ({ key }: { key: string }) => {
+      ({ key, versionHash }: { key: string; versionHash: string }) => {
         localStorage.setItem(
           key,
           JSON.stringify({
-            overview: {
+            basicInfo: {
               title: "stale local draft title",
-              shortDescription: "قدیمی",
-              longDescription: "پیش‌نویس محلی قدیمی.",
-              tourType: "city",
+              tourType: "event_reading",
             },
+            versionHash,
             _wizardMeta: {
               resolvedFormProfile: "urban_event",
               formProfileVersion: 1,
@@ -70,13 +74,13 @@ test.describe("tour wizard server draft restore", () => {
           }),
         );
       },
-      { key: SMOKE_WIZARD_DRAFT_STORAGE_KEY },
+      { key: SMOKE_WIZARD_DRAFT_STORAGE_KEY, versionHash: getDenaliWizardDraftVersionHash() },
     );
 
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('input[name="overview.title"]')).toHaveValue(SERVER_TITLE, {
+    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByPlaceholder("مثلاً صعود دماوند از مسیر جنوبی")).toHaveValue(SERVER_TITLE, {
       timeout: 30_000,
     });
   });
@@ -84,7 +88,7 @@ test.describe("tour wizard server draft restore", () => {
   test("server-only draft restores on empty local (new device)", async ({ page }) => {
     await installTourWizardServerDraftRoutes(page, {
       getDraft: {
-        envelope: SERVER_ENVELOPE,
+        envelope: SERVER_ENVELOPE(),
         updatedAt: "2026-05-17T18:00:00.000Z",
         rowVersion: 1,
       },
@@ -96,8 +100,8 @@ test.describe("tour wizard server draft restore", () => {
 
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('input[name="overview.title"]')).toHaveValue(SERVER_TITLE, {
+    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByPlaceholder("مثلاً صعود دماوند از مسیر جنوبی")).toHaveValue(SERVER_TITLE, {
       timeout: 30_000,
     });
   });

@@ -1,7 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 import { z } from "zod";
 
-import type { TourCreateFormValues } from "@/components/tours/wizard/schemas/tourCreateSchema";
+import type { TourCreateFormValues } from "@/components/tours/wizard/legacy/schemas/tourCreateSchema";
 import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
@@ -14,8 +14,9 @@ import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSub
 import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-session-log";
 
 import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTourPayload";
+import type { DenaliRuleSet } from "../denali/rules/denaliRuleModel";
+import { prepareDenaliWizardFormForSubmit } from "../denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "../schemas/denaliTourCreateSchema";
-import { normalizeDenaliWizardForm } from "../schemas/denaliTourCreateFormModel";
 import { getDenaliWizardSubmitIssues } from "../denali/validation/denaliWizardFormZod";
 
 export type WizardThemeCatalogRow = readonly { id: string; name: string }[];
@@ -52,14 +53,15 @@ export async function createTourFromClassicWizardForm(input: {
  */
 export async function createTourFromWorkspaceWizardForm(input: {
   values: DenaliCreateTourWizardForm;
+  ruleSet: DenaliRuleSet;
   /** Workspace template profile — client strip only; not sent on POST (server resolves from template). */
   workspaceFormProfile: TourFormProfile;
   themeCatalog?: WizardThemeCatalogRow;
   sourcePresetId?: string;
   sourceTourId?: string;
 }): Promise<unknown> {
-  const normalized = normalizeDenaliWizardForm(input.values);
-  const submitIssues = getDenaliWizardSubmitIssues(normalized);
+  const normalized = prepareDenaliWizardFormForSubmit(input.values, input.ruleSet);
+  const submitIssues = getDenaliWizardSubmitIssues(normalized, undefined, input.ruleSet);
   debugSessionLog(
     "createTourFromWorkspaceWizardForm.ts:submit-gate",
     "Denali submit gate evaluated",

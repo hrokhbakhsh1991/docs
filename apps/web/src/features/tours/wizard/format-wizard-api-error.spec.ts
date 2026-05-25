@@ -25,6 +25,14 @@ test("formatWizardApiErrorMessage maps VALIDATION_PROFILE_EDIT_REQUIRED_FIELD to
   assert.match(msg, /فعالیت‌ها و برنامه‌ریزی روزهای تور/);
 });
 
+test("formatWizardApiErrorMessage appends requestId when present on ApiError", () => {
+  const msg = formatWizardApiErrorMessage(
+    new ApiError("TOUR_NOT_PUBLISHABLE", "Tour title is required", 400, undefined, "req-wizard-1"),
+    "fallback",
+  );
+  assert.match(msg, /شناسه درخواست: req-wizard-1/);
+});
+
 test("formatWizardApiErrorMessage maps VALIDATION_PROFILE_REQUIRED_FIELD to Persian", () => {
   const msg = formatWizardApiErrorMessage(
     new ApiError(

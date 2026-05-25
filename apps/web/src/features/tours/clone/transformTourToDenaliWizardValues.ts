@@ -38,6 +38,10 @@ export type TransformTourToDenaliWizardOptions = {
    */
   mode?: DenaliWizardTourTransformMode;
   /**
+   * When true, keep gallery photo ids from the API (edit hydrate). Clone flow remints ids by default.
+   */
+  preserveGalleryPhotoIds?: boolean;
+  /**
    * Workspace active equipment row ids (`useSettingsEquipment` rows with `isActive`).
    * When set, gear from the source tour is filtered to this catalog (clone + create).
    */
@@ -116,6 +120,7 @@ function remintClonePhotoId(): string {
 
 function mapDayPlanPhotos(
   raw: unknown,
+  options?: { preserveIds?: boolean },
 ): Array<{
   id: string;
   url: string;
@@ -131,8 +136,11 @@ function mapDayPlanPhotos(
       const row = p as Record<string, unknown>;
       const url = typeof row.url === "string" ? row.url.trim() : "";
       if (!url) return null;
+      const apiId = typeof row.id === "string" ? row.id.trim() : "";
+      const id =
+        options?.preserveIds === true && apiId.length > 0 ? apiId : remintClonePhotoId();
       return {
-        id: remintClonePhotoId(),
+        id,
         url,
         ...(typeof row.filename === "string" ? { filename: row.filename } : {}),
         ...(typeof row.size === "number" ? { size: row.size } : {}),
@@ -439,7 +447,10 @@ export function transformTourToDenaliWizardValues(
   const altitudeMeasurement =
     numberOrUndefined(overview.altitudeMeasurement) ??
     numberOrUndefined(overview.maxAltitudeMeters);
-  const tourPhotos = mapDayPlanPhotos(tripDetails.photos);
+  const preserveGalleryPhotoIds = options?.preserveGalleryPhotoIds === true;
+  const tourPhotos = mapDayPlanPhotos(tripDetails.photos, {
+    preserveIds: preserveGalleryPhotoIds,
+  });
   const programNotes = itinerary.programNotes;
   const hikingHoursApprox = parseHikingHoursFromProgramNotes(programNotes) ?? undefined;
   const { hikingGoHours, hikingReturnHours } = parseHikingGoReturnFromProgramNotes(programNotes);

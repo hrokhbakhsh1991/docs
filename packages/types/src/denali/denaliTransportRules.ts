@@ -53,6 +53,17 @@ export function isDenaliTransportDongAmountRequired(input: {
   return isDenaliTransportDongAmountVisible(input);
 }
 
+/** Shown only when personal car is permitted on bus / minibus / train. */
+export function isDenaliAdminCapacityApprovalVisible(input: {
+  mode: DenaliCanonicalTransportMode;
+  allowPersonalCar?: boolean;
+}): boolean {
+  return (
+    isDenaliOrganizedTransportWithPersonalCarOption(input.mode) &&
+    input.allowPersonalCar === true
+  );
+}
+
 /** Train-only: seat preference intake (window / aisle / any). */
 export function isDenaliSeatPreferenceVisible(
   mode: DenaliCanonicalTransportMode | undefined,
