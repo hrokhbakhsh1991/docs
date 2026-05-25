@@ -40,3 +40,9 @@ test("toUpdateTourApiBody omits requiresPayment when neither dto nor existing co
   const cost = body.cost_context as Record<string, unknown>;
   assert.equal("requiresPayment" in cost, false);
 });
+
+test("toUpdateTourApiBody omits lifecycle_status when dto omits it", () => {
+  const { lifecycle_status: _removed, ...fieldEditDto } = baseDto;
+  const body = toUpdateTourApiBody(fieldEditDto, {});
+  assert.equal("lifecycle_status" in body, false);
+});

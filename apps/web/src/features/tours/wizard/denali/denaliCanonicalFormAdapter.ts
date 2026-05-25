@@ -14,6 +14,8 @@ import {
 } from "@repo/types";
 import {
   denaliCanonicalFromForm,
+  pickDenaliCanonicalGalleryPhotos,
+  pickDenaliCanonicalItineraryDayPhotos,
   type DenaliCanonicalDuration,
   type DenaliCanonicalTourModel,
   type DenaliCanonicalTransportMode,
@@ -101,7 +103,19 @@ export function createInitialDenaliCanonicalModel(
       hikingGoHours: form.programNature.hikingGoHours,
       hikingReturnHours: form.programNature.hikingReturnHours,
       altitudeMeasurement: form.programNature.altitudeMeasurement,
-      itinerary: form.programNature.itinerary,
+      itinerary:
+        form.programNature.itinerary != null && form.programNature.itinerary.length > 0
+          ? form.programNature.itinerary.map((row) => {
+              const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
+              return {
+                day: row.day,
+                activities: row.activities,
+                ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
+                ...(row.location != null ? { location: row.location } : {}),
+                ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
+              };
+            })
+          : form.programNature.itinerary,
     },
     transport: {
       mode: transportModeToCanonical(form.transport.transportMode),
@@ -132,7 +146,7 @@ export function createInitialDenaliCanonicalModel(
       cancellationDeadlineHours: form.policies.cancellationDeadlineHours,
       cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
     },
-    photos: form.photosData?.photos,
+    photos: pickDenaliCanonicalGalleryPhotos(form.photosData?.photos),
   };
 }
 
@@ -251,7 +265,19 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       hikingGoHours: form.programNature.hikingGoHours,
       hikingReturnHours: form.programNature.hikingReturnHours,
       altitudeMeasurement: form.programNature.altitudeMeasurement,
-      itinerary: form.programNature.itinerary,
+      itinerary:
+        form.programNature.itinerary != null && form.programNature.itinerary.length > 0
+          ? form.programNature.itinerary.map((row) => {
+              const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
+              return {
+                day: row.day,
+                activities: row.activities,
+                ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
+                ...(row.location != null ? { location: row.location } : {}),
+                ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
+              };
+            })
+          : form.programNature.itinerary,
       themeIds: form.programNature.themeIds ?? base.program.themeIds,
     },
     participants: {
@@ -284,7 +310,7 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       cancellationDeadlineHours: form.policies.cancellationDeadlineHours,
       cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
     },
-    photos: form.photosData?.photos,
+    photos: pickDenaliCanonicalGalleryPhotos(form.photosData?.photos),
   };
 }
 

@@ -26,6 +26,7 @@ import {
   normalizeGatheringPickupStations,
   type DenaliGatheringPickupStation,
 } from "./gatheringPickupStation";
+import { pickDenaliCanonicalItineraryDayPhotos } from "./denaliCanonicalPhotoPick";
 import type {
   DenaliCanonicalDuration,
   DenaliCanonicalTourModel,
@@ -383,24 +384,27 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
       altitudeMeasurement: form.programNature.altitudeMeasurement,
       itinerary:
         form.programNature.itinerary != null && form.programNature.itinerary.length > 0
-          ? form.programNature.itinerary.map((row) => ({
-              day: row.day,
-              activities: row.activities,
-              ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
-              ...(row.location != null &&
-              (row.location.addressText?.trim() ||
-                row.location.latitude != null ||
-                row.location.longitude != null)
-                ? {
-                    location: {
-                      addressText: row.location.addressText?.trim() ?? "",
-                      latitude: row.location.latitude ?? null,
-                      longitude: row.location.longitude ?? null,
-                    },
-                  }
-                : {}),
-              ...(row.photos != null && row.photos.length > 0 ? { photos: row.photos } : {}),
-            }))
+          ? form.programNature.itinerary.map((row) => {
+              const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
+              return {
+                day: row.day,
+                activities: row.activities,
+                ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
+                ...(row.location != null &&
+                (row.location.addressText?.trim() ||
+                  row.location.latitude != null ||
+                  row.location.longitude != null)
+                  ? {
+                      location: {
+                        addressText: row.location.addressText?.trim() ?? "",
+                        latitude: row.location.latitude ?? null,
+                        longitude: row.location.longitude ?? null,
+                      },
+                    }
+                  : {}),
+                ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
+              };
+            })
           : undefined,
     },
 

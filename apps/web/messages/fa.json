@@ -379,7 +379,9 @@
       },
       "edit": {
         "pageTitle": "ویرایش تور",
-        "pageDescription": "فیلدهای تور را مطابق ویزارد Denali ویرایش کنید؛ تغییرات با PATCH ذخیره می‌شوند."
+        "pageDescription": "فیلدهای تور را مطابق ویزارد Denali ویرایش کنید؛ تغییرات با PATCH ذخیره می‌شوند.",
+        "publishTour": "انتشار تور",
+        "publishing": "در حال انتشار…"
       }
     },
     "new": {

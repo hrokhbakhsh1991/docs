@@ -301,12 +301,13 @@ export function TourEditClient({
             tour={tour}
             submitError={updateMutation.error}
             onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
-            onSubmit={async (values) => {
+            onSubmit={async (values, meta) => {
               const updated = await updateMutation.mutateAsync({
                 dto: updateTourDtoFromDenaliWizardForm(values, {
                   themeCatalog: tourThemesQuery.data ?? [],
                   formProfile: workspaceFormProfile,
                   ruleSet: mergedRuleSet,
+                  patchIntent: meta.intent,
                 }),
                 mergeCostFrom: tour.costContext ?? null,
               });

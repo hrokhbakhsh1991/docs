@@ -10,11 +10,8 @@ import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleMo
 import { prepareDenaliWizardFormForSubmit } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
-function denaliPublishStatusToApiLifecycle(
-  publishStatus: DenaliCreateTourWizardForm["basicInfo"]["publishStatus"],
-): TourLifecycleStatus {
-  return publishStatus === "active" ? "OPEN" : "DRAFT";
-}
+/** Whether the edit PATCH is a draft save or an explicit publish action. */
+export type DenaliTourEditPatchIntent = "save" | "publish";
 
 /** Maps Denali wizard form → {@link UpdateTourDto} for PATCH /api/v2/tours/:id. */
 export function updateTourDtoFromDenaliWizardForm(
@@ -23,6 +20,11 @@ export function updateTourDtoFromDenaliWizardForm(
     themeCatalog?: readonly { id: string; name: string }[];
     formProfile?: TourFormProfile;
     ruleSet?: DenaliRuleSet;
+    /**
+     * `save` — omit `lifecycle_status` so the backend keeps the current status (e.g. DRAFT).
+     * `publish` — set `lifecycle_status` to OPEN.
+     */
+    patchIntent?: DenaliTourEditPatchIntent;
   },
 ): UpdateTourDto {
   const normalized = prepareDenaliWizardFormForSubmit(form, options?.ruleSet ?? denaliRuleSet);
@@ -43,6 +45,10 @@ export function updateTourDtoFromDenaliWizardForm(
     normalized.basicInfo.socialMediaLink?.trim() ||
     undefined;
 
+  const patchIntent = options?.patchIntent ?? "save";
+  const lifecycle_status: TourLifecycleStatus | undefined =
+    patchIntent === "publish" ? "OPEN" : undefined;
+
   return {
     title: createDto.title,
     description: createDto.description,
@@ -50,7 +56,7 @@ export function updateTourDtoFromDenaliWizardForm(
     price: createDto.price,
     requiresPayment: createDto.requiresPayment,
     paymentMode: createDto.paymentMode,
-    lifecycle_status: denaliPublishStatusToApiLifecycle(normalized.basicInfo.publishStatus),
+    ...(lifecycle_status != null ? { lifecycle_status } : {}),
     destinationId: createDto.destinationId ?? null,
     communicationLink,
     formProfile: profile,

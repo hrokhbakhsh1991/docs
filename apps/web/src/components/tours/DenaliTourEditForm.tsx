@@ -17,6 +17,7 @@ import {
 import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
 import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
+import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import {
   DenaliBasicInfoStep,
@@ -38,9 +39,10 @@ import { useDenaliEditCatalogSanitize } from "@/features/tours/wizard/denali/hoo
 import { useDenaliEditRuleSync } from "@/features/tours/wizard/denali/hooks/useDenaliEditRuleSync";
 import { useDenaliPublishReadiness } from "@/features/tours/wizard/denali/hooks/useDenaliPublishReadiness";
 import { useDenaliStepFieldRules } from "@/features/tours/wizard/denali/hooks/useDenaliStepFieldRules";
+import { saveDraft } from "@/features/tours/wizard/denali/denaliWizardDraftSave";
+import { isDenaliDraftEnabled } from "@/features/tours/wizard/is-denali-draft-enabled";
 import {
   clearDenaliWizardDraftFromStorage,
-  persistDenaliWizardDraftToStorage,
   readDenaliWizardDraftFromStorage,
   tryMigrateDenaliWizardDraft,
 } from "@/features/tours/wizard/denali/safeDraftHydration";
@@ -48,6 +50,9 @@ import {
   getDenaliWizardVisibleSteps,
   prepareDenaliWizardFormForSubmit,
 } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import type { DenaliTourEditPatchIntent } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
+import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
+import { getDenaliWizardPublishReadinessIssues } from "@/features/tours/wizard/denali/validation/denaliWizardPublishReadiness";
 import {
   getDenaliStepTitleFa,
   type DenaliCreateWizardStepId,
@@ -75,6 +80,28 @@ import {
 import type { TourDetailDto } from "@/lib/services/tours.service";
 
 import styles from "./DenaliTourEditForm.module.css";
+
+/** Dev aid: log canonical submit gate before RHF rejects save (schema / registry drift). */
+function logDenaliEditSubmitIssuesBeforeReject(
+  context: string,
+  form: DenaliCreateTourWizardForm,
+  ruleSet: DenaliRuleSet,
+): ReturnType<typeof getDenaliWizardSubmitIssues> {
+  const normalized = prepareDenaliWizardFormForSubmit(form, ruleSet);
+  const issues = getDenaliWizardSubmitIssues(normalized, undefined, ruleSet);
+  if (issues.length > 0) {
+    console.error(`[DenaliTourEditForm] ${context} — getDenaliWizardSubmitIssues`, {
+      issueCount: issues.length,
+      issues: issues.map((issue) => ({
+        path: issue.path.join("."),
+        code: issue.code,
+        message: issue.message,
+      })),
+      rawIssues: issues,
+    });
+  }
+  return issues;
+}
 
 function DenaliEditSection({
   stepId,
@@ -166,10 +193,61 @@ function DenaliEditPublishSection() {
   );
 }
 
+function DenaliEditFormActions({
+  tourLifecycleStatus,
+  isSubmitting,
+  onCancel,
+  onSave,
+  onPublish,
+}: {
+  tourLifecycleStatus: TourDetailDto["lifecycleStatus"];
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSave: () => void;
+  onPublish: () => void;
+}) {
+  const t = useTranslations("tours.denali");
+  const tForm = useTranslations("tours.form");
+  const { issues } = useDenaliPublishReadiness({ disableActiveWhileNotReady: true });
+  const showPublish = tourLifecycleStatus === "DRAFT";
+
+  return (
+    <div className={styles.actions}>
+      <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
+        {tForm("cancel")}
+      </Button>
+      {showPublish ? (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isSubmitting || issues.length > 0}
+          onClick={onPublish}
+          data-testid="denali-edit-publish"
+        >
+          {isSubmitting ? t("edit.publishing") : t("edit.publishTour")}
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        variant="primary"
+        disabled={isSubmitting}
+        onClick={onSave}
+        data-testid="denali-edit-save"
+      >
+        {isSubmitting ? tForm("saving") : tForm("saveChanges")}
+      </Button>
+    </div>
+  );
+}
+
+export type DenaliTourEditSubmitMeta = {
+  intent: DenaliTourEditPatchIntent;
+};
+
 export type DenaliTourEditFormProps = {
   tour: TourDetailDto;
   onCancel: () => void;
-  onSubmit: (values: DenaliCreateTourWizardForm) => Promise<void>;
+  onSubmit: (values: DenaliCreateTourWizardForm, meta: DenaliTourEditSubmitMeta) => Promise<void>;
   submitError?: unknown;
 };
 
@@ -299,7 +377,7 @@ export function DenaliTourEditForm({
     setFormBootstrapped(true);
 
     if (bootstrap.restoredFromDraft) {
-      persistDenaliWizardDraftToStorage(
+      saveDraft(
         editDraftStorageKey,
         bootstrap.initialValues,
         draftWizardMetaRef.current,
@@ -340,7 +418,7 @@ export function DenaliTourEditForm({
     bumpCanonicalSync();
     pendingIncompatibleDraftRef.current = null;
     setShowIncompatibleDraftBanner(false);
-    persistDenaliWizardDraftToStorage(
+    saveDraft(
       editDraftStorageKey,
       hydrated.formValues,
       draftWizardMetaRef.current,
@@ -442,20 +520,62 @@ export function DenaliTourEditForm({
 
   const onInvalid = useCallback(
     (fieldErrors: typeof errors) => {
+      logDenaliEditSubmitIssuesBeforeReject(
+        "handleSubmit rejected (resolver/onInvalid)",
+        getValues(),
+        ruleSetRef.current,
+      );
       const issues = collectTourFormValidationIssues(fieldErrors, errorLabelContext);
       scrollTourFormToFirstError(issues);
     },
-    [errorLabelContext],
+    [errorLabelContext, getValues],
   );
 
   const submitValid = useCallback(
-    async (values: DenaliCreateTourWizardForm) => {
-      const safeValues = prepareDenaliWizardFormForSubmit(values, mergedRuleSet);
+    async (values: DenaliCreateTourWizardForm, intent: DenaliTourEditPatchIntent) => {
+      const submitGateIssues = logDenaliEditSubmitIssuesBeforeReject(
+        "submitValid preflight (before PATCH)",
+        values,
+        ruleSetRef.current,
+      );
+      if (submitGateIssues.length > 0) {
+        return;
+      }
+
+      if (intent === "publish") {
+        const publishIssues = getDenaliWizardPublishReadinessIssues(
+          values,
+          workspaceFormProfile,
+          mergedRuleSet,
+        );
+        if (publishIssues.length > 0) {
+          console.error("[DenaliTourEditForm] publish blocked — readiness issues", publishIssues);
+          setError("root", {
+            type: "publish",
+            message: t("review.publishSubmitBlocked"),
+          });
+          return;
+        }
+      }
+
+      const prepared =
+        intent === "publish"
+          ? {
+              ...values,
+              basicInfo: { ...values.basicInfo, publishStatus: "active" as const },
+            }
+          : values;
+      const safeValues = prepareDenaliWizardFormForSubmit(prepared, mergedRuleSet);
 
       try {
-        await onSubmit(safeValues);
+        await onSubmit(safeValues, { intent });
         clearDenaliWizardDraftFromStorage(editDraftStorageKey);
       } catch (err) {
+        logDenaliEditSubmitIssuesBeforeReject(
+          "submitValid caught error (client gate vs API)",
+          safeValues,
+          ruleSetRef.current,
+        );
         if (err instanceof ApiError && applyServerValidationErrors(err)) {
           return;
         }
@@ -478,8 +598,16 @@ export function DenaliTourEditForm({
       mergedRuleSet,
       onSubmit,
       setError,
+      t,
       tForm,
+      workspaceFormProfile,
     ],
+  );
+
+  const runSubmit = useCallback(
+    (intent: DenaliTourEditPatchIntent) =>
+      handleSubmit((values) => submitValid(values, intent), onInvalid),
+    [handleSubmit, onInvalid, submitValid],
   );
 
   const mutationErrorMessage =
@@ -490,15 +618,18 @@ export function DenaliTourEditForm({
         : null;
 
   const quickAddWizardPersistence = useMemo(
-    () => ({
-      storageKey: editDraftStorageKey,
-      getFormValues: () => getValues() as Record<string, unknown>,
-      serializeDraft: (values: Record<string, unknown>) =>
-        serializeDenaliWizardDraft(
-          values as Partial<DenaliCreateTourWizardForm>,
-          draftWizardMetaRef.current,
-        ),
-    }),
+    () =>
+      isDenaliDraftEnabled()
+        ? {
+            storageKey: editDraftStorageKey,
+            getFormValues: () => getValues() as Record<string, unknown>,
+            serializeDraft: (values: Record<string, unknown>) =>
+              serializeDenaliWizardDraft(
+                values as Partial<DenaliCreateTourWizardForm>,
+                draftWizardMetaRef.current,
+              ),
+          }
+        : undefined,
     [editDraftStorageKey, getValues],
   );
 
@@ -515,15 +646,17 @@ export function DenaliTourEditForm({
   return (
     <QuickAddModalProvider wizardPersistence={quickAddWizardPersistence}>
       <FormProvider {...formMethods}>
-        <DenaliWizardDraftAutosave
-          enabled={formBootstrapped && !isSubmitting}
-          draftStorageKey={editDraftStorageKey}
-          formMethods={formMethods}
-          draftWizardMetaRef={draftWizardMetaRef}
-          ruleSet={mergedRuleSet}
-          canonicalSyncToken={canonicalSyncToken}
-          useBackupStorage={showIncompatibleDraftBanner}
-        />
+        {isDenaliDraftEnabled() ? (
+          <DenaliWizardDraftAutosave
+            enabled={formBootstrapped && !isSubmitting}
+            draftStorageKey={editDraftStorageKey}
+            formMethods={formMethods}
+            draftWizardMetaRef={draftWizardMetaRef}
+            ruleSet={mergedRuleSet}
+            canonicalSyncToken={canonicalSyncToken}
+            useBackupStorage={showIncompatibleDraftBanner}
+          />
+        ) : null}
         <DenaliCanonicalProvider
           formMethods={formMethods}
           syncToken={canonicalSyncToken}
@@ -543,7 +676,10 @@ export function DenaliTourEditForm({
             <form
               className={styles.inner}
               noValidate
-              onSubmit={handleSubmit(submitValid, onInvalid)}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void runSubmit("save")();
+              }}
             >
               {showIncompatibleDraftBanner ? (
                 <div
@@ -611,14 +747,13 @@ export function DenaliTourEditForm({
                 </Alert>
               ) : null}
 
-              <div className={styles.actions}>
-                <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>
-                  {tForm("cancel")}
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting ? tForm("saving") : tForm("saveChanges")}
-                </Button>
-              </div>
+              <DenaliEditFormActions
+                tourLifecycleStatus={tour.lifecycleStatus}
+                isSubmitting={isSubmitting}
+                onCancel={onCancel}
+                onSave={() => void runSubmit("save")()}
+                onPublish={() => void runSubmit("publish")()}
+              />
             </form>
           </CardBody>
         </Card>

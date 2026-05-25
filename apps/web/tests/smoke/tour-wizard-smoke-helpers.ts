@@ -173,6 +173,15 @@ export async function installSmokeServerDraftEnabled(page: Page): Promise<void> 
   await page.addInitScript(enable);
 }
 
+/** Enables Denali local draft autosave in smoke when the build omits `NEXT_PUBLIC_ENABLE_DENALI_DRAFT`. */
+export async function installSmokeDenaliDraftEnabled(page: Page): Promise<void> {
+  const enable = () => {
+    window.__DENALI_DRAFT__ = true;
+  };
+  await page.context().addInitScript(enable);
+  await page.addInitScript(enable);
+}
+
 export async function clearTourWizardLocalDraft(page: Page): Promise<void> {
   // Important: avoid `addInitScript` that deletes on every navigation — smoke tests often seed a
   // draft on one `goto` and navigate again; a per-navigation wipe would delete the seed.

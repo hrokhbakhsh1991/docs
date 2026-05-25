@@ -14,6 +14,7 @@ import {
   assertTourIsOpenForRegistration,
   assertTourOpenReadiness,
   assertValidLifecycleTransition,
+  isTourDraftToOpenPublishTransition,
 } from "./tour-lifecycle.policy";
 
 function draftTour(overrides: Partial<TourEntity> = {}): TourEntity {
@@ -66,6 +67,29 @@ for (const [from, to] of FORBIDDEN_TRANSITIONS) {
 test("assertValidLifecycleTransition: same state is no-op", () => {
   assert.doesNotThrow(() =>
     assertValidLifecycleTransition(TourLifecycleStatus.DRAFT, TourLifecycleStatus.DRAFT),
+  );
+});
+
+test("isTourDraftToOpenPublishTransition: true only for DRAFT → OPEN request", () => {
+  assert.equal(
+    isTourDraftToOpenPublishTransition(TourLifecycleStatus.DRAFT, TourLifecycleStatus.OPEN),
+    true,
+  );
+  assert.equal(
+    isTourDraftToOpenPublishTransition(TourLifecycleStatus.DRAFT, undefined),
+    false,
+  );
+  assert.equal(
+    isTourDraftToOpenPublishTransition(TourLifecycleStatus.DRAFT, TourLifecycleStatus.DRAFT),
+    false,
+  );
+  assert.equal(
+    isTourDraftToOpenPublishTransition(TourLifecycleStatus.OPEN, TourLifecycleStatus.OPEN),
+    false,
+  );
+  assert.equal(
+    isTourDraftToOpenPublishTransition(TourLifecycleStatus.OPEN, TourLifecycleStatus.DRAFT),
+    false,
   );
 });
 

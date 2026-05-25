@@ -49,7 +49,7 @@ function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourE
 
 /**
  * Pre-merge PATCH gate: tour must still be DRAFT and meet publish readiness on persisted row.
- * Call before applying `lifecycle_status: OPEN` to the entity.
+ * Call only when {@link isTourDraftToOpenPublishTransition} is true (not on every PATCH).
  */
 export function assertTourPublishableBeforePatch(tour: TourEntity): void {
   assertTourIsPublishable(tour);

@@ -50,7 +50,10 @@ import {
   assertTourStateReadyForOpenOnCreate,
 } from "./policies/assert-tour-publish-transition";
 import { assertRequiresPaymentHasPositiveAmount } from "./policies/assert-requires-payment-cost";
-import { assertValidLifecycleTransition } from "./policies/tour-lifecycle.policy";
+import {
+  assertValidLifecycleTransition,
+  isTourDraftToOpenPublishTransition,
+} from "./policies/tour-lifecycle.policy";
 import { mergeTourTripDetails } from "./utils/merge-trip-details";
 import type { TourTransportMode } from "./tour-transport-modes";
 import { computeTourDurationDays } from "./utils/tour-duration";
@@ -1033,11 +1036,17 @@ export class ToursService {
       });
     }
 
+    const priorLifecycle = tour.lifecycleStatus;
+    const isPublishingTransition = isTourDraftToOpenPublishTransition(
+      priorLifecycle,
+      dto.lifecycle_status,
+    );
+
     if (dto.lifecycle_status !== undefined) {
-      if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
+      if (isPublishingTransition) {
         assertTourPublishableBeforePatch(tour);
       }
-      assertValidLifecycleTransition(tour.lifecycleStatus, dto.lifecycle_status);
+      assertValidLifecycleTransition(priorLifecycle, dto.lifecycle_status);
     }
 
     try {
@@ -1236,7 +1245,7 @@ export class ToursService {
         });
       }
 
-      if (dto.lifecycle_status === TourLifecycleStatus.OPEN) {
+      if (isPublishingTransition) {
         try {
           assertTourStateReadyForOpenAfterPatch(resolvedFormProfile, tour);
         } catch (e) {

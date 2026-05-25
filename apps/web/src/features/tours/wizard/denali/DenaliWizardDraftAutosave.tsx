@@ -7,10 +7,9 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import type { TourWizardDraftMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
 
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
-import {
-  persistDenaliWizardDraftBackupToStorage,
-  persistDenaliWizardDraftToStorage,
-} from "./safeDraftHydration";
+import { isDenaliDraftEnabled } from "@/features/tours/wizard/is-denali-draft-enabled";
+
+import { saveDraft, saveDraftBackup } from "./denaliWizardDraftSave";
 
 export function DenaliWizardDraftAutosave({
   enabled,
@@ -43,7 +42,7 @@ export function DenaliWizardDraftAutosave({
   });
 
   useEffect(() => {
-    if (!enabled || typeof window === "undefined") {
+    if (!enabled || !isDenaliDraftEnabled() || typeof window === "undefined") {
       return;
     }
     const timeoutId = window.setTimeout(() => {
@@ -51,7 +50,7 @@ export function DenaliWizardDraftAutosave({
         const values = formMethods.getValues();
         const persistOptions = { ruleSet };
         if (useBackupStorage) {
-          persistDenaliWizardDraftBackupToStorage(
+          saveDraftBackup(
             draftStorageKey,
             values,
             draftWizardMetaRef.current,
@@ -59,7 +58,7 @@ export function DenaliWizardDraftAutosave({
           );
           return;
         }
-        persistDenaliWizardDraftToStorage(
+        saveDraft(
           draftStorageKey,
           values,
           draftWizardMetaRef.current,

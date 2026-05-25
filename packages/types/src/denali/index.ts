@@ -69,6 +69,16 @@ export {
 } from "./denaliCanonicalFromForm";
 
 export {
+  pickDenaliCanonicalGalleryPhoto,
+  pickDenaliCanonicalGalleryPhotos,
+  pickDenaliCanonicalItineraryDayPhoto,
+  pickDenaliCanonicalItineraryDayPhotos,
+  type DenaliCanonicalGalleryPhoto,
+  type DenaliCanonicalItineraryDayPhoto,
+  type DenaliWizardPhotoRowInput,
+} from "./denaliCanonicalPhotoPick";
+
+export {
   denaliFormAmountToCanonical,
   denaliFormCapacityMaxToCanonical,
   isDenaliPositiveInt,

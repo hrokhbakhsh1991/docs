@@ -90,7 +90,8 @@ export type UpdateTourDto = {
   capacity: number;
   price: number;
   requiresPayment?: boolean;
-  lifecycle_status: TourLifecycleStatus;
+  /** Omit on field-only edits; send only when publish status explicitly changes. */
+  lifecycle_status?: TourLifecycleStatus;
   /** Preserved in `cost_context.location` when present. */
   location?: string;
   /** Maps to `chat_link` on the wire when non-empty after trim. */
@@ -357,10 +358,12 @@ export function toUpdateTourApiBody(
   const body: Record<string, unknown> = {
     title: dto.title.trim(),
     total_capacity: dto.capacity,
-    lifecycle_status: dto.lifecycle_status,
     description: dto.description ?? "",
     cost_context: merged,
   };
+  if (dto.lifecycle_status !== undefined) {
+    body.lifecycle_status = dto.lifecycle_status;
+  }
   const link = dto.communicationLink?.trim();
   if (link) {
     body.chat_link = link;

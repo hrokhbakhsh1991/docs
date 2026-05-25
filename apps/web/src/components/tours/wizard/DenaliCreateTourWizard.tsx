@@ -22,6 +22,7 @@ import { handleDenaliWizardValidationApiError } from "@/lib/errors/apply-api-val
 import { DenaliTourCreationPresetBanner } from "@/features/tours/wizard/DenaliTourCreationPresetBanner";
 import { useDenaliTourWizardCreate } from "@/features/tours/wizard/hooks/useDenaliTourWizardCreate";
 import { useTourWizardServerSync } from "@/features/tours/wizard/hooks/useTourWizardServerSync";
+import { isDenaliDraftEnabled } from "@/features/tours/wizard/is-denali-draft-enabled";
 import { isTourWizardServerDraftEnabled } from "@/features/tours/wizard/is-tour-wizard-server-draft-enabled";
 import { useSettingsTourPresets } from "@/hooks/use-settings-tour-presets";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -74,8 +75,9 @@ import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/cano
 import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 import {
   clearDenaliWizardDraftFromStorage,
-  persistDenaliWizardDraftBackupToStorage,
-  persistDenaliWizardDraftToStorage,
+  saveDraft,
+} from "@/features/tours/wizard/denali/denaliWizardDraftSave";
+import {
   readDenaliCreateWizardDraftFromStorage,
   readDenaliWizardDraftFromStorage,
   resolveDenaliWizardDraftHydration,
@@ -288,15 +290,18 @@ export function DenaliCreateTourWizard() {
   const navLocked = submitLocked;
 
   const quickAddWizardPersistence = useMemo(
-    () => ({
-      storageKey: activeDraftStorageKey,
-      getFormValues: () => getValues() as Record<string, unknown>,
-      serializeDraft: (values: Record<string, unknown>) =>
-        serializeDenaliWizardDraft(
-          values as Partial<DenaliCreateTourWizardForm>,
-          draftWizardMetaRef.current,
-        ),
-    }),
+    () =>
+      isDenaliDraftEnabled()
+        ? {
+            storageKey: activeDraftStorageKey,
+            getFormValues: () => getValues() as Record<string, unknown>,
+            serializeDraft: (values: Record<string, unknown>) =>
+              serializeDenaliWizardDraft(
+                values as Partial<DenaliCreateTourWizardForm>,
+                draftWizardMetaRef.current,
+              ),
+          }
+        : undefined,
     [activeDraftStorageKey, getValues],
   );
 
@@ -402,7 +407,7 @@ export function DenaliCreateTourWizard() {
     applyHydratedDraftToForm(hydrated);
     pendingIncompatibleDraftRef.current = null;
     setShowIncompatibleDraftBanner(false);
-    persistDenaliWizardDraftToStorage(
+    saveDraft(
       activeDraftStorageKey,
       hydrated.formValues,
       draftWizardMetaRef.current,
@@ -489,7 +494,7 @@ export function DenaliCreateTourWizard() {
           mergedRuleSet,
         );
         applyHydratedDraftToForm({ formValues, wizardMeta: localPrefill.wizardMeta });
-        persistDenaliWizardDraftToStorage(
+        saveDraft(
           activeDraftStorageKey,
           formValues,
           draftWizardMetaRef.current,
@@ -508,7 +513,7 @@ export function DenaliCreateTourWizard() {
         });
         if (hydrated) {
           applyHydratedDraftToForm(hydrated);
-          persistDenaliWizardDraftToStorage(
+          saveDraft(
             activeDraftStorageKey,
             hydrated.formValues,
             draftWizardMetaRef.current,
@@ -814,15 +819,17 @@ export function DenaliCreateTourWizard() {
   return (
     <QuickAddModalProvider wizardPersistence={quickAddWizardPersistence}>
       <FormProvider {...formMethods}>
-        <DenaliWizardDraftAutosave
-          enabled={wizardReady && !submitLocked}
-          draftStorageKey={activeDraftStorageKey}
-          formMethods={formMethods}
-          draftWizardMetaRef={draftWizardMetaRef}
-          ruleSet={mergedRuleSet}
-          canonicalSyncToken={canonicalSyncToken}
-          useBackupStorage={showIncompatibleDraftBanner}
-        />
+        {isDenaliDraftEnabled() ? (
+          <DenaliWizardDraftAutosave
+            enabled={wizardReady && !submitLocked}
+            draftStorageKey={activeDraftStorageKey}
+            formMethods={formMethods}
+            draftWizardMetaRef={draftWizardMetaRef}
+            ruleSet={mergedRuleSet}
+            canonicalSyncToken={canonicalSyncToken}
+            useBackupStorage={showIncompatibleDraftBanner}
+          />
+        ) : null}
         <DenaliCanonicalProvider
           formMethods={formMethods}
           syncToken={canonicalSyncToken}

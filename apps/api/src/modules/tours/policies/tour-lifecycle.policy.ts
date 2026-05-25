@@ -85,6 +85,19 @@ export function assertTourIsOpenForRegistration(tour: Tour): void {
 }
 
 /**
+ * True when PATCH explicitly requests DRAFT → OPEN (publish), not a no-op or field-only save.
+ */
+export function isTourDraftToOpenPublishTransition(
+  current: TourLifecycleStatus,
+  requestedLifecycle: TourLifecycleStatus | undefined,
+): boolean {
+  return (
+    requestedLifecycle === TourLifecycleStatus.OPEN &&
+    current === TourLifecycleStatus.DRAFT
+  );
+}
+
+/**
  * Validates that a persisted DRAFT tour may transition to OPEN (draft gate + readiness).
  */
 export function assertTourIsPublishable(tour: Tour): void {

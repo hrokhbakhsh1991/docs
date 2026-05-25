@@ -374,7 +374,9 @@
       },
       "edit": {
         "pageTitle": "Edit tour",
-        "pageDescription": "Edit tour fields aligned with the Denali wizard; changes are saved via PATCH."
+        "pageDescription": "Edit tour fields aligned with the Denali wizard; changes are saved via PATCH.",
+        "publishTour": "Publish tour",
+        "publishing": "Publishing…"
       }
     },
     "new": {

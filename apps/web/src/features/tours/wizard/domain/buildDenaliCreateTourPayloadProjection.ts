@@ -595,11 +595,21 @@ function denaliWizardLifecycleStatus(
   return publishStatus === "active" ? "Open" : "Draft";
 }
 
+/**
+ * Shared Denali wizard → canonical resolution (draft + create-tour pipelines).
+ * API-specific expansion lives in {@link buildDenaliCreateTourPayloadProjection}.
+ */
+export function buildDenaliWizardDraftPayloadProjection(
+  form: DenaliCreateTourWizardForm,
+): DenaliCanonicalTourModel {
+  return denaliFormToCanonical(form);
+}
+
 /** Resolves Denali wizard form → fully expanded create-tour projection (submit pipeline). */
 export function buildDenaliCreateTourPayloadProjection(
   form: DenaliCreateTourWizardForm,
 ): DenaliCreateTourPayloadProjection {
-  const canonical = denaliFormToCanonical(form);
+  const canonical = buildDenaliWizardDraftPayloadProjection(form);
   const basics = readDenaliCanonicalBasics(
     form.basicInfo.tourType as DenaliTourKind | undefined,
   );
