@@ -17,7 +17,7 @@ function localDraft(title: string, savedAt: string) {
   form.basicInfo.title = title;
   const raw = serializeDenaliWizardDraft(form, {
     savedAt,
-    resolvedFormProfile: "denali",
+    resolvedFormProfile: "denali_pilot",
     formProfileVersion: 1,
   });
   return parseDenaliWizardDraftRecord(raw)!;
@@ -35,7 +35,7 @@ function serverDraft(input: {
   const payload = JSON.parse(
     serializeDenaliWizardDraft(form, {
       savedAt: input.updatedAt,
-      resolvedFormProfile: "denali",
+      resolvedFormProfile: "denali_pilot",
       formProfileVersion: 1,
     }),
   ) as Record<string, unknown>;

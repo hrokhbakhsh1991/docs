@@ -26,7 +26,7 @@ export type RegistrationIntakeSchemaMessages = {
   plateNumberRequired: string;
   shareFuelCostRequired: string;
   privateCarNotAllowedOnTour: string;
-  personalInsuranceRequired: string;
+  sportsInsuranceRequired: string;
 };
 
 function registrationIntakeCoreShape(messages: RegistrationIntakeSchemaMessages) {
@@ -44,6 +44,7 @@ function registrationIntakeCoreShape(messages: RegistrationIntakeSchemaMessages)
     participantNote: z.string().trim().max(2000).optional(),
     vehicleSeatCapacity: z.number().int().min(1, messages.seatRange).max(3, messages.seatRange).optional(),
     userPastPeaksCount: z.number().int().min(0).max(4).optional(),
+    sportsInsurance: z.boolean().optional(),
   };
 }
 
@@ -124,17 +125,17 @@ function refineRegistrationIntakePolicy(
     bookingTarget: "self" | "guest";
     participantNationalId: string;
     userPastPeaksCount?: number;
-    personalInsurance?: boolean;
+    sportsInsurance?: boolean;
   },
   ctx: z.RefinementCtx,
   policy: RegistrationFieldPolicy,
   messages: RegistrationIntakeSchemaMessages,
 ) {
-  if (policy.personalInsuranceRequired && data.personalInsurance !== true) {
+  if (policy.sportsInsuranceRequired && data.sportsInsurance !== true) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: messages.personalInsuranceRequired,
-      path: ["personalInsurance"],
+      message: messages.sportsInsuranceRequired,
+      path: ["sportsInsurance"],
     });
   }
 

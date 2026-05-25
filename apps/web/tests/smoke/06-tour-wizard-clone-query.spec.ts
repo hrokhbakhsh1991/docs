@@ -7,7 +7,6 @@ import {
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
-  SMOKE_WIZARD_DRAFT_STORAGE_KEY,
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 

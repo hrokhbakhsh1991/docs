@@ -2,7 +2,6 @@
   "comment": "Explicit exemptions for tenant-isolation guardrails (keep minimal; justify in PR).",
   "ignoredPathsForQueryBuilderTenant": [
     "apps/api/src/database/migrations/",
-    "apps/api/src/database/migrations_archive/",
     "apps/api/src/scripts/",
     "apps/api/src/modules/auth/auth.service.phone-otp.spec.ts",
     "apps/api/test/",

@@ -18,7 +18,6 @@ import {
 } from "../src/features/tours/wizard/denali/registry/denaliRegistryCodegen";
 import {
   DENALI_FIELD_DEFINITIONS,
-  type DenaliFieldDefinition,
   type DenaliZodFieldKind,
 } from "../src/features/tours/wizard/denali/registry/denaliFieldRegistryData";
 import {

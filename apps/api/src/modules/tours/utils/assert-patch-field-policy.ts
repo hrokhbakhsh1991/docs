@@ -1,12 +1,17 @@
 import { ForbiddenException } from "@nestjs/common";
 import {
   tryParseWorkspaceRole,
-  WorkspaceRole,
   type CapabilityGrantContext,
 } from "@repo/shared";
 import type { TourPatchViewerRole } from "@repo/types";
 
 import type { UserRole } from "../../../common/auth/user-role.enum";
+import {
+  canPerformAdministrativeAction,
+  isWorkspaceLeader,
+  isWorkspaceMember,
+  isWorkspaceViewer,
+} from "../../../common/rbac/workspace-access.helper";
 import type { UpdateTourDto } from "../dto/update-tour.dto";
 import {
   getForbiddenTourPatchDtoKeysForPatchContext,
@@ -21,16 +26,16 @@ export function workspaceRoleToTourPatchViewerRole(role: string): TourPatchViewe
   if (!parsed) {
     return null;
   }
-  if (parsed === WorkspaceRole.Owner || parsed === WorkspaceRole.Admin) {
+  if (canPerformAdministrativeAction(parsed)) {
     return "admin";
   }
-  if (parsed === WorkspaceRole.Leader) {
+  if (isWorkspaceLeader(parsed)) {
     return "leader";
   }
-  if (parsed === WorkspaceRole.Member) {
+  if (isWorkspaceMember(parsed)) {
     return "member";
   }
-  if (parsed === WorkspaceRole.Viewer) {
+  if (isWorkspaceViewer(parsed)) {
     return "guest";
   }
   return null;

@@ -116,6 +116,7 @@ export const TOUR_WORKSPACE_COPY = {
       assignModalDescription: (driverName: string) => `انتخاب مسافر برای ${driverName}`,
       selectPassenger: "مسافر",
       confirmAssign: "اختصاص",
+      cancel: "انصراف",
       noUnassigned: "مسافر بدون اختصاصی باقی نمانده است.",
     },
   },

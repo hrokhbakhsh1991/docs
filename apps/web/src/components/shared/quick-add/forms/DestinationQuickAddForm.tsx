@@ -24,9 +24,9 @@ export function DestinationQuickAddForm({
   const { createDestination, isMutating } = useSettingsDestinations();
 
   const defaultRegionId = useMemo(() => {
-    const active = (regionsQuery.data ?? []).find((r) => r.isActive);
-    return active?.id ?? regionsQuery.data?.[0]?.id ?? "";
-  }, [regionsQuery.data]);
+    const active = regionsQuery.regions.find((r) => r.isActive);
+    return active?.id ?? regionsQuery.regions[0]?.id ?? "";
+  }, [regionsQuery.regions]);
 
   const handleSubmit = useCallback(
     async (values: DestinationFormParsed) => {
@@ -37,8 +37,8 @@ export function DestinationQuickAddForm({
           name: values.name,
           regionId: values.regionId,
           type: values.type,
-          altitudeM: values.altitudeM,
-          sortOrder: values.sortOrder,
+          altitudeM: values.altitudeM ?? null,
+          sortOrder: values.sortOrder ?? null,
           isActive: values.isActive,
         });
         onSuccess(created);
@@ -57,7 +57,7 @@ export function DestinationQuickAddForm({
     <DestinationForm
       editing={null}
       defaultRegionIdWhenCreating={defaultRegionId}
-      allRegions={regionsQuery.data ?? []}
+      allRegions={regionsQuery.regions}
       onSubmit={handleSubmit}
       onCancel={onCancel}
       isPending={pending}

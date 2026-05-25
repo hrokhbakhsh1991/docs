@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
 import { BadRequestException } from "@nestjs/common";
-import { WorkspaceRole } from "@repo/shared";
+import type { WorkspaceRole } from "@repo/shared";
+import { qualifiesForStaffPricingDiscount } from "../../../common/rbac/workspace-access.helper";
 import type { CatalogPricingSnapshot } from "../../finance/pricing/contracts/catalog-pricing-snapshot.dto";
 import { assertSingleCurrency } from "../../finance/pricing/finance-pricing-rules";
 import {
@@ -113,14 +114,7 @@ export function computeLegacyCatalogQuote(
 }
 
 function staffDiscountBps(role: WorkspaceRole): number {
-  switch (role) {
-    case WorkspaceRole.Owner:
-    case WorkspaceRole.Leader:
-    case WorkspaceRole.Admin:
-      return 300;
-    default:
-      return 0;
-  }
+  return qualifiesForStaffPricingDiscount(role) ? 300 : 0;
 }
 
 function promoDiscountMinor(code: string | null, baseMinor: bigint): bigint {

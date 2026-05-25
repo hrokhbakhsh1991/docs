@@ -112,6 +112,110 @@ export async function bffFetchWithInternalKey(
   return bffFetchAuth(req, path, { ...init, headers });
 }
 
+/**
+ * Public catalog reads — internal key only (no member session).
+ * Tenant scope comes from the inbound Host header via {@link bffFetch}.
+ */
+export async function bffFetchWithInternalKeyOnly(
+  req: Request,
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const internalKey = process.env.INTERNAL_API_KEY?.trim();
+  if (!internalKey) {
+    throw createAppError(
+      "BFF_CONFIG_MISSING",
+      "INTERNAL_API_KEY is not configured for public catalog reads",
+    );
+  }
+  const headers = new Headers(init.headers);
+  headers.set("x-internal-api-key", internalKey);
+  return bffFetch(req, path, { ...init, headers });
+}
+
+export async function proxyBffToNextPublic(
+  req: Request,
+  path: string,
+  init: RequestInit = {},
+): Promise<NextResponse> {
+  const requestId = extractRequestId(req);
+  const bffStarted = Date.now();
+  try {
+    const backendRes = await bffFetchWithInternalKeyOnly(req, path, init);
+    const bffLatencyMs = Date.now() - bffStarted;
+    if (backendRes.status === 204) {
+      const empty = new NextResponse(null, { status: 204 });
+      forwardBffLatency(empty, bffLatencyMs);
+      forwardSelectHeaders(backendRes, empty);
+      return empty;
+    }
+    if (!backendRes.ok) {
+      logBffError("proxy_public_upstream_non_ok", {
+        requestId: backendRes.headers.get("x-request-id") ?? requestId,
+        endpoint: path,
+        status: backendRes.status,
+      });
+    }
+    const payload = await backendRes.json().catch(() => ({}));
+    const out = NextResponse.json(payload, { status: backendRes.status });
+    forwardSelectHeaders(backendRes, out);
+    forwardBffLatency(out, bffLatencyMs);
+    return out;
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e, requestId);
+    if (guard) {
+      forwardBffLatency(guard, Date.now() - bffStarted);
+      return guard;
+    }
+    return unreachable(requestId);
+  }
+}
+
+export async function proxyBffGetPublic(req: Request, path: string): Promise<NextResponse> {
+  return proxyBffToNextPublic(req, path, { method: "GET" });
+}
+
+export async function proxyBffGetPublicWithSearch(
+  req: Request,
+  basePath: string,
+): Promise<NextResponse> {
+  const url = new URL(req.url);
+  const qs = url.searchParams.toString();
+  const path = qs ? `${basePath}?${qs}` : basePath;
+  return proxyBffGetPublic(req, path);
+}
+
+/** Public registration mutations — tenant from Host only (Nest public register has no JWT guard). */
+export async function proxyBffPostPublic(req: Request, path: string): Promise<NextResponse> {
+  const requestId = extractRequestId(req);
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return invalidJsonBody(requestId);
+  }
+  const bffStarted = Date.now();
+  try {
+    const backendRes = await bffFetch(req, path, {
+      method: "POST",
+      headers: mutationHeadersFromRequest(req),
+      body: JSON.stringify(body),
+    });
+    const bffLatencyMs = Date.now() - bffStarted;
+    const payload = await backendRes.json().catch(() => ({}));
+    const out = NextResponse.json(payload, { status: backendRes.status });
+    forwardBffLatency(out, bffLatencyMs);
+    return out;
+  } catch (e) {
+    const guard = bffGuardErrorResponse(e, requestId);
+    if (guard) {
+      forwardBffLatency(guard, Date.now() - bffStarted);
+      return guard;
+    }
+    return unreachable(requestId);
+  }
+}
+
 function unauthorized(requestId?: string): NextResponse {
   return NextResponse.json(
     {

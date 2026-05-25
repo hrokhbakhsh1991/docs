@@ -75,7 +75,7 @@ import {
 } from "./utils/assert-create-tour-invariants";
 import {
   stripCreateTourDtoForFormProfile,
-  stripTripDetailsForFormProfile,
+  stripPersistedTourForFormProfile,
 } from "./utils/create-tour-form-profile-strip";
 import { shouldRefreshFormProfileSnapshotOnPatch } from "./tours-feature-flags";
 import { logTourFormProfileResolvedForCreate, logTourProfileInvariantRejected } from "./tours-profile-observability";
@@ -530,14 +530,7 @@ export class ToursService {
     tour: TourEntity,
     profile: TourFormProfile,
   ): void {
-    const td = tour.details?.tripDetails;
-    if (!td) {
-      return;
-    }
-    stripTripDetailsForFormProfile(profile, td);
-    if (profile === "urban_event") {
-      tour.transportModes = [] as TourTransportMode[];
-    }
+    stripPersistedTourForFormProfile(profile, tour);
   }
 
   /**
@@ -904,6 +897,7 @@ export class ToursService {
           costContext: tour.costContext,
           listPriceMinor: tour.listPriceMinor
         });
+        // Create→OPEN publish policy (geo when strategy defines publishGeolocationCheck).
         assertTourStateReadyForOpenOnCreate(resolvedFormProfile, tour);
       }
 
@@ -1044,6 +1038,7 @@ export class ToursService {
 
     if (dto.lifecycle_status !== undefined) {
       if (isPublishingTransition) {
+        // Pre-merge DRAFT gate; publish geo/readiness policy via WorkspaceStrategyRegistry in assert-tour-publish-transition.
         assertTourPublishableBeforePatch(tour);
       }
       assertValidLifecycleTransition(priorLifecycle, dto.lifecycle_status);
@@ -1247,6 +1242,7 @@ export class ToursService {
 
       if (isPublishingTransition) {
         try {
+          // Post-merge publish gate (geolocation when strategy defines publishGeolocationCheck).
           assertTourStateReadyForOpenAfterPatch(resolvedFormProfile, tour);
         } catch (e) {
           if (e instanceof BadRequestException) {

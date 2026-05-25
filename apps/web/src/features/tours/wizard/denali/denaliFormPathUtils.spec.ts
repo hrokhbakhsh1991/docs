@@ -12,7 +12,9 @@ test("get/set preserves tripDetails.logistics siblings when clearing gatheringPo
   form.basicInfo.tourType = "mountain_day";
   form.tripDetails = {
     logistics: {
-      gatheringPoints: [{ title: "A", location: { addressText: "Tehran" } }],
+      gatheringPoints: [
+        { title: "A", location: { addressText: "Tehran", latitude: null, longitude: null } },
+      ],
     },
   };
 
@@ -35,7 +37,7 @@ test("writeDenaliFormFieldValue + denaliFormToCanonical: gatheringPoints round-t
   form.basicInfo.tourType = "mountain_day";
 
   writeDenaliFormFieldValue(form, "gatheringPoints", [
-    { title: "Station A", location: { addressText: "Tehran" } },
+    { title: "Station A", location: { addressText: "Tehran", latitude: null, longitude: null } },
   ]);
 
   assert.ok(!Array.isArray(form.tripDetails?.logistics));
@@ -50,7 +52,9 @@ test("normalizeDenaliWizardForm on event clears gatheringPoints without corrupti
   form.basicInfo.tourType = "event_cinema";
   form.tripDetails = {
     logistics: {
-      gatheringPoints: [{ title: "X", location: { addressText: "Y" } }],
+      gatheringPoints: [
+        { title: "X", location: { addressText: "Y", latitude: null, longitude: null } },
+      ],
     },
   };
   (form.tripDetails.logistics as Record<string, unknown>).futureField = "persist";

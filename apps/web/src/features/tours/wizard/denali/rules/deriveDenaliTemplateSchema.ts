@@ -5,11 +5,7 @@ import {
 
 import { denaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 
-import type {
-  DenaliRuleFieldDefinition,
-  DenaliRuleModel,
-  DenaliRuleSet,
-} from "./denaliRuleModel";
+import type { DenaliRuleModel, DenaliRuleSet } from "./denaliRuleModel";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
@@ -37,7 +33,7 @@ function mapModelToSchema(
 export function deriveDenaliTemplateSchema(
   ruleSet: DenaliRuleSet = denaliRuleSet,
 ): DenaliTemplateSchema {
-  const models: DenaliTemplateSchemaModel[] = [];
+  const models: DenaliTemplateSchema["models"][number][] = [];
   for (const category of DENALI_RULE_MODEL_CATEGORIES) {
     for (const duration of DENALI_RULE_MODEL_DURATIONS) {
       const model = ruleSet[category][duration];

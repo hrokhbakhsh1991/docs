@@ -3,11 +3,10 @@ import type { AppAbility } from "@repo/shared";
 import {
   listSensitiveTripDetailsPathsFromPatch,
   parseMembershipMetadata,
-  tryParseWorkspaceRole,
-  WorkspaceRole,
 } from "@repo/shared";
 
 import { AbilityAction } from "../../../common/casl/ability-actions";
+import { mayPatchSensitiveTripDetailsByRole } from "../../../common/rbac/workspace-access.helper";
 import type { UpdateTourDto } from "../dto/update-tour.dto";
 
 function forbidSensitiveTripDetails(paths: readonly string[]): never {
@@ -44,12 +43,7 @@ export function assertSensitiveTripDetailsPatch(
     return;
   }
 
-  const role = tryParseWorkspaceRole(context.role ?? "");
-  if (
-    role === WorkspaceRole.Owner ||
-    role === WorkspaceRole.Admin ||
-    role === WorkspaceRole.Leader
-  ) {
+  if (mayPatchSensitiveTripDetailsByRole(context.role ?? "")) {
     return;
   }
 

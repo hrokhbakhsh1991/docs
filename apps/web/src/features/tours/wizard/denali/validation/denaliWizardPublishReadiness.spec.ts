@@ -28,6 +28,7 @@ function publishGateMountainForm(
     basicInfo: Partial<DenaliCreateTourWizardForm["basicInfo"]>;
     tripDetails: DenaliCreateTourWizardForm["tripDetails"];
     programNature: Partial<DenaliCreateTourWizardForm["programNature"]>;
+    transport: Partial<DenaliCreateTourWizardForm["transport"]>;
   }>,
 ): DenaliCreateTourWizardForm {
   const base = buildDenaliTourCreateTestValues();
@@ -59,6 +60,7 @@ function publishGateMountainForm(
     transport: {
       ...base.transport,
       transportMode: "organizer_vehicle",
+      ...patch?.transport,
     },
     tripDetails: patch?.tripDetails ?? {
       logistics: { gatheringPoints: [CONCRETE_GATHERING] },

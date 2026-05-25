@@ -27,7 +27,7 @@ function overlayTemplateForHiddenPath(path: string): TenantWizardTemplate {
   return {
     id: "t-integrity",
     workspaceId: "w1",
-    baseProfile: "denali",
+    baseProfile: "denali_pilot",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: { [path]: { visibility: "hidden" } },
     presetId: null,

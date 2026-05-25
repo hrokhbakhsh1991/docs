@@ -1,4 +1,5 @@
-import { DENALI_ROOTS, getTourWorkspaceDefinition } from "@repo/shared-contracts";
+import { DENALI_ROOTS } from "@repo/shared-contracts";
+import { isDenaliWizardModeFromProfile } from "@/features/tours/wizard/workspace-wizard.config";
 import { normalizeDenaliTransportForm } from "@repo/types";
 
 import { sanitizeDenaliFormPatch } from "./denali/denaliFormSanitize";
@@ -48,9 +49,9 @@ export function parseDenaliWizardDraftEnvelope(
   try {
     const wizardMeta = parseTourWizardDraftMeta(parsed);
     const rail = parsed._wizardRail;
-    const ws = getTourWorkspaceDefinition(wizardMeta?.resolvedFormProfile as any);
     const isDenaliRail =
-      rail === DENALI_WIZARD_DRAFT_RAIL || ws?.ui.wizardMode === "denali";
+      rail === DENALI_WIZARD_DRAFT_RAIL ||
+      isDenaliWizardModeFromProfile(wizardMeta?.resolvedFormProfile);
     if (!isDenaliRail && !isDenaliFormPatch(parsed)) {
       return null;
     }

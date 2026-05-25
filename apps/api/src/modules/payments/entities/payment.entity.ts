@@ -1,14 +1,9 @@
+import { PaymentStatus } from "@repo/shared-contracts";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
 import { RegistrationEntity } from "../../registrations/registration.entity";
 
-export enum PaymentStatus {
-  PENDING = "Pending",
-  PAID = "Paid",
-  FAILED = "Failed",
-  REFUNDED = "Refunded",
-  CANCELLED = "Cancelled"
-}
+export { PaymentStatus };
 
 export enum PaymentMethod {
   ONLINE = "Online",

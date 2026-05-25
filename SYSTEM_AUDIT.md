@@ -1,6 +1,21 @@
 # System Architectural Audit
 
-Audit date: 2026-05-25. Scope: **Settings**, **Accounting** (Finance/Payments), and **Registration** modules — where fields are defined and where workspace/profile branching couples domains.
+Audit date: 2026-05-26. Scope: **Settings**, **Accounting** (Finance/Payments), and **Registration** modules — where fields are defined and where workspace/profile branching couples domains.
+
+---
+
+## Current Health Report (2026-05-26)
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Workspace strategy migration | **Mostly green** | `WorkspaceStrategyRegistry` owns tour create/publish/strip paths; profile literals remain only inside strategy implementations and registry helpers (`usesDenaliCanonicalTemplate`, `isDenaliStrategyProfile`). |
+| Finance contract gates | **Green** | `enforcePaymentIntentFinanceContract` on payment create/update/manual; `enforceLedgerJournalContract` on all `persistLedgerJournal` / `postAndPersistDoubleEntryJournal` paths. |
+| Golden path (purchase) | **Green (post-fix)** | `RegistrationPlacementOrchestrator` passes `createPaymentIntent` into `createPublicRegistrationOrWaitlist` within one transaction; orchestrator now rejects `requiresPayment && paymentIntent == null` (`BOOKING_PAYMENT_INTENT_MISSING`). Pricing finalization uses immutable booking snapshot, not live `cost_context`. |
+| RBAC centralization | **Green** | Service-layer checks route through `workspace-access.helper.ts`; `registrations-policy.ts` uses `canActAsPlatformAdminWithoutTenant`. Controller `@Roles` decorators are transport-layer only. |
+| TypeScript `pnpm lint` | **Yellow** | Pre-existing errors in `auth.service.phone-otp.spec.ts`, `assert-profile-required-fields-for-submit.spec.ts`, `test-floating-capacity-engine.spec.ts` (unrelated to architecture pass). |
+| Golden path e2e readiness | **Ready with caveats** | Run `pnpm --filter @apps/api run test:e2e` / registration payment e2e against a DB with finance module + `requiresPayment` tours; fix lint blockers if CI gates on full `tsc --noEmit`. |
+
+**Contract gaps still open:** payment transition rules duplicated in `registrations-policy.ts` vs finance FSM; `cost_context.requiresPayment` still gates booking (by design — flag only, not pricing); web settings forms may still hardcode `TOUR_FORM_PROFILE_VALUES` (see §1.2).
 
 ---
 
@@ -66,7 +81,7 @@ There is no top-level `accounting` module; capability is split across **`apps/ap
 | Pricing engine rules | **Hardcoded rule classes** | `apps/api/src/modules/finance/pricing/finance-pricing-rules.ts`, `pricing-engine.ts`, `pricing-rule.ts` |
 | Catalog pricing snapshot | **DTO contract** | `finance/pricing/contracts/catalog-pricing-snapshot.dto.ts` |
 | Registration locked pricing | **JSON on registration** + shared type | `packages/types/src/registration.ts` (`LockedBookingPricingDto`); API `registration.entity.ts` pricing columns |
-| Finance wire contracts (placeholder) | **Empty export stub** | `packages/shared-contracts/src/finance/index.ts` |
+| Finance wire contracts | **Phase 1 shell** (`z` + registry); schemas TBD | `packages/shared-contracts/src/finance/finance.schemas.ts`, `index.ts` |
 | Web finance access | **Capability helper** (tenant modules) | `apps/web/lib/finance/finance-module-access.ts` |
 | Web error mapping | **switch on error.code** | `apps/web/lib/finance/map-finance-to-user-message.ts` |
 | Tour cost / requires payment | **DTO** on tour create/patch | `apps/api/src/modules/tours/dto/cost-context.dto.ts` |
@@ -185,7 +200,7 @@ flowchart LR
 
 1. **Settings ↔ Tours:** Document single owner for `TourFormProfile` descriptor rows vs `workspace-registry.ts` mappings (known alias: `urban_event` → `DENALI_WORKSPACE` in `packages/shared-contracts/src/tours/workspace-registry.ts`).
 2. **Registration:** Consider centralizing `RegistrationFieldPolicy` resolution in API (today split between BFF mapper and tour participation JSON).
-3. **Accounting:** `packages/shared-contracts/src/finance/index.ts` is empty — finance DTOs remain duplicated between API entities and `packages/types`.
+3. **Accounting:** Finance Zod foundation is in `packages/shared-contracts/src/finance/finance.schemas.ts`; concrete payment/receipt DTOs remain duplicated between API entities and `packages/types` until migrated.
 4. **Publish gates:** Tour PATCH publish policy is lifecycle-transition scoped in `tours.service.ts`; registration/finance unaffected (confirmed separate concern).
 
 ---
@@ -335,7 +350,7 @@ Scope: `apps/api/src/modules/finance/`, `apps/api/src/modules/payments/`, `apps/
 | **Reconciliation finding** | Entity + report types | `finance/reconciliation/entities/`, `payment-reconciliation-report.ts` |
 | **Idempotency “transaction”** | HTTP/idempotency scope only | `apps/api/src/modules/idempotency/idempotent-transaction.context.ts` (not a financial transaction) |
 
-`packages/shared-contracts/src/finance/index.ts` is an **empty stub** (`export {}`) with a TODO to centralize currency/minor-unit wire contracts — **not implemented**.
+`packages/shared-contracts/src/finance/` had an empty stub at audit time; **Phase 1** added `finance.schemas.ts` (`z` re-export + `financeSchemaRegistry` shell). Currency/minor-unit and payment/receipt wire schemas — **not yet implemented**.
 
 ### Is there a unified `Receipt` model?
 
@@ -386,7 +401,7 @@ Two **incompatible** `PaymentStatus` enums coexist:
 | Module | Enum values | Used by |
 |--------|-------------|---------|
 | `payments/entities/payment.entity.ts` | `Pending`, `Paid`, `Failed`, `Refunded`, `Cancelled` | **Production** controllers, receipts, refunds, web `PaymentIntentResponse` |
-| `finance/payments/domain/payment-status.ts` | `initiated`, `pending`, `authorized`, `captured`, `failed`, `refunded` | **Finance** `payment-transition-rules.ts`, fake gateway tests — aspirational domain layer |
+| ~~`finance/.../payment-status.ts`~~ | ~~lowercase attempt values~~ | **Renamed** to `PaymentAttemptStatus`; persisted status from `@repo/shared-contracts` only |
 
 Persisted DB payments follow the **uppercase Nest enum**; the finance folder’s lowercase lifecycle is **not** the source of truth for API responses today.
 
@@ -494,12 +509,216 @@ flowchart TB
 
 ---
 
-## 3.4 Step 3 conclusions
+## 3.4 Phase 1 finance contract foundation (status)
 
-1. **No unified Transaction or Receipt Zod/contract package** — `packages/shared-contracts/src/finance` is empty; receipts lack a first-class response DTO in OpenAPI.
+| Item | Status | Path |
+|------|--------|------|
+| Zod contract library entry | **Ready** | `packages/shared-contracts/src/finance/finance.schemas.ts` |
+| Shared `z` re-export | **Ready** | Import `z` from `@repo/shared-contracts` finance barrel (not `"zod"` directly in finance modules) |
+| Schema registry shell | **Ready** | `financeSchemaRegistry` — registers core payment/receipt schemas |
+| Package barrel | **Ready** | `packages/shared-contracts/src/finance/index.ts` re-exports `./finance.schemas` |
+| `PaymentIntentSchema` + `PaymentIntent` type | **Implemented** | Maps `PaymentEntity` + `BaseTenantEntity`; minor-unit `amount`, enum status/method |
+| `PaymentReceiptSchema` + `PaymentReceipt` type | **Implemented** | Maps `PaymentReceiptEntity` + `BaseTenantEntity` |
+| Shared primitives | **Implemented** | `MinorUnitAmountStringSchema`, `CurrencyCodeSchema`, `FinanceUuidSchema`, ISO datetime strings |
+| Unified `PaymentStatus` + FSM | **Implemented** | See §3.4.1 below |
+| Legacy → contract adapter (`toFinanceContract`) | **Implemented** | See §3.4.2 |
+| `PaymentsService` contract enforcement | **Strict (online + manual create + update)** | See §3.4.3 + **Phase 2.5 / 2.5.1 / 2.5.2** — `enforcePaymentIntentFinanceContract`; runtime parity mode removed |
+| Finance parity drift scan | **Implemented** | See §3.4.4 — `test:finance-parity` (non-blocking; skipped in CI) |
+| `LedgerEntrySchema` + `LedgerJournalSchema` (Phase 1.2) | **Implemented** | See §3.4.5 — `LEDGER_ACCOUNTS`, double-entry validator |
+| Ledger adapter (`toLedgerEntry` / `toLedgerJournalContract`) | **Implemented** | See §3.4.6 — parity mode (log, do not throw) |
+| Ledger `Transaction` wire schema (aggregate) | **Not yet** | Broader than journal envelope |
+| OpenAPI / DTO codegen from schemas | **Not yet** | API still uses class-validator DTOs |
+
+**Infrastructure verdict:** contract-first **foundation and core payment/receipt schemas are implemented** in `finance.schemas.ts`; ledger transaction wire and OpenAPI parity remain TODO.
+
+### 3.4.1 Unified `PaymentStatus` and FSM (single source of truth)
+
+**Conflict resolved (audit snapshot):**
+
+| Location (before) | Values | Role |
+|-------------------|--------|------|
+| `apps/api/.../payment.entity.ts` | `Pending`, `Paid`, `Failed`, `Refunded`, `Cancelled` | **Persisted** `payment_status_enum` (production) |
+| `apps/api/.../finance/payments/domain/payment-status.ts` | `initiated`, `pending`, `authorized`, `captured`, `failed`, `refunded` | In-memory **attempt** only (not DB) |
+
+**Canonical contract (`@repo/shared-contracts`):**
+
+| Export | Purpose |
+|--------|---------|
+| `PAYMENT_STATUS_VALUES` | Tuple fed into `PaymentStatusSchema` |
+| `PaymentStatusSchema` | `z.enum([...])` validation |
+| `PaymentStatus` | Runtime const object (`PENDING` → `"Pending"`, …) |
+| `type PaymentStatus` | `z.infer<typeof PaymentStatusSchema>` |
+| `PAYMENT_STATUS_TRANSITIONS` | FSM adjacency list (allowed next states per status) |
+| `PAYMENT_STATUS_TRANSITION_EDGES` | Directed edges `[from, to]` |
+| `isAllowedPaymentStatusTransition(from, to)` | Idempotent same-state + single-step edges |
+
+**`PAYMENT_STATUS_TRANSITIONS` (persisted FSM):**
+
+```text
+Pending  → Paid | Failed
+Paid     → Refunded | Cancelled
+Failed   → (terminal)
+Refunded → (terminal)
+Cancelled → (terminal)
+```
+
+**Wiring:**
+
+- `PaymentEntity` imports `PaymentStatus` from `@repo/shared-contracts` (no local enum duplicate).
+- `assertAllowedPaymentStatusTransition` uses `isAllowedPaymentStatusTransition` from shared-contracts.
+- Legacy lowercase attempt enum renamed to `PaymentAttemptStatus` in `finance/payments/domain/payment-attempt-status.ts` with `PAYMENT_ATTEMPT_ALLOWED_TRANSITIONS` (separate from persisted FSM).
+
+### 3.4.2 Finance adapter — legacy → contract parity bridge
+
+**Path:** `apps/api/src/modules/finance/finance.adapter.ts`
+
+| Export | Role |
+|--------|------|
+| `normalizeLegacyPaymentIntentWire(legacyData)` | Maps `PaymentEntity`, DTOs, snake_case payloads, and partial snapshots to the wire shape expected by `PaymentIntentSchema` |
+| `toFinanceContract(legacyData)` | Validates with `PaymentIntentSchema` from `@repo/shared-contracts`; returns typed `PaymentIntent` |
+| `toFinanceContractFromPaymentEntity(entity)` | Thin wrapper when the caller already has a loaded row |
+
+**Validation (adapter):** on `ZodError`, logs via Nest `Logger` and **rethrows** so `enforcePaymentIntentFinanceContract` in PaymentsService can throw `FINANCE_CONTRACT_VALIDATION_FAILED`.
+
+**Normalization rules:**
+
+- Accepts camelCase and snake_case (`tenant_id` → `tenantId`, `paid_at` → `paidAt`, …).
+- Coerces `Date` instances to ISO-8601 strings.
+- Uppercases `currency`; coerces `amount` to a positive minor-unit string.
+- Fills missing `createdAt` / `updatedAt` with parity fallbacks when absent (e.g. `pickFinancialPaymentSnapshot` snapshots).
+- Unknown / invalid enum labels fall back to `Pending` / `Online` before parse.
+
+**Intended consumers (incremental):**
+
+- Shadow-validate responses in `PaymentsService.toResponse` / ledger loaders before switching wire types.
+- Finance reports and reconciliation loaders comparing legacy rows to `@repo/shared-contracts`.
+
+**Tests:** `apps/api/src/modules/finance/finance.adapter.spec.ts` (full wire, snake_case, partial snapshot without throw).
+
+### 3.4.3 `PaymentsService` contract enforcement
+
+**Paths:** [`payments.service.ts`](apps/api/src/modules/payments/payments.service.ts), [`enforce-payment-intent-finance-contract.ts`](apps/api/src/modules/payments/enforce-payment-intent-finance-contract.ts)
+
+| Hook | Legacy entrypoint | Contract validation |
+|------|-------------------|---------------------|
+| Create (online) | `createPaymentIntent` → `createPaymentIntentWithManager` | **Strict** — `enforcePaymentIntentFinanceContract("createPaymentIntent")` |
+| Create (manual) | `ManualPaymentService.createManualPayment` | **Strict** — `enforcePaymentIntentFinanceContract("createManualPayment")` (Phase 2.5.2) |
+| Update | `applyPaymentStatus` (webhooks, refunds, timeouts) | **Strict** — `enforcePaymentIntentFinanceContract(\`applyPaymentStatus:${next}\`)` (Phase 2.5.1) |
+
+**Strict enforcement:** `enforcePaymentIntentFinanceContract` calls `toFinanceContract(payload)`; on `ZodError` throws `BadRequestException` with `FINANCE_CONTRACT_VALIDATION_FAILED` and Zod `details` — mutation does not proceed.
+
+**Removed:** `runPaymentIntentParityMode` (non-blocking `console.warn` on update paths). Runtime payment-intent parity mode is no longer used.
+
+**Still separate:** §3.4.4 **drift scan** (`test:finance-parity`) — offline audit of persisted rows, not runtime warn-and-continue.
+
+### 3.4.5 Phase 1.2 — Ledger journal contracts (`@repo/shared-contracts`)
+
+**Source analysis:** `apps/api/src/modules/finance/ledger/ledger-journal-line.ts` — immutable append-only lines grouped by `journalId`; `account` + `side` + positive `amount_minor`; sign only via debit/credit.
+
+| Export | Purpose |
+|--------|---------|
+| `LEDGER_ACCOUNTS` | Canonical GL codes (`REGISTRATION_LEADER_PAYMENT_CLEARING`, `DISCOUNT_ADJUSTMENTS`) |
+| `LedgerAccountIdSchema` | `accountId` must be a known GL constant, `booking:{uuid}`, `member:{uuid}`, or extension `gl:…` |
+| `LedgerEntrySchema` | Wire line: `accountId`, `amountMinor` (`MinorUnitAmountStringSchema`), `currency` (`CurrencyCodeSchema`), posting metadata |
+| `LedgerJournalSchema` | `journalId` + `tenantId` + `lines[]` (min 2) with **superRefine** double-entry check |
+| `findLedgerJournalBalanceViolations` | Per-currency debit sum === credit sum; requires ≥1 debit and ≥1 credit |
+| `assertLedgerJournalDoubleEntry` / `isBalancedLedgerJournal` | Imperative validators for non-Zod callers (e.g. `postDoubleEntryJournal`) |
+| `bookingLedgerAccountId` / `memberLedgerAccountId` | Account id builders aligned with API `bookingWalletId` / `memberWalletId` |
+
+**Field mapping (legacy → contract):**
+
+| `LedgerJournalLine` (API) | `LedgerEntry` (contract) |
+|---------------------------|--------------------------|
+| `account` | `accountId` |
+| `amount_minor` | `amountMinor` |
+
+**Double-entry rule:**
+
+```text
+∀ currency C: Σ(debit.amountMinor | currency=C) = Σ(credit.amountMinor | currency=C)
+```
+
+**Wiring:**
+
+- `apps/api/src/modules/finance/ledger/ledger-accounts.ts` re-exports `LEDGER_ACCOUNTS` from shared-contracts.
+- `postDoubleEntryJournal` / `postDoubleEntryReversalJournal` call `assertLedgerJournalDoubleEntry` before returning frozen lines.
+
+**Tests:** `pnpm --filter @repo/shared-contracts test` (5 tests: ledger journal + payment FSM)
+
+### 3.4.6 Ledger adapter — domain/entity → contract parity bridge
+
+**Path:** `apps/api/src/modules/finance/ledger/ledger.adapter.ts`
+
+| Export | Role |
+|--------|------|
+| `toLedgerEntry(line)` | Maps `LedgerJournalLine` → `LedgerEntry` (`account` → `accountId`, `amount_minor` → `amountMinor`) |
+| `toLedgerEntryFromEntity(row)` | `LedgerJournalLineEntity` via `ledgerJournalLineEntityToDomain` |
+| `validateLedgerEntry(entry)` | Strict `LedgerEntrySchema.parse` (throws on mismatch) |
+| `toLedgerJournalContract(lines)` | Maps all lines + parity validation; **always returns** journal |
+| `runLedgerJournalParityMode(lines, operation)` | Shadow validate for future `persistLedgerJournal` / authority hooks |
+
+**Field mapping:** same as §3.4.5 (`account` → `accountId`, `amount_minor` → positive `amountMinor` string, currency uppercased).
+
+**Parity mode (`toLedgerJournalContract`):**
+
+```typescript
+const journal = toLedgerJournalContractStrict(lines);
+try {
+  assertLedgerJournalDoubleEntry(journal.lines, envelope);
+  LedgerJournalSchema.parse(journal);
+} catch (error) {
+  logger.error(/* journalId */);
+  console.warn("[Parity Mode] …", error); // does not rethrow
+}
+return journal;
+```
+
+**Tests:** `apps/api/src/modules/finance/ledger/ledger.adapter.spec.ts` (6 tests: mapping, entity path, `validateLedgerEntry`, balanced journal, double-entry throw, parity non-throw).
+
+---
+
+<!-- finance-parity-drift-scan:start -->
+### 3.4.4 Finance parity drift scan (automated)
+
+| Field | Value |
+|-------|-------|
+| **Last run (UTC)** | 2026-05-25T15:04:22.311Z |
+| **Result** | **Pass** |
+| **CI policy** | Skipped when `CI=true` or `GITHUB_ACTIONS=true`; only runs via `FINANCE_PARITY_RUN=1`; test never fails on violations (information-gathering) |
+| **Records scanned** | 0 |
+| **Parity violations** | 0 |
+| **DB total (`payments`)** | 0 |
+| **Sampled (unique)** | 0 |
+| **Statuses in DB** | — |
+| **Methods in DB** | — |
+| **Status×method buckets in DB** | 0 |
+| **Sampling** | none; DB has only 0 row(s); scanned all available |
+| **Data source** | postgres_payments_table (not simulated fixtures) |
+
+**Note:** payments table is empty — seed or point DATABASE_* at a populated environment to detect real mismatches
+
+**True mismatch detection (contract vs persisted row):**
+
+_No contract mismatches (Zod drift) detected._
+
+**Violations log (summary):**
+
+_No parity violations._
+
+**Command:** `pnpm --filter @apps/api run test:finance-parity` (sets `FINANCE_PARITY_RUN=1`)
+
+**Test data policy:** Integration scan loads real `payments` rows (null timestamps, numeric amounts, legacy providers). Targets ≥10 diverse samples across `status` and `method` when the table has enough rows. Synthetic edge cases live in `finance-parity.spec.unit.ts` only.
+
+<!-- finance-parity-drift-scan:end -->
+
+---
+
+## 3.5 Step 3 conclusions (pre-refactor audit)
+
+1. **`PaymentIntentSchema` and `PaymentReceiptSchema` are implemented** in `@repo/shared-contracts` (`finance.schemas.ts`); ledger transaction wire and OpenAPI-generated receipt DTOs are still TODO.
 2. **Formats are per-method** (intent vs manual vs webhook vs multipart receipt vs refund) with **class-validator DTOs** on API and **loose TS** on web.
 3. **Financial policy is split**: pricing/ledger rules are **centralized** in `finance/pricing` and `finance/ledger`; payment/receipt/refund authorization and transitions are **scattered** across `payments/domain`, `finance/receipts`, and `payments.service.ts`.
-4. **Dual `PaymentStatus` models** in `payments` vs `finance/payments/domain` are a maintainability hazard — production path uses the Nest/TypeORM enum only.
+4. **`PaymentStatus` unified** in `@repo/shared-contracts`; in-memory attempt lifecycle uses `PaymentAttemptStatus` (lowercase) separately from persisted status.
 5. **No tax engine**; currency rules are snapshot + ledger + adapter-specific (IRR for Zibal).
 
 ---
@@ -649,3 +868,739 @@ Public anonymous marketing read of tours is flagged as **TODO** in product docs 
 3. **Workspace variance** for content = **tenant data isolation** (tours + catalogs), **not** per-tenant page templates or message packs.
 4. **Static entry points dominate** shell UX: `messages/*.json`, hardcoded TSX (`page.tsx`, `new-booking-landing.tsx`), and `register-for-tour-copy.ts`.
 5. **Future gap:** apex marketing site and anonymous tour marketing endpoints are documented as infrastructure/product TODOs, not implemented in the current web app tree.
+
+---
+
+# Phase 2: Strategy Pattern - Interface Defined
+
+Scope: decouple workspace-specific tour behavior from scattered `switch (profile)` and `profile === "denali_pilot"` branches identified in Step 2 (§2.2–§2.3). **Phase 2.0 delivers the strategy contract only** — no concrete strategy classes or registry wiring yet.
+
+## Phase 2.0 deliverable
+
+| Item | Status | Path |
+|------|--------|------|
+| `IWorkspaceStrategy` interface | **Defined** | `apps/api/src/modules/tours/strategies/workspace.strategy.interface.ts` |
+| Strategies barrel export | **Defined** | `apps/api/src/modules/tours/strategies/index.ts` |
+
+## `IWorkspaceStrategy` method map (audit → contract)
+
+| Method | Replaces (today) | Contract return type |
+|--------|------------------|----------------------|
+| `getValidationRules()` | `assertTripDetailsForFormProfile`, `assert-create-tour-invariants.ts`, `getTourWorkspaceDefinition().validation` | `WorkspaceValidationRules` — `TourFormProfileInvariantHints`, optional `TourWorkspaceDefinition.validation`, `inactiveFieldGroups` |
+| `getPublishPolicy()` | `assertTourIsPublishable`, `assert-tour-publish-transition.ts` (geo + profile publish gates) | `WorkspacePublishPolicy` — lifecycle publish status, draft gate, open-readiness fields, optional `publishGeolocationCheck` (`checkDenaliPilotPublishGeolocationZones`), allowed transitions |
+| `getFieldStripRules()` | `create-tour-form-profile-strip.ts` (`stripTripDetailsForFormProfile`, `stripCreateTourDtoForFormProfile`) | `WorkspaceFieldStripRules` — `TourFormProfileStripDeltas` from `@repo/types`, Denali single-day strip flag |
+| `getWizardConfig()` | `isDenaliWizardContext.ts`, `getTourWorkspaceDefinition`, wizard template / rail selection | `WorkspaceWizardConfig` — `wizardMode`, `roots`, inactive groups, capacity-step redundancy |
+
+## Shared typing sources
+
+| Package | Types used on the interface |
+|---------|----------------------------|
+| `@repo/types` | `TourFormProfile`, `TourFormProfileStripDeltas`, `TourFormProfileInvariantHints`, `WizardFieldGroupSlug` |
+| `@repo/shared-contracts` | `TourWorkspaceDefinition`, `WorkspaceInvariantViolation`, `WorkspaceWizardMode` (alias of `ui.wizardMode`) |
+
+## Next steps (superseded by Phase 2.1 for items 1–2)
+
+1. ~~Implement concrete strategies~~ — done in Phase 2.1.
+2. ~~Wire `WorkspaceStrategyRegistry.resolve(profile)`~~ — done (Phase 2.2 API + Phase 2.3 web wizard config).
+3. Mirror parity-mode shadow validation where strategies replace direct `getTourFormProfileDescriptor` reads.
+
+---
+
+# Phase 2.1: Strategy Registry Implemented
+
+Scope: concrete `IWorkspaceStrategy` implementations and static resolver. **Legacy modules are unchanged** — strategies import and delegate to existing policy/utils; consumers still call `getTourFormProfileDescriptor` / `assertTourIsPublishable` directly until Phase 2.2.
+
+## Phase 2.1 deliverables
+
+| Item | Status | Path |
+|------|--------|------|
+| Shared builders | **Implemented** | `apps/api/src/modules/tours/strategies/workspace.strategy.builders.ts` |
+| `GeneralWorkspaceStrategy` | **Implemented** | `apps/api/src/modules/tours/strategies/general.workspace.strategy.ts` |
+| `DenaliWorkspaceStrategy` | **Implemented** | `apps/api/src/modules/tours/strategies/denali.workspace.strategy.ts` |
+| `WorkspaceStrategyRegistry.resolve` | **Implemented** | `apps/api/src/modules/tours/strategies/workspace.strategy.registry.ts` |
+| Registry tests | **Implemented** | `apps/api/src/modules/tours/strategies/workspace.strategy.registry.spec.ts` |
+
+## Profile → strategy routing
+
+| `TourFormProfile` | Strategy class |
+|-------------------|----------------|
+| `denali_pilot`, `urban_event` | `DenaliWorkspaceStrategy` |
+| `general`, `mountain_outdoor`, `nature_trip`, `cinema_event`, `cultural_tour` | `GeneralWorkspaceStrategy` (default) |
+
+## Delegate map (strategies → legacy modules)
+
+| Strategy method (delegate) | Legacy module |
+|--------------------------|---------------|
+| `assertTourIsPublishable` | `policies/tour-lifecycle.policy.ts` |
+| `assertTourPublishableBeforePatch` / `assertTourStateReadyForOpen*` | `policies/assert-tour-publish-transition.ts` |
+| `stripTripDetails` / `stripCreateTourDto` | `utils/create-tour-form-profile-strip.ts` |
+| `assertTripDetails` | `utils/assert-create-tour-invariants.ts` |
+| `getPublishPolicy().publishGeolocationCheck` | `@repo/shared-contracts` `checkDenaliPilotPublishGeolocationZones` (`denali_pilot` only) |
+| `getValidationRules()` / `getWizardConfig()` | `@repo/types` `getTourFormProfileDescriptor` + `@repo/shared-contracts` `getTourWorkspaceDefinition` |
+
+## Denali-specific parity with audit
+
+| Behavior | `denali_pilot` | `urban_event` |
+|----------|----------------|---------------|
+| `wizardMode` | `denali` | `denali` |
+| Publish geolocation check | yes | no |
+| `appliesDenaliSingleDayLogisticsStrip` | yes | no |
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/tours/strategies/workspace.strategy.registry.spec.ts
+```
+
+(from `apps/api`)
+
+## Phase 2 — complete (API + Web)
+
+| Slice | Section |
+|-------|---------|
+| API invariants | **Phase 2.2: Tour Invariants Wired** |
+| API publish policy | **Phase 2.2: Publish Policy Wired** |
+| API field strip | **Phase 2.2: Field Strip Rules Wired** |
+| Web wizard shell | **Phase 2.3: Web Wizard Config Wired** |
+
+**Intentionally unchanged:** `assertValidLifecycleTransition` still reads `@repo/shared` `TOUR_LIFECYCLE_TRANSITION_MATRIX` (not part of workspace strategy contract).
+
+---
+
+# Phase 2.2: Tour Invariants Wired
+
+Scope: [`assert-create-tour-invariants.ts`](apps/api/src/modules/tours/utils/assert-create-tour-invariants.ts) reads profile metadata through `WorkspaceStrategyRegistry.resolve(profile)` with descriptor/workspace fallback in `loadWorkspaceInvariantContext`. **Strip, publish, and ToursService paths unchanged.**
+
+## Cycle break
+
+Removed unused optional delegate methods from [`general.workspace.strategy.ts`](apps/api/src/modules/tours/strategies/general.workspace.strategy.ts) and [`denali.workspace.strategy.ts`](apps/api/src/modules/tours/strategies/denali.workspace.strategy.ts) (they imported this file and caused a load-time cycle). Delegate map in Phase 2.1 still applies to legacy modules until a future `workspace.strategy.delegates.ts` or service wiring.
+
+## Metadata routing
+
+| Previous read | Wired via |
+|---------------|-----------|
+| `getTourFormProfileDescriptor(profile).strip` | `strategy.getFieldStripRules().strip` |
+| `getTourWorkspaceDefinition(profile)?.validation` | `strategy.getValidationRules().workspaceValidation` |
+| `strip.clearsRootTransportModes` (post-strip transport) | `validationRules.invariantHints.requiresEmptyRootTransportModes` |
+
+Fallback (catch): `getTourFormProfileDescriptor` + `getTourWorkspaceDefinition` — same shape as builders.
+
+## urban_event workspace trip-details
+
+`assertWorkspaceTripDetails` skips `checkDenaliPilotTripDetails` for `urban_event` (Denali rail UI only). Profile strip / phantom / transport rules still run via descriptor-backed `getFieldStripRules()` and `invariantHints`. `assertTripDetailsForFormProfile` order: `denali_pilot` workspace first, then canonical → profile transport → strip shape → workspace for other profiles (e.g. `nature_trip` Arctic).
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/tours/utils/assert-create-tour-invariants.spec.ts
+pnpm exec node --import tsx --test src/modules/tours/strategies/workspace.strategy.registry.spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 2.2: Publish Policy Wired
+
+Scope: DRAFT→OPEN and create→OPEN publish gates use `WorkspaceStrategyRegistry.resolve(profile).getPublishPolicy()` for geolocation and draft-before-publish rules. [`tours.service.ts`](apps/api/src/modules/tours/tours.service.ts) continues to call `assertTourPublishableBeforePatch` / `assertTourStateReadyForOpenAfterPatch` / `assertTourStateReadyForOpenOnCreate` — no inline `profile === "denali_pilot"` in the service.
+
+## Files
+
+| File | Change |
+|------|--------|
+| [`assert-tour-publish-transition.ts`](apps/api/src/modules/tours/policies/assert-tour-publish-transition.ts) | `loadPublishPolicy()` + `assertPublishGeolocationIfRequired()`; geo runs only when `publishGeolocationCheck != null` |
+| [`tours.service.ts`](apps/api/src/modules/tours/tours.service.ts) | Comments at publish call sites (behavior unchanged) |
+
+## Policy routing
+
+| Previous | Wired via |
+|----------|-----------|
+| `if (profile === "denali_pilot") checkDenaliPilotPublishGeolocationZones(...)` | `loadPublishPolicy(profile).publishGeolocationCheck?.(tripDetails)` |
+| `assertTourIsPublishable` draft gate | `loadPublishPolicy(tour.formProfileSnapshot).requiresDraftBeforePublish` in `assertTourPublishableBeforePatch` |
+
+Fallback (catch in `loadPublishPolicy`): `buildPublishPolicy` with `denali_pilot` geo fn only — same as Phase 2.1 builders.
+
+## Parity
+
+| Profile | `publishGeolocationCheck` |
+|---------|---------------------------|
+| `denali_pilot` | `checkDenaliPilotPublishGeolocationZones` |
+| `urban_event` | `null` (Denali rail, no publish geo) |
+| General / other | `null` |
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/tours/policies/tours-lifecycle-transitions.spec.ts
+pnpm exec node --import tsx --test src/modules/tours/strategies/workspace.strategy.registry.spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 2.2: Field Strip Rules Wired
+
+Scope: persist-time strip (`stripTripDetailsForFormProfile`, `stripCreateTourDtoForFormProfile`) reads declarative deltas and Denali single-day cleanup from `WorkspaceStrategyRegistry.resolve(profile).getFieldStripRules()`.
+
+## Files
+
+| File | Change |
+|------|--------|
+| [`create-tour-form-profile-strip.ts`](apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts) | `loadFieldStripRules()`; `strip` from strategy; `appliesDenaliSingleDayLogisticsStrip` replaces `profile === "denali_pilot"` |
+| [`create-tour-form-profile-strip.spec.ts`](apps/api/src/modules/tours/utils/create-tour-form-profile-strip.spec.ts) | Denali single-day + urban non-strip parity tests |
+
+## Policy routing
+
+| Previous | Wired via |
+|----------|-----------|
+| `getTourFormProfileDescriptor(profile).strip` | `getFieldStripRules().strip` |
+| `if (profile === "denali_pilot") stripDenaliSingleDayLogistics(...)` | `appliesDenaliSingleDayLogisticsStrip` from strategy |
+
+Fallback (catch in `loadFieldStripRules`): `buildFieldStripRules` with `denali_pilot` single-day flag only.
+
+## Denali single-day parity
+
+| Profile | `appliesDenaliSingleDayLogisticsStrip` |
+|---------|----------------------------------------|
+| `denali_pilot` | `true` — clears `returnDate` / `returnMeetingTime` for `*_day` Denali kinds |
+| `urban_event` | `false` — Denali rail UI, no single-day logistics ghost strip |
+
+Early-return in `stripCreateTourDtoForFormProfile` now still runs single-day strip when descriptor deltas are empty but the strategy flag is set (`denali_pilot`).
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/tours/utils/create-tour-form-profile-strip.spec.ts
+pnpm exec node --import tsx --test src/modules/tours/strategies/workspace.strategy.registry.spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 2.3: Web Wizard Config Wired
+
+Scope: web create/edit wizard rail selection uses central `getWizardConfig(profile)` (mirror of API `buildWizardConfig` / `IWorkspaceStrategy.getWizardConfig()`), not ad-hoc `getTourWorkspaceDefinition()?.ui.wizardMode` or profile string checks.
+
+## Files
+
+| File | Role |
+|------|------|
+| [`workspace-wizard.config.ts`](apps/web/src/features/tours/wizard/workspace-wizard.config.ts) | `buildWizardConfig`, `getWizardConfig`, `isDenaliWizardModeFromProfile`, `DENALI_WIZARD_PROFILES` |
+| [`isDenaliWizardContext.ts`](apps/web/src/features/tours/wizard/isDenaliWizardContext.ts) | `isDenaliWizardContext` / `resolveTourWizardMode` delegate to `getWizardConfig` |
+| [`loadWizardPrefill.ts`](apps/web/src/features/tours/wizard/sources/loadWizardPrefill.ts) | `resolveUseDenaliRail` → `isDenaliWizardModeFromProfile` |
+| [`denaliWizardDraftEnvelope.ts`](apps/web/src/features/tours/wizard/denaliWizardDraftEnvelope.ts) | draft restore rail detection |
+| [`denali-template-shape.ts`](apps/web/src/features/tours/wizard/validation/denali-template-shape.ts) | template shape uses `getWizardConfig` |
+
+## Rail resolution
+
+| Profile | `getWizardConfig().wizardMode` |
+|---------|-------------------------------|
+| `denali_pilot`, `urban_event` | `denali` |
+| `general`, `nature_trip`, others without Denali workspace | `classic` |
+
+Explicit `wizardMode: "denali"` in {@link DenaliWizardContextInput} still forces Denali rail; `tenantSlug` is not a profile authority.
+
+## Phase 2 out-of-scope clearance
+
+All Phase 2.2 audit “still out of scope” web/API strategy items are **cleared** except lifecycle transition matrix (shared RBAC module, not workspace wizard config).
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/features/tours/wizard/workspace-wizard.config.spec.ts
+pnpm exec node --import tsx --test src/features/tours/wizard/isDenaliWizardContext.spec.ts
+```
+
+(from `apps/web`)
+
+---
+
+# Phase 2.5: Finance Contract Enforcement Enabled
+
+Scope: strict `PaymentIntentSchema` validation on **create** (Phase 2.5). Update paths completed in **Phase 2.5.1**.
+
+| Path | Mode |
+|------|------|
+| `createPaymentIntent` | **Strict** (Phase 2.5) |
+| `createManualPayment` | **Strict** (Phase 2.5.2) |
+| `applyPaymentStatus` | **Strict** (Phase 2.5.1) |
+
+---
+
+# Phase 2.5.1: Finance Contract Enforcement — Update Paths
+
+Scope: remove runtime payment-intent **parity mode** (`runPaymentIntentParityMode`); all status mutations enforce the shared contract before persisting.
+
+## Change
+
+| Path | Behavior on `PaymentIntentSchema` failure |
+|------|---------------------------------------------|
+| `applyPaymentStatus` (webhooks via `processWebhook`, `refundPayment`, `failTimedOutPendingPayments`) | `BadRequestException` — `FINANCE_CONTRACT_VALIDATION_FAILED`; no status transition |
+
+Operation labels: `applyPaymentStatus:Paid`, `applyPaymentStatus:Failed`, `applyPaymentStatus:Refunded`, etc.
+
+## Implementation
+
+| Symbol | File |
+|--------|------|
+| `enforcePaymentIntentFinanceContract` | [`enforce-payment-intent-finance-contract.ts`](apps/api/src/modules/payments/enforce-payment-intent-finance-contract.ts) |
+| `runPaymentIntentParityMode` | **Deleted** |
+| Tests | [`payments-finance-contract-enforcement.spec.ts`](apps/api/src/modules/payments/payments-finance-contract-enforcement.spec.ts) |
+
+## Risk
+
+Validation runs on the loaded entity + target `status` before mutation. Rows that fail schema after normalization block webhooks/refunds/timeouts (webhook failure increments `webhookFailedTotal`). Last drift scan: **0** violations on persisted payments.
+
+## What still says “parity”
+
+| Item | Meaning |
+|------|---------|
+| `test:finance-parity` (§3.4.4) | Offline DB drift scan — not runtime warn-and-continue |
+| Ledger `runLedgerJournalParityMode` (§3.4.6) | Unchanged — log-only drift; **persist strict** (Phase 2.6) |
+| Adapter normalization fallbacks | Missing `createdAt` coerced for wire parse — not service-level parity mode |
+
+## Optional follow-up
+
+- Map Zod `details` through `validation-errors.mapper` for field-level API codes
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/payments/payments-finance-contract-enforcement.spec.ts
+pnpm exec node --import tsx --test src/modules/finance/finance.adapter.spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 2.5.2: Manual Payments Enforcement Enabled
+
+Scope: close the manual-payment contract gap — `ManualPaymentService.createManualPayment` enforces `PaymentIntentSchema` before persisting, same strict path as online create (Phase 2.5).
+
+## Change
+
+| Path | Behavior on `PaymentIntentSchema` failure |
+|------|---------------------------------------------|
+| `ManualPaymentService.createManualPayment` | `BadRequestException` — `FINANCE_CONTRACT_VALIDATION_FAILED`; no `PaymentEntity` insert |
+
+Operation label: `createManualPayment`.
+
+## Wire payload (pre-`manager.create`)
+
+Mapped from manual params + resolved registration (no PSP / no `providerPaymentId`):
+
+| Field | Value |
+|-------|-------|
+| `tenantId` | `params.tenantId` |
+| `registrationId` | `registration.id` (loaded row) |
+| `amount` | `params.amount` (minor string) |
+| `currency` | `params.currency` |
+| `method` | `Manual` (`PaymentMethod.MANUAL`) |
+| `provider` | `"manual"` |
+| `providerPaymentId` | `null` |
+| `status` | `Pending` |
+| `paidAt` / `failedAt` / `refundedAt` | `null` |
+| `ledgerJournalId` | `null` |
+
+`id` / timestamps omitted — `toFinanceContract` normalizes via `normalizeLegacyPaymentIntentWire` (same as `createPaymentIntent`).
+
+## Implementation
+
+| Symbol | File |
+|--------|------|
+| `enforcePaymentIntentFinanceContract(..., "createManualPayment")` | [`manual-payment.service.ts`](apps/api/src/modules/payments/manual-payment.service.ts) |
+| Shared helper | [`enforce-payment-intent-finance-contract.ts`](apps/api/src/modules/payments/enforce-payment-intent-finance-contract.ts) |
+
+## Contract gap status
+
+Supplemental audit §A.2 — `manual-payment.service.ts` **closed** for create path. Remaining gaps: read-path `toResponse`, outbox snapshots, ledger persist (unchanged).
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/payments/payments-finance-contract-enforcement.spec.ts
+pnpm exec node --import tsx --test test/payments/manual-payment.service.unit-spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 2.6: Ledger Strictness Enabled
+
+Scope: journal persist path enforces `@repo/shared-contracts` ledger contracts **before** any SQL — no parity warn-and-continue on write.
+
+## Change
+
+| Path | Behavior on contract / double-entry failure |
+|------|---------------------------------------------|
+| `persistLedgerJournal` | `BadRequestException` — `LEDGER_CONTRACT_VALIDATION_FAILED`; **no** `ledger_journal_batches` / `ledger_journal_lines` insert |
+| All `postAndPersistDoubleEntryJournal` callers | Inherit strict gate (payment capture, booking leader PATCH, refunds) |
+
+## Validation pipeline (strict)
+
+On non-empty `result.lines`, before SQL:
+
+1. `toLedgerJournalContractStrict(lines)` — same mapping as `toLedgerJournalContract` **without** parity `console.warn`
+2. `assertLedgerJournalDoubleEntry` — debits = credits per currency
+3. `validateLedgerEntry` per line — account id shape, amounts, currency
+4. `LedgerJournalSchema.parse(journal)` — envelope Zod
+
+## Implementation
+
+| Symbol | File |
+|--------|------|
+| `enforceLedgerJournalContract` | [`enforce-ledger-journal-contract.ts`](apps/api/src/modules/finance/ledger/enforce-ledger-journal-contract.ts) |
+| `toLedgerJournalContractStrict` (exported) | [`ledger.adapter.ts`](apps/api/src/modules/finance/ledger/ledger.adapter.ts) |
+| Persist hook | [`persist-ledger-journal.ts`](apps/api/src/modules/finance/ledger/persist-ledger-journal.ts) |
+
+## Call-site handling (strict mode failure)
+
+| Service | Behavior |
+|---------|----------|
+| `PaymentCaptureLedgerAuthorityService` | Exception propagates from `postAndPersistDoubleEntryJournal`; aborts webhook/paid transaction |
+| `BookingLedgerAuthorityService` | Exception propagates; aborts leader PATCH registration payment mutation |
+| `PaymentRefundLedgerAuthorityService` | Same via shared persist path |
+
+Helper: `isLedgerContractValidationFailure(error)` for structured `BadRequestException` checks.
+
+**Unchanged:** `toLedgerJournalContract` / `runLedgerJournalParityMode` remain log-only for offline/drift tooling — not used on persist.
+
+## Contract gap status
+
+Supplemental audit §A.3 — `persist-ledger-journal.ts` **closed** for write path. Remaining ledger gaps: outbox manual line map, entity mapper read paths.
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test src/modules/finance/ledger/ledger-contract-enforcement.spec.ts
+pnpm exec node --import tsx --test src/modules/finance/ledger/persist-ledger-journal.spec.ts
+pnpm exec node --import tsx --test src/modules/finance/ledger/persist-ledger-journal.currency.spec.ts
+pnpm exec node --import tsx --test src/modules/finance/ledger/ledger.adapter.spec.ts
+```
+
+(from `apps/api`)
+
+---
+
+# Phase 3: Content Registry Initialized
+
+Scope: marketing / static page structure in `@repo/shared-contracts` — registry-first JSON page definitions (landing + about per workspace). **No ComponentFactory or CMS UI yet** (roadmap Phase 3 actions 2–3).
+
+## Deliverables
+
+| Item | Path |
+|------|------|
+| `PageSchema` + block/section/route schemas | [`packages/shared-contracts/src/content/page.registry.ts`](packages/shared-contracts/src/content/page.registry.ts) |
+| `PAGE_REGISTRY` | `Record<Workspace, { landing: Page; about: Page }>` |
+| Barrel export | [`packages/shared-contracts/src/content/index.ts`](packages/shared-contracts/src/content/index.ts) |
+| Contract tests | [`packages/shared-contracts/src/content/page.registry.spec.ts`](packages/shared-contracts/src/content/page.registry.spec.ts) |
+
+## Registry shape
+
+```typescript
+type PageRegistry = Record<Workspace, {
+  landing: Page;  // PageSchema
+  about: Page;    // PageSchema
+}>;
+```
+
+| `Workspace` (content slug) | Seed brand | Routes |
+|----------------------------|------------|--------|
+| `general` | General | `/`, `/about` |
+| `denali` | Denali | `/`, `/about` |
+| `arctic` | Arctic | `/`, `/about` |
+| `urban` | Urban | `/`, `/about` |
+
+## `PageSchema` composition
+
+| Layer | Schema | Purpose |
+|-------|--------|---------|
+| Route | `PageRouteSchema` | `path`, optional `title`, `metaDescription` |
+| Blocks | `TextBlockSchema`, `ImageBlockSchema` | `kind` discriminated union (`text` / `image` + URL) |
+| Section | `PageSectionSchema` | `id`, optional `slug`, `blocks[]` |
+| Page | `PageSchema` | `pageKey` (`landing` \| `about`), `route`, `sections[]`, `version` |
+
+Helpers: `getWorkspacePages(workspace)`, `parsePageDefinition`, `parseWorkspacePages`.
+
+## Follow-up (not done)
+
+- CMS / per-tenant overrides persisted outside `PAGE_REGISTRY`
+- CI gate wiring for content registry drift
+
+## Tests
+
+```bash
+pnpm --filter @repo/shared-contracts run build
+pnpm --filter @repo/shared-contracts test
+```
+
+---
+
+# Phase 3.1: ComponentFactory Implemented
+
+Scope: web **ComponentFactory** bridge — registry `Page` JSON → React via kind-based block renderers.
+
+## Deliverables
+
+| Item | Path |
+|------|------|
+| Block components | [`ContentTextBlock.tsx`](apps/web/src/features/content/components/ContentTextBlock.tsx), [`ContentImageBlock.tsx`](apps/web/src/features/content/components/ContentImageBlock.tsx) |
+| Kind map | [`renderPageBlock.tsx`](apps/web/src/features/content/components/renderPageBlock.tsx) — `text` / `image` |
+| Page shell | [`PageRenderer.tsx`](apps/web/src/features/content/components/PageRenderer.tsx) |
+| Smoke route | [`app/test-registry/page.tsx`](apps/web/app/test-registry/page.tsx) — `PAGE_REGISTRY.denali.landing` |
+| Spec | [`PageRenderer.spec.tsx`](apps/web/src/features/content/components/PageRenderer.spec.tsx) |
+
+## Data flow
+
+```text
+PAGE_REGISTRY.denali.landing (Page)
+  → PageRenderer
+    → sections[]
+      → renderPageBlock(block)
+        → ContentTextBlock | ContentImageBlock
+```
+
+## Smoke test
+
+Open `/test-registry` while authenticated (same middleware as other app routes). Renders Denali landing hero text + image blocks from the shared registry.
+
+## Not started
+
+- Dynamic workspace slug from tenant host (page hard-coded to `denali` for smoke route)
+- CMS overrides / live JSON from API
+- `next/image` remotePatterns for CMS image hosts
+
+## Tests
+
+```bash
+pnpm exec node --import tsx --test apps/web/src/features/content/components/PageRenderer.spec.tsx
+```
+
+---
+
+# Supplemental audits (2026-05-25)
+
+Four follow-up scans performed after Phase 2.5.1 / 3.1: finance contract gaps, tours workspace pollution, payment exception UX resilience, and finance parity test data policy. Automated drift output remains in §3.4.4 (`<!-- finance-parity-drift-scan -->` markers — updated by `test:finance-parity`).
+
+---
+
+## A. Finance / Payments contract gap analysis (Phase 2.5)
+
+**Scope:** `apps/api/src/modules/finance/**`, `apps/api/src/modules/payments/**`  
+**Safety layer:** `toFinanceContract` / `enforcePaymentIntentFinanceContract` (payments); `toLedgerEntry` / `toLedgerJournalContract` (ledger).
+
+### A.1 Already on the contract layer (not gaps)
+
+| Path | Behavior |
+|------|----------|
+| `payments/enforce-payment-intent-finance-contract.ts` | `toFinanceContract` → strict throw |
+| `payments/payments.service.ts` | `createPaymentIntentWithManager`, `applyPaymentStatus` call enforce (Phase 2.5.1) |
+| `payments/tests/finance-parity.spec.ts` | Offline DB scan via `toFinanceContract` (§3.4.4) |
+
+### A.2 Payment intent gaps (`PaymentIntentSchema`)
+
+| Path | Bypass reason |
+|------|----------------|
+| `payments/payments.service.ts` — `toResponse()` | Legacy `PaymentResponseDto` mapping; no `toFinanceContractFromPaymentEntity` on read |
+| `payments/payments.service.ts` — `pickFinancialPaymentSnapshot()` | Outbox audit partial snapshot; not contract-validated |
+| `payments/payments.service.ts` — `manager.create(PaymentEntity, …)` | TypeORM materialization after enforce on wire payload only |
+| `payments/payments.service.ts` — outbox `payment.created` payloads | Manual event assembly |
+| `payments/manual-payment.service.ts` — `manager.create` | **Closed (Phase 2.5.2)** — `enforcePaymentIntentFinanceContract("createManualPayment")` before create |
+| `payments/dto/create-payment-intent.dto.ts` | class-validator only; `amount: number` vs contract minor string |
+| `payments/dto/payment-webhook.dto.ts` | Webhook ingress; enforce only inside `applyPaymentStatus` |
+| `payments/dto/payment-response.dto.ts` | Parallel public OpenAPI schema |
+| `payments/gateway/payment-gateway.types.ts` + `gateway/*` | PSP I/O; never `toFinanceContract` |
+| `finance/finance.adapter.ts` — `toFinanceContractFromPaymentEntity()` | **Exported; zero production callers** |
+| `finance/reports/finance-reports.service.ts` — `listOpenPayments()` | Ad hoc `FinanceOpenPaymentRow` |
+| `finance/reconciliation/payment-finance-reconciliation.loader.ts` | `InternalPaymentRow` + `paymentAmountToMinorString` |
+| `finance/receipts/receipt.service.ts` — `save(PaymentEntity)` | Relies on downstream `applyPaymentStatus` for enforce |
+
+### A.3 Ledger gaps (`LedgerEntry` / `LedgerJournal`)
+
+| Path | Bypass reason |
+|------|----------------|
+| `finance/ledger/post-double-entry-journal.ts` | Builds `LedgerJournalLine`; `assertLedgerJournalDoubleEntry` only — not `toLedgerJournalContract` |
+| `finance/ledger/persist-ledger-journal.ts` | **Closed (Phase 2.6)** — `enforceLedgerJournalContract` before SQL; outbox/mapper read paths unchanged |
+| `finance/ledger/ledger-journal-line.mapper.ts` | Entity ↔ domain; not `LedgerEntry` |
+| `finance/ledger/emit-finance-ledger-journal-outbox.ts` | Manual JSON line map |
+| `finance/ledger/payment-capture-ledger-authority.service.ts` | `postAndPersistDoubleEntryJournal` |
+| `finance/ledger/payment-refund-ledger-authority.service.ts` | Same |
+| `finance/ledger/booking-ledger-authority.service.ts` | Same |
+| `finance/ledger/ledger.adapter.ts` — `toLedgerJournalContract` / `runLedgerJournalParityMode` | **Parity-only; no non-test production call sites** |
+| `finance/reconciliation/payment-finance-reconciliation.loader.ts` — `tryParseLedgerJournalLine` | Loose outbox JSON parser |
+| `finance/reports/finance-reports.service.ts` — `mapOutboxRowToLedgerEvent` | Report DTO |
+
+### A.4 Intentionally outside payment/ledger contracts
+
+Pricing (`finance/pricing/**`), invoicing, reconciliation job entities, `finance/payments/domain/payment-attempt.ts`, finance port `payment-intent.ts`, leader ledger internal contracts.
+
+### A.5 Gap flow (summary)
+
+```text
+Enforced: createPaymentIntent + applyPaymentStatus → toFinanceContract
+Gaps:     API responses, manual payments, ledger persist, reports, reconciliation loaders
+```
+
+### A.6 Recommended closure order
+
+1. Read path: `toResponse` via `toFinanceContractFromPaymentEntity` (or explicit contract → DTO).
+2. ~~Manual payments: same `enforcePaymentIntentFinanceContract` as online create.~~ **Done (Phase 2.5.2).**
+3. Ledger writes: `toLedgerJournalContract` / strict validate before `persistLedgerJournal`.
+4. Wire `runLedgerJournalParityMode` on persist until ledger strict mode (mirror payment 2.5.1).
+
+---
+
+## B. Workspace pollution scan (`apps/api/src/modules/tours/`)
+
+**Context:** `WorkspaceStrategyRegistry` wired for validation rules, field strip, publish policy (Phase 2.1–2.2). Scan: `if (profile === …)`, `profile !==`, `switch (profile)` — **no `switch (profile)` in production tours code.**
+
+### B.1 Intended profile branching (not pollution)
+
+| Path | Role |
+|------|------|
+| `strategies/workspace.strategy.registry.ts` | `isDenaliStrategyProfile` routing |
+| `strategies/denali.workspace.strategy.ts` | `denali_pilot` vs `urban_event` geo + single-day strip flags |
+
+### B.2 Flagged consumer files (inline `profile ===` after registry)
+
+| Path | Lines | Delegated vs orphaned |
+|------|-------|------------------------|
+| `utils/assert-create-tour-invariants.ts` | 492, 515, 537 | **Orphaned orchestration** — registry for rules/strip; trip-details **call order** still hard-coded (`urban_event` skip, `denali_pilot` first/last) |
+| `tours.service.ts` | 538 | **Orphaned** — `urban_event` clears `transportModes`; duplicates `strip.clearsRootTransportModes` |
+| `utils/assert-profile-required-fields-for-submit.ts` | 99 | **Orphaned** — `denali_pilot` primary transport reader; no registry |
+| `policies/assert-tour-publish-transition.ts` | 24 | **Partial** — primary `getPublishPolicy()`; catch fallback re-implements `denali_pilot` geo |
+| `utils/create-tour-form-profile-strip.ts` | 30 | **Partial** — primary `getFieldStripRules()`; catch fallback `profile === "denali_pilot"` |
+| `utils/assert-profile-required-fields-for-submit.spec.ts` | 215 | Test-only |
+
+### B.3 Why pollution remains
+
+1. Registry exposes **metadata objects**, not a single `assertTripDetails(strategy, …)` pipeline — call order fixed for `urban_event` / Denali rail split.
+2. **Defensive fallbacks** duplicate `DenaliWorkspaceStrategy` flags on registry resolve failure.
+3. **Service leftover** — `tours.service.ts` urban transport clear predates strip-only enforcement.
+4. **Submit path** never calls registry.
+
+### B.4 Top 3 files (production impact)
+
+| Rank | File | Issue |
+|------|------|-------|
+| 1 | `utils/assert-create-tour-invariants.ts` | Three literals controlling workspace trip-details order |
+| 2 | `tours.service.ts` | `if (profile === "urban_event")` transport clear |
+| 3 | `utils/assert-profile-required-fields-for-submit.ts` | Denali-only `readDtoValueForWizardPath` branch |
+
+**Runner-up:** `policies/assert-tour-publish-transition.ts` (fallback ternary only).
+
+### B.5 Cleanup direction
+
+- Move trip-details pipeline onto `IWorkspaceStrategy` (or shared orchestrator); delete three branches in `assert-create-tour-invariants.ts`.
+- Replace `tours.service` urban check with `getFieldStripRules().strip.clearsRootTransportModes`.
+- Add submit field resolver on strategy; remove `profile === "denali_pilot"` from submit helper.
+- Point publish/strip fallbacks at shared builders used by `DenaliWorkspaceStrategy`.
+
+---
+
+## C. Exception handling — `FINANCE_CONTRACT_VALIDATION_FAILED` (Phase 2.5)
+
+### C.1 Throw path
+
+Single throw site: `payments/enforce-payment-intent-finance-contract.ts` → `BadRequestException` with `code: "FINANCE_CONTRACT_VALIDATION_FAILED"`, Zod `details`, HTTP **400**.
+
+**Call sites:** `payments.service.ts` — `createPaymentIntentWithManager`, `applyPaymentStatus` (webhooks, refund, timeout sweep).
+
+Non-`ZodError` from `toFinanceContract` is rethrown → may surface as **500** via `GlobalExceptionFilter.normalizeUnknownException`.
+
+### C.2 API filter (`GlobalExceptionFilter`)
+
+- Does **not** use `map-finance-to-user-message.ts` (web-only).
+- Structured `{ error: { code, message, details } }` → preserves `FINANCE_CONTRACT_VALIDATION_FAILED` (not in `CANONICAL_ERROR_CODES`).
+- Zod `details` is an **array**; `coerceDetails` drops it → clients lose field-level issues in envelope.
+
+**User does not get 500 from this path** unless BFF unreachable (502) or unhandled non-Zod error.
+
+### C.3 Web mapping
+
+| Layer | `FINANCE_CONTRACT_VALIDATION_FAILED` |
+|-------|--------------------------------------|
+| `map-finance-to-user-message.ts` | **No dedicated case** — `getUIError` → generic English *"An unexpected error occurred."* unless API `message` differs → then **raw English** API text |
+| `error-registry.ts` / `canonical-api-error-codes.ts` | Code **not registered** |
+| `booking-detail-client.tsx` | `onError`: only `PAYMENT_PENDING_EXISTS`; else `error.message` toast — **no** `mapFinanceToUserMessage` |
+| Finance receipt panels | `mapFinanceToUserMessage` — same unknown-code behavior |
+| Webhooks | Server-only; contract failure **not** swallowed (unlike `PAYMENT_STATUS_TRANSITION_INVALID`) |
+
+### C.4 Registration / payment flow impact
+
+| Surface | Impact |
+|---------|--------|
+| Booking checkout `POST /api/payments/intent` | Registration **unchanged**; intent create fails with 400 + English technical message |
+| Manual payment | **Enforced (Phase 2.5.2)** — same `FINANCE_CONTRACT_VALIDATION_FAILED` on invalid wire |
+| Webhook | Payment may stay **Pending** if contract fails mid-transition |
+
+### C.5 Resilience recommendations
+
+1. Register code in `DOMAIN_API_ERROR_CODES` + `ErrorRegistry` (Persian UX).
+2. Map Zod `issues` in filter to `details.validationErrors` (reuse validation mapper pattern).
+3. `booking-detail-client`: `mapToUserMessage` / payment-specific mapper.
+4. Webhook: ops alert on contract failure; stable 400 for PSP.
+
+---
+
+## D. Finance parity tests audit (`finance-parity.spec.ts`)
+
+### D.1 Before vs after (test data)
+
+| File | Before | After (2026-05-25) |
+|------|--------|---------------------|
+| `finance-parity.spec.ts` | Real DB, `ORDER BY created_at LIMIT 500` only | **Diversity-first** sampling (see D.2) |
+| `finance-parity.spec.unit.ts` | One happy-path `samplePayment()` | **11-case messy matrix** (synthetic; documents adapter coercion vs drift) |
+
+Integration scan was **never** happy-path fixtures — local DB had **0 rows**, so scans reported 0 records.
+
+### D.2 Diversity-first DB loader (`finance-parity.helpers.ts`)
+
+Sampling order:
+
+1. `DISTINCT ON (status, method)` — newest per bucket  
+2. `DISTINCT ON (status)` — fill gaps  
+3. `DISTINCT ON (method)` — fill gaps  
+4. Recent rows up to `MAX_PAYMENTS_SCANNED` (500)
+
+**Target:** ≥ `MIN_DIVERSE_PAYMENT_SAMPLES` (10) unique payments when table has ≥10 rows.
+
+### D.3 Parity vs strict enforce (important)
+
+`toFinanceContract` → `normalizeLegacyPaymentIntentWire` **coerces** invalid UUIDs, zero amounts, empty providers, unknown statuses before `PaymentIntentSchema.parse`. Drift scan may **Pass** while **strict** `enforcePaymentIntentFinanceContract` **Fails** on the same logical row.
+
+| Synthetic case (unit matrix) | Parity drift? | Notes |
+|------------------------------|---------------|-------|
+| Manual Paid, null `providerPaymentId` | No | Real shape |
+| `150000.00`, `irr` currency | No | Normalized |
+| `amount: "0"`, `provider: ""` | No | Fallbacks → `"1"`, `"unknown"` |
+| Bad UUID, `??` currency, bad `ledgerJournalId` | **Yes** | True Zod mismatch |
+
+**Optional follow-up:** `toFinanceContractStrict` (no fallbacks) for DB scan only.
+
+### D.4 Audit output (§3.4.4)
+
+Markers: `<!-- finance-parity-drift-scan:start/end -->` — replaced on each `pnpm --filter @apps/api run test:finance-parity`.
+
+Includes: DB totals, statuses, methods, buckets, sampling strategy, **True mismatch detection** table (`paymentId` | Zod path | issue), violations summary.
+
+### D.5 Last local run
+
+| Field | Value |
+|-------|-------|
+| Result | **Pass** (0 mismatches) |
+| DB total | **0** (`payments` empty) |
+| Note | Point `apps/api/.env` at populated DB to detect real mismatches |
+
+**Command:**
+
+```bash
+pnpm --filter @apps/api run test:finance-parity
+pnpm exec node --import tsx --test src/modules/payments/tests/finance-parity.spec.unit.ts
+```
+
+When violations exist, §3.4.4 auto-lists each `paymentId` and Zod path (true mismatch detection).

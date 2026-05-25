@@ -1,5 +1,5 @@
 import { ForbiddenException } from "@nestjs/common";
-import { UserRole } from "../../../common/auth/user-role.enum";
+import { canUploadReceiptAsWorkspaceStaff } from "../../../common/rbac/workspace-access.helper";
 
 export const NOT_AUTHORIZED_TO_UPLOAD_RECEIPT_FOR_THIS_PAYMENT = {
   error: {
@@ -23,11 +23,7 @@ export function assertActorMayUploadReceiptForRegistration(input: {
   actorPhone: string | null | undefined;
   participantContactPhone: string;
 }): void {
-  const role = String(input.actorRole ?? "").trim().toLowerCase();
-  if (role === UserRole.Admin.toLowerCase() || role === UserRole.Owner.toLowerCase()) {
-    return;
-  }
-  if (role === UserRole.Leader.toLowerCase()) {
+  if (canUploadReceiptAsWorkspaceStaff(input.actorRole)) {
     return;
   }
 

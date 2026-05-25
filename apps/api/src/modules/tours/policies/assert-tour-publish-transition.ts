@@ -3,6 +3,12 @@ import type { TourFormProfile, TourTripDetails as TypesTourTripDetails } from "@
 import { checkDenaliPilotPublishGeolocationZones } from "@repo/shared-contracts";
 
 import { TourEntity } from "../entities/tour.entity";
+import { buildPublishPolicy } from "../strategies/workspace.strategy.builders";
+import type { WorkspacePublishPolicy } from "../strategies/workspace.strategy.interface";
+import {
+  isDenaliStrategyProfile,
+  WorkspaceStrategyRegistry,
+} from "../strategies/workspace.strategy.registry";
 import { assertEditRequiredTripDetailsForPublish } from "../utils/assert-edit-required-trip-details-for-publish";
 import {
   assertProfileRequiredFieldsForPublish,
@@ -12,21 +18,50 @@ import { assertTripDetailsForFormProfile } from "../utils/assert-create-tour-inv
 import { assertTourIsPublishable, assertTourOpenReadiness } from "./tour-lifecycle.policy";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 
+function loadPublishPolicy(profile: TourFormProfile): WorkspacePublishPolicy {
+  try {
+    return WorkspaceStrategyRegistry.resolve(profile).getPublishPolicy();
+  } catch {
+    return buildPublishPolicy(profile, {
+      publishGeolocationCheck:
+        isDenaliStrategyProfile(profile) && profile === "denali_pilot"
+          ? (tripDetails: unknown) => {
+              const details = tripDetails as TypesTourTripDetails | null | undefined;
+              return checkDenaliPilotPublishGeolocationZones(details);
+            }
+          : null,
+    });
+  }
+}
+
+function throwWorkspaceViolationFromPublish(
+  violation: { code: string; message: string },
+): never {
+  throw new BadRequestException({
+    error: {
+      code: violation.code,
+      message: violation.message,
+    },
+  });
+}
+
+function assertPublishGeolocationIfRequired(
+  profile: TourFormProfile,
+  tripDetails: TourTripDetails | null,
+): void {
+  const { publishGeolocationCheck } = loadPublishPolicy(profile);
+  if (publishGeolocationCheck == null) {
+    return;
+  }
+  const geoViolation = publishGeolocationCheck(tripDetails as TypesTourTripDetails | null);
+  if (geoViolation != null) {
+    throwWorkspaceViolationFromPublish(geoViolation);
+  }
+}
+
 function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourEntity): void {
   const tripDetails = (tour.details?.tripDetails ?? null) as TourTripDetails | null;
-  if (profile === "denali_pilot") {
-    const geoViolation = checkDenaliPilotPublishGeolocationZones(
-      tripDetails as TypesTourTripDetails | null,
-    );
-    if (geoViolation != null) {
-      throw new BadRequestException({
-        error: {
-          code: geoViolation.code,
-          message: geoViolation.message,
-        },
-      });
-    }
-  }
+  assertPublishGeolocationIfRequired(profile, tripDetails);
   assertTripDetailsForFormProfile(
     profile,
     tripDetails,
@@ -52,7 +87,17 @@ function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourE
  * Call only when {@link isTourDraftToOpenPublishTransition} is true (not on every PATCH).
  */
 export function assertTourPublishableBeforePatch(tour: TourEntity): void {
-  assertTourIsPublishable(tour);
+  const profile = tour.formProfileSnapshot ?? "general";
+  const { requiresDraftBeforePublish } = loadPublishPolicy(profile);
+  if (requiresDraftBeforePublish) {
+    assertTourIsPublishable(tour);
+  } else {
+    assertTourOpenReadiness({
+      title: tour.title,
+      totalCapacity: tour.totalCapacity,
+      details: tour.details ?? null,
+    });
+  }
 }
 
 /**

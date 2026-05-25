@@ -9,10 +9,9 @@ import {
   useMemo,
   useRef,
   useState,
-  type MutableRefObject,
   type ReactNode,
 } from "react";
-import { FormProvider, useForm, useWatch, type UseFormReturn } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { Button, Card, CardBody } from "@tour/ui";
 
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";

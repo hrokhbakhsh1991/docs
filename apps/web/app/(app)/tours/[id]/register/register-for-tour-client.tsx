@@ -22,7 +22,11 @@ import type { RegistrationIntakeFormValues } from "@/features/registrations/book
 import { clearPrivateCarFields } from "@/features/registrations/booking-target/clearPrivateCarFields";
 import { useRegistrationBookingTarget } from "@/features/registrations/booking-target/useRegistrationBookingTarget";
 import type { RegistrationFieldPolicy } from "@/features/registrations/booking-target/types";
-import { resolveTourAllowPrivateCar } from "@/lib/tours/registration-policy";
+import {
+  resolveTourAllowPrivateCar,
+  toTourAllowPrivateCarInput,
+} from "@/lib/tours/registration-policy";
+import { mapIntakeToRegistrationRequest } from "@repo/shared-contracts";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
@@ -94,8 +98,8 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   const requiresNationalIdRegistration =
     tour?.details?.tripDetails?.participation?.registrationNationalIdRequired === true;
 
-  const requiresPersonalInsurance =
-    tour?.details?.tripDetails?.participation?.personalInsuranceRequired === true;
+  const requiresSportsInsurance =
+    tour?.details?.tripDetails?.participation?.sportsInsuranceRequired === true;
 
   const allowPrivateCar = useMemo(() => {
     if (tour?.registrationPolicy != null) {
@@ -104,26 +108,18 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
     if (tour == null) {
       return false;
     }
-    return resolveTourAllowPrivateCar(tour);
+    return resolveTourAllowPrivateCar(toTourAllowPrivateCarInput(tour));
   }, [tour]);
 
   const policy = useMemo(
     (): RegistrationFieldPolicy => ({
       nationalIdRequired: requiresNationalIdRegistration,
       profileNationalIdPresent: false,
-      personalInsuranceRequired: requiresPersonalInsurance,
+      sportsInsuranceRequired: requiresSportsInsurance,
       requirePeakHistory: false,
       allowPrivateCar,
     }),
-    [requiresNationalIdRegistration, requiresPersonalInsurance, allowPrivateCar],
-  );
-
-  const options = useMemo(
-    (): RegistrationOptions => ({
-      travelInsuranceAvailable:
-        tour?.details?.tripDetails?.participation?.travelInsuranceAvailable === true,
-    }),
-    [tour],
+    [requiresNationalIdRegistration, requiresSportsInsurance, allowPrivateCar],
   );
 
   const intakeMessages = useMemo(
@@ -134,12 +130,13 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       phoneFormat: validationCopy.phoneFormat,
       nationalIdRequired: validationCopy.nationalIdRequired,
       nationalIdInvalid: validationCopy.nationalIdInvalid,
+      peaksRequired: validationCopy.peaksRequired,
       seatOnlySelfVehicle: transportCopy.seatOnlySelfVehicle,
       seatRange: transportCopy.seatRange,
       isDriverRequired: "Please specify if you are the driver.",
       plateNumberRequired: "Plate number is required for drivers.",
       shareFuelCostRequired: "Please specify if you want to share fuel costs.",
-      personalInsuranceRequired: transportCopy.personalInsuranceRequired,
+      sportsInsuranceRequired: transportCopy.sportsInsuranceRequired,
       privateCarNotAllowedOnTour: "این تور امکان ثبت‌نام با خودروی شخصی ندارد.",
     }),
     [],
@@ -235,15 +232,10 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
           ? values.vehicleSeatCapacity
           : undefined;
 
+      const request = mapIntakeToRegistrationRequest(values, tourId);
       const body = {
-        tourId,
+        ...request,
         bookingTarget: values.bookingTarget,
-        participantFullName: values.participantFullName.trim(),
-        participantContactPhone: values.participantContactPhone.trim(),
-        transportMode: values.transportMode,
-        entryMode: "web" as const,
-        personalInsurance: values.personalInsurance,
-        travelInsurance: values.travelInsurance,
         ...(isSelfVehicle
           ? {
               isDriver: values.isDriver,
@@ -707,31 +699,23 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                     )}
                   </div>
                 ) : null}
-                {policy.personalInsuranceRequired || options.travelInsuranceAvailable ? (
+                {policy.sportsInsuranceRequired ? (
                   <fieldset className={registerStyles.transportFieldset}>
                     <legend className={registerStyles.transportLegend}>بیمه</legend>
-                    {policy.personalInsuranceRequired ? (
-                      <div className={registerStyles.insuranceOption}>
-                        <label className={registerStyles.checkboxOption}>
-                          <input type="checkbox" {...register("personalInsurance")} />
-                          <span>{transportCopy.personalInsuranceLabel}</span>
-                        </label>
-                        {errors.personalInsurance?.message ? (
-                          <p
-                            role="alert"
-                            style={{ margin: 0, color: "var(--color-danger-fg, #b42318)" }}
-                          >
-                            {errors.personalInsurance.message}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {options.travelInsuranceAvailable ? (
+                    <div className={registerStyles.insuranceOption}>
                       <label className={registerStyles.checkboxOption}>
-                        <input type="checkbox" {...register("travelInsurance")} />
-                        <span>{transportCopy.travelInsuranceLabel}</span>
+                        <input type="checkbox" {...register("sportsInsurance")} />
+                        <span>{transportCopy.sportsInsuranceLabel}</span>
                       </label>
-                    ) : null}
+                      {errors.sportsInsurance?.message ? (
+                        <p
+                          role="alert"
+                          style={{ margin: 0, color: "var(--color-danger-fg, #b42318)" }}
+                        >
+                          {errors.sportsInsurance.message}
+                        </p>
+                      ) : null}
+                    </div>
                   </fieldset>
                 ) : null}
                 <FormField label={transportCopy.noteLabel} error={errors.participantNote?.message}>

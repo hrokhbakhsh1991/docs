@@ -11,7 +11,10 @@ import { IsNull, Repository, type FindOptionsWhere } from "typeorm";
 import { capabilitiesForTenantModules } from "@repo/shared";
 import { registrationWhereForActor } from "../../../common/security/ownership-scope";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
-import { tryParseWorkspaceUserRole, UserRole } from "../../../common/auth/user-role.enum";
+import {
+  actorHasTrustedTenantOrPlatformAdminBypass,
+  registrationTenantMatchesActorScope,
+} from "../../../common/rbac/workspace-access.helper";
 import { RegistrationEntity } from "../../registrations/registration.entity";
 import { TourEntity } from "../../tours/entities/tour.entity";
 import { UserEntity } from "../../identity/entities/user.entity";
@@ -36,9 +39,8 @@ export class PaymentIntentRegistrationResolverApplicationService {
   ): Promise<RegistrationEntity> {
     const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
     const actorRoleRaw = this.requestContextService.getRole();
-    const parsedRole = tryParseWorkspaceUserRole(String(actorRoleRaw ?? ""));
     const actorUserIdRaw = this.requestContextService.getUserId();
-    if (!trustedTenantId && parsedRole !== UserRole.Admin) {
+    if (!actorHasTrustedTenantOrPlatformAdminBypass(actorRoleRaw, trustedTenantId)) {
       throw new ForbiddenException(tenantContextMissingError());
     }
 
@@ -76,8 +78,7 @@ export class PaymentIntentRegistrationResolverApplicationService {
         }
       });
     }
-    const isAdmin = parsedRole === UserRole.Admin;
-    if (!isAdmin && trustedTenantId && registration.tenantId !== trustedTenantId) {
+    if (!registrationTenantMatchesActorScope(actorRoleRaw, trustedTenantId, registration.tenantId)) {
       throw new NotFoundException({
         error: {
           code: "RESOURCE_NOT_FOUND",

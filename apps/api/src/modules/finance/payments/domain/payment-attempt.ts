@@ -1,4 +1,4 @@
-import type { PaymentStatus } from "./payment-status";
+import type { PaymentAttemptStatus } from "./payment-attempt-status";
 
 /**
  * In-memory / not-yet-persisted shape for a single payment try against a booking (or similar aggregate).
@@ -14,7 +14,7 @@ export type PaymentAttempt = {
   /** Minor units as decimal string (matches `PaymentIntent.amountMinor`). */
   readonly amountMinor: string;
   readonly currency: string;
-  status: PaymentStatus;
+  status: PaymentAttemptStatus;
   /** Opaque provider intent / session id when known — never card PAN/CVC. */
   providerIntentId?: string;
   readonly createdAt: Date;

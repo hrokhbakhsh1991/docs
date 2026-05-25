@@ -1,7 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
+import {
+  DEFAULT_TOUR_FORM_PROFILE,
+  getTourFormProfileOptions,
+  getTourFormProfileZodEnumValues,
+  type TourFormProfile,
+} from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import type { Resolver } from "react-hook-form";
@@ -80,6 +85,7 @@ export function TourPresetForm({
   const t = useTranslations("settings");
   const activeId = useId();
   const activeDomId = `tour-preset-active-${activeId.replace(/:/g, "")}`;
+  const formProfileOptions = useMemo(() => getTourFormProfileOptions(), []);
 
   const schema = useMemo(
     () =>
@@ -90,7 +96,7 @@ export function TourPresetForm({
           message: t("tourPresetsValidationSortOrder"),
         }),
         isActive: z.boolean(),
-        formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
+        formProfile: z.enum(getTourFormProfileZodEnumValues()),
         defaultsJson: z
           .string()
           .default("")
@@ -118,7 +124,7 @@ export function TourPresetForm({
       description: "",
       sortOrder: "",
       isActive: true,
-      formProfile: "general",
+      formProfile: DEFAULT_TOUR_FORM_PROFILE,
       defaultsJson: "",
     },
   });
@@ -133,7 +139,7 @@ export function TourPresetForm({
         description: editing.description ?? "",
         sortOrder: editing.sortOrder !== undefined ? String(editing.sortOrder) : "",
         isActive: editing.isActive,
-        formProfile: (editing.formProfile as TourFormProfile) ?? "general",
+        formProfile: (editing.formProfile as TourFormProfile) ?? DEFAULT_TOUR_FORM_PROFILE,
         defaultsJson:
           editing.defaults && Object.keys(editing.defaults).length > 0
             ? JSON.stringify(editing.defaults, null, 2)
@@ -146,7 +152,7 @@ export function TourPresetForm({
         description: duplicateFrom.description ?? "",
         sortOrder: duplicateSortOrder != null ? String(duplicateSortOrder) : "",
         isActive: duplicateFrom.isActive,
-        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? "general",
+        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? DEFAULT_TOUR_FORM_PROFILE,
         defaultsJson: Object.keys(defaultsCopy).length > 0 ? JSON.stringify(defaultsCopy, null, 2) : "",
       });
     } else {
@@ -155,7 +161,7 @@ export function TourPresetForm({
         description: "",
         sortOrder: "",
         isActive: true,
-        formProfile: "general",
+        formProfile: DEFAULT_TOUR_FORM_PROFILE,
         defaultsJson: "",
       });
     }
@@ -254,9 +260,9 @@ export function TourPresetForm({
               onChange={(e) => field.onChange(e.target.value as TourFormProfile)}
               aria-invalid={errors.formProfile ? true : undefined}
             >
-              {TOUR_FORM_PROFILE_VALUES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+              {formProfileOptions.map(({ value, labelKey }) => (
+                <option key={value} value={value}>
+                  {t(labelKey)}
                 </option>
               ))}
             </Select>

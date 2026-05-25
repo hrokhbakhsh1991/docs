@@ -5,11 +5,14 @@ import { ManualPaymentService } from "../../src/modules/payments/manual-payment.
 import { PaymentMethod, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PAYMENT_DEBT_AFTER_SETTLEMENT_FORBIDDEN } from "../../src/modules/payments/domain/manual-payment-debt.policy";
 
+const TENANT_ID = "22222222-2222-4222-8222-222222222222";
+const REGISTRATION_ID = "33333333-3333-4333-8333-333333333333";
+
 function makeManager(findPayments: Array<{ status: PaymentStatus }>) {
   return {
     findOne: async () => ({
-      id: "reg-1",
-      tenantId: "tenant-1"
+      id: REGISTRATION_ID,
+      tenantId: TENANT_ID
     }),
     find: async () => findPayments,
     create: (_entity: unknown, data: Record<string, unknown>) => data,
@@ -35,8 +38,8 @@ test("createManualPayment persists under tenant scope", async () => {
   );
 
   const payment = await service.createManualPayment({
-    tenantId: "tenant-1",
-    registrationId: "reg-1",
+    tenantId: TENANT_ID,
+    registrationId: REGISTRATION_ID,
     amount: "1000",
     currency: "IRR"
   });
@@ -58,8 +61,8 @@ test("createManualPayment rejects when registration already has Paid payment", a
   await assert.rejects(
     () =>
       service.createManualPayment({
-        tenantId: "tenant-1",
-        registrationId: "reg-1",
+        tenantId: TENANT_ID,
+        registrationId: REGISTRATION_ID,
         amount: "1000",
         currency: "IRR"
       }),
@@ -81,8 +84,8 @@ test("createManualPayment allows manual debt after Failed online payment", async
   );
 
   const payment = await service.createManualPayment({
-    tenantId: "tenant-1",
-    registrationId: "reg-1",
+    tenantId: TENANT_ID,
+    registrationId: REGISTRATION_ID,
     amount: "1000",
     currency: "IRR"
   });
@@ -104,8 +107,8 @@ test("createManualPayment rejects unknown registration", async () => {
   await assert.rejects(
     () =>
       service.createManualPayment({
-        tenantId: "tenant-1",
-        registrationId: "missing",
+        tenantId: TENANT_ID,
+        registrationId: "44444444-4444-4444-8444-444444444444",
         amount: "1000",
         currency: "IRR"
       }),

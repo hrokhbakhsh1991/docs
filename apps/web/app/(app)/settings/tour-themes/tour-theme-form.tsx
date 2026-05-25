@@ -1,7 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DEFAULT_TOUR_FORM_PROFILE, TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
+import {
+  DEFAULT_TOUR_FORM_PROFILE,
+  getTourFormProfileOptions,
+  getTourFormProfileZodEnumValues,
+  type TourFormProfile,
+} from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import type { Resolver } from "react-hook-form";
@@ -45,6 +50,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
   const t = useTranslations("settings");
   const activeId = useId();
   const activeDomId = `tour-theme-active-${activeId.replace(/:/g, "")}`;
+  const formProfileOptions = useMemo(() => getTourFormProfileOptions(), []);
 
   const schema = useMemo(
     () =>
@@ -59,7 +65,7 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
           .transform((v) => (v && v !== "" ? Number(v) : undefined))
           .refine((v) => v === undefined || !Number.isNaN(v), { message: t("tourThemesValidationSortOrder") }),
         isActive: z.boolean(),
-        formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
+        formProfile: z.enum(getTourFormProfileZodEnumValues()),
       }),
     [t],
   );
@@ -151,9 +157,9 @@ export function TourThemeForm({ editing, onSubmit, onCancel, isPending }: TourTh
           aria-invalid={errors.formProfile ? true : undefined}
           {...register("formProfile")}
         >
-          {TOUR_FORM_PROFILE_VALUES.map((value) => (
+          {formProfileOptions.map(({ value, labelKey }) => (
             <option key={value} value={value}>
-              {t(`tourThemesFormProfileOption_${value}` as never)}
+              {t(labelKey)}
             </option>
           ))}
         </Select>

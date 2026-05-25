@@ -7,6 +7,7 @@ import {
   serializeDenaliWizardDraft,
 } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
 
+import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { bootstrapDenaliEditFormFromDraft } from "./denaliEditDraftBootstrap";
 import {
   denaliWizardTemplateDraftStorageKey,
@@ -41,6 +42,7 @@ test("bootstrapDenaliEditFormFromDraft auto-restores compatible edit drafts", ()
   const result = bootstrapDenaliEditFormFromDraft({
     tourId: "tour-123",
     serverBaseline,
+    ruleSet: denaliRuleSet,
     readDraft: () => parsed,
   });
 
@@ -65,6 +67,7 @@ test("bootstrapDenaliEditFormFromDraft keeps server baseline for incompatible dr
   const result = bootstrapDenaliEditFormFromDraft({
     tourId: "tour-123",
     serverBaseline,
+    ruleSet: denaliRuleSet,
     readDraft: () => parsed,
   });
 

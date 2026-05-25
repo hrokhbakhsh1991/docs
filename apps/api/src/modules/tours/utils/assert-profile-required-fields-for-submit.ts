@@ -1,14 +1,10 @@
 import { BadRequestException } from "@nestjs/common";
 
-import {
-  getRequiredSubmitFieldPathsForProfile,
-  denaliPrimaryTransportSubmitValue,
-  type TourFormProfile,
-  type WizardSubmitRequiredFieldPath,
-} from "@repo/types";
+import type { TourFormProfile, WizardSubmitRequiredFieldPath } from "@repo/types";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
 import type { TourEntity } from "../entities/tour.entity";
+import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 
 export const VALIDATION_PROFILE_REQUIRED_FIELD = "VALIDATION_PROFILE_REQUIRED_FIELD" as const;
 
@@ -62,68 +58,19 @@ function isEmptyRequiredValue(value: unknown): boolean {
   return false;
 }
 
-function readDtoValueForWizardPath(
-  profile: TourFormProfile,
-  dto: ProfileRequiredSubmitShape,
-  path: WizardSubmitRequiredFieldPath,
-): unknown {
-  switch (path) {
-    case "overview.title":
-      return dto.title;
-    case "pricing.basePrice":
-      return dto.cost_context?.totalCost;
-    case "itinerary.days": {
-      const itinerary = dto.tripDetails?.itinerary as
-        | {
-            segmentActivities?: unknown[];
-            dayPlans?: unknown[];
-          }
-        | undefined;
-      if (itinerary == null) {
-        return [];
-      }
-      const segmentActivities = itinerary.segmentActivities;
-      if (Array.isArray(segmentActivities) && segmentActivities.length > 0) {
-        return segmentActivities;
-      }
-      const dayPlans = itinerary.dayPlans;
-      if (Array.isArray(dayPlans) && dayPlans.length > 0) {
-        return dayPlans;
-      }
-      return [];
-    }
-    case "logistics.primaryTransportMode": {
-      const logistics = dto.tripDetails?.logistics as
-        | { primaryTransportMode?: string | null }
-        | undefined;
-      if (profile === "denali_pilot") {
-        return denaliPrimaryTransportSubmitValue({
-          primaryTransportMode: logistics?.primaryTransportMode,
-          rootTransportModes: dto.transportModes,
-        });
-      }
-      return logistics?.primaryTransportMode;
-    }
-    default: {
-      const _exhaustive: never = path;
-      return _exhaustive;
-    }
-  }
-}
-
 /**
  * Enforces profile-scoped submit required fields after profile strip.
- * Paths and visibility rules come from `@repo/types` (parity with wizard `validateForSubmit`).
+ * Paths and value resolution come from {@link WorkspaceStrategyRegistry}.
  */
 export function assertProfileRequiredFieldsForSubmit(
   profile: TourFormProfile,
   dto: ProfileRequiredSubmitShape,
 ): void {
-  const requiredPaths = getRequiredSubmitFieldPathsForProfile(profile);
+  const submitFields = WorkspaceStrategyRegistry.resolve(profile).getRequiredSubmitFields();
   const missing: WizardSubmitRequiredFieldPath[] = [];
 
-  for (const path of requiredPaths) {
-    const value = readDtoValueForWizardPath(profile, dto, path);
+  for (const path of submitFields.requiredPaths) {
+    const value = submitFields.readSubmitFieldValue(dto, path);
     if (isEmptyRequiredValue(value)) {
       missing.push(path);
     }

@@ -5,10 +5,6 @@ import { denaliRuleSet, listDenaliRuleFieldPaths } from "@/features/tours/wizard
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
-import {
-  parseFieldRulesOverlay,
-  type FieldRuleOverlayPatch,
-} from "@/features/tours/wizard/template/merge-field-rules-overlay";
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
@@ -114,7 +110,6 @@ function validateOverlayPatches(
 
 function validatePublishGate(
   canonicalData: unknown,
-  overlay: ReadonlyMap<string, FieldRuleOverlayPatch>,
   ruleSet: DenaliRuleSet,
 ): UniversalValidationIssue[] {
   const hydrated = tryHydrateCanonicalTemplate(
@@ -160,8 +155,7 @@ export function validateDenaliWorkspaceTemplate(
   }
 
   if (options?.mode === "publish" && issues.length === 0) {
-    const overlay = parseFieldRulesOverlay(payload.fieldRulesOverlay);
-    issues.push(...validatePublishGate(payload.canonicalData, overlay, ruleSet));
+    issues.push(...validatePublishGate(payload.canonicalData, ruleSet));
   }
 
   return issues;

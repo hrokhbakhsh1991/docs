@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { BookingDto } from "@repo/types";
-
 import {
   deriveDriverLoadRows,
   sortDriversByLoad,

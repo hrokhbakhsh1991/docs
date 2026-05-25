@@ -59,7 +59,7 @@ export function formatDenaliWizardDraftContractIssues(
 
 export function validateDenaliWizardDraftEnvelopeContract(
   raw: unknown,
-): z.SafeParseReturnType<unknown, DenaliWizardDraftEnvelopeContract> {
+): ReturnType<typeof denaliWizardDraftEnvelopeContractSchema.safeParse> {
   return denaliWizardDraftEnvelopeContractSchema.safeParse(raw);
 }
 
@@ -86,10 +86,11 @@ export function buildGoldenDenaliWizardDraftEnvelope(options?: {
   const form = buildDenaliTourCreateTestValues();
   form.basicInfo.tourType = "mountain_day";
 
+  const canonical = mapDenaliWizardToDraftPayload(form).canonical;
   return {
     _wizardRail: DENALI_WIZARD_DRAFT_RAIL,
     versionHash: getDenaliWizardDraftVersionHash(),
-    canonical: mapDenaliWizardToDraftPayload(form).canonical,
+    canonical: denaliCanonicalTourSchema.parse(canonical),
     ...(options?.wizardMeta != null ? { _wizardMeta: options.wizardMeta } : {}),
   };
 }

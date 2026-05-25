@@ -262,7 +262,6 @@ function checkHttpBodyTenantAccess(allow) {
   ];
   const ignored = (allow.ignoredPathsForHttpBodyTenant || [
     "apps/api/src/database/migrations/",
-    "apps/api/src/database/migrations_archive/",
     "apps/api/src/scripts/",
     "apps/api/test/",
     "apps/api/dist/"
@@ -306,7 +305,6 @@ function checkManagerQueryTenant(allow) {
   const apiRoot = path.join(REPO_ROOT, "apps/api/src");
   const ignored = (allow.ignoredPathsForManagerQuery || [
     "apps/api/src/database/migrations/",
-    "apps/api/src/database/migrations_archive/",
     "apps/api/src/scripts/",
     "apps/api/test/",
     "apps/api/dist/",
@@ -442,10 +440,7 @@ function checkSecurityDefinerRegistry() {
   const fromRuntime = new Set();
   for (const abs of walk(apiRoot)) {
     const rel = normPosix(path.relative(REPO_ROOT, abs));
-    if (
-      rel.includes("/database/migrations/") ||
-      rel.includes("/database/migrations_archive/")
-    ) {
+    if (rel.includes("/database/migrations/")) {
       continue;
     }
     const text = fs.readFileSync(abs, "utf8");

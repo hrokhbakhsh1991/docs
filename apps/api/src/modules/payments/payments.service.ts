@@ -65,6 +65,7 @@ import {
 import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
 import { REGISTRATION_PAYMENT_PORT, IRegistrationPaymentPort } from "../registrations/ports/registration-payment.port";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
+import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-finance-contract";
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
@@ -213,6 +214,24 @@ export class PaymentsService {
     assertFinancialMutationRunsInIdempotentScope("createPaymentIntentWithManager");
     const registration =
       await this.paymentIntentRegistrationResolver.resolveRegistrationForCreateIntent(manager, dto);
+
+    enforcePaymentIntentFinanceContract(
+      {
+        tenantId: registration.tenantId,
+        registrationId: registration.id,
+        amount: dto.amount,
+        currency: dto.currency,
+        method: "Online",
+        provider: dto.paymentProvider,
+        providerPaymentId: dto.providerPaymentId ?? null,
+        status: PaymentStatus.PENDING,
+        paidAt: null,
+        failedAt: null,
+        refundedAt: null,
+        ledgerJournalId: null,
+      },
+      "createPaymentIntent",
+    );
 
     const existingPending = await manager.findOne(PaymentEntity, {
       where: {
@@ -644,6 +663,28 @@ export class PaymentsService {
     reason?: string,
     ledgerIdempotencyKey?: string
   ): Promise<PaymentEntity> {
+    enforcePaymentIntentFinanceContract(
+      {
+        id: payment.id,
+        tenantId: payment.tenantId,
+        registrationId: payment.registrationId,
+        amount: payment.amount,
+        currency: payment.currency,
+        method: payment.method,
+        provider: payment.provider,
+        providerPaymentId: payment.providerPaymentId,
+        status: next,
+        paidAt: payment.paidAt,
+        failedAt: payment.failedAt,
+        refundedAt: payment.refundedAt,
+        ledgerJournalId: payment.ledgerJournalId,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt,
+        deletedAt: payment.deletedAt,
+      },
+      `applyPaymentStatus:${next}`,
+    );
+
     if (payment.status === next) {
       return payment;
     }

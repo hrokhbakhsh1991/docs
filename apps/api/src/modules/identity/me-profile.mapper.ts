@@ -1,5 +1,5 @@
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
-import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import { canPerformAdministrativeAction } from "../../common/rbac/workspace-access.helper";
 import type { UserEntity } from "./entities/user.entity";
 import type { MeProfileResponse, SelfPiiSnapshot } from "./me-profile.types";
 export type MeProfileVisibility = {
@@ -12,8 +12,7 @@ export function canExposeNationalId(visibility: MeProfileVisibility): boolean {
   if (visibility.viewerUserId.trim() === visibility.subjectUserId.trim()) {
     return true;
   }
-  const role = tryParseWorkspaceUserRole(String(visibility.viewerRole ?? "").trim());
-  return role === UserRole.Owner || role === UserRole.Admin;
+  return canPerformAdministrativeAction(String(visibility.viewerRole ?? "").trim());
 }
 
 export function formatUserDateColumnAsYmd(v: Date | string | null | undefined): string | null {

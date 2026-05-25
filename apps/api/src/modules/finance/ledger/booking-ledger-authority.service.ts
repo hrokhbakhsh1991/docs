@@ -112,6 +112,10 @@ function projectPaidAmountString(
  * as the caller’s domain transaction (`finance.ledger.double_entry_applied`).
  *
  * No other service should assign `registration.paidAmount` — CI enforces this (`check-ledger-only-money.mjs`).
+ *
+ * **Strict ledger (Phase 2.6):** {@link postAndPersistDoubleEntryJournal} rejects invalid journals with
+ * `LEDGER_CONTRACT_VALIDATION_FAILED` before any `ledger_journal_lines` insert — leader PATCH and
+ * payment flows must treat this as a hard failure (transaction rollback).
  */
 @Injectable()
 export class BookingLedgerAuthorityService {

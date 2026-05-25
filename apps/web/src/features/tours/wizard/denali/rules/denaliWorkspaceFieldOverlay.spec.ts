@@ -13,7 +13,7 @@ import { resolveDenaliRuleSetFromTemplate } from "../validation/denaliRuleAccess
 const WORKSPACE_OVERLAY_TEMPLATE: TenantWizardTemplate = {
   id: "t-overlay",
   workspaceId: "w1",
-  baseProfile: "denali",
+  baseProfile: "denali_pilot",
   stepOverrides: { skip: [], insert: [] },
   fieldRulesOverlay: {
     requiresLocalGuide: { visibility: "hidden" },

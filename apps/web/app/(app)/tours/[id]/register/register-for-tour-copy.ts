@@ -19,9 +19,8 @@ export const REGISTER_FOR_TOUR_COPY = {
     plateNumberLabel: "شماره پلاک خودرو",
     plateNumberPlaceholder: "ایران ۱۱ - ۱۲۳ ج ۴۵",
     shareFuelCostLabel: "تمایل به پرداخت هزینه سوخت دارم",
-    personalInsuranceLabel: "تأیید می‌کنم که بیمه حوادث شخصی معتبر دارم",
-    travelInsuranceLabel: "متقاضی بیمه سفر (توسط برگزارکننده) هستم",
-    personalInsuranceRequired: "داشتن بیمه حوادث شخصی برای این تور الزامی است.",
+    sportsInsuranceLabel: "تأیید می‌کنم که بیمه ورزشی معتبر دارم",
+    sportsInsuranceRequired: "داشتن بیمه ورزشی برای این تور الزامی است.",
   },
   peaks: {
     fieldLabel: "تعداد قله‌های صعودشدهٔ اخیر با این آژانس",
@@ -42,5 +41,6 @@ export const REGISTER_FOR_TOUR_COPY = {
       "۷ تا ۲۰ رقم (اختیاری + در ابتدا). فاصله، خط تیره و پرانتز مجاز است.",
     nationalIdRequired: "کد ملی شرکت‌کننده الزامی است.",
     nationalIdInvalid: "کد ملی وارد شده معتبر نیست.",
+    peaksRequired: "لطفاً سابقه قله‌های خود را انتخاب کنید.",
   },
 } as const;

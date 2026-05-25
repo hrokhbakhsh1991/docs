@@ -22,6 +22,10 @@ import { isOptimisticLockVersionMismatchError } from "../../common/typeorm/optim
 import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { tryParseWorkspaceUserRole, UserRole } from "../../common/auth/user-role.enum";
+import {
+  actorHasTrustedTenantOrPlatformAdminBypass,
+  registrationTenantMatchesActorScope,
+} from "../../common/rbac/workspace-access.helper";
 import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
 import { OutboxService } from "../outbox/outbox.service";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
@@ -736,8 +740,8 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     metadata?: Record<string, unknown>
   ): Promise<RegistrationEntity> {
     const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
-    const parsedRole = tryParseWorkspaceUserRole(String(this.requestContextService.getRole() ?? ""));
-    if (!trustedTenantId && parsedRole !== UserRole.Admin) {
+    const actorRole = this.requestContextService.getRole();
+    if (!actorHasTrustedTenantOrPlatformAdminBypass(actorRole, trustedTenantId)) {
       throw new ForbiddenException({
         error: {
           code: "TENANT_CONTEXT_MISSING",
@@ -764,9 +768,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       }
 
       if (
-        parsedRole !== UserRole.Admin &&
-        trustedTenantId &&
-        registration.tenantId !== trustedTenantId
+        !registrationTenantMatchesActorScope(actorRole, trustedTenantId, registration.tenantId)
       ) {
         throw new NotFoundException({
           error: {
@@ -1988,11 +1990,15 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           paymentRequired: requiresPayment
         });
       }
+      let paymentIntent: PaymentResponseDto | null = null;
+      if (requiresPayment && input.createPaymentIntent) {
+        paymentIntent = await input.createPaymentIntent(manager, savedWithSnapshot);
+      }
       return {
         type: "registration" as const,
-        registration: this.toRegistrationResponse(saved),
+        registration: this.toRegistrationResponse(savedWithSnapshot),
         requiresPayment,
-        paymentIntent: null
+        paymentIntent
       };
     };
     if (store) {

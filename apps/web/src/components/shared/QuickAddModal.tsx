@@ -15,7 +15,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useId,
   useMemo,
   useState,
   type ComponentType,
@@ -62,13 +61,6 @@ export function QuickAddModal<TEntity = unknown>({
   formProps,
 }: QuickAddModalViewProps<TEntity>) {
   const preventDismiss = formProps.isPending;
-  const descriptionId = useId();
-  const descriptionText =
-    typeof description === "string"
-      ? description
-      : typeof title === "string"
-        ? title
-        : "Quick add";
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -86,7 +78,6 @@ export function QuickAddModal<TEntity = unknown>({
         <Dialog.Content
           className={styles.content}
           data-testid="quick-add-modal"
-          aria-describedby={descriptionId}
           onEscapeKeyDown={(event) => {
             if (preventDismiss) {
               event.preventDefault();
@@ -103,14 +94,11 @@ export function QuickAddModal<TEntity = unknown>({
             }
           }}
         >
-          <Dialog.Description
-            id={descriptionId}
-            className={description ? styles.description : styles.visuallyHidden}
-          >
-            {descriptionText}
-          </Dialog.Description>
           <header className={styles.header}>
             <Dialog.Title className={styles.title}>{title}</Dialog.Title>
+            <Dialog.Description className={styles.srOnly}>
+              Modal for quickly adding a new tour target.
+            </Dialog.Description>
             <Dialog.Close asChild>
               <button
                 type="button"
@@ -123,6 +111,13 @@ export function QuickAddModal<TEntity = unknown>({
             </Dialog.Close>
           </header>
           <div className={styles.body}>
+            {description ? (
+              typeof description === "string" ? (
+                <p className={styles.description}>{description}</p>
+              ) : (
+                description
+              )
+            ) : null}
             {apiError ? (
               <Alert
                 variant="error"

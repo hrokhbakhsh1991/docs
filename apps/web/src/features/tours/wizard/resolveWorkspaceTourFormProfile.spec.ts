@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { TenantWizardTemplateEnvelope } from "@/features/tours/wizard/template/tenant-wizard-template.types";
+
 import {
   debugWorkspaceTourFormProfileResolution,
   findTourFormProfileValuePaths,
@@ -45,7 +47,7 @@ test("resolveWorkspaceTourFormProfileFromTemplate: workspaceSettings.profile fal
         workspaceId: "w1",
         workspaceSettings: { profile: "urban_event" },
       },
-    } as { template: Record<string, unknown> }),
+    } as unknown as TenantWizardTemplateEnvelope),
     "urban_event",
   );
 });
@@ -64,7 +66,7 @@ test("debugWorkspaceTourFormProfileResolution: reports canonicalData fallback so
       workspaceId: "w1",
       canonicalData: { formProfile: "urban_event" },
     },
-  } as { template: Record<string, unknown> });
+  } as unknown as TenantWizardTemplateEnvelope);
   assert.equal(debug.chosen, "urban_event");
   assert.equal(debug.source, "canonicalData.formProfile");
 });

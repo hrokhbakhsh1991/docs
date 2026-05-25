@@ -62,8 +62,10 @@ export function TourWorkspaceTransportTab() {
       if (result) {
         toast.success({ message: copy.actionCenter.notifySuccess(result.driversNotified) });
       }
+      return result;
     } catch {
       toast.error({ message: copy.actionCenter.notifyError });
+      return undefined;
     }
   }
 

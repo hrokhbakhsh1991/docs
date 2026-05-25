@@ -1,5 +1,27 @@
 # Tour Ops Monorepo
 
+## Development Protocol
+
+> ⚠️ DEVELOPMENT PROTOCOL: Before making any changes, please read the [Denali Development Protocol](./DEVELOPMENT_PLAYBOOK.md). We follow a strict contract-first, strategy-based architecture.
+
+## Architectural Manifesto
+
+> **⚠️ MANDATORY READING — ARCHITECTURAL COMPLIANCE**
+>
+> This repository enforces a **Self-Guarding** architecture. Code that violates our standards is **Architectural Decay** and must be refactored before merge. **Do not** add `if` / `switch` on workspace profiles in business logic without using **WorkspaceStrategyRegistry**. **Do not** persist financial data without contract validation.
+>
+> **Read the full law:** [**ARCHITECTURE.md**](./ARCHITECTURE.md)
+
+| Principle | Rule |
+|-----------|------|
+| **Contract-First** | Money flows through `@repo/shared-contracts/finance` — no raw DTOs. |
+| **Strategy over Branching** | Workspace variance via `WorkspaceStrategyRegistry`, not `if (profile === '...')`. |
+| **Strict Enforcement** | Payments and ledger mutations pass schema gates before persist — no warn-and-continue. |
+
+New workspace → implement `IWorkspaceStrategy`. New field → schema in shared-contracts first. New mutation → contract enforcement gate. Adding conditions to a service file usually means a missing Strategy entry; bypassing `enforcePaymentIntentFinanceContract` is technical debt.
+
+---
+
 ## Stack
 
 - Node.js 22 LTS

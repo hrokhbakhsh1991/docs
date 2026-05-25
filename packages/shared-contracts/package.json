@@ -6,7 +6,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "pnpm --dir ../../apps/api exec node --import tsx --test ../../packages/shared-contracts/src/finance/*.spec.ts ../../packages/shared-contracts/src/content/*.spec.ts"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",

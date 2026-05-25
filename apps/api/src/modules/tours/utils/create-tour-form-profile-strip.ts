@@ -1,11 +1,14 @@
 import type { TourFormProfile } from "@repo/types";
 import {
   URBAN_LOGISTICS_WHITELIST_KEYS,
-  getTourFormProfileDescriptor,
   isDenaliTourKind,
 } from "@repo/types";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
+import type { TourEntity } from "../entities/tour.entity";
+import type { WorkspaceFieldStripRules } from "../strategies/workspace.strategy.interface";
+import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
+import type { TourTransportMode } from "../tour-transport-modes";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 /**
@@ -16,6 +19,13 @@ import type { TourTripDetails } from "../types/tour-trip-details.types";
  * — those call sites can be migrated to the array form in Phase C without re-touching the constant.
  */
 export const URBAN_LOGISTICS_WHITELIST: ReadonlySet<string> = new Set(URBAN_LOGISTICS_WHITELIST_KEYS);
+
+/**
+ * Resolves strip metadata via {@link WorkspaceStrategyRegistry}; falls back to builders if resolution fails.
+ */
+function loadFieldStripRules(profile: TourFormProfile): WorkspaceFieldStripRules {
+  return WorkspaceStrategyRegistry.resolve(profile).getFieldStripRules();
+}
 
 /** Clears returnDate/Time for single-day Denali tours (ghost logistics). */
 function stripDenaliSingleDayLogistics(td: TourTripDetails): void {
@@ -34,13 +44,10 @@ function stripDenaliSingleDayLogistics(td: TourTripDetails): void {
  * Server mirror of web `stripInactiveTourCreateGroupsForProfile` (Phase 4): drop tripDetails branches
  * that the resolved profile does not expose. Mutates `td` in place.
  *
- * Phase P10 (promptq.md): branches are driven by the declarative descriptor in
- * `packages/types/src/tour-form-profile-descriptors.ts:strip` — the per-profile `switch`
- * collapsed to a single table read. Adding a new profile no longer requires editing this
- * function (only the descriptor row + a parity-spec assertion).
+ * Strip deltas come from {@link WorkspaceStrategyRegistry.resolve(profile).getFieldStripRules}.
  */
 export function stripTripDetailsForFormProfile(profile: TourFormProfile, td: TourTripDetails): void {
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const { strip } = loadFieldStripRules(profile);
   if (
     strip.clearsTripDetailsRoots.length === 0 &&
     strip.itineraryKeysToDelete.length === 0 &&
@@ -83,18 +90,20 @@ export function stripTripDetailsForFormProfile(profile: TourFormProfile, td: Tou
 
 /**
  * Same as {@link stripTripDetailsForFormProfile}, plus clears root `transportModes` when
- * the descriptor's `strip.clearsRootTransportModes` flag is set (currently `urban_event`
- * only — see `tour-form-profile-descriptors.spec.ts` for the parity assertion).
+ * the strategy's `strip.clearsRootTransportModes` flag is set (e.g. `urban_event`).
  */
 export function stripCreateTourDtoForFormProfile(profile: TourFormProfile, dto: CreateTourDto): void {
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const fieldStripRules = loadFieldStripRules(profile);
+  const { strip, appliesDenaliSingleDayLogisticsStrip } = fieldStripRules;
   if (
     strip.clearsTripDetailsRoots.length === 0 &&
     strip.itineraryKeysToDelete.length === 0 &&
     strip.logisticsWhitelist == null &&
     !strip.clearsRootTransportModes
   ) {
-    return;
+    if (!appliesDenaliSingleDayLogisticsStrip || dto.tripDetails == null) {
+      return;
+    }
   }
   if (dto.tripDetails != null && typeof dto.tripDetails === "object") {
     stripTripDetailsForFormProfile(profile, dto.tripDetails as TourTripDetails);
@@ -104,8 +113,22 @@ export function stripCreateTourDtoForFormProfile(profile: TourFormProfile, dto: 
     delete dto.transportModes;
   }
 
-  // Phase 6 backlog: strip returnDate for Denali single-day (mvp-only logic)
-  if (profile === "denali_pilot" && dto.tripDetails != null) {
+  if (appliesDenaliSingleDayLogisticsStrip && dto.tripDetails != null) {
     stripDenaliSingleDayLogistics(dto.tripDetails as TourTripDetails);
+  }
+}
+
+/**
+ * Persist-time strip for merged tour rows (PATCH / update paths).
+ * Clears root `transportModes` when the strategy strip contract requires it.
+ */
+export function stripPersistedTourForFormProfile(profile: TourFormProfile, tour: TourEntity): void {
+  const td = tour.details?.tripDetails;
+  if (td != null && typeof td === "object") {
+    stripTripDetailsForFormProfile(profile, td as TourTripDetails);
+  }
+  const { strip } = loadFieldStripRules(profile);
+  if (strip.clearsRootTransportModes) {
+    tour.transportModes = [] as TourTransportMode[];
   }
 }

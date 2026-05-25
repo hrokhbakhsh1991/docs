@@ -1,15 +1,19 @@
 /**
- * Payment attempt lifecycle (domain). **No PSP calls** — persistence and adapters stay out of this folder.
+ * @deprecated Import {@link PaymentStatus}, {@link PAYMENT_STATUS_TRANSITIONS}, and
+ * {@link isAllowedPaymentStatusTransition} from `@repo/shared-contracts` for persisted payments.
  *
- * TODO: **Retry policies** — idempotent replays vs new `PaymentAttempt` rows; backoff + max attempts.
- * TODO: **Async capture** — authorized funds with delayed capture windows (scheduler + expiry).
- * TODO: **Dispute / chargeback** — side channel from `captured` (may need new states or parallel dispute aggregate).
+ * This file re-exports the canonical contract and keeps {@link PaymentAttemptStatus} for the
+ * separate in-memory attempt aggregate (`PaymentAttempt`).
  */
-export enum PaymentStatus {
-  INITIATED = "initiated",
-  PENDING = "pending",
-  AUTHORIZED = "authorized",
-  CAPTURED = "captured",
-  FAILED = "failed",
-  REFUNDED = "refunded"
-}
+export {
+  allowedPaymentStatusNextStates,
+  isAllowedPaymentStatusTransition,
+  PAYMENT_STATUS_TRANSITION_EDGES,
+  PAYMENT_STATUS_TRANSITIONS,
+  PAYMENT_STATUS_VALUES,
+  PaymentStatus,
+  PaymentStatusSchema,
+  type PaymentStatus as PaymentStatusValue,
+} from "@repo/shared-contracts";
+
+export { PaymentAttemptStatus } from "./payment-attempt-status";

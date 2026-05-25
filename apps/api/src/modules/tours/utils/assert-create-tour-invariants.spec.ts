@@ -11,6 +11,7 @@ import {
   assertIncomingCreateTourDtoBeforeFormProfileStrip,
   assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip,
   assertTripDetailsForFormProfile,
+  assertWorkspaceCapacity,
   validateTripDetailsCanonical,
 } from "./assert-create-tour-invariants";
 
@@ -728,4 +729,16 @@ test("assertIncomingCreateTourDto allows urban logistics after class-transformer
     },
   });
   assert.doesNotThrow(() => assertIncomingCreateTourDtoBeforeFormProfileStrip("urban_event", dto));
+});
+
+test("assertWorkspaceCapacity(nature_trip) enforces Arctic min capacity via strategy registry", () => {
+  assert.doesNotThrow(() => assertWorkspaceCapacity("nature_trip", 5));
+  try {
+    assertWorkspaceCapacity("nature_trip", 4);
+    assert.fail("expected BadRequestException");
+  } catch (e: unknown) {
+    assert.ok(e instanceof BadRequestException);
+    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
+    assert.equal(body.error?.code, "WORKSPACE_RULE_ARCTIC_MIN_CAPACITY");
+  }
 });

@@ -14,7 +14,6 @@ import {
   getDenaliStepPickShape,
   getDenaliWizardVisibleSteps,
   hasDenaliWizardClassification,
-  isDenaliStepVisible,
   isDenaliStepVisibleInModel,
   resolveDenaliRuleModelFromForm,
   resolveDenaliRuleSetFromTemplate,
@@ -58,7 +57,7 @@ test("getDenaliWizardVisibleSteps keeps denali_photos when overlay hides photos 
   const mergedRuleSet = resolveDenaliRuleSetFromTemplate({
     id: "t-hide-photos",
     workspaceId: "w1",
-    baseProfile: "denali",
+    baseProfile: "denali_pilot",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: { photos: { visibility: "hidden" } },
     presetId: null,
@@ -98,7 +97,7 @@ test("withDenaliWizardRailTestingOverrides forces logistics and photos when over
   const mergedRuleSet = resolveDenaliRuleSetFromTemplate({
     id: "t-force-rail",
     workspaceId: "w1",
-    baseProfile: "denali",
+    baseProfile: "denali_pilot",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay,
     presetId: null,
@@ -128,7 +127,7 @@ test("getDenaliWizardVisibleSteps omits denali_logistics when overlay hides ever
   const template: TenantWizardTemplate = {
     id: "t-hide-logistics",
     workspaceId: "w1",
-    baseProfile: "denali",
+    baseProfile: "denali_pilot",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay,
     presetId: null,

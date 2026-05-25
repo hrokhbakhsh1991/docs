@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { assertLedgerJournalDoubleEntry } from "@repo/shared-contracts";
 import type { EntityManager } from "typeorm";
 import { freezePostDoubleEntryJournalResult } from "./freeze-ledger-journal";
 import { persistLedgerJournal } from "./persist-ledger-journal";
@@ -89,6 +90,23 @@ function materializeLine(input: {
   return line;
 }
 
+function assertBalancedInMemoryJournal(
+  journalId: string,
+  tenantId: string,
+  lines: readonly [LedgerJournalLine, LedgerJournalLine],
+): void {
+  assertLedgerJournalDoubleEntry(
+    lines.map((line) => ({
+      journalId: line.journalId,
+      tenantId: line.tenantId,
+      side: line.side,
+      amountMinor: line.amount_minor,
+      currency: line.currency,
+    })),
+    { journalId, tenantId },
+  );
+}
+
 /**
  * Materializes one **balanced** double-entry journal in memory (no DB write).
  * **Invariant:** exactly one debit line and one credit line; same `amount_minor`; different accounts.
@@ -145,7 +163,9 @@ export function postDoubleEntryJournal(input: PostDoubleEntryJournalInput): Post
       : {})
   });
 
-  return freezePostDoubleEntryJournalResult({ journalId, lines: [debitLine, creditLine] });
+  const lines = [debitLine, creditLine] as const;
+  assertBalancedInMemoryJournal(journalId, tenantId, lines);
+  return freezePostDoubleEntryJournalResult({ journalId, lines: [...lines] });
 }
 
 /** Materialize + persist a balanced journal on `manager` (SQL durability anchor). */
@@ -226,7 +246,9 @@ export function postDoubleEntryReversalJournal(
     reversesLineId: origDebit.id
   });
 
-  return freezePostDoubleEntryJournalResult({ journalId, lines: [debitLine, creditLine] });
+  const lines = [debitLine, creditLine] as const;
+  assertBalancedInMemoryJournal(journalId, tenantId, lines);
+  return freezePostDoubleEntryJournalResult({ journalId, lines: [...lines] });
 }
 
 /** Materialize + persist a reversal journal on `manager`. */

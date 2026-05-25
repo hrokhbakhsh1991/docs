@@ -279,3 +279,17 @@ test("assertTourStateReadyForOpenAfterPatch: denali_pilot with geolocation zones
   tour.details.tripDetails = denaliPublishTripDetails(true);
   assert.doesNotThrow(() => assertTourStateReadyForOpenAfterPatch("denali_pilot", tour));
 });
+
+test("assertTourStateReadyForOpenAfterPatch: urban_event does not run publishGeolocationCheck", () => {
+  const tour = draftTour({ formProfileSnapshot: "urban_event" });
+  tour.details = new TourDetails();
+  tour.details.tripDetails = {
+    schemaVersion: 1,
+    logistics: {
+      departureDate: "2026-09-01",
+      returnDate: "2026-09-02",
+      meetingPoint: "Tehran",
+    },
+  } as TourDetails["tripDetails"];
+  assert.doesNotThrow(() => assertTourStateReadyForOpenAfterPatch("urban_event", tour));
+});

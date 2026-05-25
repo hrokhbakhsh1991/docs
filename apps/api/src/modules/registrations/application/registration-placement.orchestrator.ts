@@ -8,6 +8,21 @@ import { CreateRegistrationDto } from "../dto/create-registration.dto";
 import { PaymentResponseDto } from "../../payments/dto/payment-response.dto";
 import { RegistrationResponseDto } from "../dto/get-registration.dto";
 
+function assertPaymentIntentWhenRequired(
+  requiresPayment: boolean,
+  paymentIntent: PaymentResponseDto | null
+): void {
+  if (requiresPayment && paymentIntent == null) {
+    throw new BadRequestException({
+      error: {
+        code: "BOOKING_PAYMENT_INTENT_MISSING",
+        message:
+          "This tour requires payment at signup, but no payment intent was created in the booking transaction."
+      }
+    });
+  }
+}
+
 @Injectable()
 export class RegistrationPlacementOrchestrator {
   constructor(
@@ -76,6 +91,8 @@ export class RegistrationPlacementOrchestrator {
       });
     }
 
+    assertPaymentIntentWhenRequired(result.requiresPayment, result.paymentIntent);
+
     return {
       registration: result.registration,
       paymentIntent: result.paymentIntent
@@ -108,6 +125,8 @@ export class RegistrationPlacementOrchestrator {
         waitlistPosition: result.queuePosition
       };
     }
+
+    assertPaymentIntentWhenRequired(result.requiresPayment, result.paymentIntent);
 
     return {
       registration: result.registration,

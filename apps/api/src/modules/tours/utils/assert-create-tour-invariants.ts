@@ -1,15 +1,33 @@
 import { BadRequestException } from "@nestjs/common";
 
-import { getTourFormProfileDescriptor, type TourFormProfile } from "@repo/types";
-import { getTourWorkspaceDefinition, type WorkspaceInvariantViolation } from "@repo/shared-contracts";
+import type { TourFormProfile, TourFormProfileStripDeltas } from "@repo/types";
+import type { WorkspaceInvariantViolation } from "@repo/shared-contracts";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
+import type { WorkspaceValidationRules } from "../strategies/workspace.strategy.interface";
+import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import type { TourTransportMode } from "../tour-transport-modes";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 import { URBAN_LOGISTICS_WHITELIST } from "./create-tour-form-profile-strip";
 import { computeTourDurationDays } from "./tour-duration";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+type WorkspaceInvariantContext = {
+  validationRules: WorkspaceValidationRules;
+  strip: TourFormProfileStripDeltas;
+};
+
+/**
+ * Resolves profile metadata via {@link WorkspaceStrategyRegistry}; falls back to
+ * descriptor/workspace reads if registry resolution fails (production-safe).
+ */
+function loadWorkspaceInvariantContext(profile: TourFormProfile): WorkspaceInvariantContext {
+  const strategy = WorkspaceStrategyRegistry.resolve(profile);
+  const validationRules = strategy.getValidationRules();
+  const stripRules = strategy.getFieldStripRules();
+  return { validationRules, strip: stripRules.strip };
+}
 
 /** Ignore DTO class-transformer placeholders; only keys with a material value count as "sent". */
 function logisticsObjectKeysWithMaterialValues(log: Record<string, unknown>): string[] {
@@ -29,7 +47,7 @@ function logisticsObjectKeysWithMaterialValues(log: Record<string, unknown>): st
 }
 
 function profileUsesTripDetailsStrip(profile: TourFormProfile): boolean {
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const { strip } = loadWorkspaceInvariantContext(profile);
   return (
     strip.clearsTripDetailsRoots.length > 0 ||
     strip.itineraryKeysToDelete.length > 0 ||
@@ -179,7 +197,7 @@ function assertStripShapeForSlimProfiles(
     return;
   }
 
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const { strip } = loadWorkspaceInvariantContext(profile);
 
   if (strip.clearsTripDetailsRoots.includes("participation") && tripDetails.participation != null) {
     throw new BadRequestException({
@@ -236,7 +254,7 @@ export function assertIncomingTripDetailsBeforeFormProfileStrip(
     return;
   }
 
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const { strip } = loadWorkspaceInvariantContext(profile);
 
   if (strip.clearsTripDetailsRoots.includes("participation") && tripDetails.participation != null) {
     throw new BadRequestException({
@@ -320,7 +338,7 @@ export function assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
     return;
   }
 
-  const { strip } = getTourFormProfileDescriptor(profile);
+  const { strip } = loadWorkspaceInvariantContext(profile);
 
   if (
     strip.clearsTripDetailsRoots.includes("participation") &&
@@ -426,9 +444,9 @@ function throwWorkspaceViolation(violation: WorkspaceInvariantViolation): never 
 
 /** Root DTO checks for workspace invariants (defense in depth vs web submit gate). */
 export function assertWorkspaceCapacity(profile: TourFormProfile, capacity: number): void {
-  const workspace = getTourWorkspaceDefinition(profile);
-  if (workspace) {
-    const violation = workspace.validation.checkCapacity(capacity);
+  const { workspaceValidation } = loadWorkspaceInvariantContext(profile).validationRules;
+  if (workspaceValidation) {
+    const violation = workspaceValidation.checkCapacity(capacity);
     if (violation != null) {
       throwWorkspaceViolation(violation);
     }
@@ -452,12 +470,14 @@ export function assertWorkspaceTripDetails(
   tripDetails: TourTripDetails | null | undefined,
   rootTransportModes?: readonly TourTransportMode[] | null,
 ): void {
-  const workspace = getTourWorkspaceDefinition(profile);
-  if (workspace) {
-    const violation = workspace.validation.checkTripDetails(tripDetails, rootTransportModes);
-    if (violation != null) {
-      throwWorkspaceViolation(violation);
-    }
+  const { workspaceValidation, appliesWorkspaceTripDetailsValidation } =
+    loadWorkspaceInvariantContext(profile).validationRules;
+  if (!appliesWorkspaceTripDetailsValidation || !workspaceValidation) {
+    return;
+  }
+  const violation = workspaceValidation.checkTripDetails(tripDetails, rootTransportModes);
+  if (violation != null) {
+    throwWorkspaceViolation(violation);
   }
 }
 
@@ -472,12 +492,16 @@ export function assertTripDetailsForFormProfile(
   tripDetails: TourTripDetails | null | undefined,
   rootTransportModes?: readonly TourTransportMode[] | null,
 ): void {
-  assertWorkspaceTripDetails(profile, tripDetails, rootTransportModes);
+  const { invariantHints, workspaceTripDetailsValidationPhase } =
+    loadWorkspaceInvariantContext(profile).validationRules;
+
+  if (workspaceTripDetailsValidationPhase === "before_canonical") {
+    assertWorkspaceTripDetails(profile, tripDetails, rootTransportModes);
+  }
 
   validateTripDetailsCanonical(tripDetails, rootTransportModes ?? undefined);
 
-  const { strip } = getTourFormProfileDescriptor(profile);
-  if (strip.clearsRootTransportModes) {
+  if (invariantHints.requiresEmptyRootTransportModes) {
     const modes = rootTransportModes ?? [];
     if (modes.length > 0) {
       throw new BadRequestException({
@@ -491,6 +515,10 @@ export function assertTripDetailsForFormProfile(
   }
 
   assertStripShapeForSlimProfiles(profile, tripDetails);
+
+  if (workspaceTripDetailsValidationPhase === "after_canonical") {
+    assertWorkspaceTripDetails(profile, tripDetails, rootTransportModes);
+  }
 }
 
 /**

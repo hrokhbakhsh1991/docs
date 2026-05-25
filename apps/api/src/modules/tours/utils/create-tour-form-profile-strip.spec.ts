@@ -5,6 +5,7 @@ import { TOUR_FORM_PROFILE_DESCRIPTORS, URBAN_LOGISTICS_WHITELIST_KEYS } from "@
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
 
+import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import {
   URBAN_LOGISTICS_WHITELIST,
   stripCreateTourDtoForFormProfile,
@@ -56,6 +57,45 @@ function sampleDto(overrides?: Partial<CreateTourDto>): CreateTourDto {
     ...overrides,
   } as CreateTourDto;
 }
+
+test("stripCreateTourDtoForFormProfile: denali_pilot strips returnDate for single-day kinds via strategy flag", () => {
+  const dto = sampleDto({
+    tripDetails: {
+      overview: { denaliTourKind: "mountain_day", tourThemeIds: ["theme-main-uuid"] },
+      logistics: {
+        departureDate: "2026-06-01",
+        returnDate: "2026-06-02",
+        returnMeetingTime: "18:00",
+        meetingPoint: "Gate A",
+      },
+    },
+  } as CreateTourDto);
+  const rules = WorkspaceStrategyRegistry.resolve("denali_pilot").getFieldStripRules();
+  assert.equal(rules.appliesDenaliSingleDayLogisticsStrip, true);
+  stripCreateTourDtoForFormProfile("denali_pilot", dto);
+  const log = dto.tripDetails?.logistics as Record<string, unknown> | undefined;
+  assert.equal(log?.returnDate, undefined);
+  assert.equal(log?.returnMeetingTime, undefined);
+  assert.equal(log?.departureDate, "2026-06-01");
+});
+
+test("stripCreateTourDtoForFormProfile: urban_event does not apply denali single-day logistics strip", () => {
+  const dto = sampleDto({
+    tripDetails: {
+      overview: { denaliTourKind: "mountain_day" },
+      logistics: {
+        departureDate: "2026-06-01",
+        returnDate: "2026-06-02",
+        meetingPoint: "Gate A",
+      },
+    },
+  } as CreateTourDto);
+  const rules = WorkspaceStrategyRegistry.resolve("urban_event").getFieldStripRules();
+  assert.equal(rules.appliesDenaliSingleDayLogisticsStrip, false);
+  stripCreateTourDtoForFormProfile("urban_event", dto);
+  const log = dto.tripDetails?.logistics as Record<string, unknown> | undefined;
+  assert.equal(log?.returnDate, "2026-06-02");
+});
 
 test("stripCreateTourDtoForFormProfile: denali_pilot preserves crew and itinerary photos", () => {
   const dto = sampleDto();

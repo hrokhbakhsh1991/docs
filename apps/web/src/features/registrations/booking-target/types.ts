@@ -8,18 +8,12 @@ export type RegistrationFieldPolicy = {
   nationalIdRequired: boolean;
   /** True when `GET /api/me` already has `national_id` on the signed-in user. */
   profileNationalIdPresent: boolean;
-  /** From `tripDetails.participation.personalInsuranceRequired`. */
-  personalInsuranceRequired: boolean;
+  /** From `tripDetails.participation.sportsInsuranceRequired`. */
+  sportsInsuranceRequired: boolean;
   /** Peak-Experience intake (existing `tourShowsPeakExperienceIntake`). */
   requirePeakHistory: boolean;
   /** From tour `registrationPolicy.allowPrivateCar` (BFF) or resolver fallback. */
   allowPrivateCar: boolean;
-};
-
-/** Optional feature toggles for the registration flow. */
-export type RegistrationOptions = {
-  /** If the workspace provides travel insurance as a line-item. */
-  travelInsuranceAvailable: boolean;
 };
 
 export type RegistrationIntakeValues = {

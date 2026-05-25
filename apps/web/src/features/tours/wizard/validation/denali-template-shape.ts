@@ -1,6 +1,7 @@
 import { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "@repo/types/denali";
-import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
 import { isTourFormProfile, type TourFormProfile } from "@repo/types";
+
+import { getWizardConfig } from "@/features/tours/wizard/workspace-wizard.config";
 
 import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
 
@@ -32,8 +33,7 @@ export function isDenaliStructuredTemplate(
 
   const profile = template.baseProfile;
   if (typeof profile === "string" && isTourFormProfile(profile)) {
-    const workspace = getTourWorkspaceDefinition(profile as TourFormProfile);
-    if (workspace?.ui.wizardMode === "denali") {
+    if (getWizardConfig(profile as TourFormProfile).wizardMode === "denali") {
       return true;
     }
   }

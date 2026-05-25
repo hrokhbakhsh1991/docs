@@ -13,6 +13,8 @@ import {
   type TourRegistrationPolicyDto,
 } from "@repo/types";
 
+import { toTourAllowPrivateCarInput } from "@/lib/tours/registration-policy";
+
 import type { TourDetailDto } from "../services/tours.service";
 
 const LIFECYCLE_VALUES = new Set<TourLifecycleStatus>(["DRAFT", "OPEN", "CLOSED", "CANCELLED"]);
@@ -196,6 +198,9 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
     };
   }
 
+  const transportModes = normalizeTransportModesRow(o);
+  const details = normalizeTourDetails(o.details);
+
   const tour: TourDto = {
     id: String(o.id ?? ""),
     title: String(o.title ?? ""),
@@ -213,7 +218,7 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
       o.tourType == null
         ? null
         : (String(o.tourType).trim().toLowerCase() as TourDto["tourType"]),
-    transportModes: normalizeTransportModesRow(o),
+    transportModes,
     formProfileSnapshot: (() => {
       const snapRaw = o.formProfileSnapshot ?? o.form_profile_snapshot;
       if (snapRaw == null || (typeof snapRaw === "string" && snapRaw.trim() === "")) {
@@ -226,25 +231,28 @@ export function mapTourResponseToDto(raw: unknown): TourDetailDto {
     destinationRegionName: normalizeOptionalString(
       o.destinationRegionName ?? o.destination_region_name,
     ),
-    details: normalizeTourDetails(o.details),
+    details,
     registrationPolicy:
       registrationPolicy ??
-      (() => {
-        const details = normalizeTourDetails(o.details);
-        return {
-          allowPrivateCar: resolveTourAllowPrivateCar({
-            transportModes: normalizeTransportModesRow(o),
-            details: details ? { tripDetails: details.tripDetails ?? undefined } : undefined,
-          }),
-        };
-      })(),
+      (() => ({
+        allowPrivateCar: resolveTourAllowPrivateCar(
+          toTourAllowPrivateCarInput({ transportModes, details }),
+        ),
+      }))(),
     /** UI/forms legacy alias — same resolved value as `chatLink`. */
     communicationLink: link,
     createdAt: String(o.createdAt ?? ""),
     updatedAt: String(o.updatedAt ?? ""),
-    accessLevel: normalizeAccessLevel(o.accessLevel ?? o.access_level),
-    viewHints: normalizeViewHints(o.viewHints ?? o.view_hints),
   };
 
-  return tour;
+  const accessLevelRaw = o.accessLevel ?? o.access_level;
+  const viewHintsRaw = o.viewHints ?? o.view_hints;
+
+  return {
+    ...tour,
+    ...(accessLevelRaw != null && String(accessLevelRaw).trim() !== ""
+      ? { accessLevel: normalizeAccessLevel(accessLevelRaw) }
+      : {}),
+    ...(viewHintsRaw != null ? { viewHints: normalizeViewHints(viewHintsRaw) } : {}),
+  };
 }

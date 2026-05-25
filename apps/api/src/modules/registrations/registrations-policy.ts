@@ -1,4 +1,5 @@
 import { ConflictException, NotFoundException } from "@nestjs/common";
+import { canActAsPlatformAdminWithoutTenant } from "../../common/rbac/workspace-access.helper";
 import {
   assertValidBookingTransition,
   BookingTransitionForbiddenError
@@ -17,8 +18,7 @@ export function assertJwtTenantMatchesTourForAuthenticatedMutation(input: {
   jwtTenantId?: string;
   tourTenantId: string;
 }): void {
-  const role = (input.role ?? "").trim().toLowerCase();
-  if (role === "admin") {
+  if (canActAsPlatformAdminWithoutTenant(input.role)) {
     return;
   }
   if (!input.jwtTenantId || input.jwtTenantId !== input.tourTenantId) {

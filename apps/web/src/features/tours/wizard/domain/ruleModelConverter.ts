@@ -1,5 +1,6 @@
 import type { RuleConfig } from "@repo/shared";
-import type { TourFormProfile } from "@repo/types";
+import { DENALI_WORKSPACE } from "@repo/shared-contracts";
+import { normalizeTourFormProfileInput, type TourFormProfile } from "@repo/types";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import {
@@ -22,6 +23,23 @@ import {
   denaliRuleSet,
 } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { DENALI_FORM_RULE_CONFIG } from "../../../../lib/form-rule-engine/denaliFormRuleConfig";
+
+/** Minimal template fields needed to derive Denali rule models (full row or validator payload). */
+export type WizardTemplateRuleSource =
+  | TenantWizardTemplate
+  | {
+      readonly baseProfile?: TourFormProfile | "denali";
+      readonly fieldRulesOverlay?: Readonly<Record<string, unknown>>;
+      readonly stepOverrides?: TenantWizardStepOverrides;
+    }
+  | null;
+
+function resolveTemplateBaseProfile(raw: unknown): TourFormProfile {
+  if (raw === "denali") {
+    return DENALI_WORKSPACE.profile;
+  }
+  return normalizeTourFormProfileInput(raw);
+}
 
 export type MappedTemplateRuleModel = {
   readonly profile: TourFormProfile;
@@ -159,9 +177,11 @@ function buildFormRuleConfigs(
  * so template-editing flows can reuse the same wizard steps and rule-engine helpers.
  */
 export function mapTemplateToRuleModel(
-  template: TenantWizardTemplate | null,
+  template: WizardTemplateRuleSource,
 ): MappedTemplateRuleModel {
-  const profile: TourFormProfile = template?.baseProfile ?? "denali";
+  const profile = resolveTemplateBaseProfile(
+    template?.baseProfile ?? DENALI_WORKSPACE.profile,
+  );
   const fieldOverlay = parseFieldRulesOverlay(template?.fieldRulesOverlay);
   const stepOverrides = template?.stepOverrides ?? { skip: [], insert: [] };
 

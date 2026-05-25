@@ -69,7 +69,7 @@ test("resolveDenaliRuleModelFromForm uses template-merged ruleSet", () => {
   const ruleSet = resolveDenaliRuleSetFromTemplate({
     id: "t1",
     workspaceId: "w1",
-    baseProfile: "denali",
+    baseProfile: "denali_pilot",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: { destinationId: { visibility: "hidden" } },
     presetId: null,

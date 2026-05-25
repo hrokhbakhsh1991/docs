@@ -1,42 +1,45 @@
-import { PaymentStatus } from "./payment-status";
+import { PaymentAttemptStatus } from "./payment-attempt-status";
 
 /**
- * Directed edges `(from, to)` for payment attempts. Pairs not listed are **illegal** for controlled transitions.
- *
- * Lifecycle (happy path): `initiated` → `pending` → `authorized` → `captured` → `refunded`.
- * Failure / void paths end in `failed`; `refunded` is terminal from `captured`.
- *
- * TODO: **Retry policies** — whether `failed` may spawn a new attempt vs same row (idempotency rules).
- * TODO: **Async capture** — timed `authorized` → `captured` / auto-void rules.
- * TODO: **Dispute handling** — chargeback signals vs ledger (may extend this graph).
+ * Directed edges for in-memory {@link PaymentAttempt} rows (not `payments.status`).
+ * Persisted payment FSM: `@repo/shared-contracts` → {@link PAYMENT_STATUS_TRANSITIONS}.
  */
-export const PAYMENT_ALLOWED_TRANSITIONS: ReadonlyArray<readonly [PaymentStatus, PaymentStatus]> = [
-  [PaymentStatus.INITIATED, PaymentStatus.PENDING],
-  [PaymentStatus.INITIATED, PaymentStatus.FAILED],
-  [PaymentStatus.PENDING, PaymentStatus.AUTHORIZED],
-  [PaymentStatus.PENDING, PaymentStatus.FAILED],
-  [PaymentStatus.AUTHORIZED, PaymentStatus.CAPTURED],
-  [PaymentStatus.AUTHORIZED, PaymentStatus.FAILED],
-  [PaymentStatus.CAPTURED, PaymentStatus.REFUNDED]
+export const PAYMENT_ATTEMPT_ALLOWED_TRANSITIONS: ReadonlyArray<
+  readonly [PaymentAttemptStatus, PaymentAttemptStatus]
+> = [
+  [PaymentAttemptStatus.INITIATED, PaymentAttemptStatus.PENDING],
+  [PaymentAttemptStatus.INITIATED, PaymentAttemptStatus.FAILED],
+  [PaymentAttemptStatus.PENDING, PaymentAttemptStatus.AUTHORIZED],
+  [PaymentAttemptStatus.PENDING, PaymentAttemptStatus.FAILED],
+  [PaymentAttemptStatus.AUTHORIZED, PaymentAttemptStatus.CAPTURED],
+  [PaymentAttemptStatus.AUTHORIZED, PaymentAttemptStatus.FAILED],
+  [PaymentAttemptStatus.CAPTURED, PaymentAttemptStatus.REFUNDED],
 ];
 
-const allowedKey = (from: PaymentStatus, to: PaymentStatus): string => `${from}→${to}`;
+const allowedKey = (from: PaymentAttemptStatus, to: PaymentAttemptStatus): string =>
+  `${from}→${to}`;
 
 const ALLOWED_SET: ReadonlySet<string> = new Set(
-  PAYMENT_ALLOWED_TRANSITIONS.map(([from, to]) => allowedKey(from, to))
+  PAYMENT_ATTEMPT_ALLOWED_TRANSITIONS.map(([from, to]) => allowedKey(from, to)),
 );
 
-export const PaymentTransitionRules = {
-  allowedEdges: PAYMENT_ALLOWED_TRANSITIONS,
+export const PaymentAttemptTransitionRules = {
+  allowedEdges: PAYMENT_ATTEMPT_ALLOWED_TRANSITIONS,
 
-  canTransition(from: PaymentStatus, to: PaymentStatus): boolean {
+  canTransition(from: PaymentAttemptStatus, to: PaymentAttemptStatus): boolean {
     if (from === to) {
       return true;
     }
     return ALLOWED_SET.has(allowedKey(from, to));
-  }
+  },
 } as const;
 
-export function canPaymentTransition(from: PaymentStatus, to: PaymentStatus): boolean {
-  return PaymentTransitionRules.canTransition(from, to);
+export function canPaymentAttemptTransition(
+  from: PaymentAttemptStatus,
+  to: PaymentAttemptStatus,
+): boolean {
+  return PaymentAttemptTransitionRules.canTransition(from, to);
 }
+
+/** @deprecated Use {@link canPaymentAttemptTransition} — name collided with persisted payment status. */
+export const canPaymentTransition = canPaymentAttemptTransition;

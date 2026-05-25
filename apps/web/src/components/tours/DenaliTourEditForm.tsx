@@ -492,20 +492,20 @@ export function DenaliTourEditForm({
         return false;
       }
       clearErrors("root");
-      scrollTourFormToFirstError(
-        validationErrors
-          .map((row) => {
-            const formPath = mapApiValidationPathToDenaliFormPath(row.path);
-            return formPath
-              ? {
-                  path: formPath,
-                  label: labelTourFormErrorPath(formPath, errorLabelContext),
-                  message: row.message,
-                }
-              : null;
-          })
-          .filter((row): row is { path: string; label: string; message: string } => row != null),
-      );
+      const scrollIssues = validationErrors.flatMap((row) => {
+        const formPath = mapApiValidationPathToDenaliFormPath(row.path);
+        if (!formPath) {
+          return [];
+        }
+        return [
+          {
+            path: String(formPath),
+            label: labelTourFormErrorPath(formPath, errorLabelContext),
+            message: row.message,
+          },
+        ];
+      });
+      scrollTourFormToFirstError(scrollIssues);
       return true;
     },
     [clearErrors, errorLabelContext, setError],
@@ -637,7 +637,7 @@ export function DenaliTourEditForm({
     return (
       <Card data-testid="denali-edit-tour-form-loading">
         <CardBody>
-          <LoadingState label={tNew("loadingSession")} />
+          <LoadingState message={tNew("loadingSession")} />
         </CardBody>
       </Card>
     );

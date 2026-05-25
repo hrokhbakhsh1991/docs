@@ -18,7 +18,12 @@ test("isDenaliWizardContext: template profile and explicit mode only", () => {
     isDenaliWizardContext({ wizardMode: "classic", formProfile: "denali_pilot", tenantSlug: "ws1-rbac" }),
     true,
   );
+  assert.equal(
+    isDenaliWizardContext({ wizardMode: "classic", formProfile: "urban_event" }),
+    true,
+  );
   assert.equal(isDenaliWizardContext({ wizardMode: "classic", tenantSlug: "denali" }), false);
   assert.equal(isDenaliWizardContext({ wizardMode: "classic", tenantSlug: "ws1-rbac" }), false);
   assert.equal(resolveTourWizardMode({ wizardMode: "classic", formProfile: "denali_pilot" }), "denali");
+  assert.equal(resolveTourWizardMode({ wizardMode: "classic", formProfile: "urban_event" }), "denali");
 });

@@ -95,13 +95,27 @@ test("mapDenaliWizardToCreateTourPayload: strips blob gallery photos from wire p
     basicInfo: { ...base.basicInfo, tourType: "mountain_day", capacityMax: 12 },
     photosData: {
       photos: [
-        { id: "p-blob", url: "blob:http://localhost/abc", filename: "a.jpg" },
-        { id: "p-http", url: "https://cdn.example.com/a.jpg", filename: "b.jpg" },
+        {
+          id: "p-blob",
+          url: "blob:http://localhost/abc",
+          filename: "a.jpg",
+          size: 1024,
+          mimeType: "image/jpeg",
+          uploadedAt: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          id: "p-http",
+          url: "https://cdn.example.com/a.jpg",
+          filename: "b.jpg",
+          size: 2048,
+          mimeType: "image/jpeg",
+          uploadedAt: "2026-01-01T00:00:00.000Z",
+        },
       ],
     },
   });
   const dto = mapDenaliWizardToCreateTourPayload(form);
-  const photos = dto.tripDetails?.photos as { id: string; url: string }[] | undefined;
+  const photos = (dto.tripDetails as { photos?: { id: string; url: string }[] } | undefined)?.photos;
   assert.equal(photos?.length, 1);
   assert.equal(photos?.[0]?.id, "p-http");
   assert.equal(photos?.[0]?.url, "https://cdn.example.com/a.jpg");

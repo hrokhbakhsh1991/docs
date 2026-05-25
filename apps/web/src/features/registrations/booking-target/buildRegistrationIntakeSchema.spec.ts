@@ -17,13 +17,13 @@ const messages = {
   plateNumberRequired: "plate number required",
   shareFuelCostRequired: "share fuel cost required",
   privateCarNotAllowedOnTour: "private car not allowed",
-  personalInsuranceRequired: "insurance required",
+  sportsInsuranceRequired: "insurance required",
 };
 
 const basePolicy = {
   nationalIdRequired: false,
   profileNationalIdPresent: false,
-  personalInsuranceRequired: false,
+  sportsInsuranceRequired: false,
   requirePeakHistory: false,
   allowPrivateCar: false,
 };

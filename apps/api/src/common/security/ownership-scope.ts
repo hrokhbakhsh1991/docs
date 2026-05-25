@@ -2,6 +2,11 @@ import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import type { EntityManager, FindOptionsWhere, Repository } from "typeorm";
 import { IsNull } from "typeorm";
 import { UserRole, tryParseWorkspaceUserRole } from "../auth/user-role.enum";
+import {
+  canActAsPlatformAdminWithoutTenant,
+  isWorkspaceLeaderOrAbove,
+  isWorkspaceMember
+} from "../rbac/workspace-access.helper";
 import { UserEntity } from "../../modules/identity/entities/user.entity";
 import { PaymentEntity } from "../../modules/payments/entities/payment.entity";
 import { RegistrationEntity } from "../../modules/registrations/registration.entity";
@@ -21,18 +26,6 @@ type MemberIdentity = {
 
 function parseActorWorkspaceRole(ctx: RequestContextService): UserRole | undefined {
   return tryParseWorkspaceUserRole(String(ctx.getRole() ?? ""));
-}
-
-function isAdminRole(role: UserRole): boolean {
-  return role === UserRole.Admin;
-}
-
-function isLeaderRole(role: UserRole): boolean {
-  return role === UserRole.Owner || role === UserRole.Admin || role === UserRole.Leader;
-}
-
-function isMemberRole(role: UserRole): boolean {
-  return role === UserRole.Member;
 }
 
 export function syntheticBookingContactPhone(userId: string): string {
@@ -61,7 +54,7 @@ function requireActorScope(ctx: RequestContextService): ActorScope {
       }
     });
   }
-  if (!tenantId && !isAdminRole(role)) {
+  if (!tenantId && !canActAsPlatformAdminWithoutTenant(role)) {
     throw new ForbiddenException({
       error: {
         code: "TENANT_CONTEXT_MISSING",
@@ -104,7 +97,7 @@ export async function registrationWhereForActor(
   registrationId: string
 ): Promise<FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[]> {
   const actor = requireActorScope(ctx);
-  if (isAdminRole(actor.role)) {
+  if (canActAsPlatformAdminWithoutTenant(actor.role)) {
     if (!actor.tenantId) {
       throw new ForbiddenException({
         error: {
@@ -119,14 +112,14 @@ export async function registrationWhereForActor(
       deletedAt: IsNull()
     };
   }
-  if (isLeaderRole(actor.role)) {
+  if (isWorkspaceLeaderOrAbove(actor.role)) {
     return {
       id: registrationId,
       tenantId: actor.tenantId!,
       deletedAt: IsNull()
     };
   }
-  if (!isMemberRole(actor.role)) {
+  if (!isWorkspaceMember(actor.role)) {
     throw new ForbiddenException({
       error: {
         code: "AUTH_FORBIDDEN_ROLE",
@@ -161,7 +154,7 @@ export async function waitlistWhereForActor(
   waitlistItemId: string
 ): Promise<FindOptionsWhere<WaitlistItemEntity>> {
   const actor = requireActorScope(ctx);
-  if (isAdminRole(actor.role)) {
+  if (canActAsPlatformAdminWithoutTenant(actor.role)) {
     if (!actor.tenantId) {
       throw new ForbiddenException({
         error: {
@@ -176,14 +169,14 @@ export async function waitlistWhereForActor(
       deletedAt: IsNull()
     };
   }
-  if (isLeaderRole(actor.role)) {
+  if (isWorkspaceLeaderOrAbove(actor.role)) {
     return {
       id: waitlistItemId,
       tenantId: actor.tenantId!,
       deletedAt: IsNull()
     };
   }
-  if (!isMemberRole(actor.role)) {
+  if (!isWorkspaceMember(actor.role)) {
     throw new ForbiddenException({
       error: {
         code: "AUTH_FORBIDDEN_ROLE",
@@ -213,7 +206,7 @@ export async function findPaymentScopedForActor(
   const actor = requireActorScope(ctx);
   let payment: PaymentEntity | null;
 
-  if (isAdminRole(actor.role)) {
+  if (canActAsPlatformAdminWithoutTenant(actor.role)) {
     if (!actor.tenantId) {
       throw new ForbiddenException({
         error: {
@@ -256,7 +249,7 @@ export async function findPaymentScopedForActor(
     });
   }
 
-  if (isMemberRole(actor.role)) {
+  if (isWorkspaceMember(actor.role)) {
     const regWhere = await registrationWhereForActor(
       manager,
       userRepo,

@@ -1,4 +1,5 @@
 import type { EntityManager } from "typeorm";
+import { enforceLedgerJournalContract } from "./enforce-ledger-journal-contract";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 import type { PostDoubleEntryJournalResult } from "./post-double-entry-journal";
 
@@ -20,6 +21,8 @@ export async function persistLedgerJournal(
   if (lines.length === 0) {
     return { journalId: result.journalId, lines: [], anyLineInserted: false };
   }
+
+  enforceLedgerJournalContract(lines, `persistLedgerJournal:${result.journalId}`);
 
   let anyLineInserted = false;
   const tenantId = lines[0]!.tenantId;

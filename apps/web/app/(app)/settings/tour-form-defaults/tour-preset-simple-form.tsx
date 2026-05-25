@@ -1,7 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TOUR_TYPES, TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "@repo/types";
+import {
+  DEFAULT_TOUR_FORM_PROFILE,
+  TOUR_TYPES,
+  getTourFormProfileOptions,
+  getTourFormProfileZodEnumValues,
+  type TourFormProfile,
+} from "@repo/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import { Controller, useForm, type Control } from "react-hook-form";
@@ -72,7 +78,7 @@ function createTourPresetSimpleSchema(t: (key: string) => string) {
       message: t("tourPresetsValidationSortOrder"),
     }),
     isActive: z.boolean(),
-    formProfile: z.enum(TOUR_FORM_PROFILE_VALUES),
+    formProfile: z.enum(getTourFormProfileZodEnumValues()),
     policies: policiesZodObject(),
     participation: z.object({
       sportsInsuranceRequired: z.boolean(),
@@ -232,6 +238,7 @@ export function TourPresetSimpleForm({
     () => themeCatalog.filter((row) => row.isActive).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
     [themeCatalog],
   );
+  const formProfileOptions = useMemo(() => getTourFormProfileOptions(), []);
 
   const defaultValues = useMemo((): SimplePresetFormValues => {
     const inner = emptyTourPresetSimpleFields();
@@ -240,7 +247,7 @@ export function TourPresetSimpleForm({
       description: "",
       sortOrder: "",
       isActive: true,
-      formProfile: "general",
+      formProfile: DEFAULT_TOUR_FORM_PROFILE,
       ...inner,
     };
   }, []);
@@ -262,7 +269,7 @@ export function TourPresetSimpleForm({
         description: editing.description ?? "",
         sortOrder: editing.sortOrder !== undefined ? String(editing.sortOrder) : "",
         isActive: editing.isActive,
-        formProfile: (editing.formProfile as TourFormProfile) ?? "general",
+        formProfile: (editing.formProfile as TourFormProfile) ?? DEFAULT_TOUR_FORM_PROFILE,
         ...defaultsRecordToSimpleFields(editing.defaults),
       });
     } else if (duplicateFrom) {
@@ -272,7 +279,7 @@ export function TourPresetSimpleForm({
         description: duplicateFrom.description ?? "",
         sortOrder: duplicateSortOrder != null ? String(duplicateSortOrder) : "",
         isActive: duplicateFrom.isActive,
-        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? "general",
+        formProfile: (duplicateFrom.formProfile as TourFormProfile) ?? DEFAULT_TOUR_FORM_PROFILE,
         ...defaultsRecordToSimpleFields(defaultsCopy),
       });
     } else {
@@ -369,9 +376,9 @@ export function TourPresetSimpleForm({
               onChange={(e) => field.onChange(e.target.value as TourFormProfile)}
               aria-invalid={errors.formProfile ? true : undefined}
             >
-              {TOUR_FORM_PROFILE_VALUES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+              {formProfileOptions.map(({ value, labelKey }) => (
+                <option key={value} value={value}>
+                  {t(labelKey)}
                 </option>
               ))}
             </Select>

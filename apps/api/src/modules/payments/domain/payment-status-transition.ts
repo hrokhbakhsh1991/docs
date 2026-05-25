@@ -1,9 +1,6 @@
+import { isAllowedPaymentStatusTransition } from "@repo/shared-contracts";
 import { ConflictException } from "@nestjs/common";
 import { PaymentStatus } from "../entities/payment.entity";
-import {
-  assertAllowedPaymentIntentLifecycleTransition,
-  paymentStatusToIntentLifecycle
-} from "./payment-intent-lifecycle";
 
 const TRANSITION_INVALID = {
   error: {
@@ -13,29 +10,12 @@ const TRANSITION_INVALID = {
 } as const;
 
 /**
- * Validates `payments.status` changes using the payment **intent** lifecycle (CREATED→…→REFUNDED)
- * mapped onto persisted {@link PaymentStatus}. `Cancelled` is outside intent states and uses a
- * narrow escape hatch from captured (`Paid`) only.
+ * Validates `payments.status` using {@link PAYMENT_STATUS_TRANSITIONS} from `@repo/shared-contracts`.
  */
 export function assertAllowedPaymentStatusTransition(current: PaymentStatus, next: PaymentStatus): void {
-  if (current === next) {
-    return;
+  if (!isAllowedPaymentStatusTransition(current, next)) {
+    throw new ConflictException(TRANSITION_INVALID);
   }
-
-  const curIntent = paymentStatusToIntentLifecycle(current);
-  const nextIntent = paymentStatusToIntentLifecycle(next);
-
-  if (curIntent !== null && nextIntent !== null) {
-    assertAllowedPaymentIntentLifecycleTransition(curIntent, nextIntent);
-    return;
-  }
-
-  /** `Cancelled` is not modeled as an intent state; only allow voiding a captured payment. */
-  if (current === PaymentStatus.PAID && next === PaymentStatus.CANCELLED) {
-    return;
-  }
-
-  throw new ConflictException(TRANSITION_INVALID);
 }
 
 export function paymentStatusToOutboxEventType(status: PaymentStatus): string {

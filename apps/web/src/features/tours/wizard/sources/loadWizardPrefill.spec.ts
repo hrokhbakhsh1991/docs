@@ -178,6 +178,7 @@ test("loadWizardPrefill: preset classic uses mapWizardPrefill + applyTourWizardP
           stepOverrides: { skip: [], insert: [] },
           fieldRulesOverlay: {},
           presetId: null,
+          canonicalData: {},
           wizardContractVersion: 1,
           formProfileVersion: 1,
         },

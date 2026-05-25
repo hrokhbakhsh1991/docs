@@ -3,10 +3,10 @@ import {
   normalizeTourFormProfileInput,
   type TourFormProfile,
 } from "@repo/types";
-import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
 
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
 import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
+import { isDenaliWizardModeFromProfile } from "@/features/tours/wizard/workspace-wizard.config";
 import { applyTourWizardPatch } from "@/features/tours/wizard/applyTourWizardPatch";
 import {
   mergeDenaliWizardDefaults,
@@ -87,8 +87,7 @@ function defaultFetchWizardTemplate() {
 }
 
 function resolveUseDenaliRail(formProfile: TourFormProfile | string | null | undefined): boolean {
-  const ws = getTourWorkspaceDefinition(formProfile as TourFormProfile);
-  return ws?.ui.wizardMode === "denali";
+  return isDenaliWizardModeFromProfile(formProfile);
 }
 
 async function loadClonePrefill(

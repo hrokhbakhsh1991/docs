@@ -17,7 +17,8 @@ import { DataSource, IsNull } from "typeorm";
 import { normalizeMembershipLabels } from "../../common/rbac/normalize-membership-labels";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
-import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import { tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import { isWorkspaceOwner } from "../../common/rbac/workspace-access.helper";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import {
   evaluateGeneralMembershipRoleChange
@@ -65,7 +66,7 @@ export class WorkspaceUsersService {
   async patchUserRole(userId: string, role: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    if (actorRole !== UserRole.Owner) {
+    if (!isWorkspaceOwner(actorRole)) {
       throw new ForbiddenException({
         error: {
           code: "AUTH_FORBIDDEN_ROLE",

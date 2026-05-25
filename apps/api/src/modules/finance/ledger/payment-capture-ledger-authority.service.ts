@@ -15,6 +15,10 @@ export type PaymentCaptureLedgerSource = "manual_receipt_approve" | "online_webh
 /**
  * Emits the canonical payment-capture journal when a {@link PaymentEntity} reaches `Paid`.
  * Uses the same stable ids / `domainEventId` as refund reversal anchors (idempotent via outbox).
+ *
+ * **Strict mode (Phase 2.6):** {@link postAndPersistDoubleEntryJournal} → {@link persistLedgerJournal}
+ * enforces the ledger contract before SQL. On failure throws `BadRequestException` with
+ * `LEDGER_CONTRACT_VALIDATION_FAILED`, aborting the caller transaction (e.g. webhook paid transition).
  */
 @Injectable()
 export class PaymentCaptureLedgerAuthorityService {

@@ -13,6 +13,10 @@ import {
 } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import {
+  isProtectedWorkspaceOwnerMembership,
+  isWorkspaceOwner
+} from "../../common/rbac/workspace-access.helper";
 import { buildCapabilityGrantContextFromRequest } from "../../common/rbac/capability-grant-context-from-request";
 import {
   assertCapabilityAssignable,
@@ -411,7 +415,7 @@ export class UsersWriteService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    if (tryParseWorkspaceUserRole(membership.role) === UserRole.Owner) {
+    if (isProtectedWorkspaceOwnerMembership(membership)) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -576,7 +580,7 @@ export class UsersWriteService {
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    if (tryParseWorkspaceUserRole(membership.role) === UserRole.Owner) {
+    if (isProtectedWorkspaceOwnerMembership(membership)) {
       throw new ForbiddenException({
         error: {
           code: "RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN",
@@ -683,7 +687,7 @@ export class UsersWriteService {
         where: { tenantId, userId: actorUserId, deletedAt: IsNull() },
         lock: { mode: "pessimistic_write" }
       });
-      if (!actorMembership || tryParseWorkspaceUserRole(actorMembership.role) !== UserRole.Owner) {
+      if (!actorMembership || !isWorkspaceOwner(actorMembership)) {
         throw new ForbiddenException({
           error: {
             code: "OWNER_ONLY_TRANSFER",

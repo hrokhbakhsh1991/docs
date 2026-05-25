@@ -1,5 +1,6 @@
 import { ROLE_RANK, type WorkspaceRole } from "@repo/shared";
 import { tryParseWorkspaceUserRole, UserRole } from "../auth/user-role.enum";
+import { isProtectedWorkspaceOwnerMembership } from "./workspace-access.helper";
 
 /**
  * Central workspace membership RBAC policy (ordering + transition rules).
@@ -149,7 +150,7 @@ export function evaluateGeneralMembershipRoleChange(input: {
     };
   }
 
-  if (targetNorm === UserRole.Owner) {
+  if (isProtectedWorkspaceOwnerMembership(targetNorm)) {
     return {
       ok: false,
       code: RBAC_PROTECTED_ROLE_MODIFICATION_FORBIDDEN,

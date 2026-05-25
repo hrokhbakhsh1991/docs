@@ -6,6 +6,7 @@ import { PaymentEntity, PaymentMethod, PaymentStatus } from "./entities/payment.
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 import { assertManualPaymentDebtAllowed } from "./domain/manual-payment-debt.policy";
+import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-finance-contract";
 
 @Injectable()
 export class ManualPaymentService {
@@ -39,6 +40,24 @@ export class ManualPaymentService {
         select: { status: true }
       });
       assertManualPaymentDebtAllowed(existingPayments.map((p) => p.status));
+
+      enforcePaymentIntentFinanceContract(
+        {
+          tenantId: params.tenantId,
+          registrationId: registration.id,
+          amount: params.amount,
+          currency: params.currency,
+          method: PaymentMethod.MANUAL,
+          provider: "manual",
+          providerPaymentId: null,
+          status: PaymentStatus.PENDING,
+          paidAt: null,
+          failedAt: null,
+          refundedAt: null,
+          ledgerJournalId: null,
+        },
+        "createManualPayment",
+      );
 
       const payment = manager.create(PaymentEntity, {
         tenantId: params.tenantId,

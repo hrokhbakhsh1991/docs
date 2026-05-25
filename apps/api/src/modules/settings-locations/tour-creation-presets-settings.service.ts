@@ -35,6 +35,7 @@ import {
 
 import { parseDenaliCanonicalTemplateDataOrThrow } from "./denali-canonical-template-data.schema";
 import { parsePresetDefaultsOrThrow } from "./tour-preset-defaults.schema";
+import { usesDenaliCanonicalTemplate } from "../tours/strategies/workspace.strategy.registry";
 import {
   mergeLegacyMatchIntoDefaults,
   migrateGatheringPointsToLogisticsArray,
@@ -91,7 +92,7 @@ export class TourCreationPresetsSettingsService {
   }
 
   private isDenaliFormProfile(formProfile: TourFormProfile): boolean {
-    return formProfile === "denali_pilot";
+    return usesDenaliCanonicalTemplate(formProfile);
   }
 
   private rejectDenaliLegacyDefaults(value: unknown): void {

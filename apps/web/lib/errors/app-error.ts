@@ -7,6 +7,7 @@ export const APP_ERROR_CODES = [
   "RBAC_FORBIDDEN",
   "VALIDATION_FAILED",
   "API_UPSTREAM_FAILED",
+  "BFF_CONFIG_MISSING",
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];

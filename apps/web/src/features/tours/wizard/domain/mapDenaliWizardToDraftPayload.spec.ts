@@ -38,7 +38,7 @@ test("mapDenaliWizardToDraftPayload: create mapper still builds API DTO from sam
 
 test("mapDenaliWizardToDraftPayload: throws when tourType missing (same as create pipeline)", () => {
   const form = buildDenaliTourCreateTestValues();
-  form.basicInfo.tourType = undefined;
+  form.basicInfo.tourType = undefined as never;
 
   assert.throws(
     () => mapDenaliWizardToDraftPayload(form),

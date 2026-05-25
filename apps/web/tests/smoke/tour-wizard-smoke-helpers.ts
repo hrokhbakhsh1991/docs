@@ -377,6 +377,7 @@ export type TourWizardServerDraftMock = {
   envelope: Record<string, unknown>;
   updatedAt: string;
   rowVersion?: number;
+  currentStepIndex?: number;
 };
 
 /**

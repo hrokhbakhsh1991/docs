@@ -7,17 +7,12 @@ import { mapTemplateToRuleModel } from "./ruleModelConverter";
 
 test("mapTemplateToRuleModel applies overlay hidden/required to denali rule set", () => {
   const mapped = mapTemplateToRuleModel({
-    id: "t1",
-    workspaceId: "w1",
     baseProfile: "denali",
     stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: {
       destinationId: { visibility: "hidden" },
       "transport.dongAmount": { required: "required" },
     },
-    presetId: null,
-    wizardContractVersion: 1,
-    formProfileVersion: 1,
   });
 
   const mountainSingle = mapped.ruleSet.mountain.single_day!;
@@ -35,7 +30,7 @@ test("mapTemplateToRuleModel applies overlay hidden/required to denali rule set"
 
 test("mapTemplateToRuleModel null template returns base denali rule set clone", () => {
   const mapped = mapTemplateToRuleModel(null);
-  assert.equal(mapped.profile, "denali");
+  assert.equal(mapped.profile, "denali_pilot");
   assert.equal(mapped.fieldOverlay.size, 0);
   assert.notEqual(mapped.ruleSet, denaliRuleSet);
   assert.equal(

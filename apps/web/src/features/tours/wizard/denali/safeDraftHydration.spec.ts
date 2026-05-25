@@ -26,7 +26,7 @@ import {
 const OVERLAY_HIDE_GUIDE_TEMPLATE: TenantWizardTemplate = {
   id: "t-draft-overlay",
   workspaceId: "w1",
-  baseProfile: "denali",
+  baseProfile: "denali_pilot",
   stepOverrides: { skip: [], insert: [] },
   fieldRulesOverlay: { requiresLocalGuide: { visibility: "hidden" } },
   presetId: null,

@@ -19,10 +19,12 @@ export type {
   BookingDto,
   LockedBookingPricingDto,
   RegistrationEntryMode,
+  RegistrationParticipantMetadataDto,
   RegistrationPaymentStatus,
   RegistrationResponseDto,
   RegistrationStatus,
   RegistrationTransportMode,
+  RegistrationTransportIntakeDto,
 } from "./registration";
 export { TOUR_TYPES, type TourType } from "./tour-classification";
 export {
@@ -83,6 +85,12 @@ export {
   normalizeTourFormProfileInput,
   type TourFormProfile,
 } from "./tour-form-profile";
+export {
+  TOUR_FORM_PROFILE_SETTINGS_LABEL_PREFIX,
+  getTourFormProfileOptions,
+  getTourFormProfileZodEnumValues,
+  type TourFormProfileOption,
+} from "./ui/tour-form-profile.config";
 // `MOUNTAIN_ONLY_TRIP_DETAILS_OVERVIEW_KEYS` was relocated to `tour-form-profile-descriptors`
 // in Phase P14; re-exported from the descriptor module below alongside the descriptor table.
 // The `trip-details-inventory-policy.ts` module is preserved as a back-compat shim and is no
