@@ -1,6 +1,6 @@
 "use client";
 
-import { TOUR_TYPES } from "@repo/types";
+import { TOUR_TYPES, normalizeTourFormProfileInput } from "@repo/types";
 import {
   DndContext,
   type DragEndEvent,
@@ -24,6 +24,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useMemo } from "react";
 
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
+import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 
 import { Button, Checkbox } from "@tour/ui";
 
@@ -72,6 +73,9 @@ function SortableTourPresetRow({
     position: "relative",
     zIndex: isDragging ? 2 : undefined,
   };
+  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
+    normalizeTourFormProfileInput(item.formProfile),
+  );
 
   const matchParts: string[] = [];
   const ovRaw = item.defaults?.overview;
@@ -145,7 +149,7 @@ function SortableTourPresetRow({
               />
               <span>{t("tourPresetsFieldActive")}</span>
             </label>
-            {item.formProfile === "denali_pilot" && item.isActive ? (
+            {usesDenaliWizardShell && item.isActive ? (
               <Button
                 type="button"
                 variant="primary"
@@ -240,34 +244,39 @@ export function TourPresetList({
   if (readOnly) {
     return (
       <ul className={panelStyles.list}>
-        {sorted.map((item) => (
-          <li key={item.id} className={panelStyles.listItem}>
-            <div className={panelStyles.listItemInner}>
-              <div className={panelStyles.listItemMain}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <span className={panelStyles.listItemMeta}>{previewDescription(item.description)}</span>
-                  {!item.isActive ? (
-                    <span className={panelStyles.listItemBadge}>— {t("tourPresetsInactiveBadge")}</span>
+        {sorted.map((item) => {
+          const { usesDenaliWizardShell } = getCapabilitiesForProfile(
+            normalizeTourFormProfileInput(item.formProfile),
+          );
+          return (
+            <li key={item.id} className={panelStyles.listItem}>
+              <div className={panelStyles.listItemInner}>
+                <div className={panelStyles.listItemMain}>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span className={panelStyles.listItemMeta}>{previewDescription(item.description)}</span>
+                    {!item.isActive ? (
+                      <span className={panelStyles.listItemBadge}>— {t("tourPresetsInactiveBadge")}</span>
+                    ) : null}
+                  </div>
+                  {usesDenaliWizardShell && item.isActive ? (
+                    <div className={panelStyles.listItemActions}>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        data-testid={`tour-preset-create-tour-${item.id}`}
+                        onClick={() => router.push(`/tours/new?presetId=${encodeURIComponent(item.id)}`)}
+                      >
+                        {t("tourPresetsCreateTourFromTemplate")}
+                      </Button>
+                    </div>
                   ) : null}
                 </div>
-                {item.formProfile === "denali_pilot" && item.isActive ? (
-                  <div className={panelStyles.listItemActions}>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      data-testid={`tour-preset-create-tour-${item.id}`}
-                      onClick={() => router.push(`/tours/new?presetId=${encodeURIComponent(item.id)}`)}
-                    >
-                      {t("tourPresetsCreateTourFromTemplate")}
-                    </Button>
-                  </div>
-                ) : null}
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     );
   }

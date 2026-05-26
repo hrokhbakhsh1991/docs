@@ -38,6 +38,7 @@ test("denali_pilot: geo publish and single-day logistics strip", () => {
   assert.equal(caps.requiresGeoPublish, true);
   assert.equal(caps.appliesDenaliSingleDayLogisticsStrip, true);
   assert.equal(caps.allowsMountainOverviewFields, true);
+  assert.equal(caps.allowsPeakExperience, true);
   assert.equal(caps.usesDenaliWizardShell, true);
 });
 
@@ -57,6 +58,7 @@ test("mountain_outdoor: classic shell, mountain overview, full logistics", () =>
   const caps = getCapabilitiesForProfile("mountain_outdoor");
   assert.equal(caps.usesDenaliWizardShell, false);
   assert.equal(caps.allowsMountainOverviewFields, true);
+  assert.equal(caps.allowsPeakExperience, true);
   assert.equal(caps.canAddMeals, true);
   assert.equal(caps.canEditRootTransportModes, true);
 });
@@ -65,6 +67,7 @@ test("general: classic defaults", () => {
   const caps = getCapabilitiesForProfile("general");
   assert.equal(caps.usesDenaliWizardShell, false);
   assert.equal(caps.requiresGeoPublish, false);
+  assert.equal(caps.allowsPeakExperience, false);
   assert.equal(caps.canAddTransport, true);
   assert.equal(caps.canAddMeals, true);
 });

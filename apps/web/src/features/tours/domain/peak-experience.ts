@@ -1,4 +1,6 @@
-import type { TourType } from "@repo/types";
+import { normalizeTourFormProfileInput, type TourType } from "@repo/types";
+
+import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 
 const OUTDOOR_TOUR_TYPES = new Set<TourType>(["mountain", "nature"]);
 
@@ -50,8 +52,13 @@ export function tourShowsPeakExperienceAdminField(input: {
   tourType?: TourType | null;
   formProfile?: string | null;
 }): boolean {
-  if (input.formProfile === "mountain_outdoor" || input.formProfile === "denali_pilot") {
-    return true;
+  if (input.formProfile != null && input.formProfile.trim() !== "") {
+    const { allowsPeakExperience } = getCapabilitiesForProfile(
+      normalizeTourFormProfileInput(input.formProfile),
+    );
+    if (allowsPeakExperience) {
+      return true;
+    }
   }
   if (input.tourType != null && OUTDOOR_TOUR_TYPES.has(input.tourType)) {
     return true;

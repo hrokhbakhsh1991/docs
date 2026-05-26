@@ -6,7 +6,10 @@ import { Card, CardBody, LoadingState } from "@tour/ui";
 
 import { DenaliCreateTourWizard } from "./DenaliCreateTourWizard";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
-import { getCapabilitiesForTemplateBaseProfile } from "@/lib/workspace/workspace-capabilities";
+import {
+  getCapabilitiesForProfile,
+  normalizeTourFormProfileInput,
+} from "@/lib/workspace/workspace-capabilities";
 import {
   DataLegacyError,
   DATA_LEGACY_PROFILE_MISMATCH_MESSAGE,
@@ -16,7 +19,7 @@ import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
 /**
  * Tour-create orchestrator: resolves workspace template profile, validates storage,
- * then mounts the Denali wizard rail.
+ * then mounts the Denali or classic wizard shell from {@link getCapabilitiesForProfile}.
  */
 export function TourCreateWizard() {
   const t = useTranslations("tours.new");
@@ -30,8 +33,8 @@ export function TourCreateWizard() {
     [wizardTemplateQuery.data],
   );
 
-  const workspaceCapabilities = useMemo(
-    () => getCapabilitiesForTemplateBaseProfile(workspaceFormProfile),
+  const { usesDenaliWizardShell } = useMemo(
+    () => getCapabilitiesForProfile(normalizeTourFormProfileInput(workspaceFormProfile)),
     [workspaceFormProfile],
   );
 
@@ -120,7 +123,7 @@ export function TourCreateWizard() {
     );
   }
 
-  if (workspaceCapabilities.usesDenaliWizardShell) {
+  if (usesDenaliWizardShell) {
     return <DenaliCreateTourWizard />;
   }
 

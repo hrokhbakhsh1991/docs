@@ -4,7 +4,10 @@ import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/class
 import { presetDefaultsToDenaliFormPatch } from "@/features/tours/wizard/presetDefaultsToDenaliFormPatch";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { presetDefaultsToFormPatch } from "@/features/tours/wizard/tourCreationPresetMatch";
-import { isDenaliPilotFormProfile } from "@/features/tours/wizard/isDenaliWizardContext";
+import {
+  getCapabilitiesForProfile,
+  normalizeTourFormProfileInput,
+} from "@/lib/workspace/workspace-capabilities";
 
 export type PresetMapperContext = {
   matchTourType?: string | null;
@@ -21,7 +24,10 @@ export function mapPresetToFormPatch(
   defaults: Record<string, unknown>,
   ctx?: PresetMapperContext,
 ): Partial<TourCreateFormValues> | Partial<DenaliCreateTourWizardForm> {
-  if (isDenaliPilotFormProfile(formProfile ?? undefined)) {
+  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
+    normalizeTourFormProfileInput(formProfile),
+  );
+  if (usesDenaliWizardShell) {
     return presetDefaultsToDenaliFormPatch(defaults, {
       matchTourType: ctx?.matchTourType,
       matchMainTourThemeId: ctx?.matchMainTourThemeId,

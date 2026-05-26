@@ -18,6 +18,31 @@ test("only denali_pilot requires geo publish and single-day logistics strip", ()
   }
 });
 
+test("allowsPeakExperience only for mountain_outdoor and denali_pilot", () => {
+  for (const profile of TOUR_FORM_PROFILE_VALUES) {
+    const flags = getWorkspaceUiCapabilityFlags(profile);
+    const expected = profile === "mountain_outdoor" || profile === "denali_pilot";
+    assert.equal(flags.allowsPeakExperience, expected, profile);
+  }
+});
+
+test("denaliThemeCategories match Denali wizard theme filter table", () => {
+  const mountain = getWorkspaceUiCapabilityFlags("mountain_outdoor").denaliThemeCategories;
+  assert.deepEqual(mountain, ["mountain"]);
+
+  const nature = getWorkspaceUiCapabilityFlags("nature_trip").denaliThemeCategories;
+  assert.deepEqual(nature, ["nature", "desert"]);
+
+  const denali = getWorkspaceUiCapabilityFlags("denali_pilot").denaliThemeCategories;
+  assert.deepEqual(denali, ["mountain", "nature", "desert"]);
+
+  for (const profile of ["urban_event", "cinema_event", "cultural_tour"] as const) {
+    assert.deepEqual(getWorkspaceUiCapabilityFlags(profile).denaliThemeCategories, ["event"], profile);
+  }
+
+  assert.deepEqual(getWorkspaceUiCapabilityFlags("general").denaliThemeCategories, []);
+});
+
 test("denali_pilot exposes default service catalog; other profiles have none", () => {
   const denali = getWorkspaceUiCapabilityFlags("denali_pilot");
   assert.equal(denali.availableServices.length, 2);

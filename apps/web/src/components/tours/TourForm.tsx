@@ -50,6 +50,7 @@ import { useUnifiedTourDomainProfileForEditResolver } from "@/lib/config/feature
 
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
+import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 
 import { apiLifecycleToFormStatus } from "./tour-lifecycle";
 import { extractTourPriceUsd } from "./formatters";
@@ -255,6 +256,10 @@ export function TourForm({
     () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
+  const workspaceCapabilities = useMemo(
+    () => getCapabilitiesForProfile(workspaceFormProfile),
+    [workspaceFormProfile],
+  );
   const resolver = useCallback(
     (values: TourFormInput, context: unknown, options: any) => {
       const tripStyles = values.tripDetails?.overview?.tripStyles as string[] | undefined;
@@ -264,11 +269,12 @@ export function TourForm({
         mainTourThemeId: extractMainTourThemeIdFromValues(values),
         tripStyles,
       });
-      const profileForSchema =
-        workspaceFormProfile === "denali_pilot" ? "denali_pilot" : themeProfile;
+      const profileForSchema = workspaceCapabilities.requiresGeoPublish
+        ? workspaceFormProfile
+        : themeProfile;
       return zodResolver(createTourSchemaForProfile(profileForSchema))(values, context, options);
     },
-    [themeCatalogForFormProfile, workspaceFormProfile],
+    [themeCatalogForFormProfile, workspaceFormProfile, workspaceCapabilities],
   );
 
   const formMethods = useForm<TourFormInput, unknown, TourFormValues>({
@@ -325,10 +331,19 @@ export function TourForm({
 
   const resolvedFormProfileForEdit: TourFormProfile | undefined =
     editClassification?.domainProfile;
+  const resolvedEditCapabilities = useMemo(
+    () =>
+      resolvedFormProfileForEdit != null
+        ? getCapabilitiesForProfile(resolvedFormProfileForEdit)
+        : null,
+    [resolvedFormProfileForEdit],
+  );
   const showDenaliPublishGeoSection =
-    workspaceFormProfile === "denali_pilot" || resolvedFormProfileForEdit === "denali_pilot";
+    workspaceCapabilities.requiresGeoPublish ||
+    (resolvedEditCapabilities?.requiresGeoPublish ?? false);
   const showDenaliAdminFields =
-    workspaceFormProfile === "denali_pilot" || resolvedFormProfileForEdit === "denali_pilot";
+    workspaceCapabilities.usesDenaliWizardShell ||
+    (resolvedEditCapabilities?.usesDenaliWizardShell ?? false);
   const currentTourId = tour && "id" in tour ? (tour as TourDto).id : undefined;
 
   useEffect(() => {
@@ -391,10 +406,9 @@ export function TourForm({
 
   async function submitValid(data: TourFormValues) {
     try {
-      const profileForSave =
-        workspaceFormProfile === "denali_pilot"
-          ? "denali_pilot"
-          : resolvedFormProfileForEdit;
+      const profileForSave = workspaceCapabilities.requiresGeoPublish
+        ? workspaceFormProfile
+        : resolvedFormProfileForEdit;
       await onSubmit(
         data,
         profileForSave != null ? { resolvedFormProfile: profileForSave } : undefined,

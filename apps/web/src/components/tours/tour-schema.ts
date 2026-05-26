@@ -67,7 +67,8 @@ export function createTourSchemaForProfile(profile: TourFormProfile) {
     tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForProfile(profile)),
   });
 
-  if (!getCapabilitiesForProfile(profile).requiresGeoPublish) {
+  const { requiresGeoPublish } = getCapabilitiesForProfile(profile);
+  if (!requiresGeoPublish) {
     return schema;
   }
 

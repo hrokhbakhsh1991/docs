@@ -14,6 +14,10 @@ import type { TourFormProfile, TourTripDetails, WizardSubmitRequiredFieldPath } 
 
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import type { CreateTourDto } from "@/lib/services/tours.service";
+import {
+  getCapabilitiesForProfile,
+  normalizeTourFormProfileInput,
+} from "@/lib/workspace/workspace-capabilities";
 
 import { mapDenaliWizardToCreateTourPayload } from "../../domain/mapDenaliWizardToCreateTourPayload";
 import { normalizeDenaliWizardForm } from "../../schemas/denaliTourCreateFormModel";
@@ -91,7 +95,8 @@ export function getDenaliWizardPublishReadinessIssues(
     mode: "submit",
   }).map(ruleRequiredIssueToPublishIssue);
 
-  if (profile === "denali_pilot") {
+  const { requiresGeoPublish } = getCapabilitiesForProfile(normalizeTourFormProfileInput(profile));
+  if (requiresGeoPublish) {
     const geoViolation = checkDenaliPilotPublishGeolocationZones(
       (dto.tripDetails ?? null) as TourTripDetails | null,
     );

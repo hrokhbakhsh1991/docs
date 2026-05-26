@@ -3,8 +3,11 @@ import type { TourFormProfile } from "@repo/types";
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
 import { transformTourToWizardValues } from "@/features/tours/clone/transformTourToWizardValues";
 import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
-import { isDenaliPilotFormProfile } from "@/features/tours/wizard/isDenaliWizardContext";
 import { mapToDenaliWizardPatch } from "@/features/tours/wizard/profiles/denali/mapToDenaliWizardPatch";
+import {
+  getCapabilitiesForProfile,
+  normalizeTourFormProfileInput,
+} from "@/lib/workspace/workspace-capabilities";
 import {
   mapPresetToFormPatch,
   type PresetMapperContext,
@@ -32,7 +35,10 @@ export function mapWizardPrefillToFormPatch(
   formProfile: TourFormProfile | string | null | undefined,
   source: WizardPrefillSource,
 ): Partial<TourCreateFormValues> | Partial<DenaliCreateTourWizardForm> {
-  if (isDenaliPilotFormProfile(formProfile ?? undefined)) {
+  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
+    normalizeTourFormProfileInput(formProfile),
+  );
+  if (usesDenaliWizardShell) {
     if (source.kind === "preset") {
       return mapToDenaliWizardPatch({
         kind: "preset",

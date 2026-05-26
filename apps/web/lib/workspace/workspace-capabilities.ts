@@ -1,5 +1,6 @@
 import {
   getTourFormProfileDescriptor,
+  normalizeTourFormProfileInput as normalizeProfileInput,
   type TourFormProfile,
   type WizardFieldGroupSlug,
 } from "@repo/types";
@@ -66,6 +67,9 @@ export interface WorkspaceCapabilities {
   /** Denali single-day logistics strip on submit (denali_pilot only today). */
   readonly appliesDenaliSingleDayLogisticsStrip: boolean;
 
+  /** Peak Experience section in tour edit / workspace UI. */
+  readonly allowsPeakExperience: boolean;
+
   /**
    * Optional add-on catalog for this profile (from {@link getWorkspaceUiCapabilityFlags}).
    * Not persisted on the tour entity until registration/pricing contracts adopt selections.
@@ -123,6 +127,7 @@ function deriveWorkspaceCapabilities(profile: TourFormProfile): WorkspaceCapabil
     wizardCapacityStepRedundant: descriptor.wizardCapacityStepRedundant,
     hasWorkspaceValidation: workspace?.validation != null,
     appliesDenaliSingleDayLogisticsStrip: uiFlags.appliesDenaliSingleDayLogisticsStrip,
+    allowsPeakExperience: uiFlags.allowsPeakExperience,
     availableServices: uiFlags.availableServices,
   };
 }
@@ -145,6 +150,11 @@ export function getCapabilitiesForProfile(profile: TourFormProfile): WorkspaceCa
   const caps = deriveWorkspaceCapabilities(profile);
   capabilityCache.set(profile, caps);
   return caps;
+}
+
+/** Normalize unknown profile input to a valid {@link TourFormProfile}. */
+export function normalizeTourFormProfileInput(value: unknown): TourFormProfile {
+  return normalizeProfileInput(value);
 }
 
 /** Convenience: capabilities from tenant template `baseProfile`. */

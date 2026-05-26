@@ -17,7 +17,10 @@ import { DenaliTourEditForm } from "@/components/tours/DenaliTourEditForm";
 import { TourForm } from "@/components/tours/TourForm";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { updateTourDtoFromDenaliWizardForm } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
-import { usesDenaliWizardShellForProfile } from "@/lib/workspace/workspace-capabilities";
+import {
+  getCapabilitiesForProfile,
+  normalizeTourFormProfileInput,
+} from "@/lib/workspace/workspace-capabilities";
 import { resolveDenaliRuleSetFromTemplate } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -67,7 +70,10 @@ export function TourEditClient({
     () => resolveDenaliRuleSetFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
-  const isDenaliEdit = usesDenaliWizardShellForProfile(workspaceFormProfile);
+  const { usesDenaliWizardShell } = useMemo(
+    () => getCapabilitiesForProfile(normalizeTourFormProfileInput(workspaceFormProfile)),
+    [workspaceFormProfile],
+  );
 
   const errorMessage =
     error instanceof ApiError
@@ -83,9 +89,9 @@ export function TourEditClient({
     { label: lastCrumbLabel },
   ] as const;
 
-  const shellTitle = isDenaliEdit ? "ویرایش تور" : "Edit tour";
+  const shellTitle = usesDenaliWizardShell ? "ویرایش تور" : "Edit tour";
   const documentTitle = tour?.title
-    ? isDenaliEdit
+    ? usesDenaliWizardShell
       ? `ویرایش ${tour.title}`
       : `Edit ${tour.title}`
     : shellTitle;
@@ -280,7 +286,7 @@ export function TourEditClient({
       documentTitle={documentTitle}
       title={shellTitle}
       description={
-        isDenaliEdit
+        usesDenaliWizardShell
           ? `در حال ویرایش «${tour.title}» — تغییرات با PATCH ذخیره می‌شوند.`
           : `Editing ${tour.title} — changes save via PATCH /api/v2/tours/${tourId}.`
       }
@@ -296,7 +302,7 @@ export function TourEditClient({
             Updating tour data
           </span>
         ) : null}
-        {isDenaliEdit ? (
+        {usesDenaliWizardShell ? (
           <DenaliTourEditForm
             tour={tour}
             submitError={updateMutation.error}
