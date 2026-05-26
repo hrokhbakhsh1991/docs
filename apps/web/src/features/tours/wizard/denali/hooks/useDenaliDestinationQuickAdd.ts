@@ -28,7 +28,6 @@ export function useDenaliDestinationQuickAdd() {
       title: "افزودن مقصد جدید",
       description:
         "مقصد به کاتالوگ workspace اضافه می‌شود. پس از ذخیره، در همین گام قابل انتخاب است.",
-      persistWizardState: true,
       formComponent: DestinationQuickAddForm,
       onSuccess: (destination) => {
         updateCanonical({ destinationId: destination.id });

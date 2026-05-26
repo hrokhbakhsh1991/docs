@@ -37,7 +37,6 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "pricing.includesTourInsurance": "pricingPayment.includesTourInsurance",
   "pricing.paymentMode": "pricingPayment.paymentMode",
   "pricing.requiresPayment": "pricingPayment.requiresPayment",
-  "program.altitudeMeasurement": "programNature.altitudeMeasurement",
   "program.difficultyLevel": "programNature.difficultyLevel",
   "program.hikingGoHours": "programNature.hikingGoHours",
   "program.hikingHoursApprox": "programNature.hikingHoursApprox",
@@ -62,6 +61,8 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "transport.seatPreference": "transport.seatPreference",
   "transport.transportCost": "transport.transportCost",
   "transport.transportNotes": "transport.transportNotes",
+  "tripDetails.metrics.elevationGain": "tripDetails.metrics.elevationGain",
   "tripDetails.overview.customServiceLabels": "tripDetails.overview.customServiceLabels",
   "tripDetails.overview.nonAttendanceDetails": "tripDetails.overview.nonAttendanceDetails",
+  "tripDetails.overview.peakHeight": "tripDetails.overview.peakHeight",
 };

@@ -10,8 +10,8 @@ import {
   filterFormPatchByActiveGroups,
   sanitizeInactiveRootsForProfile,
 } from "./fieldGroups";
-import { mergeTourDraft } from "./tourCreateWizardMerge";
-import type { ThemeRowForProfile, TourWizardDraftMeta } from "./tourWizardProfileResolve";
+import { mergeTourFormPatch } from "./tourCreateWizardMerge";
+import type { ThemeRowForProfile, TourWizardPrefillMeta } from "./tourWizardProfileResolve";
 
 /**
  * Inputs accepted by {@link applyTourWizardPatch}. All fields except `baseValues`
@@ -33,7 +33,7 @@ export type ApplyTourWizardPatchInput = {
   /** Optional tourType hint (diagnostics; does not affect profile resolution). */
   tourType?: string;
   /** Optional draft snapshot meta (clone/draft provenance; does not affect profile resolution). */
-  snapshot?: TourWizardDraftMeta;
+  snapshot?: TourWizardPrefillMeta;
   /** When `form_builder` is off, strip itinerary/participation/logistics after profile sanitize. */
   tenantFormContract?: TenantTourFormContract;
 };
@@ -44,7 +44,7 @@ export type ApplyTourWizardPatchResult = {
   /**
    * Profile the wizard should be in **after** the patch is applied. When the patch
    * carries no theme/tourType change, this is the unchanged `currentProfile`. Returned
-   * for diagnostics and for future clone/draft callers that want to seed `_wizardMeta`.
+   * for diagnostics and for future clone callers that want to seed prefill metadata.
    */
   resolvedFormProfile: TourFormProfile;
   /** Patch after the inactive-roots filter (helpful for tests / logging; never re-merged). */
@@ -63,10 +63,10 @@ export type ApplyTourWizardPatchResult = {
  *      using the final profile makes apply symmetric with the submit-time strip in
  *      `useTourWizardCreate` (whose argument is the same final profile that the
  *      Shell re-derives after `reset(...)`).
- *   3. **Merge** the filtered patch onto `baseValues` via {@link mergeTourDraft}.
+ *   3. **Merge** the filtered patch onto `baseValues` via {@link mergeTourFormPatch}.
  *   4. **Sanitize** the merged values against the final profile via
  *      {@link sanitizeInactiveRootsForProfile} so any ghost root resurrected by
- *      `mergeTourDraft`'s defaults / normalized day fallbacks is reset.
+ *      `mergeTourFormPatch`'s defaults / normalized day fallbacks is reset.
  *   5. **Strict schema parse** via {@link parseTourWizardPatchPipelineStrict} so the result
  *      matches the Zod wizard contract (unknown root keys rejected) without requiring submit-time
  *      completeness; {@link wizardFormToCreateTourApiPayload} still runs full submit validation.
@@ -90,7 +90,7 @@ export function applyTourWizardPatch(
   const resolvedFormProfile = input.currentProfile;
 
   const filteredPatch = filterFormPatchByActiveGroups(resolvedFormProfile, patch);
-  const merged = mergeTourDraft(input.baseValues, filteredPatch);
+  const merged = mergeTourFormPatch(input.baseValues, filteredPatch);
   let sanitized = sanitizeInactiveRootsForProfile(merged, resolvedFormProfile);
   if (input.tenantFormContract) {
     sanitized = stripTenantGatedTourCreateGroups(input.tenantFormContract, sanitized);

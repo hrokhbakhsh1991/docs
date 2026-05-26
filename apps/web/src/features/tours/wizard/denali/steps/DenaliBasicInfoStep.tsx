@@ -8,13 +8,14 @@ import {
   type DenaliTourCategory,
   type DenaliTourDuration,
 } from "@repo/types";
-import { useFormContext } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Button, Checkbox, FormField, Input, Select } from "@tour/ui";
 
 import quickAddStyles from "@/components/shared/quick-add/QuickAddModal.module.css";
 import { DestinationCombobox } from "@/components/tours/wizard/steps/DestinationCombobox";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
+import type { SettingsDestinationDto } from "@/lib/settings-locations-client";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-members";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
@@ -27,13 +28,19 @@ import { useDenaliDestinationQuickAdd } from "../hooks/useDenaliDestinationQuick
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
 const STEP = "denali_basic" as const;
+const PATH_PEAK_HEIGHT = "tripDetails.overview.peakHeight";
 
 export function DenaliBasicInfoStep() {
   const t = useTranslations("tours.denali");
   const {
+    control,
     getValues,
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
+  const peakHeightField = useController({
+    control,
+    name: "tripDetails.overview.peakHeight",
+  });
 
   const { basicsSelection, updateCanonical, updateCanonicalBasics } = useDenaliCanonical();
   const title = useDenaliCanonicalValue<string>("title");
@@ -67,6 +74,9 @@ export function DenaliBasicInfoStep() {
     regionName: crewRoleLabel(member.role),
   }));
 
+  const destinationById = new Map<string, SettingsDestinationDto>(
+    (destinationsQuery.destinations ?? []).map((item) => [item.id, item]),
+  );
   const activeDestinations = destinationsQuery.groupedRegions.flatMap((group) =>
     group.items.map((item) => ({
       id: item.id,
@@ -75,6 +85,19 @@ export function DenaliBasicInfoStep() {
       regionName: group.regionName,
     })),
   );
+
+  const applyDestinationSelection = (id: string) => {
+    updateCanonical({ destinationId: id });
+    const altitudeM = destinationById.get(id)?.altitudeM;
+    if (typeof altitudeM === "number" && Number.isFinite(altitudeM) && altitudeM > 0) {
+      peakHeightField.field.onChange(altitudeM);
+      updateCanonical({
+        overview: {
+          peakHeight: altitudeM,
+        },
+      });
+    }
+  };
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-basics">
@@ -149,7 +172,13 @@ export function DenaliBasicInfoStep() {
             placeholder={t("basic.destinationPlaceholder")}
             options={activeDestinations}
             value={destinationId}
-            onChange={(id) => updateCanonical({ destinationId: typeof id === "string" ? id : "" })}
+            onChange={(id) => {
+              if (typeof id === "string" && id) {
+                applyDestinationSelection(id);
+                return;
+              }
+              updateCanonical({ destinationId: "" });
+            }}
             error={errors.basicInfo?.destinationId?.message}
           />
           <div className={quickAddStyles.quickAddRow} dir="rtl">
@@ -164,6 +193,32 @@ export function DenaliBasicInfoStep() {
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {isVisible(PATH_PEAK_HEIGHT, form) ? (
+        <FormField
+          label={t("basic.peakHeight")}
+          description={t("basic.peakHeightDescription")}
+          error={errors.tripDetails?.overview?.peakHeight?.message}
+        >
+          <PersianNumberInput
+            numericMode="integer"
+            formatThousands
+            value={peakHeightField.field.value ?? ""}
+            onChange={(v) => {
+              const next = v === "" ? undefined : Number(v);
+              peakHeightField.field.onChange(next);
+              updateCanonical({
+                overview: {
+                  peakHeight: next,
+                },
+              });
+            }}
+            onBlur={peakHeightField.field.onBlur}
+            data-testid="denali-basic-peak-height"
+            data-field-path={PATH_PEAK_HEIGHT}
+          />
+        </FormField>
       ) : null}
 
       {isVisible("leaderUserIds", form) ? (

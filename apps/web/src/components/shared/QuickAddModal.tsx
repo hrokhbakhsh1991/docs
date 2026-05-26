@@ -3,7 +3,7 @@
 /**
  * Universal in-place entity creation modal (Radix Dialog).
  *
- * - Wrap the tree with `QuickAddModalProvider` (optionally `wizardPersistence`).
+ * - Wrap the tree with `QuickAddModalProvider`.
  * - Call `useQuickAddModal().open({ title, formComponent, onSuccess, ... })`.
  * - Inner forms call `onSuccess` only after API success; errors use `setError` (modal stays open).
  *
@@ -25,16 +25,10 @@ import { Alert } from "@tour/ui";
 
 import { DestinationQuickAddForm } from "./quick-add/forms/DestinationQuickAddForm";
 import { EquipmentQuickAddForm } from "./quick-add/forms/EquipmentQuickAddForm";
-import {
-  clearWizardQuickAddGuard,
-  persistWizardSnapshotForQuickAdd,
-  restoreWizardDraftFromQuickAddGuard,
-} from "./quick-add/persistWizardSnapshot";
 import type {
   QuickAddFormProps,
   QuickAddModalConfig,
   QuickAddModalOpenProps,
-  WizardPersistenceConfig,
 } from "./quick-add/types";
 
 import styles from "./quick-add/QuickAddModal.module.css";
@@ -153,17 +147,9 @@ const QuickAddModalContext = createContext<QuickAddModalContextValue | null>(nul
 
 export type QuickAddModalProviderProps = {
   children: ReactNode;
-  /**
-   * When set, `persistWizardState: true` snapshots the wizard draft to sessionStorage
-   * + localStorage before the modal opens (see `persistWizardSnapshotForQuickAdd`).
-   */
-  wizardPersistence?: WizardPersistenceConfig;
 };
 
-export function QuickAddModalProvider({
-  children,
-  wizardPersistence,
-}: QuickAddModalProviderProps) {
+export function QuickAddModalProvider({ children }: QuickAddModalProviderProps) {
   const [state, setState] = useState<QuickAddModalState | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -178,25 +164,13 @@ export function QuickAddModalProvider({
     });
     setApiError(null);
     setIsSubmitting(false);
-    restoreWizardDraftFromQuickAddGuard();
-    clearWizardQuickAddGuard();
   }, [isSubmitting]);
 
-  const open = useCallback(
-    <TEntity,>(props: QuickAddModalOpenProps<TEntity>) => {
-      if (props.persistWizardState && wizardPersistence) {
-        const serialized = wizardPersistence.serializeDraft(wizardPersistence.getFormValues());
-        persistWizardSnapshotForQuickAdd({
-          storageKey: wizardPersistence.storageKey,
-          serializedDraft: serialized,
-        });
-      }
-      setApiError(null);
-      setIsSubmitting(false);
-      setState({ config: props as QuickAddModalConfig<unknown> });
-    },
-    [wizardPersistence],
-  );
+  const open = useCallback(<TEntity,>(props: QuickAddModalOpenProps<TEntity>) => {
+    setApiError(null);
+    setIsSubmitting(false);
+    setState({ config: props as QuickAddModalConfig<unknown> });
+  }, []);
 
   const handleFormSuccess = useCallback((entity: unknown) => {
     setState((prev) => {
@@ -205,7 +179,6 @@ export function QuickAddModalProvider({
     });
     setApiError(null);
     setIsSubmitting(false);
-    clearWizardQuickAddGuard();
   }, []);
 
   const contextValue = useMemo(
@@ -254,16 +227,9 @@ export function useQuickAddModal(): QuickAddModalContextValue {
 }
 
 export { DestinationQuickAddForm, EquipmentQuickAddForm };
-export {
-  clearWizardQuickAddGuard,
-  persistWizardSnapshotForQuickAdd,
-  QUICK_ADD_WIZARD_GUARD_SESSION_KEY,
-  restoreWizardDraftFromQuickAddGuard,
-} from "./quick-add/persistWizardSnapshot";
 export type {
   QuickAddEntityType,
   QuickAddFormProps,
   QuickAddModalConfig,
   QuickAddModalOpenProps,
-  WizardPersistenceConfig,
 } from "./quick-add/types";

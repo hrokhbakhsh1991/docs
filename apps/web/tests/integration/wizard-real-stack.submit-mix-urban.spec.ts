@@ -1,15 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  advanceUrbanWizardToReview,
-  buildUrbanSubmitDraftJson,
-  clearWizardDrafts,
-  submitWizardAndExpectTourList,
+  advanceDenaliWizardToReview,
   fetchTourThemeForProfile,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
+  openDenaliCreateWizardWithFormPatch,
   ownerPhoneFromProject,
-  seedWizardDraft,
+  submitWizardAndExpectTourList,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
 
@@ -22,20 +20,18 @@ test.describe("real-stack mix-demo urban wizard submit", () => {
     const slug = tenantSlugFromProject(testInfo.project.metadata);
     const runId = Date.now().toString();
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
 
     const location = await fetchWizardLocationIds(page);
     const theme = await fetchTourThemeForProfile(page, "urban_event");
     expect(theme, "mix-demo workspace must expose an urban_event theme").toBeTruthy();
-    const draftJson = buildUrbanSubmitDraftJson(location, `${slug}-${runId}`, {
+
+    await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
+      tourType: "event_reading",
       mainTourThemeId: theme!.id,
+      meetingPoint: "کافه کتابخانه — میز اصلی",
     });
-    await seedWizardDraft(page, slug, draftJson);
 
-    await page.goto("/tours/new?e2eTourType=city", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 45_000 });
-
-    await advanceUrbanWizardToReview(page, { mainTourTheme: theme! });
+    await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: "event_reading" });
 
     await submitWizardAndExpectTourList(page);
   });

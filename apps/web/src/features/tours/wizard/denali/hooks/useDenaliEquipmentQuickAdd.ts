@@ -50,7 +50,6 @@ export function useDenaliEquipmentQuickAdd() {
       entityType: "equipment",
       title: "افزودن تجهیز جدید",
       description: "تجهیز به کاتالوگ اضافه می‌شود و بلافاصله به لیست تجهیزات این تور وصل می‌شود.",
-      persistWizardState: true,
       formComponent: EquipmentQuickAddForm,
       onSuccess: (equipment) => {
         const current = getValues().participantRequirements.gearItems;

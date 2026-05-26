@@ -121,6 +121,25 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     ruleDefaults: { required: true, hidden: false },
   },
   {
+    canonicalPath: "tripDetails.overview.peakHeight",
+    stepId: "denali_basic",
+    rhfPath: "tripDetails.overview.peakHeight",
+    zodPath: "tripDetails.overview.peakHeight",
+    zodKind: "optionalInt",
+    tags: ["altitude_mountain", "altitude_hidden"] as const,
+    ruleDefaults: { required: true, hidden: false },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
+    cellOverrides: {
+      "desert:multi_day": { required: false, hidden: true },
+      "desert:single_day": { required: false, hidden: true },
+      "event:single_day": { required: false, hidden: true },
+      "nature:multi_day": { required: false, hidden: true },
+      "nature:single_day": { required: false, hidden: true },
+    },
+    wire: { kind: "tripDetails.overview", field: "maxAltitudeMeters" },
+    notes: "Peak elevation (m ASL); prefilled from destination catalog when available.",
+  },
+  {
     canonicalPath: "startDateTime",
     stepId: "denali_basic",
     rhfPath: "basicInfo.startDateTime",
@@ -314,13 +333,13 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     },
   },
   {
-    canonicalPath: "program.altitudeMeasurement",
+    canonicalPath: "tripDetails.metrics.elevationGain",
     stepId: "denali_program",
-    rhfPath: "programNature.altitudeMeasurement",
-    zodPath: "programNature.altitudeMeasurement",
+    rhfPath: "tripDetails.metrics.elevationGain",
+    zodPath: "tripDetails.metrics.elevationGain",
     zodKind: "optionalInt",
     tags: ["altitude_mountain", "altitude_hidden"] as const,
-    ruleDefaults: { required: true, hidden: false },
+    ruleDefaults: { required: false, hidden: false },
     structuralInvariant: { kind: "clearWhenNotVisible" },
     cellOverrides: {
       "desert:multi_day": { required: false, hidden: true },
@@ -329,6 +348,8 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
       "nature:multi_day": { required: false, hidden: true },
       "nature:single_day": { required: false, hidden: true },
     },
+    wire: { kind: "tripDetails.overview", field: "elevationGainMeters" },
+    notes: "Route elevation gain (m); distinct from peak height on basic info.",
   },
   {
     canonicalPath: "program.itinerary",
@@ -695,8 +716,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodPath: "participantRequirements.sportsInsuranceRequired",
     zodKind: "booleanOptional",
     tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
-    ruleDefaults: { required: true, hidden: false },
-    structuralInvariant: { kind: "enforceValueWhenCategory", category: "mountain", value: true },
+    ruleDefaults: { required: false, hidden: false },
 
   cellOverrides: {
     "desert:multi_day": { required: false, hidden: true },

@@ -163,7 +163,7 @@ export function stripInactiveTourCreateGroupsForProfile(
  *     `watched` snapshot before `serializeWizardDraft` so `tour-create-
  *     wizard-draft-v1` never persists ghost data after a profile flip);
  *   - the draft-restore effect in `TourCreateWizard.tsx` (belt-and-
- *     suspenders re-strip after `mergeTourDraft`, even though
+ *     suspenders re-strip after `mergeTourFormPatch`, even though
  *     `filterFormPatchByActiveGroups` already trimmed the incoming patch).
  */
 export function sanitizeInactiveRootsForProfile(
@@ -178,20 +178,20 @@ export function sanitizeInactiveRootsForProfile(
  *
  * Drops top-level form roots owned by **inactive** field groups from a wizard-shaped patch
  * (presets `defaults` JSON, clone-transformed tour, restored localStorage draft) *before* it is
- * merged into the live form via {@link mergeTourDraft}.
+ * merged into the live form via {@link mergeTourFormPatch}.
  *
  * Why this exists:
  * - {@link stripInactiveTourCreateGroupsForProfile} guarantees the **API payload** never contains
  *   inactive-group data (called from `useTourWizardCreate` at submit time), aligning with the
  *   server-side profile strip in `apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts`.
- * - But preload (preset apply + clone/draft restore) goes through {@link mergeTourDraft}, which is
+ * - But preload (preset apply + clone/draft restore) goes through {@link mergeTourFormPatch}, which is
  *   profile-blind. That meant inactive-group data could leak into RHF state and the localStorage
  *   auto-save even though the wizard never rendered those fields.
  * - Applying this filter at the merge boundary makes preload symmetric with submit-time strip:
  *   the same roots are gated everywhere the wizard touches them.
  *
  * Behavior:
- * - `patch === undefined` returns `undefined` (so callers can keep passing it to {@link mergeTourDraft}
+ * - `patch === undefined` returns `undefined` (so callers can keep passing it to {@link mergeTourFormPatch}
  *   which already handles `undefined`).
  * - When the profile has no inactive groups (e.g. `"general"`, `"mountain_outdoor"`, `"nature_trip"`,
  *   `"cultural_tour"`), the patch is returned **as-is** by reference — zero overhead.

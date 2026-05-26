@@ -244,7 +244,10 @@ test("mapDenaliWizardToCreateTourPayload: mountain_day sets overview.denaliTourK
 
 test("mapDenaliWizardToCreateTourPayload: projects maxAltitudeMeters for mountain_day", () => {
   const form = submitValidForm();
-  form.programNature.altitudeMeasurement = 5_610;
+  form.tripDetails = {
+    ...form.tripDetails,
+    overview: { ...form.tripDetails.overview, peakHeight: 5_610 },
+  };
   const dto = mapDenaliWizardToCreateTourPayload(form);
   const overview = dto.tripDetails?.overview as { maxAltitudeMeters?: number } | undefined;
   assert.equal(overview?.maxAltitudeMeters, 5_610);

@@ -102,7 +102,6 @@ export function FileUploadField({
       title: metadataQuickAdd.title,
       description: metadataQuickAdd.description,
       formComponent: metadataQuickAdd.formComponent,
-      persistWizardState: true,
       onSuccess: (meta) => {
         const next = [...rows];
         next[next.length - 1] = { ...last, ...meta };

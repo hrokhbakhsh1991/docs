@@ -36,7 +36,7 @@ export class WorkspaceTourWizardTemplateEntity {
 
   /**
    * Partial {@link DenaliCanonicalTourModel} workspace seed (JSONB).
-   * Hydrated in the Denali wizard via the same rule-engine path as saved drafts.
+   * Hydrated in the Denali wizard via the canonical template rule-engine path.
    */
   @Column({ name: "canonical_data", type: "jsonb", default: () => `'{}'` })
   canonicalData!: DenaliCanonicalTemplateData;

@@ -449,8 +449,11 @@ function buildProjectionFromCanonical(
         : {}),
       ...(difficultyRating != null ? { difficultyLevel: difficultyRating } : {}),
       ...(isDenaliMountainCategory(category) &&
-      isPositiveInt(canonical.program.altitudeMeasurement)
-        ? { maxAltitudeMeters: canonical.program.altitudeMeasurement }
+      isPositiveInt(canonical.overview?.peakHeight)
+        ? { maxAltitudeMeters: canonical.overview.peakHeight }
+        : {}),
+      ...(isPositiveInt(canonical.metrics?.elevationGain)
+        ? { elevationGainMeters: canonical.metrics.elevationGain }
         : {}),
     },
     itinerary: buildDenaliSubmitItinerarySlice({
@@ -596,21 +599,11 @@ function denaliWizardLifecycleStatus(
   return publishStatus === "active" ? "Open" : "Draft";
 }
 
-/**
- * Shared Denali wizard → canonical resolution (draft + create-tour pipelines).
- * API-specific expansion lives in {@link buildDenaliCreateTourPayloadProjection}.
- */
-export function buildDenaliWizardDraftPayloadProjection(
-  form: DenaliCreateTourWizardForm,
-): DenaliCanonicalTourModel {
-  return denaliFormToCanonical(form);
-}
-
 /** Resolves Denali wizard form → fully expanded create-tour projection (submit pipeline). */
 export function buildDenaliCreateTourPayloadProjection(
   form: DenaliCreateTourWizardForm,
 ): DenaliCreateTourPayloadProjection {
-  const canonical = buildDenaliWizardDraftPayloadProjection(form);
+  const canonical = denaliFormToCanonical(form);
   const basics = readDenaliCanonicalBasics(
     form.basicInfo.tourType as DenaliTourKind | undefined,
   );
@@ -618,25 +611,80 @@ export function buildDenaliCreateTourPayloadProjection(
   const projection = buildProjectionFromCanonical(canonical, {
     eventVariant: basics?.eventVariant,
   });
-  // Registry wire: createTourDto.customServiceLabels + tripDetails.overview.customServiceLabels
+  // Registry wire: createTourDto.customServiceLabels + tripDetails.overview.* (manual overview merge)
   const customServiceLabels = normalizeCustomServiceLabels(
     form.tripDetails?.overview?.customServiceLabels,
   );
-  const tripDetailsWithLabels =
-    customServiceLabels && projection.tripDetails
-      ? ({
-          ...projection.tripDetails,
-          overview: {
-            ...((projection.tripDetails as { overview?: Record<string, unknown> }).overview ?? {}),
-            customServiceLabels,
-          },
-        } as unknown as TourTripDetails)
-      : projection.tripDetails;
+  const nonAttendanceDetails = trimToUndefined(
+    form.tripDetails?.overview?.nonAttendanceDetails ??
+      canonical.overview?.nonAttendanceDetails,
+  );
+  const isMountain =
+    basics != null && isDenaliMountainCategory(basics.category);
+  const peakHeight = isMountain
+    ? (canonical.overview?.peakHeight ?? form.tripDetails?.overview?.peakHeight)
+    : undefined;
+  const elevationGain =
+    canonical.metrics?.elevationGain ?? form.tripDetails?.metrics?.elevationGain;
+  const tripDetailsWithOverview = mergeDenaliWizardOverviewIntoTripDetails(
+    projection.tripDetails,
+    {
+      customServiceLabels,
+      nonAttendanceDetails,
+      peakHeight,
+      elevationGain,
+    },
+  );
 
   return {
     ...projection,
-    tripDetails: tripDetailsWithLabels,
+    tripDetails: tripDetailsWithOverview,
     ...(customServiceLabels ? { customServiceLabels } : {}),
     lifecycle_status: denaliWizardLifecycleStatus(form.basicInfo.publishStatus),
   };
+}
+
+function mergeDenaliWizardOverviewIntoTripDetails(
+  tripDetails: TourTripDetails | undefined,
+  overviewPatch: {
+    customServiceLabels?: string[];
+    nonAttendanceDetails?: string;
+    peakHeight?: number;
+    elevationGain?: number;
+  },
+): TourTripDetails | undefined {
+  if (!tripDetails) {
+    return tripDetails;
+  }
+  const hasCustomServiceLabels =
+    overviewPatch.customServiceLabels != null && overviewPatch.customServiceLabels.length > 0;
+  const hasNonAttendanceDetails = overviewPatch.nonAttendanceDetails != null;
+  const hasPeakHeight = isPositiveInt(overviewPatch.peakHeight);
+  const hasElevationGain = isPositiveInt(overviewPatch.elevationGain);
+  if (
+    !hasCustomServiceLabels &&
+    !hasNonAttendanceDetails &&
+    !hasPeakHeight &&
+    !hasElevationGain
+  ) {
+    return tripDetails;
+  }
+
+  const existingOverview =
+    (tripDetails as { overview?: Record<string, unknown> }).overview ?? {};
+
+  return {
+    ...tripDetails,
+    overview: {
+      ...existingOverview,
+      ...(hasCustomServiceLabels
+        ? { customServiceLabels: overviewPatch.customServiceLabels }
+        : {}),
+      ...(hasNonAttendanceDetails
+        ? { nonAttendanceDetails: overviewPatch.nonAttendanceDetails }
+        : {}),
+      ...(hasPeakHeight ? { maxAltitudeMeters: overviewPatch.peakHeight } : {}),
+      ...(hasElevationGain ? { elevationGainMeters: overviewPatch.elevationGain } : {}),
+    },
+  } as unknown as TourTripDetails;
 }

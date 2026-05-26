@@ -67,7 +67,7 @@ export function normalizeItineraryDraftDays(rawDays: unknown): TourCreateFormVal
 }
 
 /** Deep-merge preset/draft fragments onto a full wizard model (localStorage + workspace presets). */
-export function mergeTourDraft(base: TourCreateFormValues, patch: Partial<TourCreateFormValues> | undefined): TourCreateFormValues {
+export function mergeTourFormPatch(base: TourCreateFormValues, patch: Partial<TourCreateFormValues> | undefined): TourCreateFormValues {
   if (!patch) return base;
   const normalizedDays = normalizeItineraryDraftDays(patch.itinerary?.days);
   return {

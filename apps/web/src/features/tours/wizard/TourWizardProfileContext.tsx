@@ -9,7 +9,7 @@ import type { ProfileRules } from "@/features/tours/wizard/profileRules/types";
 
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
 
-import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
+import type { TourWizardPrefillMeta } from "./tourWizardProfileResolve";
 
 /**
  * `resolvedProfile` is typed as `TourFormProfile` for back-compat with existing
@@ -20,11 +20,11 @@ import type { TourWizardDraftMeta } from "./tourWizardProfileResolve";
 export type TourWizardProfileContextValue = {
   /** Canonical tour classification (alias `TourDomainProfile`). */
   resolvedProfile: TourFormProfile;
-  /** Snapshot from duplicate / draft; undefined if none. */
-  draftMeta: TourWizardDraftMeta | undefined;
+  /** Snapshot from clone / preset prefill; undefined if none. */
+  prefillMeta: TourWizardPrefillMeta | undefined;
   /**
    * Memoized rules table for `resolvedProfile`. Filled automatically by the provider when
-   * callers pass only `{ resolvedProfile, draftMeta }` so existing call sites do not need to
+   * callers pass only `{ resolvedProfile, prefillMeta }` so existing call sites do not need to
    * compute it themselves (M3 addition — see "Phase Design — Wizard-only Architecture" in
    * `prompt.md`).
    */
@@ -56,7 +56,7 @@ export function TourWizardProfileProvider({
       value.rules ?? getProfileRules(value.resolvedProfile);
     return {
       resolvedProfile: value.resolvedProfile,
-      draftMeta: value.draftMeta,
+      prefillMeta: value.prefillMeta,
       rules,
       tenantFormContract: value.tenantFormContract,
       submitLocked: value.submitLocked ?? false,
@@ -64,7 +64,7 @@ export function TourWizardProfileProvider({
     };
   }, [
     value.resolvedProfile,
-    value.draftMeta,
+    value.prefillMeta,
     value.rules,
     value.tenantFormContract,
     value.submitLocked,

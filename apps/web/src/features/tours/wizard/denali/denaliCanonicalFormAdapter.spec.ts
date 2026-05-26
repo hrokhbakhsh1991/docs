@@ -60,6 +60,21 @@ test("denaliCanonicalToForm maps customServiceLabels onto tripDetails.overview",
   ]);
 });
 
+test("denaliCanonicalToForm maps peakHeight and elevationGain onto tripDetails slices", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.tripDetails.overview.peakHeight = 3_900;
+  form.tripDetails.metrics = { elevationGain: 1_100 };
+
+  const canonical = denaliFormToCanonical(form);
+  assert.equal(canonical.overview?.peakHeight, 3_900);
+  assert.equal(canonical.metrics?.elevationGain, 1_100);
+
+  const roundTrip = denaliCanonicalToForm(canonical, form);
+  assert.equal(roundTrip.tripDetails?.overview?.peakHeight, 3_900);
+  assert.equal(roundTrip.tripDetails?.metrics?.elevationGain, 1_100);
+});
+
 test("denaliCanonicalToForm maps nonAttendanceDetails onto tripDetails.overview", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.tourType = "event_reading";

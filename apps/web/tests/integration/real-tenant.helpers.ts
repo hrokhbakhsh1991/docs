@@ -2,7 +2,6 @@ import {
   denaliCanonicalBasicsFromTourKind,
   denaliTourKindToIsMultiDay,
   isDenaliEventTourKind,
-  TOUR_FORM_PROFILE_VERSION,
   type DenaliTourKind,
 } from "@repo/types";
 import { expect, type Locator, type Page } from "@playwright/test";
@@ -10,13 +9,12 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { mapCreateTourDto } from "../../src/features/tours/domain/mapCreateTourDto";
 import { mapDenaliWizardToCreateTourPayload } from "../../src/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import { buildCreateTourPostBody } from "../../lib/services/tours.service";
-import { mergeDenaliWizardDefaults } from "../../src/features/tours/wizard/denaliWizardDraftEnvelope";
+import { mergeDenaliFormDefaults } from "../../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
 } from "../../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { assertSubmitValidDenaliWizardForm } from "../../src/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
-import { wizardDraftStorageKey } from "../../src/features/tours/wizard/tourWizardDraftEnvelope";
 
 const DEFAULT_OTP = "1234";
 
@@ -287,183 +285,25 @@ export async function resolveDenaliIntegrationTheme(
   return undefined;
 }
 
-export function buildUrbanSubmitDraftJson(
+export type BuildDenaliSubmitFormOptions = {
+  mainTourThemeId?: string;
+  tourType?: DenaliTourKind;
+  meetingPoint?: string;
+  transportMode?: "organizer_vehicle" | "shared_cars" | "none";
+  dongAmount?: number;
+  peakHeight?: number;
+  itinerary?: Array<{ day: number; activities: string }>;
+  gearItems?: Array<{ id: string; isRequired: boolean }>;
+  leaderUserIds?: string[];
+  localGuideName?: string;
+  gatheringPoint?: { addressText: string; latitude?: number | null; longitude?: number | null };
+};
+
+export function buildDenaliSubmitFormPatch(
   location: LocationIds,
   titleSuffix: string,
-  options?: { mainTourThemeId?: string },
-): string {
-  return JSON.stringify({
-    overview: {
-      title: `1234567890 تست integration ${titleSuffix}`,
-      shortDescription: "خلاصهٔ تست ارسال integration",
-      longDescription:
-        "توضیح کامل تست برای عبور از اعتبارسنجی گام اطلاعات پایه در مسیر شهری روی استک واقعی.",
-      tourType: "city",
-      ...(options?.mainTourThemeId ? { mainTourThemeId: options.mainTourThemeId } : {}),
-    },
-    _wizardMeta: {
-      resolvedFormProfile: "urban_event",
-      formProfileVersion: TOUR_FORM_PROFILE_VERSION,
-    },
-    pricing: { basePrice: 100_000, currency: "TOMAN", discountNotes: "" },
-    schedule: {
-      startDate: "2026-08-10",
-      endDate: "2026-08-11",
-      departureMeetingTime: "",
-      returnMeetingTime: "",
-    },
-    location: {
-      regionId: location.regionId,
-      mainDestinationId: location.mainDestinationId,
-      secondaryDestinationIds: [],
-      meetingPoint: "",
-      returnPoint: "",
-      displayLocation: "",
-    },
-    policies: {
-      cancellationPolicy: "سیاست لغو تست integration.",
-      refundPolicy: "سیاست استرداد تست integration.",
-      safetyNotes: "یادداشت ایمنی تست integration.",
-      attendanceRules: "",
-      lateArrivalPolicy: "",
-      noShowPolicy: "",
-      confirmationPolicy: "",
-      capacityPolicy: "",
-      weatherPolicy: "",
-      reservationRules: "",
-      riskDisclaimer: "",
-      safetyPolicy: "",
-    },
-  });
-}
-
-/** Clears server + tenant-scoped local draft so integration seed is not overwritten. */
-export async function clearWizardDrafts(page: Page, tenantSlug: string): Promise<void> {
-  const del = await page.request.delete("/api/settings/tour-wizard-draft");
-  expect(del.ok(), `clear server wizard draft failed: ${del.status()}`).toBeTruthy();
-  const key = wizardDraftStorageKey(tenantSlug);
-  await page.evaluate((storageKey) => {
-    localStorage.removeItem(storageKey);
-  }, key);
-}
-
-export async function seedWizardDraft(
-  page: Page,
-  tenantSlug: string,
-  draftJson: string,
-): Promise<void> {
-  const key = wizardDraftStorageKey(tenantSlug);
-  await page.evaluate(
-    ({ storageKey, json }) => {
-      localStorage.setItem(storageKey, json);
-    },
-    { storageKey: key, json: draftJson },
-  );
-}
-
-/** Denali wizard no longer exposes draft recovery UI; kept for integration call sites. */
-export async function recoverDenaliWizardDraftIfPresent(_page: Page): Promise<void> {
-  /* no-op */
-}
-
-export function buildMountainSubmitDraftJson(
-  location: LocationIds,
-  titleSuffix: string,
-  options?: { mainTourThemeId?: string },
-): string {
-  return JSON.stringify({
-    overview: {
-      title: `1234567890 تست integration ${titleSuffix}`,
-      shortDescription: "خلاصهٔ تست ارسال integration",
-      longDescription:
-        "توضیح کامل تست برای عبور از اعتبارسنجی گام اطلاعات پایه در مسیر کوهنوردی روی استک واقعی.",
-      tourType: "mountain",
-      ...(options?.mainTourThemeId ? { mainTourThemeId: options.mainTourThemeId } : {}),
-    },
-    _wizardMeta: {
-      resolvedFormProfile: "mountain_outdoor",
-      formProfileVersion: TOUR_FORM_PROFILE_VERSION,
-      savedAt: new Date().toISOString(),
-      ...(options?.mainTourThemeId
-        ? { themeIds: { main: options.mainTourThemeId } }
-        : {}),
-    },
-    pricing: { basePrice: 100_000, currency: "TOMAN", discountNotes: "" },
-    schedule: {
-      startDate: "2026-08-10",
-      endDate: "2026-08-11",
-      departureMeetingTime: "",
-      returnMeetingTime: "",
-    },
-    location: {
-      regionId: location.regionId,
-      mainDestinationId: location.mainDestinationId,
-      secondaryDestinationIds: [],
-      meetingPoint: "نقطه ملاقات integration",
-      returnPoint: "",
-      displayLocation: "",
-    },
-    itinerary: {
-      days: [
-        {
-          dayNumber: 1,
-          title: "روز ۱",
-          description: "برنامه روز اول integration",
-          segments: [
-            {
-              title: "صعود",
-              description: "بخش اصلی",
-              activityType: "",
-              startTime: "",
-              endTime: "",
-            },
-          ],
-        },
-      ],
-    },
-    participation: {
-      minimumAge: 18,
-      requiredExperienceLevel: "intermediate",
-      requiredFitnessLevel: "moderate",
-    },
-    logistics: {
-      primaryTransportMode: "bus",
-      groupSizeMax: 12,
-    },
-    policies: {
-      cancellationPolicy: "سیاست لغو تست integration.",
-      refundPolicy: "سیاست استرداد تست integration.",
-      safetyNotes: "یادداشت ایمنی تست integration.",
-      attendanceRules: "",
-      lateArrivalPolicy: "",
-      noShowPolicy: "",
-      confirmationPolicy: "",
-      capacityPolicy: "",
-      weatherPolicy: "",
-      reservationRules: "",
-      riskDisclaimer: "",
-      safetyPolicy: "",
-    },
-  });
-}
-
-export function buildDenaliSubmitDraftJson(
-  location: LocationIds,
-  titleSuffix: string,
-  options?: {
-    mainTourThemeId?: string;
-    tourType?: DenaliTourKind;
-    meetingPoint?: string;
-    transportMode?: "organizer_vehicle" | "shared_cars" | "none";
-    dongAmount?: number;
-    altitudeMeasurement?: number;
-    itinerary?: Array<{ day: number; activities: string }>;
-    gearItems?: Array<{ id: string; isRequired: boolean }>;
-    leaderUserIds?: string[];
-    localGuideName?: string;
-    gatheringPoint?: { addressText: string; latitude?: number | null; longitude?: number | null };
-  },
-): string {
+  options?: BuildDenaliSubmitFormOptions,
+): Partial<DenaliCreateTourWizardForm> {
   const tourType = options?.tourType ?? "mountain_day";
   const isMulti = denaliTourKindToIsMultiDay(tourType);
   const isEvent = isDenaliEventTourKind(tourType);
@@ -471,9 +311,9 @@ export function buildDenaliSubmitDraftJson(
   const themeId = options?.mainTourThemeId;
   const meetingPoint = options?.meetingPoint ?? "نقطه ملاقات integration";
 
-  return JSON.stringify({
-    _wizardRail: "denali",
+  return {
     basicInfo: {
+      ...buildDenaliTourCreateDefaultValues().basicInfo,
       title: `1234567890 تست integration ${titleSuffix}`,
       tourType,
       destinationId: location.mainDestinationId,
@@ -503,7 +343,6 @@ export function buildDenaliSubmitDraftJson(
         "توضیح کامل تست برای عبور از اعتبارسنجی ویزارد ۶ تب Denali روی استک واقعی.",
       difficultyLevel: isEvent ? undefined : 5,
       hikingHoursApprox: isEvent ? undefined : 4,
-      ...(isMountain && !isEvent ? { altitudeMeasurement: options?.altitudeMeasurement ?? 4_200 } : {}),
       ...(isMulti
         ? {
             itinerary: options?.itinerary ?? [
@@ -537,39 +376,51 @@ export function buildDenaliSubmitDraftJson(
     policies: {
       policiesText: "سیاست لغو تست integration.",
     },
-    _wizardMeta: {
-      resolvedFormProfile: "denali_pilot",
-      formProfileVersion: TOUR_FORM_PROFILE_VERSION,
-      savedAt: new Date().toISOString(),
-      sourcePresetId: "00000000-0000-4000-8000-000000000001",
-      ...(options?.mainTourThemeId
-        ? { themeIds: { main: options.mainTourThemeId } }
-        : {}),
+    tripDetails: {
+      overview: {
+        customServiceLabels: [],
+        ...(isMountain && !isEvent ? { peakHeight: options?.peakHeight ?? 4_200 } : {}),
+      },
+      metrics: {},
+      logistics: { gatheringPoints: [] },
     },
-  });
+  };
+}
+
+/** Opens Denali create wizard and applies a localhost-only integration form patch. */
+export async function openDenaliCreateWizardWithFormPatch(
+  page: Page,
+  location: LocationIds,
+  titleSuffix: string,
+  options?: BuildDenaliSubmitFormOptions,
+): Promise<void> {
+  await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+  const patch = buildDenaliSubmitFormPatch(location, titleSuffix, options);
+  await page.evaluate((patchJson) => {
+    const apply = (
+      window as Window & {
+        __integrationApplyDenaliWizardPatch?: (patch: unknown) => void;
+      }
+    ).__integrationApplyDenaliWizardPatch;
+    if (!apply) {
+      throw new Error("integration wizard patch bridge unavailable (localhost only)");
+    }
+    apply(JSON.parse(patchJson));
+  }, JSON.stringify(patch));
+  await expect(page.getByLabel("نام تور")).toHaveValue(/تست integration/, { timeout: 20_000 });
 }
 
 /** Creates a Denali tour via BFF POST (keeps UI session intact for tours list E2E). */
-export type BuildDenaliSubmitDraftOptions = NonNullable<
-  Parameters<typeof buildDenaliSubmitDraftJson>[2]
->;
-
 export async function createDenaliTourViaApi(
   page: Page,
   location: LocationIds,
   titleSuffix: string,
-  options?: BuildDenaliSubmitDraftOptions,
+  options?: BuildDenaliSubmitFormOptions,
 ): Promise<string> {
-  const raw = JSON.parse(buildDenaliSubmitDraftJson(location, titleSuffix, options)) as Record<
-    string,
-    unknown
-  >;
-  const { _wizardRail: _r, _wizardMeta: _m, ...patch } = raw;
+  const patch = buildDenaliSubmitFormPatch(location, titleSuffix, options);
   const form = assertSubmitValidDenaliWizardForm(
-    mergeDenaliWizardDefaults(
-      buildDenaliTourCreateDefaultValues(),
-      patch as Partial<DenaliCreateTourWizardForm>,
-    ),
+    mergeDenaliFormDefaults(buildDenaliTourCreateDefaultValues(), patch),
   );
   const mapped = mapCreateTourDto(
     mapDenaliWizardToCreateTourPayload(form),
@@ -789,7 +640,7 @@ export async function advanceDenaliWizardToReview(
     }
   }
 
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
 
   if (options?.mainTourTheme) {
@@ -817,7 +668,7 @@ export async function advanceDenaliWizardToReview(
   ];
 
   for (const step of stepHeadings) {
-    await page.getByRole("button", { name: "بعدی" }).click();
+    await page.getByRole("button", { name: /Next|بعدی/ }).click();
     await expect(page.locator("form h2").first()).toContainText(step.pattern, { timeout: 20_000 });
     if (step.fill) {
       await step.fill();
@@ -844,7 +695,7 @@ export async function advanceMountainWizardToReview(
   await tourTypeSelect.dispatchEvent("change");
   await expect(page.getByLabel("عنوان تور")).toHaveValue(/تست integration/, { timeout: 20_000 });
 
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/تم/, { timeout: 20_000 });
   if (options?.mainTourTheme) {
     await selectMainTourThemeInWizard(page, options.mainTourTheme);
@@ -853,7 +704,7 @@ export async function advanceMountainWizardToReview(
 
   const stepHeadings = [/قیمت|ظرفیت/, /مکان/, /برنامه/, /شرکت/, /لجستیک/, "قوانین", /بازبینی/];
   for (const heading of stepHeadings) {
-    await page.getByRole("button", { name: "بعدی" }).click();
+    await page.getByRole("button", { name: /Next|بعدی/ }).click();
     await expect(page.locator("form h2").first()).toContainText(heading, { timeout: 20_000 });
   }
 }
@@ -930,15 +781,15 @@ export async function advanceUrbanWizardToReview(
   await tourTypeSelect.dispatchEvent("change");
   await expect(page.getByLabel("عنوان تور")).toHaveValue(/تست integration/, { timeout: 20_000 });
 
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/تم/, { timeout: 20_000 });
   if (options?.mainTourTheme) {
     await selectMainTourThemeInWizard(page, options.mainTourTheme);
   }
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/مکان/, { timeout: 20_000 });
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText("قوانین", { timeout: 20_000 });
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/بازبینی/, { timeout: 20_000 });
 }

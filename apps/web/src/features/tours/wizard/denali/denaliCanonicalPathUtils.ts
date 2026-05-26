@@ -12,7 +12,21 @@ export const DENALI_CANONICAL_SECTION_ROOTS = [
   "pricing",
   "participants",
   "policies",
+  "overview",
+  "metrics",
 ] as const;
+
+/** Registry `tripDetails.*` paths map to top-level canonical slices. */
+const REGISTRY_CANONICAL_ALIASES: Record<string, string> = {
+  "tripDetails.overview.peakHeight": "overview.peakHeight",
+  "tripDetails.overview.nonAttendanceDetails": "overview.nonAttendanceDetails",
+  "tripDetails.overview.customServiceLabels": "customServiceLabels",
+  "tripDetails.metrics.elevationGain": "metrics.elevationGain",
+};
+
+export function resolveDenaliRegistryCanonicalPath(canonicalPath: string): string {
+  return REGISTRY_CANONICAL_ALIASES[canonicalPath] ?? canonicalPath;
+}
 
 export type DenaliCanonicalSectionRoot = (typeof DENALI_CANONICAL_SECTION_ROOTS)[number];
 
@@ -51,7 +65,9 @@ export function getDenaliCanonicalPathValue(
     );
   }
 
-  const segments = canonicalPath.split(".").filter((segment) => segment.length > 0);
+  const segments = resolveDenaliRegistryCanonicalPath(canonicalPath)
+    .split(".")
+    .filter((segment) => segment.length > 0);
   if (segments.length === 0) {
     return undefined;
   }

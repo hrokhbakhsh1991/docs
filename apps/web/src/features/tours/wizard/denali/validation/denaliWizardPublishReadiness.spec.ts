@@ -63,8 +63,9 @@ function publishGateMountainForm(
       ...patch?.transport,
     },
     tripDetails: patch?.tripDetails ?? {
+      ...base.tripDetails,
       logistics: { gatheringPoints: [CONCRETE_GATHERING] },
-      overview: { customServiceLabels: [] },
+      overview: { ...base.tripDetails.overview, customServiceLabels: [] },
     },
   });
 }

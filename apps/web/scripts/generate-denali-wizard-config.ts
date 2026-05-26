@@ -140,7 +140,8 @@ type ZodSection =
   | "policies"
   | "photosData"
   | "tripDetails.logistics"
-  | "tripDetails.overview";
+  | "tripDetails.overview"
+  | "tripDetails.metrics";
 
 function zodSectionForRhfPath(rhfPath: string): ZodSection {
   if (rhfPath.startsWith("basicInfo.")) return "basicInfo";
@@ -151,6 +152,7 @@ function zodSectionForRhfPath(rhfPath: string): ZodSection {
   if (rhfPath.startsWith("policies.")) return "policies";
   if (rhfPath.startsWith("photosData.")) return "photosData";
   if (rhfPath.startsWith("tripDetails.overview.")) return "tripDetails.overview";
+  if (rhfPath.startsWith("tripDetails.metrics.")) return "tripDetails.metrics";
   return "tripDetails.logistics";
 }
 
@@ -174,6 +176,7 @@ function buildZodSchemaFile(): string {
     photosData: new Map(),
     "tripDetails.logistics": new Map(),
     "tripDetails.overview": new Map(),
+    "tripDetails.metrics": new Map(),
   };
 
   for (const def of DENALI_FIELD_DEFINITIONS) {
@@ -271,6 +274,8 @@ ${renderObject("denaliPhotosSchema", sections.photosData)}
 
 ${renderObject("denaliTripDetailsOverviewSchema", sections["tripDetails.overview"])}
 
+${renderObject("denaliTripDetailsMetricsSchema", sections["tripDetails.metrics"])}
+
 const denaliTripDetailsLogisticsSchema = z.object({
   gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
 }).default({ gatheringPoints: [] });
@@ -286,9 +291,11 @@ const denaliTourCreateObjectSchema = z.object({
   tripDetails: z.object({
     logistics: denaliTripDetailsLogisticsSchema,
     overview: denaliTripDetailsOverviewSchema,
+    metrics: denaliTripDetailsMetricsSchema,
   }).default({
     logistics: { gatheringPoints: [] },
     overview: { customServiceLabels: [] },
+    metrics: {},
   }),
 });
 

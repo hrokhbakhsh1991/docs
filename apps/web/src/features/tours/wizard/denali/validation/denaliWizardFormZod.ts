@@ -84,13 +84,20 @@ function mergeValidationIssues(
         );
 
   const includeCanonical = options.scope.mode === "submit";
-  const canonicalParsed = includeCanonical
-    ? safeParseDenaliCanonicalFromWizardForm(normalized)
-    : { success: true as const, data: undefined };
-  const canonicalIssues =
-    includeCanonical && !canonicalParsed.success
-      ? canonicalIssuesToFormIssues(canonicalParsed.error.issues)
-      : [];
+  let canonicalIssues: z.ZodIssue[] = [];
+  if (includeCanonical) {
+    // Canonical validation depends on `basicInfo.tourType` being classified.
+    // When it's missing/invalid, `denaliFormToCanonical` may throw (even though the
+    // function name is "safeParse"). We treat that case as "no canonical issues".
+    try {
+      const canonicalParsed = safeParseDenaliCanonicalFromWizardForm(normalized);
+      canonicalIssues = !canonicalParsed.success
+        ? canonicalIssuesToFormIssues(canonicalParsed.error.issues)
+        : [];
+    } catch {
+      canonicalIssues = [];
+    }
+  }
 
   return dedupeIssuesByPath([
     ...structuralIssues,
@@ -117,8 +124,17 @@ export function getDenaliWizardSubmitIssues(
   const normalized = normalizeDenaliWizardForm(form, uiOptions, ruleSet);
   const model = resolveDenaliRuleModelFromForm(normalized, ruleSet);
   if (model == null) {
-    return [TOUR_TYPE_REQUIRED_ISSUE];
+    // Without classification we still want to surface rule-engine requiredness for
+    // contextual fields (e.g. `transport.dongAmount` for `shared_cars`), but we can't
+    // run canonical validation.
+    const fallbackModel = ruleSet.mountain.single_day;
+    const issues = mergeValidationIssues(normalized, fallbackModel, {
+      scope: { mode: "submit" },
+      uiOptions,
+    });
+    return [...issues, TOUR_TYPE_REQUIRED_ISSUE];
   }
+
   return mergeValidationIssues(normalized, model, { scope: { mode: "submit" }, uiOptions });
 }
 

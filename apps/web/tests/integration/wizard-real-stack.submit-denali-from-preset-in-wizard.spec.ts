@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import {
   advanceDenaliWizardToReview,
-  clearWizardDrafts,
   fetchTourThemeBySlug,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
@@ -23,7 +22,6 @@ test.describe("real-stack denali in-wizard preset select", () => {
       test.skip(true, "denali project only");
     }
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
   });
 
   test("owner selects settings preset in wizard → fields match Denali shape → submit", async ({

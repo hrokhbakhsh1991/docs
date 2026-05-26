@@ -26,21 +26,9 @@ export type QuickAddModalConfig<TEntity = unknown> = {
   schema?: z.ZodType;
   formComponent: ComponentType<QuickAddFormProps<TEntity>>;
   /**
-   * Bridge after successful create: update react-hook-form and CanonicalContext here so
-   * wizard localStorage / sessionStorage draft stays aligned. Modal closes only when the
-   * inner form calls through to this callback (not on API error).
+   * Bridge after successful create: update react-hook-form and CanonicalContext here.
+   * Modal closes only when the inner form calls through to this callback (not on API error).
    */
   onSuccess: (entity: TEntity) => void;
   onClose?: () => void;
-  /**
-   * When true, snapshots the tour wizard draft to sessionStorage (guard) and
-   * localStorage before the modal opens so wizard progress survives the overlay.
-   */
-  persistWizardState?: boolean;
-};
-
-export type WizardPersistenceConfig = {
-  storageKey: string;
-  getFormValues: () => Record<string, unknown>;
-  serializeDraft: (values: Record<string, unknown>) => string;
 };

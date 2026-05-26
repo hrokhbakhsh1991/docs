@@ -92,12 +92,6 @@ export const settingsTourWizardTemplateKeys = {
   detail: (tenantId: string) => [...settingsTourWizardTemplateKeys.all, tenantId] as const,
 };
 
-export const settingsTourWizardDraftKeys = {
-  all: ["settings", "tourWizardDraft"] as const,
-  detail: (tenantId: string, userId: string) =>
-    [...settingsTourWizardDraftKeys.all, tenantId, userId] as const,
-};
-
 export const auditTrailKeys = {
   all: ["auditTrail"] as const,
   list: (tenantId: string, filters: Record<string, string>) =>

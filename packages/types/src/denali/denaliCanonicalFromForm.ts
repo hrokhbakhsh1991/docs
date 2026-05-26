@@ -80,7 +80,6 @@ export type DenaliWizardFormLike = {
     hikingUpHours?: number;
     /** @deprecated Use `hikingReturnHours`. */
     hikingDownHours?: number;
-    altitudeMeasurement?: number;
     itinerary?: Array<{
       day: number;
       activities: string;
@@ -95,6 +94,9 @@ export type DenaliWizardFormLike = {
         uploadedAt?: string;
       }>;
     }>;
+    /** @deprecated Use `tripDetails.metrics.elevationGain`. */
+    altitudeMeasurement?: number;
+    /** @deprecated Use `tripDetails.metrics.elevationGain`. */
     altitudeGainApprox?: number;
     itineraryOutline?: string;
     /** @deprecated Merged into themeIds on read. */
@@ -146,6 +148,7 @@ export type DenaliWizardFormLike = {
   };
   tripDetails?: {
     overview?: TripDetailsOverview;
+    metrics?: TripDetailsMetrics;
     logistics?: {
       gatheringPoints?: unknown[];
     };
@@ -156,6 +159,11 @@ export type DenaliWizardFormLike = {
 export interface TripDetailsOverview {
   customServiceLabels?: string[];
   nonAttendanceDetails?: string;
+  peakHeight?: number;
+}
+
+export interface TripDetailsMetrics {
+  elevationGain?: number;
 }
 
 function customServiceLabelsFromForm(
@@ -357,6 +365,22 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
   const nonAttendanceDetails = trimOptionalString(
     form.tripDetails?.overview?.nonAttendanceDetails,
   );
+  const peakHeight =
+    form.tripDetails?.overview?.peakHeight ??
+    form.programNature.altitudeMeasurement;
+  const elevationGain =
+    form.tripDetails?.metrics?.elevationGain ?? form.programNature.altitudeGainApprox;
+
+  const overview: DenaliCanonicalTourModel["overview"] = {
+    ...(nonAttendanceDetails != null ? { nonAttendanceDetails } : {}),
+    ...(typeof peakHeight === "number" && Number.isFinite(peakHeight)
+      ? { peakHeight }
+      : {}),
+  };
+  const metrics: DenaliCanonicalTourModel["metrics"] =
+    typeof elevationGain === "number" && Number.isFinite(elevationGain)
+      ? { elevationGain }
+      : undefined;
 
   return {
     category: basics.category,
@@ -378,9 +402,8 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
     customServiceLabels: customServiceLabelsFromForm(
       form.tripDetails?.overview?.customServiceLabels,
     ),
-    ...(nonAttendanceDetails != null
-      ? { overview: { nonAttendanceDetails } }
-      : {}),
+    ...(overview != null && Object.keys(overview).length > 0 ? { overview } : {}),
+    ...(metrics != null ? { metrics } : {}),
     startPoint: locations.startPoint,
     summitPoint: locations.summitPoint,
     campPoint: locations.campPoint,
@@ -410,7 +433,6 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
       hikingHoursApprox: form.programNature.hikingHoursApprox,
       hikingGoHours: hikingGoHoursFromForm(form.programNature),
       hikingReturnHours: hikingReturnHoursFromForm(form.programNature),
-      altitudeMeasurement: form.programNature.altitudeMeasurement,
       itinerary:
         form.programNature.itinerary != null && form.programNature.itinerary.length > 0
           ? form.programNature.itinerary.map((row) => {

@@ -628,25 +628,18 @@ test("assertDenaliPilotTripDetails rejects mountain_day without fitnessLevel", (
   }
 });
 
-test("assertDenaliPilotTripDetails rejects mountain_day when sportsInsuranceRequired is false", () => {
-  try {
-    assertTripDetailsForFormProfile(
-      "denali_pilot",
-      validDenaliMountainTripDetails({
-        participation: {
-          minimumAge: 18,
-          fitnessLevel: "moderate",
-          sportsInsuranceRequired: false,
-        },
-      }),
-      ["bus"],
-    );
-    assert.fail("expected BadRequestException");
-  } catch (e: unknown) {
-    assert.ok(e instanceof BadRequestException);
-    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_PARTICIPATION_SPORTS_INSURANCE_REQUIRED");
-  }
+test("assertDenaliPilotTripDetails allows mountain_day when sportsInsuranceRequired is false", () => {
+  assertTripDetailsForFormProfile(
+    "denali_pilot",
+    validDenaliMountainTripDetails({
+      participation: {
+        minimumAge: 18,
+        fitnessLevel: "moderate",
+        sportsInsuranceRequired: false,
+      },
+    }),
+    ["bus"],
+  );
 });
 
 test("assertDenaliPilotTripDetails rejects mountain_day without minimumAge", () => {

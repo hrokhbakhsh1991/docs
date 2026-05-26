@@ -9,7 +9,7 @@ import {
   preserveWizardMetaResolvedProfile,
   resolveTourFormProfile,
   resolveTourFormProfileForTourFormValues,
-  type TourWizardDraftMeta,
+  type TourWizardPrefillMeta,
 } from "./tourWizardProfileResolve";
 import { getVisibleWizardStepsForProfile } from "./tourWizardStepPlan";
 
@@ -45,7 +45,7 @@ test("getVisibleWizardStepsForProfile: urban_event also drops logistics", () => 
 });
 
 test("resolveTourFormProfile: uses snapshot when main theme matches", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "cinema_event",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
     themeIds: { main: "theme-a" },
@@ -60,7 +60,7 @@ test("resolveTourFormProfile: uses snapshot when main theme matches", () => {
 });
 
 test("resolveTourFormProfile: ignores snapshot when user changed main theme", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "cinema_event",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
     themeIds: { main: "theme-a" },
@@ -128,7 +128,7 @@ test("resolveTourFormProfile: tourType fallback when no theme match", () => {
 });
 
 test("resolveTourFormProfile: general snapshot yields to explicit non-general tourType", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "general",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
     themeIds: { main: "theme-a" },
@@ -143,7 +143,7 @@ test("resolveTourFormProfile: general snapshot yields to explicit non-general to
 });
 
 test("resolveTourFormProfile: snapshot theme id without live main binding yields to tourType", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "general",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
     themeIds: { main: "theme-a" },
@@ -158,7 +158,7 @@ test("resolveTourFormProfile: snapshot theme id without live main binding yields
 });
 
 test("resolveTourFormProfile: stale non-general snapshot without theme binding yields to tourType", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "mountain_outdoor",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
   };
@@ -172,7 +172,7 @@ test("resolveTourFormProfile: stale non-general snapshot without theme binding y
 });
 
 test("resolveTourFormProfile: general snapshot without theme binding yields to tourType", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "general",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
   };
@@ -281,7 +281,7 @@ test("coalesceWizardResolvedProfile: main theme catalog wins over transient gene
 });
 
 test("resolveTourFormProfile: bound main theme catalog wins over general snapshot label", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "general",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
     themeIds: { main: "theme-1" },
@@ -298,7 +298,7 @@ test("resolveTourFormProfile: bound main theme catalog wins over general snapsho
 });
 
 test("wizard derived profile: preserve snapshot then tourType when resolve returns general", () => {
-  const snapshot: TourWizardDraftMeta = {
+  const snapshot: TourWizardPrefillMeta = {
     resolvedFormProfile: "mountain_outdoor",
     formProfileVersion: TOUR_FORM_PROFILE_VERSION,
   };

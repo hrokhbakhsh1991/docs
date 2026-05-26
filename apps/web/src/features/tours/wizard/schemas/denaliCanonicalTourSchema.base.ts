@@ -44,7 +44,6 @@ const denaliCanonicalProgramSchema = z
     hikingHoursApprox: z.number().int().min(1).optional(),
     hikingGoHours: z.number().int().min(1).optional(),
     hikingReturnHours: z.number().int().min(1).optional(),
-    altitudeMeasurement: z.number().int().min(0, "ارتفاع نمی‌تواند منفی باشد.").optional(),
     itinerary: z.array(denaliCanonicalItineraryDayRowSchema).optional(),
   })
   .strict();
@@ -170,6 +169,18 @@ export const denaliCanonicalTourObjectSchema = z
     socialMediaLink: z.string().trim().max(2048).optional(),
     /** Wizard-only: maps to API `lifecycle_status` on submit (`draft` → DRAFT, `active` → OPEN). */
     publishStatus: z.enum(["draft", "active"]).optional(),
+
+    overview: z
+      .object({
+        nonAttendanceDetails: z.string().trim().optional(),
+        peakHeight: z.number().int().min(0, "ارتفاع نمی‌تواند منفی باشد.").optional(),
+      })
+      .optional(),
+    metrics: z
+      .object({
+        elevationGain: z.number().int().min(0, "صعود ارتفاعی نمی‌تواند منفی باشد.").optional(),
+      })
+      .optional(),
 
     program: denaliCanonicalProgramSchema,
     transport: denaliCanonicalTransportSchema,

@@ -11,11 +11,6 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  removeLegacyWizardDraftFromStorage,
-  removeWizardDraftFromStorage,
-} from "@/features/tours/wizard/tourWizardDraftEnvelope";
-
 import { inflightBffGet } from "./inflight-bff-get";
 import { decodeJwtPayload } from "./decode-jwt-payload";
 import { fetchMembershipAbilityContext } from "./membership-ability-context";
@@ -157,12 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const tenantId = user?.tenantId?.trim() || null;
-    const prev = prevTenantIdRef.current;
-    if (prev && tenantId && prev !== tenantId) {
-      removeWizardDraftFromStorage(prev);
-    }
-    prevTenantIdRef.current = tenantId;
+    prevTenantIdRef.current = user?.tenantId?.trim() || null;
   }, [user?.tenantId]);
 
   const setSession = useCallback(async (session: WebSessionResponseBody) => {
@@ -189,15 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearSession = useCallback(async () => {
-    const tenantId = user?.tenantId?.trim();
-    if (tenantId) {
-      removeWizardDraftFromStorage(tenantId);
-    }
-    removeLegacyWizardDraftFromStorage();
     await clearSessionToken();
     setUser(null);
     prevTenantIdRef.current = null;
-  }, [user?.tenantId]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -207,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession,
       clearSession,
     }),
-    [user, isHydrated, setSession, clearSession]
+    [user, isHydrated, setSession, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

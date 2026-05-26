@@ -10,7 +10,6 @@ import { WorkspaceGuideLanguageEntity } from "./entities/workspace-guide-languag
 import { WorkspaceRegionEntity } from "./entities/workspace-region.entity";
 import { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
 import { WorkspaceTourThemeEntity } from "./entities/workspace-tour-theme.entity";
-import { WorkspaceTourWizardDraftEntity } from "./entities/workspace-tour-wizard-draft.entity";
 import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
 import { SettingsDestinationsController } from "./settings-destinations.controller";
 import { SettingsDestinationsService } from "./settings-destinations.service";
@@ -18,13 +17,11 @@ import { GuideLanguagesSettingsService } from "./guide-languages-settings.servic
 import { SettingsEquipmentController } from "./settings-equipment.controller";
 import { SettingsGuideLanguagesController } from "./settings-guide-languages.controller";
 import { SettingsTourCreationPresetsController } from "./settings-tour-creation-presets.controller";
-import { SettingsTourWizardDraftController } from "./settings-tour-wizard-draft.controller";
 import { SettingsTourWizardTemplateController } from "./settings-tour-wizard-template.controller";
 import { SettingsTourThemesController } from "./settings-tour-themes.controller";
 import { SettingsRegionsController } from "./settings-regions.controller";
 import { SettingsRegionsService } from "./settings-regions.service";
 import { TourCreationPresetsSettingsService } from "./tour-creation-presets-settings.service";
-import { TourWizardDraftSettingsService } from "./tour-wizard-draft-settings.service";
 import { TourWizardTemplateSettingsService } from "./tour-wizard-template-settings.service";
 import { TourThemesSettingsService } from "./tour-themes-settings.service";
 
@@ -40,7 +37,6 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
       WorkspaceTourThemeEntity,
       WorkspaceTourCreationPresetEntity,
       WorkspaceTourWizardTemplateEntity,
-      WorkspaceTourWizardDraftEntity,
     ])
   ],
   controllers: [
@@ -51,7 +47,6 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
     SettingsTourThemesController,
     SettingsTourCreationPresetsController,
     SettingsTourWizardTemplateController,
-    SettingsTourWizardDraftController,
   ],
   providers: [
     SettingsRegionsService,
@@ -61,7 +56,6 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
     TourThemesSettingsService,
     TourCreationPresetsSettingsService,
     TourWizardTemplateSettingsService,
-    TourWizardDraftSettingsService,
   ]
 })
 export class SettingsLocationsModule {}

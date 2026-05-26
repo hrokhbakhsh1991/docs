@@ -4,15 +4,12 @@ import type { DenaliTourKind } from "@repo/types";
 
 import {
   advanceDenaliWizardToReview,
-  buildDenaliSubmitDraftJson,
-  clearWizardDrafts,
   fetchTourThemeBySlug,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
+  openDenaliCreateWizardWithFormPatch,
   ownerPhoneFromProject,
   submitWizardAndExpectTourList,
-  seedWizardDraft,
-  recoverDenaliWizardDraftIfPresent,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
 
@@ -51,7 +48,6 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
       test.skip(true, "denali project only");
     }
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
   });
 
   test("owner submits mountain_day with shared_cars transport", async ({ page }, testInfo) => {
@@ -61,17 +57,12 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
     const theme = await fetchTourThemeBySlug(page, "mountain");
     expect(theme, "theme mountain").toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
+    await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
       tourType: "mountain_day",
       mainTourThemeId: theme!.id,
       transportMode: "shared_cars",
       dongAmount: 150_000,
     });
-    await seedWizardDraft(page, slug, draftJson);
-
-    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
-    await recoverDenaliWizardDraftIfPresent(page);
 
     await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: "mountain_day" });
     await submitWizardAndExpectTourList(page);
@@ -85,16 +76,11 @@ test.describe("real-stack denali owner matrix (6 tour kinds)", () => {
       const theme = await fetchTourThemeBySlug(page, row.themeSlug);
       expect(theme, `theme ${row.themeSlug}`).toBeTruthy();
 
-      const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
+      await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
         tourType: row.kind,
         mainTourThemeId: theme!.id,
         meetingPoint: row.meetingPoint,
       });
-      await seedWizardDraft(page, slug, draftJson);
-
-      await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-      await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
-      await recoverDenaliWizardDraftIfPresent(page);
 
       await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: row.kind });
       await submitWizardAndExpectTourList(page);

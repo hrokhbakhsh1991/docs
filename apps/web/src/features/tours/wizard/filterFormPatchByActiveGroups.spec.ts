@@ -9,13 +9,13 @@ import {
   filterFormPatchByActiveGroups,
   inactiveTourCreateRootKeysForProfile,
 } from "./fieldGroups";
-import { mergeTourDraft } from "./tourCreateWizardMerge";
+import { mergeTourFormPatch } from "./tourCreateWizardMerge";
 import { buildTourCreateFormDefaultValues } from "./tourCreateFormDefaults";
 import { presetDefaultsToFormPatch } from "./tourCreationPresetMatch";
 
 /**
  * Spec covers the **profile-aware preload filter** (`filterFormPatchByActiveGroups`) and its
- * integration with `mergeTourDraft` used by both presets and clone/draft restore.
+ * integration with `mergeTourFormPatch` used by both presets and clone/draft restore.
  *
  * Contract: roots owned by **inactive** field groups for the resolved profile must not be
  * merged into RHF state. Active-group roots must round-trip untouched.
@@ -81,7 +81,7 @@ test("filterFormPatchByActiveGroups: returns a fresh shallow copy (does not muta
   assert.ok("itinerary" in patch, "input patch must remain untouched");
 });
 
-test("integration with mergeTourDraft: cinema_event preset cannot write participation / itinerary", () => {
+test("integration with mergeTourFormPatch: cinema_event preset cannot write participation / itinerary", () => {
   const base = buildTourCreateFormDefaultValues();
   const presetDefaults: Record<string, unknown> = {
     overview: { title: "Movie Night" },
@@ -91,7 +91,7 @@ test("integration with mergeTourDraft: cinema_event preset cannot write particip
   };
   const patch = presetDefaultsToFormPatch(presetDefaults);
   const filtered = filterFormPatchByActiveGroups("cinema_event", patch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
 
   assert.equal(merged.overview.title, "Movie Night", "active root (overview) is merged");
   assert.deepEqual(
@@ -111,7 +111,7 @@ test("integration with mergeTourDraft: cinema_event preset cannot write particip
   );
 });
 
-test("integration with mergeTourDraft: urban_event clone cannot preload logistics", () => {
+test("integration with mergeTourFormPatch: urban_event clone cannot preload logistics", () => {
   const base = buildTourCreateFormDefaultValues();
   // Simulates the shape produced by `transformTourToWizardValues` for a non-urban source tour.
   const clonePatch: Partial<TourCreateFormValues> = {
@@ -126,10 +126,10 @@ test("integration with mergeTourDraft: urban_event clone cannot preload logistic
     } as TourCreateFormValues["participation"],
   };
   const filtered = filterFormPatchByActiveGroups("urban_event", clonePatch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
 
   assert.equal(merged.overview.title, "Street Fair");
-  // Assert per-field rather than full shape: `mergeTourDraft` always normalizes
+  // Assert per-field rather than full shape: `mergeTourFormPatch` always normalizes
   // `logistics.accommodationTypes` via `sanitizeWizardAccommodationTypes`, which is unrelated to
   // this filter. The contract we care about is that nothing the patch carried in logistics /
   // participation leaks into the merged form.
@@ -155,7 +155,7 @@ test("integration with mergeTourDraft: urban_event clone cannot preload logistic
   );
 });
 
-test("integration with mergeTourDraft: cinema_event clone cannot preload itinerary / participation", () => {
+test("integration with mergeTourFormPatch: cinema_event clone cannot preload itinerary / participation", () => {
   const base = buildTourCreateFormDefaultValues();
   // Simulates a clone where the source tour was a mountain trip (active itinerary +
   // participation lists) being restored into a cinema_event wizard.
@@ -178,7 +178,7 @@ test("integration with mergeTourDraft: cinema_event clone cannot preload itinera
     } as TourCreateFormValues["logistics"],
   };
   const filtered = filterFormPatchByActiveGroups("cinema_event", clonePatch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
 
   assert.equal(merged.overview.title, "Cloned Trip");
   assert.deepEqual(
@@ -194,7 +194,7 @@ test("integration with mergeTourDraft: cinema_event clone cannot preload itinera
   assert.equal(merged.logistics.primaryTransportMode, "bus");
 });
 
-test("integration with mergeTourDraft: general profile preset round-trips all roots (regression guard)", () => {
+test("integration with mergeTourFormPatch: general profile preset round-trips all roots (regression guard)", () => {
   const base = buildTourCreateFormDefaultValues();
   const presetDefaults: Record<string, unknown> = {
     overview: { title: "Hello" },
@@ -205,7 +205,7 @@ test("integration with mergeTourDraft: general profile preset round-trips all ro
   };
   const patch = presetDefaultsToFormPatch(presetDefaults);
   const filtered = filterFormPatchByActiveGroups("general", patch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
 
   assert.equal(merged.overview.title, "Hello");
   assert.equal(merged.participation.minimumAge, 21);

@@ -15,6 +15,7 @@ import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { DenaliDailyItinerarySection } from "./DenaliDailyItinerarySection";
+import { DenaliItineraryStep } from "./DenaliItineraryStep";
 
 const STEP = "denali_program" as const;
 
@@ -41,7 +42,6 @@ export function DenaliProgramNatureStep() {
     ["program.difficultyLevel", "program.hikingHoursApprox"],
     form,
   );
-  const showAltitude = isVisible("program.altitudeMeasurement", form);
   const showDailyItinerary = isVisible("program.itinerary", form);
 
   const themesQuery = useSettingsTourThemes();
@@ -204,27 +204,7 @@ export function DenaliProgramNatureStep() {
         </>
       ) : null}
 
-      {showAltitude ? (
-        <FormField
-          label={t("program.altitudeMeasurement")}
-          error={errors.programNature?.altitudeMeasurement?.message}
-        >
-          <PersianNumberInput
-            numericMode="integer"
-            formatThousands
-            value={program.altitudeMeasurement ?? ""}
-            onChange={(v) =>
-              updateCanonical({
-                program: {
-                  ...program,
-                  altitudeMeasurement: v === "" ? undefined : Number(v),
-                },
-              })
-            }
-            data-testid="denali-program-altitude"
-          />
-        </FormField>
-      ) : null}
+      <DenaliItineraryStep form={form} />
 
       {showDailyItinerary ? <DenaliDailyItinerarySection /> : null}
     </div>

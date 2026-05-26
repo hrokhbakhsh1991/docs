@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { useController, useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Checkbox, FormField, Select, Textarea } from "@tour/ui";
 
@@ -25,8 +25,13 @@ const PATH_FITNESS_LEVEL = "participants.fitnessLevel";
 export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTourWizardForm }) {
   const t = useTranslations("tours.denali");
   const {
+    control,
     formState: { errors },
   } = useFormContext<DenaliCreateTourWizardForm>();
+  const sportsInsuranceField = useController({
+    control,
+    name: "participantRequirements.sportsInsuranceRequired",
+  });
   const { updateCanonical } = useDenaliCanonical();
   const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
     "participants",
@@ -158,15 +163,16 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
             <Checkbox
               data-testid="denali-pricing-sports-insurance"
               label={t("participants.sportsInsurance")}
-              checked={Boolean(participants.sportsInsuranceRequired)}
-              onChange={(e) =>
+              checked={sportsInsuranceField.field.value === true}
+              onChange={(e) => {
+                sportsInsuranceField.field.onChange(e.target.checked);
                 updateCanonical({
                   participants: {
                     ...participants,
                     sportsInsuranceRequired: e.target.checked,
                   },
-                })
-              }
+                });
+              }}
             />
           ) : null}
 

@@ -3,7 +3,7 @@
  * Run: cd apps/web && node --import tsx scripts/print-denali-wizard-diagnostic.ts
  */
 import { transformTourToDenaliWizardValues } from "../src/features/tours/clone/transformTourToDenaliWizardValues";
-import { mergeDenaliWizardDefaults } from "../src/features/tours/wizard/denaliWizardDraftEnvelope";
+import { mergeDenaliFormDefaults } from "../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { buildDenaliTourCreateDefaultValues } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { buildDenaliWizardDiagnosticReport } from "../src/features/tours/wizard/denali/denaliWizardDiagnostic";
 import type { DenaliCreateTourWizardForm } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
@@ -73,7 +73,7 @@ const cloneSource = {
 };
 
 const patch = transformTourToDenaliWizardValues(cloneSource as never);
-const form = mergeDenaliWizardDefaults(
+const form = mergeDenaliFormDefaults(
   buildDenaliTourCreateDefaultValues(),
   patch,
 ) as DenaliCreateTourWizardForm;

@@ -97,18 +97,11 @@ export const denaliCanonicalTourSchema = denaliCanonicalTourObjectSchema.superRe
   }
 
   if (data.category === "mountain") {
-    if (!isPositiveInt(data.program.altitudeMeasurement)) {
+    if (!isPositiveInt(data.overview?.peakHeight)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["program", "altitudeMeasurement"],
-        message: "حداکثر ارتفاع برای تور کوهنوردی الزامی است.",
-      });
-    }
-    if (data.participants.sportsInsuranceRequired !== true) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["participants", "sportsInsuranceRequired"],
-        message: "بیمه ورزشی برای تور کوهنوردی الزامی است.",
+        path: ["overview", "peakHeight"],
+        message: "ارتفاع قله برای تور کوهنوردی الزامی است.",
       });
     }
   }

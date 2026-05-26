@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
   addLeaderSmokeSessionCookie,
-  clearTourWizardLocalDraft,
   expectWizardTemplateProfile,
   fillTourWizardBasicInfoStep,
   installLeaderWorkspaceSessionRoute,
@@ -22,7 +21,6 @@ const WORKSPACE_TEMPLATE_PROFILE = "urban_event" as const;
 test.describe("tour wizard urban workspace template (stepper)", () => {
   test.beforeEach(async ({ page, context }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
-    await clearTourWizardLocalDraft(page);
     await installUrbanWizardE2eSeed(page);
     await installLeaderWorkspaceSessionRoute(page);
     await addLeaderSmokeSessionCookie(context, baseURL);

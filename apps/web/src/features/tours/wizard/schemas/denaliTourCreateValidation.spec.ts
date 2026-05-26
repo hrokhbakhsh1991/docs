@@ -37,7 +37,7 @@ test("getDenaliWizardStepIssues: program step ignores participantRequirements", 
 
 test("getDenaliWizardSubmitIssues aligns with validateDenaliWizardForm", () => {
   const form = buildDenaliTourCreateDefaultValues();
-  form.participantRequirements.sportsInsuranceRequired = false;
+  form.participantRequirements.fitnessLevel = undefined;
   const issues = getDenaliWizardSubmitIssues(form);
   const validated = validateDenaliWizardForm(form);
   assert.equal(validated.success, false);

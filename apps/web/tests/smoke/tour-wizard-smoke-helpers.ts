@@ -6,10 +6,6 @@ import {
   type Route,
 } from "@playwright/test";
 
-import {
-  WIZARD_DRAFT_STORAGE_KEY_LEGACY,
-  wizardDraftStorageKey,
-} from "../../src/features/tours/wizard/tourWizardDraftEnvelope";
 import { SESSION_TOKEN_COOKIE } from "../../lib/auth/session-cookie";
 import { decodeJwtPayload } from "../../lib/auth/decode-jwt-payload";
 
@@ -20,13 +16,11 @@ const TOUR_OPS_SESSION_TOKEN_STORAGE_KEY = "tour_ops_session_token";
 /** Default Playwright origin for tour wizard smoke (tenant host label required). */
 export const SMOKE_WORKSPACE_BASE_URL = "http://ws1-rbac.localhost:3000";
 
-/** Workspace host slug — matches {@link useWorkspaceDraftScope} / `ws1-rbac.localhost`. */
+/** Workspace host slug for smoke tests (`ws1-rbac.localhost`). */
 export const SMOKE_WIZARD_TENANT_SCOPE = "ws1-rbac";
 
-/** JWT `tenant_id` for session mock (API scope); draft keys use slug above. */
+/** JWT `tenant_id` for session mock (API scope). */
 export const SMOKE_WIZARD_JWT_TENANT_ID = "00311449-1df0-4413-8d61-26c6ac82e9ed";
-
-export const SMOKE_WIZARD_DRAFT_STORAGE_KEY = wizardDraftStorageKey(SMOKE_WIZARD_TENANT_SCOPE);
 
 /** Loopback e2e profile seed (`TourCreateWizard` reads `?e2eTourType=` on localhost hosts). */
 export const SMOKE_WIZARD_URBAN_E2E_QUERY = "e2eTourType=city";
@@ -132,72 +126,6 @@ export async function installSmokeTourOpsSessionToken(page: Page, jwt: string = 
       }
     },
     { key: TOUR_OPS_SESSION_TOKEN_STORAGE_KEY, token: jwt },
-  );
-}
-
-/** Seeds wizard draft JSON on the scoped storage key (after a first navigation cleared legacy keys). */
-export async function seedSmokeWizardDraft(page: Page, json: string): Promise<void> {
-  await page.evaluate(
-    ({ key, payload }: { key: string; payload: string }) => {
-      try {
-        localStorage.setItem(key, payload);
-      } catch {
-        /* ignore */
-      }
-    },
-    { key: SMOKE_WIZARD_DRAFT_STORAGE_KEY, payload: json },
-  );
-}
-
-/** Clears wizard draft keys on the current origin (call after a navigation that established storage). */
-export async function purgeTourWizardDraftStorage(page: Page): Promise<void> {
-  await page.evaluate(
-    ({ legacy, scoped }: { legacy: string; scoped: string }) => {
-      try {
-        localStorage.removeItem(legacy);
-        localStorage.removeItem(scoped);
-      } catch {
-        /* ignore */
-      }
-    },
-    { legacy: WIZARD_DRAFT_STORAGE_KEY_LEGACY, scoped: SMOKE_WIZARD_DRAFT_STORAGE_KEY },
-  );
-}
-
-/** Enables server draft restore/sync in smoke without a dedicated production build flag. */
-export async function installSmokeServerDraftEnabled(page: Page): Promise<void> {
-  const enable = () => {
-    window.__TOUR_WIZARD_SERVER_DRAFT__ = true;
-  };
-  await page.context().addInitScript(enable);
-  await page.addInitScript(enable);
-}
-
-/** Enables Denali local draft autosave in smoke when the build omits `NEXT_PUBLIC_ENABLE_DENALI_DRAFT`. */
-export async function installSmokeDenaliDraftEnabled(page: Page): Promise<void> {
-  const enable = () => {
-    window.__DENALI_DRAFT__ = true;
-  };
-  await page.context().addInitScript(enable);
-  await page.addInitScript(enable);
-}
-
-export async function clearTourWizardLocalDraft(page: Page): Promise<void> {
-  // Important: avoid `addInitScript` that deletes on every navigation — smoke tests often seed a
-  // draft on one `goto` and navigate again; a per-navigation wipe would delete the seed.
-  await page.addInitScript(
-    ({ legacy, scoped }: { legacy: string; scoped: string }) => {
-      const FLAG = "__tour_wizard_draft_cleared_once_v1";
-      try {
-        if (sessionStorage.getItem(FLAG) === "1") return;
-        sessionStorage.setItem(FLAG, "1");
-        localStorage.removeItem(legacy);
-        localStorage.removeItem(scoped);
-      } catch {
-        /* ignore */
-      }
-    },
-    { legacy: WIZARD_DRAFT_STORAGE_KEY_LEGACY, scoped: SMOKE_WIZARD_DRAFT_STORAGE_KEY },
   );
 }
 
@@ -372,93 +300,6 @@ export async function installTourWizardSettingsRoutes(
 }
 
 
-export type TourWizardServerDraftMock = {
-  id?: string;
-  envelope: Record<string, unknown>;
-  updatedAt: string;
-  rowVersion?: number;
-  currentStepIndex?: number;
-};
-
-/**
- * Mocks BFF `GET/PATCH/DELETE /api/settings/tour-wizard-draft` (requires build with
- * `NEXT_PUBLIC_TOUR_WIZARD_SERVER_DRAFT=1`).
- */
-export async function installTourWizardServerDraftRoutes(
-  page: Page,
-  opts: {
-    getDraft?: TourWizardServerDraftMock | null;
-    onPatch?: (body: Record<string, unknown>) => void;
-  } = {},
-): Promise<void> {
-  let rowVersion = opts.getDraft?.rowVersion ?? 1;
-  const draftId = opts.getDraft?.id ?? "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
-
-  const fulfillDraft = async (route: Route) => {
-    const method = route.request().method().toUpperCase();
-    if (method === "GET") {
-      const draft = opts.getDraft;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          draft: draft
-            ? {
-                id: draftId,
-                workspaceId: SMOKE_WIZARD_JWT_TENANT_ID,
-                userId: "user-smoke-1",
-                envelope: draft.envelope,
-                payload: draft.envelope,
-                currentStepIndex: opts.getDraft?.currentStepIndex ?? 0,
-                version: draft.rowVersion ?? rowVersion,
-                rowVersion: draft.rowVersion ?? rowVersion,
-                updatedAt: draft.updatedAt,
-              }
-            : null,
-        }),
-      });
-      return;
-    }
-    if (method === "PATCH") {
-      let body: Record<string, unknown> = {};
-      try {
-        body = route.request().postDataJSON() as Record<string, unknown>;
-      } catch {
-        /* ignore */
-      }
-      opts.onPatch?.(body);
-      rowVersion += 1;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          draft: {
-            id: draftId,
-            workspaceId: SMOKE_WIZARD_JWT_TENANT_ID,
-            userId: "user-smoke-1",
-            envelope: (body.envelope as Record<string, unknown>) ?? {},
-            payload: (body.payload as Record<string, unknown>) ?? (body.envelope as Record<string, unknown>) ?? {},
-            currentStepIndex: (body.currentStepIndex as number) ?? 0,
-            version: rowVersion,
-            rowVersion,
-            updatedAt: new Date().toISOString(),
-          },
-        }),
-      });
-      return;
-    }
-    if (method === "DELETE") {
-      await route.fulfill({ status: 204, body: "" });
-      return;
-    }
-    await route.continue();
-  };
-
-  await page.context().route("**/api/settings/tour-wizard-draft", fulfillDraft);
-  await page.route("**/api/settings/tour-wizard-draft", fulfillDraft);
-  await page.context().route("**/api/workspaces/*/tours/drafts", fulfillDraft);
-  await page.route("**/api/workspaces/*/tours/drafts", fulfillDraft);
-}
 
 /** Minimal active region + destination for `LocationDatesStep` / `useTourDestinations`. */
 export async function installTourWizardRegionsAndDestinationsRoutes(page: Page): Promise<void> {

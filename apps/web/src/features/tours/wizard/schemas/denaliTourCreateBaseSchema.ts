@@ -51,7 +51,6 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       hikingHoursApprox: undefined,
       hikingGoHours: undefined,
       hikingReturnHours: undefined,
-      altitudeMeasurement: undefined,
       itinerary: [],
     },
     transport: {
@@ -90,6 +89,7 @@ export function buildDenaliTourCreateDefaultValues(): DenaliCreateTourWizardForm
       overview: {
         customServiceLabels: [],
       },
+      metrics: {},
     },
   };
 }
@@ -114,7 +114,13 @@ export function buildDenaliTourCreateTestValues(): DenaliCreateTourWizardForm {
       shortDescription: "یک برنامه جذاب برای صعود به بام ایران.",
       difficultyLevel: 5,
       hikingHoursApprox: 8,
-      altitudeMeasurement: 5610,
+    },
+    tripDetails: {
+      ...base.tripDetails,
+      overview: {
+        ...base.tripDetails.overview,
+        peakHeight: 5610,
+      },
     },
     pricingPayment: {
       ...base.pricingPayment,

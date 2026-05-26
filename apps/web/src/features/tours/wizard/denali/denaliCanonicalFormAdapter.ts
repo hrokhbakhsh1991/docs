@@ -73,16 +73,52 @@ function nonAttendanceDetailsToFormOverview(
   );
 }
 
+function peakHeightFromForm(form: DenaliCreateTourWizardForm): number | undefined {
+  const value =
+    form.tripDetails?.overview?.peakHeight ?? form.programNature.altitudeMeasurement;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function peakHeightFromCanonical(canonical: DenaliCanonicalTourModel): number | undefined {
+  const value = canonical.overview?.peakHeight;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function elevationGainFromForm(form: DenaliCreateTourWizardForm): number | undefined {
+  const value =
+    form.tripDetails?.metrics?.elevationGain ?? form.programNature.altitudeGainApprox;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function elevationGainFromCanonical(canonical: DenaliCanonicalTourModel): number | undefined {
+  const value = canonical.metrics?.elevationGain;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 function overviewToCanonical(
   form: DenaliCreateTourWizardForm,
   base: DenaliCanonicalTourModel,
-): DenaliCanonicalTourModel["overview"] {
+): DenaliCanonicalTourModel["overview"] | undefined {
   const nonAttendanceDetails =
     nonAttendanceDetailsFromForm(form) ?? nonAttendanceDetailsFromCanonical(base);
-  if (nonAttendanceDetails == null) {
-    return base.overview;
+  const peakHeight = peakHeightFromForm(form) ?? peakHeightFromCanonical(base);
+  const next: NonNullable<DenaliCanonicalTourModel["overview"]> = {
+    ...base.overview,
+    ...(nonAttendanceDetails != null ? { nonAttendanceDetails } : {}),
+    ...(peakHeight != null ? { peakHeight } : {}),
+  };
+  return Object.keys(next).length > 0 ? next : undefined;
+}
+
+function metricsToCanonical(
+  form: DenaliCreateTourWizardForm,
+  base: DenaliCanonicalTourModel,
+): DenaliCanonicalTourModel["metrics"] | undefined {
+  const elevationGain = elevationGainFromForm(form) ?? elevationGainFromCanonical(base);
+  if (elevationGain == null) {
+    return base.metrics;
   }
-  return { ...base.overview, nonAttendanceDetails };
+  return { ...base.metrics, elevationGain };
 }
 
 function transportModeToCanonical(
@@ -134,6 +170,7 @@ export function createInitialDenaliCanonicalModel(
       gatheringPoints != null && gatheringPoints.length > 0 ? gatheringPoints : undefined,
     customServiceLabels: customServiceLabelsFromForm(form),
     overview: overviewToCanonical(form, {}),
+    metrics: metricsToCanonical(form, {}),
     approximateReturnTime: form.basicInfo.approximateReturnTime,
     leaderUserIds:
       form.basicInfo.leaderUserIds != null && form.basicInfo.leaderUserIds.length > 0
@@ -160,7 +197,6 @@ export function createInitialDenaliCanonicalModel(
       hikingHoursApprox: form.programNature.hikingHoursApprox,
       hikingGoHours: form.programNature.hikingGoHours,
       hikingReturnHours: form.programNature.hikingReturnHours,
-      altitudeMeasurement: form.programNature.altitudeMeasurement,
       itinerary:
         form.programNature.itinerary != null && form.programNature.itinerary.length > 0
           ? form.programNature.itinerary.map((row) => {
@@ -256,6 +292,7 @@ export function mergeDenaliCanonicalPartial(
     participants: { ...base.participants, ...patch.participants },
     policies: { ...base.policies, ...patch.policies },
     overview: { ...base.overview, ...patch.overview },
+    metrics: { ...base.metrics, ...patch.metrics },
   };
 
   return {
@@ -294,6 +331,7 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
     customServiceLabels:
       customServiceLabelsFromForm(form) ?? base.customServiceLabels,
     overview: overviewToCanonical(form, base),
+    metrics: metricsToCanonical(form, base),
     approximateReturnTime: form.basicInfo.approximateReturnTime ?? base.approximateReturnTime,
     socialMediaLink:
       form.basicInfo.socialMediaLink ??
@@ -326,7 +364,6 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       hikingHoursApprox: form.programNature.hikingHoursApprox,
       hikingGoHours: form.programNature.hikingGoHours,
       hikingReturnHours: form.programNature.hikingReturnHours,
-      altitudeMeasurement: form.programNature.altitudeMeasurement,
       itinerary:
         form.programNature.itinerary != null && form.programNature.itinerary.length > 0
           ? form.programNature.itinerary.map((row) => {
@@ -419,7 +456,6 @@ export function denaliCanonicalToForm(
       hikingHoursApprox: canonical.program.hikingHoursApprox,
       hikingGoHours: canonical.program.hikingGoHours,
       hikingReturnHours: canonical.program.hikingReturnHours,
-      altitudeMeasurement: canonical.program.altitudeMeasurement,
       itinerary: canonical.program.itinerary,
     },
     transport: {
@@ -437,6 +473,11 @@ export function denaliCanonicalToForm(
         ...existingForm.tripDetails?.overview,
         customServiceLabels: customServiceLabelsToFormOverview(canonical, existingForm),
         nonAttendanceDetails: nonAttendanceDetailsToFormOverview(canonical, existingForm),
+        peakHeight: peakHeightFromCanonical(canonical) ?? peakHeightFromForm(existingForm),
+      },
+      metrics: {
+        elevationGain:
+          elevationGainFromCanonical(canonical) ?? elevationGainFromForm(existingForm),
       },
       logistics: {
         ...existingForm.tripDetails?.logistics,
@@ -508,7 +549,6 @@ export function applyCanonicalMvpToForm(
       hikingHoursApprox: next.programNature.hikingHoursApprox,
       hikingGoHours: next.programNature.hikingGoHours,
       hikingReturnHours: next.programNature.hikingReturnHours,
-      altitudeMeasurement: next.programNature.altitudeMeasurement,
       itinerary: next.programNature.itinerary,
     },
     sync,

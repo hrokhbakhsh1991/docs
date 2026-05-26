@@ -2,14 +2,11 @@ import { expect, test } from "@playwright/test";
 
 import {
   advanceDenaliWizardToReview,
-  buildDenaliSubmitDraftJson,
-  clearWizardDrafts,
   fetchTourThemeForProfile,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
+  openDenaliCreateWizardWithFormPatch,
   ownerPhoneFromProject,
-  seedWizardDraft,
-  recoverDenaliWizardDraftIfPresent,
   submitWizardAndExpectTourList,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
@@ -27,20 +24,14 @@ test.describe("real-stack denali 6-tab wizard submit", () => {
 
     const runId = Date.now().toString();
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
 
     const location = await fetchWizardLocationIds(page);
     const theme = await fetchTourThemeForProfile(page, "denali_pilot");
     expect(theme, "denali workspace must expose a denali_pilot theme").toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
+    await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
       mainTourThemeId: theme!.id,
     });
-    await seedWizardDraft(page, slug, draftJson);
-
-    await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
-    await recoverDenaliWizardDraftIfPresent(page);
 
     await advanceDenaliWizardToReview(page, { mainTourTheme: theme! });
     await submitWizardAndExpectTourList(page);

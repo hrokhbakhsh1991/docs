@@ -157,6 +157,8 @@ export function DenaliReviewStep() {
     DenaliCanonicalTourModel["gatheringPoints"]
   >("gatheringPoints");
   const startPoint = useDenaliCanonicalValue<DenaliCanonicalTourModel["startPoint"]>("startPoint");
+  const overview = useDenaliCanonicalValue<DenaliCanonicalTourModel["overview"]>("overview");
+  const metrics = useDenaliCanonicalValue<DenaliCanonicalTourModel["metrics"]>("metrics");
   const program = useDenaliCanonicalValue<DenaliCanonicalTourModel["program"]>("program");
   const transport = useDenaliCanonicalValue<DenaliCanonicalTourModel["transport"]>("transport");
   const pricing = useDenaliCanonicalValue<DenaliCanonicalTourModel["pricing"]>("pricing");
@@ -345,6 +347,12 @@ export function DenaliReviewStep() {
           <ReviewRow label={t("basic.eventVariantLabel")} value={eventLabel} />
         ) : null}
         <ReviewRow label={t("basic.destination")} value={destinationLabel} />
+        {isReviewFieldVisible("tripDetails.overview.peakHeight", formForUi) ? (
+          <ReviewRow
+            label={t("basic.peakHeight")}
+            value={overview?.peakHeight != null ? String(overview.peakHeight) : undefined}
+          />
+        ) : null}
         <ReviewRow label={t("basic.workspaceLeaders")} value={workspaceLeaderLabels} />
         <ReviewRow
           label={t("basic.requiresLocalGuide")}
@@ -411,13 +419,11 @@ export function DenaliReviewStep() {
                   : undefined
               }
             />
-            {isReviewFieldVisible("program.altitudeMeasurement", formForUi) ? (
+            {isReviewFieldVisible("tripDetails.metrics.elevationGain", formForUi) ? (
               <ReviewRow
-                label={t("program.altitudeMeasurement")}
+                label={t("program.elevationGain")}
                 value={
-                  program.altitudeMeasurement != null
-                    ? String(program.altitudeMeasurement)
-                    : undefined
+                  metrics?.elevationGain != null ? String(metrics.elevationGain) : undefined
                 }
               />
             ) : null}

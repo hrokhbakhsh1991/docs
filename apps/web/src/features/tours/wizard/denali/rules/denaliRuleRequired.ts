@@ -67,7 +67,7 @@ function isEmptyRequiredValue(value: unknown, path: string): boolean {
       formPath === "transport.dongAmount" ||
       formPath === "pricingPayment.basePricePerPerson" ||
       formPath === "basicInfo.capacityMax" ||
-      formPath === "programNature.altitudeMeasurement") &&
+      formPath === "tripDetails.overview.peakHeight") &&
     typeof value === "number"
   ) {
     return !Number.isFinite(value) || value <= 0;

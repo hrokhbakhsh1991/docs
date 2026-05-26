@@ -306,6 +306,8 @@ function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
       secondaryDestinationIdsRaw: optionalLongText,
       /** Denali pilot publish pins (classic edit + wizard parity). */
       denaliTourKind: optionalShortText(64),
+      nonAttendanceDetails: optionalLongText,
+      customServiceLabels: z.array(z.string().trim().min(1)).optional(),
       startPoint: denaliLocationDataSchema.optional(),
     })
     .strip();

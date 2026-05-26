@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import {
   advanceDenaliWizardToReview,
-  clearWizardDrafts,
   createDenaliTourViaApi,
   fetchTourThemeForProfile,
   fetchWizardLocationIds,
@@ -24,7 +23,6 @@ test.describe("real-stack denali clone tour", () => {
       test.skip(true, "denali project only");
     }
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
   });
 
   test("?clone= → denali wizard pre-filled → submit", async ({ page }, testInfo) => {
@@ -55,7 +53,6 @@ test.describe("real-stack denali clone tour", () => {
     expect((overview.leaderUserIds as string[]).length).toBeGreaterThan(0);
     expect(overview.localGuideName).toBe("Integration local guide");
 
-    await clearWizardDrafts(page, slug);
 
     await page.goto(`/tours/new?clone=${encodeURIComponent(sourceTourId)}`, {
       waitUntil: "domcontentloaded",
@@ -92,7 +89,6 @@ test.describe("real-stack denali clone tour", () => {
     const sourceTourId = await createDenaliTourViaApi(page, location!, `${slug}-${runId}`, {
       mainTourThemeId: theme!.id,
     });
-    await clearWizardDrafts(page, slug);
 
     await page.goto(`/tours?search=${encodeURIComponent("1234567890")}`, {
       waitUntil: "domcontentloaded",

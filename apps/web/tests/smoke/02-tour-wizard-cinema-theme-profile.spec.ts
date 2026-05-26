@@ -2,10 +2,8 @@ import { expect, test } from "@playwright/test";
 
 import {
   addLeaderSmokeSessionCookie,
-  clearTourWizardLocalDraft,
   expectWizardTemplateProfile,
   fillTourWizardBasicInfoStep,
-  purgeTourWizardDraftStorage,
   installLeaderWorkspaceSessionRoute,
   installTourWizardSettingsRoutes,
   setNativeSelectValue,
@@ -23,7 +21,6 @@ const WORKSPACE_TEMPLATE_PROFILE = "cinema_event" as const;
 test.describe("tour wizard cinema workspace template (stepper)", () => {
   test.beforeEach(async ({ page, context }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
-    await clearTourWizardLocalDraft(page);
     await installLeaderWorkspaceSessionRoute(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
 
@@ -49,7 +46,6 @@ test.describe("tour wizard cinema workspace template (stepper)", () => {
   test("cinema template stepper stays stable when main theme is selected", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
-    await purgeTourWizardDraftStorage(page);
     await page.reload({ waitUntil: "domcontentloaded" });
 
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });

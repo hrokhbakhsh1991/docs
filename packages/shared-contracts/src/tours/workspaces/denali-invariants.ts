@@ -141,13 +141,6 @@ export function checkDenaliPilotTripDetails(
           "participation.fitnessLevel is required for mountain_day and mountain_multi Denali tour kinds.",
       };
     }
-    if (part?.sportsInsuranceRequired !== true) {
-      return {
-        code: "WORKSPACE_RULE_DENALI_PARTICIPATION_SPORTS_INSURANCE_REQUIRED",
-        message:
-          "participation.sportsInsuranceRequired must be true for mountain_day and mountain_multi Denali tour kinds.",
-      };
-    }
   }
 
   return null;

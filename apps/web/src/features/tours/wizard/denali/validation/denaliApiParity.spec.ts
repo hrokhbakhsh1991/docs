@@ -198,19 +198,6 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    id: "sportsInsurance_false",
-    mutate: (f) => {
-      f.participantRequirements.sportsInsuranceRequired = false;
-    },
-    expect: {
-      web: "blocked",
-      projection: "pass",
-      mapper: "pass",
-      api: "blocked",
-      apiCode: "WORKSPACE_RULE_DENALI_PARTICIPATION_SPORTS_INSURANCE_REQUIRED",
-    },
-  },
-  {
     id: "missing_minimumAge",
     mutate: (f) => {
       f.participantRequirements.minimumAge = undefined;

@@ -15,9 +15,11 @@ export type DenaliWizardDiagnosticReport = {
     gearIdMatchDetails: Array<{ id: string; matched: boolean }>;
   };
   requiredFieldsAfterHydration: {
-    altitudeMeasurement: number | undefined;
+    peakHeight: number | undefined;
+    elevationGain: number | undefined;
     themeIds: string[];
-    altitudePresent: boolean;
+    peakHeightPresent: boolean;
+    elevationGainPresent: boolean;
     themeIdsPresent: boolean;
   };
   canonicalSnapshot: {
@@ -71,11 +73,15 @@ export function buildDenaliWizardDiagnosticReport(input: {
       gearIdMatchDetails,
     },
     requiredFieldsAfterHydration: {
-      altitudeMeasurement: canonical.program.altitudeMeasurement,
+      peakHeight: canonical.overview?.peakHeight,
+      elevationGain: canonical.metrics?.elevationGain,
       themeIds: [...(canonical.program.themeIds ?? [])],
-      altitudePresent:
-        canonical.program.altitudeMeasurement != null &&
-        Number.isFinite(canonical.program.altitudeMeasurement),
+      peakHeightPresent:
+        canonical.overview?.peakHeight != null &&
+        Number.isFinite(canonical.overview.peakHeight),
+      elevationGainPresent:
+        canonical.metrics?.elevationGain != null &&
+        Number.isFinite(canonical.metrics.elevationGain),
       themeIdsPresent: (canonical.program.themeIds ?? []).length > 0,
     },
     canonicalSnapshot: {

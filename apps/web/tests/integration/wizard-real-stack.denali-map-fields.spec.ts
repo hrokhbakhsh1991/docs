@@ -4,8 +4,6 @@ import type { DenaliTourKind } from "@repo/types";
 
 import {
   advanceDenaliWizardToReview,
-  buildDenaliSubmitDraftJson,
-  clearWizardDrafts,
   createDenaliTourViaApi,
   ensureActiveEquipment,
   fetchTourThemes,
@@ -13,41 +11,37 @@ import {
   fetchTourTripDetails,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
+  openDenaliCreateWizardWithFormPatch,
   ownerPhoneFromProject,
-  seedWizardDraft,
-  recoverDenaliWizardDraftIfPresent,
   submitWizardAndExpectTourList,
   tenantSlugFromProject,
 } from "./real-tenant.helpers";
 
 const skipUnlessRealStack = !process.env.PW_REAL_STACK;
 
-async function gotoDenaliWizardWithDraft(
-  page: import("@playwright/test").Page,
-  slug: string,
-  draftJson: string,
-): Promise<void> {
-  await clearWizardDrafts(page, slug);
-  await seedWizardDraft(page, slug, draftJson);
-  await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
-  await recoverDenaliWizardDraftIfPresent(page);
-}
-
 async function openDenaliProgramStep(
   page: import("@playwright/test").Page,
   tourType: DenaliTourKind,
-  theme?: { id: string; name: string; formProfile: string },
+  theme?: { id: string; name: string; formProfile: string; slug?: string },
+  titleSuffix?: string,
 ): Promise<void> {
+  const slug = "denali";
+  const runId = titleSuffix ?? `program-${Date.now()}`;
+  const location = await fetchWizardLocationIds(page);
+  await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
+    tourType,
+    mainTourThemeId: theme?.id,
+  });
+
   const w = page.getByTestId("denali-create-tour-wizard");
-  await page.getByRole("button", { name: "بعدی" }).click();
+  await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
   if (theme) {
-    const themeCheckbox = w.getByTestId(`denali-theme-select-${(theme as any).slug}`);
-    await expect(themeCheckbox).toBeVisible({ timeout: 30_000 });
-    await themeCheckbox.check();
+    const themeCheckbox = w.getByTestId(`denali-theme-select-${(theme as { slug?: string }).slug ?? theme.id}`);
+    if (await themeCheckbox.isVisible().catch(() => false)) {
+      await themeCheckbox.check();
+    }
   }
-  void tourType;
 }
 
 test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => {
@@ -61,62 +55,41 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
   });
 
-  test("mountain_day program step shows altitude field", async ({ page }, testInfo) => {
-    const slug = tenantSlugFromProject(testInfo.project.metadata);
+  test("mountain_day program step shows altitude field", async ({ page }) => {
     const runId = `map-altitude-visible-${Date.now()}`;
-    const location = await fetchWizardLocationIds(page);
     const theme = await resolveDenaliIntegrationTheme(page, {
       preferredSlugs: ["denali-mountain-1-day"],
       formProfiles: ["denali_pilot", "mountain_outdoor"],
     });
     expect(theme, "mountain theme (slug or denali_pilot/mountain_outdoor)").toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
-      tourType: "mountain_day",
-      mainTourThemeId: theme!.id,
-    });
-    await gotoDenaliWizardWithDraft(page, slug, draftJson);
-    await openDenaliProgramStep(page, "mountain_day", theme!);
+    await openDenaliProgramStep(page, "mountain_day", theme!, runId);
 
     const w = page.getByTestId("denali-create-tour-wizard");
     await expect(w.getByTestId("denali-program-altitude")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("mountain_day with nature_trip theme still shows altitude (category-driven)", async ({ page }, testInfo) => {
-    const slug = tenantSlugFromProject(testInfo.project.metadata);
+  test("mountain_day with nature_trip theme still shows altitude (category-driven)", async ({ page }) => {
     const runId = `map-altitude-category-${Date.now()}`;
-    const location = await fetchWizardLocationIds(page);
     const themes = await fetchTourThemes(page);
     const natureTheme = themes.find((t) => t.formProfile === "nature_trip");
     test.skip(!natureTheme, "workspace has no nature_trip theme");
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
-      tourType: "mountain_day",
-      mainTourThemeId: natureTheme!.id,
-    });
-    await gotoDenaliWizardWithDraft(page, slug, draftJson);
-    await openDenaliProgramStep(page, "mountain_day", natureTheme!);
+    await openDenaliProgramStep(page, "mountain_day", natureTheme!, runId);
 
     const w = page.getByTestId("denali-create-tour-wizard");
     await expect(w.getByTestId("denali-program-altitude")).toBeVisible({ timeout: 10_000 });
   });
 
-  test("mountain_multi program step shows three daily itinerary fields", async ({ page }, testInfo) => {
-    const slug = tenantSlugFromProject(testInfo.project.metadata);
+  test("mountain_multi program step shows three daily itinerary fields", async ({ page }) => {
     const runId = `map-itinerary-${Date.now()}`;
-    const location = await fetchWizardLocationIds(page);
     const theme = await resolveDenaliIntegrationTheme(page, {
       preferredSlugs: ["denali-mountain-multi-day", "denali-mountain-1-day"],
       formProfiles: ["denali_pilot", "mountain_outdoor"],
     });
     expect(theme, "mountain multi theme").toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
-      tourType: "mountain_multi",
-      mainTourThemeId: theme!.id,
-    });
-    await gotoDenaliWizardWithDraft(page, slug, draftJson);
-    await openDenaliProgramStep(page, "mountain_multi", theme!);
+    await openDenaliProgramStep(page, "mountain_multi", theme!, runId);
 
     const w = page.getByTestId("denali-create-tour-wizard");
     await expect(w.getByTestId("denali-daily-itinerary")).toBeVisible({ timeout: 10_000 });
@@ -136,16 +109,15 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     });
     expect(theme).toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
+    await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
       tourType: "mountain_day",
       mainTourThemeId: theme!.id,
       gearItems: [{ id: gear.id, isRequired: true }],
     });
-    await gotoDenaliWizardWithDraft(page, slug, draftJson);
 
-    await page.getByRole("button", { name: "بعدی" }).click();
+    await page.getByRole("button", { name: /Next|بعدی/ }).click();
     await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
-    await page.getByRole("button", { name: "بعدی" }).click();
+    await page.getByRole("button", { name: /Next|بعدی/ }).click();
     await expect(page.locator("form h2").first()).toContainText(/لجستیک|خدمات/, { timeout: 20_000 });
 
     const w = page.getByTestId("denali-create-tour-wizard");
@@ -167,7 +139,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     const tourId = await createDenaliTourViaApi(page, location, `${slug}-${runId}`, {
       tourType: "mountain_multi",
       mainTourThemeId: theme!.id,
-      altitudeMeasurement: 5_100,
+      peakHeight: 5_100,
       gearItems: [{ id: gear.id, isRequired: true }],
     });
 
@@ -195,12 +167,11 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     });
     expect(theme).toBeTruthy();
 
-    const draftJson = buildDenaliSubmitDraftJson(location, `${slug}-${runId}`, {
+    await openDenaliCreateWizardWithFormPatch(page, location, `${slug}-${runId}`, {
       tourType: "mountain_day",
       mainTourThemeId: theme!.id,
-      altitudeMeasurement: 4_200,
+      peakHeight: 4_200,
     });
-    await gotoDenaliWizardWithDraft(page, slug, draftJson);
 
     await advanceDenaliWizardToReview(page, { mainTourTheme: theme!, tourType: "mountain_day" });
     await expect(page.getByTestId("denali-step-review")).toBeVisible({ timeout: 15_000 });

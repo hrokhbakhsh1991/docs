@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 
 import {
   advanceDenaliWizardToReview,
-  clearWizardDrafts,
   fetchTourThemeBySlug,
   fetchWizardLocationIds,
   loginWithPhoneOtp,
@@ -22,7 +21,6 @@ test.describe("real-stack denali create tour from settings preset", () => {
       test.skip(true, "denali project only");
     }
     await loginWithPhoneOtp(page, ownerPhoneFromProject(testInfo.project.metadata));
-    await clearWizardDrafts(page, slug);
   });
 
   test("owner opens mountain_day preset → wizard pre-filled → submit", async ({ page }) => {

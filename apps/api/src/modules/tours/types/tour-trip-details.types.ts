@@ -111,6 +111,10 @@ export interface TripDetailsOverview {
    * If empty, the UI falls back to `Tour.description` (the long-form copy) for cards.
    */
   shortIntro?: string;
+  /** Optional admin note for non-attendance (Denali wizard). */
+  nonAttendanceDetails?: string;
+  /** Workspace-defined custom service labels (Denali wizard). */
+  customServiceLabels?: string[];
 }
 
 export interface TripDetailsSegmentActivitySegment {

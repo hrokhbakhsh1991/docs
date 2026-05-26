@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 export type DenaliWizardSyncContextValue = {
-  /** True while debounced/in-flight tour wizard draft PATCH is active (server sync rail only). */
+  /** True while debounced/in-flight wizard sync is active. */
   readonly isSyncing: boolean;
 };
 

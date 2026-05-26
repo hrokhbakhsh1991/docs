@@ -4,7 +4,7 @@ import test from "node:test";
 import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 
 import { filterFormPatchByActiveGroups } from "./fieldGroups";
-import { mergeTourDraft } from "./tourCreateWizardMerge";
+import { mergeTourFormPatch } from "./tourCreateWizardMerge";
 import { buildTourCreateFormDefaultValues } from "./tourCreateFormDefaults";
 import {
   listAllTourWizardPresetsSorted,
@@ -121,7 +121,7 @@ test("apply template path: merge after filter with cinema profile drops inactive
   };
   const patch = presetDefaultsToFormPatch(defaults);
   const filtered = filterFormPatchByActiveGroups("cinema_event", patch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
   assert.equal(merged.overview.shortDescription, "preset short");
   assert.deepEqual(merged.itinerary, base.itinerary);
   assert.deepEqual(merged.participation, base.participation);
@@ -137,7 +137,7 @@ test("apply template path: urban_event filter drops itinerary, participation, lo
     logistics: { primaryTransportMode: "bus" } as TourCreateFormValues["logistics"],
   };
   const filtered = filterFormPatchByActiveGroups("urban_event", patch);
-  const merged = mergeTourDraft(base, filtered);
+  const merged = mergeTourFormPatch(base, filtered);
   assert.equal(merged.overview.title, "Street");
   assert.deepEqual(merged.itinerary, base.itinerary);
   assert.deepEqual(merged.participation, base.participation);

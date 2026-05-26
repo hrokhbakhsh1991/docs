@@ -20,6 +20,15 @@ test("TripDetailsOverviewDto: accepts denaliTourKind", async () => {
   assert.equal(dto.denaliTourKind, "mountain_day");
 });
 
+test("TripDetailsOverviewDto: accepts nonAttendanceDetails", async () => {
+  const dto = plainToInstance(TripDetailsOverviewDto, {
+    nonAttendanceDetails: "No-show policy for late arrivals.",
+  });
+  const errors = await validate(dto);
+  assert.deepEqual(errors, []);
+  assert.equal(dto.nonAttendanceDetails, "No-show policy for late arrivals.");
+});
+
 test("TripDetailsOverviewDto: rejects unknown denaliTourKind", async () => {
   const dto = plainToInstance(TripDetailsOverviewDto, {
     denaliTourKind: "not_a_denali_kind",

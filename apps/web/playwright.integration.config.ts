@@ -47,11 +47,6 @@ export default defineConfig({
       metadata: { ownerPhone: "+989121000003", tenantSlug: "mix-demo" },
     },
     {
-      name: "tenant-isolation",
-      testMatch: /wizard-draft-tenant-isolation\.spec\.ts/,
-      use: { baseURL: `http://denali.localhost:${port}` },
-    },
-    {
       name: "denali-tour-detail",
       testMatch: /tour-detail-catalog-aggregation\.spec\.ts/,
       use: { baseURL: `http://denali.localhost:${port}` },
@@ -73,7 +68,6 @@ export default defineConfig({
           NEXT_PUBLIC_TENANT_ROOT_DOMAIN: "localhost",
           NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "true",
           NEXT_PUBLIC_API_PORT: "3001",
-          NEXT_PUBLIC_TOUR_WIZARD_SERVER_DRAFT: "1",
           NEXT_PUBLIC_DENALI_SIX_TAB_WIZARD: "1",
         },
       },

@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
   addLeaderSmokeSessionCookie,
-  clearTourWizardLocalDraft,
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
@@ -20,7 +19,6 @@ test.describe("denali tour create wizard shell", () => {
     page.on("response", res => console.log(`[BROWSER RESPONSE] ${res.status()} ${res.url()}`));
 
     const baseURL = test.info().project.use.baseURL || "http://denali.localhost:3000";
-    await clearTourWizardLocalDraft(page);
     await installUrbanWizardE2eSeed(page);
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);

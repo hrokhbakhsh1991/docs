@@ -1,15 +1,12 @@
 import type { TourFormProfile, TourType } from "@repo/types";
 import {
   DEFAULT_TOUR_FORM_PROFILE,
-  TOUR_FORM_PROFILE_VERSION,
   defaultTourFormProfileForTourType,
   isTourFormProfile,
   normalizeTourFormProfileInput,
 } from "@repo/types";
 
-import { TOUR_WIZARD_CONTRACT_VERSION } from "./contract/tour-wizard-contract-version";
-
-export type TourWizardDraftMeta = {
+export type TourWizardPrefillMeta = {
   sourceTourId?: string;
   sourcePresetId?: string;
   themeIds?: { main?: string; secondary?: string[] };
@@ -17,55 +14,12 @@ export type TourWizardDraftMeta = {
   formProfileVersion: number;
   /** Wizard DTO strict-schema generation; see `tour-wizard-contract-version.ts`. */
   wizardContractVersion?: number;
-  /** ISO timestamp of last local or server autosave (restore conflict resolution). */
   savedAt?: string;
 };
 
-export function parseTourWizardDraftMeta(raw: unknown): TourWizardDraftMeta | undefined {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
-  const o = raw as Record<string, unknown>;
-  const w = o._wizardMeta;
-  if (!w || typeof w !== "object" || Array.isArray(w)) return undefined;
-  const m = w as Record<string, unknown>;
-  const profileRaw = m.resolvedFormProfile;
-  const profile = isTourFormProfile(profileRaw) ? profileRaw : DEFAULT_TOUR_FORM_PROFILE;
-  const version =
-    typeof m.formProfileVersion === "number" && Number.isFinite(m.formProfileVersion)
-      ? m.formProfileVersion
-      : TOUR_FORM_PROFILE_VERSION;
-  const wizardContractVersion =
-    typeof m.wizardContractVersion === "number" && Number.isFinite(m.wizardContractVersion)
-      ? m.wizardContractVersion
-      : TOUR_WIZARD_CONTRACT_VERSION;
-  if (version > TOUR_FORM_PROFILE_VERSION || wizardContractVersion > TOUR_WIZARD_CONTRACT_VERSION) {
-    return undefined;
-  }
-  const sourceTourId = typeof m.sourceTourId === "string" ? m.sourceTourId : undefined;
-  const sourcePresetId = typeof m.sourcePresetId === "string" ? m.sourcePresetId : undefined;
-  let themeIds: TourWizardDraftMeta["themeIds"];
-  const ti = m.themeIds;
-  if (ti && typeof ti === "object" && !Array.isArray(ti)) {
-    const t = ti as Record<string, unknown>;
-    const main = typeof t.main === "string" ? t.main : undefined;
-    const sec = t.secondary;
-    const secondary = Array.isArray(sec) ? sec.filter((x): x is string => typeof x === "string") : undefined;
-    themeIds = { main, secondary };
-  }
-  const savedAt = typeof m.savedAt === "string" ? m.savedAt : undefined;
-  return {
-    sourceTourId,
-    sourcePresetId,
-    themeIds,
-    resolvedFormProfile: profile,
-    formProfileVersion: version,
-    wizardContractVersion,
-    savedAt,
-  };
-}
-
 export type ThemeRowForProfile = { id: string; formProfile?: TourFormProfile | string | null };
 
-/** First non-empty theme id from RHF, draft storage, or native `<select>` (Playwright / restore timing). */
+/** First non-empty theme id from RHF or native `<select>` (Playwright timing). */
 export function coalesceWizardMainTourThemeId(input: {
   watchedMain?: string | undefined;
   storageMain?: string | undefined;
@@ -88,7 +42,7 @@ export function coalesceWizardMainTourThemeId(input: {
  * form (`resolveTourFormProfileForTourFormValues`).
  */
 export function resolveTourFormProfile(input: {
-  snapshot?: TourWizardDraftMeta;
+  snapshot?: TourWizardPrefillMeta;
   mainTourThemeId: string | undefined;
   themeCatalog: ThemeRowForProfile[] | undefined;
   tourType: TourType | "" | undefined;

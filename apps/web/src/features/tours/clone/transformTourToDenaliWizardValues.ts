@@ -86,6 +86,17 @@ function readOverviewCustomServiceLabels(overview: Record<string, unknown>): str
     .filter((label) => label.length > 0);
 }
 
+function readOverviewNonAttendanceDetails(
+  overview: Record<string, unknown>,
+): string | undefined {
+  const raw = overview.nonAttendanceDetails;
+  if (typeof raw !== "string") {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 function ratingToDenaliDifficulty(
   rating: unknown,
 ): number {
@@ -378,15 +389,21 @@ export function applyDenaliCreateWizardHydrationGuards(
   const isMountain =
     basics != null && isDenaliMountainCategory(basics.category);
 
-  const programNature: Partial<DenaliCreateTourWizardForm["programNature"]> = {
-    ...form.programNature,
+  const tripDetails: Partial<DenaliCreateTourWizardForm["tripDetails"]> = {
+    ...form.tripDetails,
+    overview: {
+      ...form.tripDetails?.overview,
+    },
   };
   if (
     isMountain &&
-    (programNature.altitudeMeasurement == null ||
-      !Number.isFinite(programNature.altitudeMeasurement))
+    (tripDetails.overview?.peakHeight == null ||
+      !Number.isFinite(tripDetails.overview.peakHeight))
   ) {
-    programNature.altitudeMeasurement = CREATE_MOUNTAIN_ALTITUDE_FALLBACK_M;
+    tripDetails.overview = {
+      ...tripDetails.overview,
+      peakHeight: CREATE_MOUNTAIN_ALTITUDE_FALLBACK_M,
+    };
   }
 
   const participantRequirements: Partial<DenaliCreateTourWizardForm["participantRequirements"]> = {
@@ -397,9 +414,6 @@ export function applyDenaliCreateWizardHydrationGuards(
     if (participantRequirements.fitnessLevel == null) {
       participantRequirements.fitnessLevel = "medium";
     }
-    if (participantRequirements.sportsInsuranceRequired !== true) {
-      participantRequirements.sportsInsuranceRequired = true;
-    }
     if (participantRequirements.minimumAge == null) {
       participantRequirements.minimumAge = 18;
     }
@@ -407,7 +421,7 @@ export function applyDenaliCreateWizardHydrationGuards(
 
   return {
     ...form,
-    programNature: programNature as DenaliCreateTourWizardForm["programNature"],
+    tripDetails: tripDetails as DenaliCreateTourWizardForm["tripDetails"],
     participantRequirements:
       participantRequirements as DenaliCreateTourWizardForm["participantRequirements"],
   };
@@ -450,9 +464,10 @@ export function transformTourToDenaliWizardValues(
     : undefined;
 
   const difficultyLevel = ratingToDenaliDifficulty(overview.difficultyLevel);
-  const altitudeMeasurement =
-    numberOrUndefined(overview.altitudeMeasurement) ??
-    numberOrUndefined(overview.maxAltitudeMeters);
+  const peakHeight =
+    numberOrUndefined(overview.maxAltitudeMeters) ??
+    numberOrUndefined(overview.altitudeMeasurement);
+  const elevationGain = numberOrUndefined(overview.elevationGainMeters);
   const preserveGalleryPhotoIds = options?.preserveGalleryPhotoIds === true;
   const tourPhotos = mapDayPlanPhotos(tripDetails.photos, {
     preserveIds: preserveGalleryPhotoIds,
@@ -540,7 +555,6 @@ export function transformTourToDenaliWizardValues(
       hikingHoursApprox,
       hikingGoHours,
       hikingReturnHours,
-      ...(altitudeMeasurement != null ? { altitudeMeasurement } : {}),
       ...(isMultiDay && itineraryRows.length > 0 ? { itinerary: itineraryRows } : {}),
     },
     transport: transportFields,
@@ -571,6 +585,11 @@ export function transformTourToDenaliWizardValues(
       },
       overview: {
         customServiceLabels: readOverviewCustomServiceLabels(overview),
+        nonAttendanceDetails: readOverviewNonAttendanceDetails(overview),
+        ...(peakHeight != null ? { peakHeight } : {}),
+      },
+      metrics: {
+        ...(elevationGain != null ? { elevationGain } : {}),
       },
     },
   });

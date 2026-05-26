@@ -4,9 +4,16 @@ import test from "node:test";
 import { buildDenaliTourCreateDefaultValues } from "./denaliTourCreateFormModel";
 import { denaliCanonicalWizardResolver } from "./denaliWizardCanonicalResolver";
 
-test("denaliCanonicalWizardResolver matches submit gate for submit-only participant fields", async () => {
+test("denaliCanonicalWizardResolver allows optional sportsInsuranceRequired false", async () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
   form.participantRequirements.sportsInsuranceRequired = false;
+  form.participantRequirements.minimumAge = 18;
+  form.participantRequirements.fitnessLevel = "medium";
+  form.tripDetails = {
+    ...form.tripDetails,
+    overview: { ...form.tripDetails.overview, peakHeight: 4000 },
+  };
 
   const result = await denaliCanonicalWizardResolver(
     form,
@@ -14,11 +21,10 @@ test("denaliCanonicalWizardResolver matches submit gate for submit-only particip
     { criteriaMode: "all", fields: {}, names: [], shouldUseNativeValidation: false },
   );
 
-  assert.ok(result.errors);
   const insuranceError = (
-    result.errors as { participantRequirements?: { sportsInsuranceRequired?: { message?: string } } }
-  ).participantRequirements?.sportsInsuranceRequired;
-  assert.ok(insuranceError?.message);
+    result.errors as { participantRequirements?: { sportsInsuranceRequired?: { message?: string } } } | undefined
+  )?.participantRequirements?.sportsInsuranceRequired;
+  assert.equal(insuranceError, undefined);
 });
 
 test("denaliCanonicalWizardResolver requires multi-day endDateTime", async () => {

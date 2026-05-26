@@ -6,6 +6,7 @@ export type DenaliFieldKind = "standard" | "asyncAsset";
 
 export type DenaliFieldWireProjection =
   | { kind: "tripDetails.overview"; field: string }
+  | { kind: "tripDetails.metrics"; field: string }
   | { kind: "tripDetails.logistics"; field: string }
   | { kind: "tripDetails.participation"; field: string }
   | { kind: "tripDetails"; field: "transport" | "photos" }

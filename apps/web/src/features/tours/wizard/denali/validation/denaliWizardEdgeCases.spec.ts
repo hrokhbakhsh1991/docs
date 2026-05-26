@@ -4,7 +4,7 @@
  * | Area | Scenario | Expected |
  * |------|----------|----------|
  * | Mountain participants | fitnessLevel cleared on submit | submit fails: participantRequirements.fitnessLevel |
- * | Mountain participants | sportsInsuranceRequired false | submit fails: participantRequirements.sportsInsuranceRequired |
+ * | Mountain participants | sportsInsuranceRequired false | submit passes (optional registration condition) |
  * | Mountain participants | minimumAge cleared | submit fails: participantRequirements.minimumAge |
  * | Mountain participants | nature_day missing fitness | submit passes (not in rule set) |
  * | Mountain participants | valid defaults | projection includes fitness + insurance |
@@ -68,6 +68,7 @@ function assertNoIssue(issues: { path: any[] }[], path: string): void {
 
 function mountainForm(): ReturnType<typeof buildDenaliTourCreateDefaultValues> {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
   form.basicInfo.title = "Valid Mountain Title";
   form.basicInfo.capacityMax = 10;
   form.programNature.shortDescription = "Valid Description";
@@ -75,7 +76,10 @@ function mountainForm(): ReturnType<typeof buildDenaliTourCreateDefaultValues> {
   form.participantRequirements.minimumAge = 18;
   form.participantRequirements.fitnessLevel = "medium";
   form.participantRequirements.sportsInsuranceRequired = true;
-  form.programNature.altitudeMeasurement = 4000;
+  form.tripDetails = {
+    ...form.tripDetails,
+    overview: { ...form.tripDetails.overview, peakHeight: 4000 },
+  };
   return form;
 }
 
@@ -89,12 +93,11 @@ test("submit: mountain_day requires fitnessLevel when cleared", () => {
   assertHasIssue(result.issues, "participantRequirements.fitnessLevel");
 });
 
-test("submit: mountain_day requires sportsInsuranceRequired when false", () => {
+test("submit: mountain_day allows sportsInsuranceRequired false", () => {
   const form = mountainForm();
   form.participantRequirements.sportsInsuranceRequired = false;
   const result = validateDenaliWizardForm(form);
-  assert.equal(result.success, false);
-  assertHasIssue(result.issues, "participantRequirements.sportsInsuranceRequired");
+  assertNoIssue(result.issues, "participantRequirements.sportsInsuranceRequired");
 });
 
 test("submit: mountain_day requires minimumAge when cleared", () => {
@@ -279,9 +282,9 @@ test("getDenaliWizardStepIssues surfaces participant fields on pricing step", ()
   assert.ok(issues.some((i) => i.path.join(".") === "participantRequirements.minimumAge"));
 });
 
-test("applyDenaliWizardStepValidation on pricing enforces participant fields", () => {
+test("applyDenaliWizardStepValidation on pricing enforces required participant fields", () => {
   const form = mountainForm();
-  form.participantRequirements.sportsInsuranceRequired = false;
+  form.participantRequirements.minimumAge = undefined;
   const errors: string[] = [];
   const ok = applyDenaliWizardStepValidation(
     form,
@@ -292,7 +295,8 @@ test("applyDenaliWizardStepValidation on pricing enforces participant fields", (
     () => {},
   );
   assert.equal(ok, false);
-  assert.ok(errors.includes("participantRequirements.sportsInsuranceRequired"));
+  assert.ok(errors.includes("participantRequirements.minimumAge"));
+  assert.ok(!errors.includes("participantRequirements.sportsInsuranceRequired"));
 });
 
 // --- UI visibility matches rule model ---
@@ -422,7 +426,6 @@ test("applyDenaliWizardStepValidation on review fails when mountain participant 
   const form = mountainForm();
   form.participantRequirements.minimumAge = undefined;
   form.participantRequirements.fitnessLevel = undefined;
-  form.participantRequirements.sportsInsuranceRequired = false;
   const errorPaths: string[] = [];
   const ok = applyDenaliWizardStepValidation(
     form,
@@ -435,7 +438,7 @@ test("applyDenaliWizardStepValidation on review fails when mountain participant 
   assert.equal(ok, false);
   assert.ok(errorPaths.includes("participantRequirements.minimumAge"));
   assert.ok(errorPaths.includes("participantRequirements.fitnessLevel"));
-  assert.ok(errorPaths.includes("participantRequirements.sportsInsuranceRequired"));
+  assert.ok(!errorPaths.includes("participantRequirements.sportsInsuranceRequired"));
 });
 
 test("ui + normalize: event tour clears outdoor values from form state", () => {

@@ -98,7 +98,6 @@ const denaliBasicInfoSchema = z.object({
 });
 
 const denaliProgramNatureSchema = z.object({
-  altitudeMeasurement: optionalInt("مقدار نمی‌تواند منفی باشد."),
   difficultyLevel: z.number().min(1).max(10).optional(),
   hikingGoHours: optionalPositiveInt(1),
   hikingHoursApprox: optionalPositiveInt(1),
@@ -153,6 +152,11 @@ const denaliPhotosSchema = z.object({
 const denaliTripDetailsOverviewSchema = z.object({
   customServiceLabels: z.array(z.string().trim()).default([]),
   nonAttendanceDetails: z.string().trim().optional(),
+  peakHeight: optionalInt("مقدار نمی‌تواند منفی باشد."),
+});
+
+const denaliTripDetailsMetricsSchema = z.object({
+  elevationGain: optionalInt("مقدار نمی‌تواند منفی باشد."),
 });
 
 const denaliTripDetailsLogisticsSchema = z.object({
@@ -170,9 +174,11 @@ const denaliTourCreateObjectSchema = z.object({
   tripDetails: z.object({
     logistics: denaliTripDetailsLogisticsSchema,
     overview: denaliTripDetailsOverviewSchema,
+    metrics: denaliTripDetailsMetricsSchema,
   }).default({
     logistics: { gatheringPoints: [] },
     overview: { customServiceLabels: [] },
+    metrics: {},
   }),
 });
 

@@ -1,5 +1,5 @@
 /**
- * Wipes **all** Denali workspace data (tours + catalog + bookings + drafts) while keeping:
+ * Wipes **all** Denali workspace data (tours + catalog + bookings) while keeping:
  * - the `denali` tenant row
  * - the canonical Denali owner user + owner membership
  *
@@ -179,20 +179,6 @@ export async function resetDenaliWorkspace(options?: { reprovision?: boolean }):
         "tour_products",
         `DELETE FROM tour_products WHERE tenant_id = $1`,
         [tenantId],
-      );
-
-      deleted.tour_wizard_drafts = await deleteCount(
-        ds,
-        "tour_wizard_drafts",
-        `DELETE FROM tour_wizard_drafts WHERE workspace_id = $1`,
-        [workspaceId],
-      );
-
-      deleted.workspace_tour_wizard_drafts = await deleteCount(
-        ds,
-        "workspace_tour_wizard_drafts",
-        `DELETE FROM workspace_tour_wizard_drafts WHERE workspace_id = $1`,
-        [workspaceId],
       );
 
       deleted.workspace_tour_wizard_templates = await deleteCount(

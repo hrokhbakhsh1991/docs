@@ -383,6 +383,24 @@ export class TripDetailsOverviewDto {
   @IsOptional()
   @IsIn([...DENALI_TOUR_KIND_VALUES])
   denaliTourKind?: (typeof DENALI_TOUR_KIND_VALUES)[number];
+
+  @ApiPropertyOptional({
+    description: "Optional admin note for non-attendance (Denali wizard)."
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  nonAttendanceDetails?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      "Workspace-defined custom service labels (Denali wizard; also accepted on root create/update DTO)."
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  customServiceLabels?: string[];
 }
 
 export class TripDetailsSegmentActivitySegmentDto {

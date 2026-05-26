@@ -22,7 +22,7 @@ import {
   denaliWizardSteps,
   type DenaliCreateWizardStepId,
 } from "@/features/tours/wizard/denaliStepConfig";
-import { mergeDenaliWizardDefaults } from "@/features/tours/wizard/denaliWizardDraftEnvelope";
+import { mergeDenaliFormDefaults } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import {
   evaluateFormFieldRule,
   evaluateFormRules,
@@ -104,7 +104,7 @@ function buildFlatEditFormFromMockTour(
   overrides: Partial<TourCloneSourceDto> = {},
 ): DenaliCreateTourWizardForm {
   const patch = transformTourToDenaliWizardValues(makeMockTourForEdit(overrides), { mode: "clone" });
-  const merged = mergeDenaliWizardDefaults(buildDenaliTourCreateDefaultValues(), patch);
+  const merged = mergeDenaliFormDefaults(buildDenaliTourCreateDefaultValues(), patch);
   return finalizeDenaliWizardHydration(
     prepareDenaliWizardFormForSubmit(merged),
   );

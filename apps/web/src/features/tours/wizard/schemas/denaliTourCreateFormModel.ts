@@ -14,3 +14,32 @@ export {
   normalizeDenaliFormPatch,
   normalizeDenaliWizardForm,
 } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+
+/** Deep-merge partial wizard values onto defaults (clone/edit/preset helpers). */
+export function mergeDenaliFormDefaults(
+  defaults: import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm,
+  patch: Partial<import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm>,
+): import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm {
+  return {
+    ...defaults,
+    ...patch,
+    basicInfo: { ...defaults.basicInfo, ...patch.basicInfo },
+    programNature: { ...defaults.programNature, ...patch.programNature },
+    transport: { ...defaults.transport, ...patch.transport },
+    pricingPayment: { ...defaults.pricingPayment, ...patch.pricingPayment },
+    participantRequirements: {
+      ...defaults.participantRequirements,
+      ...patch.participantRequirements,
+    },
+    policies: { ...defaults.policies, ...patch.policies },
+    photosData: { ...defaults.photosData, ...patch.photosData },
+    tripDetails: {
+      ...defaults.tripDetails,
+      ...patch.tripDetails,
+      logistics: {
+        ...defaults.tripDetails.logistics,
+        ...patch.tripDetails?.logistics,
+      },
+    },
+  };
+}

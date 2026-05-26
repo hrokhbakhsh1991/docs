@@ -2,9 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   addLeaderSmokeSessionCookie,
-  clearTourWizardLocalDraft,
   fillTourWizardBasicInfoStep,
-  purgeTourWizardDraftStorage,
   installLeaderWorkspaceSessionRoute,
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
@@ -14,7 +12,6 @@ import {
 test.describe("tour wizard preset picker filters by resolved form profile", () => {
   test.beforeEach(async ({ page, context }) => {
     const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
-    await clearTourWizardLocalDraft(page);
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
@@ -68,7 +65,6 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
   test("cinema workspace template filters preset select by form_profile", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
-    await purgeTourWizardDraftStorage(page);
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
 

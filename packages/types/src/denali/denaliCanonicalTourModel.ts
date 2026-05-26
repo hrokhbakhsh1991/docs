@@ -80,6 +80,14 @@ export type DenaliGatheringPointStation = import("./gatheringPickupStation").Den
 export interface DenaliTripDetailsOverview {
   /** Optional admin note for non-attendance. */
   nonAttendanceDetails?: string;
+  /** Peak elevation (m ASL) — e.g. summit height of the destination. */
+  peakHeight?: number;
+}
+
+/** Itinerary / route metrics persisted under `tripDetails.metrics` (and overview wire keys). */
+export interface DenaliTripDetailsMetrics {
+  /** Total elevation gain on the route (m). */
+  elevationGain?: number;
 }
 
 /**
@@ -107,6 +115,8 @@ export interface DenaliCanonicalTourModel {
   customServiceLabels?: string[];
   /** Overview fields (`tripDetails.overview`). */
   overview?: DenaliTripDetailsOverview;
+  /** Route metrics (`tripDetails.metrics`). */
+  metrics?: DenaliTripDetailsMetrics;
   /** Trailhead where hiking begins. */
   startPoint?: DenaliLocationData;
   /** Geographical peak coordinate. */
@@ -143,8 +153,6 @@ export interface DenaliCanonicalTourModel {
     hikingGoHours?: number;
     /** Return hiking hours (outdoor categories). */
     hikingReturnHours?: number;
-    /** Mountain category only. */
-    altitudeMeasurement?: number;
     /** Dynamic daily activities for multi-day tours. */
     itinerary?: Array<{
       day: number;

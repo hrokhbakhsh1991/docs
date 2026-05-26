@@ -12,7 +12,7 @@ import {
   sanitizeInactiveRootsForProfile,
   stripInactiveTourCreateGroupsForProfile,
 } from "./fieldGroups";
-import { mergeTourDraft } from "./tourCreateWizardMerge";
+import { mergeTourFormPatch } from "./tourCreateWizardMerge";
 import { buildTourCreateFormDefaultValues } from "./tourCreateFormDefaults";
 import { presetDefaultsToFormPatch } from "./tourCreationPresetMatch";
 import type { ThemeRowForProfile } from "./tourWizardProfileResolve";
@@ -54,7 +54,7 @@ test("returns currentProfile unchanged when patch is undefined", () => {
   });
   assert.equal(result.resolvedFormProfile, "urban_event");
   assert.equal(result.filteredPatch, undefined);
-  // mergeTourDraft returns base when patch is undefined, then sanitize against urban_event
+  // mergeTourFormPatch returns base when patch is undefined, then sanitize against urban_event
   // resets itinerary / participation / logistics roots to canonical defaults.
   const expected = sanitizeInactiveRootsForProfile(base, "urban_event");
   assert.deepEqual(result.mergedValues, expected);
@@ -211,7 +211,7 @@ test("pipeline result is observably equivalent to the legacy preset-apply sequen
   const patch = presetDefaultsToFormPatch(presetDefaults);
 
   const legacyFiltered = filterFormPatchByActiveGroups("general", patch);
-  const legacyMerged = mergeTourDraft(base, legacyFiltered);
+  const legacyMerged = mergeTourFormPatch(base, legacyFiltered);
 
   const { mergedValues, resolvedFormProfile } = applyTourWizardPatch({
     baseValues: base,
@@ -238,7 +238,7 @@ test("submit-time strip parity: workspace-profile preset apply matches legacy ur
   const patch = presetDefaultsToFormPatch(presetDefaults);
 
   const legacyFiltered = filterFormPatchByActiveGroups("general", patch);
-  const legacyMerged = mergeTourDraft(base, legacyFiltered);
+  const legacyMerged = mergeTourFormPatch(base, legacyFiltered);
   const legacyDto = mapFormValuesToBackendPayload(
     stripInactiveTourCreateGroupsForProfile("urban_event", legacyMerged),
   );

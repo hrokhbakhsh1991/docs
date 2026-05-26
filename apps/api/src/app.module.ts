@@ -26,6 +26,7 @@ import { OutboxModule } from "./modules/outbox/outbox.module";
 import { OpsModule } from "./modules/ops/ops.module";
 import { SettingsLocationsModule } from "./modules/settings-locations/settings-locations.module";
 import { SafetyProfileModule } from "./modules/safety-profile/safety-profile.module";
+import { DraftEngineModule } from "./modules/draft-engine/draft-engine.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ReconciliationModule } from "./modules/reconciliation/reconciliation.module";
 import { JobSchedulerModule } from "./jobs/job-scheduler.module";
@@ -102,7 +103,8 @@ import Redis from "ioredis";
     ReconciliationModule,
     OpsModule,
     SettingsLocationsModule,
-    SafetyProfileModule
+    SafetyProfileModule,
+    DraftEngineModule
   ],
   controllers: [AppController],
   providers: [AuthMiddleware, TenantGuardMiddleware]

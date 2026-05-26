@@ -392,10 +392,10 @@ test("transformTourToDenaliWizardValues create mode filters gear to active equip
   assert.deepEqual(form.participantRequirements?.gearItems, [{ id: reqId, isRequired: true }]);
 });
 
-test("transformTourToDenaliWizardValues create mode applies mountain defaults when altitude missing", () => {
+test("transformTourToDenaliWizardValues create mode applies mountain defaults when peak height missing", () => {
   const api = makeApiTour();
   const form = transformTourToDenaliWizardValues(api, { mode: "create" });
-  assert.equal(form.programNature?.altitudeMeasurement, 1);
+  assert.equal(form.tripDetails?.overview?.peakHeight, 1);
   assert.equal(form.participantRequirements?.fitnessLevel, "medium");
   assert.equal(form.participantRequirements?.sportsInsuranceRequired, true);
   assert.equal(form.participantRequirements?.minimumAge, 18);

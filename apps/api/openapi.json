@@ -2609,109 +2609,6 @@
         ]
       }
     },
-    "/api/v2/workspaces/{workspaceId}/tours/drafts": {
-      "get": {
-        "operationId": "ToursDraftsController_getDraft",
-        "summary": "Tour creation wizard draft for current member.",
-        "parameters": [
-          {
-            "name": "workspaceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TourWizardDraftEnvelopeDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "patch": {
-        "operationId": "ToursDraftsController_saveDraft",
-        "summary": "Upsert a tour creation wizard draft snapshot.",
-        "parameters": [
-          {
-            "name": "workspaceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveTourDraftDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "ToursDraftsController_deleteDraft",
-        "summary": "Delete tour creation wizard draft for current member.",
-        "parameters": [
-          {
-            "name": "workspaceId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/api/v2/tours/{tourId}/registration-idempotency-key": {
       "get": {
         "operationId": "RegistrationsController_mintPublicRegistrationIdempotencyKey",
@@ -5443,87 +5340,6 @@
         ]
       }
     },
-    "/api/v2/settings/tour-wizard-draft": {
-      "get": {
-        "operationId": "SettingsTourWizardDraftController_getDraft",
-        "summary": "Workspace tour create wizard draft for current member",
-        "description": "Server-side autosave envelope for cross-device restore (فاز ۲.۵.۳).",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceTourWizardDraftEnvelopeDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Settings — Tour wizard draft"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "patch": {
-        "operationId": "SettingsTourWizardDraftController_upsertDraft",
-        "summary": "Upsert tour wizard draft envelope",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpsertWorkspaceTourWizardDraftDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceTourWizardDraftEnvelopeDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Settings — Tour wizard draft"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "SettingsTourWizardDraftController_deleteDraft",
-        "summary": "Delete tour wizard draft for current member",
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Settings — Tour wizard draft"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/api/v2/safety-profiles/{userId}/emergency-contacts": {
       "get": {
         "operationId": "SafetyProfileController_listEmergency",
@@ -7105,6 +6921,17 @@
               "event_cinema"
             ],
             "description": "Denali 6-tab wizard tour kind slug (persisted for edit/clone round-trip)."
+          },
+          "nonAttendanceDetails": {
+            "type": "string",
+            "description": "Optional admin note for non-attendance (Denali wizard)."
+          },
+          "customServiceLabels": {
+            "description": "Workspace-defined custom service labels (Denali wizard; also accepted on root create/update DTO).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -8564,80 +8391,6 @@
           "updatedAt"
         ]
       },
-      "TourWizardDraftResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "currentStepIndex": {
-            "type": "number",
-            "example": 0
-          },
-          "payload": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "version": {
-            "type": "number",
-            "example": 1,
-            "description": "Optimistic-lock generation for PATCH."
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "currentStepIndex",
-          "payload",
-          "version",
-          "updatedAt"
-        ]
-      },
-      "TourWizardDraftEnvelopeDto": {
-        "type": "object",
-        "properties": {
-          "draft": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TourWizardDraftResponseDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "draft"
-        ]
-      },
-      "SaveTourDraftDto": {
-        "type": "object",
-        "properties": {
-          "currentStepIndex": {
-            "type": "number",
-            "example": 0,
-            "description": "Active wizard step index."
-          },
-          "payload": {
-            "type": "object",
-            "example": {},
-            "description": "Low-validation snapshot of React Hook Form state."
-          },
-          "version": {
-            "type": "number",
-            "example": 1,
-            "description": "Optimistic-lock version from last GET or successful PATCH."
-          }
-        },
-        "required": [
-          "currentStepIndex",
-          "payload",
-          "version"
-        ]
-      },
       "RegistrationTransportIntakeMetadataDto": {
         "type": "object",
         "properties": {
@@ -9927,80 +9680,6 @@
             "description": "When true, runs stricter publish validation (canonical + overlay must be valid for workspace tours)."
           }
         }
-      },
-      "WorkspaceTourWizardDraftResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "workspaceId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "envelope": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "wizardContractVersion": {
-            "type": "number"
-          },
-          "rowVersion": {
-            "type": "number"
-          },
-          "updatedAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "workspaceId",
-          "userId",
-          "envelope",
-          "wizardContractVersion",
-          "rowVersion",
-          "updatedAt"
-        ]
-      },
-      "WorkspaceTourWizardDraftEnvelopeDto": {
-        "type": "object",
-        "properties": {
-          "draft": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/WorkspaceTourWizardDraftResponseDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "draft"
-        ]
-      },
-      "UpsertWorkspaceTourWizardDraftDto": {
-        "type": "object",
-        "properties": {
-          "envelope": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "rowVersion": {
-            "type": "number",
-            "description": "Optimistic lock version from last GET"
-          },
-          "wizardContractVersion": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "envelope"
-        ]
       },
       "EmergencyContactItemDto": {
         "type": "object",

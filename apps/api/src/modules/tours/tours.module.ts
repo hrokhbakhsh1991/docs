@@ -4,6 +4,7 @@
  */
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { DatabaseModule } from "../../database/database.module";
 import { AuthModule } from "../auth/auth.module";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { RegistrationsModule } from "../registrations/registrations.module";
@@ -17,7 +18,6 @@ import { WorkspaceTourCreationPresetEntity } from "../settings-locations/entitie
 import { WorkspaceTourWizardTemplateEntity } from "../settings-locations/entities/workspace-tour-wizard-template.entity";
 import { TourDetails } from "./entities/tour-details.entity";
 import { TourEntity } from "./entities/tour.entity";
-import { TourWizardDraftEntity } from "./entities/tour-wizard-draft.entity";
 import { TourDepartureEntity } from "./entities/tour-departure.entity";
 import { TourPriceEntity } from "./entities/tour-price.entity";
 import { UserTenantEntity } from "../identity/entities/user-tenant.entity";
@@ -25,16 +25,15 @@ import { TourProductEntity } from "./entities/tour-product.entity";
 import { ToursCatalogReadApplicationService } from "./application/tours-catalog-read.application.service";
 import { ToursCloneService } from "./services/tours-clone.service";
 import { ToursService } from "./tours.service";
-import { ToursDraftsController } from "./tours.drafts.controller";
 import { StorageModule } from "../../infra/storage/storage.module";
 import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Module({
   imports: [
+    DatabaseModule,
     TypeOrmModule.forFeature([
       TourEntity,
       TourDetails,
-      TourWizardDraftEntity,
       TourProductEntity,
       TourDepartureEntity,
       TourPriceEntity,
@@ -51,7 +50,7 @@ import { ThrottlerGuard } from "@nestjs/throttler";
     RegistrationsModule,
     StorageModule
   ],
-  controllers: [ToursController, DashboardAggregateController, ToursDraftsController],
+  controllers: [ToursController, DashboardAggregateController],
   providers: [ToursCatalogReadApplicationService, ToursCloneService, ToursService, ThrottlerGuard]
 })
 export class ToursModule {}

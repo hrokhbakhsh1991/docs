@@ -11,5 +11,5 @@ export default function CreatePage(props: CreatePageProps) {
     redirect(`/tours/new?clone=${cloneParam}`);
   }
 
-  redirect("/tours/new?new=true");
+  redirect("/tours/new");
 }
