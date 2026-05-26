@@ -1,623 +1,546 @@
-# WORKSPACE USER INVITATION SYSTEM & CUSTOM TABS UX (PHASE 14.11)
-Goal: Enforce strict RTL orientation, implement native CSS-driven Active vs. Pending Tabs, align invite roles with backend validation, and prevent duplicate SMS dispatches. Do not touch map.md or map.log.
+# Map Log
+
+Operational audit trail for workspace architecture migrations.
+
 
 ---
 
-## TASK 14.11.1: Frontend - Lightweight Custom CSS Dual-Tab Directory View
-* **Target File**: `apps/web/app/(app)/users/users-page-client.tsx`
-* **Technical Specification**:
-    - Do not pull Radix Primitives for tabs. Use the workspace's idiomatic lightweight React state tabs structure (`useState('active')`) with custom RTL CSS buttons.
-    - **Tab 1 ("اعضای ورک‌اسپیس")**: Renders the core 4-column virtual table (`rosterRows`).
-    - **Tab 2 ("دعوت‌نامه‌های در انتظار")**: Renders a secondary compact list calling `GET /api/v2/users/invite` (or the underlying workspace invites stream). Show rows with: Phone/Name Note, Assigned Role, Expiration Time, and a text-left actions menu containing "ارسال مجدد پیامک" and "لغو دعوت".
+## Audit: Rule Engine & Capability Layer Fidelity (2026-05-26)
 
-## TASK 14.11.2: Backend & Frontend - Extended Post Payload & Unified Tag Editor
-* **Target Files**:
-    - `apps/api/src/modules/identity/dto/post-workspace-user-rewards.dto.ts`
-    - `apps/api/src/modules/identity/workspace-users.service.ts`
-    - `apps/web/app/(app)/users/components/workspace-user-rewards-modal.tsx`
-* **Technical Specification**:
-    - **Unified API**: Extend `PostWorkspaceUserRewardsDto` to accept an optional `labels: string[]` parameter. Update `WorkspaceUsersService` to mutate both columns atomically in a single transaction.
-    - **Two-Tab Action Modal**: Refactor `WorkspaceUserRewardsModal` into localized Persian tabs using your native CSS tab mechanism:
-      - Tab 1 ("امتیازات و تگ‌ها"): Discount field, Selectable Leader Switch, Loyalty Select, and an interactive tags manager syncing to the extended `labels` payload stream.
-      - Tab 2 ("سابقه سفرها"): Consumes `/booking-summary` to display a clean micro list of past tours.
+### Summary
 
-## TASK 14.11.3: Frontend - Localized Invite Dialog Connection (API Role Sync)
-* **Target File**: `apps/web/app/(app)/users/components/workspace-invite-modal.tsx`
-* **Technical Specification**:
-    - Wire the "Invite User" button to open a fully localized dialog.
-    - **Role Dropdown Alignment**: Strictly restrict roles to API-allowed constants. Show exactly: مدیر (Admin), عضو عادی (Member), بیننده (Viewer). Do not include Leader here.
-    - Fields: Phone (validated), Name Note (passed safely or stored via local placeholder).
-    - On submit, fire `POST /api/v2/users/invite`, freeze controls via `disabled={isPending}`, and fire `toast.success("دعوت‌نامه با موفقیت صادر و پیامک شد")`.
-    # WORKSPACE USERS FULL LOCALIZATION & RTL REFINEMENT (PHASE 14.12)
-Goal: Convert all leftover English UI strings, copy blocks, statuses, and table headers into rich Persian typography while maintaining strict component rendering logic, memoization, and dynamic states. Do not touch map.md or map.log.
+| Layer | Status |
+|-------|--------|
+| **Web `getCapabilitiesForProfile()`** | Introduced; **3 production call sites** (shell + geo publish). Service catalog (`availableServices`) defined but **not consumed** by Wizard / Register UI yet. |
+| **API `WorkspaceStrategyRegistry`** | **4** direct `resolve()` sites; publish/geo/strip flags also via `getWorkspaceUiCapabilityFlags()` in shared-contracts. |
+| **Denali rule engine** | Separate matrix (`denaliRuleSet`, `collectDenaliRuleRequiredIssues`) — not routed through capability registry. |
+| **Registration** | Tour-field `RegistrationFieldPolicy`; **no** capability registry; `selectedServiceIds` on wire/API metadata — **no** UI catalog wiring yet. |
 
 ---
 
-## TASK 14.12.1: Frontend - Global Copy Localization
-* **Target File**: `apps/web/app/(app)/users/users-copy.ts` (or the dynamic strings dictionary used by the users layout)
-* **Technical Specification**:
-    - Completely rewrite and translate all directory strings into idiomatic Persian text:
-      - Main Title & Subtitle $\rightarrow$ **کاربران** | **مدیریت اعضای ورک‌اسپیس، نقش‌ها و سطوح وفاداری.**
-      - Filter Labels & Placeholders $\rightarrow$ **جستجو بر اساس نام یا ایمیل...** | **همهٔ نقش‌ها**
-      - Table Header 1 (Active) $\rightarrow$ **کاربر**
-      - Table Header 2 (Active) $\rightarrow$ **نقش سیستمی**
-      - Table Header 3 (Active) $\rightarrow$ **امور مالی و رتبه‌بندی**
-      - Table Header 4 (Active) $\rightarrow$ **عملیات**
-      - Invite Button $\rightarrow$ **دعوت کاربر جدید**
-      - Tab Labels $\rightarrow$ **اعضای ورک‌اسپیس** | **دعوت‌نامه‌های در انتظار**
+### 1. Production files — raw workspace profile string branching
 
-## TASK 14.12.2: Frontend - Inline Status & Date Formatter Localization
-* **Target Files**:
-    - `apps/web/app/(app)/users/user-row.tsx`
-    - `apps/web/app/(app)/users/components/pending-invites-table.tsx`
-    - `apps/web/app/(app)/users/users-format.ts`
-* **Technical Specification**:
-    - **Trip Summary Labels**: Localize the formatted string output inside `formatTripSummaryLabel`. Convert `{completed} Ok / {cancelled} Cancel` $\rightarrow$ `{completed} موفق / {cancelled} کنسل شده`.
-    - **Relative Time Activity**: Update `formatActiveAgoLabel` hooks. If the relative time parsed matches words like "ago", ensure it outputs clean Persian fragments (e.g., "فعال در ۲ ساعت پیش"). Fallback for null values $\rightarrow$ `"بدون فعالیت اخیر"`.
-    - **Expiration Dates**: In the pending table, format the invite `expiresAt` ISO string or relative delta using a clean localized format (e.g., "انقضا در ۳ روز آینده").
+Excludes `*.spec.ts`, `tests/**`, `scripts/**`. Strategy/registry **definition** homes listed as canonical, not bypass.
 
-## TASK 14.12.3: Frontend - Safe CSS RTL Alignment Check
-* **Target Files**:
-    - `apps/web/app/(app)/users/users-page-client.tsx`
-    - `apps/web/app/(app)/users/user-table.tsx`
-* **Technical Specification**:
-    - Inspect the flex containers and layout rows. Ensure the root wrapper bears `dir="rtl"`.
-    - Verify that text justification fields are aligned for Persian reading flow (User cell aligned right, action menu triggers safely aligned left/start inside Column 4).
+#### apps/web
 
-## TASK 14.12.4: Compilation Gate Verification
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to confirm 100% type safety with zero broken imports.
+| File | Line(s) | Pattern |
+|------|---------|---------|
+| apps/web/src/components/tours/TourForm.tsx | 268, 329-331, 395 | `=== "denali_pilot"` |
+| apps/web/app/(app)/settings/tour-presets/tour-preset-list.tsx | 148, 254 | `formProfile === "denali_pilot"` |
+| apps/web/src/features/tours/components/tour-create-trip-details-fields.tsx | 551 | `formProfile === "mountain_outdoor"` |
+| apps/web/src/features/tours/config/tripDetailsFieldConfig.ts | 215 | `profile === "mountain_outdoor"` |
+| apps/web/src/features/tours/domain/peak-experience.ts | 53 | `mountain_outdoor` / `denali_pilot` |
+| apps/web/src/features/tours/domain/stripTourFormTripDetailsForProfile.ts | 37 | `profile === "urban_event"` |
+| apps/web/src/features/tours/wizard/denali/validation/denaliWizardPublishReadiness.ts | 94 | `profile === "denali_pilot"` |
+| apps/web/src/features/tours/wizard/denali/hooks/useDenaliPublishReadiness.ts | 36 | hardcoded `"denali_pilot"` |
+| apps/web/src/features/tours/wizard/validation/strict-profile-validator.ts | 27, 37 | `=== "general"` |
+| apps/web/src/features/tours/wizard/tourWizardProfileResolve.ts | 109, 122, 153 | `=== "general"` |
+| apps/web/src/features/tours/wizard/domain/ruleModelConverter.ts | 38 | `raw === "denali"` |
+| apps/web/src/features/tours/wizard/isDenaliWizardContext.ts | 28, 39 | `wizardMode === "denali"` |
+| apps/web/src/features/tours/wizard/workspace-wizard.config.ts | 62 | `wizardMode === "denali"` |
+| apps/web/src/features/tours/wizard/tourWizardStepPlan.ts | 38 | `isDenaliWizardContext(...)` |
+| apps/web/src/features/tours/wizard/profiles/mapWizardPrefillToFormPatch.ts | 35 | `isDenaliPilotFormProfile` |
+| apps/web/src/features/tours/wizard/profiles/mapPresetToFormPatch.ts | 24 | `isDenaliPilotFormProfile` |
+| apps/web/src/features/tours/wizard/sources/loadWizardPrefill.ts | 90 | `isDenaliWizardModeFromProfile` |
+| apps/web/src/features/tours/wizard/denaliWizardDraftEnvelope.ts | 54 | `isDenaliWizardModeFromProfile` |
+| apps/web/src/features/tours/edit/updateTourDtoFromDenaliWizardForm.ts | 31 | default `"denali_pilot"` |
+| apps/web/src/features/tours/wizard/denali/denaliThemeFilter.ts | 28-31 | hardcoded profile slug arrays |
 
-# USER ENTITY NULLABLE EMAIL REFACTOR & CLEANUP (PHASE 14.13)
-Goal: Make the email column truly nullable across migrations and entities, purge all synthetic `@local.invalid` generation logic from auth/invite streams, and clean up frontend cell formatters. Do not touch map.md or map.log.
+#### apps/api (consumer bypass only)
 
----
+| File | Line(s) | Pattern |
+|------|---------|---------|
+| apps/api/src/modules/tours/strategies/workspace.strategy.builders.ts | 42 | `profile === "denali_pilot"` (strategy builder home) |
+| apps/api/src/modules/tours/strategies/workspace.strategy.registry.ts | 16 | `profile === "denali_pilot"` (registry home) |
+| apps/api/src/modules/tours/strategies/denali.workspace.strategy.ts | 70 | `this.profile !== "denali_pilot"` (strategy home) |
 
-## TASK 14.13.1: Backend - Schema Repair Migration & Purge Synthetic Emails
-* **Target Files**:
-    - `apps/api/src/modules/identity/entities/user.entity.ts`
-    - `apps/api/src/modules/identity/services/users-invite.service.ts`
-    - `apps/api/src/modules/auth/auth.service.ts` (or your registration completion paths)
-* **Technical Specification**:
-    - **Migration**: Create a core database migration named `MakeUserEmailTrulyNullable`. Alter the `users` table to set the `email` column as `NULL` (remove `NOT NULL` constraint and drop any stale partial unique indexes that conflict with multiple nulls, replacing with a conditional unique index: `CREATE UNIQUE INDEX idx_user_email_unique ON users(email) WHERE email IS NOT NULL AND deleted_at IS NULL`).
-    - **Code Purge**: Locate where `@local.invalid` or `synthetic` email generation strings are minted during phone-first invitations or OTP registration completions. Completely delete that substitution logic. Let the `email` property naturally save as `null` or `undefined` in the database.
+#### Canonical (intentional)
 
-## TASK 14.13.2: Frontend - Defensively Render Null Emails
-* **Target Files**:
-    - `apps/web/app/(app)/users/user-row.tsx`
-    - `apps/api/src/modules/identity/me-profile.mapper.ts`
-* **Technical Specification**:
-    - In `user-row.tsx`, update the subtitle renderer. If `row.email` is absent, null, or empty, do not render a subline block or placeholder text for it; only render the verified phone indicator line cleanly.
-    - Clean up `me-profile.mapper.ts` by stripping the redundant filtering logic that was previously used to mask or hide the `local.invalid` suffix patterns.
-
-## TASK 14.13.3: Verification Gate
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Run the full Jest E2E test suite to verify that creating users/invites with an absolute `null` email passes with 100% green status.
-
-# EXECUTIVE TOURS INVENTORY INTEGRITY & VALIDATION (PHASE 15.1)
-Goal: Enforce server-side tenant isolation and capability checks for `leaderUserIds` inside tour creation pipelines, secure payload sanitization, and refine frontend combobox bindings. Do not touch map.md or map.log.
+| File | Line(s) |
+|------|---------|
+| packages/shared-contracts/src/tours/workspace-ui-capabilities.ts | 43 (`profile === "denali_pilot"` for flags + service catalog) |
+| packages/types/src/tour-form-profile-descriptors.ts | per-profile descriptor rows |
 
 ---
 
-## TASK 15.1.1: Backend - Server-Side Tour Leader Referential Integrity Assertions
-* **Target Files**:
-    - `apps/api/src/modules/tours/services/tours.service.ts` (or your invariant assertion helper files)
-    - `apps/api/src/modules/tours/dto/trip-details.dto.ts`
-* **Technical Specification**:
-    - **Fix Cross-Tenant Hole**: Create a highly defensive service helper method named `assertLeaderUserIdsBelongToTenant(tenantId: string, leaderUserIds: string[])`.
-    - **Validation Logic**: Inside this helper, write a query against the `user_tenants` (membership) repository. For all unique UUIDs provided in `leaderUserIds`, verify that:
-      1. The user has an active membership matching the current `tenantId` (`status === MembershipStatus.ACTIVE`).
-      2. The user is eligible to lead tours (their `role` is `ADMIN`, `OWNER`, or `LEADER`, OR their parsed metadata explicitly sets `isSelectableLeader === true`).
-    - **Pipeline Integration**: Intercept the `createTour` and `updateTour` execution streams (where destination and equipment assertions are made) and invoke `await this.assertLeaderUserIdsBelongToTenant(tenantId, tripDetails.overview.leaderUserIds)`. Throw a strict `BadRequestException` or `ForbiddenException` if any invalid or foreign UUID leaks into the stream.
+### 2. UI: Capability Registry vs other sources
 
-## TASK 15.1.2: Frontend - Secure Dynamic Crew Member Filtering
-* **Target File**: `apps/web/src/hooks/use-workspace-tour-crew-members.ts`
-* **Technical Specification**:
-    - Look at the `useWorkspaceTourCrewMembers` hook query function fetching `getUsers`.
-    - Optimize the fetching logic: Do not rely solely on heavy array-filtering client-side. If the backend `GET /api/v2/users` supports a query parameter for dynamic roles or capabilities, leverage it.
-    - Ensure that the combobox options rendered inside `DenaliBasicInfoStep.tsx` accurately append localized badges next to the leader's name (e.g., if a user has a `VIP_MEMBER` badge or specific role, render it cleanly inside the multi-select dropdown options).
+#### Uses getCapabilitiesForProfile / usesDenaliWizardShellForProfile (production)
 
-## TASK 15.1.3: Quality Compiler Assurance
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Run the full API E2E test suite (`pnpm test:api:e2e:jest`) to guarantee zero regression on catalog creations.
+| File | Line(s) | Field |
+|------|---------|-------|
+| apps/web/src/components/tours/tour-schema.ts | 32, 70 | `requiresGeoPublish` |
+| apps/web/app/(app)/tours/[id]/edit/tour-edit-client.tsx | 20, 70 | `usesDenaliWizardShell` |
+| apps/web/src/components/tours/wizard/TourCreateWizard.tsx | 9, 25-36, 124 | `usesDenaliWizardShell` |
 
-# WORKSPACE FINANCIAL HARDENING, ROUTING & LOCALIZATION (PHASE 16.1)
-Goal: Write a defensive cross-tenant receipt E2E breach test, safely relocate and fully localize orphaned payment receipt panels, and activate the finance control route. Do not touch map.md or map.log.
+#### Parallel layer (NOT capability registry)
 
----
+- `buildWizardConfig` / `isDenaliWizardContext` — tourWizardStepPlan.ts:38, resolve-public-site-config.ts:57, tourCreateSchema.ts exports
+- `isDenaliPilotFormProfile` / `isDenaliWizardModeFromProfile` — prefill, presets, drafts (see table above)
 
-## TASK 16.1.1: Backend - Cross-Tenant Receipt Breach E2E Test
-* **Target File**: `apps/api/test/e2e/manual-receipt-flow.e2e-spec.ts` (or your active billing specs)
-* **Technical Specification**:
-    - Implement a strict defensive isolation test case: "should return 404 NotFound when Workspace A admin attempts to approve/reject a valid receipt UUID belonging to Workspace B".
-    - Execute and ensure that the application handles fake tenant payload injection gracefully via a fail-closed sequence.
+#### Denali rule engine (field validation; separate from capabilities)
 
-## TASK 16.1.2: Frontend - Relocate & Localize Orphaned Receipt Panels to Finance Route
-* **Target Files & Layouts**:
-    - Move files from `apps/web/app/(app)/users/admin-receipt-review-panel.tsx` $\rightarrow$ `apps/web/app/(app)/finance/components/admin-receipt-review-panel.tsx`
-    - Move files from `apps/web/app/(app)/users/payment-receipt-upload-panel.tsx` $\rightarrow$ `apps/web/app/(app)/finance/components/payment-receipt-upload-panel.tsx`
-    - Create a clean main page grid at `apps/web/app/(app)/finance/page.tsx` to mount these panels under a secure unified finance surface.
-* **Technical Specification**:
-    - **Localization**: Completely translate all labels and state strings inside both panels into premium Persian typography:
-      - "Approve Receipt" $\rightarrow$ **تایید فیش واریزی**
-      - "Reject / Decline" $\rightarrow$ **عدم تایید و رد فیش**
-      - "Review Note" $\rightarrow$ **یادداشت و توضیحات حسابداری**
-      - "Manual Payment Upload" $\rightarrow$ **بارگذاری فیش واریز نقدی/بانکی**
-    - Enforce strict `dir="rtl"` wrapping layout alignment on the new finance center template views.
+- DenaliCreateTourWizard.tsx:650, 713 — getDenaliWizardPublishReadinessIssues
+- DenaliTourEditForm.tsx:546
+- apps/web/src/features/tours/wizard/denali/rules/**, denaliRuleRequired.ts, denaliRuleAccess.ts
+- Classic: profileRules/**, wizardStepEngine.ts (descriptor + BASE_FIELD_RULES)
 
-## TASK 16.1.3: Quality Compilation Gate
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Ensure all 29/29 and financial integration tests pass with 100% green status.
+#### Registration — no capability registry
 
-# WORKSPACE PRE-PAYMENT HOST APPROVAL GATE WORKFLOW (PHASE 16.3)
-Goal: Force payment-required tours to initialize as `Pending`, bypass immediate payment intent generation at signup, and ensure capacity constraints bind only upon explicit host approval. Do not touch map.md or map.log.
+| File | Notes |
+|------|-------|
+| apps/web/src/features/registrations/components/PublicRegisterForm.tsx | RegistrationFieldPolicy from tour API only |
+| apps/web/app/(app)/tours/[id]/register/register-for-tour-client.tsx | useTourDetail + resolveTourAllowPrivateCar |
+| apps/api/src/modules/registrations/registrations.service.ts | participant_metadata merge; placement from tripDetails |
 
 ---
 
-## TASK 16.3.1: Backend - Refactor Initial Placement Logic & Payment Bypassing
-* **Target File**: `apps/api/src/modules/tours/services/registrations.service.ts`
-* **Technical Specification**:
-    - **Invert Placement Rules**: Locate the private method `resolveInitialRegistrationPlacement(tour: TourEntity)`. Completely strip the override that forces `paymentRequired` tours into `RegistrationStatus.ACCEPTED`.
-    - Enforce that unless `tour.autoAcceptRegistrations === true`, ALL creations default to `RegistrationStatus.PENDING` and set `consumesAcceptedCapacity: false`.
-    - **Bypass Intent on Creation**: In the main save transaction, look at lines 1841-1856. Block or remove the conditional block that triggers `input.createPaymentIntent` when `requiresPayment` is true at initial registration time. It must remain dormant until host acceptance.
+### 3. Capability bypass (UI logic without getCapabilitiesForProfile)
 
-## TASK 16.3.2: Backend - Secure Status Update & Outbox Notification Hooks
-* **Target Files**:
-    - `apps/api/src/modules/tours/services/registrations.service.ts` (or your active status update handlers)
-    - `apps/api/src/modules/identity/outbox.processor.ts`
-* **Technical Specification**:
-    - **Host Acceptance Transition**: Ensure that when a tour leader triggers `updateRegistrationStatus` to transition a row from `Pending` $\rightarrow$ `Accepted`, the system hooks up correctly to check capacity safety before flipping the enum.
-    - **Outbox Consumer Anchor**: Inside `OutboxProcessor` under the event type `registration.accepted`, create a structured hook placeholder. If the booking is unpaid and `paymentRequired` is true, write a clean execution log indicating: `[SMS GATEWAY OUTBOX UNIFIED DISPATCH] -> Texting user via participantContactPhone to proceed with payment.` This prepares the notification pipeline for the future SMS module.
-
-## TASK 16.3.3: Frontend - Verify Safe CTA Gating & Test Execution
-* **Target Files**:
-    - `apps/web/src/features/bookings/payment-flow.ts`
-    - `apps/api/test/e2e/tours-complete-purchase-flow.e2e-spec.ts`
-* **Technical Specification**:
-    - Verify that `registrationNeedsPaymentUi` returns `false` if `status !== "Accepted"`, locking the traveler CTA in `Pending` state perfectly as verified by the report.
-    - Run the entire E2E test suite to guarantee that creating a paid registration returns a `Pending` status first with 100% green compiler success.
-
-    # LEADER REVIEW DASHBOARD & ADVENTURE CRM FULL RTL REFIT (PHASE 16.4)
-Goal: Fully localize the leader queue and tour workspace, inject transport/vehicle CRM columns, fix the missing `expected_row_version` validation mismatch on status PATCH, and ensure full RTL harmony. Do not touch map.md or map.log.
+| Priority | File:line | Issue | Use instead |
+|----------|-----------|-------|-------------|
+| P0 | TourForm.tsx:268,329-331,395 | denali_pilot gates | requiresGeoPublish, usesDenaliWizardShell |
+| P0 | denaliWizardPublishReadiness.ts:94 | denali_pilot geo | requiresGeoPublish |
+| P0 | PublicRegisterForm.tsx (all) | no catalog | availableServices |
+| P1 | tour-create-trip-details-fields.tsx:551 | mountain_outdoor | allowsMountainOverviewFields |
+| P1 | tripDetailsFieldConfig.ts:215 | mountain_outdoor | allowsMountainOverviewFields |
+| P1 | peak-experience.ts:53 | profile strings | allowsMountainOverviewFields |
+| P1 | tour-preset-list.tsx:148,254 | denali_pilot UI | usesDenaliWizardShell |
+| P1 | stripTourFormTripDetailsForProfile.ts:37 | urban_event | descriptor/capabilities strip |
+| P2 | tourWizardStepPlan.ts:38 | isDenaliWizardContext | usesDenaliWizardShell |
+| P2 | mapWizardPrefillToFormPatch.ts:35, mapPresetToFormPatch.ts:24 | deprecated helpers | usesDenaliWizardShellForProfile |
 
 ---
 
-## TASK 16.4.1: Frontend - Complete Persian & RTL Refit for Leader Queue & Workspace
-* **Target Files**:
-    - `apps/web/app/(app)/leader/review/page.tsx` (and its active client files)
-    - `apps/web/app/(app)/tours/[id]/workspace/page.tsx` (and its nested tables)
-* **Technical Specification**:
-    - **Global RTL**: Enforce strict `dir="rtl"` layout nesting on both route screens.
-    - **Localization Typography**: Convert all operational copies and tables into rich Persian typography:
-      - "Leader review dashboard" $\rightarrow$ **داشبورد بررسی و تایید درخواست‌ها**
-      - "Review queue" $\rightarrow$ **صف بررسی متقاضیان تور**
-      - "Approve" / "Reject" $\rightarrow$ **تایید اولیه (صدور فاکتور)** | **رد درخواست**
-      - "Queued registrations" $\rightarrow$ **درخواست‌های در انتظار بررسی**
+### 4. API registry coverage
 
-## TASK 16.4.2: Frontend - Inject Adventure CRM Columns (Vehicle & Notes)
-* **Target Files**:
-    - `apps/web/src/features/dashboard/components/ReviewTable.tsx`
-    - `apps/web/src/features/tours/components/RegistrationsTable.tsx`
-* **Technical Specification**:
-    - **Transport Vector Integration**: Expose and render a rich column named **«وسیله نقلیه / توضیحات»** inside both tables.
-    - Parse `reg.transportMode`. Convert `self_vehicle` $\rightarrow$ **خودروی شخصی** (alongside rendering `vehicleSeatCapacity` if present as a small badge) and `group_vehicle` $\rightarrow$ **خودروی همسفران/گروهی**. Localize `participantNote` if written by the traveler to render right inside the main row overview context without hiding it inside secondary side panels.
+**WorkspaceStrategyRegistry.resolve():** assert-create-tour-invariants.ts, create-tour-form-profile-strip.ts, assert-profile-required-fields-for-submit.ts, assert-tour-publish-transition.ts
 
-## TASK 16.4.3: Frontend & BFF - Fix Missing `expected_row_version` Validation Mismatch
-* **Target Files**:
-    - `apps/web/src/hooks/use-update-registration-status.ts` (or your active status hooks)
-    - `apps/web/src/features/dashboard/components/ReviewTable.tsx`
-* **Technical Specification**:
-    - **Payload Stabilization**: Update the status PATCH body signature. Ensure that when a leader clicks "Approve" or "Reject", the action grabs the row's dynamic version attribute (`rowVersion` or `version`) and bundles it securely into the payload alongside `targetStatus` as `{ targetStatus, expected_row_version: row.rowVersion }`.
-    - Map this parameter all the way down through the Next.js BFF proxy to satisfy the production TypeORM optimistic locking architecture completely.
+**getWorkspaceUiCapabilityFlags():** denali.workspace.strategy.ts:28,38; assert-tour-publish-transition.ts:26
 
-## TASK 16.4.4: Compilation Gate Verification
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to achieve 100% type safety.
-
-
-# TRAVELER REGISTRATION WIZARD & BOOKING SUSPENSE UI (PHASE 16.5)
-Goal: Expose transport/vehicle selection fields inside the traveler registration wizard, implement a beautiful localized suspense banner for `Pending` host-approval states on the booking ticket view, and ensure complete RTL cohesion. Do not touch map.md or map.log.
+**No registry:** registrations/**, pricing/**, tour-lifecycle.policy.ts, assert-edit-required-trip-details-for-publish.ts
 
 ---
 
-## TASK 16.5.1: Frontend - Inject Transport & Vehicle Selector inside Registration Wizard
-* **Target File**: `apps/web/src/features/tours/components/wizard/register-for-tour-client.tsx` (or your active traveler wizard steps file)
-* **Technical Specification**:
-    - **UI Form Fields**: Inside the traveler information capture step, inject a clean Persian radio-group selection for `transportMode`:
-      - Option 1 (`self_vehicle`): **«با خودروی آفرود شخصی شرکت می‌کنم»**
-      - Option 2 (`group_vehicle`): **«بدون خودرو هستم (متقاضی صندلی گروهی)»**
-    - **Conditional Capacity Field**: If `self_vehicle` is toggled, mount a micro number input for `vehicleSeatCapacity` labeled **«تعداد صندلی‌های خالی جهت پذیرش همسفر»**.
-    - **Leader Note Block**: Append a clean textarea mapped to `participantNote` placeholder: **«یادداشت برای لیدر (مدل خودرو، تجهیزات همراه، یا سابقه سفرهای آفرودی خود را بنویسید)...»**.
-    - Ensure all fields bind correctly to the final payload JSON dispatched to `POST /api/v2/registrations`.
+### 5. Target component scorecard
 
-## TASK 16.5.2: Frontend - Persian Suspense Banner on Traveler Ticket Dashboard
-* **Target File**: `apps/web/app/(app)/bookings/[id]/booking-detail-client.tsx`
-* **Technical Specification**:
-    - Locate the parent container layout tracking `reg.status`.
-    - **Pending Host-Gate Render**: If `reg.status === "Pending"`, inject a highly visible, stylized alert banner (`@/components/ui/alert` or standard Tailwind flex row with amber backgrounds, bearing strict `dir="rtl"`):
-      - **متن بنر**: «درخواست ثبت‌نام شما با موفقیت ثبت شد و در انتظار تایید مدارک و نوع خودرو توسط لیدر تور است. به محض تایید، امکان پرداخت و قطعی کردن بلیت برای شما فعال خواهد شد.»
-    - Ensure that under this state, all primary online payment buttons or cash invoice CTAs remain completely hidden, displaying a clean "در انتظار تایید میزبان" status badge.
-
-## TASK 16.5.3: Quality Compiler Verification
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to confirm 100% type safety.
-
-
-# EXECUTIVE FINANCIAL COMPLIANCE & PLATFORM INTEGRITY POLISH (PHASE 16.6)
-Goal: Eradicate leftover English status/currency leaks in finance panels, enforce backend business invariants against auto-accepting paid tours, and secure registration status transitions post-lock. Do not touch map.md or map.log.
+| Component | getCapabilitiesForProfile | Rule engine / descriptor | Hardcoded profile === |
+|-----------|---------------------------|--------------------------|------------------------|
+| TourCreateWizard | Shell only | N/A | No in file |
+| DenaliCreateTourWizard | No | Primary | Via publish hook caller |
+| TourForm | No | Partial | Yes |
+| tour-edit-client | Shell only | Via DenaliTourEditForm | No in file |
+| PublicRegisterForm | No | No | No (tour-driven) |
+| register-for-tour-client | No | No | No |
+| tour-schema | requiresGeoPublish only | Zod by profile | No |
 
 ---
 
-## TASK 16.6.1: Frontend - FA-IR Financial Typography & Error Mapping
-* **Target Files**:
-    - `apps/web/app/(app)/finance/components/admin-receipt-review-panel.tsx`
-    - `apps/web/app/(app)/finance/components/payment-receipt-upload-panel.tsx`
-    - `apps/web/app/(app)/finance/finance-copy.ts`
-* **Technical Specification**:
-    - **Currency & Amount Formatting**: Replace raw `payment.amount` counters with a localized Iranian formatter (`Intl.NumberFormat("fa-IR")`). Append the corporate Persian text badge (**تومان** / **ریال** based on context).
-    - **Status Mapping**: Localize receipt statuses inline inside the rows. Convert `Pending` $\rightarrow$ **در انتظار بررسی** and `Approved` $\rightarrow$ **تایید شده**.
-    - **Persian Error Registry**: Update your UI error handler connection (`mapToUserMessage`) for the finance components so that corporate banking errors or version conflicts (`REGISTRATION_ROW_VERSION_CONFLICT`) print explicit Persian toast alerts instead of leaking fallback English strings.
-
-## TASK 16.6.2: Backend - Rigid Business Invariants For Paid Tours (Anti-Bypass)
-* **Target File**: `apps/api/src/modules/tours/services/registrations.service.ts` (or your tour/registration validator)
-* **Technical Specification**:
-    - **Paid Auto-Accept Defuses**: Inside `resolveInitialRegistrationPlacement`, inject an absolute fail-closed invariant guard: If `tour.costContext?.requiresPayment === true` AND `tour.autoAcceptRegistrations === true`, force-override the status placement directly to `RegistrationStatus.PENDING` to completely neutralize the configuration bypass loophole (`PLACE-02`). Paid tours must unconditionally filter through the host approval gate.
-
-## TASK 16.6.3: Backend - Post-Lock Race-Condition Verification
-* **Target File**: `apps/api/src/modules/registrations/registrations.service.ts`
-* **Technical Specification**:
-    - **REG-LOCK-01 Fix**: In `updateRegistrationStatus`, locate the lines where `lockRegistrationForFinancialMutation` resolves.
-    - Move or re-invoke the core optimistic concurrency asserts (`assertExpectedRegistrationRowVersion` and `validateStatusTransition`) **immediately AFTER** the database row receives its `pessimistic_write` transaction lock. This ensures validation executes exclusively on the absolute, non-stale database snapshot.
-
-## TASK 16.6.4: Compilation Gate Verification
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Run the full E2E purchase simulation suite to secure 100% green status.
-
-
-# DENALI TOUR WIZARD STATE RETENTION & ERROR MAP REFACTOR (PHASE 16.7)
-Goal: Fix image/blob amnesia during step navigation, patch incomplete form resets by aligning canonical models and removing factory placeholders, and wire dynamic Persian error mappers for backend exceptions. Do not touch map.md or map.log.
+*End of audit entry.*
 
 ---
 
-## TASK 16.7.1: Frontend - Safeguard Photos/Blobs During Step Transitions
-* **Target File**: `apps/web/src/features/tours/wizard/denali/DenaliCreateTourWizard.tsx`
-* **Technical Specification**:
-    - **Preserve Upload Identity**: Inside `handleNext`, modify the invocation of `reset(normalized, ...)`. Instead of sweeping the entire form state blindly, ensure that `photosData.photos` and any active `programNature.itinerary` day-photo arrays containing local `blob:` strings are cached or explicitly merged post-normalization to preserve their object identity and browser memory bindings.
-    - Prevent the server-draft auto-sync loop from overwriting active client-side blob URLs with stale string states upon step changes.
+## Audit: JSONB Persistence Integrity — participant_metadata (2026-05-26)
 
-## TASK 16.7.2: Frontend - Clean Reset Alignment & Purge Factory Placeholders
-* **Target Files**:
-    - `apps/web/src/features/tours/wizard/denali/DenaliCreateTourWizard.tsx`
-    - `apps/web/src/features/tours/wizard/denali/denaliTourCreateBaseSchema.ts`
-* **Technical Specification**:
-    - **Erase Factory Strings**: Inside `denaliTourCreateBaseSchema.ts`, locate `buildDenaliTourCreateDefaultValues`. Completely purge the factory placeholder value `"abcdefghijabcdefghij"` and replace it with a clean empty string `""` (adjust intermediate step Zod checks so they don't block caching of incomplete draft titles).
-    - **Canonical Reset Sync**: Inside `handleClearDraft`, ensure that right after `reset()`, the `setCanonicalModel` hook is explicitly fired with the fresh clean default values schema to prevent state desynchronization races between RHF and UI contexts.
+### Scope
 
-## TASK 16.7.3: Frontend - Localize Tour Backend Error Envelopes
-* **Target Files**:
-    - `apps/web/src/features/tours/wizard/denali/utils/format-wizard-api-error.ts`
-    - `apps/web/lib/errors/error-registry.ts`
-* **Technical Specification**:
-    - **Wire Translator Core**: Refactor `formatWizardApiErrorMessage`. Intercept the incoming `ApiError` and route its code through the project's standard `mapToUserMessage` helper.
-    - **Add Missing Tour Codes**: Add explicit, highly supportive Persian translations inside `error-registry.ts` for dynamic tour creation blockers:
-      - `VALIDATION_PROFILE_EDIT_REQUIRED_FIELD` $\rightarrow$ **«لطفاً فعالیت‌ها و برنامه‌ریزی روزهای تور را به طور کامل پر کنید.»**
-      - `TOUR_NOT_PUBLISHABLE` $\rightarrow$ **«اطلاعات تور ناقص است. لطفاً پیش از انتشار، تمامی فیلدهای اجباری را تکمیل کنید.»**
+- Merge path: `RegistrationsService.participantMetadataForPersistence()` → `participantMetadataRecordForPersistence()` → `registrations.participant_metadata` JSONB.
+- Wire contracts: `RegistrationRequestSchema` (Zod), `CreateRegistrationDto` (class-validator), `ParticipantMetadataDto` (nested).
+- Create paths: `createRegistration()` (transaction) and `createPublicRegistrationOrWaitlist()` (same helper).
 
-## TASK 16.7.4: Quality Gate Check
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to guarantee 100% type safety.
+### How merge works today
 
+```text
+CreateRegistrationDto
+  ├─ participantMetadata?: ParticipantMetadataDto   → userPastPeaksCount, transportIntake only
+  ├─ transportMode / isDriver / plateNumber / shareFuelCost  → derived transportIntake (wins over nested)
+  └─ selectedServiceIds?: string[]                    → top-level only
 
-# WIZARD CANONICAL RESET HARD-ALIGNMENT (PHASE 16.7.5)
-Goal: Enforce immediate, cross-context truncation of `canonicalModel.title` upon executing the draft clear handler to ensure the title field completely clears out in the UI. Do not touch map.md or map.log.
+participantMetadataRecordForPersistence()  →  base: { userPastPeaksCount?, transportIntake? }
+participantMetadataForPersistence()        →  { ...base, selectedServiceIds? }  OR base alone
+Entity insert (single transaction)         →  full JSONB replace on new row (not read-modify-write)
+```
 
----
+**Code references:**
 
-## TASK 16.7.5.1: Frontend - Force Explicit Canonical Title Truncation on Clear
-* **Target Files**:
-    - `apps/web/src/features/tours/wizard/denali/DenaliCreateTourWizard.tsx`
-    - `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-* **Technical Specification**:
-    - Locate the `handleClearDraft` callback inside `DenaliCreateTourWizard.tsx`.
-    - Ensure that inside the execution block (where `reset` and `setCanonicalSyncToken` are called), an explicit state dispatch is routed directly to invoke `updateCanonical({ title: "" })` or whatever immediate modifier purges the `canonicalModel` memory.
-    - Open `DenaliBasicInfoStep.tsx`. Check the input field rendering `canonicalModel.title`. Ensure that if the value is empty or factory-reset, the HTML `<input>` value perfectly mirrors `""` without holding onto cache artifacts or local component state fallbacks.
+| Step | File | Lines |
+|------|------|-------|
+| Merge orchestration | `apps/api/src/modules/registrations/registrations.service.ts` | 997–1033 |
+| Base metadata builder | `apps/api/src/modules/registrations/utils/registration-transport-intake.ts` | 35–53 |
+| Create persist (auth) | `registrations.service.ts` | 276–359 (`dataSource.transaction`) |
+| Create persist (public) | `registrations.service.ts` | 1940–1965 |
+| Entity column | `apps/api/src/modules/registrations/registration.entity.ts` | 76–77 |
 
-## TASK 16.7.5.2: Verification Gate
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to achieve 100% type safety.
+### Q1: Risk if we add 10 more service IDs — overwrite / corrupt existing metadata?
 
-# TOUR EDIT SURFACE COMPLIANCE & ACTIVATION HARDENING (PHASE 16.8)
-Goal: Inject missing Denali pilot geolocation / itinerary fields into the classic tour edit form, map specific publish invariant errors, and eliminate the 400 activation blockade. Do not touch map.md or map.log.
+**On create (current code): Low risk of corrupting *other* keys.**
 
----
+- Persistence builds a **new** object per registration insert; there is **no** load-merge-save of an existing `participant_metadata` row on create.
+- Merge is **additive across logical sources**: `base` keys (`userPastPeaksCount`, `transportIntake`) are composed first; `selectedServiceIds` is added in a second spread. No key overlap today (`participantMetadataRecordForPersistence` never emits `selectedServiceIds`).
+- **10 IDs** are stored as one array value: `{ selectedServiceIds: ["id1", …, "id10"] }`. That does not clobber `userPastPeaksCount` or `transportIntake`.
 
-## TASK 16.8.1: Frontend - Inject Missing Geo-Location & Itinerary Fields into Edit Form
-* **Target File**: `apps/web/src/components/tours/TourForm.tsx` (or your active classic edit form layout)
-* **Technical Specification**:
-    - **Add Adventure Geo Blocks**: If the current profile or theme resolves to `denali_pilot`, mount a clean Persian UI section for **«مختصات و نقاط جغرافیایی تور»**.
-    - Expose fields for `tripDetails.overview.gatheringPoint` and `startPoint` (address string, latitude, and longitude inputs) so admins can fullfill the publish requirements right during editing.
-    - Ensure that the `itinerary.days` and activities row counters are securely bound to avoid stripping out essential DB records upon submit save.
+**Caveats (fragility, not immediate corruption):**
 
-## TASK 16.8.2: Frontend - Register Premium Tour Activation Errors in Translator
-* **Target Files**:
-    - `apps/web/lib/errors/error-registry.ts`
-    - `apps/web/src/features/tours/wizard/denali/utils/format-wizard-api-error.ts`
-* **Technical Specification**:
-    - **Inject Core Activation Codes**: Add explicit Persian translations into `error-registry.ts` for the following blocker constraints:
-      - `DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES` $\rightarrow$ **«انتشار تورهای دنالی نیازمند تعیین دقیق نقطه تجمع و آغاز سفر روی نقشه است.»**
-      - `PAID_TOUR_REQUIRES_AMOUNT` $\rightarrow$ **«برای تورهای پولی، وارد کردن مبلغ کل هزینه الزامی است.»**
-      - `INVALID_LIFECYCLE_TRANSITION` $\rightarrow$ **«تغییر وضعیت درخواستی برای این تور مجاز نمی‌باشد.»**
+| Risk | Severity | Detail |
+|------|----------|--------|
+| **Whole-array replace** | Medium (future) | If a later PATCH reuses this helper without reading existing JSONB, sending a new `selectedServiceIds` would **replace** the entire array, not union with prior selections. |
+| **No dedupe / no catalog validation** | Medium | `normalizeSelectedServiceIds` only trims/filters empty strings; duplicate or unknown IDs are stored as-is. |
+| **Unbounded payload** | Medium | Zod: `z.array(z.string())` with no `.max()`; DTO: `@IsArray()` + `@IsString({ each: true })` but no `@ArrayMaxSize` or per-id `@MaxLength`. Ten IDs is fine; hundreds could bloat JSONB. |
+| **Dual input channels** | Low today | `selectedServiceIds` is **only** accepted top-level on `CreateRegistrationDto`. Nested `participantMetadata` cannot carry services (`ParticipantMetadataDto` has no such field; whitelist forbids extras). |
+| **Pre-persist vs persisted split** | Low | `resolveInitialRegistrationPlacement` and `assertTravelerMeetsPeakRequirementOrThrow` read **`createDto.participantMetadata` (DTO)**, not the merged JSONB. Peaks must stay in nested DTO; services only appear after merge. |
 
-## TASK 16.8.3: Quality Compilation Gate
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to ensure zero compilation breaks.
+**Verdict for +10 services on create:** Does **not** overwrite peaks/transport intake; **does** replace the full `selectedServiceIds` array if the client resends the field.
 
-# TOUR PEAK EXPERIENCE AUTO-APPROVAL GATE (PHASE 16.9)
-Goal: Implement a "Peak-Experience" auto-approval bypass where travelers with sufficient past successful climbs automatically transition to `Accepted` status, skipping the manual host review gate. Do not touch map.md or map.log.
+### Q2: Strict shape vs “bag of data”?
 
----
+#### Ingress (strict at HTTP boundary)
 
-## TASK 16.9.1: Backend - Schema and Placement Bypass Logic
-* **Target Files**:
-    - `apps/api/src/modules/tours/entities/tour.entity.ts` (or `tripDetails` schema)
-    - `apps/api/src/modules/registrations/registration.entity.ts` (or payload data)
-    - `apps/api/src/modules/registrations/registrations.service.ts`
-* **Technical Specification**:
-    - **Tour Invariant**: Allow tours to hold a custom metadata field under `tripDetails.requirements.minRequiredPeaks` (integer, e.g., 1 to 4).
-    - **Registration Intake**: Allow the traveler request to accept `participantMetadata.userPastPeaksCount` (integer filled by user).
-    - **Auto-Approve Condition**: Open `registrations.service.ts` and locate `resolveInitialRegistrationPlacement`.
-    - Update the logic: If the tour specifies a `minRequiredPeaks` AND the incoming traveler's `userPastPeaksCount` is greater than or equal to that number, forcefully return `{ status: RegistrationStatus.ACCEPTED, consumesAcceptedCapacity: true }`, completely bypassing the `Pending` state even for paid tours.
+| Layer | Strict? | Notes |
+|-------|---------|-------|
+| `RegistrationRequestSchema` | **Yes (top-level)** | `.strict()` — unknown keys rejected. `selectedServiceIds` optional `string[]` only. |
+| `mapIntakeToRegistrationRequest` | **Gap** | Does **not** map `selectedServiceIds` from intake yet (`registration-request.schema.ts` 61–77). |
+| `CreateRegistrationDto` | **Yes (top-level)** | Global `ValidationPipe`: `whitelist: true`, `forbidNonWhitelisted: true` (`main.ts` 86–87). |
+| `ParticipantMetadataDto` | **Yes (nested)** | Only `userPastPeaksCount`, `transportIntake`; nested whitelist. |
 
-## TASK 16.9.2: Frontend - Inject Peak Counter inside Wizard & Form Sync
-* **Target Files**:
-    - `apps/web/src/features/tours/components/wizard/register-for-tour-client.tsx`
-    - `apps/web/src/components/tours/TourForm.tsx`
-* **Technical Specification**:
-    - **Traveler Side**: Inside the registration wizard, if the tour type is a mountain/outdoor profile, inject a clean Persian `<Select>` or number input for **«تعداد قله‌های صعودشدهٔ اخیر با این آژانس»** (گزینه‌ها: بدون سابقه، ۱ قله، ۲ قله، ۳ قله، ۴ قله و بیشتر). Bind this to `participantMetadata.userPastPeaksCount`.
-    - **Admin Side**: Inside the classic edit/creation form, add a counter field for **«حداقل قله‌های صعودشده جهت تایید خودکار مسافر»**.
+#### Persistence & egress (loose)
 
-## TASK 16.9.3: Verification Check
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit` to hit 100% green compliance.
+| Layer | Strict? | Notes |
+|-------|---------|-------|
+| `RegistrationEntity.participantMetadata` | **No** | `Record<string, unknown>` — TypeORM JSONB “bag”. |
+| `participantMetadataForPersistence` return | **No** | Built as `Record<string, unknown>`; only convention defines keys. |
+| `GetRegistrationDto.participantMetadata` | **No** | `Record<string, unknown> \| null` — clients see whatever was stored. |
+| DB | **No** | No CHECK constraint or JSON schema on `participant_metadata`. |
 
-# ULTIMATE PRODUCTION POSTURE COMPLIANCE & FINANCIAL BLOCKADE (PHASE 16.10)
-Goal: Fix the catastrophic `requiresPayment` deletion bug on edit save, enclose tour patch capacity checks in an explicit database transaction, and map the missing `VALIDATION_PROFILE_REQUIRED_FIELD` error code. Do not touch map.md or map.log.
+**Conclusion:** Contracts are **strict on the way in** (top-level DTO/Zod), but the **stored JSONB is an informal bag** with no version field, no shared Zod schema for the persisted document, and no server-side validation against `availableServices` catalog.
 
----
+### Transaction integrity
 
-## TASK 16.10.1: Frontend & BFF - Protect Paid-Tour Flags from Silent Clobbering
-* **Target Files**:
-    - `apps/web/src/features/tours/services/tours.service.ts` (`toUpdateTourApiBody`)
-    - `apps/web/src/components/tours/TourForm.tsx`
-* **Technical Specification**:
-    - **Preserve Commercial Invariants**: Refactor `toUpdateTourApiBody`. Ensure that during the construction of the outgoing `cost_context` payload, the function explicitly spreads or retains the pre-loaded `existingCostContext.requiresPayment` state instead of blindly deleting it when the form field is absent.
-    - Secure the object mapping chain so a passive textual save on a tour never converts a paid tour into a free configuration.
+- `createRegistration`: entire flow inside `this.dataSource.transaction(async (manager) => { ... })` (`registrations.service.ts` ~276).
+- `createPublicRegistrationOrWaitlist`: runs inside caller-provided / nested transaction pattern with same single `manager.create` + `saveRegistrationOrVersionConflict` (~1940).
+- `participant_metadata` is set once on insert; **no** separate JSONB update in the same flow.
 
-## TASK 16.10.2: Backend - Enclose Tour PATCH inside Strict Transaction Boundary
-* **Target File**: `apps/api/src/modules/tours/tours.service.ts`
-* **Technical Specification**:
-    - **TOCTOU Capacity Guard**: Refactor the `updateTour` execution pipeline. Enclose the load, assertion merge, and save blocks inside an explicit `this.dataSource.transaction(async (manager) => { ... })` scope.
-    - Re-invoke the live capacity condition check `if (dto.total_capacity < tour.acceptedCount)` exclusively after the row has securely received its `pessimistic_write` lock inside the transaction to prevent database counters drift under concurrent live registrations traffic.
+**Verdict:** Single-transaction create is preserved; metadata is not written in a second detached update.
 
-## TASK 16.10.3: Frontend - Register Profile Required Constraint in Persian Dictionary
-* **Target File**: `apps/web/lib/errors/error-registry.ts`
-* **Technical Specification**:
-    - **Translate System Blocker**: Add an explicit Persian mapping for the missing structural error code:
-      - `VALIDATION_PROFILE_REQUIRED_FIELD` $\rightarrow$ **«اطلاعات ساختاری تور (مانند عنوان، قیمت پایه یا روزهای سفر) ناقص است. لطفاً ابتدا فرم پیش‌نویس را کامل کنید.»**
-    - Register the canonical validation code token in the web array to ensure no 400 response from the API falls through to an unhandled English message screen.
+### Lean/scalable vs risky/fragile
 
-## TASK 16.10.4: Ultimate Quality Gate
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Ensure the TypeScript compiler emits 100% green exit-code 0 status across the workspace.
+| Dimension | Assessment |
+|-----------|------------|
+| **MVP / lean** | **Yes** — No migration; one JSONB column; small merge function; clear separation of peaks/transport vs service ids; create-only avoids RMW races. |
+| **Scale (many keys / workspaces)** | **Weak** — Each new concern adds another top-level DTO field **or** another informal JSONB key; no `participant_metadata` contract in `@repo/shared-contracts`. |
+| **Integrity** | **Moderate risk** — No catalog validation (client can persist arbitrary strings); read paths use partial typed views (`ParticipantMetadataIntake` only peaks). |
+| **Evolvability** | **Fragile** — Without `metadataVersion` or a Zod `ParticipantMetadataPersistedSchema`, consumers must defensively read unknown keys; finance/pricing integration will need disciplined key names. |
 
-# TOUR CLONING FIX & WORKSPACE GRID OPTIMIZATION (PHASE 16.11)
-Goal: Remint nested photo IDs on tour duplication, apply React performance memoization to the workspace registrations table, and expose read-only/editable views for leaders and passenger requirements on the edit form. Do not touch map.md or map.log.
+### Overall rating
+
+**Short term (2–10 add-on IDs):** **Lean and acceptable** — merge logic does not stomp existing metadata keys on create.
+
+**Medium term (catalog growth, PATCH edits, pricing):** **Fragile unless tightened** — recommend:
+
+1. Shared `ParticipantMetadataPersistedSchema` in `@repo/shared-contracts` (keys: `userPastPeaksCount`, `transportIntake`, `selectedServiceIds`, optional `version`).
+2. Validate `selectedServiceIds` ⊆ workspace `availableServices` at API boundary.
+3. `z.array(z.string().max(64)).max(20)` (or similar) on wire schema.
+4. On any future PATCH: read-merge-write with explicit per-key rules (array replace vs union documented).
+5. Wire `mapIntakeToRegistrationRequest` to pass `selectedServiceIds` when UI ships.
+
+### Related files (quick index)
+
+| File | Role |
+|------|------|
+| `packages/shared-contracts/src/booking/registration-request.schema.ts` | Zod wire; `selectedServiceIds` L46 |
+| `apps/api/src/modules/registrations/dto/create-registration.dto.ts` | API DTO; `selectedServiceIds` L220–228 |
+| `apps/api/src/modules/registrations/dto/participant-metadata.dto.ts` | Nested strict shape |
+| `apps/api/src/modules/registrations/utils/registration-transport-intake.ts` | Base JSONB keys |
+| `apps/api/src/modules/registrations/registrations.service.ts` | Merge + transaction create |
+| `apps/api/src/modules/registrations/utils/peak-experience-placement.ts` | Reads peaks from DTO only |
 
 ---
 
-## TASK 16.11.1: Backend/Frontend - Remint Nested Photo IDs on Tour Copy
-* **Target Files**:
-    - `apps/api/src/modules/tours/services/tours-clone.service.ts` (or your active JSON clone helper)
-    - `apps/web/src/features/tours/wizard/denali/utils/transformTourToDenaliWizardValues.ts`
-* **Technical Specification**:
-    - Locate the nested itinerary and gallery cloning utilities (`clonePhoto` or `mapDayPlanPhotos`).
-    - Ensure that when a tour is duplicated, the system explicitly strips or re-generates brand-new UUID primary keys for all copied records inside the `photos[].id` arrays. This guarantees that child tour media assets do not alias or overwrite parent tour media references.
-
-## TASK 16.11.2: Frontend - Optimize Workspace Grid via Memoization
-* **Target Files**:
-    - `apps/web/src/components/tours/workspace/RegistrationsTable.tsx`
-    - `apps/web/src/components/tours/workspace/RegistrationTransportCrmCell.tsx`
-* **Technical Specification**:
-    - Wrap `RegistrationTransportCrmCell` in a strict `React.memo` container to prevent unnecessary repaints when sibling rows mutate.
-    - Extract the table row `<tr>` mapping loop inside `RegistrationsTable.tsx` into a dedicated memoized row component (`RegistrationTableRow.tsx`). This eliminates heavy layout refetches from causing full table re-render lag when managing high-volume climber groups.
-
-## TASK 16.11.3: Frontend - Surface Missing Controls on Classic Edit Form
-* **Target File**: `apps/web/src/components/tours/TourForm.tsx`
-* **Technical Specification**:
-    - Expose a clean, visible section for **«راهنما و لیدرهای تور»** (`overview.leaderUserIds`) and passenger configuration toggles (like `sportsInsuranceRequired`) inside the flat edit matrix.
-    - Ensure these fields are accurately hydrated from `toDefaultValues` and seamlessly bundled on PATCH instead of relying on invisible state retention.
-
-## TASK 16.11.4: Compilation Verification
-- Run `pnpm --filter @apps/web exec tsc --noEmit` to confirm 100% success.
-
-# DB PURGE & WIZARD INTUITIVE ASSISTANCE INJECTION (PHASE 16.12)
-Goal: Completely wipe out old mock tour seeds and wizard templates from the database migrations/seeders, replace them with clean-slate production configurations, and inject premium Persian helper tooltips across all complex adventure fields. Do not touch map.md or map.log.
+*End of JSONB persistence audit.*
 
 ---
 
-## TASK 16.12.1: Backend - Drop Legacy Mock Tour Seeds & Keep Base Schemas
-* **Target Files**:
-    - `apps/api/src/database/seeds/` (or your active seeder/migration file creating mock tours)
-    - `apps/api/src/modules/settings-locations/resolve-workspace-tour-form-profile.ts`
-* **Technical Specification**:
-    - Purge all factory-preset mock tours and old template data (like sample routes for `general` or legacy pre-filled rows).
-    - Maintain only the strict baseline production constraints. Ensure that when a new workspace is created, its default template references a clean, blank slate configuration initialized directly to the required profile (e.g., `denali_pilot` or `mountain_outdoor`) without re-injecting zombie text inputs.
+## Audit: "Arctic Workspace" Test — simulating `arctic_pilot` (2026-05-26)
 
-## TASK 16.12.2: Frontend - Inject Premium Persian Guidance Tooltips inside Wizard & Edit
-* **Target Files**:
-    - `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-    - `apps/web/src/components/tours/TourForm.tsx`
-    - `apps/web/src/features/tours/wizard/denali/steps/DenaliPricingParticipantSection.tsx`
-* **Technical Specification**:
-    - **Contextual Guidance Boxes**: Add elegant micro tooltips or helper labels (`@/components/ui/tooltip` or clear sub-texts bearing strict `dir="rtl"`) right below/beside confusing administrative inputs:
-      - **عنوان تور**: «نامی جذاب و کوتاه انتخاب کنید. نمونه: صعود زمستانه به دماوند جبهه جنوبی»
-      - **نقاط جغرافیایی (تجمع و آغاز)**: «این دو نقطه روی نقشه برای متقاضیان الزامی است. نقطه تجمع جایی است که همسفران را سوار می‌کنید و نقطه آغاز، شروع پیمایش آفرود یا کوه است.»
-      - **حداقل قله‌های صعودشده (شرط تایید خودکار)**: «با تنظیم این عدد، کوهنوردان باسابقه که این تعداد صندلی/قله را با شما صعود کرده‌اند، بدون نیاز به تایید دستی شما مستقیم به درگاه پرداخت هدایت می‌شوند.»
-      - **الزامات بیمه و کد ملی**: «فعال کردن این تیک‌ها، مسافر را در فرم ثبت‌نام مجبور به وارد کردن کدملی دقیق و ارائه کارت بیمه ورزشی معتبر می‌کند.»
+### Scenario
 
-## TASK 16.12.3: Verification Gate Check
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit`.
-- Verify the creation flow launches completely empty, prompting the newly added Persian guidelines beautifully.
+Add a **new** closed profile slug `arctic_pilot` (distinct from existing `nature_trip`, which already maps to `ARCTIC_WORKSPACE` in [`workspace-registry.ts`](packages/shared-contracts/src/tours/workspace-registry.ts) with classic rail and min-capacity validation).
 
+Assumption: `arctic_pilot` uses **classic** wizard + Arctic-style rules (min capacity 5, slim roots), **not** Denali 6-tab rail — unless noted in the Denali variant table below.
 
-# WIZARD UI CLEANSE & FIELD PARITY ALIGNMENT (PHASE 16.12)
-Goal: Fix the duplicated gathering place fields, fully expose the missing minRequiredPeaks constraints in creation mode, introduce absolute Draft/Active status toggles, and bypass the legacy auto-filled name template issue. Do not touch map.md or map.log.
+### Is the system workspace-agnostic?
+
+**No — not workspace-agnostic for onboarding a new workspace identity.**
+
+| Layer | Agnostic? | Why |
+|-------|-----------|-----|
+| Runtime behavior **within** a registered profile | **Mostly** | `GeneralWorkspaceStrategy` + `getTourFormProfileDescriptor` + `buildWizardConfig` / `getCapabilitiesForProfile` derive strip, steps, and flags from descriptor + `TOUR_WORKSPACE_DEFINITIONS`. |
+| Adding a **new profile slug** | **No** | Closed tuple in `@repo/types`, totality table in descriptors, explicit map in workspace registry, **Postgres CHECK** enums on themes/presets/tours, i18n keys, content-workspace default map. |
+| Denali-class workspaces | **No** | Extra lists: `DENALI_STRATEGY_PROFILES`, `DENALI_WIZARD_PROFILES`, `usesDenaliCanonicalTemplate`, `workspace-ui-capabilities` `denali_pilot` branch. |
+| UI shell selection | **Partial** | `TourCreateWizard` uses capabilities for shell; Denali components still hardcode rule engine / `"denali_pilot"` publish hooks (see prior fidelity audit). |
+
+**Existing overlap:** `nature_trip` already consumes `ARCTIC_WORKSPACE` ([`arctic.ts`](packages/shared-contracts/src/tours/workspaces/arctic.ts) L7 hardcodes `profile: "nature_trip"`). `arctic_pilot` still needs its **own** registry entry and descriptor row even if validation is copy-pasted from Arctic.
 
 ---
 
-## TASK 16.12.1: Frontend - Purge Duplicated Gathering Place & Fix Parity
-* **Target Files**:
-    - `apps/web/src/components/tours/TourForm.tsx`
-    - `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-* **Technical Specification**:
-    - Remove the legacy textual `gathering_place` row if the advanced geo-pinned mapping `tripDetails.location.gatheringPoint` is present.
-    - Ensure only ONE shkil interactive map-picker and text address row is shown to the admin.
+### Manual change inventory (production / contract code)
 
-## TASK 16.12.2: Frontend - Force Expose Peak Experience Requirements during Creation
-* **Target File**: `apps/web/src/components/tours/TourForm.tsx`
-* **Technical Specification**:
-    - Ensure that the conditional rule fields (`tripDetails.requirements.minRequiredPeaks` and `sportsInsuranceRequired`) are unconditionally visible during BOTH initial creation wizard and classic edit modes.
-    - Remove any restrictive state-guards that hide these toggles before a tour is officially saved.
+#### Tier A — **Required** for any new `arctic_pilot` profile (9 files)
 
-## TASK 16.12.3: Frontend - Add Explicit Status Toggle (Draft vs Active)
-* **Target File**: `apps/web/src/components/tours/TourForm.tsx`
-* **Technical Specification**:
-    - Inject a beautiful premium Toggle or Select component for **«وضعیت انتشار تور»** linking directly to the `status` enum payload (`DRAFT` vs `ACTIVE/OPEN`).
-    - This allows the admin to explicitly publish the tour or safely store it as a working draft.
+| # | File | Line(s) | Change |
+|---|------|---------|--------|
+| 1 | [`packages/types/src/tour-form-profile.ts`](packages/types/src/tour-form-profile.ts) | 10–18 | Add `"arctic_pilot"` to `TOUR_FORM_PROFILE_VALUES` (source of truth). |
+| 2 | [`packages/types/src/tour-form-profile-descriptors.ts`](packages/types/src/tour-form-profile-descriptors.ts) | ~248–355 | New `arcticPilot` descriptor object + key in `TOUR_FORM_PROFILE_DESCRIPTORS` (totality enforced L357–370). |
+| 3 | [`packages/shared-contracts/src/tours/workspaces/arctic.ts`](packages/shared-contracts/src/tours/workspaces/arctic.ts) or **new** `arctic-pilot.ts` | 6–33 | New `TourWorkspaceDefinition` with `profile: "arctic_pilot"` (cannot reuse single `ARCTIC_WORKSPACE` as-is — profile field is fixed to `nature_trip` today). |
+| 4 | [`packages/shared-contracts/src/tours/workspace-registry.ts`](packages/shared-contracts/src/tours/workspace-registry.ts) | 9–13 | `arctic_pilot: ARCTIC_PILOT_WORKSPACE` (or equivalent). |
+| 5 | [`packages/shared-contracts/src/tours/index.ts`](packages/shared-contracts/src/tours/index.ts) | exports | Export new workspace module if split from `arctic.ts`. |
+| 6 | **New** `apps/api/src/database/migrations/*-AddArcticPilotFormProfile.ts` | pattern: [`1777595800000-AddDenaliPilotFormProfile.ts`](apps/api/src/database/migrations/1777595800000-AddDenaliPilotFormProfile.ts) | Extend `CHECK` on `workspace_tour_themes.form_profile`, `workspace_tour_creation_presets.form_profile`, `tours.form_profile_snapshot`. |
+| 7 | [`packages/shared-contracts/src/content/public-site.ts`](packages/shared-contracts/src/content/public-site.ts) | 17–24 | Update `CONTENT_WORKSPACE_DEFAULT_TOUR_PROFILE.arctic` from `"nature_trip"` → `"arctic_pilot"` if marketing workspace `arctic` should bind to the new profile. |
+| 8 | [`apps/web/messages/en.json`](apps/web/messages/en.json) | ~1028–1034 | `settings.tourThemesFormProfileOption_arctic_pilot` (required by [`getTourFormProfileOptions`](packages/types/src/ui/tour-form-profile.config.ts)). |
+| 9 | [`apps/web/messages/fa.json`](apps/web/messages/fa.json) | ~1035–1041 | Same FA label key. |
 
-## TASK 16.12.4: Compilation Gate Check
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and confirm exit 0.
+**Tier A count: 9 → exceeds threshold.**
 
-# MULTI-STATION PICKUPS IN LOGISTICS & FORM CLEANSE (PHASE 16.12)
-Goal: Move gathering points to a dynamic array in the Logistics tab, remove legacy time/place inputs from Basic Info, and fix cloning UUID reminting.
+#### Tier B — **Required only if** `arctic_pilot` uses **Denali rail** (like `denali_pilot` / `urban_event`) (+4 files → **13 total**)
 
-## TASK 16.12.1: Backend Contracts & Clone Engine
-- In `packages/shared-contracts/src/tours/workspaces/denali-invariants.ts`, change `tripDetails.location.gatheringPoint` to `tripDetails.logistics.gatheringPoints` array.
-- Update `checkDenaliPilotPublishGeolocationZones` to validate this new logistics array.
-- Update `tours-clone.service.ts` to map over `gatheringPoints` and remint new UUIDs for every copied pickup station.
+| # | File | Line(s) | Change |
+|---|------|---------|--------|
+| 10 | [`apps/api/src/modules/tours/strategies/workspace.strategy.registry.ts`](apps/api/src/modules/tours/strategies/workspace.strategy.registry.ts) | 6–7, 24–28 | Add to `DENALI_STRATEGY_PROFILES`; routes to `DenaliWorkspaceStrategy`. |
+| 11 | [`apps/web/src/features/tours/wizard/workspace-wizard.config.ts`](apps/web/src/features/tours/wizard/workspace-wizard.config.ts) | 25–28 | Add to `DENALI_WIZARD_PROFILES` (duplicate list — drift risk). |
+| 12 | [`packages/shared-contracts/src/tours/workspace-ui-capabilities.ts`](packages/shared-contracts/src/tours/workspace-ui-capabilities.ts) | 27–46 | New profile branch or row if geo publish / service catalog / strip flags differ from `DEFAULT_UI_FLAGS`. |
+| 13 | [`apps/api/src/modules/tours/strategies/workspace.strategy.builders.ts`](apps/api/src/modules/tours/strategies/workspace.strategy.builders.ts) | 40–45 | Only if trip-details validation phase must match `denali_pilot` (`before_canonical` vs `after_canonical`). |
 
-## TASK 16.12.2: Frontend Layout & Form Parity
-- In `DenaliBasicInfoStep.tsx`, completely remove the old gathering text and singular departure time fields.
-- In `DenaliLogisticsStep.tsx`, implement `useFieldArray` for `tripDetails.logistics.gatheringPoints` rendering title, time, and map-picker side-by-side.
-- In `TourForm.tsx`, unconditionally expose the `minRequiredPeaks` toggle and add an explicit `DRAFT` vs `ACTIVE` status selector.
+#### Tier C — **Likely** for product-complete Arctic tenant (+2–4 files)
 
-## TASK 16.12.3: Quality Gate
-- Run `tsc --noEmit` across web and api packages to ensure 100% compilation.
+| # | File | Line(s) | Change |
+|---|------|---------|--------|
+| 14 | [`apps/web/src/features/tours/wizard/denali/denaliThemeFilter.ts`](apps/web/src/features/tours/wizard/denali/denaliThemeFilter.ts) | 28–31 | Add `arctic_pilot` to category → profile allowlists if theme picker should surface it. |
+| 15 | [`apps/api/src/scripts/provision-denali-tenant.ts`](apps/api/src/scripts/provision-denali-tenant.ts) or new provision script | — | Seed template `base_profile`, themes, presets (ops; not runtime). |
+| 16 | [`apps/api/openapi.json`](apps/api/openapi.json) | — | Regenerate after DTO enum expands (tooling). |
+| 17 | [`packages/types/src/tour-form-profile.ts`](packages/types/src/tour-form-profile.ts) | 46–60 | Optional: `defaultTourFormProfileForTourType` if new commercial `TourType` maps to Arctic. |
 
-## TASK 16.12.4: Compilation Gate Check
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit` (exit 0).
+#### Tier D — **Does not require edit** for basic `arctic_pilot` (data-driven today)
 
-# NESTED GATHERING PICKUP STATIONS (PHASE 16.13 — Option A)
-Goal: Refactor `tripDetails.logistics.gatheringPoints` to nested `{ title, time, location }`, migrate legacy `overview.gatheringPoint` / flat blobs on read, and wire wizard + classic edit + API projection. Do not touch map.md or map.log.
+These adapt when Tier A is done (no profile string fork):
+
+- [`apps/api/src/modules/tours/strategies/general.workspace.strategy.ts`](apps/api/src/modules/tours/strategies/general.workspace.strategy.ts) — default strategy for non-Denali profiles.
+- [`apps/api/src/modules/tours/utils/assert-create-tour-invariants.ts`](apps/api/src/modules/tours/utils/assert-create-tour-invariants.ts) — `WorkspaceStrategyRegistry.resolve(profile)`.
+- [`apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts`](apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts) — strip via strategy + descriptor.
+- [`apps/web/lib/workspace/workspace-capabilities.ts`](apps/web/lib/workspace/workspace-capabilities.ts) — derives from descriptor + `getTourWorkspaceDefinition` (default UI flags unless Tier B.12).
+- [`apps/web/src/features/tours/wizard/profileRules/rules.ts`](apps/web/src/features/tours/wizard/profileRules/rules.ts) — loops `TOUR_FORM_PROFILE_VALUES` / descriptors (L241–247).
+- API DTOs using `@IsIn(TOUR_FORM_PROFILE_VALUES_LIST)` — enum expands with types ([`create-tour.dto.ts`](apps/api/src/modules/tours/dto/create-tour.dto.ts) L130–137, settings theme/preset DTOs).
+- Most `*.spec.ts` parity tests that iterate `TOUR_FORM_PROFILE_VALUES` — may need **expectation updates** but not new branching logic.
+
+#### Tier E — **Still bypass registry** (unchanged by adding `arctic_pilot` unless explicitly migrated)
+
+Not blocking profile registration, but still profile-string or Denali-engine coupled:
+
+- [`apps/web/src/components/tours/TourForm.tsx`](apps/web/src/components/tours/TourForm.tsx) 268, 329–331, 395 — `denali_pilot` only.
+- [`apps/web/src/features/tours/wizard/denali/validation/denaliWizardPublishReadiness.ts`](apps/web/src/features/tours/wizard/denali/validation/denaliWizardPublishReadiness.ts) 94.
+- [`DenaliCreateTourWizard.tsx`](apps/web/src/components/tours/wizard/DenaliCreateTourWizard.tsx) — Denali rule matrix, not capability-driven.
+- Registration UI — tour-field policy, not workspace profile.
 
 ---
 
-## TASK 16.13.1: Shared Types & Canonical Mapping
-* **Target Files**:
-    - `packages/types/src/denali/gatheringPickupStation.ts`
-    - `packages/types/src/denali/denaliCanonicalTourModel.ts`
-    - `packages/types/src/denali/denaliCanonicalFromForm.ts`
-    - `packages/types/src/index.ts`
-* **Technical Specification**:
-    - Introduce `DenaliGatheringPickupStation` with `normalizeGatheringPickupStation(s)`, `gatheringPickupStationIsConcrete`, `gatheringPickupStationFromLegacyLocation`, and `gatheringPickupStationToPersisted`.
-    - Resolve `gatheringPoints` from `form.tripDetails.logistics.gatheringPoints` with fallback from legacy `basicInfo.gatheringPoint` / `meetingPoint`.
+### Friction verdict
 
-## TASK 16.13.2: Backend DTO, Invariants & Clone
-* **Target Files**:
-    - `apps/api/src/modules/tours/types/tour-trip-details.types.ts`
-    - `apps/api/src/modules/tours/dto/trip-details.dto.ts`
-    - `packages/shared-contracts/src/tours/workspaces/denali-invariants.ts`
-    - `apps/api/src/modules/tours/services/tours-clone.service.ts`
-* **Technical Specification**:
-    - `TripDetailsGatheringPickupStation { title, time?, location }` on logistics.
-    - Publish gate: non-empty array; **every** station must pass `gatheringPickupStationIsConcrete` (title + address + lat/lng).
-    - Clone deep-copies `title/time/location` and remints location row ids.
+| Metric | Value |
+|--------|--------|
+| **Minimum manual files (classic `arctic_pilot`)** | **9** |
+| **With Denali rail variant** | **13+** |
+| **Threshold** | **> 5 → HIGH FRICTION** |
+| **Workspace-agnostic?** | **No** for new workspace identity; **partial** for behavior given an existing profile row |
 
-## TASK 16.13.3: Frontend Schema, Widget & Projection
-* **Target Files**:
-    - `apps/web/src/features/tours/wizard/schemas/denaliGatheringPickupStation.schema.ts`
-    - `apps/web/src/features/tours/wizard/denali/components/DenaliGatheringPointsWidget.tsx`
-    - `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-    - `apps/web/src/components/tours/TourForm.tsx`
-    - `apps/web/src/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection.ts`
-    - `apps/web/src/features/tours/models/tourTripDetails.schema.ts`
-    - `apps/web/src/components/tours/tour-schema.ts`
-* **Technical Specification**:
-    - RTL grid per row: **عنوان ایستگاه** | **ساعت حضور**; `Controller` on nested `location` for map patches.
-    - Mount widget on Basic Info + classic edit; remove duplicate from Transport step; route-map zones exclude gathering (use `logistics.gatheringPoints` only).
-    - Projection emits `logistics.gatheringPoints`; stop writing `overview.gatheringPoint`.
+### What would make it lower-friction
 
-## TASK 16.13.4: Compilation & Spec Verification Gate
-- Run `pnpm --filter @repo/types build` and `pnpm --filter @repo/shared-contracts build`.
-- Run `pnpm --filter @apps/web exec tsc --noEmit` and `pnpm --filter @apps/api exec tsc --noEmit` (exit 0).
-- Run API specs: `denali-publish-geolocation.spec.ts`, `tours-clone.service.unit-spec.ts`; web: `transformTourToDenaliWizardValues.spec.ts`.
+1. **Single registry** in `@repo/shared-contracts`: `Record<TourFormProfile, WorkspaceBundle>` merging descriptor + workspace def + UI flags (eliminate `DENALI_*` duplicate lists).
+2. **DB**: drop per-value `CHECK` in favor of application validation only, or one `form_profile` reference table.
+3. **Codegen** from registry: `TOUR_FORM_PROFILE_VALUES`, i18n stubs, OpenAPI enum, migration `IN (...)` list.
+4. **Parameterize** `ARCTIC_WORKSPACE` factory `createArcticWorkspace(profile: TourFormProfile)` to avoid one-file-per-profile copy-paste.
 
+### Note on existing "Arctic" test case
 
-# WIZARD UI DRIFT ALIGNMENT & CLEAN QA GATE (PHASE 16.14) (DONE)
-Goal: Align legacy general logistics step inputs with the new tripDetails.logistics.gatheringPoints schema and purge deprecated single meetingPoint schemas.
+The codebase already ships an **Arctic workspace definition** tied to **`nature_trip`**, not a free-form plug-in point. Introducing `arctic_pilot` validates that every new slug still pays the **Tier A** cost; it does not reuse a single `registerWorkspace("arctic", config)` API.
 
-## TASK 16.14.1: Frontend UI - General Logistics & Wizard Step Path Sync (DONE)
-- File: `apps/web/src/components/tours/tour-create-trip-details-fields.tsx`
-- File: `apps/web/src/features/tours/wizard/components/LogisticsStep.tsx`
-- Action: Locate any legacy inputs bound to `logistics.gatheringPoints` (without prefix) or old singular paths.
-- Fix: Synchronize and rewrite their form state bindings to strictly map onto the canonical nested contract path: `tripDetails.logistics.gatheringPoints`.
+---
 
-## TASK 16.14.2: Schema Sanitation - Deprecate Legacy Meeting Schema Fields (DONE)
-- File: `packages/shared-contracts/src/tours/workspaces/denali-invariants.ts`
-- File: `apps/api/src/modules/tours/dto/trip-details.dto.ts`
-- Action: Find `meetingPoint` and `overview.gatheringPoint` entries inside the creation base validator schemas.
-- Fix: Explicitly flag them as `@deprecated` or remove them from the creation payload requirements to secure a 100% blank slate with zero legacy parameters.
+*End of Arctic workspace test audit.*
 
-## TASK 16.14.3: Compilation Check (DONE)
-- Action: Verify that running `tsc --noEmit` across both packages yields absolute 0 errors. (PASSED)
+---
 
+## Audit: Over-Engineering Check — WorkspaceUiCapabilityFlags + WorkspaceStrategy (2026-05-26)
 
+### Abstraction stack (current)
 
-# WIZARD GEOLOCATION PURGE & FULL-STACK ARRAY INTEGRATION (PHASE 16.15) (DONE)
-Goal: Strip old single location fields from Basic Info, embed the gatheringPoints array inside the Logistics tab, and update cloning, save-draft mutations, and all test specs to prevent regressions.
+```text
+@repo/types
+  getTourFormProfileDescriptor(profile)     ← data: strip, inactive groups, invariants
 
-## TASK 16.15.1: Frontend UI - Declutter Basic Info Step (DONE)
-- File: `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-- Action: Delete all JSX fields and map elements for `gathering_place`, `departure_time`, and single `gatheringPoint`.
-- Content: Retain ONLY Title, Capacity, Leaders, and the Draft/Active Status selector.
+@repo/shared-contracts
+  getTourWorkspaceDefinition(profile)       ← data: wizardMode, validation fns (3 profiles only)
+  getWorkspaceUiCapabilityFlags(profile)    ← data: 3 flags (only denali_pilot differs)
 
-## TASK 16.15.2: Frontend UI & Mutations - Logistics Tab & Draft State (DONE)
-- File: `apps/web/src/features/tours/wizard/denali/steps/DenaliLogisticsStep.tsx`
-- File: `apps/web/src/components/tours/TourForm.tsx`
-- Action: Mount `useFieldArray` bound to `tripDetails.logistics.gatheringPoints` (with title, time, and MapPicker side-by-side).
-- Payload Integration: Ensure both "Save Draft" and "Publish" handlers accurately include this `gatheringPoints` array in the mutation request payload instead of looking for old single object coordinates.
+apps/api — workspace.strategy.builders.ts   ← logic: buildValidationRules, buildPublishPolicy, …
+  ↑ called by
+  GeneralWorkspaceStrategy / DenaliWorkspaceStrategy (thin classes)
+  ↑ selected by
+  WorkspaceStrategyRegistry.resolve(profile)  ← 2-way fork (Denali vs General)
 
-## TASK 16.15.3: Backend Invariants & Deep Cloning Array Integration (DONE)
-- File: `packages/shared-contracts/src/tours/workspaces/denali-invariants.ts`
-- File: `apps/api/src/modules/tours/services/tours-clone.service.ts`
-- Action: Enforce that `checkDenaliPilotPublishGeolocationZones` validates the array path. Update the cloning engine to deep-copy the `gatheringPoints` array and remint clean UUIDs for every station row.
+apps/web — parallel (no Registry)
+  buildWizardConfig(profile)                  ← duplicate of API buildWizardConfig
+  getCapabilitiesForProfile(profile)          ← 15-field projection + cache
+```
 
-## TASK 16.15.4: Test Specs Compliance & Quality Gate (DONE)
-- File: `apps/web/src/features/tours/wizard/denali/utils/transformTourToDenaliWizardValues.spec.ts`
-- File: `apps/api/test/tours/tours-create.e2e-spec.ts`
-- Action: Rewrite all mock payloads inside spec files to provide the arrayed `gatheringPoints` format instead of single object schemas to secure a green `tsc --noEmit` build code 0. (PASSED)
+**Depth:** 4–5 layers for the same `TourFormProfile` input, with **two independent web/API pipelines**.
 
-# WIZARD TEMPLATE SELECTOR & FULL-STACK DRAFT PARITY (PHASE 16.15) (DONE)
-Goal: Replace ambiguous draft buttons with an explicit Multi-Template Select Component and an intelligent auto-draft rehydration mechanism, supporting the nested logistics array.
+---
 
-## TASK 16.15.1: Frontend UI - Declutter & Add Template Dropdown (DONE)
-- File: `apps/web/src/features/tours/wizard/denali/steps/DenaliBasicInfoStep.tsx`
-- Action 1: Completely delete legacy single location/time inputs to keep the view minimal. (DONE)
-- Action 2: Mount a `<Select>` component for **«بارگذاری از روی تمپلیت‌های آماده»**. Fetch workspace templates and on change, populate form state using `reset()` or `setValue()` including the nested `tripDetails.logistics.gatheringPoints` array. (DONE)
-- Action 3: Implement an auto-recovery prompt banner if a single active local draft exists, instead of an absolute static button. (DONE)
+### 1. Abstraction depth review
 
-## TASK 16.15.2: Backend API - Template Resolver Multi-Parity (DONE)
-- File: `apps/api/src/modules/settings-locations/resolve-workspace-tour-form-profile.ts`
-- File: `apps/api/src/modules/tours/dto/trip-details.dto.ts`
-- Action: Update the profile resolver to handle selective template IDs. Ensure that when a specific template is picked, its stored JSON array maps perfectly onto the new `gatheringPoints` schema topology. (DONE)
+| Layer | LOC (approx) | Production consumers (API) | Production consumers (Web) |
+|-------|----------------|---------------------------|--------------------------|
+| `TourFormProfileDescriptor` | Large table | Via builders / asserts | `profileRules`, `fieldGroups`, strip |
+| `TourWorkspaceDefinition` | 3 registry entries | Via builders | `buildWizardConfig` |
+| `workspace.strategy.builders` | ~95 | **Indirect** via strategy | **Not imported** (web reimplements) |
+| `WorkspaceUiCapabilityFlags` | ~48 | 3 call sites | 1 module (`workspace-capabilities`) |
+| `IWorkspaceStrategy` + 2 classes | ~150 | 4 method families | **None** |
+| `WorkspaceCapabilities` | ~170 | **None** | **3** (`tour-schema`, `tour-edit-client`, `TourCreateWizard`) |
 
-## TASK 16.15.3: Backend Core - Deep Clone & Invariants (DONE)
-- File: `packages/shared-contracts/src/tours/workspaces/denali-invariants.ts`
-- File: `apps/api/src/modules/tours/services/tours-clone.service.ts`
-- Action: Ensure `checkDenaliPilotPublishGeolocationZones` loops through the array on publish. Confirm the cloning service deeply copies the array and remints brand-new UUIDs for every copied station row. (DONE)
+#### `IWorkspaceStrategy` — five methods, actual usage
 
-## TASK 16.15.4: Compilation & Specs Validation (DONE)
-- Action: Update all associated tour wizard `*.spec.ts` files to pass the new array payload structure. Run `tsc --noEmit` across web and api to secure code 0 success. (PASSED)
+| Method | API production callers | Verdict |
+|--------|------------------------|---------|
+| `getValidationRules()` | `assert-create-tour-invariants.ts` L26–27 | **Used** |
+| `getFieldStripRules()` | `assert-create-tour-invariants.ts`, `create-tour-form-profile-strip.ts` | **Used** |
+| `getPublishPolicy()` | `assert-tour-publish-transition.ts` L23 | **Used** |
+| `getRequiredSubmitFields()` | `assert-profile-required-fields-for-submit.ts` L69 | **Used** |
+| `getWizardConfig()` | **None** (only `workspace.strategy.registry.spec.ts`) | **Dead on API** |
+
+`GeneralWorkspaceStrategy` is a **pure delegate** to builders with constant options (`publishGeolocationCheck: null`, `appliesDenaliSingleDayLogisticsStrip: false`).  
+`DenaliWorkspaceStrategy` adds **~25 lines** of real behavior: geo publish fn, single-day strip flag, `denali_pilot` submit field reader.
+
+#### `WorkspaceUiCapabilityFlags` — three fields
+
+| Field | Set for | Consumers |
+|-------|---------|-----------|
+| `requiresGeoPublish` | `denali_pilot` only | API publish policy, web `requiresGeoPublish` |
+| `appliesDenaliSingleDayLogisticsStrip` | `denali_pilot` only | API strip via `DenaliWorkspaceStrategy` |
+| `availableServices` | `denali_pilot` catalog | Web capabilities only; **no UI consumer yet** |
+
+**Assessment:** Small and **lean as a table**. Slight overlap with what `DenaliWorkspaceStrategy` already injects into `buildPublishPolicy` / `buildFieldStripRules` — same facts, two modules.
+
+#### `WorkspaceCapabilities` (web) — speculative surface
+
+Of **15** exported fields, production web code uses only:
+
+- `usesDenaliWizardShell` — `tour-edit-client.tsx`, `TourCreateWizard.tsx`
+- `requiresGeoPublish` — `tour-schema.ts`
+
+Fields such as `canAddTransport`, `canAddMeals`, `allowsMountainOverviewFields`, `availableServices`, `hasWorkspaceValidation`, etc. appear **only** in `workspace-capabilities.ts` and its spec — **zero production UI imports** (grep 2026-05-26). This is **forward-looking API surface**, not lean minimal API.
+
+---
+
+### 2. Lean or bloated?
+
+**Verdict: Transitionally bloated — core logic is lean; wrappers and mirrors are not.**
+
+| Lean (keep) | Bloated / redundant (flatten candidates) |
+|-------------|------------------------------------------|
+| `getTourFormProfileDescriptor` | `GeneralWorkspaceStrategy` class (stateless pass-through) |
+| `workspace.strategy.builders.ts` | `IWorkspaceStrategy` interface + 5 DTO sub-interfaces if only 2 behavioral forks exist |
+| `getWorkspaceUiCapabilityFlags` as a **small** shared table | Duplicate `buildWizardConfig` in `apps/web/.../workspace-wizard.config.ts` |
+| `DenaliWorkspaceStrategy` behavior (could be 2 functions) | Full `WorkspaceCapabilities` object until call sites exist |
+| | `getWizardConfig()` on strategy (unused on API) |
+| | `WorkspaceStrategyRegistry` class indirection for a **binary** branch |
+
+**Ratio:** ~95 LOC of real builder logic vs ~320+ LOC of interfaces, classes, registry, web mirror, and unused capability fields.
+
+---
+
+### 3. Could simpler props / functions replace StrategyRegistry?
+
+**Yes, for current behavior.**
+
+Today there are only **two** behavioral families:
+
+1. **Denali-rail profiles** (`denali_pilot`, `urban_event`) — shared `DENALI_WORKSPACE`, differing geo/strip/submit nuances.
+2. **Everyone else** — `GeneralWorkspaceStrategy` → builders with null/false options.
+
+Equivalent without classes:
+
+```typescript
+// Pseudocode — same behavior as registry
+export function resolvePublishPolicy(profile: TourFormProfile) {
+  const ui = getWorkspaceUiCapabilityFlags(profile);
+  return buildPublishPolicy(profile, {
+    publishGeolocationCheck: ui.requiresGeoPublish
+      ? (td) => checkDenaliPilotPublishGeolocationZones(td)
+      : null,
+  });
+}
+
+export function resolveFieldStripRules(profile: TourFormProfile) {
+  return buildFieldStripRules(profile, {
+    appliesDenaliSingleDayLogisticsStrip:
+      getWorkspaceUiCapabilityFlags(profile).appliesDenaliSingleDayLogisticsStrip,
+  });
+}
+
+export function resolveValidationRules(profile: TourFormProfile) {
+  return buildValidationRules(profile);
+}
+
+export function resolveRequiredSubmitFields(profile: TourFormProfile) {
+  return profile === "denali_pilot"
+    ? buildDenaliPilotRequiredSubmitFields(profile)
+    : buildRequiredSubmitFields(profile);
+}
+```
+
+Call sites would import **functions** instead of `WorkspaceStrategyRegistry.resolve(profile).getX()`.
+
+**Standard props** fit the **web** side better than Nest strategy classes:
+
+```typescript
+// Parent already has template.baseProfile
+const caps = getCapabilitiesForProfile(profile);
+<RegisterForm availableServices={caps.availableServices} />
+```
+
+No need for web to know `IWorkspaceStrategy` exists. One shared `WorkspaceProfileBundle` type in `@repo/shared-contracts` could back both API asserts and React props.
+
+---
+
+### 4. Unnecessary abstractions to flatten (priority order)
+
+| Priority | Abstraction | Action |
+|----------|-------------|--------|
+| **P0** | `GeneralWorkspaceStrategy` | Remove; call `build*` directly with default options. |
+| **P0** | `getWizardConfig()` on `IWorkspaceStrategy` | Remove from interface **or** wire API to use it; today web/API duplicate `buildWizardConfig`. |
+| **P1** | `WorkspaceStrategyRegistry` class | Replace with `resolvePublishPolicy(profile)` etc., or single `getWorkspaceContext(profile)` struct. |
+| **P1** | Web `buildWizardConfig` duplicate | Import builders from shared package or export one `getWorkspaceProfileBundle` from `@repo/shared-contracts`. |
+| **P2** | `WorkspaceCapabilities` (15 fields) | Shrink to fields **actually used** (`usesDenaliWizardShell`, `requiresGeoPublish`, `availableServices`) until migrations land; or generate from bundle. |
+| **P2** | `WorkspaceUiCapabilityFlags` vs strategy hooks | Merge into one `WorkspaceProfileExtensions` record on `TourWorkspaceDefinition` to avoid two denali_pilot tables. |
+| **P3** | Five sub-interfaces in `workspace.strategy.interface.ts` | Collapse to one `WorkspaceContext` type if classes go away; keep only if team wants Nest-style documentation boundaries. |
+| **Keep** | `workspace.strategy.builders.ts` | This **is** the implementation; not over-engineered. |
+| **Keep** | `DenaliWorkspaceStrategy` logic (as functions) | Real profile-specific behavior; not redundant. |
+
+**Do not flatten:** `getTourFormProfileDescriptor`, Denali rule engine, or registration/tour-field policies — different concerns.
+
+---
+
+### 5. Final verdict
+
+| Question | Answer |
+|----------|--------|
+| Is the architecture **lean**? | **At the builder/descriptor core — yes.** |
+| Is it **bloated** overall? | **Yes at the boundaries** — duplicate config pipelines, unused strategy method, speculative web capability fields, class/registry ceremony for a 2-branch matrix. |
+| Rarely used abstractions? | `IWorkspaceStrategy.getWizardConfig`, most `WorkspaceCapabilities` fields, `WorkspacePublishPolicy.allowedLifecycleTransitions` (mostly identical fallback). |
+| Same behavior with simpler props? | **Yes** — one `getWorkspaceProfileBundle(profile)` in shared-contracts + thin web helpers + function-based API asserts. |
+| Over-engineering severity | **Moderate** — justified as Phase 2 migration scaffolding (see `workspace.strategy.interface.ts` L111–114), but **technical debt** if left without collapsing layers. |
+
+**One-line summary:** Keep the **builders and descriptor**; flatten the **Strategy class hierarchy**, **merge UI flag tables**, and **dedupe web `buildWizardConfig`** before adding more workspaces.
+
+---
+
+*End of over-engineering audit.*

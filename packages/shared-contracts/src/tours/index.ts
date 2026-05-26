@@ -25,6 +25,7 @@ export {
   type TourPatchViewerRole
 } from "./tour-patch-contract";
 export * from "./workspace-definition";
+export * from "./workspace-ui-capabilities";
 export * from "./workspace-registry";
 export * from "./workspaces/denali";
 export * from "./workspaces/arctic";

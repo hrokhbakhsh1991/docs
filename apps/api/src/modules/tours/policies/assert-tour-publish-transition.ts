@@ -1,14 +1,14 @@
 import { BadRequestException } from "@nestjs/common";
 import type { TourFormProfile, TourTripDetails as TypesTourTripDetails } from "@repo/types";
-import { checkDenaliPilotPublishGeolocationZones } from "@repo/shared-contracts";
+import {
+  checkDenaliPilotPublishGeolocationZones,
+  getWorkspaceUiCapabilityFlags,
+} from "@repo/shared-contracts";
 
 import { TourEntity } from "../entities/tour.entity";
 import { buildPublishPolicy } from "../strategies/workspace.strategy.builders";
 import type { WorkspacePublishPolicy } from "../strategies/workspace.strategy.interface";
-import {
-  isDenaliStrategyProfile,
-  WorkspaceStrategyRegistry,
-} from "../strategies/workspace.strategy.registry";
+import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import { assertEditRequiredTripDetailsForPublish } from "../utils/assert-edit-required-trip-details-for-publish";
 import {
   assertProfileRequiredFieldsForPublish,
@@ -23,13 +23,12 @@ function loadPublishPolicy(profile: TourFormProfile): WorkspacePublishPolicy {
     return WorkspaceStrategyRegistry.resolve(profile).getPublishPolicy();
   } catch {
     return buildPublishPolicy(profile, {
-      publishGeolocationCheck:
-        isDenaliStrategyProfile(profile) && profile === "denali_pilot"
-          ? (tripDetails: unknown) => {
-              const details = tripDetails as TypesTourTripDetails | null | undefined;
-              return checkDenaliPilotPublishGeolocationZones(details);
-            }
-          : null,
+      publishGeolocationCheck: getWorkspaceUiCapabilityFlags(profile).requiresGeoPublish
+        ? (tripDetails: unknown) => {
+            const details = tripDetails as TypesTourTripDetails | null | undefined;
+            return checkDenaliPilotPublishGeolocationZones(details);
+          }
+        : null,
     });
   }
 }

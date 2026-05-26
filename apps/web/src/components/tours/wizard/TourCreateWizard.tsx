@@ -6,6 +6,7 @@ import { Card, CardBody, LoadingState } from "@tour/ui";
 
 import { DenaliCreateTourWizard } from "./DenaliCreateTourWizard";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
+import { getCapabilitiesForTemplateBaseProfile } from "@/lib/workspace/workspace-capabilities";
 import {
   DataLegacyError,
   DATA_LEGACY_PROFILE_MISMATCH_MESSAGE,
@@ -21,19 +22,31 @@ export function TourCreateWizard() {
   const t = useTranslations("tours.new");
   const wizardTemplateQuery = useTenantWizardTemplate();
 
+  const workspaceFormProfile = useMemo(
+    () =>
+      wizardTemplateQuery.data
+        ? resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data)
+        : null,
+    [wizardTemplateQuery.data],
+  );
+
+  const workspaceCapabilities = useMemo(
+    () => getCapabilitiesForTemplateBaseProfile(workspaceFormProfile),
+    [workspaceFormProfile],
+  );
+
   const profileValidationError = useMemo((): DataLegacyError | null => {
     const template = wizardTemplateQuery.data;
-    if (!template) {
+    if (!template || workspaceFormProfile == null) {
       return null;
     }
     try {
-      const resolved = resolveWorkspaceTourFormProfileFromTemplate(template);
-      validateWorkspaceTemplateAtWizardLoad(template, resolved);
+      validateWorkspaceTemplateAtWizardLoad(template, workspaceFormProfile);
       return null;
     } catch (error) {
       return error instanceof DataLegacyError ? error : null;
     }
-  }, [wizardTemplateQuery.data]);
+  }, [wizardTemplateQuery.data, workspaceFormProfile]);
 
   if (wizardTemplateQuery.isLoading) {
     return (
@@ -107,5 +120,31 @@ export function TourCreateWizard() {
     );
   }
 
-  return <DenaliCreateTourWizard />;
+  if (workspaceCapabilities.usesDenaliWizardShell) {
+    return <DenaliCreateTourWizard />;
+  }
+
+  return (
+    <Card>
+      <CardBody>
+        <div
+          role="alert"
+          data-testid="wizard-classic-shell-unavailable"
+          style={{
+            padding: "1rem",
+            borderRadius: 8,
+            background: "var(--color-warning-50, #fffbeb)",
+            color: "var(--color-warning-900, #78350f)",
+          }}
+        >
+          <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
+            {t("wizardClassicShellUnavailableTitle")}
+          </p>
+          <p style={{ margin: 0, fontSize: "0.85rem" }}>
+            {t("wizardClassicShellUnavailableDescription")}
+          </p>
+        </div>
+      </CardBody>
+    </Card>
+  );
 }

@@ -42,6 +42,8 @@ export const RegistrationRequestSchema = z
     shareFuelCost: z.boolean().optional(),
     vehicleSeatCapacity: z.number().int().min(1).max(3).optional(),
     participantNote: z.string().trim().max(2000).optional(),
+    /** Optional add-on service ids from workspace capability catalog (not persisted on tour yet). */
+    selectedServiceIds: z.array(z.string()).optional(),
   })
   .strict();
 

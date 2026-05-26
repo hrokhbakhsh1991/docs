@@ -29,6 +29,7 @@ function denaliPublishGeoIsConcrete(loc: unknown): boolean {
 }
 
 import { getTripDetailsFieldConfigForProfile } from "@/features/tours/config/tripDetailsFieldConfigAdapter";
+import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 import {
   applyTripDetailsRequirednessToSchema,
   TourTripDetailsRootSchema,
@@ -66,7 +67,7 @@ export function createTourSchemaForProfile(profile: TourFormProfile) {
     tripDetails: applyTripDetailsRequirednessToSchema(getTripDetailsFieldConfigForProfile(profile)),
   });
 
-  if (profile !== "denali_pilot") {
+  if (!getCapabilitiesForProfile(profile).requiresGeoPublish) {
     return schema;
   }
 

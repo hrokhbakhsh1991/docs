@@ -411,6 +411,8 @@
       "wizardTemplateLoadFailedTitle": "Could not load wizard template",
       "wizardTemplateLoadFailedDescription": "This workspace has no wizard template (e.g. after a Denali reset). From apps/api run: ALLOW_DENALI_RESET=1 pnpm run reset:denali:provision",
       "wizardTemplateLoadFailedHint": "Or: pnpm --filter @apps/api provision:denali then seed:denali-tour-presets",
+      "wizardClassicShellUnavailableTitle": "Classic create wizard not available",
+      "wizardClassicShellUnavailableDescription": "This workspace profile uses the classic tour form rail, which is not mounted on this page yet. Switch the workspace template to a Denali-capable profile or contact support.",
       "breadcrumbDashboard": "Dashboard",
       "breadcrumbTours": "Tours",
       "breadcrumbCreate": "Create",

@@ -17,7 +17,7 @@ import { DenaliTourEditForm } from "@/components/tours/DenaliTourEditForm";
 import { TourForm } from "@/components/tours/TourForm";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { updateTourDtoFromDenaliWizardForm } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
-import { isDenaliPilotFormProfile } from "@/features/tours/wizard/isDenaliWizardContext";
+import { usesDenaliWizardShellForProfile } from "@/lib/workspace/workspace-capabilities";
 import { resolveDenaliRuleSetFromTemplate } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -67,7 +67,7 @@ export function TourEditClient({
     () => resolveDenaliRuleSetFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
-  const isDenaliEdit = isDenaliPilotFormProfile(workspaceFormProfile);
+  const isDenaliEdit = usesDenaliWizardShellForProfile(workspaceFormProfile);
 
   const errorMessage =
     error instanceof ApiError

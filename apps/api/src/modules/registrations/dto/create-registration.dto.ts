@@ -1,5 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import {
+  IsArray,
   IsBoolean,
   IsDefined,
   IsEnum,
@@ -215,6 +216,16 @@ export class CreateRegistrationDto {
   @ValidateNested()
   @Type(() => ParticipantMetadataDto)
   participantMetadata?: ParticipantMetadataDto;
+
+  @ApiPropertyOptional({
+    description: "Optional add-on service ids (merged into participant_metadata on persist).",
+    type: [String],
+    example: ["breakfast", "nissan"],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  selectedServiceIds?: string[];
 
   @ApiPropertyOptional({
     description:

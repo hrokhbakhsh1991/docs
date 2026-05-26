@@ -416,6 +416,8 @@
       "wizardTemplateLoadFailedTitle": "بارگذاری قالب ویزارد ناموفق بود",
       "wizardTemplateLoadFailedDescription": "قالب ویزارد این فضای کاری در دسترس نیست (مثلاً پس از reset workspace). از ترمینال در apps/api اجرا کنید: ALLOW_DENALI_RESET=1 pnpm run reset:denali:provision",
       "wizardTemplateLoadFailedHint": "یا: pnpm --filter @apps/api provision:denali و سپس seed:denali-tour-presets",
+      "wizardClassicShellUnavailableTitle": "ویزارد کلاسیک ایجاد تور در دسترس نیست",
+      "wizardClassicShellUnavailableDescription": "پروفایل این فضای کاری از ریل فرم کلاسیک استفاده می‌کند که هنوز در این صفحه فعال نشده است. قالب workspace را به پروفایل Denali تغییر دهید یا با پشتیبانی تماس بگیرید.",
       "breadcrumbDashboard": "داشبورد",
       "breadcrumbTours": "تورها",
       "breadcrumbCreate": "ایجاد",

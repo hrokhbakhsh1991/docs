@@ -1002,15 +1002,34 @@ export class RegistrationsService implements IRegistrationPaymentPort {
       | "isDriver"
       | "plateNumber"
       | "shareFuelCost"
+      | "selectedServiceIds"
     >,
   ): Record<string, unknown> | undefined {
-    return participantMetadataRecordForPersistence({
+    const base = participantMetadataRecordForPersistence({
       participantMetadata: dto.participantMetadata,
       transportMode: dto.transportMode,
       isDriver: dto.isDriver,
       plateNumber: dto.plateNumber,
       shareFuelCost: dto.shareFuelCost,
     });
+
+    const selectedServiceIds = this.normalizeSelectedServiceIds(dto.selectedServiceIds);
+    if (selectedServiceIds == null) {
+      return base;
+    }
+
+    return {
+      ...(base ?? {}),
+      selectedServiceIds,
+    };
+  }
+
+  private normalizeSelectedServiceIds(raw: string[] | undefined): string[] | undefined {
+    if (raw == null || raw.length === 0) {
+      return undefined;
+    }
+    const ids = raw.map((id) => id.trim()).filter((id) => id.length > 0);
+    return ids.length > 0 ? ids : undefined;
   }
 
   private assertPrivateCarRegistrationAllowed(
@@ -1831,6 +1850,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     vehicleSeatCapacity?: number;
     participantNote?: string;
     participantMetadata?: ParticipantMetadataDto;
+    selectedServiceIds?: string[];
     discountCode?: string | null;
     createPaymentIntent?: (
       manager: EntityManager,
@@ -1958,6 +1978,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           isDriver: input.isDriver,
           plateNumber: input.plateNumber,
           shareFuelCost: input.shareFuelCost,
+          selectedServiceIds: input.selectedServiceIds,
         }),
         status: placement.status,
         paymentStatus: RegistrationPaymentStatus.NOT_PAID,

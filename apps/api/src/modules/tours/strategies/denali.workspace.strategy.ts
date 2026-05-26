@@ -6,6 +6,7 @@ import {
 } from "@repo/types";
 import {
   checkDenaliPilotPublishGeolocationZones,
+  getWorkspaceUiCapabilityFlags,
   type WorkspaceInvariantViolation,
 } from "@repo/shared-contracts";
 import type { ProfileRequiredSubmitShape } from "../utils/assert-profile-required-fields-for-submit";
@@ -24,17 +25,17 @@ import {
 function resolvePublishGeolocationCheck(
   profile: TourFormProfile,
 ): ((tripDetails: unknown) => WorkspaceInvariantViolation | null) | null {
-  if (profile === "denali_pilot") {
-    return (tripDetails: unknown) => {
-      const details = tripDetails as TourTripDetails | null | undefined;
-      return checkDenaliPilotPublishGeolocationZones(details);
-    };
+  if (!getWorkspaceUiCapabilityFlags(profile).requiresGeoPublish) {
+    return null;
   }
-  return null;
+  return (tripDetails: unknown) => {
+    const details = tripDetails as TourTripDetails | null | undefined;
+    return checkDenaliPilotPublishGeolocationZones(details);
+  };
 }
 
 function resolveDenaliSingleDayLogisticsStrip(profile: TourFormProfile): boolean {
-  return profile === "denali_pilot";
+  return getWorkspaceUiCapabilityFlags(profile).appliesDenaliSingleDayLogisticsStrip;
 }
 
 /**
