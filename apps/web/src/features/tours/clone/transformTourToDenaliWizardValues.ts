@@ -80,6 +80,12 @@ function readThemeIds(tourThemeIds: unknown): string[] {
   return stringArray(tourThemeIds).filter((id) => id.trim().length > 0);
 }
 
+function readOverviewCustomServiceLabels(overview: Record<string, unknown>): string[] {
+  return stringArray(overview.customServiceLabels)
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0);
+}
+
 function ratingToDenaliDifficulty(
   rating: unknown,
 ): number {
@@ -562,6 +568,9 @@ export function transformTourToDenaliWizardValues(
     tripDetails: {
       logistics: {
         gatheringPoints: gatheringPointsMapped as any,
+      },
+      overview: {
+        customServiceLabels: readOverviewCustomServiceLabels(overview),
       },
     },
   });

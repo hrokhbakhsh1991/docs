@@ -43,8 +43,16 @@ test("denaliThemeCategories match Denali wizard theme filter table", () => {
   assert.deepEqual(getWorkspaceUiCapabilityFlags("general").denaliThemeCategories, []);
 });
 
+test("denali base profiles allow custom services", () => {
+  for (const profile of ["denali_pilot", "urban_event", "cinema_event", "cultural_tour"] as const) {
+    assert.equal(getWorkspaceUiCapabilityFlags(profile).canDefineCustomServices, true, profile);
+  }
+  assert.equal(getWorkspaceUiCapabilityFlags("general").canDefineCustomServices, undefined);
+});
+
 test("denali_pilot exposes default service catalog; other profiles have none", () => {
   const denali = getWorkspaceUiCapabilityFlags("denali_pilot");
+  assert.equal(denali.canDefineCustomServices, true);
   assert.equal(denali.availableServices.length, 2);
   assert.deepEqual(denali.availableServices.map((s) => s.id), ["breakfast", "nissan"]);
 

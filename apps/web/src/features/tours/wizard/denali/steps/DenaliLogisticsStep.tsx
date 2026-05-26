@@ -14,6 +14,7 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
+import { DenaliCustomServicesField } from "../components/DenaliCustomServicesField";
 import { DenaliGatheringPointsWidget } from "../components/DenaliGatheringPointsWidget";
 import { DenaliLocationZonesSection } from "../components/DenaliLocationZoneField";
 import { useDenaliEquipmentQuickAdd } from "../hooks/useDenaliEquipmentQuickAdd";
@@ -191,6 +192,8 @@ export function DenaliLogisticsStep() {
           />
         ) : null}
       </div>
+
+      <DenaliCustomServicesField />
     </div>
   );
 }

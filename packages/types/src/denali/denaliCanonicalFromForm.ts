@@ -145,11 +145,30 @@ export type DenaliWizardFormLike = {
     weatherPolicy?: string;
   };
   tripDetails?: {
+    overview?: TripDetailsOverview;
     logistics?: {
       gatheringPoints?: unknown[];
     };
   };
 };
+
+/** Wizard form slice for `tripDetails.overview`. */
+export interface TripDetailsOverview {
+  customServiceLabels?: string[];
+  nonAttendanceDetails?: string;
+}
+
+function customServiceLabelsFromForm(
+  labels: string[] | undefined,
+): string[] | undefined {
+  if (labels == null || labels.length === 0) {
+    return undefined;
+  }
+  const normalized = labels
+    .map((label) => (typeof label === "string" ? label.trim() : ""))
+    .filter((label) => label.length > 0);
+  return normalized.length > 0 ? normalized : undefined;
+}
 
 function resolveGatheringPointsFromForm(form: DenaliWizardFormLike): DenaliGatheringPickupStation[] {
   const fromLogistics = normalizeGatheringPickupStations(form.tripDetails?.logistics?.gatheringPoints);
@@ -335,6 +354,10 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
       form.transport.adminCapacityApproval === true ? true : undefined,
   };
 
+  const nonAttendanceDetails = trimOptionalString(
+    form.tripDetails?.overview?.nonAttendanceDetails,
+  );
+
   return {
     category: basics.category,
     duration: formDurationToCanonical(basics.duration),
@@ -352,6 +375,12 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
     startPointLocationText: locations.startPointLocationText,
     gatheringPoint: primaryGathering?.location ?? locations.gatheringPoint,
     gatheringPoints: gatheringPoints.length > 0 ? gatheringPoints : undefined,
+    customServiceLabels: customServiceLabelsFromForm(
+      form.tripDetails?.overview?.customServiceLabels,
+    ),
+    ...(nonAttendanceDetails != null
+      ? { overview: { nonAttendanceDetails } }
+      : {}),
     startPoint: locations.startPoint,
     summitPoint: locations.summitPoint,
     campPoint: locations.campPoint,

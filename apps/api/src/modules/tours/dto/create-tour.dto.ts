@@ -236,4 +236,15 @@ export class CreateTourDto {
   @IsOptional()
   @IsUUID()
   sourceTourId?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["صبحانه", "نیسان"],
+    description:
+      "Workspace-defined custom service labels from the Denali wizard (persisted under tripDetails.overview.customServiceLabels)."
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  customServiceLabels?: string[];
 }

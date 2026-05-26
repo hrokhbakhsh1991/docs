@@ -32,6 +32,7 @@ export type MapCreateTourDtoInput = Pick<
       | "paymentMode"
       | "sourcePresetId"
       | "sourceTourId"
+      | "customServiceLabels"
     >
   > & {
     description?: string;
@@ -176,5 +177,8 @@ export function mapCreateTourDto(
     ...(payload.paymentMode === "offline_receipt" ? { paymentMode: "offline_receipt" } : {}),
     ...(payload.sourcePresetId ? { sourcePresetId: payload.sourcePresetId } : {}),
     ...(payload.sourceTourId ? { sourceTourId: payload.sourceTourId } : {}),
+    ...(payload.customServiceLabels && payload.customServiceLabels.length > 0
+      ? { customServiceLabels: [...payload.customServiceLabels] }
+      : {}),
   };
 }

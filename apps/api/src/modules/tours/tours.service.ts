@@ -449,6 +449,7 @@ export class ToursService {
       | "meetingPoint"
       | "itinerary"
       | "tripDetails"
+      | "customServiceLabels"
     >
   ): boolean {
     return (
@@ -458,8 +459,38 @@ export class ToursService {
       dto.durationDays !== undefined ||
       dto.meetingPoint !== undefined ||
       dto.itinerary !== undefined ||
-      dto.tripDetails !== undefined
+      dto.tripDetails !== undefined ||
+      dto.customServiceLabels !== undefined
     );
+  }
+
+  private mergeCustomServiceLabelsIntoPersistedTripDetails(
+    tripDetails: TourTripDetails | null | undefined,
+    labels: string[] | undefined,
+  ): TourTripDetails | null | undefined {
+    if (labels === undefined) {
+      return tripDetails ?? undefined;
+    }
+    const base =
+      tripDetails != null && typeof tripDetails === "object" && !Array.isArray(tripDetails)
+        ? { ...(tripDetails as Record<string, unknown>) }
+        : {};
+    const overviewRaw = base.overview;
+    const overview =
+      overviewRaw != null && typeof overviewRaw === "object" && !Array.isArray(overviewRaw)
+        ? { ...(overviewRaw as Record<string, unknown>) }
+        : {};
+    if (labels.length === 0) {
+      delete overview.customServiceLabels;
+    } else {
+      overview.customServiceLabels = labels;
+    }
+    if (Object.keys(overview).length > 0) {
+      base.overview = overview;
+    } else {
+      delete base.overview;
+    }
+    return Object.keys(base).length > 0 ? (base as TourTripDetails) : null;
   }
 
   /** After profile strip on merged `tripDetails`, run canonical checks (Phase 4 assert hook). */
@@ -836,7 +867,10 @@ export class ToursService {
         d.tripDetails =
           applyMountainOverviewFieldGatesForFormProfile(
             resolvedFormProfile,
-            this.tripDetailsToPersistedJson(dto.tripDetails),
+            this.mergeCustomServiceLabelsIntoPersistedTripDetails(
+              this.tripDetailsToPersistedJson(dto.tripDetails) ?? null,
+              dto.customServiceLabels,
+            ),
           ) ?? null;
         const derived = computeTourDurationDays(
           d.tripDetails?.logistics?.departureDate,
@@ -1149,6 +1183,13 @@ export class ToursService {
               mergeTourTripDetails(tour.details.tripDetails ?? null, patch as TourTripDetails),
             ) ?? null;
           }
+        }
+        if (dto.customServiceLabels !== undefined) {
+          tour.details.tripDetails =
+            this.mergeCustomServiceLabelsIntoPersistedTripDetails(
+              tour.details.tripDetails ?? null,
+              dto.customServiceLabels,
+            ) ?? null;
         }
 
         // Strip mountain-only fields (e.g. `overview.maxAltitudeMeters`) when the

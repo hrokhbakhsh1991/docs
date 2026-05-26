@@ -57,6 +57,28 @@ test("denaliCanonicalFromForm maps event_cinema without outdoor legacy fields", 
   assert.equal(canonical.pricing.basePricePerPerson, undefined);
 });
 
+test("denaliCanonicalFromForm maps tripDetails.overview.customServiceLabels", () => {
+  const canonical = denaliCanonicalFromForm({
+    basicInfo: {
+      title: "Urban tour",
+      tourType: "event_reading",
+      destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      startDateTime: "2026-06-01T08:00:00.000Z",
+      capacityMax: 10,
+    },
+    programNature: { shortDescription: "Short" },
+    transport: { transportMode: "none" },
+    pricingPayment: { requiresPayment: false },
+    participantRequirements: {},
+    policies: {},
+    tripDetails: {
+      overview: { customServiceLabels: ["  Shuttle  ", "", "Guide"] },
+    },
+  });
+
+  assert.deepEqual(canonical.customServiceLabels, ["Shuttle", "Guide"]);
+});
+
 test("denaliCanonicalFromForm throws when tourType is missing", () => {
   assert.throws(
     () =>

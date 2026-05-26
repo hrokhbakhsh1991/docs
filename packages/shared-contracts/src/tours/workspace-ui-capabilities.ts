@@ -16,6 +16,11 @@ export interface WorkspaceUiCapabilityFlags {
   /** Peak Experience section in tour edit / workspace UI. */
   readonly allowsPeakExperience: boolean;
   /**
+   * Whether the workspace UI should expose ability to define custom services
+   * (e.g. booking add-ons) for the relevant flow.
+   */
+  readonly canDefineCustomServices?: boolean;
+  /**
    * Denali wizard theme-catalog categories this profile may appear under.
    * `general` is always included at filter time; empty means no category-specific match.
    */
@@ -42,10 +47,16 @@ const DEFAULT_UI_FLAGS: WorkspaceUiCapabilityFlags = {
   availableServices: EMPTY_SERVICE_CATALOG,
 };
 
+/** Shared UI flags for profiles that run on the Denali workspace family. */
+const DENALI_BASE_UI_FLAGS: Partial<WorkspaceUiCapabilityFlags> = {
+  canDefineCustomServices: true,
+};
+
 const PROFILE_UI_OVERRIDES: Partial<
   Record<TourFormProfile, Partial<WorkspaceUiCapabilityFlags>>
 > = {
   denali_pilot: {
+    ...DENALI_BASE_UI_FLAGS,
     requiresGeoPublish: true,
     appliesDenaliSingleDayLogisticsStrip: true,
     allowsPeakExperience: true,
@@ -60,12 +71,15 @@ const PROFILE_UI_OVERRIDES: Partial<
     denaliThemeCategories: ["nature", "desert"],
   },
   urban_event: {
+    ...DENALI_BASE_UI_FLAGS,
     denaliThemeCategories: DENALI_EVENT_THEME_CATEGORIES,
   },
   cinema_event: {
+    ...DENALI_BASE_UI_FLAGS,
     denaliThemeCategories: DENALI_EVENT_THEME_CATEGORIES,
   },
   cultural_tour: {
+    ...DENALI_BASE_UI_FLAGS,
     denaliThemeCategories: DENALI_EVENT_THEME_CATEGORIES,
   },
 };

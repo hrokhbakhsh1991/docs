@@ -63,5 +63,8 @@ export function updateTourDtoFromDenaliWizardForm(
     tripDetails: tripDetailsCompact,
     autoAcceptRegistrations: createDto.autoAcceptRegistrations,
     transportModes: createDto.transportModes,
+    ...(createDto.customServiceLabels && createDto.customServiceLabels.length > 0
+      ? { customServiceLabels: [...createDto.customServiceLabels] }
+      : {}),
   };
 }

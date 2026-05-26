@@ -213,4 +213,15 @@ export class UpdateTourDto {
   @ValidateNested()
   @Type(() => TourTripDetailsDto)
   tripDetails?: TourTripDetailsDto | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ["صبحانه", "نیسان"],
+    description:
+      "Workspace-defined custom service labels from the Denali wizard (persisted under tripDetails.overview.customServiceLabels)."
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  customServiceLabels?: string[];
 }

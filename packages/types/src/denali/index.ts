@@ -30,6 +30,7 @@ export {
   type DenaliCanonicalDuration,
   type DenaliCanonicalTourModel,
   type DenaliCanonicalTransportMode,
+  type DenaliTripDetailsOverview,
 } from "./denaliCanonicalTourModel";
 
 export {

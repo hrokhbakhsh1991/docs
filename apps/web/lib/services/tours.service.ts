@@ -78,6 +78,8 @@ export type CreateTourDto = {
   /** Denali pilot: persisted on `cost_context.paymentMode` when `requiresPayment` is true. */
   paymentMode?: "offline_receipt";
   lifecycle_status: "Draft" | "Open";
+  /** Workspace-defined custom service labels (Denali-family profiles). */
+  customServiceLabels?: string[];
 };
 
 /**
@@ -105,6 +107,8 @@ export type UpdateTourDto = {
   autoAcceptRegistrations?: boolean;
   paymentMode?: "offline_receipt";
   transportModes?: ("bus" | "train" | "plane" | "private_car")[];
+  /** Workspace-defined custom service labels (Denali-family profiles). */
+  customServiceLabels?: string[];
 };
 
 
@@ -246,6 +250,9 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   if (dto.sourceTourId) {
     body.sourceTourId = dto.sourceTourId;
   }
+  if (dto.customServiceLabels && dto.customServiceLabels.length > 0) {
+    body.customServiceLabels = dto.customServiceLabels;
+  }
   delete body.formProfile;
   if (process.env.NODE_ENV !== "production") {
     const parsed = tourCreateContractSchema.safeParse(body);
@@ -386,6 +393,9 @@ export function toUpdateTourApiBody(
   }
   if (dto.transportModes !== undefined) {
     body.transportModes = dto.transportModes;
+  }
+  if (dto.customServiceLabels !== undefined) {
+    body.customServiceLabels = dto.customServiceLabels;
   }
   return body;
 }

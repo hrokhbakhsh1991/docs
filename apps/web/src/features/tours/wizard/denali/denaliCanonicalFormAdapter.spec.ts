@@ -11,6 +11,7 @@ import { denaliCanonicalTourSchema } from "@/features/tours/wizard/schemas/denal
 
 import {
   createInitialDenaliCanonicalModel,
+  denaliCanonicalToForm,
   denaliFormToCanonical,
   isDenaliWizardTourTypeSelected,
   safeDenaliFormToCanonical,
@@ -41,6 +42,35 @@ test("safeDenaliFormToCanonical maps strictly after tourType is selected", () =>
   assert.equal(safe.category, strict.category);
   assert.equal(safe.duration, strict.duration);
   assert.equal(safe.title, strict.title);
+});
+
+test("denaliCanonicalToForm maps customServiceLabels onto tripDetails.overview", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "event_reading";
+  form.basicInfo.title = "Urban event with services";
+  form.tripDetails.overview.customServiceLabels = ["Shuttle", "Guide"];
+
+  const canonical = denaliFormToCanonical(form);
+  assert.deepEqual(canonical.customServiceLabels, ["Shuttle", "Guide"]);
+
+  const roundTrip = denaliCanonicalToForm(canonical, form);
+  assert.deepEqual(roundTrip.tripDetails?.overview?.customServiceLabels, [
+    "Shuttle",
+    "Guide",
+  ]);
+});
+
+test("denaliCanonicalToForm maps nonAttendanceDetails onto tripDetails.overview", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "event_reading";
+  form.basicInfo.title = "Urban event with non-attendance note";
+  form.tripDetails.overview.nonAttendanceDetails = "  No-show policy  ";
+
+  const canonical = denaliFormToCanonical(form);
+  assert.equal(canonical.overview?.nonAttendanceDetails, "No-show policy");
+
+  const roundTrip = denaliCanonicalToForm(canonical, form);
+  assert.equal(roundTrip.tripDetails?.overview?.nonAttendanceDetails, "No-show policy");
 });
 
 test("denaliFormToCanonical strips UI-only photo fields before canonical schema", () => {

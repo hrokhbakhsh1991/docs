@@ -6,6 +6,7 @@ import type { UseFormReturn } from "react-hook-form";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
+import type { TourFormProfile } from "@repo/types";
 
 import { applyDenaliInvariantState } from "../validation/denaliInvariantEngine";
 import { sanitizeDenaliWizardCatalogRefs } from "../sanitizeDenaliWizardCatalogRefs";
@@ -19,6 +20,7 @@ export function useDenaliEditCatalogSanitize(
   formMethods: Pick<UseFormReturn<DenaliCreateTourWizardForm>, "getValues" | "reset">,
   onSanitized: () => void,
   mergedRuleSet: DenaliRuleSet,
+  workspaceFormProfile: TourFormProfile,
 ): void {
   const { getValues, reset } = formMethods;
   const themesQuery = useSettingsTourThemes();
@@ -50,7 +52,11 @@ export function useDenaliEditCatalogSanitize(
     if (!clearedDestination && clearedThemeIds === 0) {
       return;
     }
-    const next = applyDenaliInvariantState(sanitized, undefined, mergedRuleSet);
+    const next = applyDenaliInvariantState(
+      sanitized,
+      { workspaceFormProfile },
+      mergedRuleSet,
+    );
     reset(next, { keepDefaultValues: true });
     onSanitized();
   }, [
@@ -62,5 +68,6 @@ export function useDenaliEditCatalogSanitize(
     reset,
     themesQuery.data,
     themesQuery.isLoading,
+    workspaceFormProfile,
   ]);
 }

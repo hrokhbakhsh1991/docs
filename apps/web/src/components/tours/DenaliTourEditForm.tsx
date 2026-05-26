@@ -22,7 +22,7 @@ import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wiza
 import {
   DenaliBasicInfoStep,
   DenaliLogisticsStep,
-  DenaliPricingPaymentStep,
+  DenaliPricingStep,
   DenaliProgramNatureStep,
 } from "@/features/tours/wizard/denali";
 import { DenaliPhotosStep } from "@/features/tours/wizard/denali/steps/DenaliPhotosStep";
@@ -139,7 +139,7 @@ function DenaliEditStepBody({
     case "denali_logistics":
       return <DenaliLogisticsStep />;
     case "denali_pricing":
-      return <DenaliPricingPaymentStep />;
+      return <DenaliPricingStep />;
     case "denali_photos":
       return <DenaliPhotosStep tourId={tourId} />;
     default:
@@ -325,8 +325,12 @@ export function DenaliTourEditForm({
   }, [mergedRuleSet, tour]);
 
   const resolver = useMemo(
-    () => createDenaliCanonicalWizardResolver(undefined, () => ruleSetRef.current),
-    [],
+    () =>
+      createDenaliCanonicalWizardResolver(
+        () => ({ workspaceFormProfile }),
+        () => ruleSetRef.current,
+      ),
+    [workspaceFormProfile],
   );
 
   const formMethods = useForm<DenaliCreateTourWizardForm>({
@@ -459,12 +463,17 @@ export function DenaliTourEditForm({
     transportModeWatch,
   ]);
 
-  useDenaliEditCatalogSanitize({ getValues, reset }, bumpCanonicalSync, mergedRuleSet);
+  useDenaliEditCatalogSanitize(
+    { getValues, reset },
+    bumpCanonicalSync,
+    mergedRuleSet,
+    workspaceFormProfile,
+  );
   useDenaliEditRuleSync(
     { control, getValues, reset, trigger },
     mergedRuleSet,
     bumpCanonicalSync,
-    { enabled: formBootstrapped },
+    { enabled: formBootstrapped, workspaceFormProfile },
   );
 
   const errorLabelContext = useMemo(

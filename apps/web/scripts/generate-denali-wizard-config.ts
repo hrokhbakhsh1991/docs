@@ -139,7 +139,8 @@ type ZodSection =
   | "participantRequirements"
   | "policies"
   | "photosData"
-  | "tripDetails.logistics";
+  | "tripDetails.logistics"
+  | "tripDetails.overview";
 
 function zodSectionForRhfPath(rhfPath: string): ZodSection {
   if (rhfPath.startsWith("basicInfo.")) return "basicInfo";
@@ -149,10 +150,15 @@ function zodSectionForRhfPath(rhfPath: string): ZodSection {
   if (rhfPath.startsWith("participantRequirements.")) return "participantRequirements";
   if (rhfPath.startsWith("policies.")) return "policies";
   if (rhfPath.startsWith("photosData.")) return "photosData";
+  if (rhfPath.startsWith("tripDetails.overview.")) return "tripDetails.overview";
   return "tripDetails.logistics";
 }
 
-function zodKeyFromRhfPath(rhfPath: string): string {
+function zodKeyFromRhfPath(rhfPath: string, section: ZodSection): string {
+  const sectionPrefix = `${section}.`;
+  if (rhfPath.startsWith(sectionPrefix)) {
+    return rhfPath.slice(sectionPrefix.length);
+  }
   const dot = rhfPath.indexOf(".");
   return dot === -1 ? rhfPath : rhfPath.slice(dot + 1);
 }
@@ -167,11 +173,12 @@ function buildZodSchemaFile(): string {
     policies: new Map(),
     photosData: new Map(),
     "tripDetails.logistics": new Map(),
+    "tripDetails.overview": new Map(),
   };
 
   for (const def of DENALI_FIELD_DEFINITIONS) {
     const section = zodSectionForRhfPath(def.rhfPath);
-    const key = zodKeyFromRhfPath(def.rhfPath);
+    const key = zodKeyFromRhfPath(def.rhfPath, section);
     const fragment = ZOD_FRAGMENTS[def.zodKind];
     if (!fragment) {
       throw new Error(`Missing Zod fragment for kind ${def.zodKind} (${def.canonicalPath})`);
@@ -262,6 +269,12 @@ ${renderObject("denaliPoliciesSchema", sections.policies)}
 
 ${renderObject("denaliPhotosSchema", sections.photosData)}
 
+${renderObject("denaliTripDetailsOverviewSchema", sections["tripDetails.overview"])}
+
+const denaliTripDetailsLogisticsSchema = z.object({
+  gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
+}).default({ gatheringPoints: [] });
+
 const denaliTourCreateObjectSchema = z.object({
   basicInfo: denaliBasicInfoSchema,
   programNature: denaliProgramNatureSchema,
@@ -271,10 +284,12 @@ const denaliTourCreateObjectSchema = z.object({
   policies: denaliPoliciesSchema,
   photosData: denaliPhotosSchema,
   tripDetails: z.object({
-    logistics: z.object({
-      gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
-    }).default({ gatheringPoints: [] }),
-  }).default({ logistics: { gatheringPoints: [] } }),
+    logistics: denaliTripDetailsLogisticsSchema,
+    overview: denaliTripDetailsOverviewSchema,
+  }).default({
+    logistics: { gatheringPoints: [] },
+    overview: { customServiceLabels: [] },
+  }),
 });
 
 function rejectZeroAmount(

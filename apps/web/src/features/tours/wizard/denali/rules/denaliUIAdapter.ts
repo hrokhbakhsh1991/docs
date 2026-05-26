@@ -20,6 +20,7 @@ import {
   type DenaliFieldDefinition,
 } from "../registry/denaliFieldRegistryData";
 import type { DenaliContextualRule } from "../registry/DenaliFieldRegistry.types";
+import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 import { getDenaliRulesFromCanonical } from "./denaliCanonicalRuleAdapter";
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
 import { isDenaliFieldRequired, mapFormPathToCanonical } from "./denaliRuleRequired";
@@ -73,6 +74,8 @@ export type DenaliUIFieldMetadata = {
 /** @deprecated Theme no longer drives form visibility; kept for call-site compat. */
 export type DenaliUIContextOptions = {
   mainThemeFormProfile?: TourFormProfile;
+  /** Resolved workspace template profile (for registry `capability` visibility rules). */
+  workspaceFormProfile?: TourFormProfile;
 };
 
 export type DenaliUIAdapterInput = {
@@ -124,10 +127,24 @@ export function evaluateDenaliContextualRule(
   rule: DenaliContextualRule,
   form: DenaliCreateTourWizardForm,
   mode: "visibility" | "required",
+  options?: DenaliUIContextOptions,
 ): boolean {
   switch (rule.kind) {
     case "whenTruthy":
       return isTruthyFormValue(readCanonicalPathValue(form, rule.watchCanonical));
+    case "capability": {
+      const profile =
+        options?.workspaceFormProfile ?? options?.mainThemeFormProfile;
+      if (!profile) {
+        // Callers that don't provide UI options should not accidentally wipe capability-gated fields.
+        return mode === "visibility";
+      }
+      const capabilities = getCapabilitiesForProfile(profile);
+      if (rule.flag === "canDefineCustomServices") {
+        return capabilities.canDefineCustomServices;
+      }
+      return false;
+    }
     case "transportOrganizedCostVisible":
       return isDenaliTransportCostVisible(transportModeFromForm(form));
     case "transportPersonalCarOptionVisible":
@@ -152,20 +169,22 @@ export function evaluateDenaliContextualRule(
 export function evaluateDenaliContextualVisibility(
   canonicalPath: string,
   form: DenaliCreateTourWizardForm | undefined,
+  options?: DenaliUIContextOptions,
 ): boolean {
   if (form == null) return true;
   const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
   if (def?.contextualVisibility == null) return true;
-  return evaluateDenaliContextualRule(def.contextualVisibility, form, "visibility");
+  return evaluateDenaliContextualRule(def.contextualVisibility, form, "visibility", options);
 }
 
 export function evaluateDenaliContextualRequired(
   canonicalPath: string,
   form: DenaliCreateTourWizardForm,
+  options?: DenaliUIContextOptions,
 ): boolean | null {
   const def = getDenaliFieldDefinitionByCanonicalPath(canonicalPath);
   if (def?.contextualRequired == null) return null;
-  return evaluateDenaliContextualRule(def.contextualRequired, form, "required");
+  return evaluateDenaliContextualRule(def.contextualRequired, form, "required", options);
 }
 
 function resolveDenaliRuleModel(
@@ -254,9 +273,9 @@ export function isDenaliDurationAllowed(
 function isDenaliFieldContextuallyVisible(
   path: string,
   form: DenaliCreateTourWizardForm | undefined,
-  _options?: DenaliUIContextOptions,
+  options?: DenaliUIContextOptions,
 ): boolean {
-  return evaluateDenaliContextualVisibility(path, form);
+  return evaluateDenaliContextualVisibility(path, form, options);
 }
 
 /**

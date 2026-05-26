@@ -168,21 +168,42 @@ export function DenaliCanonicalProvider({
   );
 
   const ui = useMemo(
-    () => getDenaliUIFromForm(getValues(), ruleSet),
-    [tourTypeWatch, transportModeWatch, adminCapacityApprovalWatch, allowPersonalCarWatch, requiresPaymentWatch, syncToken, ruleSet, getValues],
+    () =>
+      getDenaliUIFromForm(
+        getValues(),
+        ruleSet,
+        workspaceFormProfile ? { workspaceFormProfile } : undefined,
+      ),
+    [
+      tourTypeWatch,
+      transportModeWatch,
+      adminCapacityApprovalWatch,
+      allowPersonalCarWatch,
+      requiresPaymentWatch,
+      syncToken,
+      ruleSet,
+      getValues,
+      workspaceFormProfile,
+    ],
   );
 
   const commitCanonical = useCallback(
     (next: DenaliCanonicalTourModel, basics: DenaliCanonicalBasicsSelection) => {
       const currentForm = getValues();
       const nextFormRaw = denaliCanonicalToForm(next, currentForm, { basics });
-      const safeForm = applyDenaliInvariantState(nextFormRaw, undefined, ruleSet);
+      const uiOptions = workspaceFormProfile ? { workspaceFormProfile } : undefined;
+      const safeForm = applyDenaliInvariantState(nextFormRaw, uiOptions, ruleSet);
 
-      applyCanonicalMvpToForm(next, currentForm, { basics, setValue, ruleSet });
+      applyCanonicalMvpToForm(next, currentForm, {
+        basics,
+        setValue,
+        ruleSet,
+        uiOptions,
+      });
 
       setCanonicalModel(safeDenaliFormToCanonical(safeForm));
     },
-    [getValues, ruleSet, setValue],
+    [getValues, ruleSet, setValue, workspaceFormProfile],
   );
 
   const updateCanonical = useCallback(

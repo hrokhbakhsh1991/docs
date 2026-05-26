@@ -308,7 +308,9 @@
         "requiresPayment": "Paid tour (payment required)",
         "basePricePerPerson": "Price per person (Toman)",
         "basePricePerPersonHint": "Base per-person price when the tour is paid.",
-        "includesTourInsurance": "This tour includes group liability insurance"
+        "includesTourInsurance": "This tour includes group liability insurance",
+        "nonAttendanceDetails": "Non-attendance details",
+        "nonAttendanceDetailsPlaceholder": "Notes for participants who did not attend…"
       },
       "participants": {
         "minimumAge": "Minimum age",

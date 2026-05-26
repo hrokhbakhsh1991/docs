@@ -37,6 +37,9 @@ export function mapDenaliCreateTourPayloadProjectionToDto(
     meetingPoint: projection.meetingPoint,
     communicationLink: projection.communicationLink,
     transportModes: projection.transportModes,
+    ...(projection.customServiceLabels && projection.customServiceLabels.length > 0
+      ? { customServiceLabels: [...projection.customServiceLabels] }
+      : {}),
   };
 }
 

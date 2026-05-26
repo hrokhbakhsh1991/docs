@@ -313,7 +313,9 @@
         "requiresPayment": "تور پولی (ثبت‌نام با پرداخت)",
         "basePricePerPerson": "قیمت به ازای هر نفر (تومان)",
         "basePricePerPersonHint": "قیمت پایه برای هر شرکت‌کننده وقتی تور پولی است.",
-        "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است"
+        "includesTourInsurance": "این تور شامل بیمه مسئولیت گروهی سازمان‌دهنده است",
+        "nonAttendanceDetails": "جزئیات عدم حضور",
+        "nonAttendanceDetailsPlaceholder": "توضیح برای شرکت‌کنندگانی که حاضر نشده‌اند…"
       },
       "participants": {
         "minimumAge": "حداقل سن",

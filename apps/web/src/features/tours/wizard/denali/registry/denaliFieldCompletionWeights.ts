@@ -35,6 +35,7 @@ export const DENALI_FIELD_COMPLETION_WEIGHTS: Readonly<Record<string, number>> =
   campPoint: 3,
   endPoint: 3,
   "participants.gearItems": 4,
+  "tripDetails.overview.customServiceLabels": 2,
   "transport.mode": 4,
   "transport.transportCost": 2,
   "transport.allowPersonalCar": 1,

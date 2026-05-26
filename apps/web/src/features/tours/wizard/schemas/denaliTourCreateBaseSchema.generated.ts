@@ -150,6 +150,15 @@ const denaliPhotosSchema = z.object({
     .optional(),
 });
 
+const denaliTripDetailsOverviewSchema = z.object({
+  customServiceLabels: z.array(z.string().trim()).default([]),
+  nonAttendanceDetails: z.string().trim().optional(),
+});
+
+const denaliTripDetailsLogisticsSchema = z.object({
+  gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
+}).default({ gatheringPoints: [] });
+
 const denaliTourCreateObjectSchema = z.object({
   basicInfo: denaliBasicInfoSchema,
   programNature: denaliProgramNatureSchema,
@@ -159,10 +168,12 @@ const denaliTourCreateObjectSchema = z.object({
   policies: denaliPoliciesSchema,
   photosData: denaliPhotosSchema,
   tripDetails: z.object({
-    logistics: z.object({
-      gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
-    }).default({ gatheringPoints: [] }),
-  }).default({ logistics: { gatheringPoints: [] } }),
+    logistics: denaliTripDetailsLogisticsSchema,
+    overview: denaliTripDetailsOverviewSchema,
+  }).default({
+    logistics: { gatheringPoints: [] },
+    overview: { customServiceLabels: [] },
+  }),
 });
 
 function rejectZeroAmount(

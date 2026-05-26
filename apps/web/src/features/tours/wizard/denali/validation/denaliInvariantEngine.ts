@@ -71,7 +71,7 @@ function applyStructuralInvariantRule(
           ? isDenaliFieldVisibleInModel(ctx.model, canonicalPath, form, ctx.uiOptions)
           : def?.contextualVisibility == null
             ? true
-            : evaluateDenaliContextualVisibility(canonicalPath, form);
+            : evaluateDenaliContextualVisibility(canonicalPath, form, ctx.uiOptions);
       if (!visible) {
         clearDenaliCanonicalLeaf(form, canonicalPath);
       }

@@ -40,7 +40,7 @@ import {
 } from "@/features/tours/wizard/denaliStepConfig";
 import {
   DenaliBasicInfoStep,
-  DenaliPricingPaymentStep,
+  DenaliPricingStep,
   DenaliProgramNatureStep,
   DenaliReviewStep,
   DenaliLogisticsStep,
@@ -166,7 +166,7 @@ function DenaliStepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
       body = <DenaliLogisticsStep />;
       break;
     case "denali_pricing":
-      body = <DenaliPricingPaymentStep />;
+      body = <DenaliPricingStep />;
       break;
     case "denali_photos":
       body = <DenaliPhotosStep />;
@@ -243,8 +243,12 @@ export function DenaliCreateTourWizard() {
   ruleSetRef.current = mergedRuleSet;
 
   const resolver = useMemo(
-    () => createDenaliCanonicalWizardResolver(undefined, () => ruleSetRef.current),
-    [],
+    () =>
+      createDenaliCanonicalWizardResolver(
+        () => ({ workspaceFormProfile }),
+        () => ruleSetRef.current,
+      ),
+    [workspaceFormProfile],
   );
 
   const formMethods = useForm<DenaliCreateTourWizardForm>({
@@ -606,10 +610,22 @@ export function DenaliCreateTourWizard() {
       return;
     }
     catalogSanitizedRef.current = true;
-    const next = applyDenaliInvariantState(sanitized, undefined, mergedRuleSet);
+    const next = applyDenaliInvariantState(
+      sanitized,
+      { workspaceFormProfile },
+      mergedRuleSet,
+    );
     reset(next, { keepDefaultValues: true });
     setCanonicalSyncToken((token) => token + 1);
-  }, [destinationsQuery.groupedRegions, getValues, mergedRuleSet, reset, themesQuery.data, wizardReady]);
+  }, [
+    destinationsQuery.groupedRegions,
+    getValues,
+    mergedRuleSet,
+    reset,
+    themesQuery.data,
+    wizardReady,
+    workspaceFormProfile,
+  ]);
 
   useEffect(() => {
     const key = visibleSteps[currentStep];
@@ -657,7 +673,11 @@ export function DenaliCreateTourWizard() {
 
   const handleNext = useCallback(async () => {
     const values = getValues();
-    const normalized = applyDenaliInvariantState(values, undefined, mergedRuleSet);
+    const normalized = applyDenaliInvariantState(
+      values,
+      { workspaceFormProfile },
+      mergedRuleSet,
+    );
     const withBlobs = preserveDenaliWizardBlobMedia(values, normalized);
     reset(withBlobs, { keepDefaultValues: true, keepDirty: true });
     setCanonicalSyncToken((token) => token + 1);
@@ -697,6 +717,7 @@ export function DenaliCreateTourWizard() {
     setCanonicalSyncToken,
     setError,
     visibleSteps.length,
+    workspaceFormProfile,
   ]);
 
   const onSubmit = useCallback(

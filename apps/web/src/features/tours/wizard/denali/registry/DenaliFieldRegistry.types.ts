@@ -16,8 +16,12 @@ export type DenaliFieldWireProjection =
  * Runtime visibility/required rule evaluated from registry (replaces denaliUIAdapter if-chains).
  * Transport kinds delegate to `@repo/types/denali` — do not duplicate mode logic here.
  */
+/** Workspace UI flags from {@link getCapabilitiesForProfile} (not tour category × duration matrix). */
+export type DenaliWorkspaceCapabilityFlag = "canDefineCustomServices";
+
 export type DenaliContextualRule =
   | { readonly kind: "whenTruthy"; readonly watchCanonical: string }
+  | { readonly kind: "capability"; readonly flag: DenaliWorkspaceCapabilityFlag }
   | { readonly kind: "transportOrganizedCostVisible" }
   | { readonly kind: "transportPersonalCarOptionVisible" }
   | { readonly kind: "transportDongVisible" }

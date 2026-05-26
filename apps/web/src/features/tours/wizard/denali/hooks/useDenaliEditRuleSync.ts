@@ -5,6 +5,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { TourFormProfile } from "@repo/types";
 
 import { preserveDenaliWizardBlobMedia } from "../preserveDenaliWizardBlobMedia";
 import type { DenaliRuleSet } from "../rules/denaliRuleModel";
@@ -40,9 +41,10 @@ export function useDenaliEditRuleSync(
   >,
   mergedRuleSet: DenaliRuleSet,
   onSynced: () => void,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; workspaceFormProfile?: TourFormProfile },
 ): void {
   const enabled = options?.enabled ?? true;
+  const workspaceFormProfile = options?.workspaceFormProfile;
   const { control, getValues, reset, trigger } = formMethods;
 
   const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
@@ -85,7 +87,11 @@ export function useDenaliEditRuleSync(
     lastSignatureRef.current = signature;
 
     const values = getValues();
-    const normalized = applyDenaliInvariantState(values, undefined, mergedRuleSet);
+    const normalized = applyDenaliInvariantState(
+      values,
+      workspaceFormProfile ? { workspaceFormProfile } : undefined,
+      mergedRuleSet,
+    );
     const withBlobs = preserveDenaliWizardBlobMedia(values, normalized);
     reset(withBlobs, { keepDefaultValues: true, keepDirty: true });
     onSynced();
@@ -102,5 +108,6 @@ export function useDenaliEditRuleSync(
     tourTypeWatch,
     transportModeWatch,
     trigger,
+    workspaceFormProfile,
   ]);
 }

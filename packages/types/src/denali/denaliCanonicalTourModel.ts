@@ -76,6 +76,12 @@ export { EMPTY_GATHERING_PICKUP_STATION } from "./gatheringPickupStation";
 /** @deprecated Use {@link DenaliGatheringPickupStation}. */
 export type DenaliGatheringPointStation = import("./gatheringPickupStation").DenaliGatheringPickupStation;
 
+/** Overview slice persisted under `tripDetails.overview`. */
+export interface DenaliTripDetailsOverview {
+  /** Optional admin note for non-attendance. */
+  nonAttendanceDetails?: string;
+}
+
 /**
  * Canonical Denali tour — MVP wizard user inputs only.
  */
@@ -97,6 +103,10 @@ export interface DenaliCanonicalTourModel {
   gatheringPoint?: DenaliLocationData;
   /** Multi-station pickups (`tripDetails.logistics.gatheringPoints`). */
   gatheringPoints?: import("./gatheringPickupStation").DenaliGatheringPickupStation[];
+  /** Workspace-defined service labels (`tripDetails.overview.customServiceLabels`). */
+  customServiceLabels?: string[];
+  /** Overview fields (`tripDetails.overview`). */
+  overview?: DenaliTripDetailsOverview;
   /** Trailhead where hiking begins. */
   startPoint?: DenaliLocationData;
   /** Geographical peak coordinate. */

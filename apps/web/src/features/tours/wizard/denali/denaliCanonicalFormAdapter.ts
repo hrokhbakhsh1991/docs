@@ -26,8 +26,64 @@ import type { UseFormSetValue } from "react-hook-form";
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
+import type { DenaliUIContextOptions } from "./rules/denaliUIAdapter";
 import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+
+import { normalizeCustomServiceLabels } from "@/features/tours/wizard/domain/normalizeCustomServiceLabels";
+
+function customServiceLabelsFromForm(
+  form: DenaliCreateTourWizardForm,
+): string[] | undefined {
+  return normalizeCustomServiceLabels(form.tripDetails?.overview?.customServiceLabels);
+}
+
+function customServiceLabelsToFormOverview(
+  canonical: DenaliCanonicalTourModel,
+  existingForm: DenaliCreateTourWizardForm,
+): string[] {
+  return (
+    canonical.customServiceLabels ??
+    existingForm.tripDetails?.overview?.customServiceLabels ??
+    []
+  );
+}
+
+function nonAttendanceDetailsFromForm(
+  form: DenaliCreateTourWizardForm,
+): string | undefined {
+  const trimmed = form.tripDetails?.overview?.nonAttendanceDetails?.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+function nonAttendanceDetailsFromCanonical(
+  canonical: DenaliCanonicalTourModel,
+): string | undefined {
+  const trimmed = canonical.overview?.nonAttendanceDetails?.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+function nonAttendanceDetailsToFormOverview(
+  canonical: DenaliCanonicalTourModel,
+  existingForm: DenaliCreateTourWizardForm,
+): string | undefined {
+  return (
+    nonAttendanceDetailsFromCanonical(canonical) ??
+    nonAttendanceDetailsFromForm(existingForm)
+  );
+}
+
+function overviewToCanonical(
+  form: DenaliCreateTourWizardForm,
+  base: DenaliCanonicalTourModel,
+): DenaliCanonicalTourModel["overview"] {
+  const nonAttendanceDetails =
+    nonAttendanceDetailsFromForm(form) ?? nonAttendanceDetailsFromCanonical(base);
+  if (nonAttendanceDetails == null) {
+    return base.overview;
+  }
+  return { ...base.overview, nonAttendanceDetails };
+}
 
 function transportModeToCanonical(
   mode: DenaliCreateTourWizardForm["transport"]["transportMode"] | undefined,
@@ -76,6 +132,8 @@ export function createInitialDenaliCanonicalModel(
     endPoint: form.basicInfo.endPoint,
     gatheringPoints:
       gatheringPoints != null && gatheringPoints.length > 0 ? gatheringPoints : undefined,
+    customServiceLabels: customServiceLabelsFromForm(form),
+    overview: overviewToCanonical(form, {}),
     approximateReturnTime: form.basicInfo.approximateReturnTime,
     leaderUserIds:
       form.basicInfo.leaderUserIds != null && form.basicInfo.leaderUserIds.length > 0
@@ -197,6 +255,7 @@ export function mergeDenaliCanonicalPartial(
     pricing: { ...base.pricing, ...patch.pricing },
     participants: { ...base.participants, ...patch.participants },
     policies: { ...base.policies, ...patch.policies },
+    overview: { ...base.overview, ...patch.overview },
   };
 
   return {
@@ -232,6 +291,9 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
     endPoint: form.basicInfo.endPoint ?? base.endPoint,
     gatheringPoints:
       form.tripDetails?.logistics?.gatheringPoints ?? base.gatheringPoints,
+    customServiceLabels:
+      customServiceLabelsFromForm(form) ?? base.customServiceLabels,
+    overview: overviewToCanonical(form, base),
     approximateReturnTime: form.basicInfo.approximateReturnTime ?? base.approximateReturnTime,
     socialMediaLink:
       form.basicInfo.socialMediaLink ??
@@ -323,7 +385,7 @@ export function denaliCanonicalToForm(
   existingForm: DenaliCreateTourWizardForm,
   options?: { basics?: DenaliCanonicalBasicsSelection | null },
 ): DenaliCreateTourWizardForm {
-  return {
+  const result = {
     ...existingForm,
     basicInfo: {
       ...existingForm.basicInfo,
@@ -371,6 +433,11 @@ export function denaliCanonicalToForm(
     },
     tripDetails: {
       ...existingForm.tripDetails,
+      overview: {
+        ...existingForm.tripDetails?.overview,
+        customServiceLabels: customServiceLabelsToFormOverview(canonical, existingForm),
+        nonAttendanceDetails: nonAttendanceDetailsToFormOverview(canonical, existingForm),
+      },
       logistics: {
         ...existingForm.tripDetails?.logistics,
         gatheringPoints: canonical.gatheringPoints ?? [],
@@ -405,6 +472,7 @@ export function denaliCanonicalToForm(
       photos: canonical.photos ?? [],
     },
   };
+  return result;
 }
 
 export { applyDenaliInvariantState };
@@ -414,16 +482,17 @@ export type ApplyCanonicalMvpToFormOptions = {
   setValue: UseFormSetValue<DenaliCreateTourWizardForm>;
   /** Workspace overlay rule set; defaults to static {@link denaliRuleSet}. */
   ruleSet?: DenaliRuleSet;
+  uiOptions?: DenaliUIContextOptions;
 };
 
 /** Writes MVP slices to RHF without resetting legacy fields. Returns the normalized form. */
 export function applyCanonicalMvpToForm(
   canonical: DenaliCanonicalTourModel,
   existingForm: DenaliCreateTourWizardForm,
-  { basics, setValue, ruleSet = denaliRuleSet }: ApplyCanonicalMvpToFormOptions,
+  { basics, setValue, ruleSet = denaliRuleSet, uiOptions }: ApplyCanonicalMvpToFormOptions,
 ): DenaliCreateTourWizardForm {
   const nextRaw = denaliCanonicalToForm(canonical, existingForm, { basics });
-  const next = applyDenaliInvariantState(nextRaw, undefined, ruleSet);
+  const next = applyDenaliInvariantState(nextRaw, uiOptions, ruleSet);
 
   const sync = { shouldDirty: true, shouldValidate: true } as const;
 

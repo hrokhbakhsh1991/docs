@@ -70,6 +70,9 @@ export interface WorkspaceCapabilities {
   /** Peak Experience section in tour edit / workspace UI. */
   readonly allowsPeakExperience: boolean;
 
+  /** Whether the workspace UI should allow defining custom services. */
+  readonly canDefineCustomServices: boolean;
+
   /**
    * Optional add-on catalog for this profile (from {@link getWorkspaceUiCapabilityFlags}).
    * Not persisted on the tour entity until registration/pricing contracts adopt selections.
@@ -128,6 +131,7 @@ function deriveWorkspaceCapabilities(profile: TourFormProfile): WorkspaceCapabil
     hasWorkspaceValidation: workspace?.validation != null,
     appliesDenaliSingleDayLogisticsStrip: uiFlags.appliesDenaliSingleDayLogisticsStrip,
     allowsPeakExperience: uiFlags.allowsPeakExperience,
+    canDefineCustomServices: uiFlags.canDefineCustomServices ?? false,
     availableServices: uiFlags.availableServices,
   };
 }

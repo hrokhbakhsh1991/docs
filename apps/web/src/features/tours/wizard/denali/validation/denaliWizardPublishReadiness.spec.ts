@@ -64,6 +64,7 @@ function publishGateMountainForm(
     },
     tripDetails: patch?.tripDetails ?? {
       logistics: { gatheringPoints: [CONCRETE_GATHERING] },
+      overview: { customServiceLabels: [] },
     },
   });
 }
@@ -76,7 +77,7 @@ test("getDenaliWizardPublishReadinessIssues: draft publishStatus skips OPEN gate
 test("getDenaliWizardPublishReadinessIssues: active without geo fails publish gate", () => {
   const form = publishGateMountainForm({
     basicInfo: { publishStatus: "active" },
-    tripDetails: { logistics: { gatheringPoints: [] } },
+    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] } },
   });
   const issues = getDenaliWizardPublishReadinessIssues(form);
   assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));

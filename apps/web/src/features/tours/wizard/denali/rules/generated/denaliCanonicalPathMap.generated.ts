@@ -62,4 +62,6 @@ export const DENALI_CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = {
   "transport.seatPreference": "transport.seatPreference",
   "transport.transportCost": "transport.transportCost",
   "transport.transportNotes": "transport.transportNotes",
+  "tripDetails.overview.customServiceLabels": "tripDetails.overview.customServiceLabels",
+  "tripDetails.overview.nonAttendanceDetails": "tripDetails.overview.nonAttendanceDetails",
 };

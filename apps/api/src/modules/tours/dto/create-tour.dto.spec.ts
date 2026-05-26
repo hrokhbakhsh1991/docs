@@ -144,7 +144,8 @@ test("CreateTourDto wire keys contract: canonical list is sorted, unique, and va
       logistics: { departureDate: "2026-06-01", returnDate: "2026-06-02" }
     },
     sourcePresetId: "00000000-0000-4000-8000-000000000001",
-    sourceTourId: "00000000-0000-4000-8000-000000000002"
+    sourceTourId: "00000000-0000-4000-8000-000000000002",
+    customServiceLabels: ["صبحانه"]
   };
   assert.deepEqual(new Set(Object.keys(payload)), new Set(CREATE_TOUR_DTO_WIRE_KEYS));
 

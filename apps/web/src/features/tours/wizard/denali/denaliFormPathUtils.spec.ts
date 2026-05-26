@@ -16,6 +16,7 @@ test("get/set preserves tripDetails.logistics siblings when clearing gatheringPo
         { title: "A", location: { addressText: "Tehran", latitude: null, longitude: null } },
       ],
     },
+    overview: { customServiceLabels: [] },
   };
 
   const sentinel = { futureField: "keep-me" };
@@ -56,6 +57,7 @@ test("normalizeDenaliWizardForm on event clears gatheringPoints without corrupti
         { title: "X", location: { addressText: "Y", latitude: null, longitude: null } },
       ],
     },
+    overview: { customServiceLabels: [] },
   };
   (form.tripDetails.logistics as Record<string, unknown>).futureField = "persist";
 

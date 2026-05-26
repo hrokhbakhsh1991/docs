@@ -17,6 +17,8 @@ export const DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS = [
   "startPointLocationText",
   "gatheringPoint",
   "gatheringPoints",
+  "customServiceLabels",
+  "overview",
   "startPoint",
   "summitPoint",
   "campPoint",

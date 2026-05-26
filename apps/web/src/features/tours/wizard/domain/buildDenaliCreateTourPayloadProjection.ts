@@ -36,6 +36,7 @@ import {
   trimToUndefined,
   YMD_RE,
 } from "./mappers/wizardMapperHelpers";
+import { normalizeCustomServiceLabels } from "./normalizeCustomServiceLabels";
 
 type ApiTourType = NonNullable<CreateTourDto["tourType"]>;
 
@@ -617,8 +618,25 @@ export function buildDenaliCreateTourPayloadProjection(
   const projection = buildProjectionFromCanonical(canonical, {
     eventVariant: basics?.eventVariant,
   });
+  // Registry wire: createTourDto.customServiceLabels + tripDetails.overview.customServiceLabels
+  const customServiceLabels = normalizeCustomServiceLabels(
+    form.tripDetails?.overview?.customServiceLabels,
+  );
+  const tripDetailsWithLabels =
+    customServiceLabels && projection.tripDetails
+      ? ({
+          ...projection.tripDetails,
+          overview: {
+            ...((projection.tripDetails as { overview?: Record<string, unknown> }).overview ?? {}),
+            customServiceLabels,
+          },
+        } as unknown as TourTripDetails)
+      : projection.tripDetails;
+
   return {
     ...projection,
+    tripDetails: tripDetailsWithLabels,
+    ...(customServiceLabels ? { customServiceLabels } : {}),
     lifecycle_status: denaliWizardLifecycleStatus(form.basicInfo.publishStatus),
   };
 }

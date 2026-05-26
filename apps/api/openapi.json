@@ -7857,6 +7857,17 @@
           "sourceTourId": {
             "type": "string",
             "description": "Source tour ID if created as a clone"
+          },
+          "customServiceLabels": {
+            "example": [
+              "صبحانه",
+              "نیسان"
+            ],
+            "description": "Workspace-defined custom service labels from the Denali wizard (persisted under tripDetails.overview.customServiceLabels).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -8238,6 +8249,17 @@
                 "$ref": "#/components/schemas/TourTripDetailsDto"
               }
             ]
+          },
+          "customServiceLabels": {
+            "example": [
+              "صبحانه",
+              "نیسان"
+            ],
+            "description": "Workspace-defined custom service labels from the Denali wizard (persisted under tripDetails.overview.customServiceLabels).",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
