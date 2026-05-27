@@ -518,24 +518,61 @@ export function denaliCanonicalToForm(
 
 export { applyDenaliInvariantState };
 
+/** RHF options for engine / draft hydration — avoids dirty state and watch-driven draft PATCH. */
+export const DENALI_QUIET_FORM_SET_VALUE_OPTIONS = {
+  shouldValidate: false,
+  shouldDirty: false,
+  shouldTouch: false,
+} as const;
+
+/** RHF options when the user edits via canonical controls (draft autosave should run). */
+export const DENALI_USER_FORM_SET_VALUE_OPTIONS = {
+  shouldValidate: true,
+  shouldDirty: true,
+  shouldTouch: false,
+} as const;
+
+/** Use with `reset()` when hydrating the wizard from draft-engine / server snapshot. */
+export const DENALI_QUIET_FORM_RESET_OPTIONS = {
+  keepDefaultValues: true,
+  keepDirty: false,
+  keepDirtyValues: false,
+  keepErrors: false,
+  keepTouched: false,
+  keepIsValid: false,
+  keepSubmitCount: false,
+} as const;
+
 export type ApplyCanonicalMvpToFormOptions = {
   basics?: DenaliCanonicalBasicsSelection | null;
   setValue: UseFormSetValue<DenaliCreateTourWizardForm>;
   /** Workspace overlay rule set; defaults to static {@link denaliRuleSet}. */
   ruleSet?: DenaliRuleSet;
   uiOptions?: DenaliUIContextOptions;
+  /** Optional RHF / wizard trace for conflict debugging (browser console). */
+  formTrace?: { isDirty?: boolean; isSyncing?: boolean };
 };
 
 /** Writes MVP slices to RHF without resetting legacy fields. Returns the normalized form. */
 export function applyCanonicalMvpToForm(
   canonical: DenaliCanonicalTourModel,
   existingForm: DenaliCreateTourWizardForm,
-  { basics, setValue, ruleSet = denaliRuleSet, uiOptions }: ApplyCanonicalMvpToFormOptions,
+  engineStatus: string,
+  {
+    basics,
+    setValue,
+    ruleSet = denaliRuleSet,
+    uiOptions,
+    formTrace,
+  }: ApplyCanonicalMvpToFormOptions,
 ): DenaliCreateTourWizardForm {
+  const writeMode: "user" | "programmatic" =
+    engineStatus === "CONFLICT_RESOLVING" ? "programmatic" : "user";
   const nextRaw = denaliCanonicalToForm(canonical, existingForm, { basics });
   const next = applyDenaliInvariantState(nextRaw, uiOptions, ruleSet);
 
-  const sync = { shouldDirty: true, shouldValidate: true } as const;
+  const sync =
+    writeMode === "user" ? DENALI_USER_FORM_SET_VALUE_OPTIONS : DENALI_QUIET_FORM_SET_VALUE_OPTIONS;
 
   setValue("basicInfo", next.basicInfo, sync);
   setValue(

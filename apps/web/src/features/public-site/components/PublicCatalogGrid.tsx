@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from "@tour/ui";
 
 import { usePublicSiteConfig } from "@/features/public-site/context/public-site-config-context";
 import { fetchPublicCatalog } from "@/features/public-site/services/public-tours.service";
+import { publicCatalogDetailPath } from "@/lib/paths";
 
 import styles from "./PublicCatalogGrid.module.css";
 
@@ -59,7 +60,7 @@ export function PublicCatalogGrid() {
           {tours.map((tour) => (
             <Link
               key={tour.id}
-              href={config.catalog.detailPath(tour.id)}
+              href={publicCatalogDetailPath(tour.id)}
               className={styles.card}
             >
               <h2 className={styles.title}>{tour.title}</h2>

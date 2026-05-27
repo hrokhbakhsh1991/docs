@@ -13,6 +13,7 @@
     "seed:denali-tour-presets": "node --env-file=.env --import tsx src/scripts/seed-denali-tour-presets.ts",
     "wipe:legacy-tour-templates": "node --env-file=.env --import tsx src/scripts/wipe-legacy-tour-templates.ts",
     "cleanup:legacy-templates": "node --env-file=.env --import tsx src/scripts/cleanupLegacyTemplates.ts",
+    "cleanup:drafts": "node --env-file=.env --import tsx src/scripts/cleanup-drafts.ts",
     "seed:denali-tours": "node --env-file=.env --import tsx src/scripts/seed-denali-tours.ts",
     "seed:denali-equipment": "node --env-file=.env --import tsx src/scripts/seed-denali-equipment.ts",
     "seed:denali-locations": "node --env-file=.env --import tsx src/scripts/seed-denali-locations.ts",

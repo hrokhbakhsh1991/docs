@@ -165,7 +165,7 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
               label={t("participants.sportsInsurance")}
               checked={sportsInsuranceField.field.value === true}
               onChange={(e) => {
-                sportsInsuranceField.field.onChange(e.target.checked);
+                      sportsInsuranceField.field.onChange(e.target.checked);
                 updateCanonical({
                   participants: {
                     ...participants,

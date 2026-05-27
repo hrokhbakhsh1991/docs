@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { PublicRegisterForm } from "@/features/registrations/components/PublicRegisterForm";
 import { getPublicSiteConfigFromHeaders } from "@/features/public-site/server/get-public-site-config-from-headers";
+import { publicCatalogDetailPath, PUBLIC_CATALOG_LIST_PATH } from "@/lib/paths";
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await getPublicSiteConfigFromHeaders();
@@ -18,8 +19,8 @@ export default async function PublicTourRegisterPage({ params }: { params: { tou
       tourId={params.tourId}
       programLabel={config.programLabel}
       contentWorkspace={config.contentWorkspace}
-      catalogListPath={config.catalog.listPath}
-      catalogDetailPath={config.catalog.detailPath(params.tourId)}
+      catalogListPath={PUBLIC_CATALOG_LIST_PATH}
+      catalogDetailPath={publicCatalogDetailPath(params.tourId)}
     />
   );
 }

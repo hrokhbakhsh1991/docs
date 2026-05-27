@@ -1,4 +1,10 @@
-import { DraftConflictError, type DraftEngineConfig, type DraftEngineState, type DraftSyncPayload } from "./types";
+import {
+  DraftConflictError,
+  type DraftEngineConfig,
+  type DraftEngineState,
+  type DraftSetDataOptions,
+  type DraftSyncPayload,
+} from "./types";
 
 const DEFAULT_DEBOUNCE_MS = 500;
 
@@ -72,10 +78,27 @@ export class DraftEngine<T> {
   }
 
   /**
-   * UI entry point: update local draft and schedule sync via the engine's internal debouncer
-   * (outside React's render/effect cycle).
+   * UI entry point: update local draft and optionally schedule sync via the engine debouncer.
+   * Use `{ source: 'remote' }` for server hydration (no DIRTY, no push).
    */
-  setDraftData(newData: T): void {
+  setDraftData(newData: T, options?: DraftSetDataOptions): void {
+    const source = options?.source ?? "user";
+
+    if (source === "remote") {
+      this.clearDebounce();
+      this.data = newData;
+      if (options?.version != null) {
+        this.version = options.version;
+      }
+      if (options?.lastModified != null) {
+        this.lastModified = options.lastModified;
+      }
+      this.status = "IDLE";
+      this.error = undefined;
+      this.notify();
+      return;
+    }
+
     if (this.status === "DRAFT_AVAILABLE" || this.status === "CONFLICT_RESOLVING") {
       return;
     }
@@ -84,19 +107,19 @@ export class DraftEngine<T> {
     this.status = "DIRTY";
     this.error = undefined;
     this.notify();
-    this.scheduleDebouncedSync();
+    this.scheduleSync();
   }
 
   /** @deprecated Prefer setDraftData — kept for tests and backward compatibility. */
-  update(newData: T): void {
-    this.setDraftData(newData);
+  update(newData: T, options?: DraftSetDataOptions): void {
+    this.setDraftData(newData, options);
   }
 
   applyDraft(): void {
     if (this.pendingDraft == null) {
       return;
     }
-    this.applyPayload(this.pendingDraft);
+    this.hydrateFromRemote(this.pendingDraft);
     this.pendingDraft = null;
     this.status = "IDLE";
     this.error = undefined;
@@ -136,7 +159,7 @@ export class DraftEngine<T> {
       return;
     }
     if (options.forceApply || this.config.autoApply !== false) {
-      this.applyPayload(payload);
+      this.hydrateFromRemote(payload);
       this.pendingDraft = null;
       return;
     }
@@ -144,10 +167,13 @@ export class DraftEngine<T> {
     this.status = "DRAFT_AVAILABLE";
   }
 
-  private applyPayload(payload: DraftSyncPayload<T>): void {
-    this.data = payload.data;
-    this.version = payload.version;
-    this.lastModified = payload.lastModified;
+  /** Server / snapshot hydration — updates version metadata without marking DIRTY or pushing. */
+  private hydrateFromRemote(payload: DraftSyncPayload<T>): void {
+    this.setDraftData(payload.data, {
+      source: "remote",
+      version: payload.version,
+      lastModified: payload.lastModified,
+    });
   }
 
   private buildPayload(): DraftSyncPayload<T> {
@@ -168,6 +194,13 @@ export class DraftEngine<T> {
     }
   }
 
+  private scheduleSync(): void {
+    if (this.status === "CONFLICT_RESOLVING") {
+      return;
+    }
+    this.scheduleDebouncedSync();
+  }
+
   /** Debounced sync scheduler — runs on the timer queue, not during React render. */
   private scheduleDebouncedSync(): void {
     if (this.status === "CONFLICT_RESOLVING") {
@@ -181,10 +214,6 @@ export class DraftEngine<T> {
       }
       void this.flushSync();
     }, this.debounceMs);
-  }
-
-  private scheduleSync(): void {
-    this.scheduleDebouncedSync();
   }
 
   private async flushSync(): Promise<void> {
@@ -213,7 +242,6 @@ export class DraftEngine<T> {
 
   private async doPush(): Promise<void> {
     if (this.status === "CONFLICT_RESOLVING") {
-      console.warn("doPush ignored: Conflict resolution in progress");
       return;
     }
     if (this.status !== "DIRTY" || this.data == null) {
@@ -233,7 +261,7 @@ export class DraftEngine<T> {
         this.status = "DIRTY";
         this.scheduleSync();
       } else {
-        this.applyPayload(result);
+        this.hydrateFromRemote(result);
         this.status = "IDLE";
       }
     } catch (err) {
@@ -258,7 +286,7 @@ export class DraftEngine<T> {
     }
 
     if (conflictStrategy === "SERVER_WINS") {
-      this.applyPayload(serverPayload);
+      this.hydrateFromRemote(serverPayload);
       this.status = "IDLE";
       this.notify();
       return;
@@ -267,7 +295,7 @@ export class DraftEngine<T> {
     if (conflictStrategy === "CLIENT_WINS") {
       try {
         const result = await this.config.onPush(this.buildPayload());
-        this.applyPayload(result);
+        this.hydrateFromRemote(result);
         this.status = "IDLE";
         this.notify();
       } catch (retryErr) {
@@ -304,38 +332,47 @@ export class DraftEngine<T> {
   }
 
   /**
-   * On 409: warn, re-fetch server state, overlay local edits, and schedule another push.
+   * On 409: re-fetch server state, merge with local edits, hydrate quietly (no auto-push).
    */
   private async refetchAndReapplyLocal(conflict: DraftConflictError<T>): Promise<void> {
     const localPending = this.data;
     if (localPending == null) {
-      this.applyPayload(conflict.serverPayload);
+      this.hydrateFromRemote(conflict.serverPayload);
       this.status = "IDLE";
       this.error = undefined;
+      this.notify();
       return;
     }
 
-    console.warn("Conflict detected, re-fetching latest...");
     this.status = "CONFLICT_RESOLVING";
     this.error = undefined;
     this.notify();
     try {
-      await this.fetchAndHydrate({ forceApply: true });
-      const serverData = this.data;
-      if (this.config.merge != null && serverData != null) {
-        this.data = this.config.merge(localPending, serverData);
-      } else {
-        this.data = localPending;
-      }
+      const serverPayload = await this.config.onFetch();
+      const fallback = conflict.serverPayload;
+      const occSource = serverPayload ?? fallback;
+      const merged =
+        serverPayload != null
+          ? this.config.merge != null
+            ? this.config.merge(localPending, serverPayload.data)
+            : serverPayload.data
+          : this.config.merge != null
+            ? this.config.merge(localPending, fallback.data)
+            : localPending;
 
-      this.lastModified = Date.now();
-      this.status = "DIRTY";
+      this.setDraftData(merged, {
+        source: "remote",
+        version: occSource.version,
+        lastModified: occSource.lastModified,
+      });
+      this.status = "IDLE";
       this.error = undefined;
       this.notify();
-      this.scheduleSync();
     } catch {
-      this.applyPayload(conflict.serverPayload);
+      this.hydrateFromRemote(conflict.serverPayload);
+      this.status = "IDLE";
       this.error = undefined;
+      this.notify();
     } finally {
       if (this.status === "CONFLICT_RESOLVING") {
         this.status = "IDLE";

@@ -12,11 +12,22 @@ export type DraftSyncPayload<T> = {
   lastModified: number;
 };
 
+/** Origin of a {@link DraftEngine.setDraftData} call — controls dirty + sync scheduling. */
+export type DraftDataSource = "user" | "remote";
+
+export type DraftSetDataOptions = {
+  /** Default `user` — marks DIRTY and schedules debounced push. `remote` is quiet hydration only. */
+  source?: DraftDataSource;
+  /** When `source` is `remote`, apply server OCC fields so the next user push uses the latest version. */
+  version?: number;
+  lastModified?: number;
+};
+
 export type ConflictStrategy =
   | "SERVER_WINS"
   | "CLIENT_WINS"
   | "MERGE"
-  /** Re-fetch latest via onFetch, then re-apply local edits and sync again. */
+  /** Re-fetch via onFetch, merge with local, hydrate quietly — no automatic retry push. */
   | "REFETCH_REAPPLY";
 
 export type DraftEngineConfig<T> = {

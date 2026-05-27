@@ -6,6 +6,8 @@ import {
 } from "@repo/shared-contracts";
 import type { TourFormProfile } from "@repo/types";
 
+import { PUBLIC_CATALOG_LIST_PATH } from "@/lib/paths";
+
 import {
   buildWizardConfig,
   type WorkspaceWizardConfig,
@@ -38,8 +40,6 @@ export type PublicSiteConfig = {
   };
   readonly catalog: {
     readonly listPath: string;
-    readonly detailPath: (tourId: string) => string;
-    readonly registerPath: (tourId: string) => string;
     readonly apiStatus: PublicCatalogApiStatus;
   };
   readonly nav: readonly PublicSiteNavItem[];
@@ -57,8 +57,6 @@ export function resolvePublicSiteConfig(tenantSlug: string): PublicSiteConfig {
   const wizard = buildWizardConfig(tourFormProfile);
   const pages = getWorkspacePages(contentWorkspace);
 
-  const catalogListPath = "/catalog";
-
   return {
     tenantSlug: normalized,
     contentWorkspace,
@@ -70,15 +68,12 @@ export function resolvePublicSiteConfig(tenantSlug: string): PublicSiteConfig {
       about: pages.about,
     },
     catalog: {
-      listPath: catalogListPath,
-      detailPath: (tourId) => `${catalogListPath}/${encodeURIComponent(tourId)}`,
-      registerPath: (tourId) =>
-        `${catalogListPath}/${encodeURIComponent(tourId)}/register`,
+      listPath: PUBLIC_CATALOG_LIST_PATH,
       apiStatus: "completed",
     },
     nav: [
       { label: "خانه", href: "/" },
-      { label: "تورها", href: catalogListPath },
+      { label: "تورها", href: PUBLIC_CATALOG_LIST_PATH },
       { label: "درباره", href: "/about" },
       { label: "ورود", href: "/login" },
     ],

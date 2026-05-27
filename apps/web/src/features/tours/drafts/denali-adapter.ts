@@ -1,9 +1,15 @@
-import type { DraftEngineConfig } from "@repo/draft-engine";
-
+import type { DraftEngineConfig, DraftSetDataOptions } from "@repo/draft-engine";
 import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
+export type { DraftSetDataOptions };
+
+/**
+ * Server hydration (initialize, applyDraft, 409 merge-on-conflict) is quiet inside
+ * {@link DraftEngine}: re-fetch + `merge(local, server)` + `setDraftData(..., { source: 'remote', version })`
+ * without scheduling a PATCH. User edits must call `setDraftData(..., { source: 'user' })`.
+ */
 export const DENALI_CREATE_DRAFT_KEY = "denali-create";
 
 export type DenaliWizardDraftSnapshot = {

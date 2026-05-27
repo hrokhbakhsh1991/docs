@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DraftEngine } from "./engine";
-import type { DraftEngineConfig, DraftEngineState } from "./types";
+import type { DraftEngineConfig, DraftEngineState, DraftSetDataOptions } from "./types";
 
 function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T> }): DraftEngine<T> {
   const config: DraftEngineConfig<T> = {
@@ -35,7 +35,7 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
 
 export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   state: DraftEngineState<T>;
-  setDraftData: (data: T) => void;
+  setDraftData: (data: T, options?: DraftSetDataOptions) => void;
   retry: () => Promise<void>;
   initialize: () => Promise<void>;
   applyDraft: () => void;
@@ -62,8 +62,8 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
     await engineRef.current?.initialize();
   }, []);
 
-  const setDraftData = useCallback((data: T) => {
-    engineRef.current?.setDraftData(data);
+  const setDraftData = useCallback((data: T, options?: DraftSetDataOptions) => {
+    engineRef.current?.setDraftData(data, options);
   }, []);
 
   const retry = useCallback(async () => {

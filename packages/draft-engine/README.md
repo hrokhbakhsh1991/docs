@@ -184,7 +184,7 @@ The server should reject stale writes with **409** and a body that includes the 
 | Strategy | Behavior |
 |----------|----------|
 | `SERVER_WINS` | Apply server payload locally; status → `IDLE`. |
-| `REFETCH_REAPPLY` | On 409: warn, `initialize()` / re-fetch, overlay local (optional `merge`), re-push. |
+| `REFETCH_REAPPLY` | On 409: re-fetch via `onFetch`, `merge(local, server)`, quiet hydrate (`setDraftData` remote + server `version`) — **no auto-retry push**. |
 | `CLIENT_WINS` | Retry `onPush` with current local data (may conflict again). |
 | `MERGE` | Call `config.merge(local, server.data)`, set `DIRTY`, schedule another push. Requires `merge` fn. |
 

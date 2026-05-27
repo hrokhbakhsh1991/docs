@@ -47,6 +47,8 @@ import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { getDenaliUIFromForm, type DenaliCanonicalUIContext } from "./rules/denaliUIAdapter";
 import { resolveDenaliRuleSetFromTemplate } from "./validation/denaliRuleAccess";
 import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
+import type { DraftStatus } from "@repo/draft-engine";
+
 
 export type DenaliPhotoPersistenceCheck = {
   ok: boolean;
@@ -96,6 +98,8 @@ export function DenaliCanonicalProvider({
   wizardTemplate,
   uploadTourId: uploadTourIdProp = null,
   workspaceFormProfile,
+  draftIsSyncing = false,
+  draftStatus = "IDLE",
 }: {
   children: ReactNode;
   formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
@@ -107,8 +111,12 @@ export function DenaliCanonicalProvider({
   uploadTourId?: string | null;
   /** Required for lazy draft-tour creation on first gallery upload in create mode. */
   workspaceFormProfile?: TourFormProfile;
+  /** Draft-engine PATCH in flight. */
+  draftIsSyncing?: boolean;
+  /** Draft-engine status — blocks canonical commits while resolving 409 conflicts. */
+  draftStatus?: DraftStatus;
 }) {
-  const { control, getValues, setValue } = formMethods;
+  const { control, getValues, setValue, formState } = formMethods;
 
   const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
   const transportModeWatch = useWatch({ control, name: "transport.transportMode" });
@@ -194,16 +202,17 @@ export function DenaliCanonicalProvider({
       const uiOptions = workspaceFormProfile ? { workspaceFormProfile } : undefined;
       const safeForm = applyDenaliInvariantState(nextFormRaw, uiOptions, ruleSet);
 
-      applyCanonicalMvpToForm(next, currentForm, {
+      applyCanonicalMvpToForm(next, currentForm, draftStatus, {
         basics,
         setValue,
         ruleSet,
         uiOptions,
+        formTrace: { isDirty: formState.isDirty, isSyncing: draftIsSyncing },
       });
 
       setCanonicalModel(safeDenaliFormToCanonical(safeForm));
     },
-    [getValues, ruleSet, setValue, workspaceFormProfile],
+    [draftIsSyncing, draftStatus, formState.isDirty, getValues, ruleSet, setValue, workspaceFormProfile],
   );
 
   const updateCanonical = useCallback(

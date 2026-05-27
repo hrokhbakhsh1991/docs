@@ -7,6 +7,7 @@ import { Button, ErrorState, LoadingState } from "@tour/ui";
 
 import { usePublicSiteConfig } from "@/features/public-site/context/public-site-config-context";
 import { fetchPublicTourDetail } from "@/features/public-site/services/public-tours.service";
+import { publicCatalogRegisterPath } from "@/lib/paths";
 
 import styles from "./PublicTourDetailView.module.css";
 
@@ -74,7 +75,7 @@ export function PublicTourDetailView({ tourId }: { tourId: string }) {
         </div>
       </dl>
       <div className={styles.actions}>
-        <Link href={config.catalog.registerPath(tourId)}>
+        <Link href={publicCatalogRegisterPath(tourId)}>
           <Button type="button" variant="primary">
             ثبت‌نام
           </Button>

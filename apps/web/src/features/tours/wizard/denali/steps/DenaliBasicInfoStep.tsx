@@ -107,15 +107,19 @@ export function DenaliBasicInfoStep() {
           placeholder={t("basic.titlePlaceholder")}
           aria-invalid={Boolean(errors.basicInfo?.title)}
           value={title}
-          onChange={(e) => updateCanonical({ title: e.target.value })}
-        />
+          onChange={(e) => {
+              updateCanonical({ title: e.target.value });
+          }}
+          />
       </FormField>
 
       <FormField label={t("basic.categoryLabel")} error={errors.basicInfo?.tourType?.message}>
         <Select
           value={basicsSelection?.category ?? ""}
-          onChange={(e) => updateCanonicalBasics({ category: e.target.value as DenaliTourCategory })}
-          data-testid="denali-basics-category"
+          onChange={(e) => {
+              updateCanonicalBasics({ category: e.target.value as DenaliTourCategory });
+          }}
+            data-testid="denali-basics-category"
           invalid={Boolean(errors.basicInfo?.tourType)}
         >
           <option value="">{t("selectPlaceholder")}</option>
@@ -130,8 +134,10 @@ export function DenaliBasicInfoStep() {
       <FormField label={t("basic.durationLabel")} error={errors.basicInfo?.tourType?.message}>
         <Select
           value={basicsSelection?.duration ?? ""}
-          onChange={(e) => updateCanonicalBasics({ duration: e.target.value as DenaliTourDuration })}
-          data-testid="denali-basics-duration"
+          onChange={(e) => {
+              updateCanonicalBasics({ duration: e.target.value as DenaliTourDuration });
+          }}
+            data-testid="denali-basics-duration"
           invalid={Boolean(errors.basicInfo?.tourType)}
         >
           <option value="">{t("selectPlaceholder")}</option>
@@ -151,10 +157,10 @@ export function DenaliBasicInfoStep() {
         <FormField label={t("basic.eventVariantLabel")} error={errors.basicInfo?.tourType?.message}>
           <Select
             value={basicsSelection?.eventVariant ?? ""}
-            onChange={(e) =>
-              updateCanonicalBasics({ eventVariant: e.target.value as DenaliEventVariant })
-            }
-            data-testid="denali-basics-event-variant"
+            onChange={(e) => {
+                  updateCanonicalBasics({ eventVariant: e.target.value as DenaliEventVariant });
+            }}
+                data-testid="denali-basics-event-variant"
           >
             {DENALI_EVENT_VARIANT_VALUES.map((variant) => (
               <option key={variant} value={variant}>
@@ -173,7 +179,7 @@ export function DenaliBasicInfoStep() {
             options={activeDestinations}
             value={destinationId}
             onChange={(id) => {
-              if (typeof id === "string" && id) {
+                  if (typeof id === "string" && id) {
                 applyDestinationSelection(id);
                 return;
               }
@@ -206,7 +212,7 @@ export function DenaliBasicInfoStep() {
             formatThousands
             value={peakHeightField.field.value ?? ""}
             onChange={(v) => {
-              const next = v === "" ? undefined : Number(v);
+                  const next = v === "" ? undefined : Number(v);
               peakHeightField.field.onChange(next);
               updateCanonical({
                 overview: {
@@ -228,11 +234,11 @@ export function DenaliBasicInfoStep() {
           options={leaderOptions}
           multiple
           value={leaderUserIds ?? []}
-          onChange={(ids) =>
-            updateCanonical({
+          onChange={(ids) => {
+              updateCanonical({
               leaderUserIds: Array.isArray(ids) ? ids : ids ? [ids] : [],
-            })
-          }
+            });
+          }}
           error={errors.basicInfo?.leaderUserIds?.message}
         />
       ) : null}
@@ -242,7 +248,7 @@ export function DenaliBasicInfoStep() {
           label={t("basic.requiresLocalGuide")}
           checked={requiresLocalGuide === true}
           onChange={(e) => {
-            const checked = e.target.checked;
+              const checked = e.target.checked;
             updateCanonical({
               requiresLocalGuide: checked,
               localGuideName: checked ? localGuideName : undefined,
@@ -261,13 +267,13 @@ export function DenaliBasicInfoStep() {
             type="text"
             placeholder={t("basic.localGuideNamePlaceholder")}
             value={localGuideName ?? ""}
-            onChange={(e) =>
-              updateCanonical({
+            onChange={(e) => {
+                  updateCanonical({
                 requiresLocalGuide: true,
                 localGuideName: e.target.value || undefined,
-              })
-            }
-            data-testid="denali-basics-local-guide-name"
+              });
+            }}
+                data-testid="denali-basics-local-guide-name"
           />
         </FormField>
       ) : null}
@@ -286,10 +292,10 @@ export function DenaliBasicInfoStep() {
           <PersianNumberInput
             numericMode="integer"
             value={capacityMax ?? ""}
-            onChange={(v) =>
-              updateCanonical({ capacityMax: v === "" ? undefined : Number(v) })
-            }
-          />
+            onChange={(v) => {
+                  updateCanonical({ capacityMax: v === "" ? undefined : Number(v) });
+            }}
+              />
         </FormField>
       ) : null}
 
@@ -298,10 +304,10 @@ export function DenaliBasicInfoStep() {
           <PersianNumberInput
             numericMode="integer"
             value={capacityMin ?? ""}
-            onChange={(v) =>
-              updateCanonical({ capacityMin: v === "" ? undefined : Number(v) })
-            }
-          />
+            onChange={(v) => {
+                  updateCanonical({ capacityMin: v === "" ? undefined : Number(v) });
+            }}
+              />
         </FormField>
       ) : null}
 
@@ -313,8 +319,10 @@ export function DenaliBasicInfoStep() {
             type="text"
             placeholder="مثلاً t.me/tour_group یا @tour_admin"
             value={socialMediaLink ?? ""}
-            onChange={(e) => updateCanonical({ socialMediaLink: e.target.value || undefined })}
-            data-testid="denali-basics-social-media-link"
+            onChange={(e) => {
+                  updateCanonical({ socialMediaLink: e.target.value || undefined });
+            }}
+                data-testid="denali-basics-social-media-link"
           />
         </FormField>
       ) : null}
@@ -322,9 +330,9 @@ export function DenaliBasicInfoStep() {
       <Checkbox
         label={t("basic.requiresManualAdminApproval")}
         checked={requiresManualAdminApproval === true}
-        onChange={(e) =>
-          updateCanonical({ requiresManualAdminApproval: e.target.checked })
-        }
+        onChange={(e) => {
+          updateCanonical({ requiresManualAdminApproval: e.target.checked });
+        }}
         data-testid="denali-basics-manual-admin-approval"
       />
     </div>

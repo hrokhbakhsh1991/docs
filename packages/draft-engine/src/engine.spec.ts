@@ -299,25 +299,21 @@ test("MERGE conflict merges data and schedules another sync", async () => {
   assert.equal(state.version, 3);
 });
 
-test("REFETCH_REAPPLY conflict re-fetches and re-applies local without ERROR", async () => {
+test("REFETCH_REAPPLY conflict re-fetches, merges local, hydrates quietly without retry push", async () => {
   let fetchCalls = 0;
   let pushCount = 0;
   const engine = new DraftEngine<TestData>({
     id: "test",
     conflictStrategy: "REFETCH_REAPPLY",
     debounceMs: 5,
+    merge: (local, server) => ({ value: `${local.value}+${server.value}` }),
     onFetch: async () => {
       fetchCalls += 1;
       return payload({ value: "fresh-server" }, 5, 5000);
     },
-    onPush: async (p) => {
+    onPush: async () => {
       pushCount += 1;
-      if (pushCount === 1) {
-        throw new DraftConflictError(payload({ value: "stale-server" }, 4, 4000));
-      }
-      assert.deepEqual(p.data, { value: "local" });
-      assert.equal(p.version, 5);
-      return { ...p, version: 6 };
+      throw new DraftConflictError(payload({ value: "stale-server" }, 4, 4000));
     },
   });
 
@@ -326,12 +322,40 @@ test("REFETCH_REAPPLY conflict re-fetches and re-applies local without ERROR", a
   await sleep(60);
 
   assert.ok(fetchCalls >= 1);
-  assert.equal(pushCount, 2);
+  assert.equal(pushCount, 1);
   const state = engine.getState();
   assert.equal(state.status, "IDLE");
   assert.equal(state.error, undefined);
-  assert.deepEqual(state.data, { value: "local" });
-  assert.equal(state.version, 6);
+  assert.deepEqual(state.data, { value: "local+fresh-server" });
+  assert.equal(state.version, 5);
+  assert.equal(state.lastModified, 5000);
+});
+
+test("setDraftData remote with version updates version without onPush", async () => {
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 20,
+    onFetch: async () => payload({ value: "initial" }, 1, 100),
+    onPush: async (p) => {
+      pushCount += 1;
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  assert.equal(engine.getState().status, "IDLE");
+
+  engine.setDraftData({ value: "quiet" }, { source: "remote", version: 9, lastModified: 9000 });
+  await sleep(40);
+
+  assert.equal(pushCount, 0);
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.deepEqual(state.data, { value: "quiet" });
+  assert.equal(state.version, 9);
+  assert.equal(state.lastModified, 9000);
 });
 
 test("MERGE without merge fn sets ERROR", async () => {
@@ -425,6 +449,59 @@ test("retry re-pushes after push error", async () => {
   await engine.retry();
   assert.equal(engine.getState().status, "IDLE");
   assert.equal(pushAttempts, 2);
+});
+
+test("setDraftData with remote source hydrates without DIRTY or onPush", async () => {
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 20,
+    onFetch: async () => payload({ value: "initial" }, 1, 100),
+    onPush: async (p) => {
+      pushCount += 1;
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  assert.equal(engine.getState().status, "IDLE");
+
+  engine.setDraftData({ value: "quiet" }, { source: "remote" });
+  await sleep(40);
+
+  assert.equal(pushCount, 0);
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.deepEqual(state.data, { value: "quiet" });
+});
+
+test("initialize and applyDraft hydrate remotely without scheduling push", async () => {
+  let pushCount = 0;
+  const fetched = payload({ value: "server" }, 9, 9000);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 20,
+    onFetch: async () => fetched,
+    onPush: async (p) => {
+      pushCount += 1;
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  await sleep(40);
+  assert.equal(pushCount, 0);
+  assert.equal(engine.getState().status, "DRAFT_AVAILABLE");
+
+  engine.applyDraft();
+  await sleep(40);
+  assert.equal(pushCount, 0);
+  assert.equal(engine.getState().status, "IDLE");
+  assert.deepEqual(engine.getState().data, { value: "server" });
+  assert.equal(engine.getState().version, 9);
 });
 
 test("getState returns readonly snapshot", async () => {
