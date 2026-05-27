@@ -166,7 +166,8 @@ export class DraftEngineService {
   async deleteForMember(tenantId: string, draftKey: string): Promise<void> {
     const { workspaceId, userId } = this.resolveScopeOrThrow(tenantId);
     const result = await this.draftsRepository.delete({ workspaceId, userId, draftKey });
-    if (result.affected === 0) {
+    // Treat missing `affected` like zero — otherwise 204 is returned without deleting (TypeORM/driver edge case).
+    if ((result.affected ?? 0) === 0) {
       throw new NotFoundException({
         error: {
           code: "DRAFT_NOT_FOUND",

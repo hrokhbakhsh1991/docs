@@ -1,6 +1,16 @@
 import { DraftConflictError, type DraftSyncPayload } from "@repo/draft-engine";
 
+/** Reject missing scope before `encodeURIComponent(undefined)` becomes the literal path segment `"undefined"`. */
+function assertDraftScope(workspaceId: string, draftKey: string): void {
+  const ws = workspaceId.trim();
+  const key = draftKey.trim();
+  if (!ws || ws === "undefined" || !key || key === "undefined") {
+    throw new Error("draft-engine: workspaceId and draftKey must be non-empty strings");
+  }
+}
+
 function draftPath(workspaceId: string, draftKey: string): string {
+  assertDraftScope(workspaceId, draftKey);
   return `/api/workspaces/${encodeURIComponent(workspaceId)}/draft-engine/${encodeURIComponent(draftKey)}`;
 }
 

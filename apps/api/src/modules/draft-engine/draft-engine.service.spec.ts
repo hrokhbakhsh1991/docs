@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { NotFoundException } from "@nestjs/common";
+
 import { DraftConflictException } from "./draft-conflict.exception";
 import { DraftEngineService } from "./draft-engine.service";
 import type { DraftSnapshotEntity } from "./entities/draft-snapshot.entity";
@@ -25,6 +27,7 @@ function createService(input: {
   existing: DraftSnapshotEntity | null;
   saved?: DraftSnapshotEntity;
   updateAffected?: number;
+  deleteResult?: { affected?: number };
 }): DraftEngineService {
   const findOne = async () => input.existing;
   const save = async (entity: DraftSnapshotEntity) => input.saved ?? entity;
@@ -41,7 +44,7 @@ function createService(input: {
     manager: {
       transaction: async <T>(fn: (em: typeof manager) => Promise<T>) => fn(manager),
     },
-    delete: async () => ({ affected: 1 }),
+    delete: async () => input.deleteResult ?? { affected: 1 },
     createQueryBuilder: () => ({
       where: () => ({
         andWhere: () => ({
@@ -116,5 +119,28 @@ test("upsertForMember throws DraftConflictException when version is stale", asyn
       assert.deepEqual(response.error.details.server.data, { value: "server" });
       return true;
     },
+  );
+});
+
+test("deleteForMember succeeds when a row is deleted", async () => {
+  const service = createService({ existing: null, deleteResult: { affected: 1 } });
+  await service.deleteForMember("ws-1", "denali-create");
+});
+
+test("deleteForMember throws when delete affects zero rows", async () => {
+  const service = createService({ existing: null, deleteResult: { affected: 0 } });
+
+  await assert.rejects(
+    () => service.deleteForMember("ws-1", "denali-create"),
+    (err: unknown) => err instanceof NotFoundException,
+  );
+});
+
+test("deleteForMember throws when delete result has no affected count", async () => {
+  const service = createService({ existing: null, deleteResult: {} });
+
+  await assert.rejects(
+    () => service.deleteForMember("ws-1", "denali-create"),
+    (err: unknown) => err instanceof NotFoundException,
   );
 });
