@@ -68,11 +68,15 @@ test("getDenaliWizardVisibleSteps keeps denali_photos when overlay hides photos 
   const form = buildDenaliTourCreateTestValues();
   form.basicInfo.tourType = "mountain_day";
   const model = mergedRuleSet.mountain.single_day!;
-  assert.equal(isDenaliStepVisibleInModel(model, "denali_photos"), false);
+  assert.equal(
+    isDenaliStepVisibleInModel(model, "denali_photos"),
+    true,
+    "content fields on denali_photos keep the step visible even when gallery is hidden",
+  );
   const steps = getDenaliWizardVisibleSteps(form, mergedRuleSet);
   assert.ok(
     steps.includes("denali_photos"),
-    `photos step is structural; rail=${steps.join(",")}`,
+    `photos step remains on rail; rail=${steps.join(",")}`,
   );
 });
 

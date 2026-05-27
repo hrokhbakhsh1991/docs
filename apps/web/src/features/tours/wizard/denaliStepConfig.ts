@@ -1,14 +1,16 @@
 /**
- * Denali MVP create wizard — fixed 5-step rail (no dynamic skip, no profile branching).
+ * Denali MVP create wizard — 5 content steps + review (phase 3 logical layout).
+ *
+ * Rail order: basic → photos (content + gallery) → program (itinerary) → logistics → pricing → review.
  *
  * @see docs/architecture/denali-canonical-domain-model.md
  */
 export const denaliWizardSteps = [
   "denali_basic",
+  "denali_photos",
   "denali_program",
   "denali_logistics",
   "denali_pricing",
-  "denali_photos",
   "review",
 ] as const;
 

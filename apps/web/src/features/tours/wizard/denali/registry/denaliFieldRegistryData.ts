@@ -258,7 +258,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "program.themeIds",
-    stepId: "denali_program",
+    stepId: "denali_photos",
     rhfPath: "programNature.themeIds",
     zodPath: "programNature.themeIds",
     zodKind: "stringArrayDefault",
@@ -267,7 +267,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "program.shortDescription",
-    stepId: "denali_program",
+    stepId: "denali_photos",
     rhfPath: "programNature.shortDescription",
     zodPath: "programNature.shortDescription",
     zodKind: "stringOptional",
@@ -276,7 +276,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "program.longDescription",
-    stepId: "denali_program",
+    stepId: "denali_photos",
     rhfPath: "programNature.longDescription",
     zodPath: "programNature.longDescription",
     zodKind: "stringOptional",

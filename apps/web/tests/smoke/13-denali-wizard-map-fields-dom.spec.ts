@@ -24,17 +24,22 @@ async function requireDenaliWizard(page: Page): Promise<Locator> {
 }
 
 test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
-  test("mountain single-day program step exposes altitude testid", async ({ page }) => {
+  test("mountain single-day basic step exposes peak height; program hides daily itinerary", async ({
+    page,
+  }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res!.status()).toBeLessThan(500);
 
     const w = await requireDenaliWizard(page);
     await setNativeSelectValue(w.getByTestId("denali-basics-category"), "mountain");
     await setNativeSelectValue(w.getByTestId("denali-basics-duration"), "single_day");
-    await page.getByRole("button", { name: /بعدی|next/i }).click();
+    await expect(w.getByTestId("denali-basic-peak-height")).toBeVisible({ timeout: 10_000 });
 
+    await page.getByRole("button", { name: /بعدی|next/i }).click();
+    await expect(w.getByTestId("denali-step-photos")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("button", { name: /بعدی|next/i }).click();
     await expect(w.getByTestId("denali-step-program")).toBeVisible({ timeout: 15_000 });
-    await expect(w.getByTestId("denali-program-altitude")).toBeVisible({ timeout: 10_000 });
     await expect(w.getByTestId("denali-daily-itinerary")).toBeHidden();
   });
 
@@ -46,11 +51,13 @@ test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
     await setNativeSelectValue(w.getByTestId("denali-basics-category"), "mountain");
     await setNativeSelectValue(w.getByTestId("denali-basics-duration"), "multi_day");
     await page.getByRole("button", { name: /بعدی|next/i }).click();
+    await expect(w.getByTestId("denali-step-photos")).toBeVisible({ timeout: 15_000 });
 
+    await page.getByRole("button", { name: /بعدی|next/i }).click();
     await expect(w.getByTestId("denali-step-program")).toBeVisible({ timeout: 15_000 });
     await expect(w.getByTestId("denali-daily-itinerary")).toBeVisible({ timeout: 15_000 });
     await expect(w.locator('[data-testid^="denali-itinerary-day-"]').first()).toBeVisible();
-    await expect(w.getByTestId("denali-program-altitude")).toBeVisible();
+    await expect(w.getByTestId("denali-itinerary-elevation-gain")).toBeVisible();
   });
 
   test("logistics step mounts gear section without crashing", async ({ page }) => {
@@ -59,7 +66,7 @@ test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
 
     await requireDenaliWizard(page);
     const next = page.getByRole("button", { name: /بعدی|next/i });
-    for (let i = 0; i < 2; i += 1) {
+    for (let i = 0; i < 3; i += 1) {
       await next.click();
     }
 

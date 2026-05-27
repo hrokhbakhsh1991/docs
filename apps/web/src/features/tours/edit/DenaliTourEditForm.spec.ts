@@ -202,10 +202,10 @@ function scopedRuleModelFieldsForStep(
 test("flat edit form steps match wizard rail minus review", () => {
   assert.deepEqual(DENALI_EDIT_FORM_STEPS, [
     "denali_basic",
+    "denali_photos",
     "denali_program",
     "denali_logistics",
     "denali_pricing",
-    "denali_photos",
   ]);
 });
 
@@ -245,11 +245,12 @@ test("rule-engine: event single_day program outdoor fields hidden in edit and wi
     },
   });
 
-  const stepId = "denali_program" as const;
-  assertEditMatchesWizardVisibility(stepId, "programNature.difficultyLevel", form);
-  assert.equal(editFormFieldVisible(stepId, "programNature.difficultyLevel", form), false);
-  assertEditMatchesWizardVisibility(stepId, "programNature.themeIds", form);
-  assert.equal(editFormFieldVisible(stepId, "programNature.themeIds", form), true);
+  const programStepId = "denali_program" as const;
+  const photosStepId = "denali_photos" as const;
+  assertEditMatchesWizardVisibility(programStepId, "programNature.difficultyLevel", form);
+  assert.equal(editFormFieldVisible(programStepId, "programNature.difficultyLevel", form), false);
+  assertEditMatchesWizardVisibility(photosStepId, "programNature.themeIds", form);
+  assert.equal(editFormFieldVisible(photosStepId, "programNature.themeIds", form), true);
 });
 
 test("transport bus + allowPersonalCar → adminCapacityApproval visible in edit and wizard", () => {

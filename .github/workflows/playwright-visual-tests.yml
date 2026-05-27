@@ -52,6 +52,13 @@ jobs:
           CI: true
         run: pnpm exec playwright test tests/smoke --reporter=list
 
+      - name: Run Playwright Denali UX e2e tests
+        working-directory: apps/web
+        env:
+          CI: true
+          PW_BASE_URL: http://denali.localhost:3000
+        run: pnpm exec playwright test tests/e2e --reporter=list
+
       - name: Run Playwright visual regression tests
         working-directory: apps/web
         env:

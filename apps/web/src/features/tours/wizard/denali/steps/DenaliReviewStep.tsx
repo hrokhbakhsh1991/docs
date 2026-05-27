@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
@@ -24,8 +24,26 @@ import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
 import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
 import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
+import { getDenaliStepTitleFa } from "@/features/tours/wizard/denaliStepConfig";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
 import { DenaliReviewValidationSummary } from "../components/DenaliReviewValidationSummary";
+
+function ReviewSection({
+  title,
+  testId,
+  children,
+}: {
+  title: string;
+  testId: string;
+  children: ReactNode;
+}) {
+  return (
+    <section data-testid={`denali-review-section-${testId}`} style={{ display: "grid", gap: "0.5rem" }}>
+      <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>{title}</h3>
+      <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>{children}</dl>
+    </section>
+  );
+}
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
   if (!value?.trim()) return null;
@@ -166,6 +184,7 @@ export function DenaliReviewStep() {
     "participants",
   );
   const policies = useDenaliCanonicalValue<DenaliCanonicalTourModel["policies"]>("policies");
+  const photos = useDenaliCanonicalValue<DenaliCanonicalTourModel["photos"]>("photos");
   const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
     useDenaliStepFieldRules("review");
 
@@ -339,7 +358,7 @@ export function DenaliReviewStep() {
         data-testid="denali-review-publish-status"
       />
 
-      <dl style={{ margin: 0, display: "grid", gap: "0.5rem" }}>
+      <ReviewSection title={getDenaliStepTitleFa("denali_basic")} testId="basic">
         <ReviewRow label={t("basic.title")} value={title} />
         <ReviewRow label={t("basic.categoryLabel")} value={categoryLabel} />
         <ReviewRow label={t("basic.durationLabel")} value={durationLabel} />
@@ -383,8 +402,27 @@ export function DenaliReviewStep() {
           value={approximateReturnTime}
         />
         <ReviewRow label={t("review.capacity")} value={capacitySummary} />
+        <ReviewRow
+          label={t("basic.requiresManualAdminApproval")}
+          value={requiresManualAdminApproval === true ? t("review.yes") : t("review.no")}
+        />
+      </ReviewSection>
+
+      <ReviewSection title={getDenaliStepTitleFa("denali_photos")} testId="photos">
         <ReviewRow label={t("program.themesLabel")} value={themeLabels} />
         <ReviewRow label={t("program.shortDescription")} value={program.shortDescription} />
+        <ReviewRow label={t("program.longDescription")} value={program.longDescription} />
+        <ReviewRow
+          label="گالری عکس"
+          value={
+            (photos?.length ?? 0) > 0
+              ? `${photos!.length} عکس`
+              : undefined
+          }
+        />
+      </ReviewSection>
+
+      <ReviewSection title={getDenaliStepTitleFa("denali_program")} testId="program">
         {showOutdoorProgram ? (
           <>
             <ReviewRow
@@ -478,6 +516,9 @@ export function DenaliReviewStep() {
             </dd>
           </div>
         ) : null}
+      </ReviewSection>
+
+      <ReviewSection title={getDenaliStepTitleFa("denali_logistics")} testId="logistics">
         <ReviewRow
           label={t("transport.transportModeLabel")}
           value={t(`transport.transportMode.${transport.mode}`)}
@@ -500,30 +541,6 @@ export function DenaliReviewStep() {
             value={String(transport.dongAmount ?? "")}
           />
         ) : null}
-        <ReviewRow
-          label={t("pricing.requiresPayment")}
-          value={pricing.requiresPayment === true ? t("review.yes") : t("review.no")}
-        />
-        {pricing.requiresPayment === true ? (
-          <ReviewRow
-            label={t("pricing.basePricePerPerson")}
-            value={
-              pricing.basePricePerPerson != null
-                ? String(pricing.basePricePerPerson)
-                : undefined
-            }
-          />
-        ) : null}
-        <ReviewRow
-          label={t("basic.requiresManualAdminApproval")}
-          value={
-            requiresManualAdminApproval === true ? t("review.yes") : t("review.no")
-          }
-        />
-        <ReviewRow
-          label={t("pricing.includesTourInsurance")}
-          value={pricing.includesTourInsurance === true ? t("review.yes") : t("review.no")}
-        />
         {gatheringPointsForReview.map((station, index) => {
           const rowKey = `gathering-${station.id?.trim() || "row"}-${index}`;
           const label = station.title.trim()
@@ -541,6 +558,33 @@ export function DenaliReviewStep() {
         <ReviewRow
           label={t("basic.locationZones.startPoint")}
           value={denaliLocationAddressText(startPoint)}
+        />
+        <GearReviewLists
+          requiredNames={requiredGearNames}
+          optionalNames={optionalGearNames}
+          requiredTitle={t("gear.reviewRequiredTitle")}
+          optionalTitle={t("gear.reviewOptionalTitle")}
+        />
+      </ReviewSection>
+
+      <ReviewSection title={getDenaliStepTitleFa("denali_pricing")} testId="pricing">
+        <ReviewRow
+          label={t("pricing.requiresPayment")}
+          value={pricing.requiresPayment === true ? t("review.yes") : t("review.no")}
+        />
+        {pricing.requiresPayment === true ? (
+          <ReviewRow
+            label={t("pricing.basePricePerPerson")}
+            value={
+              pricing.basePricePerPerson != null
+                ? String(pricing.basePricePerPerson)
+                : undefined
+            }
+          />
+        ) : null}
+        <ReviewRow
+          label={t("pricing.includesTourInsurance")}
+          value={pricing.includesTourInsurance === true ? t("review.yes") : t("review.no")}
         />
         {participants.minRequiredPeaks != null ? (
           <ReviewRow
@@ -568,13 +612,7 @@ export function DenaliReviewStep() {
             value={`${policies.cancellationPenaltyPercentage}%`}
           />
         ) : null}
-        <GearReviewLists
-          requiredNames={requiredGearNames}
-          optionalNames={optionalGearNames}
-          requiredTitle={t("gear.reviewRequiredTitle")}
-          optionalTitle={t("gear.reviewOptionalTitle")}
-        />
-      </dl>
+      </ReviewSection>
 
       <DenaliReviewParticipantsDisplay form={formForUi} />
     </div>

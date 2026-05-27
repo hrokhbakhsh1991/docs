@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable } from "@nestjs/common";
 
 import { authRequiredError } from "../../../common/errors/error-response-builders";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -6,7 +6,10 @@ import { toDraftScope, type DraftScope } from "@repo/shared-contracts";
 
 @Injectable()
 export class DraftScopeResolver {
-  constructor(private readonly requestContext: RequestContextService) {}
+  constructor(
+    @Inject(RequestContextService)
+    private readonly requestContext: RequestContextService,
+  ) {}
 
   resolveOrThrow(paramTenantId: string, draftKey: string): DraftScope {
     const jwtTenantId = this.requestContext.resolveEffectiveTenantId()?.trim().toLowerCase();

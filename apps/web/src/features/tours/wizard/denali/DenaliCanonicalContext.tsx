@@ -36,6 +36,7 @@ import {
   patchDenaliCanonicalBasics,
   readDenaliCanonicalBasics,
 } from "./denaliCanonicalBasicsControl";
+import { purgeGhostFields } from "./DenaliWizardSyncContext";
 import { createDenaliWizardUploadTour } from "./createDenaliWizardUploadTour";
 import {
   collectDenaliUnpersistedPhotoBlobIssues,
@@ -227,9 +228,16 @@ export function DenaliCanonicalProvider({
         category: mergedBasics.category as DenaliCanonicalTourModel["category"],
         duration: basicsDurationToCanonicalDuration(mergedBasics.duration),
       });
-      commitCanonical(merged, mergedBasics);
+      const uiOptions = workspaceFormProfile ? { workspaceFormProfile } : undefined;
+      const purged = purgeGhostFields(merged, {
+        newKind: nextKind,
+        existingForm: getValues(),
+        ruleSet,
+        uiOptions,
+      });
+      commitCanonical(purged, mergedBasics);
     },
-    [canonicalModel, commitCanonical, getValues],
+    [canonicalModel, commitCanonical, getValues, ruleSet, workspaceFormProfile],
   );
 
   const ensureUploadTourId = useCallback(async (): Promise<string> => {

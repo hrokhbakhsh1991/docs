@@ -10,6 +10,7 @@ import { uploadTourPhotos } from "@/lib/services/tours.service";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { DenaliProgramContentSection } from "./DenaliProgramContentSection";
 
 const STEP = "denali_photos" as const;
 const ACCEPT = "image/jpeg, image/png, image/webp";
@@ -102,6 +103,8 @@ export function DenaliPhotosStep({ tourId: tourIdProp }: DenaliPhotosStepProps =
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-photos">
+      <DenaliProgramContentSection />
+
       {photoPersistenceWarning ? (
         <Alert variant="warning" role="status" data-testid="denali-photos-persistence-warning">
           {photoPersistenceWarning}

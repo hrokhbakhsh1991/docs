@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpException } from "@nestjs/common";
+import { Injectable, Logger, HttpException, Inject } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   CURRENT_DRAFT_SCHEMA_VERSION,
@@ -32,12 +32,17 @@ export class DraftEngineFacade {
   private static readonly DENALI_CREATE_DRAFT_KEY = "denali-create";
 
   constructor(
+    @Inject(PostgresDraftSnapshotStore)
     private readonly store: PostgresDraftSnapshotStore,
+    @Inject(DraftScopeResolver)
     private readonly scopeResolver: DraftScopeResolver,
+    @Inject(DraftMigratorRegistry)
     private readonly migratorRegistry: DraftMigratorRegistry,
+    @Inject(AuditLogService)
     private readonly auditLog: AuditLogService,
     @InjectRepository(DraftEventEntity)
     private readonly draftEventsRepository: Repository<DraftEventEntity>,
+    @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
   ) {}
 

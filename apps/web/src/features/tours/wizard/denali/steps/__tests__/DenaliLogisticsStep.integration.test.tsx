@@ -11,13 +11,13 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import {
   DENALI_CUSTOM_SERVICE_LABELS_PATH,
   DenaliCustomServicesField,
-} from "../components/DenaliCustomServicesField";
+} from "../../components/DenaliCustomServicesField";
 
 jest.mock("@/hooks/use-tenant-wizard-template", () => ({
   useTenantWizardTemplate: () => ({ data: { baseProfile: "denali_pilot" } }),
 }));
 
-jest.mock("../components/DenaliCustomServicesEditor", () => ({
+jest.mock("../../components/DenaliCustomServicesEditor", () => ({
   DenaliCustomServicesEditor: ({
     labels,
     onAppend,
@@ -82,7 +82,7 @@ function StepNavigationHarness() {
   );
 }
 
-describe("DenaliCustomServicesField", () => {
+describe("DenaliLogisticsStep custom services", () => {
   test("persists labels in form state when logistics step unmounts", () => {
     render(<StepNavigationHarness />);
 

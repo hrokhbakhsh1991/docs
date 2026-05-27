@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
+import { safeDenaliFormToCanonical } from "../denaliCanonicalFormAdapter";
+import { purgeGhostFields } from "../DenaliWizardSyncContext";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./denaliInvariantEngine";
 
 
@@ -57,5 +60,40 @@ test("ghost state: pricing clears basePricePerPerson when requiresPayment off", 
     safe.pricingPayment.basePricePerPerson,
     undefined,
     "per-person price should clear when tour is not paid",
+  );
+});
+
+test("ghost state: purgeGhostFields removes previous-kind canonical keys after kind switch", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.programNature.difficultyLevel = 8;
+  form.programNature.hikingHoursApprox = 10;
+  form.participantRequirements.minimumAge = 21;
+
+  const canonicalBefore = safeDenaliFormToCanonical(form);
+  assert.equal(canonicalBefore.program.difficultyLevel, 8);
+  assert.equal(canonicalBefore.program.hikingHoursApprox, 10);
+  assert.equal(canonicalBefore.participants.minimumAge, 21);
+
+  const canonicalAfter = purgeGhostFields(canonicalBefore, {
+    newKind: "event_reading",
+    existingForm: form,
+    ruleSet: denaliRuleSet,
+  });
+
+  assert.equal(
+    canonicalAfter.program.difficultyLevel,
+    undefined,
+    "difficulty must be purged from canonical model on event switch",
+  );
+  assert.equal(
+    canonicalAfter.program.hikingHoursApprox,
+    undefined,
+    "hiking hours must be purged from canonical model on event switch",
+  );
+  assert.equal(
+    canonicalAfter.participants.minimumAge,
+    undefined,
+    "minimum age must be purged from canonical model on event switch",
   );
 });

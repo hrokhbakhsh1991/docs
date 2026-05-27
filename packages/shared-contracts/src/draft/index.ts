@@ -11,6 +11,7 @@ export {
 export {
   createDefaultDraftMigratorRegistry,
   DENALI_CREATE_DRAFT_KEY,
+  DENALI_WIZARD_RAIL_LAYOUT_VERSION,
   DraftMigratorRegistry,
   migrateDenaliCreateDraftData,
   type DraftMigrationResult,

@@ -4,6 +4,7 @@ import test from "node:test";
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 
 import { parseDenaliCanonicalFromWizardForm } from "./denaliSubmitValidation";
+import { submitValidDenaliWizardDefaults } from "./denaliSubmitTestHelpers";
 
 test("parseDenaliCanonicalFromWizardForm accepts default mountain_day form", () => {
   const canonical = parseDenaliCanonicalFromWizardForm(buildDenaliTourCreateTestValues());
@@ -21,4 +22,13 @@ test("parseDenaliCanonicalFromWizardForm throws on invalid title", () => {
       return true;
     },
   );
+});
+
+test("submitValidDenaliWizardDefaults is step-order agnostic and includes photos-step content", () => {
+  const form = submitValidDenaliWizardDefaults();
+  assert.ok(
+    (form.programNature.shortDescription ?? "").trim().length > 0,
+    "default submit fixture must include shortDescription (denali_photos required field)",
+  );
+  assert.equal(parseDenaliCanonicalFromWizardForm(form).program?.shortDescription, form.programNature.shortDescription);
 });

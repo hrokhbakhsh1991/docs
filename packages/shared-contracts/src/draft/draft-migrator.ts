@@ -16,6 +16,44 @@ export type DraftMigrator<TData = Record<string, unknown>> = (
 
 export const DENALI_CREATE_DRAFT_KEY = "denali-create";
 
+/** Pre–phase 3 Denali create wizard rail (photos last). */
+const LEGACY_DENALI_WIZARD_RAIL = [
+  "denali_basic",
+  "denali_program",
+  "denali_logistics",
+  "denali_pricing",
+  "denali_photos",
+  "review",
+] as const;
+
+/** Phase 3 Denali create wizard rail (content + gallery on step 2). */
+const CURRENT_DENALI_WIZARD_RAIL = [
+  "denali_basic",
+  "denali_photos",
+  "denali_program",
+  "denali_logistics",
+  "denali_pricing",
+  "review",
+] as const;
+
+export const DENALI_WIZARD_RAIL_LAYOUT_VERSION = 2;
+
+function migrateDenaliDraftStepIndex(
+  storedIndex: number,
+  railLayoutVersion: number | undefined,
+): number {
+  const safeIndex = Number.isFinite(storedIndex) ? Math.floor(storedIndex) : 0;
+
+  if ((railLayoutVersion ?? 1) >= DENALI_WIZARD_RAIL_LAYOUT_VERSION) {
+    return Math.max(0, Math.min(safeIndex, CURRENT_DENALI_WIZARD_RAIL.length - 1));
+  }
+
+  const legacyIndex = Math.max(0, Math.min(safeIndex, LEGACY_DENALI_WIZARD_RAIL.length - 1));
+  const stepId = LEGACY_DENALI_WIZARD_RAIL[legacyIndex]!;
+  const mapped = CURRENT_DENALI_WIZARD_RAIL.indexOf(stepId);
+  return mapped >= 0 ? mapped : 0;
+}
+
 /** Minimal safe Denali wizard draft blob when legacy rows are incomplete. */
 export const migrateDenaliCreateDraftData: DraftMigrator = (
   data: unknown,
@@ -32,13 +70,22 @@ export const migrateDenaliCreateDraftData: DraftMigrator = (
       : {};
 
   const stepRaw = record.currentStepIndex;
-  const currentStepIndex =
-    typeof stepRaw === "number" && Number.isFinite(stepRaw) && stepRaw >= 0
-      ? Math.floor(stepRaw)
-      : 0;
+  const railLayoutRaw = record.railLayoutVersion;
+  const railLayoutVersion =
+    typeof railLayoutRaw === "number" && Number.isFinite(railLayoutRaw)
+      ? Math.floor(railLayoutRaw)
+      : 1;
+  const currentStepIndex = migrateDenaliDraftStepIndex(
+    typeof stepRaw === "number" && Number.isFinite(stepRaw) ? stepRaw : 0,
+    railLayoutVersion,
+  );
 
   return {
-    data: { form, currentStepIndex } as Record<string, unknown>,
+    data: {
+      form,
+      currentStepIndex,
+      railLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+    } as Record<string, unknown>,
     toSchemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
   };
 };

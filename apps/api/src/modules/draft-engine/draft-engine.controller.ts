@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Inject,
   Logger,
   Param,
   Patch,
@@ -37,7 +38,9 @@ export class DraftEngineController {
   private readonly logger = new Logger(DraftEngineController.name);
 
   constructor(
+    @Inject(DraftEngineFacade)
     private readonly draftEngineFacade: DraftEngineFacade,
+    @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
   ) {}
 

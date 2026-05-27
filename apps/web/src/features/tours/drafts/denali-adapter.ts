@@ -4,6 +4,11 @@ import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/l
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
+import {
+  DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+  sanitizeDenaliWizardDraftSnapshot,
+} from "./sanitizeDenaliWizardDraftSnapshot";
+
 export type { DraftSetDataOptions };
 
 /**
@@ -16,6 +21,8 @@ export const DENALI_CREATE_DRAFT_KEY = "denali-create";
 export type DenaliWizardDraftSnapshot = {
   form: DenaliCreateTourWizardForm;
   currentStepIndex: number;
+  /** Wizard rail layout generation; {@link DENALI_WIZARD_RAIL_LAYOUT_VERSION} after phase 3 relocation. */
+  railLayoutVersion?: number;
 };
 
 function readStringPath(record: Record<string, unknown>, path: readonly string[]): string {
@@ -72,13 +79,18 @@ export function createDenaliDraftAdapter(input: {
     autoApply: false,
     conflictStrategy: "REFETCH_REAPPLY",
     debounceMs: 500,
-    merge: (local, server) => ({
-      currentStepIndex: local.currentStepIndex,
-      form: normalizeDenaliWizardForm({
-        ...server.form,
-        ...local.form,
-      } as DenaliCreateTourWizardForm),
-    }),
+    merge: (local, server) =>
+      sanitizeDenaliWizardDraftSnapshot({
+        currentStepIndex: local.currentStepIndex,
+        railLayoutVersion: Math.max(
+          local.railLayoutVersion ?? 1,
+          server.railLayoutVersion ?? 1,
+        ),
+        form: normalizeDenaliWizardForm({
+          ...server.form,
+          ...local.form,
+        } as DenaliCreateTourWizardForm),
+      }),
     onFetch: async () => {
       if (!workspaceId) {
         return null;
@@ -91,10 +103,11 @@ export function createDenaliDraftAdapter(input: {
         return null;
       }
       return {
-        data: {
+        data: sanitizeDenaliWizardDraftSnapshot({
           form: normalizeDenaliWizardForm(remote.data.form),
           currentStepIndex: remote.data.currentStepIndex,
-        },
+          railLayoutVersion: remote.data.railLayoutVersion,
+        }),
         version: remote.version,
         schemaVersion: remote.schemaVersion,
         lastModified: remote.lastModified,
@@ -104,10 +117,11 @@ export function createDenaliDraftAdapter(input: {
       if (!workspaceId) {
         throw new Error("Cannot push Denali draft without workspace scope");
       }
-      const snapshot: DenaliWizardDraftSnapshot = {
+      const snapshot: DenaliWizardDraftSnapshot = sanitizeDenaliWizardDraftSnapshot({
         form: normalizeDenaliWizardForm(payload.data.form),
         currentStepIndex: input.getCurrentStepIndex(),
-      };
+        railLayoutVersion: payload.data.railLayoutVersion ?? DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+      });
       const result = await patchDraftSnapshot<DenaliWizardDraftSnapshot>(
         workspaceId,
         DENALI_CREATE_DRAFT_KEY,
@@ -119,10 +133,11 @@ export function createDenaliDraftAdapter(input: {
         },
       );
       return {
-        data: {
+        data: sanitizeDenaliWizardDraftSnapshot({
           form: normalizeDenaliWizardForm(result.data.form),
           currentStepIndex: result.data.currentStepIndex,
-        },
+          railLayoutVersion: result.data.railLayoutVersion,
+        }),
         version: result.version,
         schemaVersion: result.schemaVersion,
         lastModified: result.lastModified,

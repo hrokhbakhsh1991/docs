@@ -20,13 +20,22 @@ test("event + single_day: basic step UI metadata", () => {
   assert.ok(!basic!.visibleFields.includes("endDateTime"));
 });
 
-test("event + single_day: program step hides outdoor fields", () => {
+test("event + single_day: photos step exposes relocated content fields", () => {
+  const photosVisible = visibleFields("denali_photos", "event", "single_day");
+  const photosRequired = requiredFields("denali_photos", "event", "single_day");
+
+  assert.ok(photosVisible.includes("program.themeIds"));
+  assert.ok(photosVisible.includes("program.shortDescription"));
+  assert.ok(photosRequired.includes("program.shortDescription"));
+});
+
+test("event + single_day: program step hides outdoor fields and content", () => {
   const programVisible = visibleFields("denali_program", "event", "single_day");
   const programHidden = hiddenFields("denali_program", "event", "single_day");
   const programRequired = requiredFields("denali_program", "event", "single_day");
 
-  assert.ok(programVisible.includes("program.themeIds"));
-  assert.ok(programVisible.includes("program.shortDescription"));
+  assert.ok(!programVisible.includes("program.themeIds"));
+  assert.ok(!programVisible.includes("program.shortDescription"));
   assert.ok(!programVisible.includes("program.difficultyLevel"));
   assert.ok(programHidden.includes("program.difficultyLevel"));
   assert.ok(programHidden.includes("program.hikingHoursApprox"));

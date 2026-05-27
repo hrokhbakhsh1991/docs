@@ -19,25 +19,27 @@ import {
   DenaliPricingStep,
   DenaliProgramNatureStep,
 } from "@/features/tours/wizard/denali";
+import { DenaliCanonicalProvider } from "@/features/tours/wizard/denali/DenaliCanonicalContext";
 import { DenaliPhotosStep } from "@/features/tours/wizard/denali/steps/DenaliPhotosStep";
 import {
   getDenaliStepTitleFa,
+  getDenaliWizardSteps,
   type DenaliCreateWizardStepId,
 } from "@/features/tours/wizard/denaliStepConfig";
+import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
+import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
 import styles from "./DenaliTourEditForm.module.css";
 
 type EditStepId = Exclude<DenaliCreateWizardStepId, "review">;
-const EDIT_STEPS: readonly EditStepId[] = [
-  "denali_basic",
-  "denali_program",
-  "denali_logistics",
-  "denali_pricing",
-  "denali_photos",
-];
 
-function DenaliStepBody({ stepId }: { stepId: EditStepId }) {
+/** Same content-step order as create wizard rail (`getDenaliWizardSteps`, minus review). */
+const EDIT_STEPS: readonly EditStepId[] = getDenaliWizardSteps().filter(
+  (step): step is EditStepId => step !== "review",
+);
+
+function DenaliStepBody({ stepId, tourId }: { stepId: EditStepId; tourId: string }) {
   let body: ReactNode = null;
   switch (stepId) {
     case "denali_basic":
@@ -53,7 +55,7 @@ function DenaliStepBody({ stepId }: { stepId: EditStepId }) {
       body = <DenaliPricingStep />;
       break;
     case "denali_photos":
-      body = <DenaliPhotosStep />;
+      body = <DenaliPhotosStep tourId={tourId} />;
       break;
   }
   return body;
@@ -95,6 +97,11 @@ export type DenaliTourEditFormProps = {
 export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: DenaliTourEditFormProps) {
   const t = useTranslations("tours.denali");
   const tForm = useTranslations("tours.form");
+  const wizardTemplateQuery = useTenantWizardTemplate();
+  const workspaceFormProfile = useMemo(
+    () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
+    [wizardTemplateQuery.data],
+  );
   const [currentStep, setCurrentStep] = useState(0);
 
   const initialValues = useMemo(() => {
@@ -113,6 +120,12 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
   return (
     <QuickAddModalProvider>
       <FormProvider {...formMethods}>
+      <DenaliCanonicalProvider
+        formMethods={formMethods}
+        wizardTemplate={wizardTemplateQuery.data ?? null}
+        uploadTourId={tour.id}
+        workspaceFormProfile={workspaceFormProfile ?? undefined}
+      >
       <Card data-testid="denali-edit-tour-form" title={t("edit.pageTitle")} description={t("edit.pageDescription")}>
         <CardBody>
           <form
@@ -133,7 +146,7 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
               ))}
             </ol>
 
-            <DenaliStepBody stepId={stepId} />
+            <DenaliStepBody stepId={stepId} tourId={tour.id} />
 
             {errorText ? (
               <Alert variant="error" title={tForm("saveFailed")}>
@@ -173,6 +186,7 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
           </form>
         </CardBody>
       </Card>
+      </DenaliCanonicalProvider>
     </FormProvider>
     </QuickAddModalProvider>
   );
