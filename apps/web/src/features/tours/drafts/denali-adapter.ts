@@ -18,6 +18,41 @@ export type DenaliWizardDraftSnapshot = {
   currentStepIndex: number;
 };
 
+function readStringPath(record: Record<string, unknown>, path: readonly string[]): string {
+  let node: unknown = record;
+  for (const segment of path) {
+    if (!node || typeof node !== "object" || Array.isArray(node)) {
+      return "";
+    }
+    node = (node as Record<string, unknown>)[segment];
+  }
+  return typeof node === "string" ? node.trim() : "";
+}
+
+function hasMeaningfulDenaliFormData(form: unknown): boolean {
+  if (!form || typeof form !== "object" || Array.isArray(form)) {
+    return false;
+  }
+  const record = form as Record<string, unknown>;
+  const keyPaths: ReadonlyArray<readonly string[]> = [
+    ["basicInfo", "title"],
+    ["basicInfo", "tourType"],
+    ["basicInfo", "destinationId"],
+    ["timing", "startDate"],
+    ["timing", "endDate"],
+  ];
+  return keyPaths.some((path) => readStringPath(record, path).length > 0);
+}
+
+export function isMeaningfulDenaliDraftSnapshot(
+  value: DenaliWizardDraftSnapshot | null | undefined,
+): boolean {
+  if (!value) {
+    return false;
+  }
+  return value.currentStepIndex > 0 || hasMeaningfulDenaliFormData(value.form);
+}
+
 function isDenaliWizardDraftSnapshot(value: unknown): value is DenaliWizardDraftSnapshot {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;

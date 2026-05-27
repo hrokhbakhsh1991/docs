@@ -55,7 +55,27 @@ import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wiza
 import { flattenDenaliFormErrors } from "@/features/tours/wizard/denali/flattenDenaliFormErrors";
 import { scrollTourFormToFirstError } from "@/components/tours/tourFormValidationSummary";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
-import { createDenaliDraftAdapter } from "@/features/tours/drafts/denali-adapter";
+import { ErrorBoundary } from "@/layouts";
+import {
+  createDenaliDraftAdapter,
+  isMeaningfulDenaliDraftSnapshot,
+} from "@/features/tours/drafts/denali-adapter";
+
+type CaptureExceptionLike = (error: unknown, context?: Record<string, unknown>) => void;
+
+function reportDenaliDraftError(
+  phase: "initialize" | "apply",
+  error: unknown,
+  context: Record<string, unknown>,
+): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error("[DenaliDraftHydrationError]", { phase, message, ...context });
+  const sentry = (globalThis as { Sentry?: { captureException?: CaptureExceptionLike } }).Sentry;
+  sentry?.captureException?.(error, {
+    tags: { feature: "denali_draft_hydration", phase },
+    extra: context,
+  });
+}
 
 function DenaliWizardStepper({
   steps,
@@ -136,6 +156,7 @@ export function DenaliCreateTourWizard() {
   const [canonicalSyncToken, setCanonicalSyncToken] = useState(0);
   const [draftInitComplete, setDraftInitComplete] = useState(false);
   const [staleDraftNoticeOpen, setStaleDraftNoticeOpen] = useState(false);
+  const [hasAppliedDraft, setHasAppliedDraft] = useState(false);
 
   const suppressDraftPushRef = useRef(false);
   const initialHydrateDoneRef = useRef(false);
@@ -194,6 +215,18 @@ export function DenaliCreateTourWizard() {
     }
     return templateBaseline;
   }, [defaultValues, draftState.data?.form, draftState.status, ruleSet, wizardTemplateQuery.data]);
+  const emptyFormBaseline = useMemo(
+    () =>
+      wizardTemplateQuery.data
+        ? (tryHydrateCanonicalTemplate(
+            wizardTemplateQuery.data.canonicalData,
+            defaultValues,
+            undefined,
+            ruleSet,
+          )?.formValues ?? defaultValues)
+        : defaultValues,
+    [defaultValues, ruleSet, wizardTemplateQuery.data],
+  );
 
   const formMethods = useForm<DenaliCreateTourWizardForm>({
     defaultValues: formDefaults,
@@ -202,6 +235,16 @@ export function DenaliCreateTourWizard() {
   });
   const { getValues, setError, clearErrors, reset, watch } = formMethods;
   const tourTypeWatch = useWatch({ control: formMethods.control, name: "basicInfo.tourType" });
+  const resetToEmptyForm = useCallback(() => {
+    suppressDraftPushRef.current = true;
+    reset(emptyFormBaseline, DENALI_QUIET_FORM_RESET_OPTIONS);
+    setCurrentStep(0);
+    setCanonicalSyncToken((token) => token + 1);
+    setHasAppliedDraft(false);
+    queueMicrotask(() => {
+      suppressDraftPushRef.current = false;
+    });
+  }, [emptyFormBaseline, reset]);
 
   useEffect(() => {
     if (!workspaceId || !wizardTemplateQuery.data) {
@@ -212,15 +255,28 @@ export function DenaliCreateTourWizard() {
     let cancelled = false;
     setDraftInitComplete(false);
     initialHydrateDoneRef.current = false;
-    void initializeDraft().then(() => {
-      if (!cancelled) {
-        setDraftInitComplete(true);
+    void (async () => {
+      try {
+        await initializeDraft();
+      } catch (error: unknown) {
+        if (!cancelled) {
+          reportDenaliDraftError("initialize", error, {
+            workspaceId: workspaceId ?? null,
+            wizardTemplateReady: Boolean(wizardTemplateQuery.data),
+          });
+          // MAP Phase 3 requirement: hydration failure should fall back to an empty form safely.
+          resetToEmptyForm();
+        }
+      } finally {
+        if (!cancelled) {
+          setDraftInitComplete(true);
+        }
       }
-    });
+    })();
     return () => {
       cancelled = true;
     };
-  }, [initializeDraft, workspaceId, wizardTemplateQuery.data]);
+  }, [initializeDraft, resetToEmptyForm, workspaceId, wizardTemplateQuery.data]);
 
   useEffect(() => {
     if (!wizardTemplateQuery.data || !draftInitComplete || initialHydrateDoneRef.current) {
@@ -368,16 +424,34 @@ export function DenaliCreateTourWizard() {
   const navLocked =
     isWizardSubmitLocked(createMutation) || draftState.status === "CONFLICT_RESOLVING";
   const isDraftSyncing = draftState.status === "SYNCING";
+  const isDraftPresent =
+    draftState.status === "DRAFT_AVAILABLE" &&
+    isMeaningfulDenaliDraftSnapshot(draftState.data ?? null);
+  const draftBannerMode: "no_draft" | "draft_available" | "draft_applied" = !isDraftPresent
+    ? "no_draft"
+    : hasAppliedDraft
+      ? "draft_applied"
+      : "draft_available";
 
   const handleRetryDraft = useCallback(() => {
     void retryDraft();
   }, [retryDraft]);
 
   const handleLoadDraft = useCallback(() => {
-    applyDraft();
-  }, [applyDraft]);
+    setHasAppliedDraft(true);
+    try {
+      applyDraft();
+    } catch (error: unknown) {
+      reportDenaliDraftError("apply", error, {
+        workspaceId: workspaceId ?? null,
+        draftStatus: draftStatusRef.current,
+      });
+      resetToEmptyForm();
+    }
+  }, [applyDraft, resetToEmptyForm, workspaceId]);
 
   const handleDiscardDraft = useCallback(() => {
+    setHasAppliedDraft(false);
     void clearDraft();
   }, [clearDraft]);
 
@@ -451,10 +525,11 @@ export function DenaliCreateTourWizard() {
             currentStepIndex={currentStep}
             setCurrentStep={setCurrentStep}
           >
+            <ErrorBoundary>
             <Card data-testid="denali-create-tour-wizard">
               <CardBody style={{ display: "grid", gap: "1rem" }}>
                 <DenaliWizardContentQualityHeader />
-                {draftState.status === "DRAFT_AVAILABLE" ? (
+                {draftBannerMode === "draft_available" ? (
                   <div
                     role="status"
                     data-testid="denali-draft-restore-banner"
@@ -490,6 +565,33 @@ export function DenaliCreateTourWizard() {
                         {t("draftRestoreDiscard")}
                       </Button>
                     </div>
+                  </div>
+                ) : null}
+                {draftBannerMode === "draft_applied" ? (
+                  <div
+                    role="status"
+                    data-testid="denali-draft-applied-banner"
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "0.5rem",
+                      padding: "0.75rem",
+                      borderRadius: "0.5rem",
+                      background: "var(--color-surface-subtle, #eef2f7)",
+                    }}
+                  >
+                    <span>{t("draftRestoreBanner")}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      data-testid="denali-draft-applied-reset"
+                      onClick={handleDiscardDraft}
+                    >
+                      {t("draftRestoreDiscard")}
+                    </Button>
                   </div>
                 ) : null}
                 <DenaliWizardStepper steps={visibleSteps} currentIndex={currentStep} />
@@ -571,6 +673,7 @@ export function DenaliCreateTourWizard() {
                 </div>
               </CardBody>
             </Card>
+            </ErrorBoundary>
           </DenaliWizardNavigationProvider>
         </DenaliWizardSyncProvider>
       </DenaliCanonicalProvider>

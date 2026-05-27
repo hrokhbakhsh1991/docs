@@ -7,6 +7,7 @@ import { LoggerModule } from "../../common/logger/logger.module";
 import { RequestContextModule } from "../../common/request-context/request-context.module";
 import { AuthModule } from "../auth/auth.module";
 import { registerTourDraftMigrators } from "./adapters/tour-draft-migrators.provider";
+import { DraftEventEntity } from "./entities/draft-event.entity";
 import { DraftSnapshotEntity } from "./entities/draft-snapshot.entity";
 import { DraftEngineController } from "./draft-engine.controller";
 import { DraftEngineFacade } from "./draft-engine.facade";
@@ -19,7 +20,7 @@ import { PostgresDraftSnapshotStore } from "./storage/postgres-draft-snapshot.st
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([DraftSnapshotEntity]),
+    TypeOrmModule.forFeature([DraftSnapshotEntity, DraftEventEntity]),
     AuthModule,
     RequestContextModule,
     CaslModule,

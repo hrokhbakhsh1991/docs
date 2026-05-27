@@ -1,9 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
 import {
   CURRENT_DRAFT_SCHEMA_VERSION,
   draftSnapshotEnvelopeSchema,
   type DraftSnapshot,
 } from "@repo/shared-contracts";
+import { Repository } from "typeorm";
 
 import type { DraftSyncPayloadDto } from "./dto/draft-sync-payload.dto";
 import {
@@ -16,19 +18,59 @@ import { DraftScopeResolver } from "./storage/draft-scope.resolver";
 import { PostgresDraftSnapshotStore } from "./storage/postgres-draft-snapshot.store";
 import { DraftMigratorRegistry } from "@repo/shared-contracts";
 import { DraftConflictException } from "./draft-conflict.exception";
+import { DraftEventEntity } from "./entities/draft-event.entity";
+import { tryGetActiveTraceLogFields } from "../../common/observability/active-trace-log-fields";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 
 export type DraftSyncPayloadResponse = DraftSnapshot;
 
 @Injectable()
 export class DraftEngineFacade {
   private readonly logger = new Logger(DraftEngineFacade.name);
+  private static readonly DENALI_CREATE_DRAFT_KEY = "denali-create";
 
   constructor(
     private readonly store: PostgresDraftSnapshotStore,
     private readonly scopeResolver: DraftScopeResolver,
     private readonly migratorRegistry: DraftMigratorRegistry,
     private readonly auditLog: AuditLogService,
+    @InjectRepository(DraftEventEntity)
+    private readonly draftEventsRepository: Repository<DraftEventEntity>,
+    private readonly requestContext: RequestContextService,
   ) {}
+
+  private resolveTraceId(): string | null {
+    const otelTraceId = tryGetActiveTraceLogFields()?.trace_id?.trim();
+    if (otelTraceId) {
+      return otelTraceId;
+    }
+    const traceId = this.requestContext.tryGetCorrelationId() ?? this.requestContext.tryGetRequestId();
+    if (!traceId || traceId.trim() === "") {
+      return null;
+    }
+    return traceId.trim();
+  }
+
+  private async logDraftEvent(input: {
+    workspaceId: string;
+    userId: string;
+    draftKey: string;
+    eventType: DraftEventEntity["eventType"];
+    baseVersion: number | null;
+    nextVersion: number | null;
+    payloadSnapshot: Record<string, unknown>;
+  }): Promise<void> {
+    await this.draftEventsRepository.insert({
+      workspaceId: input.workspaceId,
+      userId: input.userId,
+      draftKey: input.draftKey,
+      eventType: input.eventType,
+      traceId: this.resolveTraceId(),
+      baseVersion: input.baseVersion,
+      nextVersion: input.nextVersion,
+      payloadSnapshot: input.payloadSnapshot as never,
+    });
+  }
 
   private dtoToSnapshot(body: DraftSyncPayloadDto): DraftSnapshot {
     const schemaVersion = Number(body.schemaVersion);
@@ -51,6 +93,42 @@ export class DraftEngineFacade {
     return snapshot;
   }
 
+  private readStringPath(record: Record<string, unknown>, path: readonly string[]): string {
+    let node: unknown = record;
+    for (const segment of path) {
+      if (!node || typeof node !== "object" || Array.isArray(node)) {
+        return "";
+      }
+      node = (node as Record<string, unknown>)[segment];
+    }
+    return typeof node === "string" ? node.trim() : "";
+  }
+
+  private hasMeaningfulDenaliFormData(value: unknown): boolean {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+    const record = value as Record<string, unknown>;
+    const keyPaths: ReadonlyArray<readonly string[]> = [
+      ["basicInfo", "title"],
+      ["basicInfo", "tourType"],
+      ["basicInfo", "destinationId"],
+      ["timing", "startDate"],
+      ["timing", "endDate"],
+    ];
+    return keyPaths.some((path) => this.readStringPath(record, path).length > 0);
+  }
+
+  private isEffectivelyEmptyDraft(draftKey: string, snapshot: DraftSnapshot): boolean {
+    if (draftKey !== DraftEngineFacade.DENALI_CREATE_DRAFT_KEY) {
+      return false;
+    }
+    const data = snapshot.data as { form?: unknown; currentStepIndex?: unknown };
+    const stepIndex = typeof data.currentStepIndex === "number" ? data.currentStepIndex : 0;
+    const hasMeaningfulForm = this.hasMeaningfulDenaliFormData(data.form);
+    return stepIndex <= 0 && !hasMeaningfulForm;
+  }
+
   /** MAP alias: load draft for current member (with optional schema migration). */
   async loadDraft(
     tenantId: string,
@@ -70,12 +148,12 @@ export class DraftEngineFacade {
     }
 
     if (!isDraftEngineV2Enabled()) {
-      return raw;
+      return this.isEffectivelyEmptyDraft(draftKey, raw) ? null : raw;
     }
 
     const { snapshot, upgraded } = this.migratorRegistry.migrateEnvelope(draftKey, raw);
     if (!upgraded) {
-      return snapshot;
+      return this.isEffectivelyEmptyDraft(draftKey, snapshot) ? null : snapshot;
     }
 
     if (shouldPersistDraftSchemaMigrationOnRead()) {
@@ -84,10 +162,11 @@ export class DraftEngineFacade {
         schemaVersion: snapshot.schemaVersion,
         version: snapshot.version,
       });
-      return persisted ?? snapshot;
+      const effective = persisted ?? snapshot;
+      return this.isEffectivelyEmptyDraft(draftKey, effective) ? null : effective;
     }
 
-    return snapshot;
+    return this.isEffectivelyEmptyDraft(draftKey, snapshot) ? null : snapshot;
   }
 
   /** MAP alias: upsert draft for current member. */
@@ -116,6 +195,15 @@ export class DraftEngineFacade {
       if (error instanceof DraftConflictException) {
         const details = (error.getResponse() as { error?: { details?: { server?: DraftSnapshot } } }).error
           ?.details;
+        await this.logDraftEvent({
+          workspaceId: scope.workspaceId,
+          userId: scope.userId,
+          draftKey: scope.draftKey,
+          eventType: "draft_conflict",
+          baseVersion: payload.version,
+          nextVersion: details?.server?.version ?? null,
+          payloadSnapshot: payload.data,
+        });
         await this.auditLog.logEvent({
           action: "draft_engine.conflict",
           entity: "draft_snapshot",
@@ -148,6 +236,15 @@ export class DraftEngineFacade {
         savedSchemaVersion: saved.schemaVersion,
       },
     });
+    await this.logDraftEvent({
+      workspaceId: scope.workspaceId,
+      userId: scope.userId,
+      draftKey: scope.draftKey,
+      eventType: "draft_saved",
+      baseVersion: payload.version,
+      nextVersion: saved.version,
+      payloadSnapshot: saved.data,
+    });
     return saved;
   }
 
@@ -165,6 +262,15 @@ export class DraftEngineFacade {
       entityId: `${scope.workspaceId}:${scope.userId}:${scope.draftKey}`,
       category: AUDIT_CATEGORY.DRAFT_ENGINE_EVENT,
       after: { deleted: true },
+    });
+    await this.logDraftEvent({
+      workspaceId: scope.workspaceId,
+      userId: scope.userId,
+      draftKey: scope.draftKey,
+      eventType: "draft_deleted",
+      baseVersion: null,
+      nextVersion: null,
+      payloadSnapshot: {},
     });
   }
 }

@@ -1,88 +1,38 @@
-فاز ۰: ایجاد حریم امن (Safety Net)
-قبل از لمس هر کدی، باید مطمئن شویم چیزی را خراب نمی‌کنیم.
+فاز ۱: زیرساخت نظارتی و ردیابی (Foundation & Audit)
+در این فاز، هدف این است که «غیرقابل ردیابی بودن» درفت‌ها را از بین ببریم.
 
-[ ] تست‌های رگرسیون (Regression Tests): تمام سناریوهای فعلیِ ویزاردِ تور را (همین الان که درست کار می‌کند) در apps/web/tests با Playwright بنویسید.
+ایجاد draft_events (تغییر ساختار دیتابیس):
 
-[ ] تست‌های واحد برای منطق موجود: کدهای فعلی DraftEngine را با Jest تست کنید. این تست‌ها «میثاق» شما هستند؛ نباید در پایانِ کار، رفتار خروجیِ ماژول درفت تغییر کرده باشد.
-فاز ۱: تضمین یکپارچگی داده (Data Integrity & Safety)
-هدف: پیاده‌سازی قفل‌گذاری و نسخه گذاری برای جلوگیری از Data Race.
+نیاز به تغییر کد: بله. شما باید یک Migration جدید بسازید تا جدول draft_events را اضافه کنید.
 
-تغییرات دیتابیس (Migration):
+جزئیات: نباید درفت را یکپارچه ذخیره کنید. هر بار که draft-engine.service.ts فراخوانی می‌شود، باید در کنار آپدیتِ جدول اصلی، یک رکورد در draft_events ساخته شود (شامل tenant_id, draft_key, payload, user_id, created_at).
 
-[ ] اضافه کردن ستون version (Integer, default: 1) به جدول draft_snapshots.
+تزریق Tracing برای ردیابی خطا:
 
-[ ] اضافه کردن ستون schema_version (Integer) برای مدیریت Schema Drift.
+نیاز به تغییر کد: بله، در draft-engine.service.ts.
 
-[ ] افزودن ایندکس ترکیبی (tenant_id, wizard_key, entity_id) برای کوئری‌های سریع.
+جزئیات: در متدهای save و load از سرویس TracingService استفاده کنید تا هر درفت یک trace_id داشته باشد. اگر درخواستی شکست خورد، در لاگ‌ها به راحتی متوجه می‌شوید کدام کاربر در کدام مرحله درفت دچار مشکل شده است.
 
-منطق Optimistic Locking در DraftEngineService:
+فاز ۲: یکپارچگی و جلوگیری از تداخل (Consistency)
+در این فاز، Denali را به دژ دفاعی تبدیل می‌کنیم تا در محیط Multi-tenant تداخلی رخ ندهد.
 
-[ ] بازنویسی متد upsert در سرویس:
+پیاده‌سازی Locking با Versioning:
 
-TypeScript
+نیاز به تغییر کد: بله، در draft-snapshot.entity.ts.
 
+جزئیات: از ستون @VersionColumn تایپ‌اُرم استفاده کنید. این فیلد باعث می‌شود اگر دو درخواست همزمان برای آپدیت یک درفت بیایند، سیستم به صورت خودکار خطا بدهد (Optimistic Lock) و از اوررایت شدن اطلاعات جلوگیری کند.
 
-// شبه‌کد برای منطق به‌روزرسانی با قفل‌گذاری
-const result = await this.repo.update({
-  where: { id: draftId, version: currentVersion },
-  data: { data: newData, version: currentVersion + 1 }
-});
-if (result.affected === 0) throw new DraftConflictException("نسخه درفت تغییر کرده است.");
-پیاده‌سازی Schema Migration:
+اجبار به Tenant Scoping (امنیت):
 
-[ ] ساخت کلاس DraftMigrator که درفت‌های قدیمی را به ساختار جدید (طبق Zod Schema فعلی) تبدیل می‌کند. این برای جلوگیری از خطاهای کرش‌کننده در لود درفت‌های قدیمی حیاتی است.
+نیاز به تغییر کد: بله، در postgres-draft-snapshot.store.ts.
 
-فاز ۲: معماری و بهینه‌سازی (Architecture & Performance)
-هدف: تفکیک منطق درفت از منطق بیزنس تور (Tours).
+جزئیات: شما در پروژه سیستم Tenant دارید. باید مطمئن شوید که تمامی متدهای Store به طور خودکار tenantId را به عنوان یک فیلتر اجباری در تمام کوئری‌ها اعمال می‌کنند (توصیه: یک BaseDraftRepository ایجاد کنید که متدهای آن به صورت پیش‌فرض شامل tenantId باشند).
 
-ساختار ماژولار (Shared Lib):
+فاز ۳: انتزاع و تست‌پذیری (Architecture)
+هدف: اگر در آینده خواستید برای یک ورک‌اسپیس دیگر به جای Postgres از Redis استفاده کنید، کد Denali تغییر نکند.
 
-[ ] انتقال DraftEngineService و DraftSnapshot به packages/draft-engine (یک پکیج مستقل).
+پیاده‌سازی الگوی Provider/Strategy:
 
-[ ] استفاده از الگوی Facade؛ سرویس‌های Tours یا Inventory نباید مستقیماً با دیتابیس درفت کار کنند، بلکه باید از این ماژول استفاده کنند.
+نیاز به تغییر کد: بله، در draft-engine.facade.ts.
 
-استراتژی Hot vs Cold Storage:
-
-[ ] پیاده‌سازی لایه Redis (Hot Storage) برای ذخیره لحظه‌ای (Debounced) تغییرات.
-
-[ ] پیاده‌سازی Job برای Sync کردن Redis با Postgres (Cold Storage) پس از اتمام Session یا زمان‌بندی مشخص.
-
-فاز ۳: ردیابی‌پذیری و Audit (Observability & Traceability)
-هدف: اگر درفتی خراب شد، در ۳ ثانیه بفهمیم چرا.
-
-اتصال به Request Context:
-
-[ ] تزریق traceId (از request-trace.middleware.ts) به تمام رکوردهای draft_snapshot.
-
-[ ] ثبت تمامی عملیات‌های upsert در AuditLogService با کاتگوری DRAFT_ENGINE_EVENT.
-
-ایجاد Dashboard داخلی (Admin Panel):
-
-[ ] ساخت یک صفحه در ui-playground که لیستی از درفت‌های "Conflict-ridden" (درفت‌هایی که مرتباً کانفلیکت می‌دهند) را به تفکیک tenant_id نشان دهد. این لیست طلایی برای عیب‌یابی شماست.
-
-فاز ۴: تضمین کیفیت (Testing Strategy)
-هدف: حذف احتمالات و اثبات پایداری.
-
-تست‌های Race Condition (Jest - API Layer):
-
-[ ] نوشتن تست واحدی که دو Promise همزمان را با ورژن یکسان برای update صدا می‌زند. تست باید ثابت کند که یکی موفق و دیگری حتماً DraftConflictException برمی‌گرداند.
-
-تست‌های یکپارچگی (Integration):
-
-[ ] تست مهاجرت داده‌های قدیمی: یک درفت با schema_version: 1 را لود کنید و مطمئن شوید سیستم آن را به current_schema_version تبدیل می‌کند.
-
-تست‌های E2E (Playwright - Web Layer):
-
-[ ] سناریوی "دو تب مرورگر": کاربری در دو تب درفت را باز می‌کند. در تب اول ذخیره می‌کند. در تب دوم سعی می‌کند ذخیره کند. سیستم باید کاربر را متوجه کند که داده‌اش قدیمی شده (به جای بازنویسی سایلنت).
-
-
-
-فاز ۲: انتزاع و جداسازی (Abstraction)
-تسک (Guard): ریفکتور گاردِ DraftEngine به DraftEngineGuard. این گارد باید فقط اینترفیس Draftable را چک کند.
-
-تسک (Dependency Injection): حذف وابستگی مستقیم ماژول DraftEngine به TourModule. سرویس‌ها باید از طریق Providers به ماژول درفت متصل شوند.
-
-فاز ۳: یکپارچگی عملیاتی (Observability)
-تسک (Audit): تزریق AuditLogService به ماژول درفت. این ماژول باید بدون اطلاع از نوع ریسورس (Tour یا Inventory)، فقط لاگ‌های درفت را ثبت کند.
-
-تسک (Tracing): اطمینان از اینکه trace_id در تمامی متدهای سرویس درفت جابه‌جا می‌شود.
+جزئیات: این فایل در حال حاضر مستقیم با Store کار می‌کند. آن را به یک Interface وابسته کنید. یک DraftStoragePort تعریف کنید که متدهای اصلی را داشته باشد. سپس PostgresDraftSnapshotStore را به عنوان یک Adapter به آن تزریق کنید.

@@ -61,6 +61,7 @@ class InMemoryDraftStore implements DraftStoragePort {
 function createFacade(
   store: InMemoryDraftStore,
   auditOverride?: Pick<AuditLogService, "logEvent">,
+  options?: { draftEvents?: Array<{ eventType: string; baseVersion: number | null; nextVersion: number | null }> },
 ): DraftEngineFacade {
   const scopeResolver = {
     resolveOrThrow: () => ({
@@ -73,10 +74,26 @@ function createFacade(
   const auditLog = auditOverride ?? {
     logEvent: async () => undefined,
   };
-  return new DraftEngineFacade(store as never, scopeResolver, createDefaultDraftMigratorRegistry(), auditLog);
+  const draftEventsRepository = {
+    insert: async (row: { eventType: string; baseVersion: number | null; nextVersion: number | null }) => {
+      options?.draftEvents?.push(row);
+    },
+  };
+  const requestContext = {
+    tryGetCorrelationId: () => "trace-test",
+    tryGetRequestId: () => "trace-test",
+  } as unknown as RequestContextService;
+  return new DraftEngineFacade(
+    store as never,
+    scopeResolver,
+    createDefaultDraftMigratorRegistry(),
+    auditLog as unknown as AuditLogService,
+    draftEventsRepository as never,
+    requestContext,
+  );
 }
 
-test("findForMember migrates incomplete denali draft on read", async () => {
+test("findForMember hides incomplete denali draft after migration when effectively empty", async () => {
   const store = new InMemoryDraftStore({
     data: { orphan: true },
     version: 2,
@@ -86,13 +103,10 @@ test("findForMember migrates incomplete denali draft on read", async () => {
   const facade = createFacade(store);
 
   const result = await facade.findForMember("ws-1", "denali-create");
-  assert.ok(result);
-  assert.equal(result.schemaVersion, CURRENT_DRAFT_SCHEMA_VERSION);
-  assert.equal(result.data.currentStepIndex, 0);
-  assert.deepEqual(result.data.form, {});
+  assert.equal(result, null);
 });
 
-test("findForMember skips migrator when DRAFT_ENGINE_V2_ENABLED is off", async () => {
+test("findForMember with V2 off still hides effectively empty denali payload", async () => {
   const prevV2 = process.env.DRAFT_ENGINE_V2_ENABLED;
   const prevFacade = process.env.DRAFT_ENGINE_FACADE_ENABLED;
   process.env.DRAFT_ENGINE_V2_ENABLED = "0";
@@ -106,9 +120,7 @@ test("findForMember skips migrator when DRAFT_ENGINE_V2_ENABLED is off", async (
     });
     const facade = createFacade(store);
     const result = await facade.findForMember("ws-1", "denali-create");
-    assert.ok(result);
-    assert.equal(result.schemaVersion, 1);
-    assert.deepEqual(result.data, { orphan: true });
+    assert.equal(result, null);
   } finally {
     if (prevV2 !== undefined) {
       process.env.DRAFT_ENGINE_V2_ENABLED = prevV2;
@@ -123,14 +135,39 @@ test("findForMember skips migrator when DRAFT_ENGINE_V2_ENABLED is off", async (
   }
 });
 
+test("findForMember hides empty denali draft payloads", async () => {
+  const store = new InMemoryDraftStore({
+    data: { form: {}, currentStepIndex: 0 },
+    version: 1,
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+    lastModified: 1000,
+  });
+  const facade = createFacade(store);
+  const result = await facade.findForMember("ws-1", "denali-create");
+  assert.equal(result, null);
+});
+
+test("findForMember keeps non-empty denali draft payloads", async () => {
+  const store = new InMemoryDraftStore({
+    data: { form: { basicInfo: { title: "Tour draft" } }, currentStepIndex: 0 },
+    version: 1,
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+    lastModified: 1000,
+  });
+  const facade = createFacade(store);
+  const result = await facade.findForMember("ws-1", "denali-create");
+  assert.ok(result);
+});
+
 test("upsertForMember emits draft_engine.upsert audit event", async () => {
   const store = new InMemoryDraftStore();
   const actions: string[] = [];
+  const events: Array<{ eventType: string; baseVersion: number | null; nextVersion: number | null }> = [];
   const facade = createFacade(store, {
     logEvent: async (input: { action: string }) => {
       actions.push(input.action);
     },
-  } as never);
+  } as never, { draftEvents: events });
   await facade.upsertForMember("ws-1", "denali-create", {
     data: { form: {}, currentStepIndex: 0 },
     version: 0,
@@ -138,6 +175,10 @@ test("upsertForMember emits draft_engine.upsert audit event", async () => {
     lastModified: Date.now(),
   });
   assert.deepEqual(actions, ["draft_engine.upsert"]);
+  assert.equal(events.length, 1);
+  assert.equal(events[0]?.eventType, "draft_saved");
+  assert.equal(events[0]?.baseVersion, 0);
+  assert.equal(events[0]?.nextVersion, 1);
 });
 
 test("upsertForMember emits draft_engine.conflict audit event on OCC conflict", async () => {
@@ -148,11 +189,12 @@ test("upsertForMember emits draft_engine.conflict audit event on OCC conflict", 
     lastModified: 1000,
   });
   const actions: string[] = [];
+  const events: Array<{ eventType: string; baseVersion: number | null; nextVersion: number | null }> = [];
   const facade = createFacade(store, {
     logEvent: async (input: { action: string }) => {
       actions.push(input.action);
     },
-  } as never);
+  } as never, { draftEvents: events });
   await assert.rejects(
     () =>
       facade.upsertForMember("ws-1", "denali-create", {
@@ -164,4 +206,18 @@ test("upsertForMember emits draft_engine.conflict audit event on OCC conflict", 
     (error: unknown) => error instanceof Error,
   );
   assert.ok(actions.includes("draft_engine.conflict"));
+  assert.ok(events.some((event) => event.eventType === "draft_conflict"));
+});
+
+test("deleteForMember persists draft_deleted event", async () => {
+  const store = new InMemoryDraftStore({
+    data: { form: {} },
+    version: 2,
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+    lastModified: 1000,
+  });
+  const events: Array<{ eventType: string; baseVersion: number | null; nextVersion: number | null }> = [];
+  const facade = createFacade(store, undefined, { draftEvents: events });
+  await facade.deleteForMember("ws-1", "denali-create");
+  assert.ok(events.some((event) => event.eventType === "draft_deleted"));
 });

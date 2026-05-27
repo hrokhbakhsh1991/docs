@@ -10,6 +10,7 @@ import {
 
 import { DraftConflictException } from "../../src/modules/draft-engine/draft-conflict.exception";
 import { DraftEngineFacade } from "../../src/modules/draft-engine/draft-engine.facade";
+import { DraftEventEntity } from "../../src/modules/draft-engine/entities/draft-event.entity";
 import { DraftSnapshotEntity } from "../../src/modules/draft-engine/entities/draft-snapshot.entity";
 import { PostgresDraftSnapshotStore } from "../../src/modules/draft-engine/storage/postgres-draft-snapshot.store";
 import { DraftScopeResolver } from "../../src/modules/draft-engine/storage/draft-scope.resolver";
@@ -30,24 +31,29 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
   const dataSource = new DataSource({
     type: "postgres",
     url,
-    entities: [DraftSnapshotEntity],
+    entities: [DraftSnapshotEntity, DraftEventEntity],
     synchronize: false,
     logging: false,
   });
   await dataSource.initialize();
 
   const repo = dataSource.getRepository(DraftSnapshotEntity);
+  const draftEventRepo = dataSource.getRepository(DraftEventEntity);
   const store = new PostgresDraftSnapshotStore(repo);
   const requestContext = {
     resolveEffectiveTenantId: () => workspaceId,
     getUserId: () => userId,
+    tryGetCorrelationId: () => "integration-trace-id",
+    tryGetRequestId: () => "integration-trace-id",
   } as unknown as RequestContextService;
   const scopeResolver = new DraftScopeResolver(requestContext);
   const facade = new DraftEngineFacade(
     store,
     scopeResolver,
     createDefaultDraftMigratorRegistry(),
-    { logEvent: async () => undefined } as AuditLogService,
+    { logEvent: async () => undefined } as unknown as AuditLogService,
+    draftEventRepo,
+    requestContext,
   );
 
   try {
@@ -69,7 +75,7 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
 
     await repo.update(
       { workspaceId, userId, draftKey },
-      { data: { broken: true } as Record<string, unknown> },
+      { data: { broken: true } as never },
     );
     const migrated = await facade.findForMember(workspaceId, draftKey);
     assert.ok(migrated);
@@ -129,24 +135,29 @@ test("DraftEngineFacade legacy schema_version 1 → loadDraft → saveDraft (req
   const dataSource = new DataSource({
     type: "postgres",
     url,
-    entities: [DraftSnapshotEntity],
+    entities: [DraftSnapshotEntity, DraftEventEntity],
     synchronize: false,
     logging: false,
   });
   await dataSource.initialize();
 
   const repo = dataSource.getRepository(DraftSnapshotEntity);
+  const draftEventRepo = dataSource.getRepository(DraftEventEntity);
   const store = new PostgresDraftSnapshotStore(repo);
   const requestContext = {
     resolveEffectiveTenantId: () => workspaceId,
     getUserId: () => userId,
+    tryGetCorrelationId: () => "integration-trace-id",
+    tryGetRequestId: () => "integration-trace-id",
   } as unknown as RequestContextService;
   const scopeResolver = new DraftScopeResolver(requestContext);
   const facade = new DraftEngineFacade(
     store,
     scopeResolver,
     createDefaultDraftMigratorRegistry(),
-    { logEvent: async () => undefined } as AuditLogService,
+    { logEvent: async () => undefined } as unknown as AuditLogService,
+    draftEventRepo,
+    requestContext,
   );
 
   try {
@@ -159,7 +170,7 @@ test("DraftEngineFacade legacy schema_version 1 → loadDraft → saveDraft (req
       data: { legacyTitle: "old" },
       version: 1,
       schemaVersion: 1,
-      lastModified: Date.now(),
+      lastModified: String(Date.now()),
     });
 
     const loaded = await facade.loadDraft(workspaceId, draftKey);

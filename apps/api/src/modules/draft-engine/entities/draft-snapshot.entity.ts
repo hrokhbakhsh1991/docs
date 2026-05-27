@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
+  VersionColumn,
 } from "typeorm";
 
 @Entity({ name: "draft_snapshots" })
@@ -27,7 +28,7 @@ export class DraftSnapshotEntity {
   @Column({ type: "jsonb", default: () => "'{}'::jsonb" })
   data!: Record<string, unknown>;
 
-  @Column({ type: "int", default: 1 })
+  @VersionColumn({ type: "int", default: 1 })
   version!: number;
 
   @Column({ name: "schema_version", type: "int", default: 1 })

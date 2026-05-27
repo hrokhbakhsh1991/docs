@@ -74,3 +74,52 @@ export function summarizeDenaliCreatePayload(dto: {
     denaliTourKind: (dto.tripDetails?.overview as Record<string, unknown> | undefined)?.denaliTourKind,
   };
 }
+
+/**
+ * Lightweight deep-equality helper used by Denali sync-loop guard.
+ * Keeps comparisons deterministic without adding external dependencies.
+ */
+export function deepEqualForLoopDebug(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (typeof a !== typeof b) {
+    return false;
+  }
+  if (a == null || b == null) {
+    return false;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+      if (!deepEqualForLoopDebug(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (typeof a === "object") {
+    if (typeof b !== "object") {
+      return false;
+    }
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj);
+    const bKeys = Object.keys(bObj);
+    if (aKeys.length !== bKeys.length) {
+      return false;
+    }
+    for (const key of aKeys) {
+      if (!Object.prototype.hasOwnProperty.call(bObj, key)) {
+        return false;
+      }
+      if (!deepEqualForLoopDebug(aObj[key], bObj[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
