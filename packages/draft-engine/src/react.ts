@@ -6,12 +6,15 @@ import { DraftEngine } from "./engine";
 import type { DraftEngineConfig, DraftEngineState } from "./types";
 
 function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T> }): DraftEngine<T> {
-  return new DraftEngine<T>({
+  const config: DraftEngineConfig<T> = {
     get id() {
       return configRef.current.id;
     },
     get conflictStrategy() {
       return configRef.current.conflictStrategy;
+    },
+    get autoApply() {
+      return configRef.current.autoApply;
     },
     get debounceMs() {
       return configRef.current.debounceMs;
@@ -21,14 +24,22 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
     },
     onFetch: () => configRef.current.onFetch(),
     onPush: (payload) => configRef.current.onPush(payload),
-  });
+  };
+  if (configRef.current.onDelete != null) {
+    config.onDelete = async () => {
+      await configRef.current.onDelete?.();
+    };
+  }
+  return new DraftEngine<T>(config);
 }
 
 export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   state: DraftEngineState<T>;
-  update: (data: T) => void;
+  setDraftData: (data: T) => void;
   retry: () => Promise<void>;
   initialize: () => Promise<void>;
+  applyDraft: () => void;
+  clearDraft: () => Promise<void>;
 } {
   const configRef = useRef(config);
   configRef.current = config;
@@ -42,20 +53,30 @@ export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   useEffect(() => {
     engineRef.current = createEngineWithLiveConfig(configRef);
     setState(engineRef.current.getState());
-    return engineRef.current.subscribe(setState);
+    return engineRef.current.subscribe((next) => {
+      setState(next);
+    });
   }, [config.id]);
 
   const initialize = useCallback(async () => {
     await engineRef.current?.initialize();
   }, []);
 
-  const update = useCallback((data: T) => {
-    engineRef.current?.update(data);
+  const setDraftData = useCallback((data: T) => {
+    engineRef.current?.setDraftData(data);
   }, []);
 
   const retry = useCallback(async () => {
     await engineRef.current?.retry();
   }, []);
 
-  return { state, update, retry, initialize };
+  const applyDraft = useCallback(() => {
+    engineRef.current?.applyDraft();
+  }, []);
+
+  const clearDraft = useCallback(async () => {
+    await engineRef.current?.clearDraft();
+  }, []);
+
+  return { state, setDraftData, retry, initialize, applyDraft, clearDraft };
 }

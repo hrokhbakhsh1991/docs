@@ -1,4 +1,4 @@
-/** Denali wizard location zone keys (Phase 7 — clone / server draft round-trip). */
+/** Denali wizard location zone keys (clone / canonical round-trip). */
 export const DENALI_LOCATION_ZONE_KEYS = [
   "startPoint",
   "summitPoint",

@@ -378,6 +378,9 @@ importers:
 
   packages/draft-engine:
     devDependencies:
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../config
       '@types/react':
         specifier: ^18.3.11
         version: 18.3.28

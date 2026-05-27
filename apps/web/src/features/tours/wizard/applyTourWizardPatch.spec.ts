@@ -23,7 +23,7 @@ import type { ThemeRowForProfile } from "./tourWizardProfileResolve";
  *
  * These tests pin the pipeline's contract — final-profile re-resolution,
  * patch filter against the FINAL profile, merge, and sanitize — so future
- * migrations (clone bootstrap, draft restore) can reuse the same seam
+ * migrations (clone bootstrap, server snapshot merge) can reuse the same seam
  * without behaviour drift.
  */
 
@@ -302,7 +302,7 @@ test("does not mutate the caller's baseValues or patch", () => {
   assert.deepEqual(roundTrip(patch), patchSnapshot, "input patch must remain untouched");
 });
 
-test("workspace profile wins over stale snapshot meta on draft restore path", () => {
+test("workspace profile wins over stale snapshot meta on preload merge path", () => {
   const base = makeBase();
   base.overview.mainTourThemeId = THEME_MOUNTAIN;
   const patch: Partial<TourCreateFormValues> = {

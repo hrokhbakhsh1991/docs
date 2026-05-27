@@ -163,8 +163,19 @@ export function DenaliCreateTourWizard() {
     [workspaceId],
   );
 
-  const { state: draftState, update: updateDraft, retry: retryDraft, initialize: initializeDraft } =
-    useDraftEngine(draftConfig);
+  const {
+    state: draftState,
+    setDraftData,
+    retry: retryDraft,
+    initialize: initializeDraft,
+    applyDraft,
+    clearDraft,
+  } = useDraftEngine(draftConfig);
+
+  const setDraftDataRef = useRef(setDraftData);
+  setDraftDataRef.current = setDraftData;
+  const draftStatusRef = useRef(draftState.status);
+  draftStatusRef.current = draftState.status;
 
   const formDefaults = useMemo(() => {
     const templateBaseline = wizardTemplateQuery.data
@@ -175,20 +186,19 @@ export function DenaliCreateTourWizard() {
           ruleSet,
         )?.formValues ?? defaultValues)
       : defaultValues;
-    if (draftState.data?.form) {
+    if (draftState.status !== "DRAFT_AVAILABLE" && draftState.data?.form) {
       return mergeDenaliFormDefaults(templateBaseline, draftState.data.form);
     }
     return templateBaseline;
-  }, [defaultValues, draftState.data?.form, ruleSet, wizardTemplateQuery.data]);
+  }, [defaultValues, draftState.data?.form, draftState.status, ruleSet, wizardTemplateQuery.data]);
 
   const formMethods = useForm<DenaliCreateTourWizardForm>({
     defaultValues: formDefaults,
     resolver: createDenaliCanonicalWizardResolver(undefined, () => ruleSet),
     mode: "onTouched",
   });
-  const { getValues, setError, clearErrors, reset } = formMethods;
+  const { getValues, setError, clearErrors, reset, watch } = formMethods;
   const tourTypeWatch = useWatch({ control: formMethods.control, name: "basicInfo.tourType" });
-  const watchedValues = useWatch({ control: formMethods.control });
 
   useEffect(() => {
     if (!workspaceId || !wizardTemplateQuery.data) {
@@ -213,6 +223,9 @@ export function DenaliCreateTourWizard() {
     if (!wizardTemplateQuery.data || !draftInitComplete || initialHydrateDoneRef.current) {
       return;
     }
+    if (draftState.status === "DRAFT_AVAILABLE") {
+      return;
+    }
     suppressDraftPushRef.current = true;
     const stepFromDraft = draftState.data?.currentStepIndex ?? 0;
     reset(formDefaults, { keepDefaultValues: true });
@@ -222,28 +235,52 @@ export function DenaliCreateTourWizard() {
     queueMicrotask(() => {
       suppressDraftPushRef.current = false;
     });
-  }, [draftInitComplete, draftState.data?.currentStepIndex, formDefaults, reset, wizardTemplateQuery.data]);
+  }, [
+    draftInitComplete,
+    draftState.data?.currentStepIndex,
+    draftState.status,
+    formDefaults,
+    reset,
+    wizardTemplateQuery.data,
+  ]);
 
   useEffect(() => {
-    if (!formMethods.formState.isDirty) {
+    if (!workspaceId || !draftInitComplete) {
       return;
     }
+    const subscription = watch(() => {
+      if (suppressDraftPushRef.current) {
+        return;
+      }
+      if (!formMethods.formState.isDirty) {
+        return;
+      }
+      if (draftStatusRef.current === "DRAFT_AVAILABLE") {
+        return;
+      }
+      setDraftDataRef.current({
+        form: getValues(),
+        currentStepIndex: currentStepRef.current,
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [draftInitComplete, getValues, watch, workspaceId]);
+
+  useEffect(() => {
     if (!workspaceId || !draftInitComplete || suppressDraftPushRef.current) {
       return;
     }
-    updateDraft({
+    if (draftStatusRef.current === "DRAFT_AVAILABLE") {
+      return;
+    }
+    if (!formMethods.formState.isDirty) {
+      return;
+    }
+    setDraftDataRef.current({
       form: getValues(),
       currentStepIndex: currentStep,
     });
-  }, [
-    currentStep,
-    draftInitComplete,
-    formMethods.formState.isDirty,
-    getValues,
-    updateDraft,
-    watchedValues,
-    workspaceId,
-  ]);
+  }, [currentStep, draftInitComplete, getValues, workspaceId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -287,6 +324,14 @@ export function DenaliCreateTourWizard() {
   const handleRetryDraft = useCallback(() => {
     void retryDraft();
   }, [retryDraft]);
+
+  const handleLoadDraft = useCallback(() => {
+    applyDraft();
+  }, [applyDraft]);
+
+  const handleDiscardDraft = useCallback(() => {
+    void clearDraft();
+  }, [clearDraft]);
 
   const handleNext = () => {
     const form = getValues();
@@ -360,6 +405,44 @@ export function DenaliCreateTourWizard() {
             <Card data-testid="denali-create-tour-wizard">
               <CardBody style={{ display: "grid", gap: "1rem" }}>
                 <DenaliWizardContentQualityHeader />
+                {draftState.status === "DRAFT_AVAILABLE" ? (
+                  <div
+                    role="status"
+                    data-testid="denali-draft-restore-banner"
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "0.5rem",
+                      padding: "0.75rem",
+                      borderRadius: "0.5rem",
+                      background: "var(--color-surface-subtle, #eef2f7)",
+                    }}
+                  >
+                    <span>{t("draftRestoreBanner")}</span>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        data-testid="denali-draft-restore-load"
+                        onClick={handleLoadDraft}
+                      >
+                        {t("draftRestoreLoad")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        data-testid="denali-draft-restore-discard"
+                        onClick={handleDiscardDraft}
+                      >
+                        {t("draftRestoreDiscard")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <DenaliWizardStepper steps={visibleSteps} currentIndex={currentStep} />
                 <DenaliStepBody stepId={activeStepId} />
 

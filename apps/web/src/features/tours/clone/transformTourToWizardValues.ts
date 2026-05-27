@@ -82,7 +82,7 @@ function readMainAndSecondaryThemes(tourThemeIds: unknown): {
  * Canonical `secondaryDestinationIdsRaw` is a CSV / free-text string per
  * `TripDetailsOverviewDto.secondaryDestinationIdsRaw` (api trip-details.dto.ts:226-232).
  * Split, trim, and keep only UUID-v4 tokens so the wizard's Zod refine
- * (`tourCreateSchema.ts:374-381`) does not reject the rehydrated draft.
+ * (`tourCreateSchema.ts:374-381`) does not reject the rehydrated form.
  */
 function parseSecondaryDestinationIdsRaw(raw: unknown): string[] {
   if (typeof raw !== "string" || raw.trim().length === 0) return [];
@@ -197,8 +197,7 @@ function inferSupplementalPrivateCar(rawTransportModes: unknown, primaryMode: st
 /**
  * Maps a canonical Tour API response → wizard form values for the
  * Duplicate / Clone flow. Returns a `Partial<TourCreateFormValues>` so the
- * wrapper can pass it into `serializeWizardDraft()` (which deep-merges with
- * the wizard's default values on load).
+ * wrapper can deep-merge with the wizard's default values on load.
  *
  * @deprecated Prefer {@link mapWizardPrefillToFormPatch} at app call sites.
  */

@@ -131,7 +131,7 @@ export function formHasClientBlobMedia(form: DenaliCreateTourWizardForm): boolea
 }
 
 /**
- * Remove blob: URLs from draft payloads before server PATCH (blobs are session-local only).
+ * Remove blob: URLs from wizard snapshots before draft-engine push (blobs are session-local only).
  */
 export function stripBlobUrlsFromDenaliDraftPatch(
   formValues: Partial<DenaliCreateTourWizardForm>,

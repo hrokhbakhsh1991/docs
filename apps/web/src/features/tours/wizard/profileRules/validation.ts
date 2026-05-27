@@ -160,7 +160,7 @@ function isFieldEnforcedForValidation(
  *   **current** `stepId` and respects profile step visibility (hidden rail → no-op).
  * - Does **not** inspect `isFieldRequiredAtLevel` — drafts must stay persistable while half-filled.
  * - v1 returns `isValid: true` with no issues; reserved for future shape-only checks on visible
- *   fields of `stepId` (e.g. strip invalid enum tokens before `serializeWizardDraft`).
+ *   fields of `stepId` (e.g. strip invalid enum tokens before draft push).
  */
 export function validateForAutosave(
   profile: TourFormProfile,

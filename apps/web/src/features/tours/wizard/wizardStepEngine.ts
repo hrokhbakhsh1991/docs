@@ -74,8 +74,7 @@ import {
  *
  * The {@link WizardStepConfig} array exposes `id + primaryGroup + triggerFields + titleFa` in one
  * place, which is the data shape a future autosave-per-group hook needs to know which RHF roots
- * to persist when a step is left. See `TourCreateWizard.tsx` for draft restore and profile
- * orchestration alongside this engine.
+ * to persist when a step is left.
  */
 
 export type WizardStepKey = TourCreateWizardStepId;

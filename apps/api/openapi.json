@@ -5471,6 +5471,152 @@
           }
         ]
       }
+    },
+    "/api/v2/workspaces/{tenantId}/draft-engine/{draftKey}": {
+      "get": {
+        "operationId": "DraftEngineController_getDraft",
+        "summary": "Fetch draft snapshot for current member",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "draftKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "denali-create",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSyncPayloadDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No draft saved for this key"
+          }
+        },
+        "tags": [
+          "Draft engine"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "DraftEngineController_upsertDraft",
+        "summary": "Upsert draft snapshot with optimistic locking",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "draftKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "denali-create",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftSyncPayloadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSyncPayloadDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version mismatch — server payload included"
+          }
+        },
+        "tags": [
+          "Draft engine"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "DraftEngineController_deleteDraft",
+        "summary": "Delete draft snapshot for current member",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "draftKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "denali-create",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "Draft not found"
+          }
+        },
+        "tags": [
+          "Draft engine"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -9737,6 +9883,29 @@
         },
         "required": [
           "plaintextPayloadUtf8"
+        ]
+      },
+      "DraftSyncPayloadDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "version": {
+            "type": "number",
+            "example": 1
+          },
+          "lastModified": {
+            "type": "number",
+            "example": 1710000000000,
+            "description": "Client epoch milliseconds"
+          }
+        },
+        "required": [
+          "data",
+          "version",
+          "lastModified"
         ]
       }
     }

@@ -15,7 +15,7 @@ import { presetDefaultsToFormPatch } from "./tourCreationPresetMatch";
 
 /**
  * Spec covers the **profile-aware preload filter** (`filterFormPatchByActiveGroups`) and its
- * integration with `mergeTourFormPatch` used by both presets and clone/draft restore.
+ * integration with `mergeTourFormPatch` used by presets, clone, and draft snapshot merge.
  *
  * Contract: roots owned by **inactive** field groups for the resolved profile must not be
  * merged into RHF state. Active-group roots must round-trip untouched.

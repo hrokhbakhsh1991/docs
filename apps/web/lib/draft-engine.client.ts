@@ -4,11 +4,7 @@ function draftPath(workspaceId: string, draftKey: string): string {
   return `/api/workspaces/${encodeURIComponent(workspaceId)}/draft-engine/${encodeURIComponent(draftKey)}`;
 }
 
-function readConflictServer<T>(payload: unknown): DraftSyncPayload<T> | null {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return null;
-  }
-  const server = (payload as { server?: unknown }).server;
+function parseDraftSyncPayload<T>(server: unknown): DraftSyncPayload<T> | null {
   if (!server || typeof server !== "object" || Array.isArray(server)) {
     return null;
   }
@@ -21,6 +17,18 @@ function readConflictServer<T>(payload: unknown): DraftSyncPayload<T> | null {
     version: record.version,
     lastModified: record.lastModified,
   };
+}
+
+function readConflictServer<T>(payload: unknown): DraftSyncPayload<T> | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const topLevel = parseDraftSyncPayload<T>((payload as { server?: unknown }).server);
+  if (topLevel) {
+    return topLevel;
+  }
+  const details = (payload as { error?: { details?: { server?: unknown } } }).error?.details;
+  return parseDraftSyncPayload<T>(details?.server);
 }
 
 export async function fetchDraftSnapshot<T>(

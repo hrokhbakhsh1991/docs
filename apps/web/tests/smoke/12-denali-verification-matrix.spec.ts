@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
  * 
  * 2a) Kind Switch Flow
  * 2b) Multi-Step Back/Forward
- * 2c) Draft Restore
+ * 2c) Draft engine snapshot restore
  */
 test.describe("denali verification matrix", () => {
   test.beforeEach(async ({ page }) => {
@@ -50,12 +50,12 @@ test.describe("denali verification matrix", () => {
     await expect(page.getByPlaceholder(/عنوان|title/i)).toHaveValue("Matrix Test Tour");
   });
 
-  test("2c) draft restore clears ghost fields after reload", async ({ page }) => {
+  test("2c) draft engine restore survives reload", async ({ page }) => {
     await page.getByPlaceholder(/عنوان|title/i).fill("Draft Restore Test");
     await page.waitForTimeout(700);
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    await expect(page.getByTestId("denali-draft-incompatible-banner")).toBeHidden();
+    await expect(page.getByTestId("denali-draft-save-error")).toBeHidden();
     await expect(page.getByPlaceholder(/عنوان|title/i)).toHaveValue("Draft Restore Test");
   });
 });

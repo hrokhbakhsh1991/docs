@@ -1,6 +1,6 @@
 import type { DraftEngineConfig } from "@repo/draft-engine";
 
-import { fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
+import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
@@ -27,8 +27,16 @@ export function createDenaliDraftAdapter(input: {
 
   return {
     id: `${DENALI_CREATE_DRAFT_KEY}:${workspaceId}`,
-    conflictStrategy: "SERVER_WINS",
+    autoApply: false,
+    conflictStrategy: "REFETCH_REAPPLY",
     debounceMs: 500,
+    merge: (local, server) => ({
+      currentStepIndex: local.currentStepIndex,
+      form: normalizeDenaliWizardForm({
+        ...server.form,
+        ...local.form,
+      } as DenaliCreateTourWizardForm),
+    }),
     onFetch: async () => {
       if (!workspaceId) {
         return null;
@@ -74,6 +82,12 @@ export function createDenaliDraftAdapter(input: {
         version: result.version,
         lastModified: result.lastModified,
       };
+    },
+    onDelete: async () => {
+      if (!workspaceId) {
+        return;
+      }
+      await deleteDraftSnapshot(workspaceId, DENALI_CREATE_DRAFT_KEY);
     },
   };
 }

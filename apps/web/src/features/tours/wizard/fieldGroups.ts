@@ -158,13 +158,9 @@ export function stripInactiveTourCreateGroupsForProfile(
  * the input value by reference for profiles with no inactive groups avoids
  * needless re-renders in those effects.
  *
- * Used by:
- *   - the auto-save effect in `TourCreateWizard.tsx` (sanitizes the
- *     `watched` snapshot before `serializeWizardDraft` so `tour-create-
- *     wizard-draft-v1` never persists ghost data after a profile flip);
- *   - the draft-restore effect in `TourCreateWizard.tsx` (belt-and-
- *     suspenders re-strip after `mergeTourFormPatch`, even though
- *     `filterFormPatchByActiveGroups` already trimmed the incoming patch).
+ * Used before persisting or merging wizard snapshots (e.g. `@repo/draft-engine`
+ * push payloads, preset apply, clone preload) so inactive-group roots are not
+ * stored after a profile flip.
  */
 export function sanitizeInactiveRootsForProfile(
   values: TourCreateFormValues,
@@ -177,7 +173,7 @@ export function sanitizeInactiveRootsForProfile(
  * **Profile-aware preload filter.**
  *
  * Drops top-level form roots owned by **inactive** field groups from a wizard-shaped patch
- * (presets `defaults` JSON, clone-transformed tour, restored localStorage draft) *before* it is
+ * (presets `defaults` JSON, clone-transformed tour, server draft snapshot) *before* it is
  * merged into the live form via {@link mergeTourFormPatch}.
  *
  * Why this exists:
@@ -186,7 +182,7 @@ export function sanitizeInactiveRootsForProfile(
  *   server-side profile strip in `apps/api/src/modules/tours/utils/create-tour-form-profile-strip.ts`.
  * - But preload (preset apply + clone/draft restore) goes through {@link mergeTourFormPatch}, which is
  *   profile-blind. That meant inactive-group data could leak into RHF state and the localStorage
- *   auto-save even though the wizard never rendered those fields.
+ *   draft sync even though the wizard never rendered those fields.
  * - Applying this filter at the merge boundary makes preload symmetric with submit-time strip:
  *   the same roots are gated everywhere the wizard touches them.
  *

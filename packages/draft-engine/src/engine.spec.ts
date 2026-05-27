@@ -52,6 +52,70 @@ test("initialize with null onFetch keeps empty state", async () => {
   assert.equal(state.version, 0);
 });
 
+test("initialize with autoApply false marks DRAFT_AVAILABLE", async () => {
+  const fetched = payload({ value: "server" }, 7, 7000);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+  });
+
+  await engine.initialize();
+
+  const state = engine.getState();
+  assert.equal(state.status, "DRAFT_AVAILABLE");
+  assert.equal(state.data, null);
+  assert.equal(state.pendingDraft?.version, 7);
+  assert.deepEqual(state.pendingDraft?.data, { value: "server" });
+});
+
+test("applyDraft hydrates pending server draft", async () => {
+  const fetched = payload({ value: "server" }, 4, 4444);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+  });
+
+  await engine.initialize();
+  engine.applyDraft();
+
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.deepEqual(state.data, { value: "server" });
+  assert.equal(state.version, 4);
+  assert.equal(state.pendingDraft, undefined);
+});
+
+test("clearDraft calls onDelete and clears local state", async () => {
+  let deleteCalls = 0;
+  const fetched = payload({ value: "server" }, 2, 2222);
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => fetched,
+    onPush: async (p) => p,
+    onDelete: async () => {
+      deleteCalls += 1;
+    },
+  });
+
+  await engine.initialize();
+  await engine.clearDraft();
+
+  const state = engine.getState();
+  assert.equal(deleteCalls, 1);
+  assert.equal(state.status, "IDLE");
+  assert.equal(state.data, null);
+  assert.equal(state.version, 0);
+  assert.equal(state.pendingDraft, undefined);
+});
+
 test("initialize sets ERROR when onFetch throws", async () => {
   const engine = new DraftEngine<TestData>({
     id: "test",
@@ -233,6 +297,41 @@ test("MERGE conflict merges data and schedules another sync", async () => {
   assert.equal(state.status, "IDLE");
   assert.deepEqual(state.data, { value: "local+server" });
   assert.equal(state.version, 3);
+});
+
+test("REFETCH_REAPPLY conflict re-fetches and re-applies local without ERROR", async () => {
+  let fetchCalls = 0;
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "REFETCH_REAPPLY",
+    debounceMs: 5,
+    onFetch: async () => {
+      fetchCalls += 1;
+      return payload({ value: "fresh-server" }, 5, 5000);
+    },
+    onPush: async (p) => {
+      pushCount += 1;
+      if (pushCount === 1) {
+        throw new DraftConflictError(payload({ value: "stale-server" }, 4, 4000));
+      }
+      assert.deepEqual(p.data, { value: "local" });
+      assert.equal(p.version, 5);
+      return { ...p, version: 6 };
+    },
+  });
+
+  await engine.initialize();
+  engine.update({ value: "local" });
+  await sleep(60);
+
+  assert.ok(fetchCalls >= 1);
+  assert.equal(pushCount, 2);
+  const state = engine.getState();
+  assert.equal(state.status, "IDLE");
+  assert.equal(state.error, undefined);
+  assert.deepEqual(state.data, { value: "local" });
+  assert.equal(state.version, 6);
 });
 
 test("MERGE without merge fn sets ERROR", async () => {

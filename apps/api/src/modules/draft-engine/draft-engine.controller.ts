@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Logger,
   Param,
   Patch,
   UseGuards,
@@ -27,6 +28,7 @@ import { UserRole } from "../../common/auth/user-role.enum";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import { DraftSyncPayloadDto } from "./dto/draft-sync-payload.dto";
 import { DraftEngineService } from "./draft-engine.service";
 
@@ -35,7 +37,12 @@ import { DraftEngineService } from "./draft-engine.service";
 @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
 @ApiBearerAuth()
 export class DraftEngineController {
-  constructor(private readonly draftEngineService: DraftEngineService) {}
+  private readonly logger = new Logger(DraftEngineController.name);
+
+  constructor(
+    private readonly draftEngineService: DraftEngineService,
+    private readonly requestContext: RequestContextService,
+  ) {}
 
   @Get(":tenantId/draft-engine/:draftKey")
   @Roles(UserRole.Owner, UserRole.Admin, UserRole.Member)
@@ -49,7 +56,16 @@ export class DraftEngineController {
     @Param("tenantId") tenantId: string,
     @Param("draftKey") draftKey: string,
   ): Promise<DraftSyncPayloadDto | null> {
-    return this.draftEngineService.findForMember(tenantId, draftKey);
+    this.logger.log(
+      `DEBUG-TRACE [A] Input: route workspaceId=${tenantId} draftKey=${draftKey} | ` +
+        `session jwtTenantId=${this.requestContext.resolveEffectiveTenantId() ?? "null"} ` +
+        `userId=${this.requestContext.getUserId() ?? "null"}`,
+    );
+
+    const result = await this.draftEngineService.findForMember(tenantId, draftKey);
+
+    this.logger.log(`DEBUG-TRACE [end] GET response payload=${JSON.stringify(result)}`);
+    return result;
   }
 
   @Patch(":tenantId/draft-engine/:draftKey")
