@@ -21,6 +21,7 @@ import {
   type DenaliCanonicalTransportMode,
 } from "@repo/types/denali";
 
+import type { DraftStatus } from "@repo/draft-engine";
 import type { UseFormSetValue } from "react-hook-form";
 
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
@@ -75,7 +76,7 @@ function nonAttendanceDetailsToFormOverview(
 
 function peakHeightFromForm(form: DenaliCreateTourWizardForm): number | undefined {
   const value =
-    form.tripDetails?.overview?.peakHeight ?? form.programNature.altitudeMeasurement;
+    form.tripDetails?.overview?.peakHeight ?? (form.programNature as any).altitudeMeasurement;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
@@ -86,7 +87,7 @@ function peakHeightFromCanonical(canonical: DenaliCanonicalTourModel): number | 
 
 function elevationGainFromForm(form: DenaliCreateTourWizardForm): number | undefined {
   const value =
-    form.tripDetails?.metrics?.elevationGain ?? form.programNature.altitudeGainApprox;
+    form.tripDetails?.metrics?.elevationGain ?? (form.programNature as any).altitudeGainApprox;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
@@ -97,11 +98,11 @@ function elevationGainFromCanonical(canonical: DenaliCanonicalTourModel): number
 
 function overviewToCanonical(
   form: DenaliCreateTourWizardForm,
-  base: DenaliCanonicalTourModel,
+  base: Partial<DenaliCanonicalTourModel>,
 ): DenaliCanonicalTourModel["overview"] | undefined {
   const nonAttendanceDetails =
-    nonAttendanceDetailsFromForm(form) ?? nonAttendanceDetailsFromCanonical(base);
-  const peakHeight = peakHeightFromForm(form) ?? peakHeightFromCanonical(base);
+    nonAttendanceDetailsFromForm(form) ?? nonAttendanceDetailsFromCanonical(base as any);
+  const peakHeight = peakHeightFromForm(form) ?? peakHeightFromCanonical(base as any);
   const next: NonNullable<DenaliCanonicalTourModel["overview"]> = {
     ...base.overview,
     ...(nonAttendanceDetails != null ? { nonAttendanceDetails } : {}),
@@ -112,9 +113,9 @@ function overviewToCanonical(
 
 function metricsToCanonical(
   form: DenaliCreateTourWizardForm,
-  base: DenaliCanonicalTourModel,
+  base: Partial<DenaliCanonicalTourModel>,
 ): DenaliCanonicalTourModel["metrics"] | undefined {
-  const elevationGain = elevationGainFromForm(form) ?? elevationGainFromCanonical(base);
+  const elevationGain = elevationGainFromForm(form) ?? elevationGainFromCanonical(base as any);
   if (elevationGain == null) {
     return base.metrics;
   }
@@ -549,30 +550,42 @@ export type ApplyCanonicalMvpToFormOptions = {
   /** Workspace overlay rule set; defaults to static {@link denaliRuleSet}. */
   ruleSet?: DenaliRuleSet;
   uiOptions?: DenaliUIContextOptions;
-  /** Optional RHF / wizard trace for conflict debugging (browser console). */
-  formTrace?: { isDirty?: boolean; isSyncing?: boolean };
 };
+
+/** Engine statuses passed into {@link applyCanonicalMvpToForm} for quiet hydration during conflict. */
+export type DenaliCanonicalFormEngineStatus = Extract<
+  DraftStatus,
+  "IDLE" | "CONFLICT_RESOLVING" | "SYNCING" | "ERROR"
+>;
+
+/** RHF `setValue` options derived from draft-engine status — quiet while resolving 409 conflicts. */
+export function denaliCanonicalFormSetValueOptions(
+  engineStatus: DenaliCanonicalFormEngineStatus | DraftStatus,
+): NonNullable<Parameters<UseFormSetValue<DenaliCreateTourWizardForm>>[2]> {
+  const isResolving = engineStatus === "CONFLICT_RESOLVING";
+  const writeMode = isResolving ? "programmatic" : "user";
+  return {
+    shouldValidate: false,
+    shouldDirty: writeMode === "user",
+    shouldTouch: writeMode === "user",
+  };
+}
 
 /** Writes MVP slices to RHF without resetting legacy fields. Returns the normalized form. */
 export function applyCanonicalMvpToForm(
   canonical: DenaliCanonicalTourModel,
   existingForm: DenaliCreateTourWizardForm,
-  engineStatus: string,
+  engineStatus: DenaliCanonicalFormEngineStatus | DraftStatus,
   {
     basics,
     setValue,
     ruleSet = denaliRuleSet,
     uiOptions,
-    formTrace,
   }: ApplyCanonicalMvpToFormOptions,
 ): DenaliCreateTourWizardForm {
-  const writeMode: "user" | "programmatic" =
-    engineStatus === "CONFLICT_RESOLVING" ? "programmatic" : "user";
+  const sync = denaliCanonicalFormSetValueOptions(engineStatus);
   const nextRaw = denaliCanonicalToForm(canonical, existingForm, { basics });
   const next = applyDenaliInvariantState(nextRaw, uiOptions, ruleSet);
-
-  const sync =
-    writeMode === "user" ? DENALI_USER_FORM_SET_VALUE_OPTIONS : DENALI_QUIET_FORM_SET_VALUE_OPTIONS;
 
   setValue("basicInfo", next.basicInfo, sync);
   setValue(

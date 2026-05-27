@@ -98,7 +98,6 @@ export function DenaliCanonicalProvider({
   wizardTemplate,
   uploadTourId: uploadTourIdProp = null,
   workspaceFormProfile,
-  draftIsSyncing = false,
   draftStatus = "IDLE",
 }: {
   children: ReactNode;
@@ -111,12 +110,10 @@ export function DenaliCanonicalProvider({
   uploadTourId?: string | null;
   /** Required for lazy draft-tour creation on first gallery upload in create mode. */
   workspaceFormProfile?: TourFormProfile;
-  /** Draft-engine PATCH in flight. */
-  draftIsSyncing?: boolean;
-  /** Draft-engine status — blocks canonical commits while resolving 409 conflicts. */
+  /** Draft-engine status — drives quiet RHF writes during {@link applyCanonicalMvpToForm}. */
   draftStatus?: DraftStatus;
 }) {
-  const { control, getValues, setValue, formState } = formMethods;
+  const { control, getValues, setValue } = formMethods;
 
   const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
   const transportModeWatch = useWatch({ control, name: "transport.transportMode" });
@@ -207,12 +204,11 @@ export function DenaliCanonicalProvider({
         setValue,
         ruleSet,
         uiOptions,
-        formTrace: { isDirty: formState.isDirty, isSyncing: draftIsSyncing },
       });
 
       setCanonicalModel(safeDenaliFormToCanonical(safeForm));
     },
-    [draftIsSyncing, draftStatus, formState.isDirty, getValues, ruleSet, setValue, workspaceFormProfile],
+    [draftStatus, getValues, ruleSet, setValue, workspaceFormProfile],
   );
 
   const updateCanonical = useCallback(

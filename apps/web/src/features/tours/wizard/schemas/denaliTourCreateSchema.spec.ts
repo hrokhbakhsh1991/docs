@@ -33,6 +33,8 @@ function applyValidMultiDayItinerary(values: DenaliCreateTourWizardForm): void {
 /** Structural base schema only (shape/enums) — not the production submit gate. */
 test("denaliTourCreateFormSchema accepts valid mountain_day defaults (structural)", () => {
   const values = buildDenaliTourCreateDefaultValues();
+  values.basicInfo.tourType = "mountain_day";
+  values.basicInfo.startDateTime = "2026-06-03T18:00:00.000Z";
   const result = denaliTourCreateFormSchema.safeParse(values);
   assert.equal(result.success, true, result.success ? "" : JSON.stringify(result.error.issues));
 });
@@ -109,6 +111,7 @@ test("validateDenaliWizardForm requires dongAmount when shared_cars", () => {
 
 test("normalizeDenaliWizardForm strips dongAmount when not shared_cars", () => {
   const values = buildDenaliTourCreateDefaultValues();
+  values.basicInfo.tourType = "mountain_day";
   values.transport.transportMode = "organizer_vehicle";
   values.transport.dongAmount = 50_000;
   const normalized = normalizeDenaliWizardForm(values);

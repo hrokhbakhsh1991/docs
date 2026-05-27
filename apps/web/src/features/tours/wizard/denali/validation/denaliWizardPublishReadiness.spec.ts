@@ -78,7 +78,7 @@ test("getDenaliWizardPublishReadinessIssues: draft publishStatus skips OPEN gate
 test("getDenaliWizardPublishReadinessIssues: active without geo fails publish gate", () => {
   const form = publishGateMountainForm({
     basicInfo: { publishStatus: "active" },
-    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] } },
+    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
   });
   const issues = getDenaliWizardPublishReadinessIssues(form);
   assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));

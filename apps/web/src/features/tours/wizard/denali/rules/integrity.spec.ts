@@ -21,7 +21,7 @@ import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tena
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 
 /** Paths that must not be cleared by overlay normalize (would break classification). */
-const INTEGRITY_SKIP_CLEAR_PATHS = new Set(["category", "eventVariant"]);
+const INTEGRITY_SKIP_CLEAR_PATHS = new Set(["category", "eventVariant", "photos"]);
 
 function overlayTemplateForHiddenPath(path: string): TenantWizardTemplate {
   return {

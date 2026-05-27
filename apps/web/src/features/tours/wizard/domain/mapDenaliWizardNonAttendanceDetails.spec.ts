@@ -64,6 +64,6 @@ test("transformTourToDenaliWizardValues hydrates nonAttendanceDetails from tripD
     },
   };
 
-  const form = transformTourToDenaliWizardValues(source, "create");
+  const form = transformTourToDenaliWizardValues(source, { mode: "create" });
   assert.equal(form.tripDetails?.overview?.nonAttendanceDetails, "Stored policy");
 });

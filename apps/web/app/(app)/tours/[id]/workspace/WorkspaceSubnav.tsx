@@ -4,10 +4,15 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@tour/ui";
 
 import { TOUR_WORKSPACE_COPY } from "./tour-workspace-copy";
+import {
+  resolveWorkspaceSubnavTab,
+  type WorkspaceSubnavTab,
+} from "./workspaceSubnavUtils";
+
+export type { WorkspaceSubnavTab };
+export { resolveWorkspaceSubnavTab };
 
 import styles from "./workspace-subnav.module.css";
-
-export type WorkspaceSubnavTab = "registrations" | "waitlist" | "transport";
 
 export type WorkspaceSubnavProps = {
   tourId: string;
@@ -15,20 +20,6 @@ export type WorkspaceSubnavProps = {
 
 function workspaceBasePath(tourId: string): string {
   return `/tours/${encodeURIComponent(tourId)}/workspace`;
-}
-
-export function resolveWorkspaceSubnavTab(
-  pathname: string,
-  tourId: string,
-): WorkspaceSubnavTab {
-  const base = workspaceBasePath(tourId);
-  if (pathname === `${base}/waitlist` || pathname.startsWith(`${base}/waitlist/`)) {
-    return "waitlist";
-  }
-  if (pathname === `${base}/transport` || pathname.startsWith(`${base}/transport/`)) {
-    return "transport";
-  }
-  return "registrations";
 }
 
 export function WorkspaceSubnav({ tourId }: WorkspaceSubnavProps) {

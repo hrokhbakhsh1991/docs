@@ -392,6 +392,7 @@ export function applyDenaliCreateWizardHydrationGuards(
   const tripDetails: Partial<DenaliCreateTourWizardForm["tripDetails"]> = {
     ...form.tripDetails,
     overview: {
+      customServiceLabels: form.tripDetails?.overview?.customServiceLabels ?? [],
       ...form.tripDetails?.overview,
     },
   };
@@ -401,6 +402,7 @@ export function applyDenaliCreateWizardHydrationGuards(
       !Number.isFinite(tripDetails.overview.peakHeight))
   ) {
     tripDetails.overview = {
+      customServiceLabels: tripDetails.overview?.customServiceLabels ?? [],
       ...tripDetails.overview,
       peakHeight: CREATE_MOUNTAIN_ALTITUDE_FALLBACK_M,
     };

@@ -39,6 +39,8 @@ test("validateDenaliWizardForm rejects basePricePerPerson zero when paid", () =>
 
 test("canonical parse rejects missing capacityMax after adapter passthrough", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.basicInfo.startDateTime = "2026-06-03T18:00:00.000Z";
   form.basicInfo.capacityMax = undefined;
   const parsed = safeParseDenaliCanonicalFromWizardForm(form);
   assert.equal(parsed.success, false);
@@ -51,6 +53,8 @@ test("canonical parse rejects missing capacityMax after adapter passthrough", ()
 /** Projection layer only — submit gate would block dong/capacity zero before map in production. */
 test("buildDenaliCreateTourPayloadProjection omits fuelShareToman when dong is zero", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.basicInfo.startDateTime = "2026-06-03T18:00:00.000Z";
   form.basicInfo.capacityMax = 10;
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = 0;
@@ -60,6 +64,8 @@ test("buildDenaliCreateTourPayloadProjection omits fuelShareToman when dong is z
 
 test("buildDenaliCreateTourPayloadProjection throws when capacityMax is not positive", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.basicInfo.startDateTime = "2026-06-03T18:00:00.000Z";
   form.basicInfo.capacityMax = 0;
   assert.throws(
     () => buildDenaliCreateTourPayloadProjection(form),

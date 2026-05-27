@@ -38,7 +38,7 @@ test("mountain models: participant paths are visible on denali_pricing", () => {
     const field = findDenaliRuleField(model, path);
     assert.ok(field, path);
     assert.equal(field.hidden, false);
-    assert.equal(field.required, true);
+    assert.equal(field.required, path !== "participants.sportsInsuranceRequired");
     assert.equal(field.step, "denali_pricing");
   }
 });

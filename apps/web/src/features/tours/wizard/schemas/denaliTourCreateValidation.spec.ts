@@ -22,6 +22,7 @@ test("normalizeDenaliWizardForm strips outdoor fields for event kinds", () => {
 
 test("getDenaliWizardStepIssues: transport step catches missing dong", () => {
   const form = buildDenaliTourCreateDefaultValues();
+  form.basicInfo.tourType = "mountain_day";
   form.transport.transportMode = "shared_cars";
   form.transport.dongAmount = undefined;
   const issues = getDenaliWizardStepIssues(form, "denali_logistics");

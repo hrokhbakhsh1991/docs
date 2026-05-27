@@ -281,7 +281,7 @@ export function DenaliCreateTourWizard() {
     if (!workspaceId || !draftInitComplete) {
       return;
     }
-    const subscription = watch((_values, info) => {
+    const subscription = watch((_values) => {
       if (suppressDraftPushRef.current) {
         return;
       }
@@ -441,7 +441,6 @@ export function DenaliCreateTourWizard() {
         syncToken={canonicalSyncToken}
         wizardTemplate={wizardTemplateQuery.data ?? null}
         workspaceFormProfile={workspaceFormProfile ?? undefined}
-        draftIsSyncing={isDraftSyncing}
         draftStatus={draftState.status}
       >
         <DenaliWizardSyncProvider isSyncing={isDraftSyncing}>
