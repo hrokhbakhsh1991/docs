@@ -129,3 +129,10 @@
 - `apps/web` full `tsc --noEmit` still reports an existing unrelated error:
   - `src/features/tours/wizard/denali/denaliSyncGuard.ts` imports missing `deepEqualForLoopDebug` symbol from `@/lib/debug-session-log`
 - This pre-existing issue is outside the Phase 3 changes above.
+
+## MAP 100% Closure Update
+
+- Final literal MAP alignment item has been completed:
+  - `apps/api/src/modules/draft-engine/entities/draft-snapshot.entity.ts`
+  - `version` now uses `@VersionColumn` (instead of plain `@Column`).
+- Draft-engine targeted tests still pass after this alignment update.
