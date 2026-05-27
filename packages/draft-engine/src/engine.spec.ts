@@ -10,8 +10,9 @@ function payload(
   data: TestData,
   version = 1,
   lastModified = Date.now(),
+  schemaVersion = 1,
 ): DraftSyncPayload<TestData> {
-  return { data, version, lastModified };
+  return { data, version, schemaVersion, lastModified };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -516,4 +517,61 @@ test("getState returns readonly snapshot", async () => {
   const state = engine.getState();
   assert.equal(state.status, "IDLE");
   assert.deepEqual(state.data, { value: "snap" });
+});
+
+test("retry is a no-op when status is not ERROR", async () => {
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => payload({ value: "initial" }, 1, 100),
+    onPush: async (p) => {
+      pushCount += 1;
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  await engine.retry();
+
+  assert.equal(engine.getState().status, "IDLE");
+  assert.equal(pushCount, 0);
+});
+
+test("setDraftData from user is ignored while DRAFT_AVAILABLE", async () => {
+  let pushCount = 0;
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    autoApply: false,
+    conflictStrategy: "SERVER_WINS",
+    debounceMs: 5,
+    onFetch: async () => payload({ value: "server" }, 2, 200),
+    onPush: async (p) => {
+      pushCount += 1;
+      return p;
+    },
+  });
+
+  await engine.initialize();
+  assert.equal(engine.getState().status, "DRAFT_AVAILABLE");
+
+  engine.setDraftData({ value: "local-edit" }, { source: "user" });
+  await sleep(20);
+
+  const state = engine.getState();
+  assert.equal(state.status, "DRAFT_AVAILABLE");
+  assert.equal(state.data, null);
+  assert.equal(pushCount, 0);
+});
+
+test("clearDraft throws when delete handler is not provided", async () => {
+  const engine = new DraftEngine<TestData>({
+    id: "test",
+    conflictStrategy: "SERVER_WINS",
+    onFetch: async () => null,
+    onPush: async (p) => p,
+  });
+
+  await assert.rejects(() => engine.clearDraft(), /clearDraft requires config.onDelete/);
 });

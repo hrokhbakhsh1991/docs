@@ -162,7 +162,12 @@ async function patchDraftSnapshot(params: {
   token: string;
   workspaceId: string;
   draftKey: string;
-  body: { data: Record<string, unknown>; version: number; lastModified: number };
+  body: {
+    data: Record<string, unknown>;
+    version: number;
+    schemaVersion?: number;
+    lastModified: number;
+  };
 }): Promise<{ status: number; body: unknown; headers: Record<string, string> }> {
   const path = `/api/v2/workspaces/${encodeURIComponent(params.workspaceId)}/draft-engine/${encodeURIComponent(params.draftKey)}`;
   const url = `${params.apiBase.replace(/\/$/, "")}${path}`;
@@ -294,7 +299,7 @@ async function main(): Promise<void> {
     token,
     workspaceId,
     draftKey,
-    body: { ...patchPayload, version: 0 },
+    body: { ...patchPayload, version: 0, schemaVersion: 1 },
   });
   console.log(`PATCH create (version 0): HTTP ${createRes.status}`);
   console.log(JSON.stringify(createRes.body, null, 2));
@@ -319,6 +324,7 @@ async function main(): Promise<void> {
     body: {
       data: { probe: "draft-engine-debug", step: 1 },
       version: baseVersion,
+      schemaVersion: 1,
       lastModified: Date.now(),
     },
   });
@@ -348,6 +354,7 @@ async function main(): Promise<void> {
     body: {
       data: { probe: "draft-engine-debug", step: 2 },
       version: baseVersion,
+      schemaVersion: 1,
       lastModified: Date.now(),
     },
   });

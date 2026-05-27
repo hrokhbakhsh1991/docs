@@ -96,6 +96,8 @@ export const auditTrailKeys = {
   all: ["auditTrail"] as const,
   list: (tenantId: string, filters: Record<string, string>) =>
     [...auditTrailKeys.all, "list", tenantId, filters] as const,
+  draftConflicts: (tenantId: string, filters: { from: string; to: string; limit: number }) =>
+    [...auditTrailKeys.all, "draft-conflicts", tenantId, filters] as const,
 };
 
 export const reconciliationTriageKeys = {

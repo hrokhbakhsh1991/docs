@@ -36,6 +36,18 @@ export type ListTenantAuditEventsResponseDto = {
   nextCursor: string | null;
 };
 
+export type DraftConflictHotspotDto = {
+  resourceType: string;
+  resourceId: string;
+  conflictCount: number;
+  lastOccurredAt: string;
+  sampleRequestId: string | null;
+};
+
+export type ListDraftConflictHotspotsResponseDto = {
+  data: DraftConflictHotspotDto[];
+};
+
 export async function listTenantAuditEvents(
   tenantId: string,
   params?: ListTenantAuditEventsParams
@@ -52,6 +64,21 @@ export async function listTenantAuditEvents(
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return bffBrowserClient.get<ListTenantAuditEventsResponseDto>(
     `${BFF.workspaceAuditEvents(tenantId)}${suffix}`,
+    { skip403Redirect: true },
+  );
+}
+
+export async function listDraftConflictHotspots(
+  tenantId: string,
+  params?: { from?: string; to?: string; limit?: number },
+): Promise<ListDraftConflictHotspotsResponseDto> {
+  const qs = new URLSearchParams();
+  if (params?.from?.trim()) qs.set("from", params.from.trim());
+  if (params?.to?.trim()) qs.set("to", params.to.trim());
+  if (params?.limit !== undefined) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return bffBrowserClient.get<ListDraftConflictHotspotsResponseDto>(
+    `${BFF.workspaceAuditDraftConflicts(tenantId)}${suffix}`,
     { skip403Redirect: true },
   );
 }

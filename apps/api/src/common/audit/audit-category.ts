@@ -9,7 +9,9 @@ export const AUDIT_CATEGORY = {
   PAYMENT: "PAYMENT",
   /** Financial domain mutations (ledger, payment pipeline, booking price finalization). */
   FINANCE: "FINANCE",
-  SECURITY: "SECURITY"
+  SECURITY: "SECURITY",
+  /** Draft engine lifecycle events (save/delete/conflict/migration). */
+  DRAFT_ENGINE_EVENT: "DRAFT_ENGINE_EVENT",
 } as const;
 
 export type AuditCategory = (typeof AUDIT_CATEGORY)[keyof typeof AUDIT_CATEGORY];

@@ -1,4 +1,5 @@
 import { DraftConflictError, type DraftSyncPayload } from "@repo/draft-engine";
+import { DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION } from "@repo/shared-contracts";
 
 /** Reject missing scope before `encodeURIComponent(undefined)` becomes the literal path segment `"undefined"`. */
 function assertDraftScope(workspaceId: string, draftKey: string): void {
@@ -18,13 +19,26 @@ function parseDraftSyncPayload<T>(server: unknown): DraftSyncPayload<T> | null {
   if (!server || typeof server !== "object" || Array.isArray(server)) {
     return null;
   }
-  const record = server as { data?: unknown; version?: unknown; lastModified?: unknown };
-  if (record.data == null || typeof record.version !== "number" || typeof record.lastModified !== "number") {
+  const record = server as {
+    data?: unknown;
+    version?: unknown;
+    schemaVersion?: unknown;
+    schema_version?: unknown;
+    lastModified?: unknown;
+  };
+  const schemaRaw = record.schemaVersion ?? record.schema_version;
+  if (
+    record.data == null ||
+    typeof record.version !== "number" ||
+    typeof schemaRaw !== "number" ||
+    typeof record.lastModified !== "number"
+  ) {
     return null;
   }
   return {
     data: record.data as T,
     version: record.version,
+    schemaVersion: schemaRaw,
     lastModified: record.lastModified,
   };
 }
@@ -56,7 +70,8 @@ export async function fetchDraftSnapshot<T>(
   if (body == null || body.data == null) {
     return null;
   }
-  return body;
+  const parsed = parseDraftSyncPayload<T>(body);
+  return parsed;
 }
 
 export async function patchDraftSnapshot<T>(
@@ -68,7 +83,12 @@ export async function patchDraftSnapshot<T>(
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      data: payload.data,
+      version: payload.version,
+      schemaVersion: payload.schemaVersion ?? DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION,
+      lastModified: payload.lastModified,
+    }),
   });
   if (res.status === 409) {
     const conflictBody = (await res.json().catch(() => null)) as unknown;
@@ -81,7 +101,11 @@ export async function patchDraftSnapshot<T>(
   if (!res.ok) {
     throw new Error(`patchDraftSnapshot: ${res.status}`);
   }
-  return (await res.json()) as DraftSyncPayload<T>;
+  const parsed = parseDraftSyncPayload<T>(await res.json());
+  if (!parsed) {
+    throw new Error("patchDraftSnapshot: invalid response payload");
+  }
+  return parsed;
 }
 
 export async function deleteDraftSnapshot(workspaceId: string, draftKey: string): Promise<void> {

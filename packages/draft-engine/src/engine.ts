@@ -16,6 +16,7 @@ export class DraftEngine<T> {
   private pendingDraft: DraftSyncPayload<T> | null = null;
   private status: DraftEngineState<T>["status"] = "IDLE";
   private version = 0;
+  private schemaVersion = 1;
   private lastModified = 0;
   private error: Error | undefined;
 
@@ -90,6 +91,9 @@ export class DraftEngine<T> {
       if (options?.version != null) {
         this.version = options.version;
       }
+      if (options?.schemaVersion != null) {
+        this.schemaVersion = options.schemaVersion;
+      }
       if (options?.lastModified != null) {
         this.lastModified = options.lastModified;
       }
@@ -135,6 +139,7 @@ export class DraftEngine<T> {
     this.pendingDraft = null;
     this.data = null;
     this.version = 0;
+    this.schemaVersion = 1;
     this.lastModified = 0;
     this.status = "IDLE";
     this.error = undefined;
@@ -146,6 +151,7 @@ export class DraftEngine<T> {
       data: this.data,
       status: this.status,
       version: this.version,
+      schemaVersion: this.schemaVersion,
       lastModified: this.lastModified,
       ...(this.pendingDraft != null ? { pendingDraft: this.pendingDraft } : {}),
       ...(this.error != null ? { error: this.error } : {}),
@@ -172,6 +178,7 @@ export class DraftEngine<T> {
     this.setDraftData(payload.data, {
       source: "remote",
       version: payload.version,
+      schemaVersion: payload.schemaVersion,
       lastModified: payload.lastModified,
     });
   }
@@ -183,6 +190,7 @@ export class DraftEngine<T> {
     return {
       data: this.data,
       version: this.version,
+      schemaVersion: this.schemaVersion,
       lastModified: this.lastModified,
     };
   }
@@ -363,6 +371,7 @@ export class DraftEngine<T> {
       this.setDraftData(merged, {
         source: "remote",
         version: occSource.version,
+        schemaVersion: occSource.schemaVersion,
         lastModified: occSource.lastModified,
       });
       this.status = "IDLE";

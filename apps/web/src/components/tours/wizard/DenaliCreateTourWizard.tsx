@@ -135,6 +135,7 @@ export function DenaliCreateTourWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [canonicalSyncToken, setCanonicalSyncToken] = useState(0);
   const [draftInitComplete, setDraftInitComplete] = useState(false);
+  const [staleDraftNoticeOpen, setStaleDraftNoticeOpen] = useState(false);
 
   const suppressDraftPushRef = useRef(false);
   const initialHydrateDoneRef = useRef(false);
@@ -260,6 +261,7 @@ export function DenaliCreateTourWizard() {
       return;
     }
 
+    setStaleDraftNoticeOpen(true);
     suppressDraftPushRef.current = true;
     const stepFromDraft = draftState.data.currentStepIndex ?? 0;
     reset(formDefaults, DENALI_QUIET_FORM_RESET_OPTIONS);
@@ -492,6 +494,35 @@ export function DenaliCreateTourWizard() {
                 ) : null}
                 <DenaliWizardStepper steps={visibleSteps} currentIndex={currentStep} />
                 <DenaliStepBody stepId={activeStepId} />
+
+                {staleDraftNoticeOpen ? (
+                  <div
+                    role="status"
+                    data-testid="denali-draft-stale-notice"
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "0.5rem",
+                      padding: "0.75rem",
+                      borderRadius: "0.5rem",
+                      background: "var(--color-warning-50, #fffbeb)",
+                      border: "1px solid var(--color-warning-200, #fde68a)",
+                      color: "var(--color-warning-900, #78350f)",
+                    }}
+                  >
+                    <span>{t("draftStaleConflictNotice")}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setStaleDraftNoticeOpen(false)}
+                    >
+                      {t("draftStaleConflictDismiss")}
+                    </Button>
+                  </div>
+                ) : null}
 
                 {draftState.status === "ERROR" ? (
                   <div

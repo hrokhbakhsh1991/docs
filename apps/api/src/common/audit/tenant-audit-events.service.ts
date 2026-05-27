@@ -22,8 +22,17 @@ export type TenantAuditAppendInput = {
 };
 
 export const TENANT_AUDIT_EXPORT_MAX_ROWS = 50_000;
+export const TENANT_AUDIT_CONFLICTS_MAX_LIMIT = 200;
+export const TENANT_AUDIT_CONFLICTS_DEFAULT_LIMIT = 25;
 
 export type TenantAuditListCursor = { occurredAt: Date; id: string };
+export type DraftConflictHotspotRow = {
+  resourceType: string;
+  resourceId: string;
+  conflictCount: number;
+  lastOccurredAt: Date;
+  sampleRequestId: string | null;
+};
 
 export function encodeTenantAuditListCursor(cursor: TenantAuditListCursor): string {
   return Buffer.from(
@@ -218,6 +227,56 @@ export class TenantAuditEventsService {
       qb.andWhere("e.occurred_at <= :to", { to: params.to });
     }
     return qb.getMany();
+  }
+
+  async listDraftConflictHotspots(params: {
+    tenantId: string;
+    from?: Date;
+    to?: Date;
+    limit?: number;
+  }): Promise<DraftConflictHotspotRow[]> {
+    const tenantId = params.tenantId.trim().toLowerCase();
+    const take = Math.min(
+      Math.max(params.limit ?? TENANT_AUDIT_CONFLICTS_DEFAULT_LIMIT, 1),
+      TENANT_AUDIT_CONFLICTS_MAX_LIMIT,
+    );
+    const qb = this.repo
+      .createQueryBuilder("e")
+      .select("e.resource_type", "resource_type")
+      .addSelect("e.resource_id", "resource_id")
+      .addSelect("COUNT(*)::int", "conflict_count")
+      .addSelect("MAX(e.occurred_at)", "last_occurred_at")
+      .addSelect("MAX(e.request_id)", "sample_request_id")
+      .where("e.tenant_id = :tenantId", { tenantId })
+      .andWhere("e.action = :action", { action: "draft_engine.conflict" })
+      .andWhere("e.resource_id IS NOT NULL")
+      .groupBy("e.resource_type")
+      .addGroupBy("e.resource_id")
+      .orderBy("conflict_count", "DESC")
+      .addOrderBy("last_occurred_at", "DESC")
+      .take(take);
+
+    if (params.from) {
+      qb.andWhere("e.occurred_at >= :from", { from: params.from });
+    }
+    if (params.to) {
+      qb.andWhere("e.occurred_at <= :to", { to: params.to });
+    }
+
+    const rows = await qb.getRawMany<{
+      resource_type: string;
+      resource_id: string;
+      conflict_count: number | string;
+      last_occurred_at: string;
+      sample_request_id: string | null;
+    }>();
+    return rows.map((row) => ({
+      resourceType: row.resource_type || "",
+      resourceId: row.resource_id,
+      conflictCount: Number(row.conflict_count),
+      lastOccurredAt: new Date(row.last_occurred_at),
+      sampleRequestId: row.sample_request_id,
+    }));
   }
 
   toNdjson(rows: TenantAuditEventEntity[]): string {

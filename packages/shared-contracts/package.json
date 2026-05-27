@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test": "pnpm --dir ../../apps/api exec node --import tsx --test ../../packages/shared-contracts/src/finance/*.spec.ts ../../packages/shared-contracts/src/content/*.spec.ts"
+    "test": "pnpm --dir ../../apps/api exec node --import tsx --test ../../packages/shared-contracts/src/finance/*.spec.ts ../../packages/shared-contracts/src/content/*.spec.ts ../../packages/shared-contracts/src/draft/*.spec.ts"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",

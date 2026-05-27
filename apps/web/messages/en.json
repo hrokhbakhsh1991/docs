@@ -412,6 +412,8 @@
       "draftRestoreBanner": "We found a saved draft from your last session.",
       "draftRestoreLoad": "Restore draft",
       "draftRestoreDiscard": "Discard",
+      "draftStaleConflictNotice": "This draft was updated in another tab or session. Your changes were merged with the latest server copy — review the form before continuing.",
+      "draftStaleConflictDismiss": "Dismiss",
       "wizardTemplateLoadFailedTitle": "Could not load wizard template",
       "wizardTemplateLoadFailedDescription": "This workspace has no wizard template (e.g. after a Denali reset). From apps/api run: ALLOW_DENALI_RESET=1 pnpm run reset:denali:provision",
       "wizardTemplateLoadFailedHint": "Or: pnpm --filter @apps/api provision:denali then seed:denali-tour-presets",

@@ -9,6 +9,8 @@ export type DraftStatus =
 export type DraftSyncPayload<T> = {
   data: T;
   version: number;
+  /** Draft `data` blob schema generation (see `@repo/shared-contracts` `DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION`). */
+  schemaVersion: number;
   lastModified: number;
 };
 
@@ -20,6 +22,7 @@ export type DraftSetDataOptions = {
   source?: DraftDataSource;
   /** When `source` is `remote`, apply server OCC fields so the next user push uses the latest version. */
   version?: number;
+  schemaVersion?: number;
   lastModified?: number;
 };
 
@@ -49,6 +52,7 @@ export type DraftEngineState<T> = {
   readonly data: T | null;
   readonly status: DraftStatus;
   readonly version: number;
+  readonly schemaVersion: number;
   readonly lastModified: number;
   readonly pendingDraft?: DraftSyncPayload<T> | null;
   readonly error?: Error;

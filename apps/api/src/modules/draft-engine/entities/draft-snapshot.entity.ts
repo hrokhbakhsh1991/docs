@@ -30,8 +30,14 @@ export class DraftSnapshotEntity {
   @Column({ type: "int", default: 1 })
   version!: number;
 
+  @Column({ name: "schema_version", type: "int", default: 1 })
+  schemaVersion!: number;
+
   @Column({ name: "last_modified", type: "bigint", default: 0 })
   lastModified!: string;
+
+  @Column({ name: "trace_id", type: "varchar", length: 128, nullable: true })
+  traceId!: string | null;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

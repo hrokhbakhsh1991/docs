@@ -26,6 +26,20 @@ function makeController(opts?: {
     appendOrWarn: (input: { action: string }) => Promise<void>;
     toCsv: () => string;
     toNdjson: () => string;
+    listDraftConflictHotspots: (params: {
+      tenantId: string;
+      from?: Date;
+      to?: Date;
+      limit?: number;
+    }) => Promise<
+      Array<{
+        resourceType: string;
+        resourceId: string;
+        conflictCount: number;
+        lastOccurredAt: Date;
+        sampleRequestId: string | null;
+      }>
+    >;
   } = {
     listForTenantExport: async () => listRows,
     listForTenantPaged: async (params) => ({
@@ -39,7 +53,8 @@ function makeController(opts?: {
     }),
     appendOrWarn: async (_input: { action: string }) => undefined,
     toCsv: () => "csv",
-    toNdjson: () => "ndjson"
+    toNdjson: () => "ndjson",
+    listDraftConflictHotspots: async () => [],
   };
   const requestContextService = {
     resolveEffectiveTenantId: () => opts?.jwtTenantId ?? TENANT_ID,
@@ -177,5 +192,34 @@ test("listTenantAudit forwards decoded cursor to service", async () => {
       typeof receivedAfter === "object" &&
       "id" in (receivedAfter as object) &&
       (receivedAfter as { id: string }).id === "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+  );
+});
+
+test("listDraftConflicts returns aggregated rows", async () => {
+  const { controller, tenantAuditEventsService } = makeController();
+  tenantAuditEventsService.listDraftConflictHotspots = async () => [
+    {
+      resourceType: "draft_snapshot",
+      resourceId: "a:b:denali-create",
+      conflictCount: 7,
+      lastOccurredAt: new Date("2026-01-10T00:00:00.000Z"),
+      sampleRequestId: "req-1",
+    },
+  ];
+  const response = await controller.listDraftConflicts(TENANT_ID, { limit: 10 } as never);
+  assert.equal(response.data.length, 1);
+  assert.equal(response.data[0]?.conflictCount, 7);
+  assert.equal(response.data[0]?.resourceId, "a:b:denali-create");
+});
+
+test("listDraftConflicts denies cross-tenant token usage", async () => {
+  const { controller } = makeController({
+    jwtTenantId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  });
+  await assert.rejects(
+    async () => {
+      await controller.listDraftConflicts(TENANT_ID, {} as never);
+    },
+    (error: unknown) => error instanceof ForbiddenException,
   );
 });

@@ -1,4 +1,5 @@
 import type { DraftEngineConfig, DraftSetDataOptions } from "@repo/draft-engine";
+import { DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION } from "@repo/shared-contracts";
 import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
@@ -60,6 +61,7 @@ export function createDenaliDraftAdapter(input: {
           currentStepIndex: remote.data.currentStepIndex,
         },
         version: remote.version,
+        schemaVersion: remote.schemaVersion,
         lastModified: remote.lastModified,
       };
     },
@@ -77,6 +79,7 @@ export function createDenaliDraftAdapter(input: {
         {
           data: snapshot,
           version: payload.version,
+          schemaVersion: payload.schemaVersion ?? DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION,
           lastModified: payload.lastModified,
         },
       );
@@ -86,6 +89,7 @@ export function createDenaliDraftAdapter(input: {
           currentStepIndex: result.data.currentStepIndex,
         },
         version: result.version,
+        schemaVersion: result.schemaVersion,
         lastModified: result.lastModified,
       };
     },

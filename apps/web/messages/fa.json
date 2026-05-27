@@ -417,6 +417,8 @@
       "draftRestoreBanner": "یک پیش‌نویس ذخیره‌شده از نشست قبلی پیدا شد.",
       "draftRestoreLoad": "بازیابی پیش‌نویس",
       "draftRestoreDiscard": "نادیده‌گرفتن",
+      "draftStaleConflictNotice": "پیش‌نویس در تب یا نشست دیگری به‌روزرسانی شده است. تغییرات شما با آخرین نسخهٔ سرور ادغام شد — قبل از ادامه فرم را بررسی کنید.",
+      "draftStaleConflictDismiss": "بستن",
       "wizardTemplateLoadFailedTitle": "بارگذاری قالب ویزارد ناموفق بود",
       "wizardTemplateLoadFailedDescription": "قالب ویزارد این فضای کاری در دسترس نیست (مثلاً پس از reset workspace). از ترمینال در apps/api اجرا کنید: ALLOW_DENALI_RESET=1 pnpm run reset:denali:provision",
       "wizardTemplateLoadFailedHint": "یا: pnpm --filter @apps/api provision:denali و سپس seed:denali-tour-presets",

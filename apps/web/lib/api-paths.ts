@@ -51,6 +51,8 @@ export const API = {
   financeReportsLedgerEvents: "/api/v2/finance/reports/ledger-events",
   workspaceAuditEvents: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
+  workspaceAuditDraftConflicts: (tenantId: string) =>
+    `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events/draft-conflicts`,
   workspaceAuditEventsExport: (tenantId: string) =>
     `/api/v2/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`,
   workspaceReconciliationFindings: (tenantId: string) =>
@@ -135,6 +137,8 @@ export const BFF = {
   dashboardLeaderRegistrationRows: "/api/dashboard/leader-registration-rows",
   workspaceAuditEvents: (tenantId: string) =>
     `/api/workspaces/${encodeURIComponent(tenantId)}/audit-events`,
+  workspaceAuditDraftConflicts: (tenantId: string) =>
+    `/api/workspaces/${encodeURIComponent(tenantId)}/audit-events/draft-conflicts`,
   workspaceAuditEventsExport: (tenantId: string) =>
     `/api/workspaces/${encodeURIComponent(tenantId)}/audit-events/export`,
   workspaceReconciliationFindings: (tenantId: string) =>

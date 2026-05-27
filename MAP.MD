@@ -1,42 +1,88 @@
-گام ۱: تاسیسِ «قاره‌یِ قراردادها» (The Contract Foundation)
-ما قرار نیست کدِ جدیدی بنویسیم، قرار است «تعریف» کنیم.
+فاز ۰: ایجاد حریم امن (Safety Net)
+قبل از لمس هر کدی، باید مطمئن شویم چیزی را خراب نمی‌کنیم.
 
-محل: packages/shared-contracts/src/finance/
+[ ] تست‌های رگرسیون (Regression Tests): تمام سناریوهای فعلیِ ویزاردِ تور را (همین الان که درست کار می‌کند) در apps/web/tests با Playwright بنویسید.
 
-اقدام: ایجادِ finance.schemas.ts.
+[ ] تست‌های واحد برای منطق موجود: کدهای فعلی DraftEngine را با Jest تست کنید. این تست‌ها «میثاق» شما هستند؛ نباید در پایانِ کار، رفتار خروجیِ ماژول درفت تغییر کرده باشد.
+فاز ۱: تضمین یکپارچگی داده (Data Integrity & Safety)
+هدف: پیاده‌سازی قفل‌گذاری و نسخه گذاری برای جلوگیری از Data Race.
 
-دانش فنی: استفاده از Zod برای تعریفِ تمامِ موجودیت‌هایِ مالی (PaymentIntent, Receipt, LedgerEntry).
+تغییرات دیتابیس (Migration):
 
-هدف: این فایل تنها جایی است که "حقیقت" تعریف می‌شود. API و Web (React) هر دو باید از این فایل infer کنند (با z.infer). دیگر خبری از تایپ‌هایِ دستی یا تکراری نیست.
+[ ] اضافه کردن ستون version (Integer, default: 1) به جدول draft_snapshots.
 
-گام ۲: یکپارچه‌سازیِ وضعیت‌ها (Payment Status Unification)
-بزرگترین باگِ فعلی، دوگانگیِ PaymentStatus بینِ دامینِ مالی و API است.
+[ ] اضافه کردن ستون schema_version (Integer) برای مدیریت Schema Drift.
 
-اقدام: تعریفِ یک Finite State Machine (FSM) برایِ وضعیت‌هایِ مالی در لایه‌یِ قراردادها.
+[ ] افزودن ایندکس ترکیبی (tenant_id, wizard_key, entity_id) برای کوئری‌های سریع.
 
-قانون: تمامِ وضعیت‌هایِ Pending, Captured, Refunded باید دقیقاً در این FSM تعریف شوند.
+منطق Optimistic Locking در DraftEngineService:
 
-تکنیک: پیاده‌سازیِ یک Enum واحد و مشترک که توسطِ Zod اعتبارسنجی می‌شود.
+[ ] بازنویسی متد upsert در سرویس:
 
-گام ۳: ایجادِ Adapterهایِ انتزاعی (Gateway/Adapter Layer)
-ما نمی‌خواهیم درِ کنسولِ Controllerها را باز کنیم و به دیتابیس وصل شویم.
+TypeScript
 
-اقدام: ایجادِ سرویسِ FinanceAdapter که DTOهایِ قدیمیِ API را دریافت کرده و به Contractهایِ جدیدِ ما نگاشت (Map) می‌کند.
 
-مزیت: اگر فردا بخواهیم Stripe را با PSP دیگری عوض کنیم، فقط این Adapter تغییر می‌کند، نه کلِ سیستم.
+// شبه‌کد برای منطق به‌روزرسانی با قفل‌گذاری
+const result = await this.repo.update({
+  where: { id: draftId, version: currentVersion },
+  data: { data: newData, version: currentVersion + 1 }
+});
+if (result.affected === 0) throw new DraftConflictException("نسخه درفت تغییر کرده است.");
+پیاده‌سازی Schema Migration:
 
-گام ۴: ایمن‌سازیِ فرانت‌اند (React & Type Safety)
-درِ بخشِ apps/web/lib/finance/ را باز می‌کنیم.
+[ ] ساخت کلاس DraftMigrator که درفت‌های قدیمی را به ساختار جدید (طبق Zod Schema فعلی) تبدیل می‌کند. این برای جلوگیری از خطاهای کرش‌کننده در لود درفت‌های قدیمی حیاتی است.
 
-اقدام: جایگزینیِ Loose TS Interfaces با Zod Schemaهایی که در گام ۱ ساختیم.
+فاز ۲: معماری و بهینه‌سازی (Architecture & Performance)
+هدف: تفکیک منطق درفت از منطق بیزنس تور (Tours).
 
-React Power: استفاده از react-query یا swr با Zod validation در لایه‌یِ fetcher. اگر دیتایِ دریافتی از سرور با قراردادِ ما نخواند، در همان لایه Error می‌گیرد (قبل از اینکه به کامپوننتِ React برسد و آن را کرش کند).
+ساختار ماژولار (Shared Lib):
 
-«نقشه‌یِ ترافیک» (Safety Protocol)
-برای اینکه مطمئن شویم چیزی نمی‌شکند، از این ترافیک‌لایت استفاده می‌کنیم:
+[ ] انتقال DraftEngineService و DraftSnapshot به packages/draft-engine (یک پکیج مستقل).
 
-Red Light (تست اول): قبل از هر تغییر، یک تستِ Integration می‌نویسیم که جریانِ مالیِ فعلی را تست کند (مثلاً ثبتِ یک پرداخت).
+[ ] استفاده از الگوی Facade؛ سرویس‌های Tours یا Inventory نباید مستقیماً با دیتابیس درفت کار کنند، بلکه باید از این ماژول استفاده کنند.
 
-Yellow Light (مهاجرت موازی): کدِ جدید را کنارِ کدِ قدیمی می‌نویسیم. API هنوز از مدلِ قدیمی استفاده می‌کند، اما ما مدلِ جدید را هم در پس‌زمینه محاسبه می‌کنیم تا ببینیم آیا خروجی‌ها یکی هستند یا نه (Parity Testing).
+استراتژی Hot vs Cold Storage:
 
-Green Light (سوئیچ): وقتی تست‌هایِ Parity برای ۱۰۰٪ موارد سبز شد، کدهایِ قدیمی را حذف می‌کنیم.
+[ ] پیاده‌سازی لایه Redis (Hot Storage) برای ذخیره لحظه‌ای (Debounced) تغییرات.
+
+[ ] پیاده‌سازی Job برای Sync کردن Redis با Postgres (Cold Storage) پس از اتمام Session یا زمان‌بندی مشخص.
+
+فاز ۳: ردیابی‌پذیری و Audit (Observability & Traceability)
+هدف: اگر درفتی خراب شد، در ۳ ثانیه بفهمیم چرا.
+
+اتصال به Request Context:
+
+[ ] تزریق traceId (از request-trace.middleware.ts) به تمام رکوردهای draft_snapshot.
+
+[ ] ثبت تمامی عملیات‌های upsert در AuditLogService با کاتگوری DRAFT_ENGINE_EVENT.
+
+ایجاد Dashboard داخلی (Admin Panel):
+
+[ ] ساخت یک صفحه در ui-playground که لیستی از درفت‌های "Conflict-ridden" (درفت‌هایی که مرتباً کانفلیکت می‌دهند) را به تفکیک tenant_id نشان دهد. این لیست طلایی برای عیب‌یابی شماست.
+
+فاز ۴: تضمین کیفیت (Testing Strategy)
+هدف: حذف احتمالات و اثبات پایداری.
+
+تست‌های Race Condition (Jest - API Layer):
+
+[ ] نوشتن تست واحدی که دو Promise همزمان را با ورژن یکسان برای update صدا می‌زند. تست باید ثابت کند که یکی موفق و دیگری حتماً DraftConflictException برمی‌گرداند.
+
+تست‌های یکپارچگی (Integration):
+
+[ ] تست مهاجرت داده‌های قدیمی: یک درفت با schema_version: 1 را لود کنید و مطمئن شوید سیستم آن را به current_schema_version تبدیل می‌کند.
+
+تست‌های E2E (Playwright - Web Layer):
+
+[ ] سناریوی "دو تب مرورگر": کاربری در دو تب درفت را باز می‌کند. در تب اول ذخیره می‌کند. در تب دوم سعی می‌کند ذخیره کند. سیستم باید کاربر را متوجه کند که داده‌اش قدیمی شده (به جای بازنویسی سایلنت).
+
+
+
+فاز ۲: انتزاع و جداسازی (Abstraction)
+تسک (Guard): ریفکتور گاردِ DraftEngine به DraftEngineGuard. این گارد باید فقط اینترفیس Draftable را چک کند.
+
+تسک (Dependency Injection): حذف وابستگی مستقیم ماژول DraftEngine به TourModule. سرویس‌ها باید از طریق Providers به ماژول درفت متصل شوند.
+
+فاز ۳: یکپارچگی عملیاتی (Observability)
+تسک (Audit): تزریق AuditLogService به ماژول درفت. این ماژول باید بدون اطلاع از نوع ریسورس (Tour یا Inventory)، فقط لاگ‌های درفت را ثبت کند.
+
+تسک (Tracing): اطمینان از اینکه trace_id در تمامی متدهای سرویس درفت جابه‌جا می‌شود.

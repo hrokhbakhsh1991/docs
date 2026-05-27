@@ -38,6 +38,7 @@ import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilitie
 import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { ExportTenantAuditQueryDto } from "./dto/export-tenant-audit-query.dto";
+import { ListDraftConflictsQueryDto } from "./dto/list-draft-conflicts-query.dto";
 import { ListTenantAuditQueryDto } from "./dto/list-tenant-audit-query.dto";
 import { UserEntity } from "./entities/user.entity";
 
@@ -273,6 +274,66 @@ export class TenantAuditEventsController {
         metadata: row.metadata
       })),
       nextCursor
+    };
+  }
+
+  @Get(":tenantId/audit-events/draft-conflicts")
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "Audit"))
+  @ApiOperation({
+    summary: "Top conflict-ridden draft resources for tenant",
+    description:
+      "Aggregated hotspot view from tenant audit rows where action is `draft_engine.conflict`.",
+  })
+  @ApiOkResponse({
+    description: "Conflict hotspot rows (count descending)",
+    schema: {
+      type: "object",
+      properties: {
+        data: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              resourceType: { type: "string" },
+              resourceId: { type: "string" },
+              conflictCount: { type: "number" },
+              lastOccurredAt: { type: "string", format: "date-time" },
+              sampleRequestId: { type: "string", nullable: true },
+            },
+          },
+        },
+      },
+    },
+  })
+  async listDraftConflicts(
+    @Param("tenantId", ParseUUIDPipe) tenantId: string,
+    @Query() query: ListDraftConflictsQueryDto,
+  ): Promise<{
+    data: Array<{
+      resourceType: string;
+      resourceId: string;
+      conflictCount: number;
+      lastOccurredAt: string;
+      sampleRequestId: string | null;
+    }>;
+  }> {
+    const paramTenantId = this.requireWorkspaceTenantMatch(tenantId);
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+    const rows = await this.tenantAuditEventsService.listDraftConflictHotspots({
+      tenantId: paramTenantId,
+      from,
+      to,
+      limit: query.limit,
+    });
+    return {
+      data: rows.map((row) => ({
+        resourceType: row.resourceType,
+        resourceId: row.resourceId,
+        conflictCount: row.conflictCount,
+        lastOccurredAt: row.lastOccurredAt.toISOString(),
+        sampleRequestId: row.sampleRequestId,
+      })),
     };
   }
 }

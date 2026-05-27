@@ -27,6 +27,7 @@ import {
 } from "@tour/ui";
 import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 
+import { DraftConflictsPanel } from "./draft-conflicts-panel";
 import styles from "./playground.module.css";
 
 export default function UiPlaygroundPage() {
@@ -279,6 +280,21 @@ export default function UiPlaygroundPage() {
             Modal uses portal, scrim, and escape-to-close. Footer holds actions.
           </p>
         </Modal>
+      </section>
+
+      <section
+        id="section-draft-conflicts"
+        className={styles.section}
+        aria-labelledby="playground-draft-conflicts"
+      >
+        <h2 id="playground-draft-conflicts" className={styles.sectionTitle}>
+          Conflict-ridden drafts
+        </h2>
+        <p className={styles.note}>
+          Internal observability panel (Phase 3): top draft resources by{" "}
+          <code>draft_engine.conflict</code> audit events for the active workspace.
+        </p>
+        <DraftConflictsPanel />
       </section>
 
       <section className={styles.section} aria-labelledby="playground-badges">

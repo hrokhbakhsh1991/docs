@@ -42,4 +42,10 @@ test.describe("UI Playground Visual Tests", () => {
     const section = page.locator("#section-alerts");
     await expect(section).toHaveScreenshot("alerts.png", screenshotOpts);
   });
+
+  test("draft conflicts panel section is present", async ({ page }) => {
+    await openPlayground(page);
+    const section = page.locator("#section-draft-conflicts");
+    await expect(section.getByRole("heading", { name: "Conflict-ridden drafts" })).toBeVisible();
+  });
 });
