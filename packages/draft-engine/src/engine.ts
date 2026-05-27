@@ -103,8 +103,12 @@ export class DraftEngine<T> {
       return;
     }
 
-    if (this.status === "DRAFT_AVAILABLE" || this.status === "CONFLICT_RESOLVING") {
+    if (this.status === "CONFLICT_RESOLVING") {
       return;
+    }
+    if (this.status === "DRAFT_AVAILABLE") {
+      this.pendingDraft = null;
+      this.status = "IDLE";
     }
     this.data = newData;
     this.lastModified = Date.now();

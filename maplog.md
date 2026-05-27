@@ -1,305 +1,315 @@
-
----
-
-## Enterprise audit: `draft_snapshots` table
-
-**Audit timestamp (UTC):** 2026-05-27  
-**Database:** `tour_ops_dev` (from `apps/api/.env` `DATABASE_URL`)  
-**Schema reference:** `apps/api/src/modules/draft-engine/entities/draft-snapshot.entity.ts`, migration `1777601000000-CreateDraftSnapshots.ts`
-
-### 1. Row count
-
-| Metric | Value |
-|--------|------:|
-| **Total rows** | **11** |
-
-### 2. `workspace_id` and `draft_key` integrity
-
-| Check | Count | Pass |
-|-------|------:|:----:|
-| `workspace_id IS NULL` | 0 | Yes |
-| `draft_key IS NULL` or empty after trim | 0 | Yes |
-| `draft_key` length > 128 (varchar limit) | 0 | Yes |
-| `draft_key` outside `[a-zA-Z0-9._-]+` | 0 | Yes |
-
-**Malformed / suspicious `draft_key` values (semantic, not SQL constraint violations):**
-
-| `draft_key` | Rows | Notes |
-|-------------|-----:|-------|
-| `undefined` | 1 | Literal string `undefined` — likely a client bug (undefined URL segment or missing draft key). |
-| `debug-occ-*` | 9 | Isolated keys from `pnpm debug:draft-engine` OCC verification runs. |
-| `denali-create` | 1 | Expected production wizard key. |
-
-All 11 rows share the same scope tuple pattern: `workspace_id = a0dcacb3-b6da-430f-86e1-5e36cb4c2113`, `user_id = 00000000-0000-4000-8000-012345678901` (Denali dev owner OTP user).
-
-### 3. `version` column (optimistic concurrency)
-
-| Check | Value |
-|-------|------:|
-| `version IS NULL` | 0 |
-| `version < 0` | 0 |
-| **MIN(version)** | 1 |
-| **MAX(version)** | 123 |
-
-**Verdict:** `version` is strictly non-negative; all stored values are ≥ 1. No NULL versions.
-
-**Note:** Row `debug-occ-manual-1779841954564` has `version = 99` after manual SQL update during debugging (not from normal OCC bump sequence).
-
-### 4. Summary
-
-| Area | Status |
-|------|--------|
-| Referential shape (non-null UUIDs, key length) | **PASS** |
-| Version non-negative | **PASS** |
-| Data hygiene | **WARN** — one `draft_key = 'undefined'` row; nine debug OCC keys may be deleted in non-dev environments |
-
-### 5. Recommended follow-ups (non-blocking)
-
-1. Delete or ignore debug rows: `draft_key LIKE 'debug-occ-%'` and `draft_key = 'undefined'` if not needed.
-2. Fix client/BFF routing so `draft_key` is never the literal `undefined`.
-3. Consider a DB `CHECK (version >= 1)` and `CHECK (char_length(trim(draft_key)) > 0)` for defense in depth.
-
-
----
-
-## Concurrency audit: `denali-create` dual-PATCH (OCC)
-
-**Audit timestamp (UTC):** 2026-05-27  
-**API:** `http://127.0.0.1:3001` (Nest `draft-engine` module)  
-**Tenant host:** `denali.localhost`  
-**Draft key:** `denali-create`  
-**Auth:** Dev OTP `+989121000001` / workspace from JWT `tenant_id`
-
-### Test setup
-
-| Step | Action | Result |
-|------|--------|--------|
-| Baseline | `GET` draft | `version: 1` (DB pre-set via `UPDATE` after prior wizard data at v123) |
-| Note | `DELETE` then `GET` before reset | `DELETE` returned **204** but row remained (v123) — delete scope vs row mismatch not re-tested; SQL used to set `version = 1` for controlled race |
-| Race | Two `PATCH` bodies both with **`version: 1`**, launched via `Promise.all` | Wall-clock spread **~38.3 ms** (concurrent, not sequential) |
-
-### 1. Dual PATCH with `version: 1`
-
-| Request | HTTP | Response summary |
-|---------|------|------------------|
-| A | **200** | `{ version: 2, data: { concurrencyProbe: true, step: "race" } }` |
-| B | **409** | `error.code: DRAFT_CONFLICT`, `error.details.server` present |
-
-**409 payload verification (request B):**
-
-| Field | Present | Value |
-|-------|:-------:|-------|
-| `error.code` | Yes | `DRAFT_CONFLICT` |
-| `error.details.server.version` | Yes | `2` (winner’s version after successful PATCH A) |
-| `error.details.server.data` | Yes | `{ step: "race", concurrencyProbe: true }` |
-| `error.details.server.lastModified` | Yes | `1779850767528` |
-
-| Assertion | Expected | Actual | **PASS/FAIL** |
-|-----------|----------|--------|:-------------:|
-| Exactly one `200` | 1 | 1 | **PASS** |
-| Exactly one `409` | 1 | 1 | **PASS** |
-| Loser includes `error.details.server` | Yes | Yes | **PASS** |
-| Final `GET` version | 2 | 2 | **PASS** |
-
-### 2. Infinite-loop / runaway sync check
-
-**API (post-conflict stale burst):** Five sequential `PATCH` calls still sending **`version: 1`** after race:
-
-| Call | Status |
-|------|--------|
-| 1–5 | **409** (all) |
-
-No additional `200` responses — server does not accept stale writes in a loop.
-
-**Client engine simulation (`REFETCH_REAPPLY`, `@repo/draft-engine`):**
-
-| Metric | Value | Interpretation |
-|--------|------:|----------------|
-| `onPush` invocations | 2 | Initial push + one retry after conflict (expected) |
-| `onFetch` invocations | 2 | Re-fetch during conflict resolution |
-| Final engine status | `IDLE` | Settled |
-| Push count > 2? | No | **No runaway push loop** |
-
-| Assertion | **PASS/FAIL** |
-|-----------|:-------------:|
-| System does not enter infinite loop after 409 | **PASS** |
-
-### 3. Overall verdict
-
-| Area | Verdict |
-|------|---------|
-| OCC dual-write (`version: 1` race) | **PASS** |
-| 409 + `error.details.server` contract | **PASS** |
-| Post-conflict stability (no write storm) | **PASS** |
-
-### 4. Observations (non-blocking)
-
-1. Concurrent launch window was **~38 ms**, not <10 ms wall time; both requests were in flight together (`Promise.all`), satisfying the intent of a race on the same version.
-2. `DELETE` returning 204 while `denali-create` row persisted warrants a separate delete-scope investigation.
-3. Restore production draft from SQL reset if needed; row currently at **version 2** with probe payload after this audit.
-
-
----
-
-## Network trace audit: `denali-create` (reactivity & loop indicators)
-
-**Audit timestamp (UTC):** 2026-05-27  
-**Log source:** `@apps/api` dev process — structured `REQUEST_TRACE` lines (terminal capture, pid 47699, `http://127.0.0.1:3001`)  
-**Route filter:** `/api/v2/workspaces/.../draft-engine/denali-create`  
-**Cross-check:** `packages/draft-engine` unit suite (18/18 pass), static review of `engine.ts` + `DenaliCreateTourWizard.tsx`
-
-> **Scope note:** No browser DevTools HAR was present in-repo; analysis uses server-side `REQUEST_TRACE` timestamps (authoritative for Nest PATCH/GET) plus client engine/wizard code paths.
-
-### Trace timeline (extracted)
-
-| # | Time (UTC) | Method | Status | Δ from prev PATCH |
-|---|------------|--------|--------|-------------------|
-| 1 | 02:57:54.308 | PATCH | 409 | — (post-DELETE stale write) |
-| 2 | 02:59:27.536 | PATCH | **200** | +93,228 ms |
-| 3 | 02:59:27.538 | PATCH | 409 | **2 ms** |
-| 4 | 02:59:27.571 | PATCH | 409 | 33 ms |
-| 5 | 02:59:27.587 | PATCH | 409 | 16 ms |
-| 6 | 02:59:27.607 | PATCH | 409 | 20 ms |
-| 7 | 02:59:27.622 | PATCH | 409 | 15 ms |
-| 8 | 02:59:27.637 | PATCH | 409 | 15 ms |
-
-Also in window: `DELETE`×2, `GET`×5 (includes post-race verification reads).
-
-### 1. Duplicate PATCH within &lt; 500 ms (loop indicators)
-
-| Finding | Detail | Verdict |
-|---------|--------|:-------:|
-| PATCH pairs &lt; 500 ms | **6** adjacent pairs | See classification |
-| Pair #2→#3 (2 ms): `200` then `409` | Matches **controlled OCC race** (`Promise.all`, dual `version: 1`) from concurrency audit — one winner, one conflict | **NOT a loop** |
-| Pairs #3→#8 (15–33 ms): all `409` | Matches **manual stale-version burst** (5 sequential PATCHes still sending `version: 1` after race) — server rejects each; no version advance | **NOT a client retry loop** |
-| Repeated `200` PATCH &lt; 500 ms | **0** occurrences | **PASS** |
-| Monotonic successful write storm | **None** — only **one** `200` PATCH in entire trace window | **PASS** |
-
-**Loop indicator conclusion:** Bursts under 500 ms are **explained by audit traffic** (race + deliberate stale replay), not unbounded autosave feedback. No evidence of an infinite or runaway PATCH loop on `denali-create`.
-
-### 2. `CONFLICT_RESOLVING` reactivity guard (`doPush` suppression)
-
-**Code paths (`packages/draft-engine/src/engine.ts`):**
-
-| Guard site | Behavior |
-|------------|----------|
-| `setDraftData()` | No-op when `status === CONFLICT_RESOLVING` (does not mark `DIRTY` or schedule sync) |
-| `scheduleDebouncedSync()` | Returns immediately if `CONFLICT_RESOLVING` (timer callback re-checks) |
-| `doPush()` | Early return + `console.warn("doPush ignored: Conflict resolution in progress")` |
-| `refetchAndReapplyLocal()` | Sets `CONFLICT_RESOLVING` → single `onFetch` → merge → `DIRTY` → **one** `scheduleSync()` |
-
-**Trace correlation (02:59:27 burst):**
-
-- After winning PATCH (`200` @ .536), loser `409` @ .538 → engine `REFETCH_REAPPLY` path issues **GET** @ .555 (re-fetch), not a second immediate `200` PATCH.
-- Subsequent PATCHes in trace are **409-only** (stale audit script), consistent with **no** successful redundant `doPush` during resolution.
-- Terminal shows `GET`×2 @ .659 / .676 after burst (verification reads), not PATCH spam.
-
-**Unit test (`engine.spec.ts` — `REFETCH_REAPPLY conflict re-fetches…`):**
-
-| Metric | Expected | Observed |
-|--------|----------|----------|
-| `onPush` calls | 2 (initial + one retry) | 2 |
-| `onFetch` during conflict | ≥ 1 | ≥ 1 |
-| Final status | `IDLE` | `IDLE` |
-| `pushCount > 2` (runaway) | No | No |
-
-| Assertion | **PASS/FAIL** |
-|-----------|:-------------:|
-| `CONFLICT_RESOLVING` prevents redundant `doPush` during resolution | **PASS** |
-| Post-409 client settles without PATCH loop | **PASS** |
-
-### 3. `setDraftData` only on user edits (not on engine re-fetch)
-
-**Engine (server hydration never calls `setDraftData`):**
-
-| Operation | Mechanism | Calls `setDraftData`? |
-|-----------|-----------|:---------------------:|
-| `initialize()` / `onFetch` | `fetchAndHydrate` → `applyPayload` or `pendingDraft` + `DRAFT_AVAILABLE` | **No** |
-| `refetchAndReapplyLocal()` | `fetchAndHydrate({ forceApply: true })` + `merge` + `applyPayload` internally | **No** |
-| `applyDraft()` | `applyPayload` directly | **No** |
-| User edit (UI) | `setDraftData` → `DIRTY` → debounced `doPush` | **Yes** |
-
-**Denali wizard (`DenaliCreateTourWizard.tsx`):**
-
-| Path | Guard | Calls `setDraftData`? |
-|------|-------|:---------------------:|
-| `watch()` subscription | `suppressDraftPushRef`, `formState.isDirty`, skip if `DRAFT_AVAILABLE` | Only on dirty user input |
-| Hydrate `reset(formDefaults)` | `suppressDraftPushRef = true` + microtask clear | **No** (blocked) |
-| `currentStep` effect | Same dirty / suppress / `DRAFT_AVAILABLE` checks | Only if dirty (user navigated after edit) |
-| Engine re-fetch / conflict | No `watch` fired from engine state; engine blocks `setDraftData` during `CONFLICT_RESOLVING` | **No** |
-
-| Assertion | **PASS/FAIL** |
-|-----------|:-------------:|
-| Re-fetch / conflict resolution does not route through `setDraftData` | **PASS** |
-| Form push tied to dirty user-driven `watch` / step change | **PASS** |
-
-### 4. Overall verdict
-
-| Area | Verdict |
-|------|---------|
-| &lt; 500 ms PATCH bursts = autosave loop | **PASS** (bursts attributable to audit scripts, not runaway UI sync) |
-| `CONFLICT_RESOLVING` guards `doPush` / debounce | **PASS** |
-| `setDraftData` isolation from re-fetch | **PASS** |
-
-### 5. Recommendations (non-blocking)
-
-1. Capture browser HAR on next wizard session to confirm BFF layer does not duplicate Nest PATCH (single hop expected via `draft-engine.client.ts`).
-2. Tag audit/script traffic with a header or dedicated draft key prefix to separate from production traces in log analysis.
-3. Optional: structured client telemetry (`draft_push_attempt`, `status`) correlated with `request_id` for end-to-end traces.
-
-
----
-
-## Follow-up audit: DELETE 204 anomaly & `draft_key = 'undefined'`
-
-**Audit timestamp (UTC):** 2026-05-27  
-**Trigger:** Open items from concurrency + network trace audits
-
-### A. `DELETE` returned 204 but `GET` still showed `denali-create` (v123)
-
-**Evidence (REQUEST_TRACE, same session):**
-
-| Time (UTC) | Method | Status | Notes |
-|------------|--------|--------|-------|
-| 02:58:06.386 | DELETE | 204 | Audit prep |
-| 02:58:06.404 | GET | 200 | Row still present (`version: 123`, full wizard payload) |
-
-**Root cause (code):** `deleteForMember` only treated `result.affected === 0` as failure. When TypeORM/driver omits `affected`, the check is skipped and Nest still returns **204** even though **zero rows** were removed.
-
-**Fix applied:** `apps/api/src/modules/draft-engine/draft-engine.service.ts` — use `(result.affected ?? 0) === 0` before `NotFoundException`.
-
-**Tests added:** `draft-engine.service.spec.ts` — success when `affected: 1`; reject when `affected: 0` or `affected` missing.
-
-| Check | **PASS/FAIL** |
-|-------|:-------------:|
-| False-positive 204 on no-op delete | **FIXED** |
-
-### B. `draft_key = 'undefined'` row in `draft_snapshots`
-
-**DB (2026-05-27):** one row with literal `draft_key = 'undefined'`, `version = 1`.
-
-**Root cause:** JavaScript `encodeURIComponent(undefined)` coerces to the string **`"undefined"`** in URL paths. Any call like `fetch(..., workspaceId, draftKey)` with an unset variable produces `/draft-engine/undefined`.
-
-**Mitigation (already in web client):** `apps/web/lib/draft-engine.client.ts` — `assertDraftScope()` rejects empty/`"undefined"` workspaceId and draftKey before building the path.
-
-**Denali wizard:** uses constant `DENALI_CREATE_DRAFT_KEY`; adapter skips fetch/push when `workspaceId` is empty. Residual row likely from manual/debug traffic predating the guard.
-
-| Check | **PASS/FAIL** |
-|-------|:-------------:|
-| Client guard prevents new `undefined` keys | **PASS** (code) |
-| Legacy DB row cleanup | **PENDING** (optional `DELETE` row or SQL) |
-
-### C. Current DB hygiene snapshot
-
-| `draft_key` pattern | Rows (sample) |
-|---------------------|--------------:|
-| `denali-create` | 1 (`version: 2`, probe payload from OCC audit) |
-| `undefined` | 1 |
-| `debug-occ-*` | 9 |
-
-### D. Recommended next steps
-
-1. Re-run DELETE→GET sequence against API with `node --env-file=apps/api/.env` once dev server is up (prior start failed: `DATABASE_URL` unset without env file).
-2. `DELETE FROM draft_snapshots WHERE draft_key IN ('undefined') OR draft_key LIKE 'debug-occ-%';` in non-prod.
-3. Optional: server-side `@Param` validation rejecting `draftKey === 'undefined'`.
+Denali Create Tour Wizard — UX Field Inventory
+Shell: DenaliCreateTourWizard.tsx → steps from denaliStepConfig.ts (6 steps).
+Required/Optional: From denaliRuleSet.generated.ts + useDenaliStepFieldRules (varies by category × duration × transport mode × capabilities). Default labels use tours.denali keys where noted.
+
+Step 1 — اطلاعات پایه (denali_basic)
+Field Label / Name	Component Path	Input Type	Required / Optional
+عنوان تور (title / basicInfo.title)
+denali/steps/DenaliBasicInfoStep.tsx
+text
+Required
+دسته تور (category → basicInfo.tourType)
+DenaliBasicInfoStep.tsx
+select
+Required
+مدت تور (duration → basicInfo.tourType)
+DenaliBasicInfoStep.tsx
+select
+Required
+زیرنوع رویداد (eventVariant → basicInfo.tourType)
+DenaliBasicInfoStep.tsx
+select
+Optional (visible when category = event)
+مقصد (destinationId)
+DenaliBasicInfoStep.tsx + components/tours/wizard/steps/DestinationCombobox.tsx
+combobox (search)
+Required when visible
+ارتفاع قله (tripDetails.overview.peakHeight)
+DenaliBasicInfoStep.tsx
+number (Persian)
+Required (mountain); hidden (nature/desert/event per rules)
+سرپرست‌های workspace (leaderUserIds)
+DenaliBasicInfoStep.tsx
+multi-select combobox
+Optional
+نیاز به راهنمای محلی (requiresLocalGuide)
+DenaliBasicInfoStep.tsx
+checkbox
+Optional
+نام راهنمای محلی (localGuideName)
+DenaliBasicInfoStep.tsx
+text
+Optional (shown when requiresLocalGuide = true)
+تاریخ و ساعت شروع (startDateTime)
+denali/DenaliDatetimeField.tsx
+date + time (Jalali)
+Required
+تاریخ و ساعت پایان (endDateTime)
+DenaliDatetimeField.tsx
+date + time (Jalali)
+Required (multi-day); hidden (single-day)
+ظرفیت حداکثر (capacityMax)
+DenaliBasicInfoStep.tsx
+number
+Required when visible
+ظرفیت حداقل (capacityMin)
+DenaliBasicInfoStep.tsx
+number
+Optional
+ساعت تقریبی بازگشت (approximateReturnTime)
+denali/DenaliApproximateReturnTimeField.tsx
+time (Jalali)
+Optional
+لینک شبکه اجتماعی (socialMediaLink)
+DenaliBasicInfoStep.tsx
+text
+Optional
+نیاز به تأیید دستی ادمین (requiresManualAdminApproval)
+DenaliBasicInfoStep.tsx
+checkbox
+Optional
+Step count (static inputs): 16 (11–14 typically visible depending on tour kind).
+
+Step 2 — برنامه (denali_program)
+Field Label / Name	Component Path	Input Type	Required / Optional
+تم‌های تور (programNature.themeIds / program.themeIds)
+denali/steps/DenaliProgramNatureStep.tsx
+checkbox group (catalog)
+Optional
+توضیح کوتاه (program.shortDescription)
+DenaliProgramNatureStep.tsx
+textarea
+Required
+توضیح بلند (program.longDescription)
+DenaliProgramNatureStep.tsx
+textarea
+Optional
+سطح سختی (program.difficultyLevel)
+DenaliProgramNatureStep.tsx
+range (1–10)
+Required when outdoor block visible
+ساعات پیاده‌روی تقریبی (program.hikingHoursApprox)
+DenaliProgramNatureStep.tsx
+number
+Required when outdoor block visible
+ساعات رفت (program.hikingGoHours)
+DenaliProgramNatureStep.tsx
+number
+Optional
+ساعات برگشت (program.hikingReturnHours)
+DenaliProgramNatureStep.tsx
+number
+Optional
+ارتفاع صعود مسیر (tripDetails.metrics.elevationGain)
+denali/steps/DenaliItineraryStep.tsx
+number
+Optional (hidden for nature/desert/event cells)
+Per day (× D days): مکان روز (program.itinerary[].location)
+denali/steps/DenaliDailyItinerarySection.tsx + components/DenaliItineraryDayLocationField.tsx + DenaliLocationPickerEditor.tsx
+location (search + map)
+Optional per day; section hidden unless multi-day
+Per day: فعالیت‌های روز (program.itinerary[].activities)
+DenaliDailyItinerarySection.tsx
+textarea
+Required per day when itinerary visible (multi-day mountain/nature/desert)
+Per day: عکس‌های روز (program.itinerary[].photos)
+DenaliDailyItinerarySection.tsx + components/DenaliItineraryDayPhotos.tsx
+file array
+Optional per day
+Step count: 8 fixed + 3 × D (D = computed day count from startDateTime / endDateTime / tourType).
+
+Step 3 — لجستیک و خدمات (denali_logistics)
+Field Label / Name	Component Path	Input Type	Required / Optional
+Per gathering station (× S): ساعت حضور (tripDetails.logistics.gatheringPoints[].time)
+denali/components/DenaliGatheringPointsWidget.tsx
+time (Jalali)
+Optional (publish may require ≥1 station)
+Per station: نام/آدرس ایستگاه (…location / title)
+DenaliGatheringPointsWidget.tsx + DenaliLocationPickerEditor.tsx
+location (search + map)
+Optional
+نقطه شروع (basicInfo.startPoint)
+denali/components/DenaliLocationZoneField.tsx
+location
+Optional
+نقطه اوج (basicInfo.summitPoint)
+DenaliLocationZoneField.tsx
+location
+Optional
+نقطه کمپ (basicInfo.campPoint)
+DenaliLocationZoneField.tsx
+location
+Optional
+نقطه پایان (basicInfo.endPoint)
+DenaliLocationZoneField.tsx
+location
+Optional
+تجهیزات (participantRequirements.gearItems)
+denali/steps/DenaliGearSection.tsx
+multi-select pills (required/optional toggle)
+Optional
+نوع حمل‌ونقل (transport.transportMode)
+denali/steps/DenaliLogisticsStep.tsx
+select
+Required
+هزینه حمل (transport.transportCost)
+DenaliLogisticsStep.tsx
+number
+Optional (visible for organized transport modes)
+امکان خودرو شخصی (transport.allowPersonalCar)
+DenaliLogisticsStep.tsx
+checkbox
+Optional (visible for modes with personal-car option)
+مبلغ دنگ (transport.dongAmount)
+DenaliLogisticsStep.tsx
+number
+Optional (visible when personal car allowed)
+ظرفیت جداگانه ادمین (transport.adminCapacityApproval)
+DenaliLogisticsStep.tsx
+checkbox
+Optional (visible with personal-car flow)
+سرویس‌های سفارشی (tripDetails.overview.customServiceLabels)
+denali/components/DenaliCustomServicesField.tsx + DenaliCustomServicesEditor.tsx
+string array (add/remove)
+Optional (workspace capability canDefineCustomServices)
+Step count: 11 fixed (4 zones + gear + up to 4 transport + custom services) + 2 × S gathering stations (S ≥ 1 when widget shown; hidden for some event kinds).
+
+Step 4 — هزینه (denali_pricing)
+Field Label / Name	Component Path	Input Type	Required / Optional
+نیاز به پرداخت (pricing.requiresPayment)
+denali/steps/DenaliPricingStep.tsx
+checkbox
+Optional
+قیمت پایه هر نفر (pricing.basePricePerPerson)
+DenaliPricingStep.tsx
+number
+Optional (visible when requiresPayment = true)
+شامل بیمه تور (pricing.includesTourInsurance)
+DenaliPricingStep.tsx
+checkbox
+Optional
+جزئیات عدم حضور (tripDetails.overview.nonAttendanceDetails)
+DenaliPricingStep.tsx
+textarea
+Optional (visible after tourType selected)
+حداقل قله‌های صعودشده (participants.minRequiredPeaks)
+denali/components/DenaliPeakExperienceField.tsx
+select
+Optional
+حداقل سن (participants.minimumAge)
+denali/steps/DenaliPricingParticipantSection.tsx
+number
+Required when mountain participant block visible
+حداکثر سن (participants.maximumAge)
+DenaliPricingParticipantSection.tsx
+number
+Optional
+سطح آمادگی (participants.fitnessLevel)
+DenaliPricingParticipantSection.tsx
+select
+Required when mountain block visible
+کد ملی الزامی (participants.nationalIdRequired)
+DenaliPricingParticipantSection.tsx
+checkbox
+Optional
+بیمه ورزشی (participantRequirements.sportsInsuranceRequired)
+DenaliPricingParticipantSection.tsx
+checkbox
+Optional
+پیش‌نیاز آمادگی (participants.fitnessPrerequisiteText)
+DenaliPricingParticipantSection.tsx
+textarea
+Optional
+یادداشت سیاست‌ها (policies.policiesText)
+DenaliPricingParticipantSection.tsx
+textarea
+Optional
+مهلت لغو (ساعت) (policies.cancellationDeadlineHours)
+DenaliPricingParticipantSection.tsx
+number
+Optional
+جریمه لغو (%) (policies.cancellationPenaltyPercentage)
+DenaliPricingParticipantSection.tsx
+number
+Optional
+Note: pricing.paymentMode is required in rules but not rendered as a separate control (offline-only; implied).
+
+Step count: 14 (6–11 visible for nature/event when participant block hidden).
+
+Step 5 — عکس‌ها (denali_photos)
+Field Label / Name	Component Path	Input Type	Required / Optional
+گالری تور (photosData.photos)
+denali/steps/DenaliPhotosStep.tsx
+file upload (multi, max 10) + preview/remove
+Optional (rule); may be required on publish per validation
+Step count: 1 (array field; each upload adds items).
+
+Step 6 — بازبینی و ثبت (review)
+Field Label / Name	Component Path	Input Type	Required / Optional
+وضعیت انتشار (basicInfo.publishStatus)
+denali/steps/DenaliReviewStep.tsx + components/tours/TourPublishStatusField.tsx
+segmented control (draft / active)
+Required (defaults draft; active gated by publish readiness)
+Display-only on review (not counted as inputs): summary rows in DenaliReviewStep.tsx, DenaliReviewParticipantsDisplay.tsx, DenaliReviewValidationSummary.tsx.
+
+Step count: 1 editable field.
+
+Count summary
+Wizard step	Static field controls	Dynamic add-ons
+اطلاعات پایه (denali_basic)
+16
+—
+برنامه (denali_program)
+8
++3 × D (itinerary days)
+لجستیک (denali_logistics)
+11
++2 × S (gathering stations)
+هزینه (denali_pricing)
+14
+—
+عکس‌ها (denali_photos)
+1
++N photo items
+بازبینی (review)
+1
+—
+Scenario	Total field controls
+Minimum (e.g. nature single-day, no gathering, no itinerary)
+~42
+Typical Denali mountain single-day (S=1, no itinerary)
+~53
+Maximum (mountain multi-day, S=2, D=3)
+~62
+Grand total (wizard inputs, all steps): 51 static + 3D + 2S dynamic controls (≈ 42–62 visible depending on tour kind and workspace capabilities).
+
+Hidden / conditional logic (brief)
+Trigger	Affected fields
+Category = event
+eventVariant shown; outdoor program block (difficulty, hiking hours) hidden for event single-day.
+Category × duration (rule matrix)
+endDateTime; peakHeight; elevationGain; daily program.itinerary; participant block on pricing (mountain vs nature/event).
+Duration options
+Disabled duration options in category select via isDurationAllowed.
+requiresLocalGuide
+localGuideName shown.
+requiresPayment
+pricing.basePricePerPerson shown.
+Transport mode
+transportCost, allowPersonalCar, dongAmount, adminCapacityApproval shown/hidden per @repo/types/denali transport helpers (patchDenaliTransportForMode).
+allowPersonalCar
+dongAmount, adminCapacityApproval visibility.
+Multi-day tour kind
+Daily itinerary section (location, activities, photos per day); endDateTime on basic step.
+Workspace capability
+customServiceLabels only if canDefineCustomServices.
+basicInfo.tourType set
+nonAttendanceDetails on pricing step.
+Destination selected
+May auto-fill peakHeight from destination altitude.
+Publish = active
+Blocked until getDenaliWizardPublishReadinessIssues passes; gathering stations may be required for publish (UI hint in widget).
+Review step
+Almost all fields read-only mirror; only publishStatus is editable.
+Registry-only paths not rendered in create UI: startPointLocationText (review display only), transport.transportNotes, explicit pricing.paymentMode control.
 

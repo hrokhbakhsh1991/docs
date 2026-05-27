@@ -346,9 +346,6 @@ export function DenaliCreateTourWizard() {
       if (!formMethods.formState.isDirty) {
         return;
       }
-      if (draftStatusRef.current === "DRAFT_AVAILABLE") {
-        return;
-      }
       if (draftStatusRef.current === "CONFLICT_RESOLVING") {
         return;
       }
@@ -365,9 +362,6 @@ export function DenaliCreateTourWizard() {
 
   useEffect(() => {
     if (!workspaceId || !draftInitComplete || suppressDraftPushRef.current) {
-      return;
-    }
-    if (draftStatusRef.current === "DRAFT_AVAILABLE") {
       return;
     }
     if (draftStatusRef.current === "CONFLICT_RESOLVING") {
@@ -426,7 +420,7 @@ export function DenaliCreateTourWizard() {
   const isDraftSyncing = draftState.status === "SYNCING";
   const isDraftPresent =
     draftState.status === "DRAFT_AVAILABLE" &&
-    isMeaningfulDenaliDraftSnapshot(draftState.data ?? null);
+    isMeaningfulDenaliDraftSnapshot(draftState.pendingDraft?.data ?? null);
   const draftBannerMode: "no_draft" | "draft_available" | "draft_applied" = !isDraftPresent
     ? "no_draft"
     : hasAppliedDraft
@@ -440,6 +434,16 @@ export function DenaliCreateTourWizard() {
   const handleLoadDraft = useCallback(() => {
     setHasAppliedDraft(true);
     try {
+      const pending = draftState.pendingDraft?.data ?? null;
+      if (pending?.form) {
+        suppressDraftPushRef.current = true;
+        reset(mergeDenaliFormDefaults(emptyFormBaseline, pending.form), DENALI_QUIET_FORM_RESET_OPTIONS);
+        setCurrentStep(pending.currentStepIndex ?? 0);
+        setCanonicalSyncToken((token) => token + 1);
+        queueMicrotask(() => {
+          suppressDraftPushRef.current = false;
+        });
+      }
       applyDraft();
     } catch (error: unknown) {
       reportDenaliDraftError("apply", error, {
@@ -448,7 +452,7 @@ export function DenaliCreateTourWizard() {
       });
       resetToEmptyForm();
     }
-  }, [applyDraft, resetToEmptyForm, workspaceId]);
+  }, [applyDraft, draftState.pendingDraft?.data, emptyFormBaseline, reset, resetToEmptyForm, workspaceId]);
 
   const handleDiscardDraft = useCallback(() => {
     setHasAppliedDraft(false);
