@@ -32,6 +32,7 @@ import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
 
 import { normalizeCustomServiceLabels } from "@/features/tours/wizard/domain/normalizeCustomServiceLabels";
+import { sanitizeDenaliCanonicalModel } from "./denaliCanonicalSchemaRegistry";
 
 function customServiceLabelsFromForm(
   form: DenaliCreateTourWizardForm,
@@ -153,7 +154,7 @@ export function createInitialDenaliCanonicalModel(
 ): DenaliCanonicalTourModel {
   const requiresPayment = form.pricingPayment.requiresPayment === true;
   const gatheringPoints = form.tripDetails?.logistics?.gatheringPoints;
-  return {
+  return sanitizeDenaliCanonicalModel({
     category: "mountain",
     duration: "single",
     title: form.basicInfo.title?.trim() ?? "",
@@ -242,7 +243,7 @@ export function createInitialDenaliCanonicalModel(
       cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
     },
     photos: pickDenaliCanonicalGalleryPhotos(form.photosData?.photos),
-  };
+  });
 }
 
 /**
@@ -296,9 +297,9 @@ export function mergeDenaliCanonicalPartial(
     metrics: { ...base.metrics, ...patch.metrics },
   };
 
-  return {
+  return sanitizeDenaliCanonicalModel({
     ...merged,
-  };
+  });
 }
 
 export function canonicalDurationToBasicsDuration(
@@ -319,7 +320,7 @@ export function basicsDurationToCanonicalDuration(
  */
 export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliCanonicalTourModel {
   const base = denaliCanonicalFromForm(form);
-  return {
+  return sanitizeDenaliCanonicalModel({
     ...base,
     startPointLocationText:
       form.basicInfo.startPointLocationText ?? base.startPointLocationText,
@@ -411,7 +412,7 @@ export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliC
       cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
     },
     photos: pickDenaliCanonicalGalleryPhotos(form.photosData?.photos),
-  };
+  });
 }
 
 /**

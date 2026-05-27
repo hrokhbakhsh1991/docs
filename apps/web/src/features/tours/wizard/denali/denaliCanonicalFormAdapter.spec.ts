@@ -16,6 +16,7 @@ import {
   isDenaliWizardTourTypeSelected,
   safeDenaliFormToCanonical,
 } from "./denaliCanonicalFormAdapter";
+import { sanitizeDenaliCanonicalModel } from "./denaliCanonicalSchemaRegistry";
 
 test("safeDenaliFormToCanonical returns initial shell when tourType is missing", () => {
   const form = buildDenaliTourCreateDefaultValues();
@@ -115,4 +116,29 @@ test("denaliFormToCanonical strips UI-only photo fields before canonical schema"
   assert.ok(canonical.photos?.[0]);
   assert.equal("assetId" in (canonical.photos?.[0] ?? {}), false);
   assert.equal("uploadStatus" in (canonical.photos?.[0] ?? {}), false);
+});
+
+test("sanitizeDenaliCanonicalModel coerces malformed itinerary/gathering strings", () => {
+  const canonical = sanitizeDenaliCanonicalModel({
+    ...createInitialDenaliCanonicalModel(buildDenaliTourCreateDefaultValues()),
+    title: "  Title  ",
+    program: {
+      ...createInitialDenaliCanonicalModel(buildDenaliTourCreateDefaultValues()).program,
+      itinerary: [{ day: 1, activities: undefined as any, locationText: 123 as any }],
+    },
+    gatheringPoints: [
+      {
+        id: " gp-1 ",
+        title: undefined as any,
+        time: 11 as any,
+        location: { addressText: "A" },
+      },
+    ],
+  });
+
+  assert.equal(canonical.title, "Title");
+  assert.equal(canonical.program.itinerary?.[0]?.activities, "");
+  assert.equal(canonical.program.itinerary?.[0]?.locationText, undefined);
+  assert.equal(canonical.gatheringPoints?.[0]?.title, "");
+  assert.equal(canonical.gatheringPoints?.[0]?.time, undefined);
 });

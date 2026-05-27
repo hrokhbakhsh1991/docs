@@ -18,15 +18,19 @@ import { splitGearByRequired } from "../denaliGearSelection";
 import { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
 import { TourPublishStatusField } from "@/components/tours/TourPublishStatusField";
 import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
-import { denaliLocationAddressText, type DenaliCanonicalTourModel } from "@repo/types/denali";
+import { denaliLocationAddressText } from "@repo/types/denali";
 
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
+import { useDenaliCanonicalModel } from "../hooks/useDenaliCanonicalModel";
 import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
 import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
 import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 import { getDenaliStepTitleFa } from "@/features/tours/wizard/denaliStepConfig";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
 import { DenaliReviewValidationSummary } from "../components/DenaliReviewValidationSummary";
+import {
+  denaliCanonicalOptionalTrimmedString,
+  sanitizeDenaliCanonicalModel,
+} from "../denaliCanonicalSchemaRegistry";
 
 function ReviewSection({
   title,
@@ -152,39 +156,36 @@ export function DenaliReviewStep() {
   const formForUi = useDenaliWizardFormSnapshot();
 
   const { basicsSelection, ruleSet } = useDenaliCanonical();
-  const title = useDenaliCanonicalValue<string>("title");
-  const destinationId = useDenaliCanonicalValue<string | undefined>("destinationId");
-  const capacityMax = useDenaliCanonicalValue<number | undefined>("capacityMax");
-  const capacityMin = useDenaliCanonicalValue<number | undefined>("capacityMin");
-  const leaderUserIds = useDenaliCanonicalValue<string[] | undefined>("leaderUserIds");
-  const requiresLocalGuide = useDenaliCanonicalValue<boolean | undefined>("requiresLocalGuide");
-  const localGuideName = useDenaliCanonicalValue<string | undefined>("localGuideName");
-  const startPointLocationText = useDenaliCanonicalValue<string | undefined>(
-    "startPointLocationText",
+  const canonicalModelRaw = useDenaliCanonicalModel();
+  const canonicalModel = useMemo(
+    () => sanitizeDenaliCanonicalModel(canonicalModelRaw),
+    [canonicalModelRaw],
   );
-  const socialMediaLink = useDenaliCanonicalValue<string | undefined>("socialMediaLink");
-  const startDateTime = useDenaliCanonicalValue<string | undefined>("startDateTime");
-  const endDateTime = useDenaliCanonicalValue<string | undefined>("endDateTime");
-  const approximateReturnTime = useDenaliCanonicalValue<string | undefined>(
-    "approximateReturnTime",
-  );
-  const requiresManualAdminApproval = useDenaliCanonicalValue<boolean | undefined>(
-    "requiresManualAdminApproval",
-  );
-  const gatheringPoints = useDenaliCanonicalValue<
-    DenaliCanonicalTourModel["gatheringPoints"]
-  >("gatheringPoints");
-  const startPoint = useDenaliCanonicalValue<DenaliCanonicalTourModel["startPoint"]>("startPoint");
-  const overview = useDenaliCanonicalValue<DenaliCanonicalTourModel["overview"]>("overview");
-  const metrics = useDenaliCanonicalValue<DenaliCanonicalTourModel["metrics"]>("metrics");
-  const program = useDenaliCanonicalValue<DenaliCanonicalTourModel["program"]>("program");
-  const transport = useDenaliCanonicalValue<DenaliCanonicalTourModel["transport"]>("transport");
-  const pricing = useDenaliCanonicalValue<DenaliCanonicalTourModel["pricing"]>("pricing");
-  const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
-    "participants",
-  );
-  const policies = useDenaliCanonicalValue<DenaliCanonicalTourModel["policies"]>("policies");
-  const photos = useDenaliCanonicalValue<DenaliCanonicalTourModel["photos"]>("photos");
+  const {
+    title,
+    destinationId,
+    capacityMax,
+    capacityMin,
+    leaderUserIds,
+    requiresLocalGuide,
+    localGuideName,
+    startPointLocationText,
+    socialMediaLink,
+    startDateTime,
+    endDateTime,
+    approximateReturnTime,
+    requiresManualAdminApproval,
+    gatheringPoints,
+    startPoint,
+    overview,
+    metrics,
+    program,
+    transport,
+    pricing,
+    participants,
+    policies,
+    photos,
+  } = canonicalModel;
   const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
     useDenaliStepFieldRules("review");
 
@@ -475,16 +476,23 @@ export function DenaliReviewStep() {
               {program.itinerary!.map((row, itineraryIndex) => (
                 <div key={`itinerary-day-${row.day}-${itineraryIndex}`}>
                   <strong>{t("program.dailyActivitiesDay", { day: row.day })}</strong>
-                  {row.locationText?.trim() || row.location?.addressText?.trim() ? (
+                  {denaliCanonicalOptionalTrimmedString(
+                    "program.itinerary.locationText",
+                    row.locationText,
+                  ) || row.location?.addressText?.trim() ? (
                     <span>
                       {" "}
-                      — {row.locationText?.trim() || row.location?.addressText?.trim()}
+                      —{" "}
+                      {denaliCanonicalOptionalTrimmedString(
+                        "program.itinerary.locationText",
+                        row.locationText,
+                      ) || row.location?.addressText?.trim()}
                       {row.location?.latitude != null && row.location?.longitude != null
                         ? ` (${row.location.latitude.toFixed(4)}, ${row.location.longitude.toFixed(4)})`
                         : ""}
                     </span>
                   ) : null}
-                  <div style={{ marginTop: "0.15rem" }}>{row.activities.trim() || "—"}</div>
+                  <div style={{ marginTop: "0.15rem" }}>{row.activities || "—"}</div>
                   {(row.photos?.length ?? 0) > 0 ? (
                     <div
                       style={{
@@ -543,7 +551,7 @@ export function DenaliReviewStep() {
         ) : null}
         {gatheringPointsForReview.map((station, index) => {
           const rowKey = `gathering-${station.id?.trim() || "row"}-${index}`;
-          const label = station.title.trim()
+          const label = station.title
             ? `${t("basic.locationZones.gatheringPoint")} — ${station.title}`
             : `${t("basic.locationZones.gatheringPoint")} ${index + 1}`;
           const value = [station.time?.trim(), denaliLocationAddressText(station.location)]
