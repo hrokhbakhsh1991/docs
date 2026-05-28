@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
-import { TourDepartureEntity } from "./tour-departure.entity";
+import { TOUR_DEPARTURE_ENTITY, type ITourDepartureEntity } from "@repo/domain-contracts";
 
 @Entity("tour_products")
 @Index("idx_tour_products_tenant_id", ["tenantId"])
@@ -36,6 +36,6 @@ export class TourProductEntity {
   @UpdateDateColumn({ type: "timestamptz", name: "updated_at" })
   updatedAt!: Date;
 
-  @OneToMany(() => TourDepartureEntity, (d) => d.tourProduct)
-  departures?: TourDepartureEntity[];
+  @OneToMany(TOUR_DEPARTURE_ENTITY, "tourProduct")
+  departures?: ITourDepartureEntity[];
 }

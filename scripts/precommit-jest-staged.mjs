@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { precommitCentralizedNodeTests } from "./test-owners-core.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -29,7 +30,10 @@ function run(cmd, args, cwd = REPO_ROOT) {
 }
 
 function isExcludedFromPrecommitNodeTest(relPosix) {
-  return /\/tests\/(smoke|audit|e2e)\//.test(relPosix);
+  return (
+    /\/tests\/(smoke|audit|e2e)\//.test(relPosix) ||
+    /\/__tests__\/(smoke|integration)\//.test(relPosix)
+  );
 }
 
 function colocatedSpecPaths(sourcePath) {
@@ -70,9 +74,20 @@ function nodeTestSpecsForStaged(files) {
       specs.add(spec);
     }
   }
-  return [...specs].filter(
-    (p) => !p.includes(".integration.test.") && !p.includes(".integration.spec."),
-  );
+  return [...specs].filter((p) => {
+    if (p.includes(".integration.test.") || p.includes(".integration.spec.")) {
+      return false;
+    }
+    try {
+      const src = fs.readFileSync(p, "utf8");
+      if (/\bfrom\s+["']vitest["']/.test(src)) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+    return true;
+  });
 }
 
 if (STAGED.length === 0) {
@@ -120,6 +135,15 @@ function groupNodeSpecsByCwd(specPaths) {
 }
 
 const nodeSpecs = nodeTestSpecsForStaged(relativeStaged);
+const nodeSpecRel = new Set(
+  nodeSpecs.map((p) => path.relative(REPO_ROOT, p).replace(/\\/g, "/")),
+);
+for (const rel of precommitCentralizedNodeTests(REPO_ROOT, relativeStaged)) {
+  const abs = path.join(REPO_ROOT, rel);
+  if (!fs.existsSync(abs) || nodeSpecRel.has(rel)) continue;
+  nodeSpecRel.add(rel);
+  nodeSpecs.push(abs);
+}
 if (nodeSpecs.length > 0) {
   for (const [cwd, testPaths] of groupNodeSpecsByCwd(nodeSpecs)) {
     const isWeb = cwd.includes(`${path.sep}apps${path.sep}web`);

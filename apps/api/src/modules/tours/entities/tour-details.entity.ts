@@ -8,25 +8,15 @@ import {
   UpdateDateColumn
 } from "typeorm";
 
-import { TourEntity as Tour } from "./tour.entity";
-import type { TourTripDetails } from "../types/tour-trip-details.types";
+import { TOUR_ENTITY, type ITourEntity } from "@repo/domain-contracts";
+import {
+  DifficultyLevel,
+  type ItineraryItem,
+  type TourItineraryItem,
+  type TourTripDetails
+} from "../types/tour-trip-details.types";
 
-export enum DifficultyLevel {
-  EASY = "easy",
-  MODERATE = "moderate",
-  HARD = "hard",
-  TECHNICAL = "technical"
-}
-
-export interface ItineraryItem {
-  day: number;
-  title?: string;
-  description?: string;
-  distanceKm?: number;
-  elevationGainM?: number;
-}
-
-export type TourItineraryItem = ItineraryItem;
+export { DifficultyLevel, type ItineraryItem, type TourItineraryItem };
 
 @Entity("tour_details")
 export class TourDetails {
@@ -36,9 +26,9 @@ export class TourDetails {
   @Column({ type: "uuid", name: "tour_id", unique: true })
   tourId!: string;
 
-  @OneToOne(() => Tour, (tour) => tour.details, { nullable: false, onDelete: "CASCADE" })
+  @OneToOne(TOUR_ENTITY, "details", { nullable: false, onDelete: "CASCADE" })
   @JoinColumn({ name: "tour_id" })
-  tour!: Tour;
+  tour!: ITourEntity;
 
   @Column({ type: "varchar", name: "destination_name", nullable: true })
   destinationName!: string | null;

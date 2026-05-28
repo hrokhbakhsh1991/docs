@@ -9,7 +9,8 @@ import {
   UpdateDateColumn
 } from "typeorm";
 
-import { WorkspaceRegionEntity } from "./workspace-region.entity";
+import { WORKSPACE_REGION_ENTITY } from "@repo/domain-contracts";
+import type { WorkspaceRegionEntity } from "./workspace-region.entity";
 
 @Entity({ name: "workspace_destinations" })
 @Index("idx_workspace_destinations_tenant_id", ["tenantId"])
@@ -24,7 +25,7 @@ export class WorkspaceDestinationEntity {
   @Column({ name: "region_id", type: "uuid" })
   regionId!: string;
 
-  @ManyToOne(() => WorkspaceRegionEntity, (r) => r.destinations, { onDelete: "CASCADE" })
+  @ManyToOne(WORKSPACE_REGION_ENTITY, "destinations", { onDelete: "CASCADE" })
   @JoinColumn({ name: "region_id" })
   region!: WorkspaceRegionEntity;
 

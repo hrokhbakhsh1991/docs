@@ -11,9 +11,12 @@ function listFeatureNames(appName) {
     .sort();
 }
 /**
- * Safe-regex expansion of ^([^/]+/){4,}[^/]+$ (5+ path segments).
- * Nested quantifiers in the user pattern are rejected by dependency-cruiser's safe-regex check.
+ * Semantic target: ^([^/]+/){4,}[^/]+$ — paths with 5+ `/`-delimited segments.
+ * dependency-cruiser rejects nested quantifiers in `{4,}` (safe-regex); this expands
+ * the same intent without nested repetition.
  */
+const DEPTH_PATH_SEMANTIC = "^([^/]+/){4,}[^/]+$";
+
 function noFolderDepthGt4FromPath() {
   const fourSegmentAnchor = "((?:[^/]+/[^/]+/[^/]+/[^/]+/))";
   const variants = [];
@@ -43,13 +46,23 @@ function crossFeatureRules(appName) {
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
+    {
+      name: "no-circular-dependencies",
+      severity: "error",
+      comment:
+        "Circular dependency chains are forbidden. Break the cycle or extract shared code to a neutral module.",
+      from: {},
+      to: {
+        circular: true,
+      },
+    },
     ...crossFeatureRules("web"),
     ...crossFeatureRules("api"),
     {
       name: "no-folder-depth-gt-4",
       severity: "error",
       comment:
-        "Deep paths (5+ segments) must not use relative imports that escape the first four-segment subtree ($1). Alias and package imports are allowed.",
+        `Deep paths (${DEPTH_PATH_SEMANTIC}) must not use relative imports that escape the first four-segment subtree ($1). Alias and package imports are allowed.`,
       from: {
         path: noFolderDepthGt4FromPath(),
         pathNot: "(\\.spec\\.|\\.test\\.|/__tests__/)",

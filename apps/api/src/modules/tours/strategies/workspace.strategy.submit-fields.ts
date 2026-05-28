@@ -4,7 +4,7 @@ import {
   type WizardSubmitRequiredFieldPath,
 } from "@repo/types";
 
-import type { ProfileRequiredSubmitShape } from "../utils/assert-profile-required-fields-for-submit";
+import type { ProfileRequiredSubmitShape } from "../utils/profile-required-submit-shape";
 import type { WorkspaceRequiredSubmitFields } from "./workspace.strategy.interface";
 
 /** Default wizard-path reads (no Denali primary-transport synthesis). */

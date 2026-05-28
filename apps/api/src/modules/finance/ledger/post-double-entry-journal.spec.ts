@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { postDoubleEntryJournal } from "./post-double-entry-journal";
+import {
+  postDoubleEntryJournal,
+  postDoubleEntryReversalJournal,
+} from "./post-double-entry-journal";
+import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+
+const base = {
+  tenantId: "t1",
+  currency: "IRR",
+  correlationId: "corr-base",
+  idempotencyKey: "idem-base",
+};
 
 test("postDoubleEntryJournal rejects blank idempotency key", () => {
   assert.throws(
@@ -118,4 +129,49 @@ test("postDoubleEntryJournal accepts stableJournalAndLineIds and journalLinesCre
   assert.equal(lines[1]!.id, stable.creditLineId);
   assert.equal(lines[0]!.createdAt, "2026-02-01T00:00:00.000Z");
   assert.equal(lines[1]!.createdAt, "2026-02-01T00:00:00.000Z");
+});
+
+
+/* merged from post-double-entry-reversal-journal.spec.ts */
+
+test("postDoubleEntryReversalJournal negates original and sets reversesLineId on both legs", () => {
+  const { lines: orig } = postDoubleEntryJournal({
+    ...base,
+    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    creditAccount: "booking:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    amount_minor: "5000"
+  });
+  const { lines: rev } = postDoubleEntryReversalJournal({
+    tenantId: base.tenantId,
+    originalLines: orig,
+    correlationId: "corr-refund",
+    idempotencyKey: "idem-refund"
+  });
+  const [rDebit, rCredit] = rev;
+  assert.equal(rDebit.side, "debit");
+  assert.equal(rCredit.side, "credit");
+  assert.equal(rDebit.account, orig[1]!.account);
+  assert.equal(rCredit.account, orig[0]!.account);
+  assert.equal(rDebit.reversesLineId, orig[1]!.id);
+  assert.equal(rCredit.reversesLineId, orig[0]!.id);
+  assert.notEqual(rDebit.journalId, orig[0]!.journalId);
+});
+
+test("postDoubleEntryReversalJournal rejects wrong line order", () => {
+  const { lines: orig } = postDoubleEntryJournal({
+    ...base,
+    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    creditAccount: "booking:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    amount_minor: "1"
+  });
+  assert.throws(
+    () =>
+      postDoubleEntryReversalJournal({
+        tenantId: base.tenantId,
+        originalLines: [orig[1]!, orig[0]!],
+        correlationId: "c",
+        idempotencyKey: "k"
+      }),
+    /LEDGER_REVERSAL_ORDER/
+  );
 });

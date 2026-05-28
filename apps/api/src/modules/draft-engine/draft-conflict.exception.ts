@@ -1,6 +1,6 @@
 import { ConflictException } from "@nestjs/common";
 
-import type { DraftSyncPayloadResponse } from "./draft-engine.facade";
+import type { DraftSyncPayloadResponse } from "./draft-sync-payload.types";
 
 /** Thrown when PATCH `version` does not match the stored draft (optimistic concurrency). */
 export class DraftConflictException extends ConflictException {

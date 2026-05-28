@@ -1,1 +1,15 @@
+#!/usr/bin/env sh
+# Zero-tolerance pre-commit — do not use git commit --no-verify.
+set -eu
+
+if [ "${HUSKY:-1}" = "0" ]; then
+  echo "error: HUSKY=0 is not allowed — hooks cannot be disabled for this repository." >&2
+  exit 1
+fi
+
+if [ "${SKIP_HOOKS:-}" != "" ] || [ "${SKIP_HOOK:-}" != "" ]; then
+  echo "error: SKIP_HOOKS/SKIP_HOOK is not allowed — hooks cannot be bypassed." >&2
+  exit 1
+fi
+
 pnpm lint-staged

@@ -3,7 +3,10 @@ import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
 import type { PricingLineItem } from "../pricing/pricing.types";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
-import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
+import {
+  BOOKING_PRICE_SNAPSHOT_ENTITY,
+  type IBookingPriceSnapshotEntity
+} from "@repo/domain-contracts";
 
 export enum RegistrationStatus {
   PENDING = "Pending",
@@ -134,7 +137,7 @@ export class RegistrationEntity extends BaseTenantEntity {
   @Column({ type: "uuid", name: "snapshot_id", nullable: true })
   snapshotId?: string | null;
 
-  @ManyToOne(() => BookingPriceSnapshotEntity, { nullable: true, eager: false })
+  @ManyToOne(BOOKING_PRICE_SNAPSHOT_ENTITY, { nullable: true, eager: false })
   @JoinColumn({ name: "snapshot_id", referencedColumnName: "snapshotId" })
-  priceSnapshot?: BookingPriceSnapshotEntity | null;
+  priceSnapshot?: IBookingPriceSnapshotEntity | null;
 }

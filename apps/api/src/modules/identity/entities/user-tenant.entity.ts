@@ -9,8 +9,12 @@ import {
 import { UserRole } from "../../../common/auth/user-role.enum";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
 import { MembershipStatus } from "../membership-status.enum";
-import { TenantEntity } from "./tenant.entity";
-import { UserEntity } from "./user.entity";
+import {
+  TENANT_ENTITY,
+  USER_ENTITY,
+  type ITenantEntity,
+  type IUserEntity
+} from "@repo/domain-contracts";
 
 @Entity({ name: "user_tenants" })
 @Unique("uq_user_tenants_user_id_tenant_id", ["userId", "tenantId"])
@@ -65,11 +69,11 @@ export class UserTenantEntity extends BaseTenantEntity {
   @Column({ type: "jsonb", name: "membership_metadata", default: () => "'{}'::jsonb" })
   membershipMetadata!: Record<string, unknown>;
 
-  @ManyToOne(() => UserEntity, (user) => user.memberships, { nullable: false })
+  @ManyToOne(USER_ENTITY, "memberships", { nullable: false })
   @JoinColumn({ name: "user_id", referencedColumnName: "id" })
-  user!: UserEntity;
+  user!: IUserEntity;
 
-  @ManyToOne(() => TenantEntity, (tenant) => tenant.members, { nullable: false })
+  @ManyToOne(TENANT_ENTITY, "members", { nullable: false })
   @JoinColumn({ name: "tenant_id", referencedColumnName: "id" })
-  tenant!: TenantEntity;
+  tenant!: ITenantEntity;
 }

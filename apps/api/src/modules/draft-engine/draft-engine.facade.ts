@@ -24,7 +24,9 @@ import { DraftEventEntity } from "./entities/draft-event.entity";
 import { tryGetActiveTraceLogFields } from "../../common/observability/active-trace-log-fields";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 
-export type DraftSyncPayloadResponse = DraftSnapshot;
+import type { DraftSyncPayloadResponse } from "./draft-sync-payload.types";
+
+export type { DraftSyncPayloadResponse };
 
 @Injectable()
 export class DraftEngineFacade {
@@ -47,12 +49,14 @@ export class DraftEngineFacade {
   ) {}
 
   private getDebugContextFields(draftKey?: string) {
-    let context: any = {};
+    let context: Record<string, unknown> = {};
     try {
       if (this.requestContext && typeof this.requestContext.getContext === "function") {
-        context = this.requestContext.getContext() || {};
+        context = (this.requestContext.getContext() as Record<string, unknown> | undefined) ?? {};
       }
-    } catch {}
+    } catch {
+      // Request context may be unavailable outside HTTP scope.
+    }
 
     const correlationId = context.correlationId ?? 
       (this.requestContext && typeof this.requestContext.tryGetCorrelationId === "function" ? this.requestContext.tryGetCorrelationId() : undefined) ?? 
@@ -86,12 +90,14 @@ export class DraftEngineFacade {
   }
 
   private ensureCorrelationId(): string {
-    let context: any = null;
+    let context: Record<string, unknown> | null = null;
     try {
       if (this.requestContext && typeof this.requestContext.getContext === "function") {
-        context = this.requestContext.getContext();
+        context = (this.requestContext.getContext() as Record<string, unknown> | undefined) ?? null;
       }
-    } catch {}
+    } catch {
+      // Request context may be unavailable outside HTTP scope.
+    }
     
     if (context) {
       if (!context.correlationId) {

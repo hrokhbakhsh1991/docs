@@ -14,7 +14,7 @@ import {
   MaxLength,
   ValidateIf
 } from "class-validator";
-import { UserTenantEntity } from "./user-tenant.entity";
+import { USER_TENANT_ENTITY, type IUserTenantEntity } from "@repo/domain-contracts";
 
 /** Single DNS label: lowercase [a-z0-9], hyphens inside only; no dots or spaces. */
 export const TENANT_SUBDOMAIN_REGEX = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
@@ -62,6 +62,6 @@ export class TenantEntity {
   @DeleteDateColumn({ type: "timestamptz", name: "deleted_at", nullable: true })
   deletedAt?: Date;
 
-  @OneToMany(() => UserTenantEntity, (membership) => membership.tenant)
-  members!: UserTenantEntity[];
+  @OneToMany(USER_TENANT_ENTITY, "tenant")
+  members!: IUserTenantEntity[];
 }

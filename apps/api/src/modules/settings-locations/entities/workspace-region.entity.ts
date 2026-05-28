@@ -8,7 +8,10 @@ import {
   UpdateDateColumn
 } from "typeorm";
 
-import { WorkspaceDestinationEntity } from "./workspace-destination.entity";
+import {
+  WORKSPACE_DESTINATION_ENTITY,
+  type IWorkspaceDestinationEntity
+} from "@repo/domain-contracts";
 
 @Entity({ name: "workspace_regions" })
 @Index("idx_workspace_regions_tenant_id", ["tenantId"])
@@ -37,6 +40,6 @@ export class WorkspaceRegionEntity {
   @UpdateDateColumn({ name: "updated_at", type: "timestamptz" })
   updatedAt!: Date;
 
-  @OneToMany(() => WorkspaceDestinationEntity, (d) => d.region)
-  destinations?: WorkspaceDestinationEntity[];
+  @OneToMany(WORKSPACE_DESTINATION_ENTITY, "region")
+  destinations?: IWorkspaceDestinationEntity[];
 }

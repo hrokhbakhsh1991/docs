@@ -9,15 +9,15 @@
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { evaluateDenaliContextualRequired } from "./denaliUIAdapter";
-import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
+import { mapDenaliCanonicalToFormPath } from "./denaliCanonicalPaths";
+import { isDenaliFieldRequired } from "./denaliFieldGate";
 import { DENALI_CONDITIONALLY_REQUIRED_CANONICAL_PATHS } from "./generated/denaliConditionallyRequiredPaths.generated";
 import type { DenaliRuleFieldStep, DenaliRuleModel } from "./denaliRuleModel.types";
-import { findDenaliRuleField, listDenaliRuleFieldPaths } from "./denaliRuleModel";
+import { listDenaliRuleFieldPaths } from "./denaliRuleModel";
 import { getDenaliFormPathValue, setDenaliFormPathValue } from "../denaliFormPathUtils";
 import { patchDenaliCanonicalBasics, readDenaliCanonicalBasics } from "../denaliCanonicalBasicsControl";
 import type { DenaliTourKind } from "@repo/types";
-import { isDenaliFieldVisibleInModel, type DenaliUIContextOptions } from "./denaliUIAdapter";
+import type { DenaliUIContextOptions } from "./denaliContextualRules";
 
 /** Submit gate: all steps. Step gate: one rail step only (field.step === stepId). */
 export type DenaliRuleValidationScope =
@@ -39,21 +39,8 @@ export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set(listDenaliRuleFieldPa
 /** @deprecated Use {@link DENALI_WIZARD_CANONICAL_FIELD_PATHS} */
 export const DENALI_WIZARD_FORM_FIELD_PATHS = DENALI_WIZARD_CANONICAL_FIELD_PATHS;
 
-export function mapDenaliCanonicalToFormPath(path: string): string {
-  return DENALI_CANONICAL_TO_FORM_PATH_MAP[path] ?? path;
-}
-
-const FORM_TO_CANONICAL_PATH: Record<string, string> = Object.fromEntries(
-  Object.entries(DENALI_CANONICAL_TO_FORM_PATH_MAP).map(([canonical, formPath]) => [
-    formPath,
-    canonical,
-  ]),
-);
-
-/** RHF dot path → canonical rule path (for UI + step validation). */
-export function mapFormPathToCanonical(path: string): string {
-  return FORM_TO_CANONICAL_PATH[path] ?? path;
-}
+export { mapDenaliCanonicalToFormPath, mapFormPathToCanonical } from "./denaliCanonicalPaths";
+export { isDenaliFieldRequired } from "./denaliFieldGate";
 
 function isEmptyRequiredValue(value: unknown, path: string): boolean {
   if (value == null) return true;
@@ -108,29 +95,6 @@ function collectDenaliItineraryRequiredIssues(
     }
   }
   return issues;
-}
-
-/**
- * Whether `path` (canonical) is required for the current form state (after visibility).
- * Static flags come from {@link DenaliRuleModel}; dong / price / multi-day end are contextual.
- */
-export function isDenaliFieldRequired(
-  model: DenaliRuleModel | null,
-  path: string,
-  form: DenaliCreateTourWizardForm,
-  uiOptions?: DenaliUIContextOptions,
-): boolean {
-  if (!isDenaliFieldVisibleInModel(model, path, form, uiOptions)) {
-    return false;
-  }
-
-  const contextualRequired = evaluateDenaliContextualRequired(path, form);
-  if (contextualRequired != null) {
-    return contextualRequired;
-  }
-
-  const field = model == null ? undefined : findDenaliRuleField(model, path);
-  return field != null && field.required && !field.hidden;
 }
 
 export function readDenaliFormFieldValue(

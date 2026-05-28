@@ -1,7 +1,7 @@
 import type { EntityManager } from "typeorm";
 import { enforceLedgerJournalContract } from "./enforce-ledger-journal-contract";
 import type { LedgerJournalLine } from "./ledger-journal-line";
-import type { PostDoubleEntryJournalResult } from "./post-double-entry-journal";
+import type { PostDoubleEntryJournalResult } from "./post-double-entry-journal.types";
 
 function signedDeltaMinor(side: "debit" | "credit", amountMinor: string): string {
   const a = BigInt(amountMinor);
@@ -25,7 +25,11 @@ export async function persistLedgerJournal(
   enforceLedgerJournalContract(lines, `persistLedgerJournal:${result.journalId}`);
 
   let anyLineInserted = false;
-  const tenantId = lines[0]!.tenantId;
+  const firstLine = lines[0];
+  if (firstLine == null) {
+    return { journalId: result.journalId, lines: [], anyLineInserted: false };
+  }
+  const tenantId = firstLine.tenantId;
   const journalId = result.journalId;
 
   await manager.query(

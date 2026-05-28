@@ -9,8 +9,11 @@ const tenantProjects = [
 ] as const;
 
 export default defineConfig({
-  testDir: "./tests",
-  testMatch: ["integration/**/*.spec.ts"],
+  testDir: ".",
+  testMatch: [
+    "tests/integration/**/*.spec.ts",
+    "src/features/tours/__tests__/integration/**/*.spec.ts",
+  ],
   timeout: 180_000,
   fullyParallel: false,
   workers: 1,

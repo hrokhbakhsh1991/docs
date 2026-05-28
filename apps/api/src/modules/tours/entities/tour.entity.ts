@@ -5,17 +5,12 @@ import { TOUR_TYPES, type TourType } from "@repo/types";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
 import { UserEntity } from "../../identity/entities/user.entity";
 import { WorkspaceDestinationEntity } from "../../settings-locations/entities/workspace-destination.entity";
-import { TourDetails } from "./tour-details.entity";
+import { TOUR_DETAILS_ENTITY, TourLifecycleStatus } from "@repo/domain-contracts";
+import type { TourDetails } from "./tour-details.entity";
 import type { TourTransportMode } from "../tour-transport-modes";
 
 export { TOUR_TYPES, type TourType };
-
-export enum TourLifecycleStatus {
-  DRAFT = "DRAFT",
-  OPEN = "OPEN",
-  CLOSED = "CLOSED",
-  CANCELLED = "CANCELLED"
-}
+export { TourLifecycleStatus };
 
 /**
  * Top-level tour **category**. Distinct from `tripDetails.overview.tripStyles`,
@@ -94,7 +89,7 @@ export class TourEntity extends BaseTenantEntity {
   @JoinColumn({ name: "destination_id" })
   destination?: WorkspaceDestinationEntity | null;
 
-  @OneToOne(() => TourDetails, (details) => details.tour, { cascade: true, nullable: true })
+  @OneToOne(TOUR_DETAILS_ENTITY, "tour", { cascade: true, nullable: true })
   details?: TourDetails;
 
   @Column({ type: "uuid", name: "tour_product_id", nullable: true })

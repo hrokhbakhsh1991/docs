@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Request } from "express";
 import { Inject } from "@nestjs/common";
+import type { TenantRuntimeAction } from "@repo/domain-contracts";
 import {
   TENANT_RATE_LIMIT_POLICY,
   TENANT_USAGE_METERING_POLICY,
@@ -8,7 +9,7 @@ import {
   type TenantUsageMeteringPolicy
 } from "../contracts/tenant-runtime.contract";
 
-export type TenantRuntimeAction = "http_rate_limit" | "http_usage_metering" | "http_all";
+export type { TenantRuntimeAction };
 
 @Injectable()
 export class TenantRuntimeGuardService {

@@ -9,7 +9,7 @@ import {
   getWorkspaceUiCapabilityFlags,
   type WorkspaceInvariantViolation,
 } from "@repo/shared-contracts";
-import type { ProfileRequiredSubmitShape } from "../utils/assert-profile-required-fields-for-submit";
+import type { ProfileRequiredSubmitShape } from "../utils/profile-required-submit-shape";
 import {
   buildFieldStripRules,
   buildPublishPolicy,

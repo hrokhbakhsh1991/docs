@@ -1,5 +1,8 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { RegistrationEntity } from "../../registrations/registration.entity";
+import {
+  REGISTRATION_ENTITY,
+  type IRegistrationEntity
+} from "@repo/domain-contracts";
 
 /**
  * **Append-only** immutable price fact for a booking (`registrations.id` as `booking_id`).
@@ -24,9 +27,9 @@ export class BookingPriceSnapshotEntity {
   @Column({ type: "uuid", name: "booking_id" })
   bookingId!: string;
 
-  @ManyToOne(() => RegistrationEntity, { onDelete: "NO ACTION", nullable: false })
+  @ManyToOne(REGISTRATION_ENTITY, { onDelete: "NO ACTION", nullable: false })
   @JoinColumn({ name: "booking_id", referencedColumnName: "id" })
-  booking!: RegistrationEntity;
+  booking!: IRegistrationEntity;
 
   /** Catalog / list reference in minor units (integer money). */
   @Column({ type: "bigint", name: "list_price_minor" })

@@ -45,7 +45,7 @@ async function main(): Promise<void> {
       where: { tenantId: tenant.id, role: UserRole.Owner, deletedAt: IsNull() }
     });
     if (priorOwnerMb) {
-      previousOwnerUserId = priorOwnerMb.userId;
+      _previousOwnerUserId = priorOwnerMb.userId;
     }
 
     let user =
@@ -74,22 +74,24 @@ async function main(): Promise<void> {
       actions.push("user exists — phone normalized");
     }
 
+    const ownerUser = user;
+
     await dataSource.transaction(async (manager) => {
       const mr = manager.getRepository(UserTenantEntity);
 
       const currentOwner = await mr.findOne({
         where: { tenantId: tenant.id, role: UserRole.Owner, deletedAt: IsNull() }
       });
-      if (currentOwner && currentOwner.userId !== user!.id) {
+      if (currentOwner && currentOwner.userId !== ownerUser.id) {
         currentOwner.role = UserRole.Member;
         await mr.save(currentOwner);
         actions.push("demoted previous owner membership to member");
       }
 
-      let targetMb = await mr.findOne({
+      const targetMb = await mr.findOne({
         where: {
-          tenantId: tenant!.id,
-          userId: user!.id,
+          tenantId: tenant.id,
+          userId: ownerUser.id,
           deletedAt: IsNull()
         }
       });
@@ -104,7 +106,7 @@ async function main(): Promise<void> {
         await mr.save(
           mr.create({
             tenantId: tenant.id,
-            userId: user!.id,
+            userId: ownerUser.id,
             role: UserRole.Owner,
             status: MembershipStatus.ACTIVE,
             invitedAt: null,
@@ -119,7 +121,7 @@ async function main(): Promise<void> {
       const activeMembership = await mr.findOne({
         where: {
           tenantId: tenant.id,
-          userId: user!.id,
+          userId: ownerUser.id,
           deletedAt: IsNull()
         }
       });
@@ -128,7 +130,7 @@ async function main(): Promise<void> {
           {
             tag: "ensure_denali_otp_owner_membership_active",
             workspace_id: tenant.id,
-            user_id: user!.id,
+            user_id: ownerUser.id,
             membership_status: activeMembership?.status ?? null,
             role: activeMembership?.role ?? null,
             phone_masked: MASKED_PHONE
@@ -145,7 +147,7 @@ async function main(): Promise<void> {
           status: "ok",
           tenantId: tenant.id,
           tenantSubdomain: tenant.subdomain,
-          previousOwnerUserId: previousOwnerUserId || null,
+          _previousOwnerUserId: _previousOwnerUserId || null,
           newOwnerUserId: user.id,
           phone_masked: MASKED_PHONE,
           actions: actions.join("; ")

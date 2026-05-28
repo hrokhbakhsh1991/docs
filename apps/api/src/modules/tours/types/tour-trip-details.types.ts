@@ -1,7 +1,23 @@
 import type { AccommodationTypeSlug, MealPlanSlug } from "@repo/types";
 
-import type { DifficultyLevel } from "../entities/tour-details.entity";
 import type { DifficultyRating } from "../tour-difficulty-rating";
+
+export enum DifficultyLevel {
+  EASY = "easy",
+  MODERATE = "moderate",
+  HARD = "hard",
+  TECHNICAL = "technical"
+}
+
+export interface ItineraryItem {
+  day: number;
+  title?: string;
+  description?: string;
+  distanceKm?: number;
+  elevationGainM?: number;
+}
+
+export type TourItineraryItem = ItineraryItem;
 import type { AudienceGroup } from "../audience-groups";
 
 /** Document version for forward-compatible reads/writes. */

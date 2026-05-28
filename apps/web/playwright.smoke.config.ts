@@ -3,9 +3,12 @@ import { defineConfig } from "@playwright/test";
 const smokeBaseURL = process.env.PW_BASE_URL ?? "http://ws1-rbac.localhost:3000";
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: ".",
   timeout: 90_000,
-  testMatch: ["smoke/**/*.spec.ts"],
+  testMatch: [
+    "tests/smoke/**/*.spec.ts",
+    "src/features/tours/__tests__/smoke/**/*.spec.ts",
+  ],
   use: {
     // Workspace routes require a tenant host label (not bare loopback).
     baseURL: smokeBaseURL,

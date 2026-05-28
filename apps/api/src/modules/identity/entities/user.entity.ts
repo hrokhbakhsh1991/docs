@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   VersionColumn
 } from "typeorm";
-import { UserTenantEntity } from "./user-tenant.entity";
+import { USER_TENANT_ENTITY, type IUserTenantEntity } from "@repo/domain-contracts";
 
 @Entity({ name: "users" })
 export class UserEntity {
@@ -89,6 +89,6 @@ export class UserEntity {
   @DeleteDateColumn({ type: "timestamptz", name: "deleted_at", nullable: true })
   deletedAt?: Date;
 
-  @OneToMany(() => UserTenantEntity, (membership) => membership.user)
-  memberships!: UserTenantEntity[];
+  @OneToMany(USER_TENANT_ENTITY, "user")
+  memberships!: IUserTenantEntity[];
 }

@@ -15,7 +15,7 @@
 // Phase P16 (promptq.md follow-up): the adapter now owns the canonical Edit→wizard
 // **path-alias map** for ids whose Edit name diverges from the wizard's
 // `TourCreateFormValues` shape. Pilot row: `overview.shortIntro` → `overview.shortDescription`.
-// The `editTripDetailsWizardPathDivergence.spec.ts` parity spec imports this map directly
+// The `tripDetailsFieldConfigAdapter.spec.ts` parity spec imports this map directly
 // (no duplication), and is therefore guaranteed to fail loudly if any alias target ever
 // drifts out of `BASE_FIELD_RULES`.
 
@@ -35,7 +35,7 @@ import {
  * Canonical Edit `TripDetailsFieldId` → wizard `WizardFieldPath` alias map.
  *
  * Edit ids are not always identical to the wizard's `TourCreateFormValues` dotted paths
- * (different historical DTO shape — see `editTripDetailsWizardPathDivergence.spec.ts` for the
+ * (different historical DTO shape — see `tripDetailsFieldConfigAdapter.spec.ts` for the
  * full divergence catalog). When an entry exists here, the adapter overlays the wizard rule
  * for `<wizardPath>` onto the row for `<editId>`, so the wizard's `BASE_FIELD_RULES` row is
  * the single source of truth even for the field's Edit twin.

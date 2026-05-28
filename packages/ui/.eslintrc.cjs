@@ -23,8 +23,11 @@ module.exports = {
     "plugin:react-hooks/recommended",
   ],
   settings: { react: { version: "detect" } },
+  reportUnusedDisableDirectives: true,
   rules: {
+    strict: ["error", "never"],
     "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/no-require-imports": "off",
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
     "no-unused-vars": "off",
@@ -36,6 +39,8 @@ module.exports = {
         caughtErrorsIgnorePattern: "^_",
       },
     ],
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
   },
   ignorePatterns: ["node_modules/**", "dist/**"],
 };

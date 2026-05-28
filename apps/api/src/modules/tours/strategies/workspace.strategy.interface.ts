@@ -5,7 +5,7 @@ import type {
   WizardFieldGroupSlug,
   WizardSubmitRequiredFieldPath,
 } from "@repo/types";
-import type { ProfileRequiredSubmitShape } from "../utils/assert-profile-required-fields-for-submit";
+import type { ProfileRequiredSubmitShape } from "../utils/profile-required-submit-shape";
 import type {
   TourWorkspaceDefinition,
   WorkspaceInvariantViolation,

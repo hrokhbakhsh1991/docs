@@ -1,5 +1,7 @@
+import type { TenantRuntimeAction } from "@repo/domain-contracts";
 import type { Request } from "express";
-import type { TenantRuntimeAction } from "../tenant/tenant-runtime-guard.service";
+
+export type { TenantRuntimeAction };
 
 export const TENANT_RATE_LIMIT_POLICY = Symbol("TENANT_RATE_LIMIT_POLICY");
 export const TENANT_USAGE_METERING_POLICY = Symbol("TENANT_USAGE_METERING_POLICY");

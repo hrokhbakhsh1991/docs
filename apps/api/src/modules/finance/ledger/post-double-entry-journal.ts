@@ -4,6 +4,9 @@ import type { EntityManager } from "typeorm";
 import { freezePostDoubleEntryJournalResult } from "./freeze-ledger-journal";
 import { persistLedgerJournal } from "./persist-ledger-journal";
 import type { LedgerJournalLine, LedgerPostingSide } from "./ledger-journal-line";
+import type { PostDoubleEntryJournalResult } from "./post-double-entry-journal.types";
+
+export type { PostDoubleEntryJournalResult } from "./post-double-entry-journal.types";
 
 export type PostDoubleEntryJournalInput = {
   tenantId: string;
@@ -27,12 +30,6 @@ export type PostDoubleEntryJournalInput = {
   };
   /** Overrides `createdAt` on both lines (audit alignment with an external clock such as `paid_at`). */
   journalLinesCreatedAtIso?: string;
-};
-
-export type PostDoubleEntryJournalResult = {
-  journalId: string;
-  /** Exactly two lines: debit first, credit second; sums balance in minor units for the journal. */
-  lines: [LedgerJournalLine, LedgerJournalLine];
 };
 
 function trimNonEmpty(name: string, value: string): string {

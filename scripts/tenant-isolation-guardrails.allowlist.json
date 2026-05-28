@@ -3,7 +3,7 @@
   "ignoredPathsForQueryBuilderTenant": [
     "apps/api/src/database/migrations/",
     "apps/api/src/scripts/",
-    "apps/api/src/modules/auth/auth.service.phone-otp.spec.ts",
+    "apps/api/src/modules/auth/auth.service.spec.ts",
     "apps/api/test/",
     "apps/api/dist/"
   ],

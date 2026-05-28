@@ -1,6 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { CreateDateColumn } from "typeorm";
-import { TourDepartureEntity } from "./tour-departure.entity";
+import { TOUR_DEPARTURE_ENTITY, type ITourDepartureEntity } from "@repo/domain-contracts";
 
 export enum TourPriceType {
   BASE = "base",
@@ -20,9 +20,9 @@ export class TourPriceEntity {
   @Column({ type: "uuid", name: "tour_departure_id" })
   tourDepartureId!: string;
 
-  @ManyToOne(() => TourDepartureEntity, (d) => d.prices, { onDelete: "CASCADE" })
+  @ManyToOne(TOUR_DEPARTURE_ENTITY, "prices", { onDelete: "CASCADE" })
   @JoinColumn({ name: "tour_departure_id" })
-  tourDeparture!: TourDepartureEntity;
+  tourDeparture!: ITourDepartureEntity;
 
   @Column({
     type: "enum",

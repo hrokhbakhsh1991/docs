@@ -2,23 +2,13 @@ import { BadRequestException } from "@nestjs/common";
 
 import type { TourFormProfile, WizardSubmitRequiredFieldPath } from "@repo/types";
 
-import type { CreateTourDto } from "../dto/create-tour.dto";
 import type { TourEntity } from "../entities/tour.entity";
 import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
+import type { ProfileRequiredSubmitShape } from "./profile-required-submit-shape";
+
+export type { ProfileRequiredSubmitShape } from "./profile-required-submit-shape";
 
 export const VALIDATION_PROFILE_REQUIRED_FIELD = "VALIDATION_PROFILE_REQUIRED_FIELD" as const;
-
-/**
- * Minimal wire shape for profile submit-required checks (POST create and PATCH → OPEN).
- * {@link CreateTourDto} satisfies this type; persisted tours are projected via
- * {@link tourEntityToProfileRequiredSubmitShape}.
- */
-export type ProfileRequiredSubmitShape = {
-  title: string;
-  cost_context?: { totalCost?: number | null } | null;
-  tripDetails?: CreateTourDto["tripDetails"] | null;
-  transportModes?: readonly string[] | null;
-};
 
 /** Projects a merged tour row to the same shape used by POST create asserts. */
 export function tourEntityToProfileRequiredSubmitShape(tour: TourEntity): ProfileRequiredSubmitShape {

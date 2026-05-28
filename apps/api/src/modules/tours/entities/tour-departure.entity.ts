@@ -9,9 +9,13 @@ import {
   PrimaryColumn,
   UpdateDateColumn
 } from "typeorm";
-import { TourProductEntity } from "./tour-product.entity";
-import { TourLifecycleStatus } from "./tour.entity";
-import { TourPriceEntity } from "./tour-price.entity";
+import {
+  TOUR_PRICE_ENTITY,
+  TOUR_PRODUCT_ENTITY,
+  TourLifecycleStatus,
+  type ITourPriceEntity,
+  type ITourProductEntity
+} from "@repo/domain-contracts";
 
 @Entity("tour_departures")
 @Index("idx_tour_departures_tenant_starts", ["tenantId", "startsOn"])
@@ -23,9 +27,9 @@ export class TourDepartureEntity {
   @Column({ type: "uuid", name: "tour_product_id" })
   tourProductId!: string;
 
-  @ManyToOne(() => TourProductEntity, (p) => p.departures, { onDelete: "CASCADE" })
+  @ManyToOne(TOUR_PRODUCT_ENTITY, "departures", { onDelete: "CASCADE" })
   @JoinColumn({ name: "tour_product_id" })
-  tourProduct!: TourProductEntity;
+  tourProduct!: ITourProductEntity;
 
   @Column({ type: "uuid", name: "tenant_id" })
   tenantId!: string;
@@ -66,6 +70,6 @@ export class TourDepartureEntity {
   @UpdateDateColumn({ type: "timestamptz", name: "updated_at" })
   updatedAt!: Date;
 
-  @OneToMany(() => TourPriceEntity, (p) => p.tourDeparture)
-  prices?: TourPriceEntity[];
+  @OneToMany(TOUR_PRICE_ENTITY, "tourDeparture")
+  prices?: ITourPriceEntity[];
 }
