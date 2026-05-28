@@ -22,6 +22,7 @@ import {
   DenaliPricingStep,
   DenaliProgramNatureStep,
   DenaliReviewStep,
+  DenaliLegalStep,
   DenaliLogisticsStep,
   DenaliPhotosStep,
 } from "@/features/tours/wizard/denali";
@@ -136,6 +137,9 @@ function DenaliStepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
       break;
     case "denali_pricing":
       body = <DenaliPricingStep />;
+      break;
+    case "denali_legal":
+      body = <DenaliLegalStep />;
       break;
     case "denali_photos":
       body = <DenaliPhotosStep />;

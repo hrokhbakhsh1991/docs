@@ -15,6 +15,7 @@ import {
 } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
   DenaliBasicInfoStep,
+  DenaliLegalStep,
   DenaliLogisticsStep,
   DenaliPricingStep,
   DenaliProgramNatureStep,
@@ -53,6 +54,9 @@ function DenaliStepBody({ stepId, tourId }: { stepId: EditStepId; tourId: string
       break;
     case "denali_pricing":
       body = <DenaliPricingStep />;
+      break;
+    case "denali_legal":
+      body = <DenaliLegalStep />;
       break;
     case "denali_photos":
       body = <DenaliPhotosStep tourId={tourId} />;

@@ -633,7 +633,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "policies.cancellationDeadlineHours",
-    stepId: "denali_pricing",
+    stepId: "denali_legal",
     rhfPath: "policies.cancellationDeadlineHours",
     zodPath: "policies.cancellationDeadlineHours",
     zodKind: "optionalPositiveInt",
@@ -642,7 +642,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "policies.cancellationPenaltyPercentage",
-    stepId: "denali_pricing",
+    stepId: "denali_legal",
     rhfPath: "policies.cancellationPenaltyPercentage",
     zodPath: "policies.cancellationPenaltyPercentage",
     zodKind: "optionalInt",
@@ -651,7 +651,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
   },
   {
     canonicalPath: "policies.policiesText",
-    stepId: "denali_pricing",
+    stepId: "denali_legal",
     rhfPath: "policies.policiesText",
     zodPath: "policies.policiesText",
     zodKind: "stringOptional",

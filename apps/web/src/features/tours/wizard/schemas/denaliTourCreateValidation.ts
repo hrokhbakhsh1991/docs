@@ -31,6 +31,7 @@ export function getDenaliWizardStepSchemaRoot(
       denali_program: "programNature",
       denali_logistics: "transport",
       denali_pricing: "pricingPayment",
+      denali_legal: "policies",
       review: null,
     };
   }
@@ -44,6 +45,7 @@ export function getDenaliWizardStepSchemaRoot(
     "denali_program",
     "denali_logistics",
     "denali_pricing",
+    "denali_legal",
   ] as const) {
     const pick = getDenaliStepPickShape(model, stepId);
     const keys = Object.keys(pick) as (keyof DenaliCreateTourWizardForm)[];

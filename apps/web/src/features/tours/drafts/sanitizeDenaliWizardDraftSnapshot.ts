@@ -6,8 +6,8 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 
 import type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
 
-/** Phase 3 rail layout (basic → photos → program → logistics → pricing → review). */
-export const DENALI_WIZARD_RAIL_LAYOUT_VERSION = 2;
+/** Rail layout v3: basic → photos → program → logistics → pricing → legal → review. */
+export const DENALI_WIZARD_RAIL_LAYOUT_VERSION = 3;
 
 /** Pre–phase 3 create wizard rail (photos last). */
 export const LEGACY_DENALI_WIZARD_RAIL = [
@@ -28,6 +28,12 @@ export function migrateDenaliDraftStepIndex(
 
   if ((railLayoutVersion ?? 1) >= DENALI_WIZARD_RAIL_LAYOUT_VERSION) {
     return Math.max(0, Math.min(safeIndex, steps.length - 1));
+  }
+
+  if ((railLayoutVersion ?? 1) >= 2) {
+    const clampedV2 = Math.max(0, Math.min(safeIndex, 5));
+    const withLegalStep = clampedV2 >= 5 ? clampedV2 + 1 : clampedV2;
+    return Math.max(0, Math.min(withLegalStep, steps.length - 1));
   }
 
   const legacyIndex = Math.max(0, Math.min(safeIndex, LEGACY_DENALI_WIZARD_RAIL.length - 1));

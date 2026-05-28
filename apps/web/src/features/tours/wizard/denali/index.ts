@@ -8,6 +8,7 @@ export { DenaliBasicInfoStep } from "./steps/DenaliBasicInfoStep";
 export { DenaliProgramNatureStep } from "./steps/DenaliProgramNatureStep";
 export { DenaliLogisticsStep } from "./steps/DenaliLogisticsStep";
 export { DenaliPricingStep } from "./steps/DenaliPricingStep";
+export { DenaliLegalStep } from "./steps/DenaliLegalStep";
 /** @deprecated Use {@link DenaliPricingStep}. */
 export { DenaliPricingPaymentStep } from "./steps/DenaliPricingPaymentStep";
 export { DenaliReviewStep } from "./steps/DenaliReviewStep";

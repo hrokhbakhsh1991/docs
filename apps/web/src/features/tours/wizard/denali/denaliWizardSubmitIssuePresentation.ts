@@ -61,7 +61,10 @@ function resolveStepForIssue(
   if (formPath.startsWith("programNature.")) return "denali_program";
   if (formPath.startsWith("transport.")) return "denali_logistics";
   if (formPath.startsWith("tripDetails.")) return "denali_logistics";
-  if (formPath.startsWith("participantRequirements.") || formPath.startsWith("policies.")) {
+  if (formPath.startsWith("policies.")) {
+    return "denali_legal";
+  }
+  if (formPath.startsWith("participantRequirements.")) {
     return "denali_pricing";
   }
   if (formPath.startsWith("pricingPayment.")) return "denali_pricing";

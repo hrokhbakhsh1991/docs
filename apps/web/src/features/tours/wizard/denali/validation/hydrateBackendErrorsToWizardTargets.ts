@@ -20,6 +20,7 @@ export type DenaliWizardStepId =
   | "denali_program"
   | "denali_logistics"
   | "denali_pricing"
+  | "denali_legal"
   | "denali_photos"
   | "review";
 
@@ -43,6 +44,7 @@ const FORM_PATH_TO_STEP: Array<{ prefix: string; stepId: DenaliWizardStepId }> =
   { prefix: "programNature.", stepId: "denali_program" },
   { prefix: "transport.", stepId: "denali_logistics" },
   { prefix: "pricingPayment.", stepId: "denali_pricing" },
+  { prefix: "policies.", stepId: "denali_legal" },
   { prefix: "photosData.", stepId: "denali_photos" },
 ];
 

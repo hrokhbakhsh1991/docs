@@ -17,6 +17,7 @@ test("denaliStepRelocation: rail order matches phase 3 layout", () => {
     "denali_program",
     "denali_logistics",
     "denali_pricing",
+    "denali_legal",
     "review",
   ]);
   assert.deepEqual([...denaliWizardSteps], getDenaliWizardSteps());
@@ -49,6 +50,19 @@ test("denaliStepRelocation: shortDescription issues surface on denali_photos not
 
   assert.ok(photosIssues.length > 0, "photos step should own shortDescription validation");
   assert.equal(programIssues.length, 0, "program step should not report shortDescription issues");
+});
+
+test("denaliStepRelocation: policies registry stepId is denali_legal", () => {
+  const policyPaths = [
+    "policies.policiesText",
+    "policies.cancellationDeadlineHours",
+    "policies.cancellationPenaltyPercentage",
+  ] as const;
+  for (const canonicalPath of policyPaths) {
+    const def = DENALI_FIELD_DEFINITIONS.find((field) => field.canonicalPath === canonicalPath);
+    assert.ok(def, `missing registry entry for ${canonicalPath}`);
+    assert.equal(def!.stepId, "denali_legal", `${canonicalPath} should belong to legal step`);
+  }
 });
 
 test("denaliStepRelocation: itinerary fields stay on denali_program", () => {

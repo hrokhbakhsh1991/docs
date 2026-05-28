@@ -63,6 +63,8 @@ function resolveStepContainerTestId(stepId: DenaliCreateWizardStepId): string {
       return "denali-step-logistics";
     case "denali_pricing":
       return "denali-step-pricing";
+    case "denali_legal":
+      return "denali-step-legal";
     case "review":
       return "denali-step-review";
     default:

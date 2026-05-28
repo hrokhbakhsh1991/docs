@@ -1,7 +1,7 @@
 /**
  * Denali MVP create wizard — 5 content steps + review (phase 3 logical layout).
  *
- * Rail order: basic → photos (content + gallery) → program (itinerary) → logistics → pricing → review.
+ * Rail order: basic → photos → program → logistics → pricing → legal → review.
  *
  * @see docs/architecture/denali-canonical-domain-model.md
  */
@@ -11,6 +11,7 @@ export const denaliWizardSteps = [
   "denali_program",
   "denali_logistics",
   "denali_pricing",
+  "denali_legal",
   "review",
 ] as const;
 
@@ -18,7 +19,8 @@ export type DenaliCreateWizardStepId = (typeof denaliWizardSteps)[number];
 
 /**
  * Historical step ids removed from the 5-step rail (not in {@link DenaliRuleFieldStep}).
- * Mountain participants + optional policies notes: `denali_pricing` (`DenaliPricingParticipantSection`).
+ * Mountain participants: `denali_pricing` (`DenaliPricingParticipantSection`).
+ * Policies / cancellation terms: `denali_legal` (`DenaliLegalStep`; UI migration in progress).
  * Review: display-only mirror (`DenaliReviewParticipantsDisplay`).
  */
 export const DENALI_MVP_REMOVED_STEPS = [
@@ -43,6 +45,7 @@ export const denaliStepTitlesFa: Record<DenaliCreateWizardStepId, string> = {
   denali_program: "برنامه",
   denali_logistics: "لجستیک و خدمات",
   denali_pricing: "هزینه",
+  denali_legal: "قوانین و شرایط",
   denali_photos: "عکس‌ها",
   review: "بازبینی و ثبت",
 };

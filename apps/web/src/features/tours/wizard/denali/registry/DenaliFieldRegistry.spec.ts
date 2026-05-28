@@ -72,6 +72,7 @@ test("full registry covers basic, program, pricing, logistics, and photos steps"
     "denali_logistics",
     "denali_photos",
     "denali_pricing",
+    "denali_legal",
   ] as const) {
     assert.ok(steps.has(step), `missing step ${step}`);
   }
