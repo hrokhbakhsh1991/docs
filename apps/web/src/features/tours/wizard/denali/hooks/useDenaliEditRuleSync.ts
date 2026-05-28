@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { TourFormProfile } from "@repo/types";
 
 import { preserveDenaliWizardBlobMedia } from "../preserveDenaliWizardBlobMedia";

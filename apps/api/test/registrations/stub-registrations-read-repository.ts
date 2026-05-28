@@ -6,7 +6,7 @@ import type {
 } from "../../src/modules/registrations/repositories/registrations-read.repository.interface";
 
 type RepoLike = {
-  findOne(opts: { where: RegistrationReadWhere }): Promise<RegistrationEntity | null>;
+  findOne(_opts: { where: RegistrationReadWhere }): Promise<RegistrationEntity | null>;
 };
 
 /**

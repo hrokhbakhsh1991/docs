@@ -21,10 +21,6 @@ export function DenaliStepFocusBridge({ stepId }: { stepId: DenaliCreateWizardSt
           const stepContainer = document.querySelector<HTMLElement>(`[data-testid="${stepTestId}"]`);
           if (!stepContainer) {
             if (process.env.NODE_ENV !== "production") {
-              console.debug("[DenaliStepFocusBridge] fallback skipped: step container missing", {
-                stepId,
-                stepTestId,
-              });
             }
             return;
           }
@@ -38,10 +34,6 @@ export function DenaliStepFocusBridge({ stepId }: { stepId: DenaliCreateWizardSt
           const fallbackTarget = findFirstInteractableField(stepContainer);
           if (!fallbackTarget) {
             if (process.env.NODE_ENV !== "production") {
-              console.debug("[DenaliStepFocusBridge] fallback target not found", {
-                stepId,
-                stepTestId,
-              });
             }
             return;
           }

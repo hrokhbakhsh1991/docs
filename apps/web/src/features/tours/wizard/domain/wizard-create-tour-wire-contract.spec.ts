@@ -3,14 +3,16 @@ import test from "node:test";
 
 import { CREATE_TOUR_POST_WIRE_KEYS } from "@repo/shared-contracts";
 
-import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
-import { tourCreateSchema } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
-import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
-import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
-import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
-import { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload";
-import { submitValidDenaliWizardDefaults } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
-import { buildCreateTourPostBody } from "@/lib/services/tours.service";
+import {
+  type TourCreateFormValues,
+  tourCreateSchema,
+  mapCreateTourDto,
+  stripCreateTourDtoForFormProfile,
+  mapDenaliWizardToCreateTourPayload,
+  mapFormValuesToBackendPayload,
+  submitValidDenaliWizardDefaults,
+  buildCreateTourPostBody,
+} from "@/features/tours/testing/public-test-api";
 
 function minimalValidForm(): TourCreateFormValues {
   const raw: TourCreateFormValues = {

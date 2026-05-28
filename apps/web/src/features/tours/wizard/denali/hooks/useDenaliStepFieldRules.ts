@@ -4,13 +4,22 @@ import { useCallback, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import {
   isDenaliFieldRequiredOnStep,
   isDenaliFieldVisibleOnStep,
 } from "../rules/denaliUIAdapter";
+
+/** When the category guard is on, visibility rules wait until the user picks a category. */
+export function resolveIsCategoryManuallySelected(
+  guardEnabled: boolean,
+  category: string | null | undefined,
+): boolean {
+  if (!guardEnabled) return true;
+  return category != null && String(category).trim() !== "";
+}
 
 /**
  * Binds {@link isDenaliFieldVisibleOnStep} / {@link isDenaliFieldRequiredOnStep} to a wizard step

@@ -70,7 +70,7 @@ export class HttpObservabilityInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: () => {
-          const res = nestCtx.switchToHttp().getResponse<{ statusCode?: number; setHeader?: (n: string, v: string) => void }>();
+          const res = nestCtx.switchToHttp().getResponse<{ statusCode?: number; setHeader?: (_n: string, _v: string) => void }>();
           const durationMs = Date.now() - started;
           if (typeof res.setHeader === "function") {
             res.setHeader("x-api-latency", String(durationMs));

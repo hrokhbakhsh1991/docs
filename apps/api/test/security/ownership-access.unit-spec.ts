@@ -20,6 +20,13 @@ import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-
 import { createRegistrationsReadRepositoryTestDouble } from "../registrations/stub-registrations-read-repository";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
+import {
+  paymentEntityContractFixture,
+  TEST_PAYMENT_ID,
+  TEST_REGISTRATION_ID,
+  TEST_TENANT_ID,
+} from "../helpers/finance-contract-fixtures";
+import { bookingLedgerAccountId } from "@repo/shared-contracts";
 
 const noopRegistrationPaymentPort = {
   async lockTourRowForUpdate(): Promise<{ id: string }> {
@@ -217,13 +224,13 @@ test("payment intent denies member access to other member registration", async (
         const owns = where.some(
           (clause) =>
             clause.participantContactPhone === ownPhone &&
-            clause.id === "reg-own" &&
-            clause.tenantId === "tenant-a"
+            clause.id === TEST_REGISTRATION_ID &&
+            clause.tenantId === TEST_TENANT_ID
         );
         if (!owns) return null;
         return {
-          id: "reg-own",
-          tenantId: "tenant-a",
+          id: TEST_REGISTRATION_ID,
+          tenantId: TEST_TENANT_ID,
           status: RegistrationStatus.ACCEPTED,
           paymentStatus: RegistrationPaymentStatus.NOT_PAID,
           quotedTotalMinor: "100",
@@ -249,10 +256,10 @@ test("payment intent denies member access to other member registration", async (
     async exists(entity: unknown, opts: { where: Record<string, unknown> }) {
       const w = opts.where;
       if (entity === BookingPriceSnapshotEntity) {
-        return w.bookingId === "reg-own" && w.tenantId === "tenant-a";
+        return w.bookingId === TEST_REGISTRATION_ID && w.tenantId === TEST_TENANT_ID;
       }
       if (entity === PaymentEntity) {
-        if (w.registrationId !== "reg-own" || w.tenantId !== "tenant-a") {
+        if (w.registrationId !== TEST_REGISTRATION_ID || w.tenantId !== TEST_TENANT_ID) {
           return false;
         }
         if (w.status === PaymentStatus.PENDING) {
@@ -268,18 +275,18 @@ test("payment intent denies member access to other member registration", async (
       return payload;
     },
     async save(entity: unknown) {
-      return {
+      return paymentEntityContractFixture({
         ...(entity as Record<string, unknown>),
-        id: "pay-1",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: PaymentStatus.PENDING
-      };
+        id: TEST_PAYMENT_ID,
+        tenantId: TEST_TENANT_ID,
+        registrationId: TEST_REGISTRATION_ID,
+        status: PaymentStatus.PENDING,
+      });
     }
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   } as unknown as DataSource;
@@ -291,7 +298,7 @@ test("payment intent denies member access to other member registration", async (
           {
             id: dto.registrationId,
             participantContactPhone: ownPhone,
-            tenantId: "tenant-a"
+            tenantId: TEST_TENANT_ID
           }
         ]
       });
@@ -311,8 +318,8 @@ test("payment intent denies member access to other member registration", async (
     dataSource,
     {
       getRole: () => "member",
-      resolveEffectiveTenantId: () => "tenant-a",
-      getTenantId: () => "tenant-a",
+      resolveEffectiveTenantId: () => TEST_TENANT_ID,
+      getTenantId: () => TEST_TENANT_ID,
       getUserId: () => memberUserId
     } as never,
     {} as never,
@@ -336,7 +343,7 @@ test("payment intent denies member access to other member registration", async (
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-a",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -348,8 +355,8 @@ test("payment intent denies member access to other member registration", async (
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-a",
-            account: "booking:reg-other",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId("88888888-8888-4888-8888-888888888888"),
             side: "credit",
             amount_minor: "100",
             currency: "USD",
@@ -369,7 +376,7 @@ test("payment intent denies member access to other member registration", async (
     () =>
       runWithIdempotentEntityManager(manager as never, () =>
         service.createPaymentIntent({
-          registrationId: "reg-other",
+          registrationId: "88888888-8888-4888-8888-888888888888",
           amount: 100,
           currency: "USD",
           paymentProvider: "mock_provider"
@@ -380,11 +387,11 @@ test("payment intent denies member access to other member registration", async (
 
   const ownIntent = await runWithIdempotentEntityManager(manager as never, () =>
     service.createPaymentIntent({
-      registrationId: "reg-own",
+      registrationId: TEST_REGISTRATION_ID,
       amount: 100,
       currency: "USD",
       paymentProvider: "mock_provider"
     })
   );
-  assert.equal(ownIntent.registrationId, "reg-own");
+  assert.equal(ownIntent.registrationId, TEST_REGISTRATION_ID);
 });

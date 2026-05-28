@@ -104,9 +104,6 @@ export function getDenaliCanonicalPathValue(
   canonicalPath: string,
 ): unknown {
   if (process.env.NODE_ENV === "development" && !isKnownDenaliCanonicalPath(canonicalPath)) {
-    console.warn(
-      `[Denali] getDenaliCanonicalPathValue: unknown canonicalPath "${canonicalPath}"`,
-    );
   }
 
   const segments = resolveDenaliRegistryCanonicalPath(canonicalPath)

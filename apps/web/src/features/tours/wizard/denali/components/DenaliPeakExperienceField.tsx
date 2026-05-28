@@ -6,9 +6,8 @@ import { PEAK_EXPERIENCE_MIN_OPTIONS } from "@/features/tours/domain/peak-experi
 
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonical, useDenaliCanonicalValue } from "../application";
 import { DENALI_FIELD_HINTS } from "../denaliFieldHints";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 
 /** Peak auto-approval threshold — always shown on Denali create wizard (pricing step). */
 export function DenaliPeakExperienceField() {

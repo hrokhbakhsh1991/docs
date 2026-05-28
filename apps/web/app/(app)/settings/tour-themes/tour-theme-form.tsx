@@ -23,7 +23,7 @@ import panelStyles from "../locations/locations-settings-panel.module.css";
 
 export type TourThemeFormProps = {
   editing: SettingsTourThemeDto | null;
-  onSubmit: (values: TourThemeFormParsed) => Promise<void>;
+  onSubmit: (_values: TourThemeFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

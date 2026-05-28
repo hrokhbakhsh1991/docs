@@ -18,7 +18,7 @@ export type IdempotentRunResult<T> = {
  * Same composite key must yield the same successful result; failures are not cached.
  */
 export interface IdempotencyKeyStore {
-  runOnce<T>(scope: PaymentIdempotencyScope, fn: () => Promise<T>): Promise<IdempotentRunResult<T>>;
+  runOnce<T>(_scope: PaymentIdempotencyScope, _fn: () => Promise<T>): Promise<IdempotentRunResult<T>>;
 }
 
 /** Nest DI token for {@link IdempotencyKeyStore} (memory vs Redis implementation). */

@@ -1,0 +1,404 @@
+
+> tour-ops-monorepo@0.1.0 eslint /home/hamed/Music/docs
+> eslint . --max-warnings 0 "." "--max-warnings" "0"
+
+Pages directory cannot be found at /home/hamed/Music/docs/pages or /home/hamed/Music/docs/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.
+
+/home/hamed/Music/docs/apps/api/src/database/tenant-session-binding.service.ts
+  190:46  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  203:46  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  316:43  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  326:43  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  354:35  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  377:33  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  436:35  error  'a' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/openapi.generate.ts
+  28:26  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  28:26  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/align-post-login-schema.ts
+  178:15  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  178:15  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/auth-debug-audit.ts
+  182:7   error  'loginStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  182:7   error  'loginStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  191:14  error  'error' is defined but never used. Allowed unused args must match /^_/u                 no-unused-vars
+  191:14  error  'error' is defined but never used. Allowed unused args must match /^_/u                 @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/cleanup-drafts.ts
+  151:20  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  151:20  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/cleanupLegacyTemplates.ts
+  55:20  error  'err' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  55:20  error  'err' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/delete-denali-tours.ts
+  175:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  175:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/denali-sql-audit.ts
+  147:25  error  'err' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  147:25  error  'err' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/denali-theme-apply.ts
+  439:11  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  439:11  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/denali-theme-dry-run.ts
+  230:35  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  230:35  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/ensure-auth-alignment.ts
+  80:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  80:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/ensure-denali-otp-invited-user.ts
+   14:7   error  'MASKED_PHONE' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   14:7   error  'MASKED_PHONE' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  103:15  error  'error' is defined but never used. Allowed unused args must match /^_/u                  no-unused-vars
+  103:15  error  'error' is defined but never used. Allowed unused args must match /^_/u                  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/ensure-denali-otp-owner.ts
+   22:7   error  'MASKED_PHONE' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   22:7   error  'MASKED_PHONE' is assigned a value but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+   48:7   error  'previousOwnerUserId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   48:7   error  'previousOwnerUserId' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  135:15  error  'e' is defined but never used. Allowed unused args must match /^_/u                             no-unused-vars
+  135:15  error  'e' is defined but never used. Allowed unused args must match /^_/u                             @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/freeze-e2e.ts
+  324:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  324:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/migrate-tour-theme-tags.ts
+  335:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  335:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/probe-workspace-tour-create.ts
+  160:39  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  160:39  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/provision-denali-tenant.ts
+  418:34  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  418:34  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/provision-tenant.ts
+  31:11  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  31:11  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/rbac-rollout-reset-db.ts
+  40:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  40:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/rbac-rollout-verify.ts
+  46:20  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  46:20  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/reset-denali-workspace.ts
+  347:72  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  347:72  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/run-migrations.ts
+  40:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  40:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-bulk-test-users.ts
+  266:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  266:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-demo-leader-tours.ts
+  64:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  64:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-denali-equipment.ts
+  582:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  582:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-denali-locations.ts
+  117:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  117:30  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-denali-tour-presets.ts
+  46:39  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  46:39  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-denali-tours.ts
+  622:26  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  622:26  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-leader-bookings.ts
+  157:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  157:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed-rbac-rollout.ts
+  305:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  305:14  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/seed.ts
+  166:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  166:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/test-db.ts
+  8:11  error  'rows' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  8:11  error  'rows' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/verify-denali-tenant.ts
+  6:40  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  6:40  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/verify-tenant.ts
+  5:36  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  5:36  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/src/scripts/wipe-legacy-tour-templates.ts
+  28:20  error  'err' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  28:20  error  'err' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/api/test/guards/link-telegram.guard.spec.ts
+  19:22  error  'args' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+/home/hamed/Music/docs/apps/web/app/auth/register/register-form.tsx
+  43:7  error  React Hook "useForm" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+/home/hamed/Music/docs/apps/web/lib/api-client.ts
+  332:9  error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  332:9  error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  333:9  error  'code' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  333:9  error  'code' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  334:9  error  'method' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  334:9  error  'method' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  335:9  error  'url' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  335:9  error  'url' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/lib/logging/bff-logger.ts
+  5:9  error  'payload' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  5:9  error  'payload' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/scripts/login-test.ts
+   6:16  error  'main' is defined but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   6:16  error  'main' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+  25:9   error  'body' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  25:9   error  'body' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/scripts/print-denali-wizard-diagnostic.ts
+  98:7  error  'output' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  98:7  error  'output' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/scripts/qa-denali-owner-matrix.ts
+  208:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  208:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/scripts/qa-denali-preset-wire.ts
+  64:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  64:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/components/tours/wizard/DenaliCreateTourWizard.tsx
+   71:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+   71:9  error  'message' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  237:9  error  'tourTypeWatch' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  237:9  error  'tourTypeWatch' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/features/tours/observability/tourProfileObservability.spec.ts
+   11:16  error  Unexpected console statement  no-console
+   12:3   error  Unexpected console statement  no-console
+   30:5   error  Unexpected console statement  no-console
+   37:16  error  Unexpected console statement  no-console
+   38:3   error  Unexpected console statement  no-console
+   75:5   error  Unexpected console statement  no-console
+   82:16  error  Unexpected console statement  no-console
+   83:3   error  Unexpected console statement  no-console
+  106:5   error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/observability/tourProfileObservability.ts
+   22:7   error  'LOG_PREFIX' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   22:7   error  'LOG_PREFIX' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   84:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+   84:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+   96:48  error  Unexpected console statement                                                           no-console
+  114:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  114:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  119:48  error  Unexpected console statement                                                           no-console
+  139:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  139:9   error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  144:48  error  Unexpected console statement                                                           no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/DenaliCanonicalContext.tsx
+  120:9  error  'transportModeWatch' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  120:9  error  'transportModeWatch' is assigned a value but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+  121:9  error  'adminCapacityApprovalWatch' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  121:9  error  'adminCapacityApprovalWatch' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  125:9  error  'allowPersonalCarWatch' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  125:9  error  'allowPersonalCarWatch' is assigned a value but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  126:9  error  'requiresPaymentWatch' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+  126:9  error  'requiresPaymentWatch' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/DenaliItineraryDayPhotos.tsx
+  61:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/DenaliLocationPickerEditor.tsx
+  89:33  warning  Elements with the ARIA role "option" must have the following attributes defined: aria-selected  jsx-a11y/role-has-required-aria-props
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliSyncGuard.ts
+  22:3  error  'label' is defined but never used. Allowed unused args must match /^_/u   no-unused-vars
+  22:3  error  'label' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+  23:3  error  'detail' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  23:3  error  'detail' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliWizardDiagnostic.ts
+  101:9  error  'json' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  101:9  error  'json' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/steps/DenaliPhotosStep.tsx
+  155:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/steps/DenaliReviewStep.tsx
+  187:5   error    'publishReadinessBlocked' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                              no-unused-vars
+  187:5   error    'publishReadinessBlocked' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                              @typescript-eslint/no-unused-vars
+  493:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/validation/denaliApiParity.spec.ts
+  343:11  error  'row' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  343:11  error  'row' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/layouts/PageShell/ErrorBoundary.tsx
+  20:21  error  'error' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  20:21  error  'error' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  20:35  error  'info' is defined but never used. Allowed unused args must match /^_/u   no-unused-vars
+  20:35  error  'info' is defined but never used. Allowed unused args must match /^_/u   @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-normalization-gate.ts
+  4:7  error  'UI_ADAPTER_PATH' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  4:7  error  'UI_ADAPTER_PATH' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/packages/ui/src/components/CopyButton.tsx
+  52:7  error  'successMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  53:7  error  'errorMessage' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/packages/ui/src/components/layout/PageShell.tsx
+  25:21  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  25:35  error  'info' is defined but never used   @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/audit-capability-registry.mjs
+  182:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  182:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  188:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  188:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/bench-tour-list-p95.mjs
+  27:19  error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  27:19  error  'status' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  45:7   error  'p50' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  45:7   error  'p50' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/check-capability-governance.mjs
+  84:14  error  'f' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  84:14  error  'f' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/check-public-registration-idempotency.mjs
+  18:15  error  'message' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  18:15  error  'message' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/check-tenant-isolation-guardrails.mjs
+  493:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  493:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/check-tour-domain-guardrails.mjs
+  114:12  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  114:12  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/check-tour-rbac-parity.mjs
+  373:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  373:14  error  'line' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/debug-draft-engine.ts
+  250:9   error  'userId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  250:9   error  'userId' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  363:15  error  'error' is defined but never used. Allowed unused args must match /^_/u            no-unused-vars
+  363:15  error  'error' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/generate-production-log-sample.mjs
+  50:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  50:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/load-multi-tenant-probe.mjs
+  57:7  error  'p95' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  57:7  error  'p95' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  58:7  error  'p50' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  58:7  error  'p50' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/run-middleware-heap-profile.mjs
+  6:7  error  'steps' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  6:7  error  'steps' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/scan-infrastructure-debt.mjs
+  153:14  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  153:14  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-error-registry-coverage.mjs
+  68:16  error  'c' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  68:16  error  'c' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-infrastructure-reality-gate.mjs
+   62:30  error  'label' is defined but never used. Allowed unused args must match /^_/u       no-unused-vars
+   62:30  error  'label' is defined but never used. Allowed unused args must match /^_/u       @typescript-eslint/no-unused-vars
+  239:16  error  'f' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  239:16  error  'f' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  246:15  error  'e' is defined but never used. Allowed unused args must match /^_/u           no-unused-vars
+  246:15  error  'e' is defined but never used. Allowed unused args must match /^_/u           @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-ingress-bff-boundary.mjs
+  78:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  78:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-local-nginx-bff-boundary.mjs
+  37:11  error  'logs' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  37:11  error  'logs' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-nginx-bff-ingress-example.mjs
+  30:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  30:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-otel-jaeger-export.mjs
+  48:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  48:15  error  'e' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-phase-10-gate.mjs
+  431:17  error  'tourId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  431:17  error  'tourId' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-phase-7-tenant-security.mjs
+  311:9  error  'corsGood' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  311:9  error  'corsGood' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  328:9  error  'corsEvil' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  328:9  error  'corsEvil' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-production-log-sample.mjs
+  77:7   error  'okLines' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  77:7   error  'okLines' is assigned a value but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  81:7   error  'serverErrors' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  81:7   error  'serverErrors' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  83:7   error  'clientErrors' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  83:7   error  'clientErrors' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  93:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u             no-unused-vars
+  93:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-schema-parity.ts
+  482:14  error  'row' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  482:14  error  'row' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-security-baseline.mjs
+  14:15  error  'msg' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  14:15  error  'msg' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  18:13  error  'msg' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  18:13  error  'msg' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-structured-http-errors.mjs
+  48:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  48:16  error  'v' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 231 problems (227 errors, 4 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

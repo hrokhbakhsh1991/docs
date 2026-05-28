@@ -8,7 +8,7 @@ import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/doma
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliPricing.schema";
 
 /** Whether the edit PATCH is a draft save or an explicit publish action. */
 export type DenaliTourEditPatchIntent = "save" | "publish";

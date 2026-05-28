@@ -12,7 +12,9 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./tsx-ignore-css": "./scripts/tsx-ignore-css.mjs",
+    "./tsx-register-css-stub": "./scripts/tsx-register-css-stub.mjs"
   },
   "peerDependencies": {
     "react": "^18.3.1",
@@ -30,7 +32,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
-    "eslint": "eslint --max-warnings 0 \"src/**/*.{js,jsx,ts,tsx}\""
+    "eslint": "eslint --max-warnings 0 \"src/**/*.{js,jsx,ts,tsx}\"",
+    "tsx": "node --import ./scripts/tsx-ignore-css.mjs --import tsx"
   },
   "dependencies": {
     "@repo/digit-localization": "workspace:*",

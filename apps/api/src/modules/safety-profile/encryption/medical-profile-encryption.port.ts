@@ -14,6 +14,6 @@ export const MEDICAL_PROFILE_ENCRYPTION = Symbol("MEDICAL_PROFILE_ENCRYPTION");
  * Implementations must **never** log decrypted plaintext.
  */
 export interface MedicalProfileEncryptionPort {
-  encrypt(plaintextUtf8: string): Promise<MedicalCipherMaterial>;
-  decrypt(material: MedicalCipherMaterial): Promise<string>;
+  encrypt(_plaintextUtf8: string): Promise<MedicalCipherMaterial>;
+  decrypt(_material: MedicalCipherMaterial): Promise<string>;
 }

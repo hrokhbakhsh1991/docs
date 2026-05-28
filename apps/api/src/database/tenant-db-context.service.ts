@@ -12,7 +12,7 @@ export class TenantDbContextService {
 
   async runInTenantScope<T>(
     tenantId: string,
-    fn: (manager: EntityManager) => Promise<T>
+    fn: (_manager: EntityManager) => Promise<T>
   ): Promise<T> {
     const normalizedTenantId = tenantId.trim().toLowerCase();
     if (!normalizedTenantId) {

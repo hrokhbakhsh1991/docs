@@ -138,7 +138,7 @@ type QuickAddModalState = {
 
 type QuickAddModalContextValue = {
   /** Opens the modal with title, form component, and parent `onSuccess` bridge. */
-  open: <TEntity>(props: QuickAddModalOpenProps<TEntity>) => void;
+  open: <TEntity>(_props: QuickAddModalOpenProps<TEntity>) => void;
   close: () => void;
   isOpen: boolean;
 };

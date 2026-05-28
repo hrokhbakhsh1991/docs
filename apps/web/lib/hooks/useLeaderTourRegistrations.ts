@@ -36,7 +36,7 @@ export function useLeaderTourRegistrations(enabled: boolean) {
     staleTime: 30_000,
   });
 
-  const rows = indexQuery.data?.rows ?? [];
+  const rows = useMemo(() => indexQuery.data?.rows ?? [], [indexQuery.data?.rows]);
   const pendingRows = useMemo(() => rows.filter((r) => r.status === "Pending"), [rows]);
 
   const stubToursQuery = {

@@ -20,11 +20,9 @@ const STEPS = [
 
 for (const rel of STEPS) {
   const script = path.join(REPO_ROOT, rel);
-  console.log(`\n[closure-verify] → ${rel}`);
   const r = spawnSync(process.execPath, [script], { stdio: "inherit", cwd: REPO_ROOT });
   if (r.status !== 0) {
     process.exit(r.status ?? 1);
   }
 }
 
-console.log("\n[closure-verify] OK — static gates passed");

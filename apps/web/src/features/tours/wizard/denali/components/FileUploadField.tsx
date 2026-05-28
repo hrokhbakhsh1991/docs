@@ -26,7 +26,7 @@ type FileUploadFieldProps = {
   hint?: string;
   error?: string;
   value: UploadAssetRow[] | undefined;
-  onChange: (next: UploadAssetRow[] | undefined) => void;
+  onChange: (_next: UploadAssetRow[] | undefined) => void;
   accept?: string;
   multiple?: boolean;
   maxFiles: number;
@@ -51,7 +51,7 @@ export function FileUploadField({
   dataTestId,
   metadataQuickAdd,
 }: FileUploadFieldProps) {
-  const rows = value ?? [];
+  const rows = useMemo(() => value ?? [], [value]);
   const [localError, setLocalError] = useState<string | null>(null);
   const quickAdd = useQuickAddModal();
   const atLimit = rows.length >= maxFiles;

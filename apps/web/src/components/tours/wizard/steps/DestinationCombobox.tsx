@@ -41,7 +41,7 @@ type DestinationComboboxProps = {
   placeholder: string;
   options: DestinationOption[];
   value: string | string[] | undefined;
-  onChange: (value: string | string[]) => void;
+  onChange: (_value: string | string[]) => void;
   multiple?: boolean;
   excludeIds?: readonly string[];
   error?: string;

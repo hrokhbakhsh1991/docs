@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 test("RLS enforces tenant isolation with fail-closed behavior", async (t) => {
-  const { Client } = require("pg") as { Client: new (args: unknown) => any };
+  const { Client } = require("pg") as { Client: new (_args: unknown) => any };
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     t.skip("DATABASE_URL is required for integration test");

@@ -1,6 +1,6 @@
 import { FormRuleEngine, LookupRegistry } from "@repo/shared";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { mapDenaliCanonicalToFormPath } from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
 
 import { DENALI_FORM_RULE_CONFIG } from "./denaliFormRuleConfig";

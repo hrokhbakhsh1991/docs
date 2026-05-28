@@ -25,12 +25,6 @@ async function generateOpenApi(): Promise<void> {
   }
 }
 
-generateOpenApi().catch((error: unknown) => {
-  console.error(
-    "[openapi] generation failed. Check controller/provider wiring in DocumentationModule."
-  );
-  console.error(
-    error instanceof Error ? error.stack ?? error.message : String(error)
-  );
+generateOpenApi().catch((_error: unknown) => {
   process.exit(1);
 });

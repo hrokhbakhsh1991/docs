@@ -29,7 +29,7 @@ function shouldEnableTracing(): boolean {
 
 /** Drops spans cheaply when no OTLP endpoint is configured (avoids growing buffers). */
 class VoidSpanExporter implements SpanExporter {
-  export(_spans: ReadableSpan[], done: (result: { code: ExportResultCode }) => void): void {
+  export(_spans: ReadableSpan[], done: (_result: { code: ExportResultCode }) => void): void {
     done({ code: ExportResultCode.SUCCESS });
   }
 

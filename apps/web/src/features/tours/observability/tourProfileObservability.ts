@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Client-side observability for the unified tour profile / `ProfileRules` stack.
  *
@@ -16,10 +17,10 @@ import { Legacy, type TourFormProfile } from "@repo/types";
 
 type EventKind = Legacy.EventKind;
 
-import type { TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
-import type { ValidationIssue, ValidationResult } from "@/features/tours/wizard/profileRules/validation";
+import type { TourCreateWizardStepId } from "@/features/tours";
+import type { ValidationIssue, ValidationResult } from "@/features/tours";
 
-const LOG_PREFIX = "tour_profile_obs";
+const _LOG_PREFIX = "tour_profile_obs";
 
 const DEDUPE_MS = 2_000;
 const lastEmitted = new Map<string, number>();
@@ -94,7 +95,8 @@ export function emitWizardRulesValidationFailure(payload: WizardRulesValidationF
     issue_count: payload.result.issues.length,
   };
   if (typeof console !== "undefined" && typeof console.warn === "function") {
-    console.warn(`[${LOG_PREFIX}] ${JSON.stringify(line)}`);
+    // eslint-disable-next-line no-console
+    console.warn(`${_LOG_PREFIX} ${JSON.stringify(line)}`);
   }
 }
 
@@ -118,7 +120,8 @@ export function emitEditDomainClassificationDrift(payload: EditDomainClassificat
     ...payload,
   };
   if (typeof console !== "undefined" && typeof console.warn === "function") {
-    console.warn(`[${LOG_PREFIX}] ${JSON.stringify(line)}`);
+    // eslint-disable-next-line no-console
+    console.warn(`${_LOG_PREFIX} ${JSON.stringify(line)}`);
   }
 }
 
@@ -144,6 +147,7 @@ export function emitEditSaveHttpFailure(payload: EditSaveProfileRelatedFailurePa
     ...payload,
   };
   if (typeof console !== "undefined" && typeof console.warn === "function") {
-    console.warn(`[${LOG_PREFIX}] ${JSON.stringify(line)}`);
+    // eslint-disable-next-line no-console
+    console.warn(`${_LOG_PREFIX} ${JSON.stringify(line)}`);
   }
 }

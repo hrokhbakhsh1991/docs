@@ -9,10 +9,10 @@ export type WizardProfileDriverHint = {
   themeCatalog?: ThemeRowForProfile[];
 };
 
-export type NotifyWizardProfileDrivers = (hint?: WizardProfileDriverHint) => void;
+export type NotifyWizardProfileDrivers = (_hint?: WizardProfileDriverHint) => void;
 
 export type SyncTourWizardProfileDrivers = (
-  hint?: WizardProfileDriverHint,
+  _hint?: WizardProfileDriverHint,
 ) => void;
 
 const TourWizardProfileDriversContext = createContext<NotifyWizardProfileDrivers | null>(null);

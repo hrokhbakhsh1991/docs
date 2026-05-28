@@ -8,7 +8,7 @@ import {
   EquipmentQuickAddForm,
   useQuickAddModal,
 } from "@/components/shared/QuickAddModal";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { settingsEquipmentKeys } from "@/lib/query-keys";
 

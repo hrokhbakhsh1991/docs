@@ -20,7 +20,7 @@ export type PaymentIdempotencyScope = {
  */
 export interface IPaymentIdempotencyPlaceholder {
   executeOnce<T>(
-    scope: PaymentIdempotencyScope,
-    fn: () => Promise<T>
+    _scope: PaymentIdempotencyScope,
+    _fn: () => Promise<T>
   ): Promise<{ value: T; duplicate: boolean }>;
 }

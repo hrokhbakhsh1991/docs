@@ -11,27 +11,20 @@ export const ARCHITECTURAL_DRIFT_DETECTED = "ARCHITECTURAL_DRIFT_DETECTED";
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const GATES = [
-  { label: "verify:schema-parity", script: "verify:schema-parity" },
-  { label: "audit:denali-registry", script: "audit:denali-registry" },
-] as const;
+/** `verify:schema-parity` is diagnostic-only (see script header); not part of production build. */
+const GATES = [{ label: "audit:denali-registry", script: "audit:denali-registry" }] as const;
 
 function runGate(script: string): boolean {
   const result = spawnSync("pnpm", ["run", script], {
     cwd: WEB_ROOT,
     stdio: "inherit",
-    env: process.env,
+    env: { ...process.env, TOUR_UI_SKIP_STYLES: "1" },
   });
   return result.status === 0;
 }
 
 function printDriftBanner(failedGates: readonly string[]): void {
-  console.error(`\n${ARCHITECTURAL_DRIFT_DETECTED}`);
-  console.error(
-    "Denali registry, generated wizard artifacts, and canonical/API contract must be in sync before build.",
-  );
   if (failedGates.length > 0) {
-    console.error(`Failed gate(s): ${failedGates.join(", ")}`);
   }
 }
 

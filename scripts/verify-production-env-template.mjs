@@ -28,15 +28,12 @@ const checks = [
 ];
 
 let failures = 0;
-console.log("[prod-env-template] Checking example env files\n");
 
 for (const { file, needles } of checks) {
   const src = read(file);
   for (const needle of needles) {
     if (src.includes(needle)) {
-      console.log(`  OK ${file} mentions ${needle}`);
     } else {
-      console.error(`  FAIL ${file} missing ${needle}`);
       failures += 1;
     }
   }
@@ -44,11 +41,8 @@ for (const { file, needles } of checks) {
 
 const checklist = "docs/security/production-cors-cookie-checklist.md";
 if (!fs.existsSync(path.join(root, checklist))) {
-  console.error(`  FAIL missing ${checklist}`);
   failures += 1;
 } else {
-  console.log(`  OK ${checklist} exists`);
 }
 
-console.log(`\n[prod-env-template] Done (${failures} failure(s))`);
 process.exit(failures > 0 ? 1 : 0);

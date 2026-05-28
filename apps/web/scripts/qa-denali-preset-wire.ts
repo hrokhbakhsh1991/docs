@@ -5,7 +5,7 @@
  * node --env-file=../api/.env --import tsx scripts/qa-denali-preset-wire.ts
  * ```
  */
-import { presetDefaultsToDenaliFormPatch } from "@/features/tours/wizard/presetDefaultsToDenaliFormPatch";
+import { presetDefaultsToDenaliFormPatch } from "@/features/tours";
 
 const API_ORIGIN = (process.env.API_ORIGIN ?? "http://denali.localhost:3001").replace(/\/$/, "");
 const PHONE = process.env.DENALI_OWNER_PHONE ?? "+989121000001";
@@ -53,18 +53,14 @@ async function main(): Promise<void> {
     const kind = patch.basicInfo?.tourType;
     const short = patch.programNature?.shortDescription;
     if (!hasSixTab || !kind || !short) {
-      console.error(`✗ ${p.name} roots=[${roots.join(",")}] kind=${kind}`);
       process.exitCode = 1;
       continue;
     }
     ok += 1;
-    console.log(`✓ ${p.name} → ${kind} | ${short.slice(0, 40)}…`);
   }
-  console.log(`\n${ok}/${denali.length} presets wired for Denali wizard.`);
   if (ok !== denali.length) process.exitCode = 1;
 }
 
-main().catch((e: unknown) => {
-  console.error(e);
+main().catch((_e: unknown) => {
   process.exitCode = 1;
 });

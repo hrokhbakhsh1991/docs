@@ -179,17 +179,12 @@ for (const cap of policyCaps) {
 }
 
 if (failures.length > 0) {
-  console.error("[audit-capability-registry] FAILED:\n");
-  for (const line of failures) {
-    console.error(`  - ${line}`);
+  for (const _line of failures) {
   }
   process.exit(1);
 }
 
-console.log("[audit-capability-registry] OK");
 if (warnings.length > 0) {
-  console.warn("[audit-capability-registry] warnings:");
-  for (const line of warnings) {
-    console.warn(`  - ${line}`);
+  for (const _line of warnings) {
   }
 }

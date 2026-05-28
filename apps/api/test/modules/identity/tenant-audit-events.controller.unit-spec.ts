@@ -16,17 +16,17 @@ function makeController(opts?: {
   const listRows = opts?.rows ?? [];
   const tenantAuditEventsService: {
     listForTenantExport: () => Promise<Array<{ id: string; tenantId: string; occurredAt: Date }>>;
-    listForTenantPaged: (params: {
+    listForTenantPaged: (_params: {
       limit: number;
       after?: { occurredAt: Date; id: string } | null;
     }) => Promise<{
       rows: Array<{ id: string; occurredAt: Date; actor: string; action: string }>;
       nextCursor: string | null;
     }>;
-    appendOrWarn: (input: { action: string }) => Promise<void>;
+    appendOrWarn: (_input: { action: string }) => Promise<void>;
     toCsv: () => string;
     toNdjson: () => string;
-    listDraftConflictHotspots: (params: {
+    listDraftConflictHotspots: (_params: {
       tenantId: string;
       from?: Date;
       to?: Date;

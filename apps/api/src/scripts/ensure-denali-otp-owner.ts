@@ -40,7 +40,7 @@ async function main(): Promise<void> {
       throw new Error(`Tenant subdomain "${DENALI_SUBDOMAIN}" not found (active row).`);
     }
 
-    let previousOwnerUserId = "";
+    let _previousOwnerUserId = "";
     const priorOwnerMb = await membershipRepo.findOne({
       where: { tenantId: tenant.id, role: UserRole.Owner, deletedAt: IsNull() }
     });

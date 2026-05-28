@@ -29,7 +29,7 @@ type UserRowProps = {
   sessionUser: AuthUser | null;
   activeRoleMutationUserId: string | null;
   roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRoleType }, unknown>;
-  onManageRewards?: (user: WorkspaceUserDto) => void;
+  onManageRewards?: (_user: WorkspaceUserDto) => void;
   directoryListQueryKey?: readonly unknown[];
   trStyle?: CSSProperties;
   className?: string;

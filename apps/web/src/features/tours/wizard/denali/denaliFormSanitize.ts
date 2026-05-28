@@ -1,4 +1,4 @@
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 /** Legacy keys removed from form state (derived at validation/submit instead). */
 const STRIP_BASIC = new Set(["isMultiDay"]);

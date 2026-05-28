@@ -16,7 +16,7 @@ test("link-telegram declares JWT + role + CASL mirror guard chain", () => {
   const guards = Reflect.getMetadata(
     GUARDS_METADATA,
     AuthController.prototype.linkTelegram
-  ) as Array<new (...args: unknown[]) => unknown>;
+  ) as Array<new (..._args: unknown[]) => unknown>;
   assert.equal(Array.isArray(guards), true);
   assert.equal(guards.includes(AuthorizationPresenceGuard), true);
   assert.equal(guards.includes(RolesGuard as never), true);

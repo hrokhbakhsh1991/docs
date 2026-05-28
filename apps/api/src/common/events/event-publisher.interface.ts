@@ -5,5 +5,5 @@ import type { DomainEvent } from "./domain-event.interface";
  * Callers should publish **after** successful persistence (or from within the same transaction when using outbox).
  */
 export interface EventPublisher {
-  publish<TPayload>(event: DomainEvent<TPayload>): Promise<void>;
+  publish<TPayload>(_event: DomainEvent<TPayload>): Promise<void>;
 }

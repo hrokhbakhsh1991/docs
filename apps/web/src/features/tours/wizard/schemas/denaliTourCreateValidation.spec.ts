@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   buildDenaliTourCreateDefaultValues,
   normalizeDenaliWizardForm,
-} from "./denaliTourCreateSchema";
+} from "./denaliCore.schema";
 import {
   applyDenaliWizardStepValidation,
   getDenaliWizardStepIssues,

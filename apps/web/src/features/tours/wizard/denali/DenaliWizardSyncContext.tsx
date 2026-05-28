@@ -4,7 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { DenaliTourKind } from "@repo/types";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
 import {

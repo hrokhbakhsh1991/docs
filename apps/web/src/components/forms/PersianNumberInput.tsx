@@ -27,7 +27,7 @@ export type PersianNumberInputProps = Omit<
   /** Stored / submitted value: English digits only (and one `.` when `numericMode="decimal"`). */
   value?: string | number;
   /** Always receives an English-normalized numeric string (ASCII digits; see module comment). */
-  onChange?: (value: string) => void;
+  onChange?: (_value: string) => void;
   /** `integer`: {@link normalizeNumericInput} then digits-only; `decimal`: {@link toEnglishDecimalString}. */
   numericMode?: "integer" | "decimal";
   /**

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
 
 import { useDenaliWizardFormSnapshot } from "./useDenaliWizardFormSnapshot";

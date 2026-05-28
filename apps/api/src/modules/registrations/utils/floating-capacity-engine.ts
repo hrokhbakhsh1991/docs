@@ -55,8 +55,8 @@ export function isTourAtEffectiveCapacity(
   tour: EffectiveCapacityTourInput,
   context: EffectiveCapacityContext = {},
   resolve: (
-    t: EffectiveCapacityTourInput,
-    c?: EffectiveCapacityContext,
+    _t: EffectiveCapacityTourInput,
+    _c?: EffectiveCapacityContext,
   ) => number = resolveEffectiveCapacity,
 ): boolean {
   const effective = resolve(tour, context);
@@ -71,8 +71,8 @@ export function shouldPublicRegistrationRouteToWaitlist(
     context?: EffectiveCapacityContext;
   },
   resolve: (
-    t: EffectiveCapacityTourInput,
-    c?: EffectiveCapacityContext,
+    _t: EffectiveCapacityTourInput,
+    _c?: EffectiveCapacityContext,
   ) => number = resolveEffectiveCapacity,
 ): boolean {
   return isTourAtEffectiveCapacity(
@@ -90,8 +90,8 @@ export function resolvePublicRegistrationCapacityBranch(
     context?: EffectiveCapacityContext;
   },
   resolve: (
-    t: EffectiveCapacityTourInput,
-    c?: EffectiveCapacityContext,
+    _t: EffectiveCapacityTourInput,
+    _c?: EffectiveCapacityContext,
   ) => number = resolveEffectiveCapacity,
 ): PublicRegistrationCapacityBranch {
   return shouldPublicRegistrationRouteToWaitlist(input, resolve)

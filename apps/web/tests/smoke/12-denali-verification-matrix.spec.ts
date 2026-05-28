@@ -6,7 +6,7 @@ import {
   denaliTitleInput,
   denaliWizardBackButton,
   denaliWizardNextButton,
-  fillDenaliMountainBasicsForNavigation,
+  _fillDenaliMountainBasicsForNavigation,
   fillDenaliShortDescription,
   fillDenaliTitle,
   installDenaliVerificationMatrixSetup,

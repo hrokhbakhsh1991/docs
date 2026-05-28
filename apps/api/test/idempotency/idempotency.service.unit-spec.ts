@@ -31,7 +31,7 @@ function createFixture() {
     }
   };
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   } as unknown as DataSource;

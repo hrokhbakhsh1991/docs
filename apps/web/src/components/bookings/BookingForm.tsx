@@ -15,7 +15,7 @@ import styles from "./BookingForm.module.css";
 export type BookingFormProps = {
   booking?: Partial<BookingDto> & { participantEmailValue?: string };
   tours?: TourDto[];
-  onSubmit: (values: BookingFormValues) => void | Promise<void>;
+  onSubmit: (_values: BookingFormValues) => void | Promise<void>;
   onCancel?: () => void;
 };
 

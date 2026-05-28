@@ -10,7 +10,7 @@ const MAX_PHOTOS_PER_DAY = 3;
 type DenaliItineraryDayPhotosProps = {
   day: number;
   photos: DenaliItineraryDayPhoto[] | undefined;
-  onChange: (photos: DenaliItineraryDayPhoto[] | undefined) => void;
+  onChange: (_photos: DenaliItineraryDayPhoto[] | undefined) => void;
   label: string;
   hint?: string;
   error?: string;
@@ -58,6 +58,7 @@ export function DenaliItineraryDayPhotos({
                 border: "1px solid #e2e8f0",
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob/preview URLs are dynamic wizard uploads */}
               <img
                 src={photo.url}
                 alt={photo.filename ?? `day-${day}-photo-${index + 1}`}

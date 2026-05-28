@@ -38,7 +38,7 @@ export const DEFAULT_TOUR_DOMAIN_PROFILE: TourDomainProfile = DEFAULT_TOUR_FORM_
 export const isTourDomainProfile: (value: unknown) => value is TourDomainProfile = isTourFormProfile;
 
 /** Alias of {@link normalizeTourFormProfileInput}; coerces unknown inputs to a valid value. */
-export const normalizeTourDomainProfileInput: (value: unknown) => TourDomainProfile =
+export const normalizeTourDomainProfileInput: (_value: unknown) => TourDomainProfile =
   normalizeTourFormProfileInput;
 
 /**
@@ -50,7 +50,7 @@ export const normalizeTourDomainProfileInput: (value: unknown) => TourDomainProf
  * call sites can express intent.
  */
 export const domainProfileFromTourTypeFallback: (
-  tourType: TourType | null | undefined,
+  _tourType: TourType | null | undefined,
 ) => TourDomainProfile = defaultTourFormProfileForTourType;
 
 /**

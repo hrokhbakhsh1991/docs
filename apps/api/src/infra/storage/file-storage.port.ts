@@ -8,8 +8,8 @@ export interface FileUploadParams {
 }
 
 export interface FileStoragePort {
-  upload(params: FileUploadParams): Promise<{ key: string }>;
-  getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
+  upload(_params: FileUploadParams): Promise<{ key: string }>;
+  getSignedUrl(_key: string, _expiresInSeconds: number): Promise<string>;
   /** Best-effort cleanup when DB persistence fails after upload. */
-  deleteObject(key: string): Promise<void>;
+  deleteObject(_key: string): Promise<void>;
 }

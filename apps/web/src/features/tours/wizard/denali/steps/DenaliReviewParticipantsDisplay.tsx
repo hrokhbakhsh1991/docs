@@ -4,10 +4,9 @@ import { useTranslations } from "next-intl";
 
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliPricing.schema";
 
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
+import { useDenaliCanonicalValue, useDenaliStepFieldRules } from "../application";
 
 function ReviewRow({ label, value }: { label: string; value: string | undefined }) {
   if (value == null || (typeof value === "string" && !value.trim())) return null;

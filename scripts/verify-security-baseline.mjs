@@ -11,13 +11,11 @@ function read(rel) {
   return fs.readFileSync(path.join(root, rel), "utf8");
 }
 
-function fail(msg) {
-  console.error(`[security-baseline] FAIL: ${msg}`);
+function fail(_msg) {
   process.exitCode = 1;
 }
 
-function ok(msg) {
-  console.log(`[security-baseline] OK: ${msg}`);
+function ok(_msg) {
 }
 
 let failures = 0;
@@ -30,7 +28,6 @@ function check(condition, passMsg, failMsg) {
   }
 }
 
-console.log("[security-baseline] Static checks\n");
 
 const mainTs = read("apps/api/src/main.ts");
 check(!/origin:\s*true/.test(mainTs), "API CORS not origin:true", "API main.ts uses origin:true");
@@ -71,5 +68,4 @@ for (const f of bffAuth) {
   );
 }
 
-console.log(`\n[security-baseline] Done (${failures} failure(s))`);
 process.exit(failures > 0 ? 1 : 0);

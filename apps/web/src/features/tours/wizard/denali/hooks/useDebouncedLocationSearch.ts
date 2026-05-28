@@ -9,7 +9,7 @@ const MIN_QUERY_LEN = 2;
 
 export type UseDebouncedLocationSearchResult = {
   query: string;
-  setQuery: (value: string) => void;
+  setQuery: (_value: string) => void;
   results: GeocodingSearchResult[];
   isSearching: boolean;
   searchError: string | null;

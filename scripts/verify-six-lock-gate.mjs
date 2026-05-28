@@ -29,7 +29,6 @@ function exists(rel) {
   return fs.existsSync(path.join(REPO_ROOT, rel));
 }
 
-console.log("[six-lock] Static checks A–E\n");
 
 // A — single resolver file (domain logic inlined in runtime-tenant-context)
 if (!exists("apps/web/lib/tenant/runtime-tenant-context.ts")) {
@@ -121,7 +120,6 @@ if (!apiUp || !webUp) {
     fail(`F: E2E skipped — API up=${apiUp} Web up=${webUp}`);
   }
 } else {
-  console.log("\n[six-lock] F — E2E gate\n");
   const gate = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "verify-phase-10-gate.mjs")], {
     cwd: REPO_ROOT,
     stdio: "inherit",
@@ -134,10 +132,6 @@ if (!apiUp || !webUp) {
   }
 }
 
-console.log("\n[six-lock] Summary");
-for (const p of passed) console.log(`  ✓ ${p}`);
 if (failures.length) {
-  for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log("\n[six-lock] All locks passed.");

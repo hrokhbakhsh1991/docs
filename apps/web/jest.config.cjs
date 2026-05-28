@@ -4,10 +4,14 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "jsdom",
   rootDir: ".",
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
+  testPathIgnorePatterns: ["<rootDir>/.next/"],
   testMatch: ["<rootDir>/src/**/__tests__/**/*.integration.test.tsx"],
   moduleNameMapper: {
+    "^@/app/(.*)$": "<rootDir>/app/$1",
     "^@/lib/(.*)$": "<rootDir>/lib/$1",
     "^@/(.*)$": "<rootDir>/src/$1",
+    "\\.(css|less|scss|sass)$": "<rootDir>/jest.styleMock.cjs",
   },
   transform: {
     "^.+\\.tsx?$": [

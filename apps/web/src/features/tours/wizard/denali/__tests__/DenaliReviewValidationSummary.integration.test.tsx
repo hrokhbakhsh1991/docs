@@ -20,8 +20,8 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { FormProvider, useForm } from "react-hook-form";
 
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 
 import { DenaliCanonicalProvider } from "../DenaliCanonicalContext";

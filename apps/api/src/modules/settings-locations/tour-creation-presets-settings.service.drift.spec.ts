@@ -83,9 +83,9 @@ function makeThemesRepoStub(catalog: Record<string, TourFormProfile>) {
 
 function attachWarnSpy(svc: TourCreationPresetsSettingsService): WarnLog[] {
   const warnings: WarnLog[] = [];
-  (svc as unknown as { logger: { warn: (msg: string) => void } }).logger = {
+  (svc as unknown as { logger: { warn: (_msg: string) => void } }).logger = {
     warn: (msg: string) => warnings.push(msg),
-  } as { warn: (msg: string) => void };
+  } as { warn: (_msg: string) => void };
   return warnings;
 }
 

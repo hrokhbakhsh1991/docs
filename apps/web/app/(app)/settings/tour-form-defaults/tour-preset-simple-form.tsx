@@ -70,7 +70,7 @@ function policiesZodObject() {
   return z.object(shape);
 }
 
-function createTourPresetSimpleSchema(t: (key: string) => string) {
+function createTourPresetSimpleSchema(t: (_key: string) => string) {
   return z.object({
     name: z.string().trim().min(1, t("tourFormDefaultsValidationName")),
     description: z.string().optional(),
@@ -162,7 +162,7 @@ function PresetEquipmentIdsField({
   label: string;
   description?: string;
   disabled?: boolean;
-  t: (key: string) => string;
+  t: (_key: string) => string;
 }) {
   const equipmentQuery = useSettingsEquipment();
   const items = (equipmentQuery.data ?? []).filter((row) => row.isActive).map((row) => ({ id: row.id, name: row.name }));
@@ -215,7 +215,7 @@ export type TourPresetSimpleFormProps = {
   existingPresetNames?: string[];
   duplicateSortOrder?: number;
   themeCatalog: SettingsTourThemeDto[];
-  onSubmit: (values: TourPresetFormParsed) => Promise<void>;
+  onSubmit: (_values: TourPresetFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

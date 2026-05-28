@@ -14,7 +14,7 @@ export type TransportActionCenterProps = {
   readOnly: boolean;
   notifyPending: boolean;
   onSendPlan: () => Promise<{ driversNotified: number } | undefined>;
-  onAddManualVehicle: (input: { driverName: string; availableSeats: number }) => void;
+  onAddManualVehicle: (_input: { driverName: string; availableSeats: number }) => void;
 };
 
 export function TransportActionCenter({

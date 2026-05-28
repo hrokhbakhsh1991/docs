@@ -1,7 +1,7 @@
-import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
-import { DATA_LEGACY_PROFILE_MISMATCH_MESSAGE } from "@/features/tours/wizard/validation/data-legacy-error";
-import { isDenaliStructuredTemplate } from "@/features/tours/wizard/validation/denali-template-shape";
-import { StrictProfileValidator } from "@/features/tours/wizard/validation/strict-profile-validator";
+import type { TenantWizardTemplate } from "@/features/tours";
+import { DATA_LEGACY_PROFILE_MISMATCH_MESSAGE } from "@/features/tours";
+import { isDenaliStructuredTemplate } from "@/features/tours";
+import { StrictProfileValidator } from "@/features/tours";
 
 export const DATA_MISMATCH_LEGACY_PROFILE_ON_DENALI_TEMPLATE = DATA_LEGACY_PROFILE_MISMATCH_MESSAGE;
 

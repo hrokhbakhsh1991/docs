@@ -12,7 +12,7 @@ import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToW
 import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+} from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
   DenaliBasicInfoStep,
   DenaliLogisticsStep,
@@ -90,7 +90,7 @@ export type DenaliTourEditSubmitMeta = {
 export type DenaliTourEditFormProps = {
   tour: TourDetailDto;
   onCancel: () => void;
-  onSubmit: (values: DenaliCreateTourWizardForm, meta: DenaliTourEditSubmitMeta) => Promise<void>;
+  onSubmit: (_values: DenaliCreateTourWizardForm, _meta: DenaliTourEditSubmitMeta) => Promise<void>;
   submitError?: unknown;
 };
 

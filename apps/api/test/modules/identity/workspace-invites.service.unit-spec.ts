@@ -4,7 +4,7 @@ import { UsersInviteService } from "../../../src/modules/identity/services/users
 
 function buildService(mocks: {
   getRole: () => string | undefined;
-  saveImpl?: (entity: unknown) => Promise<unknown>;
+  saveImpl?: (_entity: unknown) => Promise<unknown>;
 }) {
   const access = {
     resolveTenantIdOrThrow: () => "11111111-1111-4111-8111-111111111111",
@@ -35,7 +35,7 @@ function buildService(mocks: {
   const membershipRepository = {
     findOne: async () => null,
     manager: {
-      transaction: async (fn: (manager: any) => Promise<unknown>) =>
+      transaction: async (fn: (_manager: any) => Promise<unknown>) =>
         fn({
           create: (_entity: unknown, e: unknown) => e,
           save: mocks.saveImpl ?? (async (e: unknown) => e),

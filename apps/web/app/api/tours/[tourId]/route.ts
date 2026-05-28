@@ -87,7 +87,6 @@ export async function GET(req: Request, context: RouteContext): Promise<NextResp
         { status: 401 },
       );
     }
-    console.error("BFF Tour Aggregation Error:", error);
     return NextResponse.json(
       { error: { code: "INTERNAL_SERVER_ERROR", message: "Failed to aggregate tour data" } },
       { status: 500 },

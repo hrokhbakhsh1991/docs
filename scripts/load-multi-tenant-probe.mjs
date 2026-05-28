@@ -42,7 +42,6 @@ function probe(slug) {
 
 const health = spawnSync("curl", ["-sf", `http://127.0.0.1:${PORT}/health`], { encoding: "utf8" });
 if (health.status !== 0) {
-  console.log(`[load-mt] skipped — API not reachable on :${PORT}`);
   process.exit(0);
 }
 
@@ -55,14 +54,11 @@ for (let round = 0; round < ROUNDS; round += 1) {
 }
 
 const ms = samples.map((s) => s.ms).sort((a, b) => a - b);
-const p95 = ms[Math.min(ms.length - 1, Math.floor(ms.length * 0.95))];
-const p50 = ms[Math.floor(ms.length * 0.5)];
+const _p95 = ms[Math.min(ms.length - 1, Math.floor(ms.length * 0.95))];
+const _p50 = ms[Math.floor(ms.length * 0.5)];
 const errors = samples.filter((s) => !s.ok || (s.status !== "204" && s.status !== "200")).length;
 
-console.log(`[load-mt] slugs=${SLUGS.join(",")} n=${samples.length} errors=${errors}`);
-console.log(`[load-mt] p50=${p50.toFixed(1)}ms p95=${p95.toFixed(1)}ms`);
 
 if (errors > samples.length * 0.05) {
-  console.error("[load-mt] FAIL: >5% probe errors");
   process.exit(1);
 }

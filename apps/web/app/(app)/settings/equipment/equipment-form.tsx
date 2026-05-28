@@ -17,7 +17,7 @@ import panelStyles from "../locations/locations-settings-panel.module.css";
 
 export type EquipmentFormProps = {
   editing: SettingsEquipmentDto | null;
-  onSubmit: (values: EquipmentFormParsed) => Promise<void>;
+  onSubmit: (_values: EquipmentFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

@@ -73,7 +73,7 @@ export interface WorkspacePublishPolicy {
    * `null` when publish does not run zone checks.
    */
   readonly publishGeolocationCheck:
-    | ((tripDetails: unknown) => WorkspaceInvariantViolation | null)
+    | ((_tripDetails: unknown) => WorkspaceInvariantViolation | null)
     | null;
   /** Allowed lifecycle edges for this workspace (from workspace registry). */
   readonly allowedLifecycleTransitions: TourWorkspaceDefinition["lifecycle"]["allowedTransitions"];
@@ -151,7 +151,7 @@ export interface WorkspaceRequiredSubmitFields {
   readonly profile: TourFormProfile;
   readonly requiredPaths: readonly WizardSubmitRequiredFieldPath[];
   readSubmitFieldValue(
-    dto: ProfileRequiredSubmitShape,
-    path: WizardSubmitRequiredFieldPath,
+    _dto: ProfileRequiredSubmitShape,
+    _path: WizardSubmitRequiredFieldPath,
   ): unknown;
 }

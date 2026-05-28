@@ -15,7 +15,7 @@ export type DenaliMapCoordinates = {
 
 export type DenaliLocationPickerMapInnerProps = {
   value: DenaliMapCoordinates;
-  onChange: (coords: { latitude: number; longitude: number }) => void;
+  onChange: (_coords: { latitude: number; longitude: number }) => void;
   /** When no coordinates yet, center map here (Tehran default). */
   defaultCenter?: { latitude: number; longitude: number };
   height?: number;
@@ -35,7 +35,7 @@ function MapFlyTo({ latitude, longitude }: { latitude: number; longitude: number
 function MapClickHandler({
   onChange,
 }: {
-  onChange: (coords: { latitude: number; longitude: number }) => void;
+  onChange: (_coords: { latitude: number; longitude: number }) => void;
 }) {
   useMapEvents({
     click(event) {

@@ -130,9 +130,9 @@ export function assertPaymentWebhookRawBodyPresent(raw: Buffer | undefined): ass
 }
 
 export type WebhookReplayCache = {
-  get(key: string): number | undefined;
-  set(key: string, seenAtMs: number): void;
-  deleteExpired(nowMs: number, ttlMs: number): void;
+  get(_key: string): number | undefined;
+  set(_key: string, _seenAtMs: number): void;
+  deleteExpired(_nowMs: number, _ttlMs: number): void;
 };
 
 export function assertPaymentWebhookNotReplayed(

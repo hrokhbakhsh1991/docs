@@ -95,11 +95,6 @@ export async function POST(req: Request): Promise<NextResponse> {
     const backendErrorCode = backendBody.error?.code ?? "AUTH_FAILED";
     const backendMessage = backendBody.error?.message ?? "Invalid phone or OTP";
     const backendRequestId = backendRes.headers.get("x-request-id") ?? requestId;
-    console.error("auth_login_web_session_backend_error", {
-      status: backendRes.status,
-      body: backendBody,
-      requestId: backendRequestId,
-    });
     const status = backendRes.status >= 400 ? backendRes.status : 401;
     return NextResponse.json(
       {

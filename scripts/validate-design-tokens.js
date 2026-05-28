@@ -40,7 +40,6 @@ function readCombinedTokensFromDisk() {
   for (const rel of TOKEN_FILES_REL) {
     const p = path.join(ROOT, rel);
     if (!fs.existsSync(p)) {
-      console.error(`Missing tokens file: ${p}`);
       process.exit(1);
     }
     combined += fs.readFileSync(p, "utf8") + "\n";
@@ -68,7 +67,6 @@ function readCombinedTokensFromGit(compareRef) {
 
 function readDocOrExit() {
   if (!fs.existsSync(DOC_PATH)) {
-    console.error(`Missing design system doc: ${DOC_PATH}`);
     process.exit(1);
   }
   return fs.readFileSync(DOC_PATH, "utf8");
@@ -78,9 +76,6 @@ function compareRemovalGuard(cssNow, compareRef) {
   if (!compareRef) return;
   const cssBefore = readCombinedTokensFromGit(compareRef.trim());
   if (!cssBefore) {
-    console.warn(
-      `[validate-design-tokens] Skip removal guard (no parent revision at ${compareRef} for token CSS files).`,
-    );
     return;
   }
 
@@ -88,13 +83,6 @@ function compareRemovalGuard(cssNow, compareRef) {
   const after = extractDefinedVars(cssNow);
   const removed = [...before].filter((name) => !after.has(name));
   if (removed.length > 0) {
-    console.error(
-      "[validate-design-tokens] Token names removed without staying in files (breaking?). Removed:",
-    );
-    removed.sort().forEach((n) => console.error(`  - ${n}`));
-    console.error(
-      "If intentional, remove obsolete references and update docs; restore aliases if replacing names.",
-    );
     process.exit(1);
   }
 }
@@ -105,7 +93,6 @@ function main() {
 
   const docBlocks = extractDocCssBlocks(md);
   if (docBlocks.length === 0) {
-    console.error("[validate-design-tokens] No ```css blocks found in design_system.md.");
     process.exit(1);
   }
 
@@ -120,19 +107,12 @@ function main() {
   const missing = [...docRequired].filter((name) => !implemented.has(name)).sort();
 
   if (missing.length > 0) {
-    console.error(
-      "[validate-design-tokens] Token CSS is missing variables required by design_system.md:",
-    );
-    missing.forEach((n) => console.error(`  - ${n}`));
     process.exit(1);
   }
 
   const compareRef = process.env.TOKEN_COMPARE_REF || "";
   compareRemovalGuard(css, compareRef.trim());
 
-  console.log(
-    `[validate-design-tokens] OK — ${docRequired.size} doc-defined tokens present in packages/ui tokens.`,
-  );
 }
 
 main();

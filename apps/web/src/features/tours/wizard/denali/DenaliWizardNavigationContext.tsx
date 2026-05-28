@@ -18,8 +18,8 @@ import {
 
 type DenaliWizardNavigationContextValue = {
   pendingFocusPath: string | null;
-  navigateToField: (stepId: DenaliCreateWizardStepId, formPath: string) => void;
-  consumePendingFocus: (activeStepId: DenaliCreateWizardStepId) => void;
+  navigateToField: (_stepId: DenaliCreateWizardStepId, _formPath: string) => void;
+  consumePendingFocus: (_activeStepId: DenaliCreateWizardStepId) => void;
   clearPendingFocus: () => void;
 };
 
@@ -35,7 +35,7 @@ export function DenaliWizardNavigationProvider({
 }: {
   visibleSteps: readonly DenaliCreateWizardStepId[];
   currentStepIndex: number;
-  setCurrentStep: (updater: (prev: number) => number) => void;
+  setCurrentStep: (_updater: (_prev: number) => number) => void;
   children: ReactNode;
 }) {
   const [pendingFocusPath, setPendingFocusPath] = useState<string | null>(null);

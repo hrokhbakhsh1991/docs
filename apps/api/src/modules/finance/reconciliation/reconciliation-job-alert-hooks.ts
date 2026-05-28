@@ -35,10 +35,10 @@ export type ReconciliationJobScopeAlert = ReconciliationJobAlertBase & {
  * Default implementation emits structured JSON on Nest `Logger` for log-based alerts.
  */
 export interface ReconciliationJobAlertHooks {
-  onJobStarted(payload: ReconciliationJobAlertBase): void | Promise<void>;
-  onJobFinished(payload: ReconciliationJobFinishedAlert): void | Promise<void>;
-  onJobFailed(payload: ReconciliationJobFailedAlert): void | Promise<void>;
-  onScopeOrConcurrencyFailure(payload: ReconciliationJobScopeAlert): void | Promise<void>;
+  onJobStarted(_payload: ReconciliationJobAlertBase): void | Promise<void>;
+  onJobFinished(_payload: ReconciliationJobFinishedAlert): void | Promise<void>;
+  onJobFailed(_payload: ReconciliationJobFailedAlert): void | Promise<void>;
+  onScopeOrConcurrencyFailure(_payload: ReconciliationJobScopeAlert): void | Promise<void>;
 }
 
 @Injectable()

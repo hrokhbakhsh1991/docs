@@ -3,12 +3,9 @@ import "dotenv/config";
 import { resolveTourOpsApiBaseUrl } from "../lib/tour-ops-api-origin";
 import { API } from "../lib/api-paths";
 
-async function main() {
+async function _main() {
   const origin = resolveTourOpsApiBaseUrl();
   if (!origin) {
-    console.error(
-      "API origin is empty: set NEXT_PUBLIC_API_DYNAMIC_ORIGIN=true and NEXT_PUBLIC_TENANT_ROOT_DOMAIN (Node has no browser host)."
-    );
     process.exit(1);
   }
   const tenantRoot = process.env.TENANT_ROOT_DOMAIN?.trim() || "localhost";
@@ -25,9 +22,6 @@ async function main() {
     })
   });
 
-  const body = await res.json();
-  console.log("Status:", res.status);
-  console.log(body);
+  const _body = await res.json();
 }
 
-main().catch((e) => console.error(e));

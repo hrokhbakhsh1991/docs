@@ -1,0 +1,211 @@
+
+> tour-ops-monorepo@0.1.0 eslint /home/hamed/Music/docs
+> eslint . --max-warnings 0
+
+Pages directory cannot be found at /home/hamed/Music/docs/pages or /home/hamed/Music/docs/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.
+
+/home/hamed/Music/docs/apps/api/src/openapi.generate.ts
+  29:3  error  Unexpected console statement  no-console
+  32:3  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/app/(app)/settings/tour-form-defaults/tour-form-defaults-settings-panel.tsx
+  49:9  warning  The 'themeCatalog' logical expression could make the dependencies of useMemo Hook (at line 50) change on every render. To fix this, wrap the initialization of 'themeCatalog' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  53:9  warning  The 'presets' logical expression could make the dependencies of useMemo Hook (at line 64) change on every render. To fix this, wrap the initialization of 'presets' in its own useMemo() Hook            react-hooks/exhaustive-deps
+  53:9  warning  The 'presets' logical expression could make the dependencies of useMemo Hook (at line 65) change on every render. To fix this, wrap the initialization of 'presets' in its own useMemo() Hook            react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/app/(app)/settings/tour-presets/tour-presets-settings-panel.tsx
+  48:9  warning  The 'themeCatalog' logical expression could make the dependencies of useMemo Hook (at line 49) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'themeCatalog' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  52:9  warning  The 'presets' logical expression could make the dependencies of useMemo Hook (at line 63) change on every render. To fix this, wrap the initialization of 'presets' in its own useMemo() Hook                                                   react-hooks/exhaustive-deps
+  52:9  warning  The 'presets' logical expression could make the dependencies of useMemo Hook (at line 64) change on every render. To fix this, wrap the initialization of 'presets' in its own useMemo() Hook                                                   react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/app/(app)/users/components/workspace-user-rewards-modal.tsx
+  172:6  warning  React Hook useEffect has a missing dependency: 'rewardsMutation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/app/api/auth/login-web-session/route.ts
+  98:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/app/api/auth/phone-preflight/route.ts
+  44:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/app/api/auth/request-otp/route.ts
+  44:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/app/api/tours/[tourId]/route.ts
+  90:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/app/auth/register/register-form.tsx
+  43:7  error  React Hook "useForm" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+/home/hamed/Music/docs/apps/web/lib/api-client.ts
+  336:3  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/lib/casl/ability-provider.tsx
+  35:6  warning  React Hook useMemo has an unnecessary dependency: 'user.tenantId'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/lib/errors/tenant-catalog-tour-errors.ts
+  84:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/lib/geocoding/geocoding-search.ts
+  77:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/lib/hooks/useLeaderTourRegistrations.ts
+  39:9  warning  The 'rows' logical expression could make the dependencies of useMemo Hook (at line 40) change on every render. To fix this, wrap the initialization of 'rows' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/lib/logging/bff-logger.ts
+  7:5  error  Unexpected console statement  no-console
+  9:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/lib/services/tours.service.ts
+  260:7  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/lib/tenant/tenant-provider.tsx
+  17:39  warning  React Hook useMemo has a missing dependency: 'value'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/components/tours/wizard/DenaliCreateTourWizard.tsx
+   72:3  error    Unexpected console statement                                                                                                      no-console
+  361:6  warning  React Hook useEffect has a missing dependency: 'formMethods.formState.isDirty'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  380:6  warning  React Hook useEffect has a missing dependency: 'formMethods.formState.isDirty'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  408:6  warning  React Hook useMemo has an unnecessary dependency: 'tourTypeWatch'. Either exclude it or remove the dependency array               react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/registrations/booking-target/useRegistrationBookingTarget.ts
+  77:5  warning  React Hook useCallback has a missing dependency: 'input'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/observability/tourProfileObservability.spec.ts
+   11:16  error  Unexpected console statement  no-console
+   12:3   error  Unexpected console statement  no-console
+   30:5   error  Unexpected console statement  no-console
+   37:16  error  Unexpected console statement  no-console
+   38:3   error  Unexpected console statement  no-console
+   75:5   error  Unexpected console statement  no-console
+   82:16  error  Unexpected console statement  no-console
+   83:3   error  Unexpected console statement  no-console
+  106:5   error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/observability/tourProfileObservability.ts
+   96:48  error  Unexpected console statement  no-console
+   97:5   error  Unexpected console statement  no-console
+  120:48  error  Unexpected console statement  no-console
+  121:5   error  Unexpected console statement  no-console
+  146:48  error  Unexpected console statement  no-console
+  147:5   error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/DenaliCanonicalContext.tsx
+  168:5  warning  React Hook useMemo has a missing dependency: 'getValues'. Either include it or remove the dependency array                                                                                                                                  react-hooks/exhaustive-deps
+  183:5  warning  React Hook useMemo has unnecessary dependencies: 'adminCapacityApprovalWatch', 'allowPersonalCarWatch', 'requiresPaymentWatch', 'syncToken', 'tourTypeWatch', and 'transportModeWatch'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/DenaliStepFocusBridge.tsx
+  24:15  error  Unexpected console statement  no-console
+  41:15  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/DenaliWizardSubmitControl.tsx
+  76:5  warning  React Hook useCallback has a missing dependency: 'formState'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/DenaliItineraryDayPhotos.tsx
+  61:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/DenaliLocationModalPicker.tsx
+  64:6  warning  React Hook useEffect has a missing dependency: 'value'. Either include it or remove the dependency array. If 'setMapValue' needs the current value of 'value', you can also switch to useReducer instead of useState and read 'value' in the reducer  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/DenaliLocationPickerEditor.tsx
+  89:33  warning  Elements with the ARIA role "option" must have the following attributes defined: aria-selected  jsx-a11y/role-has-required-aria-props
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/components/FileUploadField.tsx
+  54:9  warning  The 'rows' logical expression could make the dependencies of useCallback Hook (at line 93) change on every render. To fix this, wrap the initialization of 'rows' in its own useMemo() Hook   react-hooks/exhaustive-deps
+  54:9  warning  The 'rows' logical expression could make the dependencies of useCallback Hook (at line 111) change on every render. To fix this, wrap the initialization of 'rows' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliCanonicalPathUtils.ts
+  107:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliDebug.ts
+  4:5  error  Unexpected console statement  no-console
+  7:3  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliSyncGuard.ts
+  29:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/denaliWizardDiagnostic.ts
+  106:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/rules/denaliRuleModel.types.ts
+  41:4  error  'C' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  42:6  error  'D' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/steps/DenaliDailyItinerarySection.tsx
+  92:6  warning  React Hook useLayoutEffect has a missing dependency: 'rows'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/steps/DenaliPhotosStep.tsx
+   41:9   warning  The 'rows' logical expression could make the dependencies of useCallback Hook (at line 101) change on every render. To fix this, wrap the initialization of 'rows' in its own useMemo() Hook                                                                    react-hooks/exhaustive-deps
+  155:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/steps/DenaliReviewStep.tsx
+  187:5   error    'publishReadinessBlocked' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                                                                                              @typescript-eslint/no-unused-vars
+  198:5   error    Unexpected console statement                                                                                                                                                                                                                                    no-console
+  500:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/hamed/Music/docs/apps/web/src/features/tours/wizard/denali/validation/denaliApiParity.spec.ts
+  339:3  error  Unexpected console statement  no-console
+  340:3  error  Unexpected console statement  no-console
+  353:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/src/hooks/use-tour-destinations.ts
+  38:9  warning  The 'allDestinations' logical expression could make the dependencies of useMemo Hook (at line 68) change on every render. To fix this, wrap the initialization of 'allDestinations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  38:9  warning  The 'allDestinations' logical expression could make the dependencies of useMemo Hook (at line 72) change on every render. To fix this, wrap the initialization of 'allDestinations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/apps/web/src/layouts/PageShell/ErrorBoundary.tsx
+  21:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/tests/smoke/10-denali-wizard-shell.spec.ts
+  16:31  error  Unexpected console statement  no-console
+  17:33  error  Unexpected console statement  no-console
+  18:31  error  Unexpected console statement  no-console
+  19:32  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/apps/web/tests/smoke/12-denali-verification-matrix.spec.ts
+  9:3  error  'fillDenaliMountainBasicsForNavigation' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/apps/web/tests/smoke/tour-wizard-smoke-helpers.ts
+  312:7  error  Unexpected console statement  no-console
+  435:7  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-canonical-gate.ts
+  2:8  error  'path' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  8:5  error  Unexpected console statement                                            no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-normalization-gate.ts
+  4:7  error  'UI_ADAPTER_PATH' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  7:5  error  Unexpected console statement                                                                no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-projection-gate.ts
+  6:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-rules-gate.ts
+  7:3  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/check-ui-sync-gate.ts
+  6:5  error  Unexpected console statement  no-console
+
+/home/hamed/Music/docs/packages/ci-templates/denali-wizard/run-denali-field-update.ts
+  320:3   error  Unexpected console statement                                                               no-console
+  444:10  error  'buildFormPathMapEntries' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/packages/ui/src/components/CopyButton.tsx
+  52:7  error  'successMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  53:7  error  'errorMessage' is assigned a value but never used    @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/packages/ui/src/components/toast/ToastProvider.tsx
+  56:17  warning  The ref value 'timersRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'timersRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+/home/hamed/Music/docs/scripts/debug-draft-engine.ts
+  186:16  error  'deleteDraftSnapshot' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-phase-7-tenant-security.mjs
+  313:9   error  'corsGood' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  330:9   error  'corsEvil' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  373:10  error  'runPnpmTest' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+/home/hamed/Music/docs/scripts/verify-schema-parity.ts
+  349:10  error  'resolveObjectRoot' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 96 problems (67 errors, 29 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

@@ -2,7 +2,7 @@ import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliSte
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import type { DenaliWizardDraftSnapshot } from "./denali-adapter";
 

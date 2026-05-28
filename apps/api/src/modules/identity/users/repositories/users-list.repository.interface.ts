@@ -44,5 +44,5 @@ export type TenantUsersListRow = {
  * Services own cursor encoding, DTO mapping, and authorization gates.
  */
 export interface IUsersListRepository {
-  listTenantUsers(query: TenantUsersListQuery): Promise<TenantUsersListRow[]>;
+  listTenantUsers(_query: TenantUsersListQuery): Promise<TenantUsersListRow[]>;
 }

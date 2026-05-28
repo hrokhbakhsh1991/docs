@@ -7,19 +7,19 @@ import { z } from "zod";
 import {
   DENALI_FIELD_REGISTRY,
   isDenaliFieldInMatrixCell,
-} from "../src/features/tours/wizard/denali/registry/DenaliFieldRegistry";
-import { DENALI_MATRIX_CELLS } from "../src/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
-import { DENALI_FIELD_DEFINITIONS } from "../src/features/tours/wizard/denali/registry/denaliFieldRegistryData";
-import { collectGeneratedArtifactSyncErrors } from "../src/features/tours/wizard/denali/registry/denaliRegistryCodegen";
-import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "../src/features/tours/wizard/denali/rules/generated/denaliCanonicalPathMap.generated";
+} from "@/features/tours/wizard/denali/registry/DenaliFieldRegistry";
+import { DENALI_MATRIX_CELLS } from "@/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
+import { DENALI_FIELD_DEFINITIONS } from "@/features/tours/wizard/denali/registry/denaliFieldRegistryData";
+import { collectGeneratedArtifactSyncErrors } from "@/features/tours/wizard/denali/registry/denaliRegistryCodegen";
+import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "@/features/tours/wizard/denali/rules/generated/denaliCanonicalPathMap.generated";
 import {
   denaliRuleSet,
   findDenaliRuleField,
   listDenaliRuleFieldPaths,
-} from "../src/features/tours/wizard/denali/rules/denaliRuleModel";
-import { mapDenaliCanonicalToFormPath } from "../src/features/tours/wizard/denali/rules/denaliRuleRequired";
-import { denaliTourCreateBaseSchema } from "../src/features/tours/wizard/schemas/denaliTourCreateBaseSchema";
-import { buildDenaliTourCreateDefaultValues } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
+} from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { mapDenaliCanonicalToFormPath } from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
+import { denaliTourCreateBaseSchema } from "@/features/tours/wizard/schemas/denaliTourCreateBaseSchema.generated";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 function zodShapeHasPath(schema: z.ZodTypeAny, path: string): boolean {
   const parts = path.split(".");
@@ -127,22 +127,15 @@ for (const cell of DENALI_MATRIX_CELLS) {
   }
 }
 
-console.log(
-  JSON.stringify(
-    {
-      registryCount: DENALI_FIELD_REGISTRY.length,
-      rulePathCount: rulePaths.size,
-      issues,
-      ruleNotInRegistryCount: ruleNotInRegistry.length,
-      ruleNotInRegistry,
-      matrixCellsOk,
-    },
-    null,
-    2,
-  ),
-);
+void {
+  registryCount: DENALI_FIELD_REGISTRY.length,
+  rulePathCount: rulePaths.size,
+  issues,
+  ruleNotInRegistryCount: ruleNotInRegistry.length,
+  ruleNotInRegistry,
+  matrixCellsOk,
+};
 
 if (issues.length > 0 || ruleNotInRegistry.length > 0) {
-  console.error("\nARCHITECTURAL_DRIFT_DETECTED");
   process.exit(1);
 }

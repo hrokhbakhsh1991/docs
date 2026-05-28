@@ -15,7 +15,7 @@ import {
 export type DenaliItineraryDayLocationFieldProps = {
   day: number;
   value: DenaliLocationDataForm | undefined;
-  onChange: (location: DenaliLocationDataForm | undefined, locationText?: string) => void;
+  onChange: (_location: DenaliLocationDataForm | undefined, _locationText?: string) => void;
   fieldErrors?:
     | {
         addressText?: { message?: string };

@@ -29,9 +29,9 @@ import panelStyles from "../locations/locations-settings-panel.module.css";
 
 type SortableGuideLanguageRowProps = {
   item: SettingsGuideLanguageDto;
-  onEdit: (item: SettingsGuideLanguageDto) => void;
-  onDelete: (item: SettingsGuideLanguageDto) => void;
-  onToggleActive: (item: SettingsGuideLanguageDto, next: boolean) => void;
+  onEdit: (_item: SettingsGuideLanguageDto) => void;
+  onDelete: (_item: SettingsGuideLanguageDto) => void;
+  onToggleActive: (_item: SettingsGuideLanguageDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -108,10 +108,10 @@ function SortableGuideLanguageRow({
 
 export type GuideLanguageListProps = {
   items: SettingsGuideLanguageDto[];
-  onEdit: (item: SettingsGuideLanguageDto) => void;
-  onDelete: (item: SettingsGuideLanguageDto) => void;
-  onToggleActive: (item: SettingsGuideLanguageDto, next: boolean) => void;
-  onReorder: (itemIds: string[]) => Promise<void>;
+  onEdit: (_item: SettingsGuideLanguageDto) => void;
+  onDelete: (_item: SettingsGuideLanguageDto) => void;
+  onToggleActive: (_item: SettingsGuideLanguageDto, _next: boolean) => void;
+  onReorder: (_itemIds: string[]) => Promise<void>;
   mutating: boolean;
   readOnly?: boolean;
 };

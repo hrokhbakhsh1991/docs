@@ -35,7 +35,7 @@ function createEngineWithLiveConfig<T>(configRef: { current: DraftEngineConfig<T
 
 export function useDraftEngine<T>(config: DraftEngineConfig<T>): {
   state: DraftEngineState<T>;
-  setDraftData: (data: T, options?: DraftSetDataOptions) => void;
+  setDraftData: (_data: T, _options?: DraftSetDataOptions) => void;
   retry: () => Promise<void>;
   initialize: () => Promise<void>;
   applyDraft: () => void;

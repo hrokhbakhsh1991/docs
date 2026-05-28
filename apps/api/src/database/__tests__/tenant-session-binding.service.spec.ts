@@ -55,9 +55,9 @@ test("tenant binding skips implicit bind when context is missing before first qu
       (
         service as unknown as {
           ensurePostgresTransactionAndTenantGuc: (
-            q: QueryRunner,
-            oq: QueryRunner["query"],
-            ost: QueryRunner["startTransaction"]
+            _q: QueryRunner,
+            _oq: QueryRunner["query"],
+            _ost: QueryRunner["startTransaction"]
           ) => Promise<void>;
         }
       ).ensurePostgresTransactionAndTenantGuc(
@@ -112,8 +112,8 @@ test("suppressed mode allows only tenant resolver select", () => {
     } as never
   ) as unknown as {
     assertSuppressedModeQueryAllowed: (
-      queryRunner: QueryRunner,
-      query: Parameters<QueryRunner["query"]>[0]
+      _queryRunner: QueryRunner,
+      _query: Parameters<QueryRunner["query"]>[0]
     ) => void;
   };
 
@@ -153,8 +153,8 @@ test("suppressed bootstrap flow allows only bootstrap tenant lookup", () => {
     } as never
   ) as unknown as {
     assertSuppressedModeQueryAllowed: (
-      queryRunner: QueryRunner,
-      query: Parameters<QueryRunner["query"]>[0]
+      _queryRunner: QueryRunner,
+      _query: Parameters<QueryRunner["query"]>[0]
     ) => void;
   };
 
@@ -197,8 +197,8 @@ test("normal mode applies app.tenant_id set_config with tenant context", async (
     } as never
   ) as unknown as {
     applyTenantIdSetConfig: (
-      queryRunner: QueryRunner,
-      originalQuery: QueryRunner["query"]
+      _queryRunner: QueryRunner,
+      _originalQuery: QueryRunner["query"]
     ) => Promise<void>;
   };
 

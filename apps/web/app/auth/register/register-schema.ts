@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Shared with tests; `t` is `useTranslations("auth")`. */
-export function buildRegisterFormSchema(tAuth: (key: string) => string) {
+export function buildRegisterFormSchema(tAuth: (_key: string) => string) {
   return z.object({
     name: z.string().trim().min(1, tAuth("register.validationNameRequired")),
     email: z.union([

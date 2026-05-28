@@ -18,14 +18,11 @@ import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { SettingsDestinationDto } from "@/lib/settings-locations-client";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-members";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonical, useDenaliCanonicalValue, useDenaliDestinationQuickAdd, useDenaliStepFieldRules } from "../application";
 import { DenaliApproximateReturnTimeField } from "../DenaliApproximateReturnTimeField";
 import { DenaliDatetimeField } from "../DenaliDatetimeField";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
-import { useDenaliDestinationQuickAdd } from "../hooks/useDenaliDestinationQuickAdd";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
 const STEP = "denali_basic" as const;
 const PATH_PEAK_HEIGHT = "tripDetails.overview.peakHeight";

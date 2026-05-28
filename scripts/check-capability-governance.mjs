@@ -81,11 +81,8 @@ if (owners.some((o) => !o.trim())) {
 }
 
 if (failures.length) {
-  console.error("[capability-governance] FAILED");
-  for (const f of failures) {
-    console.error(`  - ${f}`);
+  for (const _f of failures) {
   }
   process.exit(1);
 }
 
-console.log("[capability-governance] registry complete");

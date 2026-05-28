@@ -83,8 +83,8 @@ export function toEnglishDecimalString(value: string): string {
 }
 
 type InputRegisterLike = {
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  onBlur: (e: ChangeEvent<HTMLInputElement>) => void;
+  onChange: (_e: ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (_e: ChangeEvent<HTMLInputElement>) => void;
   name: string;
   ref: RefCallback<HTMLInputElement> | RefObject<HTMLInputElement | null>;
 };
@@ -113,7 +113,7 @@ function syncDecimalInputPersianDisplay(el: HTMLInputElement): void {
 
 function composeInputRef(
   fieldRef: InputRegisterLike["ref"],
-  syncDisplay: (el: HTMLInputElement) => void,
+  syncDisplay: (_el: HTMLInputElement) => void,
 ): RefCallback<HTMLInputElement> {
   return (instance) => {
     assignRef(fieldRef, instance);

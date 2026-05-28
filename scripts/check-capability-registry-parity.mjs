@@ -16,16 +16,12 @@ const mirrorPath = path.join(
 );
 
 if (!fs.existsSync(mirrorPath)) {
-  console.error(`[capability-registry-parity] missing mirror: ${mirrorPath}`);
   process.exit(1);
 }
 
 const mirrorSource = fs.readFileSync(mirrorPath, "utf8");
 
 if (!mirrorSource.includes('from "@repo/shared"')) {
-  console.error(
-    "[capability-registry-parity] packages/shared-contracts/src/rbac/capabilities.ts must re-export from @repo/shared",
-  );
   process.exit(1);
 }
 
@@ -44,9 +40,6 @@ const requiredExports = [
 
 for (const symbol of requiredExports) {
   if (!mirrorSource.includes(symbol)) {
-    console.error(
-      `[capability-registry-parity] mirror must export ${symbol}`,
-    );
     process.exit(1);
   }
 }
@@ -59,4 +52,3 @@ if (!fs.existsSync(requireCapPath)) {
   fail("[phase-8] missing require-capability.decorator.ts");
 }
 
-console.log("[capability-registry-parity] OK");

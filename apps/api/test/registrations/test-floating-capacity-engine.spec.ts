@@ -92,9 +92,9 @@ test("Scenario C: after capacity gate passes, free auto-accept tour places car o
   const placement = (
     service as unknown as {
       resolveInitialRegistrationPlacement(
-        t: TourEntity,
-        m?: ParticipantMetadataDto,
-        td?: Record<string, unknown> | null,
+        _t: TourEntity,
+        _m?: ParticipantMetadataDto,
+        _td?: Record<string, unknown> | null,
       ): { status: RegistrationStatus; consumesAcceptedCapacity: boolean };
     }
   ).resolveInitialRegistrationPlacement(

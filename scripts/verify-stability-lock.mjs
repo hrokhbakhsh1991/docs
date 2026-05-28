@@ -52,7 +52,6 @@ function grepRepo(pattern, opts = {}) {
 
 function runNodeScript(name) {
   const scriptPath = path.join(REPO_ROOT, "scripts", name);
-  console.log(`\n[stability-lock] → ${name}`);
   const r = spawnSync(process.execPath, [scriptPath], {
     cwd: REPO_ROOT,
     stdio: "inherit",
@@ -63,7 +62,6 @@ function runNodeScript(name) {
   }
 }
 
-console.log("[stability-lock] Phase checklist — static + E2E gates\n");
 
 // §1 Tenant
 const denaliHits = grepRepo("denali\\.localhost");
@@ -222,7 +220,6 @@ async function checkSessionPersistence() {
   if (afterPayload.authenticated === true) {
     throw new Error("logout did not clear session");
   }
-  console.log("[stability-lock] OK §2/§8 session persist + logout clear (BFF)");
 }
 
 async function checkIllegalLifecycleSkipOpen() {
@@ -267,7 +264,6 @@ async function checkIllegalLifecycleSkipOpen() {
   if (!allowed.has(code)) {
     throw new Error(`DRAFT→CLOSED expected lifecycle error code, got ${code}`);
   }
-  console.log("[stability-lock] OK §5 illegal lifecycle skip (DRAFT→CLOSED blocked)");
 }
 
 function scanStrayHostSplit() {
@@ -296,7 +292,6 @@ function scanStrayHostSplit() {
 
 scanStrayHostSplit();
 if (!fileExists("apps/web/lib/tenant/resolve-tenant-context-helpers.ts")) {
-  console.log("[stability-lock] OK §1 legacy resolve-tenant-context-helpers removed");
 } else {
   warn("resolve-tenant-context-helpers.ts still present");
 }
@@ -336,16 +331,10 @@ async function runRuntimeChecks() {
 }
 
 runRuntimeChecks().then(() => {
-  console.log("\n[stability-lock] Summary");
   if (warnings.length) {
-    console.log("Warnings:");
-    for (const w of warnings) console.log(`  ⚠ ${w}`);
   }
   if (failures.length) {
-    console.error("Failures:");
-    for (const f of failures) console.error(`  ✗ ${f}`);
     process.exit(1);
   }
-  console.log("[stability-lock] LOCK checks passed.");
 });
 

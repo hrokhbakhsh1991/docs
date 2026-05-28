@@ -4,5 +4,5 @@
  * Implementations must treat delivery as **at-least-once**; consumers remain **idempotent**.
  */
 export interface IOutboxPublisher {
-  publish(outboxId: string, eventType: string, payload: Record<string, unknown>): Promise<void>;
+  publish(_outboxId: string, _eventType: string, _payload: Record<string, unknown>): Promise<void>;
 }

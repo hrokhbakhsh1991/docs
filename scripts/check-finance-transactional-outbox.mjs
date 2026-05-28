@@ -45,11 +45,8 @@ function main() {
     }
   }
   if (violations.length) {
-    console.error("Finance transactional outbox guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
     process.exit(1);
   }
-  console.log("Finance transactional outbox guardrails: OK");
 }
 
 main();

@@ -15,12 +15,12 @@ import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
 import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 
 type MockManager = {
-  findOne: (entity: unknown, options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
+  findOne: (_entity: unknown, _options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
     Promise<RegistrationEntity | null>;
-  save: (entity: RegistrationEntity) => Promise<RegistrationEntity>;
-  exists: (entity: unknown, options: { where: Record<string, unknown> }) => Promise<boolean>;
-  update: (entity: unknown, where: unknown, values: unknown) => Promise<{ affected: number; raw: unknown[]; generatedMaps: unknown[] }>;
-  count: (entity: unknown, options: unknown) => Promise<number>;
+  save: (_entity: RegistrationEntity) => Promise<RegistrationEntity>;
+  exists: (_entity: unknown, _options: { where: Record<string, unknown> }) => Promise<boolean>;
+  update: (_entity: unknown, _where: unknown, _values: unknown) => Promise<{ affected: number; raw: unknown[]; generatedMaps: unknown[] }>;
+  count: (_entity: unknown, _options: unknown) => Promise<number>;
 };
 
 function createServiceWithState(initial: RegistrationEntity | null): {
@@ -78,7 +78,7 @@ function createServiceWithState(initial: RegistrationEntity | null): {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (transactionManager: MockManager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_transactionManager: MockManager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };

@@ -6,27 +6,21 @@ import { useTranslations } from "next-intl";
 
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-members";
 
 import { parseIsoToYmdAndTime } from "../denaliDatetime";
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { getDenaliWizardSubmitIssues, logDenaliWizardDiagnosticReport, useDenaliCanonical, useDenaliCanonicalModel, useDenaliStepFieldRules, useDenaliWizardFormSnapshot, useWizardStateGuard } from "../application";
 import { splitGearByRequired } from "../denaliGearSelection";
-import { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
 import { TourPublishStatusField } from "@/components/tours/TourPublishStatusField";
 import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
 import { denaliLocationAddressText } from "@repo/types/denali";
 
-import { useDenaliCanonicalModel } from "../hooks/useDenaliCanonicalModel";
-import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
-import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 import { getDenaliStepTitleFa } from "@/features/tours/wizard/denaliStepConfig";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
 import { DenaliReviewValidationSummary } from "../components/DenaliReviewValidationSummary";
-import { useWizardStateGuard } from "../hooks/useWizardStateGuard";
 import {
   denaliCanonicalOptionalTrimmedString,
   sanitizeDenaliCanonicalModel,
@@ -184,7 +178,6 @@ export function DenaliReviewStep() {
   const {
     publishStatus,
     publishIssues,
-    publishReadinessBlocked,
     disableActivePublish,
     requestStatus,
     enforceSafeStatus,
@@ -195,14 +188,7 @@ export function DenaliReviewStep() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
     const submitIssues = getDenaliWizardSubmitIssues(formForUi, undefined, ruleSet);
-    console.log("[DenaliReviewStep] getDenaliWizardSubmitIssues", {
-      count: submitIssues.length,
-      issues: submitIssues.map((issue) => ({
-        path: issue.path.join("."),
-        message: issue.message,
-        code: issue.code,
-      })),
-    });
+    void submitIssues;
   }, [formForUi, ruleSet]);
 
   useEffect(() => {
@@ -497,6 +483,7 @@ export function DenaliReviewStep() {
                     >
                       {row.photos!.map((photo, photoIndex) =>
                         photo.url?.trim() ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- review thumbnails use persisted tour media URLs
                           <img
                             key={`${photo.id ?? "photo"}-${photoIndex}`}
                             src={photo.url}

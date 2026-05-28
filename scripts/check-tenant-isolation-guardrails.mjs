@@ -476,7 +476,6 @@ function main() {
   try {
     allow = readAllowlist();
   } catch (e) {
-    console.error(e);
     process.exit(2);
   }
 
@@ -491,16 +490,10 @@ function main() {
   ];
 
   if (all.length > 0) {
-    console.error("Tenant isolation guardrails FAILED:\n");
-    for (const v of all) {
-      console.error(`- ${v}`);
+    for (const _v of all) {
     }
-    console.error(
-      "\nSee docs/tenant-isolation-guardrails.md, docs/security/security-ci-guardrails.md, and scripts/tenant-isolation-guardrails.allowlist.json\n"
-    );
     process.exit(1);
   }
-  console.log("Tenant isolation guardrails: OK");
 }
 
 main();

@@ -23,14 +23,14 @@ export class DraftEngine<T> {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private syncInFlight: Promise<void> | null = null;
   private pendingSync = false;
-  private readonly listeners = new Set<(state: DraftEngineState<T>) => void>();
+  private readonly listeners = new Set<(_state: DraftEngineState<T>) => void>();
 
   constructor(config: DraftEngineConfig<T>) {
     this.config = config;
     this.debounceMs = config.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   }
 
-  subscribe(listener: (state: DraftEngineState<T>) => void): () => void {
+  subscribe(listener: (_state: DraftEngineState<T>) => void): () => void {
     this.listeners.add(listener);
     listener(this.getState());
     return () => {
@@ -107,8 +107,7 @@ export class DraftEngine<T> {
       return;
     }
     if (this.status === "DRAFT_AVAILABLE") {
-      this.pendingDraft = null;
-      this.status = "IDLE";
+      return;
     }
     this.data = newData;
     this.lastModified = Date.now();

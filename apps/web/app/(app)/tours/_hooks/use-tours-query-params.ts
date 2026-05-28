@@ -59,7 +59,7 @@ function queryEquals(a: TourListQueryModel, b: TourListQueryModel): boolean {
 
 export function useToursQueryParams(): {
   query: TourListQueryModel;
-  updateQuery: (patch: Partial<TourListQueryModel>) => void;
+  updateQuery: (_patch: Partial<TourListQueryModel>) => void;
   searchInput: string;
   setSearchInput: Dispatch<SetStateAction<string>>;
 } {

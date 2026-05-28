@@ -317,7 +317,6 @@ let logStream: string[] = [];
 
 function log(tag: string, message: string): void {
   const line = `[${tag}] ${message}`;
-  console.log(line);
   logStream.push(line);
 }
 
@@ -441,7 +440,7 @@ function buildCanonicalPathSet(fields: ResolvedField[], prune: boolean, existing
   return merged.sort();
 }
 
-function buildFormPathMapEntries(fields: ResolvedField[]): string[] {
+function _buildFormPathMapEntries(fields: ResolvedField[]): string[] {
   const lines: string[] = [];
   const seen = new Set<string>();
   for (const f of fields) {

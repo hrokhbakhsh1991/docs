@@ -17,7 +17,7 @@ import panelStyles from "../locations/locations-settings-panel.module.css";
 
 export type GuideLanguageFormProps = {
   editing: SettingsGuideLanguageDto | null;
-  onSubmit: (values: GuideLanguageFormParsed) => Promise<void>;
+  onSubmit: (_values: GuideLanguageFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

@@ -9,7 +9,7 @@ test("tenant A row not visible to tenant B; no tenant context rejects query", as
     return;
   }
 
-  const { Client } = require("pg") as { Client: new (args: unknown) => any };
+  const { Client } = require("pg") as { Client: new (_args: unknown) => any };
   const client = new Client({ connectionString });
   await client.connect();
 

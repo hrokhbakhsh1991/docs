@@ -59,7 +59,6 @@ const outDir = path.join(REPO_ROOT, "docs", "architecture-review");
 fs.mkdirSync(outDir, { recursive: true });
 const outPath = path.join(outDir, `${date}.md`);
 fs.writeFileSync(outPath, lines.join("\n"), "utf8");
-console.log(`[architecture-review] wrote ${outPath}`);
 
 const failed = checks.filter((c) => !c.ok);
 process.exit(failed.length > 0 ? 1 : 0);

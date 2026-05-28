@@ -6,7 +6,7 @@ export type DirectoryTabId = "active" | "pending";
 
 type DirectoryTabsProps = {
   activeTab: DirectoryTabId;
-  onTabChange: (tab: DirectoryTabId) => void;
+  onTabChange: (_tab: DirectoryTabId) => void;
   activeLabel: string;
   pendingLabel: string;
   disabled?: boolean;

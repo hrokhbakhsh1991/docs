@@ -17,7 +17,7 @@ import {
   removeGearItem,
   upsertGearItem,
 } from "../denaliGearSelection";
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonical } from "../application";
 
 export function DenaliGearSection() {
   const t = useTranslations("tours.denali");

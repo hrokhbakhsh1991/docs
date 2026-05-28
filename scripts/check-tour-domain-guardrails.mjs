@@ -108,21 +108,9 @@ for (const scope of SCOPES) {
 }
 
 if (allViolations.length === 0) {
-  console.log("[tour-domain-guardrails] OK — no forbidden EventKind symbols in guarded scopes.");
   process.exit(0);
 }
 
-console.error("[tour-domain-guardrails] FAIL — forbidden legacy EventKind symbols found:\n");
-for (const v of allViolations) {
-  console.error(`  - (${v.scope}) ${v.file}: ${v.symbol}`);
+for (const _v of allViolations) {
 }
-console.error(
-  "\nAllowed surfaces for EventKind references:\n" +
-    "  - packages/types (bridge + legacy resolver definitions)\n" +
-    "  - apps/web/src/features/tours/domain/tourDomainProfileAdapters.ts (Edit adapter)\n" +
-    "  - apps/web/src/features/tours/observability/* (telemetry)\n" +
-    "  - apps/web/src/components/tours/TourForm.tsx (Edit form — adapter passthrough)\n" +
-    "  - apps/web/src/features/tours/config/tripDetailsFieldConfig*.ts (legacy Edit matrix, to be retired in Phase P6)\n" +
-    "\nSee docs/20-architecture/tour-profile-guardrails.md and promptq.md for the closure plan.",
-);
 process.exit(1);

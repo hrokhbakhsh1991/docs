@@ -6,15 +6,15 @@ import {
 } from "@repo/types";
 import { expect, type Locator, type Page } from "@playwright/test";
 
-import { mapCreateTourDto } from "../../src/features/tours/domain/mapCreateTourDto";
-import { mapDenaliWizardToCreateTourPayload } from "../../src/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
+import { mapCreateTourDto } from "@/features/tours";
+import { mapDenaliWizardToCreateTourPayload } from "@/features/tours";
 import { buildCreateTourPostBody } from "../../lib/services/tours.service";
-import { mergeDenaliFormDefaults } from "../../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
+import { mergeDenaliFormDefaults } from "@/features/tours";
 import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
-} from "../../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { assertSubmitValidDenaliWizardForm } from "../../src/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
+} from "@/features/tours";
+import { assertSubmitValidDenaliWizardForm } from "@/features/tours";
 
 const DEFAULT_OTP = "1234";
 
@@ -400,7 +400,7 @@ export async function openDenaliCreateWizardWithFormPatch(
   await page.evaluate((patchJson) => {
     const apply = (
       window as Window & {
-        __integrationApplyDenaliWizardPatch?: (patch: unknown) => void;
+        __integrationApplyDenaliWizardPatch?: (_patch: unknown) => void;
       }
     ).__integrationApplyDenaliWizardPatch;
     if (!apply) {

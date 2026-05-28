@@ -47,7 +47,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   /** True after client-side cookie/session hydration finishes (always safe for gated queries). */
   isHydrated: boolean;
-  setSession: (session: WebSessionResponseBody) => Promise<void>;
+  setSession: (_session: WebSessionResponseBody) => Promise<void>;
   clearSession: () => Promise<void>;
 };
 

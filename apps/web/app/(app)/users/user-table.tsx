@@ -35,8 +35,8 @@ type UserTableProps = {
   sessionUser: AuthUser | null;
   activeRoleMutationUserId: string | null;
   roleMutation: UseMutationResult<WorkspaceUserDto, unknown, { userId: string; role: UserRole }, unknown>;
-  onToggleSort: (column: UserSortColumn) => void;
-  onManageRewards?: (user: WorkspaceUserDto) => void;
+  onToggleSort: (_column: UserSortColumn) => void;
+  onManageRewards?: (_user: WorkspaceUserDto) => void;
   directoryListQueryKey?: readonly unknown[];
   hasMoreBelow?: boolean;
   onRequestLoadMore?: () => void;

@@ -3,7 +3,6 @@ import fs from 'fs';
 const CONTEXT_PATH = 'apps/web/src/features/tours/wizard/denali/DenaliCanonicalContext.tsx';
 
 function log(message: string) {
-    console.log(`[UI Sync Gate] ${message}`);
     fs.appendFileSync('map.log', `[UI Sync Gate] ${message}\n`);
 }
 

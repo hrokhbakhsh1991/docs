@@ -11,7 +11,7 @@ import {
 } from "@repo/types/denali";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { readDenaliCanonicalBasics } from "../denaliCanonicalBasicsControl";
 import { getDenaliFormPathValue } from "../denaliFormPathUtils";
@@ -44,25 +44,25 @@ import { denaliRuleSet, findDenaliRuleField } from "./denaliRuleModel";
 export type DenaliCanonicalUIContext = {
   readonly canonical: Pick<DenaliCanonicalTourModel, "category" | "duration">;
   readonly ruleModel: DenaliRuleModel | null;
-  stepUI: (step: DenaliRuleFieldStep | DenaliCreateWizardStepId) => DenaliUIFieldMetadata | null;
+  stepUI: (_step: DenaliRuleFieldStep | DenaliCreateWizardStepId) => DenaliUIFieldMetadata | null;
   isVisible: (
-    step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
-    path: string,
-    form?: DenaliCreateTourWizardForm,
+    _step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
+    _path: string,
+    _form?: DenaliCreateTourWizardForm,
   ) => boolean;
   isRequired: (
-    step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
-    path: string,
-    form?: DenaliCreateTourWizardForm,
+    _step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
+    _path: string,
+    _form?: DenaliCreateTourWizardForm,
   ) => boolean;
   arePathsVisible: (
-    step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
-    paths: readonly string[],
-    form?: DenaliCreateTourWizardForm,
+    _step: DenaliRuleFieldStep | DenaliCreateWizardStepId,
+    _paths: readonly string[],
+    _form?: DenaliCreateTourWizardForm,
   ) => boolean;
-  isVisibleInModel: (path: string, form?: DenaliCreateTourWizardForm) => boolean;
-  isRequiredInModel: (path: string, form?: DenaliCreateTourWizardForm) => boolean;
-  isDurationAllowed: (duration: DenaliRuleModelDuration) => boolean;
+  isVisibleInModel: (_path: string, _form?: DenaliCreateTourWizardForm) => boolean;
+  isRequiredInModel: (_path: string, _form?: DenaliCreateTourWizardForm) => boolean;
+  isDurationAllowed: (_duration: DenaliRuleModelDuration) => boolean;
 };
 
 export type DenaliUIFieldMetadata = {

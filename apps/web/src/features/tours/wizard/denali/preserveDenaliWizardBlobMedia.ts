@@ -1,5 +1,5 @@
 import type { DenaliItineraryDayPhoto, DenaliItineraryDayRow } from "./denaliItinerarySync";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 export type DenaliWizardPhotoRow = {
   id: string;

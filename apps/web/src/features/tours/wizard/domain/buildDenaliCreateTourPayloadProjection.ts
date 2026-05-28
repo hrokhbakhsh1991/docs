@@ -27,7 +27,7 @@ import { denaliFormToCanonical } from "@/features/tours/wizard/denali/denaliCano
 import { readDenaliCanonicalBasics } from "@/features/tours/wizard/denali/denaliCanonicalBasicsControl";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import {
   clampDurationToApiRange,

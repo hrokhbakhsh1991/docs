@@ -39,7 +39,7 @@ import { createDenaliCanonicalWizardResolver } from "@/features/tours/wizard/sch
 import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+} from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { DENALI_QUIET_FORM_RESET_OPTIONS } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
 import { mergeDenaliFormDefaults } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
@@ -61,15 +61,14 @@ import {
   isMeaningfulDenaliDraftSnapshot,
 } from "@/features/tours/drafts/denali-adapter";
 
-type CaptureExceptionLike = (error: unknown, context?: Record<string, unknown>) => void;
+type CaptureExceptionLike = (_error: unknown, _context?: Record<string, unknown>) => void;
 
 function reportDenaliDraftError(
   phase: "initialize" | "apply",
   error: unknown,
   context: Record<string, unknown>,
 ): void {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error("[DenaliDraftHydrationError]", { phase, message, ...context });
+  const _message = error instanceof Error ? error.message : String(error);
   const sentry = (globalThis as { Sentry?: { captureException?: CaptureExceptionLike } }).Sentry;
   sentry?.captureException?.(error, {
     tags: { feature: "denali_draft_hydration", phase },
@@ -234,7 +233,8 @@ export function DenaliCreateTourWizard() {
     mode: "onTouched",
   });
   const { getValues, setError, clearErrors, reset, watch } = formMethods;
-  const tourTypeWatch = useWatch({ control: formMethods.control, name: "basicInfo.tourType" });
+  const isFormDirty = formMethods.formState.isDirty;
+  const _tourTypeWatch = useWatch({ control: formMethods.control, name: "basicInfo.tourType" });
   const resetToEmptyForm = useCallback(() => {
     suppressDraftPushRef.current = true;
     reset(emptyFormBaseline, DENALI_QUIET_FORM_RESET_OPTIONS);
@@ -343,7 +343,7 @@ export function DenaliCreateTourWizard() {
       if (suppressDraftPushRef.current) {
         return;
       }
-      if (!formMethods.formState.isDirty) {
+      if (!isFormDirty) {
         return;
       }
       if (draftStatusRef.current === "CONFLICT_RESOLVING") {
@@ -358,7 +358,7 @@ export function DenaliCreateTourWizard() {
       );
     });
     return () => subscription.unsubscribe();
-  }, [draftInitComplete, getValues, watch, workspaceId]);
+  }, [draftInitComplete, getValues, isFormDirty, watch, workspaceId]);
 
   useEffect(() => {
     if (!workspaceId || !draftInitComplete || suppressDraftPushRef.current) {
@@ -367,7 +367,7 @@ export function DenaliCreateTourWizard() {
     if (draftStatusRef.current === "CONFLICT_RESOLVING") {
       return;
     }
-    if (!formMethods.formState.isDirty) {
+    if (!isFormDirty) {
       return;
     }
     setDraftDataRef.current(
@@ -377,7 +377,7 @@ export function DenaliCreateTourWizard() {
       },
       { source: "user" },
     );
-  }, [currentStep, draftInitComplete, getValues, workspaceId]);
+  }, [currentStep, draftInitComplete, getValues, isFormDirty, workspaceId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -386,7 +386,7 @@ export function DenaliCreateTourWizard() {
     if (!isLocalHost) return;
 
     type IntegrationWindow = Window & {
-      __integrationApplyDenaliWizardPatch?: (patch: Partial<DenaliCreateTourWizardForm>) => void;
+      __integrationApplyDenaliWizardPatch?: (_patch: Partial<DenaliCreateTourWizardForm>) => void;
     };
     const bridge = (patch: Partial<DenaliCreateTourWizardForm>) => {
       suppressDraftPushRef.current = true;
@@ -405,7 +405,7 @@ export function DenaliCreateTourWizard() {
   const visibleSteps = useMemo(() => {
     const rawSteps = getDenaliWizardVisibleSteps(getValues(), ruleSet);
     return withDenaliWizardRailTestingOverrides(rawSteps, { enabled: true });
-  }, [getValues, ruleSet, tourTypeWatch]);
+  }, [getValues, ruleSet]);
 
   useEffect(() => {
     if (currentStep >= visibleSteps.length) {

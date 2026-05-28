@@ -5,7 +5,7 @@
  */
 
 import type { CreateTourDto } from "@/lib/services/tours.service";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import {
   buildDenaliCreateTourPayloadProjection,

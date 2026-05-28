@@ -15,19 +15,17 @@ import {
   buildDenaliCanonicalMapFromRegistry,
   buildDenaliConditionallyRequiredCanonicalPathsFromRegistry,
   buildDenaliRuleSetFromRegistry,
-} from "../src/features/tours/wizard/denali/registry/denaliRegistryCodegen";
+} from "@/features/tours/wizard/denali/registry/denaliRegistryCodegen";
 import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliZodFieldKind,
-} from "../src/features/tours/wizard/denali/registry/denaliFieldRegistryData";
-import {
-  DENALI_MATRIX_CELLS,
-} from "../src/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
+} from "@/features/tours/wizard/denali/registry/denaliFieldRegistryData";
+import { DENALI_MATRIX_CELLS } from "@/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
   type DenaliRuleSet,
-} from "../src/features/tours/wizard/denali/rules/denaliRuleModel.types";
+} from "@/features/tours/wizard/denali/rules/denaliRuleModel.types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = join(__dirname, "..");
@@ -35,10 +33,11 @@ const GENERATED_DIR = join(
   WEB_ROOT,
   "src/features/tours/wizard/denali/rules/generated",
 );
-const SCHEMA_GENERATED = join(
-  WEB_ROOT,
-  "src/features/tours/wizard/schemas/denaliTourCreateBaseSchema.generated.ts",
-);
+const SCHEMA_DIR = join(WEB_ROOT, "src/features/tours/wizard/schemas");
+const SCHEMA_GENERATED = join(SCHEMA_DIR, "denaliTourCreateBaseSchema.generated.ts");
+const SCHEMA_CORE_GENERATED = join(SCHEMA_DIR, "denaliCore.schema.generated.ts");
+const SCHEMA_LOGISTICS_GENERATED = join(SCHEMA_DIR, "denaliLogistics.schema.generated.ts");
+const SCHEMA_PRICING_GENERATED = join(SCHEMA_DIR, "denaliPricing.schema.generated.ts");
 
 const BANNER = `// DEPRECATED: DO NOT EDIT. AUTO-GENERATED.
 /**
@@ -165,7 +164,26 @@ function zodKeyFromRhfPath(rhfPath: string, section: ZodSection): string {
   return dot === -1 ? rhfPath : rhfPath.slice(dot + 1);
 }
 
-function buildZodSchemaFile(): string {
+type SchemaDomain = "core" | "logistics" | "pricing";
+
+function schemaDomainForRhfPath(rhfPath: string): SchemaDomain {
+  if (rhfPath.startsWith("transport.")) return "logistics";
+  if (rhfPath.startsWith("pricingPayment.")) return "pricing";
+  if (rhfPath.startsWith("policies.")) return "pricing";
+  if (rhfPath === "participantRequirements.gearItems") return "logistics";
+  if (rhfPath.startsWith("participantRequirements.")) return "pricing";
+  if (rhfPath.startsWith("tripDetails.logistics.")) return "logistics";
+  if (rhfPath === "tripDetails.overview.customServiceLabels") return "logistics";
+  if (rhfPath === "tripDetails.overview.nonAttendanceDetails") return "pricing";
+  return "core";
+}
+
+function buildZodSchemaSlices(): {
+  core: string;
+  logistics: string;
+  pricing: string;
+  composer: string;
+} {
   const sections: Record<ZodSection, Map<string, string>> = {
     basicInfo: new Map(),
     programNature: new Map(),
@@ -179,6 +197,18 @@ function buildZodSchemaFile(): string {
     "tripDetails.metrics": new Map(),
   };
 
+  const overviewByDomain: Record<SchemaDomain, Map<string, string>> = {
+    core: new Map(),
+    logistics: new Map(),
+    pricing: new Map(),
+  };
+
+  const participantByDomain: Record<SchemaDomain, Map<string, string>> = {
+    core: new Map(),
+    logistics: new Map(),
+    pricing: new Map(),
+  };
+
   for (const def of DENALI_FIELD_DEFINITIONS) {
     const section = zodSectionForRhfPath(def.rhfPath);
     const key = zodKeyFromRhfPath(def.rhfPath, section);
@@ -186,10 +216,20 @@ function buildZodSchemaFile(): string {
     if (!fragment) {
       throw new Error(`Missing Zod fragment for kind ${def.zodKind} (${def.canonicalPath})`);
     }
+
+    if (section === "tripDetails.overview") {
+      overviewByDomain[schemaDomainForRhfPath(def.rhfPath)].set(key, fragment);
+      continue;
+    }
+
+    if (section === "participantRequirements") {
+      participantByDomain[schemaDomainForRhfPath(def.rhfPath)].set(key, fragment);
+      continue;
+    }
+
     sections[section].set(key, fragment);
   }
 
-  // Location fields on basicInfo (registry) — ensure present even if only in logistics step
   for (const loc of ["startPoint", "summitPoint", "campPoint", "endPoint"]) {
     if (!sections.basicInfo.has(loc)) {
       sections.basicInfo.set(loc, ZOD_FRAGMENTS.locationData);
@@ -198,29 +238,20 @@ function buildZodSchemaFile(): string {
 
   function renderObject(name: string, map: Map<string, string>, indent = ""): string {
     const entries = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    if (entries.length === 0) {
+      return `export const ${name} = z.object({});`;
+    }
     const inner = entries
       .map(([key, val]) => `${indent}  ${key}: ${val},`)
       .join("\n");
-    return `const ${name} = z.object({\n${inner}\n${indent}});`;
+    return `export const ${name} = z.object({\n${inner}\n${indent}});`;
   }
 
-  const transportModeEnum = `const denaliTransportModeSchema = z.enum([
-  "organizer_vehicle",
-  "bus",
-  "minibus",
-  "train",
-  "shared_cars",
-  "none",
-]);`;
-
-  return `${BANNER}
+  const coreImports = `${BANNER}
 import { z } from "zod";
-
-import { DENALI_TOUR_KIND_VALUES, type DenaliTourKind } from "@repo/types";
 
 import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "@/features/tours/models/tours-new-validation-messages";
 
-import { denaliGearItemSchema } from "./denaliGearItemSchema";
 import {
   denaliImageFileAssetSchema,
   DENALI_MAX_PHOTO_COUNT,
@@ -229,63 +260,165 @@ import {
   denaliItineraryDayRowSchema,
   optionalApproximateReturnTimeSchema,
 } from "./denaliItineraryDaySchema";
-import { denaliGatheringPickupStationFormSchema } from "./denaliGatheringPickupStation.schema";
 import { denaliLocationDataSchema } from "./denaliLocationDataSchema";
+import {
+  denaliTourKindSchema,
+  isParsableIsoDateTime,
+  optionalInt,
+  optionalPositiveInt,
+  rejectZeroAmount,
+} from "./denaliSchemaPrimitives";
+`;
 
-function optionalInt(minMessage?: string) {
-  return z
-    .union([z.number().int().min(0, minMessage), z.nan(), z.undefined(), z.null(), z.literal("")])
-    .transform((v) => (v == null || Number.isNaN(v) || v === "" ? undefined : v))
-    .optional();
-}
+  const logisticsImports = `${BANNER}
+import { z } from "zod";
 
-function optionalPositiveInt(min = 1, message?: string) {
-  return z
-    .union([z.number().int().min(min, message), z.nan(), z.undefined(), z.null(), z.literal("")])
-    .transform((v) => (v == null || Number.isNaN(v) || v === "" ? undefined : v))
-    .optional();
-}
+import { denaliGearItemSchema } from "./denaliGearItemSchema";
+import { denaliGatheringPickupStationFormSchema } from "./denaliGatheringPickupStation.schema";
+import {
+  denaliTransportModeSchema,
+  optionalInt,
+  rejectZeroAmount,
+} from "./denaliSchemaPrimitives";
+`;
 
-function isParsableIsoDateTime(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  return !Number.isNaN(Date.parse(trimmed));
-}
+  const pricingImports = `${BANNER}
+import { z } from "zod";
 
-const denaliTourKindSchema = z.enum(
-  DENALI_TOUR_KIND_VALUES as unknown as [DenaliTourKind, ...DenaliTourKind[]],
-);
+import {
+  optionalInt,
+  optionalPositiveInt,
+  rejectZeroAmount,
+} from "./denaliSchemaPrimitives";
+`;
 
-${transportModeEnum}
+  const core = `${coreImports}
 
 ${renderObject("denaliBasicInfoSchema", sections.basicInfo)}
 
 ${renderObject("denaliProgramNatureSchema", sections.programNature)}
 
-${renderObject("denaliTransportSchema", sections.transport)}
-
-${renderObject("denaliPricingPaymentSchema", sections.pricingPayment)}
-
-${renderObject("denaliParticipantRequirementsSchema", sections.participantRequirements)}
-
-${renderObject("denaliPoliciesSchema", sections.policies)}
-
 ${renderObject("denaliPhotosSchema", sections.photosData)}
-
-${renderObject("denaliTripDetailsOverviewSchema", sections["tripDetails.overview"])}
 
 ${renderObject("denaliTripDetailsMetricsSchema", sections["tripDetails.metrics"])}
 
-const denaliTripDetailsLogisticsSchema = z.object({
+${renderObject("denaliTripDetailsOverviewCoreSchema", overviewByDomain.core)}
+
+export function applyDenaliCoreSchemaRefinements(
+  data: {
+    basicInfo: z.infer<typeof denaliBasicInfoSchema>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  rejectZeroAmount(
+    data.basicInfo.capacityMax,
+    ctx,
+    ["basicInfo", "capacityMax"],
+    "حداکثر ظرفیت باید حداقل ۱ باشد.",
+  );
+}
+`;
+
+  const logistics = `${logisticsImports}
+
+${renderObject("denaliTransportSchema", sections.transport)}
+
+${renderObject("denaliTripDetailsOverviewLogisticsSchema", overviewByDomain.logistics)}
+
+${renderObject("denaliParticipantGearSchema", participantByDomain.logistics)}
+
+export const denaliTripDetailsLogisticsSchema = z.object({
   gatheringPoints: z.array(denaliGatheringPickupStationFormSchema).default([]),
 }).default({ gatheringPoints: [] });
+
+export function applyDenaliLogisticsSchemaRefinements(
+  data: {
+    transport: z.infer<typeof denaliTransportSchema>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  rejectZeroAmount(
+    data.transport.transportCost,
+    ctx,
+    ["transport", "transportCost"],
+    "هزینه حمل‌ونقل باید بیشتر از صفر باشد.",
+  );
+  rejectZeroAmount(
+    data.transport.dongAmount,
+    ctx,
+    ["transport", "dongAmount"],
+    "مبلغ دنگ باید بیشتر از صفر باشد.",
+  );
+}
+`;
+
+  const pricing = `${pricingImports}
+
+${renderObject("denaliPricingPaymentSchema", sections.pricingPayment)}
+
+${renderObject("denaliParticipantRequirementsSchema", participantByDomain.pricing)}
+
+${renderObject("denaliPoliciesSchema", sections.policies)}
+
+${renderObject("denaliTripDetailsOverviewPricingSchema", overviewByDomain.pricing)}
+
+export function applyDenaliPricingSchemaRefinements(
+  data: {
+    pricingPayment: z.infer<typeof denaliPricingPaymentSchema>;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (data.pricingPayment.requiresPayment === true) {
+    rejectZeroAmount(
+      data.pricingPayment.basePricePerPerson,
+      ctx,
+      ["pricingPayment", "basePricePerPerson"],
+      "قیمت باید بیشتر از صفر باشد.",
+    );
+  }
+}
+`;
+
+  const composer = `${BANNER}
+import { z } from "zod";
+
+import {
+  applyDenaliCoreSchemaRefinements,
+  denaliBasicInfoSchema,
+  denaliPhotosSchema,
+  denaliProgramNatureSchema,
+  denaliTripDetailsMetricsSchema,
+  denaliTripDetailsOverviewCoreSchema,
+} from "./denaliCore.schema.generated";
+import {
+  applyDenaliLogisticsSchemaRefinements,
+  denaliParticipantGearSchema,
+  denaliTransportSchema,
+  denaliTripDetailsLogisticsSchema,
+  denaliTripDetailsOverviewLogisticsSchema,
+} from "./denaliLogistics.schema.generated";
+import {
+  applyDenaliPricingSchemaRefinements,
+  denaliParticipantRequirementsSchema,
+  denaliPoliciesSchema,
+  denaliPricingPaymentSchema,
+  denaliTripDetailsOverviewPricingSchema,
+} from "./denaliPricing.schema.generated";
+
+const denaliTripDetailsOverviewSchema = denaliTripDetailsOverviewCoreSchema
+  .merge(denaliTripDetailsOverviewLogisticsSchema)
+  .merge(denaliTripDetailsOverviewPricingSchema);
+
+const denaliParticipantRequirementsMergedSchema = denaliParticipantRequirementsSchema.merge(
+  denaliParticipantGearSchema,
+);
 
 const denaliTourCreateObjectSchema = z.object({
   basicInfo: denaliBasicInfoSchema,
   programNature: denaliProgramNatureSchema,
   transport: denaliTransportSchema,
   pricingPayment: denaliPricingPaymentSchema,
-  participantRequirements: denaliParticipantRequirementsSchema,
+  participantRequirements: denaliParticipantRequirementsMergedSchema,
   policies: denaliPoliciesSchema,
   photosData: denaliPhotosSchema,
   tripDetails: z.object({
@@ -299,48 +432,16 @@ const denaliTourCreateObjectSchema = z.object({
   }),
 });
 
-function rejectZeroAmount(
-  value: unknown,
-  ctx: z.RefinementCtx,
-  path: (string | number)[],
-  message: string,
-): void {
-  if (value === 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
-  }
-}
-
 export const denaliTourCreateBaseSchema = denaliTourCreateObjectSchema.superRefine((data, ctx) => {
-  rejectZeroAmount(
-    data.basicInfo.capacityMax,
-    ctx,
-    ["basicInfo", "capacityMax"],
-    "حداکثر ظرفیت باید حداقل ۱ باشد.",
-  );
-  rejectZeroAmount(
-    data.transport.transportCost,
-    ctx,
-    ["transport", "transportCost"],
-    "هزینه حمل‌ونقل باید بیشتر از صفر باشد.",
-  );
-  rejectZeroAmount(
-    data.transport.dongAmount,
-    ctx,
-    ["transport", "dongAmount"],
-    "مبلغ دنگ باید بیشتر از صفر باشد.",
-  );
-  if (data.pricingPayment.requiresPayment === true) {
-    rejectZeroAmount(
-      data.pricingPayment.basePricePerPerson,
-      ctx,
-      ["pricingPayment", "basePricePerPerson"],
-      "قیمت باید بیشتر از صفر باشد.",
-    );
-  }
+  applyDenaliCoreSchemaRefinements(data, ctx);
+  applyDenaliLogisticsSchemaRefinements(data, ctx);
+  applyDenaliPricingSchemaRefinements(data, ctx);
 });
 
 export type DenaliCreateTourWizardForm = z.infer<typeof denaliTourCreateBaseSchema>;
 `;
+
+  return { core, logistics, pricing, composer };
 }
 
 function formatCanonicalMapExport(map: Record<string, string>): string {
@@ -402,13 +503,12 @@ ${formatConditionallyRequiredPathsExport(buildDenaliConditionallyRequiredCanonic
     conditionalRequiredTs,
     "utf8",
   );
-  writeFileSync(SCHEMA_GENERATED, buildZodSchemaFile(), "utf8");
+  const schemaSlices = buildZodSchemaSlices();
+  writeFileSync(SCHEMA_CORE_GENERATED, schemaSlices.core, "utf8");
+  writeFileSync(SCHEMA_LOGISTICS_GENERATED, schemaSlices.logistics, "utf8");
+  writeFileSync(SCHEMA_PRICING_GENERATED, schemaSlices.pricing, "utf8");
+  writeFileSync(SCHEMA_GENERATED, schemaSlices.composer, "utf8");
 
-  console.log("Generated:");
-  console.log(" -", join(GENERATED_DIR, "denaliRuleSet.generated.ts"));
-  console.log(" -", join(GENERATED_DIR, "denaliCanonicalPathMap.generated.ts"));
-  console.log(" -", join(GENERATED_DIR, "denaliConditionallyRequiredPaths.generated.ts"));
-  console.log(" -", SCHEMA_GENERATED);
 }
 
 main();

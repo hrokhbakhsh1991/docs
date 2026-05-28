@@ -11,41 +11,31 @@ import test from "node:test";
 
 import type { DenaliTransportMode } from "@repo/types";
 
-import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
-import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
-import { readDenaliCanonicalBasics } from "@/features/tours/wizard/denali/denaliCanonicalBasicsControl";
 import {
+  transformTourToDenaliWizardValues,
+  type TourCloneSourceDto,
+  readDenaliCanonicalBasics,
   denaliCanonicalToForm,
   denaliFormToCanonical,
-} from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
-import {
   denaliWizardSteps,
   type DenaliCreateWizardStepId,
-} from "@/features/tours/wizard/denaliStepConfig";
-import { mergeDenaliFormDefaults } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import {
+  mergeDenaliFormDefaults,
   evaluateFormFieldRule,
   evaluateFormRules,
-} from "@/features/tours/wizard/denali/rules/evaluateFormRules";
-import { mapDenaliCanonicalToFormPath } from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
-import {
+  mapDenaliCanonicalToFormPath,
   getDenaliUIFromForm,
   isDenaliFieldRequiredOnStep,
   isDenaliFieldVisibleOnStep,
-} from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
-import { finalizeDenaliWizardHydration } from "@/features/tours/wizard/denali/denaliFormHydration";
-import { patchDenaliTransportForMode } from "@/features/tours/wizard/denali/transport/patchDenaliTransportForMode";
-import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
-import {
+  finalizeDenaliWizardHydration,
+  patchDenaliTransportForMode,
+  applyDenaliInvariantState,
   prepareDenaliWizardFormForSubmit,
   resolveDenaliRuleModelFromForm,
-} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
-import {
   buildDenaliTourCreateDefaultValues,
   buildDenaliTourCreateTestValues,
   type DenaliCreateTourWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-import { normalizeDenaliWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
+  normalizeDenaliWizardForm,
+} from "@/features/tours/testing/public-test-api";
 
 /** Mirrors `denaliEditSections` in DenaliTourEditForm.tsx (flat layout, no review). */
 const DENALI_EDIT_FORM_STEPS = denaliWizardSteps.filter(

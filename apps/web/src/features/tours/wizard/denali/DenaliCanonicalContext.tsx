@@ -65,12 +65,12 @@ export type DenaliCanonicalContextValue = {
   /** Tour id used for `POST /api/tours/:tourId/photos` (edit mode or create staging shell). */
   readonly uploadTourId: string | null;
   readonly photoPersistenceWarning: string | null;
-  updateCanonical: (patch: DenaliCanonicalPartial) => void;
-  updateCanonicalBasics: (patch: Partial<DenaliCanonicalBasicsSelection>) => void;
+  updateCanonical: (_patch: DenaliCanonicalPartial) => void;
+  updateCanonicalBasics: (_patch: Partial<DenaliCanonicalBasicsSelection>) => void;
   /** Ensures a draft tour exists for gallery upload in create mode. */
   ensureUploadTourId: () => Promise<string>;
   /** Run before submit — surfaces blob: URLs instead of silent strip. */
-  checkPhotoPersistence: (form?: DenaliCreateTourWizardForm) => DenaliPhotoPersistenceCheck;
+  checkPhotoPersistence: (_form?: DenaliCreateTourWizardForm) => DenaliPhotoPersistenceCheck;
   clearPhotoPersistenceWarning: () => void;
 };
 
@@ -116,17 +116,7 @@ export function DenaliCanonicalProvider({
 }) {
   const { control, getValues, setValue } = formMethods;
 
-  const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
-  const transportModeWatch = useWatch({ control, name: "transport.transportMode" });
-  const adminCapacityApprovalWatch = useWatch({
-    control,
-    name: "transport.adminCapacityApproval",
-  });
-  const allowPersonalCarWatch = useWatch({ control, name: "transport.allowPersonalCar" });
-  const requiresPaymentWatch = useWatch({
-    control,
-    name: "pricingPayment.requiresPayment",
-  });
+  const _tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
 
   const [canonicalModel, setCanonicalModel] = useState<DenaliCanonicalTourModel>(() => {
     const form = getValues();
@@ -161,11 +151,11 @@ export function DenaliCanonicalProvider({
 
   useEffect(() => {
     syncCanonicalFromForm();
-  }, [tourTypeWatch, syncCanonicalFromForm]);
+  }, [_tourTypeWatch, syncCanonicalFromForm]);
 
   const basicsSelection = useMemo(
-    () => basicsSelectionFromTourType(tourTypeWatch ?? getValues().basicInfo.tourType),
-    [tourTypeWatch, syncToken],
+    () => basicsSelectionFromTourType(_tourTypeWatch ?? getValues().basicInfo.tourType),
+    [getValues, _tourTypeWatch],
   );
 
   const ruleSet = useMemo(
@@ -180,17 +170,7 @@ export function DenaliCanonicalProvider({
         ruleSet,
         workspaceFormProfile ? { workspaceFormProfile } : undefined,
       ),
-    [
-      tourTypeWatch,
-      transportModeWatch,
-      adminCapacityApprovalWatch,
-      allowPersonalCarWatch,
-      requiresPaymentWatch,
-      syncToken,
-      ruleSet,
-      getValues,
-      workspaceFormProfile,
-    ],
+    [getValues, ruleSet, workspaceFormProfile],
   );
 
   const commitCanonical = useCallback(

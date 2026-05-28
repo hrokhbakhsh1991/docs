@@ -7,7 +7,7 @@
  */
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { evaluateDenaliContextualRequired } from "./denaliUIAdapter";
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";

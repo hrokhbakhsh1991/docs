@@ -100,8 +100,6 @@ const suites = [
 ];
 
 for (const suite of suites) {
-  console.log(`\n[tour-parity-tests] ${suite.label}`);
   run(suite.cmd, suite.args);
 }
 
-console.log("\n[tour-parity-tests] OK");

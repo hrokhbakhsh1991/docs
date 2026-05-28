@@ -74,7 +74,6 @@ async function fetchFromProvider(
 function logProviderFallback(provider: GeocodingProviderId, err: unknown): void {
   const status = err instanceof GeocodingProviderError ? err.status : 0;
   if (status === 0 || isProviderFailStatus(status)) {
-    console.warn(GEOCODING_FALLBACK_LOG, { provider, status });
   }
 }
 

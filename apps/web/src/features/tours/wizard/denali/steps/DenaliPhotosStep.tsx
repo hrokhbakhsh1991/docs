@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { Alert, Button, FormField, Input } from "@tour/ui";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { DENALI_MAX_PHOTO_COUNT } from "@/features/tours/wizard/schemas/denaliFileAssetSchema";
 import { uploadTourPhotos } from "@/lib/services/tours.service";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { useDenaliCanonical, useDenaliStepFieldRules } from "../application";
 import { DenaliProgramContentSection } from "./DenaliProgramContentSection";
 
 const STEP = "denali_photos" as const;
@@ -38,7 +37,7 @@ export function DenaliPhotosStep({ tourId: tourIdProp }: DenaliPhotosStepProps =
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const rows = getValues().photosData.photos ?? [];
+  const rows = useMemo(() => getValues().photosData.photos ?? [], [getValues]);
   const photoErrors = errors.photosData?.photos;
   const rootError = Array.isArray(photoErrors) ? undefined : photoErrors?.message;
   const required = isRequired("photos", getValues());
@@ -152,6 +151,7 @@ export function DenaliPhotosStep({ tourId: tourIdProp }: DenaliPhotosStepProps =
               position: "relative",
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- wizard photo preview uses blob/object URLs */}
             <img
               src={field.url}
               alt={field.filename}

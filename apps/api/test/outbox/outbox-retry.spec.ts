@@ -70,7 +70,7 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -107,7 +107,7 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     configService as never,
     new OutboxMetricsService(),
     {
-      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_manager: unknown) => Promise<void>) =>
         fn(manager)
     } as never
   );

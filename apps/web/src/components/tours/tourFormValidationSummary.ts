@@ -9,9 +9,9 @@ export type TourFormValidationIssue = {
 };
 
 export type TourFormErrorLabelContext = {
-  tNew: (key: string, values?: Record<string, string | number>) => string;
-  tDenali: (key: string, values?: Record<string, string | number>) => string;
-  tForm: (key: string, values?: Record<string, string | number>) => string;
+  tNew: (_key: string, _values?: Record<string, string | number>) => string;
+  tDenali: (_key: string, _values?: Record<string, string | number>) => string;
+  tForm: (_key: string, _values?: Record<string, string | number>) => string;
 };
 
 const TRIP_DETAILS_LABEL_KEYS: Record<string, string> = {

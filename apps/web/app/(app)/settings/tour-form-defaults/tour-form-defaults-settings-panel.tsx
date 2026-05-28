@@ -46,11 +46,11 @@ export function TourFormDefaultsSettingsPanel() {
   const readOnlyList = !canManageWorkspace;
 
   const themesQuery = useSettingsTourThemes();
-  const themeCatalog = themesQuery.data ?? [];
+  const themeCatalog = useMemo(() => themesQuery.data ?? [], [themesQuery.data]);
   const themeNameById = useMemo(() => new Map(themeCatalog.map((row) => [row.id, row.name])), [themeCatalog]);
 
   const presetsQuery = useSettingsTourPresets();
-  const presets = presetsQuery.data ?? [];
+  const presets = useMemo(() => presetsQuery.data ?? [], [presetsQuery.data]);
   const createMutation = useCreateTourPreset();
   const updateMutation = useUpdateTourPreset();
   const deleteMutation = useDeleteTourPreset();

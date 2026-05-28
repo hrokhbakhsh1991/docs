@@ -60,7 +60,6 @@ const snapshot = {
 
 const outPath = path.join(outDir, `${date}.json`);
 fs.writeFileSync(outPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-console.log(`[governance-snapshot] wrote ${outPath}`);
 
 const audit = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "run-tour-governance.mjs")], {
   cwd: REPO_ROOT,

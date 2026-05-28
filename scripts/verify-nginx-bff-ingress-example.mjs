@@ -27,14 +27,11 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error("[nginx-bff-ingress] FAIL —", CONF);
-    for (const v of violations) {
-      console.error(`  - ${v}`);
+    for (const _v of violations) {
     }
     process.exit(1);
   }
 
-  console.log("[nginx-bff-ingress] OK — example blocks browser /api/v2/");
 }
 
 main();

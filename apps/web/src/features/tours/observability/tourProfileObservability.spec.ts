@@ -8,7 +8,9 @@ import {
 
 test("emitWizardRulesValidationFailure: no console when result is valid", () => {
   const calls: unknown[][] = [];
+  // eslint-disable-next-line no-console
   const orig = console.warn;
+  // eslint-disable-next-line no-console
   console.warn = (...a: unknown[]) => {
     calls.push(a);
   };
@@ -27,6 +29,7 @@ test("emitWizardRulesValidationFailure: no console when result is valid", () => 
     });
     assert.equal(calls.length, 0);
   } finally {
+    // eslint-disable-next-line no-console
     console.warn = orig;
     delete process.env.NEXT_PUBLIC_TOUR_PROFILE_OBSERVABILITY;
   }
@@ -34,7 +37,9 @@ test("emitWizardRulesValidationFailure: no console when result is valid", () => 
 
 test("emitWizardRulesValidationFailure: emits one JSON line when invalid and obs enabled", () => {
   const calls: unknown[][] = [];
+  // eslint-disable-next-line no-console
   const orig = console.warn;
+  // eslint-disable-next-line no-console
   console.warn = (...a: unknown[]) => {
     calls.push(a);
   };
@@ -72,6 +77,7 @@ test("emitWizardRulesValidationFailure: emits one JSON line when invalid and obs
     assert.equal(json.form_profile, "mountain_outdoor");
     assert.deepEqual(json.issue_paths, ["overview.title"]);
   } finally {
+    // eslint-disable-next-line no-console
     console.warn = orig;
     delete process.env.NEXT_PUBLIC_TOUR_PROFILE_OBSERVABILITY;
   }
@@ -79,7 +85,9 @@ test("emitWizardRulesValidationFailure: emits one JSON line when invalid and obs
 
 test("emitWizardRulesValidationFailure: dedupes identical signature within window", () => {
   const calls: unknown[][] = [];
+  // eslint-disable-next-line no-console
   const orig = console.warn;
+  // eslint-disable-next-line no-console
   console.warn = (...a: unknown[]) => {
     calls.push(a);
   };
@@ -103,6 +111,7 @@ test("emitWizardRulesValidationFailure: dedupes identical signature within windo
     emitWizardRulesValidationFailure({ level: "step_nav", form_profile: "general", step_id: "basic", result: bad });
     assert.equal(calls.length, 1, "second identical emission within dedupe window should be dropped");
   } finally {
+    // eslint-disable-next-line no-console
     console.warn = orig;
     delete process.env.NEXT_PUBLIC_TOUR_PROFILE_OBSERVABILITY;
   }

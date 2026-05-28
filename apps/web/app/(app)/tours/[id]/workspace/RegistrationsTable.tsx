@@ -33,7 +33,7 @@ import styles from "./tour-workspace.module.css";
 export type RegistrationsTableProps = {
   registrations: BookingDto[];
   filter: "all" | "pending";
-  onFilterChange: (next: "all" | "pending") => void;
+  onFilterChange: (_next: "all" | "pending") => void;
   readOnly: boolean;
   isLoading: boolean;
   isError: boolean;

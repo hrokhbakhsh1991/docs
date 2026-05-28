@@ -1,0 +1,1 @@
+echo "Zero-Tolerance policy active: do not bypass hooks with --no-verify."

@@ -23,7 +23,7 @@ export type UseRegistrationBookingTargetInput = {
   policy: RegistrationFieldPolicy;
   messages: RegistrationIntakeSchemaMessages;
   /** Called when user switches target so parent can clear mutation state if needed. */
-  onTargetChange?: (target: BookingTarget) => void;
+  onTargetChange?: (_target: BookingTarget) => void;
 };
 
 export function useRegistrationBookingTarget(input: UseRegistrationBookingTargetInput) {
@@ -74,7 +74,7 @@ export function useRegistrationBookingTarget(input: UseRegistrationBookingTarget
       setBookingTargetState(target);
       input.onTargetChange?.(target);
     },
-    [reset, input.onTargetChange],
+    [input, reset],
   );
 
   const setBookingTarget = useCallback(

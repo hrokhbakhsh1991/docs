@@ -2,11 +2,11 @@
  * Prints clone-hydration diagnostic JSON (same shape as browser logDenaliWizardDiagnosticReport).
  * Run: cd apps/web && node --import tsx scripts/print-denali-wizard-diagnostic.ts
  */
-import { transformTourToDenaliWizardValues } from "../src/features/tours/clone/transformTourToDenaliWizardValues";
-import { mergeDenaliFormDefaults } from "../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { buildDenaliTourCreateDefaultValues } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
-import { buildDenaliWizardDiagnosticReport } from "../src/features/tours/wizard/denali/denaliWizardDiagnostic";
-import type { DenaliCreateTourWizardForm } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { transformTourToDenaliWizardValues } from "@/features/tours";
+import { mergeDenaliFormDefaults } from "@/features/tours";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours";
+import { buildDenaliWizardDiagnosticReport } from "@/features/tours";
+import type { DenaliCreateTourWizardForm } from "@/features/tours";
 
 const GEAR_REQ = "11111111-1111-4111-8111-111111111111";
 const GEAR_OPT = "22222222-2222-4222-8222-222222222222";
@@ -95,7 +95,7 @@ const reportStaleCatalog = buildDenaliWizardDiagnosticReport({
   source: "clone-hydration-simulation-stale-catalog",
 });
 
-const output = {
+const _output = {
   note: "Browser live state: open review step and run logDenaliWizardDiagnosticReport from console, or submit to trigger onInvalid JSON.",
   scenarios: {
     cloneWithMatchingWorkspaceGear: reportWithCatalog,
@@ -103,4 +103,3 @@ const output = {
   },
 };
 
-console.log(JSON.stringify(output, null, 2));

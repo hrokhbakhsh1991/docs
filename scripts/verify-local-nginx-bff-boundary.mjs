@@ -21,7 +21,6 @@ function main() {
 
   const run = docker("run", "-d", "--name", CONTAINER, "-p", `${PORT}:8888`, "-v", `${CONF}:/etc/nginx/conf.d/default.conf:ro`, "nginx:alpine");
   if (run.status !== 0) {
-    console.error("[nginx-local] FAIL — docker run:", run.stderr || run.stdout);
     process.exit(1);
   }
 
@@ -35,8 +34,7 @@ function main() {
     spawnSync("sleep", ["0.3"]);
   }
   if (!ready) {
-    const logs = docker("logs", CONTAINER);
-    console.error("[nginx-local] FAIL — nginx not ready:", logs.stderr || logs.stdout);
+    const _logs = docker("logs", CONTAINER);
     docker("rm", "-f", CONTAINER);
     process.exit(1);
   }
@@ -53,15 +51,12 @@ function main() {
     const allowCode = allow.stdout?.trim();
 
     if (blockCode !== "403") {
-      console.error(`[nginx-local] FAIL — /api/v2/ expected 403, got ${blockCode}`);
       process.exit(1);
     }
     if (allowCode !== "200") {
-      console.error(`[nginx-local] FAIL — / expected 200, got ${allowCode}`);
       process.exit(1);
     }
 
-    console.log(`[nginx-local] OK — /api/v2/ → 403, / → 200 (port ${PORT})`);
   } finally {
     docker("rm", "-f", CONTAINER);
   }

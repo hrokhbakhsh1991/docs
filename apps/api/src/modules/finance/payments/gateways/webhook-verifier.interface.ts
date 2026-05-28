@@ -27,9 +27,9 @@ export interface IWebhookVerifier {
    * @param headers Normalized lower-case keys optional; adapters may read `stripe-signature` etc.
    */
   verifySignature(
-    headers: Record<string, string | string[] | undefined>,
-    rawBody: Buffer | string
+    _headers: Record<string, string | string[] | undefined>,
+    _rawBody: Buffer | string
   ): Promise<boolean>;
 
-  parseEvent(rawBody: unknown): Promise<ParsedWebhookEvent>;
+  parseEvent(_rawBody: unknown): Promise<ParsedWebhookEvent>;
 }

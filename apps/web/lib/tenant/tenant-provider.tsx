@@ -14,7 +14,7 @@ export function TenantProvider({
   value: TenantContext;
   children: ReactNode;
 }) {
-  const merged = useMemo(() => value, [value.tenantSlug, value.tenantId]);
+  const merged = useMemo(() => value, [value]);
   return (
     <TenantContextReact.Provider value={merged}>{children}</TenantContextReact.Provider>
   );

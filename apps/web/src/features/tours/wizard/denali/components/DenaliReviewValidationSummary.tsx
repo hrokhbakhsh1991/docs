@@ -3,12 +3,10 @@
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 
-import { getDenaliWizardVisibleSteps } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import { getDenaliWizardVisibleSteps, useDenaliCanonical, useDenaliWizardFormSnapshot } from "../application";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliWizardNavigationOptional } from "../DenaliWizardNavigationContext";
 import { collectDenaliWizardSubmitIssuePresentation } from "../denaliWizardSubmitIssuePresentation";
-import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 import { useWizardErrorHydrator } from "./WizardErrorHydrator";
 
 export function DenaliReviewValidationSummary() {

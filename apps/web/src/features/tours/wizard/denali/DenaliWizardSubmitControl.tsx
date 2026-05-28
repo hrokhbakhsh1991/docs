@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, type FieldErrors } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Button } from "@tour/ui";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
@@ -23,7 +23,7 @@ type DenaliWizardSubmitControlProps = {
   submitLabel: string;
   ruleSet: DenaliRuleSet;
   visibleSteps: readonly DenaliCreateWizardStepId[];
-  onSubmit: (values: DenaliCreateTourWizardForm) => void | Promise<void>;
+  onSubmit: (_values: DenaliCreateTourWizardForm) => void | Promise<void>;
 };
 
 export function DenaliWizardSubmitControl({
@@ -36,12 +36,12 @@ export function DenaliWizardSubmitControl({
   onSubmit,
 }: DenaliWizardSubmitControlProps) {
   const tDenali = useTranslations("tours.denali");
-  const { handleSubmit, getValues, formState } = useFormContext<DenaliCreateTourWizardForm>();
+  const { handleSubmit, getValues } = useFormContext<DenaliCreateTourWizardForm>();
   const { navigateToField } = useDenaliWizardNavigation();
   const publishButtonGuard = usePublishButtonGuard({ navLocked, ruleSet });
 
   const onInvalid = useCallback(
-    (fieldErrors: typeof formState.errors) => {
+    (fieldErrors: FieldErrors<DenaliCreateTourWizardForm>) => {
       const values = getValues();
       const flat = flattenDenaliFormErrors(fieldErrors);
       debugSessionLog(
@@ -73,7 +73,7 @@ export function DenaliWizardSubmitControl({
         navigateToField(first.stepId, first.formPath);
       }
     },
-    [formState.errors, getValues, navigateToField, ruleSet, tDenali, visibleSteps],
+    [getValues, navigateToField, ruleSet, tDenali, visibleSteps],
   );
 
   return (

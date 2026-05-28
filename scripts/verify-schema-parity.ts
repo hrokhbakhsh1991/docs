@@ -16,7 +16,10 @@ import {
 } from "@repo/types/denali";
 import { z } from "zod";
 
-import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "../apps/web/src/features/tours/models/tours-new-validation-messages";
+import {
+  TOUR_TITLE_MAX_LENGTH,
+  TOUR_TITLE_MIN_LENGTH,
+} from "../apps/web/src/features/tours/models/tours-new-validation-messages";
 import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
@@ -346,7 +349,7 @@ function describeZodTypeCore(schema: z.ZodTypeAny): string {
   return typeName;
 }
 
-function resolveObjectRoot(schema: z.ZodTypeAny): z.ZodObject {
+function _resolveObjectRoot(schema: z.ZodTypeAny): z.ZodObject {
   let cur = schema;
   for (let guard = 0; guard < 16; guard += 1) {
     const unwrapped = unwrapZodType(cur);
@@ -479,34 +482,21 @@ function compareDescriptorMaps(
 
 function printMismatchRows(kind: ParityMismatch["kind"], rows: ParityMismatch[]): void {
   if (rows.length === 0) return;
-  console.log(`--- ${kind} (${rows.length}) ---`);
-  for (const row of rows) {
+  for (const _row of rows) {
     if (kind === "TYPE_MISMATCH") {
-      console.log(`  ${row.path}`);
-      console.log(`    registry:   ${row.registryType}`);
-      console.log(`    production: ${row.productionType}`);
     } else if (kind === "MISSING_IN_REGISTRY") {
-      console.log(`  ${row.path}  (production: ${row.productionType})`);
     } else {
-      console.log(`  ${row.path}  (registry: ${row.registryType})`);
     }
   }
-  console.log("");
 }
 
 function printReport(blocking: ParityMismatch[], registryAhead: ParityMismatch[]): void {
-  console.log("\n=== Denali canonical schema parity report ===\n");
-  console.log(`Registry fields (definitions): ${DENALI_FIELD_DEFINITIONS.length}`);
-  console.log(`Blocking issues:               ${blocking.length}`);
-  console.log(`Registry-ahead (allowed):      ${registryAhead.length}\n`);
 
   if (blocking.length === 0 && registryAhead.length === 0) {
-    console.log("OK — registry-generated shape matches production field types.\n");
     return;
   }
 
   if (blocking.length > 0) {
-    console.log("=== Blocking drift (fail gate) ===\n");
     printMismatchRows(
       "TYPE_MISMATCH",
       blocking.filter((m) => m.kind === "TYPE_MISMATCH"),
@@ -522,14 +512,10 @@ function printReport(blocking: ParityMismatch[], registryAhead: ParityMismatch[]
   }
 
   if (registryAhead.length > 0) {
-    console.log("=== Registry-ahead (allowlisted) ===\n");
     printMismatchRows("MISSING_IN_PROD_SCHEMA", registryAhead);
   }
 
   if (blocking.length === 0 && registryAhead.length > 0) {
-    console.log(
-      "PASS (registry ahead of production) — only allowlisted fields differ from production schema.\n",
-    );
   }
 }
 
@@ -538,15 +524,12 @@ function main(): void {
   const registryMap = collectFieldDescriptors(generated);
   const productionMap = collectFieldDescriptors(denaliCanonicalTourSchema);
 
-  console.log(`Registry-derived schema paths: ${registryMap.size}`);
-  console.log(`Production schema paths:      ${productionMap.size}`);
 
   const mismatches = compareDescriptorMaps(registryMap, productionMap);
   const { blocking, registryAhead } = partitionMismatches(mismatches);
   printReport(blocking, registryAhead);
 
   if (blocking.length > 0) {
-    console.error("\nARCHITECTURAL_DRIFT_DETECTED");
     process.exitCode = 1;
     return;
   }

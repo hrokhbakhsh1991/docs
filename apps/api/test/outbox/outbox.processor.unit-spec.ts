@@ -77,7 +77,7 @@ test("processor marks row DELIVERED after successful publish", async () => {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -116,7 +116,7 @@ test("processor marks row DELIVERED after successful publish", async () => {
     configService as never,
     metrics,
     {
-      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
     } as never
   );
@@ -177,7 +177,7 @@ test("processor increments retryCount when publish fails", async () => {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -215,7 +215,7 @@ test("processor increments retryCount when publish fails", async () => {
     configService as never,
     metrics,
     {
-      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
     } as never
   );
@@ -274,7 +274,7 @@ test("processor marks FAILED when retries reach threshold", async () => {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -312,7 +312,7 @@ test("processor marks FAILED when retries reach threshold", async () => {
     configService as never,
     metrics,
     {
-      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
     } as never
   );
@@ -365,7 +365,7 @@ function buildProcessorHarness(input: {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -404,7 +404,7 @@ function buildProcessorHarness(input: {
     configService as never,
     metrics,
     {
-      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
     } as never
   );

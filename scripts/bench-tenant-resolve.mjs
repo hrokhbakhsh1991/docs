@@ -16,7 +16,6 @@ const rtcPath = path.join(REPO_ROOT, "apps/web/lib/tenant/runtime-tenant-context
 const rtc = fs.readFileSync(rtcPath, "utf8");
 
 if (!rtc.includes("resolveTenantSlugFromHost")) {
-  console.error("[bench] runtime-tenant-context missing resolveTenantSlugFromHost");
   process.exit(1);
 }
 
@@ -26,7 +25,6 @@ const host = "ws1-rbac.localhost:3000";
 const t0 = performance.now();
 for (let i = 0; i < ${ITER}; i++) evaluateWorkspaceHost(host);
 const ms = (performance.now() - t0) / ${ITER};
-console.log(JSON.stringify({ op: "evaluateWorkspaceHost", usPerOp: ms * 1000 }));
 `;
 
 const r = spawnSync(
@@ -36,23 +34,19 @@ const r = spawnSync(
 );
 
 if (r.status !== 0) {
-  console.error(r.stderr || r.stdout);
   process.exit(1);
 }
 
 const line = (r.stdout || "").trim().split("\n").pop();
 const parsed = JSON.parse(line || "{}");
-console.log(`[bench] ${parsed.op}: ~${parsed.usPerOp?.toFixed(3)} µs/op (${ITER} iter)`);
 
 if (parsed.usPerOp > 5000) {
-  console.warn("[bench] WARN: sync parse > 5ms/op budget");
   process.exit(1);
 }
 
 const apiUp =
   spawnSync("curl", ["-sf", "http://127.0.0.1:3001/health"], { encoding: "utf8" }).status === 0;
 if (!apiUp) {
-  console.log("[bench] lookup p95 skipped (API :3001 not up)");
   process.exit(0);
 }
 
@@ -75,7 +69,5 @@ for (let i = 0; i < 10; i += 1) {
 }
 samples.sort((a, b) => a - b);
 const p95 = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.95))];
-console.log(`[bench] workspace-host probe p95: ~${p95.toFixed(1)} ms (n=${samples.length})`);
 if (p95 > WARN_LOOKUP_P95_MS) {
-  console.warn(`[bench] WARN: p95 > ${WARN_LOOKUP_P95_MS}ms`);
 }

@@ -58,9 +58,9 @@ function main() {
   const raw = readInput(process.argv[2]);
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
   const violations = [];
-  let clientErrors = 0;
-  let serverErrors = 0;
-  let okLines = 0;
+  let _clientErrors = 0;
+  let _serverErrors = 0;
+  let _okLines = 0;
 
   for (let i = 0; i < lines.length; i += 1) {
     const lineNo = i + 1;
@@ -74,13 +74,13 @@ function main() {
 
     const status = httpStatusFromRecord(obj);
     if (status === undefined || status < 400) {
-      okLines += 1;
+      _okLines += 1;
       continue;
     }
     if (status >= 500) {
-      serverErrors += 1;
+      _serverErrors += 1;
     } else {
-      clientErrors += 1;
+      _clientErrors += 1;
     }
 
     const code = errorCodeFromRecord(obj);
@@ -90,19 +90,13 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error("[production-log-sample] FAIL");
-    for (const v of violations.slice(0, 20)) {
-      console.error(`  ${v}`);
+    for (const _v of violations.slice(0, 20)) {
     }
     if (violations.length > 20) {
-      console.error(`  ... +${violations.length - 20} more`);
     }
     process.exit(1);
   }
 
-  console.log(
-    `[production-log-sample] OK — ${lines.length} lines, 4xx=${clientErrors}, 5xx=${serverErrors}, non-error=${okLines}`,
-  );
 }
 
 main();

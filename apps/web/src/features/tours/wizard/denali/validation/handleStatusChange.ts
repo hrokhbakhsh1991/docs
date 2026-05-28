@@ -18,8 +18,8 @@ type HandleStatusChangeInput = {
   nextStatus: TourFormLifecycleStatus;
   publishIssues: DenaliWizardPublishReadinessIssue[];
   setStatus: (
-    next: WizardPublishStatus,
-    options?: { shouldDirty?: boolean; shouldValidate?: boolean },
+    _next: WizardPublishStatus,
+    _options?: { shouldDirty?: boolean; shouldValidate?: boolean },
   ) => void;
 };
 

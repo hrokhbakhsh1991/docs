@@ -92,11 +92,8 @@ function checkMigrations() {
 function main() {
   const violations = [...checkLedgerModule(), ...checkMigrations()];
   if (violations.length) {
-    console.error("Ledger append-only guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
     process.exit(1);
   }
-  console.log("Ledger append-only guardrails: OK");
 }
 
 main();

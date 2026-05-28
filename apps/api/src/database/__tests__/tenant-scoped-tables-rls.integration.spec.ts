@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 
 test("tenant-scoped tables reject cross-tenant reads via app.tenant_id", async (t) => {
-  const { Client } = require("pg") as { Client: new (args: unknown) => any };
+  const { Client } = require("pg") as { Client: new (_args: unknown) => any };
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     t.skip("DATABASE_URL is required for integration test");

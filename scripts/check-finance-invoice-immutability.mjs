@@ -61,11 +61,8 @@ function main() {
     }
   }
   if (violations.length) {
-    console.error("Finance invoice immutability guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
     process.exit(1);
   }
-  console.log("Finance invoice immutability guardrails: OK");
 }
 
 main();

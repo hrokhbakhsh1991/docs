@@ -37,7 +37,6 @@ export const options = {
 
 export default function loginStorm() {
   if (!phone || !otp) {
-    console.warn("Set PHONE and OTP env vars for a real storm run.");
     sleep(1);
     return;
   }

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { LookupRegistry } from "@repo/shared";
 
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { createDenaliFormRuleEngine } from "./createDenaliFormRuleEngine";
 import { LOOKUP_PROVIDER_IDS } from "./lookupProviderIds";

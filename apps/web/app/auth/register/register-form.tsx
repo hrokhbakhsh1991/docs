@@ -23,18 +23,7 @@ export function RegisterForm() {
   const onboardingToken = searchParams.get("onboarding")?.trim() || "";
   const inviteToken = searchParams.get("invite")?.trim() || "";
 
-  useEffect(() => {
-    if (!onboardingToken) {
-      showToast({ type: "error", message: t("register.toastMissingSession") });
-      router.replace("/login");
-    }
-  }, [onboardingToken, router, showToast, t]);
-
   const registerSchema = useMemo(() => buildRegisterFormSchema(t), [t]);
-
-  if (!onboardingToken) {
-    return null;
-  }
 
   const {
     register,
@@ -44,6 +33,17 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", email: "" },
   });
+
+  useEffect(() => {
+    if (!onboardingToken) {
+      showToast({ type: "error", message: t("register.toastMissingSession") });
+      router.replace("/login");
+    }
+  }, [onboardingToken, router, showToast, t]);
+
+  if (!onboardingToken) {
+    return null;
+  }
 
   async function onValid(data: RegisterFormValues) {
     if (!onboardingToken) {

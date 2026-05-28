@@ -39,13 +39,13 @@ export type DraftEngineConfig<T> = {
   /** Default true. If false, fetched drafts are staged as pending until applyDraft(). */
   autoApply?: boolean;
   onFetch: () => Promise<DraftSyncPayload<T> | null>;
-  onPush: (payload: DraftSyncPayload<T>) => Promise<DraftSyncPayload<T>>;
+  onPush: (_payload: DraftSyncPayload<T>) => Promise<DraftSyncPayload<T>>;
   /** Optional delete handler used by clearDraft(). */
   onDelete?: () => Promise<void>;
   /** Debounce interval before triggering onPush after update(). Default: 500ms. */
   debounceMs?: number;
   /** Required when conflictStrategy is MERGE; optional for REFETCH_REAPPLY (defaults to keeping local). */
-  merge?: (local: T, server: T) => T;
+  merge?: (_local: T, _server: T) => T;
 };
 
 export type DraftEngineState<T> = {

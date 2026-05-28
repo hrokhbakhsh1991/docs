@@ -5,8 +5,10 @@ import React, { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { FormProvider, useForm } from "react-hook-form";
 
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import {
+  buildDenaliTourCreateDefaultValues,
+  type DenaliCreateTourWizardForm,
+} from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 
 import {
   DENALI_CUSTOM_SERVICE_LABELS_PATH,
@@ -24,8 +26,8 @@ jest.mock("../../components/DenaliCustomServicesEditor", () => ({
     onRemove,
   }: {
     labels: readonly string[];
-    onAppend: (label: string) => void;
-    onRemove: (index: number) => void;
+    onAppend: (_label: string) => void;
+    onRemove: (_index: number) => void;
   }) => {
     const [draft, setDraft] = React.useState("");
     return (

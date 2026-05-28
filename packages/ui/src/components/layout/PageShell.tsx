@@ -22,8 +22,7 @@ class LayoutSectionErrorBoundary extends Component<{ children: ReactNode }, { er
     return { error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[PageShell]", error, info.componentStack);
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
   }
 
   render() {

@@ -12,7 +12,7 @@ import {
   mapPresetToFormPatch,
   type PresetMapperContext,
 } from "@/features/tours/wizard/profiles/mapPresetToFormPatch";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 export type WizardPrefillSource =
   | {

@@ -5,7 +5,7 @@ import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-t
 import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { templateToCanonical, type DenaliCanonicalTemplateData } from "@repo/types/denali";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "./schemas/denaliCore.schema";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
 
 import { applyTourWizardPatch } from "./applyTourWizardPatch";

@@ -27,7 +27,7 @@ import { Button, Checkbox, EmptyState } from "@tour/ui";
 
 import panelStyles from "./locations-settings-panel.module.css";
 
-type SettingsTranslate = (key: string, values?: Record<string, string>) => string;
+type SettingsTranslate = (_key: string, _values?: Record<string, string>) => string;
 
 function applyDestinationSortOrdersForRegion(
   all: SettingsDestinationDto[],
@@ -92,9 +92,9 @@ type SortableDestinationRowProps = {
   destination: SettingsDestinationDto;
   regionLabel: string;
   t: SettingsTranslate;
-  onEdit: (d: SettingsDestinationDto) => void;
-  onDelete: (d: SettingsDestinationDto) => void;
-  onToggleActive: (d: SettingsDestinationDto, next: boolean) => void;
+  onEdit: (_d: SettingsDestinationDto) => void;
+  onDelete: (_d: SettingsDestinationDto) => void;
+  onToggleActive: (_d: SettingsDestinationDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -174,14 +174,14 @@ export type DestinationSortableBlockProps = {
   allDestinations: SettingsDestinationDto[];
   regionNameById: Map<string, string>;
   reorderDestinations: (
-    nextDestinations: SettingsDestinationDto[],
-    patches: { id: string; sortOrder: number }[],
+    _nextDestinations: SettingsDestinationDto[],
+    _patches: { id: string; sortOrder: number }[],
   ) => Promise<void>;
-  showToast: (args: { type: "success" | "error"; message: string }) => void;
+  showToast: (_args: { type: "success" | "error"; message: string }) => void;
   t: SettingsTranslate;
-  onEditDestination: (d: SettingsDestinationDto) => void;
-  onRequestDeleteDestination: (d: SettingsDestinationDto) => void;
-  onToggleDestinationActive: (d: SettingsDestinationDto, next: boolean) => void;
+  onEditDestination: (_d: SettingsDestinationDto) => void;
+  onRequestDeleteDestination: (_d: SettingsDestinationDto) => void;
+  onToggleDestinationActive: (_d: SettingsDestinationDto, _next: boolean) => void;
   destinationsMutating: boolean;
   readOnly: boolean;
 };

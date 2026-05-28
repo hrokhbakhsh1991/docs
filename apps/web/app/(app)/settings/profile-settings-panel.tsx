@@ -26,7 +26,7 @@ import { type RefreshWorkspaceMeOptions, type WorkspaceMeData } from "./workspac
 
 export type ProfileSettingsPanelProps = {
   me: WorkspaceMeData;
-  refresh: (opts?: RefreshWorkspaceMeOptions) => Promise<void>;
+  refresh: (_opts?: RefreshWorkspaceMeOptions) => Promise<void>;
 };
 
 type ProfileFormValues = ReturnType<typeof mapMeToProfileForm>;

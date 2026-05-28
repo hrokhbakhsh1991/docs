@@ -24,8 +24,18 @@ module.exports = {
   ],
   settings: { react: { version: "detect" } },
   rules: {
+    "@typescript-eslint/no-var-requires": "off",
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      },
+    ],
   },
   ignorePatterns: ["node_modules/**", "dist/**"],
 };

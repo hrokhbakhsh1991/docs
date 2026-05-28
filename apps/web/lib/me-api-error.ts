@@ -25,7 +25,7 @@ function extractMeApiError(payload: unknown): { code?: string; message?: string 
   return { message: message === "" ? undefined : message, code: code === "" ? undefined : code };
 }
 
-export type TranslateSettings = (key: string) => string;
+export type TranslateSettings = (_key: string) => string;
 
 /** User-facing message for `/api/me` error JSON (global envelope or legacy nested `error`). */
 export function pickMeErrorMessage(

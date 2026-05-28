@@ -10,8 +10,8 @@ export type DraftMigrationResult<TData = Record<string, unknown>> = {
 };
 
 export type DraftMigrator<TData = Record<string, unknown>> = (
-  data: unknown,
-  fromSchemaVersion: number,
+  _data: unknown,
+  _fromSchemaVersion: number,
 ) => { data: TData; toSchemaVersion: number };
 
 export const DENALI_CREATE_DRAFT_KEY = "denali-create";

@@ -30,8 +30,8 @@ function createStore(input: {
   deleteResult?: { affected?: number };
   upgradeAffected?: number;
   traceId?: string;
-  onCreate?: (partial: Partial<DraftSnapshotEntity>) => void;
-  onUpdate?: (partial: Record<string, unknown>) => void;
+  onCreate?: (_partial: Partial<DraftSnapshotEntity>) => void;
+  onUpdate?: (_partial: Record<string, unknown>) => void;
 }): PostgresDraftSnapshotStore {
   const findOne = async () => input.existing;
   const save = async (entity: DraftSnapshotEntity) => entity;
@@ -54,7 +54,7 @@ function createStore(input: {
     save,
     update,
     manager: {
-      transaction: async <T>(fn: (em: typeof manager) => Promise<T>) => fn(manager),
+      transaction: async <T>(fn: (_em: typeof manager) => Promise<T>) => fn(manager),
     },
     delete: async () => input.deleteResult ?? { affected: 1 },
     createQueryBuilder: () => ({
@@ -220,7 +220,7 @@ test("concurrent upserts with same version: exactly one succeeds", async () => {
     save: manager.save,
     update: manager.update,
     manager: {
-      transaction: async <T>(fn: (em: typeof manager) => Promise<T>) => fn(manager),
+      transaction: async <T>(fn: (_em: typeof manager) => Promise<T>) => fn(manager),
     },
     delete: async () => ({ affected: 1 }),
     createQueryBuilder: () => ({

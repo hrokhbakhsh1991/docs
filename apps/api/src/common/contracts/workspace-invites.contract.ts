@@ -10,13 +10,13 @@ export type AcceptWorkspaceInviteDbResult = {
 
 export interface TenantManagementDbPort {
   acceptWorkspaceInviteByToken(
-    token: string,
-    userId: string
+    _token: string,
+    _userId: string
   ): Promise<AcceptWorkspaceInviteDbResult>;
 }
 
 export interface TenantAuditEventsPort {
-  appendOrWarn(payload: {
+  appendOrWarn(_payload: {
     tenantId: string;
     actorUserId: string;
     actor: string;

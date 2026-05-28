@@ -2,8 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-import { calculateCompletionPercentage } from "../denaliWizardCompletion";
-import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
+import { calculateCompletionPercentage, useDenaliWizardFormSnapshot } from "../application";
 
 import styles from "./DenaliWizardHeader.module.css";
 

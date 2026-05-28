@@ -50,8 +50,8 @@ test("syncProductDepartureForTourWithRepos throws when tour_products row is miss
       (
         svc as unknown as {
           syncProductDepartureForTourWithRepos: (
-            repos: typeof writeRepos,
-            t: TourEntity,
+            _repos: typeof writeRepos,
+            _t: TourEntity,
           ) => Promise<void>;
         }
       ).syncProductDepartureForTourWithRepos(writeRepos, tour),
@@ -92,8 +92,8 @@ test("syncProductDepartureForTourWithRepos throws when tour_departures row is mi
       (
         svc as unknown as {
           syncProductDepartureForTourWithRepos: (
-            repos: typeof writeRepos,
-            t: TourEntity,
+            _repos: typeof writeRepos,
+            _t: TourEntity,
           ) => Promise<void>;
         }
       ).syncProductDepartureForTourWithRepos(writeRepos, tour),

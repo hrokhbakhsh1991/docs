@@ -31,7 +31,7 @@ type LoginFormValues = {
 
 type LoginStep = "phone" | "otp";
 
-function loginToastMessage(err: unknown, t: (key: string) => string): string {
+function loginToastMessage(err: unknown, t: (_key: string) => string): string {
   if (err instanceof ApiError) {
     if (err.code === "AUTH_OTP_INVALID") {
       return t("login.toastInvalidPhoneOrOtp");

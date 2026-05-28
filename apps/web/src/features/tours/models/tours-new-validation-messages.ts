@@ -18,7 +18,7 @@ export type ToursNewValidationMessages = {
   capacityMinOne: string;
   priceInvalid: string;
   priceMinZero: string;
-  intBetween: (min: number, max: number) => string;
+  intBetween: (_min: number, _max: number) => string;
   dayMinOne: string;
   difficultyRequiredMountain: string;
   difficultyRatingOutOfRange: string;

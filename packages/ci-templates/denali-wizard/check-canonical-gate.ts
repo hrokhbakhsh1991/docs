@@ -1,11 +1,10 @@
 import fs from 'fs';
-import path from 'path';
+import _path from '_path';
 
 const CANONICAL_MODEL_PATH = 'packages/types/src/denali/denaliCanonicalTourModel.ts';
 const FORM_ADAPTER_PATH = 'packages/types/src/denali/denaliCanonicalFromForm.ts';
 
 function log(message: string) {
-    console.log(`[Canonical Gate] ${message}`);
     fs.appendFileSync('map.log', `[Canonical Gate] ${message}\n`);
 }
 

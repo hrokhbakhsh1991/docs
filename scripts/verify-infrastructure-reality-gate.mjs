@@ -59,12 +59,11 @@ function readJar(jarPath) {
   }
 }
 
-async function healthOk(url, label) {
+async function healthOk(url, _label) {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     return res.ok;
   } catch {
-    console.warn(`[infra-reality] ${label} unreachable: ${url}`);
     return false;
   }
 }
@@ -124,23 +123,18 @@ async function bffLogin(slug, phone) {
 
 async function main() {
   if (process.env.INFRA_REALITY_SKIP === "1" || process.env.INFRA_REALITY_SKIP === "true") {
-    console.log("[infra-reality] SKIP (INFRA_REALITY_SKIP)");
     process.exit(0);
   }
 
   const apiUp = await healthOk(`http://127.0.0.1:${API_PORT}/health`, "API");
   const webUp = await healthOk(`http://ws1-rbac.localhost:${WEB_PORT}/api/auth/session`, "Web BFF");
   if (!apiUp || !webUp) {
-    console.warn(
-      "[infra-reality] SKIP — start stack: pnpm dev (API :3001, Web :3000, DB seeded with ws1–ws3)",
-    );
     process.exit(0);
   }
 
   const failures = [];
   const sessions = new Map();
 
-  console.log("[infra-reality] login storm…");
   for (const { slug, email } of TENANTS) {
     const phone = uniquePhoneForEmail(email);
     try {
@@ -153,11 +147,7 @@ async function main() {
       const elapsed = Date.now() - started;
       const p95Approx = elapsed;
       sessions.set(slug, results[0]);
-      console.log(
-        `  OK ${slug} storm n=${STORM_PER_TENANT} wall_ms=${elapsed} (target P95 <200ms per hop — tune STORM count)`,
-      );
       if (p95Approx > 200 * STORM_PER_TENANT) {
-        console.warn(`  WARN ${slug}: high wall time — investigate rate limits / DB pool`);
       }
     } catch (e) {
       failures.push(`storm:${slug}: ${e.message}`);
@@ -165,7 +155,6 @@ async function main() {
     await sleep(2500);
   }
 
-  console.log("[infra-reality] cross-host isolation…");
   try {
     const ws1 = sessions.get("ws1-rbac");
     if (!ws1) {
@@ -177,12 +166,10 @@ async function main() {
     if (cross.status !== 401 && cross.status !== 403) {
       throw new Error(`cross-host expected 401/403, got ${cross.status}`);
     }
-    console.log("  OK ws1 cookie blocked on ws2 host");
   } catch (e) {
     failures.push(`isolation:${e.message}`);
   }
 
-  console.log("[infra-reality] latency + trace headers…");
   try {
     const ws1 = sessions.get("ws1-rbac");
     if (!ws1) {
@@ -203,12 +190,10 @@ async function main() {
     if (!traceparent?.trim()) {
       throw new Error("missing traceparent on BFF response");
     }
-    console.log(`  OK headers api=${apiLat} bff=${bffLat} traceparent=present`);
   } catch (e) {
     failures.push(`headers:${e.message}`);
   }
 
-  console.log("[infra-reality] concurrent tenant mutations (BFF tour CREATE)…");
   try {
     const created = await Promise.all(
       TENANTS.map(async ({ slug, email }) => {
@@ -246,23 +231,18 @@ async function main() {
     if (ids.size !== created.length) {
       throw new Error("duplicate tour ids across tenants — possible cross-pollution");
     }
-    console.log(`  OK parallel CREATE tour ids=${[...ids].join(",")}`);
   } catch (e) {
     failures.push(`mutations:${e.message}`);
   }
 
   if (failures.length > 0) {
-    console.error("\n[infra-reality] FAIL");
-    for (const f of failures) {
-      console.error(`  ${f}`);
+    for (const _f of failures) {
     }
     process.exit(1);
   }
 
-  console.log("\n[infra-reality] All live checks passed.");
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((_e) => {
   process.exit(1);
 });

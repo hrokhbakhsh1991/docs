@@ -12,13 +12,13 @@ export type FormRuleEngineOptions<TForm extends Record<string, unknown>> = {
   rules: readonly RuleConfig<TForm>[];
   registry: LookupRegistry;
   getFormValues: () => TForm;
-  readPath?: (form: TForm, path: string) => unknown;
+  readPath?: (_form: TForm, _path: string) => unknown;
 };
 
 function resolveRuleFlag<TForm extends Record<string, unknown>>(
   value: boolean | RulePredicate<TForm> | undefined,
   form: TForm,
-  readPath: (path: string) => unknown,
+  readPath: (_path: string) => unknown,
   defaultValue: boolean,
 ): boolean {
   if (value === undefined) return defaultValue;
@@ -43,7 +43,7 @@ export class FormRuleEngine<TForm extends Record<string, unknown> = Record<strin
   private readonly rulesByPath = new Map<string, RuleConfig<TForm>>();
   private readonly registry: LookupRegistry;
   private readonly getFormValues: () => TForm;
-  private readonly readPath: (form: TForm, path: string) => unknown;
+  private readonly readPath: (_form: TForm, _path: string) => unknown;
 
   /** dependency path → lookup field paths that must refetch when it changes */
   private readonly dependencyIndex = new Map<string, Set<string>>();

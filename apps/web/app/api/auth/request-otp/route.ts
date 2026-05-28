@@ -41,10 +41,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   const payload = (await backendRes.json().catch(() => ({}))) as Record<string, unknown>;
   if (!backendRes.ok) {
-    console.error("auth_request_otp_backend_error", {
-      status: backendRes.status,
-      body: payload
-    });
     const backendError = (payload as { error?: { code?: unknown; message?: unknown } }).error;
     return NextResponse.json(
       {

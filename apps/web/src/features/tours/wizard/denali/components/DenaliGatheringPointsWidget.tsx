@@ -8,7 +8,7 @@ import type { DenaliLocationDataForm } from "@/features/tours/wizard/schemas/den
 
 import { DenaliLocationPickerEditor } from "./DenaliLocationPickerEditor";
 import { denaliLocationDataOrEmpty, EMPTY_DENALI_LOCATION } from "./denaliLocationFieldUtils";
-import { useDenaliCanonicalOptional } from "../DenaliCanonicalContext";
+import { useDenaliCanonicalOptional } from "../application";
 
 export type DenaliGatheringPointsWidgetProps = {
   name: string;

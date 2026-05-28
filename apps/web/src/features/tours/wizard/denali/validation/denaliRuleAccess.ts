@@ -9,7 +9,7 @@ import {
   denaliWizardSteps,
   type DenaliCreateWizardStepId,
 } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import {
   patchDenaliCanonicalBasics,

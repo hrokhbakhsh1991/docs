@@ -286,7 +286,7 @@ export function LocationsSettingsPanel() {
 
   const loadError = regionsError ?? destinationsError;
   const loadErrorMessage = loadError instanceof Error ? loadError.message : String(loadError ?? "");
-  const tBlock = t as (key: string, values?: Record<string, string>) => string;
+  const tBlock = t as (_key: string, _values?: Record<string, string>) => string;
 
   if (loadError && regions.length === 0 && destinations.length === 0 && !regionsLoading && !destinationsLoading) {
     return (

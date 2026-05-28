@@ -7,10 +7,9 @@ import { FormField, Textarea } from "@tour/ui";
 
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
+import { useDenaliCanonical, useDenaliCanonicalValue } from "../application";
 import { DenaliItineraryDayLocationField } from "../components/DenaliItineraryDayLocationField";
 import { DenaliItineraryDayPhotos } from "../components/DenaliItineraryDayPhotos";
 import {
@@ -89,7 +88,7 @@ export function DenaliDailyItinerarySection() {
     if ((program.itinerary?.length ?? 0) !== rows.length) {
       updateCanonical({ program: { ...program, itinerary: rows } });
     }
-  }, [rows.length, program.itinerary?.length, program, updateCanonical]);
+  }, [rows, rows.length, program.itinerary?.length, program, updateCanonical]);
 
   const scheduleCommit = useCallback(
     (nextRows: DenaliItineraryDayRow[]) => {

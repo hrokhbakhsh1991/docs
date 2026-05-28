@@ -36,11 +36,11 @@ export type ReviewFiltersProps = {
   value: ReviewFiltersState;
   isLoading: boolean;
   canExport: boolean;
-  onQueueFilterChange: (next: QueueFilter) => void;
-  onStatusFilterChange: (next: ReviewStatusFilter) => void;
-  onParticipantFilterChange: (next: string) => void;
-  onFromDateChange: (next: string) => void;
-  onToDateChange: (next: string) => void;
+  onQueueFilterChange: (_next: QueueFilter) => void;
+  onStatusFilterChange: (_next: ReviewStatusFilter) => void;
+  onParticipantFilterChange: (_next: string) => void;
+  onFromDateChange: (_next: string) => void;
+  onToDateChange: (_next: string) => void;
   onExportCsv: () => void;
   onRefresh: () => void;
   onClearFilters: () => void;

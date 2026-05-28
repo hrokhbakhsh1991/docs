@@ -51,8 +51,8 @@ export function getTenantScopeKey(
 export async function enforceBackgroundTenantRuntimePolicies(
   tenantId: string,
   checks: {
-    tryConsumeBackgroundJob: (tenantId: string) => Promise<boolean>;
-    tryConsumeTenantJobRateLimit: (tenantId: string) => Promise<boolean>;
+    tryConsumeBackgroundJob: (_tenantId: string) => Promise<boolean>;
+    tryConsumeTenantJobRateLimit: (_tenantId: string) => Promise<boolean>;
   }
 ): Promise<boolean> {
   const quotaAllowed = await checks.tryConsumeBackgroundJob(tenantId);

@@ -9,16 +9,13 @@ import quickAddStyles from "@/components/shared/quick-add/QuickAddModal.module.c
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
+import { useDenaliCanonical, useDenaliCanonicalValue, useDenaliEquipmentQuickAdd, useDenaliStepFieldRules } from "../application";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
 import { DenaliCustomServicesField } from "../components/DenaliCustomServicesField";
 import { DenaliGatheringPointsWidget } from "../components/DenaliGatheringPointsWidget";
 import { DenaliLocationZonesSection } from "../components/DenaliLocationZoneField";
-import { useDenaliEquipmentQuickAdd } from "../hooks/useDenaliEquipmentQuickAdd";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 import { patchDenaliTransportForMode } from "../transport/patchDenaliTransportForMode";
 import { DenaliGearSection } from "./DenaliGearSection";
 

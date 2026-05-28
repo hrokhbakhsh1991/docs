@@ -5,12 +5,12 @@ import { useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Controller, useFormContext, type FieldPath } from "react-hook-form";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 import type { DenaliLocationDataForm } from "@/features/tours/wizard/schemas/denaliLocationDataSchema";
 
 import { DenaliLocationPickerEditor } from "./DenaliLocationPickerEditor";
 import { denaliLocationDataOrEmpty, EMPTY_DENALI_LOCATION } from "./denaliLocationFieldUtils";
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonical } from "../application";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
 
 type DenaliLocationZoneFieldProps = {
@@ -28,7 +28,7 @@ type DenaliLocationZoneFieldErrors =
 type DenaliLocationZoneEditorProps = {
   zoneKey: DenaliLocationZoneKey;
   value: DenaliLocationDataForm;
-  onChange: (next: DenaliLocationDataForm) => void;
+  onChange: (_next: DenaliLocationDataForm) => void;
   zoneErrors: DenaliLocationZoneFieldErrors;
 };
 

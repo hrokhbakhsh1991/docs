@@ -187,18 +187,13 @@ function main() {
   try {
     allow = readAllowlist();
   } catch (e) {
-    console.error(e);
     process.exit(2);
   }
 
   const violations = checkMutationGuards(allow);
   if (violations.length > 0) {
-    console.error("Security mutation guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
-    console.error("\nSee docs/security/security-ci-guardrails.md\n");
     process.exit(1);
   }
-  console.log("Security mutation guardrails: OK");
 }
 
 main();

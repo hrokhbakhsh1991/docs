@@ -5,10 +5,9 @@ import { useTranslations } from "next-intl";
 import { FormField } from "@tour/ui";
 
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { useDenaliCanonical, useDenaliStepFieldRules } from "../application";
 
 const STEP = "denali_program" as const;
 const PATH_ELEVATION_GAIN = "tripDetails.metrics.elevationGain";

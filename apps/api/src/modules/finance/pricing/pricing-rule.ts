@@ -20,7 +20,7 @@ export interface PricingRule {
   readonly stage: PricingRuleStage;
   /** Stable id for logs / diagnostics (e.g. `tenant:noop`). */
   readonly ruleId: string;
-  apply(state: FinanceEvaluationState): void;
+  apply(_state: FinanceEvaluationState): void;
 }
 
 /** Mutable accumulator while rules run (append-only line pushes). */

@@ -75,29 +75,11 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error("[ingress-bff-boundary] FAIL\n");
-    for (const v of violations) {
-      console.error(`  ${v}`);
+    for (const _v of violations) {
     }
     process.exit(1);
   }
 
-  console.log("[ingress-bff-boundary] OK — no direct /api/v2 or dynamic API origin in apps/web/lib");
-  console.log(`
-Recommended ingress (browser traffic → web only):
-
-  # Public: Next.js / BFF
-  location / {
-    proxy_pass http://web_upstream;
-  }
-
-  # Block direct Nest API from the public internet (internal mesh only)
-  location /api/v2/ {
-    return 403;
-  }
-
-  # Or restrict API upstream to internal CIDR / service mesh, not browser Hosts.
-`);
 }
 
 main();

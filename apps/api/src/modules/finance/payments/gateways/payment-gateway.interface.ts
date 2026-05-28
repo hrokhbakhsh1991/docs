@@ -13,8 +13,8 @@ import type { PaymentResult, RefundRequest, RefundResult } from "./payment-resul
 export interface IPaymentGateway {
   readonly providerId: string;
 
-  createPaymentIntent(intent: PaymentIntent): Promise<PaymentResult>;
+  createPaymentIntent(_intent: PaymentIntent): Promise<PaymentResult>;
 
   /** Optional — not all PSPs expose synchronous refund on same port. */
-  refundPayment?(request: RefundRequest): Promise<RefundResult>;
+  refundPayment?(_request: RefundRequest): Promise<RefundResult>;
 }

@@ -14,7 +14,7 @@ function sign(rawBody: Buffer, ts: string): string {
     .digest("hex");
 }
 
-function makeContext(req: { rawBody?: Buffer; header: (name: string) => string | undefined }): ExecutionContext {
+function makeContext(req: { rawBody?: Buffer; header: (_name: string) => string | undefined }): ExecutionContext {
   return {
     switchToHttp: () => ({
       getRequest: () => req

@@ -28,7 +28,6 @@ function exists(rel) {
   return fs.existsSync(path.join(REPO_ROOT, rel));
 }
 
-console.log("[phase-7] Static checks\n");
 
 if (!exists("packages/tenant-host/package.json")) {
   fail("missing @repo/tenant-host package");
@@ -239,7 +238,6 @@ const webUp =
   0;
 
 if (apiUp && webUp) {
-  console.log("\n[phase-7] Live smoke\n");
   const apex = spawnSync(
     "curl",
     ["-sf", "-D", "/tmp/p7-apex-headers.txt", "-o", "/dev/null", "http://127.0.0.1:3000/login"],
@@ -310,7 +308,7 @@ if (apiUp && webUp) {
     ok(`live: outside_workspace Host → ${outsideStatus} (not 500)`);
   }
 
-  const corsGood = spawnSync(
+  const _corsGood = spawnSync(
     "curl",
     ["-sf", "-D", "/tmp/p7-cors-good.txt", "-o", "/dev/null", "-X", "OPTIONS",
       "http://127.0.0.1:3001/api/v2/auth/web/phone/preflight",
@@ -327,7 +325,7 @@ if (apiUp && webUp) {
     ok("live: CORS allows workspace origin");
   }
 
-  const corsEvil = spawnSync(
+  const _corsEvil = spawnSync(
     "curl",
     ["-sf", "-D", "/tmp/p7-cors-evil.txt", "-o", "/dev/null", "-X", "OPTIONS",
       "http://127.0.0.1:3001/api/v2/auth/web/phone/preflight",
@@ -370,7 +368,7 @@ if (apiUp && webUp) {
   ok(`live smoke skipped (API up=${apiUp} Web up=${webUp})`);
 }
 
-function runPnpmTest(cwdRel, label) {
+function _runPnpmTest(cwdRel, label) {
   const r = spawnSync("pnpm", ["test"], { cwd: path.join(REPO_ROOT, cwdRel), encoding: "utf8" });
   if (r.status !== 0) {
     fail(`unit: ${label} failed\n${(r.stderr || r.stdout || "").slice(-800)}`);
@@ -417,10 +415,6 @@ if (unitWebTenant.status !== 0) {
   ok("unit: web runtime-tenant-context");
 }
 
-console.log("\n[phase-7] Summary");
-for (const p of passed) console.log(`  ✓ ${p}`);
 if (failures.length) {
-  for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log("\n[phase-7] All checks passed.");

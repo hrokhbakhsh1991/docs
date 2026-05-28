@@ -29,9 +29,9 @@ import panelStyles from "./locations-settings-panel.module.css";
 
 type SortableRegionRowProps = {
   region: SettingsRegionDto;
-  onEdit: (r: SettingsRegionDto) => void;
-  onDelete: (r: SettingsRegionDto) => void;
-  onToggleActive: (r: SettingsRegionDto, next: boolean) => void;
+  onEdit: (_r: SettingsRegionDto) => void;
+  onDelete: (_r: SettingsRegionDto) => void;
+  onToggleActive: (_r: SettingsRegionDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -98,10 +98,10 @@ function SortableRegionRow({ region, onEdit, onDelete, onToggleActive, mutating 
 
 export type RegionListProps = {
   items: SettingsRegionDto[];
-  onEdit: (item: SettingsRegionDto) => void;
-  onDelete: (item: SettingsRegionDto) => void;
-  onToggleActive: (item: SettingsRegionDto, next: boolean) => void;
-  onReorder: (itemIds: string[]) => Promise<void>;
+  onEdit: (_item: SettingsRegionDto) => void;
+  onDelete: (_item: SettingsRegionDto) => void;
+  onToggleActive: (_item: SettingsRegionDto, _next: boolean) => void;
+  onReorder: (_itemIds: string[]) => Promise<void>;
   mutating: boolean;
   readOnly?: boolean;
 };

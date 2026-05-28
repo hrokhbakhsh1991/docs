@@ -39,7 +39,7 @@ import { useCurrentProfile } from "./useProfileRules";
 
 export function useAutosaveValidator(
   stepId: TourCreateWizardStepId,
-): (data: Partial<TourCreateFormValues>) => ValidationResult {
+): (_data: Partial<TourCreateFormValues>) => ValidationResult {
   const profile = useCurrentProfile();
   return useCallback((data) => validateForAutosave(profile, stepId, data), [profile, stepId]);
 }
@@ -47,7 +47,7 @@ export function useAutosaveValidator(
 export function useStepValidator(
   stepId: TourCreateWizardStepId,
   visibleSteps: readonly TourCreateWizardStepId[],
-): (data: TourCreateFormValues) => ValidationResult {
+): (_data: TourCreateFormValues) => ValidationResult {
   const profile = useCurrentProfile();
   return useCallback(
     (data) => validateForStepNavigation(profile, stepId, data, visibleSteps),
@@ -55,7 +55,7 @@ export function useStepValidator(
   );
 }
 
-export function useSubmitValidator(): (data: TourCreateFormValues) => ValidationResult {
+export function useSubmitValidator(): (_data: TourCreateFormValues) => ValidationResult {
   const profile = useCurrentProfile();
   return useCallback((data) => validateForSubmit(profile, data), [profile]);
 }

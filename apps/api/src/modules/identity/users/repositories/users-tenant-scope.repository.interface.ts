@@ -6,6 +6,6 @@ import type { TenantScopedUserRow } from "../users-tenant-scope.types";
  * Orchestration, authorization, and DTO mapping stay in application services.
  */
 export interface IUsersTenantScopeRepository {
-  findTenantScopedUserRow(tenantId: string, userId: string): Promise<TenantScopedUserRow | null>;
-  findActiveMembership(tenantId: string, userId: string): Promise<UserTenantEntity | null>;
+  findTenantScopedUserRow(_tenantId: string, _userId: string): Promise<TenantScopedUserRow | null>;
+  findActiveMembership(_tenantId: string, _userId: string): Promise<UserTenantEntity | null>;
 }

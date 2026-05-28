@@ -37,8 +37,18 @@
     "guardrails:tour-governance:tests": "node scripts/run-tour-governance.mjs --tests",
     "guardrails:tenant-isolation": "node scripts/check-tenant-isolation-guardrails.mjs",
     "guardrails:public-registration-idempotency": "node scripts/check-public-registration-idempotency.mjs",
+    "guardrails:test-pairing": "node scripts/check-test-pairing.mjs",
     "qa:tour-wizard-smoke": "pnpm --dir apps/web run qa:smoke:tour-wizard",
-    "tsc": "pnpm --filter @repo/shared run lint && pnpm --filter @repo/shared-contracts run lint && pnpm --filter @repo/draft-engine run lint && pnpm --filter @apps/api exec tsc --noEmit && pnpm --filter @apps/web exec tsc --noEmit && pnpm --filter @tour/ui run build && pnpm --filter @apps/telegram run lint"
+    "tsc": "pnpm --filter @repo/shared run lint && pnpm --filter @repo/shared-contracts run lint && pnpm --filter @repo/draft-engine run lint && pnpm --filter @apps/api exec tsc --noEmit && pnpm --filter @apps/web exec tsc --noEmit && pnpm --filter @tour/ui run build && pnpm --filter @apps/telegram run lint",
+    "depcruise:check": "depcruise --config dependency-cruiser.config.js apps --output-type err-long",
+    "eslint": "eslint . --max-warnings 0",
+    "depcruise:validate": "depcruise --validate dependency-cruiser.config.js",
+    "depcruise": "depcruise --config dependency-cruiser.config.js . --output-type err-long",
+    "audit:duplication": "jscpd apps packages --ignore \"**/*.spec.ts,**/*.test.ts,**/node_modules/**,**/dist/**,.next/**\"",
+    "fix:barrels": "node scripts/fix-barrels.mjs --write",
+    "fix:unused-vars": "node scripts/remove-unused-vars.mjs --write",
+    "test:precommit": "node scripts/precommit-jest-staged.mjs",
+    "test-pairing:staged": "node scripts/precommit-test-pairing-staged.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -48,9 +58,27 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^22.7.4",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "dependency-cruiser": "^17.4.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-test-pairing": "workspace:*",
+    "eslint-plugin-boundaries": "^6.0.2",
+    "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
     "jest": "^30.3.0",
+    "jscpd": "^4.2.4",
+    "lint-staged": "^17.0.5",
     "nx": "22.7.1",
     "ts-jest": "^29.4.9"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "eslint --max-warnings 0",
+      "depcruise --config dependency-cruiser.config.js --output-type err-long",
+      "node scripts/precommit-tsc-staged.mjs",
+      "node scripts/precommit-test-pairing-staged.mjs",
+      "node scripts/precommit-jest-staged.mjs"
+    ]
   }
 }

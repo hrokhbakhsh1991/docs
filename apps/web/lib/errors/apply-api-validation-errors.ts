@@ -146,7 +146,7 @@ const KNOWN_CANONICAL_VALIDATION_ROOTS = new Set([
 
 export type ApplyApiValidationErrorsOptions = {
   /** When omitted, {@link mapApiValidationPathToDenaliFormPath} is used. Return `undefined` to skip a row. */
-  mapPath?: (apiPath: string) => FieldPath<DenaliCreateTourWizardForm> | undefined;
+  mapPath?: (_apiPath: string) => FieldPath<DenaliCreateTourWizardForm> | undefined;
 };
 
 /**
@@ -171,7 +171,7 @@ export function applyApiValidationErrorsToFormAtPaths<TFieldValues extends Field
   setError: UseFormSetError<TFieldValues>,
   errors: readonly ApiValidationFieldError[],
   options?: {
-    mapPath?: (apiPath: string) => FieldPath<TFieldValues> | undefined;
+    mapPath?: (_apiPath: string) => FieldPath<TFieldValues> | undefined;
   },
 ): number {
   const mapPath =
@@ -192,9 +192,9 @@ export function applyApiValidationErrorsToFormAtPaths<TFieldValues extends Field
 }
 
 export type HandleValidationApiErrorOptions<TFieldValues extends FieldValues> = {
-  mapPath?: (apiPath: string) => FieldPath<TFieldValues> | undefined;
-  clearErrors?: (name?: "root") => void;
-  onApplied?: (issues: readonly { path: string; message: string }[]) => void;
+  mapPath?: (_apiPath: string) => FieldPath<TFieldValues> | undefined;
+  clearErrors?: (_name?: "root") => void;
+  onApplied?: (_issues: readonly { path: string; message: string }[]) => void;
 };
 
 /** Maps `VALIDATION_FAILED` envelope errors onto a form; returns true when at least one field was set. */
@@ -241,8 +241,8 @@ export type DenaliWizardAppliedValidationIssue = {
 };
 
 export type HandleDenaliWizardValidationApiErrorOptions = ApplyApiValidationErrorsOptions & {
-  clearErrors?: (name?: "root") => void;
-  onApplied?: (issues: readonly DenaliWizardAppliedValidationIssue[]) => void;
+  clearErrors?: (_name?: "root") => void;
+  onApplied?: (_issues: readonly DenaliWizardAppliedValidationIssue[]) => void;
 };
 
 /**

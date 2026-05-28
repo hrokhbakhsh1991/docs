@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import type { TourFormProfile } from "@repo/types";

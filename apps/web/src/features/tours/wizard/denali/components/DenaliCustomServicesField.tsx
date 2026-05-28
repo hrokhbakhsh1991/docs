@@ -6,10 +6,10 @@ import { type FieldArrayPath, useFieldArray, useFormContext, useWatch } from "re
 import type { TourFormProfile } from "@repo/types";
 
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
-import { evaluateDenaliContextualVisibility } from "../rules/denaliUIAdapter";
+import { evaluateDenaliContextualVisibility } from "../application";
 import { DENALI_CUSTOM_SERVICE_LABELS_PATH } from "../denaliCustomServiceLabelsPath";
 import { DenaliCustomServicesEditor } from "./DenaliCustomServicesEditor";
 

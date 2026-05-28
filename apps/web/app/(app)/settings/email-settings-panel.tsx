@@ -21,7 +21,7 @@ import type { RefreshWorkspaceMeOptions, WorkspaceMeData } from "./workspace-me-
 
 export type EmailSettingsPanelProps = {
   me: WorkspaceMeData;
-  refresh: (opts?: RefreshWorkspaceMeOptions) => Promise<void>;
+  refresh: (_opts?: RefreshWorkspaceMeOptions) => Promise<void>;
 };
 
 type EmailFormValues = {

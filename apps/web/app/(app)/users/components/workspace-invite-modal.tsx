@@ -31,7 +31,7 @@ const INVITE_ROLES: { value: InvitableWorkspaceRole; label: string }[] = [
 export type WorkspaceInviteModalProps = {
   open: boolean;
   onClose: () => void;
-  onInvited?: (result: InviteUserResult) => void | Promise<void>;
+  onInvited?: (_result: InviteUserResult) => void | Promise<void>;
 };
 
 export function WorkspaceInviteModal({

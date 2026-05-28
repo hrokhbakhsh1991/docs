@@ -2,20 +2,19 @@
  * Diagnostic: submit gate issues + clone gear UUID parity.
  * Run: cd apps/web && node --import tsx scripts/denali-wizard-debug-check.ts
  */
-import { transformTourToDenaliWizardValues } from "../src/features/tours/clone/transformTourToDenaliWizardValues";
-import { getDenaliWizardSubmitIssues } from "../src/features/tours/wizard/denali/validation/denaliWizardFormZod";
-import { buildDenaliTourCreateTestValues } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
-import type { DenaliCreateTourWizardForm } from "../src/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { transformTourToDenaliWizardValues } from "@/features/tours";
+import { getDenaliWizardSubmitIssues } from "@/features/tours";
+import { buildDenaliTourCreateTestValues } from "@/features/tours";
+import type { DenaliCreateTourWizardForm } from "@/features/tours";
 
 function logIssues(label: string, form: DenaliCreateTourWizardForm): void {
   const issues = getDenaliWizardSubmitIssues(form);
-  console.log(`\n=== ${label} (${issues.length} issue(s)) ===`);
   if (issues.length === 0) {
-    console.log("(none)");
+    void label;
     return;
   }
   for (const issue of issues) {
-    console.log(`  ${issue.path.join(".")}: ${issue.message}`);
+    void issue;
   }
 }
 
@@ -25,15 +24,9 @@ function logGearParity(
   activeEquipmentIds: string[],
 ): void {
   const activeSet = new Set(activeEquipmentIds.map((id) => id.trim()));
-  console.log(`\n=== ${label} — gearItems vs activeEquipment ===`);
-  console.log("gearItems:", gearItems);
-  console.log(
-    "matches:",
-    (gearItems ?? []).map((g) => ({
-      id: g.id,
-      inActiveCatalog: activeSet.has(g.id.trim()),
-    })),
-  );
+  void label;
+  void activeSet;
+  void gearItems;
 }
 
 const GEAR_REQ = "11111111-1111-4111-8111-111111111111";
@@ -88,4 +81,3 @@ logGearParity(
 
 logIssues("buildDenaliTourCreateTestValues (missing tourType + startDateTime)", buildDenaliTourCreateTestValues());
 
-console.log("\nNote: transformTourToDenaliWizardValues copies gearRequiredIds/gearOptionalIds verbatim as gearItems[].id");

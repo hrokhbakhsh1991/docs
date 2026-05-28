@@ -15,8 +15,7 @@ const CONTROLLER = path.join(
   "apps/api/src/modules/registrations/registrations.controller.ts"
 );
 
-function fail(message) {
-  console.error(`[check-public-registration-idempotency] ${message}`);
+function fail(_message) {
   process.exitCode = 1;
 }
 
@@ -58,4 +57,3 @@ if (!sliceWaitlist.includes("assertPublicRegistrationIdempotencyKey")) {
 if (process.exitCode === 1) {
   process.exit(1);
 }
-console.log("[check-public-registration-idempotency] OK");

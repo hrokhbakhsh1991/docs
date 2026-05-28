@@ -8,11 +8,9 @@ import { Checkbox, FormField, Textarea } from "@tour/ui";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { useDenaliCanonical, useDenaliCanonicalValue, useDenaliStepFieldRules } from "../application";
 
 const STEP = "denali_photos" as const;
 

@@ -16,9 +16,9 @@ import gridStyles from "./tour-list-grid.module.css";
 export type TourListProps = {
   tours: TourDetailDto[];
   /** Selection / navigation — e.g. push to `/tours/:id/edit`. */
-  onSelectTour?: (tourId: string) => void;
-  onDuplicateTour?: (tour: TourDetailDto) => void;
-  onDeleteTour?: (tour: TourDetailDto) => void;
+  onSelectTour?: (_tourId: string) => void;
+  onDuplicateTour?: (_tour: TourDetailDto) => void;
+  onDeleteTour?: (_tour: TourDetailDto) => void;
   emptyState?: ReactNode;
 };
 

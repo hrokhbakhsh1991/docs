@@ -257,7 +257,6 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   if (process.env.NODE_ENV !== "production") {
     const parsed = tourCreateContractSchema.safeParse(body);
     if (!parsed.success) {
-      console.warn("[tour-create-contract] POST /tours body drift", parsed.error.flatten());
     }
   }
   return body;

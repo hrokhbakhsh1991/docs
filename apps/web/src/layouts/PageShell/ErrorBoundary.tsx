@@ -17,8 +17,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("[AppErrorBoundary]", error, info.componentStack);
+  componentDidCatch(_error: Error, _info: ErrorInfo): void {
   }
 
   private reset = (): void => {

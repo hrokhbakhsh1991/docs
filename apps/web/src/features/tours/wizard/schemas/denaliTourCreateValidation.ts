@@ -11,7 +11,7 @@ import {
 } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 
-import type { DenaliCreateTourWizardForm } from "./denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "./denaliCore.schema";
 
 export {
   getDenaliWizardStepIssues,

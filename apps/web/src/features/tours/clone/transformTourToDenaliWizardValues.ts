@@ -22,7 +22,7 @@ import {
   normalizeGearItems,
 } from "@/features/tours/wizard/denali/denaliGearSelection";
 import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { combineYmdAndTimeToIso } from "@/features/tours/wizard/denali/denaliDatetime";
 

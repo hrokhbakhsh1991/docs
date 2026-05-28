@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 
 import { createDenaliDraftAdapter, isMeaningfulDenaliDraftSnapshot } from "./denali-adapter";

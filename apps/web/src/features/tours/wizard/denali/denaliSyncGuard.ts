@@ -19,17 +19,12 @@ let lastDenaliSyncAt = 0;
 
 /** Logs only when two sync operations occur within 50ms (infinite-loop signature). */
 export function logRapidDenaliSyncLoop(
-  label: string,
-  detail?: Record<string, unknown>,
+  _label: string,
+  _detail?: Record<string, unknown>,
 ): void {
   const now = Date.now();
   const deltaMs = lastDenaliSyncAt > 0 ? now - lastDenaliSyncAt : null;
   lastDenaliSyncAt = now;
   if (deltaMs != null && deltaMs < RAPID_SYNC_WINDOW_MS && typeof console !== "undefined") {
-    console.warn("[DenaliSyncLoop] rapid sync detected", {
-      label,
-      deltaMs,
-      ...detail,
-    });
   }
 }

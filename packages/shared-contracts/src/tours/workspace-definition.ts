@@ -23,8 +23,8 @@ export interface TourWorkspaceDefinition {
 
   /** Invariant checks (logic rules beyond simple types). */
   readonly validation: {
-    readonly checkCapacity: (capacity: number) => WorkspaceInvariantViolation | null;
-    readonly checkTripDetails: (tripDetails: any, transportModes?: readonly string[] | null) => WorkspaceInvariantViolation | null;
+    readonly checkCapacity: (_capacity: number) => WorkspaceInvariantViolation | null;
+    readonly checkTripDetails: (_tripDetails: any, _transportModes?: readonly string[] | null) => WorkspaceInvariantViolation | null;
   };
 
   /** Lifecycle contract (map.md §B4 and §Phase 4). */
@@ -37,6 +37,6 @@ export interface TourWorkspaceDefinition {
   /** Workspace actions (map.md §Phase 1). */
   readonly actions?: {
     /** Apply workspace-specific invariants (normalization). */
-    readonly applyInvariants?: <T>(form: T) => T;
+    readonly applyInvariants?: <T>(_form: T) => T;
   };
 }

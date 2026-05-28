@@ -5,7 +5,7 @@ import {
   type DenaliTourKind,
 } from "@repo/types";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 /** Derived from `basicInfo.tourType` — not stored in RHF state. */
 export function deriveDenaliIsMultiDay(tourType: DenaliTourKind | undefined): boolean {

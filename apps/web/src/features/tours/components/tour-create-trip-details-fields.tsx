@@ -33,15 +33,16 @@ import {
 import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import { useSettingsGuideLanguages } from "@/hooks/use-settings-guide-languages";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
-import { DenaliGatheringPointsWidget } from "@/features/tours/wizard/denali/components/DenaliGatheringPointsWidget";
+import { DenaliGatheringPointsWidget } from "@/features/tours";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
 import { uiLocaleDigits, convertNumbers } from "../../../lib/number-utils";
-import { computeTourDurationDays } from "../domain/computeTourDurationDays";
 import {
   DIFFICULTY_RATING_VALUES,
-  formatDifficultyRating,
-} from "../domain/difficulty-rating";
-import { AUDIENCE_GROUP_VALUES, type AudienceGroup } from "../domain/audience-groups";
+  formatDifficultyRatingForUi,
+  selectDerivedDurationDays,
+  AUDIENCE_GROUP_VALUES,
+  type AudienceGroupUi as AudienceGroup,
+} from "../adapters/tripDetailsUiAdapter";
 import {
   TRIP_SHORT_INTRO_MAX_LENGTH,
 } from "../models/tourTripDetails.schema";
@@ -118,7 +119,7 @@ function toGregorianYmd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function tripStylesOptionLabel(v: string, t: (key: string) => string): string {
+function tripStylesOptionLabel(v: string, t: (_key: string) => string): string {
   const keys: Record<string, string> = {
     adventure: "trip_styleAdventure",
     relaxed: "trip_styleRelaxed",
@@ -131,17 +132,17 @@ function tripStylesOptionLabel(v: string, t: (key: string) => string): string {
   return k ? t(k) : v;
 }
 
-function difficultyLabel(v: string, t: (key: string) => string): string {
+function difficultyLabel(v: string, t: (_key: string) => string): string {
   return t(`trip_difficulty${v.charAt(0).toUpperCase()}${v.slice(1)}`);
 }
 
-function genderLabel(v: string, t: (key: string) => string): string {
+function genderLabel(v: string, t: (_key: string) => string): string {
   if (v === "male_only") return t("trip_genderMaleOnly");
   if (v === "female_only") return t("trip_genderFemaleOnly");
   return t("trip_genderNone");
 }
 
-function experienceLabel(v: string, t: (key: string) => string): string {
+function experienceLabel(v: string, t: (_key: string) => string): string {
   return t(`trip_experience${v.charAt(0).toUpperCase()}${v.slice(1)}`);
 }
 
@@ -178,7 +179,7 @@ function OptionalEnumSelect({
   error?: string;
   disabled?: boolean;
   options: readonly string[];
-  formatLabel: (v: string) => string;
+  formatLabel: (_v: string) => string;
 }) {
   const t = useTranslations("tours.new");
   return (
@@ -533,7 +534,7 @@ export function TourCreateTripDetailsFields({
   const departureYmd = useWatch({ control, name: "tripDetails.logistics.departureDate" }) as string | undefined;
   const returnYmd = useWatch({ control, name: "tripDetails.logistics.returnDate" }) as string | undefined;
   const derivedDurationDays = useMemo(
-    () => computeTourDurationDays(departureYmd, returnYmd),
+    () => selectDerivedDurationDays(departureYmd, returnYmd),
     [departureYmd, returnYmd],
   );
   const shortIntroWatch = useWatch({ control, name: "tripDetails.overview.shortIntro" }) as string | undefined;
@@ -690,7 +691,7 @@ export function TourCreateTripDetailsFields({
                   >
                     <option value="">{t("selectPlaceholder")}</option>
                     {DIFFICULTY_RATING_VALUES.map((v) => {
-                      const rendered = formatDifficultyRating(v);
+                      const rendered = formatDifficultyRatingForUi(v);
                       return (
                         <option key={rendered} value={rendered}>
                           {locale === "fa" ? convertNumbers(rendered, "fa") : rendered}

@@ -31,7 +31,7 @@ export type WorkspaceMeContextValue = {
   data: WorkspaceMeData | null;
   isLoading: boolean;
   error: Error | null;
-  refresh: (opts?: RefreshWorkspaceMeOptions) => Promise<void>;
+  refresh: (_opts?: RefreshWorkspaceMeOptions) => Promise<void>;
 };
 
 const WorkspaceMeContext = createContext<WorkspaceMeContextValue | null>(null);

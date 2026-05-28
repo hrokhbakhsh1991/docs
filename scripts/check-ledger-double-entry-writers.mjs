@@ -48,11 +48,8 @@ function main() {
     violations.push(`${rel}: postDoubleEntryJournal( — use BookingLedgerAuthorityService or add allowlist`);
   }
   if (violations.length) {
-    console.error("Double-entry ledger writer guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
     process.exit(1);
   }
-  console.log("Double-entry ledger writer guardrails: OK");
 }
 
 main();

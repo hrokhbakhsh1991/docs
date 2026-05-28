@@ -16,7 +16,7 @@ const noopTenantUsage = {
   tryConsumeBackgroundJob: async () => true
 } as const;
 const passthroughTenantDbContext = {
-  runInTenantScope: async <T>(_tenantId: string, fn: (manager: EntityManager) => Promise<T>) =>
+  runInTenantScope: async <T>(_tenantId: string, fn: (_manager: EntityManager) => Promise<T>) =>
     fn({} as EntityManager)
 };
 
@@ -26,8 +26,8 @@ const noopPaymentFinanceReconciliation = {
 };
 
 type ReconcilePriv = (
-  manager: EntityManager,
-  tour: TourEntity
+  _manager: EntityManager,
+  _tour: TourEntity
 ) => Promise<{ drift: boolean; promotions: number }>;
 
 function asReconcile(svc: ReconciliationService): ReconcilePriv {
@@ -351,7 +351,7 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
     {
       runInTenantScope: async <T>(
         _tenantId: string,
-        fn: (m: EntityManager) => Promise<T>
+        fn: (_m: EntityManager) => Promise<T>
       ) => fn(unifiedMgr as EntityManager)
     } as never,
     noopPaymentFinanceReconciliation as never
@@ -440,7 +440,7 @@ test("runReconciliationCycle sets tenant GUC with LOCAL scope (no session bleed)
     {
       runInTenantScope: async <T>(
         tenantId: string,
-        fn: (m: EntityManager) => Promise<T>
+        fn: (_m: EntityManager) => Promise<T>
       ) => {
         await manager.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
         return fn(manager as EntityManager);

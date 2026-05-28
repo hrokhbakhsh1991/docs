@@ -1,4 +1,4 @@
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { denaliRuleSet } from "./rules/denaliRuleModel";

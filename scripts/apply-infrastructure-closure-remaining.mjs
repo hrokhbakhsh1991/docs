@@ -17,7 +17,6 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 const API_ENV = path.join(REPO_ROOT, "apps/api/.env");
 
 function run(cmd, args, opts = {}) {
-  console.log(`\n[remaining] → ${cmd} ${args.join(" ")}`);
   const r = spawnSync(cmd, args, { stdio: "inherit", cwd: REPO_ROOT, ...opts });
   if (r.status !== 0) {
     process.exit(r.status ?? 1);
@@ -27,16 +26,13 @@ function run(cmd, args, opts = {}) {
 function ensureOtelInApiEnv() {
   const line = "OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318";
   if (!fs.existsSync(API_ENV)) {
-    console.warn("[remaining] apps/api/.env missing — skip OTLP append");
     return false;
   }
   const text = fs.readFileSync(API_ENV, "utf8");
   if (text.includes("OTEL_EXPORTER_OTLP")) {
-    console.log("[remaining] OTLP already configured in apps/api/.env");
     return true;
   }
   fs.appendFileSync(API_ENV, `\n# Infrastructure closure — local Jaeger (pnpm docker:observability)\n${line}\n`);
-  console.log("[remaining] appended OTEL_EXPORTER_OTLP_ENDPOINT to apps/api/.env — restart API to export traces");
   return false;
 }
 
@@ -55,7 +51,6 @@ function main() {
   if (gen.status === 0 && gen.stdout?.trim()) {
     fs.writeFileSync(samplePath, gen.stdout);
     process.env.PRODUCTION_LOG_SAMPLE = samplePath;
-    console.log(`[remaining] wrote live error sample → ${samplePath}`);
   }
 
   run(process.execPath, ["scripts/infrastructure-closure-signoff.mjs"]);
@@ -68,24 +63,13 @@ function main() {
   if (apiUp.status === 0 && webUp.status === 0) {
     run(process.execPath, ["scripts/infrastructure-closure-signoff.mjs", "--live"]);
   } else {
-    console.warn("[remaining] live gate skipped — start API :3001 and Web :3000");
   }
 
   if (otelReady) {
     run(process.execPath, ["scripts/verify-otel-jaeger-export.mjs"]);
   } else {
-    console.log(`
-[remaining] Restart API after OTLP line was added, then run:
-  node scripts/verify-otel-jaeger-export.mjs
-`);
   }
 
-  console.log(`
-[remaining] Done (repo-local). For real staging/prod:
-  • Copy docs/infrastructure/nginx-bff-ingress.example.conf to your ingress controller
-  • Set OTEL_EXPORTER_OTLP_ENDPOINT on API deployment (see production-runbook §6.1)
-  • PRODUCTION_LOG_SAMPLE=./drain.ndjson pnpm infra:signoff
-`);
 }
 
 main();

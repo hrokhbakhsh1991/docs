@@ -51,9 +51,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
 
   useEffect(() => {
     setMounted(true);
+    const timers = timersRef.current;
     return () => {
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current.clear();
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
   }, []);
 

@@ -181,7 +181,7 @@ export class MeService {
 
   /** Profile writes join the Postgres transaction started by optional `Idempotency-Key`. */
   private async withProfileMutationTransaction<T>(
-    run: (manager: EntityManager) => Promise<T>
+    run: (_manager: EntityManager) => Promise<T>
   ): Promise<T> {
     const em = getIdempotentEntityManager();
     if (em) {

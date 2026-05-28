@@ -11,7 +11,7 @@ import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
 import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "./schemas/denaliCore.schema";
 
 import { applyDenaliWizardPreset } from "./tourCreationPresetApply";
 import { listAllTourWizardPresetsSorted } from "./tourCreationPresetMatch";
@@ -20,7 +20,7 @@ import { resolveWorkspaceTourFormProfileFromTemplate } from "./resolveWorkspaceT
 export type DenaliTourCreationPresetBannerProps = {
   presets: SettingsTourPresetDto[] | undefined;
   /** Called after preset hydrate + form reset (use to bump canonical sync). */
-  onApplied?: (presetId: string) => void;
+  onApplied?: (_presetId: string) => void;
   /**
    * @deprecated Banner reads profile from {@link useTenantWizardTemplate} (`base_profile`).
    */

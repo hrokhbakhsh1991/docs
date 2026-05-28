@@ -5,7 +5,7 @@ import { denaliRuleSet, listDenaliRuleFieldPaths } from "@/features/tours/wizard
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
 export type UniversalValidationIssue = {

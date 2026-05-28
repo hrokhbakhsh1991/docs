@@ -9,12 +9,12 @@
 import type { DenaliTourKind } from "@repo/types";
 import { denaliTourKindToIsMultiDay, isDenaliEventTourKind } from "@repo/types";
 
-import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
+import { mapCreateTourDto } from "@/features/tours";
 import {
   buildDenaliTourCreateDefaultValues,
-} from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { assertSubmitValidDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
-import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
+} from "@/features/tours";
+import { assertSubmitValidDenaliWizardForm } from "@/features/tours";
+import { mapDenaliWizardToCreateTourPayload } from "@/features/tours";
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 const API_PORT = process.env.API_PORT?.trim() || process.env.PORT?.trim() || "3001";
@@ -173,8 +173,6 @@ async function createTour(token: string, kind: DenaliTourKind, themeId: string, 
 
 async function main(): Promise<void> {
   const runId = String(Date.now());
-  console.log(`=== Denali owner matrix (run ${runId}) ===`);
-  console.log(`API ${API_ORIGIN}`);
 
   const token = await login();
   const destinationId = await fetchDestination(token);
@@ -194,25 +192,19 @@ async function main(): Promise<void> {
           ? `201 id=${created.id} title=${created.title}`
           : `201 but snapshot/kind mismatch: profile=${created.formProfileSnapshot} kind=${created.denaliTourKind}`,
       });
-      console.log(`✓ ${row.labelFa} (${row.kind}) → ${created.id}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       results.push({ kind: row.kind, ok: false, detail: msg });
-      console.error(`✗ ${row.labelFa} (${row.kind}) → ${msg}`);
     }
   }
 
   const failed = results.filter((r) => !r.ok);
-  console.log("\n=== Summary ===");
-  console.log(JSON.stringify(results, null, 2));
   if (failed.length > 0) {
     process.exitCode = 1;
   } else {
-    console.log("All 6 Denali tour kinds created successfully.");
   }
 }
 
-main().catch((e: unknown) => {
-  console.error(e);
+main().catch((_e: unknown) => {
   process.exitCode = 1;
 });

@@ -7,5 +7,5 @@ import type { CreatePaymentIntentGatewayInput, PaymentIntentGatewayResult } from
 export interface IPaymentGateway {
   readonly providerId: string;
 
-  createPaymentIntent(input: CreatePaymentIntentGatewayInput): Promise<PaymentIntentGatewayResult>;
+  createPaymentIntent(_input: CreatePaymentIntentGatewayInput): Promise<PaymentIntentGatewayResult>;
 }

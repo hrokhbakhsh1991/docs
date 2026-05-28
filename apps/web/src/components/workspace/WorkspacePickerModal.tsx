@@ -18,7 +18,7 @@ export type WorkspacePickerItem = AuthWorkspaceListItem;
 export type WorkspacePickerModalProps = {
   open: boolean;
   onClose: () => void;
-  onSelect: (workspace: WorkspacePickerItem) => void;
+  onSelect: (_workspace: WorkspacePickerItem) => void;
   title?: ReactNode;
   /**
    * When set, skips GET /api/v2/auth/workspaces (caller already loaded rows).

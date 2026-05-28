@@ -35,12 +35,10 @@ function main() {
     const text = fs.readFileSync(abs, "utf8");
     for (const n of needles) {
       if (!text.includes(n)) {
-        console.error(`Finance multi-tenant ledger isolation guard FAILED: ${rel} must contain "${n}"`);
         process.exit(1);
       }
     }
   }
-  console.log("Finance multi-tenant ledger isolation guardrails: OK");
 }
 
 main();

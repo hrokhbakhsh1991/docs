@@ -16,7 +16,7 @@ import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-sessi
 import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTourPayload";
 import type { DenaliRuleSet } from "../denali/rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "../denali/validation/denaliRuleAccess";
-import type { DenaliCreateTourWizardForm } from "../schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSubmitIssues } from "../denali/validation/denaliWizardFormZod";
 
 export type WizardThemeCatalogRow = readonly { id: string; name: string }[];

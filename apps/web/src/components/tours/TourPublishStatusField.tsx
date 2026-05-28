@@ -8,7 +8,7 @@ export type TourPublishStatusValue = TourFormLifecycleStatus;
 
 type TourPublishStatusFieldProps = {
   value: TourPublishStatusValue;
-  onChange: (next: TourPublishStatusValue) => void;
+  onChange: (_next: TourPublishStatusValue) => void;
   disabled?: boolean;
   /** Individual segment values that cannot be selected (e.g. OPEN blocked until publish-ready). */
   disableValues?: readonly TourPublishStatusValue[];

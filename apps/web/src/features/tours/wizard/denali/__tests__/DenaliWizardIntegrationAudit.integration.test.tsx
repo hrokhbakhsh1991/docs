@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps, type DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 
 import { DenaliCanonicalProvider } from "../DenaliCanonicalContext";
@@ -140,7 +140,7 @@ function AuditProgramStep() {
 function CanonicalProbe({
   onCanonicalChange,
 }: {
-  onCanonicalChange: (next: ReturnType<typeof useDenaliCanonicalModel>) => void;
+  onCanonicalChange: (_next: ReturnType<typeof useDenaliCanonicalModel>) => void;
 }) {
   const canonical = useDenaliCanonicalModel();
   useEffect(() => {
@@ -156,7 +156,7 @@ function IntegrationHarness({
 }: {
   defaultValues: DenaliCreateTourWizardForm;
   initialStep?: DenaliCreateWizardStepId;
-  onCanonicalChange: (next: ReturnType<typeof useDenaliCanonicalModel>) => void;
+  onCanonicalChange: (_next: ReturnType<typeof useDenaliCanonicalModel>) => void;
 }) {
   const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
   const visibleSteps = getDenaliWizardSteps();
@@ -189,7 +189,7 @@ function HarnessControls({
   setCurrentStepIndex,
   formMethods,
 }: {
-  setCurrentStepIndex: (updater: (prev: number) => number) => void;
+  setCurrentStepIndex: (_updater: (_prev: number) => number) => void;
   formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
 }) {
   const navigation = useDenaliWizardNavigation();

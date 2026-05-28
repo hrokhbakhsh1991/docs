@@ -38,8 +38,8 @@ export interface DenaliRuleModel {
 }
 
 export type DenaliRuleSet = {
-  [C in DenaliRuleModelCategory]: {
-    [D in DenaliRuleModelDuration]: DenaliRuleModel | null;
+  [_C in DenaliRuleModelCategory]: {
+    [_D in DenaliRuleModelDuration]: DenaliRuleModel | null;
   };
 };
 

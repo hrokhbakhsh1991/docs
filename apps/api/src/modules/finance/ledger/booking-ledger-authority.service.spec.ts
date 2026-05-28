@@ -5,11 +5,15 @@ import { BookingLedgerAuthorityService, bookingWalletId } from "./booking-ledger
 import type { BookingLedgerLeaderRegistrationRow } from "./contracts/leader-registration-payment-ledger.contracts";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
 import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
+import {
+  TEST_REGISTRATION_ID,
+  TEST_TENANT_ID,
+} from "../../../../test/helpers/finance-contract-fixtures";
 
 function reg(overrides: Partial<BookingLedgerLeaderRegistrationRow> = {}): BookingLedgerLeaderRegistrationRow {
   return {
-    id: "r1",
-    tenantId: "t1",
+    id: TEST_REGISTRATION_ID,
+    tenantId: TEST_TENANT_ID,
     paymentStatus: "NotPaid",
     quotedCurrencyCode: "IRR",
     ...overrides
@@ -39,7 +43,7 @@ test("PAID with amount emits balanced journal and projects paid_amount", async (
   assert.equal(ledgerFacts.length, 2);
   const j0 = ledgerFacts[0]!.journalId;
   assert.equal(ledgerFacts[1]!.journalId, j0);
-  const booking = bookingWalletId("r1");
+  const booking = bookingWalletId(TEST_REGISTRATION_ID);
   const debit = ledgerFacts.find((l) => l.side === "debit");
   const credit = ledgerFacts.find((l) => l.side === "credit");
   assert.equal(debit?.account, REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT);
@@ -73,7 +77,7 @@ test("NOT_PAID emits reversal journal and clears projection when prior paid exis
   );
   assert.equal(outboxCalls, 1);
   assert.equal(ledgerFacts.length, 2);
-  const booking = bookingWalletId("r1");
+  const booking = bookingWalletId(TEST_REGISTRATION_ID);
   const debit = ledgerFacts.find((l) => l.side === "debit");
   const credit = ledgerFacts.find((l) => l.side === "credit");
   assert.equal(debit?.account, booking);

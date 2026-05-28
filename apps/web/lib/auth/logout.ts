@@ -3,7 +3,7 @@
 import { clearSessionToken } from "./session";
 
 type RouterLike = {
-  push: (href: string) => void;
+  push: (_href: string) => void;
   refresh: () => void;
 };
 

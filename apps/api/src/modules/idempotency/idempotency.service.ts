@@ -81,7 +81,7 @@ export class IdempotencyService {
       requestHash: string;
       statusCode?: number;
     },
-    handler: (manager: DataSource["manager"]) => Promise<TResponse>
+    handler: (_manager: DataSource["manager"]) => Promise<TResponse>
   ): Promise<{ statusCode: number; responseBody: TResponse; replayed: boolean }> {
     return this.dataSource.transaction(async (manager) => {
       const existing = await this.findRecord(manager, params.tenantId, params.key);

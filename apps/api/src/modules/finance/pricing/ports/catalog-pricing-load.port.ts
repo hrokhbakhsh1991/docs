@@ -9,5 +9,5 @@ export const CATALOG_PRICING_LOAD_PORT = Symbol("CATALOG_PRICING_LOAD_PORT");
  * they consume an already-loaded snapshot. Keeps finance free of tour ORM imports.
  */
 export interface CatalogPricingLoadPort {
-  loadSnapshot(manager: EntityManager, context: PricingContext): Promise<CatalogPricingSnapshot>;
+  loadSnapshot(_manager: EntityManager, _context: PricingContext): Promise<CatalogPricingSnapshot>;
 }

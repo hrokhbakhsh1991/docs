@@ -10,7 +10,7 @@ import { mapFormPathToCanonical } from "./rules/denaliRuleRequired";
 import { findDenaliRuleField } from "./rules/denaliRuleModel";
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { resolveDenaliRuleModelFromForm } from "./validation/denaliRuleAccess";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSubmitIssues } from "./validation/denaliWizardFormZod";
 import {
   resolveDenaliRegistryFieldLabel,

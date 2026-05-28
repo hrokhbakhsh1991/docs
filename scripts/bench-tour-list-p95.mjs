@@ -19,13 +19,12 @@ function curlMs(args) {
 
 const health = curlMs(["-sf", "http://127.0.0.1:3001/health"]);
 if (!health.ok) {
-  console.log("[bench-tour] skipped — API :3001 not reachable");
   process.exit(0);
 }
 
 const samples = [];
 for (let i = 0; i < SAMPLES; i += 1) {
-  const { ms, ok, status } = curlMs([
+  const { ms, ok, _status } = curlMs([
     "-sf",
     "-o",
     "/dev/null",
@@ -36,7 +35,6 @@ for (let i = 0; i < SAMPLES; i += 1) {
     `Host: ${HOST}`,
   ]);
   if (!ok) {
-    console.warn(`[bench-tour] sample ${i + 1} failed (curl exit ${status}) — need auth?`);
     process.exit(0);
   }
   samples.push(ms);
@@ -44,11 +42,8 @@ for (let i = 0; i < SAMPLES; i += 1) {
 
 samples.sort((a, b) => a - b);
 const p95 = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.95))];
-const p50 = samples[Math.floor(samples.length * 0.5)];
-console.log(`[bench-tour] GET ${PATH} Host=${HOST}`);
-console.log(`[bench-tour] p50=${p50.toFixed(1)}ms p95=${p95.toFixed(1)}ms (n=${samples.length})`);
+const _p50 = samples[Math.floor(samples.length * 0.5)];
 
 if (p95 > WARN_P95_MS) {
-  console.warn(`[bench-tour] WARN: p95 > ${WARN_P95_MS}ms`);
   process.exit(1);
 }

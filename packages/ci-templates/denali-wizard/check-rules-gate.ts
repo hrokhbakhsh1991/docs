@@ -4,7 +4,6 @@ const RULE_MODEL_PATH = "apps/web/src/features/tours/wizard/denali/rules/denaliR
 const RULE_REQUIRED_PATH = "apps/web/src/features/tours/wizard/denali/rules/denaliRuleRequired.ts";
 
 function log(message: string) {
-  console.log(`[Rules Gate] ${message}`);
   fs.appendFileSync("map.log", `[Rules Gate] ${message}\n`);
 }
 

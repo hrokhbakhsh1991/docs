@@ -151,9 +151,9 @@ export async function resendInvite(userId: string): Promise<unknown> {
  */
 export type OptimisticUsersRollbackHandlers<TSnapshot, TData> = {
   snapshot: () => TSnapshot;
-  applyOptimistic: (snapshot: TSnapshot) => void;
-  rollback: (snapshot: TSnapshot) => void;
-  onSuccess?: (data: TData) => void;
+  applyOptimistic: (_snapshot: TSnapshot) => void;
+  rollback: (_snapshot: TSnapshot) => void;
+  onSuccess?: (_data: TData) => void;
 };
 
 /**

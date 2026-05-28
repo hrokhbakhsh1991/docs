@@ -329,17 +329,10 @@ function isLikelyNetworkOrTimeout(error: AxiosError): boolean {
 
 function devLogApiFailure(error: AxiosError): void {
   if (process.env.NODE_ENV !== "development") return;
-  const status = error.response?.status;
-  const code = error.code;
-  const method = (error.config?.method ?? "GET").toUpperCase();
-  const url = error.config?.url ?? "unknown";
-  console.error("[api-client] request failed", {
-    method,
-    url,
-    status,
-    code,
-    message: error.message,
-  });
+  const _status = error.response?.status;
+  const _code = error.code;
+  const _method = (error.config?.method ?? "GET").toUpperCase();
+  const _url = error.config?.url ?? "unknown";
 }
 
 axiosApi.interceptors.response.use(
@@ -351,14 +344,14 @@ axiosApi.interceptors.response.use(
     devLogApiFailure(error);
 
     const cfg = error.config;
-    const status = error.response?.status;
+    const _status = error.response?.status;
 
-    if (status === 401 && cfg?.redirectOn401 === true) {
+    if (_status === 401 && cfg?.redirectOn401 === true) {
       void clearAuthAndRedirectToLogin();
       return Promise.reject(error);
     }
 
-    if (status === 403 && cfg?.redirectOn403 === true) {
+    if (_status === 403 && cfg?.redirectOn403 === true) {
       const path = window.location.pathname;
       if (path !== "/403") {
         window.location.assign("/403");

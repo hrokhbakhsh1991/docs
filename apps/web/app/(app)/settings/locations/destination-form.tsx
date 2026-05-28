@@ -38,7 +38,7 @@ export type DestinationFormProps = {
   /** When `editing` is null, pre-select this region in the dropdown. */
   defaultRegionIdWhenCreating: string;
   allRegions: SettingsRegionDto[];
-  onSubmit: (values: DestinationFormParsed) => Promise<void>;
+  onSubmit: (_values: DestinationFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

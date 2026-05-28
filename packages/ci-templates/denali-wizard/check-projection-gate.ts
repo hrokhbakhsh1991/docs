@@ -3,7 +3,6 @@ import fs from 'fs';
 const PROJECTION_PATH = 'apps/web/src/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection.ts';
 
 function log(message: string) {
-    console.log(`[Projection Gate] ${message}`);
     fs.appendFileSync('map.log', `[Projection Gate] ${message}\n`);
 }
 

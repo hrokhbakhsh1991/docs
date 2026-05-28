@@ -153,7 +153,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
    * idempotency keys commit in one PostgreSQL transaction (see idempotent-transaction.context).
    */
   private runInIdempotentOrOwnTransaction<T>(
-    fn: (manager: EntityManager) => Promise<T>
+    fn: (_manager: EntityManager) => Promise<T>
   ): Promise<T> {
     const em = getIdempotentEntityManager();
     if (em) {
@@ -1853,8 +1853,8 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     selectedServiceIds?: string[];
     discountCode?: string | null;
     createPaymentIntent?: (
-      manager: EntityManager,
-      registration: RegistrationEntity
+      _manager: EntityManager,
+      _registration: RegistrationEntity
     ) => Promise<PaymentResponseDto>;
   }): Promise<
     | {

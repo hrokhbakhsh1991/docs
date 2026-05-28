@@ -1,6 +1,6 @@
 import type { RuleConfig } from "@repo/shared";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { LOOKUP_PROVIDER_IDS } from "./lookupProviderIds";
 

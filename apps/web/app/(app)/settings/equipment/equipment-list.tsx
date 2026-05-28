@@ -29,9 +29,9 @@ import panelStyles from "../locations/locations-settings-panel.module.css";
 
 type SortableEquipmentRowProps = {
   item: SettingsEquipmentDto;
-  onEdit: (item: SettingsEquipmentDto) => void;
-  onDelete: (item: SettingsEquipmentDto) => void;
-  onToggleActive: (item: SettingsEquipmentDto, next: boolean) => void;
+  onEdit: (_item: SettingsEquipmentDto) => void;
+  onDelete: (_item: SettingsEquipmentDto) => void;
+  onToggleActive: (_item: SettingsEquipmentDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -108,10 +108,10 @@ function SortableEquipmentRow({
 
 export type EquipmentListProps = {
   items: SettingsEquipmentDto[];
-  onEdit: (item: SettingsEquipmentDto) => void;
-  onDelete: (item: SettingsEquipmentDto) => void;
-  onToggleActive: (item: SettingsEquipmentDto, next: boolean) => void;
-  onReorder: (itemIds: string[]) => Promise<void>;
+  onEdit: (_item: SettingsEquipmentDto) => void;
+  onDelete: (_item: SettingsEquipmentDto) => void;
+  onToggleActive: (_item: SettingsEquipmentDto, _next: boolean) => void;
+  onReorder: (_itemIds: string[]) => Promise<void>;
   mutating: boolean;
   /** When true, show a static list (no drag, edit, delete, or active toggle). */
   readOnly?: boolean;

@@ -43,11 +43,11 @@ function previewDescription(text: string | null | undefined): string {
 type SortableTourPresetRowProps = {
   item: SettingsTourPresetDto;
   themeNameById: Map<string, string>;
-  onEdit: (item: SettingsTourPresetDto) => void;
+  onEdit: (_item: SettingsTourPresetDto) => void;
   showDuplicate: boolean;
-  onDuplicate: (item: SettingsTourPresetDto) => void;
-  onDelete: (item: SettingsTourPresetDto) => void;
-  onToggleActive: (item: SettingsTourPresetDto, next: boolean) => void;
+  onDuplicate: (_item: SettingsTourPresetDto) => void;
+  onDelete: (_item: SettingsTourPresetDto) => void;
+  onToggleActive: (_item: SettingsTourPresetDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -182,12 +182,12 @@ function SortableTourPresetRow({
 export type TourPresetListProps = {
   items: SettingsTourPresetDto[];
   themeNameById: Map<string, string>;
-  onEdit: (item: SettingsTourPresetDto) => void;
+  onEdit: (_item: SettingsTourPresetDto) => void;
   showDuplicate?: boolean;
-  onDuplicate: (item: SettingsTourPresetDto) => void;
-  onDelete: (item: SettingsTourPresetDto) => void;
-  onToggleActive: (item: SettingsTourPresetDto, next: boolean) => void;
-  onReorder: (itemIds: string[]) => Promise<void>;
+  onDuplicate: (_item: SettingsTourPresetDto) => void;
+  onDelete: (_item: SettingsTourPresetDto) => void;
+  onToggleActive: (_item: SettingsTourPresetDto, _next: boolean) => void;
+  onReorder: (_itemIds: string[]) => Promise<void>;
   mutating: boolean;
   readOnly?: boolean;
 };

@@ -57,6 +57,8 @@ export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
     ref,
   ) {
     const [copied, setCopied] = useState(false);
+    void successMessage;
+    void errorMessage;
 
     const handleCopy = async () => {
       try {
@@ -64,7 +66,6 @@ export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
-        console.error("Failed to copy text: ", err);
         // Could show error toast here
       }
     };

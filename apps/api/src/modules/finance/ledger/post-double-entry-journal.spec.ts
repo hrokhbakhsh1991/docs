@@ -92,7 +92,7 @@ test("postDoubleEntryJournal returns frozen lines (append-only in-memory contrac
     (lines[0] as { amount_minor: string }).amount_minor = "999";
   }, /Cannot assign|read only|read-only/i);
   assert.throws(() => {
-    (lines as unknown as { push: (x: unknown) => void }).push({});
+    (lines as unknown as { push: (_x: unknown) => void }).push({});
   }, /Cannot|read only|read-only|not extensible/i);
 });
 

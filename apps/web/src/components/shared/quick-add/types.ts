@@ -6,13 +6,13 @@ export type QuickAddEntityType = "destination" | "equipment" | (string & {});
 
 export type QuickAddFormProps<TEntity> = {
   /** Call only after the create API succeeds — closes the modal via provider. */
-  onSuccess: (entity: TEntity) => void;
+  onSuccess: (_entity: TEntity) => void;
   onCancel: () => void;
   isPending: boolean;
   /** Surface API/validation failures inside the modal (modal stays open). */
-  setError: (message: string | null) => void;
+  setError: (_message: string | null) => void;
   /** Blocks scrim/Escape close while the inner form is submitting. */
-  setPending: (pending: boolean) => void;
+  setPending: (_pending: boolean) => void;
 };
 
 /** Arguments to `useQuickAddModal().open(props)`. */
@@ -29,6 +29,6 @@ export type QuickAddModalConfig<TEntity = unknown> = {
    * Bridge after successful create: update react-hook-form and CanonicalContext here.
    * Modal closes only when the inner form calls through to this callback (not on API error).
    */
-  onSuccess: (entity: TEntity) => void;
+  onSuccess: (_entity: TEntity) => void;
   onClose?: () => void;
 };

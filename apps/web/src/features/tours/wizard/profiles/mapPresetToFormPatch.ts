@@ -2,7 +2,7 @@ import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { presetDefaultsToDenaliFormPatch } from "@/features/tours/wizard/presetDefaultsToDenaliFormPatch";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { presetDefaultsToFormPatch } from "@/features/tours/wizard/tourCreationPresetMatch";
 import {
   getCapabilitiesForProfile,

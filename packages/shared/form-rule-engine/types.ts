@@ -1,8 +1,8 @@
 import type { LookupQuery, LookupResult } from "./lookupRegistry";
 
-export type RulePredicate<TForm extends Record<string, unknown>> = (ctx: {
+export type RulePredicate<TForm extends Record<string, unknown>> = (_ctx: {
   form: TForm;
-  readPath: (path: string) => unknown;
+  readPath: (_path: string) => unknown;
 }) => boolean;
 
 /**
@@ -46,6 +46,6 @@ export type LookupFieldState<TItem = unknown> = {
   searchText: string;
 };
 
-export type LookupStateListener<TItem = unknown> = (state: LookupFieldState<TItem>) => void;
+export type LookupStateListener<TItem = unknown> = (_state: LookupFieldState<TItem>) => void;
 
 export type { LookupQuery, LookupResult };

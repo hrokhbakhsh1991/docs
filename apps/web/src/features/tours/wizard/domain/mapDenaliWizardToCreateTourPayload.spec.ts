@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildDenaliTourCreateTestValues, normalizeDenaliWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { assertSubmitValidDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
-
-import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
-import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
-import { buildCreateTourPostBody } from "@/lib/services/tours.service";
+import {
+  buildDenaliTourCreateTestValues,
+  normalizeDenaliWizardForm,
+  assertSubmitValidDenaliWizardForm,
+  type DenaliCreateTourWizardForm,
+  mapCreateTourDto,
+  stripCreateTourDtoForFormProfile,
+  buildCreateTourPostBody,
+} from "@/features/tours/testing/public-test-api";
 
 import {
   buildDenaliSubmitItinerarySlice,

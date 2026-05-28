@@ -71,7 +71,7 @@ export class TenantManagementDbService {
 
   private async runWithRowSecurityBypass<T>(
     operation: string,
-    fn: (queryRunner: QueryRunner) => Promise<T>
+    fn: (_queryRunner: QueryRunner) => Promise<T>
   ): Promise<T> {
     const requestId = this.requestContextService.tryGetRequestId();
     const queryRunner = this.dataSource.createQueryRunner();

@@ -49,11 +49,8 @@ function main() {
     }
   }
   if (violations.length) {
-    console.error("Ledger-only money guardrails FAILED:\n");
-    for (const v of violations) console.error(`- ${v}`);
     process.exit(1);
   }
-  console.log("Ledger-only money guardrails: OK");
 }
 
 main();

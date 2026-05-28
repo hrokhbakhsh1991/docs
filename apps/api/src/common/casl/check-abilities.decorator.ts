@@ -22,7 +22,7 @@ export type CheckAbilitiesContext = {
  * ```
  */
 export function CheckAbilities(
-  ...handlers: ReadonlyArray<(ctx: CheckAbilitiesContext) => boolean>
+  ...handlers: ReadonlyArray<(_ctx: CheckAbilitiesContext) => boolean>
 ): MethodDecorator {
   return SetMetadata(CHECK_ABILITIES_KEY, handlers);
 }

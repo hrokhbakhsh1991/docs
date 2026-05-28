@@ -17,10 +17,11 @@ import {
   WaitlistItemEntity,
   WaitlistItemStatus
 } from "../../src/modules/registrations/waitlist-item.entity";
+import { TEST_REGISTRATION_ID } from "../helpers/finance-contract-fixtures";
 
 function createServiceHarness() {
   const registration = {
-    id: "reg-1",
+    id: TEST_REGISTRATION_ID,
     tenantId: "11111111-1111-4111-8111-111111111111",
     tourId: "tour-1",
     tourDepartureId: "tour-1",
@@ -125,7 +126,14 @@ function createServiceHarness() {
       if (name === RegistrationEntity.name) {
         return clauses.some((c) => (c as { id?: string }).id === registration.id);
       }
-      if (name === BookingPriceSnapshotEntity.name || name === PaymentEntity.name) {
+      if (name === BookingPriceSnapshotEntity.name) {
+        return clauses.some(
+          (c) =>
+            (c as { bookingId?: string }).bookingId === registration.id &&
+            (c as { tenantId?: string }).tenantId === registration.tenantId,
+        );
+      }
+      if (name === PaymentEntity.name) {
         return false;
       }
       return false;
@@ -234,7 +242,7 @@ function createServiceHarness() {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };
@@ -275,7 +283,7 @@ function createServiceHarness() {
 test("updateRegistrationPayment persists payment status and paid amount", async () => {
   const { service, events } = createServiceHarness();
   const updated = await service.updateRegistrationPayment(
-    "reg-1",
+    TEST_REGISTRATION_ID,
     {
       paymentStatus: RegistrationPaymentStatus.PAID,
       paidAmount: 2500,

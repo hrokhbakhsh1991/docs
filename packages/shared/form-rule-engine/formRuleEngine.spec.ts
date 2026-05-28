@@ -17,7 +17,7 @@ const REGION_PATH = "filters.regionId";
 function createEngine(
   form: TestForm,
   registry: LookupRegistry,
-  searchImpl: (query: {
+  searchImpl: (_query: {
     searchText: string;
     dependencyValues: Record<string, unknown>;
   }) => Promise<{ items: { id: string; name: string }[] }>,

@@ -8,8 +8,8 @@ import {
 
 import { SESSION_TOKEN_COOKIE } from "../../lib/auth/session-cookie";
 import { decodeJwtPayload } from "../../lib/auth/decode-jwt-payload";
-import { buildDenaliTourCreateTestValues } from "../../src/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import type { DenaliCreateTourWizardForm } from "../../src/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "@/features/tours";
+import type { DenaliCreateTourWizardForm } from "@/features/tours";
 
 /** Same key as `lib/auth/session.ts` — axios attaches `Authorization` from sessionStorage for cross-origin API. */
 const TOUR_OPS_SESSION_TOKEN_STORAGE_KEY = "tour_ops_session_token";
@@ -309,7 +309,6 @@ export async function installTourWizardSettingsRoutes(
         body: JSON.stringify(body),
       });
     } catch (err) {
-      console.error("[FULFILL TEMPLATE ERROR]", err);
     }
   };
 
@@ -432,7 +431,6 @@ export async function installSmokeMembershipAbilityContext(
         }),
       });
     } catch (err) {
-      console.error("[FULFILL ABILITY ERROR]", err);
     }
   };
 
@@ -613,7 +611,7 @@ export async function applyDenaliWizardIntegrationPatch(
   await page.evaluate((payload) => {
     const bridge = (
       window as Window & {
-        __integrationApplyDenaliWizardPatch?: (p: unknown) => void;
+        __integrationApplyDenaliWizardPatch?: (_p: unknown) => void;
       }
     ).__integrationApplyDenaliWizardPatch;
     if (!bridge) {
@@ -657,7 +655,7 @@ export async function waitForDenaliDraftEngineInitialized(page: Page): Promise<v
       }
 
       const w = window as Window & {
-        __integrationApplyDenaliWizardPatch?: (patch: unknown) => void;
+        __integrationApplyDenaliWizardPatch?: (_patch: unknown) => void;
       };
       const integrationBridgeReady = typeof w.__integrationApplyDenaliWizardPatch === "function";
       if (!integrationBridgeReady) {

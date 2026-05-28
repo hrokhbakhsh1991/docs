@@ -17,7 +17,6 @@ const withTests = process.argv.includes("--tests");
 
 function runNodeScript(scriptName) {
   const scriptPath = path.join(REPO_ROOT, "scripts", scriptName);
-  console.log(`\n[governance] → ${scriptName}`);
   const result = spawnSync(process.execPath, [scriptPath], {
     cwd: REPO_ROOT,
     stdio: "inherit",
@@ -27,7 +26,6 @@ function runNodeScript(scriptName) {
   }
 }
 
-console.log("[governance] Phase 9 — tour RBAC / capability / validation");
 
 runNodeScript("check-capability-registry-parity.mjs");
 runNodeScript("audit-capability-registry.mjs");
@@ -38,4 +36,3 @@ if (withTests) {
   runNodeScript("run-tour-parity-unit-tests.mjs");
 }
 
-console.log("\n[governance] All checks passed");

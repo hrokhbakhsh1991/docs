@@ -5,7 +5,7 @@ import type { ImageBlock, PageBlock, TextBlock } from "@repo/shared-contracts";
 import { ContentImageBlock } from "./ContentImageBlock";
 import { ContentTextBlock } from "./ContentTextBlock";
 
-type BlockRenderer = (block: PageBlock) => ReactNode;
+type BlockRenderer = (_block: PageBlock) => ReactNode;
 
 export const PAGE_BLOCK_RENDERERS: Record<PageBlock["kind"], BlockRenderer> = {
   text: (block) => <ContentTextBlock block={block as TextBlock} />,

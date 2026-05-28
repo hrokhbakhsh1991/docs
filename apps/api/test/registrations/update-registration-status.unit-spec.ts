@@ -307,7 +307,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
   };
 
   const dataSource = {
-    async transaction<T>(fn: (transactionManager: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_transactionManager: typeof manager) => Promise<T>): Promise<T> {
       const prevReleasers = activeReleasers;
       activeReleasers = [];
       try {

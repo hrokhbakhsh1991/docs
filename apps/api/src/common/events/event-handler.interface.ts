@@ -6,5 +6,5 @@ import type { DomainEvent } from "./domain-event.interface";
  */
 export interface EventHandler {
   readonly handledEventTypes: readonly string[];
-  handle(event: DomainEvent<unknown>): Promise<void>;
+  handle(_event: DomainEvent<unknown>): Promise<void>;
 }

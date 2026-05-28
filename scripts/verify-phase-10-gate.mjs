@@ -428,12 +428,11 @@ async function main() {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
           ({ me, token } = await bffLogin(slug, phone));
-          const tourId = await tourLifecycle(slug, token);
+          const _tourId = await tourLifecycle(slug, token);
           ownerTokens.set(slug, token);
           if (!me?.id) {
             throw new Error(`${slug}: /api/me missing user id`);
           }
-          console.log(`OK ${slug} user=${me.id} tour=${tourId}`);
           lastErr = null;
           break;
         } catch (e) {
@@ -448,7 +447,6 @@ async function main() {
       }
     } catch (e) {
       failures.push(`${slug}: ${e.message}`);
-      console.error(`FAIL ${slug}:`, e.message);
     }
     await sleep(2000);
   }
@@ -461,7 +459,6 @@ async function main() {
     await sleep(2000);
     const memberToken = await loginToken("ws1-rbac", "ws1-member@test.com");
     await rbacSmokeWs1(ws1Owner, memberToken);
-    console.log("OK ws1 RBAC smoke (member 403, capabilities PATCH + idempotency replay)");
     await sleep(2000);
     const ws2Owner = ownerTokens.get("ws2-rbac");
     if (!ws2Owner) {
@@ -469,16 +466,13 @@ async function main() {
     }
     const leaderToken = await loginToken("ws2-rbac", "ws2-leader@test.com");
     await regionalScopeSmoke(ws2Owner, leaderToken);
-    console.log("OK ws2 regional scope (explicit tour.regional.manage only)");
   } catch (e) {
     failures.push(`rbac: ${e.message}`);
-    console.error("FAIL rbac:", e.message);
   }
 
   if (failures.length > 0) {
     process.exit(1);
   }
-  console.log("\n[verify-phase-10-gate] All checks passed.");
 }
 
 main();

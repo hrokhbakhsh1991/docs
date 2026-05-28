@@ -24,16 +24,16 @@ const copy = USERS_ROUTE_COPY.list;
 
 export type UsersDirectoryTableCardProps = {
   searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
+  onSearchQueryChange: (_value: string) => void;
   roleFilter: RoleFilter;
-  onRoleFilterChange: (value: RoleFilter) => void;
+  onRoleFilterChange: (_value: RoleFilter) => void;
   onClearFilters: () => void;
   onExportCsv: () => void;
   onInviteUser: () => void;
   exportDisabled: boolean;
   sortColumn: UserSortColumn;
   sortDir: UserSortDirection;
-  onToggleSort: (column: UserSortColumn) => void;
+  onToggleSort: (_column: UserSortColumn) => void;
   rows: WorkspaceUserDto[];
   totalFilteredCount: number;
   hasMoreBelow: boolean;
@@ -48,10 +48,10 @@ export type UsersDirectoryTableCardProps = {
     unknown
   >;
   activeRoleMutationUserId: string | null;
-  onManageRewards?: (user: WorkspaceUserDto) => void;
+  onManageRewards?: (_user: WorkspaceUserDto) => void;
   directoryListQueryKey: readonly unknown[];
   directoryTab: DirectoryTabId;
-  onDirectoryTabChange: (tab: DirectoryTabId) => void;
+  onDirectoryTabChange: (_tab: DirectoryTabId) => void;
   pendingPanel: ReactNode;
 };
 

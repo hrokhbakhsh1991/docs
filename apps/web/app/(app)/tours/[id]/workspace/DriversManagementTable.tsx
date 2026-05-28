@@ -26,7 +26,7 @@ export type DriversManagementTableProps = {
   drivers: DriverWithLoad[];
   unassignedPassengers: TransportPassengerRow[];
   readOnly: boolean;
-  onAssign: (passengerRegistrationId: string, driverId: string) => void;
+  onAssign: (_passengerRegistrationId: string, _driverId: string) => void;
 };
 
 function formatCount(n: number): string {

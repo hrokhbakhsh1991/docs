@@ -370,11 +370,8 @@ checkGovernanceEntrypoints();
 checkMutationAbilityGroups();
 
 if (failures.length > 0) {
-  console.error("[tour-rbac-parity] FAILED:\n");
-  for (const line of failures) {
-    console.error(`  - ${line}`);
+  for (const _line of failures) {
   }
   process.exit(1);
 }
 
-console.log("[tour-rbac-parity] OK (static checks)");

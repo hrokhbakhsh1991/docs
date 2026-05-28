@@ -11,7 +11,7 @@ test("runInTenantScope sets LOCAL app.tenant_id before user fn", async () => {
     }
   };
   const dataSource = {
-    transaction: async <T>(fn: (m: typeof manager) => Promise<T>) => fn(manager)
+    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager)
   };
   const tenantSessionBindingService = {
     runInTenantContext: async <T>(_tenantId: string, fn: () => Promise<T>) => fn()
@@ -55,7 +55,7 @@ test("runInTenantScope isolates tenant ids across sequential jobs on shared pool
     }
   };
   const dataSource = {
-    transaction: async <T>(fn: (m: typeof manager) => Promise<T>) => fn(manager)
+    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager)
   };
   const tenantSessionBindingService = {
     runInTenantContext: async <T>(_tenantId: string, fn: () => Promise<T>) => fn()

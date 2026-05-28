@@ -1,6 +1,6 @@
 import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { TourWizardPrefillMeta } from "@/features/tours/wizard/tourWizardProfileResolve";
 
 import {

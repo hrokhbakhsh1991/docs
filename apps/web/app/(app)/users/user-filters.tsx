@@ -30,8 +30,8 @@ type UserFiltersProps = {
   roleFilter: RoleFilter;
   isRefreshing: boolean;
   exportDisabled: boolean;
-  onSearchChange: (value: string) => void;
-  onRoleFilterChange: (value: RoleFilter) => void;
+  onSearchChange: (_value: string) => void;
+  onRoleFilterChange: (_value: RoleFilter) => void;
   onExportCsv: () => void;
   onInviteUser: () => void;
 };

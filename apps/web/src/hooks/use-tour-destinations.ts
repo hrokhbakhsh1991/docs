@@ -35,7 +35,7 @@ export function useTourDestinations() {
     enabled: Boolean(tenantId),
   });
 
-  const allDestinations = destinationsQuery.data ?? [];
+  const allDestinations = useMemo(() => destinationsQuery.data ?? [], [destinationsQuery.data]);
 
   const groupedRegions = useMemo((): TourDestinationGroup[] => {
     const regions = regionsQuery.data ?? [];

@@ -122,9 +122,6 @@ async function loginWithOtp(params: {
   otp: string;
 }): Promise<{ token: string; body: unknown }> {
   const url = `${params.apiBase.replace(/\/$/, "")}/api/v2/auth/web/session/otp`;
-  console.log(`\n--- Auth: POST ${url} ---`);
-  console.log(`Host: ${params.hostHeader}`);
-  console.log(`Phone: ${params.phone}`);
 
   const res = await httpJson({
     method: "POST",
@@ -152,7 +149,6 @@ async function loginWithOtp(params: {
     throw new Error(`OTP login response missing session_token: ${JSON.stringify(body)}`);
   }
 
-  console.log(`Auth OK — JWT length=${sessionToken.length}`);
   return { token: sessionToken, body };
 }
 
@@ -183,7 +179,7 @@ async function patchDraftSnapshot(params: {
   });
 }
 
-async function deleteDraftSnapshot(params: {
+async function _deleteDraftSnapshot(params: {
   apiBase: string;
   hostHeader: string;
   token: string;
@@ -213,9 +209,6 @@ async function fetchDraftSnapshot(params: {
   const path = `/api/v2/workspaces/${encodeURIComponent(params.workspaceId)}/draft-engine/${encodeURIComponent(params.draftKey)}`;
   const url = `${params.apiBase.replace(/\/$/, "")}${path}`;
 
-  console.log(`\n--- Draft GET ${url} ---`);
-  console.log(`Authorization: Bearer <${params.token.slice(0, 12)}…>`);
-  console.log(`Host: ${params.hostHeader}`);
 
   return httpJson({
     method: "GET",
@@ -237,12 +230,6 @@ async function main(): Promise<void> {
     `debug-occ-${Date.now().toString(36)}`;
   const hostHeader = tenantHost(tenantSubdomain);
 
-  console.log("========================================");
-  console.log("Draft Engine API Debugger");
-  console.log("========================================");
-  console.log(`API base: ${apiBase}`);
-  console.log(`Tenant subdomain: ${tenantSubdomain}`);
-  console.log(`Draft key: ${draftKey}`);
 
   const { token } = await loginWithOtp({ apiBase, hostHeader, phone, otp });
   const jwt = decodeJwtPayload(token);
@@ -260,15 +247,11 @@ async function main(): Promise<void> {
     );
   }
 
-  const userId =
+  const _userId =
     (typeof jwt.sub === "string" && jwt.sub) ||
     (typeof jwt.user_id === "string" && jwt.user_id) ||
     "unknown";
 
-  console.log("\n--- Session context (from JWT) ---");
-  console.log(`workspaceId: ${workspaceId}`);
-  console.log(`userId: ${userId}`);
-  console.log(`role: ${typeof jwt.role === "string" ? jwt.role : "unknown"}`);
 
   const draftResponse = await fetchDraftSnapshot({
     apiBase,
@@ -278,15 +261,10 @@ async function main(): Promise<void> {
     draftKey,
   });
 
-  console.log("\n--- GET response ---");
-  console.log(`status: ${draftResponse.status}`);
-  console.log(`body: ${JSON.stringify(draftResponse.body, null, 2)}`);
 
   if (draftResponse.body == null) {
-    console.log("\n(note) Empty/null body — check API logs for DEBUG-TRACE empty-row message.");
   }
 
-  console.log("\n--- OCC PATCH sequence (isolated draft key → create → bump → stale → expect 409) ---");
 
   const patchPayload = {
     data: { probe: "draft-engine-debug", step: 0 },
@@ -301,8 +279,6 @@ async function main(): Promise<void> {
     draftKey,
     body: { ...patchPayload, version: 0, schemaVersion: 1 },
   });
-  console.log(`PATCH create (version 0): HTTP ${createRes.status}`);
-  console.log(JSON.stringify(createRes.body, null, 2));
   assert.ok(
     createRes.status >= 200 && createRes.status < 300,
     `create PATCH should succeed (got ${createRes.status})`,
@@ -328,8 +304,6 @@ async function main(): Promise<void> {
       lastModified: Date.now(),
     },
   });
-  console.log(`PATCH bump (version ${baseVersion}): HTTP ${bumpRes.status}`);
-  console.log(JSON.stringify(bumpRes.body, null, 2));
   assert.ok(bumpRes.status >= 200 && bumpRes.status < 300, "bump PATCH should succeed");
 
   const bumpedVersion =
@@ -358,8 +332,6 @@ async function main(): Promise<void> {
       lastModified: Date.now(),
     },
   });
-  console.log(`PATCH stale (version ${baseVersion} again): HTTP ${staleRes.status}`);
-  console.log(JSON.stringify(staleRes.body, null, 2));
   assert.equal(staleRes.status, 409, "stale PATCH must return 409 Conflict");
   const staleServer =
     typeof staleRes.body === "object" &&
@@ -370,7 +342,6 @@ async function main(): Promise<void> {
       ? (staleRes.body as { error: { details: { server: unknown } } }).error.details.server
       : null;
   assert.ok(staleServer != null, "409 response must include error.details.server for client recovery");
-  console.log("409 includes server snapshot:", JSON.stringify(staleServer, null, 2));
 
   const errorCode =
     typeof draftResponse.body === "object" &&
@@ -380,33 +351,15 @@ async function main(): Promise<void> {
       ? (draftResponse.body as { error: { code: string } }).error.code
       : null;
   if (errorCode === "SCHEMA_DRIFT_MISSING_TABLE") {
-    console.log(
-      "\n(hint) draft_snapshots table missing — run: pnpm --filter @apps/api migrate:run",
-    );
   }
 
-  console.log("\n--- Server-side DEBUG-TRACE ---");
-  console.log(
-    "Inspect the @apps/api dev terminal for lines prefixed with DEBUG-TRACE [A|B|C|end].",
-  );
 
-  console.log("\n========================================");
-  console.log(
-    draftResponse.status >= 200 && draftResponse.status < 300
-      ? "Draft Engine debug run: SUCCESS"
-      : "Draft Engine debug run: FAILED (see HTTP response above)",
-  );
-  console.log("========================================\n");
 
   if (draftResponse.status < 200 || draftResponse.status >= 300) {
     process.exitCode = 1;
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(
-    "\nDraft Engine debug failed:",
-    error instanceof Error ? error.stack ?? error.message : String(error),
-  );
+main().catch((_error: unknown) => {
   process.exitCode = 1;
 });

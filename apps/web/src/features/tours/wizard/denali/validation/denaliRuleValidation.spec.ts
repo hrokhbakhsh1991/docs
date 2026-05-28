@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  buildDenaliTourCreateTestValues,
-  normalizeDenaliWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import { normalizeDenaliWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
   getDenaliWizardStepIssues,
   getDenaliWizardSubmitIssues,

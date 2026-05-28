@@ -82,7 +82,7 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   };

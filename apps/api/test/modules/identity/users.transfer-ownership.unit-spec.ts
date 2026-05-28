@@ -43,7 +43,7 @@ function buildService(opts?: { actorRole?: string }) {
   };
 
   const dataSource = {
-    transaction: async <T>(fn: (m: typeof manager) => Promise<T>) => fn(manager)
+    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager)
   };
   const access = {
     users: { findOne: async () => ({ email: "actor@test.invalid" }) }

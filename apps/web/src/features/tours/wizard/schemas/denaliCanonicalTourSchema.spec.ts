@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { denaliCanonicalFromForm } from "@repo/types/denali";
 
-import { buildDenaliTourCreateTestValues } from "./denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "./denaliCore.schema";
 import { denaliCanonicalTourSchema } from "./denaliCanonicalTourSchema.unified";
 
 test("denaliCanonicalTourSchema accepts unknown legacy keys (backward compatibility)", () => {

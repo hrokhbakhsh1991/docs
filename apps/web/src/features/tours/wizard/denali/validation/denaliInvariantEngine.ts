@@ -22,7 +22,7 @@ import {
 } from "../rules/denaliUIAdapter";
 import { getDenaliFormPathValue, setDenaliFormPathValue } from "../denaliFormPathUtils";
 import { resolveDenaliRuleModelFromForm, normalizeDenaliWizardForm } from "./denaliRuleAccess";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { DenaliTourKind } from "@repo/types";
 
 /**

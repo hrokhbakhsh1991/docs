@@ -13,8 +13,8 @@ export function DenaliCustomServicesEditor({
 }: {
   fields: ReadonlyArray<{ id: string }>;
   labels: readonly string[];
-  onAppend: (label: string) => void;
-  onRemove: (index: number) => void;
+  onAppend: (_label: string) => void;
+  onRemove: (_index: number) => void;
 }) {
   const [draft, setDraft] = useState("");
 

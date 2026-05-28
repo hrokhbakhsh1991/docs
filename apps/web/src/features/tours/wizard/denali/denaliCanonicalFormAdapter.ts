@@ -29,7 +29,7 @@ import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
 import type { DenaliUIContextOptions } from "./rules/denaliUIAdapter";
 import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { normalizeCustomServiceLabels } from "@/features/tours/wizard/domain/normalizeCustomServiceLabels";
 import { sanitizeDenaliCanonicalModel } from "./denaliCanonicalSchemaRegistry";

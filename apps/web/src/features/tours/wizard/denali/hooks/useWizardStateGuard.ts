@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import type { TourFormLifecycleStatus } from "@/components/tours/tour-lifecycle";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { useDenaliWizardFormSnapshot } from "./useDenaliWizardFormSnapshot";
 import { getDenaliWizardPublishReadinessIssuesForTargetStatus } from "../validation/denaliWizardPublishReadiness";

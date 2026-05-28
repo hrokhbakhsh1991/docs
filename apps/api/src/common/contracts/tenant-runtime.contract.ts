@@ -6,13 +6,13 @@ export const TENANT_USAGE_METERING_POLICY = Symbol("TENANT_USAGE_METERING_POLICY
 export const TENANT_RUNTIME_GUARD = Symbol("TENANT_RUNTIME_GUARD");
 
 export interface TenantRateLimitPolicy {
-  enforceHttpRateLimit(req: Request): Promise<void>;
+  enforceHttpRateLimit(_req: Request): Promise<void>;
 }
 
 export interface TenantUsageMeteringPolicy {
-  enforceHttpUsageMetering(req: Request): Promise<void>;
+  enforceHttpUsageMetering(_req: Request): Promise<void>;
 }
 
 export interface TenantRuntimeGuard {
-  enforceTenantRuntimePolicies(req: Request, action: TenantRuntimeAction): Promise<void>;
+  enforceTenantRuntimePolicies(_req: Request, _action: TenantRuntimeAction): Promise<void>;
 }

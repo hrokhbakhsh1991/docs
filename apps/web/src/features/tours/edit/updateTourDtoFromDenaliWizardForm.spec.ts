@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   buildDenaliTourCreateDefaultValues,
   normalizeDenaliWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+} from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { updateTourDtoFromDenaliWizardForm } from "./updateTourDtoFromDenaliWizardForm";
 

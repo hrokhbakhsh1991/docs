@@ -13,10 +13,6 @@ import {
  */
 test.describe("denali tour create wizard shell", () => {
   test.beforeEach(async ({ page, context }) => {
-    page.on("console", msg => console.log(`[BROWSER CONSOLE] ${msg.type()}: ${msg.text()}`));
-    page.on("pageerror", err => console.error(`[BROWSER ERROR] ${err.stack ?? err.message}`));
-    page.on("request", req => console.log(`[BROWSER REQUEST] ${req.method()} ${req.url()}`));
-    page.on("response", res => console.log(`[BROWSER RESPONSE] ${res.status()} ${res.url()}`));
 
     const baseURL = test.info().project.use.baseURL || "http://denali.localhost:3000";
     await installUrbanWizardE2eSeed(page);

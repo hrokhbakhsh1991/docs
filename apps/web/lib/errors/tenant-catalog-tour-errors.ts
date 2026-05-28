@@ -81,9 +81,5 @@ export function logTenantCatalogMismatchDev(apiError: ApiError): void {
   }
   const { invalidIds } = parseTenantCatalogErrorPayload(apiError.data);
   if (invalidIds.length > 0) {
-    console.warn("[tour] workspace catalog reference rejected", {
-      code: apiError.code,
-      invalidIds,
-    });
   }
 }

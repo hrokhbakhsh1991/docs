@@ -8,15 +8,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { getTourWorkspaceDefinition } from "@repo/shared-contracts";
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
-import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
-import { buildDenaliWizardUploadTourPayload } from "@/features/tours/wizard/denali/createDenaliWizardUploadTour";
-import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
-import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import type { DenaliTourKind } from "@repo/types";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import {
+  buildDenaliTourCreateTestValues,
+  getDenaliWizardSubmitIssues,
+  buildDenaliWizardUploadTourPayload,
+  denaliRuleSet,
+  buildDenaliCreateTourPayloadProjection,
+  mapDenaliWizardToCreateTourPayload,
+  type DenaliCreateTourWizardForm,
+} from "@/features/tours/testing/public-test-api";
 
 type LayerStatus = "pass" | "blocked" | "throws";
 
@@ -31,7 +33,7 @@ type ScenarioExpectation = {
 
 type Scenario = {
   id: string;
-  mutate: (form: DenaliCreateTourWizardForm) => void;
+  mutate: (_form: DenaliCreateTourWizardForm) => void;
   expect: ScenarioExpectation;
 };
 
@@ -334,13 +336,11 @@ for (const scenario of SCENARIOS) {
 }
 
 test("denali api parity matrix summary (documented expectations)", () => {
-  console.log("\n| scenario | web E/A | projection E/A | mapper E/A | api E/A | api code E/A |");
-  console.log("|----------|---------|----------------|------------|---------|--------------|");
   for (const scenario of SCENARIOS) {
     const form = mountainForm();
     scenario.mutate(form);
     const api = evaluateApiFromMapper(form);
-    const row = [
+    const _row = [
       scenario.id,
       `${scenario.expect.web}/${evaluateWeb(form)}`,
       `${scenario.expect.projection}/${evaluateProjection(form)}`,
@@ -348,7 +348,6 @@ test("denali api parity matrix summary (documented expectations)", () => {
       `${scenario.expect.api}/${api.status}`,
       `${scenario.expect.apiCode ?? "—"}/${api.code ?? "—"}`,
     ].join(" | ");
-    console.log(`| ${row} |`);
   }
   assert.ok(SCENARIOS.length > 0);
 });

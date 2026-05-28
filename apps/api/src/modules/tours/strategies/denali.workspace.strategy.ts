@@ -24,7 +24,7 @@ import {
 
 function resolvePublishGeolocationCheck(
   profile: TourFormProfile,
-): ((tripDetails: unknown) => WorkspaceInvariantViolation | null) | null {
+): ((_tripDetails: unknown) => WorkspaceInvariantViolation | null) | null {
   if (!getWorkspaceUiCapabilityFlags(profile).requiresGeoPublish) {
     return null;
   }

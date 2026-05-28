@@ -17,7 +17,7 @@ export type LookupResult<TItem = unknown> = {
 };
 
 export type LookupProvider<TItem = unknown, TForm extends Record<string, unknown> = Record<string, unknown>> = (
-  query: LookupQuery<TForm>,
+  _query: LookupQuery<TForm>,
 ) => Promise<LookupResult<TItem>>;
 
 export class LookupRegistry {

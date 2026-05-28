@@ -3,12 +3,12 @@
  * Submit validation: {@link ./denaliCanonicalTourSchema.unified.ts} only — not {@link ./denaliTourCreateBaseSchema.ts}.
  */
 
-export type { DenaliCreateTourWizardForm } from "./denaliTourCreateBaseSchema";
+export type { DenaliCreateTourWizardForm } from "./denaliCore.schema";
 
 export {
   buildDenaliTourCreateDefaultValues,
   buildDenaliTourCreateTestValues,
-} from "./denaliTourCreateBaseSchema";
+} from "./denaliCore.schema";
 
 export {
   normalizeDenaliFormPatch,
@@ -17,9 +17,9 @@ export {
 
 /** Deep-merge partial wizard values onto defaults (clone/edit/preset helpers). */
 export function mergeDenaliFormDefaults(
-  defaults: import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm,
-  patch: Partial<import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm>,
-): import("./denaliTourCreateBaseSchema").DenaliCreateTourWizardForm {
+  defaults: import("./denaliCore.schema").DenaliCreateTourWizardForm,
+  patch: Partial<import("./denaliCore.schema").DenaliCreateTourWizardForm>,
+): import("./denaliCore.schema").DenaliCreateTourWizardForm {
   return {
     ...defaults,
     ...patch,

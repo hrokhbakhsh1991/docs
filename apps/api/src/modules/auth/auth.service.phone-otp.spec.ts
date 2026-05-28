@@ -139,7 +139,7 @@ function makeAuthService(deps: {
   allowDevStaticOtp?: boolean;
   requestContext?: {
     resolveEffectiveTenantId: () => string | undefined;
-    setTenantId: (id: string) => void;
+    setTenantId: (_id: string) => void;
     tryGetTenantId?: () => string | undefined;
     tryGetHostTenantId?: () => string | undefined;
     tryGetClientIp?: () => string | undefined;
@@ -511,11 +511,11 @@ test("preflightPhone does not throw when workspace_invites missing invited_by_us
 
 function userRepoForCompleteRegistration(options: {
   existingUser?: UserEntity | null;
-  onSave?: (user: UserEntity) => void;
+  onSave?: (_user: UserEntity) => void;
 }): {
   createQueryBuilder: ReturnType<typeof userRepoChain>["createQueryBuilder"];
-  create: (input: Partial<UserEntity>) => UserEntity;
-  save: (user: UserEntity) => Promise<UserEntity>;
+  create: (_input: Partial<UserEntity>) => UserEntity;
+  save: (_user: UserEntity) => Promise<UserEntity>;
 } {
   const existing = options.existingUser ?? null;
   return {
@@ -535,8 +535,8 @@ function userRepoForCompleteRegistration(options: {
 function membershipRepoForCompleteRegistration(options?: {
   existing?: { role: string; sessionVersion: number; status: string } | null;
 }): ReturnType<typeof membershipRepoActive> & {
-  create: (input: Record<string, unknown>) => Record<string, unknown>;
-  save: (row: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  create: (_input: Record<string, unknown>) => Record<string, unknown>;
+  save: (_row: Record<string, unknown>) => Promise<Record<string, unknown>>;
 } {
   const existing = options?.existing ?? null;
   const base = membershipRepoActive();

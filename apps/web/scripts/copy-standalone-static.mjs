@@ -11,7 +11,6 @@ const appRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const standaloneRoot = join(appRoot, ".next/standalone/apps/web");
 
 if (!existsSync(join(standaloneRoot, "server.js"))) {
-  console.error("copy-standalone-static: missing standalone output — run `next build` first");
   process.exit(1);
 }
 
@@ -22,9 +21,7 @@ const copies = [
 
 for (const { from, to } of copies) {
   if (!existsSync(from)) {
-    console.error(`copy-standalone-static: missing source ${from}`);
     process.exit(1);
   }
   cpSync(from, to, { recursive: true });
-  console.log(`copy-standalone-static: ${from} → ${to}`);
 }

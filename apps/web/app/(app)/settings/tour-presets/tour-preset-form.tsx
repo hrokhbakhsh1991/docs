@@ -38,7 +38,7 @@ export type TourPresetFormProps = {
   duplicateFrom?: SettingsTourPresetDto | null;
   existingPresetNames?: string[];
   duplicateSortOrder?: number;
-  onSubmit: (values: TourPresetFormParsed) => Promise<void>;
+  onSubmit: (_values: TourPresetFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

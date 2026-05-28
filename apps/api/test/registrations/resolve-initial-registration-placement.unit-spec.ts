@@ -19,9 +19,9 @@ function resolvePlacement(
   return (
     service as unknown as {
       resolveInitialRegistrationPlacement(
-        t: TourEntity,
-        m?: ParticipantMetadataDto,
-        td?: Record<string, unknown> | null,
+        _t: TourEntity,
+        _m?: ParticipantMetadataDto,
+        _td?: Record<string, unknown> | null,
       ): PlacementResult;
     }
   ).resolveInitialRegistrationPlacement(

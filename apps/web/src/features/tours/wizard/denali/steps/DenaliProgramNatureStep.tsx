@@ -7,11 +7,9 @@ import { FormField } from "@tour/ui";
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+import { useDenaliCanonical, useDenaliCanonicalValue, useDenaliStepFieldRules } from "../application";
 import { DenaliDailyItinerarySection } from "./DenaliDailyItinerarySection";
 import { DenaliItineraryStep } from "./DenaliItineraryStep";
 

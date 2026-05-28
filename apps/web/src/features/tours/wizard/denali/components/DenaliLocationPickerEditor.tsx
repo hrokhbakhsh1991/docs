@@ -12,14 +12,14 @@ import {
   denaliLocationCoordinateErrorMessage,
   hasDenaliLocationCoordinates,
 } from "./denaliLocationFieldUtils";
-import { useDebouncedLocationSearch } from "../hooks/useDebouncedLocationSearch";
+import { useDebouncedLocationSearch } from "../application";
 import { reverseGeocode } from "@/lib/geocoding/geocoding-search";
 
 export type DenaliLocationPickerEditorProps = {
   testIdKey: string;
   modalTitle: string;
   value: DenaliLocationDataForm;
-  patch: (partial: Partial<DenaliLocationDataForm>) => void;
+  patch: (_partial: Partial<DenaliLocationDataForm>) => void;
   fieldErrors?:
     | {
         addressText?: { message?: string };
@@ -39,7 +39,7 @@ type LocationSuggestionListProps = {
   searchError: string | null;
   emptyMessage: string;
   unavailableMessage: string;
-  onSelect: (item: GeocodingSearchResult) => void;
+  onSelect: (_item: GeocodingSearchResult) => void;
 };
 
 function geocodingSuggestionKey(item: GeocodingSearchResult): string {
@@ -86,7 +86,7 @@ const LocationSuggestionList = memo(function LocationSuggestionList({
       {results.map((item) => {
         const suggestionKey = geocodingSuggestionKey(item);
         return (
-        <li key={suggestionKey} role="option">
+        <li key={suggestionKey} role="option" aria-selected={false}>
           <button
             type="button"
             style={{

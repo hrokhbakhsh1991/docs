@@ -14,7 +14,7 @@ import type { RefreshWorkspaceMeOptions, WorkspaceMeData } from "./workspace-me-
 
 export type PhoneSettingsPanelProps = {
   me: WorkspaceMeData;
-  refresh: (opts?: RefreshWorkspaceMeOptions) => Promise<void>;
+  refresh: (_opts?: RefreshWorkspaceMeOptions) => Promise<void>;
 };
 
 type PhoneStep = "idle" | "new_number" | "otp";

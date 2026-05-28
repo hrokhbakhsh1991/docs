@@ -66,7 +66,7 @@ function loadDotEnvTest(): void {
 }
 
 export async function createE2EApp(
-  configure?: (builder: TestingModuleBuilder) => TestingModuleBuilder
+  configure?: (_builder: TestingModuleBuilder) => TestingModuleBuilder
 ): Promise<INestApplication> {
   loadDotEnvTest();
   const { startTracing } = await import("../../src/tracing");

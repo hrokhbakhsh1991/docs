@@ -25,7 +25,7 @@ export function assertCheckAbilitiesForExecutionContext(
   logContext?: CheckAbilitiesLogContext,
 ): void {
   const handlers =
-    reflector.getAllAndMerge<Array<(ctx: CheckAbilitiesContext) => boolean>>(
+    reflector.getAllAndMerge<Array<(_ctx: CheckAbilitiesContext) => boolean>>(
       CHECK_ABILITIES_KEY,
       [context.getHandler(), context.getClass()]
     ) ?? [];

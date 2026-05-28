@@ -14,6 +14,15 @@ import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/b
 import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
 import { noopPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import { bookingLedgerAccountId } from "@repo/shared-contracts";
+import {
+  paymentEntityContractFixture,
+  TEST_PAYMENT_ID_2,
+  TEST_REGISTRATION_ID,
+  TEST_REGISTRATION_ID_2,
+  TEST_TENANT_ID,
+  TEST_TOUR_ID,
+} from "../helpers/finance-contract-fixtures";
 
 const noopRegistrationPaymentPort = {
   async lockTourRowForUpdate(): Promise<TourEntity> {
@@ -87,8 +96,8 @@ function stubTourRepositoryForPaymentsLock() {
         },
         async getOne() {
           return {
-            id: "tour-1",
-            tenantId: "tenant-1",
+            id: TEST_TOUR_ID,
+            tenantId: TEST_TENANT_ID,
             totalCapacity: 10,
             acceptedCount: 0
           } as TourEntity;
@@ -100,18 +109,14 @@ function stubTourRepositoryForPaymentsLock() {
 
 test("webhook paid transitions registration to AcceptedPaid and emits payment.succeeded", async () => {
   const outboxEvents: string[] = [];
-  const paymentRow = {
-    id: "pay-1",
-    tenantId: "tenant-1",
-    registrationId: "reg-1",
-    status: PaymentStatus.PENDING,
-    providerPaymentId: "provider-1"
-  };
+  const paymentRow = paymentEntityContractFixture({
+    providerPaymentId: "provider-1",
+  });
   const registration = {
-    id: "reg-1",
-    tenantId: "tenant-1",
-    tourId: "tour-1",
-    tourDepartureId: "tour-1",
+    id: TEST_REGISTRATION_ID,
+    tenantId: TEST_TENANT_ID,
+    tourId: TEST_TOUR_ID,
+    tourDepartureId: TEST_TOUR_ID,
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
 
@@ -123,8 +128,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
       throw new Error("unexpected repository");
     },
     exists: stubExistsDefaultPipeline({
-      registrationId: "reg-1",
-      tenantId: "tenant-1",
+      registrationId: TEST_REGISTRATION_ID,
+      tenantId: TEST_TENANT_ID,
       hasPriceSnapshot: true,
       hasPendingPayment: true,
       hasPaidPayment: false
@@ -142,7 +147,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   } as unknown as DataSource;
@@ -189,7 +194,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -201,8 +206,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-1",
-            account: "booking:reg-1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
             side: "credit",
             amount_minor: "100",
             currency: "USD",
@@ -219,7 +224,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
   );
 
   await service.processWebhook({
-    tenant_id: "tenant-1",
+    tenant_id: TEST_TENANT_ID,
     providerPaymentId: "provider-1",
     status: PaymentStatus.PAID
   });
@@ -231,19 +236,18 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
 });
 
 test("timeout processor fails stale pending payments and updates metrics", async () => {
-  const stale = {
-    id: "pay-2",
-    tenantId: "tenant-1",
-    registrationId: "reg-2",
+  const stale = paymentEntityContractFixture({
+    id: TEST_PAYMENT_ID_2,
+    registrationId: TEST_REGISTRATION_ID_2,
     status: PaymentStatus.PENDING,
     createdAt: new Date(Date.now() - 20 * 60_000),
-    providerPaymentId: "provider-2"
-  };
+    providerPaymentId: "provider-2",
+  });
   const registration = {
-    id: "reg-2",
-    tenantId: "tenant-1",
-    tourId: "tour-1",
-    tourDepartureId: "tour-1",
+    id: TEST_REGISTRATION_ID_2,
+    tenantId: TEST_TENANT_ID,
+    tourId: TEST_TOUR_ID,
+    tourDepartureId: TEST_TOUR_ID,
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
   const manager = {
@@ -315,15 +319,15 @@ test("timeout processor fails stale pending payments and updates metrics", async
       return entity;
     },
     exists: stubExistsDefaultPipeline({
-      registrationId: "reg-2",
-      tenantId: "tenant-1",
+      registrationId: TEST_REGISTRATION_ID_2,
+      tenantId: TEST_TENANT_ID,
       hasPriceSnapshot: true,
       hasPendingPayment: true,
       hasPaidPayment: false
     })
   };
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   } as unknown as DataSource;
@@ -336,13 +340,13 @@ test("timeout processor fails stale pending payments and updates metrics", async
     {} as never,
     {
       async find() {
-        return [{ id: "tenant-1" }];
+        return [{ id: TEST_TENANT_ID }];
       }
     } as never,
     dataSource,
     { setTenantId: () => undefined } as never,
     {
-      runInTenantScope: async (_tenantId: string, fn: (m: typeof manager) => Promise<void>) =>
+      runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
     } as never,
     {} as never,
@@ -355,7 +359,7 @@ test("timeout processor fails stale pending payments and updates metrics", async
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -367,8 +371,8 @@ test("timeout processor fails stale pending payments and updates metrics", async
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-1",
-            account: "booking:reg-1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
             side: "credit",
             amount_minor: "100",
             currency: "USD",
@@ -393,19 +397,17 @@ test("timeout processor fails stale pending payments and updates metrics", async
 });
 
 test("webhook duplicate provider_event_id increments deduped metric", async () => {
-  const paymentRow = {
-    id: "pay-9",
-    tenantId: "tenant-1",
-    registrationId: "reg-9",
-    status: PaymentStatus.PENDING,
+  const paymentRow = paymentEntityContractFixture({
+    id: TEST_PAYMENT_ID_2,
+    registrationId: TEST_REGISTRATION_ID_2,
     providerPaymentId: "provider-9",
-    provider: "mock_provider"
-  };
+    provider: "mock_provider",
+  });
   const registration = {
-    id: "reg-9",
-    tenantId: "tenant-1",
-    tourId: "tour-1",
-    tourDepartureId: "tour-1",
+    id: TEST_REGISTRATION_ID_2,
+    tenantId: TEST_TENANT_ID,
+    tourId: TEST_TOUR_ID,
+    tourDepartureId: TEST_TOUR_ID,
     status: RegistrationStatus.ACCEPTED
   } as RegistrationEntity;
 
@@ -417,8 +419,8 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
       throw new Error("unexpected repository");
     },
     exists: stubExistsDefaultPipeline({
-      registrationId: "reg-9",
-      tenantId: "tenant-1",
+      registrationId: TEST_REGISTRATION_ID_2,
+      tenantId: TEST_TENANT_ID,
       hasPriceSnapshot: true,
       hasPendingPayment: true,
       hasPaidPayment: false
@@ -436,7 +438,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   };
 
   const dataSource = {
-    async transaction<T>(fn: (m: typeof manager) => Promise<T>): Promise<T> {
+    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
   } as unknown as DataSource;
@@ -456,7 +458,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
             providerPaymentId: "provider-9",
             providerEventId: "evt-1",
             provider: "mock_provider",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             status: PaymentStatus.PAID
           }
         };
@@ -496,7 +498,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -508,8 +510,8 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-1",
-            account: "booking:reg-1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
             side: "credit",
             amount_minor: "100",
             currency: "USD",
@@ -526,13 +528,13 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
   );
 
   const first = await service.processWebhook({
-    tenant_id: "tenant-1",
+    tenant_id: TEST_TENANT_ID,
     providerEventId: "evt-1",
     providerPaymentId: "provider-9",
     status: PaymentStatus.PAID
   });
   const second = await service.processWebhook({
-    tenant_id: "tenant-1",
+    tenant_id: TEST_TENANT_ID,
     providerEventId: "evt-1",
     providerPaymentId: "provider-9",
     status: PaymentStatus.PAID
@@ -606,7 +608,7 @@ test("admin payment list is tenant scoped", async () => {
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -618,8 +620,8 @@ test("admin payment list is tenant scoped", async () => {
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-1",
-            account: "booking:reg-1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
             side: "credit",
             amount_minor: "100",
             currency: "USD",
@@ -663,7 +665,7 @@ test("admin payment list fails when tenant context is missing", async () => {
           {
             id: "d1",
             journalId: "j1",
-            tenantId: "tenant-1",
+            tenantId: TEST_TENANT_ID,
             account: "gl:leader-registration-payment-clearing",
             side: "debit",
             amount_minor: "100",
@@ -675,8 +677,8 @@ test("admin payment list fails when tenant context is missing", async () => {
           {
             id: "c1",
             journalId: "j1",
-            tenantId: "tenant-1",
-            account: "booking:reg-1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
             side: "credit",
             amount_minor: "100",
             currency: "USD",

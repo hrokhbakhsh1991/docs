@@ -127,7 +127,7 @@ export type TourFormProps = {
     acceptedCount?: number;
   };
   mode?: "create" | "edit";
-  onSubmit: (values: TourFormValues, meta?: TourFormSubmitMeta) => void | Promise<void>;
+  onSubmit: (_values: TourFormValues, _meta?: TourFormSubmitMeta) => void | Promise<void>;
   onCancel?: () => void;
   /** When set with edit mode, enables theme-derived profile strip on save and flat-form validation flags. */
   themeCatalogForFormProfile?: readonly ThemeRowForProfile[];

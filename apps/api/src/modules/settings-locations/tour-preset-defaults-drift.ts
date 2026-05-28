@@ -19,7 +19,7 @@
 import type { TourFormProfile } from "@repo/types";
 
 export type ThemeLookupResult = { id: string; formProfile: TourFormProfile } | null;
-export type ThemeLookup = (themeId: string) => Promise<ThemeLookupResult>;
+export type ThemeLookup = (_themeId: string) => Promise<ThemeLookupResult>;
 
 export type PresetDriftCheckInput = {
   presetFormProfile: TourFormProfile;

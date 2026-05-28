@@ -35,7 +35,6 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
   }, [
     isAuthenticated,
     user?.userId,
-    user?.tenantId,
     user?.role,
     user?.membershipStatus,
     user?.abilityLabels,

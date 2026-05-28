@@ -1,10 +1,9 @@
 import fs from 'fs';
 
 const RULE_ACCESS_PATH = 'apps/web/src/features/tours/wizard/denali/validation/denaliRuleAccess.ts';
-const UI_ADAPTER_PATH = 'apps/web/src/features/tours/wizard/denali/rules/denaliUIAdapter.ts';
+const _UI_ADAPTER_PATH = 'apps/web/src/features/tours/wizard/denali/rules/denaliUIAdapter.ts';
 
 function log(message: string) {
-    console.log(`[Normalization Gate] ${message}`);
     fs.appendFileSync('map.log', `[Normalization Gate] ${message}\n`);
 }
 

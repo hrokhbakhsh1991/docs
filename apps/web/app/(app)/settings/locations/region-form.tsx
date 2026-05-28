@@ -31,7 +31,7 @@ type RegionFormInput = {
 
 export type RegionFormProps = {
   editing: SettingsRegionDto | null;
-  onSubmit: (values: RegionFormParsed) => Promise<void>;
+  onSubmit: (_values: RegionFormParsed) => Promise<void>;
   onCancel: () => void;
   isPending: boolean;
 };

@@ -169,7 +169,7 @@ export function WorkspaceUserRewardsModal({
     setLabelInput("");
     setErrorMessage(null);
     rewardsMutation.reset();
-  }, [open, user]);
+  }, [open, rewardsMutation, user]);
 
   const tripHistoryQuery = useQuery({
     queryKey: ["workspace-user-booking-summary", user?.id],

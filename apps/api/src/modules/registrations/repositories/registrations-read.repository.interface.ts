@@ -12,6 +12,6 @@ export type RegistrationReadWhere =
  * Where-clauses (including actor-scoped shapes) are built by services / policies.
  */
 export interface IRegistrationsReadRepository {
-  findOneStandalone(where: RegistrationReadWhere): Promise<RegistrationEntity | null>;
-  findOneInManager(manager: EntityManager, where: RegistrationReadWhere): Promise<RegistrationEntity | null>;
+  findOneStandalone(_where: RegistrationReadWhere): Promise<RegistrationEntity | null>;
+  findOneInManager(_manager: EntityManager, _where: RegistrationReadWhere): Promise<RegistrationEntity | null>;
 }

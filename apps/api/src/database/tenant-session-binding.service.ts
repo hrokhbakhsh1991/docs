@@ -187,7 +187,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         // 2) ensure active PG tx + tenant GUC in normal mode.
         const qr = queryRunner as QueryRunnerWithTenantSymbols;
         if (qr[QUERY_REENTRY]) {
-          return await (originalQuery as (...a: Parameters<QueryRunner["query"]>) => ReturnType<QueryRunner["query"]>).apply(
+          return await (originalQuery as (..._a: Parameters<QueryRunner["query"]>) => ReturnType<QueryRunner["query"]>).apply(
             queryRunner,
             args
           );
@@ -200,7 +200,7 @@ export class TenantSessionBindingService implements OnModuleInit {
             originalQuery,
             originalStartTransaction
           );
-          return await (originalQuery as (...a: Parameters<QueryRunner["query"]>) => ReturnType<QueryRunner["query"]>).apply(
+          return await (originalQuery as (..._a: Parameters<QueryRunner["query"]>) => ReturnType<QueryRunner["query"]>).apply(
             queryRunner,
             args
           );
@@ -313,7 +313,7 @@ export class TenantSessionBindingService implements OnModuleInit {
     originalQuery: QueryRunner["query"]
   ): Promise<Array<{ in_tx: boolean }>> {
     try {
-      return (await (originalQuery as (...a: unknown[]) => Promise<unknown>).call(
+      return (await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
         queryRunner,
         "SELECT (txid_current_if_assigned() IS NOT NULL) AS in_tx",
         []
@@ -323,7 +323,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         throw error;
       }
       await this.recoverAbortedTransaction(queryRunner, originalQuery);
-      return (await (originalQuery as (...a: unknown[]) => Promise<unknown>).call(
+      return (await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
         queryRunner,
         "SELECT (txid_current_if_assigned() IS NOT NULL) AS in_tx",
         []
@@ -351,7 +351,7 @@ export class TenantSessionBindingService implements OnModuleInit {
       }
     }
     try {
-      await (originalQuery as (...a: unknown[]) => Promise<unknown>).call(
+      await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
         queryRunner,
         "ROLLBACK",
         []
@@ -374,7 +374,7 @@ export class TenantSessionBindingService implements OnModuleInit {
       return;
     }
     const tenantId = this.resolveTenantIdForBindingOrThrow(queryRunner);
-    await (originalQuery as (...a: unknown[]) => Promise<unknown>).call(
+    await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
       queryRunner,
       "SELECT set_config('app.tenant_id', $1, true)",
       [tenantId]
@@ -433,7 +433,7 @@ export class TenantSessionBindingService implements OnModuleInit {
       return;
     }
     try {
-      await (originalQuery as (...a: unknown[]) => Promise<unknown>).call(
+      await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
         queryRunner,
         "RESET app.tenant_id",
         []

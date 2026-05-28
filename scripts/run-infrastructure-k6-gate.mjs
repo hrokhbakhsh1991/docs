@@ -16,7 +16,6 @@ function hasK6() {
 
 function runScript(rel) {
   const script = path.join(REPO_ROOT, rel);
-  console.log(`\n[k6-gate] → ${rel}`);
   const r = spawnSync("k6", ["run", script], { stdio: "inherit", cwd: REPO_ROOT });
   if (r.status !== 0) {
     process.exit(r.status ?? 1);
@@ -24,7 +23,6 @@ function runScript(rel) {
 }
 
 if (!hasK6()) {
-  console.warn("[k6-gate] k6 not installed — running Node reality gate instead");
   const nodeGate = spawnSync(process.execPath, ["scripts/verify-infrastructure-reality-gate.mjs"], {
     stdio: "inherit",
     cwd: REPO_ROOT,
@@ -34,4 +32,3 @@ if (!hasK6()) {
 
 runScript("scripts/k6/login-storm.js");
 runScript("scripts/k6/concurrent-tenant-isolation.js");
-console.log("\n[k6-gate] OK");

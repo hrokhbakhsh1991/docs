@@ -147,13 +147,10 @@ function main() {
   ];
 
   if (violations.length === 0) {
-    console.log("[infrastructure-debt] OK — 0 unallowlisted matches");
     process.exit(0);
   }
 
-  console.error(`[infrastructure-debt] FAIL — ${violations.length} violation(s):\n`);
-  for (const v of violations) {
-    console.error(`  ${v}`);
+  for (const _v of violations) {
   }
   process.exit(1);
 }

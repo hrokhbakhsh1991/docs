@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DENALI_CREATE_DRAFT_KEY } from "@/features/tours/drafts/denali-adapter";
 import { createTourFromWorkspaceWizardForm } from "@/features/tours/wizard/domain/createTourFromWizard";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { deleteDraftSnapshot } from "@/lib/draft-engine.client";
 import { tourKeys } from "@/lib/query-keys";

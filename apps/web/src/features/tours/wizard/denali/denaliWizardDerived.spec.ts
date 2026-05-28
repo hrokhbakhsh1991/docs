@@ -6,7 +6,7 @@ import {
   deriveDenaliIsMultiDay,
   selectDenaliWizardDerived,
 } from "./denaliWizardDerived";
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 test("deriveDenaliIsMultiDay follows tour kind slug", () => {
   assert.equal(deriveDenaliIsMultiDay("mountain_day"), false);

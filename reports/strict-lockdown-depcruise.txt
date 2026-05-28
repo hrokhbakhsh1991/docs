@@ -1,0 +1,7 @@
+
+> tour-ops-monorepo@0.1.0 depcruise:check /home/hamed/Music/docs
+> depcruise --config dependency-cruiser.config.js apps --output-type err-long
+
+
+✔ no dependency violations found (2203 modules, 6519 dependencies cruised)
+

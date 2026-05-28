@@ -5,15 +5,13 @@ import { useTranslations } from "next-intl";
 import { Checkbox, FormField, Select, Textarea } from "@tour/ui";
 
 import { PersianNumberInput } from "@/components/forms/PersianNumberInput";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliPricing.schema";
 
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
 import { DenaliPeakExperienceField } from "../components/DenaliPeakExperienceField";
-import { useDenaliCanonical } from "../DenaliCanonicalContext";
+import { useDenaliCanonical, useDenaliCanonicalValue, useDenaliStepFieldRules } from "../application";
 import { DENALI_FIELD_HINTS, denaliFieldHintStyle } from "../denaliFieldHints";
-import { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
-import { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
 
 const STEP = "denali_pricing" as const;
 

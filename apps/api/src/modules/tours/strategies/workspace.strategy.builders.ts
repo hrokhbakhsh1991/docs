@@ -77,7 +77,7 @@ export function buildPublishPolicy(
   profile: TourFormProfile,
   options: {
     publishGeolocationCheck:
-      | ((tripDetails: unknown) => WorkspaceInvariantViolation | null)
+      | ((_tripDetails: unknown) => WorkspaceInvariantViolation | null)
       | null;
   },
 ): WorkspacePublishPolicy {

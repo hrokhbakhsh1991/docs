@@ -53,11 +53,11 @@ export type RegistrationTableRowProps = {
   statusErrorMessage: string | null;
   paymentErrorMessage: string | null;
   paymentSaveIsNoOp: boolean;
-  onStatusDraftChange: (id: string, status: RegistrationStatus) => void;
-  onPayDraftChange: (id: string, payment: RegistrationPaymentStatus) => void;
-  onAmountDraftChange: (id: string, amount: string) => void;
-  onApplyStatus: (reg: BookingDto, targetStatus: RegistrationStatus) => void;
-  onSavePayment: (reg: BookingDto, paymentStatus: RegistrationPaymentStatus, rawAmount: string) => void;
+  onStatusDraftChange: (_id: string, _status: RegistrationStatus) => void;
+  onPayDraftChange: (_id: string, _payment: RegistrationPaymentStatus) => void;
+  onAmountDraftChange: (_id: string, _amount: string) => void;
+  onApplyStatus: (_reg: BookingDto, _targetStatus: RegistrationStatus) => void;
+  onSavePayment: (_reg: BookingDto, _paymentStatus: RegistrationPaymentStatus, _rawAmount: string) => void;
 };
 
 function registrationTableRowPropsEqual(

@@ -4,7 +4,7 @@ import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-
 import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import { createTour } from "@/lib/services/tours.service";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "./validation/denaliRuleAccess";

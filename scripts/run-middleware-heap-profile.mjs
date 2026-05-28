@@ -3,7 +3,7 @@
  * Phase 4.5 — documents how to capture a Node heap profile for Next middleware / lookup hot paths.
  * Does not run the server; prints copy-paste commands for local investigation.
  */
-const steps = `
+const _steps = `
 # Middleware / workspace lookup heap profile (manual)
 
 1. Build and start web standalone with Node diagnostics:
@@ -27,4 +27,3 @@ const steps = `
 See also: node scripts/bench-tenant-resolve.mjs
 `;
 
-console.log(steps.trim());

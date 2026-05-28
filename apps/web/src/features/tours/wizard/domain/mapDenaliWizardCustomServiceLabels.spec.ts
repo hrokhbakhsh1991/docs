@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 import { submitValidDenaliWizardDefaults } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 import { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";

@@ -1,4 +1,4 @@
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 /**
  * Reads a dot-separated path on the Denali wizard form (e.g. `tripDetails.logistics.gatheringPoints`).

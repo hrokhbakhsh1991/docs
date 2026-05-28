@@ -21,7 +21,7 @@ import {
 
 import { mapDenaliWizardToCreateTourPayload } from "../../domain/mapDenaliWizardToCreateTourPayload";
 import { normalizeDenaliWizardForm } from "../../schemas/denaliTourCreateFormModel";
-import type { DenaliCreateTourWizardForm } from "../../schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
   collectDenaliRuleRequiredIssues,
   type DenaliRuleRequiredIssue,

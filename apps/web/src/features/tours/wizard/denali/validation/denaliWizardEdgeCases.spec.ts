@@ -27,26 +27,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import {
+  buildDenaliTourCreateDefaultValues,
   applyDenaliWizardStepValidation,
   getDenaliWizardStepIssues,
   getDenaliWizardSubmitIssues,
   validateDenaliWizardForm,
-} from "@/features/tours/wizard/schemas/denaliTourCreateValidation";
-import { findDenaliRuleField } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { getDenaliUIFromForm } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
-import { denaliCanonicalWizardResolver } from "@/features/tours/wizard/schemas/denaliWizardCanonicalResolver";
-import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
-import {
+  findDenaliRuleField,
+  getDenaliUIFromForm,
+  denaliCanonicalWizardResolver,
+  mapDenaliWizardToCreateTourPayload,
   collectDenaliRuleRequiredIssues,
   type DenaliRuleRequiredIssue,
-} from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
-import {
   normalizeDenaliWizardForm,
   resolveDenaliRuleModelFromForm,
-} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
-import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
+  buildDenaliCreateTourPayloadProjection,
+} from "@/features/tours/testing/public-test-api";
 
 function issuePaths(issues: { path: any[] }[]): string[] {
   return issues.map((i) => i.path.join("."));

@@ -24,7 +24,7 @@ test("domain + outbox rolls back together when transaction aborts", async () => 
   } as unknown as EntityManager;
 
   const dataSource = {
-    async transaction<T>(_fn: (m: EntityManager) => Promise<T>): Promise<T> {
+    async transaction<T>(_fn: (_m: EntityManager) => Promise<T>): Promise<T> {
       const snapshot = persisted.length;
       try {
         return await _fn(manager);

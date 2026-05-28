@@ -36,7 +36,6 @@ function readFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch (err) {
-    console.error(`Failed to read ${filePath}: ${err.message}`);
     process.exit(1);
   }
 }
@@ -48,9 +47,7 @@ function readFile(filePath) {
 function writeReport(content) {
   try {
     fs.writeFileSync(OUTPUT_PATH, content, 'utf8');
-    console.log(`Report written to ${OUTPUT_PATH}`);
   } catch (err) {
-    console.error(`Failed to write report: ${err.message}`);
     process.exit(1);
   }
 }

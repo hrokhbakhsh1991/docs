@@ -13,7 +13,7 @@ import {
 } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
 import { submitValidDenaliWizardDefaults } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
 import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 
 /** Expected value for the registry-only overview field under test. */
 const EXPECTED_NON_ATTENDANCE_DETAILS =

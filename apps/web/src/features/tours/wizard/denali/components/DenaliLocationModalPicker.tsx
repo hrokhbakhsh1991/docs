@@ -31,7 +31,7 @@ export type DenaliLocationModalPickerProps = {
   /** Prefix for `data-testid` (e.g. zone key or `itinerary-day-2`). */
   testIdKey: string;
   value: DenaliLocationDataForm;
-  onConfirm: (coords: { latitude: number; longitude: number }) => void;
+  onConfirm: (_coords: { latitude: number; longitude: number }) => void;
 };
 
 /** Leaflet map mounts only while `open` — avoids inline map instances in the wizard layout. */
@@ -61,7 +61,7 @@ export function DenaliLocationModalPicker({
       cancelAnimationFrame(frame);
       setMapReady(false);
     };
-  }, [open, value.latitude, value.longitude]);
+  }, [open, value]);
 
   const handleConfirm = () => {
     if (mapValue) {

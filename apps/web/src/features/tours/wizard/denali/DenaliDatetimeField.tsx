@@ -5,7 +5,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { FormField, JalaliDatePicker, JalaliTimePicker } from "@tour/ui";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { useDenaliCanonical } from "./DenaliCanonicalContext";
 import { combineYmdAndTimeToIso, parseIsoToYmdAndTime } from "./denaliDatetime";

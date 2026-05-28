@@ -2,7 +2,7 @@ import type { RuleConfig } from "@repo/shared";
 import { DENALI_WORKSPACE } from "@repo/shared-contracts";
 import { normalizeTourFormProfileInput, type TourFormProfile } from "@repo/types";
 
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
   parseFieldRulesOverlay,
   type FieldRuleOverlayPatch,

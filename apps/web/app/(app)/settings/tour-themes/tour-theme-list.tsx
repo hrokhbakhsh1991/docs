@@ -39,9 +39,9 @@ function previewDescription(text: string | null | undefined): string {
 
 type SortableTourThemeRowProps = {
   item: SettingsTourThemeDto;
-  onEdit: (item: SettingsTourThemeDto) => void;
-  onDelete: (item: SettingsTourThemeDto) => void;
-  onToggleActive: (item: SettingsTourThemeDto, next: boolean) => void;
+  onEdit: (_item: SettingsTourThemeDto) => void;
+  onDelete: (_item: SettingsTourThemeDto) => void;
+  onToggleActive: (_item: SettingsTourThemeDto, _next: boolean) => void;
   mutating: boolean;
 };
 
@@ -117,10 +117,10 @@ function SortableTourThemeRow({
 
 export type TourThemeListProps = {
   items: SettingsTourThemeDto[];
-  onEdit: (item: SettingsTourThemeDto) => void;
-  onDelete: (item: SettingsTourThemeDto) => void;
-  onToggleActive: (item: SettingsTourThemeDto, next: boolean) => void;
-  onReorder: (itemIds: string[]) => Promise<void>;
+  onEdit: (_item: SettingsTourThemeDto) => void;
+  onDelete: (_item: SettingsTourThemeDto) => void;
+  onToggleActive: (_item: SettingsTourThemeDto, _next: boolean) => void;
+  onReorder: (_itemIds: string[]) => Promise<void>;
   mutating: boolean;
   readOnly?: boolean;
 };

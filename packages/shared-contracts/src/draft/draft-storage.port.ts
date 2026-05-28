@@ -26,14 +26,14 @@ export function toDraftScope(
  * Persistence adapter for draft snapshots (Postgres today; Redis or other backends later).
  */
 export type DraftStoragePort = {
-  find(scope: DraftScope): Promise<DraftSnapshot | null>;
-  upsert(scope: DraftScope, snapshot: DraftSnapshot): Promise<DraftSnapshot>;
-  delete(scope: DraftScope): Promise<void>;
+  find(_scope: DraftScope): Promise<DraftSnapshot | null>;
+  upsert(_scope: DraftScope, _snapshot: DraftSnapshot): Promise<DraftSnapshot>;
+  delete(_scope: DraftScope): Promise<void>;
   /**
    * Upgrade `data` + `schemaVersion` without bumping OCC `version` (used after read-time migration).
    */
   upgradeSchemaInPlace(
-    scope: DraftScope,
-    input: Pick<DraftSnapshot, "data" | "schemaVersion" | "version">,
+    _scope: DraftScope,
+    _input: Pick<DraftSnapshot, "data" | "schemaVersion" | "version">,
   ): Promise<DraftSnapshot | null>;
 };

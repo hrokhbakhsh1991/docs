@@ -1,5 +1,5 @@
 import { isClientBlobUrl } from "./preserveDenaliWizardBlobMedia";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateSchema";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 export type DenaliPhotoPersistenceIssue = {
   kind: "gallery" | "itinerary";

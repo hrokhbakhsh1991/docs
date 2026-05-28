@@ -45,14 +45,11 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error("[structured-http-errors] FAIL\n");
-    for (const v of violations) {
-      console.error(`  ${v}`);
+    for (const _v of violations) {
     }
     process.exit(1);
   }
 
-  console.log("[structured-http-errors] OK — GlobalExceptionFilter logs error_code on HTTP failures");
 }
 
 main();

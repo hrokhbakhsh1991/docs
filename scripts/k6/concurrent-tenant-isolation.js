@@ -76,7 +76,6 @@ export const options = {
 export default function tenantIsolationProbe() {
   const tenant = TENANTS[(__VU - 1) % TENANTS.length];
   if (!tenant.phone) {
-    console.warn(`Set WS${__VU}_PHONE for tenant ${tenant.slug}`);
     sleep(1);
     return;
   }

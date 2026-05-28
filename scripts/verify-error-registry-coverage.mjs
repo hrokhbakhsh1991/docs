@@ -58,7 +58,6 @@ function main() {
     registry.includes("function getUIError");
 
   if (!hasRuntimeFallback) {
-    console.error("[error-registry-coverage] FAIL — ErrorRegistry missing DOMAIN_REGISTRY / getUIError fallback");
     process.exit(1);
   }
 
@@ -66,20 +65,12 @@ function main() {
   const missing = expected.filter((code) => !registryCoversCode(registry, code, taxonomy));
 
   if (missing.length > 0) {
-    console.warn(
-      `[error-registry-coverage] ${missing.length} code(s) use getUIError/domainDefaultUi fallback (OK at runtime):`,
-    );
-    for (const c of missing.slice(0, 8)) {
-      console.warn(`  - ${c}`);
+    for (const _c of missing.slice(0, 8)) {
     }
     if (missing.length > 8) {
-      console.warn(`  ... +${missing.length - 8} more`);
     }
   }
 
-  console.log(
-    `[error-registry-coverage] OK — ${expected.length} canonical codes (${expected.length - missing.length} explicit, ${missing.length} via getUIError fallback)`,
-  );
 }
 
 main();

@@ -5,13 +5,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applyDenaliStructuralInvariants } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
+import { applyDenaliStructuralInvariants } from "@/features/tours";
 import {
   clearDenaliNonVisibleFormValues,
   resolveDenaliRuleModelFromForm,
-} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
-import { isDenaliFieldVisibleInModel } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
-import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
+} from "@/features/tours";
+import { isDenaliFieldVisibleInModel } from "@/features/tours";
+import { buildDenaliTourCreateTestValues } from "@/features/tours";
 
 function hydrateMountainWizardForm() {
   const form = buildDenaliTourCreateTestValues();
