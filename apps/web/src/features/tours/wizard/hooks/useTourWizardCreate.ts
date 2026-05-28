@@ -10,10 +10,12 @@ import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/class
  */
 import { createTourFromClassicWizardForm } from "@/features/tours/wizard/domain/createTourFromWizard";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { tourKeys } from "@/lib/query-keys";
 
 export function useTourWizardCreate() {
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceQueryScope();
 
   return useMutation({
     mutationFn: async (input: {
@@ -27,6 +29,7 @@ export function useTourWizardCreate() {
       return createTourFromClassicWizardForm({
         values: input.values,
         workspaceFormProfile: input.workspaceFormProfile,
+        workspaceId: workspaceId ?? undefined,
         themeCatalog: input.themeCatalog,
         tenantFormContract: input.tenantFormContract,
         sourcePresetId: input.sourcePresetId,
@@ -34,7 +37,12 @@ export function useTourWizardCreate() {
       });
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
+      const ws = workspaceId?.trim();
+      if (ws) {
+        await queryClient.invalidateQueries({ queryKey: tourKeys.listByWorkspace(ws) });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
+      }
     },
   });
 }

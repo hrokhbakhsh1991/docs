@@ -9,6 +9,7 @@ import { useDenaliCanonical } from "../DenaliCanonicalContext";
 import { useDenaliWizardNavigationOptional } from "../DenaliWizardNavigationContext";
 import { collectDenaliWizardSubmitIssuePresentation } from "../denaliWizardSubmitIssuePresentation";
 import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
+import { useWizardErrorHydrator } from "./WizardErrorHydrator";
 
 export function DenaliReviewValidationSummary() {
   const t = useTranslations("tours.denali");
@@ -31,6 +32,7 @@ export function DenaliReviewValidationSummary() {
       }),
     [form, ruleSet, t, visibleSteps],
   );
+  const errorHydrator = useWizardErrorHydrator({ byStep, navigation });
 
   if (byStep.length === 0) {
     return null;
@@ -58,7 +60,12 @@ export function DenaliReviewValidationSummary() {
           <section key={group.stepId} data-testid={`denali-validation-step-${group.stepId}`}>
             <button
               type="button"
-              onClick={() => navigation?.navigateToField(group.stepId, group.issues[0]!.formPath)}
+              onClick={() =>
+                errorHydrator.navigateByFormPath({
+                  stepId: group.stepId,
+                  formPath: group.issues[0]!.formPath,
+                })
+              }
               style={{
                 display: "block",
                 width: "100%",
@@ -83,7 +90,12 @@ export function DenaliReviewValidationSummary() {
                 <li key={`${issue.formPath}-${issue.message}`}>
                   <button
                     type="button"
-                    onClick={() => navigation?.navigateToField(issue.stepId, issue.formPath)}
+                    onClick={() =>
+                      errorHydrator.navigateByFormPath({
+                        stepId: issue.stepId,
+                        formPath: issue.formPath,
+                      })
+                    }
                     style={{
                       padding: 0,
                       border: "none",

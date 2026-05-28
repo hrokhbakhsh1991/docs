@@ -14,9 +14,10 @@ import { flattenDenaliFormErrors } from "./flattenDenaliFormErrors";
 import { useDenaliWizardNavigation } from "./DenaliWizardNavigationContext";
 import { collectDenaliWizardSubmitIssuePresentation } from "./denaliWizardSubmitIssuePresentation";
 import { debugSessionLog } from "@/lib/debug-session-log";
+import { usePublishButtonGuard } from "./hooks/usePublishButtonGuard";
 
 type DenaliWizardSubmitControlProps = {
-  disabled: boolean;
+  navLocked: boolean;
   isPending: boolean;
   pendingLabel: string;
   submitLabel: string;
@@ -26,7 +27,7 @@ type DenaliWizardSubmitControlProps = {
 };
 
 export function DenaliWizardSubmitControl({
-  disabled,
+  navLocked,
   isPending,
   pendingLabel,
   submitLabel,
@@ -37,6 +38,7 @@ export function DenaliWizardSubmitControl({
   const tDenali = useTranslations("tours.denali");
   const { handleSubmit, getValues, formState } = useFormContext<DenaliCreateTourWizardForm>();
   const { navigateToField } = useDenaliWizardNavigation();
+  const publishButtonGuard = usePublishButtonGuard({ navLocked, ruleSet });
 
   const onInvalid = useCallback(
     (fieldErrors: typeof formState.errors) => {
@@ -79,7 +81,7 @@ export function DenaliWizardSubmitControl({
       type="button"
       variant="primary"
       onClick={() => void handleSubmit(onSubmit, onInvalid)()}
-      disabled={disabled}
+      disabled={publishButtonGuard.disabled}
       data-testid="denali-wizard-final-submit"
     >
       {isPending ? pendingLabel : submitLabel}

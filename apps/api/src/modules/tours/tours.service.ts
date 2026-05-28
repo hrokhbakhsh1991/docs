@@ -1027,6 +1027,13 @@ export class ToursService {
     );
   }
 
+  async updateTourStatus(
+    tourId: string,
+    lifecycleStatus: TourLifecycleStatus,
+  ): Promise<TourResponseDto> {
+    return this.updateTour(tourId, { lifecycle_status: lifecycleStatus });
+  }
+
   /**
    * Tour PATCH write path: pessimistic row lock, capacity check, and save run in one transaction
    * (or the idempotency handler's shared EntityManager) to close TOCTOU vs live `acceptedCount`.

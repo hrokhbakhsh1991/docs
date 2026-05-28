@@ -1,6 +1,9 @@
 export const tourKeys = {
   all: ["tours"] as const,
   lists: () => [...tourKeys.all, "list"] as const,
+  /** Tenant/workspace scoped list prefix to avoid cross-tenant invalidation. */
+  listByWorkspace: (workspaceId: string) =>
+    [...tourKeys.lists(), { workspaceId }] as const,
   /** List cache key; optional `page` / `limit` align with `GET /api/v2/tours` query when present. */
   list: (params: { search: string; page?: number; limit?: number }) =>
     [

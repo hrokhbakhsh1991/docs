@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -22,11 +22,11 @@ import { denaliLocationAddressText } from "@repo/types/denali";
 
 import { useDenaliCanonicalModel } from "../hooks/useDenaliCanonicalModel";
 import { getDenaliWizardSubmitIssues } from "../validation/denaliWizardFormZod";
-import { getDenaliWizardPublishReadinessIssues } from "../validation/denaliWizardPublishReadiness";
 import { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 import { getDenaliStepTitleFa } from "@/features/tours/wizard/denaliStepConfig";
 import { DenaliReviewParticipantsDisplay } from "./DenaliReviewParticipantsDisplay";
 import { DenaliReviewValidationSummary } from "../components/DenaliReviewValidationSummary";
+import { useWizardStateGuard } from "../hooks/useWizardStateGuard";
 import {
   denaliCanonicalOptionalTrimmedString,
   sanitizeDenaliCanonicalModel,
@@ -144,15 +144,7 @@ function formatScheduleLine(iso: string | undefined): string | undefined {
 
 export function DenaliReviewStep() {
   const t = useTranslations("tours.denali");
-  const {
-    control,
-    getValues,
-    setValue,
-  } = useFormContext<DenaliCreateTourWizardForm>();
-
-  const publishStatus =
-    (useWatch({ control, name: "basicInfo.publishStatus" }) as "draft" | "active" | undefined) ??
-    "draft";
+  const { getValues } = useFormContext<DenaliCreateTourWizardForm>();
   const formForUi = useDenaliWizardFormSnapshot();
 
   const { basicsSelection, ruleSet } = useDenaliCanonical();
@@ -189,11 +181,14 @@ export function DenaliReviewStep() {
   const { isVisible: isReviewFieldVisible, arePathsVisible: areReviewPathsVisible } =
     useDenaliStepFieldRules("review");
 
-  const publishReadinessIssues = useMemo(
-    () => getDenaliWizardPublishReadinessIssues(formForUi),
-    [formForUi],
-  );
-  const publishReadinessBlocked = publishStatus === "active" && publishReadinessIssues.length > 0;
+  const {
+    publishStatus,
+    publishIssues,
+    publishReadinessBlocked,
+    disableActivePublish,
+    requestStatus,
+    enforceSafeStatus,
+  } = useWizardStateGuard({ disableActiveWhileNotReady: true });
   const equipmentQuery = useSettingsEquipment();
   const diagnosticLoggedRef = useRef(false);
 
@@ -220,6 +215,10 @@ export function DenaliReviewStep() {
       source: "review-step-mount",
     });
   }, [equipmentQuery.data, equipmentQuery.isLoading, getValues]);
+
+  useEffect(() => {
+    enforceSafeStatus();
+  }, [enforceSafeStatus]);
 
   const showOutdoorProgram = areReviewPathsVisible(
     ["program.difficultyLevel", "program.hikingHoursApprox"],
@@ -319,7 +318,7 @@ export function DenaliReviewStep() {
 
       <p style={{ margin: 0, color: "#64748b" }}>{t("review.intro")}</p>
 
-      {publishReadinessBlocked ? (
+      {publishIssues.length > 0 ? (
         <div
           role="alert"
           style={{
@@ -335,7 +334,7 @@ export function DenaliReviewStep() {
             {t("review.publishDraftOnlyWarning")}
           </p>
           <ul style={{ margin: 0, paddingRight: "1.25rem" }}>
-            {publishReadinessIssues.map((issue, index) => (
+            {publishIssues.map((issue, index) => (
               <li key={`${issue.code}-${issue.path ?? issue.message}-${index}`}>
                 {issue.message}
               </li>
@@ -347,15 +346,9 @@ export function DenaliReviewStep() {
       <TourPublishStatusField
         value={publishStatus === "active" ? "active" : "draft"}
         onChange={(next: TourFormLifecycleStatus) => {
-          if (next === "archived") return;
-          if (next === "active" && publishReadinessIssues.length > 0) {
-            return;
-          }
-          setValue("basicInfo.publishStatus", next === "active" ? "active" : "draft", {
-            shouldDirty: true,
-          });
+          requestStatus(next);
         }}
-        disableValues={publishReadinessIssues.length > 0 ? (["active"] as const) : undefined}
+        disableValues={disableActivePublish ? (["active"] as const) : undefined}
         data-testid="denali-review-publish-status"
       />
 

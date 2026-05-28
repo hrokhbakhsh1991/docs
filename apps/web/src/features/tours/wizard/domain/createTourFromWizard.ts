@@ -30,6 +30,7 @@ export async function createTourFromClassicWizardForm(input: {
   workspaceFormProfile: TourFormProfile;
   themeCatalog?: WizardThemeCatalogRow;
   tenantFormContract?: TenantTourFormContract;
+  workspaceId?: string;
   sourcePresetId?: string;
   sourceTourId?: string;
 }): Promise<unknown> {
@@ -43,7 +44,7 @@ export async function createTourFromClassicWizardForm(input: {
       { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
       { themeCatalog: input.themeCatalog },
     ),
-    { idempotencyKey: getWizardSubmitIdempotencyKey() },
+    { idempotencyKey: getWizardSubmitIdempotencyKey(input.workspaceId) },
   );
 }
 
@@ -57,6 +58,7 @@ export async function createTourFromWorkspaceWizardForm(input: {
   /** Workspace template profile — client strip only; not sent on POST (server resolves from template). */
   workspaceFormProfile: TourFormProfile;
   themeCatalog?: WizardThemeCatalogRow;
+  workspaceId?: string;
   sourcePresetId?: string;
   sourceTourId?: string;
 }): Promise<unknown> {
@@ -101,7 +103,7 @@ export async function createTourFromWorkspaceWizardForm(input: {
         { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
         { themeCatalog: input.themeCatalog },
       ),
-      { idempotencyKey: getWizardSubmitIdempotencyKey() },
+      { idempotencyKey: getWizardSubmitIdempotencyKey(input.workspaceId) },
     );
   } catch (err) {
     debugSessionLog(

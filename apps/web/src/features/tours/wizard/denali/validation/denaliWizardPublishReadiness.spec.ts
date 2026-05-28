@@ -9,6 +9,7 @@ import {
 
 import {
   getDenaliWizardPublishReadinessIssues,
+  getDenaliWizardPublishReadinessIssuesForTargetStatus,
   isDenaliWizardReadyForOpenPublish,
 } from "./denaliWizardPublishReadiness";
 
@@ -73,6 +74,15 @@ function publishGateMountainForm(
 test("getDenaliWizardPublishReadinessIssues: draft publishStatus skips OPEN gate", () => {
   const form = publishGateMountainForm({ basicInfo: { publishStatus: "draft" } });
   assert.deepEqual(getDenaliWizardPublishReadinessIssues(form), []);
+});
+
+test("getDenaliWizardPublishReadinessIssuesForTargetStatus: draft form still reports active gate issues", () => {
+  const form = publishGateMountainForm({
+    basicInfo: { publishStatus: "draft" },
+    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
+  });
+  const issues = getDenaliWizardPublishReadinessIssuesForTargetStatus(form, "active");
+  assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
 });
 
 test("getDenaliWizardPublishReadinessIssues: active without geo fails publish gate", () => {

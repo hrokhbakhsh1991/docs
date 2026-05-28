@@ -661,7 +661,7 @@ export function DenaliCreateTourWizard() {
                   </Button>
                   {isLastStep ? (
                     <DenaliWizardSubmitControl
-                      disabled={navLocked}
+                      navLocked={navLocked}
                       isPending={createMutation.isPending}
                       pendingLabel={t("submitting")}
                       submitLabel={t("submit")}

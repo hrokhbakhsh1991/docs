@@ -36,6 +36,11 @@ import { ListToursQueryDto } from "./dto/list-tours-query.dto";
 import { PaginatedToursResponseDto } from "./dto/paginated-tours-response.dto";
 import { TourResponseDto } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
+import { TourLifecycleStatus } from "./entities/tour.entity";
+import {
+  UpdateTourStatusValidationPipe,
+  type UpdateTourStatusPayload,
+} from "./pipes/update-tour-status-validation.pipe";
 import { assertTourCreateWritePreMerge } from "./policies/assert-tour-create-write-pipeline";
 import { assertTourPatchWritePreMerge } from "./policies/assert-tour-patch-write-pipeline";
 import { RequestContextService } from "../../common/request-context/request-context.service";
@@ -161,6 +166,20 @@ export class ToursController {
       dto,
     });
     return this.toursService.updateTour(tourId, dto);
+  }
+
+  @Patch(":tourId/status")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Update only tour lifecycle status" })
+  @ApiOkResponse({ type: TourResponseDto })
+  @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
+  @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
+  @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Tour"))
+  async updateStatus(
+    @Param("tourId", new ParseUUIDPipe()) tourId: string,
+    @Body(new UpdateTourStatusValidationPipe()) body: UpdateTourStatusPayload,
+  ): Promise<TourResponseDto> {
+    return this.toursService.updateTourStatus(tourId, body.lifecycle_status as TourLifecycleStatus);
   }
 
   @Get()

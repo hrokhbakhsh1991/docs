@@ -111,6 +111,26 @@ export function getDenaliWizardPublishReadinessIssues(
   return issues;
 }
 
+/**
+ * Evaluates publish readiness as if the form used `targetStatus`.
+ * Useful for UI guards that must disable "active" while current status is still draft.
+ */
+export function getDenaliWizardPublishReadinessIssuesForTargetStatus(
+  rawForm: DenaliCreateTourWizardForm,
+  targetStatus: DenaliCreateTourWizardForm["basicInfo"]["publishStatus"],
+  profile: TourFormProfile = "denali_pilot",
+  ruleSet: DenaliRuleSet = denaliRuleSet,
+): DenaliWizardPublishReadinessIssue[] {
+  const patchedForm: DenaliCreateTourWizardForm = {
+    ...rawForm,
+    basicInfo: {
+      ...rawForm.basicInfo,
+      publishStatus: targetStatus,
+    },
+  };
+  return getDenaliWizardPublishReadinessIssues(patchedForm, profile, ruleSet);
+}
+
 export function isDenaliWizardReadyForOpenPublish(
   form: DenaliCreateTourWizardForm,
   profile: TourFormProfile = "denali_pilot",

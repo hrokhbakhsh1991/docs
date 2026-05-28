@@ -28,6 +28,7 @@ export function useDenaliTourWizardCreate() {
         values: input.values,
         ruleSet: input.ruleSet,
         workspaceFormProfile: input.workspaceFormProfile,
+        workspaceId: workspaceId ?? undefined,
         themeCatalog: input.themeCatalog,
         sourcePresetId: input.sourcePresetId,
         sourceTourId: input.sourceTourId,
@@ -38,7 +39,11 @@ export function useDenaliTourWizardCreate() {
       if (ws) {
         await deleteDraftSnapshot(ws, DENALI_CREATE_DRAFT_KEY).catch(() => undefined);
       }
-      await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
+      if (ws) {
+        await queryClient.invalidateQueries({ queryKey: tourKeys.listByWorkspace(ws) });
+      } else {
+        await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
+      }
     },
   });
 }

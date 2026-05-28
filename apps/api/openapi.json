@@ -2539,6 +2539,42 @@
         ]
       }
     },
+    "/api/v2/tours/{tourId}/status": {
+      "patch": {
+        "operationId": "ToursController_updateStatus",
+        "summary": "Update only tour lifecycle status",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v2/tours/{tourId}/registrations": {
       "get": {
         "operationId": "ToursController_listTourRegistrations",

@@ -25,13 +25,26 @@ function mockSessionStorage(): Map<string, string> {
 test("getWizardSubmitIdempotencyKey is stable until cleared", () => {
   const storage = mockSessionStorage();
   storage.clear();
+  const workspaceId = "tenant-a";
 
-  const a = getWizardSubmitIdempotencyKey();
-  const b = getWizardSubmitIdempotencyKey();
+  const a = getWizardSubmitIdempotencyKey(workspaceId);
+  const b = getWizardSubmitIdempotencyKey(workspaceId);
   assert.equal(a, b);
   assert.match(a, /^[0-9a-f-]{36}$/i);
 
-  clearWizardSubmitIdempotencyKey();
-  const c = getWizardSubmitIdempotencyKey();
+  clearWizardSubmitIdempotencyKey(workspaceId);
+  const c = getWizardSubmitIdempotencyKey(workspaceId);
   assert.notEqual(a, c);
+});
+
+test("workspace scope keeps idempotency keys isolated", () => {
+  const storage = mockSessionStorage();
+  storage.clear();
+
+  const a = getWizardSubmitIdempotencyKey("tenant-a");
+  const b = getWizardSubmitIdempotencyKey("tenant-b");
+
+  assert.notEqual(a, b);
+  assert.equal(getWizardSubmitIdempotencyKey("tenant-a"), a);
+  assert.equal(getWizardSubmitIdempotencyKey("tenant-b"), b);
 });

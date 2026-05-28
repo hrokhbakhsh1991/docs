@@ -1,7 +1,16 @@
-const STORAGE_KEY = "tour-wizard-submit-idempotency-key";
+const STORAGE_KEY_PREFIX = "tour-wizard-submit-idempotency-key";
 
 /** In-memory fallback when sessionStorage is unavailable (SSR / unit tests). */
-let memoryFallbackKey: string | null = null;
+const memoryFallbackKeys = new Map<string, string>();
+
+function resolveScope(workspaceId?: string): string {
+  const scoped = workspaceId?.trim();
+  return scoped && scoped !== "undefined" ? scoped : "global";
+}
+
+function scopedStorageKey(workspaceId?: string): string {
+  return `${STORAGE_KEY_PREFIX}-${resolveScope(workspaceId)}`;
+}
 
 function getSessionStorage(): Storage | null {
   try {
@@ -18,11 +27,12 @@ function getSessionStorage(): Storage | null {
   return null;
 }
 
-function readStoredKey(): string | null {
+function readStoredKey(workspaceId?: string): string | null {
+  const storageKey = scopedStorageKey(workspaceId);
   const storage = getSessionStorage();
   if (storage) {
     try {
-      const raw = storage.getItem(STORAGE_KEY);
+      const raw = storage.getItem(storageKey);
       if (raw && raw.trim() !== "") {
         return raw.trim();
       }
@@ -30,17 +40,18 @@ function readStoredKey(): string | null {
       // fall through to memory
     }
   }
-  return memoryFallbackKey;
+  return memoryFallbackKeys.get(storageKey) ?? null;
 }
 
-function writeStoredKey(key: string): void {
-  memoryFallbackKey = key;
+function writeStoredKey(key: string, workspaceId?: string): void {
+  const storageKey = scopedStorageKey(workspaceId);
+  memoryFallbackKeys.set(storageKey, key);
   const storage = getSessionStorage();
   if (!storage) {
     return;
   }
   try {
-    storage.setItem(STORAGE_KEY, key);
+    storage.setItem(storageKey, key);
   } catch {
     // ignore quota / private mode
   }
@@ -57,25 +68,26 @@ function mintKey(): string {
  * Stable Idempotency-Key for one wizard create attempt until {@link clearWizardSubmitIdempotencyKey}.
  * map-phase P1.2-a
  */
-export function getWizardSubmitIdempotencyKey(): string {
-  const existing = readStoredKey();
+export function getWizardSubmitIdempotencyKey(workspaceId?: string): string {
+  const existing = readStoredKey(workspaceId);
   if (existing) {
     return existing;
   }
   const next = mintKey();
-  writeStoredKey(next);
+  writeStoredKey(next, workspaceId);
   return next;
 }
 
 /** Call after successful tour create so the next tour gets a fresh key. */
-export function clearWizardSubmitIdempotencyKey(): void {
-  memoryFallbackKey = null;
+export function clearWizardSubmitIdempotencyKey(workspaceId?: string): void {
+  const storageKey = scopedStorageKey(workspaceId);
+  memoryFallbackKeys.delete(storageKey);
   const storage = getSessionStorage();
   if (!storage) {
     return;
   }
   try {
-    storage.removeItem(STORAGE_KEY);
+    storage.removeItem(storageKey);
   } catch {
     // ignore
   }
