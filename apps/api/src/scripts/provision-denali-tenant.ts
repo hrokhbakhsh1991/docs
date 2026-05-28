@@ -150,7 +150,7 @@ async function assignOwnerMembership(
     }
   }
 
-  let membership = await membershipRepo.findOne({
+  const membership = await membershipRepo.findOne({
     where: { tenantId, userId, deletedAt: IsNull() },
   });
   if (!membership) {

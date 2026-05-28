@@ -94,7 +94,8 @@ export class ReconciliationService {
       }
 
       let skip = 0;
-      while (true) {
+      let pageHasTours = true;
+      while (pageHasTours) {
         const tours = await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
           return manager.find(TourEntity, {
             where: { tenantId },
@@ -104,8 +105,9 @@ export class ReconciliationService {
           });
         });
 
-        if (tours.length === 0) {
-          break;
+        pageHasTours = tours.length > 0;
+        if (!pageHasTours) {
+          continue;
         }
 
         for (const tour of tours) {
@@ -120,6 +122,7 @@ export class ReconciliationService {
         }
 
         skip += TOUR_PAGE_SIZE;
+        pageHasTours = tours.length === TOUR_PAGE_SIZE;
       }
     }
 

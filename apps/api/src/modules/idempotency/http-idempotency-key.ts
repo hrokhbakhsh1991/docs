@@ -2,7 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 
 /** Keys are stored in Postgres as `varchar`; reject oversized or binary-looking payloads early. */
 export const HTTP_IDEMPOTENCY_KEY_MAX_LENGTH = 256;
-export const HTTP_IDEMPOTENCY_KEY_PATTERN = /^[\w.~\-]{1,256}$/u;
+export const HTTP_IDEMPOTENCY_KEY_PATTERN = /^[\w.~-]{1,256}$/u;
 
 function trimKey(raw: string | string[] | undefined): string {
   if (raw === undefined) return "";

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=22.0.0 <23"
+    "node": ">=24.0.0 <25"
   },
   "scripts": {
     "prepare": "husky",
@@ -43,6 +43,7 @@
     "tsc": "pnpm --filter @repo/shared run lint && pnpm --filter @repo/domain-contracts run lint && pnpm --filter @repo/shared-contracts run lint && pnpm --filter @repo/draft-engine run lint && pnpm --filter @apps/api exec tsc --noEmit && pnpm --filter @apps/web exec tsc --noEmit && pnpm --filter @tour/ui run build && pnpm --filter @apps/telegram run lint",
     "depcruise:check": "depcruise --config dependency-cruiser.config.js apps --output-type err-long",
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
+    "audit:socket": "bash scripts/socket-ci-check.sh",
     "eslint": "eslint . --max-warnings 0",
     "depcruise:validate": "depcruise --validate dependency-cruiser.config.js",
     "depcruise": "depcruise --config dependency-cruiser.config.js . --output-type err-long",
@@ -74,6 +75,7 @@
     "jscpd": "^4.2.4",
     "lint-staged": "^17.0.5",
     "nx": "22.7.1",
+    "socket": "^1.1.108",
     "ts-jest": "^29.4.9"
   },
   "lint-staged": {

@@ -205,7 +205,7 @@ async function upsertMembership(
     metadata.allowedRegionIds = [...input.allowedRegionIds];
   }
 
-  let row = await membershipRepo.findOne({
+  const row = await membershipRepo.findOne({
     where: { tenantId: input.tenantId, userId: input.userId, deletedAt: IsNull() },
   });
   if (!row) {

@@ -1,0 +1,17 @@
+# Socket.dev — supply-chain scan config (CLI + GitHub App).
+# https://docs.socket.dev/docs/socket-yml
+version: 2
+
+projectIgnorePaths:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/.next/**"
+  - "**/coverage/**"
+  - "**/.turbo/**"
+
+triggerPaths:
+  - "package.json"
+  - "pnpm-lock.yaml"
+  - "pnpm-workspace.yaml"
+  - "apps/**/package.json"
+  - "packages/**/package.json"

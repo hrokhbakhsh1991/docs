@@ -24,7 +24,7 @@ export function PageHeader({ title, actions, breadcrumb, description, className,
         {showMidRow ? (
           <div className={styles.titleRow}>
             <div className={styles.titleBlock}>
-              {hasTitle ? <h1 className={styles.title}>{title!.trim()}</h1> : null}
+              {hasTitle ? <h1 className={styles.title}>{title?.trim()}</h1> : null}
               {description ? (
                 <div className={styles.description}>{description}</div>
               ) : null}

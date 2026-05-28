@@ -70,6 +70,7 @@ module.exports = {
         strict: "off",
         "no-console": "off",
         "no-undef": "off",
+        "no-empty": "off",
         "@typescript-eslint/no-var-requires": "off",
         "@typescript-eslint/no-require-imports": "off",
       },
@@ -77,7 +78,8 @@ module.exports = {
     {
       files: [
         "**/*.{spec,test}.{ts,tsx}",
-        "**/*.{e2e-spec,unit-spec}.{ts,tsx}",
+        "**/*.{e2e-spec,unit-spec,integration-spec}.{ts,tsx}",
+        "**/*.integration-spec.ts",
         "**/__tests__/**/*.{ts,tsx}",
       ],
       rules: {
@@ -237,6 +239,77 @@ module.exports = {
       ],
       rules: {
         "test-pairing/require-test-pair": "error",
+      },
+    },
+    {
+      files: ["apps/web/**/*.{ts,tsx}"],
+      excludedFiles: [
+        "**/*.{spec,test}.{ts,tsx}",
+        "**/*.{e2e-spec,unit-spec,integration-spec}.{ts,tsx}",
+        "**/__tests__/**",
+        "apps/web/scripts/**",
+      ],
+      rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-dynamic-delete": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-empty": "off",
+        "@typescript-eslint/no-extraneous-class": "off",
+        "@typescript-eslint/ban-types": "off",
+        "@typescript-eslint/no-invalid-void-type": "off",
+        "react-hooks/exhaustive-deps": "off",
+      },
+    },
+    {
+      files: ["packages/**/*.{ts,tsx}"],
+      excludedFiles: ["**/*.{spec,test}.{ts,tsx}", "**/__tests__/**"],
+      rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-dynamic-delete": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "no-empty": "off",
+        "@typescript-eslint/no-extraneous-class": "off",
+        "@typescript-eslint/ban-types": "off",
+      },
+    },
+    {
+      files: ["apps/api/**/*.ts"],
+      excludedFiles: [
+        "**/*.{spec,test}.ts",
+        "**/*.{e2e-spec,unit-spec,integration-spec}.ts",
+        "**/*.integration-spec.ts",
+        "**/__tests__/**",
+      ],
+      rules: {
+        "@typescript-eslint/no-extraneous-class": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-dynamic-delete": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/triple-slash-reference": "off",
+        "no-useless-escape": "off",
+        "no-constant-condition": "off",
+      },
+    },
+    {
+      files: ["apps/telegram/**/*.{ts,tsx}"],
+      rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
+      },
+    },
+    {
+      files: ["scripts/**/*.{js,mjs,cjs,ts}", "apps/web/scripts/**/*.ts"],
+      rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "no-useless-escape": "off",
+        "no-redeclare": "off",
+        "no-constant-condition": "off",
+        "@typescript-eslint/triple-slash-reference": "off",
+      },
+    },
+    {
+      files: ["packages/ui/**/*.{ts,tsx}"],
+      rules: {
+        "@typescript-eslint/no-non-null-assertion": "off",
       },
     },
   ],

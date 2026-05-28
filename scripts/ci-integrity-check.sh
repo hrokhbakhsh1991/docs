@@ -27,5 +27,8 @@ pnpm run depcruise
 step "pnpm test (draft-engine, shared, api unit tests)"
 pnpm run test
 
+step "socket ci (supply-chain; skipped locally without SOCKET_SECURITY_API_TOKEN)"
+pnpm run audit:socket
+
 echo ""
 echo "ci-integrity-check: all gates passed."
