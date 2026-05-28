@@ -34,7 +34,7 @@ const TEST_SUFFIXES = [".spec.ts", ".spec.tsx", ".test.ts", ".test.tsx"];
  */
 export function isExcludedSubject(relPosix) {
   return (
-    /\.(spec|test)\.(ts|tsx)$/.test(relPosix) ||
+    /\.(spec|test|stories)\.(ts|tsx|mdx)$/.test(relPosix) ||
     /\/__tests__\//.test(relPosix) ||
     /\/testing\//.test(relPosix) ||
     /\.generated\.(ts|tsx)$/.test(relPosix) ||

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "@apps/web API",
+  "entryPointStrategy": "expand",
+  "entryPoints": ["./src", "./lib"],
+  "out": "typedoc-out",
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/*.stories.mdx",
+    "**/.storybook/**",
+    "**/node_modules/**",
+    "**/.next/**"
+  ],
+  "skipErrorChecking": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "readme": "none"
+}

@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 # Zero-tolerance pre-commit — do not use git commit --no-verify.
+# Runs the full CI integrity suite; commit aborts if any gate fails.
 set -eu
 
 if [ "${HUSKY:-1}" = "0" ]; then
@@ -12,4 +13,4 @@ if [ "${SKIP_HOOKS:-}" != "" ] || [ "${SKIP_HOOK:-}" != "" ]; then
   exit 1
 fi
 
-pnpm lint-staged
+pnpm run ci:integrity

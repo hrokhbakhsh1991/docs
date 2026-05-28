@@ -30,7 +30,10 @@
     "auth:test": "node --env-file=.env.local --import tsx scripts/login-test.ts",
     "generate:denali-wizard": "tsx scripts/generate-denali-wizard-config.ts",
     "audit:denali-registry": "tsx scripts/registry-integrity-audit.ts",
-    "verify:schema-parity": "tsx --tsconfig tsconfig.json ../../scripts/verify-schema-parity.ts"
+    "verify:schema-parity": "tsx --tsconfig tsconfig.json ../../scripts/verify-schema-parity.ts",
+    "docs:typedoc": "typedoc --options typedoc.json",
+    "docs:storybook": "storybook dev -p 6006",
+    "docs:storybook:build": "storybook build -o storybook-static"
   },
   "dependencies": {
     "@casl/react": "^6.0.0",
@@ -63,6 +66,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-links": "^8.6.14",
+    "@storybook/blocks": "^8.6.14",
+    "@storybook/nextjs": "^8.6.14",
+    "@storybook/react": "^8.6.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -77,8 +85,10 @@
     "eslint-config-next": "14.2.15",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.4.1",
+    "storybook": "^8.6.14",
     "ts-jest": "^29.4.9",
     "tsx": "^4.20.6",
+    "typedoc": "^0.28.19",
     "typescript": "5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^1.6.0"

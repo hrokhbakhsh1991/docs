@@ -38,6 +38,10 @@ export {
   getDenaliUIFromForm,
   getDenaliUIFromCanonical,
 } from "../rules/denaliUIAdapter";
+export {
+  isDenaliMountaineeringTourType,
+  isPeakExperienceVisible,
+} from "../rules/predicates";
 
 // Domain (canonical basics only — see ../domain/index.ts)
 export {

@@ -3,13 +3,21 @@
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 
+import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
+
 import { getDenaliWizardVisibleSteps, useDenaliCanonical, useDenaliWizardFormSnapshot } from "../application";
 
 import { useDenaliWizardNavigationOptional } from "../DenaliWizardNavigationContext";
 import { collectDenaliWizardSubmitIssuePresentation } from "../denaliWizardSubmitIssuePresentation";
+import type { DenaliSubmitErrorFocusHandler } from "../validation/denaliSubmitValidation";
 import { useWizardErrorHydrator } from "./WizardErrorHydrator";
 
-export function DenaliReviewValidationSummary() {
+type DenaliReviewValidationSummaryProps = {
+  /** When set, clicking an error jumps to the wizard step and focuses the field. */
+  onFocusField?: DenaliSubmitErrorFocusHandler;
+};
+
+export function DenaliReviewValidationSummary({ onFocusField }: DenaliReviewValidationSummaryProps = {}) {
   const t = useTranslations("tours.denali");
   const { ruleSet } = useDenaliCanonical();
   const navigation = useDenaliWizardNavigationOptional();
@@ -32,11 +40,20 @@ export function DenaliReviewValidationSummary() {
   );
   const errorHydrator = useWizardErrorHydrator({ byStep, navigation });
 
+  const focusIssue = (stepId: DenaliCreateWizardStepId, formPath: string) => {
+    if (onFocusField != null) {
+      onFocusField(stepId, formPath);
+      return;
+    }
+    errorHydrator.navigateByFormPath({ stepId, formPath });
+  };
+
   if (byStep.length === 0) {
     return null;
   }
 
   const totalIssues = byStep.reduce((sum, group) => sum + group.issues.length, 0);
+  const canFocusErrors = navigation != null || onFocusField != null;
 
   return (
     <div
@@ -58,12 +75,7 @@ export function DenaliReviewValidationSummary() {
           <section key={group.stepId} data-testid={`denali-validation-step-${group.stepId}`}>
             <button
               type="button"
-              onClick={() =>
-                errorHydrator.navigateByFormPath({
-                  stepId: group.stepId,
-                  formPath: group.issues[0]!.formPath,
-                })
-              }
+              onClick={() => focusIssue(group.stepId, group.issues[0]!.formPath)}
               style={{
                 display: "block",
                 width: "100%",
@@ -73,8 +85,8 @@ export function DenaliReviewValidationSummary() {
                 background: "transparent",
                 color: "inherit",
                 fontWeight: 600,
-                cursor: navigation ? "pointer" : "default",
-                textDecoration: navigation ? "underline" : "none",
+                cursor: canFocusErrors ? "pointer" : "default",
+                textDecoration: canFocusErrors ? "underline" : "none",
               }}
               data-testid={`denali-validation-step-link-${group.stepId}`}
             >
@@ -88,20 +100,15 @@ export function DenaliReviewValidationSummary() {
                 <li key={`${issue.formPath}-${issue.message}`}>
                   <button
                     type="button"
-                    onClick={() =>
-                      errorHydrator.navigateByFormPath({
-                        stepId: issue.stepId,
-                        formPath: issue.formPath,
-                      })
-                    }
+                    onClick={() => focusIssue(issue.stepId, issue.formPath)}
                     style={{
                       padding: 0,
                       border: "none",
                       background: "transparent",
                       color: "inherit",
-                      cursor: navigation ? "pointer" : "default",
+                      cursor: canFocusErrors ? "pointer" : "default",
                       textAlign: "start",
-                      textDecoration: navigation ? "underline" : "none",
+                      textDecoration: canFocusErrors ? "underline" : "none",
                     }}
                     data-testid={`denali-validation-field-link-${issue.formPath.replace(/\./g, "-")}`}
                   >

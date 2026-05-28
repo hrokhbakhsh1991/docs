@@ -11,14 +11,16 @@ import { findDenaliRuleField } from "./rules/denaliRuleModel";
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { resolveDenaliRuleModelFromForm } from "./validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import { mergeDenaliActiveSubmitIssues } from "./validation/denaliSubmitValidation";
 import { getDenaliWizardSubmitIssues } from "./validation/denaliWizardFormZod";
+import { getDenaliWizardPublishReadinessIssues } from "./validation/denaliWizardPublishReadiness";
 import {
   resolveDenaliRegistryFieldLabel,
   resolveDenaliRegistryStepId,
 } from "./denaliRegistryFieldLabel";
 import type { DenaliUIContextOptions } from "./rules/denaliUIAdapter";
 
-type DenaliT = ReturnType<typeof useTranslations<"tours.denali">>;
+export type DenaliT = ReturnType<typeof useTranslations<"tours.denali">>;
 
 export type DenaliWizardSubmitIssueView = {
   formPath: string;
@@ -120,7 +122,12 @@ export function collectDenaliWizardSubmitIssuePresentation(input: {
   views: DenaliWizardSubmitIssueView[];
   byStep: DenaliWizardSubmitIssuesByStep[];
 } {
-  const issues = getDenaliWizardSubmitIssues(input.form, input.uiOptions, input.ruleSet);
+  const submitIssues = getDenaliWizardSubmitIssues(input.form, input.uiOptions, input.ruleSet);
+  const publishIssues =
+    (input.form.basicInfo.publishStatus ?? "draft") === "active"
+      ? getDenaliWizardPublishReadinessIssues(input.form, "denali_pilot", input.ruleSet)
+      : [];
+  const issues = mergeDenaliActiveSubmitIssues(submitIssues, publishIssues);
   const views = buildDenaliSubmitIssueViews(issues, input.form, input.ruleSet, input.t);
   return {
     views,

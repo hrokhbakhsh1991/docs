@@ -1,7 +1,20 @@
 {
   "root": true,
   "extends": ["../../.eslintrc.cjs", "next/core-web-vitals"],
-  "ignorePatterns": [".next/**", "node_modules/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+  "ignorePatterns": [
+    ".next/**",
+    "node_modules/**",
+    "playwright-report/**",
+    "test-results/**",
+    "next-env.d.ts",
+    ".storybook/**",
+    "stories/**",
+    "typedoc-out/**",
+    "storybook-static/**",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/*.stories.mdx"
+  ],
   "rules": {
     "@next/next/no-html-link-for-pages": "error",
     "react-hooks/exhaustive-deps": "error"

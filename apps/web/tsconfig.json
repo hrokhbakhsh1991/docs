@@ -31,6 +31,10 @@
   ],
   "exclude": [
     "node_modules",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".storybook",
+    "stories",
+    "typedoc-out",
+    "storybook-static"
   ]
 }

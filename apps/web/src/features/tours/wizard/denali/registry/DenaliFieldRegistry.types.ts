@@ -28,7 +28,8 @@ export type DenaliContextualRule =
   | { readonly kind: "transportDongVisible" }
   | { readonly kind: "transportAdminCapacityVisible" }
   | { readonly kind: "transportTrainSeatVisible" }
-  | { readonly kind: "multiDayEndDateTimeRequired" };
+  | { readonly kind: "multiDayEndDateTimeRequired" }
+  | { readonly kind: "peakExperienceVisible" };
 
 /** Structural normalize rules (ghost purge, enforce, defaults) — evaluated in denaliInvariantEngine.ts. */
 export type DenaliStructuralInvariant =

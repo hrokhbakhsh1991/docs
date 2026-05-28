@@ -752,5 +752,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: [] as const,
     ruleDefaults: { required: false, hidden: false },
     inRuleModel: false,
+    contextualVisibility: { kind: "peakExperienceVisible" },
+    structuralInvariant: { kind: "clearWhenNotVisible" },
   },
 ] as const;

@@ -8,7 +8,7 @@ import {
   type DenaliTourCategory,
   type DenaliTourDuration,
 } from "@repo/types";
-import { useController, useFormContext } from "react-hook-form";
+import { useController, useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { Button, Checkbox, FormField, Input, Select } from "@tour/ui";
 
@@ -52,8 +52,9 @@ export function DenaliBasicInfoStep() {
     "requiresManualAdminApproval",
   );
 
-  const form = getValues();
+  useWatch({ control, name: "basicInfo.tourType" });
   const { isVisible, isDurationAllowed } = useDenaliStepFieldRules(STEP);
+  const formSnapshot = () => getValues();
   const openDestinationQuickAdd = useDenaliDestinationQuickAdd();
 
   const destinationsQuery = useTourDestinations();
@@ -150,7 +151,7 @@ export function DenaliBasicInfoStep() {
         </Select>
       </FormField>
 
-      {isVisible("eventVariant", form) ? (
+      {isVisible("eventVariant", formSnapshot()) ? (
         <FormField label={t("basic.eventVariantLabel")} error={errors.basicInfo?.tourType?.message}>
           <Select
             value={basicsSelection?.eventVariant ?? ""}
@@ -168,7 +169,7 @@ export function DenaliBasicInfoStep() {
         </FormField>
       ) : null}
 
-      {isVisible("destinationId", form) ? (
+      {isVisible("destinationId", formSnapshot()) ? (
         <div style={{ display: "grid", gap: "0.5rem" }}>
           <DestinationCombobox
             label={t("basic.destination")}
@@ -198,7 +199,7 @@ export function DenaliBasicInfoStep() {
         </div>
       ) : null}
 
-      {isVisible(PATH_PEAK_HEIGHT, form) ? (
+      {isVisible(PATH_PEAK_HEIGHT, formSnapshot()) ? (
         <FormField
           label={t("basic.peakHeight")}
           description={t("basic.peakHeightDescription")}
@@ -224,7 +225,7 @@ export function DenaliBasicInfoStep() {
         </FormField>
       ) : null}
 
-      {isVisible("leaderUserIds", form) ? (
+      {isVisible("leaderUserIds", formSnapshot()) ? (
         <DestinationCombobox
           label={t("basic.workspaceLeaders")}
           placeholder={t("basic.workspaceLeadersPlaceholder")}
@@ -240,7 +241,7 @@ export function DenaliBasicInfoStep() {
         />
       ) : null}
 
-      {isVisible("requiresLocalGuide", form) ? (
+      {isVisible("requiresLocalGuide", formSnapshot()) ? (
         <Checkbox
           label={t("basic.requiresLocalGuide")}
           checked={requiresLocalGuide === true}
@@ -255,7 +256,7 @@ export function DenaliBasicInfoStep() {
         />
       ) : null}
 
-      {isVisible("localGuideName", form) ? (
+      {isVisible("localGuideName", formSnapshot()) ? (
         <FormField
           label={t("basic.localGuideName")}
           error={errors.basicInfo?.localGuideName?.message}
@@ -277,11 +278,11 @@ export function DenaliBasicInfoStep() {
 
       <DenaliDatetimeField field="startDateTime" label={t("basic.startDateTime")} />
 
-      {isVisible("endDateTime", form) ? (
+      {isVisible("endDateTime", formSnapshot()) ? (
         <DenaliDatetimeField field="endDateTime" label={t("basic.endDateTime")} />
       ) : null}
 
-      {isVisible("capacityMax", form) ? (
+      {isVisible("capacityMax", formSnapshot()) ? (
         <FormField
           label={t("basic.capacityMax")}
           error={errors.basicInfo?.capacityMax?.message}
@@ -296,7 +297,7 @@ export function DenaliBasicInfoStep() {
         </FormField>
       ) : null}
 
-      {isVisible("capacityMin", form) ? (
+      {isVisible("capacityMin", formSnapshot()) ? (
         <FormField label={t("basic.capacityMin")} error={errors.basicInfo?.capacityMin?.message}>
           <PersianNumberInput
             numericMode="integer"
@@ -310,7 +311,7 @@ export function DenaliBasicInfoStep() {
 
       <DenaliApproximateReturnTimeField label={t("basic.approximateReturnTime")} />
 
-      {isVisible("socialMediaLink", form) ? (
+      {isVisible("socialMediaLink", formSnapshot()) ? (
         <FormField label="لینک یا آیدی شبکه اجتماعی برنامه" error={errors.basicInfo?.socialMediaLink?.message}>
           <Input
             type="text"

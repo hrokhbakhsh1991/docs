@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
@@ -27,7 +27,9 @@ export function resolveIsCategoryManuallySelected(
  */
 export function useDenaliStepFieldRules(stepId: DenaliCreateWizardStepId) {
   const { ui } = useDenaliCanonical();
-  const { getValues } = useFormContext<DenaliCreateTourWizardForm>();
+  const { control, getValues } = useFormContext<DenaliCreateTourWizardForm>();
+  useWatch({ control, name: "basicInfo.tourType" });
+  useWatch({ control, name: "basicInfo.requiresManualAdminApproval" });
   const ruleModel = ui.ruleModel;
 
   const getForm = useCallback(

@@ -17,7 +17,8 @@ import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTou
 import type { DenaliRuleSet } from "../denali/rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "../denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import { getDenaliWizardSubmitIssues } from "../denali/validation/denaliWizardFormZod";
+import { evaluateDenaliWizardSubmitGate } from "../denali/validation/denaliSubmitValidation";
+import { mergeDenaliActiveSubmitIssues } from "../denali/validation/denaliSubmitValidation";
 
 export type WizardThemeCatalogRow = readonly { id: string; name: string }[];
 
@@ -50,7 +51,7 @@ export async function createTourFromClassicWizardForm(input: {
 
 /**
  * Workspace-specific 6-tab wizard → API (used by {@link useDenaliTourWizardCreate}).
- * Submit validation: {@link getDenaliWizardSubmitIssues} (structural + rules + canonical).
+ * Submit validation: {@link evaluateDenaliWizardSubmitGate} (active only — structural + rules + canonical + publish).
  */
 export async function createTourFromWorkspaceWizardForm(input: {
   values: DenaliCreateTourWizardForm;
@@ -63,20 +64,24 @@ export async function createTourFromWorkspaceWizardForm(input: {
   sourceTourId?: string;
 }): Promise<unknown> {
   const normalized = prepareDenaliWizardFormForSubmit(input.values, input.ruleSet);
-  const submitIssues = getDenaliWizardSubmitIssues(normalized, undefined, input.ruleSet);
+  const gate = evaluateDenaliWizardSubmitGate(normalized, {
+    ruleSet: input.ruleSet,
+    profile: input.workspaceFormProfile,
+  });
+  const blockingIssues = mergeDenaliActiveSubmitIssues(gate.submitIssues, gate.publishIssues);
   debugSessionLog(
     "createTourFromWorkspaceWizardForm.ts:submit-gate",
     "Denali submit gate evaluated",
     {
-      issueCount: submitIssues.length,
-      issuePaths: submitIssues.slice(0, 8).map((i) => i.path?.join(".") ?? i.message),
+      issueCount: blockingIssues.length,
+      issuePaths: blockingIssues.slice(0, 8).map((i) => i.path?.join(".") ?? i.message),
       publishStatus: normalized.basicInfo.publishStatus,
       transportMode: normalized.transport.transportMode,
     },
     "C",
   );
-  if (submitIssues.length > 0) {
-    throw new z.ZodError(submitIssues);
+  if (!gate.success) {
+    throw new z.ZodError(blockingIssues);
   }
   let dto: CreateTourDto = mapDenaliWizardToCreateTourPayload(normalized);
   dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);

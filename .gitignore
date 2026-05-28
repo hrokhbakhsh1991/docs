@@ -38,6 +38,10 @@ apps/web/playwright-report/
 apps/web/test-results/
 apps/web/blob-report/
 
+# Documentation as Code (apps/web — optional local output)
+apps/web/typedoc-out/
+apps/web/storybook-static/
+
 
 
 .nx/cache

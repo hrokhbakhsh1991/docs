@@ -1,9 +1,10 @@
 import type { FieldErrors, Resolver } from "react-hook-form";
 
 import {
-  getDenaliWizardSubmitIssues,
-  validateDenaliWizardForm,
-} from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
+  evaluateDenaliWizardSubmitGate,
+  mergeDenaliActiveSubmitIssues,
+} from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
+import { validateDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
 
 import type { DenaliCreateTourWizardForm } from "./denaliTourCreateFormModel";
 
@@ -40,14 +41,14 @@ export function createDenaliCanonicalWizardResolver(
   resolveRuleSet?: () => import("@/features/tours/wizard/denali/rules/denaliRuleModel").DenaliRuleSet,
 ): Resolver<DenaliCreateTourWizardForm> {
   return async (values, _context, _options) => {
-    const issues = getDenaliWizardSubmitIssues(
-      values,
-      resolveUiOptions?.(),
-      resolveRuleSet?.(),
-    );
-    if (issues.length === 0) {
+    const gate = evaluateDenaliWizardSubmitGate(values, {
+      uiOptions: resolveUiOptions?.(),
+      ruleSet: resolveRuleSet?.(),
+    });
+    if (gate.success) {
       return { values: values as any, errors: {} };
     }
+    const issues = mergeDenaliActiveSubmitIssues(gate.submitIssues, gate.publishIssues);
     return {
       values: values as any,
       errors: issuesToFieldErrors(issues as { path: (string | number)[]; message: string }[]),

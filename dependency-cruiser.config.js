@@ -132,7 +132,7 @@ module.exports = {
   ],
   options: {
     exclude:
-      "(^|/)(node_modules|dist|coverage|.next|.turbo|build|out|tmp)(/|$)|\\.(d\\.ts|map)$",
+      "(^|/)(node_modules|dist|coverage|.next|.turbo|build|out|tmp|typedoc-out|storybook-static|\\.storybook)(/|$)|\\.(d\\.ts|map|stories\\.tsx?|stories\\.mdx)$",
     doNotFollow: {
       path: "node_modules",
     },

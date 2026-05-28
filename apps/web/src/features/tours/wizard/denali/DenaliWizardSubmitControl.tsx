@@ -6,13 +6,15 @@ import { useTranslations } from "next-intl";
 import { Button } from "@tour/ui";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
 import { logDenaliWizardDiagnosticReport } from "./denaliWizardDiagnostic";
 import { flattenDenaliFormErrors } from "./flattenDenaliFormErrors";
 import { useDenaliWizardNavigation } from "./DenaliWizardNavigationContext";
-import { collectDenaliWizardSubmitIssuePresentation } from "./denaliWizardSubmitIssuePresentation";
+import {
+  evaluateDenaliWizardSubmitGate,
+  focusDenaliSubmitValidationError,
+} from "./validation/denaliSubmitValidation";
 import { debugSessionLog } from "@/lib/debug-session-log";
 import { usePublishButtonGuard } from "./hooks/usePublishButtonGuard";
 
@@ -22,7 +24,6 @@ type DenaliWizardSubmitControlProps = {
   pendingLabel: string;
   submitLabel: string;
   ruleSet: DenaliRuleSet;
-  visibleSteps: readonly DenaliCreateWizardStepId[];
   onSubmit: (_values: DenaliCreateTourWizardForm) => void | Promise<void>;
 };
 
@@ -32,7 +33,6 @@ export function DenaliWizardSubmitControl({
   pendingLabel,
   submitLabel,
   ruleSet,
-  visibleSteps,
   onSubmit,
 }: DenaliWizardSubmitControlProps) {
   const tDenali = useTranslations("tours.denali");
@@ -61,19 +61,17 @@ export function DenaliWizardSubmitControl({
         source: "submit-invalid-rhf",
       });
 
-      const { views } = collectDenaliWizardSubmitIssuePresentation({
+      const gate = evaluateDenaliWizardSubmitGate(values, { ruleSet });
+      focusDenaliSubmitValidationError({
         form: values,
         ruleSet,
-        stepOrder: visibleSteps,
+        submitIssues: gate.submitIssues,
+        publishIssues: gate.publishIssues,
         t: tDenali,
+        onFocusField: navigateToField,
       });
-
-      const first = views[0];
-      if (first != null) {
-        navigateToField(first.stepId, first.formPath);
-      }
     },
-    [getValues, navigateToField, ruleSet, tDenali, visibleSteps],
+    [getValues, navigateToField, ruleSet, tDenali],
   );
 
   return (

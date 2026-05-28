@@ -42,7 +42,7 @@ export function usePublishButtonGuard(input: {
       ? "SUBMITTING"
       : wantsActive && publishIssues.length > 0
         ? "PUBLISH_NOT_READY"
-        : submitIssues.length > 0
+        : wantsActive && submitIssues.length > 0
           ? "FORM_INVALID"
           : null;
 

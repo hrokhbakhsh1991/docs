@@ -4,6 +4,7 @@ import { useDraftEngine } from "@repo/draft-engine";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { z } from "zod";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { Button, Card, CardBody } from "@tour/ui";
 
@@ -15,6 +16,7 @@ import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { useDenaliTourWizardCreate } from "@/features/tours/wizard/hooks/useDenaliTourWizardCreate";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { isWizardSubmitLocked } from "@/features/tours/wizard/wizardSubmitLock";
+import { clearWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
 import {
   DenaliBasicInfoStep,
   DenaliPricingStep,
@@ -53,6 +55,13 @@ import { DenaliWizardContentQualityHeader } from "@/features/tours/wizard/denali
 import { handleDenaliWizardValidationApiError } from "@/lib/errors/apply-api-validation-errors";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import { flattenDenaliFormErrors } from "@/features/tours/wizard/denali/flattenDenaliFormErrors";
+import { focusDenaliWizardField } from "@/features/tours/wizard/denali/denaliWizardFieldFocus";
+import {
+  applyDenaliWizardIssuesToForm,
+  evaluateDenaliWizardSubmitGate,
+  focusDenaliSubmitValidationError,
+  mergeDenaliActiveSubmitIssues,
+} from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
 import { scrollTourFormToFirstError } from "@/components/tours/tourFormValidationSummary";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
 import { ErrorBoundary } from "@/layouts";
@@ -145,6 +154,7 @@ function DenaliStepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
 
 export function DenaliCreateTourWizard() {
   const t = useTranslations("tours.new");
+  const tDenali = useTranslations("tours.denali");
   const router = useRouter();
   const workspaceId = useWorkspaceQueryScope();
   const wizardTemplateQuery = useTenantWizardTemplate();
@@ -159,6 +169,7 @@ export function DenaliCreateTourWizard() {
 
   const suppressDraftPushRef = useRef(false);
   const initialHydrateDoneRef = useRef(false);
+  const isSubmittingRef = useRef(false);
 
   const workspaceFormProfile = useMemo(
     () =>
@@ -405,7 +416,9 @@ export function DenaliCreateTourWizard() {
   const visibleSteps = useMemo(() => {
     const rawSteps = getDenaliWizardVisibleSteps(getValues(), ruleSet);
     return withDenaliWizardRailTestingOverrides(rawSteps, { enabled: true });
-  }, [getValues, ruleSet]);
+  // `getValues` is stable; `_tourTypeWatch` recomputes visible steps when tour kind changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tour kind watch invalidates memo
+  }, [_tourTypeWatch, getValues, ruleSet]);
 
   useEffect(() => {
     if (currentStep >= visibleSteps.length) {
@@ -474,13 +487,61 @@ export function DenaliCreateTourWizard() {
 
   const handlePrev = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
+  const focusFirstSubmitError = useCallback(
+    (
+      prepared: DenaliCreateTourWizardForm,
+      submitIssues: ReturnType<typeof mergeDenaliActiveSubmitIssues>,
+      publishIssues: ReturnType<typeof evaluateDenaliWizardSubmitGate>["publishIssues"],
+    ) => {
+      focusDenaliSubmitValidationError({
+        form: prepared,
+        ruleSet,
+        submitIssues,
+        publishIssues,
+        t: tDenali,
+        onFocusField: (stepId, formPath) => {
+          const stepIndex = visibleSteps.indexOf(stepId);
+          if (stepIndex >= 0) {
+            setCurrentStep(() => stepIndex);
+          }
+          window.scrollTo(0, 0);
+          window.requestAnimationFrame(() => {
+            window.setTimeout(() => focusDenaliWizardField(formPath), 50);
+          });
+        },
+      });
+    },
+    [ruleSet, tDenali, visibleSteps],
+  );
+
   const handleSubmit = async (values: DenaliCreateTourWizardForm) => {
-    if (workspaceFormProfile == null) {
-      setError("root", { type: "manual", message: "Tour form profile is unavailable." });
+    if (isSubmittingRef.current) {
       return;
     }
+    isSubmittingRef.current = true;
     try {
+      if (workspaceFormProfile == null) {
+        setError("root", { type: "manual", message: "Tour form profile is unavailable." });
+        return;
+      }
+
       const prepared = prepareDenaliWizardFormForSubmit(values, ruleSet);
+      const gate = evaluateDenaliWizardSubmitGate(prepared, {
+        ruleSet,
+        profile: workspaceFormProfile,
+      });
+
+      if (gate.tourStatus === "active" && !gate.success) {
+        const blockingIssues = mergeDenaliActiveSubmitIssues(gate.submitIssues, gate.publishIssues);
+        applyDenaliWizardIssuesToForm(setError, blockingIssues);
+        setError("root", {
+          type: "manual",
+          message: tDenali("review.publishSubmitBlocked"),
+        });
+        focusFirstSubmitError(prepared, gate.submitIssues, gate.publishIssues);
+        return;
+      }
+
       const invariant = applyDenaliInvariantState(prepared, undefined, ruleSet);
       const destinationIds = new Set(destinationsQuery.destinations.map((d) => d.id));
       const themeIds = new Set((themesQuery.data ?? []).map((d) => d.id));
@@ -493,10 +554,32 @@ export function DenaliCreateTourWizard() {
         themeCatalog: themesQuery.data?.map((theme) => ({ id: theme.id, name: theme.name })),
       });
 
+      clearWizardSubmitIdempotencyKey(workspaceId ?? undefined);
       router.push("/tours");
       router.refresh();
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        const gate = evaluateDenaliWizardSubmitGate(getValues(), {
+          ruleSet,
+          profile: workspaceFormProfile,
+        });
+        const blockingIssues = mergeDenaliActiveSubmitIssues(gate.submitIssues, gate.publishIssues);
+        applyDenaliWizardIssuesToForm(setError, blockingIssues);
+        setError("root", {
+          type: "manual",
+          message: tDenali("review.publishSubmitBlocked"),
+        });
+        focusFirstSubmitError(getValues(), gate.submitIssues, gate.publishIssues);
+        return;
+      }
       if (error instanceof ApiError) {
+        if (error.code === "IDEMPOTENCY_REQUEST_IN_PROGRESS") {
+          setError("root", {
+            type: "server",
+            message: "این درخواست در حال پردازش است، لطفاً کمی صبر کنید.",
+          });
+          return;
+        }
         const handled = handleDenaliWizardValidationApiError(error, setError);
         if (handled) {
           const flat = flattenDenaliFormErrors(formMethods.formState.errors);
@@ -510,6 +593,8 @@ export function DenaliCreateTourWizard() {
         type: "server",
         message: formatWizardApiErrorMessage(error, t("mutationGenericFailed")),
       });
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -666,7 +751,6 @@ export function DenaliCreateTourWizard() {
                       pendingLabel={t("submitting")}
                       submitLabel={t("submit")}
                       ruleSet={ruleSet}
-                      visibleSteps={visibleSteps}
                       onSubmit={handleSubmit}
                     />
                   ) : (

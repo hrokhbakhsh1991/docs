@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type ReactNode,
 } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -115,8 +116,9 @@ export function DenaliCanonicalProvider({
   draftStatus?: DraftStatus;
 }) {
   const { control, getValues, setValue } = formMethods;
+  const [, startCanonicalTransition] = useTransition();
 
-  const _tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
+  const tourTypeWatch = useWatch({ control, name: "basicInfo.tourType" });
 
   const [canonicalModel, setCanonicalModel] = useState<DenaliCanonicalTourModel>(() => {
     const form = getValues();
@@ -149,13 +151,9 @@ export function DenaliCanonicalProvider({
     syncCanonicalFromForm();
   }, [syncToken, syncCanonicalFromForm]);
 
-  useEffect(() => {
-    syncCanonicalFromForm();
-  }, [_tourTypeWatch, syncCanonicalFromForm]);
-
   const basicsSelection = useMemo(
-    () => basicsSelectionFromTourType(_tourTypeWatch),
-    [_tourTypeWatch],
+    () => basicsSelectionFromTourType(tourTypeWatch),
+    [tourTypeWatch],
   );
 
   const ruleSet = useMemo(
@@ -163,31 +161,34 @@ export function DenaliCanonicalProvider({
     [wizardTemplate],
   );
 
-  const ui = useMemo(
-    () =>
-      getDenaliUIFromForm(
-        getValues(),
-        ruleSet,
-        workspaceFormProfile ? { workspaceFormProfile } : undefined,
-      ),
-    [ruleSet, workspaceFormProfile, getValues],
-  );
+  const ui = useMemo(() => {
+    const form = getValues();
+    return getDenaliUIFromForm(
+      form,
+      ruleSet,
+      workspaceFormProfile ? { workspaceFormProfile } : undefined,
+    );
+  // `getValues` is stable; `tourTypeWatch` re-runs UI rules when category/duration/kind changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- classification watch invalidates memo
+  }, [tourTypeWatch, ruleSet, workspaceFormProfile, getValues]);
 
   const commitCanonical = useCallback(
     (next: DenaliCanonicalTourModel, basics: DenaliCanonicalBasicsSelection) => {
-      const currentForm = getValues();
-      const nextFormRaw = denaliCanonicalToForm(next, currentForm, { basics });
-      const uiOptions = workspaceFormProfile ? { workspaceFormProfile } : undefined;
-      const safeForm = applyDenaliInvariantState(nextFormRaw, uiOptions, ruleSet);
+      startCanonicalTransition(() => {
+        const currentForm = getValues();
+        const nextFormRaw = denaliCanonicalToForm(next, currentForm, { basics });
+        const uiOptions = workspaceFormProfile ? { workspaceFormProfile } : undefined;
+        const safeForm = applyDenaliInvariantState(nextFormRaw, uiOptions, ruleSet);
 
-      applyCanonicalMvpToForm(next, currentForm, draftStatus, {
-        basics,
-        setValue,
-        ruleSet,
-        uiOptions,
+        applyCanonicalMvpToForm(next, currentForm, draftStatus, {
+          basics,
+          setValue,
+          ruleSet,
+          uiOptions,
+        });
+
+        setCanonicalModel(safeDenaliFormToCanonical(safeForm));
       });
-
-      setCanonicalModel(safeDenaliFormToCanonical(safeForm));
     },
     [draftStatus, getValues, ruleSet, setValue, workspaceFormProfile],
   );

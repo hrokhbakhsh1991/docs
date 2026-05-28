@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# CI integrity gate — mirrors the core lint-staged checks (full repo, not staged-only).
+# CI integrity gate — full-repo eslint, depcruise, unit tests, and socket audit.
 #
-# Pre-commit also runs: precommit-tsc-staged, test-pairing, jest/node:test on staged files.
-# This script enforces the monorepo-wide eslint + depcruise + unit-test baseline on the server.
+# Incremental checks on save: `pnpm run dev:integrity` (watches src/ via chokidar).
+# Per-file subset: `bash scripts/ci-integrity-check-changed.sh <files...>`
 #
 # Usage (from repo root):
 #   bash scripts/ci-integrity-check.sh

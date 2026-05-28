@@ -34,8 +34,16 @@ export {
 } from "./denaliRuleAccess";
 
 export {
+  applyDenaliWizardIssuesToForm,
+  evaluateDenaliWizardSubmitGate,
+  focusDenaliSubmitValidationError,
+  mergeDenaliActiveSubmitIssues,
   parseDenaliCanonicalFromWizardForm,
+  publishReadinessIssueToZodIssue,
   safeParseDenaliCanonicalFromWizardForm,
+  scrollToDenaliSubmitError,
+  type DenaliSubmitErrorFocusHandler,
+  type DenaliWizardSubmitGateResult,
 } from "./denaliSubmitValidation";
 
 // Test submit helpers: @/features/tours/testing/denaliSubmitTestHelpers (not exported here — client-safe)
