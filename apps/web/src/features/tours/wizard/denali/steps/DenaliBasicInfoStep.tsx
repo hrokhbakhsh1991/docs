@@ -101,18 +101,6 @@ export function DenaliBasicInfoStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-step-basics">
-      <FormField label={t("basic.title")} error={errors.basicInfo?.title?.message}>
-        <Input
-          type="text"
-          placeholder={t("basic.titlePlaceholder")}
-          aria-invalid={Boolean(errors.basicInfo?.title)}
-          value={title}
-          onChange={(e) => {
-              updateCanonical({ title: e.target.value });
-          }}
-          />
-      </FormField>
-
       <FormField label={t("basic.categoryLabel")} error={errors.basicInfo?.tourType?.message}>
         <Select
           value={basicsSelection?.category ?? ""}
@@ -129,6 +117,18 @@ export function DenaliBasicInfoStep() {
             </option>
           ))}
         </Select>
+      </FormField>
+
+      <FormField label={t("basic.title")} error={errors.basicInfo?.title?.message}>
+        <Input
+          type="text"
+          placeholder={t("basic.titlePlaceholder")}
+          aria-invalid={Boolean(errors.basicInfo?.title)}
+          value={title}
+          onChange={(e) => {
+              updateCanonical({ title: e.target.value });
+          }}
+          />
       </FormField>
 
       <FormField label={t("basic.durationLabel")} error={errors.basicInfo?.tourType?.message}>
