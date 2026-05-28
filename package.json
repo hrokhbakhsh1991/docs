@@ -58,15 +58,17 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.7.4",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "dependency-cruiser": "17.4.2",
     "eslint": "8.57.1",
-    "eslint-plugin-test-pairing": "workspace:*",
     "eslint-plugin-boundaries": "^6.0.2",
     "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-test-pairing": "workspace:*",
     "husky": "^9.1.7",
     "jest": "^30.3.0",
     "jscpd": "^4.2.4",
