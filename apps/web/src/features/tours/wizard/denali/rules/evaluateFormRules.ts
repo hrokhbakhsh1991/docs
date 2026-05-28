@@ -2,12 +2,16 @@ import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliSte
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import { resolveDenaliRuleModelFromForm } from "../validation/denaliRuleAccess";
-import { findDenaliRuleField, type DenaliRuleFieldStep } from "./denaliRuleModel";
+import {
+  findDenaliRuleField,
+  mapDenaliCanonicalToFormPath,
+  mapFormPathToCanonical,
+  type DenaliRuleFieldStep,
+} from "./core";
 import {
   isDenaliFieldRequiredOnStep,
   isDenaliFieldVisibleOnStep,
 } from "./denaliUIAdapter";
-import { mapDenaliCanonicalToFormPath, mapFormPathToCanonical } from "./denaliRuleRequired";
 
 export type EvaluatedFormFieldRule = {
   /** Canonical path on the rule model (`transport.seatPreference`, …). */

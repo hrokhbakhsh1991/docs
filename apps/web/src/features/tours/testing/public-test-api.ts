@@ -11,7 +11,7 @@ export { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/ma
 export {
   assertSubmitValidDenaliWizardForm,
   submitValidDenaliWizardDefaults,
-} from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
+} from "@/features/tours/testing/denaliSubmitTestHelpers";
 export { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 export { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";

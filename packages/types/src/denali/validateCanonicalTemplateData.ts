@@ -1,43 +1,10 @@
 import type { DenaliCanonicalTourModel } from "./denaliCanonicalTourModel";
 import type { DenaliCanonicalTemplateData } from "./denaliTemplateSchema";
 
+import { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "./denali-canonical-template-keys";
 import { sanitizeDenaliCanonicalTemplateData } from "./templateCanonicalMapping";
 
-/** Top-level keys allowed on {@link DenaliCanonicalTemplateData} (mirrors {@link DenaliCanonicalTourModel}). */
-export const DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS = [
-  "category",
-  "duration",
-  "title",
-  "destinationId",
-  "startDateTime",
-  "endDateTime",
-  "capacityMax",
-  "capacityMin",
-  "meetingPoint",
-  "startPointLocationText",
-  "gatheringPoint",
-  "gatheringPoints",
-  "customServiceLabels",
-  "overview",
-  "metrics",
-  "startPoint",
-  "summitPoint",
-  "campPoint",
-  "endPoint",
-  "approximateReturnTime",
-  "leaderUserIds",
-  "requiresLocalGuide",
-  "localGuideName",
-  "requiresManualAdminApproval",
-  "publishStatus",
-  "socialMediaLink",
-  "program",
-  "transport",
-  "pricing",
-  "participants",
-  "policies",
-  "photos",
-] as const;
+export { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "./denali-canonical-template-keys";
 
 export type DenaliCanonicalTemplateValidationIssue = {
   path: string;

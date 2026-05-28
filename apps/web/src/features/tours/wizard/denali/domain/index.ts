@@ -1,33 +1,12 @@
 /**
- * Denali Domain Façade
+ * Denali domain façade — browser-safe canonical basics only.
  *
- * Central entry point for business logic, validation rules, and schema accessors
- * related to the Denali wizard feature. UI components should import from here
- * instead of internal validation/logic modules.
+ * Validation, rules, and form transforms are not re-exported here (avoids pulling
+ * validation barrels into the client graph). UI imports those from `../application`
+ * or deep paths under `../validation/*`.
  */
 
-// Validation & Schemas
 export {
-  getDenaliWizardSubmitIssues,
-  getDenaliWizardStepIssues,
-  validateDenaliWizardForm,
-  denaliTourCreateSchema,
-} from "../validation/denaliWizardFormZod";
-
-// Rule Access & Visibility
-export {
-  getDenaliWizardVisibleSteps,
-  resolveDenaliRuleSetFromTemplate,
-  isDenaliStepVisible,
-  isDenaliStepVisibleInModel,
-} from "../validation/denaliRuleAccess";
-
-// Business Logic & Sanitization
-export {
-  normalizeDenaliWizardForm,
-  prepareDenaliWizardFormForSubmit,
-} from "../validation/denaliRuleAccess";
-
-export { denaliFormSanitize } from "../denaliFormSanitize";
-export { denaliGearSelection } from "../denaliGearSelection";
-export { denaliCancellationPolicy } from "../denaliCancellationPolicy";
+  patchDenaliCanonicalBasics,
+  readDenaliCanonicalBasics,
+} from "./canonical-basics";

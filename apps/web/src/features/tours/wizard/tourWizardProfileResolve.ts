@@ -121,7 +121,7 @@ export function coalesceWizardResolvedProfile(input: {
   /** Workspace wizard template default (e.g. denali → `mountain_outdoor`). */
   templateBaseProfile?: TourFormProfile;
 }): TourFormProfile {
-  let profile = preserveWizardMetaResolvedProfile(input.raw, input.snapshotProfile);
+  const profile = preserveWizardMetaResolvedProfile(input.raw, input.snapshotProfile);
   if (profile !== "general") {
     return profile;
   }

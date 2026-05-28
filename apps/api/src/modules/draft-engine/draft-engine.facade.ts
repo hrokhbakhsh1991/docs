@@ -48,37 +48,68 @@ export class DraftEngineFacade {
     private readonly requestContext: RequestContextService,
   ) {}
 
-  private getDebugContextFields(draftKey?: string) {
-    let context: Record<string, unknown> = {};
+  private readRequestContextRecord(): Record<string, unknown> | undefined {
     try {
       if (this.requestContext && typeof this.requestContext.getContext === "function") {
-        context = (this.requestContext.getContext() as Record<string, unknown> | undefined) ?? {};
+        const raw: unknown = this.requestContext.getContext();
+        return raw as Record<string, unknown> | undefined;
       }
     } catch {
       // Request context may be unavailable outside HTTP scope.
     }
+    return undefined;
+  }
 
-    const correlationId = context.correlationId ?? 
-      (this.requestContext && typeof this.requestContext.tryGetCorrelationId === "function" ? this.requestContext.tryGetCorrelationId() : undefined) ?? 
-      "N/A";
-    const tenantId = context.tenantId ?? 
-      (this.requestContext && typeof this.requestContext.tryGetTenantId === "function" ? this.requestContext.tryGetTenantId() : undefined) ?? 
-      "N/A";
-    const hostTenantId = context.hostTenantId ?? 
-      (this.requestContext && typeof this.requestContext.tryGetHostTenantId === "function" ? this.requestContext.tryGetHostTenantId() : undefined) ?? 
-      "N/A";
-    const userId = context.userId ?? 
-      (this.requestContext && typeof this.requestContext.tryGetUserId === "function" ? this.requestContext.tryGetUserId() : undefined) ?? 
-      "N/A";
-    const role = context.role ?? 
-      (this.requestContext && typeof this.requestContext.tryGetRole === "function" ? this.requestContext.tryGetRole() : undefined) ?? 
-      "N/A";
+  private readContextString(
+    context: Record<string, unknown> | undefined,
+    key: string,
+    fallback: () => string | undefined,
+  ): string {
+    if (context) {
+      const value = context[key];
+      if (typeof value === "string" && value.trim() !== "") {
+        return value;
+      }
+    }
+    return fallback() ?? "N/A";
+  }
+
+  private getDebugContextFields(draftKey?: string) {
+    const context = this.readRequestContextRecord() ?? {};
+
+    const correlationId = this.readContextString(context, "correlationId", () =>
+      this.requestContext && typeof this.requestContext.tryGetCorrelationId === "function"
+        ? this.requestContext.tryGetCorrelationId()
+        : undefined,
+    );
+    const tenantId = this.readContextString(context, "tenantId", () =>
+      this.requestContext && typeof this.requestContext.tryGetTenantId === "function"
+        ? this.requestContext.tryGetTenantId()
+        : undefined,
+    );
+    const hostTenantId = this.readContextString(context, "hostTenantId", () =>
+      this.requestContext && typeof this.requestContext.tryGetHostTenantId === "function"
+        ? this.requestContext.tryGetHostTenantId()
+        : undefined,
+    );
+    const userId = this.readContextString(context, "userId", () =>
+      this.requestContext && typeof this.requestContext.tryGetUserId === "function"
+        ? this.requestContext.tryGetUserId()
+        : undefined,
+    );
+    const role = this.readContextString(context, "role", () =>
+      this.requestContext && typeof this.requestContext.tryGetRole === "function"
+        ? this.requestContext.tryGetRole()
+        : undefined,
+    );
 
     return {
       correlationId,
-      requestId: context.requestId ?? 
-        (this.requestContext && typeof this.requestContext.tryGetRequestId === "function" ? this.requestContext.tryGetRequestId() : undefined) ?? 
-        "N/A",
+      requestId: this.readContextString(context, "requestId", () =>
+        this.requestContext && typeof this.requestContext.tryGetRequestId === "function"
+          ? this.requestContext.tryGetRequestId()
+          : undefined,
+      ),
       tenantId,
       hostTenantId,
       userId,
@@ -90,23 +121,37 @@ export class DraftEngineFacade {
   }
 
   private ensureCorrelationId(): string {
-    let context: Record<string, unknown> | null = null;
-    try {
-      if (this.requestContext && typeof this.requestContext.getContext === "function") {
-        context = (this.requestContext.getContext() as Record<string, unknown> | undefined) ?? null;
-      }
-    } catch {
-      // Request context may be unavailable outside HTTP scope.
-    }
-    
+    const context = this.readRequestContextRecord();
+
     if (context) {
-      if (!context.correlationId) {
-        context.correlationId = randomUUID();
+      const existing = context.correlationId;
+      if (typeof existing === "string" && existing.trim() !== "") {
+        return existing;
       }
-      return context.correlationId;
+      const correlationId = randomUUID();
+      context.correlationId = correlationId;
+      return correlationId;
     }
-    
-    return (this.requestContext && typeof this.requestContext.tryGetCorrelationId === "function" ? this.requestContext.tryGetCorrelationId() : undefined) ?? randomUUID();
+
+    const fallback =
+      this.requestContext && typeof this.requestContext.tryGetCorrelationId === "function"
+        ? this.requestContext.tryGetCorrelationId()
+        : undefined;
+    return typeof fallback === "string" && fallback.trim() !== "" ? fallback : randomUUID();
+  }
+
+  private assertActiveTenantMatches(
+    ctx: ReturnType<DraftEngineFacade["getDebugContextFields"]>,
+    expectedTenantId: string,
+    correlationId: string,
+    errorMsg: string,
+  ): void {
+    if (ctx && typeof ctx.tenantId === "string" && ctx.tenantId !== "N/A") {
+      if (ctx.tenantId.toLowerCase() !== expectedTenantId.trim().toLowerCase()) {
+        this.logger.error(`[DRAFT-FORENSIC] [correlationId: ${correlationId}] [CRITICAL] ${errorMsg}`);
+        throw new DraftForensicException(errorMsg, null, ctx);
+      }
+    }
   }
 
   private resolveTraceId(): string | null {
@@ -138,11 +183,12 @@ export class DraftEngineFacade {
     );
 
     // Tenant Isolation Check: Verify if active tenantId matches parameter workspaceId
-    if (ctx.tenantId !== "N/A" && ctx.tenantId.toLowerCase() !== input.workspaceId.trim().toLowerCase()) {
-      const errorMsg = `Tenant isolation mismatch in event logging! Active context tenantId (${ctx.tenantId}) does not match workspaceId (${input.workspaceId})`;
-      this.logger.error(`[DRAFT-FORENSIC] [correlationId: ${correlationId}] [CRITICAL] ${errorMsg}`);
-      throw new DraftForensicException(errorMsg, null, ctx);
-    }
+    this.assertActiveTenantMatches(
+      ctx,
+      input.workspaceId,
+      correlationId,
+      `Tenant isolation mismatch in event logging! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match workspaceId (${input.workspaceId})`,
+    );
 
     try {
       this.logger.log(
@@ -272,11 +318,12 @@ export class DraftEngineFacade {
     );
 
     // Tenant Isolation Check: Verify if active tenantId matches parameter tenantId
-    if (ctx.tenantId !== "N/A" && ctx.tenantId.toLowerCase() !== tenantId.trim().toLowerCase()) {
-      const errorMsg = `Tenant isolation mismatch! Active context tenantId (${ctx.tenantId}) does not match param tenantId (${tenantId})`;
-      this.logger.error(`[DRAFT-FORENSIC] [correlationId: ${correlationId}] [CRITICAL] ${errorMsg}`);
-      throw new DraftForensicException(errorMsg, null, ctx);
-    }
+    this.assertActiveTenantMatches(
+      ctx,
+      tenantId,
+      correlationId,
+      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
+    );
 
     try {
       this.logger.log(
@@ -390,11 +437,12 @@ export class DraftEngineFacade {
     );
 
     // Tenant Isolation Check: Verify if active tenantId matches parameter tenantId
-    if (ctx.tenantId !== "N/A" && ctx.tenantId.toLowerCase() !== tenantId.trim().toLowerCase()) {
-      const errorMsg = `Tenant isolation mismatch! Active context tenantId (${ctx.tenantId}) does not match param tenantId (${tenantId})`;
-      this.logger.error(`[DRAFT-FORENSIC] [correlationId: ${correlationId}] [CRITICAL] ${errorMsg}`);
-      throw new DraftForensicException(errorMsg, null, ctx);
-    }
+    this.assertActiveTenantMatches(
+      ctx,
+      tenantId,
+      correlationId,
+      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
+    );
 
     try {
       this.logger.log(
@@ -544,11 +592,12 @@ export class DraftEngineFacade {
     );
 
     // Tenant Isolation Check: Verify if active tenantId matches parameter tenantId
-    if (ctx.tenantId !== "N/A" && ctx.tenantId.toLowerCase() !== tenantId.trim().toLowerCase()) {
-      const errorMsg = `Tenant isolation mismatch! Active context tenantId (${ctx.tenantId}) does not match param tenantId (${tenantId})`;
-      this.logger.error(`[DRAFT-FORENSIC] [correlationId: ${correlationId}] [CRITICAL] ${errorMsg}`);
-      throw new DraftForensicException(errorMsg, null, ctx);
-    }
+    this.assertActiveTenantMatches(
+      ctx,
+      tenantId,
+      correlationId,
+      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
+    );
 
     try {
       this.logger.log(

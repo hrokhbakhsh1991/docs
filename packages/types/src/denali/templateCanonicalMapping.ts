@@ -1,4 +1,4 @@
-import { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "./validateCanonicalTemplateData";
+import { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "./denali-canonical-template-keys";
 import type { DenaliCanonicalTemplateData } from "./denaliTemplateSchema";
 import { DENALI_TEMPLATE_SCHEMA_VERSION } from "./denaliTemplateSchema";
 import type {

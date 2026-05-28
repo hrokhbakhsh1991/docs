@@ -459,7 +459,7 @@ function syncCanonicalFieldPathsSet(
   dryRun: boolean,
 ): { changed: boolean; content: string } {
   const filePath = path.join(REPO_ROOT, PATHS.ruleRequired);
-  let content = fs.readFileSync(filePath, "utf-8");
+  const content = fs.readFileSync(filePath, "utf-8");
   const body = paths.map((p) => `  "${p}",`).join("\n");
   const nextBlock = `export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set([\n${body}\n]);`;
   const pattern = /export const DENALI_WIZARD_CANONICAL_FIELD_PATHS = new Set\(\[[\s\S]*?\]\);/;
@@ -475,7 +475,7 @@ function syncCanonicalToFormMap(
   dryRun: boolean,
 ): { changed: boolean } {
   const filePath = path.join(REPO_ROOT, PATHS.ruleRequired);
-  let content = fs.readFileSync(filePath, "utf-8");
+  const content = fs.readFileSync(filePath, "utf-8");
   const existing = content.match(
     /const CANONICAL_TO_FORM_PATH_MAP: Record<string, string> = \{([\s\S]*?)\};/,
   );

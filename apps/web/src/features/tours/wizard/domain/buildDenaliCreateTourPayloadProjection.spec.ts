@@ -11,7 +11,7 @@ import {
   denaliCanonicalToForm,
   denaliFormToCanonical,
 } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
-import { submitValidDenaliWizardDefaults } from "@/features/tours/wizard/denali/validation/denaliSubmitTestHelpers";
+import { submitValidDenaliWizardDefaults } from "@/features/tours/testing/denaliSubmitTestHelpers";
 import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 

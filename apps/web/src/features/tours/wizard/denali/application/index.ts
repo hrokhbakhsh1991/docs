@@ -39,5 +39,41 @@ export {
   getDenaliUIFromCanonical,
 } from "../rules/denaliUIAdapter";
 
-// Domain Façade Re-export (Application layer exposes Domain logic to UI)
-export * from "../domain";
+// Domain (canonical basics only — see ../domain/index.ts)
+export {
+  patchDenaliCanonicalBasics,
+  readDenaliCanonicalBasics,
+} from "../domain";
+
+// Form validation & rule access (deep paths — not ../validation barrel)
+export {
+  getDenaliWizardStepIssues,
+  getDenaliWizardSubmitIssues,
+  validateDenaliWizardForm,
+} from "../validation/denaliWizardFormZod";
+export {
+  getDenaliWizardVisibleSteps,
+  isDenaliStepVisible,
+  isDenaliStepVisibleInModel,
+  normalizeDenaliWizardForm,
+  prepareDenaliWizardFormForSubmit,
+  resolveDenaliRuleSetFromTemplate,
+} from "../validation/denaliRuleAccess";
+export { sanitizeDenaliFormPatch } from "../denaliFormSanitize";
+export {
+  gearCatalogIdsToGearItems,
+  normalizeGearItems,
+  removeGearItem,
+  splitGearByRequired,
+  upsertGearItem,
+} from "../denaliGearSelection";
+export { buildDenaliCancellationPolicyText } from "../denaliCancellationPolicy";
+
+// Publish / sync guards (deep paths — not ../validation barrel)
+export {
+  getDenaliWizardPublishReadinessIssues,
+  isDenaliWizardReadyForOpenPublish,
+} from "../validation/denaliWizardPublishReadiness";
+export { safeParseDenaliCanonicalFromWizardForm } from "../validation/denaliSubmitValidation";
+export { handleStatusChange } from "../validation/handleStatusChange";
+export { hydrateBackendErrorsToWizardTargets } from "../validation/hydrateBackendErrorsToWizardTargets";

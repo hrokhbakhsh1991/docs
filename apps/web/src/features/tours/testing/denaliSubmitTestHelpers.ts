@@ -1,8 +1,7 @@
 /**
- * Test helpers — same submit gate as {@link createTourFromDenaliWizardForm}.
+ * Test / Node-script helpers — same submit gate as create-tour-from-wizard.
+ * Not re-exported from validation or application barrels (avoids client bundles).
  */
-
-import assert from "node:assert/strict";
 
 import {
   buildDenaliTourCreateTestValues,
@@ -10,7 +9,19 @@ import {
   type DenaliCreateTourWizardForm,
 } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 
-import { getDenaliWizardSubmitIssues } from "./denaliWizardFormZod";
+import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
+
+function assertNoSubmitIssues(
+  issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,
+): void {
+  if (issues.length !== 0) {
+    throw new Error(
+      issues
+        .map((i) => `${i.path.map(String).join(".")}: ${i.message}`)
+        .join("; "),
+    );
+  }
+}
 
 /** Asserts production submit gate passes; returns normalized form (post-{@link normalizeDenaliWizardForm}). */
 export function assertSubmitValidDenaliWizardForm(
@@ -18,11 +29,7 @@ export function assertSubmitValidDenaliWizardForm(
 ): DenaliCreateTourWizardForm {
   const normalized = normalizeDenaliWizardForm(values);
   const issues = getDenaliWizardSubmitIssues(normalized);
-  assert.equal(
-    issues.length,
-    0,
-    issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
-  );
+  assertNoSubmitIssues(issues);
   return normalized;
 }
 

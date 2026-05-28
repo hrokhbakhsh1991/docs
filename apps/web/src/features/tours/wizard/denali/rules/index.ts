@@ -1,45 +1,36 @@
+/**
+ * Denali rules façade — rule models, UI visibility, canonical mapping, form evaluation.
+ */
+
+export * from "./core";
+
 export {
-  canonicalDurationToRuleModelDuration,
-  getDenaliRulesFromCanonical,
-  ruleModelDurationToCanonicalDuration,
-} from "./denaliCanonicalRuleAdapter";
-export {
-  DENALI_TEMPLATE_SCHEMA,
-  deriveDenaliTemplateSchema,
-  listDenaliTemplateCanonicalFieldPaths,
-} from "./deriveDenaliTemplateSchema";
-export {
-  denaliRuleSet,
-  denaliRuleModelMountainMultiDay,
-  findDenaliRuleField,
-  DENALI_RULE_MODEL_CATEGORIES,
-  DENALI_RULE_MODEL_DURATIONS,
-  DENALI_RULE_MODEL_VERSION,
-  type DenaliRuleFieldDefinition,
-  type DenaliRuleFieldStep,
-  type DenaliRuleModel,
-  type DenaliRuleModelCategory,
-  type DenaliRuleModelDuration,
-  type DenaliRuleModelKey,
-  type DenaliRuleSet,
-} from "./denaliRuleModel";
-export {
-  collectDenaliRuleRequiredIssues,
-  isDenaliFieldRequired,
-  readDenaliFormFieldValue,
-} from "./denaliRuleRequired";
+  evaluateFormFieldRule,
+  evaluateFormRules,
+  type EvaluatedFormFieldRule,
+  type EvaluateFormFieldRuleResult,
+} from "./evaluateFormRules";
+
 export {
   areDenaliFieldPathsVisibleOnStep,
+  deriveDenaliUIFieldMetadata,
+  getDenaliUIAdapterMetadata,
   getDenaliUIFromCanonical,
+  getDenaliUIFromForm,
   getHiddenFieldPathsFromModel,
+  hiddenFields,
   isDenaliDurationAllowed,
   isDenaliFieldRequiredInModel,
   isDenaliFieldRequiredOnStep,
-  isDenaliFieldVisibleInModel,
   isDenaliFieldVisibleOnStep,
   isRequired,
   isVisible,
+  requiredFields,
+  visibleFields,
   type DenaliCanonicalUIContext,
+  type DenaliUIAdapterInput,
+  type DenaliUIFieldMetadata,
 } from "./denaliUIAdapter";
+
 /** @deprecated Use {@link isDenaliFieldVisibleOnStep} */
 export { isVisible as isDenaliFieldVisible } from "./denaliUIAdapter";

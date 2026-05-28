@@ -8,21 +8,22 @@
 import { z } from "zod";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
-import type { DenaliRuleModel, DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import {
+  canonicalZodPathToFormFieldPath,
   collectDenaliRuleRequiredIssues,
+  denaliRuleSet,
   mapFormPathToCanonical,
+  type DenaliRuleModel,
+  type DenaliRuleSet,
   type DenaliRuleValidationScope,
-} from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
-import type { DenaliUIContextOptions } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
+  type DenaliUIContextOptions,
+} from "@/features/tours/wizard/denali/rules/core";
 import {
   getDenaliStepPickShape,
   isDenaliFieldVisibleOnStep,
   resolveDenaliRuleModelFromForm,
 } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { safeParseDenaliCanonicalFromWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
-import { canonicalZodPathToFormFieldPath } from "@/features/tours/wizard/denali/rules/denaliCanonicalPathLookup";
 import {
   buildDenaliTourCreateDefaultValues,
   denaliTourCreateBaseSchema,

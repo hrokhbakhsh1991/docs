@@ -4,7 +4,7 @@ import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/valida
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import type { DenaliWizardDraftSnapshot } from "./denali-adapter";
+import type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
 
 /** Phase 3 rail layout (basic → photos → program → logistics → pricing → review). */
 export const DENALI_WIZARD_RAIL_LAYOUT_VERSION = 2;

@@ -13,7 +13,7 @@ import { mapCreateTourDto } from "@/features/tours";
 import {
   buildDenaliTourCreateDefaultValues,
 } from "@/features/tours";
-import { assertSubmitValidDenaliWizardForm } from "@/features/tours";
+import { assertSubmitValidDenaliWizardForm } from "@/features/tours/testing/denaliSubmitTestHelpers";
 import { mapDenaliWizardToCreateTourPayload } from "@/features/tours";
 import { buildCreateTourPostBody } from "@/lib/services/tours.service";
 

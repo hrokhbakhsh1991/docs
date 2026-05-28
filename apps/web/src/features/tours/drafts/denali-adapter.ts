@@ -4,11 +4,10 @@ import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/l
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
-import {
-  DENALI_WIZARD_RAIL_LAYOUT_VERSION,
-  sanitizeDenaliWizardDraftSnapshot,
-} from "./sanitizeDenaliWizardDraftSnapshot";
+import { DENALI_WIZARD_RAIL_LAYOUT_VERSION, sanitizeDenaliWizardDraftSnapshot } from "./sanitizeDenaliWizardDraftSnapshot";
+import type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
 
+export type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
 export type { DraftSetDataOptions };
 
 /**
@@ -17,13 +16,6 @@ export type { DraftSetDataOptions };
  * without scheduling a PATCH. User edits must call `setDraftData(..., { source: 'user' })`.
  */
 export const DENALI_CREATE_DRAFT_KEY = "denali-create";
-
-export type DenaliWizardDraftSnapshot = {
-  form: DenaliCreateTourWizardForm;
-  currentStepIndex: number;
-  /** Wizard rail layout generation; {@link DENALI_WIZARD_RAIL_LAYOUT_VERSION} after phase 3 relocation. */
-  railLayoutVersion?: number;
-};
 
 function readStringPath(record: Record<string, unknown>, path: readonly string[]): string {
   let node: unknown = record;

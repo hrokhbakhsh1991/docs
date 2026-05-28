@@ -13,14 +13,14 @@ test("templateToCanonical ignores legacy defaults and strips unknown canonical k
   const canonical = templateToCanonical({
     canonicalData: {
       title: "Kept",
-      overview: { title: "legacy nested" },
+      legacyDefaults: { overview: { title: "must not merge" } },
     },
     defaults: { overview: { title: "must not merge" } },
     fieldRulesOverlay: { "basicInfo.title": { visibility: "hidden" } },
   });
 
   assert.equal(canonical.title, "Kept");
-  assert.equal((canonical as Record<string, unknown>).overview, undefined);
+  assert.equal((canonical as Record<string, unknown>).legacyDefaults, undefined);
 });
 
 test("canonicalToTemplate returns schema-stamped canonical-only record", () => {

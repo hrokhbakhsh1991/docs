@@ -154,8 +154,8 @@ export function DenaliCanonicalProvider({
   }, [_tourTypeWatch, syncCanonicalFromForm]);
 
   const basicsSelection = useMemo(
-    () => basicsSelectionFromTourType(_tourTypeWatch ?? getValues().basicInfo.tourType),
-    [getValues, _tourTypeWatch],
+    () => basicsSelectionFromTourType(_tourTypeWatch),
+    [_tourTypeWatch],
   );
 
   const ruleSet = useMemo(
@@ -170,7 +170,7 @@ export function DenaliCanonicalProvider({
         ruleSet,
         workspaceFormProfile ? { workspaceFormProfile } : undefined,
       ),
-    [getValues, ruleSet, workspaceFormProfile],
+    [ruleSet, workspaceFormProfile, getValues],
   );
 
   const commitCanonical = useCallback(
@@ -269,8 +269,8 @@ export function DenaliCanonicalProvider({
     setPhotoPersistenceWarning(null);
   }, []);
 
-  const value = useMemo(
-    (): DenaliCanonicalContextValue => ({
+  const contextValue = useMemo<DenaliCanonicalContextValue>(
+    () => ({
       canonicalModel,
       basicsSelection,
       ruleSet,
@@ -298,7 +298,9 @@ export function DenaliCanonicalProvider({
     ],
   );
 
-  return <DenaliCanonicalContext.Provider value={value}>{children}</DenaliCanonicalContext.Provider>;
+  return (
+    <DenaliCanonicalContext.Provider value={contextValue}>{children}</DenaliCanonicalContext.Provider>
+  );
 }
 
 function toPublicContext(ctx: DenaliCanonicalContextValue): DenaliCanonicalPublicContext {
@@ -308,15 +310,16 @@ function toPublicContext(ctx: DenaliCanonicalContextValue): DenaliCanonicalPubli
 
 export function useDenaliCanonicalOptional(): DenaliCanonicalPublicContext | null {
   const ctx = useContext(DenaliCanonicalContext);
-  return ctx == null ? null : toPublicContext(ctx);
+  return useMemo(() => (ctx == null ? null : toPublicContext(ctx)), [ctx]);
 }
 
 export function useDenaliCanonical(): DenaliCanonicalPublicContext {
-  const ctx = useDenaliCanonicalOptional();
-  if (ctx == null) {
+  const ctx = useContext(DenaliCanonicalContext);
+  const publicCtx = useMemo(() => (ctx == null ? null : toPublicContext(ctx)), [ctx]);
+  if (publicCtx == null) {
     throw new Error("useDenaliCanonical must be used within DenaliCanonicalProvider");
   }
-  return ctx;
+  return publicCtx;
 }
 
 /** Map canonical basics to legacy duration select tokens. */

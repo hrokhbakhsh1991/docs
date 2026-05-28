@@ -50,7 +50,10 @@ export function isExcludedSubject(relPosix) {
     /public-test-api\.ts$/.test(relPosix) ||
     // Leaf modules extracted to break cycles; covered by denaliInvariantEngine / denaliRuleAccess specs.
     /\/features\/tours\/domain\/denali-rules\//.test(relPosix) ||
-    /\/wizard\/denali\/rules\/denali(CanonicalPaths|ContextualRules|FieldGate)\.ts$/.test(relPosix)
+    /\/wizard\/denali\/rules\/denali(CanonicalPaths|ContextualRules|FieldGate)\.ts$/.test(relPosix) ||
+    /\/wizard\/denali\/rules\/core\.ts$/.test(relPosix) ||
+    /\/wizard\/denali\/domain\/canonical-basics\.ts$/.test(relPosix) ||
+    /\/drafts\/denali-wizard-draft\.types\.ts$/.test(relPosix)
   );
 }
 

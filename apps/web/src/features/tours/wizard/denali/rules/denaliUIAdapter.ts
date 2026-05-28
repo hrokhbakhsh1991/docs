@@ -1,28 +1,27 @@
+import type { DenaliTourKind } from "@repo/types";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
 import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { getDenaliRulesFromCanonical } from "./denaliCanonicalRuleAdapter";
-import { mapFormPathToCanonical } from "./denaliCanonicalPaths";
+import { readDenaliCanonicalBasics } from "../domain/canonical-basics";
 import {
+  denaliRuleSet,
   evaluateDenaliContextualVisibility,
+  findDenaliRuleField,
   getDenaliFieldDefinitionByCanonicalPath,
-  type DenaliUIContextOptions,
-} from "./denaliContextualRules";
-import {
+  getDenaliRulesFromCanonical,
   isDenaliFieldRequired,
   isDenaliFieldVisibleInModel,
-} from "./denaliFieldGate";
-import type {
-  DenaliRuleFieldDefinition,
-  DenaliRuleFieldStep,
-  DenaliRuleModel,
-  DenaliRuleModelCategory,
-  DenaliRuleModelDuration,
-  DenaliRuleSet,
-} from "./denaliRuleModel";
-import { denaliRuleSet, findDenaliRuleField } from "./denaliRuleModel";
+  mapFormPathToCanonical,
+  type DenaliRuleFieldDefinition,
+  type DenaliRuleFieldStep,
+  type DenaliRuleModel,
+  type DenaliRuleModelCategory,
+  type DenaliRuleModelDuration,
+  type DenaliRuleSet,
+  type DenaliUIContextOptions,
+} from "./core";
 
 /**
  * Denali rule engine — UI visibility and required state only.
