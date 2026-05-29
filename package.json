@@ -40,6 +40,7 @@
     "guardrails:tour-governance": "node scripts/run-tour-governance.mjs",
     "guardrails:tour-governance:tests": "node scripts/run-tour-governance.mjs --tests",
     "guardrails:tenant-isolation": "node scripts/check-tenant-isolation-guardrails.mjs",
+    "guardrails:architecture": "node scripts/check-tenant-isolation-guardrails.mjs && node scripts/check-tour-domain-guardrails.mjs && node scripts/check-security-mutation-guardrails.mjs && node scripts/check-capability-registry-parity.mjs && node scripts/check-public-registration-idempotency.mjs && node scripts/check-ledger-only-money.mjs && node scripts/check-ledger-double-entry-writers.mjs && node scripts/check-finance-boundary-isolation.mjs && node scripts/check-finance-transactional-outbox.mjs && node scripts/check-finance-multi-tenant-ledger-isolation.mjs && node scripts/check-finance-invoice-immutability.mjs && node scripts/check-ledger-append-only.mjs",
     "guardrails:public-registration-idempotency": "node scripts/check-public-registration-idempotency.mjs",
     "guardrails:test-pairing": "node scripts/check-test-pairing.mjs",
     "guardrails:test-owners": "node scripts/check-test-owners.mjs",

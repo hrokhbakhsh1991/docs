@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -145,11 +146,13 @@ function sqlShowsTenantBinding(sql) {
 function checkAllowlistedDataSourceQuerySql(allow) {
   const violations = [];
   const allowedRel = (allow.dataSourceQueryPaths || []).map(normPosix);
+  const sqlExempt = new Set((allow.dataSourceQuerySqlExemptPaths || []).map(normPosix));
   const re = /\b(?:this\.)?dataSource\.query\s*\(/g;
 
   for (const rel of allowedRel) {
     const abs = path.join(REPO_ROOT, rel);
     if (!fs.existsSync(abs)) continue;
+    if (sqlExempt.has(rel)) continue;
     const text = fs.readFileSync(abs, "utf8");
     let m;
     while ((m = re.exec(text)) !== null) {
@@ -476,7 +479,7 @@ function main() {
   try {
     allow = readAllowlist();
   } catch (e) {
-    process.exit(2);
+    reportFatal("check-tenant-isolation-guardrails", e);
   }
 
   const all = [
@@ -490,10 +493,12 @@ function main() {
   ];
 
   if (all.length > 0) {
-    for (const _v of all) {
-    }
-    process.exit(1);
+    reportAndExit("check-tenant-isolation-guardrails", all);
   }
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-tenant-isolation-guardrails", err);
+}

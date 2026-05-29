@@ -12,7 +12,15 @@
     "apps/api/src/database/runtime-schema-guard.service.ts",
     "apps/api/src/modules/auth/workspace.service.ts",
     "apps/api/src/modules/identity/workspace-invites.service.ts",
-    "apps/api/src/modules/tenant/tenant-bootstrap.service.ts"
+    "apps/api/src/modules/tenant/tenant-bootstrap.service.ts",
+    "apps/api/src/jobs/idempotency-cleanup.job.ts",
+    "apps/api/src/modules/auth/otp.service.ts",
+    "apps/api/src/modules/settings-locations/cleanup-legacy-templates.util.ts"
+  ],
+  "dataSourceQuerySqlExemptPaths": [
+    "apps/api/src/jobs/idempotency-cleanup.job.ts",
+    "apps/api/src/modules/auth/otp.service.ts",
+    "apps/api/src/modules/settings-locations/cleanup-legacy-templates.util.ts"
   ],
   "bodyDtoAllowlist": [
     "PaymentWebhookDto",

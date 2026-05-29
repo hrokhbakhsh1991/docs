@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -16,7 +17,9 @@ const CALL_RE = /\bpostDoubleEntryJournal\s*\(/;
 const ALLOW_NON_SPEC = new Set([
   "apps/api/src/modules/finance/ledger/post-double-entry-journal.ts",
   "apps/api/src/modules/finance/ledger/booking-ledger-authority.service.ts",
-  "apps/api/src/modules/finance/ledger/payment-refund-ledger-authority.service.ts"
+  "apps/api/src/modules/finance/ledger/payment-refund-ledger-authority.service.ts",
+  // Sanctioned reconciliation operator adjustment (clearing ↔ booking wallet).
+  "apps/api/src/modules/finance/ledger/reconciliation-operator-ledger-adjustment.ts",
 ]);
 
 function walkTs(dir, acc = []) {
@@ -47,9 +50,11 @@ function main() {
     if (ALLOW_NON_SPEC.has(rel)) continue;
     violations.push(`${rel}: postDoubleEntryJournal( — use BookingLedgerAuthorityService or add allowlist`);
   }
-  if (violations.length) {
-    process.exit(1);
-  }
+  reportAndExit("check-ledger-double-entry-writers", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-ledger-double-entry-writers", err);
+}

@@ -28,6 +28,7 @@ import type { DenaliRuleSet } from "./rules/denaliRuleModel";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
 import type { DenaliUIContextOptions } from "./rules/denaliUIAdapter";
+import { denaliDebug } from "./denaliDebug";
 import { readDenaliCanonicalBasics } from "./denaliCanonicalBasicsControl";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
@@ -424,6 +425,7 @@ export function denaliCanonicalToForm(
   existingForm: DenaliCreateTourWizardForm,
   options?: { basics?: DenaliCanonicalBasicsSelection | null },
 ): DenaliCreateTourWizardForm {
+  denaliDebug("denaliCanonicalFormAdapter", "denaliCanonicalToForm input canonical", canonical);
   const result = {
     ...existingForm,
     basicInfo: {
@@ -515,6 +517,7 @@ export function denaliCanonicalToForm(
       photos: canonical.photos ?? [],
     },
   };
+  denaliDebug("denaliCanonicalFormAdapter", "denaliCanonicalToForm output form", result);
   return result;
 }
 
@@ -585,11 +588,18 @@ export function applyCanonicalMvpToForm(
   }: ApplyCanonicalMvpToFormOptions,
 ): DenaliCreateTourWizardForm {
   const sync = denaliCanonicalFormSetValueOptions(engineStatus);
+  denaliDebug("denaliCanonicalFormAdapter", "applyCanonicalMvpToForm sync options", sync);
   const nextRaw = denaliCanonicalToForm(canonical, existingForm, { basics });
   const next = applyDenaliInvariantState(nextRaw, uiOptions, ruleSet);
+  denaliDebug("denaliCanonicalFormAdapter", "applyCanonicalMvpToForm next.basicInfo", next.basicInfo);
 
-  setValue("basicInfo", next.basicInfo, sync);
-  setValue(
+  const debugSetValue: typeof setValue = (name, value, options) => {
+    denaliDebug("denaliCanonicalFormAdapter", "applyCanonicalMvpToForm setValue", { name, value });
+    setValue(name, value, options);
+  };
+
+  debugSetValue("basicInfo", next.basicInfo, sync);
+  debugSetValue(
     "programNature",
     {
       ...existingForm.programNature,
@@ -604,7 +614,7 @@ export function applyCanonicalMvpToForm(
     },
     sync,
   );
-  setValue(
+  debugSetValue(
     "transport",
     {
       ...existingForm.transport,
@@ -617,8 +627,8 @@ export function applyCanonicalMvpToForm(
     },
     sync,
   );
-  setValue("basicInfo.capacityMax", next.basicInfo.capacityMax, sync);
-  setValue(
+  debugSetValue("basicInfo.capacityMax", next.basicInfo.capacityMax, sync);
+  debugSetValue(
     "pricingPayment",
     {
       ...existingForm.pricingPayment,
@@ -629,7 +639,7 @@ export function applyCanonicalMvpToForm(
     },
     sync,
   );
-  setValue(
+  debugSetValue(
     "participantRequirements",
     {
       ...existingForm.participantRequirements,
@@ -643,7 +653,7 @@ export function applyCanonicalMvpToForm(
     },
     sync,
   );
-  setValue(
+  debugSetValue(
     "policies",
     {
       policiesText: next.policies.policiesText,
@@ -652,8 +662,8 @@ export function applyCanonicalMvpToForm(
     },
     sync,
   );
-  setValue("photosData", { photos: next.photosData.photos }, sync);
-  setValue("tripDetails", next.tripDetails, sync);
+  debugSetValue("photosData", { photos: next.photosData.photos }, sync);
+  debugSetValue("tripDetails", next.tripDetails, sync);
 
   return next;
 }

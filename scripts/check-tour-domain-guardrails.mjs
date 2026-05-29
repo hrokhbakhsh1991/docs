@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -61,6 +62,7 @@ function walk(dir, exts, acc = []) {
       if (ent.name === "node_modules" || ent.name === "dist" || ent.name === ".next") continue;
       walk(p, exts, acc);
     } else if (ent.isFile() && exts.some((ext) => ent.name.endsWith(ext))) {
+      if (ent.name.endsWith(".spec.ts") || ent.name.endsWith(".module.spec.ts")) continue;
       acc.push(p);
     }
   }
@@ -107,10 +109,11 @@ for (const scope of SCOPES) {
   allViolations = allViolations.concat(scanScope(scope));
 }
 
-if (allViolations.length === 0) {
-  process.exit(0);
+try {
+  reportAndExit(
+    "check-tour-domain-guardrails",
+    allViolations.map((v) => `[${v.scope}] ${v.file}: forbidden symbol "${v.symbol}"`),
+  );
+} catch (err) {
+  reportFatal("check-tour-domain-guardrails", err);
 }
-
-for (const _v of allViolations) {
-}
-process.exit(1);

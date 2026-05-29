@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -44,9 +45,11 @@ function main() {
       violations.push(`${rel}: direct enqueueOutboxEvent( — use OutboxService.addEvent`);
     }
   }
-  if (violations.length) {
-    process.exit(1);
-  }
+  reportAndExit("check-finance-transactional-outbox", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-finance-transactional-outbox", err);
+}

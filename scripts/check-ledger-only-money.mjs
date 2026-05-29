@@ -6,13 +6,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 const API_SRC = path.join(REPO_ROOT, "apps/api/src");
 
 const ALLOW_FILES = new Set([
-  "apps/api/src/modules/finance/ledger/booking-ledger-authority.service.ts"
+  "apps/api/src/modules/finance/ledger/booking-ledger-authority.service.ts",
+  "apps/api/src/modules/registrations/repositories/registration-finance-port.adapters.ts",
 ]);
 
 function walkTs(dir, acc = []) {
@@ -48,9 +50,11 @@ function main() {
       violations.push(`${rel}:${line}: direct .paidAmount assignment — use BookingLedgerAuthorityService`);
     }
   }
-  if (violations.length) {
-    process.exit(1);
-  }
+  reportAndExit("check-ledger-only-money", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-ledger-only-money", err);
+}

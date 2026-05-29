@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -16,12 +17,17 @@ const MIGRATIONS = path.join(REPO_ROOT, "apps/api/src/database/migrations");
 
 const TABLE_TOKEN = "ledger_journal_lines";
 
-const FORBIDDEN_IN_LEDGER_MODULE = [
-  { re: /\.\s*update\s*\(/, msg: ".update( — ledger rows must not be updated in place" },
-  { re: /\.\s*delete\s*\(/, msg: ".delete( — ledger rows must not be deleted in place" },
-  { re: /\.\s*softDelete\s*\(/, msg: ".softDelete( — ledger rows must not be soft-deleted" },
-  { re: /\.\s*softRemove\s*\(/, msg: ".softRemove( — ledger rows must not be soft-removed" },
-  { re: /\.\s*remove\s*\(/, msg: ".remove( — ledger rows must not be removed via ORM" }
+/** ORM-style row mutations only — excludes crypto `createHash(...).update(...)`. */
+const ORM_MUTATION_PATTERNS = [
+  { re: /\bmanager\s*\.\s*update\s*\(/, msg: "manager.update( — ledger rows must not be updated in place" },
+  { re: /\brepository\s*\.\s*update\s*\(/i, msg: "repository.update( — ledger rows must not be updated in place" },
+  { re: /\bgetRepository\s*\([^)]*\)\s*\.\s*update\s*\(/, msg: "getRepository(...).update( — ledger rows must not be updated in place" },
+  { re: /\bmanager\s*\.\s*delete\s*\(/, msg: "manager.delete( — ledger rows must not be deleted in place" },
+  { re: /\brepository\s*\.\s*delete\s*\(/i, msg: "repository.delete( — ledger rows must not be deleted in place" },
+  { re: /\bmanager\s*\.\s*softDelete\s*\(/, msg: "manager.softDelete( — ledger rows must not be soft-deleted" },
+  { re: /\bmanager\s*\.\s*softRemove\s*\(/, msg: "manager.softRemove( — ledger rows must not be soft-removed" },
+  { re: /\bmanager\s*\.\s*remove\s*\(/, msg: "manager.remove( — ledger rows must not be removed via ORM" },
+  { re: /\brepository\s*\.\s*remove\s*\(/i, msg: "repository.remove( — ledger rows must not be removed via ORM" },
 ];
 
 function normPosix(p) {
@@ -57,7 +63,7 @@ function checkLedgerModule() {
     const rel = normPosix(path.relative(REPO_ROOT, abs));
     const raw = fs.readFileSync(abs, "utf8");
     const text = stripTsComments(raw);
-    for (const { re, msg } of FORBIDDEN_IN_LEDGER_MODULE) {
+    for (const { re, msg } of ORM_MUTATION_PATTERNS) {
       re.lastIndex = 0;
       if (re.test(text)) {
         violations.push(`${rel}: ${msg}`);
@@ -91,9 +97,11 @@ function checkMigrations() {
 
 function main() {
   const violations = [...checkLedgerModule(), ...checkMigrations()];
-  if (violations.length) {
-    process.exit(1);
-  }
+  reportAndExit("check-ledger-append-only", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-ledger-append-only", err);
+}

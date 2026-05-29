@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -30,15 +31,21 @@ const CHECKS = [
 ];
 
 function main() {
+  const violations = [];
   for (const { rel, needles } of CHECKS) {
     const abs = path.join(REPO_ROOT, rel);
     const text = fs.readFileSync(abs, "utf8");
     for (const n of needles) {
       if (!text.includes(n)) {
-        process.exit(1);
+        violations.push(`${rel}: missing required tenant-scope marker "${n}"`);
       }
     }
   }
+  reportAndExit("check-finance-multi-tenant-ledger-isolation", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-finance-multi-tenant-ledger-isolation", err);
+}

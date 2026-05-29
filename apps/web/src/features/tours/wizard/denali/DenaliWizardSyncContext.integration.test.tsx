@@ -80,17 +80,18 @@ function StepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
 }
 
 function AuditBasicsStep() {
-  const { basicsSelection, updateCanonicalBasics } = useDenaliCanonical();
+  const { basicsSelection, confirmUserCategorySelection, updateCanonicalBasics } =
+    useDenaliCanonical();
   return (
     <div data-testid="denali-step-basics">
       <select
         data-testid="denali-basics-category"
         value={basicsSelection.category}
-        onChange={(e) =>
-          updateCanonicalBasics({
-            category: e.target.value as "mountain" | "event",
-          })
-        }
+        onChange={(e) => {
+          const category = e.target.value as "mountain" | "event";
+          confirmUserCategorySelection(category);
+          updateCanonicalBasics({ category });
+        }}
       >
         <option value="mountain">mountain</option>
         <option value="event">event</option>

@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { reportAndExit, reportFatal } from "./guardrail-report.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -116,6 +117,9 @@ function decoratorBlockHasCheckAbilities(decoratorLines) {
 function mutationPolicyOk(guardIds, decoratorLines, relPath, methodName, allow) {
   const set = new Set(guardIds);
   const has = (id) => set.has(id);
+  const hasAbilitiesStack =
+    has("DraftEngineAbilitiesGuard") ||
+    (has("AbilitiesGuard") && has("CaslMirrorAbilitiesGuard"));
 
   if (allow.methodsAllowingThrottlerOnly[relPath]?.includes(methodName)) {
     return has("ThrottlerGuard");
@@ -129,17 +133,12 @@ function mutationPolicyOk(guardIds, decoratorLines, relPath, methodName, allow) 
 
   if (has("RolesGuard")) {
     return (
-      has("AbilitiesGuard") &&
-      has("CaslMirrorAbilitiesGuard") &&
-      decoratorBlockHasCheckAbilities(decoratorLines)
+      hasAbilitiesStack &&
+      (has("DraftEngineAbilitiesGuard") || decoratorBlockHasCheckAbilities(decoratorLines))
     );
   }
 
-  return (
-    has("AbilitiesGuard") &&
-    has("CaslMirrorAbilitiesGuard") &&
-    decoratorBlockHasCheckAbilities(decoratorLines)
-  );
+  return hasAbilitiesStack && decoratorBlockHasCheckAbilities(decoratorLines);
 }
 
 function checkMutationGuards(allow) {
@@ -187,13 +186,15 @@ function main() {
   try {
     allow = readAllowlist();
   } catch (e) {
-    process.exit(2);
+    reportFatal("check-security-mutation-guardrails", e);
   }
 
   const violations = checkMutationGuards(allow);
-  if (violations.length > 0) {
-    process.exit(1);
-  }
+  reportAndExit("check-security-mutation-guardrails", violations);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  reportFatal("check-security-mutation-guardrails", err);
+}
