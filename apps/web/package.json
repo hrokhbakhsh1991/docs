@@ -50,6 +50,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.14",
     "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
     "@repo/digit-localization": "workspace:*",
     "@repo/denali-domain": "workspace:*",
     "@repo/draft-engine": "workspace:*",

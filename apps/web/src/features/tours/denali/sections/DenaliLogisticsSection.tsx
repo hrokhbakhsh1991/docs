@@ -82,7 +82,7 @@ export function DenaliLogisticsSection() {
         </div>
       ) : null}
 
-      <hr style={{ margin: "0.5rem 0", border: 0, borderTop: "1px solid var(--color-border-subtle, #e2e8f0)" }} />
+      <hr style={{ margin: "0.5rem 0", border: 0, borderTop: "1px solid var(--color-slate-200)" }} />
 
       <div style={{ display: "grid", gap: "0.85rem" }}>
         <FormField label={t("transport.transportModeLabel")} error={errors.transport?.transportMode?.message}>

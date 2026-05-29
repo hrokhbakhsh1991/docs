@@ -52,7 +52,7 @@ export function DenaliReviewParticipantsDisplay({ form }: { form: DenaliCreateTo
         display: "grid",
         gap: "0.5rem",
         padding: "0.75rem 0 0",
-        borderTop: "1px solid var(--color-border-subtle, #e2e8f0)",
+        borderTop: "1px solid var(--color-slate-200)",
       }}
     >
       <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>

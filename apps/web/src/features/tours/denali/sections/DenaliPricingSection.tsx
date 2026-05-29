@@ -35,7 +35,7 @@ export function DenaliPricingSection() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-section-pricing">
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>{t("pricing.offlineOnlyHint")}</p>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>{t("pricing.offlineOnlyHint")}</p>
 
       <Checkbox
         label={t("pricing.requiresPayment")}

@@ -1,6 +1,25 @@
 /**
  * Dedupes identical in-flight GETs (React Strict Mode double-mount in dev).
  */
+
+/** Same-origin BFF defaults — required so the HttpOnly `session` cookie is sent. */
+export const BFF_BROWSER_FETCH_INIT: Readonly<RequestInit> = {
+  credentials: "include",
+  cache: "no-store",
+};
+
+/**
+ * Browser `fetch` to Next.js `/api/*` routes with session cookie credentials.
+ * Nest cross-origin calls must use `apiClient` + Bearer mirror (`lib/api-client.ts`).
+ */
+export function bffBrowserFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, {
+    ...BFF_BROWSER_FETCH_INIT,
+    ...init,
+    credentials: init?.credentials ?? "include",
+  });
+}
+
 const inflight = new Map<string, Promise<unknown>>();
 
 export function inflightBffGet<T>(key: string, fetcher: () => Promise<T>): Promise<T> {

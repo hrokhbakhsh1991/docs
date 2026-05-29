@@ -24,9 +24,9 @@ function OptionBadges({ badges }: { badges: string[] }) {
             fontWeight: 600,
             padding: "0.05rem 0.35rem",
             borderRadius: 999,
-            background: "#f1f5f9",
-            color: "#475569",
-            border: "1px solid #e2e8f0",
+            background: "var(--color-chip-bg)",
+            color: "var(--color-chip-text)",
+            border: "1px solid var(--color-chip-border)",
           }}
         >
           {badge}
@@ -148,7 +148,7 @@ export function DestinationCombobox({
 
   return (
     <div style={{ display: "grid", gap: "0.4rem", position: "relative" }}>
-      <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#334155" }}>{label}</label>
+      <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-slate-700)" }}>{label}</label>
       {multiple && selected.length > 0 ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
           {selected.map((opt, index) => (
@@ -157,18 +157,18 @@ export function DestinationCombobox({
               type="button"
               onClick={() => commitMultiToggle(opt.id)}
               style={{
-                border: "1px solid #cbd5e1",
+                border: "1px solid var(--color-slate-300)",
                 borderRadius: 999,
                 padding: "0.1rem 0.5rem",
                 fontSize: "0.78rem",
-                background: "#f8fafc",
+                background: "var(--color-slate-50)",
                 cursor: "pointer",
               }}
               aria-label={`حذف ${opt.name}`}
             >
               {opt.name}
               {opt.badges?.length ? <OptionBadges badges={opt.badges} /> : null}
-              <span style={{ color: "#64748b" }}> ×</span>
+              <span style={{ color: "var(--color-slate-500)" }}> ×</span>
             </button>
           ))}
         </div>
@@ -180,15 +180,15 @@ export function DestinationCombobox({
             alignItems: "center",
             gap: "0.4rem",
             width: "fit-content",
-            border: "1px solid #cbd5e1",
+            border: "1px solid var(--color-slate-300)",
             borderRadius: 999,
             padding: "0.15rem 0.5rem",
             fontSize: "0.78rem",
-            background: "#f8fafc",
-            color: "#1e293b",
+            background: "var(--color-slate-50)",
+            color: "var(--color-slate-800)",
           }}
         >
-          <span style={{ color: "#475569" }}>{selectedSingle.regionName}</span>
+          <span style={{ color: "var(--color-slate-600)" }}>{selectedSingle.regionName}</span>
           <span>/</span>
           <span>
             {selectedSingle.name}
@@ -222,27 +222,27 @@ export function DestinationCombobox({
             left: 0,
             right: 0,
             zIndex: 30,
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--color-slate-200)",
             borderRadius: 10,
             padding: "0.3rem",
             maxHeight: 280,
             overflow: "auto",
-            background: "#fff",
-            boxShadow: "0 12px 28px rgba(15, 23, 42, 0.14)",
+            background: "var(--color-bg-surface)",
+            boxShadow: "var(--shadow-combobox)",
           }}
         >
           {grouped.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#64748b", padding: "0.35rem" }}>نتیجه‌ای پیدا نشد.</p>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-slate-500)", padding: "0.35rem" }}>نتیجه‌ای پیدا نشد.</p>
           ) : (
             grouped.map((group) => (
               <div key={group.regionId} style={{ marginBottom: "0.35rem" }}>
                 <div
                   style={{
                     fontSize: "0.75rem",
-                    color: "#475569",
+                    color: "var(--color-slate-600)",
                     fontWeight: 700,
                     padding: "0.3rem 0.5rem",
-                    borderBottom: "1px dashed #e2e8f0",
+                    borderBottom: "1px dashed var(--color-slate-200)",
                     marginBottom: "0.2rem",
                   }}
                 >
@@ -266,7 +266,11 @@ export function DestinationCombobox({
                         border: "none",
                         borderRadius: 8,
                         padding: "0.4rem 0.5rem",
-                        background: isActive ? "#e2e8f0" : isSelected ? "#eef2ff" : "transparent",
+                        background: isActive
+                          ? "var(--color-selection-hover)"
+                          : isSelected
+                            ? "var(--color-selection-bg)"
+                            : "transparent",
                         cursor: "pointer",
                         fontSize: "0.88rem",
                         display: "flex",
@@ -279,7 +283,7 @@ export function DestinationCombobox({
                         {opt.name}
                         {opt.badges?.length ? <OptionBadges badges={opt.badges} /> : null}
                       </span>
-                      <span style={{ color: "#64748b", fontSize: "0.75rem" }}>{opt.regionName}</span>
+                      <span style={{ color: "var(--color-slate-500)", fontSize: "0.75rem" }}>{opt.regionName}</span>
                     </button>
                   );
                 })}

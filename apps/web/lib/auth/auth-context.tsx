@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable no-console -- temporary auth audit logging during session recovery */
 import {
   createContext,
   useCallback,
@@ -11,7 +12,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { inflightBffGet } from "./inflight-bff-get";
+import { bffBrowserFetch, inflightBffGet } from "./inflight-bff-get";
 import { decodeJwtPayload } from "./decode-jwt-payload";
 import { fetchMembershipAbilityContext } from "./membership-ability-context";
 import {
@@ -20,10 +21,10 @@ import {
   isSessionHydrateFetchFailure,
   type SessionHydrateUser,
   type SessionHydrateWire,
-  warnAuthHydrateTimeout,
   warnSessionHydrate,
 } from "./session-hydrate";
-import { clearSessionToken, persistSessionToken } from "./session";
+import { clearSessionToken, getStoredSessionToken, persistSessionToken } from "./session";
+import { formatAuthAuditLabel, validateSessionToken } from "./validate-session-token";
 import type { WebSessionResponseBody } from "./types";
 
 export { isLeaderRole, isParticipantRole, isWorkspaceOwner } from "./role-tags";
@@ -67,17 +68,54 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const SESSION_HYDRATE_PATH = "/api/auth/session";
-const SESSION_HYDRATE_TIMEOUT_MS = 8_000;
+const SESSION_HYDRATE_TIMEOUT_MS = 12_000;
+const HYDRATE_MAX_ATTEMPTS = 5;
+const HYDRATE_BASE_DELAY_MS = 400;
+
+function logAuthAudit(source: "middleware" | "AuthProvider", label: string): void {
+  console.log(`Auth Audit: ${label}`, { source });
+}
+
+function isPublicAuthBrowserRoute(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const path = window.location.pathname;
+  return (
+    path === "/login" ||
+    path.startsWith("/auth/login") ||
+    path.startsWith("/auth/register") ||
+    path.startsWith("/auth/invite")
+  );
+}
+
+function hydrateBackoffDelayMs(attemptIndex: number): number {
+  return HYDRATE_BASE_DELAY_MS * 2 ** attemptIndex;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 async function fetchSessionHydrate(signal?: AbortSignal): Promise<Response> {
   return inflightBffGet(SESSION_HYDRATE_PATH, () =>
-    fetch(SESSION_HYDRATE_PATH, {
+    bffBrowserFetch(SESSION_HYDRATE_PATH, {
       method: "GET",
-      credentials: "include",
-      cache: "no-store",
       ...(signal ? { signal } : {}),
     }),
   );
+}
+
+async function fetchSessionHydrateWithTimeout(): Promise<Response> {
+  const ac = new AbortController();
+  const tid = window.setTimeout(() => ac.abort(), SESSION_HYDRATE_TIMEOUT_MS);
+  try {
+    return await fetchSessionHydrate(ac.signal);
+  } finally {
+    window.clearTimeout(tid);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -86,13 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const prevTenantIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const middlewareAudit = document.documentElement.getAttribute("data-auth-audit");
+    if (middlewareAudit === "valid") {
+      logAuthAudit("middleware", "Token found");
+    } else if (middlewareAudit) {
+      logAuthAudit("middleware", "Token missing");
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
-    let hydrateTimedOut = false;
-    const ac = new AbortController();
-    const tid = window.setTimeout(() => {
-      hydrateTimedOut = true;
-      ac.abort();
-    }, SESSION_HYDRATE_TIMEOUT_MS);
 
     const applyMembershipContext = (userId: string, tenantId: string, signal?: AbortSignal) => {
       void fetchMembershipAbilityContext(signal).then((ctx) => {
@@ -116,100 +157,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     /** Only `authenticated: false` may clear `user`; never on transient/network errors. */
-    const consumeHydrateResponse = async (response: Response): Promise<void> => {
+    const consumeHydrateResponse = async (
+      response: Response,
+    ): Promise<"authenticated" | "unauthenticated" | "transient"> => {
       if (!response.ok) {
         warnSessionHydrate(
           `session hydrate HTTP ${response.status} — keeping cookie, not clearing user`,
         );
-        return;
+        return "transient";
       }
 
       const payload = (await response.json().catch(() => ({}))) as SessionHydrateWire;
       if (!active) {
-        return;
+        return "transient";
       }
 
       if (payload.authenticated !== true) {
         applySessionHydratePayload(payload);
         setUser(null);
-        return;
+        return "unauthenticated";
+      }
+
+      const tokenForValidation =
+        typeof payload.session_token === "string" ? payload.session_token.trim() : "";
+      const validation = validateSessionToken(tokenForValidation);
+      if (validation.status !== "valid") {
+        applySessionHydratePayload({ authenticated: false });
+        setUser(null);
+        return "unauthenticated";
       }
 
       const hydratedUser: SessionHydrateUser | null = applySessionHydratePayload(payload);
       if (hydratedUser) {
         setUser(hydratedUser);
         applyMembershipContext(hydratedUser.userId, hydratedUser.tenantId);
+        return "authenticated";
       }
-    };
 
-    const runBackgroundHydrateRetry = () => {
-      void (async () => {
-        try {
-          const response = await fetchSessionHydrate();
-          if (!active) {
-            return;
-          }
-          await consumeHydrateResponse(response);
-        } catch (error: unknown) {
-          if (!active) {
-            return;
-          }
-          warnSessionHydrate("background session hydrate retry failed — cookie retained", error);
-        }
-      })();
-    };
-
-    const resolveHydrateFetchError = (error: unknown): "done" | "retry-inline" => {
-      if (!active) {
-        return "done";
-      }
-      if (isAbortError(error)) {
-        if (hydrateTimedOut) {
-          warnAuthHydrateTimeout(error);
-          runBackgroundHydrateRetry();
-        }
-        return "done";
-      }
-      if (!isSessionHydrateFetchFailure(error)) {
-        warnSessionHydrate("session hydrate failed — cookie retained", error);
-        return "done";
-      }
-      warnSessionHydrate("session hydrate fetch failed — retrying once without abort", error);
-      return "retry-inline";
+      return "transient";
     };
 
     void (async () => {
-      try {
-        let response: Response | undefined;
-        try {
-          response = await fetchSessionHydrate(ac.signal);
-        } catch (error: unknown) {
-          const action = resolveHydrateFetchError(error);
-          if (action === "retry-inline") {
-            try {
-              response = await fetchSessionHydrate();
-            } catch (retryError: unknown) {
-              resolveHydrateFetchError(retryError);
-              runBackgroundHydrateRetry();
-            }
+      let lastOutcome: "authenticated" | "unauthenticated" | "transient" = "transient";
+
+      for (let attempt = 0; attempt < HYDRATE_MAX_ATTEMPTS && active; attempt += 1) {
+        if (attempt > 0) {
+          await sleep(hydrateBackoffDelayMs(attempt - 1));
+          if (!active) {
+            break;
           }
         }
 
-        if (response) {
-          await consumeHydrateResponse(response);
+        try {
+          const response = await fetchSessionHydrateWithTimeout();
+          lastOutcome = await consumeHydrateResponse(response);
+          if (lastOutcome === "authenticated" || lastOutcome === "unauthenticated") {
+            break;
+          }
+        } catch (error: unknown) {
+          if (!active) {
+            break;
+          }
+          const transient =
+            isAbortError(error) || isSessionHydrateFetchFailure(error) || error instanceof TypeError;
+          if (transient) {
+            warnSessionHydrate(
+              `session hydrate attempt ${attempt + 1}/${HYDRATE_MAX_ATTEMPTS} failed — retrying`,
+              error,
+            );
+            lastOutcome = "transient";
+            continue;
+          }
+          warnSessionHydrate("session hydrate failed — cookie retained", error);
+          lastOutcome = "transient";
+          break;
         }
-      } finally {
-        window.clearTimeout(tid);
-        if (active) {
-          setIsHydrated(true);
+      }
+
+      if (active) {
+        if (lastOutcome === "authenticated") {
+          logAuthAudit("AuthProvider", "Token found");
+        } else if (isPublicAuthBrowserRoute()) {
+          console.log("Auth Audit: No session yet (public route — expected before login)", {
+            source: "AuthProvider",
+            hydrateOutcome: lastOutcome,
+          });
+        } else {
+          const storedToken = getStoredSessionToken();
+          const clientValidation = validateSessionToken(storedToken);
+          logAuthAudit(
+            "AuthProvider",
+            formatAuthAuditLabel(
+              clientValidation.status === "valid" ? clientValidation : { status: "missing" },
+            ),
+          );
         }
+        setIsHydrated(true);
       }
     })();
 
     return () => {
       active = false;
-      ac.abort();
-      window.clearTimeout(tid);
     };
   }, []);
 
@@ -238,12 +286,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         tenantModules: (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
       });
     }
+    logAuthAudit("AuthProvider", "Token found");
   }, []);
 
   const clearSession = useCallback(async () => {
     await clearSessionToken();
     setUser(null);
     prevTenantIdRef.current = null;
+    logAuthAudit("AuthProvider", "Token missing");
   }, []);
 
   const value = useMemo<AuthContextValue>(

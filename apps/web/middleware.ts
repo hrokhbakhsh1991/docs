@@ -2,7 +2,14 @@ import createMiddleware from "next-intl/middleware";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { buildClearSessionCookieOptions } from "./lib/auth/build-session-cookie";
 import { SESSION_TOKEN_COOKIE } from "./lib/auth/session-cookie";
+import {
+  authAuditHeaderValue,
+  AUTH_AUDIT_REQUEST_HEADER,
+  formatAuthAuditLabel,
+  validateSessionToken,
+} from "./lib/auth/validate-session-token";
 import { lookupWorkspaceTenantExists } from "./lib/tenant/lookup-workspace-tenant";
 import { resolveInboundHostname } from "./lib/tenant/trusted-forwarded-host";
 import { resolveTenantSlugFromHost } from "./lib/tenant/runtime-tenant-context";
@@ -37,14 +44,59 @@ async function isKnownWorkspaceSlug(slug: string): Promise<boolean> {
   return lookupWorkspaceTenantExists(slug.trim().toLowerCase());
 }
 
-function forwardTenantSlug(request: NextRequest, response: NextResponse): NextResponse {
+function forwardTenantSlug(
+  request: NextRequest,
+  response: NextResponse,
+  extraRequestHeaders?: Record<string, string>,
+): NextResponse {
   const slug = resolveTenantSlugFromHost(request.headers.get("host"));
-  if (!slug) {
+  const requestHeaders = new Headers(request.headers);
+  if (slug) {
+    requestHeaders.set("x-tenant-slug", slug);
+  }
+  if (extraRequestHeaders) {
+    for (const [key, value] of Object.entries(extraRequestHeaders)) {
+      requestHeaders.set(key, value);
+    }
+  }
+  if (!slug && !extraRequestHeaders) {
     return response;
   }
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-tenant-slug", slug);
   return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+function applyAuthAuditHeaders(response: NextResponse, auditValue: string): NextResponse {
+  response.headers.set(AUTH_AUDIT_REQUEST_HEADER, auditValue);
+  return response;
+}
+
+function protectSessionRoute(
+  request: NextRequest,
+  token: string | undefined,
+): NextResponse {
+  const validation = validateSessionToken(token);
+  const auditLabel = formatAuthAuditLabel(validation);
+  const auditValue = authAuditHeaderValue(validation);
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console -- dev-only session audit (see MAP.md)
+    console.log(`Auth Audit: ${auditLabel}`);
+  }
+
+  if (validation.status === "valid") {
+    const response = forwardTenantSlug(request, NextResponse.next(), {
+      [AUTH_AUDIT_REQUEST_HEADER]: auditValue,
+    });
+    return applyAuthAuditHeaders(response, auditValue);
+  }
+
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = "/login";
+  loginUrl.search = "";
+  const response = NextResponse.redirect(loginUrl);
+  if (token?.trim()) {
+    response.cookies.set(buildClearSessionCookieOptions());
+  }
+  return applyAuthAuditHeaders(response, auditValue);
 }
 
 const intlMiddleware = createMiddleware(routing);
@@ -182,21 +234,10 @@ export default async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
-
-  if (!token || !token.trim()) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.search = "";
-    const response = NextResponse.redirect(loginUrl);
-    response.headers.set("x-request-id", requestId);
-    response.headers.set("traceparent", traceparent);
-    return response;
-  }
-
-  const response = forwardTenantSlug(request, NextResponse.next());
-  response.headers.set("x-request-id", requestId);
-  response.headers.set("traceparent", traceparent);
-  return response;
+  const sessionResponse = protectSessionRoute(request, token);
+  sessionResponse.headers.set("x-request-id", requestId);
+  sessionResponse.headers.set("traceparent", traceparent);
+  return sessionResponse;
 }
 
 export const config = {

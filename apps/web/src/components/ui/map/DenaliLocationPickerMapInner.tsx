@@ -81,7 +81,7 @@ function DenaliLocationPickerMapInnerComponent({
         width: "100%",
         borderRadius: 8,
         overflow: "hidden",
-        border: "1px solid var(--color-border-subtle, #e2e8f0)",
+        border: "1px solid var(--color-slate-200)",
       }}
     >
       {mapReady ? (

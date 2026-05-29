@@ -72,14 +72,14 @@ const LocationSuggestionList = memo(function LocationSuggestionList({
         listStyle: "none",
         maxHeight: "12rem",
         overflowY: "auto",
-        background: "#fff",
-        border: "1px solid var(--color-border-subtle, #e2e8f0)",
+        background: "var(--color-bg-surface)",
+        border: "1px solid var(--color-slate-200)",
         borderRadius: 8,
-        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.12)",
+        boxShadow: "var(--shadow-location-dropdown)",
       }}
     >
       {results.length === 0 && !isSearching ? (
-        <li style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", color: "#64748b" }}>
+        <li style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem", color: "var(--color-slate-500)" }}>
           {searchError ? unavailableMessage : emptyMessage}
         </li>
       ) : null}
@@ -234,7 +234,7 @@ function DenaliLocationPickerEditorComponent({
                   top: "50%",
                   transform: "translateY(-50%)",
                   fontSize: "0.75rem",
-                  color: "#64748b",
+                  color: "var(--color-slate-500)",
                 }}
               >
                 …
@@ -273,7 +273,7 @@ function DenaliLocationPickerEditorComponent({
 
       {hasDenaliLocationCoordinates(value) ? (
         <span
-          style={{ fontSize: "0.75rem", color: "#64748b" }}
+          style={{ fontSize: "0.75rem", color: "var(--color-slate-500)" }}
           data-testid={`denali-location-${testIdKey}-coords-badge`}
         >
           {t("basic.locationZones.coordinatesSet", {
@@ -282,7 +282,7 @@ function DenaliLocationPickerEditorComponent({
           })}
         </span>
       ) : (
-        <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--color-slate-500)" }}>
           {t("basic.locationZones.mapPickerHint")}
         </span>
       )}
@@ -294,7 +294,7 @@ function DenaliLocationPickerEditorComponent({
           style={{
             margin: 0,
             fontSize: "0.8rem",
-            color: "var(--color-danger-800, #991b1b)",
+            color: "var(--color-danger-800)",
           }}
         >
           {coordError}

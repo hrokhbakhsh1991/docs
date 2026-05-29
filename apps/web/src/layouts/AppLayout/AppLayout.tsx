@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
+
+import { resolveTenantLayoutVariant } from "@repo/core";
 
 import { Button, cn, useToast } from "@tour/ui";
 
@@ -11,8 +13,7 @@ import { useThemeSwitcher } from "@/hooks/useThemeSwitcher";
 
 import styles from "./AppLayout.module.css";
 
-import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
-import { userHasFinanceModuleCapability } from "@/lib/finance/finance-module-access";
+import { useAuth } from "@/lib/auth/auth-context";
 import {
   WorkspacePickerModal,
   type WorkspacePickerItem
@@ -25,25 +26,10 @@ import {
 } from "@/lib/workspace/workspace-host-navigation";
 import { createWorkspaceSession } from "@/lib/services/auth.service";
 import { getTelegramSyncDeepLink } from "@/lib/telegram-sync-link";
+import { useTenantConfig } from "@/lib/tenant/tenant-config-provider";
 
-type NavLink = { href: string; label: string; pathKey: string };
-
-/** Participants never see `/users`; leader queue is injected for owners/admins. */
-const PARTICIPANT_KEYS = [
-  { path: "/dashboard", msgKey: "dashboard" as const },
-  { path: "/tours", msgKey: "tours" as const },
-  { path: "/bookings", msgKey: "bookings" as const },
-  { path: "/settings", msgKey: "settings" as const },
-];
-
-const LEADER_KEYS = [
-  { path: "/dashboard", msgKey: "dashboard" as const },
-  { path: "/tours", msgKey: "tours" as const },
-  { path: "/leader/review", msgKey: "reviewQueue" as const },
-  { path: "/finance", msgKey: "finance" as const },
-  { path: "/users", msgKey: "users" as const },
-  { path: "/settings", msgKey: "settings" as const },
-];
+import { resolveWorkspaceNavigation } from "./resolve-workspace-navigation";
+import { WorkspaceBrand } from "./WorkspaceBrand";
 
 export type WorkspaceShellProps = {
   children: ReactNode;
@@ -55,6 +41,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const pathname = usePathname();
   const tNav = useTranslations("nav");
   const tApp = useTranslations("app");
+  const { config } = useTenantConfig();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
@@ -63,6 +50,18 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
   const { theme, setTheme } = useThemeSwitcher("light");
   const { isHydrated, user, setSession } = useAuth();
   const pendingWorkspaceRanRef = useRef(false);
+
+  const layoutVariant = resolveTenantLayoutVariant(config.layout);
+  const showThemeToggle = config.layout.showThemeToggle !== false;
+  const brandName = config.theme.brandName?.trim() || tApp("brand");
+
+  const shellStyle = useMemo((): CSSProperties | undefined => {
+    const width = config.layout.sidebarWidthPx;
+    if (width == null || !Number.isFinite(width) || width <= 0) {
+      return undefined;
+    }
+    return { "--workspace-sidebar-width": `${width}px` } as CSSProperties;
+  }, [config.layout.sidebarWidthPx]);
 
   useEffect(() => {
     if (!isHydrated || !user?.tenantId || pendingWorkspaceRanRef.current) {
@@ -117,25 +116,16 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     })();
   }, [isHydrated, user?.tenantId, router, setSession, showToast]);
 
-  const navigation = useMemo((): NavLink[] => {
-    const hasFinance = userHasFinanceModuleCapability(user);
-    if (!(isHydrated && isLeaderRole(user?.role))) {
-      const keys = PARTICIPANT_KEYS.filter(
-        ({ path }) => path !== "/finance" || hasFinance,
-      );
-      return keys.map(({ path, msgKey }) => ({
-        href: path,
-        pathKey: path,
-        label: tNav(msgKey),
-      }));
-    }
-    const keys = LEADER_KEYS.filter(({ path }) => path !== "/finance" || hasFinance);
-    return keys.map(({ path, msgKey }) => ({
-      href: path,
-      pathKey: path,
-      label: tNav(msgKey),
-    }));
-  }, [isHydrated, user, tNav]);
+  const navigation = useMemo(
+    () =>
+      resolveWorkspaceNavigation({
+        configuredNav: config.layout.navItems,
+        isHydrated,
+        user,
+        tNav,
+      }),
+    [config.layout.navItems, isHydrated, user, tNav],
+  );
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -172,8 +162,115 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     }
   }
 
+  const shellClassName = cn(
+    styles.shell,
+    layoutVariant === "top-nav" && styles.shellTopNav,
+    layoutVariant === "sidebar-right" && styles.shellSidebarRight,
+  );
+
+  const navigationPanel = (
+    <aside
+      id="workspace-main-navigation"
+      className={cn(styles.sidebar, sidebarOpen && styles.sidebarOpen)}
+      aria-label={tApp("mainNav")}
+    >
+      <div className={styles.sidebarHeader}>
+        <WorkspaceBrand onNavigate={closeSidebar} />
+      </div>
+      <nav className={styles.nav}>
+        {navigation.map(({ href, label, pathKey }) => (
+          <Link
+            key={pathKey}
+            href={href}
+            prefetch={false}
+            className={cn(styles.navLink, pathname === href && styles.navLinkActive)}
+            onClick={closeSidebar}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+    </aside>
+  );
+
+  const headerBar = (
+    <header className={styles.header}>
+      <div className={styles.headerLeft}>
+        {layoutVariant !== "top-nav" ? (
+          <div className={styles.menuBtn}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={sidebarOpen}
+              aria-controls="workspace-main-navigation"
+              onClick={() => setSidebarOpen((o) => !o)}
+            >
+              {tApp("menu")}
+            </Button>
+          </div>
+        ) : null}
+        <p className={styles.headerTitle}>{brandName}</p>
+      </div>
+      <div className={styles.headerRight}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => setWorkspaceModalOpen(true)}
+          loading={isSwitchingWorkspace}
+          disabled={isSwitchingWorkspace}
+        >
+          {tApp("switchWorkspace")}
+        </Button>
+        {showThemeToggle ? (
+          <div className={styles.themeCluster}>
+            <Button
+              type="button"
+              variant={theme === "light" ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setTheme("light")}
+            >
+              {tApp("themeLight")}
+            </Button>
+            <Button
+              type="button"
+              variant={theme === "dark" ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setTheme("dark")}
+            >
+              {tApp("themeDark")}
+            </Button>
+          </div>
+        ) : null}
+        {isHydrated && user ? (
+          <details className={styles.accountMenu}>
+            <summary className={styles.accountMenuSummary}>{tApp("accountMenu")}</summary>
+            <div className={styles.accountMenuPopover}>
+              <a
+                className={styles.accountMenuLink}
+                href={getTelegramSyncDeepLink()}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {tApp("syncTelegram")}
+              </a>
+              <p className={styles.accountMenuHint}>{tApp("syncTelegramHint")}</p>
+            </div>
+          </details>
+        ) : null}
+        <LogoutButton />
+        <span className={styles.avatar} aria-hidden title="User avatar" />
+      </div>
+    </header>
+  );
+
   return (
-    <div className={styles.shell}>
+    <div
+      className={shellClassName}
+      style={shellStyle}
+      data-workspace-layout={layoutVariant}
+    >
       <a href="#workspace-main-content" className={styles.skipLink}>
         {tApp("skipToMain")}
       </a>
@@ -184,101 +281,27 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
         tabIndex={sidebarOpen ? 0 : -1}
         onClick={closeSidebar}
       />
-      <aside
-        id="workspace-main-navigation"
-        className={cn(styles.sidebar, sidebarOpen && styles.sidebarOpen)}
-        aria-label={tApp("mainNav")}
-      >
-        <div className={styles.sidebarHeader}>
-          <Link href="/dashboard" className={styles.brand} onClick={closeSidebar}>
-            {tApp("brand")}
-          </Link>
-        </div>
-        <nav className={styles.nav}>
-          {navigation.map(({ href, label, pathKey }) => (
-            <Link
-              key={pathKey}
-              href={href}
-              prefetch={false}
-              className={cn(styles.navLink, pathname === href && styles.navLinkActive)}
-              onClick={closeSidebar}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
 
-      <div className={styles.column}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.menuBtn}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-expanded={sidebarOpen}
-                aria-controls="workspace-main-navigation"
-                onClick={() => setSidebarOpen((o) => !o)}
-              >
-                {tApp("menu")}
-              </Button>
-            </div>
-            <p className={styles.headerTitle}>{tApp("brand")}</p>
+      {layoutVariant === "top-nav" ? (
+        <div className={styles.column}>
+          {headerBar}
+          {navigationPanel}
+          <main id="workspace-main-content" className={styles.main} tabIndex={-1}>
+            {children}
+          </main>
+        </div>
+      ) : (
+        <>
+          {navigationPanel}
+          <div className={styles.column}>
+            {headerBar}
+            <main id="workspace-main-content" className={styles.main} tabIndex={-1}>
+              {children}
+            </main>
           </div>
-          <div className={styles.headerRight}>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setWorkspaceModalOpen(true)}
-              loading={isSwitchingWorkspace}
-              disabled={isSwitchingWorkspace}
-            >
-              {tApp("switchWorkspace")}
-            </Button>
-            <div className={styles.themeCluster}>
-              <Button
-                type="button"
-                variant={theme === "light" ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setTheme("light")}
-              >
-                {tApp("themeLight")}
-              </Button>
-              <Button
-                type="button"
-                variant={theme === "dark" ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setTheme("dark")}
-              >
-                {tApp("themeDark")}
-              </Button>
-            </div>
-            {isHydrated && user ? (
-              <details className={styles.accountMenu}>
-                <summary className={styles.accountMenuSummary}>{tApp("accountMenu")}</summary>
-                <div className={styles.accountMenuPopover}>
-                  <a
-                    className={styles.accountMenuLink}
-                    href={getTelegramSyncDeepLink()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {tApp("syncTelegram")}
-                  </a>
-                  <p className={styles.accountMenuHint}>{tApp("syncTelegramHint")}</p>
-                </div>
-              </details>
-            ) : null}
-            <LogoutButton />
-            <span className={styles.avatar} aria-hidden title="User avatar" />
-          </div>
-        </header>
-        <main id="workspace-main-content" className={styles.main} tabIndex={-1}>
-          {children}
-        </main>
-      </div>
+        </>
+      )}
+
       <WorkspacePickerModal
         open={workspaceModalOpen}
         onClose={() => {

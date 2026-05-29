@@ -5,6 +5,10 @@ export type SessionJwtClaims = {
   tenant_id?: string;
   role?: string;
   email?: string;
+  /** Expiry timestamp (seconds since epoch). Used to detect stale tokens without a backend round-trip. */
+  exp?: number;
+  /** Issued-at timestamp (seconds since epoch). */
+  iat?: number;
 };
 
 export function decodeJwtPayload(token: string): SessionJwtClaims | null {
@@ -26,4 +30,15 @@ export function decodeJwtPayload(token: string): SessionJwtClaims | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Returns true when the JWT `exp` claim is present and already in the past.
+ * Uses a 30-second clock skew buffer to guard against minor drift.
+ */
+export function isJwtExpired(claims: SessionJwtClaims | null, clockSkewSeconds = 30): boolean {
+  if (!claims || typeof claims.exp !== "number") {
+    return false; // no exp → treat as non-expiring (dev tokens)
+  }
+  return Date.now() / 1000 > claims.exp - clockSkewSeconds;
 }

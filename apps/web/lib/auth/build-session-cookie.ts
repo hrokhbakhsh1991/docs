@@ -6,13 +6,47 @@ export type SessionCookieOptionsInput = {
   maxAgeSeconds?: number;
 };
 
-function sessionCookieDomain(): string | undefined {
+/**
+ * Default cookie lifetime: 7 days (must match backend JWT TTL).
+ * Callers must pass this on every Set-Cookie so the browser stores a persistent cookie.
+ */
+export const SESSION_COOKIE_MAX_AGE_SECONDS = 604_800;
+
+/** Opt out of shared dev domain (`host-only` cookie on the login host only). */
+export const SESSION_COOKIE_HOST_ONLY = "host-only";
+
+function normalizeCookieDomain(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === SESSION_COOKIE_HOST_ONLY) {
+    return "";
+  }
+  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+}
+
+/**
+ * Cookie `Domain` for workspace subdomain sharing.
+ *
+ * - **Production:** `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN` (e.g. `.company.com`), or normalized tenant root.
+ * - **Development:** `.localhost` by default so `denali.localhost` shares with other `*.localhost` hosts.
+ * - **Override:** set `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN=host-only` for a host-only cookie.
+ */
+export function resolveSessionCookieDomain(): string | undefined {
   const explicit = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN?.trim();
   if (explicit) {
-    return explicit;
+    const normalized = normalizeCookieDomain(explicit);
+    return normalized || undefined;
   }
-  // Host-only cookie (no Domain). Chromium rejects Domain=.localhost on *.localhost hosts.
-  return undefined;
+
+  if (process.env.NODE_ENV === "production") {
+    const root = process.env.NEXT_PUBLIC_TENANT_ROOT_DOMAIN?.trim().toLowerCase();
+    return root ? normalizeCookieDomain(root) || undefined : undefined;
+  }
+
+  return ".localhost";
+}
+
+function sessionCookieDomain(): string | undefined {
+  return resolveSessionCookieDomain();
 }
 
 function sessionSameSite(): "strict" | "lax" | "none" {
@@ -25,12 +59,16 @@ function sessionSameSite(): "strict" | "lax" | "none" {
 
 /**
  * Single session cookie builder (Phase 16.3).
- * DEV: host-only cookie (no Domain) unless NEXT_PUBLIC_SESSION_COOKIE_DOMAIN is set.
- * PROD: set NEXT_PUBLIC_SESSION_COOKIE_DOMAIN (e.g. .company.com) + SameSite=None + Secure.
+ *
+ * DEV  : `Domain=.localhost` unless `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN` overrides.
+ * PROD : `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN` + SameSite=None + Secure.
+ *
+ * Cross-port (`:3000` UI → `:3001` Nest) never sends this cookie; Nest uses `Authorization: Bearer`
+ * from the localStorage mirror (`lib/auth/session.ts`).
  */
 /** Clears the session cookie using the same domain/sameSite/secure policy as set. */
 export function buildClearSessionCookieOptions(): ResponseCookie {
-  const base = buildSessionCookieOptions({ token: "" });
+  const base = buildSessionCookieOptions({ token: "", maxAgeSeconds: 0 });
   return {
     ...base,
     value: "",
@@ -47,6 +85,14 @@ export function buildSessionCookieOptions(
   const secure = isProd || sameSite === "none";
   const domain = sessionCookieDomain();
 
+  const trimmedToken = input.token.trim();
+  const maxAgeSeconds =
+    input.maxAgeSeconds !== undefined
+      ? input.maxAgeSeconds
+      : trimmedToken
+        ? SESSION_COOKIE_MAX_AGE_SECONDS
+        : undefined;
+
   return {
     name: SESSION_TOKEN_COOKIE,
     value: input.token,
@@ -55,6 +101,6 @@ export function buildSessionCookieOptions(
     sameSite,
     secure,
     ...(domain ? { domain } : {}),
-    ...(input.maxAgeSeconds !== undefined ? { maxAge: input.maxAgeSeconds } : {}),
+    ...(maxAgeSeconds !== undefined ? { maxAge: maxAgeSeconds } : {}),
   };
 }

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-/** True only after the client has committed (skips Next.js link-prefetch passes). */
+/** True only after the component has mounted in the browser (safe gate for `window`). */
 export function useClientMounted(): boolean {
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
   return mounted;
 }

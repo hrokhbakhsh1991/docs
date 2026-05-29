@@ -83,7 +83,7 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
       {rootError ? (
         <p
           role="alert"
-          style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-600, #dc2626)" }}
+          style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-600)" }}
           data-testid="denali-gathering-points-root-error"
         >
           {rootError}
@@ -91,7 +91,7 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
       ) : null}
 
       {fields.length === 0 ? (
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>
           حداقل یک ایستگاه تجمع برای انتشار تور الزامی است.
         </p>
       ) : null}
@@ -105,7 +105,7 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
             data-testid={`denali-gathering-point-${index}`}
             data-field-path={`${name}.${index}`}
             style={{
-              border: "1px dashed var(--color-border-subtle, #e2e8f0)",
+              border: "1px dashed var(--color-slate-200)",
               borderRadius: 6,
               padding: "0.75rem",
               margin: 0,
@@ -120,7 +120,7 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
             {stationError ? (
               <p
                 role="alert"
-                style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-600, #dc2626)" }}
+                style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-600)" }}
               >
                 {stationError}
               </p>
@@ -165,7 +165,7 @@ export function DenaliGatheringPointsWidget({ name }: DenaliGatheringPointsWidge
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemove(index)}
-                  style={{ color: "var(--color-danger-600, #dc2626)", height: "2.5rem" }}
+                  style={{ color: "var(--color-danger-600)", height: "2.5rem" }}
                 >
                   حذف این ایستگاه
                 </Button>

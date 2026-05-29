@@ -59,7 +59,7 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
         display: "grid",
         gap: "0.75rem",
         padding: "0.75rem 0 0",
-        borderTop: "1px solid var(--color-border-subtle, #e2e8f0)",
+        borderTop: "1px solid var(--color-slate-200)",
       }}
     >
       <DenaliPeakExperienceField />
@@ -69,7 +69,7 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
           <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 600 }}>
             {t("review.participantsSection")}
           </h3>
-          <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>{t("participants.mountainHint")}</p>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>{t("participants.mountainHint")}</p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             {showMinimumAge ? (

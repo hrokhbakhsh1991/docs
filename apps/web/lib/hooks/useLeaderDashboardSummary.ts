@@ -2,16 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { leaderDashboardSummaryKey } from "@/lib/query-keys";
+import { leaderDashboardSummaryKeys } from "@/lib/query-keys";
 import { getLeaderDashboardSummary } from "@/lib/services/leader-dashboard.service";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
-export { leaderDashboardSummaryKey };
+export { leaderDashboardSummaryKeys };
 
 export function useLeaderDashboardSummary(enabled: boolean) {
+  const tenantId = useWorkspaceQueryScope() ?? "";
   return useQuery({
-    queryKey: leaderDashboardSummaryKey,
+    queryKey: leaderDashboardSummaryKeys.detail(tenantId),
     queryFn: () => getLeaderDashboardSummary(),
-    enabled,
+    enabled: enabled && Boolean(tenantId),
     staleTime: 30_000,
   });
 }

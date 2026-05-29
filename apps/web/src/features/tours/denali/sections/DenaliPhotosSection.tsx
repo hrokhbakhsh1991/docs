@@ -129,7 +129,7 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
       </FormField>
 
       {uploading ? (
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>در حال آپلود…</p>
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>در حال آپلود…</p>
       ) : null}
 
       <div
@@ -145,7 +145,7 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
           <div
             key={`${field.id}-${index}`}
             style={{
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--color-slate-200)",
               borderRadius: "8px",
               overflow: "hidden",
               position: "relative",
@@ -161,7 +161,7 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
             <div
               style={{
                 padding: "0.5rem",
-                background: "#f8fafc",
+                background: "var(--color-slate-50)",
                 fontSize: "0.75rem",
                 whiteSpace: "nowrap",
                 overflow: "hidden",

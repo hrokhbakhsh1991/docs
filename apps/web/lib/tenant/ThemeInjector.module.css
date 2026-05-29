@@ -1,0 +1,17 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+}
+
+.noAnimations,
+.noAnimations *,
+.noAnimations *::before,
+.noAnimations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

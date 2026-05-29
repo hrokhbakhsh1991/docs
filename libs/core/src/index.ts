@@ -1,0 +1,16 @@
+export {
+  createDefaultTenantConfig,
+  DEFAULT_DASHBOARD_WIDGETS,
+  isTenantDashboardWidgetId,
+  resolveTenantDashboardWidgets,
+  resolveTenantLayoutVariant,
+  type TenantConfig,
+  type TenantDashboardWidgetId,
+  type TenantFeatureConfig,
+  type TenantLayoutConfig,
+  type TenantLayoutVariant,
+  type TenantNavItem,
+  type TenantSidebarPosition,
+  type TenantThemeConfig,
+  type TenantThemeMode,
+} from "./types/tenant-config";

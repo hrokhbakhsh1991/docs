@@ -19,7 +19,7 @@ import { mapToUserMessage } from "@/lib/errors/mapToUserMessage";
 import { downloadCsv, registrationsToCsv } from "@/lib/export-registrations-csv";
 import { useLeaderTourRegistrations } from "@/lib/hooks/useLeaderTourRegistrations";
 import {
-  leaderDashboardSummaryKey,
+  leaderDashboardSummaryKeys,
   leaderRegistrationIndexKeys,
   registrationKeys,
   tourKeys,
@@ -70,7 +70,7 @@ export function LeaderReviewClient() {
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: registrationKeys.all });
     await queryClient.invalidateQueries({ queryKey: tourKeys.all });
-    await queryClient.invalidateQueries({ queryKey: leaderDashboardSummaryKey });
+    await queryClient.invalidateQueries({ queryKey: leaderDashboardSummaryKeys.all });
     await queryClient.invalidateQueries({ queryKey: leaderRegistrationIndexKeys.all });
     await leaderData.refetchAll();
   }, [queryClient, leaderData]);

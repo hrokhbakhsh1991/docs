@@ -9,7 +9,7 @@ import {
 
 const STORAGE_KEY = "tour_ops_session_token";
 
-function mockSessionStorage(): Storage {
+function mockLocalStorage(): Storage {
   const map = new Map<string, string>();
   return {
     getItem: (key: string) => map.get(key) ?? null,
@@ -25,11 +25,11 @@ function mockSessionStorage(): Storage {
   } as Storage;
 }
 
-test("ensureSessionStorageSync writes token when sessionStorage is empty", () => {
-  const g = globalThis as typeof globalThis & { window?: { sessionStorage: Storage } };
+test("ensureSessionStorageSync writes token when localStorage is empty", () => {
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
   const prior = g.window;
-  const storage = mockSessionStorage();
-  g.window = { sessionStorage: storage };
+  const storage = mockLocalStorage();
+  g.window = { localStorage: storage };
 
   try {
     ensureSessionStorageSync("jwt-from-cookie");
@@ -44,16 +44,35 @@ test("ensureSessionStorageSync writes token when sessionStorage is empty", () =>
   }
 });
 
-test("ensureSessionStorageSync does not overwrite an existing token", () => {
-  const g = globalThis as typeof globalThis & { window?: { sessionStorage: Storage } };
+test("ensureSessionStorageSync updates token when cookie token differs", () => {
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
   const prior = g.window;
-  const storage = mockSessionStorage();
+  const storage = mockLocalStorage();
   storage.setItem(STORAGE_KEY, "existing");
-  g.window = { sessionStorage: storage };
+  g.window = { localStorage: storage };
 
   try {
     ensureSessionStorageSync("jwt-from-cookie");
-    assert.equal(getStoredSessionToken(), "existing");
+    assert.equal(getStoredSessionToken(), "jwt-from-cookie");
+  } finally {
+    if (prior === undefined) {
+      delete g.window;
+    } else {
+      g.window = prior;
+    }
+  }
+});
+
+test("ensureSessionStorageSync keeps token when unchanged", () => {
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
+  const prior = g.window;
+  const storage = mockLocalStorage();
+  storage.setItem(STORAGE_KEY, "same");
+  g.window = { localStorage: storage };
+
+  try {
+    ensureSessionStorageSync("same");
+    assert.equal(getStoredSessionToken(), "same");
   } finally {
     if (prior === undefined) {
       delete g.window;
@@ -64,11 +83,11 @@ test("ensureSessionStorageSync does not overwrite an existing token", () => {
 });
 
 test("clearSessionStorageMirror removes the Bearer mirror", () => {
-  const g = globalThis as typeof globalThis & { window?: { sessionStorage: Storage } };
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
   const prior = g.window;
-  const storage = mockSessionStorage();
+  const storage = mockLocalStorage();
   storage.setItem(STORAGE_KEY, "stale");
-  g.window = { sessionStorage: storage };
+  g.window = { localStorage: storage };
 
   try {
     clearSessionStorageMirror();

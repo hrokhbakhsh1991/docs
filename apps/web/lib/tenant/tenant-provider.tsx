@@ -1,11 +1,14 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { TenantContext } from "@/lib/tenant/runtime-tenant-context";
-import { resolveClientRuntimeTenantContext } from "@/lib/tenant/runtime-tenant-context";
+import { tryResolveClientRuntimeTenantContext } from "@/lib/tenant/runtime-tenant-context";
 
 const TenantContextReact = createContext<TenantContext | null>(null);
+
+/** SSR-safe empty tenant placeholder until server or client context is available. */
+export const SSR_TENANT_CONTEXT: TenantContext = { tenantSlug: "" };
 
 export function TenantProvider({
   value,
@@ -20,13 +23,30 @@ export function TenantProvider({
   );
 }
 
-/** Hydrates client tree; falls back to window host when server value is slug-only. */
+/** Server-injected tenant from `ServerTenantProvider`, if present in the React tree. */
+export function useOptionalServerTenantContext(): TenantContext | null {
+  return useContext(TenantContextReact);
+}
+
+/**
+ * Workspace tenant from server context (middleware / RSC) or, after mount, from `window.location.host`.
+ * Never calls `window` during SSR — returns {@link SSR_TENANT_CONTEXT} until client resolution runs.
+ */
 export function useTenantContext(): TenantContext {
-  const fromServer = useContext(TenantContextReact);
+  const fromServer = useOptionalServerTenantContext();
+  const [clientTenant, setClientTenant] = useState<TenantContext | null>(null);
+
+  useEffect(() => {
+    if (fromServer) {
+      return;
+    }
+    setClientTenant(tryResolveClientRuntimeTenantContext());
+  }, [fromServer]);
+
   if (fromServer) {
     return fromServer;
   }
-  return resolveClientRuntimeTenantContext();
+  return clientTenant ?? SSR_TENANT_CONTEXT;
 }
 
 export function ServerTenantProvider({

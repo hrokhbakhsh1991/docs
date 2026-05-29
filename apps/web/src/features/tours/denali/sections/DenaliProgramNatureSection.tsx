@@ -43,7 +43,7 @@ export function DenaliProgramNatureSection() {
             error={errors.programNature?.difficultyLevel?.message}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <span style={{ fontSize: "0.8rem", color: "#64748b" }}>۱ (بسیار آسان)</span>
+              <span style={{ fontSize: "0.8rem", color: "var(--color-slate-500)" }}>۱ (بسیار آسان)</span>
               <input
                 type="range"
                 min="1"
@@ -58,10 +58,10 @@ export function DenaliProgramNatureSection() {
                     },
                   })
                 }
-                style={{ flex: 1, accentColor: "var(--color-primary-600, #2563eb)" }}
+                style={{ flex: 1, accentColor: "var(--color-primary-600)" }}
                 data-testid="denali-program-difficulty-slider"
               />
-              <span style={{ fontSize: "0.8rem", color: "#64748b" }}>۱۰ (فنی/سخت)</span>
+              <span style={{ fontSize: "0.8rem", color: "var(--color-slate-500)" }}>۱۰ (فنی/سخت)</span>
             </div>
           </FormField>
 

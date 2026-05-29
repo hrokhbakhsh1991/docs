@@ -69,7 +69,7 @@ export function DenaliLocationZonesSection() {
     <details
       data-testid="denali-location-zones-section"
       style={{
-        border: "1px solid var(--color-border-subtle, #e2e8f0)",
+        border: "1px solid var(--color-slate-200)",
         borderRadius: 8,
         padding: "0.65rem 0.75rem",
       }}
@@ -109,7 +109,7 @@ export function DenaliLocationZoneField({ zoneKey }: DenaliLocationZoneFieldProp
     <fieldset
       data-testid={`denali-location-zone-${zoneKey}`}
       style={{
-        border: "1px dashed var(--color-border-subtle, #e2e8f0)",
+        border: "1px dashed var(--color-slate-200)",
         borderRadius: 6,
         padding: "0.5rem 0.65rem",
         margin: 0,

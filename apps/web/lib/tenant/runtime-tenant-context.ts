@@ -197,15 +197,31 @@ export async function resolveRuntimeTenantContextFromNextHeaders(): Promise<Tena
   return resolveRuntimeTenantContextFromTrustedHeaders(h());
 }
 
-export function resolveClientRuntimeTenantContext(): TenantContext {
+/**
+ * Resolves tenant slug from `window.location.host` when in the browser.
+ * Returns `null` during SSR or before mount — never touches `window` on the server.
+ */
+export function tryResolveClientRuntimeTenantContext(): TenantContext | null {
   if (typeof window === "undefined") {
-    throw new TenantResolutionError("Client tenant resolution requires a browser context");
+    return null;
   }
   const evaluated = evaluateWorkspaceHost(window.location.host);
   if (!evaluated.ok) {
+    return null;
+  }
+  return { tenantSlug: evaluated.slug };
+}
+
+/** @throws {TenantResolutionError} when not in a browser or host is not a workspace subdomain */
+export function resolveClientRuntimeTenantContext(): TenantContext {
+  const ctx = tryResolveClientRuntimeTenantContext();
+  if (!ctx) {
+    if (typeof window === "undefined") {
+      throw new TenantResolutionError("Client tenant resolution requires a browser context");
+    }
     throw new TenantResolutionError(
       "Workspace tenant could not be resolved from window.location.host",
     );
   }
-  return { tenantSlug: evaluated.slug };
+  return ctx;
 }

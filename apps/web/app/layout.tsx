@@ -12,6 +12,7 @@ import { vazirmatn } from "@/fonts/vazirmatn";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { AUTH_AUDIT_REQUEST_HEADER } from "@/lib/auth/validate-session-token";
 import { WORKSPACE_ASSERT_SKIP_HEADER } from "@/lib/tenant/workspace-assert-skip";
 import { assertWorkspaceRequest } from "@/lib/tenant/assert-workspace-request";
 import { ServerTenantProvider } from "@/lib/tenant/tenant-provider";
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const messages = await getMessages();
 
   const headerBag = await headers();
+  const authAudit = headerBag.get(AUTH_AUDIT_REQUEST_HEADER) ?? undefined;
   const skipWorkspaceAssert = headerBag.get(WORKSPACE_ASSERT_SKIP_HEADER) === "1";
 
   const tenantWrapped = skipWorkspaceAssert ? (
@@ -59,7 +61,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   );
 
   return (
-    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
+    <html
+      lang="fa"
+      dir="rtl"
+      className={vazirmatn.variable}
+      suppressHydrationWarning
+      {...(authAudit ? { "data-auth-audit": authAudit } : {})}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: buildThemeInitScript() }} />
       </head>

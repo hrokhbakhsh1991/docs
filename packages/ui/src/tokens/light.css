@@ -46,6 +46,69 @@
   --color-info-bg: #e8f1f8;
   --color-info-border: #9ebdd9;
 
+  /* Extended surfaces (wizard / Denali compat) */
+  --color-surface-subtle: #eef2f7;
+  --color-surface-muted: #f8fafc;
+
+  /* Primary scale */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e3a8a;
+
+  /* Brand gradient aliases */
+  --color-brand-400: #3b82f6;
+  --color-brand-500: #2563eb;
+
+  /* Danger scale */
+  --color-danger-50: #fef2f2;
+  --color-danger-200: #fecaca;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+
+  /* Warning scale */
+  --color-warning-50: #fffbeb;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-800: #92400e;
+  --color-warning-900: #78350f;
+
+  /* Neutral scale (legacy forms) */
+  --color-neutral-25: #fafafa;
+  --color-neutral-100: #f0f0f0;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-600: #525252;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #171717;
+
+  /* Slate palette (inline text / borders) */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+
+  /* Selection / combobox */
+  --color-selection-bg: #eef2ff;
+  --color-selection-hover: #e2e8f0;
+  --color-chip-bg: #f1f5f9;
+  --color-chip-text: #475569;
+  --color-chip-border: #e2e8f0;
+
+  --shadow-combobox: 0 12px 28px rgba(15, 23, 42, 0.14);
+  --shadow-gear-required: 0 1px 2px rgba(220, 38, 38, 0.1);
+  --shadow-location-dropdown: 0 4px 12px rgba(15, 23, 42, 0.12);
+
+  --color-indicator-bg-muted: rgba(0, 0, 0, 0.05);
+
   --color-overlay-scrim: rgba(15, 18, 22, 0.55);
   --focus-ring-color: rgba(30, 90, 142, 0.35);
   --focus-ring-offset: #ffffff;

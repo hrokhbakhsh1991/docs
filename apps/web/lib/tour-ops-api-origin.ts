@@ -1,5 +1,5 @@
 import { buildApiBaseUrlFromTenant } from "@/lib/api/get-api-base-url";
-import { resolveClientRuntimeTenantContext } from "@/lib/tenant/runtime-tenant-context";
+import { tryResolveClientRuntimeTenantContext } from "@/lib/tenant/runtime-tenant-context";
 
 /**
  * Browser Tour-Ops API origin — tenant slug from host via {@link getApiBaseUrl} / runtime context.
@@ -30,7 +30,10 @@ export function readBrowserHostname(): string | undefined {
 
 export function resolveTourOpsApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    return buildApiBaseUrlFromTenant(resolveClientRuntimeTenantContext());
+    const tenant = tryResolveClientRuntimeTenantContext();
+    if (tenant) {
+      return buildApiBaseUrlFromTenant(tenant);
+    }
   }
   if (isTourOpsApiDynamicOrigin()) {
     const port = process.env.NEXT_PUBLIC_API_PORT?.trim() || "3001";

@@ -74,8 +74,8 @@ export function TourCreateWizard() {
             style={{
               padding: "1rem",
               borderRadius: 8,
-              background: "var(--color-danger-50, #fef2f2)",
-              color: "var(--color-danger-800, #991b1b)",
+              background: "var(--color-danger-50)",
+              color: "var(--color-danger-800)",
             }}
           >
             <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
@@ -106,8 +106,8 @@ export function TourCreateWizard() {
             style={{
               padding: "1rem",
               borderRadius: 8,
-              background: "var(--color-danger-50, #fef2f2)",
-              color: "var(--color-danger-800, #991b1b)",
+              background: "var(--color-danger-50)",
+              color: "var(--color-danger-800)",
             }}
           >
             <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>
@@ -136,8 +136,8 @@ export function TourCreateWizard() {
           style={{
             padding: "1rem",
             borderRadius: 8,
-            background: "var(--color-warning-50, #fffbeb)",
-            color: "var(--color-warning-900, #78350f)",
+            background: "var(--color-warning-50)",
+            color: "var(--color-warning-900)",
           }}
         >
           <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>

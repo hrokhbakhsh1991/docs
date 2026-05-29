@@ -48,10 +48,10 @@ import {
 } from "../models/tourTripDetails.schema";
 
 const detailsShell: CSSProperties = {
-  border: "1px solid var(--color-neutral-200, #e5e5e5)",
+  border: "1px solid var(--color-neutral-200)",
   borderRadius: "8px",
   padding: "0.5rem 0.75rem",
-  background: "var(--color-neutral-25, #fafafa)",
+  background: "var(--color-neutral-25)",
 };
 
 const AUDIENCE_LABEL_KEYS: Record<AudienceGroup, string> = {
@@ -94,13 +94,13 @@ const chipStyle: CSSProperties = {
   gap: "0.35rem",
   padding: "0.15rem 0.55rem",
   borderRadius: "999px",
-  background: "var(--color-neutral-100, #f0f0f0)",
+  background: "var(--color-neutral-100)",
   fontSize: "0.8125rem",
 };
 
 const mutedHelp: CSSProperties = {
   fontSize: "0.8125rem",
-  color: "var(--color-neutral-600, #525252)",
+  color: "var(--color-neutral-600)",
   margin: 0,
 };
 
@@ -108,7 +108,7 @@ const subsectionTitleStyle: CSSProperties = {
   margin: "0.25rem 0 0",
   fontWeight: 700,
   fontSize: "0.9rem",
-  color: "var(--color-neutral-900, #171717)",
+  color: "var(--color-neutral-900)",
 };
 
 /** Local-time Gregorian YMD (avoids timezone drift from `toISOString`). */
@@ -280,7 +280,7 @@ function TourThemeIdsCheckboxField({
             {description ? <p style={mutedHelp}>{description}</p> : null}
             {loading ? <p style={mutedHelp}>{t("trip_tourThemesLoading")}</p> : null}
             {!loading && loadFailed ? (
-              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+              <p style={{ color: "var(--color-danger-600)", fontSize: "0.875rem" }} role="alert">
                 {t("trip_tourThemesLoadError")}
               </p>
             ) : null}
@@ -303,7 +303,7 @@ function TourThemeIdsCheckboxField({
               </div>
             ) : null}
             {error ? (
-              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+              <p style={{ color: "var(--color-danger-600)", fontSize: "0.875rem" }} role="alert">
                 {error}
               </p>
             ) : null}
@@ -404,7 +404,7 @@ function StringTagListField({
               </Button>
             </div>
             {error ? (
-              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+              <p style={{ color: "var(--color-danger-600)", fontSize: "0.875rem" }} role="alert">
                 {error}
               </p>
             ) : null}
@@ -464,7 +464,7 @@ function EquipmentIdsCheckboxField({
             {description ? <p style={mutedHelp}>{description}</p> : null}
             {loading ? <p style={mutedHelp}>{t("trip_gearEquipmentLoading")}</p> : null}
             {!loading && loadFailed ? (
-              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+              <p style={{ color: "var(--color-danger-600)", fontSize: "0.875rem" }} role="alert">
                 {t("trip_gearEquipmentLoadError")}
               </p>
             ) : null}
@@ -483,7 +483,7 @@ function EquipmentIdsCheckboxField({
               </div>
             ) : null}
             {error ? (
-              <p style={{ color: "var(--color-danger-600, #b91c1c)", fontSize: "0.875rem" }} role="alert">
+              <p style={{ color: "var(--color-danger-600)", fontSize: "0.875rem" }} role="alert">
                 {error}
               </p>
             ) : null}
@@ -856,7 +856,7 @@ export function TourCreateTripDetailsFields({
                 display: "flex",
                 flexDirection: "column",
                 gap: "0.5rem",
-                border: "1px solid var(--color-neutral-200, #e5e5e5)",
+                border: "1px solid var(--color-neutral-200)",
                 borderRadius: "6px",
                 padding: "0.5rem",
               }}

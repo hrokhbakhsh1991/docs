@@ -16,6 +16,6 @@ export const denaliFieldHintStyle = {
   margin: "0.35rem 0 0",
   fontSize: "0.82rem",
   lineHeight: 1.65,
-  color: "var(--color-text-muted, #64748b)",
+  color: "var(--color-slate-500)",
   direction: "rtl" as const,
 };

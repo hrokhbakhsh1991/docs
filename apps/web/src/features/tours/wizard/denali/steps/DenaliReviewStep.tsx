@@ -94,9 +94,9 @@ function GearReviewLists({
                 key={`required-${name}-${index}`}
                 style={{
                   ...pillStyle,
-                  backgroundColor: "var(--color-danger-50, #fef2f2)",
-                  color: "var(--color-danger-700, #b91c1c)",
-                  borderColor: "var(--color-danger-200, #fecaca)",
+                  backgroundColor: "var(--color-danger-50)",
+                  color: "var(--color-danger-700)",
+                  borderColor: "var(--color-danger-200)",
                 }}
               >
                 🚨 {name}
@@ -114,9 +114,9 @@ function GearReviewLists({
                 key={`optional-${name}-${index}`}
                 style={{
                   ...pillStyle,
-                  backgroundColor: "var(--color-primary-50, #eff6ff)",
-                  color: "var(--color-primary-700, #1d4ed8)",
-                  borderColor: "var(--color-primary-200, #bfdbfe)",
+                  backgroundColor: "var(--color-primary-50)",
+                  color: "var(--color-primary-700)",
+                  borderColor: "var(--color-primary-200)",
                 }}
               >
                 🎒 {name}
@@ -302,7 +302,7 @@ export function DenaliReviewStep() {
     <div style={{ display: "grid", gap: "0.85rem", fontSize: "0.9rem" }} data-testid="denali-step-review">
       <DenaliReviewValidationSummary publishIssues={publishIssues} />
 
-      <p style={{ margin: 0, color: "#64748b" }}>{t("review.intro")}</p>
+      <p style={{ margin: 0, color: "var(--color-slate-500)" }}>{t("review.intro")}</p>
 
       <div data-field-path="basicInfo.publishStatus">
         <TourPublishStatusField

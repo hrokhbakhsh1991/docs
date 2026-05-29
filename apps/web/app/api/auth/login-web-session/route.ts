@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { buildSessionCookieOptions } from "@/lib/auth/build-session-cookie";
+import {
+  buildSessionCookieOptions,
+  SESSION_COOKIE_MAX_AGE_SECONDS,
+} from "@/lib/auth/build-session-cookie";
 import { normalizeOtpPhoneInput } from "@/lib/otp-phone-normalize";
 import { bffFetch } from "@/lib/api/bff-fetch";
 import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
@@ -124,6 +127,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     },
     { status: 200 },
   );
-  response.cookies.set(buildSessionCookieOptions({ token: sessionToken }));
+  /** 7-day persistent cookie — must align with JWT TTL issued by the backend. */
+  response.cookies.set(
+    buildSessionCookieOptions({
+      token: sessionToken,
+      maxAgeSeconds: SESSION_COOKIE_MAX_AGE_SECONDS,
+    }),
+  );
   return response;
 }

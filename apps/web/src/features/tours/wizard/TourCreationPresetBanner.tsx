@@ -110,10 +110,10 @@ export function TourCreationPresetBanner({ presets }: TourCreationPresetBannerPr
         gap: "0.5rem",
         padding: "0.65rem 0.75rem",
         borderRadius: 8,
-        background: "var(--color-primary-50, #eff6ff)",
-        border: "1px solid var(--color-primary-100, #dbeafe)",
+        background: "var(--color-primary-50)",
+        border: "1px solid var(--color-primary-100)",
         fontSize: "0.875rem",
-        color: "var(--color-neutral-800, #1e293b)",
+        color: "var(--color-neutral-800)",
       }}
     >
       <p style={{ margin: 0 }}>
@@ -146,7 +146,7 @@ export function TourCreationPresetBanner({ presets }: TourCreationPresetBannerPr
         </Select>
         <span style={{ display: "inline-flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
           {appliedForCurrentChoice ? (
-            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600, #525252)" }}>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {t("wizardPresetAppliedStatus")}
             </span>
           ) : null}
@@ -160,7 +160,7 @@ export function TourCreationPresetBanner({ presets }: TourCreationPresetBannerPr
           </Button>
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-600, #525252)" }}>
+      <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
         {selected && !selected.isActive ? t("wizardPresetInactiveApplyBlocked") : t("wizardPresetSuggestedHint")}
       </p>
     </div>

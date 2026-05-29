@@ -57,9 +57,9 @@ export function DenaliProgramContentSection() {
           error={(errors.programNature?.themeIds as { message?: string } | undefined)?.message}
         >
           {themesQuery.isLoading ? (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>{t("program.themesLoading")}</p>
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>{t("program.themesLoading")}</p>
           ) : activeThemes.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>{t("program.themesEmpty")}</p>
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>{t("program.themesEmpty")}</p>
           ) : (
             <div style={{ display: "grid", gap: "0.5rem" }} data-testid="denali-theme-list">
               {activeThemes.map((theme) => (

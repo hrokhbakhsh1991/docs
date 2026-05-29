@@ -133,7 +133,7 @@ export function DenaliGearSection() {
 
   if (equipmentQuery.isLoading) {
     return (
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>
         {tNew("trip_gearEquipmentLoading")}
       </p>
     );
@@ -143,7 +143,7 @@ export function DenaliGearSection() {
     return (
       <p
         role="alert"
-        style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-800, #991b1b)" }}
+        style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-danger-800)" }}
       >
         {tNew("trip_gearEquipmentLoadError")}
       </p>
@@ -152,7 +152,7 @@ export function DenaliGearSection() {
 
   if (!hasRhfGearSelections && displayEquipment.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
+      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>
         {tNew("trip_gearEquipmentEmptyHint")}
       </p>
     );
@@ -163,7 +163,7 @@ export function DenaliGearSection() {
       <>
         {activeEquipment.length === 0 && hasRhfGearSelections ? (
           <p
-            style={{ margin: "0 0 0.65rem", fontSize: "0.85rem", color: "#92400e" }}
+            style={{ margin: "0 0 0.65rem", fontSize: "0.85rem", color: "var(--color-warning-800)" }}
             data-testid="denali-gear-catalog-empty-stale-hint"
           >
             {t("gear.catalogEmptyWithStaleHint")}
@@ -175,7 +175,7 @@ export function DenaliGearSection() {
             flexWrap: "wrap",
             gap: "0.65rem",
             padding: "1rem",
-            backgroundColor: "var(--color-surface-muted, #f8fafc)",
+            backgroundColor: "var(--color-surface-muted)",
             borderRadius: "0.75rem",
           }}
           data-testid="denali-gear-list"
@@ -204,33 +204,33 @@ export function DenaliGearSection() {
 
             const unselectedStyle: React.CSSProperties = {
               ...baseStyle,
-              backgroundColor: "white",
-              color: "#64748b",
-              borderColor: "var(--color-border-subtle, #e2e8f0)",
+              backgroundColor: "var(--color-bg-surface)",
+              color: "var(--color-slate-500)",
+              borderColor: "var(--color-slate-200)",
             };
 
             const suggestedStyle: React.CSSProperties = {
               ...baseStyle,
-              backgroundColor: "var(--color-primary-50, #eff6ff)",
-              color: "var(--color-primary-700, #1d4ed8)",
-              borderColor: "var(--color-primary-200, #bfdbfe)",
+              backgroundColor: "var(--color-primary-50)",
+              color: "var(--color-primary-700)",
+              borderColor: "var(--color-primary-200)",
               fontWeight: 600,
             };
 
             const requiredStyle: React.CSSProperties = {
               ...baseStyle,
-              backgroundColor: "var(--color-danger-50, #fef2f2)",
-              color: "var(--color-danger-700, #b91c1c)",
-              borderColor: "var(--color-danger-200, #fecaca)",
+              backgroundColor: "var(--color-danger-50)",
+              color: "var(--color-danger-700)",
+              borderColor: "var(--color-danger-200)",
               fontWeight: 700,
-              boxShadow: "0 1px 2px rgba(220, 38, 38, 0.1)",
+              boxShadow: "var(--shadow-gear-required)",
             };
 
             const staleStyle: React.CSSProperties = {
               ...baseStyle,
-              backgroundColor: "#fffbeb",
-              color: "#92400e",
-              borderColor: "#fcd34d",
+              backgroundColor: "var(--color-warning-50)",
+              color: "var(--color-warning-800)",
+              borderColor: "var(--color-warning-300)",
               borderStyle: "dashed",
               fontWeight: 600,
             };
@@ -278,7 +278,9 @@ export function DenaliGearSection() {
                           width: "1.25rem",
                           height: "1.25rem",
                           borderRadius: "50%",
-                          backgroundColor: isRequired ? "white" : "rgba(0,0,0,0.05)",
+                          backgroundColor: isRequired
+                            ? "var(--color-bg-surface)"
+                            : "var(--color-indicator-bg-muted)",
                           fontSize: "0.75rem",
                           marginLeft: "-0.25rem",
                           transition: "transform 0.2s",

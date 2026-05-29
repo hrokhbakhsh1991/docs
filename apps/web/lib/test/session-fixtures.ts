@@ -4,7 +4,7 @@ import { createJsonResponse } from "./fetch-response";
 
 export { SESSION_TOKEN_COOKIE };
 
-/** sessionStorage mirror key (see `lib/auth/session.ts`). */
+/** localStorage mirror key (see `lib/auth/session.ts`). */
 export const SESSION_TOKEN_STORAGE_KEY = "tour_ops_session_token";
 
 /** Default Vitest auth-hydration actor ids. */

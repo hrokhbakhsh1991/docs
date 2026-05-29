@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { buildSessionCookieOptions } from "@/lib/auth/build-session-cookie";
+import {
+  buildSessionCookieOptions,
+  SESSION_COOKIE_MAX_AGE_SECONDS,
+} from "@/lib/auth/build-session-cookie";
 import { bffFetch } from "@/lib/api/bff-fetch";
 import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
 
@@ -68,6 +71,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const response = NextResponse.json({ ok: true, ...(payload as object) }, { status: 200 });
-  response.cookies.set(buildSessionCookieOptions({ token: sessionToken }));
+  response.cookies.set(
+    buildSessionCookieOptions({
+      token: sessionToken,
+      maxAgeSeconds: SESSION_COOKIE_MAX_AGE_SECONDS,
+    }),
+  );
   return response;
 }

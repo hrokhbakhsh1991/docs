@@ -10,7 +10,7 @@ import {
 
 const STORAGE_KEY = "tour_ops_session_token";
 
-function mockSessionStorage(): Storage {
+function mockLocalStorage(): Storage {
   const map = new Map<string, string>();
   return {
     getItem: (key: string) => map.get(key) ?? null,
@@ -35,11 +35,11 @@ test("isSessionHydrateFetchFailure treats abort and TypeError as transient", () 
 });
 
 test("applySessionHydratePayload clears mirror only when server unauthenticated", () => {
-  const g = globalThis as typeof globalThis & { window?: { sessionStorage: Storage } };
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
   const prior = g.window;
-  const storage = mockSessionStorage();
+  const storage = mockLocalStorage();
   storage.setItem(STORAGE_KEY, "mirror");
-  g.window = { sessionStorage: storage };
+  g.window = { localStorage: storage };
 
   try {
     const user = applySessionHydratePayload({ authenticated: false });
@@ -54,10 +54,53 @@ test("applySessionHydratePayload clears mirror only when server unauthenticated"
   }
 });
 
-test("applySessionHydratePayload syncs token when authenticated", () => {
-  const g = globalThis as typeof globalThis & { window?: { sessionStorage: Storage } };
+test("applySessionHydratePayload overwrites stale localStorage mirror when cookie token differs", () => {
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
   const prior = g.window;
-  g.window = { sessionStorage: mockSessionStorage() };
+  const localStorage = mockLocalStorage();
+  localStorage.setItem(STORAGE_KEY, "stale-mirror-token");
+  g.window = { localStorage };
+
+  const header = Buffer.from(JSON.stringify({ alg: "RS256" }))
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  const body = Buffer.from(
+    JSON.stringify({
+      sub: "11111111-1111-4111-8111-111111111111",
+      tenant_id: "22222222-2222-4222-8222-222222222222",
+      role: "owner",
+    }),
+  )
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  const token = `${header}.${body}.sig`;
+
+  try {
+    applySessionHydratePayload({
+      authenticated: true,
+      session_token: token,
+      user_id: "11111111-1111-4111-8111-111111111111",
+      tenant_id: "22222222-2222-4222-8222-222222222222",
+    });
+    assert.equal(localStorage.getItem(STORAGE_KEY), token);
+  } finally {
+    if (prior === undefined) {
+      delete g.window;
+    } else {
+      g.window = prior;
+    }
+  }
+});
+
+test("applySessionHydratePayload syncs token when authenticated", () => {
+  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
+  const prior = g.window;
+  const localStorage = mockLocalStorage();
+  g.window = { localStorage };
 
   const header = Buffer.from(JSON.stringify({ alg: "RS256" }))
     .toString("base64")
@@ -85,7 +128,7 @@ test("applySessionHydratePayload syncs token when authenticated", () => {
       tenant_id: "22222222-2222-4222-8222-222222222222",
     });
     assert.ok(user);
-    assert.equal(g.window?.sessionStorage.getItem(STORAGE_KEY), token);
+    assert.equal(g.window?.localStorage.getItem(STORAGE_KEY), token);
   } finally {
     if (prior === undefined) {
       delete g.window;

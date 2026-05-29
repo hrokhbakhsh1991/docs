@@ -1,4 +1,5 @@
 packages:
   - "apps/*"
+  - "libs/*"
   - "packages/*"
   - "eslint-plugin-test-pairing"

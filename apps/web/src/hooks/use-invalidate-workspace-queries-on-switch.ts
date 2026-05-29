@@ -22,6 +22,7 @@ export function useInvalidateWorkspaceQueriesOnSwitch(): void {
       void queryClient.invalidateQueries({ queryKey: ["tours"] });
       void queryClient.invalidateQueries({ queryKey: ["users"] });
       void queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      void queryClient.invalidateQueries({ queryKey: ["tenantConfig"] });
     }
     prevTenantIdRef.current = tenantId;
   }, [queryClient, user?.tenantId]);

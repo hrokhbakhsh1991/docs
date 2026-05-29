@@ -181,7 +181,7 @@ export class AuthService {
       .setIssuer(this.configService.getJwtIssuer())
       .setAudience(this.configService.getJwtAudience())
       .setIssuedAt()
-      .setExpirationTime("1h")
+      .setExpirationTime("7d")  // Must match SESSION_COOKIE_MAX_AGE_SECONDS (604800 s) on the BFF.
       .sign(privateKey);
   }
 

@@ -1,6 +1,10 @@
 /* eslint-disable no-console -- dev-only auth hydrate warnings */
 import { decodeJwtPayload } from "./decode-jwt-payload";
-import { clearSessionStorageMirror, ensureSessionStorageSync } from "./session";
+import {
+  clearSessionStorageMirror,
+  getStoredSessionToken,
+  overwriteSessionTokenMirror,
+} from "./session";
 
 export type SessionHydrateUser = {
   userId: string;
@@ -86,7 +90,10 @@ export function applySessionHydratePayload(payload: SessionHydrateWire): Session
     typeof payload.session_token === "string" ? payload.session_token.trim() : "";
 
   if (tokenForClaims) {
-    ensureSessionStorageSync(tokenForClaims);
+    const storedMirror = getStoredSessionToken();
+    if (storedMirror !== tokenForClaims) {
+      overwriteSessionTokenMirror(tokenForClaims);
+    }
   }
 
   const roleFromJwt =

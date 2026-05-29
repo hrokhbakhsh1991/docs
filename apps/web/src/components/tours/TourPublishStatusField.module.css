@@ -1,9 +1,9 @@
 .fieldset {
   margin: 0;
   padding: var(--space-4);
-  border: 1px solid var(--color-neutral-200, #e5e7eb);
+  border: 1px solid var(--color-neutral-200);
   border-radius: 10px;
-  background: linear-gradient(180deg, var(--color-neutral-25, #fafafa) 0%, #fff 100%);
+  background: linear-gradient(180deg, var(--color-neutral-25) 0%, var(--color-bg-surface) 100%);
 }
 
 .legend {
@@ -16,7 +16,7 @@
   margin: 0.35rem 0 0.85rem;
   font-size: 0.82rem;
   line-height: 1.6;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-slate-500);
 }
 
 .segmentRow {
@@ -29,20 +29,20 @@
   flex-direction: column;
   gap: 0.2rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid var(--color-neutral-200, #e5e7eb);
+  border: 1px solid var(--color-neutral-200);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .segment:hover {
-  border-color: var(--color-primary-300, #93c5fd);
+  border-color: var(--color-primary-300);
 }
 
 .segmentSelected {
-  border-color: var(--color-primary-500, #3b82f6);
-  background: var(--color-primary-50, #eff6ff);
-  box-shadow: 0 0 0 1px var(--color-primary-200, #bfdbfe);
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  box-shadow: 0 0 0 1px var(--color-primary-200);
 }
 
 .segmentTitle {
@@ -53,7 +53,7 @@
 .segmentDescription {
   font-size: 0.8rem;
   line-height: 1.5;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-slate-500);
 }
 
 .srOnly {

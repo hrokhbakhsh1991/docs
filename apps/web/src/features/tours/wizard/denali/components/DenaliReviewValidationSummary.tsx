@@ -174,9 +174,9 @@ export function DenaliReviewValidationSummary({
           role="alert"
           style={{
             padding: "1rem",
-            background: "var(--color-danger-50, #fef2f2)",
-            color: "var(--color-danger-800, #991b1b)",
-            border: "1px solid var(--color-danger-200, #fecaca)",
+            background: "var(--color-danger-50)",
+            color: "var(--color-danger-800)",
+            border: "1px solid var(--color-danger-200)",
             borderRadius: "8px",
           }}
           data-testid="denali-summary-error"
@@ -199,9 +199,9 @@ export function DenaliReviewValidationSummary({
           role="alert"
           style={{
             padding: "1rem",
-            background: "#fffbeb",
-            color: "#92400e",
-            border: "1px solid #fcd34d",
+            background: "var(--color-warning-50)",
+            color: "var(--color-warning-800)",
+            border: "1px solid var(--color-warning-300)",
             borderRadius: "8px",
           }}
           data-testid="denali-review-publish-readiness-warning"

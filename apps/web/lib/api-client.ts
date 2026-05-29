@@ -2,12 +2,14 @@
  * Axios HTTP client for Tour-Ops API (see `resolveTourOpsApiBaseUrl` / `tour-ops-api-origin.ts`).
  *
  * Auth transport (browser → Nest):
- * - The HttpOnly `session` cookie is scoped to the **Next.js origin** only, so it is **not** sent to
- *   a different API host/port even with `withCredentials: true`.
- * - The same JWT is mirrored into `sessionStorage` by `persistSessionToken` (`lib/auth/session.ts`).
- *   We attach it as `Authorization: Bearer <token>` so `AuthMiddleware` on Nest receives a token on
- *   the first cross-origin request after login.
- * - Route protection in `middleware.ts` still relies on the Next-only cookie; that stays unchanged.
+ * - The HttpOnly `session` cookie is scoped to the **Next.js origin** (`:3000`) only — it is **not**
+ *   sent to Nest on another port (`:3001`) even with `withCredentials: true`.
+ * - **Source of truth for Nest:** `localStorage` key `tour_ops_session_token` (`lib/auth/session.ts`),
+ *   written on login (`persistSessionToken`), workspace switch, and hydrate
+ *   (`session-hydrate.ts` overwrites when the cookie JWT differs from the mirror).
+ * - The request interceptor attaches `Authorization: Bearer <token>` from `getStoredSessionToken()`.
+ * - Same-origin BFF routes (`/api/*`) use the cookie via `bffBrowserFetch` + `credentials: "include"`.
+ * - Route protection in `middleware.ts` relies on the HttpOnly cookie only.
  *
  * Clears session and redirects on 401 (except login flows).
  */
@@ -313,6 +315,18 @@ axiosApi.interceptors.request.use((config) => {
       typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
   }
 
+  // Cross-origin Nest (`denali.localhost:3001`) does not receive the Next `session` cookie — attach Bearer mirror.
+  if (typeof window !== "undefined") {
+    const storedToken = getStoredSessionToken();
+    if (storedToken) {
+      const headers = axios.AxiosHeaders.from(config.headers ?? {});
+      if (!headers.get("Authorization")) {
+        headers.set("Authorization", `Bearer ${storedToken}`);
+      }
+      config.headers = headers;
+    }
+  }
+
   return config;
 });
 
@@ -362,7 +376,7 @@ axiosApi.interceptors.response.use(
     if (!cfg?.skipGlobalErrorToast) {
       if (isLikelyNetworkOrTimeout(error)) {
         emitGlobalApiToast({ type: "error", message: "Connection lost. Please try again." });
-      } else if (status === 500) {
+      } else if (_status === 500) {
         emitGlobalApiToast({ type: "error", message: "Server error. Please try again later." });
       }
     }

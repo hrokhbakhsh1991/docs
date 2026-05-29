@@ -87,7 +87,7 @@ export function DenaliDatetimeField({ field, label, optional }: Props) {
                 />
               </div>
               {optional ? (
-                <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", color: "var(--color-slate-500)" }}>
                   {t("datetimeOptionalHint")}
                 </p>
               ) : null}

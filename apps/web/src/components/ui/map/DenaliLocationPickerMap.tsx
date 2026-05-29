@@ -16,8 +16,8 @@ const MapLoadingShell = ({ height = 220 }: { height?: number }) => (
       height,
       width: "100%",
       borderRadius: 8,
-      background: "var(--color-surface-subtle, #f1f5f9)",
-      border: "1px solid var(--color-border-subtle, #e2e8f0)",
+      background: "var(--color-slate-100)",
+      border: "1px solid var(--color-slate-200)",
     }}
   />
 );

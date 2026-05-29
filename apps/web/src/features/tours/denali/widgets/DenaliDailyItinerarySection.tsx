@@ -123,7 +123,7 @@ export function DenaliDailyItinerarySection() {
   return (
     <div style={{ display: "grid", gap: "0.75rem" }} data-testid="denali-daily-itinerary">
       {rootMessage ? (
-        <p role="alert" style={{ margin: 0, color: "var(--color-danger-800, #991b1b)", fontSize: "0.85rem" }}>
+        <p role="alert" style={{ margin: 0, color: "var(--color-danger-800)", fontSize: "0.85rem" }}>
           {rootMessage}
         </p>
       ) : null}
@@ -147,7 +147,7 @@ export function DenaliDailyItinerarySection() {
               display: "grid",
               gap: "0.5rem",
               padding: "0.65rem 0",
-              borderTop: index > 0 ? "1px solid var(--color-border-subtle, #e2e8f0)" : undefined,
+              borderTop: index > 0 ? "1px solid var(--color-slate-200)" : undefined,
             }}
           >
             <DenaliItineraryDayLocationField

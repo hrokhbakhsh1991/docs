@@ -55,7 +55,7 @@ export function DenaliItineraryDayPhotos({
                 height: 72,
                 borderRadius: 6,
                 overflow: "hidden",
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--color-slate-200)",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- blob/preview URLs are dynamic wizard uploads */}

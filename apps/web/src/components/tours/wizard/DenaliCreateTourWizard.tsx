@@ -121,9 +121,9 @@ function DenaliWizardStepper({
               fontSize: "0.8rem",
               background:
                 index === currentIndex
-                  ? "var(--color-primary-100, #dbeafe)"
-                  : "var(--color-surface-subtle, #eef2f7)",
-              color: index === currentIndex ? "var(--color-primary-800, #1e3a8a)" : "#334155",
+                  ? "var(--color-primary-100)"
+                  : "var(--color-surface-subtle)",
+              color: index === currentIndex ? "var(--color-primary-800)" : "var(--color-slate-700)",
             }}
           >
             {index + 1}. {getDenaliStepTitleFa(step)}
@@ -672,7 +672,7 @@ export function DenaliCreateTourWizard() {
                       gap: "0.5rem",
                       padding: "0.75rem",
                       borderRadius: "0.5rem",
-                      background: "var(--color-surface-subtle, #eef2f7)",
+                      background: "var(--color-surface-subtle)",
                     }}
                   >
                     <span>{t("draftRestoreBanner")}</span>
@@ -710,7 +710,7 @@ export function DenaliCreateTourWizard() {
                       gap: "0.5rem",
                       padding: "0.75rem",
                       borderRadius: "0.5rem",
-                      background: "var(--color-surface-subtle, #eef2f7)",
+                      background: "var(--color-surface-subtle)",
                     }}
                   >
                     <span>{t("draftRestoreBanner")}</span>
@@ -740,9 +740,9 @@ export function DenaliCreateTourWizard() {
                       gap: "0.5rem",
                       padding: "0.75rem",
                       borderRadius: "0.5rem",
-                      background: "var(--color-warning-50, #fffbeb)",
-                      border: "1px solid var(--color-warning-200, #fde68a)",
-                      color: "var(--color-warning-900, #78350f)",
+                      background: "var(--color-warning-50)",
+                      border: "1px solid var(--color-warning-200)",
+                      color: "var(--color-warning-900)",
                     }}
                   >
                     <span>{t("draftStaleConflictNotice")}</span>
@@ -766,7 +766,7 @@ export function DenaliCreateTourWizard() {
                       flexWrap: "wrap",
                       alignItems: "center",
                       gap: "0.5rem",
-                      color: "var(--color-danger-700, #b91c1c)",
+                      color: "var(--color-danger-700)",
                     }}
                   >
                     <span>{t("draftSaveFailed")}</span>
@@ -777,7 +777,7 @@ export function DenaliCreateTourWizard() {
                 ) : null}
 
                 {formMethods.formState.errors.root?.message ? (
-                  <p role="alert" style={{ color: "var(--color-danger-700, #b91c1c)", margin: 0 }}>
+                  <p role="alert" style={{ color: "var(--color-danger-700)", margin: 0 }}>
                     {formMethods.formState.errors.root.message}
                   </p>
                 ) : null}
