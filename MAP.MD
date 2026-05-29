@@ -1,254 +1,827 @@
-# Auth / OTP local debugging map
+# MAP — API E2E test architecture notes
 
----
+## §35 — `registration-flow.e2e-spec.ts` (web onboarding integration)
 
-## 18. Local dev OTP `1234` — API env configuration & verification
+**Date:** 2026-05-29  
+**Spec:** `apps/api/test/e2e/auth/registration-flow.e2e-spec.ts`  
+**Harness:** `createAuthE2eHarness` / `teardownAuthE2eHarness`
 
-### 18.1 Where API environment is set
+### Scope
 
-| Mechanism | Location | Role |
-|-----------|----------|------|
-| **Primary local file** | `apps/api/.env` | Loaded by `node --env-file=.env` on `pnpm dev`, seeds, migrations, and `auth:debug-audit` |
-| **Template** | `apps/api/.env.example` | Documents defaults: `NODE_ENV=development`, `AUTH_ALLOW_DEV_STATIC_OTP=true` |
-| **E2E / test** | `apps/api/.env.test.example`, E2E `before()` hooks | `NODE_ENV=test`, `AUTH_ALLOW_DEV_STATIC_OTP=true` |
-| **Runtime validation** | `apps/api/src/config/config.validation.ts` → `env.schema.ts` | Parses `process.env` at boot into `ConfigService` |
-| **Dev server script** | `apps/api/package.json` → `"dev"` | Builds workspace packages, then starts API |
+| Test | Flow | Assertions |
+|------|------|------------|
+| Happy path | `POST /web/otp/request` → `loginOtpOrRegistration` (`kind: registration`) → `completeRegistration` | JWT 3-part; `tenant_id` in token = `TENANT_A`; `hasActiveMembership` in DB |
+| Negative | Onboarding on tenant A Host; complete on tenant B Host | `403` + `TENANT_HOST_MISMATCH` envelope |
 
-**`pnpm dev` (updated):**
+**Seed:** `seedTwoTenantPersonas` with two empty workspaces plus one **Owner** each (DB invariant: workspace must have ≥1 active owner before a new **Member** registers).
 
-```json
-"dev": "... && NODE_ENV=development node --env-file=.env dist/main.js"
-```
+**Product fix (enables negative test):** `AuthService.completeRegistration` now compares HTTP Host tenant (`resolveEffectiveTenantId`) to onboarding JWT `tenant_id` and throws `ForbiddenException` / `TENANT_HOST_MISMATCH` when they differ (parity with `createWorkspaceSession`).
 
-`NODE_ENV=development` is set **on the command line before** `--env-file=.env`. Node does **not** overwrite variables already present in the environment when applying the env file, so local `pnpm dev` always runs as **development** even if `.env` were changed to another value.
+**Factory addition:** `postCompleteRegistrationRaw` on `auth-session.factory.ts` for raw status/body assertions.
 
-Other scripts that load `.env` explicitly (no forced `NODE_ENV`):
-
-- `"seed"`, `"migrate:run"`, `"auth:debug-audit"`, etc. → `node --env-file=.env --import tsx ...`
-- `"start"` / `"start:prod"` → `node dist/main.js` (expects env from host/process manager, not `--env-file`)
-
-**Nest boot:** `ConfigService` constructor calls `validateEnvironmentOrThrow(process.env)` (`config.service.ts`). `OtpService.isDevStaticOtpEnabled()` reads `configService.getNodeEnv()` and `getAuthAllowDevStaticOtp()`.
-
----
-
-### 18.2 `OtpService` gate (why `1234` works locally)
+### Refactored `registration-flow.e2e-spec.ts` (full)
 
 ```typescript
-// otp.service.ts — isDevStaticOtpEnabled()
-(nodeEnv === "development" || nodeEnv === "test") && getAuthAllowDevStaticOtp()
+import "reflect-metadata";
+import assert from "node:assert/strict";
+import { after, before, test } from "node:test";
+import request from "supertest";
+import { assertApiErrorEnvelope } from "@repo/testing-infra";
+
+import {
+  allocateAuthTestPhone,
+  authTestEmailForPhone,
+} from "../../helpers/auth-test-ids";
+import { seedTwoTenantPersonas } from "../../helpers/auth-test-personas";
+import { UserRole } from "../../../src/common/auth/user-role.enum";
+import {
+  createAuthE2eHarness,
+  teardownAuthE2eHarness,
+  type AuthE2eHarnessContext,
+} from "./auth-e2e-harness";
+import { E2E_DEV_OTP } from "./auth-session.factory";
+import {
+  E2E_JWT_PRIVATE_KEY_PKCS8,
+  E2E_JWT_PUBLIC_KEY_SPKI,
+} from "../jwt-test-keys";
+import { tenantTestHost } from "../tenant-test-host";
+
+const TENANT_A = "c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3";
+const TENANT_B = "d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4";
+const SUBDOMAIN_A = "reg-flow-a";
+const SUBDOMAIN_B = "reg-flow-b";
+const INTERNAL_API_KEY = "test-internal-key-registration-flow";
+const TENANT_A_OWNER_PHONE = "+15559100001";
+const TENANT_B_OWNER_PHONE = "+15559100002";
+
+let ctx: AuthE2eHarnessContext;
+
+function skip(): boolean {
+  return Boolean(ctx.unavailableReason) || !ctx.app || !ctx.auth || !ctx.db;
+}
+
+function errorCode(body: Record<string, unknown>): string | undefined {
+  const error = body.error;
+  if (error && typeof error === "object" && "code" in error) {
+    return String((error as { code: unknown }).code);
+  }
+  return undefined;
+}
+
+before(async () => {
+  ctx = await createAuthE2eHarness({
+    jwtKeys: {
+      privatePem: E2E_JWT_PRIVATE_KEY_PKCS8,
+      publicPem: E2E_JWT_PUBLIC_KEY_SPKI,
+    },
+    internalApiKey: INTERNAL_API_KEY,
+    seed: async (ds) => {
+      await seedTwoTenantPersonas(ds, {
+        tenantA: {
+          id: TENANT_A,
+          subdomain: SUBDOMAIN_A,
+          name: "Registration flow tenant A",
+          description: "registration-flow.e2e-spec.ts",
+        },
+        tenantB: {
+          id: TENANT_B,
+          subdomain: SUBDOMAIN_B,
+          name: "Registration flow tenant B",
+          description: "registration-flow.e2e-spec.ts",
+        },
+        userInAOnly: {
+          phone: TENANT_A_OWNER_PHONE,
+          email: "reg-flow-owner-a@auth-e2e.test",
+          role: UserRole.Owner,
+          fullName: "Reg flow tenant A owner",
+        },
+        userInBOnly: {
+          phone: TENANT_B_OWNER_PHONE,
+          email: "reg-flow-owner-b@auth-e2e.test",
+          role: UserRole.Owner,
+          fullName: "Reg flow tenant B owner",
+        },
+      });
+    },
+  });
+});
+
+after(async () => {
+  await teardownAuthE2eHarness(ctx);
+});
+
+test("web registration flow: OTP request → registration onboarding → complete → session + membership", async () => {
+  if (skip()) {
+    return;
+  }
+
+  const phone = allocateAuthTestPhone();
+  const email = authTestEmailForPhone(phone);
+  const fullName = "Registration Flow E2E";
+
+  const otpRequest = await request(ctx.app!.getHttpServer())
+    .post("/api/v2/auth/web/otp/request")
+    .set("Host", tenantTestHost(SUBDOMAIN_A))
+    .send({ phone });
+  assert.equal(otpRequest.status, 200);
+  assert.equal(otpRequest.body.otp_requested, true);
+
+  const onboarding = await ctx.auth!.loginOtpOrRegistration({
+    phone,
+    tenantSubdomain: SUBDOMAIN_A,
+    otp: E2E_DEV_OTP,
+  });
+  assert.equal(onboarding.kind, "registration");
+  assert.equal(onboarding.phone, phone);
+  assert.equal(onboarding.tenantId, TENANT_A.toLowerCase());
+
+  const completed = await ctx.auth!.completeRegistration({
+    onboardingToken: onboarding.onboardingToken,
+    fullName,
+    email,
+    tenantSubdomain: SUBDOMAIN_A,
+  });
+
+  assert.equal(completed.tenantId, TENANT_A.toLowerCase());
+  assert.equal(completed.token.split(".").length, 3);
+  assert.equal(ctx.auth!.decodeSessionTenantId(completed.token), TENANT_A.toLowerCase());
+
+  const claims = ctx.auth!.decodeJwtPayload(completed.token);
+  assert.equal(claims.sub, completed.userId);
+  assert.equal(typeof claims.role, "string");
+
+  assert.equal(
+    await ctx.db!.hasActiveMembership({ userId: completed.userId, tenantId: TENANT_A }),
+    true,
+  );
+});
+
+test("complete registration rejects Host tenant mismatching onboarding token tenant (403 TENANT_HOST_MISMATCH)", async () => {
+  if (skip()) {
+    return;
+  }
+
+  const phone = allocateAuthTestPhone();
+
+  const onboarding = await ctx.auth!.loginOtpOrRegistration({
+    phone,
+    tenantSubdomain: SUBDOMAIN_A,
+    otp: E2E_DEV_OTP,
+  });
+  assert.equal(onboarding.kind, "registration");
+
+  const response = await ctx.auth!.postCompleteRegistrationRaw({
+    onboardingToken: onboarding.onboardingToken,
+    fullName: "Host Mismatch User",
+    tenantSubdomain: SUBDOMAIN_B,
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(errorCode(response.body), "TENANT_HOST_MISMATCH");
+  assertApiErrorEnvelope(response.body);
+});
 ```
 
-`getAuthAllowDevStaticOtp()` (`config.service.ts`):
+### Verification
 
-- `AUTH_ALLOW_DEV_STATIC_OTP=true` → `true`
-- `AUTH_ALLOW_DEV_STATIC_OTP=false` → `false`
-- unset → `true` only when `NODE_ENV` is `development` or `test`
-
-Both conditions must pass for static OTP `1234`.
-
----
-
-### 18.3 Updated `apps/api/.env` (confirmed)
-
-The following entries are present in **`apps/api/.env`** (gitignored; not committed):
-
-```env
-NODE_ENV=development
-AUTH_ALLOW_DEV_STATIC_OTP=true
-```
-
-These match `apps/api/.env.example` (lines 3 and 49). No other `.env` changes were required for OTP debugging.
-
----
-
-### 18.4 Verification steps
-
-#### A. Confirm `.env` keys (shell)
+**Command** (from `apps/api`):
 
 ```bash
-cd apps/api
-grep '^NODE_ENV=' .env
-grep '^AUTH_ALLOW_DEV_STATIC_OTP=' .env
+node --import tsx --test --test-concurrency=1 test/e2e/auth/registration-flow.e2e-spec.ts
 ```
 
-**Expected:**
+**Result (2026-05-29):** exit code **0** — **2/2 passed**, ~8.5s.
 
 ```
-NODE_ENV=development
-AUTH_ALLOW_DEV_STATIC_OTP=true
-```
-
-#### B. Automated `ConfigService` + `OtpService` check (repo test)
-
-**File:** `apps/api/src/modules/auth/otp-dev-env-verify.spec.ts`
-
-```bash
-cd apps/api
-NODE_ENV=development node --env-file=.env --import tsx --test src/modules/auth/otp-dev-env-verify.spec.ts
-```
-
-**Captured output (2026-05-29):**
-
-```
-[VERIFY] ConfigService (loaded via --env-file=.env):
-  NODE_ENV=development
-  AUTH_ALLOW_DEV_STATIC_OTP (resolved)=true
-  isDevStaticOtpEnabled (OtpService gate)=true
-
-[VERIFY] OtpService.verifyMobileOtp (development, code=1234):
- {
-   "error": {
-     "code": "AUTH_OTP_INVALID",
-     "message": "Invalid or expired OTP challenge"
-   }
- }
-
-[VERIFY] OtpService.verifyMobileOtp (development, code=0000):
- {
-   "error": {
-     "code": "AUTH_OTP_INVALID",
-     "message": "Invalid OTP code"
-   }
- }
-
-# tests 3
-# pass 3
+ok 1 - web registration flow: OTP request → registration onboarding → complete → session + membership
+ok 2 - complete registration rejects Host tenant mismatching onboarding token tenant (403 TENANT_HOST_MISMATCH)
+# tests 2
+# pass 2
 # fail 0
+# duration_ms 8523.979274
 ```
 
-**Interpretation:**
+### Related files
 
-| Check | Result |
-|-------|--------|
-| `NODE_ENV` | `development` |
-| `AUTH_ALLOW_DEV_STATIC_OTP` | `true` |
-| `isDevStaticOtpEnabled` | `true` |
-| `1234` + random `challenge_id` | **Not** rejected with *"OTP verification is not available"* — passes production guard, fails only on missing DB challenge (*expected* without a real challenge row) |
-| `0000` in development | Rejected with *"Invalid OTP code"* — static OTP path is active |
-
-#### C. Optional: auth debug audit (DB + HTTP)
-
-Requires running API on `PORT` and seeded user:
-
-```bash
-cd apps/api
-pnpm run auth:debug-audit
-```
-
-#### D. Confirm `pnpm dev` forces development
-
-```bash
-cd apps/api
-grep '"dev"' package.json
-# should show: NODE_ENV=development node --env-file=.env dist/main.js
-```
-
-Restart API after any `.env` change: `pnpm --filter @apps/api dev`.
+- `apps/api/src/modules/auth/auth.service.ts` — `completeRegistration` Host vs onboarding tenant guard
+- `apps/api/test/e2e/auth/auth-session.factory.ts` — `postCompleteRegistrationRaw`
+- `apps/api/test/helpers/auth-test-personas.ts` — `seedTwoTenantPersonas`
 
 ---
 
-### 18.5 Configuration confirmation summary
+## §36 — Auth E2E README (`apps/api/test/e2e/auth/README.md`)
 
-| Item | Status |
-|------|--------|
-| `apps/api/.env` → `NODE_ENV=development` | Confirmed |
-| `apps/api/.env` → `AUTH_ALLOW_DEV_STATIC_OTP=true` | Confirmed |
-| `package.json` `dev` script forces `NODE_ENV=development` | **Updated** |
-| `OtpService` + `ConfigService` detect dev static OTP | **Verified** (3/3 tests, output above) |
+**Date:** 2026-05-29  
+**Canonical doc:** `apps/api/test/e2e/auth/README.md`
 
-**Login without `challenge_id`:** `AuthService.createWebSessionOtp` uses `validatePhoneOtp` and accepts `1234` when the same gate is true (no DB challenge required). **With `challenge_id`:** `verifyMobileOtp` requires a valid `mobile_otp_challenges` row after the static code check.
+Wizard-Standard auth integration testing: **AuthE2eHarness** (infra) + **AuthSessionFactory** (`ctx.auth`) + **AuthTestPersona** (seed + `ctx.db`).
 
-**Production reminder:** `NODE_ENV=production` disables static OTP regardless of `AUTH_ALLOW_DEV_STATIC_OTP=true` (see `otp-production-static-1234.spec.ts`).
+### Dependency map (Mermaid)
+
+```mermaid
+flowchart TB
+  subgraph specs["E2E specs"]
+    API["api.e2e-spec.ts"]
+    JWT["jwt-membership-guard.e2e-spec.ts"]
+    REG["registration-flow.e2e-spec.ts"]
+    NEW["your-new-auth-*.e2e-spec.ts"]
+  end
+
+  subgraph auth_pkg["apps/api/test/e2e/auth"]
+    HARNESS["AuthE2eHarness<br/>createAuthE2eHarness / teardown"]
+    FACTORY["AuthSessionFactory<br/>ctx.auth.*"]
+  end
+
+  subgraph helpers["apps/api/test/helpers"]
+    PERSONA["AuthTestPersona<br/>seedAuthPersona / seedTwoTenantPersonas"]
+    IDS["auth-test-ids<br/>phones, reserved tenant ids"]
+    DBH["ctx.db helpers<br/>SQL-only mutations"]
+  end
+
+  subgraph infra["@repo/testing-infra"]
+    APIHARNESS["createApiE2eHarness"]
+    PG["Postgres Testcontainer"]
+    ENV["applyTestContainerEnv / migrations"]
+    ASSERT["assertApiErrorEnvelope"]
+  end
+
+  subgraph app["apps/api"]
+    BOOT["test/e2e/bootstrap.ts<br/>createE2EApp"]
+    NEST["Nest HTTP + AuthModule"]
+  end
+
+  API --> HARNESS
+  JWT --> HARNESS
+  REG --> HARNESS
+  NEW --> HARNESS
+
+  HARNESS --> APIHARNESS
+  HARNESS --> BOOT
+  HARNESS --> FACTORY
+  HARNESS --> DBH
+
+  APIHARNESS --> PG
+  APIHARNESS --> ENV
+
+  FACTORY --> NEST
+  PERSONA --> HARNESS
+  IDS --> PERSONA
+
+  specs --> ASSERT
+  specs --> PERSONA
+```
+
+### Golden Rules (summary)
+
+1. No inline TypeORM in `*.e2e-spec.ts` — seed in harness `options.seed`; DB checks/mutations via `ctx.db` only.
+2. Auth HTTP via `ctx.auth` (factory), not ad-hoc supertest to auth routes.
+3. No scattered hardcoded UUIDs — file-level `TENANT_*` / `SUBDOMAIN_*` or `auth-test-ids` / seed return values.
+4. Always `createAuthE2eHarness` + `teardownAuthE2eHarness` — no duplicated Testcontainers bootstrap in specs.
+5. Match `Host` subdomain to workspace under test (`tenantSubdomain` / `hostSubdomain`).
+6. `skip()` when `ctx.unavailableReason` is set.
+7. Use `*Raw` factory methods for expected 4xx; asserting helpers for 200 paths.
+8. Extend `helpers/` + harness for new seed/SQL helpers — do not copy-paste.
+
+### Quick Start (cheat sheet)
+
+```bash
+cd apps/api
+node --import tsx --test --test-concurrency=1 test/e2e/auth/<your-spec>.e2e-spec.ts
+```
+
+```typescript
+// harness
+ctx = await createAuthE2eHarness({ jwtKeys, internalApiKey, seed: async (ds) => { ... } });
+
+// persona
+await seedAuthPersona(ds, { phone, email, subdomain, tenantId, role: UserRole.Owner });
+
+// login
+const token = await ctx.auth!.loginOtp({ phone, tenantSubdomain: SUBDOMAIN });
+
+// registration
+const step = await ctx.auth!.loginOtpOrRegistration({ phone: allocateAuthTestPhone(), tenantSubdomain });
+await ctx.auth!.completeRegistration({ onboardingToken: step.onboardingToken, fullName, tenantSubdomain });
+
+// assert
+assertApiErrorEnvelope((await ctx.auth!.postWebSessionOtpRaw({ ... })).body);
+assert.equal(await ctx.db!.hasActiveMembership({ userId, tenantId }), true);
+```
+
+### Full README (appended)
+
+# Auth E2E — Wizard-Standard testing pattern
+
+API auth integration tests follow the **Wizard-Standard** pattern: three composable layers that mirror how the web tour wizard separates **shell**, **steps**, and **fixtures**—here we separate **infrastructure**, **HTTP/session verbs**, and **seeded actors**.
+
+| Layer | Module | Responsibility |
+|-------|--------|----------------|
+| **Harness** | `auth-e2e-harness.ts` | Testcontainers Postgres, env, migrations, Nest app, teardown |
+| **Factory** | `auth-session.factory.ts` | Login, registration, workspace switch, raw OTP/complete helpers |
+| **Persona** | `helpers/auth-test-personas.ts` + `auth-test-ids.ts` | Tenants, users, memberships, phones, invites |
+
+Specs stay thin: they describe **behavior**, not **wiring**.
 
 ---
 
-## 19. Login + refresh logout — debug session `5c8e58` (2026-05-29)
+## Wizard-Standard in one picture
 
-### 19.1 Runtime evidence (pre-fix)
+```mermaid
+flowchart TB
+  subgraph specs["E2E specs"]
+    API["api.e2e-spec.ts"]
+    JWT["jwt-membership-guard.e2e-spec.ts"]
+    REG["registration-flow.e2e-spec.ts"]
+    NEW["your-new-auth-*.e2e-spec.ts"]
+  end
 
-| Hypothesis | Verdict | Log evidence |
-|------------|---------|----------------|
-| H1 API rejects OTP | **REJECTED** | `backendStatus:200`, `hasSessionToken:true` |
-| H2 Cookie / host | **CONFIRMED** | `hasCookie:true` but `validationStatus:"expired"` on `denali.localhost:3000` |
-| H3 Middleware redirect | **CONFIRMED** | `/dashboard` → `validationStatus:"expired"` |
-| H4 Hydrate clears user | **CONFIRMED** | `hydrate unauthenticated` after session GET with expired token |
-| H5 Missing user_id/tenant_id | **REJECTED** | `hasUserId:true`, `hasTenantId:true` |
+  subgraph auth_pkg["apps/api/test/e2e/auth"]
+    HARNESS["AuthE2eHarness<br/>createAuthE2eHarness / teardown"]
+    FACTORY["AuthSessionFactory<br/>ctx.auth.*"]
+  end
 
-**Root cause:** Browser kept a **legacy host-only** `session` cookie with an **expired JWT**. Login set a new **`Domain=.localhost`** cookie, but middleware/`cookies().get()` still read the **old host-only** token → immediate `expired` → redirect to `/login` and cookie clear on hydrate.
+  subgraph helpers["apps/api/test/helpers"]
+    PERSONA["AuthTestPersona<br/>seedAuthPersona / seedTwoTenantPersonas"]
+    IDS["auth-test-ids<br/>phones, reserved tenant ids"]
+    DBH["ctx.db helpers<br/>SQL-only mutations"]
+  end
 
-Login API and OTP `1234` were fine; session persistence was broken by duplicate cookie names.
+  subgraph infra["@repo/testing-infra"]
+    APIHARNESS["createApiE2eHarness"]
+    PG["Postgres Testcontainer"]
+    ENV["applyTestContainerEnv / migrations"]
+    ASSERT["assertApiErrorEnvelope"]
+  end
 
-### 19.2 Fix (instrumentation kept for verification)
+  subgraph app["apps/api"]
+    BOOT["test/e2e/bootstrap.ts<br/>createE2EApp"]
+    NEST["Nest HTTP + AuthModule"]
+  end
 
-**File:** `apps/web/lib/auth/build-session-cookie.ts`
+  API --> HARNESS
+  JWT --> HARNESS
+  REG --> HARNESS
+  NEW --> HARNESS
 
-- `buildClearHostOnlySessionCookieOptions()` — clears cookie without `Domain`
-- `setSessionCookieOnResponse()` — clears host-only duplicate, then sets domain-scoped cookie
-- `clearAllSessionCookiesOnResponse()` — clears both variants
+  HARNESS --> APIHARNESS
+  HARNESS --> BOOT
+  HARNESS --> FACTORY
+  HARNESS --> DBH
 
-Wired in: `login-web-session`, `session`, `complete-registration`, `workspace-session`, `logout`, `middleware`.
+  APIHARNESS --> PG
+  APIHARNESS --> ENV
 
-### 19.3 Post-fix verification
+  FACTORY --> NEST
+  PERSONA --> HARNESS
+  IDS --> PERSONA
+
+  specs --> ASSERT
+  specs --> PERSONA
+```
+
+**Dependency rule:** specs → `AuthE2eHarness` → `@repo/testing-infra`. Specs must **not** import TypeORM entities, Testcontainers, or `createE2EApp` directly.
+
+---
+
+## AuthE2eHarness
+
+`createAuthE2eHarness(options)` returns `AuthE2eHarnessContext`:
+
+| Field | Type | When set |
+|-------|------|----------|
+| `app` | `INestApplication` | Container + app boot succeeded |
+| `auth` | `AuthSessionFactory` | Same |
+| `db` | `AuthE2eDbHelpers` | Same |
+| `unavailableReason` | `string` | Docker/Testcontainers unavailable — tests should `skip()` |
+
+Lifecycle:
+
+1. `createApiE2eHarness` — start Postgres, expose `applyEnv` / `resetDatabase` / `teardown`
+2. `resetDatabase()` — run TypeORM migrations on empty DB
+3. `createE2EApp()` — Nest test module
+4. `options.seed(ds)` — optional personas (runs **after** migrate, **before** tests)
+5. `createAuthSessionFactory(app)` — bind `ctx.auth`
+
+Always pair with `teardownAuthE2eHarness(ctx)` in `after()`.
+
+```typescript
+import {
+  createAuthE2eHarness,
+  teardownAuthE2eHarness,
+  type AuthE2eHarnessContext,
+} from "./auth/auth-e2e-harness";
+import { E2E_JWT_PRIVATE_KEY_PKCS8, E2E_JWT_PUBLIC_KEY_SPKI } from "./jwt-test-keys";
+
+let ctx: AuthE2eHarnessContext;
+
+function skip(): boolean {
+  return Boolean(ctx.unavailableReason) || !ctx.app || !ctx.auth || !ctx.db;
+}
+
+before(async () => {
+  ctx = await createAuthE2eHarness({
+    jwtKeys: { privatePem: E2E_JWT_PRIVATE_KEY_PKCS8, publicPem: E2E_JWT_PUBLIC_KEY_SPKI },
+    internalApiKey: "test-internal-key-my-spec",
+    seed: async (ds) => {
+      /* seedAuthPersona / seedTwoTenantPersonas */
+    },
+  });
+});
+
+after(async () => {
+  await teardownAuthE2eHarness(ctx);
+});
+```
+
+---
+
+## AuthSessionFactory (`ctx.auth`)
+
+All auth HTTP goes through the factory so **Host headers**, paths, and dev OTP stay consistent.
+
+| Method | Use when |
+|--------|----------|
+| `loginOtp({ phone, tenantSubdomain, otp? })` | Known user with membership → JWT string |
+| `loginOtpOrRegistration(...)` | Unknown phone or no membership → `kind: "session"` or `kind: "registration"` |
+| `completeRegistration({ onboardingToken, fullName, email?, tenantSubdomain? })` | Finish web onboarding → session JWT |
+| `switchWorkspace({ bearer, targetTenantId, tenantSubdomain })` | Exchange JWT for another workspace (200) |
+| `postWebSessionOtpRaw({ tenantSubdomain?, host?, body? })` | Assert 4xx envelopes (validation, wrong OTP, host errors) |
+| `postCompleteRegistrationRaw(...)` | Assert registration complete status/body without throwing |
+| `postWorkspaceSessionRaw({ bearer, targetTenantId, hostSubdomain? })` | Workspace session negative paths |
+| `getToursRaw({ bearer, tenantSubdomain })` | Authenticated tours list smoke |
+| `decodeSessionTenantId(token)` / `decodeJwtPayload(token)` | Assert claims without round-tripping API |
+
+Dev OTP defaults to `E2E_DEV_OTP` (`"1234"`) when `AUTH_ALLOW_DEV_STATIC_OTP=true` (set by harness env).
+
+**Host rule:** Strict auth routes resolve tenant from `Host: {subdomain}.localhost` (`tenantTestHost(subdomain)`). Workspace session and registration complete need the **target** workspace subdomain on the wire.
+
+---
+
+## AuthTestPersona
+
+An **AuthTestPersona** is the return shape of `seedAuthPersona`:
+
+```typescript
+{
+  userId, tenantId, phone, email, role, subdomain, membershipStatus
+}
+```
+
+### Seeding helpers (in `seed` callback only)
+
+| Helper | Purpose |
+|--------|---------|
+| `seedAuthPersona(ds, input)` | One tenant (created if missing) + user + membership |
+| `seedTwoTenantPersonas(ds, options)` | Two tenants; optional `userInAOnly`, `userInBOnly`, `dualMember` |
+
+Phone/email utilities (`auth-test-ids.ts`):
+
+- `allocateAuthTestPhone()` — unique E.164 per test run (registration / greenfield users)
+- `authTestEmailForPhone(phone)` — deterministic test inbox
+- `AUTH_TEST_TENANT_A_ID` / `AUTH_TEST_TENANT_B_ID` — shared reserved UUIDs when specs do not need custom ids
+
+**DB invariant:** Each workspace must keep at least one active **Owner** before registering a new **Member** via `completeRegistration` (see `registration-flow.e2e-spec.ts`).
+
+### `ctx.db` helpers (specs)
+
+Use these instead of TypeORM in test files:
+
+| Helper | Purpose |
+|--------|---------|
+| `findUserIdByEmail(email)` | Resolve user id for assertions |
+| `hasActiveMembership({ userId, tenantId })` | Post-condition after invite/register |
+| `insertPendingWorkspaceInvite({ tenantId, email, role, inviteToken, invitedByUserId })` | Invite accept flows |
+| `countWorkspaceInvitesByToken(token)` | Invite consumed |
+| `updateMembershipRoleByEmail({ email, tenantId, role })` | RBAC / stale-token scenarios |
+| `bumpMembershipSessionVersionByEmail({ email, tenantId })` | `AUTH_TOKEN_STALE` scenarios |
+
+Need a new DB mutation? Add it to `auth-test-personas.ts` and wire it through `auth-e2e-harness.ts`—not in the spec.
+
+---
+
+## Quick Start — new auth E2E spec
+
+### 1. Create the file
+
+Place specs under `apps/api/test/e2e/auth/` (auth-focused) or `apps/api/test/e2e/` (broader API) and import the harness from `./auth/auth-e2e-harness` or `./auth/auth-e2e-harness` respectively.
+
+### 2. Declare stable tenant constants (top of file)
+
+Use **named** UUID constants per spec file (not inline in assertions). Reuse `AUTH_TEST_TENANT_*` when two generic workspaces are enough.
+
+```typescript
+const TENANT_ID = "a1b2c3d4-a1b2-41b2-81b2-a1b2c3d4e5f6";
+const SUBDOMAIN = "my-spec-tenant";
+```
+
+### 3. Seed personas in `before`
+
+```typescript
+import { UserRole } from "../../src/common/auth/user-role.enum";
+import { seedAuthPersona } from "../helpers/auth-test-personas";
+
+await seedAuthPersona(ds, {
+  phone: "+15557300999",
+  email: "owner@my-spec.test",
+  subdomain: SUBDOMAIN,
+  tenantId: TENANT_ID,
+  role: UserRole.Owner,
+  fullName: "Spec Owner",
+});
+```
+
+### 4. Log in
+
+```typescript
+const token = await ctx.auth!.loginOtp({
+  phone: "+15557300999",
+  tenantSubdomain: SUBDOMAIN,
+});
+
+assert.equal(ctx.auth!.decodeSessionTenantId(token), TENANT_ID.toLowerCase());
+```
+
+Registration path:
+
+```typescript
+const step = await ctx.auth!.loginOtpOrRegistration({
+  phone: allocateAuthTestPhone(),
+  tenantSubdomain: SUBDOMAIN,
+});
+assert.equal(step.kind, "registration");
+
+const session = await ctx.auth!.completeRegistration({
+  onboardingToken: step.onboardingToken,
+  fullName: "New Member",
+  tenantSubdomain: SUBDOMAIN,
+});
+```
+
+### 5. Assert HTTP errors
+
+```typescript
+import { assertApiErrorEnvelope } from "@repo/testing-infra";
+
+const res = await ctx.auth!.postWebSessionOtpRaw({
+  tenantSubdomain: SUBDOMAIN,
+  body: { phone: "+15557300999", otp: "0000" },
+});
+assert.equal(res.status, 401);
+assert.equal((res.body.error as { code?: string })?.code, "AUTH_OTP_INVALID");
+assertApiErrorEnvelope(res.body);
+```
+
+### 6. Assert database state
+
+```typescript
+assert.equal(
+  await ctx.db!.hasActiveMembership({ userId: session.userId, tenantId: TENANT_ID }),
+  true,
+);
+```
+
+### 7. Run
 
 ```bash
-cd apps/web
-node --import tsx --test lib/auth/build-session-cookie.spec.ts
+cd apps/api
+node --import tsx --test --test-concurrency=1 test/e2e/auth/registration-flow.e2e-spec.ts
 ```
 
-Reproduce login + refresh; debug log should show `validationStatus:"valid"` and `runId:"post-fix"` on `/dashboard` middleware.
+Use `--test-concurrency=1` for any spec that starts Testcontainers.
 
-**One-time browser cleanup if still stuck:** DevTools → Application → Cookies → `denali.localhost` → delete all `session` cookies, then login again.
+---
 
-### 19.4 `membership-ability-context` curl (not the login root cause)
+## Golden Rules
 
-`GET /api/auth/membership-ability-context` runs **after** login (AuthProvider) to load CASL labels. It requires an HttpOnly `session` cookie via `requireBffSession()`.
+1. **No inline TypeORM in specs** — no `DataSource`, `getRepository`, or entity imports in `*.e2e-spec.ts`. Seed in `options.seed`; mutate via `ctx.db` helpers only.
 
-A curl **without** `Cookie:` (as in the reported request) always returns **401** `AUTH_UNAUTHENTICATED` — expected, not a login blocker.
+2. **Use `ctx.auth` for auth HTTP** — no raw `supertest` to `/api/v2/auth/web/session/otp` except for non-auth routes (health, invites) or deliberate one-off probes documented in the spec.
 
-### 19.5 Post-fix v2 — dev cookie default host-only (2026-05-29)
+3. **No scattered hardcoded UUIDs** — define `const TENANT_*` / `const SUBDOMAIN_*` at file scope, or use `auth-test-ids` / values returned from `seedTwoTenantPersonas`. Never paste ad-hoc UUIDs inside test bodies.
 
-**Evidence:** After v1 fix (clear host-only + set `Domain=.localhost`), logs showed login **200** but `/dashboard` middleware `hasCookie:false` — Chrome did not store/send the domain-scoped cookie.
+4. **Always use the harness** — `createAuthE2eHarness` + `teardownAuthE2eHarness`; never duplicate `PostgreSqlContainer`, `applyEnvForContainer`, or `resetTestDatabaseWithMigrations` in auth specs.
 
-**Change:** Dev default `resolveSessionCookieDomain()` → **host-only** (`undefined`). On login, also clear legacy `Domain=.localhost` cookies. Opt-in sharing: `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN=.localhost`.
+5. **Respect Host tenant alignment** — pass `tenantSubdomain` (or `hostSubdomain` on workspace session) matching the workspace under test; expect `TENANT_HOST_MISMATCH` / `TENANT_SCOPE_FORBIDDEN` when testing cross-tenant denial.
 
-Expected log after v2: `cookieDomain:"host-only"` and middleware `validationStatus:"valid"`, `hasCookie:true`.
+6. **Skip gracefully** — if `ctx.unavailableReason` is set (no Docker), return early from tests; do not fail the suite on missing infrastructure.
 
-### 19.6 Env override blocked v2 (2026-05-29 reproduction)
+7. **Prefer factory `*Raw` helpers for negatives** — keep happy paths on asserting helpers (`loginOtp`, `completeRegistration`); use `postWebSessionOtpRaw` / `postCompleteRegistrationRaw` when status !== 200 is the expectation.
 
-Post-fix-v2 logs still showed `cookieDomain:".localhost"` because **`apps/web/.env.local`** had:
+8. **Extend the platform, not the spec** — new personas, phones, or SQL helpers belong in `helpers/`, not copy-pasted across files.
 
-```env
-NEXT_PUBLIC_SESSION_COOKIE_DOMAIN=.localhost
-```
+---
 
-**Fix applied:** changed to `NEXT_PUBLIC_SESSION_COOKIE_DOMAIN=host-only` in `.env.local` and `.env.local.example`. **Restart `pnpm dev` for web** — `NEXT_PUBLIC_*` is baked in at build/start.
+## Reference specs
 
-### 19.7 Verified fixed (2026-05-29)
-
-Post `host-only` env + cookie helpers:
-
-| Step | Log evidence |
+| Spec | Demonstrates |
 |------|----------------|
-| Login | `cookieDomain:"host-only"`, `backendStatus:200` |
-| `/dashboard` | `validationStatus:"valid"`, `hasCookie:true`, `jwtExp` ≈ now+7d |
-| Navigation | `/tours`, `/finance`, `/users` — all `valid` |
-| Session hydrate | `session/route.ts` `validationStatus:"valid"` |
+| `test/e2e/auth/registration-flow.e2e-spec.ts` | OTP request → registration → complete; `TENANT_HOST_MISMATCH` |
+| `test/e2e/jwt-membership-guard.e2e-spec.ts` | Two tenants, workspace switch, host mismatch, stale token |
+| `test/api.e2e-spec.ts` | Broad API surface with harness + personas (health, tours, invites) |
 
-Debug instrumentation removed after verification.
+---
 
-### 19.8 Refresh logout — duplicate `session` cookies (2026-05-29)
+## File map
 
-**Symptom:** After F5, user appears logged out even when middleware had shown `valid` earlier.
+```
+apps/api/test/
+├── e2e/
+│   ├── auth/
+│   │   ├── README.md                 ← this document
+│   │   ├── auth-e2e-harness.ts       ← AuthE2eHarness
+│   │   ├── auth-session.factory.ts   ← AuthSessionFactory
+│   │   └── registration-flow.e2e-spec.ts
+│   ├── bootstrap.ts                  ← createE2EApp (API-owned)
+│   ├── jwt-test-keys.ts
+│   └── tenant-test-host.ts
+└── helpers/
+    ├── auth-test-ids.ts
+    └── auth-test-personas.ts         ← AuthTestPersona seeders + ctx.db SQL
 
-**Evidence (prior logs):** `session/route.ts` logged `validationStatus:valid` while `AuthProvider` immediately logged `hydrate unauthenticated` — `cookies().get("session")` returned a **stale/expired** duplicate; `GET /api/auth/session` then called `clearCookie()` and wiped the **valid** host-only cookie too.
+packages/testing-infra/               ← shared Testcontainers + createApiE2eHarness
+```
 
-**Fix:** `lib/auth/resolve-session-cookie.ts` — `pickSessionTokenFromRequestCookies()` / `pickSessionTokenFromValues()` choose the **first valid** JWT among duplicates. Used in `middleware.ts`, `session/route.ts` GET, and `bff-proxy.ts` `readSessionToken()`. Successful session GET re-issues cookie via `setSessionCookieOnResponse` to consolidate duplicates on refresh.
+---
 
-### 19.9 Refresh logout — inflight `Response` body consumed twice (2026-05-29)
+## Related packages
 
-**Evidence:** Logs showed `session/route.ts` `validationStatus:valid` then `AuthProvider` `hydrate unauthenticated` 14ms later (HTTP 200).
+- **`@repo/testing-infra`** — `createApiE2eHarness`, `assertApiErrorEnvelope`, Postgres container, migration reset
+- **`apps/web/.../wizard/testing/`** — structural guards only (no DB/containers); API auth e2e infra lives here under `apps/api/test/e2e/auth`
 
-**Cause:** `inflightBffGet` deduped React Strict Mode double-mount but cached the raw `Response`. Two `consumeHydrateResponse` callers both called `.json()` on the same body → second read `{}` → `authenticated` false → `setUser(null)` (UI logout while middleware still had a valid cookie).
+---
 
-**Fix:** Parse JSON **inside** the inflight fetcher in `auth-context.tsx` (`SessionHydrateFetchResult`) and `membership-ability-context.ts`. Documented in `inflight-bff-get.ts`. Test: `inflight-bff-get.spec.ts`.
--+
+## §37 — E2E cleanup audit & backlog (`apps/api/test/e2e`)
+
+**Date:** 2026-05-29  
+**Audited:** 29 `*.e2e-spec.ts` files under `apps/api/test/e2e/` (+ `apps/api/test/api.e2e-spec.ts` outside `e2e/`)
+
+### Wizard-Standard status (summary)
+
+| Status | Count | Specs |
+|--------|------:|-------|
+| **Migrated** | 3 | `jwt-membership-guard.e2e-spec.ts`, `auth/registration-flow.e2e-spec.ts`, `../api.e2e-spec.ts` |
+| **Legacy (full stack)** | 27 | All other `e2e/**/*.e2e-spec.ts` listed in backlog below |
+| **Auth infra (not specs)** | 4 | `auth-e2e-harness.ts`, `auth-session.factory.ts`, `bootstrap.ts`, `web-session-otp.helper.ts` |
+
+**Legacy stack pattern (repeated ~27×):**
+
+- `PostgreSqlContainer` + local `applyEnvForContainer`
+- `createE2EApp` + `resetTestDatabaseWithMigrations` from `bootstrap.ts` / `reset-test-database.ts`
+- Inline `DataSource.getRepository(...)` seeds (and often mid-test mutations)
+- `webSessionOtpToken(...)` or raw `supertest` → `POST /api/v2/auth/web/session/otp`
+
+**`web-session-otp.helper.ts` consumers (23 specs + 2 specs import `E2E_DEV_OTP` only):** thin alias to `loginOtp` in `auth-session.factory.ts`; safe to delete after import rewires.
+
+**Raw OTP in spec (not factory):**
+
+| File | Issue |
+|------|--------|
+| `subdomain-multi-tenant.e2e-spec.ts` | 3× raw `POST …/web/session/otp` + `webSessionOtpToken` |
+| `subdomain-comprehensive.e2e-spec.ts` | 8× raw `POST …/web/session/otp` + inline `loginToken()` helper |
+| `release-gate-journeys.e2e-spec.ts` | Inline `loginToken()` with raw OTP POST |
+
+---
+
+### Cleanup Backlog (migrate next)
+
+Priority reflects auth/tenant coupling and migration ease (personas map cleanly to `seedAuthPersona` / `seedTwoTenantPersonas`).
+
+#### P0 — Auth, tenant, invites (migrate first)
+
+| # | File | Login debt | Seed debt | Notes |
+|---|------|------------|-----------|-------|
+| 1 | `invite-accept-function.e2e-spec.ts` | `webSessionOtpToken` ×2 | TypeORM repos | Overlaps `api.e2e-spec` invite flow — use `ctx.db.insertPendingWorkspaceInvite` |
+| 2 | `invite-accept-parallel.e2e-spec.ts` | `webSessionOtpToken` ×1 | TypeORM repos | Parallel accept race |
+| 3 | `invite-role-hierarchy.e2e-spec.ts` | `webSessionOtpToken` ×3 | TypeORM repos | RBAC on invite create |
+| 4 | `subdomain-multi-tenant.e2e-spec.ts` | Raw OTP + helper | TypeORM multi-tenant seed | **Replace raw OTP with `ctx.auth.postWebSessionOtpRaw` / `loginOtp`** |
+| 5 | `subdomain-comprehensive.e2e-spec.ts` | 8× raw OTP | TypeORM seed | Largest OTP surface — split negative cases to factory `*Raw` |
+| 6 | `tenant-isolation.e2e-spec.ts` | `webSessionOtpToken` | TypeORM two-tenant | Natural fit for `seedTwoTenantPersonas` |
+| 7 | `tenant-context-leak.e2e-spec.ts` | `webSessionOtpToken` ×2 | TypeORM tours/regs | Cross-tenant data leak checks |
+| 8 | `me-profile.e2e-spec.ts` | `webSessionOtpToken` | TypeORM single tenant | Small spec — good template migration |
+| 9 | `users-role-rbac.e2e-spec.ts` | `webSessionOtpToken` helper | TypeORM + inline repo in tests | Add `ctx.db` helpers for role-audit mutations |
+| 10 | `ownership-transfer.e2e-spec.ts` | `webSessionOtpToken` | TypeORM + mid-test `getRepository` | Owner transfer invariant |
+
+#### P1 — Workspace users & session guards
+
+| # | File | Login debt | Seed debt | Notes |
+|---|------|------------|-----------|-------|
+| 11 | `workspace-users-mutations.e2e-spec.ts` | `webSessionOtpToken` helper | Heavy TypeORM (23 repo uses) | Extend `ctx.db` before migrating |
+| 12 | `users-cursor-bulk.e2e-spec.ts` | `webSessionOtpToken` ×3 | TypeORM + test-body repos | Bulk/cursor + audit tables |
+| 13 | `jwt-membership-guard.e2e-spec.ts` | — | — | **Done** |
+| 14 | `release-gate-journeys.e2e-spec.ts` | Inline raw OTP login | TypeORM journey seed | Gate spec; migrate login helper only first |
+
+#### P2 — Tours / Denali / presets
+
+| # | File | Login debt | Seed debt | Notes |
+|---|------|------------|-----------|-------|
+| 15 | `tours-create.e2e-spec.ts` | `webSessionOtpToken` | TypeORM tours | |
+| 16 | `tours-create-profile-authority.e2e-spec.ts` | `webSessionOtpToken` | TypeORM + wizard template entity | |
+| 17 | `tours-rbac-parity.e2e-spec.ts` | `webSessionOtpToken` ×2 | TypeORM | |
+| 18 | `tours-leader-integrity.e2e-spec.ts` | `webSessionOtpToken` | TypeORM | |
+| 19 | `tour-presets-tenant-isolation.e2e-spec.ts` | `webSessionOtpToken` ×2 | TypeORM | |
+| 20 | `tour-wizard-template-isolation.e2e-spec.ts` | `webSessionOtpToken` | TypeORM | |
+| 21 | `denali-negative-invariants.e2e-spec.ts` | `webSessionOtpToken` | TypeORM | |
+
+#### P3 — Finance, payments, registrations, load
+
+| # | File | Login debt | Seed debt | Notes |
+|---|------|------------|-----------|-------|
+| 22 | `finance-cutover-integrity.e2e-spec.ts` | `webSessionOtpToken` ×3 | TypeORM + audit repo reads | Multi-tenant finance |
+| 23 | `payments-coexistence.e2e-spec.ts` | `webSessionOtpToken` | TypeORM tours/payments | |
+| 24 | `manual-receipt-flow.e2e-spec.ts` | `webSessionOtpToken` ×2 | Large TypeORM fixture | |
+| 25 | `receipt-upload-ownership.e2e-spec.ts` | `webSessionOtpToken` ×2 | Large TypeORM fixture | |
+| 26 | `load-concurrency-registration.e2e-spec.ts` | `webSessionOtpToken` | TypeORM + truncate helper | Keep domain seed; swap harness + login |
+| 27 | `registrations.e2e-spec.ts` | None (internal/webhook) | TypeORM only | **Harness-only migration** — no `AuthSessionFactory` unless adding authenticated paths |
+| 28 | `payments-webhook-wrong-tenant.e2e-spec.ts` | None | TypeORM only | **Harness-only** — webhook + tenant seed |
+
+#### Done / reference
+
+| File | Status |
+|------|--------|
+| `auth/registration-flow.e2e-spec.ts` | Migrated |
+| `../api.e2e-spec.ts` | Migrated (auth + tours + invites) |
+
+---
+
+### Per-spec legacy signals (quick scan)
+
+| Signal | Files affected |
+|--------|----------------|
+| `applyEnvForContainer` (local duplicate) | 27 legacy specs |
+| `PostgreSqlContainer` in spec | 27 legacy specs |
+| `webSessionOtpToken` | 23 specs |
+| `getRepository` in spec body (not only `seed`) | `users-cursor-bulk`, `workspace-users-mutations`, `finance-cutover-integrity`, `ownership-transfer`, `payments-coexistence`, `load-concurrency-registration`, `payments-webhook-wrong-tenant`, `tours-create-profile-authority`, others in `before` only |
+| Raw `POST …/auth/web/session/otp` | `subdomain-multi-tenant`, `subdomain-comprehensive`, `release-gate-journeys` |
+
+---
+
+### Final cleanup PR plan
+
+Execute after backlog items are migrated (or in parallel where noted). Goal: one import path for auth e2e, no duplicated container bootstrap in specs.
+
+#### PR A — `web-session-otp.helper.ts` removal (small, after P0 login rewires)
+
+1. Replace `import { webSessionOtpToken, E2E_DEV_OTP } from "./web-session-otp.helper"` with:
+   - `E2E_DEV_OTP` from `./auth/auth-session.factory`
+   - `ctx.auth.loginOtp(...)` (or keep calling `loginOtp(app, …)` only inside harness-owned code)
+2. Delete `apps/api/test/e2e/web-session-otp.helper.ts`
+3. Grep gate: `web-session-otp` must have zero hits under `apps/api/test`
+
+#### PR B — Thin wrapper consolidation (after all specs use `createAuthE2eHarness`)
+
+| File | Action |
+|------|--------|
+| `assign-test-api-port.ts` | Remove when no spec imports it (already re-exports `@repo/testing-infra`) |
+| `reset-test-database.ts` | Remove when no spec imports it; harness calls `resetTestDatabaseWithMigrations` via `@repo/testing-infra` |
+| Per-spec `applyEnvForContainer` | Delete with each migration (logic lives in `applyTestContainerEnv`) |
+| Per-spec `truncateAllTables` | Replace with harness `resetDatabase()` or document why full truncate is required |
+
+**Keep `bootstrap.ts`** — not a remnant. `createE2EApp` is required by `AuthE2eHarness` to boot Nest with production middleware parity. Do **not** delete unless `createE2EApp` moves into `@repo/testing-infra` or `auth-e2e-harness.ts` as a shared export (optional future refactor).
+
+#### PR C — Optional `createApiE2eHarness`-only specs
+
+For `registrations.e2e-spec.ts` and `payments-webhook-wrong-tenant.e2e-spec.ts`:
+
+- Introduce `createAuthE2eHarness({ seed })` **without** using `ctx.auth` (or a slimmer `createApiE2eHarness` export documented in README)
+- Removes duplicated container boilerplate while acknowledging no login surface
+
+#### PR D — `ctx.db` expansion (unblock P1/P3)
+
+Add helpers as migrations expose gaps:
+
+- `findUserIdByPhone`, `countAuditEventsForTenant`, tour/registration fixture builders (or domain-specific seed modules under `test/helpers/`)
+
+#### Suggested merge order
+
+```mermaid
+flowchart LR
+  P0[P0 invite + subdomain + tenant specs] --> P1[P1 users + release-gate]
+  P1 --> P2[P2 tours / denali]
+  P2 --> P3[P3 finance + load]
+  P3 --> A[PR A: delete web-session-otp.helper]
+  A --> B[PR B: delete assign-test-api-port + reset-test-database imports]
+  P3 --> C[PR C: harness-only registrations + webhook specs]
+  P1 --> D[PR D: ctx.db helpers as needed]
+```
+
+**Verification gate (each PR):**
+
+```bash
+cd apps/api
+node --import tsx --test --test-concurrency=1 test/e2e/**/*.e2e-spec.ts test/api.e2e-spec.ts
+```
+
+---
+
+### Audit metrics
+
+| Metric | Value |
+|--------|------:|
+| Total e2e spec files (`e2e/`) | 29 |
+| Wizard-Standard migrated | 2 in `e2e/` + 1 in `test/api.e2e-spec.ts` |
+| Remaining legacy specs | 27 |
+| `web-session-otp.helper.ts` importers | 23 specs + 2 specs import `E2E_DEV_OTP` only |
+| Specs with raw OTP POST | 3 |
+| Safe to delete after migration | `web-session-otp.helper.ts`, per-spec `applyEnvForContainer`, thin `assign-test-api-port` / `reset-test-database` re-export usage |
+| Must retain | `bootstrap.ts` (`createE2EApp`), `tenant-test-host.ts`, `jwt-test-keys.ts`, `sign-payments-webhook.ts` |
+

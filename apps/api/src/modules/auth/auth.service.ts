@@ -653,6 +653,21 @@ export class AuthService {
       });
     }
 
+    const hostTenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (hostTenantId) {
+      const hostId = this.normalizeUuidString(hostTenantId);
+      const onboardingTenant = this.normalizeUuidString(onboarding.tenantId);
+      if (hostId !== onboardingTenant) {
+        throw new ForbiddenException({
+          error: {
+            code: "TENANT_HOST_MISMATCH",
+            message:
+              "Onboarding workspace must match the tenant subdomain (HTTP Host) when completing registration."
+          }
+        });
+      }
+    }
+
     const existing = await this.findUserByPhone(onboarding.phone);
     const emailForSave =
       requestedEmail && requestedEmail !== ""

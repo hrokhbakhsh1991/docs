@@ -1,6 +1,5 @@
 import "reflect-metadata";
-import { readFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { loadDotEnvTest } from "@repo/testing-infra";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test, type TestingModuleBuilder } from "@nestjs/testing";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -15,55 +14,6 @@ import { RequestContextService } from "../../src/common/request-context/request-
 import { TenantRateLimitMiddleware } from "../../src/common/tenant-abuse/tenant-rate-limit.middleware";
 import { TenantMiddleware } from "../../src/common/tenant/tenant.middleware";
 import { TenantResolverMiddleware } from "../../src/common/tenant/tenant-resolver.middleware";
-
-function applyEnvFile(path: string, onlyIfMissing: boolean): void {
-  const content = readFileSync(path, "utf8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eq = trimmed.indexOf("=");
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim();
-    if (onlyIfMissing && key in process.env) {
-      continue;
-    }
-    process.env[key] = value;
-  }
-}
-
-/** Defaults from `.env.test.example`, then optional `.env.test` overrides (keys present in that file). */
-function loadDotEnvTest(): void {
-  const examplePath = resolve(process.cwd(), ".env.test.example");
-  const envPath = resolve(process.cwd(), ".env.test");
-  if (existsSync(examplePath)) {
-    applyEnvFile(examplePath, true);
-  }
-  if (existsSync(envPath)) {
-    applyEnvFile(envPath, true);
-  }
-  if (!process.env.TENANT_ROOT_DOMAIN?.trim()) {
-    process.env.TENANT_ROOT_DOMAIN = "localhost";
-  }
-  /** {@link web-session-otp.helper} uses OTP `1234` under NODE_ENV=test; align unless `.env.test` disables explicitly. */
-  if (
-    process.env.AUTH_ALLOW_DEV_STATIC_OTP === undefined ||
-    String(process.env.AUTH_ALLOW_DEV_STATIC_OTP).trim() === ""
-  ) {
-    process.env.AUTH_ALLOW_DEV_STATIC_OTP = "true";
-  }
-  if (
-    !process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET ||
-    process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET.trim().length < 16
-  ) {
-    process.env.PAYMENTS_WEBHOOK_SIGNING_SECRET =
-      "test-webhook-hmac-secret-at-least-32chars!!!!";
-  }
-  // E2E/testcontainers: explicit defaults so ConfigService + EmailService construct reliably (tsx metadata).
-  process.env.RESEND_API_KEY ??= "";
-  process.env.RESEND_FROM ??= "";
-  process.env.FRONTEND_BASE_URL ??= "";
-}
 
 export async function createE2EApp(
   configure?: (_builder: TestingModuleBuilder) => TestingModuleBuilder

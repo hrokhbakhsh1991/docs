@@ -95,6 +95,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@repo/testing-infra": "workspace:*",
     "@nestjs/cli": "10.4.9",
     "@nestjs/testing": "10.4.22",
     "@testcontainers/postgresql": "^11.14.0",
