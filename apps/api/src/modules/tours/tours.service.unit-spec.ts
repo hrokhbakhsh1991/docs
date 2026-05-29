@@ -3,12 +3,10 @@ import test from "node:test";
 
 import { InternalServerErrorException } from "@nestjs/common";
 
+import { TourDepartureEntity } from "./entities/tour-departure.entity";
 import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
-import { ToursService } from "./tours.service";
-
-function catalogSyncService(): ToursService {
-  return Object.create(ToursService.prototype) as ToursService;
-}
+import { TourProductEntity } from "./entities/tour-product.entity";
+import { TypeOrmToursWriteRepository } from "./repositories/typeorm-tours-write.repository";
 
 function tourWithCatalogIds(): TourEntity {
   const tour = new TourEntity();
@@ -23,38 +21,35 @@ function tourWithCatalogIds(): TourEntity {
   return tour;
 }
 
-test("syncProductDepartureForTourWithRepos throws when tour_products row is missing", async () => {
-  const svc = catalogSyncService();
+function writeRepository(): TypeOrmToursWriteRepository {
+  return Object.create(TypeOrmToursWriteRepository.prototype) as TypeOrmToursWriteRepository;
+}
+
+test("syncProductDepartureForTour throws when tour_products row is missing", async () => {
+  const repo = writeRepository();
   const tour = tourWithCatalogIds();
-  const writeRepos = {
-    tour: { save: async () => tour },
-    tourProduct: {
-      findOne: async () => null,
-      save: async () => ({}),
-      create: () => ({}),
-    },
-    tourDeparture: {
-      findOne: async () => null,
-      save: async () => ({}),
-      create: () => ({}),
-    },
-    tourPrice: {
-      findOne: async () => null,
-      save: async () => ({}),
-      create: () => ({}),
+  const manager = {
+    getRepository(entity: unknown) {
+      if (entity === TourEntity) {
+        return { save: async () => tour };
+      }
+      if (entity === TourProductEntity) {
+        return {
+          findOne: async () => null,
+          save: async () => ({}),
+          create: () => ({}),
+        };
+      }
+      return {
+        findOne: async () => null,
+        save: async () => ({}),
+        create: () => ({}),
+      };
     },
   };
 
   await assert.rejects(
-    () =>
-      (
-        svc as unknown as {
-          syncProductDepartureForTourWithRepos: (
-            _repos: typeof writeRepos,
-            _t: TourEntity,
-          ) => Promise<void>;
-        }
-      ).syncProductDepartureForTourWithRepos(writeRepos, tour),
+    () => repo.syncProductDepartureForTour(manager as never, tour),
     (err: unknown) => {
       assert.ok(err instanceof InternalServerErrorException);
       const body = err.getResponse() as { error?: { code?: string; message?: string } };
@@ -65,38 +60,38 @@ test("syncProductDepartureForTourWithRepos throws when tour_products row is miss
   );
 });
 
-test("syncProductDepartureForTourWithRepos throws when tour_departures row is missing", async () => {
-  const svc = catalogSyncService();
+test("syncProductDepartureForTour throws when tour_departures row is missing", async () => {
+  const repo = writeRepository();
   const tour = tourWithCatalogIds();
-  const writeRepos = {
-    tour: { save: async () => tour },
-    tourProduct: {
-      findOne: async () => ({ id: tour.tourProductId, title: tour.title }),
-      save: async () => ({}),
-      create: () => ({}),
-    },
-    tourDeparture: {
-      findOne: async () => null,
-      save: async () => ({}),
-      create: () => ({}),
-    },
-    tourPrice: {
-      findOne: async () => null,
-      save: async () => ({}),
-      create: () => ({}),
+  const manager = {
+    getRepository(entity: unknown) {
+      if (entity === TourEntity) {
+        return { save: async () => tour };
+      }
+      if (entity === TourProductEntity) {
+        return {
+          findOne: async () => ({ id: tour.tourProductId, title: tour.title }),
+          save: async () => ({}),
+          create: () => ({}),
+        };
+      }
+      if (entity === TourDepartureEntity) {
+        return {
+          findOne: async () => null,
+          save: async () => ({}),
+          create: () => ({}),
+        };
+      }
+      return {
+        findOne: async () => null,
+        save: async () => ({}),
+        create: () => ({}),
+      };
     },
   };
 
   await assert.rejects(
-    () =>
-      (
-        svc as unknown as {
-          syncProductDepartureForTourWithRepos: (
-            _repos: typeof writeRepos,
-            _t: TourEntity,
-          ) => Promise<void>;
-        }
-      ).syncProductDepartureForTourWithRepos(writeRepos, tour),
+    () => repo.syncProductDepartureForTour(manager as never, tour),
     (err: unknown) => {
       assert.ok(err instanceof InternalServerErrorException);
       const body = err.getResponse() as { error?: { code?: string; message?: string } };

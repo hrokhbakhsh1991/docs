@@ -8,15 +8,31 @@ import { PAYMENT_DEBT_AFTER_SETTLEMENT_FORBIDDEN } from "../../src/modules/payme
 const TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const REGISTRATION_ID = "33333333-3333-4333-8333-333333333333";
 
-function makeManager(findPayments: Array<{ status: PaymentStatus }>) {
+const requestContext = {
+  resolveEffectiveTenantId: () => TENANT_ID
+};
+
+function makePaymentRepository(findPayments: Array<{ status: PaymentStatus }>, saved: Array<Record<string, unknown>>) {
   return {
-    findOne: async () => ({
-      id: REGISTRATION_ID,
-      tenantId: TENANT_ID
-    }),
-    find: async () => findPayments,
-    create: (_entity: unknown, data: Record<string, unknown>) => data,
-    save: async (_entity: unknown, row: Record<string, unknown>) => ({ ...row, id: "pay-new" })
+    async findRegistrationByTenantAndId(_manager: unknown, registrationId: string, tenantId: string) {
+      if (registrationId === REGISTRATION_ID && tenantId === TENANT_ID) {
+        return { id: REGISTRATION_ID, tenantId: TENANT_ID };
+      }
+      return null;
+    },
+    async findStatusesByRegistration() {
+      return findPayments;
+    },
+    createPayment(_manager: unknown, data: Record<string, unknown>) {
+      return data;
+    },
+    async savePayment(_manager: unknown, row: Record<string, unknown>) {
+      saved.push(row);
+      return { ...row, id: "pay-new" };
+    },
+    async listManualByTenant() {
+      return [];
+    }
   };
 }
 
@@ -24,21 +40,14 @@ test("createManualPayment persists under tenant scope", async () => {
   const saved: Array<Record<string, unknown>> = [];
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          ...makeManager([]),
-          save: async (_entity: unknown, row: Record<string, unknown>) => {
-            saved.push(row);
-            return { ...row, id: "pay-new" };
-          }
-        } as never)
+      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<unknown>) => fn({} as never)
     } as never,
-    {} as never,
+    requestContext as never,
+    makePaymentRepository([], saved) as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 
   const payment = await service.createManualPayment({
-    tenantId: TENANT_ID,
     registrationId: REGISTRATION_ID,
     amount: "1000",
     currency: "IRR"
@@ -52,16 +61,16 @@ test("createManualPayment persists under tenant scope", async () => {
 test("createManualPayment rejects when registration already has Paid payment", async () => {
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId: string, fn: any) => fn(makeManager([{ status: PaymentStatus.PAID }]) as never)
+      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<unknown>) => fn({} as never)
     } as never,
-    {} as never,
+    requestContext as never,
+    makePaymentRepository([{ status: PaymentStatus.PAID }], []) as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 
   await assert.rejects(
     () =>
       service.createManualPayment({
-        tenantId: TENANT_ID,
         registrationId: REGISTRATION_ID,
         amount: "1000",
         currency: "IRR"
@@ -75,16 +84,17 @@ test("createManualPayment rejects when registration already has Paid payment", a
 });
 
 test("createManualPayment allows manual debt after Failed online payment", async () => {
+  const saved: Array<Record<string, unknown>> = [];
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId: string, fn: any) => fn(makeManager([{ status: PaymentStatus.FAILED }]) as never)
+      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<unknown>) => fn({} as never)
     } as never,
-    {} as never,
+    requestContext as never,
+    makePaymentRepository([{ status: PaymentStatus.FAILED }], saved) as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 
   const payment = await service.createManualPayment({
-    tenantId: TENANT_ID,
     registrationId: REGISTRATION_ID,
     amount: "1000",
     currency: "IRR"
@@ -95,19 +105,20 @@ test("createManualPayment allows manual debt after Failed online payment", async
 test("createManualPayment rejects unknown registration", async () => {
   const service = new ManualPaymentService(
     {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          findOne: async () => null
-        } as never)
+      runInTenantScope: async (_tenantId: string, fn: (manager: unknown) => Promise<unknown>) => fn({} as never)
     } as never,
-    {} as never,
+    requestContext as never,
+    {
+      async findRegistrationByTenantAndId() {
+        return null;
+      }
+    } as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 
   await assert.rejects(
     () =>
       service.createManualPayment({
-        tenantId: TENANT_ID,
         registrationId: "44444444-4444-4444-8444-444444444444",
         amount: "1000",
         currency: "IRR"

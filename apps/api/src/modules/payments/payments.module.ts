@@ -20,7 +20,6 @@ import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { FinanceLedgerModule } from "../finance/finance-ledger.module";
 import { OutboxModule } from "../outbox/outbox.module";
 import { TenantEntity } from "../identity/entities/tenant.entity";
-import { UserEntity } from "../identity/entities/user.entity";
 import { PaymentEntity } from "./entities/payment.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { PaymentReceiptEntity } from "./entities/payment-receipt.entity";
@@ -32,6 +31,9 @@ import { PaymentsProcessor } from "./payments.processor";
 import { PaymentIntentRegistrationResolverApplicationService } from "./application/payment-intent-registration-resolver.application.service";
 import { PaymentsService } from "./payments.service";
 import { ManualPaymentService } from "./manual-payment.service";
+import { PAYMENT_REPOSITORY_PORT } from "./domain/ports/payment-repository.port";
+import { TypeOrmPaymentRepository } from "./repositories/typeorm-payment.repository";
+import { ToursCatalogModule } from "../tours/tours-catalog.module";
 
 import { REDIS_CLIENT } from "../../infra/redis/redis.constants";
 import { StorageModule } from "../../infra/storage/storage.module";
@@ -43,17 +45,17 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
       PaymentEntity,
       PaymentReceiptEntity,
       RegistrationEntity,
-      UserEntity,
-      PaymentGatewayIdempotencyEntity
+      PaymentGatewayIdempotencyEntity,
+      TenantEntity
     ]),
-    TypeOrmModule.forFeature([TenantEntity]),
     DatabaseModule,
     OutboxModule,
     IdempotencyModule,
     FinanceLedgerModule,
     StorageModule,
     ReceiptsModule,
-    FinanceReportsModule
+    FinanceReportsModule,
+    ToursCatalogModule,
   ],
   controllers: [
     PaymentsController,
@@ -62,6 +64,10 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
     FinanceAdminReceiptsController
   ],
   providers: [
+    {
+      provide: PAYMENT_REPOSITORY_PORT,
+      useClass: TypeOrmPaymentRepository
+    },
     InMemoryIdempotencyKeyStore,
     RedisPaymentIdempotencyKeyStore,
     PostgresPaymentIdempotencyKeyStore,
@@ -106,6 +112,7 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
     PaymentWebhookSignatureGuard
   ],
   exports: [
+    PAYMENT_REPOSITORY_PORT,
     PaymentsService,
     PaymentGatewayFactory,
     PAYMENT_GATEWAY_IDEMPOTENCY_STORE,

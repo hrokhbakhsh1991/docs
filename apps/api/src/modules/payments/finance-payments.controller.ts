@@ -50,8 +50,7 @@ export class FinancePaymentsController {
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "FinanceManualPayment"))
   @ApiOperation({ summary: "List manual payments for the workspace" })
   async listManualPayments() {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.manualPaymentService.listManualPayments(tenantId);
+    return this.manualPaymentService.listManualPayments();
   }
 
   @Post("payments/manual")
@@ -59,11 +58,7 @@ export class FinancePaymentsController {
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "FinanceManualPayment"))
   @ApiOperation({ summary: "Create a manual payment (debt)" })
   async createManualPayment(@Body() dto: CreateManualPaymentDto) {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.manualPaymentService.createManualPayment({
-      tenantId,
-      ...dto
-    });
+    return this.manualPaymentService.createManualPayment(dto);
   }
 
   @Post("payments/:id/receipt")
@@ -80,15 +75,13 @@ export class FinancePaymentsController {
     if (!file?.buffer?.length) {
       throw new BadRequestException("file is required");
     }
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
     return this.receiptService.submitReceipt({
-      tenantId,
       paymentId: id,
       actorUserId: this.requestContextService.getUserId()!,
       actorRole: String(this.requestContextService.getRole() ?? ""),
       file: file.buffer,
       contentType: file.mimetype,
-      note: dto.note
+      note: dto.note,
     });
   }
 }
@@ -109,8 +102,7 @@ export class FinanceAdminReceiptsController {
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "FinanceReceiptReview"))
   @ApiOperation({ summary: "List receipts pending admin review" })
   async listPendingReceipts() {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.receiptService.listPendingReceipts(tenantId);
+    return this.receiptService.listPendingReceipts();
   }
 
   @Post("receipts/:id/approve")
@@ -121,13 +113,11 @@ export class FinanceAdminReceiptsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: { reviewNote?: string }
   ) {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
     const actorId = this.requestContextService.getUserId()!;
     return this.receiptService.approveReceipt({
-      tenantId,
       receiptId: id,
       actorId,
-      reviewNote: dto.reviewNote
+      reviewNote: dto.reviewNote,
     });
   }
 
@@ -139,13 +129,11 @@ export class FinanceAdminReceiptsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: { reviewNote?: string }
   ) {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
     const actorId = this.requestContextService.getUserId()!;
     return this.receiptService.rejectReceipt({
-      tenantId,
       receiptId: id,
       actorId,
-      reviewNote: dto.reviewNote
+      reviewNote: dto.reviewNote,
     });
   }
 
@@ -154,10 +142,8 @@ export class FinanceAdminReceiptsController {
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Read, "FinanceReceiptReview"))
   @ApiOperation({ summary: "Get a signed URL for a receipt file" })
   async getReceiptUrl(@Param("id", ParseUUIDPipe) id: string) {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
     const url = await this.receiptService.getReceiptSignedUrl({
-      tenantId,
-      receiptId: id
+      receiptId: id,
     });
     return { url };
   }

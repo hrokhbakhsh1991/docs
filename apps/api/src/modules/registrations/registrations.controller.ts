@@ -49,7 +49,7 @@ import {
   RegistrationResponseDto,
   WaitlistItemResponseDto
 } from "./dto/get-registration.dto";
-import { PaymentResponseDto } from "../payments/dto/payment-response.dto";
+import type { RegistrationPaymentIntentSnapshot } from "./domain/registration-payment-intent.types";
 import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
 import { RegistrationsService } from "./registrations.service";
@@ -154,7 +154,7 @@ export class RegistrationsController {
     @Body() payload: CreateRegistrationDto,
     @Headers("idempotency-key") idempotencyKeyHeader?: string
   ): Promise<Record<string, unknown>> {
-    const tenantScope = await this.bootstrapPublicTourTenant(tourId);
+    await this.bootstrapPublicTourTenant(tourId);
     const idempotencyKey = assertPublicRegistrationIdempotencyKey(idempotencyKeyHeader);
     /** TypeORM idempotency / transaction callbacks can drop ALS; re-enter for downstream `RequestContextService` reads. */
     const requestContextSnapshot = requestContextStorage.getStore();
@@ -173,7 +173,6 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: tenantScope,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/register",
         requestHash,
@@ -221,7 +220,7 @@ export class RegistrationsController {
     @Body() payload: CreateWaitlistItemDto,
     @Headers("idempotency-key") idempotencyKeyHeader?: string
   ): Promise<{ waitlistItemId: string; queuePosition: number }> {
-    const tenantScope = await this.bootstrapPublicTourTenant(tourId);
+    await this.bootstrapPublicTourTenant(tourId);
     const idempotencyKey = assertPublicRegistrationIdempotencyKey(idempotencyKeyHeader);
     const requestContextSnapshot = requestContextStorage.getStore();
     const executeWaitlistOnly = async () => {
@@ -249,7 +248,6 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: tenantScope,
         key: idempotencyKey,
         endpoint: "/api/v2/tours/:tourId/waitlist",
         requestHash,
@@ -344,7 +342,7 @@ export class RegistrationsController {
   })
   async createBooking(@Body() payload: CreateBookingDto): Promise<{
     registration: RegistrationResponseDto;
-    paymentIntent: PaymentResponseDto | null;
+    paymentIntent: RegistrationPaymentIntentSnapshot | null;
   }> {
     return this.registrationPlacementOrchestrator.createAuthenticatedBooking(payload.tourId);
   }
@@ -529,7 +527,6 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: this.requireTrustedTenantId(),
         key: idempotencyKey,
         endpoint: "/api/v2/waitlist-items/:waitlistItemId/convert",
         requestHash,
@@ -578,7 +575,6 @@ export class RegistrationsController {
     });
     const result = await this.idempotencyService.executeWithIdempotency(
       {
-        tenantId: this.requireTrustedTenantId(),
         key: idempotencyKey,
         endpoint: "/api/v2/waitlist-items/:waitlistItemId/cancel",
         requestHash,
@@ -587,18 +583,5 @@ export class RegistrationsController {
       async () => this.registrationsService.cancelWaitlistItem(waitlistItemId, payload)
     );
     return result.responseBody as WaitlistItemResponseDto;
-  }
-
-  private requireTrustedTenantId(): string {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId();
-    if (!tenantId) {
-      throw new BadRequestException({
-        error: {
-          code: "TENANT_CONTEXT_MISSING",
-          message: "Trusted tenant context required for idempotent operation"
-        }
-      });
-    }
-    return tenantId;
   }
 }

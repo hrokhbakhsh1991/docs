@@ -7,25 +7,12 @@ import {
   BOOKING_PRICE_SNAPSHOT_ENTITY,
   type IBookingPriceSnapshotEntity
 } from "@repo/domain-contracts";
+import {
+  RegistrationPaymentStatus,
+  RegistrationStatus,
+} from "./domain/registration-status";
 
-export enum RegistrationStatus {
-  PENDING = "Pending",
-  ACCEPTED = "Accepted",
-  ACCEPTED_PAID = "AcceptedPaid",
-  REJECTED = "Rejected",
-  CANCELLED = "Cancelled",
-  NO_SHOW = "NoShow",
-  REFUNDED = "Refunded"
-}
-
-export enum RegistrationPaymentStatus {
-  NOT_PAID = "NotPaid",
-  PAID = "Paid",
-  REFUNDED = "Refunded",
-  FAILED = "Failed",
-  // Legacy value retained for backward compatibility with existing clients/contracts.
-  PARTIAL = "Partial"
-}
+export { RegistrationPaymentStatus, RegistrationStatus };
 
 @Entity("registrations")
 @Index("idx_registrations_tenant_id", ["tenantId"])

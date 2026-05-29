@@ -1,8 +1,15 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable
+} from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { createHash } from "node:crypto";
 import { QueryFailedError } from "typeorm";
 import { DataSource, LessThan, Repository } from "typeorm";
+import { tenantContextMissingError } from "../../common/errors/error-response-builders";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import { IdempotencyKeyEntity } from "./entities/idempotency-key.entity";
 
 const DEFAULT_IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
@@ -18,10 +25,20 @@ export class IdempotencyService {
     @InjectRepository(IdempotencyKeyEntity)
     private readonly idempotencyRepository: Repository<IdempotencyKeyEntity>,
     @InjectDataSource()
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
   ) {}
 
-  async findByKey(tenantId: string, key: string): Promise<IdempotencyKeyEntity | null> {
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId?.trim()) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId.trim();
+  }
+
+  async findByKey(key: string): Promise<IdempotencyKeyEntity | null> {
+    const tenantId = this.resolveTenantIdOrThrow();
     return this.idempotencyRepository.findOne({ where: { tenantId, key } });
   }
 
@@ -39,7 +56,6 @@ export class IdempotencyService {
   async storeResponse(
     manager: DataSource["manager"],
     params: {
-      tenantId: string;
       key: string;
       endpoint: string;
       requestHash: string;
@@ -48,8 +64,9 @@ export class IdempotencyService {
       ttlMs?: number;
     }
   ): Promise<IdempotencyKeyEntity> {
+    const tenantId = this.resolveTenantIdOrThrow();
     const row = manager.create(IdempotencyKeyEntity, {
-      tenantId: params.tenantId,
+      tenantId,
       key: params.key,
       endpoint: params.endpoint,
       requestHash: params.requestHash,
@@ -75,7 +92,6 @@ export class IdempotencyService {
 
   async executeWithIdempotency<TResponse>(
     params: {
-      tenantId: string;
       key: string;
       endpoint: string;
       requestHash: string;
@@ -83,8 +99,9 @@ export class IdempotencyService {
     },
     handler: (_manager: DataSource["manager"]) => Promise<TResponse>
   ): Promise<{ statusCode: number; responseBody: TResponse; replayed: boolean }> {
+    const tenantId = this.resolveTenantIdOrThrow();
     return this.dataSource.transaction(async (manager) => {
-      const existing = await this.findRecord(manager, params.tenantId, params.key);
+      const existing = await this.findRecord(manager, tenantId, params.key);
 
       const replayResult = this.resolveExistingRecord<TResponse>(existing, params);
       if (replayResult) return replayResult;
@@ -94,7 +111,7 @@ export class IdempotencyService {
       }
 
       const placeholder = manager.create(IdempotencyKeyEntity, {
-        tenantId: params.tenantId,
+        tenantId,
         key: params.key,
         endpoint: params.endpoint,
         requestHash: params.requestHash,
@@ -102,7 +119,7 @@ export class IdempotencyService {
         statusCode: null,
         expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS)
       });
-      const reservation = await this.reservePlaceholder(manager, placeholder, params);
+      const reservation = await this.reservePlaceholder(manager, placeholder, tenantId, params);
       if ("replayResult" in reservation) {
         return reservation.replayResult as {
           statusCode: number;
@@ -177,8 +194,8 @@ export class IdempotencyService {
   private async reservePlaceholder(
     manager: DataSource["manager"],
     placeholder: IdempotencyKeyEntity,
+    tenantId: string,
     params: {
-      tenantId: string;
       key: string;
       endpoint: string;
       requestHash: string;
@@ -199,7 +216,7 @@ export class IdempotencyService {
       if (!this.isUniqueViolation(error)) {
         throw error;
       }
-      const existing = await this.findRecord(manager, params.tenantId, params.key);
+      const existing = await this.findRecord(manager, tenantId, params.key);
       const replayResult = this.resolveExistingRecord(existing, params);
       if (replayResult) {
         return { replayResult };

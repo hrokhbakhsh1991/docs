@@ -1,6 +1,6 @@
 import { isAllowedPaymentStatusTransition } from "@repo/shared-contracts";
 import { ConflictException } from "@nestjs/common";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "./payment.types";
 
 const TRANSITION_INVALID = {
   error: {

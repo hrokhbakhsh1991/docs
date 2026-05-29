@@ -6,6 +6,7 @@ import { UserEntity } from "../../entities/user.entity";
 import type { TenantScopedUserRow } from "../users-tenant-scope.types";
 import type { IUsersTenantScopeRepository } from "./users-tenant-scope.repository.interface";
 
+/** @deprecated Logic moved to {@link TypeOrmIdentityRepository}; use {@link WORKSPACE_IDENTITY_REPOSITORY_PORT}. */
 @Injectable()
 export class UsersTenantScopeRepository implements IUsersTenantScopeRepository {
   constructor(

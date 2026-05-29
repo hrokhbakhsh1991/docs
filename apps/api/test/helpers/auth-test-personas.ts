@@ -179,28 +179,7 @@ export async function seedTwoTenantPersonas(
 
   const personas: AuthTestPersona[] = [];
 
-  if (options.userInAOnly) {
-    personas.push(
-      await seedAuthPersona(ds, {
-        ...options.userInAOnly,
-        tenantId: tenantA.id,
-        subdomain: tenantA.subdomain,
-        phone: options.userInAOnly.phone ?? allocateAuthTestPhone(),
-      }),
-    );
-  }
-
-  if (options.userInBOnly) {
-    personas.push(
-      await seedAuthPersona(ds, {
-        ...options.userInBOnly,
-        tenantId: tenantB.id,
-        subdomain: tenantB.subdomain,
-        phone: options.userInBOnly.phone ?? allocateAuthTestPhone(),
-      }),
-    );
-  }
-
+  // Owner / dual-member personas first — Postgres 23514 requires an active owner before other members.
   if (options.dualMember) {
     const phone = options.dualMember.phone;
     const hash = await argon2.hash(options.dualMember.password ?? `fixture-${phone}`);
@@ -251,6 +230,28 @@ export async function seedTwoTenantPersonas(
         membershipStatus: status,
       });
     }
+  }
+
+  if (options.userInAOnly) {
+    personas.push(
+      await seedAuthPersona(ds, {
+        ...options.userInAOnly,
+        tenantId: tenantA.id,
+        subdomain: tenantA.subdomain,
+        phone: options.userInAOnly.phone ?? allocateAuthTestPhone(),
+      }),
+    );
+  }
+
+  if (options.userInBOnly) {
+    personas.push(
+      await seedAuthPersona(ds, {
+        ...options.userInBOnly,
+        tenantId: tenantB.id,
+        subdomain: tenantB.subdomain,
+        phone: options.userInBOnly.phone ?? allocateAuthTestPhone(),
+      }),
+    );
   }
 
   return {

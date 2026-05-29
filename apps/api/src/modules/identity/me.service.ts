@@ -2,12 +2,13 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
-import { DataSource, EntityManager, IsNull, MoreThan, QueryFailedError, type Repository } from "typeorm";
+import { EntityManager, QueryFailedError } from "typeorm";
 
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
@@ -18,8 +19,11 @@ import { OtpService } from "../auth/otp.service";
 import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 import { OutboxService } from "../outbox/outbox.service";
 import type { PatchMeDto } from "./dto/patch-me.dto";
-import { EmailVerificationTokenEntity } from "./entities/email-verification-token.entity";
-import { UserEntity } from "./entities/user.entity";
+import type { IdentityUserRecord } from "./domain/identity-records";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort
+} from "./domain/ports/workspace-identity-repository.port";
 import { UsersAccessService } from "./users-access.service";
 import {
   OUTBOX_AGGREGATE_TYPE_EMAIL_VERIFICATION_TOKEN,
@@ -52,30 +56,19 @@ export class MeService {
   private static readonly EMAIL_TOKEN_TTL_MS = 30 * 60 * 1000;
 
   constructor(
-    userRepository: Repository<UserEntity>,
-    dataSource: DataSource,
-    usersAccess: UsersAccessService,
-    requestContext: RequestContextService,
-    outboxService: OutboxService,
-    otpService: OtpService,
-    tenantAuditEventsService: TenantAuditEventsService
-  ) {
-    this.userRepository = userRepository;
-    this.dataSource = dataSource;
-    this.usersAccess = usersAccess;
-    this.requestContext = requestContext;
-    this.outboxService = outboxService;
-    this.otpService = otpService;
-    this.tenantAuditEventsService = tenantAuditEventsService;
-  }
-
-  private readonly userRepository: Repository<UserEntity>;
-  private readonly dataSource: DataSource;
-  private readonly usersAccess: UsersAccessService;
-  private readonly requestContext: RequestContextService;
-  private readonly outboxService: OutboxService;
-  private readonly otpService: OtpService;
-  private readonly tenantAuditEventsService: TenantAuditEventsService;
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
+    @Inject(UsersAccessService)
+    private readonly usersAccess: UsersAccessService,
+    @Inject(RequestContextService)
+    private readonly requestContext: RequestContextService,
+    @Inject(OutboxService)
+    private readonly outboxService: OutboxService,
+    @Inject(OtpService)
+    private readonly otpService: OtpService,
+    @Inject(TenantAuditEventsService)
+    private readonly tenantAuditEventsService: TenantAuditEventsService
+  ) {}
 
   private emailPublicSuffix(email: string): string | null {
     const t = email.trim().toLowerCase();
@@ -86,26 +79,9 @@ export class MeService {
     return t.slice(at + 1);
   }
 
-  private selfActorLabel(user: Pick<UserEntity, "email">, userId: string): string {
+  private selfActorLabel(user: Pick<IdentityUserRecord, "email">, userId: string): string {
     const e = user.email?.trim();
     return e !== undefined && e !== "" ? e : userId;
-  }
-
-  /** Case-insensitive match on trimmed email (aligned with typical inbox uniqueness). */
-  private async findActiveUserByEmailCaseInsensitive(
-    repo: Repository<UserEntity>,
-    email: string
-  ): Promise<UserEntity | null> {
-    const trimmed = email.trim();
-    if (trimmed === "") {
-      return null;
-    }
-    // tenant-isolation:qb-exempt — global email lookup; tenant membership enforced separately.
-    return repo
-      .createQueryBuilder("u")
-      .where("LOWER(TRIM(u.email)) = LOWER(TRIM(:email))", { email: trimmed })
-      .andWhere("u.deleted_at IS NULL")
-      .getOne();
   }
 
   private tryGetActorRole(): string | undefined {
@@ -153,11 +129,11 @@ export class MeService {
   }
 
   private async persistUserProfileOrNationalIdConflict(
-    repo: Repository<UserEntity>,
-    user: UserEntity
+    user: IdentityUserRecord,
+    manager?: EntityManager
   ): Promise<void> {
     try {
-      await repo.save(user);
+      await this.identityRepository.saveUser(user, manager);
     } catch (err: unknown) {
       if (this.isOptimisticProfileVersionConflict(err)) {
         throw new ConflictException({
@@ -187,12 +163,12 @@ export class MeService {
     if (em) {
       return run(em);
     }
-    return this.dataSource.transaction(run);
+    return this.identityRepository.runInTransaction(run);
   }
 
   private assertExpectedProfileRowVersion(
     expected: number | undefined,
-    entity: Pick<UserEntity, "profileRowVersion">
+    entity: Pick<IdentityUserRecord, "profileRowVersion">
   ): void {
     if (expected === undefined) {
       return;
@@ -210,8 +186,7 @@ export class MeService {
   }
 
   private async applyNationalIdPatchOrThrow(
-    repo: Repository<UserEntity>,
-    user: UserEntity,
+    user: IdentityUserRecord,
     value: string | null
   ): Promise<void> {
     if (value === null) {
@@ -226,9 +201,7 @@ export class MeService {
         }
       });
     }
-    const taken = await repo.findOne({
-      where: { nationalId: value, deletedAt: IsNull() }
-    });
+    const taken = await this.identityRepository.findUserByNationalIdActive(value);
     if (taken && taken.id !== user.id) {
       throw new ConflictException({
         error: {
@@ -240,7 +213,7 @@ export class MeService {
     user.nationalId = value;
   }
 
-  private applyBirthDatePatchOrThrow(user: UserEntity, value: string | null): void {
+  private applyBirthDatePatchOrThrow(user: IdentityUserRecord, value: string | null): void {
     if (value === null) {
       user.birthDate = null;
       return;
@@ -256,11 +229,7 @@ export class MeService {
     user.birthDate = value;
   }
 
-  private async applyMePatchDtoToUser(
-    repo: Repository<UserEntity>,
-    user: UserEntity,
-    dto: PatchMeDto
-  ): Promise<void> {
+  private async applyMePatchDtoToUser(user: IdentityUserRecord, dto: PatchMeDto): Promise<void> {
     if (dto.full_name !== undefined) {
       user.fullName = dto.full_name === null ? null : dto.full_name;
     }
@@ -270,7 +239,7 @@ export class MeService {
     }
 
     if (dto.national_id !== undefined) {
-      await this.applyNationalIdPatchOrThrow(repo, user, dto.national_id);
+      await this.applyNationalIdPatchOrThrow(user, dto.national_id);
     }
     if (dto.gender !== undefined) {
       user.gender = dto.gender;
@@ -293,12 +262,10 @@ export class MeService {
   }
 
   async getMe(): Promise<MeProfileResponse> {
-    const { tenantId, userId } = this.resolveSelfOrThrow();
-    await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
+    const { userId } = this.resolveSelfOrThrow();
+    await this.usersAccess.ensureActorMembershipOrThrow(userId);
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
+    const user = await this.identityRepository.findUserById(userId);
     if (!user) {
       throw new NotFoundException({
         error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -313,13 +280,10 @@ export class MeService {
     concurrency?: { expectedProfileRowVersion?: number }
   ): Promise<MeProfileResponse | PendingEmailVerificationResponse> {
     const { tenantId, userId } = this.resolveSelfOrThrow();
-    await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
+    await this.usersAccess.ensureActorMembershipOrThrow(userId);
 
     return this.withProfileMutationTransaction(async (manager) => {
-      const repo = manager.getRepository(UserEntity);
-      const user = await repo.findOne({
-        where: { id: userId, deletedAt: IsNull() }
-      });
+      const user = await this.identityRepository.findUserById(userId, manager);
       if (!user) {
         throw new NotFoundException({
           error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -336,11 +300,9 @@ export class MeService {
         const next = dto.email!.trim();
         const u = user;
         const priorEmail = (u.email ?? "").trim();
-        await this.applyMePatchDtoToUser(repo, u, dto);
+        await this.applyMePatchDtoToUser(u, dto);
 
-        const ownerOfEmail = await repo.findOne({
-          where: { email: next, deletedAt: IsNull() }
-        });
+        const ownerOfEmail = await this.identityRepository.findUserByEmailExact(next, manager);
         if (ownerOfEmail && ownerOfEmail.id !== u.id) {
           throw new ConflictException({
             error: {
@@ -350,27 +312,24 @@ export class MeService {
           });
         }
 
-        await this.persistUserProfileOrNationalIdConflict(repo, u);
+        await this.persistUserProfileOrNationalIdConflict(u, manager);
 
-        // tenant-isolation:qb-exempt — tokens keyed by authenticated user_id within tenant-scoped transaction.
-        await manager
-          .createQueryBuilder()
-          .delete()
-          .from(EmailVerificationTokenEntity)
-          .where("user_id = :userId AND used_at IS NULL", { userId: u.id })
-          .execute();
+        await this.identityRepository.deletePendingEmailVerificationTokens(u.id, manager);
 
         const token = randomBytes(32).toString("hex");
         const expiresAt = new Date(Date.now() + MeService.EMAIL_TOKEN_TTL_MS);
 
-        const tokenRow = manager.create(EmailVerificationTokenEntity, {
-          userId: u.id,
-          newEmail: next,
-          token,
-          expiresAt,
-          usedAt: null
-        });
-        const savedToken = await manager.save(tokenRow);
+        const tokenRow = this.identityRepository.createEmailVerificationToken(
+          {
+            userId: u.id,
+            newEmail: next,
+            token,
+            expiresAt,
+            usedAt: null
+          },
+          manager
+        );
+        const savedToken = await this.identityRepository.saveEmailVerificationToken(tokenRow, manager);
 
         await this.outboxService.addEvent(manager, {
           tenantId,
@@ -408,8 +367,8 @@ export class MeService {
 
       const visibility = this.selfProfileVisibility(userId);
       const beforeSelfPii = snapshotSelfPiiFromUser(user, visibility);
-      await this.applyMePatchDtoToUser(repo, user, dto);
-      await this.persistUserProfileOrNationalIdConflict(repo, user);
+      await this.applyMePatchDtoToUser(user, dto);
+      await this.persistUserProfileOrNationalIdConflict(user, manager);
 
       const changed = diffSelfPiiFieldKeys(beforeSelfPii, snapshotSelfPiiFromUser(user, visibility));
       if (changed.length > 0) {
@@ -439,20 +398,13 @@ export class MeService {
 
   async verifyEmail(token: string): Promise<EmailVerifiedResponse> {
     const { tenantId, userId } = this.resolveSelfOrThrow();
-    await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
+    await this.usersAccess.ensureActorMembershipOrThrow(userId);
 
     const trimmed = token.trim();
 
     let resolvedEmail = "";
     await this.withProfileMutationTransaction(async (manager) => {
-      const row = await manager.findOne(EmailVerificationTokenEntity, {
-        where: {
-          token: trimmed,
-          usedAt: IsNull(),
-          expiresAt: MoreThan(new Date())
-        },
-        lock: { mode: "pessimistic_write" }
-      });
+      const row = await this.identityRepository.findLockedValidEmailVerificationToken(trimmed, manager);
 
       if (!row || row.userId !== userId) {
         throw new BadRequestException({
@@ -463,8 +415,10 @@ export class MeService {
         });
       }
 
-      const userRepo = manager.getRepository(UserEntity);
-      const ownerOfEmail = await this.findActiveUserByEmailCaseInsensitive(userRepo, row.newEmail);
+      const ownerOfEmail = await this.identityRepository.findActiveUserByEmailCaseInsensitive(
+        row.newEmail,
+        manager
+      );
       if (ownerOfEmail && ownerOfEmail.id !== userId) {
         throw new ConflictException({
           error: {
@@ -474,9 +428,7 @@ export class MeService {
         });
       }
 
-      const user = await userRepo.findOne({
-        where: { id: userId, deletedAt: IsNull() }
-      });
+      const user = await this.identityRepository.findUserById(userId, manager);
       if (!user) {
         throw new NotFoundException({
           error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -486,10 +438,10 @@ export class MeService {
       const priorEmail = (user.email ?? "").trim();
       user.email = row.newEmail;
       user.isEmailVerified = true;
-      await this.persistUserProfileOrNationalIdConflict(userRepo, user);
+      await this.persistUserProfileOrNationalIdConflict(user, manager);
 
       row.usedAt = new Date();
-      await manager.save(row);
+      await this.identityRepository.saveEmailVerificationToken(row, manager);
 
       resolvedEmail = user.email;
 
@@ -517,26 +469,11 @@ export class MeService {
     return { status: "email_verified", email: resolvedEmail };
   }
 
-  private async findUserByNormalizedPhoneExclusive(
-    normalizedPhone: string,
-    excludeUserId: string
-  ): Promise<UserEntity | null> {
-    // tenant-isolation:qb-exempt — global phone uniqueness probe; caller holds tenant-scoped auth context.
-    return this.userRepository
-      .createQueryBuilder("u")
-      .where("u.deleted_at IS NULL")
-      .andWhere("u.id != :excludeUserId", { excludeUserId })
-      .andWhere("phone_normalized(u.phone) = phone_normalized(:phone)", { phone: normalizedPhone })
-      .getOne();
-  }
-
   async requestChangeMobile(newMobile: string): Promise<{ challenge_id: string }> {
-    const { tenantId, userId } = this.resolveSelfOrThrow();
-    await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
+    const { userId } = this.resolveSelfOrThrow();
+    await this.usersAccess.ensureActorMembershipOrThrow(userId);
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
+    const user = await this.identityRepository.findUserById(userId);
     if (!user) {
       throw new NotFoundException({
         error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -553,7 +490,7 @@ export class MeService {
       });
     }
 
-    const taken = await this.findUserByNormalizedPhoneExclusive(normalized, userId);
+    const taken = await this.identityRepository.findUserByNormalizedPhoneExclusive(normalized, userId);
     if (taken) {
       throw new ConflictException({
         error: {
@@ -569,7 +506,7 @@ export class MeService {
 
   async verifyChangeMobile(challengeId: string, code: string): Promise<MobileChangedResponse> {
     const { tenantId, userId } = this.resolveSelfOrThrow();
-    await this.usersAccess.ensureActorMembershipOrThrow(tenantId, userId);
+    await this.usersAccess.ensureActorMembershipOrThrow(userId);
 
     let verified: { success: true; mobile: string; purpose: "login" | "change_mobile" };
     try {
@@ -591,7 +528,7 @@ export class MeService {
       });
     }
 
-    const taken = await this.findUserByNormalizedPhoneExclusive(verified.mobile, userId);
+    const taken = await this.identityRepository.findUserByNormalizedPhoneExclusive(verified.mobile, userId);
     if (taken) {
       throw new ConflictException({
         error: {
@@ -602,10 +539,7 @@ export class MeService {
     }
 
     await this.withProfileMutationTransaction(async (manager) => {
-      const userRepo = manager.getRepository(UserEntity);
-      const user = await userRepo.findOne({
-        where: { id: userId, deletedAt: IsNull() }
-      });
+      const user = await this.identityRepository.findUserById(userId, manager);
       if (!user) {
         throw new NotFoundException({
           error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -614,7 +548,7 @@ export class MeService {
 
       user.phone = verified.mobile;
       user.isPhoneVerified = true;
-      await this.persistUserProfileOrNationalIdConflict(userRepo, user);
+      await this.persistUserProfileOrNationalIdConflict(user, manager);
 
       await this.tenantAuditEventsService.append(
         {

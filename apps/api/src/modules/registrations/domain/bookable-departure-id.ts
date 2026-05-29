@@ -1,6 +1,8 @@
-import type { TourEntity } from "../../tours/entities/tour.entity";
+import type { RegistrationQuoteTourContext } from "./registration-quote-tour.types";
 
 /** Bookable departure id for registrations (foundation: often same as `tour.id`). */
-export function bookableTourDepartureId(tour: Pick<TourEntity, "id" | "tourDepartureId">): string {
+export function bookableTourDepartureId(
+  tour: Pick<RegistrationQuoteTourContext, "id" | "tourDepartureId">
+): string {
   return tour.tourDepartureId ?? tour.id;
 }

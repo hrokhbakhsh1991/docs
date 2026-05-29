@@ -59,18 +59,30 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const tenantId = this.resolveTenantId(policy, request.body);
     const requestHash = this.idempotencyService.createRequestHash({
       method: request.method,
       path: request.originalUrl ?? policy.endpoint,
       body: request.body ?? null
     });
 
+    if (policy.tenantSource === "body") {
+      const field = policy.tenantBodyField ?? "tenantId";
+      const bodyTenantId = request.body?.[field];
+      if (typeof bodyTenantId !== "string" || bodyTenantId.length === 0) {
+        throw new BadRequestException({
+          error: {
+            code: "VALIDATION_REQUIRED_FIELD_MISSING",
+            message: `${field} is required for idempotent operation`
+          }
+        });
+      }
+      this.requestContextService.setTenantId(bodyTenantId);
+    }
+
     return from(
       this.idempotencyService
         .executeWithIdempotency(
           {
-            tenantId,
             key: idempotencyKey,
             endpoint: policy.endpoint,
             requestHash,
@@ -85,32 +97,5 @@ export class IdempotencyInterceptor implements NestInterceptor {
         )
         .then((result) => result.responseBody)
     );
-  }
-
-  private resolveTenantId(policy: IdempotencyPolicy, body?: Record<string, unknown>): string {
-    if (policy.tenantSource === "context") {
-      const trustedTenantId = this.requestContextService.resolveEffectiveTenantId();
-      if (!trustedTenantId) {
-        throw new BadRequestException({
-          error: {
-            code: "TENANT_CONTEXT_MISSING",
-            message: "Trusted tenant context required for idempotent operation"
-          }
-        });
-      }
-      return trustedTenantId;
-    }
-
-    const field = policy.tenantBodyField ?? "tenantId";
-    const tenantId = body?.[field];
-    if (typeof tenantId === "string" && tenantId.length > 0) {
-      return tenantId;
-    }
-    throw new BadRequestException({
-      error: {
-        code: "VALIDATION_REQUIRED_FIELD_MISSING",
-        message: `${field} is required for idempotent operation`
-      }
-    });
   }
 }

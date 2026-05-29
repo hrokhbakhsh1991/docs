@@ -1,23 +1,27 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
+
 import { tryParseWorkspaceUserRole, UserRole } from "../../../common/auth/user-role.enum";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
-import type { TourEntity } from "../../tours/entities/tour.entity";
-import { PricingEngineService } from "../../pricing/pricing-engine.service";
 import { bookableTourDepartureId } from "../domain/bookable-departure-id";
 import {
   mapPricingQuoteToRegistrationQuoteSnapshot,
-  type RegistrationQuoteSnapshot
+  type RegistrationQuoteSnapshot,
 } from "../domain/map-pricing-quote-to-registration-quote";
+import {
+  PRICING_CATALOG_PORT,
+  type PricingCatalogPort,
+} from "../domain/ports/pricing-catalog.port";
+import type { RegistrationQuoteTourContext } from "../domain/registration-quote-tour.types";
 
 /**
- * Application slice: **registration pricing quote** — delegates to {@link PricingEngineService}, which is
- * authoritative (finance {@link calculateQuote} / bounded-context rules engine).
+ * Application slice: **registration pricing quote** — delegates to {@link PricingCatalogPort}, which wraps
+ * the finance {@link calculateQuote} pipeline (authoritative pricing engine).
  */
 @Injectable()
 export class RegistrationQuoteApplicationService {
   constructor(
-    @Inject(PricingEngineService) private readonly pricingEngine: PricingEngineService,
+    @Inject(PRICING_CATALOG_PORT) private readonly pricingCatalog: PricingCatalogPort,
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService
   ) {}
 
@@ -27,11 +31,11 @@ export class RegistrationQuoteApplicationService {
 
   async buildQuoteSnapshot(
     manager: EntityManager,
-    tour: TourEntity,
+    tour: RegistrationQuoteTourContext,
     discountCode?: string | null
   ): Promise<RegistrationQuoteSnapshot> {
     const departureId = bookableTourDepartureId(tour);
-    const quote = await this.pricingEngine.quote(manager, {
+    const quote = await this.pricingCatalog.quote(manager, {
       tenantId: tour.tenantId,
       tourId: tour.id,
       departureId,

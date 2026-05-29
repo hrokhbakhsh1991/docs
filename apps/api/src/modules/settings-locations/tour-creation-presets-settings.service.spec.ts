@@ -4,8 +4,8 @@ import test from "node:test";
 import type { TourFormProfile } from "@repo/types";
 
 import type { RequestContextService } from "../../common/request-context/request-context.service";
+import type { WorkspaceSettingsRepositoryPort } from "./domain/ports/workspace-settings-repository.port";
 import type { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
-import type { WorkspaceTourThemeEntity } from "./entities/workspace-tour-theme.entity";
 import { TourCreationPresetsSettingsService } from "./tour-creation-presets-settings.service";
 
 /**
@@ -33,10 +33,17 @@ function makeRequestContextStub(): RequestContextService {
   } as unknown as RequestContextService;
 }
 
-function makePresetsRepoStub() {
+function makeSettingsRepositoryStub(catalog: Record<string, TourFormProfile>) {
   const saved: FakePresetRow[] = [];
-  const stub = {
-    create: (partial: Partial<FakePresetRow>): FakePresetRow => {
+  const themeCalls: { id: string; workspaceId: string }[] = [];
+  const stub: Pick<
+    WorkspaceSettingsRepositoryPort,
+    | "newTourCreationPreset"
+    | "saveTourCreationPreset"
+    | "findTourCreationPresetById"
+    | "findTourThemeFormProfileById"
+  > = {
+    newTourCreationPreset: (partial: Partial<FakePresetRow>): FakePresetRow => {
       const row: FakePresetRow = {
         id: "preset-" + Math.random().toString(36).slice(2, 10),
         workspaceId: WORKSPACE,
@@ -54,31 +61,19 @@ function makePresetsRepoStub() {
       } as FakePresetRow;
       return row;
     },
-    save: async (row: FakePresetRow): Promise<FakePresetRow> => {
+    saveTourCreationPreset: async (row: FakePresetRow): Promise<FakePresetRow> => {
       saved.push(row);
       return row;
     },
-    findOne: async () => null,
-  };
-  return { stub, saved };
-}
-
-function makeThemesRepoStub(catalog: Record<string, TourFormProfile>) {
-  const calls: { id: unknown; workspaceId: unknown }[] = [];
-  const stub = {
-    findOne: async (opts: {
-      where?: { id?: string; workspaceId?: string };
-    }): Promise<Partial<WorkspaceTourThemeEntity> | null> => {
-      const id = opts.where?.id;
-      const workspaceId = opts.where?.workspaceId;
-      calls.push({ id, workspaceId });
-      if (typeof id !== "string") return null;
-      const profile = catalog[id];
+    findTourCreationPresetById: async () => null,
+    findTourThemeFormProfileById: async (workspaceId: string, themeId: string) => {
+      themeCalls.push({ id: themeId, workspaceId });
+      const profile = catalog[themeId];
       if (!profile) return null;
-      return { id, formProfile: profile };
+      return { id: themeId, formProfile: profile };
     },
   };
-  return { stub, calls };
+  return { stub, saved, themeCalls };
 }
 
 function attachWarnSpy(svc: TourCreationPresetsSettingsService): WarnLog[] {
@@ -90,20 +85,18 @@ function attachWarnSpy(svc: TourCreationPresetsSettingsService): WarnLog[] {
 }
 
 function makeService(catalog: Record<string, TourFormProfile>) {
-  const presets = makePresetsRepoStub();
-  const themes = makeThemesRepoStub(catalog);
+  const settings = makeSettingsRepositoryStub(catalog);
   const svc = new TourCreationPresetsSettingsService(
-    presets.stub as never,
-    themes.stub as never,
+    settings.stub as WorkspaceSettingsRepositoryPort,
     makeRequestContextStub(),
     { logEvent: async () => undefined } as never,
   );
   const warnings = attachWarnSpy(svc);
-  return { svc, warnings, themes, presets };
+  return { svc, warnings, themeCalls: settings.themeCalls, presets: settings };
 }
 
 test("create: theme profile matches preset.formProfile → no drift warning", async () => {
-  const { svc, warnings, themes } = makeService({ "theme-cinema": "cinema_event" });
+  const { svc, warnings, themeCalls } = makeService({ "theme-cinema": "cinema_event" });
 
   await svc.create({
     name: "Cinema preset",
@@ -113,9 +106,9 @@ test("create: theme profile matches preset.formProfile → no drift warning", as
 
   const drifts = warnings.filter((w) => w.includes("[presets][drift]"));
   assert.deepEqual(drifts, []);
-  assert.equal(themes.calls.length, 1, "theme lookup should be invoked exactly once");
-  assert.equal(themes.calls[0]?.workspaceId, WORKSPACE);
-  assert.equal(themes.calls[0]?.id, "theme-cinema");
+  assert.equal(themeCalls.length, 1, "theme lookup should be invoked exactly once");
+  assert.equal(themeCalls[0]?.workspaceId, WORKSPACE);
+  assert.equal(themeCalls[0]?.id, "theme-cinema");
 });
 
 test("create: theme profile differs from preset.formProfile → warn (soft)", async () => {
@@ -158,7 +151,7 @@ test("create: referenced theme missing in workspace → warn (soft)", async () =
 });
 
 test("create: legacy matchMainTourThemeId is also consulted for drift", async () => {
-  const { svc, warnings, themes } = makeService({ "legacy-theme": "cinema_event" });
+  const { svc, warnings, themeCalls } = makeService({ "legacy-theme": "cinema_event" });
 
   await svc.create({
     name: "Legacy match",
@@ -171,11 +164,11 @@ test("create: legacy matchMainTourThemeId is also consulted for drift", async ()
   assert.equal(drifts.length, 1);
   assert.match(drifts[0]!, /preset_form_profile_mismatches_theme/);
   assert.match(drifts[0]!, /themeId=legacy-theme/);
-  assert.equal(themes.calls[0]?.id, "legacy-theme");
+  assert.equal(themeCalls[0]?.id, "legacy-theme");
 });
 
 test("create: no theme id at all → drift check is silent", async () => {
-  const { svc, warnings, themes } = makeService({});
+  const { svc, warnings, themeCalls } = makeService({});
 
   await svc.create({
     name: "Profile-only preset",
@@ -186,8 +179,8 @@ test("create: no theme id at all → drift check is silent", async () => {
   const drifts = warnings.filter((w) => w.includes("[presets][drift]"));
   assert.deepEqual(drifts, []);
   assert.equal(
-    themes.calls.length,
+    themeCalls.length,
     0,
-    "should not hit the theme repo when no theme id is referenced",
+    "should not hit the settings port when no theme id is referenced",
   );
 });

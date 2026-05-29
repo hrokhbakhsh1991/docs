@@ -17,9 +17,9 @@ const FOREIGN_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 type StubRow = Pick<UserTenantEntity, "userId" | "role" | "membershipMetadata">;
 
-function stubRepo(rows: StubRow[]) {
+function stubIdentityRepo(rows: StubRow[]) {
   return {
-    find: async () => rows,
+    findActiveMembershipsByUserIds: async () => rows,
   } as never;
 }
 
@@ -35,7 +35,7 @@ test("collectLeaderUserIdsFromTripDetails reads overview.leaderUserIds", () => {
 
 test("assertLeaderUserIdsBelongToTenant: owner passes", async () => {
   await assertLeaderUserIdsBelongToTenant(
-    stubRepo([{ userId: OWNER_ID, role: "owner", membershipMetadata: {} }]),
+    stubIdentityRepo([{ userId: OWNER_ID, role: "owner", membershipMetadata: {} }]),
     TENANT_ID,
     [OWNER_ID],
   );
@@ -43,7 +43,7 @@ test("assertLeaderUserIdsBelongToTenant: owner passes", async () => {
 
 test("assertLeaderUserIdsBelongToTenant: member with selectable leader passes", async () => {
   await assertLeaderUserIdsBelongToTenant(
-    stubRepo([
+    stubIdentityRepo([
       {
         userId: SELECTABLE_MEMBER_ID,
         role: "member",
@@ -59,7 +59,7 @@ test("assertLeaderUserIdsBelongToTenant: foreign user rejected", async () => {
   await assert.rejects(
     () =>
       assertLeaderUserIdsBelongToTenant(
-        stubRepo([{ userId: OWNER_ID, role: "owner", membershipMetadata: {} }]),
+        stubIdentityRepo([{ userId: OWNER_ID, role: "owner", membershipMetadata: {} }]),
         TENANT_ID,
         [FOREIGN_ID],
       ),
@@ -79,7 +79,7 @@ test("assertLeaderUserIdsBelongToTenant: ineligible member rejected", async () =
   await assert.rejects(
     () =>
       assertLeaderUserIdsBelongToTenant(
-        stubRepo([{ userId: MEMBER_ID, role: "member", membershipMetadata: {} }]),
+        stubIdentityRepo([{ userId: MEMBER_ID, role: "member", membershipMetadata: {} }]),
         TENANT_ID,
         [MEMBER_ID],
       ),

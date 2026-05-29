@@ -4,9 +4,9 @@ import { ConflictException } from "@nestjs/common";
 import type { DataSource } from "typeorm";
 import { IdempotencyService } from "../../src/modules/idempotency/idempotency.service";
 
-function createFixture() {
+function createFixture(tenantId = "tenant-1") {
   const rows = new Map<string, any>();
-  const storageKey = (tenantId: string, key: string) => `${tenantId}:${key}`;
+  const storageKey = (tid: string, key: string) => `${tid}:${key}`;
   const manager = {
     async findOne(_: unknown, opts: { where: { tenantId: string; key: string } }) {
       return rows.get(storageKey(opts.where.tenantId, opts.where.key)) ?? null;
@@ -43,22 +43,25 @@ function createFixture() {
       return { affected: 0 };
     }
   };
-  const service = new IdempotencyService(repo as never, dataSource);
-  return { service, rows };
+  const requestContext = {
+    resolveEffectiveTenantId: () => tenantId
+  };
+  const service = new IdempotencyService(repo as never, dataSource, requestContext as never);
+  return { service, rows, requestContext };
 }
 
 test("same idempotency key returns stored response on second call", async () => {
   const { service } = createFixture();
   let executions = 0;
   const first = await service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "k1", endpoint: "/register", requestHash: "h1" },
+    { key: "k1", endpoint: "/register", requestHash: "h1" },
     async () => {
       executions += 1;
       return { ok: true, run: executions };
     }
   );
   const second = await service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "k1", endpoint: "/register", requestHash: "h1" },
+    { key: "k1", endpoint: "/register", requestHash: "h1" },
     async () => {
       executions += 1;
       return { ok: true, run: executions };
@@ -72,14 +75,14 @@ test("same idempotency key returns stored response on second call", async () => 
 test("same key with different body hash returns 409 conflict", async () => {
   const { service } = createFixture();
   await service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "k2", endpoint: "/register", requestHash: "hash-a" },
+    { key: "k2", endpoint: "/register", requestHash: "hash-a" },
     async () => ({ ok: true })
   );
 
   await assert.rejects(
     () =>
       service.executeWithIdempotency(
-        { tenantId: "tenant-1", key: "k2", endpoint: "/register", requestHash: "hash-b" },
+        { key: "k2", endpoint: "/register", requestHash: "hash-b" },
         async () => ({ ok: false })
       ),
     (error: unknown) =>
@@ -93,7 +96,7 @@ test("expired key allows a new execution", async () => {
   const { service, rows } = createFixture();
   let executions = 0;
   await service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "k3", endpoint: "/register", requestHash: "h3" },
+    { key: "k3", endpoint: "/register", requestHash: "h3" },
     async () => {
       executions += 1;
       return { run: executions };
@@ -104,7 +107,7 @@ test("expired key allows a new execution", async () => {
   rows.set("tenant-1:k3", current);
 
   const second = await service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "k3", endpoint: "/register", requestHash: "h3" },
+    { key: "k3", endpoint: "/register", requestHash: "h3" },
     async () => {
       executions += 1;
       return { run: executions };
@@ -115,13 +118,14 @@ test("expired key allows a new execution", async () => {
 });
 
 test("same idempotency key is isolated per tenant", async () => {
-  const { service } = createFixture();
+  const { service, requestContext } = createFixture("tenant-a");
   const first = await service.executeWithIdempotency(
-    { tenantId: "tenant-a", key: "shared-key", endpoint: "/register", requestHash: "h1" },
+    { key: "shared-key", endpoint: "/register", requestHash: "h1" },
     async () => ({ tenant: "a" })
   );
+  requestContext.resolveEffectiveTenantId = () => "tenant-b";
   const second = await service.executeWithIdempotency(
-    { tenantId: "tenant-b", key: "shared-key", endpoint: "/register", requestHash: "h1" },
+    { key: "shared-key", endpoint: "/register", requestHash: "h1" },
     async () => ({ tenant: "b" })
   );
   assert.equal(first.responseBody.tenant, "a");
@@ -136,7 +140,7 @@ test("near-simultaneous duplicate request returns in-progress conflict", async (
   });
 
   const first = service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "race-key", endpoint: "/register", requestHash: "h1" },
+    { key: "race-key", endpoint: "/register", requestHash: "h1" },
     async () => {
       await waitForRelease;
       return { ok: true };
@@ -145,7 +149,7 @@ test("near-simultaneous duplicate request returns in-progress conflict", async (
   await new Promise((resolve) => setImmediate(resolve));
 
   const second = service.executeWithIdempotency(
-    { tenantId: "tenant-1", key: "race-key", endpoint: "/register", requestHash: "h1" },
+    { key: "race-key", endpoint: "/register", requestHash: "h1" },
     async () => ({ shouldNotRun: true })
   );
 

@@ -49,6 +49,10 @@ const noopBookingLedger = {
   applyPaidAmountProjectionToRegistration: () => undefined
 } as never;
 
+const requestContextTenant1 = {
+  resolveEffectiveTenantId: () => "tenant-1"
+} as never;
+
 test("submitReceipt rejects non-manual payments", async () => {
   const service = new ReceiptService(
     {} as never,
@@ -63,6 +67,7 @@ test("submitReceipt rejects non-manual payments", async () => {
           })
         } as never)
     } as never,
+    requestContextTenant1,
     {
       upload: async () => ({ key: "k" })
     } as never,
@@ -75,7 +80,6 @@ test("submitReceipt rejects non-manual payments", async () => {
   await assert.rejects(
     () =>
       service.submitReceipt({
-        tenantId: "tenant-1",
         paymentId: "pay-1",
         actorUserId: "user-1",
         actorRole: UserRole.Member,
@@ -115,6 +119,7 @@ test("submitReceipt rejects upload by unrelated member", async () => {
           }
         } as never)
     } as never,
+    requestContextTenant1,
     {
       upload: async () => {
         throw new Error("upload should not run");
@@ -129,7 +134,6 @@ test("submitReceipt rejects upload by unrelated member", async () => {
   await assert.rejects(
     () =>
       service.submitReceipt({
-        tenantId: "tenant-1",
         paymentId: "pay-1",
         actorUserId: "user-other",
         actorRole: UserRole.Member,
@@ -170,6 +174,7 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
           find: async () => [{ status: ReceiptStatus.PENDING }]
         } as never)
     } as never,
+    requestContextTenant1,
     {
       upload: async () => {
         throw new Error("upload should not run");
@@ -184,7 +189,6 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
   await assert.rejects(
     () =>
       service.submitReceipt({
-        tenantId: "tenant-1",
         paymentId: "pay-1",
         actorUserId: "user-1",
         actorRole: UserRole.Member,
@@ -230,6 +234,7 @@ test("submitReceipt deletes uploaded object when save fails", async () => {
           }
         } as never)
     } as never,
+    requestContextTenant1,
     {
       upload: async () => ({ key: "tenant-1/receipts/pay-1/x.png" }),
       deleteObject: async (key: string) => {
@@ -245,7 +250,6 @@ test("submitReceipt deletes uploaded object when save fails", async () => {
   await assert.rejects(
     () =>
       service.submitReceipt({
-        tenantId: "tenant-1",
         paymentId: "pay-1",
         actorUserId: "user-1",
         actorRole: UserRole.Owner,

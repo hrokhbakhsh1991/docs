@@ -1,10 +1,11 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { DataSource, In, IsNull } from "typeorm";
+import { IsNull } from "typeorm";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import {
@@ -12,7 +13,7 @@ import {
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { UserRole, tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
+import { tryParseWorkspaceUserRole } from "../../common/auth/user-role.enum";
 import {
   isProtectedWorkspaceOwnerMembership,
   isWorkspaceOwner
@@ -24,22 +25,23 @@ import {
 } from "../../common/rbac/assert-capability-assignable";
 import { evaluateGeneralMembershipRoleChange } from "../../common/rbac/workspace-membership-rbac.policy";
 import type { PatchMembershipCapabilitiesDto } from "./dto/patch-membership-capabilities.dto";
-import { applyMembershipMetadataJsonbPatch } from "./membership-metadata-jsonb";
 import type {
   TransferWorkspaceOwnershipDto,
   TransferWorkspaceOwnershipResponseDto
 } from "./dto/transfer-workspace-ownership.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort
+} from "./domain/ports/workspace-identity-repository.port";
 import { MembershipStatus } from "./membership-status.enum";
-import { UserRoleAuditEntity } from "./entities/user-role-audit.entity";
-import { UserTenantEntity } from "./entities/user-tenant.entity";
-import { UserEntity } from "./entities/user.entity";
 import { UsersAccessService } from "./users-access.service";
 
 @Injectable()
 export class UsersWriteService {
   constructor(
-    private readonly dataSource: DataSource,
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
     private readonly requestContextService: RequestContextService,
     private readonly tenantAuditEventsService: TenantAuditEventsService,
     private readonly access: UsersAccessService
@@ -61,11 +63,9 @@ export class UsersWriteService {
     }
 
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() },
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -105,13 +105,11 @@ export class UsersWriteService {
       metadataRemoveKeys.push("allowedRegionIds");
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() },
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await applyMembershipMetadataJsonbPatch(manager, {
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.applyMembershipMetadataJsonbPatch(manager, {
         membershipId: membership.id,
         tenantId,
         patch: metadataPatch,
@@ -138,14 +136,14 @@ export class UsersWriteService {
     });
 
     return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId),
+      await this.access.findTenantScopedUserOrThrow(userId),
     );
   }
 
   async updateUserRole(userId: string, role: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
     const newRoleValue = tryParseWorkspaceUserRole(role);
     if (!newRoleValue) {
       throw new BadRequestException({
@@ -156,9 +154,7 @@ export class UsersWriteService {
       });
     }
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -181,22 +177,21 @@ export class UsersWriteService {
 
     if (tryParseWorkspaceUserRole(membership.role) === newRoleValue) {
       return this.access.toUserResponseDto(
-        await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+        await this.access.findTenantScopedUserOrThrow(userId)
       );
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.query(
-        `UPDATE user_tenants SET role = $1, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
-        [newRoleValue, membership.id, tenantId]
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.updateMembershipRoleWithSessionBump(
+        manager,
+        tenantId,
+        membership.id,
+        newRoleValue
       );
-      await manager.insert(UserRoleAuditEntity, {
+      await this.identityRepository.insertUserRoleAuditEntry(manager, {
         tenantId,
         actorUserId,
         targetUserId: userId,
@@ -225,14 +220,14 @@ export class UsersWriteService {
     });
 
     return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+      await this.access.findTenantScopedUserOrThrow(userId)
     );
   }
 
   async bulkUpdateUserRole(userIds: string[], role: string): Promise<UserResponseDto[]> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
     const newRoleValue = tryParseWorkspaceUserRole(role);
     if (!newRoleValue) {
       throw new BadRequestException({
@@ -250,17 +245,17 @@ export class UsersWriteService {
       return [];
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
     const clientIp = this.requestContextService.tryGetClientIp();
     const requestId = this.requestContextService.tryGetRequestId();
 
-    return this.access.memberships.manager.transaction(async (manager) => {
-      const memberships = await manager.find(UserTenantEntity, {
-        where: { tenantId, userId: In(normalizedUserIds), deletedAt: IsNull() }
-      });
+    return this.identityRepository.runInTransaction(async (manager) => {
+      const memberships = await this.identityRepository.findActiveMembershipsByUserIdsInTransaction(
+        manager,
+        tenantId,
+        normalizedUserIds
+      );
       if (memberships.length !== normalizedUserIds.length) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
@@ -296,31 +291,23 @@ export class UsersWriteService {
       );
 
       if (changedMemberships.length > 0) {
-        await manager.query(
-          `UPDATE user_tenants
-             SET role = $1,
-                 session_version = session_version + 1,
-                 updated_at = now()
-           WHERE tenant_id = $2
-             AND deleted_at IS NULL
-             AND id = ANY($3::uuid[])`,
-          [newRoleValue, tenantId, changedMemberships.map((m) => m.id)]
+        await this.identityRepository.bulkUpdateMembershipRoles(
+          manager,
+          tenantId,
+          changedMemberships.map((m) => m.id),
+          newRoleValue
         );
 
-        await manager
-          .createQueryBuilder()
-          .insert()
-          .into(UserRoleAuditEntity)
-          .values(
-            changedMemberships.map((membership) => ({
-              tenantId,
-              actorUserId,
-              targetUserId: membership.userId,
-              oldRole: membership.role,
-              newRole: newRoleValue
-            }))
-          )
-          .execute();
+        await this.identityRepository.insertUserRoleAuditEntries(
+          manager,
+          changedMemberships.map((membership) => ({
+            tenantId,
+            actorUserId,
+            targetUserId: membership.userId,
+            oldRole: membership.role,
+            newRole: newRoleValue
+          }))
+        );
 
         await this.tenantAuditEventsService.appendMany(
           changedMemberships.map((membership) => ({
@@ -343,34 +330,11 @@ export class UsersWriteService {
         );
       }
 
-      const users = await manager
-        .createQueryBuilder(UserEntity, "u")
-        .innerJoin(
-          UserTenantEntity,
-          "ut",
-          "ut.user_id = u.id AND ut.tenant_id = :tenantId AND ut.deleted_at IS NULL",
-          { tenantId }
-        )
-        .where("u.id IN (:...userIds)", { userIds: normalizedUserIds })
-        .andWhere("u.deleted_at IS NULL")
-        .select([
-          "u.id AS id",
-          "u.full_name AS full_name",
-          "u.email AS email",
-          "u.phone AS phone",
-          "u.is_email_verified AS is_email_verified",
-          "u.is_phone_verified AS is_phone_verified",
-          "ut.membership_status AS membership_status"
-        ])
-        .getRawMany<{
-          id: string;
-          full_name: string | null;
-          email: string;
-          phone: string | null;
-          is_email_verified: boolean;
-          is_phone_verified: boolean;
-          membership_status: MembershipStatus;
-        }>();
+      const users = await this.identityRepository.loadBulkUserMembershipSummaryRows(
+        manager,
+        tenantId,
+        normalizedUserIds
+      );
       if (users.length !== normalizedUserIds.length) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
@@ -397,7 +361,7 @@ export class UsersWriteService {
   async suspendUserMembership(userId: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     if (actorUserId.trim() === userId.trim()) {
       throw new ForbiddenException({
@@ -408,9 +372,7 @@ export class UsersWriteService {
       });
     }
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -442,11 +404,9 @@ export class UsersWriteService {
 
     if (membership.status !== MembershipStatus.SUSPENDED) {
       const now = new Date();
-      const actorLabelRecord = await this.access.users.findOne({
-        where: { id: actorUserId, deletedAt: IsNull() }
-      });
+      const actorLabelRecord = await this.access.findUserById(actorUserId);
       const actorLabel = actorLabelRecord?.email ?? actorUserId;
-      await this.access.memberships.update(
+      await this.access.updateMembership(
         { id: membership.id, deletedAt: IsNull() },
         {
           status: MembershipStatus.SUSPENDED,
@@ -479,18 +439,16 @@ export class UsersWriteService {
     }
 
     return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+      await this.access.findTenantScopedUserOrThrow(userId)
     );
   }
 
   async reactivateUserMembership(userId: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -521,16 +479,14 @@ export class UsersWriteService {
     }
 
     const now = new Date();
-    await this.access.memberships.update(
+    await this.access.updateMembership(
       { id: membership.id, deletedAt: IsNull() },
       {
         status: MembershipStatus.ACTIVE,
         suspendedAt: null
       }
     );
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
     await this.tenantAuditEventsService.append({
       tenantId,
@@ -556,14 +512,14 @@ export class UsersWriteService {
     });
 
     return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+      await this.access.findTenantScopedUserOrThrow(userId)
     );
   }
 
   async removeUserMembership(userId: string): Promise<void> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     if (actorUserId.trim() === userId.trim()) {
       throw new ForbiddenException({
@@ -574,9 +530,7 @@ export class UsersWriteService {
       });
     }
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -605,15 +559,11 @@ export class UsersWriteService {
       });
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager
-        .getRepository(UserTenantEntity)
-        .delete({ id: membership.id });
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.deleteMembershipHard(manager, membership.id);
 
       await this.tenantAuditEventsService.append(
         {
@@ -677,16 +627,15 @@ export class UsersWriteService {
       });
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    return this.dataSource.transaction(async (manager) => {
-      const actorMembership = await manager.findOne(UserTenantEntity, {
-        where: { tenantId, userId: actorUserId, deletedAt: IsNull() },
-        lock: { mode: "pessimistic_write" }
-      });
+    return this.identityRepository.runInTransaction(async (manager) => {
+      const actorMembership = await this.identityRepository.findActiveMembershipForUpdateLocking(
+        manager,
+        tenantId,
+        actorUserId
+      );
       if (!actorMembership || !isWorkspaceOwner(actorMembership)) {
         throw new ForbiddenException({
           error: {
@@ -696,53 +645,24 @@ export class UsersWriteService {
         });
       }
 
-      const targetMembership = await manager.findOne(UserTenantEntity, {
-        where: { tenantId, userId: newOwnerUserId, deletedAt: IsNull() },
-        lock: { mode: "pessimistic_write" }
-      });
+      const targetMembership = await this.identityRepository.findActiveMembershipForUpdateLocking(
+        manager,
+        tenantId,
+        newOwnerUserId
+      );
       if (!targetMembership) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
 
-      await manager.query(
-        `UPDATE user_tenants
-           SET role = $1,
-               session_version = session_version + 1,
-               updated_at = now()
-         WHERE id = $2 AND tenant_id = $3`,
-        [UserRole.Admin, actorMembership.id, tenantId]
-      );
-
-      await manager.query(
-        `UPDATE user_tenants
-           SET role = $1,
-               session_version = session_version + 1,
-               updated_at = now()
-         WHERE id = $2 AND tenant_id = $3`,
-        [UserRole.Owner, targetMembership.id, tenantId]
-      );
-
-      await manager
-        .createQueryBuilder()
-        .insert()
-        .into(UserRoleAuditEntity)
-        .values([
-          {
-            tenantId,
-            actorUserId,
-            targetUserId: actorUserId,
-            oldRole: actorMembership.role,
-            newRole: UserRole.Admin
-          },
-          {
-            tenantId,
-            actorUserId,
-            targetUserId: newOwnerUserId,
-            oldRole: targetMembership.role,
-            newRole: UserRole.Owner
-          }
-        ])
-        .execute();
+      await this.identityRepository.executeWorkspaceOwnershipTransfer(manager, {
+        tenantId,
+        actorUserId,
+        newOwnerUserId,
+        actorMembershipId: actorMembership.id,
+        targetMembershipId: targetMembership.id,
+        actorPriorRole: actorMembership.role,
+        targetPriorRole: targetMembership.role
+      });
 
       await this.tenantAuditEventsService.append(
         {

@@ -1,5 +1,5 @@
 import { ConflictException } from "@nestjs/common";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "./payment.types";
 
 /**
  * Canonical payment **intent** lifecycle (PSP-agnostic).

@@ -68,7 +68,7 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
     assert.equal(created.version, 1);
     assert.equal(created.schemaVersion, CURRENT_DRAFT_SCHEMA_VERSION);
 
-    const loaded = await facade.findForMember(workspaceId, draftKey);
+    const loaded = await facade.findForMember(draftKey);
     assert.ok(loaded);
     assert.equal(loaded.version, 1);
     assert.equal((loaded.data as { form?: { title?: string } }).form?.title, "Integration");
@@ -77,7 +77,7 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
       { workspaceId, userId, draftKey },
       { data: { broken: true } as never },
     );
-    const migrated = await facade.findForMember(workspaceId, draftKey);
+    const migrated = await facade.findForMember(draftKey);
     assert.ok(migrated);
     assert.equal(migrated.schemaVersion, CURRENT_DRAFT_SCHEMA_VERSION);
     assert.equal((migrated.data as { currentStepIndex?: number }).currentStepIndex, 0);
@@ -173,7 +173,7 @@ test("DraftEngineFacade legacy schema_version 1 → loadDraft → saveDraft (req
       lastModified: String(Date.now()),
     });
 
-    const loaded = await facade.loadDraft(workspaceId, draftKey);
+    const loaded = await facade.loadDraft(draftKey);
     assert.ok(loaded);
     assert.equal(loaded.schemaVersion, CURRENT_DRAFT_SCHEMA_VERSION);
     assert.equal(loaded.data.currentStepIndex, 0);

@@ -5,9 +5,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import { randomBytes } from "node:crypto";
-import { IsNull, MoreThan, Repository } from "typeorm";
 import { TenantAuditAction } from "../../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../../common/audit/tenant-audit-events.service";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -20,13 +18,21 @@ import { UsersAccessService } from "../users-access.service";
 import type { AcceptInviteDto } from "../dto/accept-invite.dto";
 import { MembershipStatus } from "../membership-status.enum";
 import {
-  WorkspaceInviteEntity,
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort
+} from "../domain/ports/workspace-identity-repository.port";
+import {
   WorkspaceInviteStatus
 } from "../entities/workspace-invite.entity";
-import { UserEntity } from "../entities/user.entity";
-import { UserTenantEntity } from "../entities/user-tenant.entity";
+import type {
+  IdentityUserRecord,
+  IdentityWorkspaceInviteRecord,
+} from "../domain/identity-records";
 
-function assertInviteTargetMatchesUser(invite: WorkspaceInviteEntity, user: UserEntity): void {
+function assertInviteTargetMatchesUser(
+  invite: IdentityWorkspaceInviteRecord,
+  user: IdentityUserRecord
+): void {
   const inviteTarget = invite.email.trim().toLowerCase();
   if (inviteTarget.includes("@")) {
     const userEmail = (user.email ?? "").trim().toLowerCase();
@@ -108,18 +114,14 @@ export class UsersInviteService {
     private readonly requestContextService: RequestContextService,
     @Inject(TenantAuditEventsService)
     private readonly tenantAuditEventsService: TenantAuditEventsService,
-    @InjectRepository(WorkspaceInviteEntity)
-    private readonly workspaceInviteRepository: Repository<WorkspaceInviteEntity>,
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(UserTenantEntity)
-    private readonly membershipRepository: Repository<UserTenantEntity>
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort
   ) {}
 
   async inviteUser(phone: string, role: string): Promise<InviteUserResult> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId, actorRole } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     const normalizedPhone = normalizeOtpPhoneInput(phone);
     const normalizedRole = normalizeWorkspaceMembershipRole(role);
@@ -144,24 +146,14 @@ export class UsersInviteService {
       });
     }
 
-    // tenant-isolation:qb-exempt — resolve user by phone across tenants; invite still tenant-scoped.
-    const targetUser = await this.userRepository
-      .createQueryBuilder("u")
-      .where("u.deleted_at IS NULL")
-      .andWhere("phone_normalized(COALESCE(u.phone, '')) = phone_normalized(:phone)", {
-        phone: normalizedPhone
-      })
-      .getOne();
+    const targetUser = await this.identityRepository.findUserByNormalizedPhone(normalizedPhone);
 
     if (targetUser) {
-      const existingActiveMembership = await this.membershipRepository.findOne({
-        where: {
-          tenantId,
-          userId: targetUser.id,
-          deletedAt: IsNull(),
-          status: MembershipStatus.ACTIVE
-        }
-      });
+      const existingActiveMembership = await this.identityRepository.findActiveMembership(
+        tenantId,
+        targetUser.id,
+        { status: MembershipStatus.ACTIVE }
+      );
       if (existingActiveMembership) {
         throw new BadRequestException({
           error: {
@@ -176,9 +168,9 @@ export class UsersInviteService {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const saved = await this.membershipRepository.manager.transaction(async (manager) => {
-      const invite = await manager.save(
-        manager.create(WorkspaceInviteEntity, {
+    const saved = await this.identityRepository.runInTransaction(async (manager) => {
+      const invite = await this.identityRepository.saveInvite(
+        this.identityRepository.createInvite({
           tenantId,
           email: normalizedPhone,
           role: normalizedRole,
@@ -187,22 +179,23 @@ export class UsersInviteService {
           status: WorkspaceInviteStatus.PENDING,
           expiresAt,
           invitedAt: now
-        })
+        }),
+        manager
       );
 
-      let savedMembership: UserTenantEntity | null = null;
+      let savedMembership = null as Awaited<
+        ReturnType<WorkspaceIdentityRepositoryPort["saveMembership"]>
+      > | null;
       if (targetUser) {
-        const membershipRepo = manager.getRepository(UserTenantEntity);
-        let membership = await membershipRepo.findOne({
-          where: {
-            tenantId,
-            userId: targetUser.id,
-            deletedAt: IsNull()
-          }
-        });
+        let membership = await this.identityRepository.findActiveMembership(
+          tenantId,
+          targetUser.id,
+          undefined,
+          manager
+        );
 
         if (!membership) {
-          membership = membershipRepo.create({
+          membership = this.identityRepository.createMembership({
             tenantId,
             userId: targetUser.id,
             role: normalizedRole,
@@ -218,12 +211,10 @@ export class UsersInviteService {
           membership.joinedAt = null;
           membership.suspendedAt = null;
         }
-        savedMembership = await membershipRepo.save(membership);
+        savedMembership = await this.identityRepository.saveMembership(membership, manager);
       }
 
-      const actorLabelRecord = await manager.getRepository(UserEntity).findOne({
-        where: { id: actorUserId, deletedAt: IsNull() }
-      });
+      const actorLabelRecord = await this.identityRepository.findUserById(actorUserId);
       const actorLabel = actorLabelRecord?.email ?? actorUserId;
       await this.tenantAuditEventsService.append(
         {
@@ -278,9 +269,7 @@ export class UsersInviteService {
       });
     }
 
-    const invite = await this.workspaceInviteRepository.findOne({
-      where: { inviteToken }
-    });
+    const invite = await this.identityRepository.findPendingInviteByToken(inviteToken);
     if (!invite) {
       throw new NotFoundException({
         error: { code: "INVITE_NOT_FOUND", message: "Invite not found" }
@@ -295,10 +284,7 @@ export class UsersInviteService {
 
     const now = new Date();
     if (invite.expiresAt.getTime() <= now.getTime()) {
-      await this.workspaceInviteRepository.update(
-        { id: invite.id },
-        { status: WorkspaceInviteStatus.EXPIRED }
-      );
+      await this.identityRepository.updateInviteStatus(invite.id, WorkspaceInviteStatus.EXPIRED);
       throw new BadRequestException({
         error: { code: "INVITE_EXPIRED", message: "Invite has expired" }
       });
@@ -321,13 +307,8 @@ export class UsersInviteService {
     const auditClientIp = actorContext?.clientIp ?? this.requestContextService.tryGetClientIp();
     const auditRequestId = actorContext?.requestId ?? this.requestContextService.tryGetRequestId();
 
-    const accepted = await this.membershipRepository.manager.transaction(async (manager) => {
-      const userRepo = manager.getRepository(UserEntity);
-      const inviteRepo = manager.getRepository(WorkspaceInviteEntity);
-      const membershipRepo = manager.getRepository(UserTenantEntity);
-      const user = await userRepo.findOne({
-        where: { id: actorUserId, deletedAt: IsNull() }
-      });
+    const accepted = await this.identityRepository.runInTransaction(async (manager) => {
+      const user = await this.identityRepository.findUserById(actorUserId);
       if (!user) {
         throw new ForbiddenException({
           error: { code: "AUTH_UNAUTHENTICATED", message: "Authentication required" }
@@ -335,16 +316,15 @@ export class UsersInviteService {
       }
       assertInviteTargetMatchesUser(invite, user);
 
-      let membership = await membershipRepo.findOne({
-        where: {
-          tenantId: invite.tenantId,
-          userId: user.id,
-          deletedAt: IsNull()
-        }
-      });
+      let membership = await this.identityRepository.findActiveMembership(
+        invite.tenantId,
+        user.id,
+        undefined,
+        manager
+      );
 
       if (!membership) {
-        membership = membershipRepo.create({
+        membership = this.identityRepository.createMembership({
           tenantId: invite.tenantId,
           userId: user.id,
           role: normalizedRole,
@@ -362,10 +342,10 @@ export class UsersInviteService {
           membership.invitedAt = invite.invitedAt ?? invite.createdAt;
         }
       }
-      const savedMembership = await membershipRepo.save(membership);
+      const savedMembership = await this.identityRepository.saveMembership(membership, manager);
 
       invite.status = WorkspaceInviteStatus.ACCEPTED;
-      await inviteRepo.remove(invite);
+      await this.identityRepository.removeInvite(invite, manager);
 
       const actorLabel = user.email ?? user.id;
       await tenantAuditEvents.append(
@@ -416,15 +396,9 @@ export class UsersInviteService {
   async resendInvite(userId: string): Promise<ResendInviteResult> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const membership = await this.membershipRepository.findOne({
-      where: {
-        tenantId,
-        userId,
-        deletedAt: IsNull()
-      }
-    });
+    const membership = await this.identityRepository.findActiveMembership(tenantId, userId, undefined);
     if (!membership) {
       throw new NotFoundException({
         error: { code: "MEMBERSHIP_NOT_FOUND", message: "Membership not found" }
@@ -439,9 +413,7 @@ export class UsersInviteService {
       });
     }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId, deletedAt: IsNull() }
-    });
+    const user = await this.identityRepository.findUserById(userId);
     if (!user) {
       throw new NotFoundException({
         error: { code: "USER_NOT_FOUND", message: "User not found" }
@@ -459,8 +431,8 @@ export class UsersInviteService {
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const inviteToken = randomBytes(24).toString("hex");
 
-    const invite = await this.workspaceInviteRepository.save(
-      this.workspaceInviteRepository.create({
+    const invite = await this.identityRepository.saveInvite(
+      this.identityRepository.createInvite({
         tenantId,
         email: normalizedPhone,
         role: membership.role,
@@ -473,11 +445,9 @@ export class UsersInviteService {
     );
 
     membership.invitedAt = now;
-    await this.membershipRepository.save(membership);
+    await this.identityRepository.saveMembership(membership);
 
-    const actorLabelRecord = await this.userRepository.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.identityRepository.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
     await this.tenantAuditEventsService.append({
       tenantId,
@@ -516,55 +486,20 @@ export class UsersInviteService {
     };
   }
 
-  private async resolveUserIdForInvitePhone(
-    tenantId: string,
-    phone: string
-  ): Promise<string | null> {
-    const normalizedPhone = normalizeOtpPhoneInput(phone);
-    if (!normalizedPhone) {
-      return null;
-    }
-    const user = await this.userRepository
-      .createQueryBuilder("u")
-      .select(["u.id"])
-      .where("u.deleted_at IS NULL")
-      .andWhere("phone_normalized(COALESCE(u.phone, '')) = phone_normalized(:phone)", {
-        phone: normalizedPhone
-      })
-      .getOne();
-    if (!user) {
-      return null;
-    }
-    const membership = await this.membershipRepository.findOne({
-      where: {
-        tenantId,
-        userId: user.id,
-        deletedAt: IsNull(),
-        status: MembershipStatus.INVITED
-      },
-      select: ["id", "userId"]
-    });
-    return membership?.userId ?? null;
-  }
-
   async listPendingInvites(): Promise<PendingWorkspaceInviteRow[]> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     const now = new Date();
-    const invites = await this.workspaceInviteRepository.find({
-      where: {
-        tenantId,
-        status: WorkspaceInviteStatus.PENDING,
-        expiresAt: MoreThan(now)
-      },
-      order: { expiresAt: "ASC" }
-    });
+    const invites = await this.identityRepository.findPendingInvitesByTenant(tenantId, now);
 
     const rows: PendingWorkspaceInviteRow[] = [];
     for (const invite of invites) {
-      const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+      const membership = await this.identityRepository.findInvitedMembershipForPhone(
+        tenantId,
+        invite.email
+      );
       rows.push({
         inviteId: invite.id,
         phone: invite.email,
@@ -572,7 +507,7 @@ export class UsersInviteService {
         status: invite.status,
         expiresAt: invite.expiresAt.toISOString(),
         invitedAt: invite.invitedAt?.toISOString() ?? invite.createdAt.toISOString(),
-        userId
+        userId: membership?.userId ?? null
       });
     }
     return rows;
@@ -581,42 +516,33 @@ export class UsersInviteService {
   async cancelInvite(inviteId: string): Promise<CancelInviteResult> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const invite = await this.workspaceInviteRepository.findOne({
-      where: { id: inviteId, tenantId }
-    });
+    const invite = await this.identityRepository.findInviteById(tenantId, inviteId);
     if (!invite || invite.status !== WorkspaceInviteStatus.PENDING) {
       throw new NotFoundException({
         error: { code: "INVITE_NOT_FOUND", message: "Pending invite not found" }
       });
     }
 
-    const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+    const membership = await this.identityRepository.findInvitedMembershipForPhone(
+      tenantId,
+      invite.email
+    );
+    const userId = membership?.userId ?? null;
     const now = new Date();
 
-    await this.workspaceInviteRepository.manager.transaction(async (manager) => {
-      await manager.getRepository(WorkspaceInviteEntity).update(
-        { id: invite.id, tenantId },
-        { status: WorkspaceInviteStatus.EXPIRED }
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.updateInviteStatus(
+        invite.id,
+        WorkspaceInviteStatus.EXPIRED,
+        manager
       );
-      if (userId) {
-        const membership = await manager.getRepository(UserTenantEntity).findOne({
-          where: {
-            tenantId,
-            userId,
-            deletedAt: IsNull(),
-            status: MembershipStatus.INVITED
-          }
-        });
-        if (membership) {
-          await manager.getRepository(UserTenantEntity).delete({ id: membership.id });
-        }
+      if (userId && membership) {
+        await this.identityRepository.deleteMembershipById(membership.id, manager);
       }
 
-      const actorLabelRecord = await manager.getRepository(UserEntity).findOne({
-        where: { id: actorUserId, deletedAt: IsNull() }
-      });
+      const actorLabelRecord = await this.identityRepository.findUserById(actorUserId);
       const actorLabel = actorLabelRecord?.email ?? actorUserId;
       await this.tenantAuditEventsService.append(
         {
@@ -645,12 +571,10 @@ export class UsersInviteService {
   async resendInviteByInviteId(inviteId: string): Promise<ResendInviteResult> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const invite = await this.workspaceInviteRepository.findOne({
-      where: { id: inviteId, tenantId, status: WorkspaceInviteStatus.PENDING }
-    });
-    if (!invite) {
+    const invite = await this.identityRepository.findInviteById(tenantId, inviteId);
+    if (!invite || invite.status !== WorkspaceInviteStatus.PENDING) {
       throw new NotFoundException({
         error: { code: "INVITE_NOT_FOUND", message: "Pending invite not found" }
       });
@@ -658,37 +582,31 @@ export class UsersInviteService {
 
     const now = new Date();
     if (invite.expiresAt.getTime() <= now.getTime()) {
-      await this.workspaceInviteRepository.update(
-        { id: invite.id },
-        { status: WorkspaceInviteStatus.EXPIRED }
-      );
+      await this.identityRepository.updateInviteStatus(invite.id, WorkspaceInviteStatus.EXPIRED);
       throw new BadRequestException({
         error: { code: "INVITE_EXPIRED", message: "Invite has expired" }
       });
     }
 
-    const userId = await this.resolveUserIdForInvitePhone(tenantId, invite.email);
+    const membership = await this.identityRepository.findInvitedMembershipForPhone(
+      tenantId,
+      invite.email
+    );
+    const userId = membership?.userId ?? null;
     const inviteToken = randomBytes(24).toString("hex");
     const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     invite.inviteToken = inviteToken;
     invite.expiresAt = expiresAt;
     invite.invitedAt = now;
-    await this.workspaceInviteRepository.save(invite);
+    await this.identityRepository.saveInvite(invite);
 
-    if (userId) {
-      const membership = await this.membershipRepository.findOne({
-        where: { tenantId, userId, deletedAt: IsNull() }
-      });
-      if (membership && membership.status === MembershipStatus.INVITED) {
-        membership.invitedAt = now;
-        await this.membershipRepository.save(membership);
-      }
+    if (userId && membership) {
+      membership.invitedAt = now;
+      await this.identityRepository.saveMembership(membership);
     }
 
-    const actorLabelRecord = await this.userRepository.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.identityRepository.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
     await this.tenantAuditEventsService.append({
       tenantId,
@@ -726,4 +644,3 @@ export class UsersInviteService {
     };
   }
 }
-

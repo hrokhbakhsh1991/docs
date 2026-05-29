@@ -1,6 +1,6 @@
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { canPerformAdministrativeAction } from "../../common/rbac/workspace-access.helper";
-import type { UserEntity } from "./entities/user.entity";
+import type { IdentityUserRecord } from "./domain/identity-records";
 import type { MeProfileResponse, SelfPiiSnapshot } from "./me-profile.types";
 export type MeProfileVisibility = {
   viewerUserId: string;
@@ -32,7 +32,7 @@ export function formatUserDateColumnAsYmd(v: Date | string | null | undefined): 
 }
 
 export function mapUserEntityToMeProfileResponse(
-  user: UserEntity,
+  user: IdentityUserRecord,
   visibility: MeProfileVisibility
 ): MeProfileResponse {
   const rawPhone = user.phone?.trim() ?? "";
@@ -54,7 +54,10 @@ export function mapUserEntityToMeProfileResponse(
   };
 }
 
-export function snapshotSelfPiiFromUser(user: UserEntity, visibility: MeProfileVisibility): SelfPiiSnapshot {
+export function snapshotSelfPiiFromUser(
+  user: IdentityUserRecord,
+  visibility: MeProfileVisibility
+): SelfPiiSnapshot {
   const exposeNationalId = canExposeNationalId(visibility);
   return {
     full_name: user.fullName ?? null,

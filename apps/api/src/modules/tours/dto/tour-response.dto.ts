@@ -2,11 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { normalizeLegacyOverviewTripStyleToTripStyles, type TourFormProfile } from "@repo/types";
 
 import {
-  TourEntity,
   TourLifecycleStatus,
   TOUR_TYPES,
   type TourType
 } from "../entities/tour.entity";
+import type { TourWriteRecord } from "../domain/tour-write-record.types";
 import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 import { TOUR_TRANSPORT_MODE_VALUES, type TourTransportMode } from "../tour-transport-modes";
@@ -176,8 +176,14 @@ export class TourResponseDto {
   } | null;
 }
 
+/** Tour row shape required for {@link mapTourEntityToResponseDto} (entity or write port record). */
+export type TourResponseSource = TourWriteRecord & {
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 /** Maps persisted tour row → contract projection (excludes tenant-only / soft-delete fields). */
-export function mapTourEntityToResponseDto(tour: TourEntity): TourResponseDto {
+export function mapTourEntityToResponseDto(tour: TourResponseSource): TourResponseDto {
   const dto = new TourResponseDto();
   dto.id = tour.id;
   dto.createdAt = tour.createdAt;

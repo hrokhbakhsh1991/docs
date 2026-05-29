@@ -1,16 +1,20 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import { EntityManager } from "typeorm";
-import { RegistrationsService } from "../registrations.service";
-import { PaymentsService } from "../../payments/payments.service";
+import type { EntityManager } from "typeorm";
+
 import { ConfigService } from "../../../config/config.service";
+import { RegistrationsService } from "../registrations.service";
 import { RegistrationEntity } from "../registration.entity";
 import { CreateRegistrationDto } from "../dto/create-registration.dto";
-import { PaymentResponseDto } from "../../payments/dto/payment-response.dto";
 import { RegistrationResponseDto } from "../dto/get-registration.dto";
+import {
+  REGISTRATION_READ_PORT,
+  type RegistrationReadPort,
+} from "../domain/ports/registration-read.port";
+import type { RegistrationPaymentIntentSnapshot } from "../domain/registration-payment-intent.types";
 
 function assertPaymentIntentWhenRequired(
   requiresPayment: boolean,
-  paymentIntent: PaymentResponseDto | null
+  paymentIntent: RegistrationPaymentIntentSnapshot | null
 ): void {
   if (requiresPayment && paymentIntent == null) {
     throw new BadRequestException({
@@ -27,14 +31,14 @@ function assertPaymentIntentWhenRequired(
 export class RegistrationPlacementOrchestrator {
   constructor(
     @Inject(RegistrationsService) private readonly registrationsService: RegistrationsService,
-    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(REGISTRATION_READ_PORT) private readonly registrationReadPort: RegistrationReadPort,
     @Inject(ConfigService) private readonly configService: ConfigService
   ) {}
 
   private async createPaymentIntentForRegistration(
     manager: EntityManager,
     registration: RegistrationEntity
-  ): Promise<PaymentResponseDto> {
+  ): Promise<RegistrationPaymentIntentSnapshot> {
     const totalMinorNum =
       registration.quotedTotalMinor != null
         ? Number(String(registration.quotedTotalMinor).trim())
@@ -61,10 +65,12 @@ export class RegistrationPlacementOrchestrator {
         }
       });
     }
-    return this.paymentsService.createPaymentIntentWithManager(manager, {
-      registrationId: registration.id,
-      amount: totalMinorNum,
-      currency,
+    return this.registrationReadPort.createPaymentIntentWithManager(manager, {
+      registration: {
+        id: registration.id,
+        quotedTotalMinor: registration.quotedTotalMinor ?? null,
+        quotedCurrencyCode: registration.quotedCurrencyCode ?? null
+      },
       paymentProvider: this.configService.getDefaultPaymentProvider(),
       providerPaymentId: `mock-${registration.id}`
     });
@@ -72,7 +78,7 @@ export class RegistrationPlacementOrchestrator {
 
   async createAuthenticatedBooking(tourId: string): Promise<{
     registration: RegistrationResponseDto;
-    paymentIntent: PaymentResponseDto | null;
+    paymentIntent: RegistrationPaymentIntentSnapshot | null;
   }> {
     const bookingInput = await this.registrationsService.resolveAuthenticatedBookingInput(tourId);
     const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
@@ -102,18 +108,16 @@ export class RegistrationPlacementOrchestrator {
   async publicRegister(input: {
     tourId: string;
     payload: CreateRegistrationDto;
-  }): Promise<
-    | {
-        registration: RegistrationResponseDto | null;
-        paymentIntent: PaymentResponseDto | null;
-        waitlistItemId: string | null;
-        waitlistPosition: number | null;
-      }
-  > {
+  }): Promise<{
+    registration: RegistrationResponseDto | null;
+    paymentIntent: RegistrationPaymentIntentSnapshot | null;
+    waitlistItemId: string | null;
+    waitlistPosition: number | null;
+  }> {
     const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
       ...input.payload,
       tourId: input.tourId,
-      createPaymentIntent: async (manager: EntityManager, registration: RegistrationEntity) =>
+      createPaymentIntent: async (manager, registration) =>
         this.createPaymentIntentForRegistration(manager, registration)
     });
 

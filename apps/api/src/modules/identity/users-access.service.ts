@@ -1,6 +1,5 @@
 import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import type { DeepPartial, EntityManager, FindOptionsWhere, UpdateResult } from "typeorm";
 import {
   UserRole,
   tryParseWorkspaceUserRole,
@@ -17,12 +16,16 @@ import { membershipHasSelectableLeader, parseMembershipMetadata } from "@repo/sh
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import type { UserResponseDto } from "./dto/user-response.dto";
 import { PROFILE_GENDER_VALUES, type ProfileGenderValue } from "./constants/profile-gender";
-import { UserTenantEntity } from "./entities/user-tenant.entity";
-import { UserEntity } from "./entities/user.entity";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort,
+  type WorkspaceIdentityRoleHistoryRow
+} from "./domain/ports/workspace-identity-repository.port";
+import type { MembershipStatus } from "./membership-status.enum";
+import type { IdentityMembershipRecord, IdentityUserRecord } from "./domain/identity-records";
 import type { TenantScopedUserRow } from "./users/users-tenant-scope.types";
-import { UsersTenantScopeRepository } from "./users/repositories/users-tenant-scope.repository";
-import type { MemberWalletBalanceSnapshot } from "./users-member-wallet-balances.service";
-import type { UserBookingSummarySnapshot } from "./workspace-user-booking-summary.service";
+import type { MemberWalletBalanceSnapshot } from "./domain/ports/workspace-identity-repository.port";
+import type { UserBookingSummarySnapshot } from "./domain/ports/workspace-identity-repository.port";
 
 export type { TenantScopedUserRow } from "./users/users-tenant-scope.types";
 
@@ -40,22 +43,40 @@ export class UsersAccessService {
   private readonly logger = new Logger(UsersAccessService.name);
 
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(UserTenantEntity)
-    private readonly userTenantRepository: Repository<UserTenantEntity>,
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
     @Inject(RequestContextService)
-    private readonly requestContextService: RequestContextService,
-    @Inject(UsersTenantScopeRepository)
-    private readonly tenantScopeRepository: UsersTenantScopeRepository
+    private readonly requestContextService: RequestContextService
   ) {}
 
-  get users(): Repository<UserEntity> {
-    return this.userRepository;
+  findUserById(userId: string): Promise<IdentityUserRecord | null> {
+    return this.identityRepository.findUserById(userId);
   }
 
-  get memberships(): Repository<UserTenantEntity> {
-    return this.userTenantRepository;
+  findMembership(
+    tenantId: string,
+    userId: string,
+    options?: { status?: MembershipStatus }
+  ): Promise<IdentityMembershipRecord | null> {
+    return this.identityRepository.findActiveMembership(tenantId, userId, options);
+  }
+
+  updateMembership(
+    criteria: FindOptionsWhere<IdentityMembershipRecord>,
+    partial: DeepPartial<IdentityMembershipRecord>
+  ): Promise<UpdateResult> {
+    return this.identityRepository.updateMembership(criteria, partial);
+  }
+
+  runInTransaction<T>(fn: (manager: EntityManager) => Promise<T>): Promise<T> {
+    return this.identityRepository.runInTransaction(fn);
+  }
+
+  listUserRoleHistoryRows(
+    tenantId: string,
+    userId: string
+  ): Promise<WorkspaceIdentityRoleHistoryRow[]> {
+    return this.identityRepository.listUserRoleHistoryRows(tenantId, userId);
   }
 
   resolveTenantIdOrThrow(): string {
@@ -75,8 +96,9 @@ export class UsersAccessService {
     return { actorUserId, actorRole };
   }
 
-  async ensureActorMembershipOrThrow(tenantId: string, actorUserId: string): Promise<void> {
-    const actorMembership = await this.tenantScopeRepository.findActiveMembership(tenantId, actorUserId);
+  async ensureActorMembershipOrThrow(actorUserId: string): Promise<void> {
+    const tenantId = this.resolveTenantIdOrThrow();
+    const actorMembership = await this.identityRepository.findActiveMembership(tenantId, actorUserId);
     if (!actorMembership) {
       throw new ForbiddenException({
         error: {
@@ -87,8 +109,9 @@ export class UsersAccessService {
     }
   }
 
-  async findTenantScopedUserOrThrow(tenantId: string, userId: string): Promise<TenantScopedUserRow> {
-    const row = await this.tenantScopeRepository.findTenantScopedUserRow(tenantId, userId);
+  async findTenantScopedUserOrThrow(userId: string): Promise<TenantScopedUserRow> {
+    const tenantId = this.resolveTenantIdOrThrow();
+    const row = await this.identityRepository.findTenantScopedUserRow(tenantId, userId);
     if (!row) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }

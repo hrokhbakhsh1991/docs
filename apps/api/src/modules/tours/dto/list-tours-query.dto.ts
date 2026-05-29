@@ -13,10 +13,26 @@ import {
   Min,
   ValidateIf
 } from "class-validator";
+import { TOUR_TYPES } from "@repo/types";
+import type {
+  SortDir,
+  TourCategory,
+  TourDifficulty,
+  TourFilter,
+  TourListStatus,
+  TourSort,
+  TourSortField,
+} from "@repo/shared-contracts";
+
+const TOUR_SORT_FIELD_VALUES = ["created_at", "title", "price", "difficulty", "category"] as const;
+const SORT_DIR_VALUES = ["asc", "desc"] as const;
+const TOUR_DIFFICULTY_VALUES = ["easy", "moderate", "hard", "technical"] as const;
+const TOUR_CATEGORY_VALUES = [...TOUR_TYPES] as const;
+const TOUR_LIST_STATUS_VALUES = ["active", "completed", "archived"] as const;
 
 /** Matches web tour list URL `status` (excluding `all`, which omits the param). */
-export const LIST_TOURS_STATUS_VALUES = ["active", "completed", "archived"] as const;
-export type ListToursStatusFilter = (typeof LIST_TOURS_STATUS_VALUES)[number];
+export const LIST_TOURS_STATUS_VALUES = TOUR_LIST_STATUS_VALUES;
+export type ListToursStatusFilter = TourListStatus;
 
 export class ListToursQueryDto {
   @ApiPropertyOptional({
@@ -68,6 +84,67 @@ export class ListToursQueryDto {
   status?: ListToursStatusFilter;
 
   @ApiPropertyOptional({
+    enum: TOUR_SORT_FIELD_VALUES,
+    description: "Sort field (created_at, title, price, difficulty, category)",
+  })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+  @IsIn([...TOUR_SORT_FIELD_VALUES], {
+    message: "sort_by must be one of: created_at, title, price, difficulty, category",
+  })
+  sort_by?: TourSortField;
+
+  @ApiPropertyOptional({
+    enum: SORT_DIR_VALUES,
+    description: "Sort direction",
+    default: "desc",
+  })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim().toLowerCase() : value))
+  @IsIn([...SORT_DIR_VALUES], {
+    message: "sort_dir must be one of: asc, desc",
+  })
+  sort_dir?: SortDir;
+
+  @ApiPropertyOptional({
+    description: "Comma-separated category filter",
+    type: String,
+    example: "mountain,nature",
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== "string" || value.trim() === "") return undefined;
+    return value
+      .split(",")
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+  })
+  @IsIn([...TOUR_CATEGORY_VALUES], {
+    each: true,
+    message: `category must contain only: ${TOUR_CATEGORY_VALUES.join(", ")}`,
+  })
+  category?: TourCategory[];
+
+  @ApiPropertyOptional({
+    description: "Comma-separated difficulty filter",
+    type: String,
+    example: "hard,technical",
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== "string" || value.trim() === "") return undefined;
+    return value
+      .split(",")
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+  })
+  @IsIn([...TOUR_DIFFICULTY_VALUES], {
+    each: true,
+    message: `difficulty must contain only: ${TOUR_DIFFICULTY_VALUES.join(", ")}`,
+  })
+  difficulty?: TourDifficulty[];
+
+  @ApiPropertyOptional({
     description: "Keyset cursor: tour id from the last item of the previous page (use with cursor_created_at)"
   })
   @IsOptional()
@@ -100,4 +177,48 @@ export class ListToursQueryDto {
   })
   @IsBoolean()
   include_total?: boolean;
+
+}
+
+export function toTourSort(query: ListToursQueryDto): TourSort | undefined {
+  if (!query.sort_by) {
+    return undefined;
+  }
+  return {
+    field: query.sort_by,
+    dir: query.sort_dir ?? "desc",
+  };
+}
+
+export function toTourFilter(query: ListToursQueryDto): TourFilter {
+  const normalizeList = (input: unknown): string[] | undefined => {
+    if (Array.isArray(input)) {
+      const out = input
+        .map((v) => String(v).trim().toLowerCase())
+        .filter(Boolean);
+      return out.length > 0 ? out : undefined;
+    }
+    if (typeof input === "string" && input.trim() !== "") {
+      const out = input
+        .split(",")
+        .map((v) => v.trim().toLowerCase())
+        .filter(Boolean);
+      return out.length > 0 ? out : undefined;
+    }
+    return undefined;
+  };
+
+  const category = normalizeList((query as unknown as Record<string, unknown>).category) as
+    | TourCategory[]
+    | undefined;
+  const difficulty = normalizeList((query as unknown as Record<string, unknown>).difficulty) as
+    | TourDifficulty[]
+    | undefined;
+
+  return {
+    status: query.status,
+    search: query.search,
+    ...(category?.length ? { category } : {}),
+    ...(difficulty?.length ? { difficulty } : {}),
+  };
 }

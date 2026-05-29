@@ -30,3 +30,4 @@ export * from "./workspace-registry";
 export * from "./workspaces/denali";
 export * from "./workspaces/arctic";
 export * from "./validation-topology";
+export * from "./tour-list-query.contract";

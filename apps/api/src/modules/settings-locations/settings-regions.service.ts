@@ -1,9 +1,17 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import {
+  WORKSPACE_SETTINGS_REPOSITORY_PORT,
+  type WorkspaceSettingsRepositoryPort,
+} from "./domain/ports/workspace-settings-repository.port";
 import type { CreateWorkspaceRegionDto } from "./dto/create-workspace-region.dto";
 import type { UpdateWorkspaceRegionDto } from "./dto/update-workspace-region.dto";
 import type { WorkspaceRegionResponseDto } from "./dto/workspace-region-response.dto";
@@ -12,9 +20,10 @@ import { WorkspaceRegionEntity } from "./entities/workspace-region.entity";
 @Injectable()
 export class SettingsRegionsService {
   constructor(
-    @InjectRepository(WorkspaceRegionEntity)
-    private readonly regionRepository: Repository<WorkspaceRegionEntity>,
-    private readonly requestContext: RequestContextService
+    @Inject(WORKSPACE_SETTINGS_REPOSITORY_PORT)
+    private readonly settingsRepository: WorkspaceSettingsRepositoryPort,
+    @Inject(RequestContextService)
+    private readonly requestContext: RequestContextService,
   ) {}
 
   private resolveTenantOrThrow(): string {
@@ -35,7 +44,7 @@ export class SettingsRegionsService {
       name: row.name,
       country: row.country ?? null,
       sortOrder: row.sortOrder ?? null,
-      isActive: row.isActive
+      isActive: row.isActive,
     };
   }
 
@@ -49,38 +58,35 @@ export class SettingsRegionsService {
 
   async list(): Promise<WorkspaceRegionResponseDto[]> {
     const tenantId = this.resolveTenantOrThrow();
-    const rows = await this.regionRepository.find({
-      where: { tenantId },
-      order: { sortOrder: "ASC", name: "ASC" }
-    });
+    const rows = await this.settingsRepository.listRegions(tenantId);
     return rows.map((r) => this.toResponse(r));
   }
 
   async create(dto: CreateWorkspaceRegionDto): Promise<WorkspaceRegionResponseDto> {
     const tenantId = this.resolveTenantOrThrow();
-    const row = this.regionRepository.create({
+    const row = this.settingsRepository.newRegion({
       tenantId,
       name: dto.name.trim(),
       country: this.normalizeCountry(dto.country),
       sortOrder: dto.sortOrder ?? null,
-      isActive: dto.isActive
+      isActive: dto.isActive,
     });
-    const saved = await this.regionRepository.save(row);
+    const saved = await this.settingsRepository.saveRegion(row);
     return this.toResponse(saved);
   }
 
   async update(regionId: string, dto: UpdateWorkspaceRegionDto): Promise<WorkspaceRegionResponseDto> {
     const tenantId = this.resolveTenantOrThrow();
-    const row = await this.regionRepository.findOne({ where: { id: regionId, tenantId } });
+    const row = await this.settingsRepository.findRegionById(tenantId, regionId);
     if (!row) {
       throw new NotFoundException({
-        error: { code: "RESOURCE_NOT_FOUND", message: "Region not found" }
+        error: { code: "RESOURCE_NOT_FOUND", message: "Region not found" },
       });
     }
     const keys = Object.keys(dto) as (keyof UpdateWorkspaceRegionDto)[];
     if (keys.length === 0) {
       throw new BadRequestException({
-        error: { code: "VALIDATION_FAILED", message: "No fields to update" }
+        error: { code: "VALIDATION_FAILED", message: "No fields to update" },
       });
     }
     if (dto.name !== undefined) {
@@ -95,16 +101,16 @@ export class SettingsRegionsService {
     if (dto.isActive !== undefined) {
       row.isActive = dto.isActive;
     }
-    const saved = await this.regionRepository.save(row);
+    const saved = await this.settingsRepository.saveRegion(row);
     return this.toResponse(saved);
   }
 
   async remove(regionId: string): Promise<void> {
     const tenantId = this.resolveTenantOrThrow();
-    const res = await this.regionRepository.delete({ id: regionId, tenantId });
-    if (!res.affected) {
+    const affected = await this.settingsRepository.deleteRegion(tenantId, regionId);
+    if (!affected) {
       throw new NotFoundException({
-        error: { code: "RESOURCE_NOT_FOUND", message: "Region not found" }
+        error: { code: "RESOURCE_NOT_FOUND", message: "Region not found" },
       });
     }
   }

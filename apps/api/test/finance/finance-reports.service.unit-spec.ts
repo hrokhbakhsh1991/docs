@@ -3,6 +3,9 @@ import test from "node:test";
 import { FinanceReportsService } from "../../src/modules/finance/reports/finance-reports.service";
 
 const configTest = { getNodeEnv: () => "test" } as never;
+const requestContext = {
+  resolveEffectiveTenantId: () => "tenant-1"
+};
 
 test("getSummary aggregates payment and receipt counts", async () => {
   let countCalls = 0;
@@ -19,11 +22,12 @@ test("getSummary aggregates payment and receipt counts", async () => {
           }
         } as never)
     } as never,
+    requestContext as never,
     configTest,
     null
   );
 
-  const summary = await service.getSummary("tenant-1");
+  const summary = await service.getSummary();
   assert.equal(summary.pendingManualPayments, 2);
   assert.equal(summary.pendingReceiptReviews, 3);
   assert.equal(summary.paidPayments, 10);
@@ -77,11 +81,12 @@ test("listLedgerEvents maps finance.ledger outbox rows", async () => {
           ]
         } as never)
     } as never,
+    requestContext as never,
     configTest,
     null
   );
 
-  const events = await service.listLedgerEvents("tenant-1");
+  const events = await service.listLedgerEvents();
   assert.equal(events.length, 1);
   assert.equal(events[0]?.journalId, "journal-1");
   assert.equal(events[0]?.registrationId, "reg-1");

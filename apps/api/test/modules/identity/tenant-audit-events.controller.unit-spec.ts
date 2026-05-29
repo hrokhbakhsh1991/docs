@@ -62,13 +62,13 @@ function makeController(opts?: {
     tryGetClientIp: () => "127.0.0.1",
     tryGetRequestId: () => "req-test"
   };
-  const userRepository = {
-    findOne: async () => ({ id: USER_ID, email: "owner@test.local", deletedAt: null })
+  const identityRepository = {
+    findUserById: async () => ({ id: USER_ID, email: "owner@test.local", deletedAt: null })
   };
   const controller = new TenantAuditEventsController(
     tenantAuditEventsService as never,
     requestContextService as never,
-    userRepository as never
+    identityRepository as never
   );
   return { controller, tenantAuditEventsService };
 }

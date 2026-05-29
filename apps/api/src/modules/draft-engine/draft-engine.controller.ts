@@ -61,7 +61,7 @@ export class DraftEngineController {
         `userId=${this.requestContext.getUserId() ?? "null"}`,
     );
 
-    const result = await this.draftEngineFacade.findForMember(tenantId, draftKey);
+    const result = await this.draftEngineFacade.findForMember(draftKey);
 
     this.logger.log(`DEBUG-TRACE [end] GET response payload=${JSON.stringify(result)}`);
     return result;
@@ -94,6 +94,6 @@ export class DraftEngineController {
     @Param("tenantId") tenantId: string,
     @Param("draftKey") draftKey: string,
   ): Promise<void> {
-    await this.draftEngineFacade.deleteForMember(tenantId, draftKey);
+    await this.draftEngineFacade.deleteForMember(draftKey);
   }
 }

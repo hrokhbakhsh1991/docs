@@ -4,7 +4,7 @@ import type { AppAbility } from "@repo/shared";
 import { AbilityAction } from "../../../common/casl/ability-actions";
 import type { CreateTourDto } from "../dto/create-tour.dto";
 import type { UpdateTourDto } from "../dto/update-tour.dto";
-import { TourLifecycleStatus } from "../entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 
 /** DTO keys that require `tour.update.core` / CASL `update TourCore`. */
 const CORE_PATCH_KEYS = new Set<keyof UpdateTourDto>([

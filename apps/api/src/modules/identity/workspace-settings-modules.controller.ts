@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Inject,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -16,8 +17,6 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { InjectRepository } from "@nestjs/typeorm";
-import { IsNull, Repository } from "typeorm";
 import { AuthorizationPresenceGuard } from "../auth/authorization-presence.guard";
 import { Roles } from "../auth/roles.decorator";
 import { UserRole } from "../../common/auth/user-role.enum";
@@ -29,8 +28,11 @@ import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { TenantEntity } from "./entities/tenant.entity";
 import { PatchTenantModulesDto } from "./dto/patch-tenant-modules.dto";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort,
+} from "./domain/ports/workspace-identity-repository.port";
 
 @ApiTags("Identity")
 @Controller("api/v2/workspaces")
@@ -38,9 +40,11 @@ import { PatchTenantModulesDto } from "./dto/patch-tenant-modules.dto";
 @ApiBearerAuth()
 export class WorkspaceSettingsModulesController {
   constructor(
-    @InjectRepository(TenantEntity)
-    private readonly tenantRepository: Repository<TenantEntity>,
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
+    @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
+    @Inject(TenantAuditEventsService)
     private readonly tenantAuditEventsService: TenantAuditEventsService,
   ) {}
 
@@ -67,9 +71,7 @@ export class WorkspaceSettingsModulesController {
     }
 
     const actorUserId = this.requestContextService.getUserId();
-    const tenant = await this.tenantRepository.findOne({
-      where: { id: tenantId, deletedAt: IsNull() },
-    });
+    const tenant = await this.identityRepository.findActiveTenantById(tenantId);
     if (!tenant) {
       throw new ForbiddenException({
         error: {
@@ -80,8 +82,10 @@ export class WorkspaceSettingsModulesController {
     }
 
     const previous = [...(tenant.enabledModules ?? [])];
-    tenant.enabledModules = [...payload.enabledModules];
-    await this.tenantRepository.save(tenant);
+    const enabledModules = await this.identityRepository.updateTenantEnabledModules(
+      tenantId,
+      payload.enabledModules,
+    );
 
     if (actorUserId) {
       await this.tenantAuditEventsService.append({
@@ -93,13 +97,13 @@ export class WorkspaceSettingsModulesController {
         resourceId: tenantId,
         metadata: {
           previous_modules: previous,
-          enabled_modules: tenant.enabledModules,
+          enabled_modules: enabledModules,
         },
         clientIp: this.requestContextService.tryGetClientIp(),
         requestId: this.requestContextService.tryGetRequestId(),
       });
     }
 
-    return { enabledModules: tenant.enabledModules };
+    return { enabledModules };
   }
 }

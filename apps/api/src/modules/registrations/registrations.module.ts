@@ -1,4 +1,4 @@
-import { Module, Global } from "@nestjs/common";
+import { Module, Global, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "../auth/auth.module";
 import { RegistrationEntity } from "./registration.entity";
@@ -18,6 +18,10 @@ import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { FinanceLedgerModule } from "../finance/finance-ledger.module";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { REGISTRATION_PAYMENT_PORT } from "./ports/registration-payment.port";
+import { REGISTRATION_READ_PORT } from "./domain/ports/registration-read.port";
+import { PRICING_CATALOG_PORT } from "./domain/ports/pricing-catalog.port";
+import { PaymentsRegistrationReadAdapter } from "./adapters/payments-registration-read.adapter";
+import { PricingCatalogAdapter } from "./adapters/pricing-catalog.adapter";
 
 @Global()
 @Module({
@@ -31,7 +35,7 @@ import { REGISTRATION_PAYMENT_PORT } from "./ports/registration-payment.port";
     ]),
     AuthModule,
     OutboxModule,
-    PaymentsModule,
+    forwardRef(() => PaymentsModule),
     PricingModule,
     IdempotencyModule,
     FinanceLedgerModule
@@ -45,6 +49,14 @@ import { REGISTRATION_PAYMENT_PORT } from "./ports/registration-payment.port";
     {
       provide: REGISTRATION_PAYMENT_PORT,
       useExisting: RegistrationsService
+    },
+    {
+      provide: REGISTRATION_READ_PORT,
+      useClass: PaymentsRegistrationReadAdapter
+    },
+    {
+      provide: PRICING_CATALOG_PORT,
+      useClass: PricingCatalogAdapter
     },
     ThrottlerGuard
   ],

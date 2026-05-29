@@ -2,16 +2,19 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
-  NotFoundException
+  NotFoundException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+
+import { normalizeCompatibleCategories } from "@repo/denali-domain";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { normalizeCompatibleCategories } from "@repo/denali-domain";
-
+import {
+  WORKSPACE_SETTINGS_REPOSITORY_PORT,
+  type WorkspaceSettingsRepositoryPort,
+} from "./domain/ports/workspace-settings-repository.port";
 import type { CreateEquipmentItemDto } from "./dto/create-equipment-item.dto";
 import type { UpdateEquipmentItemDto } from "./dto/update-equipment-item.dto";
 import { WorkspaceEquipmentItemResponseDto } from "./dto/workspace-equipment-item-response.dto";
@@ -20,9 +23,10 @@ import { WorkspaceEquipmentItemEntity } from "./entities/workspace-equipment-ite
 @Injectable()
 export class EquipmentSettingsService {
   constructor(
-    @InjectRepository(WorkspaceEquipmentItemEntity)
-    private readonly equipmentRepository: Repository<WorkspaceEquipmentItemEntity>,
-    private readonly requestContext: RequestContextService
+    @Inject(WORKSPACE_SETTINGS_REPOSITORY_PORT)
+    private readonly settingsRepository: WorkspaceSettingsRepositoryPort,
+    @Inject(RequestContextService)
+    private readonly requestContext: RequestContextService,
   ) {}
 
   private resolveWorkspaceOrThrow(): string {
@@ -49,9 +53,7 @@ export class EquipmentSettingsService {
     return String(value).trim();
   }
 
-  private normalizeCompatibleCategoriesInput(
-    values: string[] | undefined,
-  ): string[] {
+  private normalizeCompatibleCategoriesInput(values: string[] | undefined): string[] {
     return normalizeCompatibleCategories(values ?? []);
   }
 
@@ -66,29 +68,29 @@ export class EquipmentSettingsService {
       isActive: row.isActive,
       sortOrder: row.sortOrder,
       createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString()
+      updatedAt: row.updatedAt.toISOString(),
     };
   }
 
   async findAllByWorkspace(): Promise<WorkspaceEquipmentItemResponseDto[]> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const rows = await this.equipmentRepository.find({
-      where: { workspaceId },
-      order: { sortOrder: "ASC", name: "ASC" }
-    });
+    const rows = await this.settingsRepository.listEquipment(workspaceId);
     return rows.map((r) => this.toResponse(r));
   }
 
   async create(dto: CreateEquipmentItemDto): Promise<WorkspaceEquipmentItemResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
     const slug = this.normalizeSlug(dto.slug);
-    const exists = await this.equipmentRepository.exist({ where: { workspaceId, slug } });
+    const exists = await this.settingsRepository.equipmentSlugExists(workspaceId, slug);
     if (exists) {
       throw new ConflictException({
-        error: { code: "EQUIPMENT_SLUG_CONFLICT", message: "An equipment item with this slug already exists" }
+        error: {
+          code: "EQUIPMENT_SLUG_CONFLICT",
+          message: "An equipment item with this slug already exists",
+        },
       });
     }
-    const row = this.equipmentRepository.create({
+    const row = this.settingsRepository.newEquipment({
       workspaceId,
       name: dto.name.trim(),
       slug,
@@ -96,35 +98,36 @@ export class EquipmentSettingsService {
       description: this.normalizeNullableText(dto.description),
       icon: this.normalizeNullableText(dto.icon),
       isActive: dto.isActive ?? true,
-      sortOrder: dto.sortOrder ?? 0
+      sortOrder: dto.sortOrder ?? 0,
     });
-    const saved = await this.equipmentRepository.save(row);
+    const saved = await this.settingsRepository.saveEquipment(row);
     return this.toResponse(saved);
   }
 
   async update(id: string, dto: UpdateEquipmentItemDto): Promise<WorkspaceEquipmentItemResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.equipmentRepository.findOne({ where: { id, workspaceId } });
+    const row = await this.settingsRepository.findEquipmentById(workspaceId, id);
     if (!row) {
       throw new NotFoundException({
-        error: { code: "RESOURCE_NOT_FOUND", message: "Equipment item not found" }
+        error: { code: "RESOURCE_NOT_FOUND", message: "Equipment item not found" },
       });
     }
     const keys = Object.keys(dto) as (keyof UpdateEquipmentItemDto)[];
     if (keys.length === 0) {
       throw new BadRequestException({
-        error: { code: "VALIDATION_FAILED", message: "No fields to update" }
+        error: { code: "VALIDATION_FAILED", message: "No fields to update" },
       });
     }
     if (dto.slug !== undefined) {
       const nextSlug = this.normalizeSlug(dto.slug);
       if (nextSlug !== row.slug) {
-        const taken = await this.equipmentRepository.exist({
-          where: { workspaceId, slug: nextSlug }
-        });
+        const taken = await this.settingsRepository.equipmentSlugExists(workspaceId, nextSlug);
         if (taken) {
           throw new ConflictException({
-            error: { code: "EQUIPMENT_SLUG_CONFLICT", message: "An equipment item with this slug already exists" }
+            error: {
+              code: "EQUIPMENT_SLUG_CONFLICT",
+              message: "An equipment item with this slug already exists",
+            },
           });
         }
         row.slug = nextSlug;
@@ -148,16 +151,16 @@ export class EquipmentSettingsService {
     if (dto.sortOrder !== undefined) {
       row.sortOrder = dto.sortOrder;
     }
-    const saved = await this.equipmentRepository.save(row);
+    const saved = await this.settingsRepository.saveEquipment(row);
     return this.toResponse(saved);
   }
 
   async remove(id: string): Promise<void> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const res = await this.equipmentRepository.delete({ id, workspaceId });
-    if (!res.affected) {
+    const affected = await this.settingsRepository.deleteEquipment(workspaceId, id);
+    if (!affected) {
       throw new NotFoundException({
-        error: { code: "RESOURCE_NOT_FOUND", message: "Equipment item not found" }
+        error: { code: "RESOURCE_NOT_FOUND", message: "Equipment item not found" },
       });
     }
   }
@@ -167,41 +170,30 @@ export class EquipmentSettingsService {
    */
   async reorder(itemIds: string[]): Promise<WorkspaceEquipmentItemResponseDto[]> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const existing = await this.equipmentRepository.find({
-      where: { workspaceId },
-      select: { id: true }
-    });
+    const existing = await this.settingsRepository.listEquipmentIds(workspaceId);
     const existingIds = new Set(existing.map((r) => r.id));
     if (existingIds.size !== itemIds.length) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_FAILED",
-          message: "itemIds must include every equipment item exactly once"
-        }
+          message: "itemIds must include every equipment item exactly once",
+        },
       });
     }
     const seen = new Set<string>();
-    for (const id of itemIds) {
-      if (!existingIds.has(id) || seen.has(id)) {
+    for (const itemId of itemIds) {
+      if (!existingIds.has(itemId) || seen.has(itemId)) {
         throw new BadRequestException({
           error: {
             code: "VALIDATION_FAILED",
-            message: "itemIds must include every equipment item exactly once"
-          }
+            message: "itemIds must include every equipment item exactly once",
+          },
         });
       }
-      seen.add(id);
+      seen.add(itemId);
     }
 
-    await this.equipmentRepository.manager.transaction(async (em) => {
-      for (let i = 0; i < itemIds.length; i += 1) {
-        await em.update(
-          WorkspaceEquipmentItemEntity,
-          { id: itemIds[i], workspaceId },
-          { sortOrder: i }
-        );
-      }
-    });
+    await this.settingsRepository.reorderEquipment(workspaceId, itemIds);
 
     return this.findAllByWorkspace();
   }

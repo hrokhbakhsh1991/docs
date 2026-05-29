@@ -1,28 +1,39 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { randomUUID } from "node:crypto";
 import { Repository } from "typeorm";
+
+import {
+  tenantContextMissingError,
+} from "../../../common/errors/error-response-builders";
+import { RequestContextService } from "../../../common/request-context/request-context.service";
 import { TenantDbContextService } from "../../../database/tenant-db-context.service";
 import { FILE_STORAGE_PORT, FileStoragePort } from "../../../infra/storage/file-storage.port";
+import { UserEntity } from "../../identity/entities/user.entity";
 import { PaymentReceiptEntity, ReceiptStatus } from "../../payments/entities/payment-receipt.entity";
-import { PaymentEntity, PaymentStatus, PaymentMethod } from "../../payments/entities/payment.entity";
-import { randomUUID } from "node:crypto";
+import { PaymentEntity, PaymentMethod, PaymentStatus } from "../../payments/entities/payment.entity";
 import {
   REGISTRATION_PAYMENT_PORT,
-  IRegistrationPaymentPort
+  IRegistrationPaymentPort,
 } from "../../registrations/ports/registration-payment.port";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
-  RegistrationStatus
+  RegistrationStatus,
 } from "../../registrations/registration.entity";
-import { lockRegistrationByTenantAndId } from "../../registrations/utils/lock-registration-for-financial-mutation";
 import { validatePaymentTransition } from "../../registrations/registrations-policy";
+import { lockRegistrationByTenantAndId } from "../../registrations/utils/lock-registration-for-financial-mutation";
 import { BookingLedgerAuthorityService } from "../ledger/booking-ledger-authority.service";
 import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-ledger-authority.service";
 import { FinanceReportsService } from "../reports/finance-reports.service";
 import { assertActorMayUploadReceiptForRegistration } from "./receipt-upload-authorization";
 import { assertNoPendingReceiptForPayment } from "./receipt-pending.policy";
-import { UserEntity } from "../../identity/entities/user.entity";
 
 @Injectable()
 export class ReceiptService {
@@ -31,6 +42,8 @@ export class ReceiptService {
     private readonly receiptRepository: Repository<PaymentReceiptEntity>,
     @Inject(TenantDbContextService)
     private readonly tenantDbContext: TenantDbContextService,
+    @Inject(RequestContextService)
+    private readonly requestContextService: RequestContextService,
     @Inject(FILE_STORAGE_PORT)
     private readonly storage: FileStoragePort,
     @Inject(REGISTRATION_PAYMENT_PORT)
@@ -40,11 +53,18 @@ export class ReceiptService {
     @Inject(PaymentCaptureLedgerAuthorityService)
     private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService,
     @Inject(BookingLedgerAuthorityService)
-    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService
+    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService,
   ) {}
 
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId;
+  }
+
   async submitReceipt(params: {
-    tenantId: string;
     paymentId: string;
     actorUserId: string;
     actorRole: string;
@@ -52,9 +72,10 @@ export class ReceiptService {
     contentType: string;
     note?: string;
   }): Promise<PaymentReceiptEntity> {
-    return this.tenantDbContext.runInTenantScope(params.tenantId, async (manager) => {
+    const tenantId = this.resolveTenantIdOrThrow();
+    return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
       const payment = await manager.findOne(PaymentEntity, {
-        where: { id: params.paymentId, tenantId: params.tenantId }
+        where: { id: params.paymentId, tenantId },
       });
 
       if (!payment) {
@@ -67,29 +88,29 @@ export class ReceiptService {
 
       if (payment.status !== PaymentStatus.PENDING) {
         throw new BadRequestException(
-          `Cannot submit receipt for payment with status ${payment.status}`
+          `Cannot submit receipt for payment with status ${payment.status}`,
         );
       }
 
       const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: payment.registrationId, tenantId: params.tenantId }
+        where: { id: payment.registrationId, tenantId },
       });
       if (!registration) {
         throw new NotFoundException("Registration not found for payment");
       }
 
       const actor = await manager.findOne(UserEntity, {
-        where: { id: params.actorUserId }
+        where: { id: params.actorUserId },
       });
       assertActorMayUploadReceiptForRegistration({
         actorRole: params.actorRole,
         actorPhone: actor?.phone ?? null,
-        participantContactPhone: registration.participantContactPhone
+        participantContactPhone: registration.participantContactPhone,
       });
 
       const existingReceipts = await manager.find(PaymentReceiptEntity, {
-        where: { paymentId: payment.id, tenantId: params.tenantId },
-        select: { status: true }
+        where: { paymentId: payment.id, tenantId },
+        select: { status: true },
       });
       assertNoPendingReceiptForPayment(existingReceipts);
 
@@ -99,19 +120,19 @@ export class ReceiptService {
       let objectKey: string | null = null;
       try {
         const uploaded = await this.storage.upload({
-          workspaceId: params.tenantId,
+          workspaceId: tenantId,
           relativePath,
           body: params.file,
-          contentType: params.contentType
+          contentType: params.contentType,
         });
         objectKey = uploaded.key;
 
         const receipt = manager.create(PaymentReceiptEntity, {
-          tenantId: params.tenantId,
+          tenantId,
           paymentId: payment.id,
           fileKey: objectKey,
           status: ReceiptStatus.PENDING,
-          note: params.note ?? null
+          note: params.note ?? null,
         });
 
         return await manager.save(PaymentReceiptEntity, receipt);
@@ -125,15 +146,15 @@ export class ReceiptService {
   }
 
   async approveReceipt(params: {
-    tenantId: string;
     receiptId: string;
     actorId: string;
     reviewNote?: string;
   }): Promise<PaymentReceiptEntity> {
-    return this.tenantDbContext.runInTenantScope(params.tenantId, async (manager) => {
+    const tenantId = this.resolveTenantIdOrThrow();
+    return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
       const receipt = await manager.findOne(PaymentReceiptEntity, {
-        where: { id: params.receiptId, tenantId: params.tenantId },
-        relations: ["payment"]
+        where: { id: params.receiptId, tenantId },
+        relations: ["payment"],
       });
 
       if (!receipt) {
@@ -150,8 +171,8 @@ export class ReceiptService {
       }
 
       const regPeek = await manager.findOne(RegistrationEntity, {
-        where: { id: payment.registrationId, tenantId: params.tenantId },
-        select: { id: true, tourId: true, tenantId: true }
+        where: { id: payment.registrationId, tenantId },
+        select: { id: true, tourId: true, tenantId: true },
       });
       if (!regPeek) {
         throw new NotFoundException("Registration not found for receipt payment");
@@ -159,17 +180,17 @@ export class ReceiptService {
       await this.registrationPaymentPort.lockTourRowForUpdate(
         manager,
         regPeek.tourId,
-        regPeek.tenantId
+        regPeek.tenantId,
       );
       const registration = await lockRegistrationByTenantAndId(
         manager,
-        params.tenantId,
-        payment.registrationId
+        tenantId,
+        payment.registrationId,
       );
 
       if (payment.status !== PaymentStatus.PENDING) {
         throw new BadRequestException(
-          `Cannot approve receipt for payment with status ${payment.status}`
+          `Cannot approve receipt for payment with status ${payment.status}`,
         );
       }
 
@@ -187,7 +208,7 @@ export class ReceiptService {
       const { journalId, lines } = await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
         manager,
         payment,
-        "manual_receipt_approve"
+        "manual_receipt_approve",
       );
 
       payment.ledgerJournalId = journalId;
@@ -199,35 +220,35 @@ export class ReceiptService {
         manager,
         registration,
         RegistrationStatus.ACCEPTED_PAID,
-        params.actorId
+        params.actorId,
       );
       validatePaymentTransition(
         updatedRegistration.status,
         updatedRegistration.paymentStatus,
-        RegistrationPaymentStatus.PAID
+        RegistrationPaymentStatus.PAID,
       );
       updatedRegistration.paymentStatus = RegistrationPaymentStatus.PAID;
       this.bookingLedgerAuthority.applyPaidAmountProjectionToRegistration(
         updatedRegistration,
         { paymentStatus: RegistrationPaymentStatus.PAID },
-        lines
+        lines,
       );
       await manager.save(RegistrationEntity, updatedRegistration);
 
-      await this.financeReportsService.invalidateSummaryCache(params.tenantId);
+      await this.financeReportsService.invalidateSummaryCache();
       return savedReceipt;
     });
   }
 
   async rejectReceipt(params: {
-    tenantId: string;
     receiptId: string;
     actorId: string;
     reviewNote?: string;
   }): Promise<PaymentReceiptEntity> {
-    return this.tenantDbContext.runInTenantScope(params.tenantId, async (manager) => {
+    const tenantId = this.resolveTenantIdOrThrow();
+    return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
       const receipt = await manager.findOne(PaymentReceiptEntity, {
-        where: { id: params.receiptId, tenantId: params.tenantId }
+        where: { id: params.receiptId, tenantId },
       });
 
       if (!receipt) {
@@ -244,17 +265,15 @@ export class ReceiptService {
       receipt.reviewNote = params.reviewNote ?? null;
 
       const saved = await manager.save(PaymentReceiptEntity, receipt);
-      await this.financeReportsService.invalidateSummaryCache(params.tenantId);
+      await this.financeReportsService.invalidateSummaryCache();
       return saved;
     });
   }
 
-  async getReceiptSignedUrl(params: {
-    tenantId: string;
-    receiptId: string;
-  }): Promise<string> {
+  async getReceiptSignedUrl(params: { receiptId: string }): Promise<string> {
+    const tenantId = this.resolveTenantIdOrThrow();
     const receipt = await this.receiptRepository.findOne({
-      where: { id: params.receiptId, tenantId: params.tenantId }
+      where: { id: params.receiptId, tenantId },
     });
 
     if (!receipt) {
@@ -264,12 +283,13 @@ export class ReceiptService {
     return this.storage.getSignedUrl(receipt.fileKey, 3600);
   }
 
-  async listPendingReceipts(tenantId: string): Promise<PaymentReceiptEntity[]> {
+  async listPendingReceipts(): Promise<PaymentReceiptEntity[]> {
+    const tenantId = this.resolveTenantIdOrThrow();
     return this.receiptRepository.find({
       where: { tenantId, status: ReceiptStatus.PENDING },
       relations: ["payment"],
       order: { createdAt: "ASC" },
-      take: 100
+      take: 100,
     });
   }
 }

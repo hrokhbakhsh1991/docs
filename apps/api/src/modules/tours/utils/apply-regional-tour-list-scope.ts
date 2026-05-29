@@ -1,6 +1,7 @@
 import type { SelectQueryBuilder } from "typeorm";
 
 import type { TourEntity } from "../entities/tour.entity";
+import type { TourWriteRecord } from "../domain/tour-write-record.types";
 
 export type { RegionalTourListScope } from "../../../common/rbac/capability-grant-context-from-request";
 import type { RegionalTourListScope } from "../../../common/rbac/capability-grant-context-from-request";
@@ -28,13 +29,13 @@ export function applyRegionalTourListScope(
   });
 }
 
-export function tourDestinationRegionId(tour: TourEntity): string | null {
+export function tourDestinationRegionId(tour: TourWriteRecord): string | null {
   const regionId = tour.destination?.region?.id ?? tour.destination?.regionId;
   return typeof regionId === "string" && regionId.trim() !== "" ? regionId.trim() : null;
 }
 
 export function assertTourVisibleInRegionalScope(
-  tour: TourEntity,
+  tour: TourWriteRecord,
   scope: RegionalTourListScope,
 ): boolean {
   if (!scope.restrictToRegions) {

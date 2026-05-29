@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { assertAllowedPaymentStatusTransition } from "./payment-status-transition";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "../domain/payment.types";
 
 test("PENDING to Paid (captured) allowed", () => {
   assertAllowedPaymentStatusTransition(PaymentStatus.PENDING, PaymentStatus.PAID);

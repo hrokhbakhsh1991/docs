@@ -2,12 +2,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
+import { WaitlistItemStatus } from "./domain/waitlist-status";
 
-export enum WaitlistItemStatus {
-  WAITING = "Waiting",
-  CONVERTED = "Converted",
-  CANCELLED = "Cancelled"
-}
+export { WaitlistItemStatus };
 
 @Entity("waitlist_items")
 @Index("idx_waitlist_items_tenant_id", ["tenantId"])

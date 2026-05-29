@@ -15,8 +15,8 @@ export type { DraftSyncPayloadResponse };
 export class DraftEngineService {
   constructor(private readonly facade: DraftEngineFacade) {}
 
-  findForMember(tenantId: string, draftKey: string): Promise<DraftSyncPayloadResponse | null> {
-    return this.facade.findForMember(tenantId, draftKey);
+  findForMember(draftKey: string): Promise<DraftSyncPayloadResponse | null> {
+    return this.facade.findForMember(draftKey);
   }
 
   upsertForMember(
@@ -27,7 +27,7 @@ export class DraftEngineService {
     return this.facade.upsertForMember(tenantId, draftKey, body);
   }
 
-  deleteForMember(tenantId: string, draftKey: string): Promise<void> {
-    return this.facade.deleteForMember(tenantId, draftKey);
+  deleteForMember(draftKey: string): Promise<void> {
+    return this.facade.deleteForMember(draftKey);
   }
 }

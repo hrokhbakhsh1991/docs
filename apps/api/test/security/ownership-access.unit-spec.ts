@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { NotFoundException } from "@nestjs/common";
-import type { DataSource } from "typeorm";
 import { runWithIdempotentEntityManager } from "../../src/modules/idempotency/idempotent-transaction.context";
 import { PaymentEntity, PaymentStatus } from "../../src/modules/payments/entities/payment.entity";
 import { PaymentsService } from "../../src/modules/payments/payments.service";
@@ -231,6 +230,7 @@ test("payment intent denies member access to other member registration", async (
         return {
           id: TEST_REGISTRATION_ID,
           tenantId: TEST_TENANT_ID,
+          tourId: "tour-1",
           status: RegistrationStatus.ACCEPTED,
           paymentStatus: RegistrationPaymentStatus.NOT_PAID,
           quotedTotalMinor: "100",
@@ -285,11 +285,35 @@ test("payment intent denies member access to other member registration", async (
     }
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
+  const paymentRepository = {
+    async runInTransaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
-    }
-  } as unknown as DataSource;
+    },
+    async findPendingForRegistration() {
+      return null;
+    },
+    async findPaidForRegistration() {
+      return null;
+    },
+    async existsPendingForRegistration() {
+      return false;
+    },
+    async existsPaidForRegistration() {
+      return false;
+    },
+    createPayment(_manager: unknown, payload: Record<string, unknown>) {
+      return payload;
+    },
+    async savePayment(_manager: unknown, entity: unknown) {
+      return paymentEntityContractFixture({
+        ...(entity as Record<string, unknown>),
+        id: TEST_PAYMENT_ID,
+        tenantId: TEST_TENANT_ID,
+        registrationId: TEST_REGISTRATION_ID,
+        status: PaymentStatus.PENDING,
+      });
+    },
+  };
 
   const resolverStub = {
     async resolveRegistrationForCreateIntent(m: typeof manager, dto: { registrationId: string }) {
@@ -312,10 +336,7 @@ test("payment intent denies member access to other member registration", async (
   };
 
   const service = new PaymentsService(
-    {} as never,
-    {} as never,
-    {} as never,
-    dataSource,
+    paymentRepository as never,
     {
       getRole: () => "member",
       resolveEffectiveTenantId: () => TEST_TENANT_ID,

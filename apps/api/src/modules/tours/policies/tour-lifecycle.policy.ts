@@ -1,6 +1,8 @@
 import { BadRequestException } from "@nestjs/common";
 import { isTourLifecycleTransitionAllowed } from "@repo/shared";
-import { TourEntity as Tour, TourLifecycleStatus } from "../entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
+
+import type { TourCapacityPolicySnapshot } from "../domain/tour-policy.types";
 import { TOUR_DURATION_DAYS_MAX, TOUR_DURATION_DAYS_MIN } from "../utils/tour-duration";
 
 /** Shape used to validate title/capacity/details before setting lifecycle to OPEN (create or transition). */
@@ -71,7 +73,7 @@ export function assertValidLifecycleTransition(
   });
 }
 
-export function assertTourIsOpenForRegistration(tour: Tour): void {
+export function assertTourIsOpenForRegistration(tour: TourCapacityPolicySnapshot): void {
   if (tour.lifecycleStatus === TourLifecycleStatus.OPEN) {
     return;
   }
@@ -100,7 +102,7 @@ export function isTourDraftToOpenPublishTransition(
 /**
  * Validates that a persisted DRAFT tour may transition to OPEN (draft gate + readiness).
  */
-export function assertTourIsPublishable(tour: Tour): void {
+export function assertTourIsPublishable(tour: TourCapacityPolicySnapshot & TourOpenReadinessInput): void {
   assertTourOpenReadiness({
     title: tour.title,
     totalCapacity: tour.totalCapacity,

@@ -24,6 +24,8 @@ import { SettingsRegionsService } from "./settings-regions.service";
 import { TourCreationPresetsSettingsService } from "./tour-creation-presets-settings.service";
 import { TourWizardTemplateSettingsService } from "./tour-wizard-template-settings.service";
 import { TourThemesSettingsService } from "./tour-themes-settings.service";
+import { WORKSPACE_SETTINGS_REPOSITORY_PORT } from "./domain/ports/workspace-settings-repository.port";
+import { TypeOrmWorkspaceSettingsRepository } from "./repositories/typeorm-workspace-settings.repository";
 
 @Module({
   imports: [
@@ -49,6 +51,10 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
     SettingsTourWizardTemplateController,
   ],
   providers: [
+    {
+      provide: WORKSPACE_SETTINGS_REPOSITORY_PORT,
+      useClass: TypeOrmWorkspaceSettingsRepository,
+    },
     SettingsRegionsService,
     SettingsDestinationsService,
     EquipmentSettingsService,
@@ -56,6 +62,7 @@ import { TourThemesSettingsService } from "./tour-themes-settings.service";
     TourThemesSettingsService,
     TourCreationPresetsSettingsService,
     TourWizardTemplateSettingsService,
-  ]
+  ],
+  exports: [WORKSPACE_SETTINGS_REPOSITORY_PORT],
 })
 export class SettingsLocationsModule {}

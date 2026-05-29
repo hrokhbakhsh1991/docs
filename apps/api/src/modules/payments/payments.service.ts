@@ -6,10 +6,9 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, IsNull, Not, Repository } from "typeorm";
-import { TenantContextMissingError } from "../../common/errors/tenant-context-missing.error";
+import type { EntityManager } from "typeorm";
 import {
+  tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../common/errors/error-response-builders";
 import {
@@ -31,8 +30,6 @@ import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { UserRole } from "../../common/auth/user-role.enum";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
-import { TenantEntity } from "../identity/entities/tenant.entity";
-import { UserEntity } from "../identity/entities/user.entity";
 import {
   RegistrationEntity,
   RegistrationStatus
@@ -43,7 +40,12 @@ import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-boo
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
-import { PaymentEntity, PaymentStatus } from "./entities/payment.entity";
+import { PaymentStatus } from "./entities/payment.entity";
+import type { PaymentRecord } from "./domain/payment-record.types";
+import {
+  PAYMENT_REPOSITORY_PORT,
+  type PaymentRepositoryPort
+} from "./domain/ports/payment-repository.port";
 import { PaymentIntentRegistrationResolverApplicationService } from "./application/payment-intent-registration-resolver.application.service";
 import { assertPaymentIntentMatchesBookingSnapshot } from "./domain/assert-payment-intent-matches-booking-snapshot";
 import {
@@ -70,7 +72,7 @@ import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-fi
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYMENT_TIMEOUT_BATCH = 100;
 
-function pickFinancialPaymentSnapshot(payment: PaymentEntity): Record<string, unknown> {
+function pickFinancialPaymentSnapshot(payment: PaymentRecord): Record<string, unknown> {
   return {
     id: payment.id,
     tenantId: payment.tenantId,
@@ -132,13 +134,8 @@ export class PaymentsService {
   private webhookDedupedTotal = 0;
 
   constructor(
-    @InjectRepository(PaymentEntity)
-    private readonly paymentRepository: Repository<PaymentEntity>,
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
-    @InjectRepository(TenantEntity)
-    private readonly tenantRepository: Repository<TenantEntity>,
-    @Inject(DataSource) private readonly dataSource: DataSource,
+    @Inject(PAYMENT_REPOSITORY_PORT)
+    private readonly paymentRepository: PaymentRepositoryPort,
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
     @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
     @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
@@ -155,6 +152,14 @@ export class PaymentsService {
     @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
   ) {}
 
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId?.trim()) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId.trim().toLowerCase();
+  }
+
   private async loadBookingFinalizationFacts(
     manager: EntityManager,
     registration: RegistrationEntity
@@ -163,20 +168,16 @@ export class PaymentsService {
       manager.exists(BookingPriceSnapshotEntity, {
         where: { bookingId: registration.id, tenantId: registration.tenantId }
       }),
-      manager.exists(PaymentEntity, {
-        where: {
-          registrationId: registration.id,
-          tenantId: registration.tenantId,
-          status: PaymentStatus.PENDING
-        }
-      }),
-      manager.exists(PaymentEntity, {
-        where: {
-          registrationId: registration.id,
-          tenantId: registration.tenantId,
-          status: PaymentStatus.PAID
-        }
-      })
+      this.paymentRepository.existsPendingForRegistration(
+        manager,
+        registration.id,
+        registration.tenantId
+      ),
+      this.paymentRepository.existsPaidForRegistration(
+        manager,
+        registration.id,
+        registration.tenantId
+      )
     ]);
     return {
       hasPriceSnapshot,
@@ -208,7 +209,7 @@ export class PaymentsService {
   }
 
   async createPaymentIntentWithManager(
-    manager: DataSource["manager"],
+    manager: EntityManager,
     dto: CreatePaymentIntentDto
   ): Promise<PaymentResponseDto> {
     assertFinancialMutationRunsInIdempotentScope("createPaymentIntentWithManager");
@@ -233,13 +234,11 @@ export class PaymentsService {
       "createPaymentIntent",
     );
 
-    const existingPending = await manager.findOne(PaymentEntity, {
-      where: {
-        registrationId: registration.id,
-        tenantId: registration.tenantId,
-        status: PaymentStatus.PENDING
-      }
-    });
+    const existingPending = await this.paymentRepository.findPendingForRegistration(
+      manager,
+      registration.id,
+      registration.tenantId
+    );
     if (existingPending) {
       throw new ConflictException({
         error: {
@@ -248,13 +247,11 @@ export class PaymentsService {
         }
       });
     }
-    const existingPaid = await manager.findOne(PaymentEntity, {
-      where: {
-        registrationId: registration.id,
-        tenantId: registration.tenantId,
-        status: PaymentStatus.PAID
-      }
-    });
+    const existingPaid = await this.paymentRepository.findPaidForRegistration(
+      manager,
+      registration.id,
+      registration.tenantId
+    );
     if (existingPaid) {
       throw new ConflictException({
         error: {
@@ -317,7 +314,7 @@ export class PaymentsService {
       gatewayCheckoutUrl = gatewayResult.checkoutUrl ?? null;
     }
 
-    const payment = manager.create(PaymentEntity, {
+    const payment = this.paymentRepository.createPayment(manager, {
       tenantId: registration.tenantId,
       registrationId: registration.id,
       amount: dto.amount.toString(),
@@ -329,7 +326,7 @@ export class PaymentsService {
       failedAt: null,
       refundedAt: null
     });
-    const saved = await manager.save(payment);
+    const saved = await this.paymentRepository.savePayment(manager, payment);
     this.paymentIntentsCreatedTotal += 1;
     await this.outboxService.addEvent(manager, {
       tenantId: registration.tenantId,
@@ -372,18 +369,9 @@ export class PaymentsService {
     };
   }
 
-  async listPayments(tenantId: string): Promise<PaymentResponseDto[]> {
-    const normalizedTenantId = tenantId.trim().toLowerCase();
-    if (!normalizedTenantId) {
-      throw new TenantContextMissingError(
-        "Tenant context is missing tenant_id for admin payment listing"
-      );
-    }
-    const rows = await this.paymentRepository.find({
-      where: { tenantId: normalizedTenantId, deletedAt: IsNull() },
-      order: { createdAt: "DESC" },
-      take: 100
-    });
+  async listPayments(): Promise<PaymentResponseDto[]> {
+    const normalizedTenantId = this.resolveTenantIdOrThrow();
+    const rows = await this.paymentRepository.listByTenant(normalizedTenantId);
     return rows.map((row) => this.toResponse(row));
   }
 
@@ -391,14 +379,10 @@ export class PaymentsService {
     registrationId: string
   ): Promise<PaymentResponseDto | null> {
     const registration = await this.requireRegistrationOwnedByActor(registrationId);
-    const row = await this.paymentRepository.findOne({
-      where: {
-        registrationId,
-        tenantId: registration.tenantId,
-        deletedAt: IsNull()
-      },
-      order: { createdAt: "DESC" }
-    });
+    const row = await this.paymentRepository.findLatestByRegistration(
+      registrationId,
+      registration.tenantId
+    );
     if (!row) {
       return null;
     }
@@ -410,10 +394,9 @@ export class PaymentsService {
     registrationId: string,
     manager?: EntityManager
   ): Promise<RegistrationEntity> {
-    const mgr = manager ?? this.paymentRepository.manager;
+    const mgr = manager ?? this.paymentRepository.getDefaultEntityManager();
     const regWhere = await registrationWhereForActor(
       mgr,
-      this.userRepository,
       this.requestContextService,
       registrationId
     );
@@ -444,8 +427,7 @@ export class PaymentsService {
 
   async getPaymentById(id: string): Promise<PaymentResponseDto> {
     const row = await findPaymentScopedForActor(
-      this.paymentRepository.manager,
-      this.userRepository,
+      this.paymentRepository.getDefaultEntityManager(),
       this.requestContextService,
       id
     );
@@ -461,12 +443,10 @@ export class PaymentsService {
       // Scope is the validated body tenant combined with providerPaymentId in the lookup below
       // (no widening: wrong tenant_id yields no payment row).
       this.requestContextService.setTenantId(payloadTenantId);
-      const payment = await this.paymentRepository.findOne({
-        where: {
-          providerPaymentId: payload.providerPaymentId,
-          tenantId: payloadTenantId
-        }
-      });
+      const payment = await this.paymentRepository.findByProviderPaymentId(
+        payload.providerPaymentId,
+        payloadTenantId
+      );
       if (!payment) {
         this.webhookUnknownPaymentTotal += 1;
         return {
@@ -501,13 +481,12 @@ export class PaymentsService {
         });
       }
 
-      return await this.dataSource.transaction(async (manager) => {
-        const scopedPayment = await manager.findOne(PaymentEntity, {
-          where: {
-            providerPaymentId: payload.providerPaymentId,
-            tenantId: payloadTenantId
-          }
-        });
+      return await this.paymentRepository.runInTransaction(async (manager) => {
+        const scopedPayment = await this.paymentRepository.findByProviderPaymentIdWithManager(
+          manager,
+          payload.providerPaymentId,
+          payloadTenantId
+        );
         if (!scopedPayment) {
           this.webhookUnknownPaymentTotal += 1;
           return {
@@ -523,7 +502,6 @@ export class PaymentsService {
         }
         const result = await this.idempotencyService.executeWithIdempotency(
           {
-            tenantId: scopedPayment.tenantId,
             key: requestId,
             endpoint: "/internal/payments/webhook",
             requestHash: this.idempotencyService.createRequestHash({
@@ -598,7 +576,6 @@ export class PaymentsService {
     const em = getIdempotentEntityManager()!;
     const payment = await findPaymentScopedForActor(
       em,
-      this.userRepository,
       this.requestContextService,
       id
     );
@@ -616,24 +593,16 @@ export class PaymentsService {
   async failTimedOutPendingPayments(): Promise<number> {
     const threshold = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60_000);
     let timedOutThisRun = 0;
-    const tenants = await this.tenantRepository.find({
-      select: { id: true },
-      where: { deletedAt: IsNull() }
-    });
+    const tenants = await this.paymentRepository.listActiveTenantIds();
 
-    for (const tenant of tenants) {
-      await this.tenantDbContext.runInTenantScope(tenant.id, async (manager) => {
-        const rows = await manager
-          .getRepository(PaymentEntity)
-          .createQueryBuilder("p")
-          .where("p.tenant_id = :tenantId", { tenantId: tenant.id })
-          .andWhere("p.status = :status", { status: PaymentStatus.PENDING })
-          .andWhere("p.created_at <= :threshold", { threshold })
-          .orderBy("p.created_at", "ASC")
-          .take(PAYMENT_TIMEOUT_BATCH)
-          .setLock("pessimistic_write")
-          .setOnLocked("skip_locked")
-          .getMany();
+    for (const tenantId of tenants) {
+      await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
+        const rows = await this.paymentRepository.findLockedTimedOutPending(
+          manager,
+          tenantId,
+          threshold,
+          PAYMENT_TIMEOUT_BATCH
+        );
 
         for (const payment of rows) {
           await this.applyPaymentStatus(
@@ -656,13 +625,13 @@ export class PaymentsService {
   }
 
   private async applyPaymentStatus(
-    manager: DataSource["manager"],
-    payment: PaymentEntity,
+    manager: EntityManager,
+    payment: PaymentRecord,
     next: PaymentStatus,
     actorId: string,
     reason?: string,
     ledgerIdempotencyKey?: string
-  ): Promise<PaymentEntity> {
+  ): Promise<PaymentRecord> {
     enforcePaymentIntentFinanceContract(
       {
         id: payment.id,
@@ -767,14 +736,12 @@ export class PaymentsService {
         actorId
       );
 
-      const otherPending = await manager.exists(PaymentEntity, {
-        where: {
-          registrationId: registration.id,
-          tenantId: registration.tenantId,
-          status: PaymentStatus.PENDING,
-          id: Not(payment.id)
-        }
-      });
+      const otherPending = await this.paymentRepository.existsOtherPendingForRegistration(
+        manager,
+        registration.id,
+        registration.tenantId,
+        payment.id
+      );
       if (otherPending) {
         throw new ConflictException({
           error: {
@@ -828,7 +795,7 @@ export class PaymentsService {
       this.autoRecoveredCapacityCount += 1;
     }
 
-    const saved = await manager.save(payment);
+    const saved = await this.paymentRepository.savePayment(manager, payment);
     await this.outboxService.addEvent(manager, {
       tenantId: saved.tenantId,
       aggregateType: "Payment",
@@ -855,7 +822,7 @@ export class PaymentsService {
       next === PaymentStatus.FAILED ||
       next === PaymentStatus.REFUNDED
     ) {
-      await this.financeReportsService.invalidateSummaryCache(saved.tenantId);
+      await this.financeReportsService.invalidateSummaryCache();
     }
 
     return saved;
@@ -873,7 +840,7 @@ export class PaymentsService {
     return code === "PAYMENT_STATUS_TRANSITION_INVALID";
   }
 
-  private toResponse(entity: PaymentEntity): PaymentResponseDto {
+  private toResponse(entity: PaymentRecord): PaymentResponseDto {
     return {
       id: entity.id,
       tenantId: entity.tenantId,
@@ -887,8 +854,8 @@ export class PaymentsService {
       paidAt: entity.paidAt ? entity.paidAt.toISOString() : null,
       failedAt: entity.failedAt ? entity.failedAt.toISOString() : null,
       refundedAt: entity.refundedAt ? entity.refundedAt.toISOString() : null,
-      createdAt: entity.createdAt.toISOString(),
-      updatedAt: entity.updatedAt.toISOString()
+      createdAt: entity.createdAt?.toISOString() ?? new Date(0).toISOString(),
+      updatedAt: entity.updatedAt?.toISOString() ?? new Date(0).toISOString()
     };
   }
 }

@@ -1,12 +1,11 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
-  NotFoundException
+  NotFoundException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
 
 import {
   defaultTourFormProfileForTourType,
@@ -20,8 +19,11 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import type { CreateWorkspaceTourCreationPresetDto } from "./dto/create-workspace-tour-creation-preset.dto";
 import type { UpdateWorkspaceTourCreationPresetDto } from "./dto/update-workspace-tour-creation-preset.dto";
 import { WorkspaceTourCreationPresetResponseDto } from "./dto/workspace-tour-creation-preset-response.dto";
+import {
+  WORKSPACE_SETTINGS_REPOSITORY_PORT,
+  type WorkspaceSettingsRepositoryPort,
+} from "./domain/ports/workspace-settings-repository.port";
 import { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
-import { WorkspaceTourThemeEntity } from "./entities/workspace-tour-theme.entity";
 import {
   detectPresetThemeProfileDrift,
   formatPresetDriftWarning,
@@ -51,12 +53,12 @@ export class TourCreationPresetsSettingsService {
   private readonly logger = new Logger(TourCreationPresetsSettingsService.name);
 
   constructor(
-    @InjectRepository(WorkspaceTourCreationPresetEntity)
-    private readonly presetsRepository: Repository<WorkspaceTourCreationPresetEntity>,
-    @InjectRepository(WorkspaceTourThemeEntity)
-    private readonly themesRepository: Repository<WorkspaceTourThemeEntity>,
+    @Inject(WORKSPACE_SETTINGS_REPOSITORY_PORT)
+    private readonly settingsRepository: WorkspaceSettingsRepositoryPort,
+    @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
-    private readonly auditLogService: AuditLogService
+    @Inject(AuditLogService)
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private resolveWorkspaceOrThrow(): string {
@@ -187,10 +189,10 @@ export class TourCreationPresetsSettingsService {
       (typeof overview.mainTourThemeId === "string" ? overview.mainTourThemeId : null);
 
     const lookup: ThemeLookup = async (themeId) => {
-      const theme = await this.themesRepository.findOne({
-        where: { id: themeId, workspaceId: opts.workspaceId },
-        select: { id: true, formProfile: true },
-      });
+      const theme = await this.settingsRepository.findTourThemeFormProfileById(
+        opts.workspaceId,
+        themeId,
+      );
       return theme ? { id: theme.id, formProfile: theme.formProfile } : null;
     };
 
@@ -252,16 +254,13 @@ export class TourCreationPresetsSettingsService {
 
   async findAllByWorkspace(): Promise<WorkspaceTourCreationPresetResponseDto[]> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const rows = await this.presetsRepository.find({
-      where: { workspaceId },
-      order: { sortOrder: "ASC", name: "ASC" }
-    });
+    const rows = await this.settingsRepository.listTourCreationPresets(workspaceId);
     return rows.map((r) => this.toResponse(r));
   }
 
   async findOneById(id: string): Promise<WorkspaceTourCreationPresetResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.presetsRepository.findOne({ where: { id, workspaceId } });
+    const row = await this.settingsRepository.findTourCreationPresetById(workspaceId, id);
     if (!row) {
       throw new NotFoundException({
         error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
@@ -292,7 +291,7 @@ export class TourCreationPresetsSettingsService {
       ? {}
       : this.assertPlainDefaults(dto.defaults ?? {}, formProfile);
 
-    const row = this.presetsRepository.create({
+    const row = this.settingsRepository.newTourCreationPreset({
       workspaceId,
       name: dto.name.trim(),
       description: this.normalizeNullableText(dto.description),
@@ -311,7 +310,7 @@ export class TourCreationPresetsSettingsService {
       defaults,
       matchMainTourThemeId,
     });
-    const saved = await this.presetsRepository.save(row);
+    const saved = await this.settingsRepository.saveTourCreationPreset(row);
     void this.auditLogService.logEvent({
       category: AUDIT_CATEGORY.SECURITY,
       action: "preset.create",
@@ -324,7 +323,7 @@ export class TourCreationPresetsSettingsService {
 
   async update(id: string, dto: UpdateWorkspaceTourCreationPresetDto): Promise<WorkspaceTourCreationPresetResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.presetsRepository.findOne({ where: { id, workspaceId } });
+    const row = await this.settingsRepository.findTourCreationPresetById(workspaceId, id);
     if (!row) {
       throw new NotFoundException({
         error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
@@ -388,7 +387,7 @@ export class TourCreationPresetsSettingsService {
         matchMainTourThemeId: row.matchMainTourThemeId,
       });
     }
-    const saved = await this.presetsRepository.save(row);
+    const saved = await this.settingsRepository.saveTourCreationPreset(row);
     void this.auditLogService.logEvent({
       category: AUDIT_CATEGORY.SECURITY,
       action: "preset.update",
@@ -401,14 +400,14 @@ export class TourCreationPresetsSettingsService {
 
   async remove(id: string): Promise<void> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.presetsRepository.findOne({ where: { id, workspaceId } });
+    const row = await this.settingsRepository.findTourCreationPresetById(workspaceId, id);
     if (!row) {
       throw new NotFoundException({
         error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
       });
     }
-    const res = await this.presetsRepository.delete({ id, workspaceId });
-    if (!res.affected) {
+    const affected = await this.settingsRepository.deleteTourCreationPreset(workspaceId, id);
+    if (!affected) {
       throw new NotFoundException({
         error: { code: "RESOURCE_NOT_FOUND", message: "Tour creation preset not found" }
       });
@@ -424,10 +423,7 @@ export class TourCreationPresetsSettingsService {
 
   async reorder(itemIds: string[]): Promise<WorkspaceTourCreationPresetResponseDto[]> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const existing = await this.presetsRepository.find({
-      where: { workspaceId },
-      select: { id: true }
-    });
+    const existing = await this.settingsRepository.listTourCreationPresetIds(workspaceId);
     const existingIds = new Set(existing.map((r) => r.id));
     if (existingIds.size !== itemIds.length) {
       throw new BadRequestException({
@@ -450,15 +446,7 @@ export class TourCreationPresetsSettingsService {
       seen.add(pid);
     }
 
-    await this.presetsRepository.manager.transaction(async (em) => {
-      for (let i = 0; i < itemIds.length; i += 1) {
-        await em.update(
-          WorkspaceTourCreationPresetEntity,
-          { id: itemIds[i], workspaceId },
-          { sortOrder: i }
-        );
-      }
-    });
+    await this.settingsRepository.reorderTourCreationPresets(workspaceId, itemIds);
 
     return this.findAllByWorkspace();
   }

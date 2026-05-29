@@ -1,7 +1,9 @@
-import { Inject, Injectable, Optional } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable, Optional } from "@nestjs/common";
 import type { Redis } from "ioredis";
 import { Like } from "typeorm";
 import { OutboxEventEntity } from "../../../common/outbox/entities/outbox-event.entity";
+import { tenantContextMissingError } from "../../../common/errors/error-response-builders";
+import { RequestContextService } from "../../../common/request-context/request-context.service";
 import { ConfigService } from "../../../config/config.service";
 import { TenantDbContextService } from "../../../database/tenant-db-context.service";
 import { REDIS_CLIENT } from "../../../infra/redis/redis.constants";
@@ -67,15 +69,25 @@ function mapOutboxRowToLedgerEvent(row: OutboxEventEntity, tenantId: string): Fi
 export class FinanceReportsService {
   constructor(
     @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Optional() @Inject(REDIS_CLIENT) private readonly redis: Redis | null
   ) {}
+
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId?.trim()) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId.trim();
+  }
 
   private summaryCacheKey(tenantId: string): string {
     return `${SUMMARY_CACHE_PREFIX}${tenantId}`;
   }
 
-  async invalidateSummaryCache(tenantId: string): Promise<void> {
+  async invalidateSummaryCache(): Promise<void> {
+    const tenantId = this.resolveTenantIdOrThrow();
     if (!this.redis || this.configService.getNodeEnv() === "test") {
       return;
     }
@@ -86,7 +98,8 @@ export class FinanceReportsService {
     }
   }
 
-  async getSummary(tenantId: string): Promise<FinanceReportsSummary> {
+  async getSummary(): Promise<FinanceReportsSummary> {
+    const tenantId = this.resolveTenantIdOrThrow();
     if (this.redis && this.configService.getNodeEnv() !== "test") {
       try {
         const cached = await this.redis.get(this.summaryCacheKey(tenantId));
@@ -155,7 +168,8 @@ export class FinanceReportsService {
     });
   }
 
-  async listLedgerEvents(tenantId: string, limit = 50): Promise<FinanceLedgerEventRow[]> {
+  async listLedgerEvents(limit = 50): Promise<FinanceLedgerEventRow[]> {
+    const tenantId = this.resolveTenantIdOrThrow();
     const capped = Math.min(Math.max(limit, 1), 200);
     return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
       const rows = await manager.find(OutboxEventEntity, {
@@ -185,7 +199,8 @@ export class FinanceReportsService {
     });
   }
 
-  async listOpenPayments(tenantId: string, limit = 100): Promise<FinanceOpenPaymentRow[]> {
+  async listOpenPayments(limit = 100): Promise<FinanceOpenPaymentRow[]> {
+    const tenantId = this.resolveTenantIdOrThrow();
     return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
       const rows = await manager.find(PaymentEntity, {
         where: { tenantId, status: PaymentStatus.PENDING },

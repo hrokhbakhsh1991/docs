@@ -19,9 +19,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse
 } from "@nestjs/swagger";
-import { InjectRepository } from "@nestjs/typeorm";
 import type { Response } from "express";
-import { IsNull, Repository } from "typeorm";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TENANT_AUDIT_LIST_DEFAULT_LIMIT } from "../../common/audit/tenant-audit.constants";
 import {
@@ -40,7 +38,10 @@ import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
 import { ExportTenantAuditQueryDto } from "./dto/export-tenant-audit-query.dto";
 import { ListDraftConflictsQueryDto } from "./dto/list-draft-conflicts-query.dto";
 import { ListTenantAuditQueryDto } from "./dto/list-tenant-audit-query.dto";
-import { UserEntity } from "./entities/user.entity";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort,
+} from "./domain/ports/workspace-identity-repository.port";
 
 @ApiTags("Compliance")
 @Controller("api/v2/workspaces")
@@ -53,8 +54,8 @@ export class TenantAuditEventsController {
     private readonly tenantAuditEventsService: TenantAuditEventsService,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort
   ) {}
 
   /**
@@ -105,9 +106,7 @@ export class TenantAuditEventsController {
       });
     }
 
-    const exporter = await this.userRepository.findOne({
-      where: { id: exporterUserId, deletedAt: IsNull() }
-    });
+    const exporter = await this.identityRepository.findUserById(exporterUserId);
     const actorLabel = exporter?.email ?? exporterUserId;
 
     const from = query.from ? new Date(query.from) : undefined;

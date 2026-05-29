@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import type { EntityManager, FindOptionsWhere, Repository } from "typeorm";
+import type { EntityManager, FindOptionsWhere } from "typeorm";
 import { IsNull } from "typeorm";
 import { UserRole, tryParseWorkspaceUserRole } from "../auth/user-role.enum";
 import {
@@ -92,7 +92,6 @@ async function resolveMemberIdentity(
 
 export async function registrationWhereForActor(
   manager: EntityManager,
-  _userRepo: Repository<UserEntity>,
   ctx: RequestContextService,
   registrationId: string
 ): Promise<FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[]> {
@@ -149,7 +148,6 @@ export async function registrationWhereForActor(
 
 export async function waitlistWhereForActor(
   manager: EntityManager,
-  _userRepo: Repository<UserEntity>,
   ctx: RequestContextService,
   waitlistItemId: string
 ): Promise<FindOptionsWhere<WaitlistItemEntity>> {
@@ -199,7 +197,6 @@ export async function waitlistWhereForActor(
  */
 export async function findPaymentScopedForActor(
   manager: EntityManager,
-  userRepo: Repository<UserEntity>,
   ctx: RequestContextService,
   paymentId: string
 ): Promise<PaymentEntity> {
@@ -252,7 +249,6 @@ export async function findPaymentScopedForActor(
   if (isWorkspaceMember(actor.role)) {
     const regWhere = await registrationWhereForActor(
       manager,
-      userRepo,
       ctx,
       payment.registrationId
     );

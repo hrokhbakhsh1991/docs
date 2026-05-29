@@ -53,7 +53,7 @@ export class SafetyProfileService {
     const tenantId = this.resolveTenantId();
     const ability = this.abilityFactory.createForActiveRequest();
     assertCanReadEmergencyContacts(ability, targetUserId);
-    await this.usersAccess.findTenantScopedUserOrThrow(tenantId, targetUserId);
+    await this.usersAccess.findTenantScopedUserOrThrow(targetUserId);
     const rows = await this.emergencyRepo.find({
       where: { tenantId, userId: targetUserId, deletedAt: IsNull() },
       order: { sortOrder: "ASC", createdAt: "ASC" }
@@ -81,7 +81,7 @@ export class SafetyProfileService {
     const tenantId = this.resolveTenantId();
     const ability = this.abilityFactory.createForActiveRequest();
     assertCanUpdateEmergencyContacts(ability, targetUserId);
-    await this.usersAccess.findTenantScopedUserOrThrow(tenantId, targetUserId);
+    await this.usersAccess.findTenantScopedUserOrThrow(targetUserId);
 
     return this.dataSource.transaction(async (mgr) => {
       await mgr.softDelete(EmergencyContactEntity, { tenantId, userId: targetUserId });
@@ -119,7 +119,7 @@ export class SafetyProfileService {
     const tenantId = this.resolveTenantId();
     const ability = this.abilityFactory.createForActiveRequest();
     assertCanReadMedicalProfile(ability, targetUserId);
-    await this.usersAccess.findTenantScopedUserOrThrow(tenantId, targetUserId);
+    await this.usersAccess.findTenantScopedUserOrThrow(targetUserId);
 
     const row = await this.medicalRepo.findOne({
       where: { tenantId, userId: targetUserId, deletedAt: IsNull() }
@@ -155,7 +155,7 @@ export class SafetyProfileService {
     const tenantId = this.resolveTenantId();
     const ability = this.abilityFactory.createForActiveRequest();
     assertCanUpdateMedicalProfile(ability, targetUserId);
-    await this.usersAccess.findTenantScopedUserOrThrow(tenantId, targetUserId);
+    await this.usersAccess.findTenantScopedUserOrThrow(targetUserId);
 
     const material = await this.medicalCrypto.encrypt(plaintextPayloadUtf8);
 

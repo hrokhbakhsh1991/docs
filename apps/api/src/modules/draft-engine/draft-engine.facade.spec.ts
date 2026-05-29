@@ -82,6 +82,7 @@ function createFacade(
   const requestContext = {
     tryGetCorrelationId: () => "trace-test",
     tryGetRequestId: () => "trace-test",
+    resolveEffectiveTenantId: () => "ws-1",
   } as unknown as RequestContextService;
   return new DraftEngineFacade(
     store as never,
@@ -102,7 +103,7 @@ test("findForMember hides incomplete denali draft after migration when effective
   });
   const facade = createFacade(store);
 
-  const result = await facade.findForMember("ws-1", "denali-create");
+  const result = await facade.findForMember("denali-create");
   assert.equal(result, null);
 });
 
@@ -119,7 +120,7 @@ test("findForMember with V2 off still hides effectively empty denali payload", a
       lastModified: 1000,
     });
     const facade = createFacade(store);
-    const result = await facade.findForMember("ws-1", "denali-create");
+    const result = await facade.findForMember("denali-create");
     assert.equal(result, null);
   } finally {
     if (prevV2 !== undefined) {
@@ -143,7 +144,7 @@ test("findForMember hides empty denali draft payloads", async () => {
     lastModified: 1000,
   });
   const facade = createFacade(store);
-  const result = await facade.findForMember("ws-1", "denali-create");
+  const result = await facade.findForMember("denali-create");
   assert.equal(result, null);
 });
 
@@ -155,7 +156,7 @@ test("findForMember keeps non-empty denali draft payloads", async () => {
     lastModified: 1000,
   });
   const facade = createFacade(store);
-  const result = await facade.findForMember("ws-1", "denali-create");
+  const result = await facade.findForMember("denali-create");
   assert.ok(result);
 });
 
@@ -218,6 +219,6 @@ test("deleteForMember persists draft_deleted event", async () => {
   });
   const events: Array<{ eventType: string; baseVersion: number | null; nextVersion: number | null }> = [];
   const facade = createFacade(store, undefined, { draftEvents: events });
-  await facade.deleteForMember("ws-1", "denali-create");
+  await facade.deleteForMember("denali-create");
   assert.ok(events.some((event) => event.eventType === "draft_deleted"));
 });

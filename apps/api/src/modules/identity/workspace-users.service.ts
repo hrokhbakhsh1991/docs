@@ -5,7 +5,6 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
 import {
   membershipHasSelectableLeader,
   parseMembershipMetadata,
@@ -13,7 +12,6 @@ import {
   WORKSPACE_REWARD_BADGE_IDS,
   type WorkspaceRewardBadgeId
 } from "@repo/shared";
-import { DataSource, IsNull } from "typeorm";
 import { normalizeMembershipLabels } from "../../common/rbac/normalize-membership-labels";
 import { TenantAuditAction } from "../../common/audit/tenant-audit-actions";
 import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
@@ -27,11 +25,12 @@ import { tenantScopedResourceNotFoundError } from "../../common/errors/error-res
 import type { PostToggleSelectableLeaderDto } from "./dto/post-toggle-selectable-leader.dto";
 import type { PostWorkspaceUserRewardsDto } from "./dto/post-workspace-user-rewards.dto";
 import type { UserBookingSummaryResponseDto } from "./dto/user-booking-summary-response.dto";
-import { UserTenantEntity } from "./entities/user-tenant.entity";
 import type { UserResponseDto } from "./dto/user-response.dto";
-import { UserRoleAuditEntity } from "./entities/user-role-audit.entity";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort
+} from "./domain/ports/workspace-identity-repository.port";
 import { UsersAccessService } from "./users-access.service";
-import { applyMembershipMetadataJsonbPatch } from "./membership-metadata-jsonb";
 import { readRawCapabilityTokens } from "./membership-raw-capabilities";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
@@ -44,7 +43,8 @@ export class WorkspaceUsersService {
     private readonly bookingSummaries: WorkspaceUserBookingSummaryService,
     @Inject(UsersMemberWalletBalancesService)
     private readonly memberWalletBalances: UsersMemberWalletBalancesService,
-    @InjectDataSource() private readonly dataSource: DataSource,
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
     @Inject(TenantAuditEventsService)
@@ -52,7 +52,7 @@ export class WorkspaceUsersService {
   ) {}
 
   private async toEnrichedUserResponse(tenantId: string, userId: string): Promise<UserResponseDto> {
-    const row = await this.access.findTenantScopedUserOrThrow(tenantId, userId);
+    const row = await this.access.findTenantScopedUserOrThrow(userId);
     const [walletMap, bookingMap] = await Promise.all([
       this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]),
       this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId])
@@ -74,7 +74,7 @@ export class WorkspaceUsersService {
         }
       });
     }
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     const newRoleValue = tryParseWorkspaceUserRole(role);
     if (!newRoleValue) {
@@ -86,9 +86,7 @@ export class WorkspaceUsersService {
       });
     }
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -111,22 +109,21 @@ export class WorkspaceUsersService {
 
     if (tryParseWorkspaceUserRole(membership.role) === newRoleValue) {
       return this.access.toUserResponseDto(
-        await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+        await this.access.findTenantScopedUserOrThrow(userId)
       );
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.query(
-        `UPDATE user_tenants SET role = $1, session_version = session_version + 1, updated_at = now()
-         WHERE id = $2 AND tenant_id = $3 AND deleted_at IS NULL`,
-        [newRoleValue, membership.id, tenantId]
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.updateMembershipRoleWithSessionBump(
+        manager,
+        tenantId,
+        membership.id,
+        newRoleValue
       );
-      await manager.insert(UserRoleAuditEntity, {
+      await this.identityRepository.insertUserRoleAuditEntry(manager, {
         tenantId,
         actorUserId,
         targetUserId: userId,
@@ -155,14 +152,14 @@ export class WorkspaceUsersService {
     });
 
     return this.access.toUserResponseDto(
-      await this.access.findTenantScopedUserOrThrow(tenantId, userId)
+      await this.access.findTenantScopedUserOrThrow(userId)
     );
   }
 
   async postUserRewards(userId: string, payload: PostWorkspaceUserRewardsDto): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
     if (
       payload.permanentDiscountPercentage === undefined &&
@@ -205,9 +202,7 @@ export class WorkspaceUsersService {
               (WORKSPACE_REWARD_BADGE_IDS as readonly string[]).includes(b)
             );
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -234,25 +229,25 @@ export class WorkspaceUsersService {
       );
     }
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const normalizedLabels =
       payload.labels === undefined ? undefined : normalizeMembershipLabels(payload.labels);
 
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await applyMembershipMetadataJsonbPatch(manager, {
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.applyMembershipMetadataJsonbPatch(manager, {
         membershipId: membership.id,
         tenantId,
         patch: metadataPatch,
         removeKeys: metadataRemoveKeys
       });
       if (normalizedLabels !== undefined) {
-        await manager.getRepository(UserTenantEntity).update(
-          { id: membership.id, tenantId },
-          { labels: normalizedLabels }
+        await this.identityRepository.updateMembershipLabels(
+          manager,
+          membership.id,
+          tenantId,
+          normalizedLabels
         );
       }
       const auditMetadata: Record<string, unknown> = {
@@ -291,11 +286,9 @@ export class WorkspaceUsersService {
   ): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
 
-    const membership = await this.access.memberships.findOne({
-      where: { tenantId, userId, deletedAt: IsNull() }
-    });
+    const membership = await this.access.findMembership(tenantId, userId);
     if (!membership) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -305,13 +298,11 @@ export class WorkspaceUsersService {
       payload.enabled
     );
 
-    const actorLabelRecord = await this.access.users.findOne({
-      where: { id: actorUserId, deletedAt: IsNull() }
-    });
+    const actorLabelRecord = await this.access.findUserById(actorUserId);
     const actorLabel = actorLabelRecord?.email ?? actorUserId;
 
-    await this.dataSource.transaction(async (manager) => {
-      await applyMembershipMetadataJsonbPatch(manager, {
+    await this.identityRepository.runInTransaction(async (manager) => {
+      await this.identityRepository.applyMembershipMetadataJsonbPatch(manager, {
         membershipId: membership.id,
         tenantId,
         patch: { capabilities: nextCapabilities }
@@ -342,8 +333,8 @@ export class WorkspaceUsersService {
   async getUserBookingSummary(userId: string): Promise<UserBookingSummaryResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
-    await this.access.findTenantScopedUserOrThrow(tenantId, userId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
+    await this.access.findTenantScopedUserOrThrow(userId);
     const map = await this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId]);
     const counts = map.get(userId) ?? { totalTrips: 0, completedTrips: 0, cancelledTrips: 0 };
     const trips = await this.bookingSummaries.loadBookingTripsForUser(tenantId, userId);

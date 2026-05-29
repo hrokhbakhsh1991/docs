@@ -2,7 +2,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { ListUsersQueryDto } from "./dto/list-users-query.dto";
 import type { ListUsersResponseDto } from "./dto/list-users-response.dto";
 import type { UserResponseDto } from "./dto/user-response.dto";
-import { UsersListRepository } from "./users/repositories/users-list.repository";
+import {
+  WORKSPACE_IDENTITY_REPOSITORY_PORT,
+  type WorkspaceIdentityRepositoryPort
+} from "./domain/ports/workspace-identity-repository.port";
 import { UsersAccessService } from "./users-access.service";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
@@ -14,7 +17,8 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
 export class UsersReadService {
   constructor(
     @Inject(UsersAccessService) private readonly access: UsersAccessService,
-    @Inject(UsersListRepository) private readonly usersListRepository: UsersListRepository,
+    @Inject(WORKSPACE_IDENTITY_REPOSITORY_PORT)
+    private readonly identityRepository: WorkspaceIdentityRepositoryPort,
     @Inject(UsersMemberWalletBalancesService)
     private readonly memberWalletBalances: UsersMemberWalletBalancesService,
     @Inject(WorkspaceUserBookingSummaryService)
@@ -32,7 +36,7 @@ export class UsersReadService {
     const lastLoginTo = query.lastLoginTo?.trim();
     const decodedCursor = this.decodeUsersCursor(query.cursor, tenantId);
 
-    const rows = await this.usersListRepository.listTenantUsers({
+    const rows = await this.identityRepository.listTenantUsers({
       tenantId,
       limit,
       normalizedSearch,
@@ -98,8 +102,8 @@ export class UsersReadService {
   async getUserById(userId: string): Promise<UserResponseDto> {
     const tenantId = this.access.resolveTenantIdOrThrow();
     const { actorUserId } = this.access.resolveActorContextOrThrow();
-    await this.access.ensureActorMembershipOrThrow(tenantId, actorUserId);
-    const user = await this.access.findTenantScopedUserOrThrow(tenantId, userId);
+    await this.access.ensureActorMembershipOrThrow(actorUserId);
+    const user = await this.access.findTenantScopedUserOrThrow(userId);
     const [walletMap, bookingMap] = await Promise.all([
       this.memberWalletBalances.loadBalancesForUserIds(tenantId, [userId]),
       this.bookingSummaries.loadBookingSummariesForUserIds(tenantId, [userId])

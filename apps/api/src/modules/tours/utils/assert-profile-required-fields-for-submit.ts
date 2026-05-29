@@ -2,7 +2,7 @@ import { BadRequestException } from "@nestjs/common";
 
 import type { TourFormProfile, WizardSubmitRequiredFieldPath } from "@repo/types";
 
-import type { TourEntity } from "../entities/tour.entity";
+import type { TourPublishPolicySnapshot } from "../domain/tour-policy.types";
 import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import type { ProfileRequiredSubmitShape } from "./profile-required-submit-shape";
 
@@ -11,7 +11,9 @@ export type { ProfileRequiredSubmitShape } from "./profile-required-submit-shape
 export const VALIDATION_PROFILE_REQUIRED_FIELD = "VALIDATION_PROFILE_REQUIRED_FIELD" as const;
 
 /** Projects a merged tour row to the same shape used by POST create asserts. */
-export function tourEntityToProfileRequiredSubmitShape(tour: TourEntity): ProfileRequiredSubmitShape {
+export function tourEntityToProfileRequiredSubmitShape(
+  tour: TourPublishPolicySnapshot,
+): ProfileRequiredSubmitShape {
   let totalCost: number | undefined;
   const raw = tour.costContext;
   if (raw && typeof raw === "object" && "totalCost" in raw) {

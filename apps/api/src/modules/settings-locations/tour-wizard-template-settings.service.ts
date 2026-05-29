@@ -1,25 +1,27 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { normalizeTourFormProfileInput } from "@repo/types";
+import { templateToCanonical } from "@repo/types/denali";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { templateToCanonical } from "@repo/types/denali";
-
+import { throwValidationFailed } from "../../common/errors/throw-validation-failed";
 import { parseDenaliCanonicalTemplateDataOrThrow } from "./denali-canonical-template-data.schema";
+import {
+  WORKSPACE_SETTINGS_REPOSITORY_PORT,
+  type WorkspaceSettingsRepositoryPort,
+} from "./domain/ports/workspace-settings-repository.port";
 import type { UpdateWorkspaceTourWizardTemplateDto } from "./dto/update-workspace-tour-wizard-template.dto";
 import type { WorkspaceTourWizardTemplateResponseDto } from "./dto/workspace-tour-wizard-template-response.dto";
 import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
 import { collectWorkspaceWizardTemplateValidationErrors } from "./validate-workspace-wizard-template";
-import { throwValidationFailed } from "../../common/errors/throw-validation-failed";
 
 @Injectable()
 export class TourWizardTemplateSettingsService {
   constructor(
-    @InjectRepository(WorkspaceTourWizardTemplateEntity)
-    private readonly templatesRepository: Repository<WorkspaceTourWizardTemplateEntity>,
+    @Inject(WORKSPACE_SETTINGS_REPOSITORY_PORT)
+    private readonly settingsRepository: WorkspaceSettingsRepositoryPort,
+    @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
   ) {}
 
@@ -64,7 +66,7 @@ export class TourWizardTemplateSettingsService {
 
   async findForWorkspace(): Promise<WorkspaceTourWizardTemplateResponseDto | null> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.templatesRepository.findOne({ where: { workspaceId } });
+    const row = await this.settingsRepository.findTourWizardTemplateByWorkspace(workspaceId);
     return row ? this.toResponse(row) : null;
   }
 
@@ -72,7 +74,7 @@ export class TourWizardTemplateSettingsService {
     body: UpdateWorkspaceTourWizardTemplateDto,
   ): Promise<WorkspaceTourWizardTemplateResponseDto> {
     const workspaceId = this.resolveWorkspaceOrThrow();
-    const row = await this.templatesRepository.findOne({ where: { workspaceId } });
+    const row = await this.settingsRepository.findTourWizardTemplateByWorkspace(workspaceId);
     if (!row) {
       throw new NotFoundException({
         error: {
@@ -102,7 +104,7 @@ export class TourWizardTemplateSettingsService {
       row.canonicalData = parseDenaliCanonicalTemplateDataOrThrow(body.canonicalData);
     }
 
-    const saved = await this.templatesRepository.save(row);
+    const saved = await this.settingsRepository.saveTourWizardTemplate(row);
     return this.toResponse(saved);
   }
 }

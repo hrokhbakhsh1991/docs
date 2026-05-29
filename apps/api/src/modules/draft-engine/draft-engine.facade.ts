@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpException, Inject } from "@nestjs/common";
+import { Injectable, Logger, HttpException, Inject, ForbiddenException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import {
   CURRENT_DRAFT_SCHEMA_VERSION,
@@ -23,6 +23,7 @@ import { DraftForensicException } from "./draft-forensic.exception";
 import { DraftEventEntity } from "./entities/draft-event.entity";
 import { tryGetActiveTraceLogFields } from "../../common/observability/active-trace-log-fields";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { tenantContextMissingError } from "../../common/errors/error-response-builders";
 
 import type { DraftSyncPayloadResponse } from "./draft-sync-payload.types";
 
@@ -47,6 +48,14 @@ export class DraftEngineFacade {
     @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
   ) {}
+
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContext.resolveEffectiveTenantId();
+    if (!tenantId?.trim()) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId.trim();
+  }
 
   private readRequestContextRecord(): Record<string, unknown> | undefined {
     try {
@@ -278,7 +287,6 @@ export class DraftEngineFacade {
 
   /** MAP alias: load draft for current member (with optional schema migration). */
   async loadDraft(
-    tenantId: string,
     draftKey: string,
   ): Promise<DraftSyncPayloadResponse | null> {
     const correlationId = this.ensureCorrelationId();
@@ -290,7 +298,7 @@ export class DraftEngineFacade {
       this.logger.log(
         `[DRAFT-FORENSIC] [correlationId: ${correlationId}] loadDraft: pre-await findForMember. Context: ${JSON.stringify(this.getDebugContextFields(draftKey))}`,
       );
-      const res = await this.findForMember(tenantId, draftKey);
+      const res = await this.findForMember(draftKey);
       this.logger.log(
         `[DRAFT-FORENSIC] [correlationId: ${correlationId}] loadDraft: post-await findForMember success.`,
       );
@@ -308,21 +316,13 @@ export class DraftEngineFacade {
   }
 
   async findForMember(
-    tenantId: string,
     draftKey: string,
   ): Promise<DraftSyncPayloadResponse | null> {
+    const tenantId = this.resolveTenantIdOrThrow();
     const correlationId = this.ensureCorrelationId();
     const ctx = this.getDebugContextFields(draftKey);
     this.logger.log(
       `[DRAFT-FORENSIC] [correlationId: ${correlationId}] findForMember: entering method with tenantId=${tenantId}, draftKey=${draftKey}. Context: ${JSON.stringify(ctx)}`,
-    );
-
-    // Tenant Isolation Check: Verify if active tenantId matches parameter tenantId
-    this.assertActiveTenantMatches(
-      ctx,
-      tenantId,
-      correlationId,
-      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
     );
 
     try {
@@ -558,7 +558,7 @@ export class DraftEngineFacade {
   }
 
   /** MAP alias: delete draft for current member. */
-  async deleteDraft(tenantId: string, draftKey: string): Promise<void> {
+  async deleteDraft(draftKey: string): Promise<void> {
     const correlationId = this.ensureCorrelationId();
     const ctx = this.getDebugContextFields(draftKey);
     this.logger.log(
@@ -568,7 +568,7 @@ export class DraftEngineFacade {
       this.logger.log(
         `[DRAFT-FORENSIC] [correlationId: ${correlationId}] deleteDraft: pre-await deleteForMember. Context: ${JSON.stringify(this.getDebugContextFields(draftKey))}`,
       );
-      await this.deleteForMember(tenantId, draftKey);
+      await this.deleteForMember(draftKey);
       this.logger.log(
         `[DRAFT-FORENSIC] [correlationId: ${correlationId}] deleteDraft: post-await deleteForMember success.`,
       );
@@ -584,19 +584,12 @@ export class DraftEngineFacade {
     }
   }
 
-  async deleteForMember(tenantId: string, draftKey: string): Promise<void> {
+  async deleteForMember(draftKey: string): Promise<void> {
+    const tenantId = this.resolveTenantIdOrThrow();
     const correlationId = this.ensureCorrelationId();
     const ctx = this.getDebugContextFields(draftKey);
     this.logger.log(
       `[DRAFT-FORENSIC] [correlationId: ${correlationId}] deleteForMember: entering method. Context: ${JSON.stringify(ctx)}`,
-    );
-
-    // Tenant Isolation Check: Verify if active tenantId matches parameter tenantId
-    this.assertActiveTenantMatches(
-      ctx,
-      tenantId,
-      correlationId,
-      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
     );
 
     try {

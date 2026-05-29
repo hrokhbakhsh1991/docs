@@ -5,7 +5,7 @@ import {
 } from "@repo/types";
 
 import type { CreateTourDto } from "../dto/create-tour.dto";
-import type { TourEntity } from "../entities/tour.entity";
+import type { TourWriteRecord } from "../domain/tour-write-record.types";
 import type { WorkspaceFieldStripRules } from "../strategies/workspace.strategy.interface";
 import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import type { TourTransportMode } from "../tour-transport-modes";
@@ -122,7 +122,7 @@ export function stripCreateTourDtoForFormProfile(profile: TourFormProfile, dto: 
  * Persist-time strip for merged tour rows (PATCH / update paths).
  * Clears root `transportModes` when the strategy strip contract requires it.
  */
-export function stripPersistedTourForFormProfile(profile: TourFormProfile, tour: TourEntity): void {
+export function stripPersistedTourForFormProfile(profile: TourFormProfile, tour: TourWriteRecord): void {
   const td = tour.details?.tripDetails;
   if (td != null && typeof td === "object") {
     stripTripDetailsForFormProfile(profile, td as TourTripDetails);

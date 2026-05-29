@@ -1,8 +1,10 @@
 import { BadRequestException } from "@nestjs/common";
-import { TourEntity as Tour, TourLifecycleStatus } from "../../tours/entities/tour.entity";
-import { WaitlistItemEntity } from "../waitlist-item.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 
-export function assertTourAllowsWaitlist(tour: Tour): void {
+import type { TourCapacityPolicySnapshot } from "../domain/registration-policy.types";
+import type { WaitlistItemPolicySnapshot } from "../domain/registration-policy.types";
+
+export function assertTourAllowsWaitlist(tour: TourCapacityPolicySnapshot): void {
   if (
     tour.lifecycleStatus === TourLifecycleStatus.OPEN &&
     tour.acceptedCount >= tour.totalCapacity
@@ -18,7 +20,7 @@ export function assertTourAllowsWaitlist(tour: Tour): void {
   });
 }
 
-export function assertWaitlistPromotionAllowed(tour: Tour): void {
+export function assertWaitlistPromotionAllowed(tour: TourCapacityPolicySnapshot): void {
   if (
     tour.lifecycleStatus === TourLifecycleStatus.OPEN &&
     tour.acceptedCount < tour.totalCapacity
@@ -34,7 +36,7 @@ export function assertWaitlistPromotionAllowed(tour: Tour): void {
   });
 }
 
-export function assertNoDuplicateWaitlist(existingWaitlistItems: WaitlistItemEntity[]): void {
+export function assertNoDuplicateWaitlist(existingWaitlistItems: WaitlistItemPolicySnapshot[]): void {
   const hasDuplicate = existingWaitlistItems.some((item) => {
     const normalized = String(item.status ?? "")
       .replace(/[^a-zA-Z]/g, "")

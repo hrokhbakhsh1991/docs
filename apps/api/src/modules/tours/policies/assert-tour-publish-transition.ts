@@ -5,7 +5,7 @@ import {
   getWorkspaceUiCapabilityFlags,
 } from "@repo/shared-contracts";
 
-import { TourEntity } from "../entities/tour.entity";
+import type { TourPublishPolicySnapshot } from "../domain/tour-policy.types";
 import { buildPublishPolicy } from "../strategies/workspace.strategy.builders";
 import type { WorkspacePublishPolicy } from "../strategies/workspace.strategy.interface";
 import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
@@ -58,7 +58,7 @@ function assertPublishGeolocationIfRequired(
   }
 }
 
-function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourEntity): void {
+function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourPublishPolicySnapshot): void {
   const tripDetails = (tour.details?.tripDetails ?? null) as TourTripDetails | null;
   assertPublishGeolocationIfRequired(profile, tripDetails);
   assertTripDetailsForFormProfile(
@@ -85,11 +85,17 @@ function assertPublishProfileAndEditFields(profile: TourFormProfile, tour: TourE
  * Pre-merge PATCH gate: tour must still be DRAFT and meet publish readiness on persisted row.
  * Call only when {@link isTourDraftToOpenPublishTransition} is true (not on every PATCH).
  */
-export function assertTourPublishableBeforePatch(tour: TourEntity): void {
+export function assertTourPublishableBeforePatch(tour: TourPublishPolicySnapshot): void {
   const profile = tour.formProfileSnapshot ?? "general";
   const { requiresDraftBeforePublish } = loadPublishPolicy(profile);
   if (requiresDraftBeforePublish) {
-    assertTourIsPublishable(tour);
+    assertTourIsPublishable({
+      lifecycleStatus: tour.lifecycleStatus,
+      acceptedCount: tour.acceptedCount,
+      totalCapacity: tour.totalCapacity,
+      title: tour.title,
+      details: tour.details ?? null,
+    });
   } else {
     assertTourOpenReadiness({
       title: tour.title,
@@ -105,7 +111,7 @@ export function assertTourPublishableBeforePatch(tour: TourEntity): void {
  */
 export function assertTourStateReadyForOpenAfterPatch(
   profile: TourFormProfile,
-  tour: TourEntity,
+  tour: TourPublishPolicySnapshot,
 ): void {
   assertPublishProfileAndEditFields(profile, tour);
 }
@@ -115,7 +121,7 @@ export function assertTourStateReadyForOpenAfterPatch(
  */
 export function assertTourStateReadyForOpenOnCreate(
   profile: TourFormProfile,
-  tour: TourEntity,
+  tour: TourPublishPolicySnapshot,
 ): void {
   assertPublishProfileAndEditFields(profile, tour);
 }

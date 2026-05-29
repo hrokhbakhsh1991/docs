@@ -1,10 +1,13 @@
 import { BadRequestException } from "@nestjs/common";
-import { TourEntity as Tour } from "../../tours/entities/tour.entity";
-import { RegistrationEntity as Registration } from "../registration.entity";
+
+import type {
+  RegistrationStatusPolicySnapshot,
+  TourCapacityPolicySnapshot,
+} from "../domain/registration-policy.types";
 
 export function assertUserNotAlreadyRegistered(
-  _tour: Tour,
-  existingRegistrations: Registration[]
+  _tour: TourCapacityPolicySnapshot,
+  existingRegistrations: RegistrationStatusPolicySnapshot[]
 ): void {
   const hasActiveRegistration = existingRegistrations.some((registration) => {
     const normalized = String(registration.status ?? "")
@@ -30,7 +33,7 @@ export function assertUserNotAlreadyRegistered(
   });
 }
 
-export function assertTourCapacityInvariant(tour: Tour): void {
+export function assertTourCapacityInvariant(tour: TourCapacityPolicySnapshot): void {
   if (tour.acceptedCount <= tour.totalCapacity) {
     return;
   }

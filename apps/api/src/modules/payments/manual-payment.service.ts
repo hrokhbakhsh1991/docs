@@ -1,49 +1,67 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import { tenantContextMissingError } from "../../common/errors/error-response-builders";
+import { RequestContextService } from "../../common/request-context/request-context.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
-import { PaymentEntity, PaymentMethod, PaymentStatus } from "./entities/payment.entity";
-import { RegistrationEntity } from "../registrations/registration.entity";
+import { PaymentMethod, PaymentStatus } from "./entities/payment.entity";
+import type { PaymentRecord } from "./domain/payment-record.types";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 import { assertManualPaymentDebtAllowed } from "./domain/manual-payment-debt.policy";
 import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-finance-contract";
+import {
+  PAYMENT_REPOSITORY_PORT,
+  type PaymentRepositoryPort
+} from "./domain/ports/payment-repository.port";
 
 @Injectable()
 export class ManualPaymentService {
   constructor(
     @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
-    @InjectRepository(PaymentEntity)
-    private readonly paymentRepository: Repository<PaymentEntity>,
+    @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
+    @Inject(PAYMENT_REPOSITORY_PORT)
+    private readonly paymentRepository: PaymentRepositoryPort,
     @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
   ) {}
 
+  private resolveTenantIdOrThrow(): string {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId?.trim()) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+    return tenantId.trim();
+  }
+
   async createManualPayment(params: {
-    tenantId: string;
     registrationId: string;
     amount: string;
     currency: string;
-  }): Promise<PaymentEntity> {
-    return this.tenantDbContext.runInTenantScope(params.tenantId, async (manager) => {
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: params.registrationId, tenantId: params.tenantId }
-      });
+  }): Promise<PaymentRecord> {
+    const tenantId = this.resolveTenantIdOrThrow();
+    return this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
+      const registration = await this.paymentRepository.findRegistrationByTenantAndId(
+        manager,
+        params.registrationId,
+        tenantId
+      );
 
       if (!registration) {
         throw new NotFoundException("Registration not found");
       }
 
-      const existingPayments = await manager.find(PaymentEntity, {
-        where: {
-          registrationId: registration.id,
-          tenantId: params.tenantId
-        },
-        select: { status: true }
-      });
+      const existingPayments = await this.paymentRepository.findStatusesByRegistration(
+        manager,
+        registration.id,
+        tenantId
+      );
       assertManualPaymentDebtAllowed(existingPayments.map((p) => p.status));
 
       enforcePaymentIntentFinanceContract(
         {
-          tenantId: params.tenantId,
+          tenantId,
           registrationId: registration.id,
           amount: params.amount,
           currency: params.currency,
@@ -59,8 +77,8 @@ export class ManualPaymentService {
         "createManualPayment",
       );
 
-      const payment = manager.create(PaymentEntity, {
-        tenantId: params.tenantId,
+      const payment = this.paymentRepository.createPayment(manager, {
+        tenantId,
         registrationId: registration.id,
         amount: params.amount,
         currency: params.currency,
@@ -69,17 +87,14 @@ export class ManualPaymentService {
         provider: "manual"
       });
 
-      const saved = await manager.save(PaymentEntity, payment);
-      await this.financeReportsService.invalidateSummaryCache(params.tenantId);
+      const saved = await this.paymentRepository.savePayment(manager, payment);
+      await this.financeReportsService.invalidateSummaryCache();
       return saved;
     });
   }
 
-  async listManualPayments(tenantId: string): Promise<PaymentEntity[]> {
-    return this.paymentRepository.find({
-      where: { tenantId, method: PaymentMethod.MANUAL },
-      order: { createdAt: "DESC" },
-      take: 100
-    });
+  async listManualPayments(): Promise<PaymentRecord[]> {
+    const tenantId = this.resolveTenantIdOrThrow();
+    return this.paymentRepository.listManualByTenant(tenantId);
   }
 }

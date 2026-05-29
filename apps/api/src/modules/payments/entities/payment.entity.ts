@@ -1,14 +1,9 @@
-import { PaymentStatus } from "@repo/shared-contracts";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { BaseTenantEntity } from "../../../database/entities/base-tenant.entity";
 import { RegistrationEntity } from "../../registrations/registration.entity";
+import { PaymentMethod, PaymentStatus } from "../domain/payment.types";
 
-export { PaymentStatus };
-
-export enum PaymentMethod {
-  ONLINE = "Online",
-  MANUAL = "Manual"
-}
+export { PaymentMethod, PaymentStatus };
 
 @Entity("payments")
 @Index("idx_payments_tenant_id", ["tenantId"])

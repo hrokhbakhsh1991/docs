@@ -10,11 +10,9 @@ import {
 import { TenantEntity } from "./tenant.entity";
 import { UserEntity } from "./user.entity";
 
-export enum WorkspaceInviteStatus {
-  PENDING = "PENDING",
-  ACCEPTED = "ACCEPTED",
-  EXPIRED = "EXPIRED"
-}
+import { WorkspaceInviteStatus } from "../domain/identity-records";
+
+export { WorkspaceInviteStatus };
 
 @Entity({ name: "workspace_invites" })
 @Index("idx_workspace_invites_tenant_id", ["tenantId"])

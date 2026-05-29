@@ -18,43 +18,31 @@ function buildService(mocks: {
   const tenantAuditEventsService = {
     append: async () => undefined
   };
-  const workspaceInviteRepository = {
-    create: (e: unknown) => e,
-    save: mocks.saveImpl ?? (async (e: unknown) => e)
-  };
-  const userRepository = {
-    createQueryBuilder: () => ({
-      where: () => ({
-        andWhere: () => ({
-          getOne: async () => null
+  const identityRepository = {
+    findUserByNormalizedPhone: async () => null,
+    findActiveMembership: async () => null,
+    createInvite: (e: unknown) => e,
+    saveInvite: mocks.saveImpl ?? (async (e: unknown) => e),
+    saveMembership: mocks.saveImpl ?? (async (e: unknown) => e),
+    createMembership: (e: unknown) => e,
+    findUserById: async () => ({ email: "owner@example.com" }),
+    runInTransaction: async (fn: (manager: unknown) => Promise<unknown>) =>
+      fn({
+        create: (_entity: unknown, e: unknown) => e,
+        save: mocks.saveImpl ?? (async (e: unknown) => e),
+        getRepository: () => ({
+          findOne: async () => ({ email: "owner@example.com" }),
+          create: (e: unknown) => e,
+          save: mocks.saveImpl ?? (async (e: unknown) => e)
         })
       })
-    }),
-    findOne: async () => ({ email: "owner@example.com" })
-  };
-  const membershipRepository = {
-    findOne: async () => null,
-    manager: {
-      transaction: async (fn: (_manager: any) => Promise<unknown>) =>
-        fn({
-          create: (_entity: unknown, e: unknown) => e,
-          save: mocks.saveImpl ?? (async (e: unknown) => e),
-          getRepository: () => ({ 
-            findOne: async () => ({ email: "owner@example.com" }),
-            create: (e: unknown) => e,
-            save: mocks.saveImpl ?? (async (e: unknown) => e)
-          })
-        })
-    }
   };
 
   return new UsersInviteService(
     access as never,
     requestContextService as never,
     tenantAuditEventsService as never,
-    workspaceInviteRepository as never,
-    userRepository as never,
-    membershipRepository as never
+    identityRepository as never
   );
 }
 

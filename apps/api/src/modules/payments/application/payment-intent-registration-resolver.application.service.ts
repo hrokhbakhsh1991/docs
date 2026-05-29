@@ -5,9 +5,8 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import type { EntityManager } from "typeorm";
-import { IsNull, Repository, type FindOptionsWhere } from "typeorm";
+import { IsNull, type FindOptionsWhere } from "typeorm";
 import { capabilitiesForTenantModules } from "@repo/shared";
 import { registrationWhereForActor } from "../../../common/security/ownership-scope";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -16,8 +15,10 @@ import {
   registrationTenantMatchesActorScope,
 } from "../../../common/rbac/workspace-access.helper";
 import { RegistrationEntity } from "../../registrations/registration.entity";
-import { TourEntity } from "../../tours/entities/tour.entity";
-import { UserEntity } from "../../identity/entities/user.entity";
+import {
+  TOURS_CATALOG_REPOSITORY_PORT,
+  type ToursCatalogRepositoryPort,
+} from "../../tours/domain/ports/tours-repository.port";
 import type { CreatePaymentIntentDto } from "../dto/create-payment-intent.dto";
 import { tenantContextMissingError } from "../../../common/errors/error-response-builders";
 
@@ -29,8 +30,8 @@ import { tenantContextMissingError } from "../../../common/errors/error-response
 export class PaymentIntentRegistrationResolverApplicationService {
   constructor(
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>
+    @Inject(TOURS_CATALOG_REPOSITORY_PORT)
+    private readonly toursCatalogRepository: ToursCatalogRepositoryPort
   ) {}
 
   async resolveRegistrationForCreateIntent(
@@ -61,7 +62,6 @@ export class PaymentIntentRegistrationResolverApplicationService {
     } else {
       registrationScope = await registrationWhereForActor(
         manager,
-        this.userRepository,
         this.requestContextService,
         dto.registrationId
       );
@@ -98,17 +98,22 @@ export class PaymentIntentRegistrationResolverApplicationService {
       });
     }
 
-    const tour = await manager.findOne(TourEntity, {
-      where: { id: registration.tourId, tenantId: registration.tenantId },
-      select: { id: true, tenantId: true, costContext: true }
-    });
-    if (!tour) {
-      throw new NotFoundException({
-        error: {
-          code: "RESOURCE_NOT_FOUND",
-          message: "Tour not found for registration"
-        }
-      });
+    let tour;
+    try {
+      tour = await this.toursCatalogRepository.findByIdOrThrow(
+        registration.tenantId,
+        registration.tourId
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException({
+          error: {
+            code: "RESOURCE_NOT_FOUND",
+            message: "Tour not found for registration"
+          }
+        });
+      }
+      throw error;
     }
 
     const costContext = tour.costContext;

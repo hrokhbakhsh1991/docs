@@ -26,7 +26,7 @@ import {
   actorHasTrustedTenantOrPlatformAdminBypass,
   registrationTenantMatchesActorScope,
 } from "../../common/rbac/workspace-access.helper";
-import type { PaymentResponseDto } from "../payments/dto/payment-response.dto";
+import type { RegistrationPaymentIntentSnapshot } from "./domain/registration-payment-intent.types";
 import { OutboxService } from "../outbox/outbox.service";
 import { CancelWaitlistItemDto } from "./dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "./dto/convert-waitlist-item.dto";
@@ -577,7 +577,6 @@ export class RegistrationsService implements IRegistrationPaymentPort {
   ): Promise<RegistrationResponseDto> {
     const where = await registrationWhereForActor(
       this.registrationRepository.manager,
-      this.userRepository,
       this.requestContextService,
       registrationId
     );
@@ -612,7 +611,6 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const where = await registrationWhereForActor(
         manager,
-        this.userRepository,
         this.requestContextService,
         registrationId
       );
@@ -693,7 +691,6 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const where = await registrationWhereForActor(
         manager,
-        this.userRepository,
         this.requestContextService,
         registrationId
       );
@@ -753,7 +750,6 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     return this.dataSource.transaction(async (manager) => {
       const registrationScope = await registrationWhereForActor(
         manager,
-        this.userRepository,
         this.requestContextService,
         id
       );
@@ -1287,7 +1283,6 @@ export class RegistrationsService implements IRegistrationPaymentPort {
   ): Promise<WaitlistItemEntity> {
     const where = await waitlistWhereForActor(
       manager,
-      this.userRepository,
       this.requestContextService,
       waitlistItemId
     );
@@ -1855,13 +1850,13 @@ export class RegistrationsService implements IRegistrationPaymentPort {
     createPaymentIntent?: (
       _manager: EntityManager,
       _registration: RegistrationEntity
-    ) => Promise<PaymentResponseDto>;
+    ) => Promise<RegistrationPaymentIntentSnapshot>;
   }): Promise<
     | {
         type: "registration";
         registration: RegistrationResponseDto;
         requiresPayment: boolean;
-        paymentIntent: PaymentResponseDto | null;
+        paymentIntent: RegistrationPaymentIntentSnapshot | null;
       }
     | { type: "waitlist"; waitlistItem: WaitlistItemResponseDto; queuePosition: number }
   > {
@@ -2011,7 +2006,7 @@ export class RegistrationsService implements IRegistrationPaymentPort {
           paymentRequired: requiresPayment
         });
       }
-      let paymentIntent: PaymentResponseDto | null = null;
+      let paymentIntent: RegistrationPaymentIntentSnapshot | null = null;
       if (requiresPayment && input.createPaymentIntent) {
         paymentIntent = await input.createPaymentIntent(manager, savedWithSnapshot);
       }

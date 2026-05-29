@@ -161,13 +161,23 @@ module.exports = {
       settings: {
         "boundaries/include": ["apps/api/src/**/*.ts", "apps/api/test/**/*.ts"],
         "boundaries/ignore": ["**/*.{spec,test}.ts", "**/__tests__/**"],
+        // Phase 4 (MAP §62): API layering is enforced by tests/architecture/boundary-scanner.ts
+        // (domain / app / infra). Legacy element types below are documentation-only until
+        // modules adopt canonical folders and ESLint rules are re-enabled.
         "boundaries/elements": [
           {
-            type: "ui",
+            type: "app",
             pattern: "apps/api/src/**/*.controller.ts",
             mode: "file",
           },
-          { type: "ui", pattern: "apps/api/src/**/controllers/**/*.ts" },
+          { type: "app", pattern: "apps/api/src/**/controllers/**/*.ts" },
+          { type: "app", pattern: "apps/api/src/**/application/**" },
+          {
+            type: "app",
+            pattern: "apps/api/src/**/*.service.ts",
+            mode: "file",
+          },
+          { type: "app", pattern: "apps/api/src/**/services/**" },
           {
             type: "hooks",
             pattern: "apps/api/src/**/*.guard.ts",
@@ -179,47 +189,30 @@ module.exports = {
             mode: "file",
           },
           { type: "hooks", pattern: "apps/api/src/**/middleware/**" },
-          {
-            type: "services",
-            pattern: "apps/api/src/**/*.service.ts",
-            mode: "file",
-          },
-          { type: "services", pattern: "apps/api/src/**/services/**" },
           { type: "domain", pattern: "apps/api/src/**/domain/**" },
-          { type: "domain", pattern: "apps/api/src/**/entities/**" },
+          { type: "domain", pattern: "apps/api/src/**/policies/**" },
+          {
+            type: "infra",
+            pattern: "apps/api/src/**/entities/**",
+          },
+          {
+            type: "infra",
+            pattern: "apps/api/src/**/repositories/**",
+          },
+          {
+            type: "infra",
+            pattern: "apps/api/src/**/adapters/**",
+          },
+          { type: "infra", pattern: "apps/api/src/infra/**" },
           { type: "shared", pattern: "apps/api/src/common/**" },
           { type: "shared", pattern: "apps/api/src/config/**" },
-          { type: "shared", pattern: "apps/api/src/utils/**" },
+          { type: "shared", pattern: "apps/api/src/database/**" },
         ],
       },
       rules: {
-        "boundaries/dependencies": [
-          "error",
-          {
-            default: "disallow",
-            rules: [
-              { from: { type: "ui" }, allow: { to: { type: ["hooks"] } } },
-              {
-                from: { type: "hooks" },
-                allow: {
-                  to: { type: ["hooks", "services", "domain", "shared"] },
-                },
-              },
-              {
-                from: { type: "services" },
-                allow: { to: { type: ["services", "domain", "shared"] } },
-              },
-              { from: { type: "domain" }, allow: { to: { type: ["domain", "shared"] } } },
-              { from: { type: "shared" }, allow: { to: { type: ["shared"] } } },
-              {
-                from: {
-                  type: ["ui", "hooks", "services", "domain", "shared"],
-                },
-                allow: { to: { origin: "external" } },
-              },
-            ],
-          },
-        ],
+        // Disabled: conflicts with MAP §62 (entities = infra, not domain) and duplicates
+        // tests/architecture/boundary-scanner.ts during the app/domain/infra migration.
+        "boundaries/dependencies": "off",
       },
     },
     {

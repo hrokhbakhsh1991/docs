@@ -13,6 +13,7 @@ import { RegistrationEntity } from "../registrations/registration.entity";
 import { OutboxEventEntity } from "../../common/outbox/entities/outbox-event.entity";
 import { ReconciliationFindingEntity } from "../finance/reconciliation/entities/reconciliation-finding.entity";
 import { ReconciliationJobEntity } from "../finance/reconciliation/entities/reconciliation-job.entity";
+import { TenantEntity } from "../identity/entities/tenant.entity";
 import { UserEntity } from "../identity/entities/user.entity";
 import {
   LoggingReconciliationJobAlertHooks,
@@ -27,6 +28,7 @@ import { ReconciliationService } from "./reconciliation.service";
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      TenantEntity,
       TourEntity,
       PaymentEntity,
       BookingPriceSnapshotEntity,

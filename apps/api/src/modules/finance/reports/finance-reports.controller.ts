@@ -7,7 +7,6 @@ import { CaslMirrorAbilitiesGuard } from "../../../common/casl/casl-mirror-abili
 import { RequireCapability } from "../../../common/casl/require-capability.decorator";
 import { Roles } from "../../auth/roles.decorator";
 import { UserRole } from "../../../common/auth/user-role.enum";
-import { RequestContextService } from "../../../common/request-context/request-context.service";
 import { FinanceReportsService } from "./finance-reports.service";
 
 @ApiTags("Finance Reports")
@@ -17,24 +16,21 @@ import { FinanceReportsService } from "./finance-reports.service";
 @ApiBearerAuth()
 export class FinanceReportsController {
   constructor(
-    @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService,
-    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
+    @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
   ) {}
 
   @Get("summary")
   @Roles(UserRole.Leader, UserRole.Admin, UserRole.Owner)
   @ApiOperation({ summary: "Finance workspace summary counts" })
   async getSummary() {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.financeReportsService.getSummary(tenantId);
+    return this.financeReportsService.getSummary();
   }
 
   @Get("open-payments")
   @Roles(UserRole.Admin, UserRole.Owner)
   @ApiOperation({ summary: "List pending payments awaiting settlement" })
   async listOpenPayments() {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.financeReportsService.listOpenPayments(tenantId);
+    return this.financeReportsService.listOpenPayments();
   }
 
   @Get("ledger-events")
@@ -43,7 +39,6 @@ export class FinanceReportsController {
     summary: "Recent finance ledger journals (from transactional outbox)"
   })
   async listLedgerEvents() {
-    const tenantId = this.requestContextService.resolveEffectiveTenantId()!;
-    return this.financeReportsService.listLedgerEvents(tenantId);
+    return this.financeReportsService.listLedgerEvents();
   }
 }

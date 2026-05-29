@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { DataSource } from "typeorm";
-import { TenantContextMissingError } from "../../src/common/errors/tenant-context-missing.error";
+import { ForbiddenException } from "@nestjs/common";
 import { OutboxService } from "../../src/modules/outbox/outbox.service";
 import {
   RegistrationEntity,
@@ -81,6 +80,73 @@ function stubExistsDefaultPipeline(input: {
   };
 }
 
+function paymentPortFromPipeline(input: {
+  registrationId: string;
+  tenantId: string;
+  hasPriceSnapshot?: boolean;
+  hasPendingPayment?: boolean;
+  hasPaidPayment?: boolean;
+}) {
+  const exists = stubExistsDefaultPipeline(input);
+  return {
+    async existsPendingForRegistration(_manager: unknown, registrationId: string, tenantId: string) {
+      return exists(PaymentEntity, {
+        where: { registrationId, tenantId, status: PaymentStatus.PENDING }
+      });
+    },
+    async existsPaidForRegistration(_manager: unknown, registrationId: string, tenantId: string) {
+      return exists(PaymentEntity, {
+        where: { registrationId, tenantId, status: PaymentStatus.PAID }
+      });
+    },
+    async existsOtherPendingForRegistration() {
+      return false;
+    },
+    async savePayment(_manager: unknown, payment: unknown) {
+      return payment;
+    }
+  };
+}
+
+function captureLedgerDeps() {
+  return [
+    noopPaymentRefundLedgerForTests,
+    {
+      emitPaymentCaptureAtPaid: async () => ({
+        lines: [
+          {
+            id: "d1",
+            journalId: "j1",
+            tenantId: TEST_TENANT_ID,
+            account: "gl:leader-registration-payment-clearing",
+            side: "debit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c1",
+            idempotencyKey: "k1",
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: "c1",
+            journalId: "j1",
+            tenantId: TEST_TENANT_ID,
+            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
+            side: "credit",
+            amount_minor: "100",
+            currency: "USD",
+            correlationId: "c2",
+            idempotencyKey: "k2",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      })
+    } as never,
+    noopPaymentGatewayFactoryForTests,
+    noopRegistrationPaymentPort,
+    { invalidateSummaryCache: async () => undefined } as never
+  ] as const;
+}
+
 function stubTourRepositoryForPaymentsLock() {
   return {
     createQueryBuilder() {
@@ -150,7 +216,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
-  } as unknown as DataSource;
+  };
 
   const outboxService = {
     async addEvent(
@@ -161,15 +227,26 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     }
   } as unknown as OutboxService;
 
+  const ledgerDeps = captureLedgerDeps();
   const service = new PaymentsService(
     {
-      async findOne(opts: { where: { providerPaymentId?: string } }) {
-        return opts.where.providerPaymentId === "provider-1" ? paymentRow : null;
-      }
+      async findByProviderPaymentId(providerPaymentId: string) {
+        return providerPaymentId === "provider-1" ? paymentRow : null;
+      },
+      async runInTransaction<T>(fn: (_m: typeof manager) => Promise<T>) {
+        return dataSource.transaction(fn);
+      },
+      async findByProviderPaymentIdWithManager(_m: unknown, providerPaymentId: string) {
+        return providerPaymentId === "provider-1" ? paymentRow : null;
+      },
+      ...paymentPortFromPipeline({
+        registrationId: TEST_REGISTRATION_ID,
+        tenantId: TEST_TENANT_ID,
+        hasPriceSnapshot: true,
+        hasPendingPayment: true,
+        hasPaidPayment: false
+      })
     } as never,
-    {} as never,
-    {} as never,
-    dataSource,
     { setTenantId: () => undefined } as never,
     { runInTenantScope: async () => undefined } as never,
     {
@@ -187,40 +264,11 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     } as never,
     outboxService,
     {} as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
-    noopPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
-    { invalidateSummaryCache: async () => undefined } as never
+    ledgerDeps[0],
+    ledgerDeps[1],
+    ledgerDeps[2],
+    ledgerDeps[3],
+    ledgerDeps[4]
   );
 
   await service.processWebhook({
@@ -326,24 +374,27 @@ test("timeout processor fails stale pending payments and updates metrics", async
       hasPaidPayment: false
     })
   };
-  const dataSource = {
-    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    }
-  } as unknown as DataSource;
   const outboxService = {
     async addEvent(): Promise<void> {}
   } as unknown as OutboxService;
 
+  const ledgerDeps = captureLedgerDeps();
   const service = new PaymentsService(
-    {} as never,
-    {} as never,
     {
-      async find() {
-        return [{ id: TEST_TENANT_ID }];
-      }
+      async listActiveTenantIds() {
+        return [TEST_TENANT_ID];
+      },
+      async findLockedTimedOutPending(_manager: unknown) {
+        return [stale];
+      },
+      ...paymentPortFromPipeline({
+        registrationId: TEST_REGISTRATION_ID_2,
+        tenantId: TEST_TENANT_ID,
+        hasPriceSnapshot: true,
+        hasPendingPayment: true,
+        hasPaidPayment: false
+      })
     } as never,
-    dataSource,
     { setTenantId: () => undefined } as never,
     {
       runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
@@ -352,40 +403,11 @@ test("timeout processor fails stale pending payments and updates metrics", async
     {} as never,
     outboxService,
     {} as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
-    noopPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
-    { invalidateSummaryCache: async () => undefined } as never
+    ledgerDeps[0],
+    ledgerDeps[1],
+    ledgerDeps[2],
+    ledgerDeps[3],
+    ledgerDeps[4]
   );
 
   const timedOut = await service.failTimedOutPendingPayments();
@@ -441,7 +463,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
     }
-  } as unknown as DataSource;
+  };
 
   const idempotencyService = {
     createRequestHash: () => "h",
@@ -477,54 +499,36 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     async addEvent(): Promise<void> {}
   } as unknown as OutboxService;
 
+  const ledgerDeps = captureLedgerDeps();
   const service = new PaymentsService(
     {
-      async findOne(opts: { where: { providerPaymentId?: string } }) {
-        return opts.where.providerPaymentId === "provider-9" ? paymentRow : null;
-      }
+      async findByProviderPaymentId(providerPaymentId: string) {
+        return providerPaymentId === "provider-9" ? paymentRow : null;
+      },
+      async runInTransaction<T>(fn: (_m: typeof manager) => Promise<T>) {
+        return dataSource.transaction(fn);
+      },
+      async findByProviderPaymentIdWithManager(_m: unknown, providerPaymentId: string) {
+        return providerPaymentId === "provider-9" ? paymentRow : null;
+      },
+      ...paymentPortFromPipeline({
+        registrationId: TEST_REGISTRATION_ID_2,
+        tenantId: TEST_TENANT_ID,
+        hasPriceSnapshot: true,
+        hasPendingPayment: true,
+        hasPaidPayment: false
+      })
     } as never,
-    {} as never,
-    {} as never,
-    dataSource,
     { setTenantId: () => undefined } as never,
     { runInTenantScope: async () => undefined } as never,
     idempotencyService as never,
     outboxService,
     {} as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
-    noopPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
-    { invalidateSummaryCache: async () => undefined } as never
+    ledgerDeps[0],
+    ledgerDeps[1],
+    ledgerDeps[2],
+    ledgerDeps[3],
+    ledgerDeps[4]
   );
 
   const first = await service.processWebhook({
@@ -585,117 +589,55 @@ test("admin payment list is tenant scoped", async () => {
   ];
   let capturedTenantId: string | undefined;
   const paymentRepository = {
-    async find(opts: { where: { tenantId: string } }) {
-      capturedTenantId = opts.where.tenantId;
-      return rows.filter((row) => row.tenantId === opts.where.tenantId);
+    async listByTenant(tenantId: string) {
+      capturedTenantId = tenantId;
+      return rows.filter((row) => row.tenantId === tenantId);
     }
   };
 
+  const ledgerDeps = captureLedgerDeps();
   const service = new PaymentsService(
     paymentRepository as never,
-    {} as never,
-    {} as never,
-    {} as DataSource,
-    {} as never,
+    { resolveEffectiveTenantId: () => "TENANT-A" } as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
-    noopPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
-    { invalidateSummaryCache: async () => undefined } as never
+    ledgerDeps[0],
+    ledgerDeps[1],
+    ledgerDeps[2],
+    ledgerDeps[3],
+    ledgerDeps[4]
   );
 
-  const result = await service.listPayments("TENANT-A");
+  const result = await service.listPayments();
   assert.equal(capturedTenantId, "tenant-a");
   assert.equal(result.length, 1);
   assert.equal(result[0]?.tenantId, "tenant-a");
 });
 
 test("admin payment list fails when tenant context is missing", async () => {
+  const ledgerDeps = captureLedgerDeps();
   const service = new PaymentsService(
     {
-      async find() {
+      async listByTenant() {
         return [];
       }
     } as never,
-    {} as never,
-    {} as never,
-    {} as DataSource,
-    {} as never,
+    { resolveEffectiveTenantId: () => "   " } as never,
     {} as never,
     {} as never,
     {} as never,
     {} as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId(TEST_REGISTRATION_ID),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
-    noopPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort,
-    { invalidateSummaryCache: async () => undefined } as never
+    ledgerDeps[0],
+    ledgerDeps[1],
+    ledgerDeps[2],
+    ledgerDeps[3],
+    ledgerDeps[4]
   );
 
   await assert.rejects(
-    () => service.listPayments("   "),
-    (error) => error instanceof TenantContextMissingError
+    () => service.listPayments(),
+    (error) => error instanceof ForbiddenException
   );
 });

@@ -1,9 +1,5 @@
 import { Module } from "@nestjs/common";
-import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
-import { DataSource, type Repository } from "typeorm";
-import { RequestContextService } from "../../common/request-context/request-context.service";
-import { OtpService } from "../auth/otp.service";
-import { TenantAuditEventsService } from "../../common/audit/tenant-audit-events.service";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import { UsersController } from "./users.controller";
 import { TenantEntity } from "./entities/tenant.entity";
 import { UserEntity } from "./entities/user.entity";
@@ -18,8 +14,8 @@ import { WorkspaceUsersController } from "./workspace-users.controller";
 import { WorkspaceUsersService } from "./workspace-users.service";
 import { WorkspaceSettingsModulesController } from "./workspace-settings-modules.controller";
 import { TenantAuditEventsController } from "./tenant-audit-events.controller";
-import { UsersListRepository } from "./users/repositories/users-list.repository";
-import { UsersTenantScopeRepository } from "./users/repositories/users-tenant-scope.repository";
+import { WORKSPACE_IDENTITY_REPOSITORY_PORT } from "./domain/ports/workspace-identity-repository.port";
+import { TypeOrmIdentityRepository } from "./repositories/typeorm-identity.repository";
 import { UsersReadService } from "./users-read.service";
 import { UsersAccessService } from "./users-access.service";
 import { UsersWriteService } from "./users-write.service";
@@ -28,13 +24,13 @@ import { UsersInviteService } from "./services/users-invite.service";
 import { MeController } from "./me.controller";
 import { MeService } from "./me.service";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
-import { OutboxService } from "../outbox/outbox.service";
 import { OutboxModule } from "../outbox/outbox.module";
 import { AuthModule } from "../auth/auth.module";
 import { AccountBalanceEntity } from "../finance/ledger/entities/account-balance.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
 import { TourEntity } from "../tours/entities/tour.entity";
+import { TourProductEntity } from "../tours/entities/tour-product.entity";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
 
@@ -53,7 +49,8 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
       AccountBalanceEntity,
       RegistrationEntity,
       TourDepartureEntity,
-      TourEntity
+      TourEntity,
+      TourProductEntity
     ])
   ],
   controllers: [
@@ -67,8 +64,10 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
     MeController
   ],
   providers: [
-    UsersTenantScopeRepository,
-    UsersListRepository,
+    {
+      provide: WORKSPACE_IDENTITY_REPOSITORY_PORT,
+      useClass: TypeOrmIdentityRepository
+    },
     UsersAccessService,
     UsersMemberWalletBalancesService,
     WorkspaceUserBookingSummaryService,
@@ -77,39 +76,10 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
     UsersAuditService,
     UsersInviteService,
     WorkspaceUsersService,
-    {
-      provide: MeService,
-      useFactory: (
-        userRepository: Repository<UserEntity>,
-        dataSource: DataSource,
-        usersAccess: UsersAccessService,
-        requestContext: RequestContextService,
-        outboxService: OutboxService,
-        otpService: OtpService,
-        tenantAuditEventsService: TenantAuditEventsService
-      ) =>
-        new MeService(
-          userRepository,
-          dataSource,
-          usersAccess,
-          requestContext,
-          outboxService,
-          otpService,
-          tenantAuditEventsService
-        ),
-      inject: [
-        getRepositoryToken(UserEntity),
-        DataSource,
-        UsersAccessService,
-        RequestContextService,
-        OutboxService,
-        OtpService,
-        TenantAuditEventsService
-      ]
-    }
+    MeService
   ],
   exports: [
-    TypeOrmModule,
+    WORKSPACE_IDENTITY_REPOSITORY_PORT,
     UsersAccessService,
     UsersReadService,
     UsersWriteService,

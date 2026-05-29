@@ -5,6 +5,7 @@ import { UserEntity } from "../../entities/user.entity";
 import { UserTenantEntity } from "../../entities/user-tenant.entity";
 import type { IUsersListRepository, TenantUsersListQuery, TenantUsersListRow } from "./users-list.repository.interface";
 
+/** @deprecated Logic moved to {@link TypeOrmIdentityRepository}; use {@link WORKSPACE_IDENTITY_REPOSITORY_PORT}. */
 @Injectable()
 export class UsersListRepository implements IUsersListRepository {
   constructor(

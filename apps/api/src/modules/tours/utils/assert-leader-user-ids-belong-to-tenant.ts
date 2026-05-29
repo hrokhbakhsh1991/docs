@@ -1,9 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
 import { isEligibleTourLeaderMembership } from "@repo/shared";
-import { In, IsNull, type Repository } from "typeorm";
 
-import { MembershipStatus } from "../../identity/membership-status.enum";
-import { UserTenantEntity } from "../../identity/entities/user-tenant.entity";
+import type { WorkspaceIdentityRepositoryPort } from "../../identity/domain/ports/workspace-identity-repository.port";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 
 function dedupeUuidStrings(ids: unknown[]): string[] {
@@ -38,7 +36,7 @@ export function collectLeaderUserIdsFromTripDetails(
  * to lead tours (crew role or selectable-leader capability).
  */
 export async function assertLeaderUserIdsBelongToTenant(
-  membershipRepository: Repository<UserTenantEntity>,
+  identityRepository: WorkspaceIdentityRepositoryPort,
   tenantId: string,
   leaderUserIds: string[] | null | undefined,
 ): Promise<void> {
@@ -47,20 +45,7 @@ export async function assertLeaderUserIdsBelongToTenant(
     return;
   }
 
-  const rows = await membershipRepository.find({
-    where: {
-      tenantId,
-      userId: In(unique),
-      deletedAt: IsNull(),
-      status: MembershipStatus.ACTIVE,
-    },
-    select: {
-      userId: true,
-      role: true,
-      membershipMetadata: true,
-    },
-  });
-
+  const rows = await identityRepository.findActiveMembershipsByUserIds(tenantId, unique);
   const byUserId = new Map(rows.map((r) => [r.userId, r]));
   const notInTenant = unique.filter((id) => !byUserId.has(id));
   if (notInTenant.length > 0) {

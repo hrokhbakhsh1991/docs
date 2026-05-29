@@ -1,21 +1,18 @@
 import { BadRequestException } from "@nestjs/common";
-import { type FindOptionsWhere, type Repository, In } from "typeorm";
 
-import { WorkspaceEquipmentItemEntity } from "../../settings-locations/entities/workspace-equipment-item.entity";
-import { WorkspaceGuideLanguageEntity } from "../../settings-locations/entities/workspace-guide-language.entity";
-import { WorkspaceTourThemeEntity } from "../../settings-locations/entities/workspace-tour-theme.entity";
+import type { WorkspaceSettingsRepositoryPort } from "../../settings-locations/domain/ports/workspace-settings-repository.port";
 
 /**
  * `tenantId` from {@link RequestContextService.resolveEffectiveTenantId} matches
  * `workspace_id` on workspace catalog tables (FK to `tenants.id`).
  */
 export async function assertEquipmentIdsBelongToTenant(
-  equipmentRepository: Repository<WorkspaceEquipmentItemEntity>,
+  settingsRepository: WorkspaceSettingsRepositoryPort,
   tenantId: string,
   equipmentIds: string[],
 ): Promise<void> {
   await assertIdsInWorkspaceCatalog(
-    equipmentRepository,
+    settingsRepository.findExistingEquipmentIds.bind(settingsRepository),
     tenantId,
     equipmentIds,
     "INVALID_EQUIPMENT_IDS_FOR_TENANT",
@@ -24,12 +21,12 @@ export async function assertEquipmentIdsBelongToTenant(
 }
 
 export async function assertTourThemeIdsBelongToTenant(
-  tourThemesRepository: Repository<WorkspaceTourThemeEntity>,
+  settingsRepository: WorkspaceSettingsRepositoryPort,
   tenantId: string,
   themeIds: string[],
 ): Promise<void> {
   await assertIdsInWorkspaceCatalog(
-    tourThemesRepository,
+    settingsRepository.findExistingTourThemeIds.bind(settingsRepository),
     tenantId,
     themeIds,
     "INVALID_TOUR_THEME_IDS_FOR_TENANT",
@@ -38,12 +35,12 @@ export async function assertTourThemeIdsBelongToTenant(
 }
 
 export async function assertGuideLanguageIdsBelongToTenant(
-  guideLanguagesRepository: Repository<WorkspaceGuideLanguageEntity>,
+  settingsRepository: WorkspaceSettingsRepositoryPort,
   tenantId: string,
   guideLanguageIds: string[],
 ): Promise<void> {
   await assertIdsInWorkspaceCatalog(
-    guideLanguagesRepository,
+    settingsRepository.findExistingGuideLanguageIds.bind(settingsRepository),
     tenantId,
     guideLanguageIds,
     "INVALID_GUIDE_LANGUAGE_IDS_FOR_TENANT",
@@ -51,13 +48,8 @@ export async function assertGuideLanguageIdsBelongToTenant(
   );
 }
 
-type CatalogEntity =
-  | WorkspaceEquipmentItemEntity
-  | WorkspaceTourThemeEntity
-  | WorkspaceGuideLanguageEntity;
-
-async function assertIdsInWorkspaceCatalog<T extends CatalogEntity>(
-  repository: Repository<T>,
+async function assertIdsInWorkspaceCatalog(
+  loadExistingIds: (workspaceId: string, ids: readonly string[]) => Promise<string[]>,
   tenantId: string,
   ids: string[],
   code: string,
@@ -68,16 +60,9 @@ async function assertIdsInWorkspaceCatalog<T extends CatalogEntity>(
     return;
   }
 
-  const rows = await repository.find({
-    where: {
-      id: In(unique),
-      workspaceId: tenantId,
-    } as FindOptionsWhere<T>,
-    select: { id: true } as never,
-  });
-
-  const found = new Set(rows.map((r) => r.id));
-  const invalidIds = unique.filter((id) => !found.has(id));
+  const found = await loadExistingIds(tenantId, unique);
+  const foundSet = new Set(found);
+  const invalidIds = unique.filter((id) => !foundSet.has(id));
   if (invalidIds.length > 0) {
     throw new BadRequestException({
       error: {

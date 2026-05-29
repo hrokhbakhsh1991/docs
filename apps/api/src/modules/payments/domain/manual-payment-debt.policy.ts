@@ -1,5 +1,5 @@
 import { ConflictException } from "@nestjs/common";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "./payment.types";
 
 export const PAYMENT_DEBT_AFTER_SETTLEMENT_FORBIDDEN = {
   error: {

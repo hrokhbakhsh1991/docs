@@ -49,8 +49,7 @@ import { Idempotent } from "../idempotency/idempotent.decorator";
 @RequireCapability("module.finance")
 export class PaymentsController {
   constructor(
-    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
-    @Inject(RequestContextService) private readonly requestContextService: RequestContextService
+    @Inject(PaymentsService) private readonly paymentsService: PaymentsService
   ) {}
 
   @Post("payments/intent")
@@ -88,8 +87,7 @@ export class PaymentsController {
   @ApiOperation({ summary: "Admin list of recent payments" })
   @ApiOkResponse({ type: PaymentResponseDto, isArray: true })
   async listPayments(): Promise<PaymentResponseDto[]> {
-    const tenantContext = this.requestContextService.assertTenantContext();
-    return this.paymentsService.listPayments(tenantContext.tenantId);
+    return this.paymentsService.listPayments();
   }
 
   @Get("admin/payments/:id")

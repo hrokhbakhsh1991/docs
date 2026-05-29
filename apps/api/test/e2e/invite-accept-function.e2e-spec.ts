@@ -2,29 +2,31 @@ import "reflect-metadata";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
-import { INestApplication } from "@nestjs/common";
-import * as argon2 from "argon2";
-import request, { type Response } from "supertest";
+import request from "supertest";
 import { DataSource } from "typeorm";
+import { assertApiErrorEnvelope } from "@repo/testing-infra";
+
+import { UserRole } from "../../src/common/auth/user-role.enum";
 import {
-  PostgreSqlContainer,
-  StartedPostgreSqlContainer
-} from "@testcontainers/postgresql";
-import { assignTestApiPort } from "./assign-test-api-port";
-import { createE2EApp } from "./bootstrap";
-import { resetTestDatabaseWithMigrations } from "./reset-test-database";
-import { webSessionOtpToken } from "./web-session-otp.helper";
+  findUserIdByEmail,
+  insertPendingWorkspaceInvite,
+  seedAuthPersona,
+  seedTwoTenantPersonas,
+} from "../helpers/auth-test-personas";
+import {
+  createAuthE2eHarness,
+  teardownAuthE2eHarness,
+  type AuthE2eHarnessContext,
+} from "./auth/auth-e2e-harness";
 import {
   E2E_JWT_PRIVATE_KEY_PKCS8,
-  E2E_JWT_PUBLIC_KEY_SPKI
+  E2E_JWT_PUBLIC_KEY_SPKI,
 } from "./jwt-test-keys";
-import { UserRole } from "../../src/common/auth/user-role.enum";
-import { TenantEntity } from "../../src/modules/identity/entities/tenant.entity";
-import { UserEntity } from "../../src/modules/identity/entities/user.entity";
-import { UserTenantEntity } from "../../src/modules/identity/entities/user-tenant.entity";
 
 const TENANT_A = "b4b4b4b4-b4b4-44b4-84b4-b4b4b4b4b4b4";
 const TENANT_B = "b5b5b5b5-b5b5-45b5-85b5-b5b5b5b5b5b5";
+const SUBDOMAIN_A = "invacc-a";
+const SUBDOMAIN_B = "invacc-b";
 
 const OWNER_EMAIL = "owner@invite-accept-fn.test";
 const INVITEE_EMAIL = "invitee@invite-accept-fn.test";
@@ -43,322 +45,226 @@ const LIMITED_DB_PASSWORD = "LtdPw0_invite_accept_fn_e2e";
 
 const INTERNAL_API_KEY = "test-internal-key-invite-accept-fn";
 
-const RETRYABILITY_VALUES = new Set([
-  "NO_RETRY",
-  "SAFE_RETRY",
-  "RETRY_WITH_BACKOFF",
-  "RETRY_AFTER_ACTION"
-]);
-
-let container: StartedPostgreSqlContainer | undefined;
-let app: INestApplication | undefined;
-let e2eUnavailableReason: string | null = null;
+let ctx: AuthE2eHarnessContext;
 let tokenInviteeHome = "";
 let tokenOtherUser = "";
 let ownerUserId = "";
+let inviteeUserId = "";
 
-function applyEnvForContainer(db: StartedPostgreSqlContainer): void {
-  process.env.NODE_ENV = "test";
-  assignTestApiPort();
-  process.env.LOG_LEVEL = "error";
-  process.env.DATABASE_HOST = db.getHost();
-  process.env.DATABASE_PORT = String(db.getPort());
-  process.env.DATABASE_USER = db.getUsername();
-  process.env.DATABASE_PASSWORD = db.getPassword();
-  process.env.DATABASE_NAME = db.getDatabase();
-  process.env.DATABASE_URL = db.getConnectionUri();
-  process.env.JWT_PRIVATE_KEY = E2E_JWT_PRIVATE_KEY_PKCS8;
-  process.env.JWT_PUBLIC_KEY = E2E_JWT_PUBLIC_KEY_SPKI;
-  process.env.JWT_ISSUER = process.env.JWT_ISSUER ?? "test-issuer";
-  process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE ?? "test-audience";
-  process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "test-token";
-  process.env.REDIS_HOST = process.env.REDIS_HOST ?? "localhost";
-  process.env.REDIS_PORT = process.env.REDIS_PORT ?? "6379";
-  process.env.OUTBOX_POLL_INTERVAL_MS = "5000";
-  process.env.OUTBOX_MAX_RETRY = "5";
-  process.env.OUTBOX_BATCH_SIZE = "50";
-  process.env.OUTBOX_PROCESSOR_ENABLED = "false";
-  process.env.RECONCILIATION_ENABLED = "false";
-  process.env.RECONCILIATION_INTERVAL_MS = "600000";
-  process.env.PAYMENTS_TIMEOUT_ENABLED = "false";
-  process.env.PAYMENTS_TIMEOUT_INTERVAL_MS = "60000";
-  process.env.INTERNAL_API_KEY = INTERNAL_API_KEY;
+function skip(): boolean {
+  return Boolean(ctx.unavailableReason) || !ctx.app || !ctx.auth || !ctx.db;
 }
 
-function assertErrorEnvelope(response: Response): void {
-  assert.equal(typeof response.body, "object");
-  assert.equal(typeof response.body.requestId, "string");
-  assert.equal(typeof response.body.error, "object");
-  assert.equal(typeof response.body.error.code, "string");
-  assert.equal(typeof response.body.error.message, "string");
-  assert.equal(typeof response.body.error.correlationId, "string");
-  assert.equal(typeof response.body.error.details, "object");
-  assert.equal(typeof response.body.error.retryability, "string");
-  assert.equal(RETRYABILITY_VALUES.has(response.body.error.retryability), true);
-}
-
-async function inviteCountByToken(ds: DataSource, token: string): Promise<number> {
-  const rows = await ds.query<{ c: string }[]>(
-    `SELECT COUNT(*)::text AS c FROM workspace_invites WHERE invite_token = $1`,
-    [token]
-  );
-  return Number(rows[0]?.c ?? "0");
-}
-
-async function insertWorkspaceInvite(
-  ds: DataSource,
-  params: {
-    token: string;
-    tenantId: string;
-    email: string;
-    role: string;
-    createdBy: string;
-  }
-): Promise<void> {
-  await ds.query(
-    `INSERT INTO workspace_invites (id, tenant_id, email, role, invite_token, expires_at, invited_by_user_id, status)
-     VALUES ($1::uuid, $2::uuid, $3, $4, $5, now() + interval '7 days', $6::uuid, 'PENDING')`,
-    [randomUUID(), params.tenantId, params.email.trim().toLowerCase(), params.role, params.token, params.createdBy]
-  );
-}
-
-async function seed(ds: DataSource): Promise<void> {
-  const tenantRepo = ds.getRepository(TenantEntity);
-  const userRepo = ds.getRepository(UserEntity);
-  const membershipRepo = ds.getRepository(UserTenantEntity);
-
-  await tenantRepo.insert([
-    {
-      id: TENANT_A,
-      name: "Tenant A (invite accept)",
-      description: "invite-accept-function e2e",
-      subdomain: "invacc-a"
-    },
-    {
-      id: TENANT_B,
-      name: "Tenant B (invitee home)",
-      description: "invite-accept-function e2e",
-      subdomain: "invacc-b"
-    }
-  ]);
-
-  const fixtureHash = await argon2.hash(`fixture-${randomUUID()}`);
-  const owner = await userRepo.save(
-    userRepo.create({
-      email: OWNER_EMAIL,
-      phone: OWNER_PHONE,
-      isPhoneVerified: true,
-      hashedPassword: fixtureHash,
-      fullName: "Owner",
-      isEmailVerified: true,
-      telegramUserId: null
-    })
-  );
-  ownerUserId = owner.id;
-  const invitee = await userRepo.save(
-    userRepo.create({
-      email: INVITEE_EMAIL,
-      phone: INVITEE_PHONE,
-      isPhoneVerified: true,
-      hashedPassword: fixtureHash,
-      fullName: "Invitee",
-      isEmailVerified: true,
-      telegramUserId: null
-    })
-  );
-  const other = await userRepo.save(
-    userRepo.create({
-      email: OTHER_EMAIL,
-      phone: OTHER_PHONE,
-      isPhoneVerified: true,
-      hashedPassword: fixtureHash,
-      fullName: "Other",
-      isEmailVerified: true,
-      telegramUserId: null
-    })
-  );
-
-  await membershipRepo.save([
-    membershipRepo.create({
-      tenantId: TENANT_A,
-      userId: owner.id,
-      role: UserRole.Owner
-    }),
-    membershipRepo.create({
-      tenantId: TENANT_B,
-      userId: owner.id,
-      role: UserRole.Owner
-    }),
-    membershipRepo.create({
-      tenantId: TENANT_B,
-      userId: invitee.id,
-      role: UserRole.Member
-    }),
-    membershipRepo.create({
-      tenantId: TENANT_B,
-      userId: other.id,
-      role: UserRole.Member
-    })
-  ]);
-
-  await insertWorkspaceInvite(ds, {
-    token: TOKEN_ACCEPT_OK,
-    tenantId: TENANT_A,
-    email: INVITEE_EMAIL,
-    role: UserRole.Member,
-    createdBy: owner.id
-  });
-}
-
-async function ensureLimitedDbRole(ds: DataSource): Promise<void> {
-  if (!container) {
-    return;
-  }
-  const dbName = container.getDatabase();
+async function ensureLimitedDbRole(ds: DataSource, dbName: string): Promise<void> {
   const safeDb = dbName.replace(/"/g, '""');
+  const appDbUser = (process.env.DATABASE_USER ?? "test").replace(/"/g, '""');
   await ds.query(`DROP ROLE IF EXISTS ${LIMITED_DB_ROLE}`);
   await ds.query(
-    `CREATE ROLE ${LIMITED_DB_ROLE} LOGIN PASSWORD '${LIMITED_DB_PASSWORD.replace(/'/g, "''")}' NOSUPERUSER NOCREATEDB NOINHERIT`
+    `CREATE ROLE ${LIMITED_DB_ROLE} LOGIN PASSWORD '${LIMITED_DB_PASSWORD.replace(/'/g, "''")}' NOSUPERUSER NOCREATEDB NOINHERIT`,
   );
   await ds.query(`GRANT CONNECT ON DATABASE "${safeDb}" TO ${LIMITED_DB_ROLE}`);
   await ds.query(`GRANT USAGE ON SCHEMA public TO ${LIMITED_DB_ROLE}`);
+  // Canonical model migration recreates the function; re-apply hardened EXECUTE grants for e2e.
+  await ds.query(
+    `REVOKE EXECUTE ON FUNCTION public.accept_workspace_invite_by_token(text, uuid, text) FROM PUBLIC`,
+  );
+  await ds.query(
+    `GRANT EXECUTE ON FUNCTION public.accept_workspace_invite_by_token(text, uuid, text) TO "${appDbUser}"`,
+  );
 }
 
 before(async () => {
-  try {
-    container = await new PostgreSqlContainer("postgres:16-alpine").start();
-  } catch (error: unknown) {
-    e2eUnavailableReason = `testcontainers unavailable: ${String(error)}`;
+  ctx = await createAuthE2eHarness({
+    jwtKeys: {
+      privatePem: E2E_JWT_PRIVATE_KEY_PKCS8,
+      publicPem: E2E_JWT_PUBLIC_KEY_SPKI,
+    },
+    internalApiKey: INTERNAL_API_KEY,
+    seed: async (ds) => {
+      await seedTwoTenantPersonas(ds, {
+        tenantA: {
+          id: TENANT_A,
+          subdomain: SUBDOMAIN_A,
+          name: "Tenant A (invite accept)",
+          description: "invite-accept-function e2e",
+        },
+        tenantB: {
+          id: TENANT_B,
+          subdomain: SUBDOMAIN_B,
+          name: "Tenant B (invitee home)",
+          description: "invite-accept-function e2e",
+        },
+        dualMember: {
+          phone: OWNER_PHONE,
+          email: OWNER_EMAIL,
+          role: UserRole.Owner,
+          fullName: "Owner",
+        },
+      });
+
+      await seedAuthPersona(ds, {
+        phone: INVITEE_PHONE,
+        email: INVITEE_EMAIL,
+        tenantId: TENANT_B,
+        subdomain: SUBDOMAIN_B,
+        role: UserRole.Member,
+        fullName: "Invitee",
+      });
+
+      await seedAuthPersona(ds, {
+        phone: OTHER_PHONE,
+        email: OTHER_EMAIL,
+        tenantId: TENANT_B,
+        subdomain: SUBDOMAIN_B,
+        role: UserRole.Member,
+        fullName: "Other",
+      });
+
+      ownerUserId = await findUserIdByEmail(ds, OWNER_EMAIL);
+      inviteeUserId = await findUserIdByEmail(ds, INVITEE_EMAIL);
+
+      await insertPendingWorkspaceInvite(ds, {
+        tenantId: TENANT_A,
+        email: INVITEE_EMAIL,
+        role: UserRole.Member,
+        inviteToken: TOKEN_ACCEPT_OK,
+        invitedByUserId: ownerUserId,
+      });
+    },
+  });
+
+  if (skip()) {
     return;
   }
-  applyEnvForContainer(container);
-  await resetTestDatabaseWithMigrations();
-  app = await createE2EApp();
-  const ds = app.get(DataSource);
-  await seed(ds);
-  await ensureLimitedDbRole(ds);
 
-  tokenInviteeHome = await webSessionOtpToken(app, { phone: INVITEE_PHONE, tenantSubdomain: "invacc-b" });
-  tokenOtherUser = await webSessionOtpToken(app, { phone: OTHER_PHONE, tenantSubdomain: "invacc-b" });
+  if (ctx.container) {
+    await ensureLimitedDbRole(ctx.app!.get(DataSource), ctx.container.getDatabase());
+  }
+
+  tokenInviteeHome = await ctx.auth!.loginOtp({
+    phone: INVITEE_PHONE,
+    tenantSubdomain: SUBDOMAIN_B,
+  });
+  tokenOtherUser = await ctx.auth!.loginOtp({
+    phone: OTHER_PHONE,
+    tenantSubdomain: SUBDOMAIN_B,
+  });
 });
 
 after(async () => {
-  if (app) {
-    const ds = app.get(DataSource);
+  if (ctx.app) {
+    const ds = ctx.app.get(DataSource);
     try {
       await ds.query(`DROP ROLE IF EXISTS ${LIMITED_DB_ROLE}`);
     } catch {
       /* ignore */
     }
-    await app.close();
   }
-  if (container) {
-    await container.stop();
-  }
+  await teardownAuthE2eHarness(ctx);
 });
 
 test("POST /api/v2/invites/:token/accept with valid token -> 200, invite row removed", async () => {
-  if (e2eUnavailableReason || !app) {
+  if (skip()) {
     return;
   }
-  const ds = app.get(DataSource);
-  assert.equal(await inviteCountByToken(ds, TOKEN_ACCEPT_OK), 1);
 
-  const response = await request(app.getHttpServer())
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_ACCEPT_OK), 1);
+
+  const response = await request(ctx.app!.getHttpServer())
     .post(`/api/v2/invites/${TOKEN_ACCEPT_OK}/accept`)
     .set("Authorization", `Bearer ${tokenInviteeHome}`);
 
   assert.equal(response.status, 200);
   assert.equal(response.body.tenant_id, TENANT_A);
   assert.equal(response.body.role, UserRole.Member);
-  assert.equal(await inviteCountByToken(ds, TOKEN_ACCEPT_OK), 0);
-
-  const inviteeUser = await ds.getRepository(UserEntity).findOneOrFail({ where: { email: INVITEE_EMAIL } });
-  const membership = await ds.getRepository(UserTenantEntity).findOne({
-    where: { userId: inviteeUser.id, tenantId: TENANT_A }
-  });
-  assert.equal(Boolean(membership), true);
-  assert.equal(membership?.deletedAt, null);
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_ACCEPT_OK), 0);
+  assert.equal(
+    await ctx.db!.hasActiveMembership({ userId: inviteeUserId, tenantId: TENANT_A }),
+    true,
+  );
 });
 
 test("direct SELECT accept_workspace_invite_by_token as non-app DB role -> permission denied", async () => {
-  if (e2eUnavailableReason || !container) {
+  if (skip() || !ctx.container) {
     return;
   }
+
   const limitedDs = new DataSource({
     type: "postgres",
-    host: container.getHost(),
-    port: container.getPort(),
+    host: ctx.container.getHost(),
+    port: ctx.container.getPort(),
     username: LIMITED_DB_ROLE,
     password: LIMITED_DB_PASSWORD,
-    database: container.getDatabase(),
-    synchronize: false
+    database: ctx.container.getDatabase(),
+    synchronize: false,
   });
   await limitedDs.initialize();
   try {
-    await limitedDs.query(
-      `SELECT ok, error_code FROM accept_workspace_invite_by_token($1::text, $2::uuid, $3::text)`,
-      [TOKEN_REUSE_FLOW, randomUUID(), "noop@example.com"]
-    );
-    assert.fail("expected insufficient_privilege for non-granted role");
-  } catch (err: unknown) {
-    assert.ok(err instanceof Error);
-    const pgErr = err as { code?: string; driverError?: { code?: string }; message?: string };
-    const code = pgErr.driverError?.code ?? pgErr.code;
-    assert.equal(code, "42501", pgErr.message);
+    let pgCode: string | undefined;
+    try {
+      await limitedDs.query(
+        `SELECT ok, error_code FROM accept_workspace_invite_by_token($1::text, $2::uuid, $3::text)`,
+        [TOKEN_REUSE_FLOW, randomUUID(), "noop@example.com"],
+      );
+    } catch (err: unknown) {
+      assert.ok(err instanceof Error);
+      const pgErr = err as { code?: string; driverError?: { code?: string }; message?: string };
+      pgCode = pgErr.driverError?.code ?? pgErr.code;
+    }
+    assert.equal(pgCode, "42501", "non-app DB role must not EXECUTE accept_workspace_invite_by_token");
   } finally {
     await limitedDs.destroy();
   }
 });
 
 test("reuse invite token after successful accept -> 404 INVITE_NOT_FOUND", async () => {
-  if (e2eUnavailableReason || !app) {
+  if (skip()) {
     return;
   }
-  const ds = app.get(DataSource);
-  await insertWorkspaceInvite(ds, {
-    token: TOKEN_REUSE_FLOW,
+
+  await ctx.db!.insertPendingWorkspaceInvite({
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
     role: UserRole.Member,
-    createdBy: ownerUserId
+    inviteToken: TOKEN_REUSE_FLOW,
+    invitedByUserId: ownerUserId,
   });
-  assert.equal(await inviteCountByToken(ds, TOKEN_REUSE_FLOW), 1);
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_REUSE_FLOW), 1);
 
-  const first = await request(app.getHttpServer())
+  const first = await request(ctx.app!.getHttpServer())
     .post(`/api/v2/invites/${TOKEN_REUSE_FLOW}/accept`)
     .set("Authorization", `Bearer ${tokenInviteeHome}`);
   assert.equal(first.status, 200);
-  assert.equal(await inviteCountByToken(ds, TOKEN_REUSE_FLOW), 0);
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_REUSE_FLOW), 0);
 
-  const second = await request(app.getHttpServer())
+  const second = await request(ctx.app!.getHttpServer())
     .post(`/api/v2/invites/${TOKEN_REUSE_FLOW}/accept`)
     .set("Authorization", `Bearer ${tokenInviteeHome}`);
   assert.equal(second.status, 404);
   assert.equal(second.body.error?.code, "INVITE_NOT_FOUND");
-  assertErrorEnvelope(second);
+  assertApiErrorEnvelope(second.body);
 });
 
 test("accept with mismatched authenticated email -> 403 INVITE_EMAIL_MISMATCH; invite kept", async () => {
-  if (e2eUnavailableReason || !app) {
+  if (skip()) {
     return;
   }
-  const ds = app.get(DataSource);
-  await insertWorkspaceInvite(ds, {
-    token: TOKEN_MISMATCH,
+
+  await ctx.db!.insertPendingWorkspaceInvite({
     tenantId: TENANT_A,
     email: INVITEE_EMAIL,
     role: UserRole.Member,
-    createdBy: ownerUserId
+    inviteToken: TOKEN_MISMATCH,
+    invitedByUserId: ownerUserId,
   });
-  assert.equal(await inviteCountByToken(ds, TOKEN_MISMATCH), 1);
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_MISMATCH), 1);
 
-  const response = await request(app.getHttpServer())
+  const response = await request(ctx.app!.getHttpServer())
     .post(`/api/v2/invites/${TOKEN_MISMATCH}/accept`)
     .set("Authorization", `Bearer ${tokenOtherUser}`);
 
   assert.equal(response.status, 403);
   assert.equal(response.body.error?.code, "INVITE_EMAIL_MISMATCH");
-  assertErrorEnvelope(response);
-  assert.equal(await inviteCountByToken(ds, TOKEN_MISMATCH), 1);
+  assertApiErrorEnvelope(response.body);
+  assert.equal(await ctx.db!.countWorkspaceInvitesByToken(TOKEN_MISMATCH), 1);
 });

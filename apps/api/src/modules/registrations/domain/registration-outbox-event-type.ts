@@ -1,4 +1,4 @@
-import { RegistrationStatus } from "../registration.entity";
+import { RegistrationStatus } from "./registration-status";
 
 /** True when this registration status consumes an accepted seat on the tour. */
 export function isCapacityConsumingRegistrationStatus(status: RegistrationStatus): boolean {
