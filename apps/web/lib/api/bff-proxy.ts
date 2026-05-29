@@ -1,6 +1,11 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import {
+  extractAllSessionTokensFromCookieHeader,
+  pickSessionTokenFromRequestCookies,
+  pickSessionTokenFromValues,
+} from "@/lib/auth/resolve-session-cookie";
 import { SESSION_TOKEN_COOKIE } from "@/lib/auth/session-cookie";
 import { AppError, createAppError } from "@/lib/errors/app-error";
 import { bffFetch } from "@/lib/api/bff-fetch";
@@ -8,24 +13,6 @@ import { bffGuardErrorResponse } from "@/lib/api/bff-error-response";
 import { logBffError } from "@/lib/logging/bff-logger";
 
 import { getRequestIdFromHeaders } from "@/lib/api/tracing-utils";
-
-function extractSessionTokenFromCookieHeader(cookieHeader: string | null): string | null {
-  if (!cookieHeader?.trim()) {
-    return null;
-  }
-  const match = cookieHeader.match(
-    new RegExp(`(?:^|;\\s*)${SESSION_TOKEN_COOKIE}=([^;]+)`),
-  );
-  const raw = match?.[1]?.trim();
-  if (!raw) {
-    return null;
-  }
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
-  }
-}
 
 /**
  * Resolves the workspace JWT for BFF upstream calls.
@@ -41,14 +28,15 @@ export function readSessionToken(req?: Request): string | null {
         return bearer;
       }
     }
-    const fromRequestCookie = extractSessionTokenFromCookieHeader(req.headers.get("cookie"));
-    if (fromRequestCookie) {
-      return fromRequestCookie;
+    const picked = pickSessionTokenFromValues(
+      extractAllSessionTokensFromCookieHeader(req.headers.get("cookie")),
+    );
+    if (picked?.token) {
+      return picked.token;
     }
   }
 
-  const fromNextCookies = cookies().get(SESSION_TOKEN_COOKIE)?.value?.trim();
-  return fromNextCookies || null;
+  return pickSessionTokenFromRequestCookies(cookies())?.token ?? null;
 }
 
 /**

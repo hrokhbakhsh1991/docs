@@ -2,8 +2,8 @@ import createMiddleware from "next-intl/middleware";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { buildClearSessionCookieOptions } from "./lib/auth/build-session-cookie";
-import { SESSION_TOKEN_COOKIE } from "./lib/auth/session-cookie";
+import { clearAllSessionCookiesOnResponse } from "./lib/auth/build-session-cookie";
+import { pickSessionTokenFromRequestCookies } from "./lib/auth/resolve-session-cookie";
 import {
   authAuditHeaderValue,
   AUTH_AUDIT_REQUEST_HEADER,
@@ -94,7 +94,7 @@ function protectSessionRoute(
   loginUrl.search = "";
   const response = NextResponse.redirect(loginUrl);
   if (token?.trim()) {
-    response.cookies.set(buildClearSessionCookieOptions());
+    clearAllSessionCookiesOnResponse(response);
   }
   return applyAuthAuditHeaders(response, auditValue);
 }
@@ -233,8 +233,8 @@ export default async function middleware(request: NextRequest) {
     return response;
   }
 
-  const token = request.cookies.get(SESSION_TOKEN_COOKIE)?.value;
-  const sessionResponse = protectSessionRoute(request, token);
+  const picked = pickSessionTokenFromRequestCookies(request.cookies);
+  const sessionResponse = protectSessionRoute(request, picked?.token);
   sessionResponse.headers.set("x-request-id", requestId);
   sessionResponse.headers.set("traceparent", traceparent);
   return sessionResponse;

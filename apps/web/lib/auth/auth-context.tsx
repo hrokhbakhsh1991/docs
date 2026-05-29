@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable no-console -- temporary auth audit logging during session recovery */
+/* eslint-disable no-console -- dev-only auth audit logging */
 import {
   createContext,
   useCallback,
@@ -99,16 +99,24 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
-async function fetchSessionHydrate(signal?: AbortSignal): Promise<Response> {
-  return inflightBffGet(SESSION_HYDRATE_PATH, () =>
-    bffBrowserFetch(SESSION_HYDRATE_PATH, {
+type SessionHydrateFetchResult = {
+  ok: boolean;
+  status: number;
+  payload: SessionHydrateWire;
+};
+
+async function fetchSessionHydrate(signal?: AbortSignal): Promise<SessionHydrateFetchResult> {
+  return inflightBffGet(SESSION_HYDRATE_PATH, async () => {
+    const response = await bffBrowserFetch(SESSION_HYDRATE_PATH, {
       method: "GET",
       ...(signal ? { signal } : {}),
-    }),
-  );
+    });
+    const payload = (await response.json().catch(() => ({}))) as SessionHydrateWire;
+    return { ok: response.ok, status: response.status, payload };
+  });
 }
 
-async function fetchSessionHydrateWithTimeout(): Promise<Response> {
+async function fetchSessionHydrateWithTimeout(): Promise<SessionHydrateFetchResult> {
   const ac = new AbortController();
   const tid = window.setTimeout(() => ac.abort(), SESSION_HYDRATE_TIMEOUT_MS);
   try {
@@ -158,16 +166,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     /** Only `authenticated: false` may clear `user`; never on transient/network errors. */
     const consumeHydrateResponse = async (
-      response: Response,
+      result: SessionHydrateFetchResult,
     ): Promise<"authenticated" | "unauthenticated" | "transient"> => {
-      if (!response.ok) {
+      if (!result.ok) {
         warnSessionHydrate(
-          `session hydrate HTTP ${response.status} — keeping cookie, not clearing user`,
+          `session hydrate HTTP ${result.status} — keeping cookie, not clearing user`,
         );
         return "transient";
       }
 
-      const payload = (await response.json().catch(() => ({}))) as SessionHydrateWire;
+      const payload = result.payload;
       if (!active) {
         return "transient";
       }
@@ -209,8 +217,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-          const response = await fetchSessionHydrateWithTimeout();
-          lastOutcome = await consumeHydrateResponse(response);
+          const hydrateResult = await fetchSessionHydrateWithTimeout();
+          lastOutcome = await consumeHydrateResponse(hydrateResult);
           if (lastOutcome === "authenticated" || lastOutcome === "unauthenticated") {
             break;
           }

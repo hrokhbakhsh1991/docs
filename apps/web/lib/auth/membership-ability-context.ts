@@ -14,19 +14,18 @@ export type MembershipAbilityContextWire = {
 export async function fetchMembershipAbilityContext(
   signal?: AbortSignal,
 ): Promise<MembershipAbilityContextWire | null> {
-  const res = await inflightBffGet(BFF.authMembershipAbilityContext, () =>
-    fetch(BFF.authMembershipAbilityContext, {
+  const body = await inflightBffGet(BFF.authMembershipAbilityContext, async () => {
+    const res = await fetch(BFF.authMembershipAbilityContext, {
       credentials: "include",
       cache: "no-store",
       signal,
-    }),
-  );
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return (await res.json().catch(() => null)) as MembershipAbilityContextWire | null;
+  });
 
-  if (!res.ok) {
-    return null;
-  }
-
-  const body = (await res.json().catch(() => null)) as MembershipAbilityContextWire | null;
   if (!body || !Array.isArray(body.labels)) {
     return { labels: [], capabilities: [] };
   }

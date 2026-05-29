@@ -1,16 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveSessionCookieDomain, SESSION_COOKIE_HOST_ONLY } from "./build-session-cookie";
+import {
+  buildClearHostOnlySessionCookieOptions,
+  resolveSessionCookieDomain,
+  SESSION_COOKIE_HOST_ONLY,
+  shouldClearLegacyHostOnlySessionCookie,
+} from "./build-session-cookie";
 
-test("resolveSessionCookieDomain uses .localhost in development by default", () => {
+test("resolveSessionCookieDomain is host-only in development by default", () => {
   const prevNodeEnv = process.env.NODE_ENV;
   const prevDomain = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
   process.env.NODE_ENV = "development";
   delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
 
   try {
-    assert.equal(resolveSessionCookieDomain(), ".localhost");
+    assert.equal(resolveSessionCookieDomain(), undefined);
   } finally {
     process.env.NODE_ENV = prevNodeEnv;
     if (prevDomain === undefined) {
@@ -29,6 +34,29 @@ test("resolveSessionCookieDomain uses NEXT_PUBLIC_SESSION_COOKIE_DOMAIN in produ
 
   try {
     assert.equal(resolveSessionCookieDomain(), ".company.com");
+  } finally {
+    process.env.NODE_ENV = prevNodeEnv;
+    if (prevDomain === undefined) {
+      delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
+    } else {
+      process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN = prevDomain;
+    }
+  }
+});
+
+test("buildClearHostOnlySessionCookieOptions omits domain", () => {
+  const cookie = buildClearHostOnlySessionCookieOptions();
+  assert.equal("domain" in cookie, false);
+  assert.equal(cookie.maxAge, 0);
+});
+
+test("shouldClearLegacyHostOnlySessionCookie when domain-scoped cookies are used", () => {
+  const prevNodeEnv = process.env.NODE_ENV;
+  const prevDomain = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
+  process.env.NODE_ENV = "development";
+  process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN = ".localhost";
+  try {
+    assert.equal(shouldClearLegacyHostOnlySessionCookie(), true);
   } finally {
     process.env.NODE_ENV = prevNodeEnv;
     if (prevDomain === undefined) {

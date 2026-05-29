@@ -22,6 +22,10 @@ export function bffBrowserFetch(input: RequestInfo | URL, init?: RequestInit): P
 
 const inflight = new Map<string, Promise<unknown>>();
 
+/**
+ * Dedupes in-flight GETs (e.g. React Strict Mode double-mount).
+ * Cache the **parsed** result — never a `Response`, whose body can only be read once.
+ */
 export function inflightBffGet<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const existing = inflight.get(key);
   if (existing) {
