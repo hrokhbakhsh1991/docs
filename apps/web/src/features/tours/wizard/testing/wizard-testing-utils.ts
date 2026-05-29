@@ -26,6 +26,11 @@ export interface WizardPublishReadinessIssueView {
   stepId?: string;
 }
 
+export interface WizardNavigationTarget<StepId extends string = string> {
+  formPath: string;
+  stepId: StepId;
+}
+
 export interface WizardPublishReadinessTestConfig<
   Code extends string = string,
   Issue extends WizardPublishReadinessIssue = WizardPublishReadinessIssue,
@@ -34,6 +39,8 @@ export interface WizardPublishReadinessTestConfig<
   blockingCodes: readonly Code[];
   pathFixtures: Readonly<Record<Code, readonly Issue[]>>;
   hasResolvablePath: (issue: Issue) => boolean;
+  /** Resolves an issue to its RHF navigation path (may differ from `issue.path`). */
+  resolveFormPath: (issue: Issue) => string;
   getIssues: (form: Form) => readonly Issue[];
   /** Named codes for guard tests (avoids string literals in specs). */
   codes: Readonly<Record<string, Code>>;
@@ -42,6 +49,30 @@ export interface WizardPublishReadinessTestConfig<
     form: Form,
     t: (key: string) => string,
   ) => readonly WizardPublishReadinessIssueView[];
+}
+
+export interface WizardDraftSnapshot<Form = unknown> {
+  form: Form;
+  currentStepIndex: number;
+  railLayoutVersion?: number;
+}
+
+export interface WizardDraftMigration {
+  currentRailLayoutVersion: number;
+  migrateStepIndex: (storedIndex: number, railLayoutVersion?: number) => number;
+}
+
+export interface WizardDraftSchemaConfig<Form = unknown> {
+  /** Top-level keys persisted in draft `form` (e.g. DENALI_ROOTS). */
+  formRoots: readonly string[];
+  buildMinimalForm: () => Form;
+  /** Richer form for per-field draft round-trip (defaults to buildMinimalForm). */
+  buildRepresentabilityForm?: () => Form;
+  /** Ensures an rhfPath exists on the form before sanitize (e.g. set empty leaf). */
+  ensurePathOnForm?: (form: Form, formPath: string) => void;
+  /** Same sanitize path the draft adapter uses on read/write. */
+  sanitizeSnapshot: (snapshot: WizardDraftSnapshot<Form>) => WizardDraftSnapshot<Form>;
+  migrations?: WizardDraftMigration;
 }
 
 export interface WizardTestConfig<
@@ -72,13 +103,189 @@ export interface WizardTestConfig<
   defaultActiveTourKind?: string;
   /** Form fixture that triggers publish-readiness issues (e.g. empty gathering points). */
   buildActivePublishGuardForm?: () => Form;
-  /** Maps an issue form path to the wizard step that owns the field. */
-  stepIdForFormPath?: (formPath: string) => StepId | undefined;
+  /** Resolve submit issue form path to navigation target using production mapping. */
+  resolveSubmitNavigation?: (formPath: string, form: Form) => WizardNavigationTarget<StepId>;
+  /** Resolve publish-readiness issue to navigation target using production mapping. */
+  resolvePublishReadinessNavigation?: (
+    issue: WizardPublishReadinessIssue,
+    form: Form,
+  ) => WizardNavigationTarget<StepId>;
+  /** Draft persistence shape and sanitize pipeline for registry round-trip guards. */
+  draftSchema?: WizardDraftSchemaConfig<Form>;
 }
 
 /** Builds a validation or publish-readiness issue link data-testid. */
 export function wizardIssueLinkTestId(prefix: string, formPath: string): string {
   return `${prefix}-${formPath.replace(/\./g, "-")}`;
+}
+
+/** Whether a dot-separated path is addressable on a nested form object. */
+export function isFormPathNavigable(form: unknown, formPath: string): boolean {
+  const segments = formPath.split(".").filter((segment) => segment.length > 0);
+  if (segments.length === 0) {
+    return false;
+  }
+
+  let current: unknown = form;
+  for (const segment of segments) {
+    if (current == null || typeof current !== "object" || Array.isArray(current)) {
+      return false;
+    }
+    if (!Object.prototype.hasOwnProperty.call(current, segment)) {
+      return false;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return true;
+}
+
+function requireDraftSchema<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
+): WizardDraftSchemaConfig<Form> {
+  const draftSchema = config.draftSchema;
+  if (draftSchema == null) {
+    throw new Error("WizardTestConfig.draftSchema is required for this guard");
+  }
+  return draftSchema;
+}
+
+function registryRhfPathSet<StepId extends string>(
+  config: WizardTestConfig<StepId>,
+): Set<string> {
+  return new Set(config.fieldRegistry.map((def) => def.rhfPath));
+}
+
+function cloneForm<Form>(form: Form): Form {
+  return JSON.parse(JSON.stringify(form)) as Form;
+}
+
+/**
+ * Every registry rhfPath is rooted in the draft envelope and survives sanitize when present on the form.
+ */
+export function verifyRegistryDraftRepresentability<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
+): void {
+  const draftSchema = requireDraftSchema(config);
+  const skipSteps = new Set(config.nonFocusableStepIds ?? []);
+  const seenRhf = new Set<string>();
+  const missingAfter: string[] = [];
+  const badRoots: string[] = [];
+  const cannotSeed: string[] = [];
+
+  const buildForm =
+    draftSchema.buildRepresentabilityForm ?? draftSchema.buildMinimalForm;
+  const templateForm = buildForm();
+
+  for (const root of draftSchema.formRoots) {
+    if (!Object.prototype.hasOwnProperty.call(templateForm as object, root)) {
+      badRoots.push(root);
+    }
+  }
+
+  for (const def of config.fieldRegistry) {
+    if (skipSteps.has(def.stepId)) continue;
+    if (seenRhf.has(def.rhfPath)) continue;
+    seenRhf.add(def.rhfPath);
+
+    const root = def.rhfPath.split(".")[0] ?? "";
+    if (!draftSchema.formRoots.includes(root)) {
+      badRoots.push(`${def.rhfPath} (root "${root}" not in formRoots)`);
+      continue;
+    }
+
+    const form = cloneForm(templateForm);
+    if (!isFormPathNavigable(form, def.rhfPath)) {
+      if (draftSchema.ensurePathOnForm == null) {
+        cannotSeed.push(`${def.canonicalPath} → ${def.rhfPath}`);
+        continue;
+      }
+      draftSchema.ensurePathOnForm(form, def.rhfPath);
+      if (!isFormPathNavigable(form, def.rhfPath)) {
+        cannotSeed.push(`${def.canonicalPath} → ${def.rhfPath} (ensurePathOnForm failed)`);
+        continue;
+      }
+    }
+
+    const sanitized = draftSchema.sanitizeSnapshot({
+      form,
+      currentStepIndex: 0,
+      railLayoutVersion: draftSchema.migrations?.currentRailLayoutVersion,
+    });
+
+    if (!isFormPathNavigable(sanitized.form, def.rhfPath)) {
+      missingAfter.push(`${def.canonicalPath} → ${def.rhfPath} (lost after sanitize)`);
+    }
+  }
+
+  const errors: string[] = [];
+  if (badRoots.length > 0) {
+    errors.push(`Draft formRoots mismatch:\n${badRoots.join("\n")}`);
+  }
+  if (cannotSeed.length > 0) {
+    errors.push(`Cannot place registry path on draft form:\n${cannotSeed.join("\n")}`);
+  }
+  if (missingAfter.length > 0) {
+    errors.push(`Not navigable after draft sanitize:\n${missingAfter.join("\n")}`);
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join("\n\n"));
+  }
+}
+
+/**
+ * Blocking error codes resolve to registry-known or focusable RHF paths (no orphan errors).
+ */
+export function verifyErrorHandlingIntegrity<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
+): void {
+  const publishReadiness = requirePublishReadiness(config);
+  const registryRhf = registryRhfPathSet(config);
+  const focusKeys = config.getFocusMapKeys();
+  const orphans: string[] = [];
+  const unresolvable: string[] = [];
+
+  const assertResolvablePath = (code: string, issue: WizardPublishReadinessIssue, source: string) => {
+    if (!publishReadiness.hasResolvablePath(issue)) {
+      unresolvable.push(`${source} ${code}: ${JSON.stringify(issue)}`);
+      return;
+    }
+    const formPath = publishReadiness.resolveFormPath(issue);
+    if (formPath.length === 0) {
+      unresolvable.push(`${source} ${code}: empty resolved path`);
+      return;
+    }
+    if (!registryRhf.has(formPath) && !focusKeys.has(formPath)) {
+      orphans.push(`${code} → ${formPath} (${source})`);
+    }
+  };
+
+  for (const code of publishReadiness.blockingCodes) {
+    const fixtures = publishReadiness.pathFixtures[code] ?? [];
+    for (const issue of fixtures) {
+      assertResolvablePath(code, issue, "fixture");
+    }
+  }
+
+  if (config.buildActivePublishGuardForm != null) {
+    const liveIssues = publishReadiness.getIssues(config.buildActivePublishGuardForm());
+    for (const issue of liveIssues) {
+      assertResolvablePath(issue.code, issue, "live");
+    }
+  }
+
+  const errors: string[] = [];
+  if (unresolvable.length > 0) {
+    errors.push(`Unresolvable blocking issues:\n${unresolvable.join("\n")}`);
+  }
+  if (orphans.length > 0) {
+    errors.push(
+      `Orphan error paths (not in registry rhfPath or focus map):\n${orphans.join("\n")}`,
+    );
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join("\n\n"));
+  }
 }
 
 /**
@@ -230,9 +437,9 @@ export function verifyPublishReadinessGeoMapsToSteps<StepId extends string, Form
     if (view?.formPath !== issue.path) {
       throw new Error(`expected view formPath ${issue.path}, got ${view?.formPath}`);
     }
-    const expectedStepId = config.stepIdForFormPath?.(issue.path);
-    if (expectedStepId != null && view?.stepId !== expectedStepId) {
-      throw new Error(`expected step ${expectedStepId}, got ${view?.stepId}`);
+    const expected = config.resolvePublishReadinessNavigation?.(issue, form);
+    if (expected != null && view?.stepId !== expected.stepId) {
+      throw new Error(`expected step ${expected.stepId}, got ${view?.stepId}`);
     }
   }
 }

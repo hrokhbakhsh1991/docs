@@ -21,6 +21,7 @@ import {
   resolveDenaliRegistryFieldLabel,
   resolveDenaliRegistryStepId,
 } from "./denaliRegistryFieldLabel";
+import { resolvePublishReadinessFormPath } from "./publishReadinessPathResolver";
 import type { DenaliUIContextOptions } from "./rules/denaliUIAdapter";
 
 export type DenaliT = ReturnType<typeof useTranslations<"tours.denali">>;
@@ -43,7 +44,7 @@ function issuePathToFormPath(path: readonly (string | number)[]): string {
   return path.map(String).join(".");
 }
 
-function resolveStepForIssue(
+export function resolveStepForIssue(
   formPath: string,
   form: DenaliCreateTourWizardForm,
   ruleSet: DenaliRuleSet,
@@ -100,25 +101,7 @@ export function buildDenaliSubmitIssueViews(
   });
 }
 
-/** RHF path for review navigation when publish readiness issues omit `path`. */
-export function resolvePublishReadinessFormPath(
-  issue: DenaliWizardPublishReadinessIssue,
-): string {
-  if (issue.path != null && issue.path.length > 0) {
-    return issue.path;
-  }
-  if (issue.code === "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE") {
-    return "basicInfo.publishStatus";
-  }
-  const message = issue.message;
-  if (message.includes("logistics.gatheringPoints") || message.includes("gatheringPoints")) {
-    return "tripDetails.logistics.gatheringPoints";
-  }
-  if (message.includes("overview.startPoint") || message.includes("startPoint")) {
-    return "basicInfo.startPoint";
-  }
-  return "";
-}
+export { resolvePublishReadinessFormPath };
 
 export function buildDenaliPublishReadinessIssueViews(
   issues: readonly DenaliWizardPublishReadinessIssue[],

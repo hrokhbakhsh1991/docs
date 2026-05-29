@@ -22,6 +22,7 @@ import {
 import { mapDenaliWizardToCreateTourPayload } from "../../domain/mapDenaliWizardToCreateTourPayload";
 import { normalizeDenaliWizardForm } from "../../schemas/denaliTourCreateFormModel";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import { resolvePublishReadinessFormPath } from "../publishReadinessPathResolver";
 import {
   collectDenaliRuleRequiredIssues,
   type DenaliRuleRequiredIssue,
@@ -61,10 +62,16 @@ function geoViolationFormPath(violation: WorkspaceInvariantViolation): string {
 function geoViolationToPublishIssue(
   violation: WorkspaceInvariantViolation,
 ): DenaliWizardPublishReadinessIssue {
-  return {
+  const issue: DenaliWizardPublishReadinessIssue = {
     code: violation.code,
     message: geoViolationMessage(violation),
-    path: geoViolationFormPath(violation),
+  };
+  return {
+    ...issue,
+    path: resolvePublishReadinessFormPath({
+      ...issue,
+      path: geoViolationFormPath(violation),
+    }),
   };
 }
 

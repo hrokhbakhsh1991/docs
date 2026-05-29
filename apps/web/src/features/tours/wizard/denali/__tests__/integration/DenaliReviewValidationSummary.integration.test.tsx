@@ -107,7 +107,7 @@ function geoPublishIssueFromConfig() {
   const { publishReadiness, paths } = denaliTestConfig;
   const code = publishReadiness.codes.requiresGeolocationZones;
   const fixture = publishReadiness.pathFixtures[code].find(
-    (issue) => issue.path === paths.gatheringPoints,
+    (issue) => publishReadiness.resolveFormPath(issue) === paths.gatheringPoints,
   );
   if (fixture == null) {
     throw new Error("missing geo publish-readiness fixture in denaliTestConfig");
@@ -205,9 +205,13 @@ describe("DenaliReviewValidationSummary", () => {
         ),
       );
 
-      expect(mockNavigateToField).toHaveBeenCalledWith(
-        "denali_photos",
+      const expected = denaliTestConfig.resolveSubmitNavigation(
         "programNature.shortDescription",
+        form,
+      );
+      expect(mockNavigateToField).toHaveBeenCalledWith(
+        expected.stepId,
+        expected.formPath,
       );
     });
 
@@ -228,9 +232,13 @@ describe("DenaliReviewValidationSummary", () => {
         ),
       );
 
+      const expected = denaliTestConfig.resolvePublishReadinessNavigation(
+        geoPublishIssueFromConfig(),
+        form,
+      );
       expect(mockNavigateToField).toHaveBeenCalledWith(
-        denaliTestConfig.stepIdForFormPath!(paths!.gatheringPoints),
-        paths!.gatheringPoints,
+        expected.stepId,
+        expected.formPath,
       );
     });
 
@@ -245,9 +253,13 @@ describe("DenaliReviewValidationSummary", () => {
         ),
       );
 
+      const expected = denaliTestConfig.resolvePublishReadinessNavigation(
+        geoPublishIssueFromConfig(),
+        buildMountainDayForm(),
+      );
       expect(mockNavigateToField).toHaveBeenCalledWith(
-        denaliTestConfig.stepIdForFormPath!(paths!.gatheringPoints),
-        paths!.gatheringPoints,
+        expected.stepId,
+        expected.formPath,
       );
     });
   });

@@ -5,6 +5,7 @@ import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/valida
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
+import { pruneDenaliWizardFormToRegistry } from "./pruneDenaliWizardFormToRegistry";
 
 /** Rail layout v3: basic → photos → program → logistics → pricing → legal → review. */
 export const DENALI_WIZARD_RAIL_LAYOUT_VERSION = 3;
@@ -49,9 +50,10 @@ export function migrateDenaliDraftStepIndex(
 export function sanitizeDenaliWizardDraftSnapshot(
   snapshot: DenaliWizardDraftSnapshot,
 ): DenaliWizardDraftSnapshot {
-  const form = applyDenaliInvariantState(
+  const normalized = applyDenaliInvariantState(
     normalizeDenaliWizardForm(snapshot.form),
   ) as DenaliCreateTourWizardForm;
+  const form = pruneDenaliWizardFormToRegistry(normalized);
 
   return {
     form,

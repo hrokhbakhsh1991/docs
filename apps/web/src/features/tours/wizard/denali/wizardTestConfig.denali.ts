@@ -8,10 +8,25 @@ import {
   getDenaliWizardSteps,
   type DenaliCreateWizardStepId,
 } from "@/features/tours/wizard/denaliStepConfig";
+import { DENALI_ROOTS } from "@repo/shared-contracts";
+
 import type { WizardTestConfig } from "@/features/tours/wizard/testing/wizard-testing-utils";
 
+import {
+  DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+  migrateDenaliDraftStepIndex,
+  sanitizeDenaliWizardDraftSnapshot,
+} from "@/features/tours/drafts/sanitizeDenaliWizardDraftSnapshot";
+import { buildWorstCaseDenaliWizardForm } from "./__benchmarks__/fixtures/buildWorstCaseDenaliWizardForm";
+import { setDenaliFormPathValue } from "./denaliFormPathUtils";
+import {
+  buildDenaliPublishReadinessIssueViews,
+  resolvePublishReadinessFormPath,
+  resolveStepForIssue,
+  type DenaliWizardSubmitIssueView,
+} from "./denaliWizardSubmitIssuePresentation";
 import { getDenaliWizardFieldFocusMapKeys } from "./denaliWizardFieldFocus";
-import { buildDenaliPublishReadinessIssueViews } from "./denaliWizardSubmitIssuePresentation";
+import { isFormPathNavigable } from "@/features/tours/wizard/testing/wizard-testing-utils";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
 import { DENALI_FIELD_DEFINITIONS } from "./registry/denaliFieldRegistryData";
 import {
@@ -47,6 +62,14 @@ export type DenaliWizardTestConfig = WizardTestConfig<
       t: (key: string) => string,
     ) => ReturnType<typeof buildDenaliPublishReadinessIssueViews>;
   };
+  resolveSubmitNavigation: (
+    formPath: string,
+    form: DenaliCreateTourWizardForm,
+  ) => Pick<DenaliWizardSubmitIssueView, "formPath" | "stepId">;
+  resolvePublishReadinessNavigation: (
+    issue: DenaliWizardPublishReadinessIssue,
+    form: DenaliCreateTourWizardForm,
+  ) => { formPath: string; stepId: DenaliCreateWizardStepId };
 };
 
 const DENALI_DEFAULT_ACTIVE_TOUR_KIND = "mountain_day" as const;
@@ -80,16 +103,50 @@ export const denaliTestConfig = {
   },
   defaultActiveTourKind: DENALI_DEFAULT_ACTIVE_TOUR_KIND,
   buildActivePublishGuardForm,
-  stepIdForFormPath(formPath: string): DenaliCreateWizardStepId | undefined {
-    if (formPath === DENALI_GATHERING_POINTS_PATH) {
-      return "denali_logistics";
-    }
-    return undefined;
+  resolveSubmitNavigation(formPath: string, form: DenaliCreateTourWizardForm) {
+    return {
+      formPath,
+      stepId: resolveStepForIssue(formPath, form, denaliRuleSet),
+    };
+  },
+  resolvePublishReadinessNavigation(
+    issue: DenaliWizardPublishReadinessIssue,
+    form: DenaliCreateTourWizardForm,
+  ) {
+    const [view] = buildDenaliPublishReadinessIssueViews(
+      [issue],
+      form,
+      denaliRuleSet,
+      (key: string) => key,
+    );
+    return {
+      formPath: view?.formPath ?? resolvePublishReadinessFormPath(issue),
+      stepId:
+        (view?.stepId as DenaliCreateWizardStepId | undefined) ??
+        resolveStepForIssue(resolvePublishReadinessFormPath(issue), form, denaliRuleSet),
+    };
+  },
+  draftSchema: {
+    formRoots: DENALI_ROOTS,
+    buildMinimalForm: buildDenaliTourCreateTestValues,
+    buildRepresentabilityForm: buildWorstCaseDenaliWizardForm,
+    ensurePathOnForm(form, formPath) {
+      if (isFormPathNavigable(form, formPath)) {
+        return;
+      }
+      setDenaliFormPathValue(form, formPath, "");
+    },
+    sanitizeSnapshot: sanitizeDenaliWizardDraftSnapshot,
+    migrations: {
+      currentRailLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+      migrateStepIndex: migrateDenaliDraftStepIndex,
+    },
   },
   publishReadiness: {
     blockingCodes: DENALI_PUBLISH_READINESS_BLOCKING_CODES,
     pathFixtures: DENALI_PUBLISH_READINESS_PATH_FIXTURES,
     hasResolvablePath: publishReadinessIssueHasResolvablePath,
+    resolveFormPath: resolvePublishReadinessFormPath,
     getIssues: getDenaliWizardPublishReadinessIssues,
     codes: {
       validationRuleRequiredField: "VALIDATION_RULE_REQUIRED_FIELD",
