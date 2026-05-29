@@ -9,7 +9,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "pnpm --filter @apps/api dev",
-    "build": "pnpm --filter @repo/types run build && pnpm --filter @repo/config run build && pnpm --filter @repo/domain-contracts run build && pnpm --filter @repo/draft-engine run build && pnpm --filter @repo/shared-contracts run build && pnpm --filter @repo/shared run build && pnpm --filter \"@apps/*\" run build",
+    "build": "pnpm --filter @repo/types run build && pnpm --filter @repo/config run build && pnpm --filter @repo/domain-contracts run build && pnpm --filter @repo/draft-engine run build && pnpm --filter @repo/shared-contracts run build && pnpm --filter @repo/shared run build && pnpm --filter @repo/denali-domain run build && pnpm --filter \"@apps/*\" run build",
     "lint": "pnpm --filter \"@apps/*\" run lint",
     "test": "pnpm --filter @repo/draft-engine run test && pnpm --filter @repo/shared run test && pnpm --filter \"@apps/api\" run test",
     "test:pbt": "pnpm exec jest --config jest.pbt.config.js",

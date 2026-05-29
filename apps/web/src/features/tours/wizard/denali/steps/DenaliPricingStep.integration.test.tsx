@@ -1,10 +1,6 @@
 /**
  * Non-attendance details on pricing step (tripDetails.overview.nonAttendanceDetails).
  */
-jest.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
-}));
-
 jest.mock("@tour/ui", () => ({
   Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button type="button" {...props}>
@@ -36,7 +32,7 @@ jest.mock("@/components/forms/PersianNumberInput", () => ({
   PersianNumberInput: () => null,
 }));
 
-jest.mock("./DenaliPricingParticipantSection", () => ({
+jest.mock("@/features/tours/denali/widgets/DenaliPricingParticipantSection", () => ({
   DenaliPricingParticipantSection: () => null,
 }));
 
@@ -51,39 +47,30 @@ jest.mock("../hooks/useDenaliCanonicalValue", () => ({
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FormProvider, useForm } from "react-hook-form";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliPricing.schema";
+import { DenaliFormHarness, DenaliFormWatchProbe } from "@test-utils/denali-integration-harness";
 
-import { DenaliCanonicalProvider } from "../DenaliCanonicalContext";
 import { DenaliPricingStep } from "./DenaliPricingStep";
-
-function PricingHarness({ defaultValues }: { defaultValues: DenaliCreateTourWizardForm }) {
-  const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
-
-  return (
-    <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider formMethods={formMethods}>
-        <DenaliPricingStep />
-        <span data-testid="value-json">
-          {JSON.stringify(formMethods.watch("tripDetails.overview.nonAttendanceDetails") ?? "")}
-        </span>
-      </DenaliCanonicalProvider>
-    </FormProvider>
-  );
-}
 
 test("DenaliPricingStep renders non-attendance details when tour type is selected", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.tourType = "event_reading";
 
-  render(<PricingHarness defaultValues={form} />);
+  render(
+    <DenaliFormHarness defaultValues={form}>
+      <DenaliPricingStep />
+    </DenaliFormHarness>,
+  );
   expect(screen.getByTestId("denali-non-attendance-details")).toBeTruthy();
 });
 
 test("DenaliPricingStep hides non-attendance details before tour type is selected", () => {
-  render(<PricingHarness defaultValues={buildDenaliTourCreateDefaultValues()} />);
+  render(
+    <DenaliFormHarness defaultValues={buildDenaliTourCreateDefaultValues()}>
+      <DenaliPricingStep />
+    </DenaliFormHarness>,
+  );
   expect(screen.queryByTestId("denali-non-attendance-details")).toBeNull();
 });
 
@@ -91,7 +78,15 @@ test("DenaliPricingStep persists non-attendance details in form state", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.tourType = "event_reading";
 
-  render(<PricingHarness defaultValues={form} />);
+  render(
+    <DenaliFormHarness defaultValues={form}>
+      <DenaliPricingStep />
+      <DenaliFormWatchProbe
+        name="tripDetails.overview.nonAttendanceDetails"
+        testId="value-json"
+      />
+    </DenaliFormHarness>,
+  );
   fireEvent.change(screen.getByTestId("denali-non-attendance-details"), {
     target: { value: "No-show policy" },
   });

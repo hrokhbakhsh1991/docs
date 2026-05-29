@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { settingsEquipmentKeys } from "@/lib/query-keys";
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   createEquipment,
@@ -26,11 +27,12 @@ function sortEquipmentBySortOrder(data: SettingsEquipmentDto[]): SettingsEquipme
 
 export function useSettingsEquipment() {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   return useQuery({
     queryKey: settingsEquipmentKeys.list(tenantId ?? ""),
     queryFn: getEquipment,
     select: sortEquipmentBySortOrder,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 }
 

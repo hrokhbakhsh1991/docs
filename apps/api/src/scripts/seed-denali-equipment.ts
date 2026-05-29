@@ -8,8 +8,24 @@
  */
 import { DataSource } from "typeorm";
 
+import type { DenaliTourCategory } from "@repo/types";
+
 import { createDataSourceOptionsFromEnv } from "../database/database.config";
 import { emitScriptInfo } from "./script-log";
+
+/** Maps legacy Persian admin labels to {@link DenaliTourCategory} slugs for seed data. */
+function legacyPersianCategoryToCompatible(label: string): DenaliTourCategory[] {
+  if (label.includes("همایش") || label.includes("سمینار")) {
+    return ["event"];
+  }
+  if (label.includes("کویر")) {
+    return ["desert"];
+  }
+  if (label.includes("طبیعت") || label.includes("جنگل") || label.includes("ترکینگ")) {
+    return ["nature"];
+  }
+  return ["mountain"];
+}
 
 type EquipmentRow = {
   sort_order: number;
@@ -566,11 +582,21 @@ export async function seedDenaliEquipment(): Promise<void> {
     ];
 
     for (const row of rows) {
+      const compatibleCategories = JSON.stringify(legacyPersianCategoryToCompatible(row.category));
       await ds.query(
         `INSERT INTO workspace_equipment_items
-          (workspace_id, name, slug, category, description, icon, is_active, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [wsId, row.name, row.slug, row.category, row.description, row.icon, row.is_active, row.sort_order],
+          (workspace_id, name, slug, compatible_categories, description, icon, is_active, sort_order)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)`,
+        [
+          wsId,
+          row.name,
+          row.slug,
+          compatibleCategories,
+          row.description,
+          row.icon,
+          row.is_active,
+          row.sort_order,
+        ],
       );
     }
 

@@ -7,17 +7,20 @@ import { ToastProvider } from "@tour/ui";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { AbilityProvider } from "@/lib/casl/ability-provider";
 import { GlobalApiToastBridge } from "@/lib/global-api-toast-bridge";
+import { ThemeProvider } from "@/lib/theme/theme-provider";
 import { ErrorBoundary } from "@/layouts";
 
 export function AppChromeProviders({ children }: { children: ReactNode }) {
   return (
-    <ToastProvider>
-      <GlobalApiToastBridge />
-      <ErrorBoundary>
-        <AuthProvider>
-          <AbilityProvider>{children}</AbilityProvider>
-        </AuthProvider>
-      </ErrorBoundary>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <GlobalApiToastBridge />
+        <ErrorBoundary>
+          <AuthProvider>
+            <AbilityProvider>{children}</AbilityProvider>
+          </AuthProvider>
+        </ErrorBoundary>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

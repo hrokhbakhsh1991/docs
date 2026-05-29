@@ -22,7 +22,8 @@ function StepStub({ stepId }: { stepId: DenaliCreateWizardStepId }) {
 }
 
 /**
- * Minimal wizard shell for memlab traversal (step 1 → 7 → 1) without Next.js / network.
+ * Minimal wizard shell for memlab traversal (step 1 → 7 → 1) without Next.js / network / auth.
+ * Intentionally standalone — memlab esbuild must not bundle test utilities or AuthProvider.
  */
 export function WizardMemlabHarness() {
   const formMethods = useForm<DenaliCreateTourWizardForm>({

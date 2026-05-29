@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { settingsTourThemesKeys } from "@/lib/query-keys";
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   createTourTheme,
@@ -24,11 +25,12 @@ function sortTourThemesBySortOrder(data: SettingsTourThemeDto[]): SettingsTourTh
 
 export function useSettingsTourThemes() {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   return useQuery({
     queryKey: settingsTourThemesKeys.list(tenantId ?? ""),
     queryFn: getTourThemes,
     select: sortTourThemesBySortOrder,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 }
 

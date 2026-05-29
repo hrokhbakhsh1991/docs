@@ -4,7 +4,7 @@ export type SettingsEquipmentDto = {
   id: string;
   name: string;
   slug: string;
-  category: string | null;
+  compatibleCategories: string[];
   description: string | null;
   icon: string | null;
   isActive: boolean;
@@ -16,7 +16,7 @@ export type SettingsEquipmentDto = {
 export type CreateEquipmentPayload = {
   name: string;
   slug: string;
-  category?: string | null;
+  compatibleCategories?: string[];
   description?: string | null;
   icon?: string | null;
   isActive?: boolean;
@@ -24,6 +24,26 @@ export type CreateEquipmentPayload = {
 };
 
 export type UpdateEquipmentPayload = Partial<CreateEquipmentPayload>;
+
+function normalizeEquipmentDto(row: unknown): SettingsEquipmentDto {
+  const record = row as Record<string, unknown>;
+  const compatibleRaw = record.compatibleCategories;
+  const compatibleCategories = Array.isArray(compatibleRaw)
+    ? compatibleRaw.filter((v): v is string => typeof v === "string")
+    : [];
+  return {
+    id: String(record.id),
+    name: String(record.name),
+    slug: String(record.slug),
+    compatibleCategories,
+    description: record.description == null ? null : String(record.description),
+    icon: record.icon == null ? null : String(record.icon),
+    isActive: Boolean(record.isActive),
+    sortOrder: Number(record.sortOrder ?? 0),
+    createdAt: String(record.createdAt),
+    updatedAt: String(record.updatedAt),
+  };
+}
 
 async function parseJsonOrEmpty(res: Response): Promise<unknown> {
   if (res.status === 204 || res.headers.get("content-length") === "0") {
@@ -49,7 +69,7 @@ export async function getEquipment(): Promise<SettingsEquipmentDto[]> {
   if (!Array.isArray(body)) {
     throw new Error("Invalid equipment response");
   }
-  return body as SettingsEquipmentDto[];
+  return (body as unknown[]).map(normalizeEquipmentDto);
 }
 
 export async function createEquipment(payload: CreateEquipmentPayload): Promise<SettingsEquipmentDto> {
@@ -64,7 +84,7 @@ export async function createEquipment(payload: CreateEquipmentPayload): Promise<
   if (!res.ok) {
     throw new Error(pickSettingsErrorMessage(body, "Failed to create equipment"));
   }
-  return body as SettingsEquipmentDto;
+  return normalizeEquipmentDto(body);
 }
 
 export async function updateEquipment(
@@ -82,7 +102,7 @@ export async function updateEquipment(
   if (!res.ok) {
     throw new Error(pickSettingsErrorMessage(body, "Failed to update equipment"));
   }
-  return body as SettingsEquipmentDto;
+  return normalizeEquipmentDto(body);
 }
 
 export async function deleteEquipment(id: string): Promise<void> {
@@ -112,5 +132,5 @@ export async function reorderEquipment(itemIds: string[]): Promise<SettingsEquip
   if (!Array.isArray(body)) {
     throw new Error("Invalid equipment reorder response");
   }
-  return body as SettingsEquipmentDto[];
+  return (body as unknown[]).map(normalizeEquipmentDto);
 }

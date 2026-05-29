@@ -2,12 +2,10 @@ import React, { useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
+import { DenaliNavigationHarness } from "@test-utils/denali-integration-harness";
 
 import { DenaliStepFocusBridge } from "../../DenaliStepFocusBridge";
-import {
-  DenaliWizardNavigationProvider,
-  useDenaliWizardNavigation,
-} from "../../DenaliWizardNavigationContext";
+import { useDenaliWizardNavigation } from "../../DenaliWizardNavigationContext";
 import {
   clearDenaliWizardFieldFocus,
   focusDenaliWizardField,
@@ -54,7 +52,7 @@ function NavigationControls({
   );
 }
 
-function FocusBridgeHarness({
+function FocusBridgeFixture({
   initialStepIndex = 0,
   visibleSteps = getDenaliWizardSteps(),
   mountBridge = true,
@@ -67,7 +65,7 @@ function FocusBridgeHarness({
   const activeStepId = visibleSteps[currentStepIndex] ?? visibleSteps[0] ?? "denali_basic";
 
   return (
-    <DenaliWizardNavigationProvider
+    <DenaliNavigationHarness
       visibleSteps={visibleSteps}
       currentStepIndex={currentStepIndex}
       setCurrentStep={setCurrentStepIndex}
@@ -75,18 +73,18 @@ function FocusBridgeHarness({
       <NavigationControls stepId="denali_logistics" formPath="transport.transportMode" />
       {mountBridge ? <DenaliStepFocusBridge stepId={activeStepId} /> : null}
       <span data-testid="active-step">{activeStepId}</span>
-    </DenaliWizardNavigationProvider>
+    </DenaliNavigationHarness>
   );
 }
 
-function PhotosFocusHarness() {
+function PhotosFocusFixture() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [mountBridge, setMountBridge] = useState(false);
   const visibleSteps = getDenaliWizardSteps();
   const activeStepId = visibleSteps[currentStepIndex] ?? "denali_basic";
 
   return (
-    <DenaliWizardNavigationProvider
+    <DenaliNavigationHarness
       visibleSteps={visibleSteps}
       currentStepIndex={currentStepIndex}
       setCurrentStep={setCurrentStepIndex}
@@ -100,7 +98,7 @@ function PhotosFocusHarness() {
       </button>
       {mountBridge ? <DenaliStepFocusBridge stepId={activeStepId} /> : null}
       <span data-testid="active-step">{activeStepId}</span>
-    </DenaliWizardNavigationProvider>
+    </DenaliNavigationHarness>
   );
 }
 
@@ -127,7 +125,7 @@ describe("DenaliStepFocusBridge", () => {
   });
 
   test("cross-step navigation focuses after bridge mounts on target step", () => {
-    render(<FocusBridgeHarness initialStepIndex={0} />);
+    render(<FocusBridgeFixture initialStepIndex={0} />);
     expect(screen.getByTestId("active-step")).toHaveTextContent("denali_basic");
 
     fireEvent.click(screen.getByTestId("navigate-to-field"));
@@ -140,7 +138,7 @@ describe("DenaliStepFocusBridge", () => {
 
   test("same-step navigation focuses immediately without step change", () => {
     const logisticsIndex = getDenaliWizardSteps().indexOf("denali_logistics");
-    render(<FocusBridgeHarness initialStepIndex={logisticsIndex} />);
+    render(<FocusBridgeFixture initialStepIndex={logisticsIndex} />);
 
     fireEvent.click(screen.getByTestId("navigate-to-field"));
 
@@ -150,7 +148,7 @@ describe("DenaliStepFocusBridge", () => {
   });
 
   test("consumePendingFocus on wrong step does not focus (no focus jump)", () => {
-    render(<PhotosFocusHarness />);
+    render(<PhotosFocusFixture />);
 
     fireEvent.click(screen.getByTestId("navigate-to-field"));
     expect(screen.getByTestId("pending-focus")).toHaveTextContent("programNature.shortDescription");
@@ -170,9 +168,7 @@ describe("DenaliStepFocusBridge", () => {
     const visibleWithoutLogistics = getDenaliWizardSteps().filter(
       (stepId) => stepId !== "denali_logistics",
     );
-    render(
-      <FocusBridgeHarness initialStepIndex={0} visibleSteps={visibleWithoutLogistics} />,
-    );
+    render(<FocusBridgeFixture initialStepIndex={0} visibleSteps={visibleWithoutLogistics} />);
 
     fireEvent.click(screen.getByTestId("navigate-to-field"));
 

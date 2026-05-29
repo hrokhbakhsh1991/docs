@@ -1,8 +1,14 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { DenaliTourKind } from "@repo/types";
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
+import {
+  DenaliDraftOrchestrator,
+  denaliDraftOrchestrator,
+  type DenaliDraftHydrateResult,
+  type DenaliDraftSyncPayload,
+} from "@repo/denali-domain";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
@@ -18,21 +24,48 @@ import { applyDenaliInvariantState } from "./validation/denaliInvariantEngine";
 export type DenaliWizardSyncContextValue = {
   /** True while debounced/in-flight wizard sync is active. */
   readonly isSyncing: boolean;
+  readonly orchestrator: DenaliDraftOrchestrator;
+  prepareDraftForSync: (
+    formData: DenaliCreateTourWizardForm,
+    meta: { currentStepIndex: number },
+  ) => DenaliDraftSyncPayload;
+  hydrateDraftFromSync: (
+    remote: Partial<DenaliDraftSyncPayload> & { form: DenaliCreateTourWizardForm },
+  ) => DenaliDraftHydrateResult;
+  resetWizardToRegistryDefaults: () => DenaliCreateTourWizardForm;
 };
 
 const DenaliWizardSyncContext = createContext<DenaliWizardSyncContextValue>({
   isSyncing: false,
+  orchestrator: denaliDraftOrchestrator,
+  prepareDraftForSync: (formData, meta) =>
+    denaliDraftOrchestrator.prepareDraftForSync(formData, meta),
+  hydrateDraftFromSync: (remote) => denaliDraftOrchestrator.hydrateDraftFromSync(remote),
+  resetWizardToRegistryDefaults: () => denaliDraftOrchestrator.resetWizardToRegistryDefaults(),
 });
 
 export function DenaliWizardSyncProvider({
   isSyncing,
+  orchestrator = denaliDraftOrchestrator,
   children,
 }: {
   isSyncing: boolean;
+  orchestrator?: DenaliDraftOrchestrator;
   children: ReactNode;
 }) {
+  const value = useMemo<DenaliWizardSyncContextValue>(
+    () => ({
+      isSyncing,
+      orchestrator,
+      prepareDraftForSync: (formData, meta) => orchestrator.prepareDraftForSync(formData, meta),
+      hydrateDraftFromSync: (remote) => orchestrator.hydrateDraftFromSync(remote),
+      resetWizardToRegistryDefaults: () => orchestrator.resetWizardToRegistryDefaults(),
+    }),
+    [isSyncing, orchestrator],
+  );
+
   return (
-    <DenaliWizardSyncContext.Provider value={{ isSyncing }}>{children}</DenaliWizardSyncContext.Provider>
+    <DenaliWizardSyncContext.Provider value={value}>{children}</DenaliWizardSyncContext.Provider>
   );
 }
 

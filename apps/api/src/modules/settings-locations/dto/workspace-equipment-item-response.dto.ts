@@ -10,8 +10,8 @@ export class WorkspaceEquipmentItemResponseDto {
   @ApiProperty()
   slug!: string;
 
-  @ApiProperty({ nullable: true, type: String })
-  category!: string | null;
+  @ApiProperty({ type: [String], example: ["mountain"] })
+  compatibleCategories!: string[];
 
   @ApiProperty({ nullable: true, type: String })
   description!: string | null;

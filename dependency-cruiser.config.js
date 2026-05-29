@@ -118,6 +118,18 @@ module.exports = {
     //   - `pnpm guardrails:test-pairing` (full audit)
     // dependency-cruiser cannot express filesystem sibling pairing rules.
     {
+      name: "denali-domain-no-apps-web",
+      severity: "error",
+      comment:
+        "@repo/denali-domain must not import from apps/web (package boundary).",
+      from: {
+        path: "^packages/denali-domain/",
+      },
+      to: {
+        path: "^apps/web/",
+      },
+    },
+    {
       name: "no-test-to-internal-implementation-imports",
       severity: "error",
       comment:

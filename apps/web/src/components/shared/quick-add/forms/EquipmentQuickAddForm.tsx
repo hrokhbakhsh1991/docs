@@ -29,7 +29,7 @@ export function EquipmentQuickAddForm({
         const created = await createMutation.mutateAsync({
           name: values.name,
           slug: values.slug,
-          category: values.category,
+          compatibleCategories: values.compatibleCategories,
           description: values.description,
           icon: values.icon,
           isActive: values.isActive,

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import { settingsLocationsKeys } from "@/lib/query-keys";
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   fetchSettingsDestinations,
@@ -23,16 +24,17 @@ export type TourDestinationGroup = {
  */
 export function useTourDestinations() {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   const regionsQuery = useQuery({
     queryKey: settingsLocationsKeys.regions(tenantId ?? ""),
     queryFn: fetchSettingsRegions,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 
   const destinationsQuery = useQuery({
     queryKey: settingsLocationsKeys.destinations(tenantId ?? ""),
     queryFn: fetchSettingsDestinations,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 
   const allDestinations = useMemo(() => destinationsQuery.data ?? [], [destinationsQuery.data]);

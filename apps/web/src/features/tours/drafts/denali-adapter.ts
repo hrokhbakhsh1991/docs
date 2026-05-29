@@ -1,10 +1,14 @@
 import type { DraftEngineConfig, DraftSetDataOptions } from "@repo/draft-engine";
 import { DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION } from "@repo/shared-contracts";
+import {
+  denaliDraftOrchestrator,
+  DENALI_REGISTRY_LAYOUT_VERSION,
+} from "@repo/denali-domain";
 import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 
-import { DENALI_WIZARD_RAIL_LAYOUT_VERSION, sanitizeDenaliWizardDraftSnapshot } from "./sanitizeDenaliWizardDraftSnapshot";
+import { sanitizeDenaliWizardDraftSnapshot } from "./sanitizeDenaliWizardDraftSnapshot";
 import type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
 
 export type { DenaliWizardDraftSnapshot } from "./denali-wizard-draft.types";
@@ -60,6 +64,24 @@ function isDenaliWizardDraftSnapshot(value: unknown): value is DenaliWizardDraft
   return record.form != null && typeof record.currentStepIndex === "number";
 }
 
+function snapshotFromOrchestrator(
+  form: DenaliCreateTourWizardForm,
+  currentStepIndex: number,
+  railLayoutVersion?: number,
+  registryLayoutVersion?: number,
+): DenaliWizardDraftSnapshot {
+  const prepared = denaliDraftOrchestrator.prepareDraftForSync(form, {
+    currentStepIndex,
+    registryLayoutVersion,
+  });
+  return sanitizeDenaliWizardDraftSnapshot({
+    form: prepared.form,
+    currentStepIndex: prepared.currentStepIndex,
+    railLayoutVersion: railLayoutVersion ?? prepared.railLayoutVersion,
+    registryLayoutVersion: registryLayoutVersion ?? prepared.registryLayoutVersion,
+  });
+}
+
 export function createDenaliDraftAdapter(input: {
   workspaceId: string;
   getCurrentStepIndex: () => number;
@@ -78,6 +100,10 @@ export function createDenaliDraftAdapter(input: {
           local.railLayoutVersion ?? 1,
           server.railLayoutVersion ?? 1,
         ),
+        registryLayoutVersion: Math.max(
+          local.registryLayoutVersion ?? DENALI_REGISTRY_LAYOUT_VERSION,
+          server.registryLayoutVersion ?? DENALI_REGISTRY_LAYOUT_VERSION,
+        ),
         form: normalizeDenaliWizardForm({
           ...server.form,
           ...local.form,
@@ -94,11 +120,18 @@ export function createDenaliDraftAdapter(input: {
       if (!remote || !isDenaliWizardDraftSnapshot(remote.data)) {
         return null;
       }
+      const hydrated = denaliDraftOrchestrator.hydrateDraftFromSync({
+        form: normalizeDenaliWizardForm(remote.data.form),
+        currentStepIndex: remote.data.currentStepIndex,
+        railLayoutVersion: remote.data.railLayoutVersion,
+        registryLayoutVersion: remote.data.registryLayoutVersion,
+      });
       return {
         data: sanitizeDenaliWizardDraftSnapshot({
-          form: normalizeDenaliWizardForm(remote.data.form),
-          currentStepIndex: remote.data.currentStepIndex,
-          railLayoutVersion: remote.data.railLayoutVersion,
+          form: hydrated.snapshot.form,
+          currentStepIndex: hydrated.snapshot.currentStepIndex,
+          railLayoutVersion: hydrated.snapshot.railLayoutVersion,
+          registryLayoutVersion: hydrated.snapshot.registryLayoutVersion,
         }),
         version: remote.version,
         schemaVersion: remote.schemaVersion,
@@ -109,11 +142,12 @@ export function createDenaliDraftAdapter(input: {
       if (!workspaceId) {
         throw new Error("Cannot push Denali draft without workspace scope");
       }
-      const snapshot: DenaliWizardDraftSnapshot = sanitizeDenaliWizardDraftSnapshot({
-        form: normalizeDenaliWizardForm(payload.data.form),
-        currentStepIndex: input.getCurrentStepIndex(),
-        railLayoutVersion: payload.data.railLayoutVersion ?? DENALI_WIZARD_RAIL_LAYOUT_VERSION,
-      });
+      const snapshot = snapshotFromOrchestrator(
+        normalizeDenaliWizardForm(payload.data.form),
+        input.getCurrentStepIndex(),
+        payload.data.railLayoutVersion,
+        payload.data.registryLayoutVersion,
+      );
       const result = await patchDraftSnapshot<DenaliWizardDraftSnapshot>(
         workspaceId,
         DENALI_CREATE_DRAFT_KEY,
@@ -129,6 +163,7 @@ export function createDenaliDraftAdapter(input: {
           form: normalizeDenaliWizardForm(result.data.form),
           currentStepIndex: result.data.currentStepIndex,
           railLayoutVersion: result.data.railLayoutVersion,
+          registryLayoutVersion: result.data.registryLayoutVersion,
         }),
         version: result.version,
         schemaVersion: result.schemaVersion,

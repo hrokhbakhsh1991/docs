@@ -10,6 +10,8 @@ import { Repository } from "typeorm";
 
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
+import { normalizeCompatibleCategories } from "@repo/denali-domain";
+
 import type { CreateEquipmentItemDto } from "./dto/create-equipment-item.dto";
 import type { UpdateEquipmentItemDto } from "./dto/update-equipment-item.dto";
 import { WorkspaceEquipmentItemResponseDto } from "./dto/workspace-equipment-item-response.dto";
@@ -47,12 +49,18 @@ export class EquipmentSettingsService {
     return String(value).trim();
   }
 
+  private normalizeCompatibleCategoriesInput(
+    values: string[] | undefined,
+  ): string[] {
+    return normalizeCompatibleCategories(values ?? []);
+  }
+
   private toResponse(row: WorkspaceEquipmentItemEntity): WorkspaceEquipmentItemResponseDto {
     return {
       id: row.id,
       name: row.name,
       slug: row.slug,
-      category: row.category ?? null,
+      compatibleCategories: normalizeCompatibleCategories(row.compatibleCategories ?? []),
       description: row.description ?? null,
       icon: row.icon ?? null,
       isActive: row.isActive,
@@ -84,7 +92,7 @@ export class EquipmentSettingsService {
       workspaceId,
       name: dto.name.trim(),
       slug,
-      category: this.normalizeNullableText(dto.category),
+      compatibleCategories: this.normalizeCompatibleCategoriesInput(dto.compatibleCategories),
       description: this.normalizeNullableText(dto.description),
       icon: this.normalizeNullableText(dto.icon),
       isActive: dto.isActive ?? true,
@@ -125,8 +133,8 @@ export class EquipmentSettingsService {
     if (dto.name !== undefined) {
       row.name = dto.name.trim();
     }
-    if (dto.category !== undefined) {
-      row.category = this.normalizeNullableText(dto.category);
+    if (dto.compatibleCategories !== undefined) {
+      row.compatibleCategories = this.normalizeCompatibleCategoriesInput(dto.compatibleCategories);
     }
     if (dto.description !== undefined) {
       row.description = this.normalizeNullableText(dto.description);

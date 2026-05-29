@@ -3,54 +3,43 @@
 import { Button, Select } from "@tour/ui";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
 
+import type { DenaliRuleSet } from "@repo/denali-domain";
+import { finalizeDenaliWizardHydration } from "@repo/denali-domain";
 import type { TourFormProfile } from "@repo/types";
 
-import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
-
-import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
-import type { DenaliCreateTourWizardForm } from "./schemas/denaliCore.schema";
 
 import { applyDenaliWizardPreset } from "./tourCreationPresetApply";
 import { listAllTourWizardPresetsSorted } from "./tourCreationPresetMatch";
-import { resolveWorkspaceTourFormProfileFromTemplate } from "./resolveWorkspaceTourFormProfile";
+import type { DenaliWizardHeaderPluginFormMethods } from "@/features/tours/wizard/denali/application/denaliWizardHeaderPlugin";
 
 export type DenaliTourCreationPresetBannerProps = {
   presets: SettingsTourPresetDto[] | undefined;
+  /** RHF access from wizard shell — plugins must not use `useFormContext` directly. */
+  formMethods: DenaliWizardHeaderPluginFormMethods;
+  ruleSet: DenaliRuleSet;
+  workspaceFormProfile: TourFormProfile | undefined;
   /** Called after preset hydrate + form reset (use to bump canonical sync). */
   onApplied?: (_presetId: string) => void;
-  /**
-   * @deprecated Banner reads profile from {@link useTenantWizardTemplate} (`base_profile`).
-   */
-  resolvedFormProfile?: TourFormProfile;
+  /** Reset form to workspace template baseline (clear applied preset). */
+  onClear?: () => void;
+  clearLabel?: string;
 };
 
 export function DenaliTourCreationPresetBanner({
   presets,
+  formMethods,
+  ruleSet,
+  workspaceFormProfile,
   onApplied,
+  onClear,
+  clearLabel,
 }: DenaliTourCreationPresetBannerProps) {
   const t = useTranslations("tours.new");
-  const { getValues, reset } = useFormContext<DenaliCreateTourWizardForm>();
-  const wizardTemplateQuery = useTenantWizardTemplate();
+  const { getValues, reset } = formMethods;
 
-  const templateReady =
-    !wizardTemplateQuery.isLoading &&
-    !wizardTemplateQuery.isError &&
-    wizardTemplateQuery.data != null;
-
-  const workspaceFormProfile = useMemo((): TourFormProfile | undefined => {
-    if (!wizardTemplateQuery.data) {
-      return undefined;
-    }
-    return resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data);
-  }, [wizardTemplateQuery.data]);
-
-  const mergedRuleSet = useMemo(
-    () => mapTemplateToRuleModel(wizardTemplateQuery.data ?? null).ruleSet,
-    [wizardTemplateQuery.data],
-  );
+  const templateReady = workspaceFormProfile != null;
 
   const choiceList = useMemo(
     () =>
@@ -81,14 +70,15 @@ export function DenaliTourCreationPresetBanner({
     }
     const mergedValues = applyDenaliWizardPreset({
       workspaceFormProfile,
-      ruleSet: mergedRuleSet,
+      ruleSet,
       canonicalData: selected.canonicalData,
       baseValues: getValues(),
     });
-    reset(mergedValues, { keepDefaultValues: true, keepDirty: true });
+    const finalized = finalizeDenaliWizardHydration(mergedValues, ruleSet);
+    reset(finalized, { keepDefaultValues: true, keepDirty: true });
     setLastAppliedPresetId(selected.id);
     onApplied?.(selected.id);
-  }, [getValues, mergedRuleSet, onApplied, reset, selected, workspaceFormProfile]);
+  }, [getValues, onApplied, reset, ruleSet, selected, workspaceFormProfile]);
 
   const onSelectChange = useCallback((nextId: string) => {
     setSelectedId(nextId);
@@ -166,6 +156,19 @@ export function DenaliTourCreationPresetBanner({
           >
             {t("wizardPresetApply")}
           </Button>
+          {onClear ? (
+            <Button
+              type="button"
+              variant="secondary"
+              data-testid="denali-wizard-preset-clear"
+              onClick={() => {
+                setLastAppliedPresetId(null);
+                onClear();
+              }}
+            >
+              {clearLabel ?? t("wizardPresetClear")}
+            </Button>
+          ) : null}
         </span>
       </div>
       <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-600, #525252)" }}>

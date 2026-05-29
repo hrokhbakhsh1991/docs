@@ -23,8 +23,8 @@ export class WorkspaceEquipmentItemEntity {
   @Column({ type: "varchar", length: 120 })
   slug!: string;
 
-  @Column({ type: "varchar", length: 80, nullable: true })
-  category!: string | null;
+  @Column({ name: "compatible_categories", type: "jsonb", default: () => "'[]'" })
+  compatibleCategories!: string[];
 
   @Column({ type: "text", nullable: true })
   description!: string | null;

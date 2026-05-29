@@ -1,6 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  DENALI_CATEGORY_ENUM,
+  migrateLegacyEquipmentCategory,
+  normalizeCompatibleCategories,
+} from "@repo/denali-domain";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useMemo } from "react";
 import type { Resolver } from "react-hook-form";
@@ -12,6 +17,7 @@ import type { SettingsEquipmentDto } from "@/lib/settings-equipment.client";
 
 import { Button, Checkbox, FormField, Input, Textarea } from "@tour/ui";
 
+import { CategoryCheckboxGroup } from "./CategoryCheckboxGroup";
 import formStyles from "../settings-profile-form.module.css";
 import panelStyles from "../locations/locations-settings-panel.module.css";
 
@@ -25,7 +31,7 @@ export type EquipmentFormProps = {
 export type EquipmentFormParsed = {
   name: string;
   slug: string;
-  category: string | null;
+  compatibleCategories: string[];
   description: string | null;
   icon: string | null;
   sortOrder: number | undefined;
@@ -35,12 +41,21 @@ export type EquipmentFormParsed = {
 type EquipmentFormInput = {
   name: string;
   slug: string;
-  category: string;
+  compatibleCategories: string[];
   description: string;
   icon: string;
   sortOrder: string;
   isActive: boolean;
 };
+
+function resolveCompatibleCategoriesForEdit(editing: SettingsEquipmentDto): string[] {
+  const fromArray = normalizeCompatibleCategories(editing.compatibleCategories);
+  if (fromArray.length > 0) {
+    return fromArray;
+  }
+  const legacy = (editing as SettingsEquipmentDto & { category?: string | null }).category;
+  return migrateLegacyEquipmentCategory(legacy);
+}
 
 export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: EquipmentFormProps) {
   const t = useTranslations("settings");
@@ -52,7 +67,7 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
       z.object({
         name: z.string().trim().min(1, t("equipmentValidationName")),
         slug: z.string().trim().min(1, t("equipmentValidationSlug")).max(120),
-        category: z.string().optional(),
+        compatibleCategories: z.array(z.enum(DENALI_CATEGORY_ENUM)),
         description: z.string().optional(),
         icon: z.string().optional(),
         sortOrder: z
@@ -73,7 +88,7 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
     defaultValues: {
       name: "",
       slug: "",
-      category: "",
+      compatibleCategories: [],
       description: "",
       icon: "",
       sortOrder: "",
@@ -89,7 +104,7 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
       reset({
         name: editing.name,
         slug: editing.slug,
-        category: editing.category ?? "",
+        compatibleCategories: resolveCompatibleCategoriesForEdit(editing),
         description: editing.description ?? "",
         icon: editing.icon ?? "",
         sortOrder: String(editing.sortOrder),
@@ -99,7 +114,7 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
       reset({
         name: "",
         slug: "",
-        category: "",
+        compatibleCategories: [],
         description: "",
         icon: "",
         sortOrder: "",
@@ -112,13 +127,12 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
     <form
       className={panelStyles.formBlock}
       onSubmit={handleSubmit(async (values) => {
-        const categoryTrim = values.category?.trim();
         const descriptionTrim = values.description?.trim();
         const iconTrim = values.icon?.trim();
         await onSubmit({
           name: values.name.trim(),
           slug: values.slug.trim(),
-          category: categoryTrim ? categoryTrim : null,
+          compatibleCategories: normalizeCompatibleCategories(values.compatibleCategories),
           description: descriptionTrim ? descriptionTrim : null,
           icon: iconTrim ? iconTrim : null,
           sortOrder: values.sortOrder,
@@ -143,8 +157,22 @@ export function EquipmentForm({ editing, onSubmit, onCancel, isPending }: Equipm
       >
         <Input autoComplete="off" aria-invalid={errors.slug ? true : undefined} {...register("slug")} />
       </FormField>
-      <FormField label={t("equipmentFieldCategory")} description={t("equipmentFieldCategoryHint")} error={errors.category?.message}>
-        <Input autoComplete="off" {...register("category")} />
+      <FormField
+        label={t("equipmentFieldCompatibleCategories")}
+        description={t("equipmentFieldCompatibleCategoriesHint")}
+        error={errors.compatibleCategories?.message}
+      >
+        <Controller
+          control={control}
+          name="compatibleCategories"
+          render={({ field }) => (
+            <CategoryCheckboxGroup
+              value={field.value ?? []}
+              onChange={field.onChange}
+              disabled={isPending}
+            />
+          )}
+        />
       </FormField>
       <FormField
         label={t("equipmentFieldDescription")}

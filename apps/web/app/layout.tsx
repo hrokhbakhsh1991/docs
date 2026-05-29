@@ -16,6 +16,8 @@ import { WORKSPACE_ASSERT_SKIP_HEADER } from "@/lib/tenant/workspace-assert-skip
 import { assertWorkspaceRequest } from "@/lib/tenant/assert-workspace-request";
 import { ServerTenantProvider } from "@/lib/tenant/tenant-provider";
 
+import { buildThemeInitScript } from "@/lib/theme/theme-preference";
+
 import { AppChromeProviders } from "./providers";
 
 const DOCUMENT_LOCALE = routing.defaultLocale;
@@ -57,7 +59,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   );
 
   return (
-    <html lang="fa" dir="rtl" className={`${vazirmatn.variable} theme-light`}>
+    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: buildThemeInitScript() }} />
+      </head>
       <body className="font-sans">
         <NextIntlClientProvider locale={DOCUMENT_LOCALE} messages={messages}>
           <AppChromeProviders>{tenantWrapped}</AppChromeProviders>

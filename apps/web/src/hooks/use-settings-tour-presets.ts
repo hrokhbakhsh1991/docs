@@ -14,6 +14,7 @@ import {
   type UpdateTourPresetPayload,
 } from "@/lib/settings-tour-presets.client";
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 
 function sortTourPresetsBySortOrder(data: SettingsTourPresetDto[]): SettingsTourPresetDto[] {
@@ -24,13 +25,14 @@ function sortTourPresetsBySortOrder(data: SettingsTourPresetDto[]): SettingsTour
 
 export function useSettingsTourPresets() {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   return useQuery({
     queryKey: settingsTourPresetsKeys.list(tenantId ?? ""),
     queryFn: getTourPresets,
     select: sortTourPresetsBySortOrder,
     staleTime: 60_000,
     retry: false,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useMemo, useState, type ReactNode } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { useCallback, useMemo, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { Alert, Button, Card, CardBody } from "@tour/ui";
 
 import type { TourDetailDto } from "@/lib/services/tours.service";
@@ -10,60 +10,29 @@ import type { DenaliTourEditPatchIntent } from "@/features/tours/edit/updateTour
 import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
 import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
 import {
+  DenaliSection,
+  type DenaliEditSectionId,
+} from "@/features/tours/denali/fields/DenaliSection";
+import {
   buildDenaliTourCreateDefaultValues,
   type DenaliCreateTourWizardForm,
 } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import {
-  DenaliBasicInfoStep,
-  DenaliLegalStep,
-  DenaliLogisticsStep,
-  DenaliPricingStep,
-  DenaliProgramNatureStep,
-} from "@/features/tours/wizard/denali";
-import { DenaliCanonicalProvider } from "@/features/tours/wizard/denali/DenaliCanonicalContext";
-import { DenaliPhotosStep } from "@/features/tours/wizard/denali/steps/DenaliPhotosStep";
-import {
-  getDenaliStepTitleFa,
-  getDenaliWizardSteps,
-  type DenaliCreateWizardStepId,
-} from "@/features/tours/wizard/denaliStepConfig";
+  DenaliCanonicalProvider,
+  useDenaliCanonical,
+} from "@/features/tours/wizard/denali/DenaliCanonicalContext";
+import { useDenaliEditRuleSync } from "@/features/tours/wizard/denali/hooks/useDenaliEditRuleSync";
+import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
+
 import styles from "./DenaliTourEditForm.module.css";
 
-type EditStepId = Exclude<DenaliCreateWizardStepId, "review">;
-
-/** Same content-step order as create wizard rail (`getDenaliWizardSteps`, minus review). */
-const EDIT_STEPS: readonly EditStepId[] = getDenaliWizardSteps().filter(
-  (step): step is EditStepId => step !== "review",
+const EDIT_SECTIONS: readonly DenaliEditSectionId[] = getDenaliWizardSteps().filter(
+  (step): step is DenaliEditSectionId => step !== "review",
 );
-
-function DenaliStepBody({ stepId, tourId }: { stepId: EditStepId; tourId: string }) {
-  let body: ReactNode = null;
-  switch (stepId) {
-    case "denali_basic":
-      body = <DenaliBasicInfoStep />;
-      break;
-    case "denali_program":
-      body = <DenaliProgramNatureStep />;
-      break;
-    case "denali_logistics":
-      body = <DenaliLogisticsStep />;
-      break;
-    case "denali_pricing":
-      body = <DenaliPricingStep />;
-      break;
-    case "denali_legal":
-      body = <DenaliLegalStep />;
-      break;
-    case "denali_photos":
-      body = <DenaliPhotosStep tourId={tourId} />;
-      break;
-  }
-  return body;
-}
 
 function mergeDefaults(
   defaults: DenaliCreateTourWizardForm,
@@ -98,6 +67,64 @@ export type DenaliTourEditFormProps = {
   submitError?: unknown;
 };
 
+function DenaliEditFormInner({
+  tourId,
+  onCancel,
+  onSubmit,
+  errorText,
+  formMethods,
+  workspaceFormProfile,
+  onRuleSynced,
+}: {
+  tourId: string;
+  onCancel: () => void;
+  onSubmit: DenaliTourEditFormProps["onSubmit"];
+  errorText: string | null;
+  formMethods: ReturnType<typeof useForm<DenaliCreateTourWizardForm>>;
+  workspaceFormProfile: ReturnType<typeof resolveWorkspaceTourFormProfileFromTemplate>;
+  onRuleSynced: () => void;
+}) {
+  const tForm = useTranslations("tours.form");
+  const { ruleSet } = useDenaliCanonical();
+  const { handleSubmit, formState } = formMethods;
+
+  useDenaliEditRuleSync(formMethods, ruleSet, onRuleSynced, {
+    workspaceFormProfile: workspaceFormProfile ?? undefined,
+  });
+
+  return (
+    <form
+      className={styles.inner}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSubmit(async (values) => {
+          await onSubmit(values, { intent: "save" });
+        })();
+      }}
+    >
+      {EDIT_SECTIONS.map((sectionId) => (
+        <DenaliSection key={sectionId} sectionId={sectionId} tourId={tourId} />
+      ))}
+
+      {errorText ? (
+        <Alert variant="error" title={tForm("saveFailed")}>
+          {errorText}
+        </Alert>
+      ) : null}
+
+      <div className={styles.actions}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={formState.isSubmitting}>
+          {tForm("cancel")}
+        </Button>
+        <Button type="submit" variant="primary" disabled={formState.isSubmitting}>
+          {formState.isSubmitting ? tForm("saving") : tForm("saveChanges")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: DenaliTourEditFormProps) {
   const t = useTranslations("tours.denali");
   const tForm = useTranslations("tours.form");
@@ -106,7 +133,7 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
     () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
-  const [currentStep, setCurrentStep] = useState(0);
+  const [ruleSyncToken, setRuleSyncToken] = useState(0);
 
   const initialValues = useMemo(() => {
     const defaults = buildDenaliTourCreateDefaultValues();
@@ -115,83 +142,42 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
   }, [tour]);
 
   const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues: initialValues, mode: "onTouched" });
-  const { handleSubmit, formState } = formMethods;
-  useWatch({ control: formMethods.control, name: "basicInfo.tourType" });
 
-  const stepId = EDIT_STEPS[currentStep] ?? "denali_basic";
+  const handleRuleSynced = useCallback(() => {
+    setRuleSyncToken((token) => token + 1);
+  }, []);
+
   const errorText = submitError ? formatWizardApiErrorMessage(submitError, tForm("saveFailed")) : null;
 
   return (
     <QuickAddModalProvider>
       <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider
-        formMethods={formMethods}
-        wizardTemplate={wizardTemplateQuery.data ?? null}
-        uploadTourId={tour.id}
-        workspaceFormProfile={workspaceFormProfile ?? undefined}
-      >
-      <Card data-testid="denali-edit-tour-form" title={t("edit.pageTitle")} description={t("edit.pageDescription")}>
-        <CardBody>
-          <form
-            className={styles.inner}
-            noValidate
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleSubmit(async (values) => {
-                await onSubmit(values, { intent: "save" });
-              })();
-            }}
+        <DenaliCanonicalProvider
+          formMethods={formMethods}
+          syncToken={ruleSyncToken}
+          wizardTemplate={wizardTemplateQuery.data ?? null}
+          uploadTourId={tour.id}
+          workspaceFormProfile={workspaceFormProfile ?? undefined}
+        >
+          <Card
+            data-testid="denali-edit-tour-form"
+            title={t("edit.pageTitle")}
+            description={t("edit.pageDescription")}
           >
-            <ol style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", listStyle: "none", padding: 0, margin: 0 }}>
-              {EDIT_STEPS.map((id, index) => (
-                <li key={id} data-active={index === currentStep ? "true" : "false"}>
-                  {index + 1}. {getDenaliStepTitleFa(id)}
-                </li>
-              ))}
-            </ol>
-
-            <DenaliStepBody stepId={stepId} tourId={tour.id} />
-
-            {errorText ? (
-              <Alert variant="error" title={tForm("saveFailed")}>
-                {errorText}
-              </Alert>
-            ) : null}
-
-            <div className={styles.actions}>
-              <Button type="button" variant="ghost" onClick={onCancel} disabled={formState.isSubmitting}>
-                {tForm("cancel")}
-              </Button>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={formState.isSubmitting || currentStep === 0}
-                  onClick={() => setCurrentStep((v) => Math.max(0, v - 1))}
-                >
-                  {tForm("previous")}
-                </Button>
-                {currentStep < EDIT_STEPS.length - 1 ? (
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={formState.isSubmitting}
-                    onClick={() => setCurrentStep((v) => Math.min(EDIT_STEPS.length - 1, v + 1))}
-                  >
-                    {tForm("next")}
-                  </Button>
-                ) : (
-                  <Button type="submit" variant="primary" disabled={formState.isSubmitting}>
-                    {formState.isSubmitting ? tForm("saving") : tForm("saveChanges")}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
-      </DenaliCanonicalProvider>
-    </FormProvider>
+            <CardBody>
+              <DenaliEditFormInner
+                tourId={tour.id}
+                onCancel={onCancel}
+                onSubmit={onSubmit}
+                errorText={errorText}
+                formMethods={formMethods}
+                workspaceFormProfile={workspaceFormProfile}
+                onRuleSynced={handleRuleSynced}
+              />
+            </CardBody>
+          </Card>
+        </DenaliCanonicalProvider>
+      </FormProvider>
     </QuickAddModalProvider>
   );
 }

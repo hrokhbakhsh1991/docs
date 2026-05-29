@@ -7,6 +7,7 @@ import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 
 import type { MeProfileWire } from "@repo/types";
+import { useAuthBffQueryGateForTenant } from "@/hooks/use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { fetchMe } from "@/lib/me-client";
 
@@ -28,6 +29,7 @@ export type UseRegistrationBookingTargetInput = {
 
 export function useRegistrationBookingTarget(input: UseRegistrationBookingTargetInput) {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   const [bookingTarget, setBookingTargetState] = useState<BookingTarget>("self");
 
   const policyRef = useRef(input.policy);
@@ -47,7 +49,7 @@ export function useRegistrationBookingTarget(input: UseRegistrationBookingTarget
 
   const meQuery = useQuery({
     queryKey: ["me", tenantId ?? "", "registration-intake"],
-    enabled: input.enabled && Boolean(tenantId),
+    enabled: input.enabled && authBffQueryEnabled,
     queryFn: async (): Promise<MeProfileWire> => {
       const res = await fetchMe();
       const body = (await res.json()) as MeProfileWire;

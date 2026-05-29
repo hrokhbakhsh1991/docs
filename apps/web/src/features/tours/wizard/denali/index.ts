@@ -13,5 +13,3 @@ export { DenaliLegalStep } from "./steps/DenaliLegalStep";
 export { DenaliPricingPaymentStep } from "./steps/DenaliPricingPaymentStep";
 export { DenaliReviewStep } from "./steps/DenaliReviewStep";
 export { DenaliPhotosStep } from "./steps/DenaliPhotosStep";
-export { DENALI_FIELD_DEFINITIONS } from "./registry/denaliFieldRegistryData";
-export type { DenaliFieldDefinition, DenaliZodFieldKind } from "./registry/denaliFieldRegistryData";

@@ -21,6 +21,8 @@ module.exports = {
   testPathIgnorePatterns: ["<rootDir>/apps/web/.next/", "__benchmarks__"],
   modulePathIgnorePatterns: ["<rootDir>/apps/web/.next/"],
   moduleNameMapper: {
+    "^@repo/denali-domain$": "<rootDir>/packages/denali-domain/src/index.ts",
+    "^@repo/denali-domain/(.*)$": "<rootDir>/packages/denali-domain/src/$1",
     "^@/app/(.*)$": "<rootDir>/apps/web/app/$1",
     "^@/lib/(.*)$": "<rootDir>/apps/web/lib/$1",
     "^@/(.*)$": "<rootDir>/apps/web/src/$1",

@@ -3,12 +3,9 @@
  */
 import React, { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FormProvider, useForm } from "react-hook-form";
 
-import {
-  buildDenaliTourCreateDefaultValues,
-  type DenaliCreateTourWizardForm,
-} from "@/features/tours/wizard/schemas/denaliLogistics.schema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
+import { DenaliFormHarness, DenaliFormWatchProbe } from "@test-utils/denali-integration-harness";
 
 import {
   DENALI_CUSTOM_SERVICE_LABELS_PATH,
@@ -65,28 +62,24 @@ jest.mock("../../components/DenaliCustomServicesEditor", () => ({
   },
 }));
 
-function StepNavigationHarness() {
+function CustomServicesFixture() {
   const [onLogisticsStep, setOnLogisticsStep] = useState(true);
-  const formMethods = useForm<DenaliCreateTourWizardForm>({
-    defaultValues: buildDenaliTourCreateDefaultValues(),
-  });
+  const defaultValues = buildDenaliTourCreateDefaultValues();
 
   return (
-    <FormProvider {...formMethods}>
+    <DenaliFormHarness defaultValues={defaultValues}>
       {onLogisticsStep ? <DenaliCustomServicesField workspaceFormProfile="denali_pilot" /> : null}
-      <span data-testid="labels-json">
-        {JSON.stringify(formMethods.watch(DENALI_CUSTOM_SERVICE_LABELS_PATH) ?? [])}
-      </span>
+      <DenaliFormWatchProbe name={DENALI_CUSTOM_SERVICE_LABELS_PATH} testId="labels-json" />
       <button type="button" data-testid="toggle-step" onClick={() => setOnLogisticsStep((v) => !v)}>
         toggle
       </button>
-    </FormProvider>
+    </DenaliFormHarness>
   );
 }
 
 describe("DenaliLogisticsStep custom services", () => {
   test("persists labels in form state when logistics step unmounts", () => {
-    render(<StepNavigationHarness />);
+    render(<CustomServicesFixture />);
 
     const input = screen.getByTestId("denali-custom-service-input");
     fireEvent.change(input, { target: { value: "صبحانه" } });

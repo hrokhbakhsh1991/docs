@@ -10,6 +10,8 @@ import {
   registrationDetailsEndpointAvailable,
 } from "@/services/registrations";
 
+import { useAuthBffQueryGate } from "@/hooks/use-auth-bff-query-gate";
+
 export type RegistrationDetailsSource = "api" | "fallback";
 
 export function useRegistrationDetails(
@@ -23,7 +25,8 @@ export function useRegistrationDetails(
   source: RegistrationDetailsSource | null;
   refetch: () => void;
 } {
-  const enabled = Boolean(registrationId?.trim());
+  const { authBffQueryEnabled } = useAuthBffQueryGate();
+  const enabled = Boolean(registrationId?.trim()) && authBffQueryEnabled;
   const endpointAvailable = registrationDetailsEndpointAvailable();
 
   const q = useQuery({

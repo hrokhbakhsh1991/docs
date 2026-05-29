@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { settingsGuideLanguagesKeys } from "@/lib/query-keys";
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import {
   createGuideLanguage,
@@ -24,11 +25,12 @@ function sortGuideLanguagesBySortOrder(data: SettingsGuideLanguageDto[]): Settin
 
 export function useSettingsGuideLanguages() {
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   return useQuery({
     queryKey: settingsGuideLanguagesKeys.list(tenantId ?? ""),
     queryFn: getGuideLanguages,
     select: sortGuideLanguagesBySortOrder,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 }
 

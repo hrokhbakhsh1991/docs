@@ -1,21 +1,6 @@
 /**
  * Review validation summary — step grouping, publish-readiness warnings, and navigateToField links.
  */
-jest.mock("next-intl", () => ({
-  useTranslations: () => (key: string, values?: Record<string, unknown>) => {
-    if (values && "count" in values) {
-      return `${key}:${values.count}`;
-    }
-    if (values && "step" in values && "count" in values) {
-      return `${key}:${values.step}:${values.count}`;
-    }
-    if (values && "label" in values && "message" in values) {
-      return `${key}:${values.label}:${values.message}`;
-    }
-    return key;
-  },
-}));
-
 jest.mock("@/hooks/use-settings-tour-themes", () => ({
   useSettingsTourThemes: () => ({ data: [] }),
 }));
@@ -77,16 +62,14 @@ jest.mock("../../application", () => {
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FormProvider, useForm } from "react-hook-form";
 
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { wizardIssueLinkTestId } from "@/features/tours/wizard/testing/wizard-testing-utils";
+import { DenaliFormNavigationHarness } from "@test-utils/denali-integration-harness";
 
 import { denaliTestConfig } from "../../wizardTestConfig.denali";
-import { DenaliCanonicalProvider } from "../../DenaliCanonicalContext";
 import { DenaliReviewValidationSummary } from "../../components/DenaliReviewValidationSummary";
-import { DenaliWizardNavigationProvider } from "../../DenaliWizardNavigationContext";
 import { DenaliReviewStep } from "../../steps/DenaliReviewStep";
 
 function buildMountainDayForm(
@@ -115,47 +98,31 @@ function geoPublishIssueFromConfig() {
   return fixture;
 }
 
-function ReviewSummaryHarness({
-  defaultValues,
-  publishIssues,
-}: {
-  defaultValues: DenaliCreateTourWizardForm;
-  publishIssues?: Parameters<typeof DenaliReviewValidationSummary>[0]["publishIssues"];
-}) {
-  const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
+const reviewNavigation = () => {
   const visibleSteps = denaliTestConfig.steps!;
+  return {
+    visibleSteps,
+    currentStepIndex: visibleSteps.length - 1,
+    setCurrentStep: jest.fn(),
+  };
+};
 
-  return (
-    <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider formMethods={formMethods}>
-        <DenaliWizardNavigationProvider
-          visibleSteps={visibleSteps}
-          currentStepIndex={visibleSteps.length - 1}
-          setCurrentStep={jest.fn()}
-        >
-          <DenaliReviewValidationSummary publishIssues={publishIssues} />
-        </DenaliWizardNavigationProvider>
-      </DenaliCanonicalProvider>
-    </FormProvider>
+function renderReviewSummary(
+  defaultValues: DenaliCreateTourWizardForm,
+  publishIssues: Parameters<typeof DenaliReviewValidationSummary>[0]["publishIssues"] = [],
+) {
+  return render(
+    <DenaliFormNavigationHarness defaultValues={defaultValues} navigation={reviewNavigation()}>
+      <DenaliReviewValidationSummary publishIssues={publishIssues} />
+    </DenaliFormNavigationHarness>,
   );
 }
 
-function ReviewStepHarness({ defaultValues }: { defaultValues: DenaliCreateTourWizardForm }) {
-  const visibleSteps = denaliTestConfig.steps!;
-  const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
-
-  return (
-    <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider formMethods={formMethods}>
-        <DenaliWizardNavigationProvider
-          visibleSteps={visibleSteps}
-          currentStepIndex={visibleSteps.length - 1}
-          setCurrentStep={jest.fn()}
-        >
-          <DenaliReviewStep />
-        </DenaliWizardNavigationProvider>
-      </DenaliCanonicalProvider>
-    </FormProvider>
+function renderReviewStep(defaultValues: DenaliCreateTourWizardForm) {
+  return render(
+    <DenaliFormNavigationHarness defaultValues={defaultValues} navigation={reviewNavigation()}>
+      <DenaliReviewStep />
+    </DenaliFormNavigationHarness>,
   );
 }
 
@@ -170,7 +137,7 @@ describe("DenaliReviewValidationSummary", () => {
     it("groups shortDescription issues under denali_photos", () => {
       const form = buildMountainDayForm({ title: "", shortDescription: "" });
 
-      render(<ReviewSummaryHarness defaultValues={form} publishIssues={[]} />);
+      renderReviewSummary(form, []);
 
       expect(screen.getByTestId(testIds!.summaryError)).toBeInTheDocument();
       expect(screen.queryByTestId(testIds!.publishReadinessWarning)).toBeNull();
@@ -186,7 +153,7 @@ describe("DenaliReviewValidationSummary", () => {
     it("groups title issues under denali_basic", () => {
       const form = buildMountainDayForm({ title: "", shortDescription: "Valid short description" });
 
-      render(<ReviewSummaryHarness defaultValues={form} publishIssues={[]} />);
+      renderReviewSummary(form, []);
 
       expect(screen.getByTestId("denali-validation-step-denali_basic")).toBeInTheDocument();
       expect(screen.queryByTestId("denali-validation-step-denali_photos")).toBeNull();
@@ -197,7 +164,7 @@ describe("DenaliReviewValidationSummary", () => {
     it("submit error link calls navigateToField with photos step and shortDescription path", () => {
       const form = buildMountainDayForm({ title: "", shortDescription: "" });
 
-      render(<ReviewSummaryHarness defaultValues={form} publishIssues={[]} />);
+      renderReviewSummary(form, []);
 
       fireEvent.click(
         screen.getByTestId(
@@ -221,7 +188,7 @@ describe("DenaliReviewValidationSummary", () => {
         shortDescription: "Valid short description for publish readiness test",
       });
 
-      render(<ReviewSummaryHarness defaultValues={form} publishIssues={[geoPublishIssueFromConfig()]} />);
+      renderReviewSummary(form, [geoPublishIssueFromConfig()]);
 
       expect(screen.getByTestId(testIds!.publishReadinessWarning)).toBeInTheDocument();
       expect(screen.getByTestId("denali-validation-step-denali_logistics")).toBeInTheDocument();
@@ -243,7 +210,7 @@ describe("DenaliReviewValidationSummary", () => {
     });
 
     it("DenaliReviewStep publish-readiness geo link calls navigateToField", () => {
-      render(<ReviewStepHarness defaultValues={buildMountainDayForm()} />);
+      renderReviewStep(buildMountainDayForm());
 
       expect(screen.getByTestId(testIds!.publishReadinessWarning)).toBeInTheDocument();
 

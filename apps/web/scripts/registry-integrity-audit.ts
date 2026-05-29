@@ -7,19 +7,19 @@ import { z } from "zod";
 import {
   DENALI_FIELD_REGISTRY,
   isDenaliFieldInMatrixCell,
-} from "@/features/tours/wizard/denali/registry/DenaliFieldRegistry";
-import { DENALI_MATRIX_CELLS } from "@/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
-import { DENALI_FIELD_DEFINITIONS } from "@/features/tours/wizard/denali/registry/denaliFieldRegistryData";
-import { collectGeneratedArtifactSyncErrors } from "@/features/tours/wizard/denali/registry/denaliRegistryCodegen";
-import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "@/features/tours/wizard/denali/rules/generated/denaliCanonicalPathMap.generated";
+} from "../../../packages/denali-domain/src/registry/DenaliFieldRegistry";
+import { DENALI_MATRIX_CELLS } from "../../../packages/denali-domain/src/registry/denaliRuleMatrixRecipes";
+import { DENALI_FIELD_DEFINITIONS } from "../../../packages/denali-domain/src/registry/denaliFieldRegistryData";
+import { collectGeneratedArtifactSyncErrors } from "../../../packages/denali-domain/src/registry/denaliRegistryCodegen";
+import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "../../../packages/denali-domain/src/rules/generated/denaliCanonicalPathMap.generated";
 import {
   denaliRuleSet,
   findDenaliRuleField,
   listDenaliRuleFieldPaths,
-} from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { mapDenaliCanonicalToFormPath } from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
-import { denaliTourCreateBaseSchema } from "@/features/tours/wizard/schemas/denaliTourCreateBaseSchema.generated";
-import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
+} from "../../../packages/denali-domain/src/rules/denaliRuleModel";
+import { mapDenaliCanonicalToFormPath } from "../../../packages/denali-domain/src/rules/denaliRuleRequired";
+import { denaliTourCreateBaseSchema } from "../../../packages/denali-domain/src/schemas/denaliTourCreateBaseSchema.generated";
+import { buildDenaliTourCreateDefaultValues } from "../../../packages/denali-domain/src/schemas/denaliCore.schema";
 
 function zodShapeHasPath(schema: z.ZodTypeAny, path: string): boolean {
   const parts = path.split(".");

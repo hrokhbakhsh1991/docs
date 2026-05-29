@@ -1,28 +1,20 @@
 import type { RuleConfig } from "@repo/shared";
 import { DENALI_WORKSPACE } from "@repo/shared-contracts";
+import {
+  applyOverlayToRuleSet,
+  denaliRuleSet,
+  parseFieldRulesOverlay,
+  type DenaliRuleSet,
+  type FieldRuleOverlayPatch,
+} from "@repo/denali-domain";
 import { normalizeTourFormProfileInput, type TourFormProfile } from "@repo/types";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import {
-  parseFieldRulesOverlay,
-  type FieldRuleOverlayPatch,
-} from "@/features/tours/wizard/template/merge-field-rules-overlay";
+import { DENALI_FORM_RULE_CONFIG } from "../../../../lib/form-rule-engine/denaliFormRuleConfig";
 import type {
   TenantWizardStepOverrides,
   TenantWizardTemplate,
 } from "@/features/tours/wizard/template/tenant-wizard-template.types";
-import { mapDenaliCanonicalToFormPath } from "@/features/tours/wizard/denali/rules/denaliRuleRequired";
-import type {
-  DenaliRuleFieldDefinition,
-  DenaliRuleModel,
-  DenaliRuleSet,
-} from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import {
-  DENALI_RULE_MODEL_CATEGORIES,
-  DENALI_RULE_MODEL_DURATIONS,
-  denaliRuleSet,
-} from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { DENALI_FORM_RULE_CONFIG } from "../../../../lib/form-rule-engine/denaliFormRuleConfig";
 
 /** Minimal template fields needed to derive Denali rule models (full row or validator payload). */
 export type WizardTemplateRuleSource =
@@ -49,73 +41,6 @@ export type MappedTemplateRuleModel = {
   /** Lookup/autocomplete rules for template-editing forms (FormRuleEngine). */
   readonly formRuleConfigs: readonly RuleConfig<DenaliCreateTourWizardForm>[];
 };
-
-function overlayPatchForPath(
-  overlay: ReadonlyMap<string, FieldRuleOverlayPatch>,
-  canonicalPath: string,
-  formPath: string,
-): FieldRuleOverlayPatch | undefined {
-  return overlay.get(canonicalPath) ?? overlay.get(formPath);
-}
-
-function applyOverlayToField(
-  field: DenaliRuleFieldDefinition,
-  overlay: ReadonlyMap<string, FieldRuleOverlayPatch>,
-): DenaliRuleFieldDefinition {
-  const formPath = mapDenaliCanonicalToFormPath(field.path);
-  const patch = overlayPatchForPath(overlay, field.path, formPath);
-  if (patch == null) {
-    return field;
-  }
-
-  let hidden = field.hidden;
-  if (patch.visibility === "hidden") {
-    hidden = true;
-  } else if (patch.visibility === "always" || patch.visibility === "active") {
-    hidden = false;
-  }
-
-  let required = field.required;
-  if (patch.required === "required") {
-    required = true;
-  } else if (patch.required === "optional" || patch.required === "forbidden") {
-    required = false;
-  }
-
-  return { ...field, hidden, required };
-}
-
-function cloneRuleModel(model: DenaliRuleModel): DenaliRuleModel {
-  return {
-    ...model,
-    fields: model.fields.map((field) => ({ ...field })),
-  };
-}
-
-function applyOverlayToRuleSet(
-  base: DenaliRuleSet,
-  overlay: ReadonlyMap<string, FieldRuleOverlayPatch>,
-): DenaliRuleSet {
-  const next = {} as DenaliRuleSet;
-
-  for (const category of DENALI_RULE_MODEL_CATEGORIES) {
-    next[category] = {} as DenaliRuleSet[typeof category];
-    for (const duration of DENALI_RULE_MODEL_DURATIONS) {
-      const model = base[category][duration];
-      if (model == null) {
-        next[category][duration] = null;
-        continue;
-      }
-      const cloned = cloneRuleModel(model);
-      next[category][duration] = {
-        ...cloned,
-        fields: cloned.fields.map((field) => applyOverlayToField(field, overlay)),
-      };
-    }
-  }
-
-  return next;
-}
 
 function overlayToVisibleFlag(patch: FieldRuleOverlayPatch): boolean | undefined {
   if (patch.visibility === "hidden") return false;

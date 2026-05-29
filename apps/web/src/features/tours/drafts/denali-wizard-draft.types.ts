@@ -6,4 +6,6 @@ export type DenaliWizardDraftSnapshot = {
   currentStepIndex: number;
   /** Wizard rail layout generation; see {@link DENALI_WIZARD_RAIL_LAYOUT_VERSION}. */
   railLayoutVersion?: number;
+  /** Registry field layout generation; see {@link DENALI_REGISTRY_LAYOUT_VERSION}. */
+  registryLayoutVersion?: number;
 };

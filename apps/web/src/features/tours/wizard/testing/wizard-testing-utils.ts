@@ -1,5 +1,8 @@
 /**
  * Workspace-agnostic structural guards for wizard registry ↔ focus-map alignment.
+ *
+ * Session/JWT/cookie test data belongs in `@/lib/test/session-fixtures` (auth + Playwright).
+ * Component/BFF integration shells: `@test-utils/denali-integration-harness` and `AppTestProviders`.
  */
 
 export interface WizardRegistryField<StepId extends string = string> {

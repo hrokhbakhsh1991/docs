@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
+import { type UseFormReturn } from "react-hook-form";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps, type DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
+import { DenaliFormHarness } from "@test-utils/denali-integration-harness";
 
-import { DenaliCanonicalProvider } from "./DenaliCanonicalContext";
 import { DenaliStepFocusBridge } from "./DenaliStepFocusBridge";
 import { useDenaliCanonical } from "./DenaliCanonicalContext";
 import { DenaliWizardNavigationProvider, useDenaliWizardNavigation } from "./DenaliWizardNavigationContext";
@@ -14,10 +14,6 @@ import { DenaliWizardSyncProvider } from "./DenaliWizardSyncContext";
 import { useDenaliCanonicalModel } from "./hooks/useDenaliCanonicalModel";
 
 let originalGetClientRects: (() => DOMRectList) | null = null;
-
-jest.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
-}));
 
 jest.mock("@/components/shared/quick-add/QuickAddModal.module.css", () => ({}));
 
@@ -59,11 +55,11 @@ jest.mock("@/hooks/use-workspace-tour-crew-members", () => ({
   useWorkspaceTourCrewMembers: () => ({ data: [] }),
 }));
 
-jest.mock("../hooks/useDenaliDestinationQuickAdd", () => ({
+jest.mock("./hooks/useDenaliDestinationQuickAdd", () => ({
   useDenaliDestinationQuickAdd: () => () => undefined,
 }));
 
-jest.mock("../hooks/useDenaliEquipmentQuickAdd", () => ({
+jest.mock("./hooks/useDenaliEquipmentQuickAdd", () => ({
   useDenaliEquipmentQuickAdd: () => () => undefined,
 }));
 
@@ -149,7 +145,7 @@ function CanonicalProbe({
   return null;
 }
 
-function IntegrationHarness({
+function SyncContextFixture({
   defaultValues,
   initialStep = "denali_program",
   onCanonicalChange,
@@ -158,7 +154,6 @@ function IntegrationHarness({
   initialStep?: DenaliCreateWizardStepId;
   onCanonicalChange: (_next: ReturnType<typeof useDenaliCanonicalModel>) => void;
 }) {
-  const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
   const visibleSteps = getDenaliWizardSteps();
   const [currentStepIndex, setCurrentStepIndex] = useState(
     Math.max(visibleSteps.indexOf(initialStep), 0),
@@ -166,8 +161,8 @@ function IntegrationHarness({
   const activeStepId = visibleSteps[currentStepIndex] ?? "denali_basic";
 
   return (
-    <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider formMethods={formMethods}>
+    <DenaliFormHarness defaultValues={defaultValues}>
+      {({ formMethods }) => (
         <DenaliWizardSyncProvider isSyncing={false}>
           <DenaliWizardNavigationProvider
             visibleSteps={visibleSteps}
@@ -175,17 +170,17 @@ function IntegrationHarness({
             setCurrentStep={setCurrentStepIndex}
           >
             <CanonicalProbe onCanonicalChange={onCanonicalChange} />
-            <HarnessControls setCurrentStepIndex={setCurrentStepIndex} formMethods={formMethods} />
+            <SyncContextControls setCurrentStepIndex={setCurrentStepIndex} formMethods={formMethods} />
             <DenaliStepFocusBridge stepId={activeStepId} />
             <StepBody stepId={activeStepId} />
           </DenaliWizardNavigationProvider>
         </DenaliWizardSyncProvider>
-      </DenaliCanonicalProvider>
-    </FormProvider>
+      )}
+    </DenaliFormHarness>
   );
 }
 
-function HarnessControls({
+function SyncContextControls({
   setCurrentStepIndex,
   formMethods,
 }: {
@@ -279,7 +274,7 @@ describe("DenaliWizardIntegrationAudit", () => {
     let latestCanonical: unknown = null;
 
     render(
-      <IntegrationHarness
+      <SyncContextFixture
         defaultValues={form}
         initialStep="denali_program"
         onCanonicalChange={(next) => {
@@ -332,7 +327,7 @@ describe("DenaliWizardIntegrationAudit", () => {
       const form = buildDenaliTourCreateDefaultValues();
       form.basicInfo.tourType = "mountain_day";
 
-      render(<IntegrationHarness defaultValues={form} initialStep="denali_basic" onCanonicalChange={() => undefined} />);
+      render(<SyncContextFixture defaultValues={form} initialStep="denali_basic" onCanonicalChange={() => undefined} />);
 
       // Keyboard-only: tab until the broken-focus navigation control, then press Enter.
       const trigger = screen.getByTestId("go-logistics-broken-focus");

@@ -1,28 +1,12 @@
 /**
- * Denali MVP create wizard — 5 content steps + review (phase 3 logical layout).
- *
- * Rail order: basic → photos → program → logistics → pricing → legal → review.
- *
- * @see docs/architecture/denali-canonical-domain-model.md
+ * Denali MVP create wizard — step ids from domain; localized titles stay in apps/web.
  */
-export const denaliWizardSteps = [
-  "denali_basic",
-  "denali_photos",
-  "denali_program",
-  "denali_logistics",
-  "denali_pricing",
-  "denali_legal",
-  "review",
-] as const;
+export {
+  denaliWizardSteps,
+  getDenaliWizardSteps,
+  type DenaliCreateWizardStepId,
+} from "@repo/denali-domain";
 
-export type DenaliCreateWizardStepId = (typeof denaliWizardSteps)[number];
-
-/**
- * Historical step ids removed from the 5-step rail (not in {@link DenaliRuleFieldStep}).
- * Mountain participants: `denali_pricing` (`DenaliPricingParticipantSection`).
- * Policies / cancellation terms: `denali_legal` (`DenaliLegalStep`).
- * Review: display-only mirror (`DenaliReviewParticipantsDisplay`).
- */
 export const DENALI_MVP_REMOVED_STEPS = [
   {
     id: "denali_participants" as const,
@@ -40,7 +24,10 @@ export const DENALI_MVP_REMOVED_STEPS = [
   },
 ] as const;
 
-export const denaliStepTitlesFa: Record<DenaliCreateWizardStepId, string> = {
+export const denaliStepTitlesFa: Record<
+  import("@repo/denali-domain").DenaliCreateWizardStepId,
+  string
+> = {
   denali_basic: "اطلاعات پایه",
   denali_program: "برنامه",
   denali_logistics: "لجستیک و خدمات",
@@ -50,10 +37,8 @@ export const denaliStepTitlesFa: Record<DenaliCreateWizardStepId, string> = {
   review: "بازبینی و ثبت",
 };
 
-export function getDenaliWizardSteps(): readonly DenaliCreateWizardStepId[] {
-  return denaliWizardSteps;
-}
-
-export function getDenaliStepTitleFa(stepId: DenaliCreateWizardStepId): string {
+export function getDenaliStepTitleFa(
+  stepId: import("@repo/denali-domain").DenaliCreateWizardStepId,
+): string {
   return denaliStepTitlesFa[stepId];
 }

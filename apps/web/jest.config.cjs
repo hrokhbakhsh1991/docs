@@ -6,8 +6,14 @@ module.exports = {
   rootDir: ".",
   modulePathIgnorePatterns: ["<rootDir>/.next/"],
   testPathIgnorePatterns: ["<rootDir>/.next/"],
-  testMatch: ["<rootDir>/src/**/__tests__/**/*.integration.test.tsx"],
+  testMatch: [
+    "<rootDir>/src/**/__tests__/**/*.integration.test.tsx",
+    "<rootDir>/src/**/*.integration.test.tsx",
+    "<rootDir>/src/**/__tests__/guards/**/*.perf.spec.tsx",
+  ],
   moduleNameMapper: {
+    "^@test-utils/(.*)$": "<rootDir>/tests/utils/$1",
+    "^@test-utils$": "<rootDir>/tests/utils/index.ts",
     "^@/app/(.*)$": "<rootDir>/app/$1",
     "^@/lib/(.*)$": "<rootDir>/lib/$1",
     "^@/(.*)$": "<rootDir>/src/$1",

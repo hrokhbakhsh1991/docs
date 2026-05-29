@@ -1,0 +1,34 @@
+{
+  "name": "@repo/denali-domain",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@repo/draft-engine": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "@repo/shared-contracts": "workspace:*",
+    "@repo/types": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "peerDependencies": {
+    "react-hook-form": "^7.75.0"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/node": "^22.7.4",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

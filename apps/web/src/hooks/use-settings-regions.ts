@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
 
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
 import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 import { settingsLocationsKeys } from "@/lib/query-keys";
 import {
@@ -24,12 +25,13 @@ function sortRegionsBySortOrder(data: SettingsRegionDto[]): SettingsRegionDto[] 
 export function useSettingsRegions() {
   const queryClient = useQueryClient();
   const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
 
   const query = useQuery({
     queryKey: settingsLocationsKeys.regions(tenantId ?? ""),
     queryFn: fetchSettingsRegions,
     select: sortRegionsBySortOrder,
-    enabled: Boolean(tenantId),
+    enabled: authBffQueryEnabled,
   });
 
   const createMutation = useMutation({

@@ -5,6 +5,12 @@
  * related to the Denali wizard feature. UI components should import from here.
  */
 
+export type {
+  DenaliWizardHeaderPlugin,
+  DenaliWizardHeaderPluginContext,
+  DenaliWizardHeaderPluginFormMethods,
+} from "./denaliWizardHeaderPlugin";
+
 // Orchestration Context & Providers
 export {
   DenaliCanonicalContext,
@@ -22,6 +28,7 @@ export { logDenaliWizardDiagnosticReport } from "../denaliWizardDiagnostic";
 
 // Application Hooks
 export { useDenaliStepFieldRules } from "../hooks/useDenaliStepFieldRules";
+export { useDenaliFieldRules } from "@/features/tours/denali/hooks/useDenaliFieldRules";
 export { useDenaliPublishReadiness } from "../hooks/useDenaliPublishReadiness";
 export { useDenaliWizardFormSnapshot } from "../hooks/useDenaliWizardFormSnapshot";
 export { useDenaliCanonicalModel } from "../hooks/useDenaliCanonicalModel";
@@ -43,7 +50,17 @@ export {
   isPeakExperienceVisible,
 } from "../rules/predicates";
 
-// Domain (canonical basics only — see ../domain/index.ts)
+// Domain package façade (registry, rules, normalize, adapters)
+export {
+  denaliRuleSet,
+  DENALI_FIELD_REGISTRY,
+  DENALI_FIELD_DEFINITIONS,
+  deriveDenaliTemplateSchema,
+  denaliFormToCanonical,
+  denaliCanonicalToForm,
+} from "@/features/tours/application/denali";
+
+// Canonical basics (wizard-local barrel)
 export {
   patchDenaliCanonicalBasics,
   readDenaliCanonicalBasics,

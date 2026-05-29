@@ -29,6 +29,33 @@ export function getStoredSessionToken(): string | null {
   return token || null;
 }
 
+/** Removes the Nest Bearer mirror only (no BFF cookie mutation). */
+export function clearSessionStorageMirror(): void {
+  const storage = readStorage();
+  if (storage) {
+    storage.removeItem(SESSION_TOKEN_STORAGE_KEY);
+  }
+}
+
+/**
+ * Session bridge: after cookie hydration, copy JWT into sessionStorage when empty so
+ * `apiClient` can attach `Authorization` on the first cross-origin Nest request.
+ */
+export function ensureSessionStorageSync(token: string): void {
+  const normalized = token.trim();
+  if (!normalized) {
+    return;
+  }
+  const storage = readStorage();
+  if (!storage) {
+    return;
+  }
+  const existing = storage.getItem(SESSION_TOKEN_STORAGE_KEY)?.trim();
+  if (!existing) {
+    storage.setItem(SESSION_TOKEN_STORAGE_KEY, normalized);
+  }
+}
+
 export async function persistSessionToken(token: string): Promise<void> {
   const response = await fetch("/api/auth/session", {
     method: "POST",
@@ -48,10 +75,7 @@ export async function clearSessionToken(): Promise<void> {
     method: "DELETE",
     credentials: "include"
   });
-  const storage = readStorage();
-  if (storage) {
-    storage.removeItem(SESSION_TOKEN_STORAGE_KEY);
-  }
+  clearSessionStorageMirror();
 }
 
 /**

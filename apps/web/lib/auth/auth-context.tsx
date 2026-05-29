@@ -14,6 +14,15 @@ import {
 import { inflightBffGet } from "./inflight-bff-get";
 import { decodeJwtPayload } from "./decode-jwt-payload";
 import { fetchMembershipAbilityContext } from "./membership-ability-context";
+import {
+  applySessionHydratePayload,
+  isAbortError,
+  isSessionHydrateFetchFailure,
+  type SessionHydrateUser,
+  type SessionHydrateWire,
+  warnAuthHydrateTimeout,
+  warnSessionHydrate,
+} from "./session-hydrate";
 import { clearSessionToken, persistSessionToken } from "./session";
 import type { WebSessionResponseBody } from "./types";
 
@@ -42,6 +51,10 @@ export const LEADER_WORKSPACE_ACCESS_DENIED = {
   description: "This workspace is restricted to tenant owners and admins.",
 } as const;
 
+/**
+ * Session state for workspace UI. Gate BFF React Query hooks with
+ * `isHydrated && isAuthenticated` via {@link useAuthBffQueryGate} (`@/hooks/use-auth-bff-query-gate`).
+ */
 type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -53,6 +66,20 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const SESSION_HYDRATE_PATH = "/api/auth/session";
+const SESSION_HYDRATE_TIMEOUT_MS = 8_000;
+
+async function fetchSessionHydrate(signal?: AbortSignal): Promise<Response> {
+  return inflightBffGet(SESSION_HYDRATE_PATH, () =>
+    fetch(SESSION_HYDRATE_PATH, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+      ...(signal ? { signal } : {}),
+    }),
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -60,82 +87,116 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let hydrateTimedOut = false;
     const ac = new AbortController();
-    const timeoutMs = 8_000;
-    const tid = window.setTimeout(() => ac.abort(), timeoutMs);
-    void (async () => {
-      try {
-        const response = await inflightBffGet("/api/auth/session", () =>
-          fetch("/api/auth/session", {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-            signal: ac.signal,
-          }),
-        );
-        const payload = (await response.json().catch(() => ({}))) as {
-          authenticated?: boolean;
-          user?: AuthUser;
-          user_id?: string;
-          tenant_id?: string;
-          session_token?: string;
-          decoded?: { payload?: { role?: unknown } };
-        };
-        void response;
-        if (!active) {
+    const tid = window.setTimeout(() => {
+      hydrateTimedOut = true;
+      ac.abort();
+    }, SESSION_HYDRATE_TIMEOUT_MS);
+
+    const applyMembershipContext = (userId: string, tenantId: string, signal?: AbortSignal) => {
+      void fetchMembershipAbilityContext(signal).then((ctx) => {
+        if (!active || !ctx) {
           return;
         }
-        if (!payload.authenticated) {
-          setUser(null);
-        } else {
-          const userId =
-            payload.user?.userId?.trim() ||
-            (typeof payload.user_id === "string" ? payload.user_id.trim() : "");
-          const tenantId =
-            payload.user?.tenantId?.trim() ||
-            (typeof payload.tenant_id === "string" ? payload.tenant_id.trim() : "");
-          const tokenForClaims =
-            typeof payload.session_token === "string" ? payload.session_token.trim() : "";
-          const roleFromJwt =
-            tokenForClaims !== "" ? decodeJwtPayload(tokenForClaims)?.role : undefined;
-          const role =
-            payload.user?.role ||
-            (typeof payload.decoded?.payload?.role === "string"
-              ? payload.decoded.payload.role.trim()
-              : undefined) ||
-            (typeof roleFromJwt === "string" ? roleFromJwt.trim() : undefined);
-          if (!userId || !tenantId) {
-            setUser(null);
-          } else {
-            const baseUser = { userId, tenantId, role };
-            setUser(baseUser);
-            void fetchMembershipAbilityContext(ac.signal).then((ctx) => {
-              if (!active || !ctx) {
-                return;
-              }
-              setUser((prev) => {
-                if (!prev || prev.userId !== userId || prev.tenantId !== tenantId) {
-                  return prev;
-                }
-                return {
-                  ...prev,
-                  abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
-                  capabilities:
-                    ctx.capabilities.length > 0 ? ctx.capabilities : null,
-                  allowedRegionIds:
-                    (ctx.allowed_region_ids?.length ?? 0) > 0
-                      ? ctx.allowed_region_ids
-                      : null,
-                  tenantModules:
-                    (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
-                };
-              });
-            });
+        setUser((prev) => {
+          if (!prev || prev.userId !== userId || prev.tenantId !== tenantId) {
+            return prev;
+          }
+          return {
+            ...prev,
+            abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
+            capabilities: ctx.capabilities.length > 0 ? ctx.capabilities : null,
+            allowedRegionIds:
+              (ctx.allowed_region_ids?.length ?? 0) > 0 ? ctx.allowed_region_ids : null,
+            tenantModules: (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
+          };
+        });
+      });
+    };
+
+    /** Only `authenticated: false` may clear `user`; never on transient/network errors. */
+    const consumeHydrateResponse = async (response: Response): Promise<void> => {
+      if (!response.ok) {
+        warnSessionHydrate(
+          `session hydrate HTTP ${response.status} — keeping cookie, not clearing user`,
+        );
+        return;
+      }
+
+      const payload = (await response.json().catch(() => ({}))) as SessionHydrateWire;
+      if (!active) {
+        return;
+      }
+
+      if (payload.authenticated !== true) {
+        applySessionHydratePayload(payload);
+        setUser(null);
+        return;
+      }
+
+      const hydratedUser: SessionHydrateUser | null = applySessionHydratePayload(payload);
+      if (hydratedUser) {
+        setUser(hydratedUser);
+        applyMembershipContext(hydratedUser.userId, hydratedUser.tenantId);
+      }
+    };
+
+    const runBackgroundHydrateRetry = () => {
+      void (async () => {
+        try {
+          const response = await fetchSessionHydrate();
+          if (!active) {
+            return;
+          }
+          await consumeHydrateResponse(response);
+        } catch (error: unknown) {
+          if (!active) {
+            return;
+          }
+          warnSessionHydrate("background session hydrate retry failed — cookie retained", error);
+        }
+      })();
+    };
+
+    const resolveHydrateFetchError = (error: unknown): "done" | "retry-inline" => {
+      if (!active) {
+        return "done";
+      }
+      if (isAbortError(error)) {
+        if (hydrateTimedOut) {
+          warnAuthHydrateTimeout(error);
+          runBackgroundHydrateRetry();
+        }
+        return "done";
+      }
+      if (!isSessionHydrateFetchFailure(error)) {
+        warnSessionHydrate("session hydrate failed — cookie retained", error);
+        return "done";
+      }
+      warnSessionHydrate("session hydrate fetch failed — retrying once without abort", error);
+      return "retry-inline";
+    };
+
+    void (async () => {
+      try {
+        let response: Response | undefined;
+        try {
+          response = await fetchSessionHydrate(ac.signal);
+        } catch (error: unknown) {
+          const action = resolveHydrateFetchError(error);
+          if (action === "retry-inline") {
+            try {
+              response = await fetchSessionHydrate();
+            } catch (retryError: unknown) {
+              resolveHydrateFetchError(retryError);
+              runBackgroundHydrateRetry();
+            }
           }
         }
-      } catch {
-        if (active) {
-          setUser(null);
+
+        if (response) {
+          await consumeHydrateResponse(response);
         }
       } finally {
         window.clearTimeout(tid);
@@ -144,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     })();
+
     return () => {
       active = false;
       ac.abort();

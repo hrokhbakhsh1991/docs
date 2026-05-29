@@ -35,6 +35,16 @@ type SortableEquipmentRowProps = {
   mutating: boolean;
 };
 
+function formatCompatibleCategories(
+  categories: string[],
+  label: (key: string) => string,
+): string {
+  if (!categories.length) {
+    return "—";
+  }
+  return categories.map((c) => label(`basic.categories.${c}`)).join(" · ");
+}
+
 function SortableEquipmentRow({
   item,
   onEdit,
@@ -43,6 +53,7 @@ function SortableEquipmentRow({
   mutating,
 }: SortableEquipmentRowProps) {
   const t = useTranslations("settings");
+  const tDenali = useTranslations("tours.denali");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -69,11 +80,9 @@ function SortableEquipmentRow({
         <div className={panelStyles.listItemMain}>
           <div>
             <strong>{item.name}</strong>
-            {item.category ? (
-              <span className={panelStyles.listItemMeta}>{item.category}</span>
-            ) : (
-              <span className={panelStyles.listItemMeta}>—</span>
-            )}
+            <span className={panelStyles.listItemMeta}>
+              {formatCompatibleCategories(item.compatibleCategories ?? [], tDenali)}
+            </span>
             <span className={panelStyles.listItemMeta}>
               {t("equipmentSortOrderLabel", { n: String(item.sortOrder) })}
             </span>
@@ -117,6 +126,31 @@ export type EquipmentListProps = {
   readOnly?: boolean;
 };
 
+function EquipmentListReadOnlyRow({ item }: { item: SettingsEquipmentDto }) {
+  const t = useTranslations("settings");
+  const tDenali = useTranslations("tours.denali");
+  return (
+    <li className={panelStyles.listItem}>
+      <div className={panelStyles.listItemInner}>
+        <div className={panelStyles.listItemMain}>
+          <div>
+            <strong>{item.name}</strong>
+            <span className={panelStyles.listItemMeta}>
+              {formatCompatibleCategories(item.compatibleCategories ?? [], tDenali)}
+            </span>
+            <span className={panelStyles.listItemMeta}>
+              {t("equipmentSortOrderLabel", { n: String(item.sortOrder) })}
+            </span>
+            {!item.isActive ? (
+              <span className={panelStyles.listItemBadge}>— {t("equipmentInactiveBadge")}</span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export function EquipmentList({
   items,
   onEdit,
@@ -126,7 +160,6 @@ export function EquipmentList({
   mutating,
   readOnly = false,
 }: EquipmentListProps) {
-  const t = useTranslations("settings");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -166,26 +199,7 @@ export function EquipmentList({
     return (
       <ul className={panelStyles.list}>
         {sorted.map((item) => (
-          <li key={item.id} className={panelStyles.listItem}>
-            <div className={panelStyles.listItemInner}>
-              <div className={panelStyles.listItemMain}>
-                <div>
-                  <strong>{item.name}</strong>
-                  {item.category ? (
-                    <span className={panelStyles.listItemMeta}>{item.category}</span>
-                  ) : (
-                    <span className={panelStyles.listItemMeta}>—</span>
-                  )}
-                  <span className={panelStyles.listItemMeta}>
-                    {t("equipmentSortOrderLabel", { n: String(item.sortOrder) })}
-                  </span>
-                  {!item.isActive ? (
-                    <span className={panelStyles.listItemBadge}>— {t("equipmentInactiveBadge")}</span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </li>
+          <EquipmentListReadOnlyRow key={item.id} item={item} />
         ))}
       </ul>
     );

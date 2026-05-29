@@ -9270,9 +9270,14 @@
           "slug": {
             "type": "string"
           },
-          "category": {
-            "type": "string",
-            "nullable": true
+          "compatibleCategories": {
+            "example": [
+              "mountain"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "description": {
             "type": "string",
@@ -9301,7 +9306,7 @@
           "id",
           "name",
           "slug",
-          "category",
+          "compatibleCategories",
           "description",
           "icon",
           "isActive",
@@ -9323,10 +9328,15 @@
             "maxLength": 120,
             "minLength": 1
           },
-          "category": {
-            "type": "object",
-            "nullable": true,
-            "maxLength": 80
+          "compatibleCategories": {
+            "example": [
+              "mountain",
+              "nature"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "description": {
             "type": "object",
@@ -9377,10 +9387,11 @@
             "maxLength": 120,
             "minLength": 1
           },
-          "category": {
-            "type": "object",
-            "nullable": true,
-            "maxLength": 80
+          "compatibleCategories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "description": {
             "type": "object",

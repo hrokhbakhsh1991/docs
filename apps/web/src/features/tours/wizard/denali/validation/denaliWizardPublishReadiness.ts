@@ -3,14 +3,22 @@
  * {@link ../../../../../../../api/src/modules/tours/policies/assert-tour-publish-transition.ts}
  * (`assertProfileRequiredFieldsForPublish` + `checkDenaliPilotPublishGeolocationZones`).
  *
- * Required fields: {@link ../rules/denaliRuleRequired.ts} (`collectDenaliRuleRequiredIssues`).
+ * Rule-layer blockers: {@link @repo/denali-domain} `collectDenaliPublishReadinessRuleIssues`.
  */
 
 import {
   checkDenaliPilotPublishGeolocationZones,
   type WorkspaceInvariantViolation,
 } from "@repo/shared-contracts";
-import type { TourFormProfile, TourTripDetails, WizardSubmitRequiredFieldPath } from "@repo/types";
+import {
+  collectDenaliPublishReadinessRuleIssues,
+  denaliRuleSet,
+  normalizeDenaliWizardForm,
+  resolvePublishReadinessFormPath,
+  type DenaliRuleSet,
+  type DenaliWizardPublishReadinessIssue,
+} from "@repo/denali-domain";
+import type { TourFormProfile, TourTripDetails } from "@repo/types";
 
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 import type { CreateTourDto } from "@/lib/services/tours.service";
@@ -20,22 +28,9 @@ import {
 } from "@/lib/workspace/workspace-capabilities";
 
 import { mapDenaliWizardToCreateTourPayload } from "../../domain/mapDenaliWizardToCreateTourPayload";
-import { normalizeDenaliWizardForm } from "../../schemas/denaliTourCreateFormModel";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import { resolvePublishReadinessFormPath } from "../publishReadinessPathResolver";
-import {
-  collectDenaliRuleRequiredIssues,
-  type DenaliRuleRequiredIssue,
-} from "../rules/denaliRuleRequired";
-import type { DenaliRuleSet } from "../rules/denaliRuleModel";
-import { denaliRuleSet } from "../rules/denaliRuleModel";
-import { resolveDenaliRuleModelFromForm } from "./denaliRuleAccess";
 
-export type DenaliWizardPublishReadinessIssue = {
-  code: string;
-  message: string;
-  path?: WizardSubmitRequiredFieldPath | string;
-};
+export type { DenaliWizardPublishReadinessIssue };
 
 function geoViolationMessage(violation: WorkspaceInvariantViolation): string {
   if (violation.message.includes("startPoint")) {
@@ -75,14 +70,6 @@ function geoViolationToPublishIssue(
   };
 }
 
-function ruleRequiredIssueToPublishIssue(issue: DenaliRuleRequiredIssue): DenaliWizardPublishReadinessIssue {
-  return {
-    code: "VALIDATION_RULE_REQUIRED_FIELD",
-    message: issue.message,
-    path: issue.path.join("."),
-  };
-}
-
 /**
  * OPEN publish readiness for Denali wizard (only when `publishStatus === "active"`).
  * Returns empty when the user chose draft — API skips publish asserts for Draft lifecycle.
@@ -95,17 +82,6 @@ export function getDenaliWizardPublishReadinessIssues(
   const form = normalizeDenaliWizardForm(rawForm, undefined, ruleSet);
   if (form.basicInfo.publishStatus !== "active") {
     return [];
-  }
-
-  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
-  if (model == null) {
-    return [
-      {
-        code: "DENALI_TOUR_TYPE_REQUIRED",
-        message: "نوع تور را انتخاب کنید.",
-        path: "basicInfo.tourType",
-      },
-    ];
   }
 
   let dto: CreateTourDto;
@@ -121,9 +97,10 @@ export function getDenaliWizardPublishReadinessIssues(
     ];
   }
 
-  const issues: DenaliWizardPublishReadinessIssue[] = collectDenaliRuleRequiredIssues(form, model, {
-    mode: "submit",
-  }).map(ruleRequiredIssueToPublishIssue);
+  const issues: DenaliWizardPublishReadinessIssue[] = collectDenaliPublishReadinessRuleIssues(
+    form,
+    ruleSet,
+  );
 
   const { requiresGeoPublish } = getCapabilitiesForProfile(normalizeTourFormProfileInput(profile));
   if (requiresGeoPublish) {

@@ -15,25 +15,22 @@ import {
   buildDenaliCanonicalMapFromRegistry,
   buildDenaliConditionallyRequiredCanonicalPathsFromRegistry,
   buildDenaliRuleSetFromRegistry,
-} from "@/features/tours/wizard/denali/registry/denaliRegistryCodegen";
+} from "../../../packages/denali-domain/src/registry/denaliRegistryCodegen";
 import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliZodFieldKind,
-} from "@/features/tours/wizard/denali/registry/denaliFieldRegistryData";
-import { DENALI_MATRIX_CELLS } from "@/features/tours/wizard/denali/registry/denaliRuleMatrixRecipes";
+} from "../../../packages/denali-domain/src/registry/denaliFieldRegistryData";
+import { DENALI_MATRIX_CELLS } from "../../../packages/denali-domain/src/registry/denaliRuleMatrixRecipes";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
   type DenaliRuleSet,
-} from "@/features/tours/wizard/denali/rules/denaliRuleModel.types";
+} from "../../../packages/denali-domain/src/rules/denaliRuleModel.types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const WEB_ROOT = join(__dirname, "..");
-const GENERATED_DIR = join(
-  WEB_ROOT,
-  "src/features/tours/wizard/denali/rules/generated",
-);
-const SCHEMA_DIR = join(WEB_ROOT, "src/features/tours/wizard/schemas");
+const DOMAIN_SRC = join(__dirname, "../../../packages/denali-domain/src");
+const GENERATED_DIR = join(DOMAIN_SRC, "rules/generated");
+const SCHEMA_DIR = join(DOMAIN_SRC, "schemas");
 const SCHEMA_GENERATED = join(SCHEMA_DIR, "denaliTourCreateBaseSchema.generated.ts");
 const SCHEMA_CORE_GENERATED = join(SCHEMA_DIR, "denaliCore.schema.generated.ts");
 const SCHEMA_LOGISTICS_GENERATED = join(SCHEMA_DIR, "denaliLogistics.schema.generated.ts");
@@ -250,7 +247,7 @@ function buildZodSchemaSlices(): {
   const coreImports = `${BANNER}
 import { z } from "zod";
 
-import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "@/features/tours/models/tours-new-validation-messages";
+import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "../constants/tourTitleLimits";
 
 import {
   denaliImageFileAssetSchema,

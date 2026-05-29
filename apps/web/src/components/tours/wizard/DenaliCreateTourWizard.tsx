@@ -53,6 +53,11 @@ import { DenaliWizardNavigationProvider } from "@/features/tours/wizard/denali/D
 import { DenaliStepFocusBridge } from "@/features/tours/wizard/denali/DenaliStepFocusBridge";
 import { DenaliWizardSubmitControl } from "@/features/tours/wizard/denali/DenaliWizardSubmitControl";
 import { DenaliWizardContentQualityHeader } from "@/features/tours/wizard/denali/components/DenaliWizardHeader";
+import { DenaliWizardHeaderPlugins } from "@/features/tours/wizard/denali/plugins/DenaliWizardHeaderPlugins";
+import { denaliTemplateSelectorPlugin } from "@/features/tours/wizard/denali/plugins/DenaliTemplateSelectorPlugin";
+import { denaliWizardClearAllPlugin } from "@/features/tours/wizard/denali/plugins/DenaliWizardClearAllPlugin";
+import { resetWizardToRegistryDefaults } from "@repo/denali-domain";
+import type { DenaliWizardHeaderPlugin } from "@/features/tours/wizard/denali/application/denaliWizardHeaderPlugin";
 import { handleDenaliWizardValidationApiError } from "@/lib/errors/apply-api-validation-errors";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import { flattenDenaliFormErrors } from "@/features/tours/wizard/denali/flattenDenaliFormErrors";
@@ -85,6 +90,12 @@ function reportDenaliDraftError(
     extra: context,
   });
 }
+
+/** Create-wizard header plugins (basic step only). Edit form registers none. */
+const CREATE_PLUGINS: readonly DenaliWizardHeaderPlugin[] = [
+  denaliTemplateSelectorPlugin,
+  denaliWizardClearAllPlugin,
+];
 
 function DenaliWizardStepper({
   steps,
@@ -260,6 +271,21 @@ export function DenaliCreateTourWizard() {
       suppressDraftPushRef.current = false;
     });
   }, [emptyFormBaseline, reset]);
+
+  const handleClearAll = useCallback(async () => {
+    suppressDraftPushRef.current = true;
+    reset(resetWizardToRegistryDefaults(), DENALI_QUIET_FORM_RESET_OPTIONS);
+    setCurrentStep(0);
+    setCanonicalSyncToken((token) => token + 1);
+    setHasAppliedDraft(false);
+    try {
+      await clearDraft();
+    } finally {
+      queueMicrotask(() => {
+        suppressDraftPushRef.current = false;
+      });
+    }
+  }, [clearDraft, reset]);
 
   useEffect(() => {
     if (!workspaceId || !wizardTemplateQuery.data) {
@@ -622,6 +648,18 @@ export function DenaliCreateTourWizard() {
             <Card data-testid="denali-create-tour-wizard">
               <CardBody style={{ display: "grid", gap: "1rem" }}>
                 <DenaliWizardContentQualityHeader />
+                <DenaliWizardHeaderPlugins
+                  plugins={CREATE_PLUGINS}
+                  context={{
+                    activeStepId,
+                    formMethods,
+                    ruleSet,
+                    workspaceFormProfile: workspaceFormProfile ?? undefined,
+                    onCanonicalSync: () => setCanonicalSyncToken((token) => token + 1),
+                    onClearForm: resetToEmptyForm,
+                    onClearAll: handleClearAll,
+                  }}
+                />
                 {draftBannerMode === "draft_available" ? (
                   <div
                     role="status"

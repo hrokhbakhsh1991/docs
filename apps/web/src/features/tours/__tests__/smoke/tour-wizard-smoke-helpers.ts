@@ -9,12 +9,17 @@ import {
 import { SESSION_TOKEN_COOKIE } from "../../../../../lib/auth/session-cookie";
 import { decodeJwtPayload } from "../../../../../lib/auth/decode-jwt-payload";
 import {
+  buildSmokeSessionJwt,
+  LEADER_SMOKE_SESSION_JWT,
+  SESSION_TOKEN_STORAGE_KEY,
+  SMOKE_WIZARD_JWT_TENANT_ID,
+} from "../../../../../lib/test/session-fixtures";
+import {
   buildDenaliTourCreateTestValues,
   type DenaliCreateTourWizardForm,
 } from "@/features/tours/testing/public-test-api";
 
-/** Same key as `lib/auth/session.ts` — axios attaches `Authorization` from sessionStorage for cross-origin API. */
-const TOUR_OPS_SESSION_TOKEN_STORAGE_KEY = "tour_ops_session_token";
+export { SMOKE_WIZARD_JWT_TENANT_ID };
 
 /** JWT-shaped cookie value; middleware only checks non-empty; BFF decodes `sub` + `tenant_id`. */
 /** Default Playwright origin for tour wizard smoke (tenant host label required). */
@@ -22,9 +27,6 @@ export const SMOKE_WORKSPACE_BASE_URL = "http://ws1-rbac.localhost:3000";
 
 /** Workspace host slug for smoke tests (`ws1-rbac.localhost`). */
 export const SMOKE_WIZARD_TENANT_SCOPE = "ws1-rbac";
-
-/** JWT `tenant_id` for session mock (API scope). */
-export const SMOKE_WIZARD_JWT_TENANT_ID = "00311449-1df0-4413-8d61-26c6ac82e9ed";
 
 /** Loopback e2e profile seed (`TourCreateWizard` reads `?e2eTourType=` on localhost hosts). */
 export const SMOKE_WIZARD_URBAN_E2E_QUERY = "e2eTourType=city";
@@ -93,34 +95,11 @@ export async function installCloneTourGetRoute(
   await page.route("**/api/tours/**", fulfillClone);
 }
 
-export const LEADER_SMOKE_SESSION_JWT =
-  "smoke." +
-  Buffer.from(
-    JSON.stringify({
-      sub: "user-smoke-1",
-      tenant_id: SMOKE_WIZARD_JWT_TENANT_ID,
-      role: "owner",
-    }),
-  ).toString("base64url") +
-  ".sig";
+export { LEADER_SMOKE_SESSION_JWT, buildSmokeSessionJwt };
 
 /** Isolated workspace ids for draft tenant-scope smoke tests (Phase A). */
 export const SMOKE_DENALI_DRAFT_WORKSPACE_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const SMOKE_DENALI_DRAFT_WORKSPACE_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-
-export function buildSmokeSessionJwt(tenantId: string, role = "owner"): string {
-  return (
-    "smoke." +
-    Buffer.from(
-      JSON.stringify({
-        sub: "user-smoke-1",
-        tenant_id: tenantId,
-        role,
-      }),
-    ).toString("base64url") +
-    ".sig"
-  );
-}
 
 export async function addLeaderSmokeSessionCookie(
   context: BrowserContext,
@@ -151,7 +130,7 @@ export async function installSmokeTourOpsSessionToken(page: Page, jwt: string = 
         /* ignore */
       }
     },
-    { key: TOUR_OPS_SESSION_TOKEN_STORAGE_KEY, token: jwt },
+    { key: SESSION_TOKEN_STORAGE_KEY, token: jwt },
   );
 }
 

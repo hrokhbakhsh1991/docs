@@ -1,10 +1,6 @@
 /**
  * Policies fields on legal step (policies.* canonical paths).
  */
-jest.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => key,
-}));
-
 jest.mock("@tour/ui", () => ({
   FormField: ({
     children,
@@ -44,35 +40,22 @@ jest.mock("@/components/forms/PersianNumberInput", () => ({
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FormProvider, useForm } from "react-hook-form";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliPricing.schema";
 import { denaliFormToCanonical } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
+import { DenaliFormHarness, DenaliFormWatchProbe } from "@test-utils/denali-integration-harness";
 
-import { DenaliCanonicalProvider } from "../../DenaliCanonicalContext";
 import { DenaliLegalStep } from "../../steps/DenaliLegalStep";
-
-function LegalHarness({ defaultValues }: { defaultValues: DenaliCreateTourWizardForm }) {
-  const formMethods = useForm<DenaliCreateTourWizardForm>({ defaultValues });
-
-  return (
-    <FormProvider {...formMethods}>
-      <DenaliCanonicalProvider formMethods={formMethods}>
-        <DenaliLegalStep />
-        <span data-testid="policies-json">
-          {JSON.stringify(formMethods.watch("policies"))}
-        </span>
-      </DenaliCanonicalProvider>
-    </FormProvider>
-  );
-}
 
 test("DenaliLegalStep renders policy fields when tour type is selected", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.tourType = "mountain_day";
 
-  render(<LegalHarness defaultValues={form} />);
+  render(
+    <DenaliFormHarness defaultValues={form}>
+      <DenaliLegalStep />
+    </DenaliFormHarness>,
+  );
   expect(screen.getByTestId("denali-legal-policies-notes")).toBeTruthy();
   expect(screen.getByTestId("denali-legal-cancellation-hours")).toBeTruthy();
   expect(screen.getByTestId("denali-legal-cancellation-penalty")).toBeTruthy();
@@ -82,7 +65,12 @@ test("DenaliLegalStep persists policy values in form state and submit payload", 
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.tourType = "mountain_day";
 
-  render(<LegalHarness defaultValues={form} />);
+  render(
+    <DenaliFormHarness defaultValues={form}>
+      <DenaliLegalStep />
+      <DenaliFormWatchProbe name="policies" testId="policies-json" />
+    </DenaliFormHarness>,
+  );
   fireEvent.change(screen.getByTestId("denali-legal-policies-notes"), {
     target: { value: "Refund within 48h" },
   });

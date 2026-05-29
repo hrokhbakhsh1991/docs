@@ -6,6 +6,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 import { DenaliCreateTourWizard } from "@/components/tours/wizard/DenaliCreateTourWizard";
 import { focusDenaliWizardField } from "@/features/tours/wizard/denali/denaliWizardFieldFocus";
+import { AppTestProviders } from "@test-utils/denali-integration-harness";
 
 const mockMutateAsync = jest.fn();
 
@@ -186,7 +187,11 @@ describe("DenaliCreateTourWizard — active submission guard", () => {
   });
 
   test("blocks active submit, shows error, and focuses field when error link is clicked", async () => {
-    render(<DenaliCreateTourWizard />);
+    render(
+      <AppTestProviders>
+        <DenaliCreateTourWizard />
+      </AppTestProviders>,
+    );
 
     const saveButton = await screen.findByTestId("denali-wizard-final-submit");
     mockFocusDenaliWizardField.mockClear();

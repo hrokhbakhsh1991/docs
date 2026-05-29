@@ -1,6 +1,17 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from "class-validator";
+
+import { IsDenaliCompatibleCategories } from "./equipment-compatible-categories.validator";
 
 export class UpdateEquipmentItemDto {
   @ApiPropertyOptional({ maxLength: 120, minLength: 1 })
@@ -17,12 +28,11 @@ export class UpdateEquipmentItemDto {
   @MaxLength(120)
   slug?: string;
 
-  @ApiPropertyOptional({ nullable: true, maxLength: 80 })
+  @ApiPropertyOptional({ type: [String] })
   @IsOptional()
-  @ValidateIf((_, v) => v != null)
-  @IsString()
-  @MaxLength(80)
-  category?: string | null;
+  @IsArray()
+  @IsDenaliCompatibleCategories()
+  compatibleCategories?: string[];
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()

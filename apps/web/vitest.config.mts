@@ -1,7 +1,12 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
+import viteTsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
+  plugins: [viteTsconfigPaths()],
+  esbuild: {
+    jsx: "automatic",
+  },
   resolve: {
     alias: [
       { find: "@/app", replacement: path.resolve(__dirname, "app") },
@@ -10,6 +15,13 @@ export default defineConfig({
     ],
   },
   test: {
-    environment: "node",
+    environment: "jsdom",
+    include: [
+      "tests/**/*.spec.ts",
+      "tests/**/*.spec.tsx",
+      "src/hooks/**/*.spec.tsx",
+      "src/features/tours/wizard/**/__tests__/guards/**/*.guard.test.ts",
+    ],
+    setupFiles: ["./tests/vitest.setup.ts"],
   },
 });

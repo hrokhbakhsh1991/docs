@@ -27,6 +27,12 @@
       }
     },
     {
+      "files": ["tests/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
       "files": ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
       "excludedFiles": [
         "**/*.{spec,test}.{ts,tsx}",

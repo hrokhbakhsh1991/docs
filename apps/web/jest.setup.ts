@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
 
+import "@/lib/test/auth-jest-mocks";
+import { installAuthFetchMock } from "@/lib/test/install-auth-fetch-mock.jest";
+
+beforeEach(() => {
+  installAuthFetchMock();
+});
+
 jest.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
   useLocale: () => "en",
