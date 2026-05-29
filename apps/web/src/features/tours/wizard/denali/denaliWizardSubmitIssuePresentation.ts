@@ -13,7 +13,10 @@ import { resolveDenaliRuleModelFromForm } from "./validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { mergeDenaliActiveSubmitIssues } from "./validation/denaliSubmitValidation";
 import { getDenaliWizardSubmitIssues } from "./validation/denaliWizardFormZod";
-import { getDenaliWizardPublishReadinessIssues } from "./validation/denaliWizardPublishReadiness";
+import {
+  getDenaliWizardPublishReadinessIssues,
+  type DenaliWizardPublishReadinessIssue,
+} from "./validation/denaliWizardPublishReadiness";
 import {
   resolveDenaliRegistryFieldLabel,
   resolveDenaliRegistryStepId,
@@ -45,6 +48,10 @@ function resolveStepForIssue(
   form: DenaliCreateTourWizardForm,
   ruleSet: DenaliRuleSet,
 ): DenaliCreateWizardStepId {
+  if (formPath === "basicInfo.publishStatus") {
+    return "review";
+  }
+
   const fromRegistry = resolveDenaliRegistryStepId(formPath);
   if (fromRegistry != null && fromRegistry !== "review") {
     return fromRegistry;
@@ -87,6 +94,47 @@ export function buildDenaliSubmitIssueViews(
       formPath,
       canonicalPath,
       label: resolveDenaliRegistryFieldLabel(formPath, t),
+      message: issue.message,
+      stepId,
+    };
+  });
+}
+
+/** RHF path for review navigation when publish readiness issues omit `path`. */
+export function resolvePublishReadinessFormPath(
+  issue: DenaliWizardPublishReadinessIssue,
+): string {
+  if (issue.path != null && issue.path.length > 0) {
+    return issue.path;
+  }
+  if (issue.code === "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE") {
+    return "basicInfo.publishStatus";
+  }
+  const message = issue.message;
+  if (message.includes("logistics.gatheringPoints") || message.includes("gatheringPoints")) {
+    return "tripDetails.logistics.gatheringPoints";
+  }
+  if (message.includes("overview.startPoint") || message.includes("startPoint")) {
+    return "basicInfo.startPoint";
+  }
+  return "";
+}
+
+export function buildDenaliPublishReadinessIssueViews(
+  issues: readonly DenaliWizardPublishReadinessIssue[],
+  form: DenaliCreateTourWizardForm,
+  ruleSet: DenaliRuleSet,
+  t: DenaliT,
+): DenaliWizardSubmitIssueView[] {
+  return issues.map((issue) => {
+    const formPath = resolvePublishReadinessFormPath(issue);
+    const canonicalPath = formPath.length > 0 ? mapFormPathToCanonical(formPath) : "";
+    const stepId =
+      formPath.length > 0 ? resolveStepForIssue(formPath, form, ruleSet) : ("review" as const);
+    return {
+      formPath,
+      canonicalPath,
+      label: formPath.length > 0 ? resolveDenaliRegistryFieldLabel(formPath, t) : "",
       message: issue.message,
       stepId,
     };

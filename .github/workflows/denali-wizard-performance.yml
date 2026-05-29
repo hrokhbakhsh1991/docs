@@ -1,0 +1,75 @@
+# Denali wizard — submit-gate latency + memlab traversal leak guard.
+# Healthy-state baseline: apps/web/src/features/tours/wizard/denali/__benchmarks__/denali-perf-baseline.json
+
+name: denali-wizard-performance
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/src/features/tours/wizard/denali/**"
+      - "apps/web/src/features/tours/wizard/schemas/denali*"
+      - "apps/web/scripts/*denali*"
+      - "packages/types/src/denali/**"
+      - "packages/shared-contracts/src/tours/**"
+      - ".github/workflows/denali-wizard-performance.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/src/features/tours/wizard/denali/**"
+      - "apps/web/src/features/tours/wizard/schemas/denali*"
+      - ".github/workflows/denali-wizard-performance.yml"
+
+concurrency:
+  group: denali-wizard-performance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  denali-perf-healthy-state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace types
+        run: pnpm --filter @repo/types run build && pnpm --filter @repo/shared-contracts run build
+
+      - name: Denali perf gates (submit-gate ceiling + baseline regression + memlab)
+        env:
+          DENALI_SUBMIT_GATE_MAX_MEAN_MS: "10"
+          DENALI_PERF_CI: "1"
+        run: pnpm --filter @apps/web run bench:denali:verify
+
+      - name: Upload perf summary
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const baseline = JSON.parse(fs.readFileSync('apps/web/src/features/tours/wizard/denali/__benchmarks__/denali-perf-baseline.json','utf8'));
+          const summary = [
+            '## Denali wizard perf',
+            '',
+            '- Submit gate baseline mean: **' + baseline.submitGate.meanMs + 'ms**',
+            '- Regression factor: **' + baseline.submitGate.maxMeanMsRegressionFactor + 'x**',
+            '- Absolute ceiling: **' + baseline.submitGate.maxMeanMsCeiling + 'ms**',
+            '- Memlab traversal: **' + baseline.memlab.traversal + '** (expected leaks: ' + baseline.memlab.leaksExpected + ')',
+            '',
+            'Established: ' + baseline.establishedAt,
+          ].join('\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY || '/dev/null', summary);
+          "

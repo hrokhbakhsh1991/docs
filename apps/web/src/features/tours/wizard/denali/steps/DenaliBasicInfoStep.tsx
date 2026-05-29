@@ -126,6 +126,7 @@ export function DenaliBasicInfoStep() {
           onChange={(e) => {
               updateCanonical({ title: e.target.value });
           }}
+          data-field-path="basicInfo.title"
           />
       </FormField>
 
@@ -170,7 +171,7 @@ export function DenaliBasicInfoStep() {
       ) : null}
 
       {isVisible("destinationId", formSnapshot()) ? (
-        <div style={{ display: "grid", gap: "0.5rem" }}>
+        <div style={{ display: "grid", gap: "0.5rem" }} data-field-path="basicInfo.destinationId">
           <DestinationCombobox
             label={t("basic.destination")}
             placeholder={t("basic.destinationPlaceholder")}
@@ -293,6 +294,7 @@ export function DenaliBasicInfoStep() {
             onChange={(v) => {
                   updateCanonical({ capacityMax: v === "" ? undefined : Number(v) });
             }}
+            data-field-path="basicInfo.capacityMax"
               />
         </FormField>
       ) : null}
@@ -305,6 +307,7 @@ export function DenaliBasicInfoStep() {
             onChange={(v) => {
                   updateCanonical({ capacityMin: v === "" ? undefined : Number(v) });
             }}
+            data-field-path="basicInfo.capacityMin"
               />
         </FormField>
       ) : null}

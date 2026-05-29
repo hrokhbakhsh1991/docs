@@ -7,11 +7,14 @@ import {
   normalizeDenaliWizardForm,
 } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 
+import { buildDenaliSubmitIssueViews } from "../denaliWizardSubmitIssuePresentation";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
 import {
   getDenaliWizardPublishReadinessIssues,
   getDenaliWizardPublishReadinessIssuesForTargetStatus,
   isDenaliWizardReadyForOpenPublish,
 } from "./denaliWizardPublishReadiness";
+import { publishReadinessIssueToZodIssue } from "./denaliSubmitValidation";
 
 const CONCRETE_GATHERING = {
   id: "gather-1",
@@ -92,6 +95,70 @@ test("getDenaliWizardPublishReadinessIssues: active without geo fails publish ga
   });
   const issues = getDenaliWizardPublishReadinessIssues(form);
   assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
+});
+
+test("geo violations include RHF paths for review navigation", () => {
+  const missingGathering = publishGateMountainForm({
+    basicInfo: { publishStatus: "active" },
+    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
+  });
+  const gatheringIssue = getDenaliWizardPublishReadinessIssues(missingGathering).find(
+    (row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+  );
+  assert.equal(gatheringIssue?.path, "tripDetails.logistics.gatheringPoints");
+
+  const missingStart = publishGateMountainForm({
+    basicInfo: {
+      publishStatus: "active",
+      startPoint: { addressText: "", latitude: undefined, longitude: undefined },
+    },
+    tripDetails: {
+      logistics: { gatheringPoints: [CONCRETE_GATHERING] },
+      overview: { customServiceLabels: [] },
+      metrics: {},
+    },
+  });
+  const startIssue = getDenaliWizardPublishReadinessIssues(missingStart).find(
+    (row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+  );
+  assert.equal(startIssue?.path, "basicInfo.startPoint");
+});
+
+test("gatheringPoints geo path resolves to denali_logistics in submit issue views", () => {
+  const form = publishGateMountainForm({
+    basicInfo: { publishStatus: "active" },
+    tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
+  });
+  const publishIssues = getDenaliWizardPublishReadinessIssues(form);
+  const zodIssues = publishIssues.map(publishReadinessIssueToZodIssue);
+  const t = ((key: string) => key) as Parameters<typeof buildDenaliSubmitIssueViews>[3];
+  const views = buildDenaliSubmitIssueViews(zodIssues, form, denaliRuleSet, t);
+  const gatheringView = views.find(
+    (view) => view.formPath === "tripDetails.logistics.gatheringPoints",
+  );
+  assert.ok(gatheringView);
+  assert.equal(gatheringView.stepId, "denali_logistics");
+});
+
+test("startPoint geo path resolves to denali_logistics in submit issue views", () => {
+  const form = publishGateMountainForm({
+    basicInfo: {
+      publishStatus: "active",
+      startPoint: { addressText: "", latitude: undefined, longitude: undefined },
+    },
+    tripDetails: {
+      logistics: { gatheringPoints: [CONCRETE_GATHERING] },
+      overview: { customServiceLabels: [] },
+      metrics: {},
+    },
+  });
+  const publishIssues = getDenaliWizardPublishReadinessIssues(form);
+  const zodIssues = publishIssues.map(publishReadinessIssueToZodIssue);
+  const t = ((key: string) => key) as Parameters<typeof buildDenaliSubmitIssueViews>[3];
+  const views = buildDenaliSubmitIssueViews(zodIssues, form, denaliRuleSet, t);
+  const startView = views.find((view) => view.formPath === "basicInfo.startPoint");
+  assert.ok(startView);
+  assert.equal(startView.stepId, "denali_logistics");
 });
 
 test("isDenaliWizardReadyForOpenPublish: mountain form with geo and active passes", () => {

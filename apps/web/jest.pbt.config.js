@@ -1,20 +1,24 @@
 /**
  * Denali wizard Jest — run from repo root: `pnpm run test:denali`
  *
+ * Picks up denali/__tests__/integration and denali/__tests__/guards only.
+ *
  * `rootDir` is the monorepo root so `@/` aliases and workspace packages resolve
  * consistently regardless of the shell cwd.
  */
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
+const denaliRoot = "<rootDir>/apps/web/src/features/tours/wizard/denali";
 
 /** @type {import("jest").Config} */
 module.exports = {
   rootDir: repoRoot,
   preset: "ts-jest",
   testEnvironment: "jsdom",
-  roots: ["<rootDir>/apps/web/src/features/tours/wizard/denali/__tests__"],
+  roots: [`${denaliRoot}/__tests__`],
   testMatch: ["**/*.(spec|property.spec|integration.test).(ts|tsx)"],
+  testPathIgnorePatterns: ["<rootDir>/apps/web/.next/", "__benchmarks__"],
   modulePathIgnorePatterns: ["<rootDir>/apps/web/.next/"],
   moduleNameMapper: {
     "^@/app/(.*)$": "<rootDir>/apps/web/app/$1",

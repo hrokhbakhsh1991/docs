@@ -5,7 +5,12 @@ import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas
 
 import { ValidationError } from "zod-validation-error";
 
-import { parseDenaliCanonicalFromWizardForm } from "./denaliSubmitValidation";
+import { buildDenaliSubmitIssueViews } from "../denaliWizardSubmitIssuePresentation";
+import { denaliRuleSet } from "../rules/denaliRuleModel";
+import {
+  parseDenaliCanonicalFromWizardForm,
+  publishReadinessIssueToZodIssue,
+} from "./denaliSubmitValidation";
 import { submitValidDenaliWizardDefaults } from "@/features/tours/testing/denaliSubmitTestHelpers";
 
 test("parseDenaliCanonicalFromWizardForm accepts default mountain_day form", () => {
@@ -21,6 +26,27 @@ test("parseDenaliCanonicalFromWizardForm throws on invalid title", () => {
     () => parseDenaliCanonicalFromWizardForm(form),
     (err: unknown) => err instanceof ValidationError,
   );
+});
+
+test("publishReadinessIssueToZodIssue stamps path for DENALI_PUBLISH_PAYLOAD_UNBUILDABLE", () => {
+  const issue = publishReadinessIssueToZodIssue({
+    code: "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE",
+    message: "فرم هنوز برای ساخت درخواست انتشار کامل نیست.",
+  });
+  assert.deepEqual(issue.path, ["basicInfo", "publishStatus"]);
+});
+
+test("publish payload unbuildable issues route to review step in submit views", () => {
+  const form = buildDenaliTourCreateTestValues();
+  const zodIssue = publishReadinessIssueToZodIssue({
+    code: "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE",
+    message: "فرم هنوز برای ساخت درخواست انتشار کامل نیست.",
+    path: "basicInfo.publishStatus",
+  });
+  const t = ((key: string) => key) as Parameters<typeof buildDenaliSubmitIssueViews>[3];
+  const [view] = buildDenaliSubmitIssueViews([zodIssue], form, denaliRuleSet, t);
+  assert.equal(view?.formPath, "basicInfo.publishStatus");
+  assert.equal(view?.stepId, "review");
 });
 
 test("submitValidDenaliWizardDefaults is step-order agnostic and includes photos-step content", () => {

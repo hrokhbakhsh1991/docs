@@ -65,6 +65,22 @@ test("denaliStepRelocation: policies registry stepId is denali_legal", () => {
   }
 });
 
+test("denaliStepRelocation: policy fields are not scoped to denali_pricing step validation", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+  form.policies.policiesText = "";
+
+  const legalIssues = getDenaliWizardStepIssues(form, "denali_legal").filter((issue) =>
+    issue.path.join(".").includes("policies"),
+  );
+  const pricingIssues = getDenaliWizardStepIssues(form, "denali_pricing").filter((issue) =>
+    issue.path.join(".").includes("policies"),
+  );
+
+  assert.equal(pricingIssues.length, 0, "pricing step should not own policies.* issues");
+  assert.equal(legalIssues.length, 0, "optional policiesText empty should not block legal step");
+});
+
 test("denaliStepRelocation: itinerary fields stay on denali_program", () => {
   const itineraryDef = DENALI_FIELD_DEFINITIONS.find(
     (field) => field.canonicalPath === "program.itinerary",

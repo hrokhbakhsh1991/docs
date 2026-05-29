@@ -300,43 +300,20 @@ export function DenaliReviewStep() {
 
   return (
     <div style={{ display: "grid", gap: "0.85rem", fontSize: "0.9rem" }} data-testid="denali-step-review">
-      <DenaliReviewValidationSummary />
+      <DenaliReviewValidationSummary publishIssues={publishIssues} />
 
       <p style={{ margin: 0, color: "#64748b" }}>{t("review.intro")}</p>
 
-      {publishIssues.length > 0 ? (
-        <div
-          role="alert"
-          style={{
-            padding: "1rem",
-            background: "#fffbeb",
-            color: "#92400e",
-            border: "1px solid #fcd34d",
-            borderRadius: "8px",
+      <div data-field-path="basicInfo.publishStatus">
+        <TourPublishStatusField
+          value={publishStatus === "active" ? "active" : "draft"}
+          onChange={(next: TourFormLifecycleStatus) => {
+            requestStatus(next);
           }}
-          data-testid="denali-review-publish-readiness-warning"
-        >
-          <p style={{ fontWeight: 600, margin: "0 0 0.5rem" }}>
-            {t("review.publishDraftOnlyWarning")}
-          </p>
-          <ul style={{ margin: 0, paddingRight: "1.25rem" }}>
-            {publishIssues.map((issue, index) => (
-              <li key={`${issue.code}-${issue.path ?? issue.message}-${index}`}>
-                {issue.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <TourPublishStatusField
-        value={publishStatus === "active" ? "active" : "draft"}
-        onChange={(next: TourFormLifecycleStatus) => {
-          requestStatus(next);
-        }}
-        disableValues={disableActivePublish ? (["active"] as const) : undefined}
-        data-testid="denali-review-publish-status"
-      />
+          disableValues={disableActivePublish ? (["active"] as const) : undefined}
+          data-testid="denali-review-publish-status"
+        />
+      </div>
 
       <ReviewSection title={getDenaliStepTitleFa("denali_basic")} testId="basic">
         <ReviewRow label={t("basic.title")} value={title} />

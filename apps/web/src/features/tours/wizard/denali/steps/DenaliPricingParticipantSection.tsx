@@ -34,7 +34,6 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
   const participants = useDenaliCanonicalValue<DenaliCanonicalTourModel["participants"]>(
     "participants",
   );
-  const policies = useDenaliCanonicalValue<DenaliCanonicalTourModel["policies"]>("policies");
   const { isVisible } = useDenaliStepFieldRules(STEP);
 
   const showMinimumAge = isVisible(PATH_MINIMUM_AGE, form);
@@ -42,7 +41,6 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
   const showFitnessLevel = isVisible(PATH_FITNESS_LEVEL, form);
   const showNationalId = isVisible("participants.nationalIdRequired", form);
   const showSportsInsurance = isVisible("participants.sportsInsuranceRequired", form);
-  const showPolicies = isVisible("policies.policiesText", form);
 
   const showParticipantBlock =
     showMinimumAge || showMaximumAge || showFitnessLevel || showNationalId || showSportsInsurance;
@@ -160,6 +158,7 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
           {showSportsInsurance ? (
             <Checkbox
               data-testid="denali-pricing-sports-insurance"
+              data-field-path="participantRequirements.sportsInsuranceRequired"
               label={t("participants.sportsInsurance")}
               checked={sportsInsuranceField.field.value === true}
               onChange={(e) => {
@@ -193,68 +192,6 @@ export function DenaliPricingParticipantSection({ form }: { form: DenaliCreateTo
               }
             />
           </FormField>
-        </>
-      ) : null}
-
-      {showPolicies ? (
-        <>
-          <FormField
-            label={t("policies.notes")}
-            error={errors.policies?.policiesText?.message}
-          >
-            <Textarea
-              rows={4}
-              placeholder={t("policies.notesPlaceholder")}
-              data-testid="denali-pricing-policies-notes"
-              value={policies.policiesText ?? ""}
-              onChange={(e) =>
-                updateCanonical({
-                  policies: {
-                    ...policies,
-                    policiesText: e.target.value || undefined,
-                  },
-                })
-              }
-            />
-          </FormField>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-            <FormField
-              label={t("policies.cancellationDeadlineHours")}
-              error={errors.policies?.cancellationDeadlineHours?.message}
-            >
-              <PersianNumberInput
-                numericMode="integer"
-                value={policies.cancellationDeadlineHours ?? ""}
-                onChange={(v) =>
-                  updateCanonical({
-                    policies: {
-                      ...policies,
-                      cancellationDeadlineHours: v === "" ? undefined : Number(v),
-                    },
-                  })
-                }
-                data-testid="denali-pricing-cancellation-hours"
-              />
-            </FormField>
-            <FormField
-              label={t("policies.cancellationPenaltyPercentage")}
-              error={errors.policies?.cancellationPenaltyPercentage?.message}
-            >
-              <PersianNumberInput
-                numericMode="integer"
-                value={policies.cancellationPenaltyPercentage ?? ""}
-                onChange={(v) =>
-                  updateCanonical({
-                    policies: {
-                      ...policies,
-                      cancellationPenaltyPercentage: v === "" ? undefined : Number(v),
-                    },
-                  })
-                }
-                data-testid="denali-pricing-cancellation-penalty"
-              />
-            </FormField>
-          </div>
         </>
       ) : null}
     </section>

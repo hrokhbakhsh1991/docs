@@ -34,12 +34,20 @@ export function formatDenaliCanonicalValidationError(error: ZodError): string {
   return fromError(error, { prefix: "Denali tour validation" }).toString();
 }
 
+const PUBLISH_PAYLOAD_UNBUILDABLE_PATH = "basicInfo.publishStatus" as const;
+
 export function publishReadinessIssueToZodIssue(
   issue: DenaliWizardPublishReadinessIssue,
 ): z.ZodIssue {
-  const path =
+  const pathString =
     issue.path != null && issue.path.length > 0
-      ? issue.path.split(".").filter((segment) => segment.length > 0)
+      ? issue.path
+      : issue.code === "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE"
+        ? PUBLISH_PAYLOAD_UNBUILDABLE_PATH
+        : undefined;
+  const path =
+    pathString != null && pathString.length > 0
+      ? pathString.split(".").filter((segment) => segment.length > 0)
       : [];
   return {
     code: z.ZodIssueCode.custom,

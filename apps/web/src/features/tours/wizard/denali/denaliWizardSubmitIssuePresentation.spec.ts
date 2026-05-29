@@ -7,9 +7,13 @@ import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleMo
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 import { resolveDenaliRegistryFieldLabel } from "./denaliRegistryFieldLabel";
 import {
+  buildDenaliPublishReadinessIssueViews,
+  buildDenaliSubmitIssueViews,
   collectDenaliWizardSubmitIssuePresentation,
   groupDenaliSubmitIssuesByStep,
+  resolvePublishReadinessFormPath,
 } from "./denaliWizardSubmitIssuePresentation";
+import { z } from "zod";
 import { getDenaliWizardSubmitIssues } from "./validation/denaliWizardFormZod";
 
 const mockT = ((key: string) => `t:${key}`) as Parameters<
@@ -76,6 +80,51 @@ test("collectDenaliWizardSubmitIssuePresentation groups shortDescription under d
     "photos group should include shortDescription path",
   );
   assert.equal(programGroup, undefined, "program step should not own shortDescription issues");
+});
+
+test("resolvePublishReadinessFormPath maps gathering geo message to gatheringPoints RHF path", () => {
+  assert.equal(
+    resolvePublishReadinessFormPath({
+      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      message: "logistics.gatheringPoints must include at least one station for denali_pilot publish.",
+    }),
+    "tripDetails.logistics.gatheringPoints",
+  );
+});
+
+test("buildDenaliPublishReadinessIssueViews routes gathering readiness to denali_logistics", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+  const views = buildDenaliPublishReadinessIssueViews(
+    [
+      {
+        code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+        message: "حداقل یک نقطه تجمع با آدرس و مختصات جغرافیایی لازم است.",
+        path: "tripDetails.logistics.gatheringPoints",
+      },
+    ],
+    form,
+    denaliRuleSet,
+    mockT,
+  );
+  assert.equal(views[0]?.formPath, "tripDetails.logistics.gatheringPoints");
+  assert.equal(views[0]?.stepId, "denali_logistics");
+});
+
+test("buildDenaliSubmitIssueViews routes policies.* to denali_legal not denali_pricing", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.basicInfo.tourType = "mountain_day";
+
+  const policyIssue: z.ZodIssue = {
+    code: z.ZodIssueCode.custom,
+    path: ["policies", "cancellationDeadlineHours"],
+    message: "مهلت لغو الزامی است.",
+  };
+
+  const views = buildDenaliSubmitIssueViews([policyIssue], form, denaliRuleSet, mockT);
+  assert.equal(views.length, 1);
+  assert.equal(views[0]!.formPath, "policies.cancellationDeadlineHours");
+  assert.equal(views[0]!.stepId, "denali_legal");
 });
 
 test("groupDenaliSubmitIssuesByStep preserves rail order basic before photos before program", () => {

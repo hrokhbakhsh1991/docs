@@ -618,9 +618,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "pricingPayment.includesTourInsurance",
     zodPath: "pricingPayment.includesTourInsurance",
     zodKind: "booleanOptional",
-    tags: [] as const,
+    tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
-    inRuleModel: false,
+    contextualVisibility: { kind: "groupInsuranceVisible" },
   },
   {
     canonicalPath: "participants.nationalIdRequired",

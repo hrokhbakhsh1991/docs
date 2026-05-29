@@ -3,7 +3,7 @@ import { DENALI_TOUR_KIND_VALUES, type DenaliTourKind } from "@repo/types";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
-import { sanitizeDenaliFormPatch } from "../denaliFormSanitize";
+import { sanitizeDenaliFormPatch } from "../../denaliFormSanitize";
 
 /** Partial wizard patch used as draft / preset input to {@link sanitizeDenaliFormPatch}. */
 type DenaliWizardState = Partial<DenaliCreateTourWizardForm>;

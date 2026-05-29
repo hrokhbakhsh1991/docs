@@ -89,6 +89,7 @@ export function DenaliPricingStep() {
           })
         }
         data-testid="denali-pricing-tour-insurance"
+        data-field-path="pricingPayment.includesTourInsurance"
       />
 
       {isVisible("tripDetails.overview.nonAttendanceDetails", form) && (

@@ -21,7 +21,7 @@ import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilitie
 import type { TourFormProfile } from "@repo/types";
 
 import { DENALI_CANONICAL_TO_FORM_PATH_MAP } from "./generated/denaliCanonicalPathMap.generated";
-import { isPeakExperienceVisible } from "./predicates";
+import { isGroupInsuranceVisible, isPeakExperienceVisible } from "./predicates";
 
 export type DenaliUIContextOptions = {
   mainThemeFormProfile?: TourFormProfile;
@@ -101,6 +101,8 @@ export function evaluateDenaliContextualRule(
       return denaliTourKindToIsMultiDay(form.basicInfo.tourType as DenaliTourKind);
     case "peakExperienceVisible":
       return isPeakExperienceVisible(form);
+    case "groupInsuranceVisible":
+      return isGroupInsuranceVisible();
     default: {
       const _exhaustive: never = rule;
       return _exhaustive;

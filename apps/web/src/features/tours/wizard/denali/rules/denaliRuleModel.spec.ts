@@ -15,6 +15,14 @@ const PARTICIPANT_PATHS = [
   "participants.sportsInsuranceRequired",
 ] as const;
 
+const GROUP_INSURANCE_PATH = "pricing.includesTourInsurance" as const;
+
+const POLICY_PATHS = [
+  "policies.policiesText",
+  "policies.cancellationDeadlineHours",
+  "policies.cancellationPenaltyPercentage",
+] as const;
+
 function modelAt(category: DenaliRuleModelCategory, duration: DenaliRuleModelDuration) {
   const model = denaliRuleSet[category][duration];
   assert.ok(model, `${category}/${duration} model missing`);
@@ -62,5 +70,36 @@ test("nature model: participant paths hidden like event", () => {
   const model = modelAt("nature", "single_day");
   for (const path of PARTICIPANT_PATHS) {
     assert.equal(findDenaliRuleField(model, path)?.hidden, true, path);
+  }
+});
+
+test("mountain models: group insurance is visible on denali_pricing", () => {
+  for (const duration of ["single_day", "multi_day"] as const) {
+    const model = modelAt("mountain", duration);
+    const field = findDenaliRuleField(model, GROUP_INSURANCE_PATH);
+    assert.ok(field, `${duration}: ${GROUP_INSURANCE_PATH}`);
+    assert.equal(field.step, "denali_pricing");
+    assert.equal(field.hidden, false);
+  }
+});
+
+test("mountain models: policy paths are assigned to denali_legal", () => {
+  for (const duration of ["single_day", "multi_day"] as const) {
+    const model = modelAt("mountain", duration);
+    for (const path of POLICY_PATHS) {
+      const field = findDenaliRuleField(model, path);
+      assert.ok(field, `${duration}: ${path}`);
+      assert.equal(field.step, "denali_legal", `${path} should be on legal step`);
+      assert.equal(field.hidden, false);
+    }
+  }
+});
+
+test("event model: policy paths stay on denali_legal", () => {
+  const model = modelAt("event", "single_day");
+  for (const path of POLICY_PATHS) {
+    const field = findDenaliRuleField(model, path);
+    assert.ok(field, path);
+    assert.equal(field.step, "denali_legal");
   }
 });

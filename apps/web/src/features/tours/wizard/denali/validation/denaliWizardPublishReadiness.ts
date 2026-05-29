@@ -46,6 +46,28 @@ function geoViolationMessage(violation: WorkspaceInvariantViolation): string {
   return "مختصات جغرافیایی نقاط تجمع و شروع برای انتشار الزامی است.";
 }
 
+/** RHF path for review navigation / {@link publishReadinessIssueToZodIssue}. */
+function geoViolationFormPath(violation: WorkspaceInvariantViolation): string {
+  const message = violation.message;
+  if (message.includes("logistics.gatheringPoints") || message.includes("gatheringPoints")) {
+    return "tripDetails.logistics.gatheringPoints";
+  }
+  if (message.includes("overview.startPoint") || message.includes("startPoint")) {
+    return "basicInfo.startPoint";
+  }
+  return "tripDetails.logistics.gatheringPoints";
+}
+
+function geoViolationToPublishIssue(
+  violation: WorkspaceInvariantViolation,
+): DenaliWizardPublishReadinessIssue {
+  return {
+    code: violation.code,
+    message: geoViolationMessage(violation),
+    path: geoViolationFormPath(violation),
+  };
+}
+
 function ruleRequiredIssueToPublishIssue(issue: DenaliRuleRequiredIssue): DenaliWizardPublishReadinessIssue {
   return {
     code: "VALIDATION_RULE_REQUIRED_FIELD",
@@ -87,6 +109,7 @@ export function getDenaliWizardPublishReadinessIssues(
       {
         code: "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE",
         message: "فرم هنوز برای ساخت درخواست انتشار کامل نیست.",
+        path: "basicInfo.publishStatus",
       },
     ];
   }
@@ -101,10 +124,7 @@ export function getDenaliWizardPublishReadinessIssues(
       (dto.tripDetails ?? null) as TourTripDetails | null,
     );
     if (geoViolation != null) {
-      issues.push({
-        code: geoViolation.code,
-        message: geoViolationMessage(geoViolation),
-      });
+      issues.push(geoViolationToPublishIssue(geoViolation));
     }
   }
 

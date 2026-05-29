@@ -6,6 +6,8 @@ node_modules/
 dist/
 .next/
 coverage/
+apps/web/dist-memlab/
+apps/web/.memlab/
 
 # environment
 .env

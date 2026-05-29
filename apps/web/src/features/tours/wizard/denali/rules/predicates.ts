@@ -28,3 +28,8 @@ export function isPeakExperienceVisible(form: DenaliCreateTourWizardForm): boole
     form.basicInfo.requiresManualAdminApproval === true
   );
 }
+
+/** Organizer group liability insurance — always offered on the pricing step. */
+export function isGroupInsuranceVisible(): boolean {
+  return true;
+}

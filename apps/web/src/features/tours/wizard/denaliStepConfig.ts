@@ -20,7 +20,7 @@ export type DenaliCreateWizardStepId = (typeof denaliWizardSteps)[number];
 /**
  * Historical step ids removed from the 5-step rail (not in {@link DenaliRuleFieldStep}).
  * Mountain participants: `denali_pricing` (`DenaliPricingParticipantSection`).
- * Policies / cancellation terms: `denali_legal` (`DenaliLegalStep`; UI migration in progress).
+ * Policies / cancellation terms: `denali_legal` (`DenaliLegalStep`).
  * Review: display-only mirror (`DenaliReviewParticipantsDisplay`).
  */
 export const DENALI_MVP_REMOVED_STEPS = [

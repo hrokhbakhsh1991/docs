@@ -19,6 +19,8 @@ module.exports = {
     "apps/web/stories/**",
     "apps/web/typedoc-out/**",
     "apps/web/storybook-static/**",
+    "apps/web/dist-memlab/**",
+    "apps/web/.memlab/**",
     "**/*.stories.ts",
     "**/*.stories.tsx",
     "**/*.stories.mdx",

@@ -6,7 +6,7 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import {
   evaluateDenaliWizardSubmitGate,
   parseDenaliCanonicalFromWizardForm,
-} from "../validation/denaliSubmitValidation";
+} from "../../validation/denaliSubmitValidation";
 
 function captureValidationError(run: () => unknown): ValidationError {
   try {

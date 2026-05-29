@@ -3,17 +3,17 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 
-import { DenaliStepFocusBridge } from "../DenaliStepFocusBridge";
+import { DenaliStepFocusBridge } from "../../DenaliStepFocusBridge";
 import {
   DenaliWizardNavigationProvider,
   useDenaliWizardNavigation,
-} from "../DenaliWizardNavigationContext";
+} from "../../DenaliWizardNavigationContext";
 import {
   clearDenaliWizardFieldFocus,
   focusDenaliWizardField,
-} from "../denaliWizardFieldFocus";
+} from "../../denaliWizardFieldFocus";
 
-jest.mock("../denaliWizardFieldFocus", () => ({
+jest.mock("../../denaliWizardFieldFocus", () => ({
   focusDenaliWizardField: jest.fn(),
   clearDenaliWizardFieldFocus: jest.fn(),
 }));
