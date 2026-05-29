@@ -1,4 +1,4 @@
-import type { PaymentGatewayFactory } from "../../src/modules/payments/gateway/payment-gateway.factory";
+import type { PaymentGatewayFactoryPort } from "../../src/modules/payments/domain/ports/payment-gateway-factory.port";
 
 /** Use in unit tests that never call `createPaymentIntent`. */
 export const noopPaymentGatewayFactoryForTests = {
@@ -10,7 +10,7 @@ export const noopPaymentGatewayFactoryForTests = {
       }
     };
   }
-} as unknown as PaymentGatewayFactory;
+} as unknown as PaymentGatewayFactoryPort;
 
 /** Minimal stub for tests that exercise `createPaymentIntent` without network. */
 export const stubPaymentGatewayFactoryForTests = {
@@ -28,4 +28,4 @@ export const stubPaymentGatewayFactoryForTests = {
       }
     };
   }
-} as unknown as PaymentGatewayFactory;
+} as unknown as PaymentGatewayFactoryPort;

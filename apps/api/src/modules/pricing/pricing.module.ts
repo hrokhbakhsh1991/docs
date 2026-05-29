@@ -6,7 +6,7 @@ import { TourPriceEntity } from "../tours/entities/tour-price.entity";
 import { BookingPriceSnapshotEntity } from "./entities/booking-price-snapshot.entity";
 import { PricingEngineService } from "./pricing-engine.service";
 import { CATALOG_PRICING_LOAD_PORT } from "../finance/pricing/ports/catalog-pricing-load.port";
-import { CatalogPricingLoadAdapter } from "../tours/pricing/catalog-pricing-load.adapter";
+import { CatalogPricingLoadAdapter } from "../tours/repositories/catalog-pricing-load.adapter";
 
 @Module({
   imports: [

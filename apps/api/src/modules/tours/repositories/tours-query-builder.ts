@@ -1,7 +1,8 @@
 import type { SelectQueryBuilder } from "typeorm";
 import type { TourFilter, TourSort } from "@repo/shared-contracts";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 
-import { TourEntity, TourLifecycleStatus } from "../entities/tour.entity";
+import type { TourEntity } from "../entities/tour.entity";
 
 const DIFFICULTY_ORDER_SQL =
   "CASE WHEN details.difficulty = 'easy' THEN 1 WHEN details.difficulty = 'moderate' THEN 2 WHEN details.difficulty = 'hard' THEN 3 WHEN details.difficulty = 'technical' THEN 4 ELSE 99 END";
@@ -76,4 +77,3 @@ export function applyTourSort(
   qb.addOrderBy("t.createdAt", "DESC").addOrderBy("t.id", "DESC");
   return qb;
 }
-

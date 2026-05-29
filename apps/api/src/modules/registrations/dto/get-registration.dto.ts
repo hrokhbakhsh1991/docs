@@ -2,8 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   RegistrationPaymentStatus,
   RegistrationStatus
-} from "../registration.entity";
-import { WaitlistItemStatus } from "../waitlist-item.entity";
+} from "../domain/registration-status";
+import { WaitlistItemStatus } from "../domain/waitlist-status";
 import {
   RegistrationBookingTargetDto,
   RegistrationEntryModeDto,

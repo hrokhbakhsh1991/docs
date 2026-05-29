@@ -50,6 +50,42 @@ test("architecture: domain layer does not import infra (batch 1)", () => {
   );
 });
 
+test("architecture: app layer in tours/registrations does not import infra (batch 3)", () => {
+  const { violations } = scanArchitectureBoundaries();
+  const appInfra = violations.filter(
+    (v) =>
+      v.kind === "app-must-not-import-infra" &&
+      (v.file.includes("/modules/tours/") || v.file.includes("/modules/registrations/"))
+  );
+
+  assert.equal(
+    appInfra.length,
+    0,
+    `expected zero tours/registrations app→infra violations; got ${appInfra.length}: ${appInfra
+      .slice(0, 8)
+      .map((v) => `${v.file}:${v.line}`)
+      .join(", ")}`
+  );
+});
+
+test("architecture: app layer in identity/payments does not import infra (batch 2)", () => {
+  const { violations } = scanArchitectureBoundaries();
+  const appInfra = violations.filter(
+    (v) =>
+      v.kind === "app-must-not-import-infra" &&
+      (v.file.includes("/modules/identity/") || v.file.includes("/modules/payments/"))
+  );
+
+  assert.equal(
+    appInfra.length,
+    0,
+    `expected zero identity/payments app→infra violations; got ${appInfra.length}: ${appInfra
+      .slice(0, 5)
+      .map((v) => `${v.file}:${v.line}`)
+      .join(", ")}`
+  );
+});
+
 test("architecture: module layer and bounded-context dependency rules", () => {
   const { violations, stats } = scanArchitectureBoundaries();
 

@@ -6,7 +6,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import type { EntityManager } from "typeorm";
+import type { EntityManager, FindOptionsWhere } from "typeorm";
 import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
@@ -30,17 +30,13 @@ import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { UserRole } from "../../common/auth/user-role.enum";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
-import {
-  RegistrationEntity,
-  RegistrationStatus
-} from "../registrations/registration.entity";
-import { lockRegistrationByTenantAndId } from "../registrations/utils/lock-registration-for-financial-mutation";
-import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
-import { findCanonicalBookingPriceSnapshot } from "../pricing/find-canonical-booking-price-snapshot";
+import { RegistrationStatus } from "../registrations/domain/registration-status";
+import type { PaymentRegistrationSnapshot } from "./domain/payment-registration.types";
+import { toPaymentRegistrationLookup } from "./utils/to-payment-registration-lookup";
 import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { PaymentWebhookDto } from "./dto/payment-webhook.dto";
-import { PaymentStatus } from "./entities/payment.entity";
+import { PaymentStatus } from "./domain/payment.types";
 import type { PaymentRecord } from "./domain/payment-record.types";
 import {
   PAYMENT_REPOSITORY_PORT,
@@ -64,7 +60,10 @@ import {
   bookingFinalizationPhaseFromFacts,
   type BookingFinalizationFacts
 } from "../registrations/domain/booking-finalization-pipeline";
-import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
+import {
+  PAYMENT_GATEWAY_FACTORY_PORT,
+  type PaymentGatewayFactoryPort,
+} from "./domain/ports/payment-gateway-factory.port";
 import { REGISTRATION_PAYMENT_PORT, IRegistrationPaymentPort } from "../registrations/ports/registration-payment.port";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-finance-contract";
@@ -146,7 +145,8 @@ export class PaymentsService {
     private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
     @Inject(PaymentCaptureLedgerAuthorityService)
     private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService,
-    @Inject(PaymentGatewayFactory) private readonly paymentGatewayFactory: PaymentGatewayFactory,
+    @Inject(PAYMENT_GATEWAY_FACTORY_PORT)
+    private readonly paymentGatewayFactory: PaymentGatewayFactoryPort,
     @Inject(REGISTRATION_PAYMENT_PORT)
     private readonly registrationPaymentPort: IRegistrationPaymentPort,
     @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
@@ -162,12 +162,14 @@ export class PaymentsService {
 
   private async loadBookingFinalizationFacts(
     manager: EntityManager,
-    registration: RegistrationEntity
+    registration: PaymentRegistrationSnapshot
   ): Promise<BookingFinalizationFacts> {
     const [hasPriceSnapshot, hasPendingPayment, hasCapturedPayment] = await Promise.all([
-      manager.exists(BookingPriceSnapshotEntity, {
-        where: { bookingId: registration.id, tenantId: registration.tenantId }
-      }),
+      this.paymentRepository.existsBookingPriceSnapshot(
+        manager,
+        registration.tenantId,
+        registration.id
+      ),
       this.paymentRepository.existsPendingForRegistration(
         manager,
         registration.id,
@@ -269,7 +271,7 @@ export class PaymentsService {
       "createPaymentIntent"
     );
 
-    const canonicalSnapshot = await findCanonicalBookingPriceSnapshot(
+    const canonicalSnapshot = await this.paymentRepository.findCanonicalBookingPriceSnapshot(
       manager,
       registration.tenantId,
       registration.id
@@ -389,20 +391,20 @@ export class PaymentsService {
     return this.toResponse(row);
   }
 
-  /** Ensures caller may access this registration ID (tenant + member ownership). Returns the row when allowed. */
   private async requireRegistrationOwnedByActor(
     registrationId: string,
     manager?: EntityManager
-  ): Promise<RegistrationEntity> {
+  ): Promise<PaymentRegistrationSnapshot> {
     const mgr = manager ?? this.paymentRepository.getDefaultEntityManager();
     const regWhere = await registrationWhereForActor(
       mgr,
       this.requestContextService,
       registrationId
     );
-    const registration = await mgr.findOne(RegistrationEntity, {
-      where: regWhere
-    });
+    const registration = await this.paymentRepository.findRegistrationSnapshot(
+      mgr,
+      toPaymentRegistrationLookup(regWhere as FindOptionsWhere<Record<string, unknown>>)
+    );
     if (!registration) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -659,10 +661,11 @@ export class PaymentsService {
     }
     assertAllowedPaymentStatusTransition(payment.status, next);
 
-    const regPeek = await manager.findOne(RegistrationEntity, {
-      where: { id: payment.registrationId, tenantId: payment.tenantId },
-      select: { id: true, tourId: true, tenantId: true }
-    });
+    const regPeek = await this.paymentRepository.findRegistrationPeek(
+      manager,
+      payment.tenantId,
+      payment.registrationId
+    );
     if (!regPeek) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -671,7 +674,7 @@ export class PaymentsService {
       regPeek.tourId,
       regPeek.tenantId
     );
-    const registration = await lockRegistrationByTenantAndId(
+    const registration = await this.paymentRepository.lockRegistrationSnapshot(
       manager,
       payment.tenantId,
       payment.registrationId

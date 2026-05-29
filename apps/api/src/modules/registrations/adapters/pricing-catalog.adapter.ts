@@ -6,7 +6,7 @@ import type {
   PricingEngineInput,
   PricingEngineQuoteOptions,
   PricingQuoteResult,
-} from "../../pricing/pricing.types";
+} from "../domain/pricing-catalog.types";
 import type { PricingCatalogPort } from "../domain/ports/pricing-catalog.port";
 
 @Injectable()

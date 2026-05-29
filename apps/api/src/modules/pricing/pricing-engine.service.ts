@@ -8,7 +8,7 @@ import { logPricingShadowDiff } from "../finance/pricing/pricing-shadow-log";
 import { CATALOG_PRICING_LOAD_PORT } from "../finance/pricing/ports/catalog-pricing-load.port";
 import type { CatalogPricingLoadPort } from "../finance/pricing/ports/catalog-pricing-load.port";
 import type { PricingQuote } from "../finance/pricing/pricing-quote";
-import { CatalogPricingLoadAdapter } from "../tours/pricing/catalog-pricing-load.adapter";
+import { CatalogPricingLoadAdapter } from "../tours/repositories/catalog-pricing-load.adapter";
 import { computeLegacyCatalogQuote } from "./pure/compute-legacy-catalog-quote";
 import type { PricingEngineInput, PricingEngineQuoteOptions, PricingQuoteResult } from "./pricing.types";
 

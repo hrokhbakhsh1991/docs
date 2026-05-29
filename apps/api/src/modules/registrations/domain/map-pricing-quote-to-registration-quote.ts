@@ -1,4 +1,4 @@
-import type { PricingLineItem, PricingQuoteResult } from "../../pricing/pricing.types";
+import type { PricingLineItem, PricingQuoteResult } from "./pricing-catalog.types";
 
 export type RegistrationQuoteSnapshot = {
   quotedListPriceMinor: string;

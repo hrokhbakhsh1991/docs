@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
 import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 import {
@@ -264,7 +264,7 @@ function createServiceHarness() {
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     dataSource as never,

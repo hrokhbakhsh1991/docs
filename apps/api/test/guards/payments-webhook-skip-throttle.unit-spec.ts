@@ -8,7 +8,7 @@ import { test } from "node:test";
  * Webhook controller must skip `public-registration` so bursts do not exhaust registration limits.
  */
 test("PaymentsWebhookController skips public-registration throttler bucket", () => {
-  const path = join(__dirname, "../../src/modules/payments/payments.controller.ts");
+  const path = join(__dirname, "../../src/modules/payments/gateway/payments-webhook.controller.ts");
   const src = readFileSync(path, "utf8");
   assert.ok(
     src.includes("@SkipThrottle({ \"public-registration\": true })"),
@@ -16,6 +16,6 @@ test("PaymentsWebhookController skips public-registration throttler bucket", () 
   );
   assert.ok(
     src.includes("PaymentsWebhookController"),
-    "expected PaymentsWebhookController in payments.controller.ts"
+    "expected PaymentsWebhookController in gateway/payments-webhook.controller.ts"
   );
 });

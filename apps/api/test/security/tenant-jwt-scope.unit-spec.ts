@@ -7,7 +7,7 @@ import {
 } from "../../src/modules/registrations/dto/create-registration.dto";
 import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
 import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
 import { createNullStandaloneRegistrationsReadTestDouble } from "../registrations/stub-registrations-read-repository";
@@ -87,7 +87,7 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     dataSource as never,
@@ -118,7 +118,7 @@ test("getTenantIdForTourOrThrow returns tenant from tour row", async () => {
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     {} as never,
@@ -142,7 +142,7 @@ test("getTenantIdForTourOrThrow rejects unknown tour id", async () => {
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     {} as never,

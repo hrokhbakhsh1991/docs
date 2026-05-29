@@ -130,6 +130,7 @@ export class PostgresPaymentIdempotencyKeyStore implements IdempotencyKeyStore {
       const frozen = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
       const result = await this.dataSource.transaction(async (em) => {
         const res = await em
+          // tenant-isolation:qb-exempt — idempotency digest is globally unique; no tenant column on row
           .createQueryBuilder()
           .update(PaymentGatewayIdempotencyEntity)
           .set({

@@ -8,6 +8,10 @@ import { TenantRateLimitService } from "../../common/tenant-abuse/tenant-rate-li
 import { enforceBackgroundTenantRuntimePolicies } from "../../common/tenant/tenant-runtime-policy";
 import { ConfigService } from "../../config/config.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
+import {
+  RECONCILIATION_REGISTRATION_READ_PORT,
+  type ReconciliationRegistrationReadPort,
+} from "../../common/ports/reconciliation-registration-read.port";
 import { ReconciliationJobEntity } from "../finance/reconciliation/entities/reconciliation-job.entity";
 import { loadPaymentReconciliationReportInputForTenant } from "../finance/reconciliation/payment-finance-reconciliation.loader";
 import {
@@ -65,6 +69,8 @@ export class PaymentFinanceReconciliationService {
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(ReconciliationFindingsService)
     private readonly reconciliationFindings: ReconciliationFindingsService,
+    @Inject(RECONCILIATION_REGISTRATION_READ_PORT)
+    private readonly reconciliationRegistrationRead: ReconciliationRegistrationReadPort,
     @Inject(RECONCILIATION_JOB_ALERT_HOOKS)
     private readonly alertHooks: ReconciliationJobAlertHooks
   ) {}
@@ -137,9 +143,12 @@ export class PaymentFinanceReconciliationService {
 
       try {
         const finish = await this.tenantDbContext.runInTenantScope(envelopeTenant, async (manager) => {
-          const input = await loadPaymentReconciliationReportInputForTenant(manager, envelopeTenant, {
-            lookbackDays
-          });
+          const input = await loadPaymentReconciliationReportInputForTenant(
+            manager,
+            envelopeTenant,
+            { lookbackDays },
+            this.reconciliationRegistrationRead
+          );
           const report = generatePaymentReconciliationReport({
             ...input,
             reportId: jobId

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { RegistrationStatus } from "../../src/modules/registrations/registration.entity";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import type { ParticipantMetadataDto } from "../../src/modules/registrations/dto/participant-metadata.dto";
 import type { TourEntity } from "../../src/modules/tours/entities/tour.entity";
 import {
@@ -76,7 +76,7 @@ test("Scenario C contrast: FIXED at 50/50 still routes to waitlist", () => {
 });
 
 test("Scenario C: after capacity gate passes, free auto-accept tour places car owner as ACCEPTED", () => {
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     {} as never,

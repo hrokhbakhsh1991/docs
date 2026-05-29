@@ -4,7 +4,7 @@ import { ConflictException } from "@nestjs/common";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
 import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
 import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
 import {
@@ -55,7 +55,7 @@ type FixtureOptions = {
 };
 
 type Fixture = {
-  service: RegistrationsService;
+  service: TypeOrmRegistrationsApplicationService;
   outboxCalls: Array<{ eventType: string; payload: unknown }>;
   store: Store;
 };
@@ -350,7 +350,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     dataSource as never,

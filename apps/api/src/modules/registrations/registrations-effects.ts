@@ -8,8 +8,11 @@ import {
   BookingFinalizationPhase,
   bookingFinalizationOutboxEventType
 } from "./domain/booking-finalization-pipeline";
-import { RegistrationStatus, type RegistrationEntity } from "./registration.entity";
-import type { WaitlistItemEntity } from "./waitlist-item.entity";
+import { RegistrationStatus } from "./domain/registration-status";
+import type {
+  RegistrationOutboxSnapshot,
+  WaitlistOutboxSnapshot,
+} from "./domain/registration-outbox.types";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -81,7 +84,7 @@ export async function emitBookingFinalizationPipelineEvent(input: {
 export async function emitRegistrationCreatedEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  registration: RegistrationEntity;
+  registration: RegistrationOutboxSnapshot;
   actorId: string;
   paymentRequired: boolean;
 }): Promise<void> {
@@ -106,7 +109,7 @@ export async function emitRegistrationCreatedEvent(input: {
 export async function emitRegistrationStatusChangedEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  registration: RegistrationEntity;
+  registration: RegistrationOutboxSnapshot;
   actorId: string;
   previousStatus: RegistrationStatus;
   newStatus: RegistrationStatus;
@@ -139,7 +142,7 @@ export async function emitRegistrationStatusChangedEvent(input: {
 export async function emitRegistrationPaymentUpdatedEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  registration: RegistrationEntity;
+  registration: RegistrationOutboxSnapshot;
   actorId: string;
   /** @deprecated Prefer `finance.ledger.double_entry_applied` outbox; kept for optional inline summaries. */
   ledgerFactsSummary?: Array<{
@@ -176,8 +179,8 @@ export async function emitRegistrationPaymentUpdatedEvent(input: {
 export async function emitWaitlistConvertedAndAcceptedEvents(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  waitlistItem: WaitlistItemEntity;
-  promotedRegistration: RegistrationEntity;
+  waitlistItem: WaitlistOutboxSnapshot;
+  promotedRegistration: RegistrationOutboxSnapshot;
   actorId: string;
   reason?: string;
   source: "manual_waitlist_conversion" | "waitlist_promotion";
@@ -226,7 +229,7 @@ export async function emitWaitlistConvertedAndAcceptedEvents(input: {
 export async function emitWaitlistCancelledEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  waitlistItem: WaitlistItemEntity;
+  waitlistItem: WaitlistOutboxSnapshot;
   actorId: string;
 }): Promise<void> {
   await input.outboxService.addEvent(input.manager, {
@@ -247,7 +250,7 @@ export async function emitWaitlistCancelledEvent(input: {
 export async function emitRegistrationWaitlistedEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  waitlistItem: WaitlistItemEntity;
+  waitlistItem: WaitlistOutboxSnapshot;
   actorId: string;
 }): Promise<void> {
   await input.outboxService.addEvent(input.manager, {
@@ -268,7 +271,7 @@ export async function emitRegistrationWaitlistedEvent(input: {
 export async function emitPublicRegistrationAcceptedEvent(input: {
   manager: EntityManager;
   outboxService: OutboxService;
-  registration: RegistrationEntity;
+  registration: RegistrationOutboxSnapshot;
   actorId: string;
 }): Promise<void> {
   await input.outboxService.addEvent(input.manager, {

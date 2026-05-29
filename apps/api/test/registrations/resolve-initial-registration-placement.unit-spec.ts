@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { RegistrationStatus } from "../../src/modules/registrations/registration.entity";
 import type { ParticipantMetadataDto } from "../../src/modules/registrations/dto/participant-metadata.dto";
 import type { TourEntity } from "../../src/modules/tours/entities/tour.entity";
@@ -11,7 +11,7 @@ type PlacementResult = {
 };
 
 function resolvePlacement(
-  service: RegistrationsService,
+  service: TypeOrmRegistrationsApplicationService,
   tour: Partial<TourEntity>,
   participantMetadata?: ParticipantMetadataDto,
   tripDetails?: Record<string, unknown> | null,
@@ -31,8 +31,8 @@ function resolvePlacement(
   );
 }
 
-function placementService(): RegistrationsService {
-  return new RegistrationsService(
+function placementService(): TypeOrmRegistrationsApplicationService {
+  return new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
     {} as never,

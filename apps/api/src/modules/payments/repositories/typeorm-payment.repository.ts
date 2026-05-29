@@ -2,15 +2,23 @@
  * TypeORM adapter for {@link PaymentRepositoryPort}.
  * Sole payments-module site for `@InjectRepository` / payment persistence reads and writes.
  */
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import type { DeepPartial, EntityManager } from "typeorm";
+import type { DeepPartial, EntityManager, FindOptionsWhere } from "typeorm";
 import { DataSource, IsNull, Not, Repository } from "typeorm";
 
+import { tenantScopedResourceNotFoundError } from "../../../common/errors/error-response-builders";
+
 import { TenantEntity } from "../../identity/entities/tenant.entity";
+import { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-price-snapshot.entity";
 import { RegistrationEntity } from "../../registrations/registration.entity";
 import { PaymentEntity, PaymentMethod, PaymentStatus } from "../entities/payment.entity";
-import type { PaymentRecord } from "../domain/payment-record.types";
+import type { BookingPriceSnapshotRecord } from "../domain/booking-price-snapshot.types";
+import type { PaymentRecord, PaymentRegistrationRef } from "../domain/payment-record.types";
+import type {
+  PaymentRegistrationLookup,
+  PaymentRegistrationSnapshot,
+} from "../domain/payment-registration.types";
 import type {
   PaymentRegistrationStatusRow,
   PaymentRepositoryPort
@@ -18,6 +26,22 @@ import type {
 
 const asPayment = (row: PaymentEntity | null): PaymentRecord | null => row;
 const asPaymentList = (rows: PaymentEntity[]): PaymentRecord[] => rows;
+
+const asRegistrationSnapshot = (row: RegistrationEntity | null): PaymentRegistrationSnapshot | null =>
+  row
+    ? {
+        id: row.id,
+        tenantId: row.tenantId,
+        tourId: row.tourId,
+        status: row.status,
+      }
+    : null;
+
+function toRegistrationEntityWhere(
+  lookup: PaymentRegistrationLookup
+): FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[] {
+  return lookup as FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[];
+}
 
 @Injectable()
 export class TypeOrmPaymentRepository implements PaymentRepositoryPort {
@@ -228,9 +252,84 @@ export class TypeOrmPaymentRepository implements PaymentRepositoryPort {
     manager: EntityManager,
     registrationId: string,
     tenantId: string
-  ): Promise<RegistrationEntity | null> {
+  ): Promise<PaymentRegistrationRef | null> {
     return manager.findOne(RegistrationEntity, {
-      where: { id: registrationId, tenantId }
+      where: { id: registrationId, tenantId },
+      select: { id: true, tenantId: true },
     });
+  }
+
+  async findRegistrationSnapshot(
+    manager: EntityManager,
+    lookup: PaymentRegistrationLookup
+  ): Promise<PaymentRegistrationSnapshot | null> {
+    return asRegistrationSnapshot(
+      await manager.findOne(RegistrationEntity, {
+        where: toRegistrationEntityWhere(lookup),
+      })
+    );
+  }
+
+  async lockRegistrationSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    registrationId: string
+  ): Promise<PaymentRegistrationSnapshot> {
+    const row = await manager.findOne(RegistrationEntity, {
+      where: { id: registrationId, tenantId },
+      lock: { mode: "pessimistic_write" },
+    });
+    const snapshot = asRegistrationSnapshot(row);
+    if (!snapshot) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+    return snapshot;
+  }
+
+  async findRegistrationPeek(
+    manager: EntityManager,
+    tenantId: string,
+    registrationId: string
+  ): Promise<Pick<PaymentRegistrationSnapshot, "id" | "tenantId" | "tourId"> | null> {
+    const row = await manager.findOne(RegistrationEntity, {
+      where: { id: registrationId, tenantId },
+      select: { id: true, tourId: true, tenantId: true },
+    });
+    if (!row) {
+      return null;
+    }
+    return { id: row.id, tenantId: row.tenantId, tourId: row.tourId };
+  }
+
+  existsBookingPriceSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    bookingId: string
+  ): Promise<boolean> {
+    return manager.exists(BookingPriceSnapshotEntity, {
+      where: { bookingId, tenantId },
+    });
+  }
+
+  async findCanonicalBookingPriceSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    bookingId: string
+  ): Promise<BookingPriceSnapshotRecord | null> {
+    const row = await manager.getRepository(BookingPriceSnapshotEntity).findOne({
+      where: {
+        tenantId: tenantId.trim(),
+        bookingId: bookingId.trim(),
+      },
+      order: { createdAt: "ASC" },
+      select: { computedTotalMinor: true, currency: true },
+    });
+    if (!row) {
+      return null;
+    }
+    return {
+      computedTotalMinor: row.computedTotalMinor,
+      currency: row.currency,
+    };
   }
 }

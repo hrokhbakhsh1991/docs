@@ -9,10 +9,11 @@ import type {
   IdentityWorkspaceInviteRecord,
   WorkspaceInviteStatus,
 } from "../identity-records";
+// depcruise no-folder-depth-gt-4: sibling import only — do not use ../domain/tenant-users-list.types
 import type {
   TenantUsersListQuery,
   TenantUsersListRow,
-} from "../../users/repositories/users-list.repository.interface";
+} from "../tenant-users-list.types";
 import type { TenantScopedUserRow } from "../../users/users-tenant-scope.types";
 import type { UserBookingTripRowDto } from "../../dto/user-booking-trip-row.dto";
 

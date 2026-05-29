@@ -7,7 +7,7 @@ import {
 import { tenantContextMissingError } from "../../common/errors/error-response-builders";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
-import { PaymentMethod, PaymentStatus } from "./entities/payment.entity";
+import { PaymentMethod, PaymentStatus } from "./domain/payment.types";
 import type { PaymentRecord } from "./domain/payment-record.types";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 import { assertManualPaymentDebtAllowed } from "./domain/manual-payment-debt.policy";

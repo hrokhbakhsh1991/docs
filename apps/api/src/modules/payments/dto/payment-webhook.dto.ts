@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "../domain/payment.types";
 
 export class PaymentWebhookDto {
   @ApiProperty({

@@ -83,27 +83,88 @@ function stubExistsDefaultPipeline(input: {
 function paymentPortFromPipeline(input: {
   registrationId: string;
   tenantId: string;
+  tourId?: string;
+  registrationStatus?: RegistrationStatus;
   hasPriceSnapshot?: boolean;
   hasPendingPayment?: boolean;
   hasPaidPayment?: boolean;
 }) {
-  const exists = stubExistsDefaultPipeline(input);
+  const {
+    registrationId,
+    tenantId,
+    tourId = TEST_TOUR_ID,
+    registrationStatus = RegistrationStatus.ACCEPTED,
+    hasPriceSnapshot = true,
+    hasPendingPayment = true,
+    hasPaidPayment = false
+  } = input;
+  const exists = stubExistsDefaultPipeline({
+    registrationId,
+    tenantId,
+    hasPriceSnapshot,
+    hasPendingPayment,
+    hasPaidPayment
+  });
+  const snapshot = {
+    id: registrationId,
+    tenantId,
+    tourId,
+    status: registrationStatus
+  };
   return {
-    async existsPendingForRegistration(_manager: unknown, registrationId: string, tenantId: string) {
+    async existsPendingForRegistration(_manager: unknown, regId: string, tId: string) {
       return exists(PaymentEntity, {
-        where: { registrationId, tenantId, status: PaymentStatus.PENDING }
+        where: { registrationId: regId, tenantId: tId, status: PaymentStatus.PENDING }
       });
     },
-    async existsPaidForRegistration(_manager: unknown, registrationId: string, tenantId: string) {
+    async existsPaidForRegistration(_manager: unknown, regId: string, tId: string) {
       return exists(PaymentEntity, {
-        where: { registrationId, tenantId, status: PaymentStatus.PAID }
+        where: { registrationId: regId, tenantId: tId, status: PaymentStatus.PAID }
       });
+    },
+    async existsBookingPriceSnapshot(_manager: unknown, tId: string, bookingId: string) {
+      return exists(BookingPriceSnapshotEntity, {
+        where: { bookingId, tenantId: tId }
+      });
+    },
+    async findRegistrationPeek(_manager: unknown, tId: string, regId: string) {
+      if (regId !== registrationId || tId !== tenantId) {
+        return null;
+      }
+      return { id: registrationId, tenantId, tourId };
+    },
+    async lockRegistrationSnapshot(_manager: unknown, tId: string, regId: string) {
+      if (regId !== registrationId || tId !== tenantId) {
+        throw new Error("registration not found");
+      }
+      return snapshot;
     },
     async existsOtherPendingForRegistration() {
       return false;
     },
     async savePayment(_manager: unknown, payment: unknown) {
       return payment;
+    }
+  };
+}
+
+function registrationPeekMocks(
+  registration: RegistrationEntity,
+  registrationId: string,
+  tenantId: string
+) {
+  return {
+    async findRegistrationPeek(_m: unknown, tId: string, regId: string) {
+      if (regId !== registrationId || tId !== tenantId) {
+        return null;
+      }
+      return { id: registration.id, tenantId: registration.tenantId, tourId: registration.tourId };
+    },
+    async lockRegistrationSnapshot(_m: unknown, tId: string, regId: string) {
+      if (regId !== registrationId || tId !== tenantId) {
+        throw new Error("registration not found");
+      }
+      return registration;
     }
   };
 }
@@ -245,7 +306,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
         hasPriceSnapshot: true,
         hasPendingPayment: true,
         hasPaidPayment: false
-      })
+      }),
+      ...registrationPeekMocks(registration, TEST_REGISTRATION_ID, TEST_TENANT_ID)
     } as never,
     { setTenantId: () => undefined } as never,
     { runInTenantScope: async () => undefined } as never,
@@ -393,7 +455,8 @@ test("timeout processor fails stale pending payments and updates metrics", async
         hasPriceSnapshot: true,
         hasPendingPayment: true,
         hasPaidPayment: false
-      })
+      }),
+      ...registrationPeekMocks(registration, TEST_REGISTRATION_ID_2, TEST_TENANT_ID)
     } as never,
     { setTenantId: () => undefined } as never,
     {
@@ -517,7 +580,8 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
         hasPriceSnapshot: true,
         hasPendingPayment: true,
         hasPaidPayment: false
-      })
+      }),
+      ...registrationPeekMocks(registration, TEST_REGISTRATION_ID_2, TEST_TENANT_ID)
     } as never,
     { setTenantId: () => undefined } as never,
     { runInTenantScope: async () => undefined } as never,

@@ -1,11 +1,9 @@
 import type { EntityManager } from "typeorm";
 import { In, IsNull, MoreThanOrEqual } from "typeorm";
 import { OutboxEventEntity } from "../../../common/outbox/entities/outbox-event.entity";
+import type { ReconciliationRegistrationReadPort } from "../../../common/ports/reconciliation-registration-read.port";
 import { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-price-snapshot.entity";
 import { PaymentEntity, PaymentStatus } from "../../payments/entities/payment.entity";
-import {
-  RegistrationEntity
-} from "../../registrations/registration.entity";
 import { bookingWalletId } from "../ledger/booking-ledger-authority.service";
 import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "../ledger/ledger-accounts";
 import { AccountBalanceEntity } from "../ledger/entities/account-balance.entity";
@@ -147,7 +145,8 @@ function latestSnapshotsByBookingId(
 export async function loadPaymentReconciliationReportInputForTenant(
   manager: EntityManager,
   tenantId: string,
-  options: { lookbackDays: number }
+  options: { lookbackDays: number },
+  registrationRead: ReconciliationRegistrationReadPort
 ): Promise<PaymentReconciliationReportInput> {
   const tid = tenantId.trim().toLowerCase();
   const since = new Date();
@@ -175,25 +174,10 @@ export async function loadPaymentReconciliationReportInputForTenant(
     providerPaymentId: p.providerPaymentId
   }));
 
-  const registrations =
+  const registrationRows: RegistrationProjectionRow[] =
     registrationIds.length === 0
       ? []
-      : await manager.find(RegistrationEntity, {
-          where: { tenantId: tid, id: In(registrationIds) },
-          select: {
-            id: true,
-            paidAmount: true,
-            quotedCurrencyCode: true,
-            paymentStatus: true
-          }
-        });
-
-  const registrationRows: RegistrationProjectionRow[] = registrations.map((r) => ({
-    bookingId: r.id,
-    paidAmountMinor: r.paidAmount !== undefined && r.paidAmount !== null ? String(r.paidAmount) : null,
-    quotedCurrencyCode: r.quotedCurrencyCode ?? null,
-    paymentStatus: String(r.paymentStatus)
-  }));
+      : await registrationRead.loadRegistrationProjections(manager, tid, registrationIds);
 
   const snapshotRows =
     registrationIds.length === 0
@@ -226,7 +210,7 @@ export async function loadPaymentReconciliationReportInputForTenant(
   const ledgerLines =
     ledgerLinesFromDb.length > 0 ? ledgerLinesFromDb : ledgerLinesFromOutbox;
 
-  const registrationById = new Map(registrations.map((r) => [r.id, r]));
+  const registrationById = new Map(registrationRows.map((r) => [r.bookingId, r]));
   const walletBalanceMinorByBookingId: Record<string, string> = {};
   for (const registrationId of registrationIds) {
     const walletAccount = bookingWalletId(registrationId);

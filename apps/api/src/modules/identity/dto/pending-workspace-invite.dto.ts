@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { WorkspaceInviteStatus } from "../entities/workspace-invite.entity";
+import { WorkspaceInviteStatus } from "../domain/identity-records";
 
 export class PendingWorkspaceInviteDto {
   @ApiProperty()

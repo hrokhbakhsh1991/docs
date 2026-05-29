@@ -1,6 +1,5 @@
 import type { SelectQueryBuilder } from "typeorm";
 
-import type { TourEntity } from "../entities/tour.entity";
 import type { TourWriteRecord } from "../domain/tour-write-record.types";
 
 export type { RegionalTourListScope } from "../../../common/rbac/capability-grant-context-from-request";
@@ -11,7 +10,7 @@ import type { RegionalTourListScope } from "../../../common/rbac/capability-gran
  * No-op unless `restrictToRegions` is true (actor has `tour.regional.manage`).
  */
 export function applyRegionalTourListScope(
-  qb: SelectQueryBuilder<TourEntity>,
+  qb: SelectQueryBuilder<TourWriteRecord>,
   scope: RegionalTourListScope,
 ): void {
   if (!scope.restrictToRegions) {

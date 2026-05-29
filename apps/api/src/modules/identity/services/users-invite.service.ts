@@ -21,9 +21,7 @@ import {
   WORKSPACE_IDENTITY_REPOSITORY_PORT,
   type WorkspaceIdentityRepositoryPort
 } from "../domain/ports/workspace-identity-repository.port";
-import {
-  WorkspaceInviteStatus
-} from "../entities/workspace-invite.entity";
+import { WorkspaceInviteStatus } from "../domain/identity-records";
 import type {
   IdentityUserRecord,
   IdentityWorkspaceInviteRecord,

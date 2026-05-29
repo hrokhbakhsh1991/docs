@@ -7,7 +7,7 @@ import {
   assertAllowedPaymentIntentLifecycleTransition,
   paymentStatusToIntentLifecycle
 } from "./payment-intent-lifecycle";
-import { PaymentStatus } from "../entities/payment.entity";
+import { PaymentStatus } from "../domain/payment.types";
 
 test("CREATED may only go to PENDING", () => {
   assertAllowedPaymentIntentLifecycleTransition(

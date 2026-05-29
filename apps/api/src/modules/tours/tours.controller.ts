@@ -36,7 +36,7 @@ import { ListToursQueryDto } from "./dto/list-tours-query.dto";
 import { PaginatedToursResponseDto } from "./dto/paginated-tours-response.dto";
 import { TourResponseDto } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
-import { TourLifecycleStatus } from "./entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 import {
   UpdateTourStatusValidationPipe,
   type UpdateTourStatusPayload,

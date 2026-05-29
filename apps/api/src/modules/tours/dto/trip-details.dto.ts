@@ -32,7 +32,7 @@ import {
   type ValidationOptions
 } from "class-validator";
 
-import { DifficultyLevel } from "../entities/tour-details.entity";
+import { DifficultyLevel } from "../types/tour-trip-details.types";
 import {
   EXPERIENCE_LEVEL_VALUES,
   GENDER_RESTRICTION_VALUES,

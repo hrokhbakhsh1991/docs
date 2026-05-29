@@ -15,7 +15,8 @@ import { PaymentGatewayFactory } from "./gateway/payment-gateway.factory";
 import { StripeLikePaymentGatewayPlaceholder } from "./gateway/stripe-like-payment-gateway.placeholder";
 import { StripePaymentGateway } from "./gateway/stripe-payment-gateway";
 import { ZibalPaymentGateway } from "./gateway/zibal-payment-gateway";
-import { PaymentWebhookSignatureGuard } from "./payments-webhook-signature.guard";
+import { PaymentWebhookSignatureGuard } from "./gateway/payments-webhook-signature.guard";
+import { PAYMENT_GATEWAY_FACTORY_PORT } from "./domain/ports/payment-gateway-factory.port";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { FinanceLedgerModule } from "../finance/finance-ledger.module";
 import { OutboxModule } from "../outbox/outbox.module";
@@ -24,7 +25,8 @@ import { PaymentEntity } from "./entities/payment.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { PaymentReceiptEntity } from "./entities/payment-receipt.entity";
 import { PaymentGatewayIdempotencyEntity } from "./entities/payment-gateway-idempotency.entity";
-import { PaymentsController, PaymentsWebhookController } from "./payments.controller";
+import { PaymentsController } from "./payments.controller";
+import { PaymentsWebhookController } from "./gateway/payments-webhook.controller";
 import { FinancePaymentsController, FinanceAdminReceiptsController } from "./finance-payments.controller";
 import { FinanceReportsModule } from "../finance/reports/finance-reports.module";
 import { PaymentsProcessor } from "./payments.processor";
@@ -104,6 +106,10 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
     StripePaymentGateway,
     ZibalPaymentGateway,
     PaymentGatewayFactory,
+    {
+      provide: PAYMENT_GATEWAY_FACTORY_PORT,
+      useExisting: PaymentGatewayFactory,
+    },
     PaymentIntentRegistrationResolverApplicationService,
     PaymentsService,
     ManualPaymentService,
@@ -113,8 +119,8 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
   ],
   exports: [
     PAYMENT_REPOSITORY_PORT,
+    PAYMENT_GATEWAY_FACTORY_PORT,
     PaymentsService,
-    PaymentGatewayFactory,
     PAYMENT_GATEWAY_IDEMPOTENCY_STORE,
     InMemoryIdempotencyKeyStore,
     RedisPaymentIdempotencyKeyStore,

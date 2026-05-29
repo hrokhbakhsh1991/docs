@@ -42,9 +42,9 @@ import {
   TourResponseDto,
 } from "./dto/tour-response.dto";
 import { UpdateTourDto } from "./dto/update-tour.dto";
-import { TourEntity, TourLifecycleStatus } from "./entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 import type { TourWriteRecord } from "./domain/tour-write-record.types";
-import { TourDetails } from "./entities/tour-details.entity";
+import type { TourDetailsPolicySnapshot } from "./domain/tour-policy.types";
 import type { TourTripDetails } from "./types/tour-trip-details.types";
 import { CURRENT_TRIP_DETAILS_SCHEMA_VERSION } from "./types/trip-details-schema";
 import { TourTripDetailsDto } from "./dto/trip-details.dto";
@@ -179,7 +179,7 @@ export class ToursService {
   /** Keeps denormalized list/audit columns in sync with JSON details and cost_context. */
   private applyDenormalizedTourListColumns(tour: TourWriteRecord): void {
     const { startsOn, endsOn } = extractTripLogisticsDates(
-      (tour.details ?? null) as TourDetails | null
+      tour.details ?? null
     );
     tour.startsOn = startsOn ?? undefined;
     tour.endsOn = endsOn ?? undefined;
@@ -627,16 +627,9 @@ export class ToursService {
         await this.assertDestinationBelongsToTenant(tenantId, dto.destinationId);
       }
 
-      let details: TourDetails | undefined;
+      let details: TourDetailsPolicySnapshot | undefined;
       if (this.hasAnyTourDetailsField(dto)) {
-        const d = new TourDetails();
-        d.destinationName = dto.destinationName ?? null;
-        d.elevationM = dto.elevationM ?? null;
-        d.difficulty = dto.difficulty ?? null;
-        d.durationDays = dto.durationDays ?? null;
-        d.meetingPoint = dto.meetingPoint ?? null;
-        d.itinerary = dto.itinerary ?? null;
-        d.tripDetails =
+        const tripDetails =
           applyMountainOverviewFieldGatesForFormProfile(
             resolvedFormProfile,
             this.mergeCustomServiceLabelsIntoPersistedTripDetails(
@@ -645,14 +638,19 @@ export class ToursService {
             ),
           ) ?? null;
         const derived = computeTourDurationDays(
-          d.tripDetails?.logistics?.departureDate,
-          d.tripDetails?.logistics?.returnDate
+          tripDetails?.logistics?.departureDate,
+          tripDetails?.logistics?.returnDate
         );
-        if (derived !== undefined) {
-          d.durationDays = derived;
-        }
-        details = d;
-        }
+        details = {
+          destinationName: dto.destinationName ?? null,
+          elevationM: dto.elevationM ?? null,
+          difficulty: dto.difficulty ?? null,
+          durationDays: derived ?? dto.durationDays ?? null,
+          meetingPoint: dto.meetingPoint ?? null,
+          itinerary: dto.itinerary ?? null,
+          tripDetails,
+        };
+      }
 
         if (dto.cost_context?.requiresPayment === true) {
         this.assertFinanceCapabilityForPaymentTour();
@@ -905,11 +903,10 @@ export class ToursService {
         }
       }
       if (this.hasAnyTourDetailsField(dto)) {
-        const entity = tour as TourEntity;
-        if (!entity.details) {
-          entity.details = new TourDetails();
+        if (!tour.details) {
+          tour.details = {};
         }
-        const details = entity.details;
+        const details = tour.details;
         if (dto.destinationName !== undefined) {
           details.destinationName = dto.destinationName;
         }

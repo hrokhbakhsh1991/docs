@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import test from "node:test";
 import { UnauthorizedException } from "@nestjs/common";
 import type { ExecutionContext } from "@nestjs/common";
-import { PaymentWebhookSignatureGuard } from "../../src/modules/payments/payments-webhook-signature.guard";
+import { PaymentWebhookSignatureGuard } from "../../src/modules/payments/gateway/payments-webhook-signature.guard";
 
 const SECRET = "test-webhook-signing-secret-0123456789";
 const NOW_SEC = Math.floor(Date.now() / 1000);

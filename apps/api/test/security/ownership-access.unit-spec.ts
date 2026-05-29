@@ -14,9 +14,9 @@ import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/
 import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
 import { stubPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
-import { RegistrationsService } from "../../src/modules/registrations/registrations.service";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
-import { createRegistrationsReadRepositoryTestDouble } from "../registrations/stub-registrations-read-repository";
+import { createRegistrationsReadRepositoryPortTestDouble } from "../registrations/stub-registrations-read-repository";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 import {
@@ -62,6 +62,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
       tourDepartureId: "tour-1",
       participantFullName: "Own",
       participantContactPhone: ownPhone,
+      bookingTarget: "self",
       transportMode: "group_vehicle",
       entryMode: "web",
       status: RegistrationStatus.ACCEPTED,
@@ -77,6 +78,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
       tourDepartureId: "tour-1",
       participantFullName: "Other",
       participantContactPhone: "+989120000999",
+      bookingTarget: "self",
       transportMode: "group_vehicle",
       entryMode: "web",
       status: RegistrationStatus.ACCEPTED,
@@ -92,6 +94,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
       tourDepartureId: "tour-2",
       participantFullName: "Cross",
       participantContactPhone: "+989120000998",
+      bookingTarget: "self",
       transportMode: "group_vehicle",
       entryMode: "web",
       status: RegistrationStatus.ACCEPTED,
@@ -137,7 +140,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     }
   };
 
-  const service = new RegistrationsService(
+  const service = new TypeOrmRegistrationsApplicationService(
     registrationRepository as never,
     {} as never,
     {} as never,
@@ -150,7 +153,7 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     } as never,
     { addEvent: async () => undefined } as never,
     stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryTestDouble(registrationRepository as never),
+    createRegistrationsReadRepositoryPortTestDouble(registrationRepository as never, manager as never),
     new BookingLedgerAuthorityService(noopOutboxServiceForTests),
     {} as never // PricingEngineService stub
   );
@@ -288,6 +291,12 @@ test("payment intent denies member access to other member registration", async (
   const paymentRepository = {
     async runInTransaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
       return fn(manager);
+    },
+    async existsBookingPriceSnapshot() {
+      return true;
+    },
+    async findCanonicalBookingPriceSnapshot() {
+      return { computedTotalMinor: "100", currency: "USD" };
     },
     async findPendingForRegistration() {
       return null;

@@ -3,7 +3,7 @@ import type { EntityManager } from "typeorm";
 
 import { ConfigService } from "../../../config/config.service";
 import { RegistrationsService } from "../registrations.service";
-import { RegistrationEntity } from "../registration.entity";
+import type { RegistrationPayableRegistration } from "../domain/registration-payment-intent.types";
 import { CreateRegistrationDto } from "../dto/create-registration.dto";
 import { RegistrationResponseDto } from "../dto/get-registration.dto";
 import {
@@ -37,7 +37,7 @@ export class RegistrationPlacementOrchestrator {
 
   private async createPaymentIntentForRegistration(
     manager: EntityManager,
-    registration: RegistrationEntity
+    registration: RegistrationPayableRegistration
   ): Promise<RegistrationPaymentIntentSnapshot> {
     const totalMinorNum =
       registration.quotedTotalMinor != null

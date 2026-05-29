@@ -1,7 +1,7 @@
 import { Injectable, PipeTransform, UnprocessableEntityException } from "@nestjs/common";
 import { z } from "zod";
 
-import { TourLifecycleStatus } from "../entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 
 const updateTourStatusSchema = z
   .object({

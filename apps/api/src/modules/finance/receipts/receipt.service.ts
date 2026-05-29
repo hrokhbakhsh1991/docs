@@ -12,23 +12,23 @@ import { Repository } from "typeorm";
 import {
   tenantContextMissingError,
 } from "../../../common/errors/error-response-builders";
+import {
+  FINANCE_RECEIPT_ACTOR_PORT,
+  type FinanceReceiptActorPort,
+} from "../../../common/ports/finance-receipt-actor.port";
+import {
+  REGISTRATION_FINANCIAL_MUTATION_PORT,
+  type RegistrationFinancialMutationPort,
+} from "../../../common/ports/registration-financial-mutation.port";
+import {
+  REGISTRATION_PAYMENT_PORT,
+  type IRegistrationPaymentPort,
+} from "../../../common/ports/registration-payment.port";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
 import { TenantDbContextService } from "../../../database/tenant-db-context.service";
 import { FILE_STORAGE_PORT, FileStoragePort } from "../../../infra/storage/file-storage.port";
-import { UserEntity } from "../../identity/entities/user.entity";
 import { PaymentReceiptEntity, ReceiptStatus } from "../../payments/entities/payment-receipt.entity";
 import { PaymentEntity, PaymentMethod, PaymentStatus } from "../../payments/entities/payment.entity";
-import {
-  REGISTRATION_PAYMENT_PORT,
-  IRegistrationPaymentPort,
-} from "../../registrations/ports/registration-payment.port";
-import {
-  RegistrationEntity,
-  RegistrationPaymentStatus,
-  RegistrationStatus,
-} from "../../registrations/registration.entity";
-import { validatePaymentTransition } from "../../registrations/registrations-policy";
-import { lockRegistrationByTenantAndId } from "../../registrations/utils/lock-registration-for-financial-mutation";
 import { BookingLedgerAuthorityService } from "../ledger/booking-ledger-authority.service";
 import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-ledger-authority.service";
 import { FinanceReportsService } from "../reports/finance-reports.service";
@@ -48,6 +48,10 @@ export class ReceiptService {
     private readonly storage: FileStoragePort,
     @Inject(REGISTRATION_PAYMENT_PORT)
     private readonly registrationPaymentPort: IRegistrationPaymentPort,
+    @Inject(REGISTRATION_FINANCIAL_MUTATION_PORT)
+    private readonly registrationFinancialMutation: RegistrationFinancialMutationPort,
+    @Inject(FINANCE_RECEIPT_ACTOR_PORT)
+    private readonly receiptActor: FinanceReceiptActorPort,
     @Inject(FinanceReportsService)
     private readonly financeReportsService: FinanceReportsService,
     @Inject(PaymentCaptureLedgerAuthorityService)
@@ -92,19 +96,22 @@ export class ReceiptService {
         );
       }
 
-      const registration = await manager.findOne(RegistrationEntity, {
-        where: { id: payment.registrationId, tenantId },
-      });
+      const registration = await this.registrationFinancialMutation.findRegistrationForReceipt(
+        manager,
+        tenantId,
+        payment.registrationId,
+      );
       if (!registration) {
         throw new NotFoundException("Registration not found for payment");
       }
 
-      const actor = await manager.findOne(UserEntity, {
-        where: { id: params.actorUserId },
-      });
+      const actorPhone = await this.receiptActor.getUserPhoneForReceiptUpload(
+        manager,
+        params.actorUserId,
+      );
       assertActorMayUploadReceiptForRegistration({
         actorRole: params.actorRole,
-        actorPhone: actor?.phone ?? null,
+        actorPhone,
         participantContactPhone: registration.participantContactPhone,
       });
 
@@ -170,10 +177,11 @@ export class ReceiptService {
         throw new NotFoundException("Payment not found for receipt");
       }
 
-      const regPeek = await manager.findOne(RegistrationEntity, {
-        where: { id: payment.registrationId, tenantId },
-        select: { id: true, tourId: true, tenantId: true },
-      });
+      const regPeek = await this.registrationFinancialMutation.findRegistrationPeekForReceipt(
+        manager,
+        tenantId,
+        payment.registrationId,
+      );
       if (!regPeek) {
         throw new NotFoundException("Registration not found for receipt payment");
       }
@@ -182,7 +190,7 @@ export class ReceiptService {
         regPeek.tourId,
         regPeek.tenantId,
       );
-      const registration = await lockRegistrationByTenantAndId(
+      let registration = await this.registrationFinancialMutation.lockRegistrationByTenantAndId(
         manager,
         tenantId,
         payment.registrationId,
@@ -216,24 +224,27 @@ export class ReceiptService {
       savedReceipt.ledgerJournalId = journalId;
       await manager.save(PaymentReceiptEntity, savedReceipt);
 
-      const updatedRegistration = await this.registrationPaymentPort.transitionRegistrationForPayment(
+      registration = await this.registrationPaymentPort.transitionRegistrationForPayment(
         manager,
         registration,
-        RegistrationStatus.ACCEPTED_PAID,
+        "AcceptedPaid",
         params.actorId,
       );
-      validatePaymentTransition(
-        updatedRegistration.status,
-        updatedRegistration.paymentStatus,
-        RegistrationPaymentStatus.PAID,
+      this.registrationFinancialMutation.validatePaymentTransition(
+        registration.status,
+        registration.paymentStatus,
+        "Paid",
       );
-      updatedRegistration.paymentStatus = RegistrationPaymentStatus.PAID;
+      registration.paymentStatus = "Paid";
       this.bookingLedgerAuthority.applyPaidAmountProjectionToRegistration(
-        updatedRegistration,
-        { paymentStatus: RegistrationPaymentStatus.PAID },
+        registration,
+        { paymentStatus: "Paid" },
         lines,
       );
-      await manager.save(RegistrationEntity, updatedRegistration);
+      await this.registrationFinancialMutation.saveRegistrationFinancialRecord(
+        manager,
+        registration,
+      );
 
       await this.financeReportsService.invalidateSummaryCache();
       return savedReceipt;

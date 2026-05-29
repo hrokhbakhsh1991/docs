@@ -1,7 +1,7 @@
 import {
   RegistrationPaymentStatus,
   RegistrationStatus
-} from "../registration.entity";
+} from "./registration-status";
 import { BookingStatus } from "./booking-status";
 
 /**

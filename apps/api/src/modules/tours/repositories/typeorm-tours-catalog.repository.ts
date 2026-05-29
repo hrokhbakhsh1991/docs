@@ -17,7 +17,7 @@ import { toTourFilter, toTourSort } from "../dto/list-tours-query.dto";
 import { mapTourEntityToResponseDto } from "../dto/tour-response.dto";
 import { TourEntity } from "../entities/tour.entity";
 import type { TourWriteRecord } from "../domain/tour-write-record.types";
-import { applyTourFilter, applyTourSort } from "../application/tours-query-builder";
+import { applyTourFilter, applyTourSort } from "./tours-query-builder";
 import { applyRegionalTourListScope } from "../utils/apply-regional-tour-list-scope";
 
 @Injectable()

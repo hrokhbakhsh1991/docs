@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from "@nestjs/common";
-import type { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-price-snapshot.entity";
+import type { BookingPriceSnapshotRecord } from "./booking-price-snapshot.types";
 
 /**
  * Payment intents must match the **immutable** booking price snapshot (minor units, same currency).
@@ -7,7 +7,7 @@ import type { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-
  */
 export function assertPaymentIntentMatchesBookingSnapshot(
   dto: { amount: number; currency: string },
-  snapshot: Pick<BookingPriceSnapshotEntity, "computedTotalMinor" | "currency">
+  snapshot: BookingPriceSnapshotRecord
 ): void {
   if (!Number.isFinite(dto.amount) || dto.amount <= 0) {
     throw new BadRequestException({

@@ -11,7 +11,7 @@ import {
 import {
   RegistrationPaymentStatus,
   RegistrationStatus
-} from "./registration.entity";
+} from "./domain/registration-status";
 
 export function assertJwtTenantMatchesTourForAuthenticatedMutation(input: {
   role?: string;

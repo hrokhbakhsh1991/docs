@@ -195,6 +195,7 @@ export class TypeOrmIdentityRepository implements WorkspaceIdentityRepositoryPor
     }
     return asUser(
       await this.userRepo(manager)
+        // tenant-isolation:qb-exempt — global users.email lookup for auth (not tenant-scoped)
         .createQueryBuilder("u")
         .where("LOWER(TRIM(u.email)) = LOWER(TRIM(:email))", { email: trimmed })
         .andWhere("u.deleted_at IS NULL")
@@ -228,6 +229,7 @@ export class TypeOrmIdentityRepository implements WorkspaceIdentityRepositoryPor
     }
     return asUser(
       await this.userRepository
+        // tenant-isolation:qb-exempt — global users.phone lookup for OTP auth (not tenant-scoped)
         .createQueryBuilder("u")
         .where("u.deleted_at IS NULL")
         .andWhere("phone_normalized(COALESCE(u.phone, '')) = phone_normalized(:phone)", {
@@ -247,6 +249,7 @@ export class TypeOrmIdentityRepository implements WorkspaceIdentityRepositoryPor
     }
     return asUser(
       await this.userRepository
+        // tenant-isolation:qb-exempt — global users.phone lookup for OTP auth (not tenant-scoped)
         .createQueryBuilder("u")
         .where("u.deleted_at IS NULL")
         .andWhere("u.id != :excludeUserId", { excludeUserId })
@@ -265,6 +268,7 @@ export class TypeOrmIdentityRepository implements WorkspaceIdentityRepositoryPor
     manager: EntityManager
   ): Promise<void> {
     await manager
+      // tenant-isolation:qb-exempt — delete unused tokens by user_id (global auth table)
       .createQueryBuilder()
       .delete()
       .from(EmailVerificationTokenEntity)
@@ -881,6 +885,7 @@ export class TypeOrmIdentityRepository implements WorkspaceIdentityRepositoryPor
       return;
     }
     await manager
+      // tenant-isolation:qb-exempt — bulk audit insert; tenant_id carried in row values
       .createQueryBuilder()
       .insert()
       .into(UserRoleAuditEntity)

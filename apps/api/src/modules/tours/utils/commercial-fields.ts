@@ -1,7 +1,7 @@
 import type { TourTripDetails } from "../types/tour-trip-details.types";
-import type { TourDetails } from "../entities/tour-details.entity";
+import type { TourDetailsPolicySnapshot } from "../domain/tour-policy.types";
 
-export function extractTripLogisticsDates(details: TourDetails | undefined | null): {
+export function extractTripLogisticsDates(details: TourDetailsPolicySnapshot | undefined | null): {
   startsOn: string | null;
   endsOn: string | null;
 } {

@@ -1,6 +1,11 @@
 import type { DeepPartial, EntityManager } from "typeorm";
 
+import type { BookingPriceSnapshotRecord } from "../booking-price-snapshot.types";
 import type { PaymentRecord, PaymentRegistrationRef } from "../payment-record.types";
+import type {
+  PaymentRegistrationLookup,
+  PaymentRegistrationSnapshot,
+} from "../payment-registration.types";
 import type { PaymentMethod, PaymentStatus } from "../payment.types";
 
 export const PAYMENT_REPOSITORY_PORT = Symbol("PAYMENT_REPOSITORY_PORT");
@@ -92,6 +97,35 @@ export interface PaymentRepositoryPort {
     registrationId: string,
     tenantId: string
   ): Promise<PaymentRegistrationRef | null>;
+
+  findRegistrationSnapshot(
+    manager: EntityManager,
+    lookup: PaymentRegistrationLookup
+  ): Promise<PaymentRegistrationSnapshot | null>;
+
+  lockRegistrationSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    registrationId: string
+  ): Promise<PaymentRegistrationSnapshot>;
+
+  findRegistrationPeek(
+    manager: EntityManager,
+    tenantId: string,
+    registrationId: string
+  ): Promise<Pick<PaymentRegistrationSnapshot, "id" | "tenantId" | "tourId"> | null>;
+
+  existsBookingPriceSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    bookingId: string
+  ): Promise<boolean>;
+
+  findCanonicalBookingPriceSnapshot(
+    manager: EntityManager,
+    tenantId: string,
+    bookingId: string
+  ): Promise<BookingPriceSnapshotRecord | null>;
 }
 
 export type { PaymentMethod, PaymentRecord, PaymentStatus };

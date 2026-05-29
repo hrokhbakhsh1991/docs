@@ -1,13 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { normalizeLegacyOverviewTripStyleToTripStyles, type TourFormProfile } from "@repo/types";
 
-import {
-  TourLifecycleStatus,
-  TOUR_TYPES,
-  type TourType
-} from "../entities/tour.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
+import { TOUR_TYPES, type TourType } from "@repo/types";
 import type { TourWriteRecord } from "../domain/tour-write-record.types";
-import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import { DifficultyLevel, TourItineraryItem } from "../types/tour-trip-details.types";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 import { TOUR_TRANSPORT_MODE_VALUES, type TourTransportMode } from "../tour-transport-modes";
 

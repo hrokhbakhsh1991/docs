@@ -1,14 +1,14 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, Optional } from "@nestjs/common";
-import { ConfigService } from "../../config/config.service";
-import { REDIS_CLIENT } from "../../infra/redis/redis.constants";
+import { ConfigService } from "../../../config/config.service";
+import { REDIS_CLIENT } from "../../../infra/redis/redis.constants";
 import type { Redis } from "ioredis";
-import { InMemoryWebhookReplayCache } from "./gateway/in-memory-webhook-replay.cache";
-import { RedisWebhookReplayCache } from "./gateway/redis-webhook-replay.cache";
+import { InMemoryWebhookReplayCache } from "./in-memory-webhook-replay.cache";
+import { RedisWebhookReplayCache } from "./redis-webhook-replay.cache";
 import {
   verifyPaymentWebhookRequest,
   verifyPaymentWebhookRequestWithoutReplay,
   type RequestWithRawBody
-} from "./gateway/webhook-signature.verify";
+} from "./webhook-signature.verify";
 
 @Injectable()
 export class PaymentWebhookSignatureGuard implements CanActivate {

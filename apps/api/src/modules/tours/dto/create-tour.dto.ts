@@ -20,8 +20,9 @@ import {
 } from "class-validator";
 import { TOUR_FORM_PROFILE_VALUES_LIST, type TourFormProfile } from "@repo/types";
 
-import { TourLifecycleStatus, TOUR_TYPES, type TourType } from "../entities/tour.entity";
-import { DifficultyLevel, TourItineraryItem } from "../entities/tour-details.entity";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
+import { TOUR_TYPES, type TourType } from "@repo/types";
+import { DifficultyLevel, TourItineraryItem } from "../types/tour-trip-details.types";
 import { CostContextDto } from "./cost-context.dto";
 import { TourTripDetailsDto } from "./trip-details.dto";
 import {

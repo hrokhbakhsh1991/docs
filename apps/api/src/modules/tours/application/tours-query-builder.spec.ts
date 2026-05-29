@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { TourSort } from "@repo/shared-contracts";
 
-import { applyTourSort } from "./tours-query-builder";
+import { applyTourSort } from "../repositories/tours-query-builder";
 
 type RecordedOrder = { expr: string; dir: string };
 

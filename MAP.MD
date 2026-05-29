@@ -835,3 +835,136 @@ pnpm --filter @apps/api test:architecture:enforce
 
 **Next:** Batch 2 — drive `app-must-not-import-infra` to zero (application services and controllers behind ports only).
 
+---
+
+## 65. Phase 4 — App Layer Purity (Batch 2: Identity & Payments Complete)
+
+**Date:** 2026-05-29  
+**Goal:** Eliminate every `app-must-not-import-infra` violation inside the **Identity** and **Payments** bounded contexts by redirecting enums to domain, relocating infra helpers, extending payment ports, and keeping gateway wiring in the infra segment.
+
+### Gate (Batch 2)
+
+| Check | Command | Expected |
+|-------|---------|----------|
+| Dedicated Batch 2 subtest | `pnpm --filter @apps/api test` (includes `tests/architecture/architecture-boundaries.spec.ts`) | Subtest **`architecture: app layer in identity/payments does not import infra (batch 2)`** passes with **identity/payments `app-must-not-import-infra` count = 0** |
+| Batch 1 regression | same run | Subtest **`architecture: domain layer does not import infra (batch 1)`** still passes |
+| Full boundary enforce (all rules) | `pnpm --filter @apps/api test:architecture:enforce` | Still reports remaining debt in other modules — **Batch 3+** |
+
+The default API test run is **report-only** for the full boundary suite (§62); Batch 1 and Batch 2 subtests **fail the build** on regressions in their scopes.
+
+### Patterns applied
+
+| Pattern | Identity | Payments |
+|---------|----------|----------|
+| **Enum redirect** | DTOs / `users-invite.service` → `WorkspaceInviteStatus` from `domain/identity-records.ts` | DTOs / services → `PaymentStatus`, `PaymentMethod` from `domain/payment.types.ts` |
+| **Infra relocation** | `user-password.select.ts` → `repositories/` | `gateway/**` classified as infra in `boundary-scanner.ts`; webhook guard + controller live under `gateway/` |
+| **Port extensions** | `TenantUsersListQuery` / `TenantUsersListRow` in `domain/tenant-users-list.types.ts` (port no longer imports `users/repositories/*.interface`) | `PaymentRegistrationSnapshot`, `BookingPriceSnapshotRecord`; `PaymentRepositoryPort` registration/snapshot reads; `PAYMENT_GATEWAY_FACTORY_PORT` for provider resolution |
+| **Scanner hardening** | — | `parseImports()` handles multiline `import { … } from '…'` blocks |
+
+Entities continue to **re-export** domain enums for TypeORM columns where needed (`payment.entity.ts`, `registration.entity.ts`).
+
+### Application refactor (Payments)
+
+- `payments.service.ts` and `payment-intent-registration-resolver.application.service.ts` no longer import `RegistrationEntity` / `BookingPriceSnapshotEntity`; orchestration uses `PaymentRepositoryPort` + `RegistrationStatus` from `registrations/domain/registration-status.ts`.
+- `assert-payment-intent-matches-booking-snapshot.ts` uses `BookingPriceSnapshotRecord` (domain), not pricing entities.
+- `utils/to-payment-registration-lookup.ts` maps actor-scoped `FindOptionsWhere` shapes to port lookup clauses without entity imports.
+
+### New / moved artifacts
+
+| Area | Paths |
+|------|-------|
+| Architecture gate | `architecture-boundaries.spec.ts` (Batch 2 subtest) |
+| Identity domain types | `domain/tenant-users-list.types.ts`, `repositories/user-password.select.ts` |
+| Payments domain types | `domain/payment-registration.types.ts`, `domain/booking-price-snapshot.types.ts`, `domain/payment-gateway.types.ts`, `domain/ports/payment-gateway-factory.port.ts` |
+| Payments infra | `gateway/payments-webhook.controller.ts`, `gateway/payments-webhook-signature.guard.ts` |
+| Payments app helper | `utils/to-payment-registration-lookup.ts` |
+
+### Verification
+
+```bash
+# Batch 1 + 2 gates
+pnpm --filter @apps/api test
+# → ok: architecture: domain layer does not import infra (batch 1)
+# → ok: architecture: app layer in identity/payments does not import infra (batch 2)
+
+# Optional: full violation inventory (report-only unless enforce flag set)
+pnpm --filter @apps/api test:architecture:enforce
+```
+
+**Status:** Batch 2 complete — **0** `app-must-not-import-infra` violations under `modules/identity/` and `modules/payments/` (app layer). Global `app-must-not-import-infra` and `cross-module-import` debt remain in other bounded contexts.
+
+**Next:** Batch 4+ — remaining bounded contexts' app-layer purity (auth, finance, etc.) and cross-module port extractions.
+
+---
+
+## 66. Phase 4 — App Layer Purity (Batch 3: Tours & Registrations Complete)
+
+**Date:** 2026-05-29  
+**Goal:** Eliminate every `app-must-not-import-infra` violation inside the **Tours** and **Registrations** bounded contexts by redirecting enums to domain, relocating TypeORM-heavy helpers to `repositories/`, extending application ports, and keeping the application-layer facade free of entity/repository imports.
+
+### Gate (Batch 3)
+
+| Check | Command | Expected |
+|-------|---------|----------|
+| Dedicated Batch 3 subtest | `pnpm --filter @apps/api test` (includes `tests/architecture/architecture-boundaries.spec.ts`) | Subtest **`architecture: app layer in tours/registrations does not import infra (batch 3)`** passes with **tours/registrations `app-must-not-import-infra` count = 0** |
+| Batch 1 + 2 regression | same run | Subtests for domain (batch 1) and identity/payments (batch 2) still pass |
+| Full boundary enforce (all rules) | `pnpm --filter @apps/api test:architecture:enforce` | Still reports remaining debt in other modules and cross-module imports — **Batch 4+** |
+
+The default API test run is **report-only** for the full boundary suite (§62); Batch 1–3 subtests **fail the build** on regressions in their scopes.
+
+### Patterns applied
+
+| Pattern | Tours | Registrations |
+|---------|-------|---------------|
+| **Enum redirect** | DTOs / pipe / controller → `TourLifecycleStatus` from `@repo/domain-contracts`; `TOUR_TYPES`, itinerary types from `@repo/types` / local policy types | DTOs / policy / effects → `RegistrationStatus`, `WaitlistStatus` from `domain/registration-status.ts`, `domain/waitlist-status.ts` |
+| **Infra relocation** | `tours-query-builder.ts`, `catalog-pricing-load.adapter.ts`, `quote-list-price.ts` → `repositories/` | `TypeOrmRegistrationsApplicationService` → `repositories/`; `lock-registration-for-financial-mutation.ts` → `repositories/` |
+| **Port extensions** | Catalog/write ports already domain-record based (Batch 1) | `RegistrationsApplicationPort`, `REGISTRATIONS_READ_REPOSITORY_PORT`, `PRICING_CATALOG_PORT` with domain snapshots |
+| **Application facade** | `tours.service.ts` builds `TourWriteRecord` / policy snapshots without entity imports | `registrations.service.ts` thin delegate over `REGISTRATIONS_APPLICATION_PORT` — no `./repositories/` imports |
+
+### Application refactor (Tours)
+
+- `tours.service.ts` no longer imports `TourEntity` / `TourDetails`; persistence shapes are `TourWriteRecord` and policy snapshots.
+- `commercial-fields.ts`, `apply-regional-tour-list-scope.ts`, and list DTOs use domain/policy types instead of entities.
+- Query builder and pricing load helpers live under `repositories/` (infra segment per boundary scanner).
+
+### Application refactor (Registrations)
+
+- **`RegistrationsService`** is a Nest injectable facade that binds every public method to `REGISTRATIONS_APPLICATION_PORT` (implemented by `TypeOrmRegistrationsApplicationService` in `repositories/`).
+- **`registration-placement.orchestrator.ts`** uses `RegistrationPayableRegistration` and port callbacks — no `RegistrationEntity` in the orchestrator.
+- Domain write/outbox types: `RegistrationWriteRecord`, `WaitlistWriteRecord`, `TourBookingLockRecord` — `domain/registration-write.types.ts`, `domain/registration-outbox.types.ts`.
+- Local pricing quote shapes in `domain/pricing-catalog.types.ts` avoid registrations→pricing entity coupling at the app boundary.
+- **`RegistrationsReadRepository`** + `typeorm-registrations-read.repository.ts` for actor-scoped reads without entity imports in app services.
+
+### Cross-module progress (partial — not gated by Batch 3)
+
+- Registrations pricing intake routes through `PRICING_CATALOG_PORT` + domain catalog types.
+- Tour open-for-registration policy localized in `domain/tour-registration.policy.ts`.
+- Entity-level cross-module imports (e.g. `registration.entity.ts` → tours) remain — tracked under `cross-module-import` (~72 among tours/registrations/pricing).
+
+### New / moved artifacts
+
+| Area | Paths |
+|------|-------|
+| Architecture gate | `architecture-boundaries.spec.ts` (Batch 3 subtest) |
+| Tours infra | `repositories/tours-query-builder.ts`, `repositories/catalog-pricing-load.adapter.ts`, `repositories/quote-list-price.ts` |
+| Registrations domain | `domain/registration-write.types.ts`, `domain/registration-outbox.types.ts`, `domain/pricing-catalog.types.ts`, `domain/tour-registration.policy.ts`, `domain/ports/registrations-application.port.ts`, `domain/ports/registrations-read.port.ts` |
+| Registrations infra | `repositories/typeorm-registrations-application.service.ts`, `repositories/typeorm-registrations-read.repository.ts`, `repositories/lock-registration-for-financial-mutation.ts` |
+| Registrations facade | `registrations.service.ts` (port delegate only) |
+
+### Verification
+
+```bash
+# Batch 1 + 2 + 3 gates
+pnpm --filter @apps/api test
+# → ok: architecture: domain layer does not import infra (batch 1)
+# → ok: architecture: app layer in identity/payments does not import infra (batch 2)
+# → ok: architecture: app layer in tours/registrations does not import infra (batch 3)
+
+# Optional: full violation inventory (report-only unless enforce flag set)
+pnpm --filter @apps/api test:architecture:enforce
+```
+
+**Status:** Batch 3 complete — **0** `app-must-not-import-infra` violations under `modules/tours/` and `modules/registrations/` (app layer). Global violations reduced (~344 → ~309); `cross-module-import` debt among tours/registrations/pricing remains for Batch 4+.
+
+**Next:** Batch 4 — drive app-layer purity in remaining bounded contexts (auth, finance, etc.) and continue cross-module port extractions for tours ↔ registrations ↔ pricing.
+

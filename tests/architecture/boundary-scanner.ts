@@ -127,7 +127,7 @@ export function resolveLayer(relPath: string): Layer | null {
   if (segments.includes("app")) return "app";
   if (segments.includes("infra")) return "infra";
 
-  if (segments.some((s) => s === "entities" || s === "repositories" || s === "adapters" || s === "gateways")) {
+  if (segments.some((s) => s === "entities" || s === "repositories" || s === "adapters" || s === "gateways" || s === "gateway")) {
     return "infra";
   }
   if (fileName.endsWith(".entity.ts")) return "infra";
@@ -213,6 +213,19 @@ function parseImports(source: string): Array<{ specifier: string; line: number }
     const match = IMPORT_FROM_RE.exec(line);
     if (match?.[1]) {
       results.push({ specifier: match[1], line: i + 1 });
+      continue;
+    }
+    // Multiline: `import { …\n} from '…'`
+    if (/^\s*import\s+(?:type\s+)?[{*]/.test(line) && !/\bfrom\s+['"]/.test(line)) {
+      for (let j = i + 1; j < lines.length && j < i + 20; j++) {
+        const cont = lines[j];
+        if (cont === undefined) break;
+        const fromMatch = /^\s*\}\s+from\s+['"]([^'"]+)['"]/.exec(cont);
+        if (fromMatch?.[1]) {
+          results.push({ specifier: fromMatch[1], line: i + 1 });
+          break;
+        }
+      }
     }
   }
   return results;

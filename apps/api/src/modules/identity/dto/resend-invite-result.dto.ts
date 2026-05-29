@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { MembershipStatus } from "../membership-status.enum";
-import { WorkspaceInviteStatus } from "../entities/workspace-invite.entity";
+import { WorkspaceInviteStatus } from "../domain/identity-records";
 
 export class ResendInviteResultDto {
   @ApiProperty({ format: "uuid" })

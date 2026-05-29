@@ -42,7 +42,7 @@ function mockCaptureLines(
 }
 
 const noopCaptureLedger = {
-  emitPaymentCaptureAtPaid: async () => ({ lines: mockCaptureLines("reg-1") })
+  emitPaymentCaptureAtPaid: async () => ({ lines: mockCaptureLines("reg-1"), journalId: "j-1" })
 } as never;
 
 const noopBookingLedger = {
@@ -53,29 +53,72 @@ const requestContextTenant1 = {
   resolveEffectiveTenantId: () => "tenant-1"
 } as never;
 
-test("submitReceipt rejects non-manual payments", async () => {
-  const service = new ReceiptService(
+type SubmitReceiptHarnessOptions = {
+  manager: Record<string, unknown>;
+  registration?: {
+    id: string;
+    tenantId: string;
+    tourId: string;
+    participantContactPhone: string;
+  };
+  actorPhone?: string | null;
+  storage?: {
+    upload?: () => Promise<{ key: string }>;
+    deleteObject?: (_key: string) => Promise<void>;
+  };
+};
+
+function createReceiptServiceForSubmit(options: SubmitReceiptHarnessOptions): ReceiptService {
+  const registration = options.registration ?? {
+    id: "reg-1",
+    tenantId: "tenant-1",
+    tourId: "tour-1",
+    participantContactPhone: "+15550001111",
+  };
+
+  return new ReceiptService(
     {} as never,
     {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          findOne: async () => ({
-            id: "pay-1",
-            tenantId: "tenant-1",
-            method: PaymentMethod.ONLINE,
-            status: PaymentStatus.PENDING
-          })
-        } as never)
+      runInTenantScope: async (_tenantId: string, fn: (_manager: unknown) => Promise<unknown>) =>
+        fn(options.manager)
     } as never,
     requestContextTenant1,
     {
-      upload: async () => ({ key: "k" })
+      upload: async () => ({ key: "tenant-1/receipts/pay-1/x.png" }),
+      deleteObject: async () => undefined,
+      ...options.storage,
     } as never,
     {} as never,
+    {
+      findRegistrationForReceipt: async () => ({
+        id: registration.id,
+        tenantId: registration.tenantId,
+        tourId: registration.tourId,
+        status: "Pending" as const,
+        paymentStatus: "NotPaid" as const,
+        participantContactPhone: registration.participantContactPhone,
+      }),
+    } as never,
+    {
+      getUserPhoneForReceiptUpload: async () => options.actorPhone ?? "+15550001111",
+    } as never,
     { invalidateSummaryCache: async () => undefined } as never,
     noopCaptureLedger,
     noopBookingLedger
   );
+}
+
+test("submitReceipt rejects non-manual payments", async () => {
+  const service = createReceiptServiceForSubmit({
+    manager: {
+      findOne: async () => ({
+        id: "pay-1",
+        tenantId: "tenant-1",
+        method: PaymentMethod.ONLINE,
+        status: PaymentStatus.PENDING
+      })
+    }
+  });
 
   await assert.rejects(
     () =>
@@ -91,45 +134,29 @@ test("submitReceipt rejects non-manual payments", async () => {
 });
 
 test("submitReceipt rejects upload by unrelated member", async () => {
-  const service = new ReceiptService(
-    {} as never,
-    {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
-            if (opts.where.id === "pay-1") {
-              return {
-                id: "pay-1",
-                tenantId: "tenant-1",
-                registrationId: "reg-1",
-                method: PaymentMethod.MANUAL,
-                status: PaymentStatus.PENDING
-              };
-            }
-            if (opts.where.id === "reg-1") {
-              return {
-                id: "reg-1",
-                participantContactPhone: "+15550009999"
-              };
-            }
-            if (opts.where.id === "user-other") {
-              return { id: "user-other", phone: "+15550001111" };
-            }
-            return null;
-          }
-        } as never)
-    } as never,
-    requestContextTenant1,
-    {
+  const service = createReceiptServiceForSubmit({
+    manager: {
+      findOne: async () => ({
+        id: "pay-1",
+        tenantId: "tenant-1",
+        registrationId: "reg-1",
+        method: PaymentMethod.MANUAL,
+        status: PaymentStatus.PENDING
+      })
+    },
+    registration: {
+      id: "reg-1",
+      tenantId: "tenant-1",
+      tourId: "tour-1",
+      participantContactPhone: "+15550009999",
+    },
+    actorPhone: "+15550001111",
+    storage: {
       upload: async () => {
         throw new Error("upload should not run");
-      }
-    } as never,
-    {} as never,
-    { invalidateSummaryCache: async () => undefined } as never,
-    noopCaptureLedger,
-    noopBookingLedger
-  );
+      },
+    },
+  });
 
   await assert.rejects(
     () =>
@@ -145,46 +172,23 @@ test("submitReceipt rejects upload by unrelated member", async () => {
 });
 
 test("submitReceipt rejects second pending receipt for same payment", async () => {
-  const service = new ReceiptService(
-    {} as never,
-    {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
-            if (opts.where.id === "pay-1") {
-              return {
-                id: "pay-1",
-                tenantId: "tenant-1",
-                registrationId: "reg-1",
-                method: PaymentMethod.MANUAL,
-                status: PaymentStatus.PENDING
-              };
-            }
-            if (opts.where.id === "reg-1") {
-              return {
-                id: "reg-1",
-                participantContactPhone: "+15550001111"
-              };
-            }
-            if (opts.where.id === "user-1") {
-              return { id: "user-1", phone: "+15550001111" };
-            }
-            return null;
-          },
-          find: async () => [{ status: ReceiptStatus.PENDING }]
-        } as never)
-    } as never,
-    requestContextTenant1,
-    {
+  const service = createReceiptServiceForSubmit({
+    manager: {
+      findOne: async () => ({
+        id: "pay-1",
+        tenantId: "tenant-1",
+        registrationId: "reg-1",
+        method: PaymentMethod.MANUAL,
+        status: PaymentStatus.PENDING
+      }),
+      find: async () => [{ status: ReceiptStatus.PENDING }]
+    },
+    storage: {
       upload: async () => {
         throw new Error("upload should not run");
-      }
-    } as never,
-    {} as never,
-    { invalidateSummaryCache: async () => undefined } as never,
-    noopCaptureLedger,
-    noopBookingLedger
-  );
+      },
+    },
+  });
 
   await assert.rejects(
     () =>
@@ -201,51 +205,28 @@ test("submitReceipt rejects second pending receipt for same payment", async () =
 
 test("submitReceipt deletes uploaded object when save fails", async () => {
   const deleted: string[] = [];
-  const service = new ReceiptService(
-    {} as never,
-    {
-      runInTenantScope: async (_tenantId: string, fn: any) =>
-        fn({
-          findOne: async (_entity: unknown, opts: { where: { id?: string } }) => {
-            if (opts.where.id === "pay-1") {
-              return {
-                id: "pay-1",
-                tenantId: "tenant-1",
-                registrationId: "reg-1",
-                method: PaymentMethod.MANUAL,
-                status: PaymentStatus.PENDING
-              };
-            }
-            if (opts.where.id === "reg-1") {
-              return {
-                id: "reg-1",
-                participantContactPhone: "+15550001111"
-              };
-            }
-            if (opts.where.id === "user-1") {
-              return { id: "user-1", phone: "+15550001111" };
-            }
-            return null;
-          },
-          find: async () => [],
-          create: () => ({}),
-          save: async () => {
-            throw new Error("db down");
-          }
-        } as never)
-    } as never,
-    requestContextTenant1,
-    {
+  const service = createReceiptServiceForSubmit({
+    manager: {
+      findOne: async () => ({
+        id: "pay-1",
+        tenantId: "tenant-1",
+        registrationId: "reg-1",
+        method: PaymentMethod.MANUAL,
+        status: PaymentStatus.PENDING
+      }),
+      find: async () => [],
+      create: () => ({}),
+      save: async () => {
+        throw new Error("db down");
+      }
+    },
+    storage: {
       upload: async () => ({ key: "tenant-1/receipts/pay-1/x.png" }),
       deleteObject: async (key: string) => {
         deleted.push(key);
-      }
-    } as never,
-    {} as never,
-    { invalidateSummaryCache: async () => undefined } as never,
-    noopCaptureLedger,
-    noopBookingLedger
-  );
+      },
+    },
+  });
 
   await assert.rejects(
     () =>

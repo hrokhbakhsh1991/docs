@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsIn, IsInt, IsNumber, IsOptional, Min } from "class-validator";
-import { RegistrationPaymentStatus } from "../registration.entity";
+import { RegistrationPaymentStatus } from "../domain/registration-status";
 
 const PUBLIC_PAYMENT_STATUS_VALUES = [
   RegistrationPaymentStatus.NOT_PAID,

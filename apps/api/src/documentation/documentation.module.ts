@@ -23,7 +23,8 @@ import { TenantAbuseMetricsService } from "../common/tenant-abuse/tenant-abuse-m
 import { TenantUsageMeteringService } from "../common/billing/tenant-usage-metering.service";
 import { OpsController } from "../modules/ops/ops.controller";
 import { OutboxMetricsService } from "../modules/outbox/outbox-metrics.service";
-import { PaymentsController, PaymentsWebhookController } from "../modules/payments/payments.controller";
+import { PaymentsController } from "../modules/payments/payments.controller";
+import { PaymentsWebhookController } from "../modules/payments/gateway/payments-webhook.controller";
 import {
   FinanceAdminReceiptsController,
   FinancePaymentsController
