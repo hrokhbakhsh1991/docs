@@ -13,16 +13,21 @@
 
 .list {
   margin: 0;
-  padding-inline-start: 1.25rem;
+  padding: 0;
+  list-style: none;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .listItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.5rem;
+}
+
+.listItem input {
+  flex: 1;
+  min-width: 12rem;
 }
 
 .addRow {
@@ -30,9 +35,4 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
-}
-
-.addRow input {
-  flex: 1;
-  min-width: 12rem;
 }

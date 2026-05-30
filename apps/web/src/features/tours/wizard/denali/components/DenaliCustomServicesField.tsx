@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { type FieldArrayPath, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { useCallback, useMemo } from "react";
+import { type FieldArrayPath, useFieldArray, useFormContext } from "react-hook-form";
 
 import type { TourFormProfile } from "@repo/types";
 
@@ -10,7 +10,10 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
 import { evaluateDenaliContextualVisibility } from "../application";
-import { DENALI_CUSTOM_SERVICE_LABELS_PATH } from "../denaliCustomServiceLabelsPath";
+import {
+  DENALI_CUSTOM_SERVICE_LABELS_PATH,
+  type DenaliCustomServiceLabelsPath,
+} from "../denaliCustomServiceLabelsPath";
 import { DenaliCustomServicesEditor } from "./DenaliCustomServicesEditor";
 
 export { DENALI_CUSTOM_SERVICE_LABELS_PATH };
@@ -37,11 +40,12 @@ export function DenaliCustomServicesField({
     control,
     name: DENALI_CUSTOM_SERVICE_LABELS_PATH as FieldArrayPath<DenaliCreateTourWizardForm>,
   });
-  const labels =
-    useWatch({
-      control,
-      name: DENALI_CUSTOM_SERVICE_LABELS_PATH,
-    }) ?? [];
+  const handleAppend = useCallback(
+    (label: string) => {
+      append(label as never);
+    },
+    [append],
+  );
 
   if (!isVisible) {
     return null;
@@ -49,9 +53,10 @@ export function DenaliCustomServicesField({
 
   return (
     <DenaliCustomServicesEditor
+      control={control}
+      name={DENALI_CUSTOM_SERVICE_LABELS_PATH as DenaliCustomServiceLabelsPath}
       fields={fields}
-      labels={labels}
-      onAppend={(label) => append(label as never)}
+      onAppend={handleAppend}
       onRemove={remove}
     />
   );

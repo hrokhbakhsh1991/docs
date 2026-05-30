@@ -1,31 +1,32 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useEffect } from "react";
 import { Button, Input } from "@tour/ui";
+import { Controller, type Control, type FieldPath } from "react-hook-form";
 
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
+
+import type { DenaliCustomServiceLabelsPath } from "../denaliCustomServiceLabelsPath";
 import styles from "./DenaliCustomServicesEditor.module.css";
 
 export function DenaliCustomServicesEditor({
+  control,
+  name,
   fields,
-  labels,
   onAppend,
   onRemove,
 }: {
+  control: Control<DenaliCreateTourWizardForm>;
+  name: DenaliCustomServiceLabelsPath;
   fields: ReadonlyArray<{ id: string }>;
-  labels: readonly string[];
   onAppend: (_label: string) => void;
   onRemove: (_index: number) => void;
 }) {
-  const [draft, setDraft] = useState("");
-
-  const addService = useCallback(() => {
-    const trimmed = draft.trim();
-    if (trimmed === "") {
-      return;
+  useEffect(() => {
+    if (fields.length === 0) {
+      onAppend("");
     }
-    onAppend(trimmed);
-    setDraft("");
-  }, [draft, onAppend]);
+  }, [fields.length, onAppend]);
 
   return (
     <div className={styles.block} data-testid="denali-custom-services">
@@ -34,7 +35,21 @@ export function DenaliCustomServicesEditor({
         <ul className={styles.list}>
           {fields.map((field, index) => (
             <li key={field.id} className={styles.listItem}>
-              <span>{labels[index] ?? ""}</span>
+              <Controller
+                control={control}
+                name={`${name}.${index}` as FieldPath<DenaliCreateTourWizardForm>}
+                render={({ field: rowField }) => (
+                  <Input
+                    type="text"
+                    placeholder="مثلاً: نیسان، صبحانه"
+                    value={rowField.value ?? ""}
+                    onChange={(event) => rowField.onChange(event.currentTarget.value)}
+                    onBlur={rowField.onBlur}
+                    ref={rowField.ref}
+                    data-testid={`denali-custom-service-input-${index}`}
+                  />
+                )}
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -49,26 +64,11 @@ export function DenaliCustomServicesEditor({
         </ul>
       ) : null}
       <div className={styles.addRow}>
-        <Input
-          type="text"
-          placeholder="مثلاً: نیسان، صبحانه"
-          value={draft}
-          onChange={(e) => setDraft(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addService();
-            }
-          }}
-          onBlur={addService}
-          data-testid="denali-custom-service-input"
-        />
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          onClick={addService}
-          disabled={draft.trim() === ""}
+          onClick={() => onAppend("")}
           data-testid="denali-custom-service-add"
         >
           افزودن
