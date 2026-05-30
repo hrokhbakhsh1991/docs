@@ -61,14 +61,88 @@ const NON_COMPLETED_STATUSES = [
 ];
 const TRIP_LIST_CAP = 50;
 
-const asUser = (row: UserEntity | null): IdentityUserRecord | null => row;
-const asMembership = (row: UserTenantEntity | null): IdentityMembershipRecord | null => row;
-const asMembershipList = (rows: UserTenantEntity[]): IdentityMembershipRecord[] => rows;
-const asInvite = (row: WorkspaceInviteEntity | null): IdentityWorkspaceInviteRecord | null => row;
-const asInviteList = (rows: WorkspaceInviteEntity[]): IdentityWorkspaceInviteRecord[] => rows;
+const asUser = (row: UserEntity | null): IdentityUserRecord | null => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    phone: row.phone,
+    telegramUserId: row.telegramUserId,
+    hashedPassword: row.hashedPassword,
+    fullName: row.fullName,
+    nationalId: row.nationalId,
+    gender: row.gender,
+    birthDate: row.birthDate,
+    isEmailVerified: row.isEmailVerified,
+    isPhoneVerified: row.isPhoneVerified,
+    notificationsEnabled: row.notificationsEnabled,
+    profileRowVersion: row.profileRowVersion,
+    lastLoginAt: row.lastLoginAt,
+    lastActiveAt: row.lastActiveAt,
+    profileImageUrl: row.profileImageUrl,
+    deletedAt: row.deletedAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+};
+
+const asMembership = (row: UserTenantEntity | null): IdentityMembershipRecord | null => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    userId: row.userId,
+    role: row.role,
+    status: row.status,
+    invitedAt: row.invitedAt,
+    joinedAt: row.joinedAt,
+    suspendedAt: row.suspendedAt,
+    sessionVersion: row.sessionVersion,
+    labels: row.labels,
+    membershipMetadata: row.membershipMetadata,
+    deletedAt: row.deletedAt,
+  };
+};
+
+const asMembershipList = (rows: UserTenantEntity[]): IdentityMembershipRecord[] => {
+  return rows.map((r) => asMembership(r)!);
+};
+
+const asInvite = (row: WorkspaceInviteEntity | null): IdentityWorkspaceInviteRecord | null => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    email: row.email,
+    role: row.role,
+    invitedByUserId: row.invitedByUserId,
+    inviteToken: row.inviteToken,
+    status: row.status,
+    expiresAt: row.expiresAt,
+    invitedAt: row.invitedAt,
+    createdAt: row.createdAt,
+  };
+};
+
+const asInviteList = (rows: WorkspaceInviteEntity[]): IdentityWorkspaceInviteRecord[] => {
+  return rows.map((r) => asInvite(r)!);
+};
+
 const asEmailToken = (
   row: EmailVerificationTokenEntity | null
-): IdentityEmailVerificationTokenRecord | null => row;
+): IdentityEmailVerificationTokenRecord | null => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.userId,
+    newEmail: row.newEmail,
+    token: row.token,
+    expiresAt: row.expiresAt,
+    usedAt: row.usedAt,
+    createdAt: row.createdAt,
+  };
+};
+
 
 type GroupedTripAggRow = {
   bridge_key: string;

@@ -6,7 +6,6 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
-import { IsNull } from "typeorm";
 import { capabilitiesForTenantModules } from "@repo/shared";
 import { registrationWhereForActor } from "../../../common/security/ownership-scope";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -20,7 +19,7 @@ import {
 } from "../../tours/domain/ports/tours-repository.port";
 import type { CreatePaymentIntentDto } from "../dto/create-payment-intent.dto";
 import { tenantContextMissingError } from "../../../common/errors/error-response-builders";
-import type { PaymentRegistrationSnapshot } from "../domain/payment-registration.types";
+import type { PaymentRegistrationSnapshot, PaymentRegistrationLookup } from "../domain/payment-registration.types";
 import {
   PAYMENT_REPOSITORY_PORT,
   type PaymentRepositoryPort,
@@ -58,21 +57,23 @@ export class PaymentIntentRegistrationResolverApplicationService {
       (!actorUserIdRaw || actorUserIdRaw.trim() === "") &&
       (!actorRoleRaw || actorRoleRaw.trim() === "");
 
-    const registrationScope = isPublicTenantBootstrapActor
+    const registrationLookup: PaymentRegistrationLookup = isPublicTenantBootstrapActor
       ? {
           id: dto.registrationId,
           tenantId: trustedTenantId,
-          deletedAt: IsNull()
+          deletedAt: null,
         }
-      : await registrationWhereForActor(
-          manager,
-          this.requestContextService,
-          dto.registrationId
+      : toPaymentRegistrationLookup(
+          await registrationWhereForActor(
+            manager,
+            this.requestContextService,
+            dto.registrationId
+          )
         );
 
     const registration = await this.paymentRepository.findRegistrationSnapshot(
       manager,
-      toPaymentRegistrationLookup(registrationScope)
+      registrationLookup
     );
     if (!registration) {
       throw new NotFoundException({
@@ -105,8 +106,8 @@ export class PaymentIntentRegistrationResolverApplicationService {
     let tour;
     try {
       tour = await this.toursCatalogRepository.findByIdOrThrow(
-        registration.tenantId,
-        registration.tourId
+        registration.tourId,
+        registration.tenantId
       );
     } catch (error) {
       if (error instanceof NotFoundException) {

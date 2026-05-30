@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { IdempotencyCleanupJob } from "../../src/jobs/idempotency-cleanup.job";
 
-test("idempotency cleanup job calls deleteExpired on interval tick", async () => {
+const TENANT_A = "11111111-1111-4111-8111-111111111111";
+const TENANT_B = "22222222-2222-4222-8222-222222222222";
+
+test("idempotency cleanup job calls deleteExpiredWithManager per tenant on interval tick", async () => {
   let deleteCalls = 0;
   const idempotencyService = {
-    async deleteExpired(): Promise<number> {
+    async deleteExpiredWithManager(): Promise<number> {
       deleteCalls += 1;
       return 3;
     }
@@ -43,6 +46,13 @@ test("idempotency cleanup job calls deleteExpired on interval tick", async () =>
       } as never,
       { query: async () => [] } as never,
       {
+        runInTenantScope: async (_tenantId: string, fn: (_manager: unknown) => Promise<number>) =>
+          fn({})
+      } as never,
+      {
+        find: async () => [{ id: TENANT_A }, { id: TENANT_B }]
+      } as never,
+      {
         runWithGlobalLock: async (_name: string, onLocked: () => Promise<void>) => {
           await onLocked();
           return { acquired: true };
@@ -60,7 +70,7 @@ test("idempotency cleanup job calls deleteExpired on interval tick", async () =>
     assert.ok(scheduledCallback);
     scheduledCallback?.();
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(deleteCalls, 2);
+    assert.equal(deleteCalls, 4);
     job.onModuleDestroy();
   } finally {
     global.setInterval = originalSetInterval;

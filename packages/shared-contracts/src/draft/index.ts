@@ -9,6 +9,10 @@ export {
   type DraftSnapshotWire,
 } from "./draft-snapshot.contract";
 export {
+  type DraftFieldConflict,
+  type DraftMergeResult,
+} from "./draft-merge-result.contract";
+export {
   createDefaultDraftMigratorRegistry,
   DENALI_CREATE_DRAFT_KEY,
   DENALI_WIZARD_RAIL_LAYOUT_VERSION,

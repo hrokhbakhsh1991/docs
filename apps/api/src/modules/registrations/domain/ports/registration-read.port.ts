@@ -1,5 +1,3 @@
-import type { EntityManager } from "typeorm";
-
 import type {
   RegistrationPayableRegistration,
   RegistrationPaymentIntentSnapshot,
@@ -15,12 +13,10 @@ export type CreateRegistrationPaymentIntentInput = {
 
 /**
  * Mediates registration-side payment intent creation without importing payments application services.
- *
- * **TypeORM policy (Phase 4):** `import type` from `typeorm` is permitted in port interfaces — see MAP §61.
  */
 export interface RegistrationReadPort {
-  createPaymentIntentWithManager(
-    manager: EntityManager,
+  createPaymentIntent(
     input: CreateRegistrationPaymentIntentInput
   ): Promise<RegistrationPaymentIntentSnapshot>;
 }
+

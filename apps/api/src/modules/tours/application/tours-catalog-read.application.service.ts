@@ -15,7 +15,7 @@ import {
   TOURS_CATALOG_REPOSITORY_PORT,
   type ToursCatalogRepositoryPort,
 } from "../domain/ports/tours-repository.port";
-import { ListToursQueryDto } from "../dto/list-tours-query.dto";
+import { ListToursQueryDto, toTourFilter, toTourSort } from "../dto/list-tours-query.dto";
 import {
   mapTourEntityToResponseDto,
   type TourResponseSource,
@@ -75,9 +75,11 @@ export class ToursCatalogReadApplicationService {
       });
     }
 
-    return this.toursCatalogRepository.listPage({
+    const result = await this.toursCatalogRepository.listTours({
       tenantId,
-      query,
+      filter: toTourFilter(query),
+      sort: toTourSort(query),
+      includeTotal: query.include_total !== false,
       regionalScope: buildRegionalTourListScopeFromRequest(this.requestContextService),
       page,
       limit,
@@ -85,6 +87,13 @@ export class ToursCatalogReadApplicationService {
       cursorAt,
       cursorId,
     });
+
+    return {
+      items: result.items.map((row) => mapTourEntityToResponseDto(row as TourResponseSource)),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+    };
   }
 
   async getTourById(tourId: string): Promise<TourResponseDto> {
@@ -93,7 +102,7 @@ export class ToursCatalogReadApplicationService {
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    const tour = await this.toursCatalogRepository.findByIdOrThrow(tenantId, tourId);
+    const tour = await this.toursCatalogRepository.findByIdOrThrow(tourId, tenantId);
 
     const regionalScope = buildRegionalTourListScopeFromRequest(this.requestContextService);
     if (!assertTourVisibleInRegionalScope(tour, regionalScope)) {

@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { QueryBus, CommandBus } from "@nestjs/cqrs";
+import { GetRegistrationDetailQuery } from "./domain/queries/get-registration-detail.query";
+import { UpdateRegistrationPaymentCommand } from "./domain/commands/update-registration-payment.command";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiHeader,
+
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -54,12 +58,12 @@ import { UpdateRegistrationPaymentDto } from "./dto/update-registration-payment.
 import { UpdateRegistrationStatusDto } from "./dto/update-registration-status.dto";
 import { RegistrationsService } from "./registrations.service";
 import { RegistrationPlacementOrchestrator } from "./application/registration-placement.orchestrator";
-import { IdempotencyService } from "../idempotency/idempotency.service";
+import { IdempotencyService } from "../idempotency/repositories/idempotency.service";
 import { runWithIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 import { requestContextStorage } from "../../common/request-context/request-context";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { TenantBootstrapService } from "../tenant/tenant-bootstrap.service";
-import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { IdempotencyInterceptor } from "../idempotency/repositories/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 import { assertPublicRegistrationIdempotencyKey } from "../idempotency/http-idempotency-key";
 
@@ -79,8 +83,11 @@ export class RegistrationsController {
     private readonly registrationPlacementOrchestrator: RegistrationPlacementOrchestrator,
     @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
     @Inject(RequestContextService) private readonly requestContextService: RequestContextService,
-    @Inject(TenantBootstrapService) private readonly tenantBootstrapService: TenantBootstrapService
+    @Inject(TenantBootstrapService) private readonly tenantBootstrapService: TenantBootstrapService,
+    @Inject(QueryBus) private readonly queryBus: QueryBus,
+    @Inject(CommandBus) private readonly commandBus: CommandBus
   ) {}
+
 
   private async bootstrapPublicTourTenant(tourId: string): Promise<string> {
     const bootstrap = await this.tenantBootstrapService.resolvePublicTourBootstrapContext(tourId);
@@ -301,7 +308,11 @@ export class RegistrationsController {
   async createRegistration(
     @Body() payload: CreateRegistrationDto
   ): Promise<RegistrationResponseDto> {
-    return this.registrationsService.createRegistration(payload);
+    const command = {
+      ...payload,
+      participantMetadata: payload.participantMetadata as Record<string, unknown> | undefined,
+    };
+    return this.registrationsService.createRegistration(command) as Promise<RegistrationResponseDto>;
   }
 
   @Post("bookings")
@@ -384,8 +395,71 @@ export class RegistrationsController {
   async getRegistrationById(
     @Param("registrationId", new ParseUUIDPipe()) registrationId: string
   ): Promise<RegistrationResponseDto> {
-    return this.registrationsService.getRegistrationById(registrationId);
+    const tenantId = this.requestContextService.resolveEffectiveTenantId() || "";
+    const registration = await this.queryBus.execute(
+      new GetRegistrationDetailQuery(registrationId, tenantId)
+    );
+
+    const paymentMetadata = registration.paymentMetadata;
+    return {
+      id: registration.id,
+      tenantId: registration.tenantId,
+      tourId: registration.tourId,
+      participantFullName: registration.participantFullName,
+      participantContactPhone: registration.participantContactPhone,
+      bookingTarget: registration.bookingTarget ?? undefined,
+      participantNationalId: registration.participantNationalId ?? undefined,
+      transportMode: registration.transportMode,
+      entryMode: registration.entryMode,
+      telegramUserId: registration.telegramUserId ?? undefined,
+      telegramUsername: registration.telegramUsername ?? undefined,
+      vehicleSeatCapacity: registration.vehicleSeatCapacity ?? undefined,
+      participantNote: registration.participantNote ?? undefined,
+      participantMetadata: registration.participantMetadata ?? null,
+      status: registration.status,
+      rowVersion: registration.rowVersion ?? 1,
+      paymentStatus: registration.paymentStatus,
+      paidAmount: registration.paidAmount ?? undefined,
+      payment:
+        paymentMetadata &&
+        typeof paymentMetadata.provider === "string" &&
+        typeof paymentMetadata.currency === "string" &&
+        typeof paymentMetadata.amount === "string"
+          ? {
+              status:
+                typeof paymentMetadata.status === "string"
+                  ? paymentMetadata.status
+                  : "Pending",
+              amount: paymentMetadata.amount,
+              currency: paymentMetadata.currency,
+              method:
+                typeof paymentMetadata.method === "string"
+                  ? paymentMetadata.method
+                  : "Online",
+              provider: paymentMetadata.provider,
+              providerPaymentId:
+                typeof paymentMetadata.providerPaymentId === "string"
+                  ? paymentMetadata.providerPaymentId
+                  : null
+            }
+          : undefined,
+      lockedPricing:
+        registration.quotedTotalMinor != null &&
+        registration.quotedCurrencyCode != null &&
+        registration.quotedPricingVersion != null
+          ? {
+              totalMinor: String(registration.quotedTotalMinor),
+              currency: String(registration.quotedCurrencyCode).trim().toUpperCase(),
+              pricingRuleVersion: String(registration.quotedPricingVersion),
+              listPriceMinor:
+                registration.quotedListPriceMinor != null ? String(registration.quotedListPriceMinor) : null
+            }
+          : null,
+      createdAt: registration.createdAt.toISOString(),
+      updatedAt: registration.updatedAt.toISOString()
+    };
   }
+
 
   @Patch("registrations/:registrationId/status")
   @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
@@ -450,11 +524,19 @@ export class RegistrationsController {
     @Body() payload: UpdateRegistrationPaymentDto,
     @Headers("idempotency-key") idempotencyKey: string
   ): Promise<RegistrationResponseDto> {
-    return this.registrationsService.updateRegistrationPayment(
+    const tenantId = this.requestContextService.resolveEffectiveTenantId() || "";
+    const actorId = this.requestContextService.getUserId() || "unknown";
+    const command = new UpdateRegistrationPaymentCommand(
       registrationId,
-      payload,
-      idempotencyKey
+      tenantId,
+      payload.paymentStatus,
+      payload.paidAmount !== undefined ? String(payload.paidAmount) : undefined,
+      payload.expected_row_version,
+      idempotencyKey,
+      actorId
     );
+    await this.commandBus.execute(command);
+    return this.getRegistrationById(registrationId);
   }
 
   @Post("waitlist-items")
@@ -580,7 +662,8 @@ export class RegistrationsController {
         requestHash,
         statusCode: 200
       },
-      async () => this.registrationsService.cancelWaitlistItem(waitlistItemId, payload)
+      async () =>
+        this.registrationsService.cancelWaitlistItem(waitlistItemId, { reason: payload.cancelReason })
     );
     return result.responseBody as WaitlistItemResponseDto;
   }

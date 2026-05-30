@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from "typeorm";
+import type { MobileOtpPurpose } from "../mobile-otp.types";
 
-export type MobileOtpPurpose = "login" | "change_mobile";
+export type { MobileOtpPurpose } from "../mobile-otp.types";
 
 @Entity({ name: "mobile_otp_challenges" })
 export class MobileOtpChallengeEntity {

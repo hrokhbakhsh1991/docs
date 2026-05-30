@@ -10,6 +10,10 @@ export class TenantDbContextService {
     private readonly tenantSessionBindingService: TenantSessionBindingService
   ) {}
 
+  /**
+   * Runs work in ALS tenant scope; RLS GUC injection is handled automatically by
+   * {@link TenantSessionBindingService} on the transaction QueryRunner.
+   */
   async runInTenantScope<T>(
     tenantId: string,
     fn: (_manager: EntityManager) => Promise<T>
@@ -19,12 +23,7 @@ export class TenantDbContextService {
       throw new Error("TENANT_CONTEXT_MISSING");
     }
     return this.tenantSessionBindingService.runInTenantContext(normalizedTenantId, async () =>
-      this.dataSource.transaction(async (manager) => {
-        await manager.query("SELECT set_config('app.tenant_id', $1, true)", [
-          normalizedTenantId
-        ]);
-        return fn(manager);
-      })
+      this.dataSource.transaction(async (manager) => fn(manager))
     );
   }
 }

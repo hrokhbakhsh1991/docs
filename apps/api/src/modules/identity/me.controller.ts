@@ -34,7 +34,7 @@ import { AbilitiesGuard } from "../../common/casl/abilities.guard";
 import { CaslMirrorAbilitiesGuard } from "../../common/casl/casl-mirror-abilities.guard";
 import { AbilityAction } from "../../common/casl/ability-actions";
 import { CheckAbilities } from "../../common/casl/check-abilities.decorator";
-import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { IdempotencyInterceptor } from "../idempotency/repositories/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 import { ChangeMobileRequestDto } from "./dto/change-mobile-request.dto";
 import { ChangeMobileVerifyDto } from "./dto/change-mobile-verify.dto";

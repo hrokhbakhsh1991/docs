@@ -4,7 +4,7 @@ import type { EntityManager } from "typeorm";
 import type { OutboxService } from "../../outbox/outbox.service";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 import { postDoubleEntryJournal } from "./post-double-entry-journal";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { bookingWalletId } from "./booking-ledger-authority.service";
 
 const tenantA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -14,7 +14,7 @@ const regId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 test("emitFinanceLedgerDoubleEntryAppliedOutbox enqueues when tenant envelope matches lines", async () => {
   const { lines } = postDoubleEntryJournal({
     tenantId: tenantA,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId(regId),
     amount_minor: "100",
     currency: "USD",
@@ -43,7 +43,7 @@ test("emitFinanceLedgerDoubleEntryAppliedOutbox enqueues when tenant envelope ma
 test("emitFinanceLedgerDoubleEntryAppliedOutbox rejects cross-tenant line batch", async () => {
   const { lines } = postDoubleEntryJournal({
     tenantId: tenantA,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId(regId),
     amount_minor: "100",
     currency: "USD",

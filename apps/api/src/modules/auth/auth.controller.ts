@@ -52,7 +52,7 @@ import {
   WebSessionResponseDto
 } from "./dto/auth-session-response.dto";
 import { AuthWorkspaceItemDto } from "./dto/auth-workspace-item.dto";
-import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { IdempotencyInterceptor } from "../idempotency/repositories/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 import type { Request } from "express";
 

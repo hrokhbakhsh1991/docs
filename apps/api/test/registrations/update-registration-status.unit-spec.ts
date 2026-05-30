@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { UserRole } from "../../src/common/auth/user-role.enum";
-import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
-import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
+import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
+import { createRegistrationsTourCatalogPortTestDouble } from "./stub-registrations-tour-catalog.port";
+import { createTourCapacityReservationPortTestDouble } from "./stub-tour-capacity-reservation.port";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -358,9 +358,23 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     requestContextService as never,
     outboxService as never,
     stubRegistrationQuoteApplication,
-    createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    createRegistrationsReadRepositoryPortTestDouble(
+      {
+        async findOne(opts: any) {
+          return manager.findOne(RegistrationEntity, opts);
+        }
+      },
+      manager as never
+    ),
+    {} as never, // PricingCatalogPort stub
+    createRegistrationsTourCatalogPortTestDouble(store.tour, {
+      acquireTourLock: async () => {
+        const release = await tourLock.acquire();
+        activeReleasers.push(release);
+        return release;
+      },
+    }),
+    createTourCapacityReservationPortTestDouble(store.tour)
   );
 
   return { service, outboxCalls, store };

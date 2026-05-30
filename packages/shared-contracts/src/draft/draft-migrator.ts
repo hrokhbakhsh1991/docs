@@ -97,6 +97,11 @@ export class DraftMigratorRegistry {
     this.migrators.set(draftKey.trim(), migrator);
   }
 
+  /** True when a schema migrator is registered for the draft key (tour-create wizard, etc.). */
+  hasMigrator(draftKey: string): boolean {
+    return this.migrators.has(draftKey.trim());
+  }
+
   migrateEnvelope<TData = Record<string, unknown>>(
     draftKey: string,
     envelope: DraftSnapshot,

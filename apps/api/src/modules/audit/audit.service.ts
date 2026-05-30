@@ -1,16 +1,17 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { WorkspaceAuditLogEntity } from "./entities/workspace-audit-log.entity";
+import { Inject, Injectable } from "@nestjs/common";
+import {
+  WORKSPACE_AUDIT_REPOSITORY_PORT,
+  type WorkspaceAuditRepositoryPort,
+} from "./domain/ports/workspace-audit-repository.port";
 
 @Injectable()
 export class AuditService {
   constructor(
-    @InjectRepository(WorkspaceAuditLogEntity)
-    private readonly auditRepository: Repository<WorkspaceAuditLogEntity>,
+    @Inject(WORKSPACE_AUDIT_REPOSITORY_PORT)
+    private readonly auditRepository: WorkspaceAuditRepositoryPort
   ) {}
 
-  async log(data: {
+  log(data: {
     workspaceId: string;
     userId: string;
     entityType: "tour" | "preset";
@@ -18,14 +19,6 @@ export class AuditService {
     action: string;
     meta?: Record<string, unknown>;
   }): Promise<void> {
-    const log = this.auditRepository.create({
-      workspaceId: data.workspaceId,
-      userId: data.userId,
-      entityType: data.entityType,
-      entityId: data.entityId,
-      action: data.action,
-      meta: data.meta ?? {},
-    });
-    await this.auditRepository.save(log);
+    return this.auditRepository.log(data);
   }
 }

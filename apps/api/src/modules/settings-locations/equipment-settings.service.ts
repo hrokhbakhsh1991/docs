@@ -18,7 +18,7 @@ import {
 import type { CreateEquipmentItemDto } from "./dto/create-equipment-item.dto";
 import type { UpdateEquipmentItemDto } from "./dto/update-equipment-item.dto";
 import { WorkspaceEquipmentItemResponseDto } from "./dto/workspace-equipment-item-response.dto";
-import { WorkspaceEquipmentItemEntity } from "./entities/workspace-equipment-item.entity";
+import type { WorkspaceEquipmentItemRecord } from "./domain/workspace-catalog.records";
 
 @Injectable()
 export class EquipmentSettingsService {
@@ -57,7 +57,7 @@ export class EquipmentSettingsService {
     return normalizeCompatibleCategories(values ?? []);
   }
 
-  private toResponse(row: WorkspaceEquipmentItemEntity): WorkspaceEquipmentItemResponseDto {
+  private toResponse(row: WorkspaceEquipmentItemRecord): WorkspaceEquipmentItemResponseDto {
     return {
       id: row.id,
       name: row.name,

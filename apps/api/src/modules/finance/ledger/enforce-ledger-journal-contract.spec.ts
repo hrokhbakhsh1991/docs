@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { BadRequestException } from "@nestjs/common";
 import {
   bookingLedgerAccountId,
-  REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+  LEDGER_ACCOUNTS,
 } from "@repo/shared-contracts";
 
 import {
@@ -21,7 +21,7 @@ describe("enforceLedgerJournalContract", () => {
   it("allows balanced postDoubleEntryJournal lines", () => {
     const { lines } = postDoubleEntryJournal({
       tenantId: TENANT_ID,
-      debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
       creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
       amount_minor: "1000",
       currency: "IRR",
@@ -36,7 +36,7 @@ describe("enforceLedgerJournalContract", () => {
   it("throws LEDGER_CONTRACT_VALIDATION_FAILED on imbalanced amounts", () => {
     const { lines } = postDoubleEntryJournal({
       tenantId: TENANT_ID,
-      debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
       creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
       amount_minor: "1000",
       currency: "IRR",

@@ -23,9 +23,7 @@ import {
   getFinancialIdempotencyKeyFromContext,
   getIdempotentEntityManager
 } from "../idempotency/idempotent-transaction.context";
-import { IdempotencyService } from "../idempotency/idempotency.service";
-import { PaymentCaptureLedgerAuthorityService } from "../finance/ledger/payment-capture-ledger-authority.service";
-import { PaymentRefundLedgerAuthorityService } from "../finance/ledger/payment-refund-ledger-authority.service";
+import { IdempotencyService } from "../idempotency/repositories/idempotency.service";
 import { OutboxService } from "../outbox/outbox.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { UserRole } from "../../common/auth/user-role.enum";
@@ -64,7 +62,6 @@ import {
   PAYMENT_GATEWAY_FACTORY_PORT,
   type PaymentGatewayFactoryPort,
 } from "./domain/ports/payment-gateway-factory.port";
-import { REGISTRATION_PAYMENT_PORT, IRegistrationPaymentPort } from "../registrations/ports/registration-payment.port";
 import { FinanceReportsService } from "../finance/reports/finance-reports.service";
 import { enforcePaymentIntentFinanceContract } from "./enforce-payment-intent-finance-contract";
 
@@ -141,14 +138,11 @@ export class PaymentsService {
     @Inject(OutboxService) private readonly outboxService: OutboxService,
     @Inject(PaymentIntentRegistrationResolverApplicationService)
     private readonly paymentIntentRegistrationResolver: PaymentIntentRegistrationResolverApplicationService,
-    @Inject(PaymentRefundLedgerAuthorityService)
-    private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService,
-    @Inject(PaymentCaptureLedgerAuthorityService)
-    private readonly paymentCaptureLedgerAuthority: PaymentCaptureLedgerAuthorityService,
+    
+    
     @Inject(PAYMENT_GATEWAY_FACTORY_PORT)
     private readonly paymentGatewayFactory: PaymentGatewayFactoryPort,
-    @Inject(REGISTRATION_PAYMENT_PORT)
-    private readonly registrationPaymentPort: IRegistrationPaymentPort,
+    
     @Inject(FinanceReportsService) private readonly financeReportsService: FinanceReportsService
   ) {}
 
@@ -632,7 +626,7 @@ export class PaymentsService {
     next: PaymentStatus,
     actorId: string,
     reason?: string,
-    ledgerIdempotencyKey?: string
+    _ledgerIdempotencyKey?: string
   ): Promise<PaymentRecord> {
     enforcePaymentIntentFinanceContract(
       {
@@ -669,11 +663,7 @@ export class PaymentsService {
     if (!regPeek) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    await this.registrationPaymentPort.lockTourRowForUpdate(
-      manager,
-      regPeek.tourId,
-      regPeek.tenantId
-    );
+    
     const registration = await this.paymentRepository.lockRegistrationSnapshot(
       manager,
       payment.tenantId,
@@ -694,23 +684,12 @@ export class PaymentsService {
     const factsStart = await this.loadBookingFinalizationFacts(manager, registration);
     const phaseStart = bookingFinalizationPhaseFromFacts(factsStart);
 
-    if (next === PaymentStatus.REFUNDED) {
-      const key =
-        ledgerIdempotencyKey !== undefined && ledgerIdempotencyKey.trim() !== ""
-          ? ledgerIdempotencyKey.trim()
-          : `payment-refund:${payment.id}:${payment.tenantId}`;
-      await this.paymentRefundLedgerAuthority.emitPaymentRefundLedgerReversal(manager, payment, key);
-    }
+    
 
     payment.status = next;
     if (next === PaymentStatus.PAID) {
       payment.paidAt = new Date();
-      const { journalId } = await this.paymentCaptureLedgerAuthority.emitPaymentCaptureAtPaid(
-        manager,
-        payment,
-        "online_webhook_paid"
-      );
-      payment.ledgerJournalId = journalId;
+      
     } else if (next === PaymentStatus.FAILED) {
       payment.failedAt = new Date();
     } else if (next === PaymentStatus.REFUNDED) {
@@ -732,12 +711,7 @@ export class PaymentsService {
         metadata: { paymentId: payment.id }
       });
 
-      await this.registrationPaymentPort.transitionRegistrationForPayment(
-        manager,
-        registration,
-        RegistrationStatus.ACCEPTED_PAID,
-        actorId
-      );
+      
 
       const otherPending = await this.paymentRepository.existsOtherPendingForRegistration(
         manager,
@@ -778,23 +752,13 @@ export class PaymentsService {
     }
 
     if (next === PaymentStatus.FAILED) {
-      await this.registrationPaymentPort.transitionRegistrationForPayment(
-        manager,
-        registration,
-        RegistrationStatus.REJECTED,
-        actorId
-      );
+      
       this.failedPayments += 1;
       this.autoRecoveredCapacityCount += 1;
     }
 
     if (next === PaymentStatus.REFUNDED) {
-      await this.registrationPaymentPort.transitionRegistrationForPayment(
-        manager,
-        registration,
-        RegistrationStatus.REFUNDED,
-        actorId
-      );
+      
       this.autoRecoveredCapacityCount += 1;
     }
 

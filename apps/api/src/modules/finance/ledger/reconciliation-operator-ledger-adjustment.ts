@@ -2,7 +2,7 @@ import type { EntityManager } from "typeorm";
 
 import type { OutboxService } from "../../outbox/outbox.service";
 import { bookingWalletId } from "./booking-ledger-authority.service";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
 import { postDoubleEntryJournal } from "./post-double-entry-journal";
 
@@ -41,11 +41,11 @@ export async function emitReconciliationOperatorLedgerAdjustment(input: {
   let debitAccount: string;
   let creditAccount: string;
   if (input.flow === "credit_booking_wallet") {
-    debitAccount = REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT;
+    debitAccount = LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING;
     creditAccount = booking;
   } else {
     debitAccount = booking;
-    creditAccount = REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT;
+    creditAccount = LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING;
   }
 
   const result = postDoubleEntryJournal({

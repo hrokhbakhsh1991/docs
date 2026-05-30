@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigService } from "../../config/config.service";
 import { DatabaseModule } from "../../database/database.module";
@@ -51,9 +51,9 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
       TenantEntity
     ]),
     DatabaseModule,
-    OutboxModule,
+    forwardRef(() => OutboxModule),
     IdempotencyModule,
-    FinanceLedgerModule,
+    forwardRef(() => FinanceLedgerModule),
     StorageModule,
     ReceiptsModule,
     FinanceReportsModule,

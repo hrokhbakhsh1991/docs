@@ -13,7 +13,7 @@ import {
   type ReconciliationRegistrationReadPort,
 } from "../../common/ports/reconciliation-registration-read.port";
 import { ReconciliationJobEntity } from "../finance/reconciliation/entities/reconciliation-job.entity";
-import { loadPaymentReconciliationReportInputForTenant } from "../finance/reconciliation/payment-finance-reconciliation.loader";
+import { loadPaymentReconciliationReportInputForTenant } from "../finance/reconciliation/repositories/payment-finance-reconciliation.loader.repository";
 import {
   formatPaymentReconciliationReportJsonLines,
   generatePaymentReconciliationReport

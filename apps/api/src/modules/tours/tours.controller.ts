@@ -46,7 +46,7 @@ import { assertTourPatchWritePreMerge } from "./policies/assert-tour-patch-write
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { ToursService } from "./tours.service";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
-import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { IdempotencyInterceptor } from "../idempotency/repositories/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 import { RegistrationsService } from "../registrations/registrations.service";
 import {

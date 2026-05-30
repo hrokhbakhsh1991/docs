@@ -34,7 +34,7 @@ export async function lockRegistrationEntityForFinancialMutation(
   manager: EntityManager,
   where: RegistrationReadWhere
 ): Promise<RegistrationEntity> {
-  const registration = await manager.findOne(RegistrationEntity, {
+  const registration = await manager.findOne<RegistrationEntity>(RegistrationEntity, {
     where: toEntityWhere(where),
     lock: { mode: "pessimistic_write" },
   });
@@ -52,7 +52,7 @@ export async function lockRegistrationForFinancialMutation(
   manager: EntityManager,
   where: RegistrationReadWhere
 ): Promise<RegistrationWriteRecord> {
-  const registration = await manager.findOne(RegistrationEntity, {
+  const registration = await manager.findOne<RegistrationEntity>(RegistrationEntity, {
     where: toEntityWhere(where),
     lock: { mode: "pessimistic_write" },
   });

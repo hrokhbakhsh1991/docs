@@ -10,13 +10,11 @@ import {
   RegistrationPaymentStatus,
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
-import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
-import { noopPaymentRefundLedgerForTests } from "../helpers/noop-payment-refund-ledger.service";
 import { stubPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
 import { createRegistrationsReadRepositoryPortTestDouble } from "../registrations/stub-registrations-read-repository";
+import { createNoOpTourCapacityReservationPortTestDouble } from "../registrations/stub-tour-capacity-reservation.port";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 import {
@@ -25,24 +23,6 @@ import {
   TEST_REGISTRATION_ID,
   TEST_TENANT_ID,
 } from "../helpers/finance-contract-fixtures";
-import { bookingLedgerAccountId } from "@repo/shared-contracts";
-
-const noopRegistrationPaymentPort = {
-  async lockTourRowForUpdate(): Promise<{ id: string }> {
-    return { id: "tour-1" };
-  },
-  async promoteNextWaitlistItemForPaymentFlow(): Promise<boolean> {
-    return false;
-  },
-  async transitionRegistrationForPayment(
-    _manager: unknown,
-    registration: { status: string },
-    targetStatus: string
-  ) {
-    registration.status = targetStatus;
-    return registration;
-  }
-};
 
 type Actor = {
   role?: UserRole;
@@ -154,8 +134,9 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     { addEvent: async () => undefined } as never,
     stubRegistrationQuoteApplication,
     createRegistrationsReadRepositoryPortTestDouble(registrationRepository as never, manager as never),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    {} as never,
+    {} as never,
+    createNoOpTourCapacityReservationPortTestDouble()
   );
   return { service };
 }
@@ -366,39 +347,7 @@ test("payment intent denies member access to other member registration", async (
     } as never,
     { addEvent: async () => undefined } as never,
     resolverStub as never,
-    noopPaymentRefundLedgerForTests,
-    {
-      emitPaymentCaptureAtPaid: async () => ({
-        lines: [
-          {
-            id: "d1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: "gl:leader-registration-payment-clearing",
-            side: "debit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c1",
-            idempotencyKey: "k1",
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: "c1",
-            journalId: "j1",
-            tenantId: TEST_TENANT_ID,
-            account: bookingLedgerAccountId("88888888-8888-4888-8888-888888888888"),
-            side: "credit",
-            amount_minor: "100",
-            currency: "USD",
-            correlationId: "c2",
-            idempotencyKey: "k2",
-            createdAt: new Date().toISOString()
-          }
-        ]
-      })
-    } as never,
     stubPaymentGatewayFactoryForTests,
-    noopRegistrationPaymentPort as never,
     { invalidateSummaryCache: async () => undefined } as never
   );
 

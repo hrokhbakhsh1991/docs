@@ -32,7 +32,7 @@ import { CreatePaymentIntentDto } from "./dto/create-payment-intent.dto";
 import { PaymentResponseDto } from "./dto/payment-response.dto";
 import { RefundPaymentDto } from "./dto/refund-payment.dto";
 import { PaymentsService } from "./payments.service";
-import { IdempotencyInterceptor } from "../idempotency/idempotency.interceptor";
+import { IdempotencyInterceptor } from "../idempotency/repositories/idempotency.interceptor";
 import { Idempotent } from "../idempotency/idempotent.decorator";
 
 @ApiTags("Payments")

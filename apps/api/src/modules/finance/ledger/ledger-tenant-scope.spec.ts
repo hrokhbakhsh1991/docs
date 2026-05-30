@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { postDoubleEntryJournal } from "./post-double-entry-journal";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { bookingWalletId } from "./booking-ledger-authority.service";
 import {
   assertLedgerLinesFinanceTenantScope,
@@ -22,7 +22,7 @@ test("normalizeFinanceTenantId rejects empty", () => {
 test("assertLedgerLinesFinanceTenantScope passes when all lines match envelope", () => {
   const { lines } = postDoubleEntryJournal({
     tenantId: tA,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId("reg-1"),
     amount_minor: "1",
     currency: "USD",
@@ -36,7 +36,7 @@ test("assertLedgerLinesFinanceTenantScope passes when all lines match envelope",
 test("assertLedgerLinesFinanceTenantScope throws on tenant mismatch", () => {
   const { lines } = postDoubleEntryJournal({
     tenantId: tA,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId("reg-1"),
     amount_minor: "1",
     currency: "USD",

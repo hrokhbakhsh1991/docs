@@ -5,12 +5,12 @@ import {
   RegistrationEntryModeDto,
   RegistrationTransportModeDto
 } from "../../src/modules/registrations/dto/create-registration.dto";
-import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
 import { createNullStandaloneRegistrationsReadTestDouble } from "../registrations/stub-registrations-read-repository";
+import { createRegistrationsTourCatalogPortTestDouble } from "../registrations/stub-registrations-tour-catalog.port";
+import { createNoOpTourCapacityReservationPortTestDouble } from "../registrations/stub-tour-capacity-reservation.port";
 
 function sampleCreateDto(): {
   tourId: string;
@@ -69,7 +69,7 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
       }
       return {};
     },
-    async save(): Promise<void> {},
+    async save(entity: any): Promise<any> { return entity; },
     create(): Record<string, unknown> {
       return {};
     },
@@ -96,13 +96,15 @@ test("member createRegistration returns 404 when JWT tenant differs from tour.te
       getRole: () => "member",
       resolveEffectiveTenantId: () => "11111111-1111-4111-8111-111111111111",
       getTenantId: () => "11111111-1111-4111-8111-111111111111",
-      getUserId: () => "33333333-3333-4333-8333-333333333333"
+      getUserId: () => "33333333-3333-4333-8333-333333333333",
+      getRequestId: () => "test-request-id"
     } as never,
     {} as never,
     stubRegistrationQuoteApplication,
     createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    {} as never, // PricingCatalogPort stub
+    createRegistrationsTourCatalogPortTestDouble(lockedTour),
+    createNoOpTourCapacityReservationPortTestDouble()
   );
 
   await assert.rejects(
@@ -127,8 +129,15 @@ test("getTenantIdForTourOrThrow returns tenant from tour row", async () => {
     {} as never,
     stubRegistrationQuoteApplication,
     createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    {} as never,
+    createRegistrationsTourCatalogPortTestDouble({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      tenantId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      acceptedCount: 0,
+      totalCapacity: 10,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+    }),
+    createNoOpTourCapacityReservationPortTestDouble()
   );
 
   const tenant = await service.getTenantIdForTourOrThrow("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
@@ -151,8 +160,15 @@ test("getTenantIdForTourOrThrow rejects unknown tour id", async () => {
     {} as never,
     stubRegistrationQuoteApplication,
     createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    {} as never,
+    createRegistrationsTourCatalogPortTestDouble({
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      acceptedCount: 0,
+      totalCapacity: 10,
+      lifecycleStatus: TourLifecycleStatus.OPEN,
+    }),
+    createNoOpTourCapacityReservationPortTestDouble()
   );
 
   await assert.rejects(

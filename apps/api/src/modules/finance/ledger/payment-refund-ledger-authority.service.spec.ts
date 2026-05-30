@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PaymentStatus } from "../../payments/entities/payment.entity";
-import { PaymentRefundLedgerAuthorityService } from "./payment-refund-ledger-authority.service";
+import { PaymentRefundLedgerAuthorityService } from "./repositories/payment-refund-ledger-authority.service";
 import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
 
 test("emitPaymentRefundLedgerReversal enqueues finance.ledger.double_entry_applied with reversal links", async () => {

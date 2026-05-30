@@ -77,38 +77,38 @@ function toEntityWhere(where: RegistrationReadWhere): unknown {
  */
 export function createRegistrationsReadRepositoryPortTestDouble(
   registrationRepository: RepoLike,
-  manager: EntityManager
+  _manager?: EntityManager
 ): RegistrationsReadRepositoryPort {
+  const findOneInMgr = _manager
+    ? (where: RegistrationReadWhere) =>
+        _manager
+          .findOne(RegistrationEntity, { where: toEntityWhere(where) as never })
+          .then((row) => (row ? asRegistrationWriteRecord(row) : null))
+    : (where: RegistrationReadWhere) =>
+        registrationRepository
+          .findOne({ where: toEntityWhere(where) })
+          .then((row) => (row ? asRegistrationWriteRecord(row) : null));
+
   return {
-    getDefaultManager: () => manager,
     findOneStandalone(where) {
-      return registrationRepository
-        .findOne({ where: toEntityWhere(where) })
-        .then((row) => (row ? asRegistrationWriteRecord(row) : null));
+      return findOneInMgr(where);
     },
     findManyStandalone(where) {
       return registrationRepository
         .findOne({ where: toEntityWhere(where) })
         .then((row) => (row ? [asRegistrationWriteRecord(row)] : []));
     },
-    findOneInManager(mgr, where) {
-      return mgr
-        .findOne(RegistrationEntity, { where: toEntityWhere(where) as never })
-        .then((row) => (row ? asRegistrationWriteRecord(row) : null));
-    },
     findOneDetailStandalone(where) {
       return registrationRepository
         .findOne({ where: toEntityWhere(where) })
         .then((row) => (row ? asRegistrationReadDetailRecord(row) : null));
     },
-    async lockForFinancialMutation(mgr, where) {
-      const row = await mgr.findOne(RegistrationEntity, {
-        where: toEntityWhere(where) as never,
-      });
+    async lockForFinancialMutation(where) {
+      const row = await findOneInMgr(where);
       if (!row) {
         throw new Error("registration not found for lockForFinancialMutation test double");
       }
-      return asRegistrationWriteRecord(row);
+      return row;
     },
   };
 }
@@ -123,7 +123,7 @@ export function createRegistrationsReadRepositoryTestDouble(
   );
 }
 
-/** Use when tests only hit transactional reads (`findOneInManager`). */
+/** Use when tests only hit transactional reads. */
 export function createNullStandaloneRegistrationsReadTestDouble(
   manager: EntityManager
 ): RegistrationsReadRepositoryPort {
@@ -136,3 +136,4 @@ export function createNullStandaloneRegistrationsReadTestDouble(
     manager
   );
 }
+

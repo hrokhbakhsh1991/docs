@@ -1,7 +1,5 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
-import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
-import { TourEntity } from "../tours/entities/tour.entity";
 import { WaitlistItemStatus } from "./domain/waitlist-status";
 
 export { WaitlistItemStatus };
@@ -51,12 +49,4 @@ export class WaitlistItemEntity extends BaseTenantEntity {
     nullable: true
   })
   promotedRegistrationId?: string;
-
-  @ManyToOne(() => TourEntity, { nullable: false })
-  @JoinColumn({ name: "tour_id", referencedColumnName: "id" })
-  tour!: TourEntity;
-
-  @ManyToOne(() => TourDepartureEntity, { nullable: false })
-  @JoinColumn({ name: "tour_departure_id", referencedColumnName: "id" })
-  tourDeparture!: TourDepartureEntity;
 }

@@ -21,7 +21,7 @@ export function assertAllowedPaymentStatusTransition(current: PaymentStatus, nex
 export function paymentStatusToOutboxEventType(status: PaymentStatus): string {
   switch (status) {
     case PaymentStatus.PAID:
-      return "payment.succeeded";
+      return "payment.captured";
     case PaymentStatus.FAILED:
       return "payment.failed";
     case PaymentStatus.REFUNDED:

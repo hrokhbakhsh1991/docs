@@ -1,11 +1,9 @@
-import { Injectable, Logger, HttpException, Inject, ForbiddenException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { Injectable, Logger, HttpException, Inject, ForbiddenException, NotFoundException } from "@nestjs/common";
 import {
   CURRENT_DRAFT_SCHEMA_VERSION,
   draftSnapshotEnvelopeSchema,
   type DraftSnapshot,
 } from "@repo/shared-contracts";
-import { Repository } from "typeorm";
 import { randomUUID } from "node:crypto";
 
 import type { DraftSyncPayloadDto } from "./dto/draft-sync-payload.dto";
@@ -16,37 +14,46 @@ import {
 import { AUDIT_CATEGORY } from "../../common/audit/audit-category";
 import { AuditLogService } from "../../common/audit/audit-log.service";
 import { DraftScopeResolver } from "./storage/draft-scope.resolver";
-import { PostgresDraftSnapshotStore } from "./storage/postgres-draft-snapshot.store";
-import { DraftMigratorRegistry } from "@repo/shared-contracts";
+import { DraftMigratorRegistry, type DraftStoragePort } from "@repo/shared-contracts";
 import { DraftConflictException } from "./draft-conflict.exception";
 import { DraftForensicException } from "./draft-forensic.exception";
-import { DraftEventEntity } from "./entities/draft-event.entity";
+import type { DraftEventType } from "./draft-event.types";
+import {
+  DRAFT_EVENTS_PORT,
+  type DraftEventsPort,
+} from "./domain/ports/draft-events.port";
+import { DRAFT_STORAGE_PORT } from "./domain/ports/draft-storage.port";
 import { tryGetActiveTraceLogFields } from "../../common/observability/active-trace-log-fields";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { tenantContextMissingError } from "../../common/errors/error-response-builders";
 
 import type { DraftSyncPayloadResponse } from "./draft-sync-payload.types";
+import {
+  DRAFT_CONFLICT_RESOLVER_PORT,
+  type DraftConflictResolverPort,
+} from "./domain/ports/draft-conflict-resolver.port";
 
 export type { DraftSyncPayloadResponse };
 
 @Injectable()
 export class DraftEngineFacade {
   private readonly logger = new Logger(DraftEngineFacade.name);
-  private static readonly DENALI_CREATE_DRAFT_KEY = "denali-create";
 
   constructor(
-    @Inject(PostgresDraftSnapshotStore)
-    private readonly store: PostgresDraftSnapshotStore,
+    @Inject(DRAFT_STORAGE_PORT)
+    private readonly store: DraftStoragePort,
     @Inject(DraftScopeResolver)
     private readonly scopeResolver: DraftScopeResolver,
     @Inject(DraftMigratorRegistry)
     private readonly migratorRegistry: DraftMigratorRegistry,
     @Inject(AuditLogService)
     private readonly auditLog: AuditLogService,
-    @InjectRepository(DraftEventEntity)
-    private readonly draftEventsRepository: Repository<DraftEventEntity>,
+    @Inject(DRAFT_EVENTS_PORT)
+    private readonly draftEventsRepository: DraftEventsPort,
     @Inject(RequestContextService)
     private readonly requestContext: RequestContextService,
+    @Inject(DRAFT_CONFLICT_RESOLVER_PORT)
+    private readonly conflictResolver: DraftConflictResolverPort,
   ) {}
 
   private resolveTenantIdOrThrow(): string {
@@ -180,7 +187,7 @@ export class DraftEngineFacade {
     workspaceId: string;
     userId: string;
     draftKey: string;
-    eventType: DraftEventEntity["eventType"];
+    eventType: DraftEventType;
     baseVersion: number | null;
     nextVersion: number | null;
     payloadSnapshot: Record<string, unknown>;
@@ -260,7 +267,7 @@ export class DraftEngineFacade {
     return typeof node === "string" ? node.trim() : "";
   }
 
-  private hasMeaningfulDenaliFormData(value: unknown): boolean {
+  private hasMeaningfulTourCreateFormData(value: unknown): boolean {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return false;
     }
@@ -276,12 +283,12 @@ export class DraftEngineFacade {
   }
 
   private isEffectivelyEmptyDraft(draftKey: string, snapshot: DraftSnapshot): boolean {
-    if (draftKey !== DraftEngineFacade.DENALI_CREATE_DRAFT_KEY) {
+    if (!this.migratorRegistry.hasMigrator(draftKey)) {
       return false;
     }
     const data = snapshot.data as { form?: unknown; currentStepIndex?: unknown };
     const stepIndex = typeof data.currentStepIndex === "number" ? data.currentStepIndex : 0;
-    const hasMeaningfulForm = this.hasMeaningfulDenaliFormData(data.form);
+    const hasMeaningfulForm = this.hasMeaningfulTourCreateFormData(data.form);
     return stepIndex <= 0 && !hasMeaningfulForm;
   }
 
@@ -554,6 +561,97 @@ export class DraftEngineFacade {
         throw err;
       }
       throw new DraftForensicException("Failed to upsert draft", err, this.getDebugContextFields(draftKey));
+    }
+  }
+
+  async resolveConflictForMember(
+    tenantId: string,
+    draftKey: string,
+    body: DraftSyncPayloadDto,
+  ): Promise<DraftSyncPayloadResponse> {
+    const correlationId = this.ensureCorrelationId();
+    const ctx = this.getDebugContextFields(draftKey);
+    this.logger.log(
+      `[DRAFT-FORENSIC] [correlationId: ${correlationId}] resolveConflictForMember: entering method. Context: ${JSON.stringify(ctx)}`,
+    );
+
+    this.assertActiveTenantMatches(
+      ctx,
+      tenantId,
+      correlationId,
+      `Tenant isolation mismatch! Active context tenantId (${typeof ctx.tenantId === "string" ? ctx.tenantId : "N/A"}) does not match param tenantId (${tenantId})`,
+    );
+
+    try {
+      const scope = this.scopeResolver.resolveOrThrow(tenantId, draftKey);
+      const serverDraft = await this.store.find(scope);
+      if (serverDraft == null) {
+        throw new NotFoundException({
+          error: {
+            code: "DRAFT_NOT_FOUND",
+            message: "No draft exists to resolve against in tenant scope",
+          },
+        });
+      }
+
+      const clientSnapshot = this.validateEnvelope(this.dtoToSnapshot(body));
+      const mergeResult = this.conflictResolver.resolveMergeConflict(clientSnapshot, serverDraft);
+      const payload = isDraftEngineV2Enabled()
+        ? this.migratorRegistry.migrateEnvelope(draftKey, mergeResult.merged).snapshot
+        : mergeResult.merged;
+
+      const saved = await this.store.upsert(scope, payload);
+
+      await this.auditLog.logEvent({
+        action: "draft_engine.conflict_resolved",
+        entity: "draft_snapshot",
+        entityId: `${scope.workspaceId}:${scope.userId}:${scope.draftKey}`,
+        category: AUDIT_CATEGORY.DRAFT_ENGINE_EVENT,
+        before: {
+          clientVersion: clientSnapshot.version,
+          serverVersion: serverDraft.version,
+          conflictCount: mergeResult.conflicts.length,
+          draftKey: scope.draftKey,
+        },
+        after: {
+          savedVersion: saved.version,
+          savedSchemaVersion: saved.schemaVersion,
+          hadConflicts: mergeResult.hadConflicts,
+        },
+      });
+
+      try {
+        await this.logDraftEvent({
+          workspaceId: scope.workspaceId,
+          userId: scope.userId,
+          draftKey: scope.draftKey,
+          eventType: "draft_conflict",
+          baseVersion: serverDraft.version,
+          nextVersion: saved.version,
+          payloadSnapshot: saved.data,
+        });
+      } catch (logErr) {
+        this.logger.warn(
+          `[DRAFT-FORENSIC] [correlationId: ${correlationId}] draft event log failed for conflict resolution: ${
+            logErr instanceof Error ? logErr.message : String(logErr)
+          }`,
+        );
+      }
+
+      return saved;
+    } catch (err: unknown) {
+      this.logger.error(
+        `[DRAFT-FORENSIC] [correlationId: ${correlationId}] resolveConflictForMember: failed. Context: ${JSON.stringify(this.getDebugContextFields(draftKey))}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new DraftForensicException(
+        "Failed to resolve draft conflict",
+        err,
+        this.getDebugContextFields(draftKey),
+      );
     }
   }
 

@@ -5,7 +5,7 @@ import { NotFoundException } from "@nestjs/common";
 import { CURRENT_DRAFT_SCHEMA_VERSION } from "@repo/shared-contracts";
 
 import { DraftConflictException } from "../draft-conflict.exception";
-import { PostgresDraftSnapshotStore } from "./postgres-draft-snapshot.store";
+import { PostgresDraftSnapshotStore } from "../repositories/postgres-draft-snapshot.store";
 import type { DraftSnapshotEntity } from "../entities/draft-snapshot.entity";
 
 function mockRow(overrides: Partial<DraftSnapshotEntity> = {}): DraftSnapshotEntity {

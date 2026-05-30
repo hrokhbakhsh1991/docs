@@ -8,7 +8,7 @@ import {
 import { ConfigService } from "../../config/config.service";
 import { SchedulerLockService } from "../../jobs/scheduler-lock.service";
 import { SchedulerRuntimeMetricsService } from "../../jobs/scheduler-runtime-metrics.service";
-import { OutboxProcessor } from "../../modules/outbox/outbox.processor";
+import { OutboxProcessor } from "../../modules/outbox/repositories/outbox.processor";
 
 /**
  * Durable second-stage outbox relay: global advisory lock + bounded batch dispatch

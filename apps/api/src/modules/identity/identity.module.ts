@@ -1,5 +1,7 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { AuthModule } from "../auth/auth.module";
 import { UsersController } from "./users.controller";
 import { TenantEntity } from "./entities/tenant.entity";
 import { UserEntity } from "./entities/user.entity";
@@ -25,7 +27,6 @@ import { MeController } from "./me.controller";
 import { MeService } from "./me.service";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { OutboxModule } from "../outbox/outbox.module";
-import { AuthModule } from "../auth/auth.module";
 import { AccountBalanceEntity } from "../finance/ledger/entities/account-balance.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
@@ -33,12 +34,14 @@ import { TourEntity } from "../tours/entities/tour.entity";
 import { TourProductEntity } from "../tours/entities/tour-product.entity";
 import { UsersMemberWalletBalancesService } from "./users-member-wallet-balances.service";
 import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-summary.service";
+import { CapabilityGuard } from "./guards/capability.guard";
+import { RateLimitMeterInterceptor } from "./interceptors/rate-limit-meter.interceptor";
 
 @Module({
   imports: [
     AuthModule,
     IdempotencyModule,
-    OutboxModule,
+    forwardRef(() => OutboxModule),
     TypeOrmModule.forFeature([
       TenantEntity,
       UserEntity,
@@ -50,8 +53,8 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
       RegistrationEntity,
       TourDepartureEntity,
       TourEntity,
-      TourProductEntity
-    ])
+      TourProductEntity,
+    ]),
   ],
   controllers: [
     UsersController,
@@ -61,12 +64,12 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
     WorkspaceUsersController,
     WorkspaceSettingsModulesController,
     TenantAuditEventsController,
-    MeController
+    MeController,
   ],
   providers: [
     {
       provide: WORKSPACE_IDENTITY_REPOSITORY_PORT,
-      useClass: TypeOrmIdentityRepository
+      useClass: TypeOrmIdentityRepository,
     },
     UsersAccessService,
     UsersMemberWalletBalancesService,
@@ -76,14 +79,25 @@ import { WorkspaceUserBookingSummaryService } from "./workspace-user-booking-sum
     UsersAuditService,
     UsersInviteService,
     WorkspaceUsersService,
-    MeService
+    MeService,
+    CapabilityGuard,
+    {
+      provide: APP_GUARD,
+      useExisting: CapabilityGuard,
+    },
+    RateLimitMeterInterceptor,
+    {
+      provide: APP_INTERCEPTOR,
+      useExisting: RateLimitMeterInterceptor,
+    },
   ],
   exports: [
     WORKSPACE_IDENTITY_REPOSITORY_PORT,
     UsersAccessService,
     UsersReadService,
     UsersWriteService,
-    UsersAuditService
-  ]
+    UsersAuditService,
+    CapabilityGuard,
+  ],
 })
 export class IdentityModule {}

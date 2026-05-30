@@ -5,10 +5,12 @@ import {
   OnModuleDestroy,
   OnModuleInit
 } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { DataSource, IsNull, Repository } from "typeorm";
 import { ConfigService } from "../config/config.service";
-import { IdempotencyService } from "../modules/idempotency/idempotency.service";
+import { TenantDbContextService } from "../database/tenant-db-context.service";
+import { IdempotencyService } from "../modules/idempotency/repositories/idempotency.service";
+import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { SchedulerLockService } from "./scheduler-lock.service";
 import { SchedulerRuntimeMetricsService } from "./scheduler-runtime-metrics.service";
 
@@ -25,6 +27,9 @@ export class IdempotencyCleanupJob implements OnModuleInit, OnModuleDestroy {
     @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @InjectDataSource() private readonly dataSource: DataSource,
+    @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
+    @InjectRepository(TenantEntity)
+    private readonly tenantRepository: Repository<TenantEntity>,
     @Inject(SchedulerLockService) private readonly schedulerLock: SchedulerLockService,
     @Inject(SchedulerRuntimeMetricsService)
     private readonly schedulerMetrics: SchedulerRuntimeMetricsService
@@ -57,8 +62,21 @@ export class IdempotencyCleanupJob implements OnModuleInit, OnModuleDestroy {
     this.logger.log("job_started idempotency_cleanup");
     try {
       const lock = await this.schedulerLock.runWithGlobalLock(this.lockName, async () => {
-        const deleted = await this.idempotencyService.deleteExpired();
+        const tenants = await this.tenantRepository.find({
+          select: { id: true },
+          where: { deletedAt: IsNull() },
+        });
+
+        let deleted = 0;
+        for (const { id: tenantId } of tenants) {
+          const tenantDeleted = await this.tenantDbContext.runInTenantScope(
+            tenantId,
+            async (manager) => this.idempotencyService.deleteExpiredWithManager(manager)
+          );
+          deleted += tenantDeleted;
+        }
         this.logger.log(`IdempotencyCleanupJob: deleted ${deleted} expired keys`);
+
         let pgPurged = 0;
         try {
           const rows = (await this.dataSource.query(

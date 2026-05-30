@@ -1,4 +1,4 @@
-import type { PaymentRefundLedgerAuthorityService } from "../../src/modules/finance/ledger/payment-refund-ledger-authority.service";
+import type { PaymentRefundLedgerAuthorityService } from "../../src/modules/finance/ledger/repositories/payment-refund-ledger-authority.service";
 
 /** Test double: skips refund ledger outbox (payments unit tests that do not assert finance events). */
 export const noopPaymentRefundLedgerForTests = {

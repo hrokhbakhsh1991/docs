@@ -5,7 +5,7 @@ import { TENANT_SUBDOMAIN_REGEX } from "../../identity/entities/tenant.entity";
 export class CreateWorkspaceDto {
   @ApiProperty({
     description: "Workspace display name",
-    example: "Denali"
+    example: "Mountain Club"
   })
   @IsString()
   @IsNotEmpty()
@@ -14,7 +14,7 @@ export class CreateWorkspaceDto {
 
   @ApiProperty({
     description: "Workspace hostname label (slug/subdomain)",
-    example: "denali"
+    example: "mountain-club"
   })
   @IsString()
   @IsNotEmpty()

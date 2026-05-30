@@ -84,7 +84,8 @@
     "lint-staged": "^17.0.5",
     "nx": "22.7.1",
     "socket": "^1.1.108",
-    "ts-jest": "^29.4.9"
+    "ts-jest": "^29.4.9",
+    "ts-morph": "^28.0.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [

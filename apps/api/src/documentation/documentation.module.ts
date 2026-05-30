@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { getDataSourceToken } from "@nestjs/typeorm";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "../app.controller";
@@ -14,7 +15,7 @@ import { AuthorizationPresenceGuard } from "../modules/auth/authorization-presen
 import { RolesGuard } from "../modules/auth/roles.guard";
 import { ConfigService } from "../config/config.service";
 import { SchedulerRuntimeMetricsService } from "../jobs/scheduler-runtime-metrics.service";
-import { IdempotencyService } from "../modules/idempotency/idempotency.service";
+import { IdempotencyService } from "../modules/idempotency/repositories/idempotency.service";
 import { AuthController } from "../modules/auth/auth.controller";
 import { AuthService } from "../modules/auth/auth.service";
 import { WorkspaceService } from "../modules/auth/workspace.service";
@@ -31,6 +32,8 @@ import {
 } from "../modules/payments/finance-payments.controller";
 import { FinanceReportsController } from "../modules/finance/reports/finance-reports.controller";
 import { FinanceReportsService } from "../modules/finance/reports/finance-reports.service";
+import { FinanceInvoicesController } from "../modules/finance/invoicing/finance-invoices.controller";
+import { INVOICE_READ_MODEL_PORT } from "../modules/finance/domain/ports/invoice-read-model.port";
 import { PaymentsService } from "../modules/payments/payments.service";
 import { ManualPaymentService } from "../modules/payments/manual-payment.service";
 import { ReceiptService } from "../modules/finance/receipts/receipt.service";
@@ -92,6 +95,7 @@ import { ToursService } from "../modules/tours/tours.service";
     FinancePaymentsController,
     FinanceAdminReceiptsController,
     FinanceReportsController,
+    FinanceInvoicesController,
     OpsController,
     MeController,
     UsersController,
@@ -388,6 +392,25 @@ import { ToursService } from "../modules/tours/tours.service";
     { provide: ManualPaymentService, useValue: {} },
     { provide: ReceiptService, useValue: {} },
     { provide: FinanceReportsService, useValue: {} },
+    {
+      provide: INVOICE_READ_MODEL_PORT,
+      useValue: {
+        getDerivedInvoice: async () => ({
+          tenantId: "00000000-0000-4000-8000-000000000000",
+          bookingWalletId: "booking:00000000-0000-4000-8000-000000000001",
+          bookingId: "00000000-0000-4000-8000-000000000001",
+          snapshotId: "00000000-0000-4000-8000-000000000002",
+          currency: "USD",
+          invoiceTotalMinor: "0",
+          paidAmountMinor: "0",
+          balanceDueMinor: "0",
+          issuedAtIso: new Date(0).toISOString(),
+          invoice: {
+            derivedArtifact: true,
+          },
+        }),
+      },
+    },
     { provide: UsersReadService, useValue: {} },
     { provide: UsersWriteService, useValue: {} },
     { provide: UsersAuditService, useValue: {} },
@@ -429,6 +452,14 @@ import { ToursService } from "../modules/tours/tours.service";
       }
     },
     { provide: IdempotencyService, useValue: {} },
+    {
+      provide: QueryBus,
+      useValue: { execute: async () => undefined },
+    },
+    {
+      provide: CommandBus,
+      useValue: { execute: async () => undefined },
+    },
     {
       provide: OutboxMetricsService,
       useValue: {

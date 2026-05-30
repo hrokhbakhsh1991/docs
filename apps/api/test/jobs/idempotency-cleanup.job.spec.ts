@@ -3,10 +3,12 @@ import test from "node:test";
 import { Logger } from "@nestjs/common";
 import { IdempotencyCleanupJob } from "../../src/jobs/idempotency-cleanup.job";
 
-test("idempotency cleanup job deletes expired keys and logs deleted count", async () => {
+const TENANT_A = "11111111-1111-4111-8111-111111111111";
+
+test("idempotency cleanup job deletes expired keys per tenant and logs deleted count", async () => {
   let deleteCalls = 0;
   const idempotencyService = {
-    async deleteExpired(): Promise<number> {
+    async deleteExpiredWithManager(): Promise<number> {
       deleteCalls += 1;
       return 7;
     }
@@ -47,6 +49,13 @@ test("idempotency cleanup job deletes expired keys and logs deleted count", asyn
         getSchedulerJitterMs: () => 0
       } as never,
       { query: async () => [] } as never,
+      {
+        runInTenantScope: async (_tenantId: string, fn: (_manager: unknown) => Promise<number>) =>
+          fn({})
+      } as never,
+      {
+        find: async () => [{ id: TENANT_A }]
+      } as never,
       {
         runWithGlobalLock: async (_lockName: string, onLocked: () => Promise<void>) => {
           await onLocked();

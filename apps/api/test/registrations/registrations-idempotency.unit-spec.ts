@@ -7,7 +7,7 @@ import {
   RegistrationStatus
 } from "../../src/modules/registrations/registration.entity";
 import { WaitlistItemStatus } from "../../src/modules/registrations/waitlist-item.entity";
-import { IdempotencyService } from "../../src/modules/idempotency/idempotency.service";
+import { IdempotencyService } from "../../src/modules/idempotency/repositories/idempotency.service";
 
 function createControllerFixture() {
   const responses = new Map<string, { requestHash: string; body: Record<string, unknown> }>();
@@ -21,15 +21,7 @@ function createControllerFixture() {
     async createPublicRegistrationOrWaitlist() {
       throw new Error("not used");
     },
-    async updateRegistrationPayment(registrationId: string, payload: unknown, _idempotencyKey: string) {
-      executionCount.payment += 1;
-      return {
-        id: registrationId,
-        status: RegistrationStatus.PENDING,
-        paymentStatus: (payload as { paymentStatus: string }).paymentStatus,
-        paidAmount: "1200"
-      };
-    },
+
     async convertWaitlistItem(waitlistItemId: string, payload: unknown) {
       executionCount.convert += 1;
       return {
@@ -88,22 +80,55 @@ function createControllerFixture() {
   };
 
   const controller = new RegistrationsController(
-    registrationsService as never,
-    {} as never,
-    idempotencyService as unknown as IdempotencyService,
-    {
-      resolveEffectiveTenantId: () => "tenant-1",
-      getTenantId: () => "tenant-1",
-      setTenantId: () => undefined
-    } as never,
-    {} as never
+    registrationsService as never, // 1. registrationsService
+    {} as never, // 2. registrationPlacementOrchestrator
+    idempotencyService as unknown as IdempotencyService, // 3. idempotencyService
+    { resolveEffectiveTenantId: () => "tenant-1", getTenantId: () => "tenant-1", getUserId: () => "user-1", setTenantId: () => undefined } as never, // 4. requestContextService
+    {} as never, // 5. tenantBootstrapService
+    { execute: async () => ({
+      id: "reg-1",
+      tenantId: "tenant-1",
+      tourId: "tour-1",
+      participantFullName: "Test User",
+      participantContactPhone: "09000000000",
+      bookingTarget: null,
+      participantNationalId: null,
+      transportMode: "Self",
+      entryMode: "Online",
+      telegramUserId: null,
+      telegramUsername: null,
+      vehicleSeatCapacity: null,
+      participantNote: null,
+      participantMetadata: null,
+      status: "Pending",
+      rowVersion: 1,
+      paymentStatus: "Unpaid",
+      paidAmount: null,
+      paymentMetadata: null,
+      quotedTotalMinor: null,
+      quotedCurrencyCode: null,
+      quotedPricingVersion: null,
+      quotedListPriceMinor: null,
+      createdAt: new Date("2024-01-01T00:00:00Z"),
+      updatedAt: new Date("2024-01-01T00:00:00Z")
+    }) } as never, // 6. queryBus
+    { execute: async (cmd: any) => {
+      executionCount.payment += 1;
+      return { id: cmd.registrationId, status: RegistrationStatus.PENDING, paymentStatus: cmd.paymentStatus, paidAmount: cmd.paidAmount || "1200" };
+    } } as never // 7. commandBus
   );
 
   return { controller, executionCount, registrationsService, idempotencyService };
 }
 
 test("updateRegistrationPayment retries with same idempotency key are replay-safe", async () => {
-  const { registrationsService, idempotencyService, executionCount } = createControllerFixture();
+  const { idempotencyService, executionCount } = createControllerFixture();
+  const commandBusStub = {
+    execute: async (_cmd: unknown) => {
+      executionCount.payment += 1;
+      return { id: "reg-1", paymentStatus: RegistrationPaymentStatus.PAID, paidAmount: "1200" };
+    }
+  };
   const payload = {
     paymentStatus: RegistrationPaymentStatus.PAID,
     paidAmount: 1200,
@@ -112,7 +137,6 @@ test("updateRegistrationPayment retries with same idempotency key are replay-saf
   const params = {
     tenantId: "tenant-1",
     key: "idem-payment-1",
-    endpoint: "/api/v2/registrations/:registrationId/payment",
     requestHash: idempotencyService.createRequestHash({
       method: "PATCH",
       path: "/api/v2/registrations/reg-1/payment",
@@ -121,11 +145,11 @@ test("updateRegistrationPayment retries with same idempotency key are replay-saf
     statusCode: 200
   };
 
-  const first = await idempotencyService.executeWithIdempotency(params, async () =>
-    registrationsService.updateRegistrationPayment("reg-1", payload, "idem-payment-1")
+  const first = await idempotencyService.executeWithIdempotency(params, () =>
+    commandBusStub.execute(payload)
   );
-  const second = await idempotencyService.executeWithIdempotency(params, async () =>
-    registrationsService.updateRegistrationPayment("reg-1", payload, "idem-payment-1")
+  const second = await idempotencyService.executeWithIdempotency(params, () =>
+    commandBusStub.execute(payload)
   );
 
   assert.deepEqual(second.responseBody, first.responseBody);

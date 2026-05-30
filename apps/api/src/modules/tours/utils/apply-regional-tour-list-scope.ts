@@ -10,7 +10,7 @@ import type { RegionalTourListScope } from "../../../common/rbac/capability-gran
  * No-op unless `restrictToRegions` is true (actor has `tour.regional.manage`).
  */
 export function applyRegionalTourListScope(
-  qb: SelectQueryBuilder<TourWriteRecord>,
+  qb: SelectQueryBuilder<any>,
   scope: RegionalTourListScope,
 ): void {
   if (!scope.restrictToRegions) {

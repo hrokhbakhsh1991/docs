@@ -4,12 +4,14 @@
  */
 import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { CqrsModule } from "@nestjs/cqrs";
 import { DatabaseModule } from "../../database/database.module";
 import { AuthModule } from "../auth/auth.module";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { RegistrationsModule } from "../registrations/registrations.module";
 import { IdentityModule } from "../identity/identity.module";
 import { SettingsLocationsModule } from "../settings-locations/settings-locations.module";
+
 import { DashboardAggregateController } from "./dashboard-aggregate.controller";
 import { ToursController } from "./tours.controller";
 import { TourDetails } from "./entities/tour-details.entity";
@@ -27,12 +29,16 @@ import { ToursCloneService } from "./services/tours-clone.service";
 import { ToursService } from "./tours.service";
 import { StorageModule } from "../../infra/storage/storage.module";
 import { ThrottlerGuard } from "@nestjs/throttler";
+import { TourCapacityModule } from "./tour-capacity.module";
 
 @Module({
   imports: [
+    CqrsModule,
     DatabaseModule,
     ToursCatalogModule,
+    TourCapacityModule,
     TypeOrmModule.forFeature([
+
       TourEntity,
       TourDetails,
       TourProductEntity,
@@ -42,7 +48,7 @@ import { ThrottlerGuard } from "@nestjs/throttler";
     AuthModule,
     IdempotencyModule,
     forwardRef(() => RegistrationsModule),
-    IdentityModule,
+    forwardRef(() => IdentityModule),
     SettingsLocationsModule,
     StorageModule,
   ],
@@ -57,6 +63,6 @@ import { ThrottlerGuard } from "@nestjs/throttler";
     ToursService,
     ThrottlerGuard,
   ],
-  exports: [ToursCatalogModule],
+  exports: [ToursCatalogModule, TourCapacityModule],
 })
 export class ToursModule {}

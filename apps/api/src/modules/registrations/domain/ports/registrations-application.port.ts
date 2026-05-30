@@ -1,29 +1,114 @@
-import type { EntityManager } from "typeorm";
+
 
 import type { RegistrationPaymentIntentSnapshot } from "../registration-payment-intent.types";
-import type { RegistrationPaymentStatus } from "../registration-status";
+import { RegistrationPaymentStatus, RegistrationStatus } from "../registration-status";
 import type { RegistrationWriteRecord } from "../registration-write.types";
-import type { CancelWaitlistItemDto } from "../../dto/cancel-waitlist-item.dto";
-import type { ConvertWaitlistItemDto } from "../../dto/convert-waitlist-item.dto";
-import type {
-  CreateRegistrationDto,
-  RegistrationBookingTargetDto,
-} from "../../dto/create-registration.dto";
-import type { CreateWaitlistItemDto } from "../../dto/create-waitlist-item.dto";
-import type {
-  RegistrationResponseDto,
-  WaitlistItemResponseDto,
-} from "../../dto/get-registration.dto";
-import type { UpdateRegistrationPaymentDto } from "../../dto/update-registration-payment.dto";
-import type { UpdateRegistrationStatusDto } from "../../dto/update-registration-status.dto";
-import type { IRegistrationPaymentPort } from "../../ports/registration-payment.port";
+import { WaitlistItemStatus } from "../waitlist-status";
+import type { IRegistrationPaymentPort, TourBookingLockRecord } from "../../ports/registration-payment.port";
 
 export const REGISTRATIONS_APPLICATION_PORT = Symbol("REGISTRATIONS_APPLICATION_PORT");
+
+export type CreateRegistrationCommand = {
+  tourId: string;
+  bookingTarget?: string;
+  participantFullName: string;
+  participantContactPhone: string;
+  participantNationalId?: string;
+  transportMode: string;
+  entryMode: string;
+  telegramUserId?: string;
+  telegramUsername?: string;
+  vehicleSeatCapacity?: number;
+  participantNote?: string;
+  participantMetadata?: Record<string, unknown>;
+  discountCode?: string | null;
+};
+
+export type CreateWaitlistItemCommand = {
+  tourId: string;
+  participantFullName: string;
+  participantContactPhone: string;
+  transportMode: string;
+  entryMode: string;
+};
+
+export type ConvertWaitlistItemCommand = {
+  conversionReason?: string;
+};
+
+export type CancelWaitlistItemCommand = {
+  reason?: string;
+};
+
+export type UpdateRegistrationStatusCommand = {
+  targetStatus: RegistrationStatus;
+  expected_row_version: number;
+};
+
+export type UpdateRegistrationPaymentCommand = {
+  paymentStatus: RegistrationPaymentStatus;
+  paidAmount?: string;
+  expected_row_version: number;
+};
+
+export type LockedBookingPricing = {
+  totalMinor: string;
+  currency: string;
+  pricingRuleVersion: string;
+  listPriceMinor?: string | null;
+};
+
+export type RegistrationResponse = {
+  id: string;
+  tenantId: string;
+  tourId: string;
+  participantFullName: string;
+  participantContactPhone: string;
+  transportMode: string;
+  entryMode: string;
+  bookingTarget?: string;
+  participantNationalId?: string;
+  telegramUserId?: string;
+  telegramUsername?: string;
+  vehicleSeatCapacity?: number;
+  participantNote?: string;
+  participantMetadata?: Record<string, unknown> | null;
+  status: RegistrationStatus;
+  rowVersion: number;
+  paymentStatus: RegistrationPaymentStatus;
+  paidAmount?: string;
+  payment?: {
+    status: string;
+    amount: string;
+    currency: string;
+    method: string;
+    provider: string;
+    providerPaymentId: string | null;
+  };
+  lockedPricing?: LockedBookingPricing | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WaitlistItemResponse = {
+  id: string;
+  tenantId: string;
+  tourId: string;
+  participantFullName: string;
+  participantContactPhone: string;
+  transportMode: string;
+  entryMode: string;
+  status: WaitlistItemStatus;
+  conversionReason?: string;
+  cancelReason?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 /** Application orchestration surface implemented by the TypeORM adapter in `repositories/`. */
 export interface RegistrationsApplicationPort extends IRegistrationPaymentPort {
   getTenantIdForTourOrThrow(tourId: string): Promise<string>;
-  createRegistration(createDto: CreateRegistrationDto): Promise<RegistrationResponseDto>;
+  createRegistration(command: CreateRegistrationCommand): Promise<RegistrationResponse>;
   resolveAuthenticatedBookingInput(tourId: string): Promise<{
     tourId: string;
     participantFullName: string;
@@ -33,42 +118,43 @@ export interface RegistrationsApplicationPort extends IRegistrationPaymentPort {
     telegramUserId?: string;
     telegramUsername?: string;
   }>;
-  createBooking(tourId: string): Promise<RegistrationResponseDto>;
-  listRegistrationsForTour(tourId: string): Promise<RegistrationResponseDto[]>;
+  createBooking(tourId: string): Promise<RegistrationResponse>;
+  listRegistrationsForTour(tourId: string): Promise<RegistrationResponse[]>;
   listLeaderRegistrationIndex(limit?: number): Promise<{
-    rows: Array<RegistrationResponseDto & { tourTitle: string }>;
+    rows: Array<RegistrationResponse & { tourTitle: string }>;
     partial: boolean;
   }>;
   getLeaderRegistrationStats(): Promise<{
     pending_count: number;
     total_count: number;
   }>;
-  listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]>;
-  listBookings(): Promise<RegistrationResponseDto[]>;
-  getRegistrationById(registrationId: string): Promise<RegistrationResponseDto>;
+  listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponse[]>;
+  listBookings(): Promise<RegistrationResponse[]>;
+  getRegistrationById(registrationId: string): Promise<RegistrationResponse>;
   updateRegistrationStatus(
     registrationId: string,
-    payload: UpdateRegistrationStatusDto
-  ): Promise<RegistrationResponseDto>;
-  updateRegistrationPayment(
-    registrationId: string,
-    payload: UpdateRegistrationPaymentDto,
-    idempotencyKey: string
-  ): Promise<RegistrationResponseDto>;
+    command: UpdateRegistrationStatusCommand
+  ): Promise<RegistrationResponse>;
+
   updatePaymentStatus(
     id: string,
     newPaymentStatus: RegistrationPaymentStatus,
     metadata?: Record<string, unknown>
   ): Promise<RegistrationWriteRecord>;
-  createWaitlistItem(payload: CreateWaitlistItemDto): Promise<WaitlistItemResponseDto>;
+  createWaitlistItem(command: CreateWaitlistItemCommand): Promise<WaitlistItemResponse>;
   convertWaitlistItem(
-    waitlistItemId: string,
-    payload: ConvertWaitlistItemDto
-  ): Promise<RegistrationResponseDto>;
+	waitlistItemId: string,
+	command: ConvertWaitlistItemCommand
+  ): Promise<WaitlistItemResponse>;
   cancelWaitlistItem(
     waitlistItemId: string,
-    payload: CancelWaitlistItemDto
-  ): Promise<WaitlistItemResponseDto>;
+    command: CancelWaitlistItemCommand
+  ): Promise<WaitlistItemResponse>;
+  promoteNextWaitlistSlotIfEligible(
+    tenantId: string,
+    tourId: string,
+    lockedTour: TourBookingLockRecord
+  ): Promise<boolean>;
   getPublicFlowMetrics(): {
     registrationCreatedTotal: number;
     registrationWaitlistedTotal: number;
@@ -76,7 +162,7 @@ export interface RegistrationsApplicationPort extends IRegistrationPaymentPort {
   };
   createPublicRegistrationOrWaitlist(input: {
     tourId: string;
-    bookingTarget?: RegistrationBookingTargetDto;
+    bookingTarget?: string;
     participantFullName: string;
     participantContactPhone: string;
     participantNationalId?: string;
@@ -89,20 +175,20 @@ export interface RegistrationsApplicationPort extends IRegistrationPaymentPort {
     shareFuelCost?: boolean;
     vehicleSeatCapacity?: number;
     participantNote?: string;
-    participantMetadata?: import("../../dto/participant-metadata.dto").ParticipantMetadataDto;
+    participantMetadata?: Record<string, unknown>;
     selectedServiceIds?: string[];
     discountCode?: string | null;
     createPaymentIntent?: (
-      _manager: EntityManager,
       _registration: RegistrationWriteRecord
     ) => Promise<RegistrationPaymentIntentSnapshot>;
   }): Promise<
     | {
         type: "registration";
-        registration: RegistrationResponseDto;
+        registration: RegistrationResponse;
         requiresPayment: boolean;
         paymentIntent: RegistrationPaymentIntentSnapshot | null;
       }
-    | { type: "waitlist"; waitlistItem: WaitlistItemResponseDto; queuePosition: number }
+    | { type: "waitlist"; waitlistItem: WaitlistItemResponse; queuePosition: number }
   >;
 }
+

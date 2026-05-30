@@ -1,20 +1,25 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { TenantDbContextService } from "../tenant-db-context.service";
 
-test("runInTenantScope sets LOCAL app.tenant_id before user fn", async () => {
-  const calls: Array<{ sql: string; params: unknown[] }> = [];
+test("runInTenantScope delegates to runInTenantContext and transaction without manual GUC", async () => {
+  let tenantContextTenantId: string | undefined;
+  let transactionCalled = false;
   const manager = {
-    query: async (sql: string, params: unknown[]) => {
-      calls.push({ sql, params });
-      return [];
-    }
+    query: async () => [],
   };
   const dataSource = {
-    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager)
+    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => {
+      transactionCalled = true;
+      return fn(manager);
+    },
   };
   const tenantSessionBindingService = {
-    runInTenantContext: async <T>(_tenantId: string, fn: () => Promise<T>) => fn()
+    runInTenantContext: async <T>(tenantId: string, fn: () => Promise<T>) => {
+      tenantContextTenantId = tenantId;
+      return fn();
+    },
   };
   const service = new TenantDbContextService(
     dataSource as never,
@@ -27,9 +32,8 @@ test("runInTenantScope sets LOCAL app.tenant_id before user fn", async () => {
   );
 
   assert.equal(result, "ok");
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].sql, "SELECT set_config('app.tenant_id', $1, true)");
-  assert.deepEqual(calls[0].params, ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
+  assert.equal(tenantContextTenantId, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  assert.equal(transactionCalled, true);
 });
 
 test("runInTenantScope rejects empty tenant id", async () => {
@@ -47,18 +51,18 @@ test("runInTenantScope rejects empty tenant id", async () => {
 });
 
 test("runInTenantScope isolates tenant ids across sequential jobs on shared pool", async () => {
-  const calls: Array<{ sql: string; params: unknown[] }> = [];
+  const tenantIds: string[] = [];
   const manager = {
-    query: async (sql: string, params: unknown[]) => {
-      calls.push({ sql, params });
-      return [];
-    }
+    query: async () => [],
   };
   const dataSource = {
-    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager)
+    transaction: async <T>(fn: (_m: typeof manager) => Promise<T>) => fn(manager),
   };
   const tenantSessionBindingService = {
-    runInTenantContext: async <T>(_tenantId: string, fn: () => Promise<T>) => fn()
+    runInTenantContext: async <T>(tenantId: string, fn: () => Promise<T>) => {
+      tenantIds.push(tenantId);
+      return fn();
+    },
   };
   const service = new TenantDbContextService(
     dataSource as never,
@@ -68,15 +72,10 @@ test("runInTenantScope isolates tenant ids across sequential jobs on shared pool
   await service.runInTenantScope("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", async () => "job-a");
   await service.runInTenantScope("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", async () => "job-b");
 
-  assert.equal(calls.length, 2);
-  assert.deepEqual(calls[0], {
-    sql: "SELECT set_config('app.tenant_id', $1, true)",
-    params: ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]
-  });
-  assert.deepEqual(calls[1], {
-    sql: "SELECT set_config('app.tenant_id', $1, true)",
-    params: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
-  });
+  assert.deepEqual(tenantIds, [
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  ]);
 });
 
 

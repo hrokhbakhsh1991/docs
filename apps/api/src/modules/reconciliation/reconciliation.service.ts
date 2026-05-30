@@ -19,6 +19,10 @@ import { TenantRateLimitService } from "../../common/tenant-abuse/tenant-rate-li
 import { TenantDbContextService } from "../../database/tenant-db-context.service";
 import { enforceBackgroundTenantRuntimePolicies } from "../../common/tenant/tenant-runtime-policy";
 import { PaymentFinanceReconciliationService } from "./payment-finance-reconciliation.service";
+import {
+  TOUR_CAPACITY_RESERVATION_PORT,
+  type TourCapacityReservationPort,
+} from "../tours/domain/ports/tour-capacity-reservation.port";
 
 const TOUR_PAGE_SIZE = 50;
 const MAX_PROMOTIONS_PER_TOUR_PER_RUN = 50;
@@ -55,7 +59,9 @@ export class ReconciliationService {
     @Inject(TenantUsageMeteringService) private readonly tenantUsageMeteringService: TenantUsageMeteringService,
     @Inject(TenantDbContextService) private readonly tenantDbContext: TenantDbContextService,
     @Inject(PaymentFinanceReconciliationService)
-    private readonly paymentFinanceReconciliation: PaymentFinanceReconciliationService
+    private readonly paymentFinanceReconciliation: PaymentFinanceReconciliationService,
+    @Inject(TOUR_CAPACITY_RESERVATION_PORT)
+    private readonly tourCapacityReservationPort: TourCapacityReservationPort
   ) {}
 
   getSnapshot(): ReconciliationRuntimeSnapshot {
@@ -142,7 +148,6 @@ export class ReconciliationService {
     tour: TourEntity
   ): Promise<{ drift: boolean; promotions: number }> {
     const lockedTour = await this.registrationsService.lockTourRowForUpdate(
-      manager,
       tour.id,
       tour.tenantId
     );
@@ -177,6 +182,13 @@ export class ReconciliationService {
           detectedAt: new Date().toISOString()
         }
       });
+
+      await this.tourCapacityReservationPort.syncRemainingFromSnapshot({
+        tenantId: tour.tenantId,
+        tourId: tour.id,
+        totalCapacity: lockedTour.totalCapacity,
+        acceptedCount: realCount,
+      });
     }
 
     let promotions = 0;
@@ -201,7 +213,6 @@ export class ReconciliationService {
       try {
         const promoted =
           await this.registrationsService.promoteNextWaitlistSlotIfEligible(
-            manager,
             tour.tenantId,
             tour.id,
             lockedTour

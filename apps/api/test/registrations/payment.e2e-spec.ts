@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import { UserRole } from "../../src/common/auth/user-role.enum";
-import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import {
   RegistrationEntity,
@@ -12,7 +10,7 @@ import {
 } from "../../src/modules/registrations/registration.entity";
 import { UserEntity } from "../../src/modules/identity/entities/user.entity";
 import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
-import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
+import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
 
 type MockManager = {
   findOne: (_entity: unknown, _options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
@@ -112,9 +110,29 @@ function createServiceWithState(initial: RegistrationEntity | null): {
     requestContextService as never,
     outboxService as never,
     stubRegistrationQuoteApplication,
-    createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(noopOutboxServiceForTests),
-    {} as never // PricingEngineService stub
+    createRegistrationsReadRepositoryPortTestDouble(
+      {
+        async findOne(opts: any) {
+          return manager.findOne(RegistrationEntity, opts);
+        }
+      },
+      manager as never
+    ),
+    {} as never,
+    {
+    getTourSnapshot: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
+    lockTourSnapshot: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
+    getTourTitles: async () => new Map(),
+    applyAcceptedCounterDelta: async () => {},
+    tryIncrementAcceptedCountAtomic: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 1, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
+    tryDecrementAcceptedCountAtomic: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
+    syncTourDepartureCapacity: async () => {}
+  } as never,
+  {
+    reserveTicket: async () => {},
+    releaseTicket: async () => {},
+    syncRemainingFromSnapshot: async () => {},
+  } as never
   );
 
   return {

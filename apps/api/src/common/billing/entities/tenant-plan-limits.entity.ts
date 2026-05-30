@@ -13,5 +13,14 @@ export class TenantPlanLimitsEntity {
 
   @Column({ type: "bigint", name: "storage_limit", nullable: true })
   storageLimit!: string | null;
+
+  @Column({ type: "text", name: "plan_tier", nullable: true })
+  planTier!: string | null;
+
+  @Column({ type: "bigint", name: "max_active_tours", nullable: true })
+  maxActiveTours!: string | null;
+
+  @Column({ type: "bigint", name: "max_users", nullable: true })
+  maxUsers!: string | null;
 }
 

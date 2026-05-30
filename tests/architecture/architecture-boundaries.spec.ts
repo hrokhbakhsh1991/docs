@@ -1,5 +1,5 @@
 /**
- * Phase 4 — Infrastructure Hardening: automated architectural boundary enforcement.
+ * Phase 4 / Phase 20 — Infrastructure Hardening: automated architectural boundary enforcement.
  *
  * Rules:
  * 1. `domain` MUST NOT import from `app` or `infra`.
@@ -21,6 +21,23 @@ import {
   scanArchitectureBoundaries,
 } from "./boundary-scanner.ts";
 
+function formatGatedSample(
+  violations: ReturnType<typeof scanArchitectureBoundaries>["violations"]
+): string {
+  return violations
+    .slice(0, 8)
+    .map((v) => `${v.file}:${v.line} (${v.kind})`)
+    .join(", ");
+}
+
+function gatedViolations(
+  violations: ReturnType<typeof scanArchitectureBoundaries>["violations"]
+) {
+  return violations.filter(
+    (v) => v.kind === "domain-must-not-import-infra" || v.kind === "app-must-not-import-infra"
+  );
+}
+
 test("architecture: scan produces classification stats", () => {
   const { stats } = scanArchitectureBoundaries();
   assert.ok(stats.filesScanned > 0, "expected API module files to scan");
@@ -36,53 +53,14 @@ test("architecture: scan produces classification stats", () => {
   );
 });
 
-test("architecture: domain layer does not import infra (batch 1)", () => {
+test("architecture: app and domain layers must not import infra (global)", () => {
   const { violations } = scanArchitectureBoundaries();
-  const infraViolations = violations.filter((v) => v.kind === "domain-must-not-import-infra");
+  const gated = gatedViolations(violations);
 
   assert.equal(
-    infraViolations.length,
+    gated.length,
     0,
-    `expected zero domain→infra violations; got ${infraViolations.length}: ${infraViolations
-      .slice(0, 5)
-      .map((v) => `${v.file}:${v.line}`)
-      .join(", ")}`
-  );
-});
-
-test("architecture: app layer in tours/registrations does not import infra (batch 3)", () => {
-  const { violations } = scanArchitectureBoundaries();
-  const appInfra = violations.filter(
-    (v) =>
-      v.kind === "app-must-not-import-infra" &&
-      (v.file.includes("/modules/tours/") || v.file.includes("/modules/registrations/"))
-  );
-
-  assert.equal(
-    appInfra.length,
-    0,
-    `expected zero tours/registrations app→infra violations; got ${appInfra.length}: ${appInfra
-      .slice(0, 8)
-      .map((v) => `${v.file}:${v.line}`)
-      .join(", ")}`
-  );
-});
-
-test("architecture: app layer in identity/payments does not import infra (batch 2)", () => {
-  const { violations } = scanArchitectureBoundaries();
-  const appInfra = violations.filter(
-    (v) =>
-      v.kind === "app-must-not-import-infra" &&
-      (v.file.includes("/modules/identity/") || v.file.includes("/modules/payments/"))
-  );
-
-  assert.equal(
-    appInfra.length,
-    0,
-    `expected zero identity/payments app→infra violations; got ${appInfra.length}: ${appInfra
-      .slice(0, 5)
-      .map((v) => `${v.file}:${v.line}`)
-      .join(", ")}`
+    `expected zero domain→infra or app→infra violations globally; got ${gated.length}: ${formatGatedSample(gated)}`
   );
 });
 
@@ -99,10 +77,11 @@ test("architecture: module layer and bounded-context dependency rules", () => {
   );
 
   if (process.env.ARCHITECTURE_BOUNDARIES_ENFORCE === "1") {
+    const gated = gatedViolations(violations);
     assert.equal(
-      violations.length,
+      gated.length,
       0,
-      `${violations.length} architecture boundary violation(s) — see stderr for grouped report`
+      `${gated.length} gated architecture boundary violation(s) — see stderr for grouped report`
     );
   }
 });

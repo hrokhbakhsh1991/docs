@@ -42,7 +42,12 @@ function placementService(): TypeOrmRegistrationsApplicationService {
     {} as never,
     {} as never,
     {} as never,
-    {} as never
+    {} as never,
+    {
+      reserveTicket: async () => {},
+      releaseTicket: async () => {},
+      syncRemainingFromSnapshot: async () => {},
+    } as never
   );
 }
 

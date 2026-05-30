@@ -23,7 +23,7 @@ import {
   WORKSPACE_SETTINGS_REPOSITORY_PORT,
   type WorkspaceSettingsRepositoryPort,
 } from "./domain/ports/workspace-settings-repository.port";
-import { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
+import type { WorkspaceTourCreationPresetRecord } from "./domain/workspace-catalog.records";
 import {
   detectPresetThemeProfileDrift,
   formatPresetDriftWarning,
@@ -208,7 +208,7 @@ export class TourCreationPresetsSettingsService {
     if (warning) this.logger.warn(warning);
   }
 
-  private toResponse(row: WorkspaceTourCreationPresetEntity): WorkspaceTourCreationPresetResponseDto {
+  private toResponse(row: WorkspaceTourCreationPresetRecord): WorkspaceTourCreationPresetResponseDto {
     const formProfile = normalizeTourFormProfileInput(row.formProfile ?? "general");
     if (this.isDenaliFormProfile(formProfile)) {
       return {

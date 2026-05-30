@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { OutboxProcessor } from "../../src/modules/outbox/outbox.processor";
+import { OutboxProcessor } from "../../src/modules/outbox/repositories/outbox.processor";
 import { OutboxMetricsService } from "../../src/modules/outbox/outbox-metrics.service";
 import {
   OutboxEventEntity,

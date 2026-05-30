@@ -25,6 +25,12 @@ const noopPaymentFinanceReconciliation = {
   runPaymentFinanceReconciliationCycle: async () => undefined
 };
 
+const noopCapacityReservation = {
+  async reserveTicket() {},
+  async releaseTicket() {},
+  async syncRemainingFromSnapshot() {},
+};
+
 type ReconcilePriv = (
   _manager: EntityManager,
   _tour: TourEntity
@@ -50,7 +56,6 @@ test("reconciliation raises acceptedCount when stored counter is below real Acce
 
   const registrationsService = {
     async lockTourRowForUpdate(
-      _m: EntityManager,
       _tourId: string,
       _tenantId: string
     ) {
@@ -90,7 +95,8 @@ test("reconciliation raises acceptedCount when stored counter is below real Acce
     noopTenantRateLimit,
     noopTenantUsage as never,
     passthroughTenantDbContext as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   const result = await asReconcile(svc)(manager, tour);
@@ -154,7 +160,8 @@ test("reconciliation lowers acceptedCount when stored counter is above real Acce
     noopTenantRateLimit,
     noopTenantUsage as never,
     passthroughTenantDbContext as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   await asReconcile(svc)(manager, tour);
@@ -181,7 +188,6 @@ test("reconciliation triggers canonical promotion while capacity and Waiting ite
       return locked;
     },
     async promoteNextWaitlistSlotIfEligible(
-      _m: EntityManager,
       _tenantId: string,
       _tourId: string,
       t: TourEntity
@@ -218,7 +224,8 @@ test("reconciliation triggers canonical promotion while capacity and Waiting ite
     noopTenantRateLimit,
     noopTenantUsage as never,
     passthroughTenantDbContext as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   const { drift, promotions } = await asReconcile(svc)(manager, locked);
@@ -270,7 +277,8 @@ test("reconciliation stops promotion loop when promote fails", async () => {
     noopTenantRateLimit,
     noopTenantUsage as never,
     passthroughTenantDbContext as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   const { promotions } = await asReconcile(svc)(manager, locked);
@@ -295,7 +303,6 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
       return tourA;
     },
     async promoteNextWaitlistSlotIfEligible(
-      _m: EntityManager,
       _tid: string,
       _tourId: string,
       t: TourEntity
@@ -354,7 +361,8 @@ test("runReconciliationCycle aggregates drift and promotion totals across tours"
         fn: (_m: EntityManager) => Promise<T>
       ) => fn(unifiedMgr as EntityManager)
     } as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   await svc.runReconciliationCycle();
@@ -397,7 +405,7 @@ test("runReconciliationCycle sets tenant GUC with LOCAL scope (no session bleed)
   const queryCalls: Array<{ sql: string; args: unknown[] }> = [];
 
   const registrationsService = {
-    async lockTourRowForUpdate(_m: EntityManager, tourId: string) {
+    async lockTourRowForUpdate(tourId: string) {
       const all = [...toursByTenant[tenantA], ...toursByTenant[tenantB]];
       return all.find((t) => t.id === tourId) as TourEntity;
     },
@@ -446,7 +454,8 @@ test("runReconciliationCycle sets tenant GUC with LOCAL scope (no session bleed)
         return fn(manager as EntityManager);
       }
     } as never,
-    noopPaymentFinanceReconciliation as never
+    noopPaymentFinanceReconciliation as never,
+    noopCapacityReservation as never
   );
 
   await svc.runReconciliationCycle();

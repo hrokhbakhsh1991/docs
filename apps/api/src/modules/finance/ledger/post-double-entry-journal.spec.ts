@@ -4,7 +4,7 @@ import {
   postDoubleEntryJournal,
   postDoubleEntryReversalJournal,
 } from "./post-double-entry-journal";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 
 const base = {
   tenantId: "t1",
@@ -137,7 +137,7 @@ test("postDoubleEntryJournal accepts stableJournalAndLineIds and journalLinesCre
 test("postDoubleEntryReversalJournal negates original and sets reversesLineId on both legs", () => {
   const { lines: orig } = postDoubleEntryJournal({
     ...base,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: "booking:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     amount_minor: "5000"
   });
@@ -160,7 +160,7 @@ test("postDoubleEntryReversalJournal negates original and sets reversesLineId on
 test("postDoubleEntryReversalJournal rejects wrong line order", () => {
   const { lines: orig } = postDoubleEntryJournal({
     ...base,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: "booking:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     amount_minor: "1"
   });

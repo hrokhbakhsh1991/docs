@@ -30,12 +30,12 @@ export class RegistrationQuoteApplicationService {
   }
 
   async buildQuoteSnapshot(
-    manager: EntityManager,
+    _manager: EntityManager,
     tour: RegistrationQuoteTourContext,
     discountCode?: string | null
   ): Promise<RegistrationQuoteSnapshot> {
     const departureId = bookableTourDepartureId(tour);
-    const quote = await this.pricingCatalog.quote(manager, {
+    const quote = await this.pricingCatalog.quote({
       tenantId: tour.tenantId,
       tourId: tour.id,
       departureId,

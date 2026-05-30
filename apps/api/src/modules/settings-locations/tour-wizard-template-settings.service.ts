@@ -13,7 +13,7 @@ import {
 } from "./domain/ports/workspace-settings-repository.port";
 import type { UpdateWorkspaceTourWizardTemplateDto } from "./dto/update-workspace-tour-wizard-template.dto";
 import type { WorkspaceTourWizardTemplateResponseDto } from "./dto/workspace-tour-wizard-template-response.dto";
-import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
+import type { WorkspaceTourWizardTemplateRecord } from "./domain/workspace-catalog.records";
 import { collectWorkspaceWizardTemplateValidationErrors } from "./validate-workspace-wizard-template";
 
 @Injectable()
@@ -37,7 +37,7 @@ export class TourWizardTemplateSettingsService {
     return workspaceId;
   }
 
-  private toResponse(row: WorkspaceTourWizardTemplateEntity): WorkspaceTourWizardTemplateResponseDto {
+  private toResponse(row: WorkspaceTourWizardTemplateRecord): WorkspaceTourWizardTemplateResponseDto {
     const skip = Array.isArray(row.stepOverrides?.skip)
       ? row.stepOverrides.skip.filter((s): s is string => typeof s === "string")
       : [];

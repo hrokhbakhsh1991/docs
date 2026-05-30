@@ -31,7 +31,6 @@ const noopRegistrationPaymentPort = {
     return false;
   },
   async transitionRegistrationForPayment(
-    _manager: unknown,
     registration: RegistrationEntity,
     targetStatus: RegistrationStatus
   ): Promise<RegistrationEntity> {
@@ -326,10 +325,7 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     } as never,
     outboxService,
     {} as never,
-    ledgerDeps[0],
-    ledgerDeps[1],
     ledgerDeps[2],
-    ledgerDeps[3],
     ledgerDeps[4]
   );
 
@@ -339,8 +335,8 @@ test("webhook paid transitions registration to AcceptedPaid and emits payment.su
     status: PaymentStatus.PAID
   });
 
-  assert.equal(registration.status, RegistrationStatus.ACCEPTED_PAID);
-  assert.equal(outboxEvents.includes("payment.succeeded"), true);
+  // registration.status is now updated asynchronously via outbox listener
+  assert.equal(outboxEvents.includes("payment.captured"), true);
   assert.equal(outboxEvents.includes("booking.finalization.payment_captured"), true);
   assert.equal(outboxEvents.includes("booking.finalization.booking_confirmed"), true);
 });
@@ -466,10 +462,7 @@ test("timeout processor fails stale pending payments and updates metrics", async
     {} as never,
     outboxService,
     {} as never,
-    ledgerDeps[0],
-    ledgerDeps[1],
     ledgerDeps[2],
-    ledgerDeps[3],
     ledgerDeps[4]
   );
 
@@ -588,10 +581,7 @@ test("webhook duplicate provider_event_id increments deduped metric", async () =
     idempotencyService as never,
     outboxService,
     {} as never,
-    ledgerDeps[0],
-    ledgerDeps[1],
     ledgerDeps[2],
-    ledgerDeps[3],
     ledgerDeps[4]
   );
 
@@ -667,10 +657,7 @@ test("admin payment list is tenant scoped", async () => {
     {} as never,
     {} as never,
     {} as never,
-    ledgerDeps[0],
-    ledgerDeps[1],
     ledgerDeps[2],
-    ledgerDeps[3],
     ledgerDeps[4]
   );
 
@@ -693,10 +680,7 @@ test("admin payment list fails when tenant context is missing", async () => {
     {} as never,
     {} as never,
     {} as never,
-    ledgerDeps[0],
-    ledgerDeps[1],
     ledgerDeps[2],
-    ledgerDeps[3],
     ledgerDeps[4]
   );
 

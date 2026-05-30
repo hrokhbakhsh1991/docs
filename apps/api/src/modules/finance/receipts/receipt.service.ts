@@ -112,7 +112,7 @@ export class ReceiptService {
       assertActorMayUploadReceiptForRegistration({
         actorRole: params.actorRole,
         actorPhone,
-        participantContactPhone: registration.participantContactPhone,
+        participantContactPhone: registration.participantContactPhone ?? "",
       });
 
       const existingReceipts = await manager.find(PaymentReceiptEntity, {
@@ -186,7 +186,6 @@ export class ReceiptService {
         throw new NotFoundException("Registration not found for receipt payment");
       }
       await this.registrationPaymentPort.lockTourRowForUpdate(
-        manager,
         regPeek.tourId,
         regPeek.tenantId,
       );
@@ -225,7 +224,6 @@ export class ReceiptService {
       await manager.save(PaymentReceiptEntity, savedReceipt);
 
       registration = await this.registrationPaymentPort.transitionRegistrationForPayment(
-        manager,
         registration,
         "AcceptedPaid",
         params.actorId,
@@ -236,14 +234,19 @@ export class ReceiptService {
         "Paid",
       );
       registration.paymentStatus = "Paid";
-      this.bookingLedgerAuthority.applyPaidAmountProjectionToRegistration(
-        registration,
-        { paymentStatus: "Paid" },
-        lines,
-      );
+      const projectedPaidAmount =
+        this.bookingLedgerAuthority.projectPaidAmountFromLedgerLines(
+          registration.id,
+          { paymentStatus: "Paid" },
+          lines,
+          registration.paidAmount ?? undefined,
+        );
       await this.registrationFinancialMutation.saveRegistrationFinancialRecord(
         manager,
-        registration,
+        {
+          ...registration,
+          paidAmount: projectedPaidAmount ?? null,
+        },
       );
 
       await this.financeReportsService.invalidateSummaryCache();

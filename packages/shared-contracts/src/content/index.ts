@@ -1,8 +1,11 @@
 export {
   CONTENT_WORKSPACE_DEFAULT_TOUR_PROFILE,
-  TENANT_SLUG_TO_CONTENT_WORKSPACE,
+  getWorkspacePages,
+  getWorkspacePagesByContentWorkspace,
+  resolveContentWorkspaceForTenant,
   resolveContentWorkspaceForTenantSlug,
   resolveDefaultTourFormProfileForContentWorkspace,
+  type TenantContentProfileHints,
 } from "./public-site";
 export {
   CONTENT_WORKSPACE_VALUES,
@@ -15,7 +18,7 @@ export {
   PageSectionSchema,
   TextBlockSchema,
   WorkspacePagesSchema,
-  getWorkspacePages,
+  getWorkspacePagesByRegistryKey,
   parsePageDefinition,
   parseWorkspacePages,
   type ContentWorkspace,

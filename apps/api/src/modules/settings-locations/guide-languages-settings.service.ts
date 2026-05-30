@@ -16,7 +16,7 @@ import {
 import type { CreateGuideLanguageDto } from "./dto/create-guide-language.dto";
 import type { UpdateGuideLanguageDto } from "./dto/update-guide-language.dto";
 import { WorkspaceGuideLanguageResponseDto } from "./dto/workspace-guide-language-response.dto";
-import { WorkspaceGuideLanguageEntity } from "./entities/workspace-guide-language.entity";
+import type { WorkspaceGuideLanguageRecord } from "./domain/workspace-catalog.records";
 
 @Injectable()
 export class GuideLanguagesSettingsService {
@@ -43,7 +43,7 @@ export class GuideLanguagesSettingsService {
     return String(value).trim();
   }
 
-  private toResponse(row: WorkspaceGuideLanguageEntity): WorkspaceGuideLanguageResponseDto {
+  private toResponse(row: WorkspaceGuideLanguageRecord): WorkspaceGuideLanguageResponseDto {
     return {
       id: row.id,
       name: row.name,

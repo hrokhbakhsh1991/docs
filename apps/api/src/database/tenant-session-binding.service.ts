@@ -6,6 +6,10 @@ import { TenantContextMissingError } from "../common/errors/tenant-context-missi
 import { LoggerService } from "../common/logger/logger.service";
 import { RequestContextService } from "../common/request-context/request-context.service";
 import {
+  RESET_RLS_TENANT_SQL,
+  SET_LOCAL_RLS_TENANT_SQL,
+} from "./rls-tenant-session";
+import {
   TenantBindingMode,
   requestContextStorage
 } from "../common/request-context/request-context";
@@ -376,7 +380,7 @@ export class TenantSessionBindingService implements OnModuleInit {
     const tenantId = this.resolveTenantIdForBindingOrThrow(queryRunner);
     await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
       queryRunner,
-      "SELECT set_config('app.tenant_id', $1, true)",
+      SET_LOCAL_RLS_TENANT_SQL,
       [tenantId]
     );
   }
@@ -435,7 +439,7 @@ export class TenantSessionBindingService implements OnModuleInit {
     try {
       await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
         queryRunner,
-        "RESET app.tenant_id",
+        RESET_RLS_TENANT_SQL,
         []
       );
     } catch (error: unknown) {

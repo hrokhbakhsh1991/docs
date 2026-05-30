@@ -2259,486 +2259,6 @@
         ]
       }
     },
-    "/api/v2/tours": {
-      "post": {
-        "operationId": "ToursController_create",
-        "summary": "Create tour",
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "description": "Required idempotency key for create mutation.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTourDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TourResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "get": {
-        "operationId": "ToursController_list",
-        "summary": "List tours in tenant scope (search + pagination)",
-        "parameters": [
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "description": "Case-insensitive match against tour title and description",
-            "schema": {
-              "maxLength": 200,
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "description": "Lifecycle bucket: active (draft), completed (open), archived (closed/cancelled)",
-            "schema": {
-              "enum": [
-                "active",
-                "completed",
-                "archived"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor_id",
-            "required": false,
-            "in": "query",
-            "description": "Keyset cursor: tour id from the last item of the previous page (use with cursor_created_at)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor_created_at",
-            "required": false,
-            "in": "query",
-            "description": "Keyset cursor: ISO-8601 created_at of that tour row (use with cursor_id)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include_total",
-            "required": false,
-            "in": "query",
-            "description": "When false, skips an extra COUNT query; `total` in the response is -1 (unknown). Default true.",
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedToursResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}/photos": {
-      "post": {
-        "operationId": "ToursController_uploadPhotos",
-        "summary": "Upload photos for a tour",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}/photos/{photoId}": {
-      "delete": {
-        "operationId": "ToursController_deletePhoto",
-        "summary": "Delete a photo for a tour",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "photoId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}": {
-      "patch": {
-        "operationId": "ToursController_update",
-        "summary": "Update tour by id",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "description": "Required idempotency key for update mutation.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTourDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TourResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "get": {
-        "operationId": "ToursController_getById",
-        "summary": "Get tour by id",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TourResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}/status": {
-      "patch": {
-        "operationId": "ToursController_updateStatus",
-        "summary": "Update only tour lifecycle status",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TourResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}/registrations": {
-      "get": {
-        "operationId": "ToursController_listTourRegistrations",
-        "summary": "List registrations for tour (Leader workspace)",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/RegistrationResponseDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/tours/{tourId}/waitlist-items": {
-      "get": {
-        "operationId": "ToursController_listTourWaitlist",
-        "summary": "List waitlist items for tour (Leader workspace)",
-        "parameters": [
-          {
-            "name": "tourId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WaitlistItemResponseDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "Tours"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/dashboard/leader-workspace": {
-      "get": {
-        "operationId": "DashboardAggregateController_getLeaderWorkspaceAggregate",
-        "summary": "Leader workspace aggregate",
-        "description": "Returns first-page tenant tours for dashboard aggregates.",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max tours returned for aggregate payload",
-            "schema": {
-              "default": 200,
-              "minimum": 1,
-              "maximum": 500
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Dashboard"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/dashboard/leader-summary": {
-      "get": {
-        "operationId": "DashboardAggregateController_getLeaderDashboardSummary",
-        "summary": "Leader dashboard summary",
-        "description": "Single round-trip counts for the leader dashboard (tour total + registration pending/total).",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Dashboard"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/dashboard/leader-registration-rows": {
-      "get": {
-        "operationId": "DashboardAggregateController_getLeaderRegistrationRows",
-        "summary": "Leader registration index",
-        "description": "All tenant registrations with tour titles in one response (replaces per-tour registration fan-out).",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 5000,
-              "minimum": 1,
-              "maximum": 10000
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Dashboard"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/api/v2/tours/{tourId}/registration-idempotency-key": {
       "get": {
         "operationId": "RegistrationsController_mintPublicRegistrationIdempotencyKey",
@@ -4121,56 +3641,16 @@
         ]
       }
     },
-    "/api/v2/workspaces/{tenantId}/reconciliation-findings": {
-      "get": {
-        "operationId": "ReconciliationFindingsController_listFindings",
-        "summary": "List persisted payment–finance reconciliation findings (triage)",
-        "description": "Keyset-paginated open findings for the workspace. Requires JWT tenant match and read Reconciliation.",
-        "parameters": [
-          {
-            "name": "tenantId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Authentication required"
-          },
-          "403": {
-            "description": "Tenant mismatch or insufficient role"
-          }
-        },
-        "tags": [
-          "Finance"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/acknowledge": {
+    "/api/v2/tours": {
       "post": {
-        "operationId": "ReconciliationFindingsController_acknowledge",
-        "summary": "Acknowledge an open reconciliation finding",
+        "operationId": "ToursController_create",
+        "summary": "Create tour",
         "parameters": [
           {
-            "name": "tenantId",
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for create mutation.",
             "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "findingId",
-            "required": true,
-            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4181,18 +3661,153 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AcknowledgeReconciliationFindingDto"
+                "$ref": "#/components/schemas/CreateTourDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
           }
         },
         "tags": [
-          "Finance"
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ToursController_list",
+        "summary": "List tours in tenant scope (search + pagination)",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive match against tour title and description",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Lifecycle bucket: active (draft), completed (open), archived (closed/cancelled)",
+            "schema": {
+              "enum": [
+                "active",
+                "completed",
+                "archived"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort_by",
+            "required": false,
+            "in": "query",
+            "description": "Sort field (created_at, title, price, difficulty, category)",
+            "schema": {
+              "enum": [
+                "created_at",
+                "title",
+                "price",
+                "difficulty",
+                "category"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort_dir",
+            "required": false,
+            "in": "query",
+            "description": "Sort direction",
+            "schema": {
+              "default": "desc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated category filter",
+            "schema": {
+              "example": "mountain,nature",
+              "type": "string"
+            }
+          },
+          {
+            "name": "difficulty",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated difficulty filter",
+            "schema": {
+              "example": "hard,technical",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor_id",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor: tour id from the last item of the previous page (use with cursor_created_at)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor_created_at",
+            "required": false,
+            "in": "query",
+            "description": "Keyset cursor: ISO-8601 created_at of that tour row (use with cursor_id)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_total",
+            "required": false,
+            "in": "query",
+            "description": "When false, skips an extra COUNT query; `total` in the response is -1 (unknown). Default true.",
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedToursResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tours"
         ],
         "security": [
           {
@@ -4201,14 +3816,42 @@
         ]
       }
     },
-    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/apply-ledger-adjustment": {
+    "/api/v2/tours/{tourId}/photos": {
       "post": {
-        "operationId": "ReconciliationFindingsController_applyLedgerAdjustment",
-        "summary": "Apply a manual clearing↔booking wallet ledger adjustment for a triad mismatch",
-        "description": "Posts `finance.ledger.double_entry_applied` (mandatory financial audit) and appends `reconciliation.ledger.adjustment_applied` on the tenant audit stream. Idempotent via `idempotencyKey` + outbox `domainEventId`.",
+        "operationId": "ToursController_uploadPhotos",
+        "summary": "Upload photos for a tour",
         "parameters": [
           {
-            "name": "tenantId",
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/tours/{tourId}/photos/{photoId}": {
+      "delete": {
+        "operationId": "ToursController_deletePhoto",
+        "summary": "Delete a photo for a tour",
+        "parameters": [
+          {
+            "name": "tourId",
             "required": true,
             "in": "path",
             "schema": {
@@ -4216,9 +3859,47 @@
             }
           },
           {
-            "name": "findingId",
+            "name": "photoId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/tours/{tourId}": {
+      "patch": {
+        "operationId": "ToursController_update",
+        "summary": "Update tour by id",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required idempotency key for update mutation.",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4229,18 +3910,59 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApplyReconciliationLedgerAdjustmentDto"
+                "$ref": "#/components/schemas/UpdateTourDto"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
           }
         },
         "tags": [
-          "Finance"
+          "Tours"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "operationId": "ToursController_getById",
+        "summary": "Get tour by id",
+        "parameters": [
+          {
+            "name": "tourId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Tours"
         ],
         "security": [
           {
@@ -4249,16 +3971,15 @@
         ]
       }
     },
-    "/internal/ops/outbox": {
-      "get": {
-        "operationId": "OpsController_outboxSnapshot",
-        "summary": "Internal outbox metrics snapshot",
+    "/api/v2/tours/{tourId}/status": {
+      "patch": {
+        "operationId": "ToursController_updateStatus",
+        "summary": "Update only tour lifecycle status",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
+            "name": "tourId",
             "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4266,29 +3987,35 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TourResponseDto"
+                }
+              }
+            }
           }
         },
         "tags": [
-          "Ops"
+          "Tours"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
     },
-    "/internal/ops/metrics/prometheus": {
+    "/api/v2/tours/{tourId}/registrations": {
       "get": {
-        "operationId": "OpsController_metricsPrometheus",
-        "summary": "Prometheus-style counters (in-process; scrape per replica or aggregate via OTEL bridge)",
+        "operationId": "ToursController_listTourRegistrations",
+        "summary": "List registrations for tour (Leader workspace)",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
+            "name": "tourId",
             "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4296,29 +4023,38 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
-          "Ops"
+          "Tours"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
     },
-    "/internal/ops/metrics/security": {
+    "/api/v2/tours/{tourId}/waitlist-items": {
       "get": {
-        "operationId": "OpsController_metricsSecurityJson",
-        "summary": "JSON snapshot of tenant/auth security counters (OpenTelemetry / custom exporter friendly)",
+        "operationId": "ToursController_listTourWaitlist",
+        "summary": "List waitlist items for tour (Leader workspace)",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
+            "name": "tourId",
             "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4326,31 +4062,44 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaitlistItemResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
-          "Ops"
+          "Tours"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
     },
-    "/internal/ops/metrics/tenant-abuse": {
+    "/api/v2/dashboard/leader-workspace": {
       "get": {
-        "operationId": "OpsController_metricsTenantAbuseJson",
-        "summary": "Tenant rate-limit counters + sampled per-tenant request volume (debug cardinality — not for Prometheus labels)",
+        "operationId": "DashboardAggregateController_getLeaderWorkspaceAggregate",
+        "summary": "Leader workspace aggregate",
+        "description": "Returns first-page tenant tours for dashboard aggregates.",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
-            "required": true,
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max tours returned for aggregate payload",
             "schema": {
-              "type": "string"
+              "default": 200,
+              "minimum": 1,
+              "maximum": 500
             }
           }
         ],
@@ -4360,57 +4109,50 @@
           }
         },
         "tags": [
-          "Ops"
+          "Dashboard"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
     },
-    "/internal/ops/metrics/tenant-usage": {
+    "/api/v2/dashboard/leader-summary": {
       "get": {
-        "operationId": "OpsController_metricsTenantUsageJson",
-        "summary": "Tenant usage metering + quota enforcement counters",
-        "parameters": [
-          {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "DashboardAggregateController_getLeaderDashboardSummary",
+        "summary": "Leader dashboard summary",
+        "description": "Single round-trip counts for the leader dashboard (tour total + registration pending/total).",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
         "tags": [
-          "Ops"
+          "Dashboard"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
     },
-    "/internal/ops/health": {
+    "/api/v2/dashboard/leader-registration-rows": {
       "get": {
-        "operationId": "OpsController_healthSnapshot",
-        "summary": "Internal runtime health snapshot",
+        "operationId": "DashboardAggregateController_getLeaderRegistrationRows",
+        "summary": "Leader registration index",
+        "description": "All tenant registrations with tour titles in one response (replaces per-tour registration fan-out).",
         "parameters": [
           {
-            "name": "X-Internal-Api-Key",
-            "in": "header",
-            "description": "Internal API key required for ops endpoints.",
-            "required": true,
+            "name": "limit",
+            "required": false,
+            "in": "query",
             "schema": {
-              "type": "string"
+              "default": 5000,
+              "minimum": 1,
+              "maximum": 10000
             }
           }
         ],
@@ -4420,11 +4162,11 @@
           }
         },
         "tags": [
-          "Ops"
+          "Dashboard"
         ],
         "security": [
           {
-            "internalApiKey": []
+            "bearer": []
           }
         ]
       }
@@ -5470,6 +5212,343 @@
         ]
       }
     },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings": {
+      "get": {
+        "operationId": "ReconciliationFindingsController_listFindings",
+        "summary": "List persisted payment–finance reconciliation findings (triage)",
+        "description": "Keyset-paginated open findings for the workspace. Requires JWT tenant match and read Reconciliation.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant mismatch or insufficient role"
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/acknowledge": {
+      "post": {
+        "operationId": "ReconciliationFindingsController_acknowledge",
+        "summary": "Acknowledge an open reconciliation finding",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgeReconciliationFindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/reconciliation-findings/{findingId}/apply-ledger-adjustment": {
+      "post": {
+        "operationId": "ReconciliationFindingsController_applyLedgerAdjustment",
+        "summary": "Apply a manual clearing↔booking wallet ledger adjustment for a triad mismatch",
+        "description": "Posts `finance.ledger.double_entry_applied` (mandatory financial audit) and appends `reconciliation.ledger.adjustment_applied` on the tenant audit stream. Idempotent via `idempotencyKey` + outbox `domainEventId`.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "findingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyReconciliationLedgerAdjustmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Finance"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/finance/invoices/bookings/{bookingId}/derived": {
+      "get": {
+        "operationId": "FinanceInvoicesController_getDerivedInvoice",
+        "summary": "Compile a runtime immutable invoice view for a booking wallet",
+        "parameters": [
+          {
+            "name": "bookingId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Finance Invoices"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/outbox": {
+      "get": {
+        "operationId": "OpsController_outboxSnapshot",
+        "summary": "Internal outbox metrics snapshot",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/prometheus": {
+      "get": {
+        "operationId": "OpsController_metricsPrometheus",
+        "summary": "Prometheus-style counters (in-process; scrape per replica or aggregate via OTEL bridge)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/security": {
+      "get": {
+        "operationId": "OpsController_metricsSecurityJson",
+        "summary": "JSON snapshot of tenant/auth security counters (OpenTelemetry / custom exporter friendly)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/tenant-abuse": {
+      "get": {
+        "operationId": "OpsController_metricsTenantAbuseJson",
+        "summary": "Tenant rate-limit counters + sampled per-tenant request volume (debug cardinality — not for Prometheus labels)",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/metrics/tenant-usage": {
+      "get": {
+        "operationId": "OpsController_metricsTenantUsageJson",
+        "summary": "Tenant usage metering + quota enforcement counters",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
+    "/internal/ops/health": {
+      "get": {
+        "operationId": "OpsController_healthSnapshot",
+        "summary": "Internal runtime health snapshot",
+        "parameters": [
+          {
+            "name": "X-Internal-Api-Key",
+            "in": "header",
+            "description": "Internal API key required for ops endpoints.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ops"
+        ],
+        "security": [
+          {
+            "internalApiKey": []
+          }
+        ]
+      }
+    },
     "/api/v2/safety-profiles/{userId}/emergency-contacts": {
       "get": {
         "operationId": "SafetyProfileController_listEmergency",
@@ -5621,7 +5700,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "denali-create",
+              "example": "tour-create",
               "type": "string"
             }
           }
@@ -5668,7 +5747,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "denali-create",
+              "example": "tour-create",
               "type": "string"
             }
           }
@@ -5725,7 +5804,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "denali-create",
+              "example": "tour-create",
               "type": "string"
             }
           }
@@ -5736,6 +5815,65 @@
           },
           "404": {
             "description": "Draft not found"
+          }
+        },
+        "tags": [
+          "Draft engine"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/workspaces/{tenantId}/draft-engine/{draftKey}/conflict-resolution": {
+      "post": {
+        "operationId": "DraftEngineController_resolveDraftConflict",
+        "summary": "Merge conflicting client draft with server snapshot and persist the result",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "draftKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "tour-create",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDraftConflictDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftSyncPayloadDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No server draft exists for conflict resolution"
           }
         },
         "tags": [
@@ -6047,12 +6185,12 @@
           "name": {
             "type": "string",
             "description": "Workspace display name",
-            "example": "Denali"
+            "example": "Mountain Club"
           },
           "subdomain": {
             "type": "string",
             "description": "Workspace hostname label (slug/subdomain)",
-            "example": "denali"
+            "example": "mountain-club"
           }
         },
         "required": [
@@ -7028,6 +7166,843 @@
           "status",
           "mobile"
         ]
+      },
+      "RegistrationTransportIntakeMetadataDto": {
+        "type": "object",
+        "properties": {
+          "isDriver": {
+            "type": "boolean",
+            "description": "Whether the registrant drives their own vehicle."
+          },
+          "plateNumber": {
+            "type": "string",
+            "description": "Vehicle plate when isDriver is true.",
+            "maxLength": 32
+          },
+          "shareFuelCost": {
+            "type": "boolean",
+            "description": "Passenger willingness to share fuel cost (دنگ); optional."
+          }
+        }
+      },
+      "ParticipantMetadataDto": {
+        "type": "object",
+        "properties": {
+          "userPastPeaksCount": {
+            "type": "number",
+            "description": "Count of successful peak climbs with this agency (0 = none, 4 = four or more). Used with tour tripDetails.requirements.minRequiredPeaks.",
+            "minimum": 0,
+            "maximum": 4,
+            "example": 2
+          },
+          "transportIntake": {
+            "description": "Private-car registration details when transportMode is self_vehicle.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegistrationTransportIntakeMetadataDto"
+              }
+            ]
+          }
+        }
+      },
+      "CreateRegistrationDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Target tour identifier",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "description": "Participant full name",
+            "example": "Ali Ahmadi",
+            "maxLength": 255
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "description": "Primary participant contact phone",
+            "example": "+989121234567",
+            "maxLength": 64
+          },
+          "bookingTarget": {
+            "type": "string",
+            "description": "Whether the authenticated user registers for themselves or for another guest participant",
+            "enum": [
+              "self",
+              "guest"
+            ],
+            "example": "self",
+            "default": "self"
+          },
+          "participantNationalId": {
+            "type": "string",
+            "description": "National ID of the guest participant (10 digits). Relevant when bookingTarget is guest and the tour requires national ID on the traveler.",
+            "example": "0123456789",
+            "maxLength": 10
+          },
+          "transportMode": {
+            "type": "string",
+            "description": "Participant transport mode",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "group_vehicle"
+          },
+          "entryMode": {
+            "type": "string",
+            "description": "Entry mode for dual-mode access",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "web"
+          },
+          "telegramUserId": {
+            "type": "string",
+            "description": "Telegram user id; required when entryMode is telegram",
+            "example": "123456789"
+          },
+          "telegramUsername": {
+            "type": "string",
+            "description": "Optional Telegram username",
+            "example": "ali_trip",
+            "nullable": true
+          },
+          "isDriver": {
+            "type": "boolean",
+            "description": "Whether the registrant is the driver (required when transportMode is self_vehicle)."
+          },
+          "plateNumber": {
+            "type": "string",
+            "description": "Vehicle plate number when isDriver is true.",
+            "maxLength": 32
+          },
+          "shareFuelCost": {
+            "type": "boolean",
+            "description": "Passenger willingness to share fuel cost; optional when not driver."
+          },
+          "vehicleSeatCapacity": {
+            "type": "number",
+            "description": "Optional vehicle seat capacity if participant is driver",
+            "example": 3,
+            "minimum": 1,
+            "maximum": 3
+          },
+          "participantNote": {
+            "type": "string",
+            "description": "Optional participant note",
+            "example": "Will arrive 30 minutes earlier",
+            "nullable": true
+          },
+          "participantMetadata": {
+            "description": "Optional traveler metadata (e.g. past peak climbs for Peak-Experience auto-approval).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ParticipantMetadataDto"
+              }
+            ]
+          },
+          "selectedServiceIds": {
+            "description": "Optional add-on service ids (merged into participant_metadata on persist).",
+            "example": [
+              "breakfast",
+              "nissan"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "discountCode": {
+            "type": "string",
+            "description": "Optional promo code; **final price is always computed server-side** — never trust a client-supplied amount.",
+            "example": "PCT10",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode"
+        ]
+      },
+      "CreateWaitlistItemDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Target tour identifier",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "description": "Participant full name",
+            "example": "Sara Mohammadi",
+            "maxLength": 255
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "description": "Primary participant contact phone",
+            "example": "+989351112233",
+            "maxLength": 64
+          },
+          "transportMode": {
+            "type": "string",
+            "description": "Participant transport mode",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "other"
+          },
+          "entryMode": {
+            "type": "string",
+            "description": "Entry mode for dual-mode access",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "telegram"
+          },
+          "telegramUserId": {
+            "type": "string",
+            "description": "Telegram user id; required when entryMode is telegram",
+            "example": "987654321"
+          },
+          "telegramUsername": {
+            "type": "string",
+            "description": "Optional Telegram username",
+            "example": "sara_waiting",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode"
+        ]
+      },
+      "LockedBookingPricingDto": {
+        "type": "object",
+        "properties": {
+          "totalMinor": {
+            "type": "string",
+            "description": "Payable total in minor units at booking time",
+            "example": "2500000"
+          },
+          "currency": {
+            "type": "string",
+            "example": "IRR"
+          },
+          "pricingRuleVersion": {
+            "type": "string",
+            "description": "Pricing engine / rule-set version frozen at booking time",
+            "example": "catalog:v3"
+          },
+          "listPriceMinor": {
+            "type": "object",
+            "description": "Reference list price minor units when applicable",
+            "nullable": true
+          }
+        },
+        "required": [
+          "totalMinor",
+          "currency",
+          "pricingRuleVersion"
+        ]
+      },
+      "RegistrationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "33333333-3333-4333-8333-333333333333"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "tourId": {
+            "type": "string",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "example": "Ali Ahmadi"
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "example": "+989121234567"
+          },
+          "transportMode": {
+            "type": "string",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "group_vehicle"
+          },
+          "entryMode": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "web"
+          },
+          "bookingTarget": {
+            "type": "string",
+            "enum": [
+              "self",
+              "guest"
+            ],
+            "example": "self",
+            "default": "self"
+          },
+          "participantNationalId": {
+            "type": "string",
+            "example": "0123456789",
+            "nullable": true
+          },
+          "telegramUserId": {
+            "type": "string",
+            "example": "123456789",
+            "nullable": true
+          },
+          "telegramUsername": {
+            "type": "string",
+            "example": "ali_trip",
+            "nullable": true
+          },
+          "vehicleSeatCapacity": {
+            "type": "number",
+            "example": 3,
+            "nullable": true
+          },
+          "participantNote": {
+            "type": "string",
+            "example": "Will arrive 30 minutes earlier",
+            "nullable": true
+          },
+          "participantMetadata": {
+            "type": "object",
+            "description": "Traveler intake metadata (e.g. transportIntake.isDriver for private car).",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "AcceptedPaid",
+              "Rejected",
+              "Cancelled",
+              "NoShow",
+              "Refunded"
+            ],
+            "example": "Pending"
+          },
+          "rowVersion": {
+            "type": "number",
+            "description": "Optimistic concurrency token (`registrations.row_version`). Send as `expected_row_version` on PATCH status/payment.",
+            "example": 1,
+            "minimum": 1
+          },
+          "paymentStatus": {
+            "type": "string",
+            "enum": [
+              "NotPaid",
+              "Paid",
+              "Refunded",
+              "Failed",
+              "Partial"
+            ],
+            "example": "NotPaid",
+            "description": "Persisted aggregate status (full entity enum). PATCH `/payment` accepts only NotPaid, Partial, Paid."
+          },
+          "paidAmount": {
+            "type": "string",
+            "example": "0",
+            "nullable": true
+          },
+          "payment": {
+            "type": "object",
+            "description": "Attached payment snapshot when available",
+            "example": {
+              "status": "Pending",
+              "amount": "2500000",
+              "currency": "IRR",
+              "method": "Manual",
+              "provider": "manual",
+              "providerPaymentId": "mock-pay-001"
+            },
+            "nullable": true
+          },
+          "lockedPricing": {
+            "nullable": true,
+            "description": "Authoritative payable price frozen at booking time. Clients must use this (not live tour pricing) for checkout amounts.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LockedBookingPricingDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-04-29T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-04-29T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode",
+          "status",
+          "rowVersion",
+          "paymentStatus",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ErrorBodyDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "VALIDATION_FAILED"
+          },
+          "message": {
+            "type": "string",
+            "example": "Request validation failed"
+          },
+          "retryability": {
+            "type": "string",
+            "example": "NO_RETRY"
+          },
+          "details": {
+            "type": "object",
+            "example": {
+              "field_errors": [
+                {
+                  "field": "participantFullName",
+                  "reason": "required"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryability"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBodyDto"
+          },
+          "requestId": {
+            "type": "string",
+            "example": "req_1234567890"
+          }
+        },
+        "required": [
+          "error",
+          "requestId"
+        ]
+      },
+      "CreateBookingDto": {
+        "type": "object",
+        "properties": {
+          "tourId": {
+            "type": "string",
+            "description": "Tour to register for (booking is tied directly to the tour)",
+            "example": "22222222-2222-4222-8222-222222222222"
+          }
+        },
+        "required": [
+          "tourId"
+        ]
+      },
+      "UpdateRegistrationStatusDto": {
+        "type": "object",
+        "properties": {
+          "targetStatus": {
+            "type": "string",
+            "description": "Target registration status",
+            "enum": [
+              "Pending",
+              "Accepted",
+              "AcceptedPaid",
+              "Rejected",
+              "Cancelled",
+              "NoShow",
+              "Refunded"
+            ],
+            "example": "Accepted"
+          },
+          "expected_row_version": {
+            "type": "number",
+            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion` / `registrations.row_version`). Must match the row at apply time.",
+            "example": 1,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "targetStatus",
+          "expected_row_version"
+        ]
+      },
+      "UpdateRegistrationPaymentDto": {
+        "type": "object",
+        "properties": {
+          "paymentStatus": {
+            "type": "string",
+            "description": "Target payment status",
+            "enum": [
+              "NotPaid",
+              "Partial",
+              "Paid"
+            ],
+            "example": "Partial"
+          },
+          "paidAmount": {
+            "type": "number",
+            "description": "Optional paid amount (non-negative)",
+            "example": 2500000,
+            "minimum": 0
+          },
+          "expected_row_version": {
+            "type": "number",
+            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion`). Must match the row at apply time.",
+            "example": 1,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "paymentStatus",
+          "expected_row_version"
+        ]
+      },
+      "WaitlistItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "44444444-4444-4444-8444-444444444444"
+          },
+          "tenantId": {
+            "type": "string",
+            "example": "11111111-1111-4111-8111-111111111111"
+          },
+          "tourId": {
+            "type": "string",
+            "example": "22222222-2222-4222-8222-222222222222"
+          },
+          "participantFullName": {
+            "type": "string",
+            "example": "Sara Mohammadi"
+          },
+          "participantContactPhone": {
+            "type": "string",
+            "example": "+989351112233"
+          },
+          "transportMode": {
+            "type": "string",
+            "enum": [
+              "self_vehicle",
+              "group_vehicle",
+              "other"
+            ],
+            "example": "other"
+          },
+          "entryMode": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "web"
+            ],
+            "example": "telegram"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Waiting",
+              "Converted",
+              "Cancelled"
+            ],
+            "example": "Waiting"
+          },
+          "conversionReason": {
+            "type": "string",
+            "example": "capacity_available",
+            "nullable": true
+          },
+          "cancelReason": {
+            "type": "string",
+            "example": "participant_requested",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2026-04-29T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2026-04-29T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "tourId",
+          "participantFullName",
+          "participantContactPhone",
+          "transportMode",
+          "entryMode",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ConvertWaitlistItemDto": {
+        "type": "object",
+        "properties": {
+          "conversionReason": {
+            "type": "string",
+            "description": "Optional conversion reason",
+            "example": "capacity_available"
+          }
+        }
+      },
+      "CancelWaitlistItemDto": {
+        "type": "object",
+        "properties": {
+          "cancelReason": {
+            "type": "string",
+            "description": "Optional cancellation reason",
+            "example": "participant_requested"
+          }
+        }
+      },
+      "CreatePaymentIntentDto": {
+        "type": "object",
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "amount": {
+            "type": "number",
+            "example": 2500000
+          },
+          "currency": {
+            "type": "string",
+            "example": "IRR"
+          },
+          "paymentProvider": {
+            "type": "string",
+            "example": "mock_provider"
+          },
+          "provider": {
+            "type": "string",
+            "example": "mock_provider",
+            "deprecated": true
+          },
+          "providerPaymentId": {
+            "type": "string",
+            "example": "mock-pay-001",
+            "nullable": true
+          }
+        },
+        "required": [
+          "registrationId",
+          "amount",
+          "currency",
+          "paymentProvider"
+        ]
+      },
+      "PaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "registrationId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "Online",
+              "Manual"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerPaymentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pending",
+              "Paid",
+              "Failed",
+              "Refunded",
+              "Cancelled"
+            ]
+          },
+          "paidAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "failedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "refundedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stripe PaymentIntent client secret when applicable."
+          },
+          "checkoutUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Hosted checkout URL (e.g. Zibal) when applicable."
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "registrationId",
+          "amount",
+          "currency",
+          "method",
+          "provider",
+          "providerPaymentId",
+          "status",
+          "paidAt",
+          "failedAt",
+          "refundedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "RefundPaymentDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "operator initiated refund"
+          }
+        }
+      },
+      "PaymentWebhookDto": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "11111111-1111-4111-8111-111111111111",
+            "description": "Tenant metadata from provider payload."
+          },
+          "providerEventId": {
+            "type": "string",
+            "example": "evt-20260430-0001"
+          },
+          "providerPaymentId": {
+            "type": "string",
+            "example": "mock-pay-001"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Paid",
+              "Failed",
+              "Refunded",
+              "Cancelled"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "example": "gateway timeout"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "providerPaymentId",
+          "status"
+        ]
+      },
+      "CreateManualPaymentDto": {
+        "type": "object",
+        "properties": {
+          "registrationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1200000"
+          },
+          "currency": {
+            "type": "string",
+            "example": "IRR"
+          }
+        },
+        "required": [
+          "registrationId",
+          "amount",
+          "currency"
+        ]
+      },
+      "SubmitReceiptDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        }
       },
       "CostContextDto": {
         "type": "object",
@@ -8396,851 +9371,6 @@
           "limit"
         ]
       },
-      "LockedBookingPricingDto": {
-        "type": "object",
-        "properties": {
-          "totalMinor": {
-            "type": "string",
-            "description": "Payable total in minor units at booking time",
-            "example": "2500000"
-          },
-          "currency": {
-            "type": "string",
-            "example": "IRR"
-          },
-          "pricingRuleVersion": {
-            "type": "string",
-            "description": "Pricing engine / rule-set version frozen at booking time",
-            "example": "catalog:v3"
-          },
-          "listPriceMinor": {
-            "type": "object",
-            "description": "Reference list price minor units when applicable",
-            "nullable": true
-          }
-        },
-        "required": [
-          "totalMinor",
-          "currency",
-          "pricingRuleVersion"
-        ]
-      },
-      "RegistrationResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "33333333-3333-4333-8333-333333333333"
-          },
-          "tenantId": {
-            "type": "string",
-            "example": "11111111-1111-4111-8111-111111111111"
-          },
-          "tourId": {
-            "type": "string",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "example": "Ali Ahmadi"
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "example": "+989121234567"
-          },
-          "transportMode": {
-            "type": "string",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "group_vehicle"
-          },
-          "entryMode": {
-            "type": "string",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "web"
-          },
-          "bookingTarget": {
-            "type": "string",
-            "enum": [
-              "self",
-              "guest"
-            ],
-            "example": "self",
-            "default": "self"
-          },
-          "participantNationalId": {
-            "type": "string",
-            "example": "0123456789",
-            "nullable": true
-          },
-          "telegramUserId": {
-            "type": "string",
-            "example": "123456789",
-            "nullable": true
-          },
-          "telegramUsername": {
-            "type": "string",
-            "example": "ali_trip",
-            "nullable": true
-          },
-          "vehicleSeatCapacity": {
-            "type": "number",
-            "example": 3,
-            "nullable": true
-          },
-          "participantNote": {
-            "type": "string",
-            "example": "Will arrive 30 minutes earlier",
-            "nullable": true
-          },
-          "participantMetadata": {
-            "type": "object",
-            "description": "Traveler intake metadata (e.g. transportIntake.isDriver for private car).",
-            "nullable": true
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Pending",
-              "Accepted",
-              "AcceptedPaid",
-              "Rejected",
-              "Cancelled",
-              "NoShow",
-              "Refunded"
-            ],
-            "example": "Pending"
-          },
-          "rowVersion": {
-            "type": "number",
-            "description": "Optimistic concurrency token (`registrations.row_version`). Send as `expected_row_version` on PATCH status/payment.",
-            "example": 1,
-            "minimum": 1
-          },
-          "paymentStatus": {
-            "type": "string",
-            "enum": [
-              "NotPaid",
-              "Paid",
-              "Refunded",
-              "Failed",
-              "Partial"
-            ],
-            "example": "NotPaid",
-            "description": "Persisted aggregate status (full entity enum). PATCH `/payment` accepts only NotPaid, Partial, Paid."
-          },
-          "paidAmount": {
-            "type": "string",
-            "example": "0",
-            "nullable": true
-          },
-          "payment": {
-            "type": "object",
-            "description": "Attached payment snapshot when available",
-            "example": {
-              "status": "Pending",
-              "amount": "2500000",
-              "currency": "IRR",
-              "method": "Manual",
-              "provider": "manual",
-              "providerPaymentId": "mock-pay-001"
-            },
-            "nullable": true
-          },
-          "lockedPricing": {
-            "nullable": true,
-            "description": "Authoritative payable price frozen at booking time. Clients must use this (not live tour pricing) for checkout amounts.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LockedBookingPricingDto"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "example": "2026-04-29T10:00:00.000Z"
-          },
-          "updatedAt": {
-            "type": "string",
-            "example": "2026-04-29T10:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "tenantId",
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode",
-          "status",
-          "rowVersion",
-          "paymentStatus",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "WaitlistItemResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "44444444-4444-4444-8444-444444444444"
-          },
-          "tenantId": {
-            "type": "string",
-            "example": "11111111-1111-4111-8111-111111111111"
-          },
-          "tourId": {
-            "type": "string",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "example": "Sara Mohammadi"
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "example": "+989351112233"
-          },
-          "transportMode": {
-            "type": "string",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "other"
-          },
-          "entryMode": {
-            "type": "string",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "telegram"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Waiting",
-              "Converted",
-              "Cancelled"
-            ],
-            "example": "Waiting"
-          },
-          "conversionReason": {
-            "type": "string",
-            "example": "capacity_available",
-            "nullable": true
-          },
-          "cancelReason": {
-            "type": "string",
-            "example": "participant_requested",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "example": "2026-04-29T10:00:00.000Z"
-          },
-          "updatedAt": {
-            "type": "string",
-            "example": "2026-04-29T10:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "tenantId",
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode",
-          "status",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "RegistrationTransportIntakeMetadataDto": {
-        "type": "object",
-        "properties": {
-          "isDriver": {
-            "type": "boolean",
-            "description": "Whether the registrant drives their own vehicle."
-          },
-          "plateNumber": {
-            "type": "string",
-            "description": "Vehicle plate when isDriver is true.",
-            "maxLength": 32
-          },
-          "shareFuelCost": {
-            "type": "boolean",
-            "description": "Passenger willingness to share fuel cost (دنگ); optional."
-          }
-        }
-      },
-      "ParticipantMetadataDto": {
-        "type": "object",
-        "properties": {
-          "userPastPeaksCount": {
-            "type": "number",
-            "description": "Count of successful peak climbs with this agency (0 = none, 4 = four or more). Used with tour tripDetails.requirements.minRequiredPeaks.",
-            "minimum": 0,
-            "maximum": 4,
-            "example": 2
-          },
-          "transportIntake": {
-            "description": "Private-car registration details when transportMode is self_vehicle.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RegistrationTransportIntakeMetadataDto"
-              }
-            ]
-          }
-        }
-      },
-      "CreateRegistrationDto": {
-        "type": "object",
-        "properties": {
-          "tourId": {
-            "type": "string",
-            "description": "Target tour identifier",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "description": "Participant full name",
-            "example": "Ali Ahmadi",
-            "maxLength": 255
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "description": "Primary participant contact phone",
-            "example": "+989121234567",
-            "maxLength": 64
-          },
-          "bookingTarget": {
-            "type": "string",
-            "description": "Whether the authenticated user registers for themselves or for another guest participant",
-            "enum": [
-              "self",
-              "guest"
-            ],
-            "example": "self",
-            "default": "self"
-          },
-          "participantNationalId": {
-            "type": "string",
-            "description": "National ID of the guest participant (10 digits). Relevant when bookingTarget is guest and the tour requires national ID on the traveler.",
-            "example": "0123456789",
-            "maxLength": 10
-          },
-          "transportMode": {
-            "type": "string",
-            "description": "Participant transport mode",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "group_vehicle"
-          },
-          "entryMode": {
-            "type": "string",
-            "description": "Entry mode for dual-mode access",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "web"
-          },
-          "telegramUserId": {
-            "type": "string",
-            "description": "Telegram user id; required when entryMode is telegram",
-            "example": "123456789"
-          },
-          "telegramUsername": {
-            "type": "string",
-            "description": "Optional Telegram username",
-            "example": "ali_trip",
-            "nullable": true
-          },
-          "isDriver": {
-            "type": "boolean",
-            "description": "Whether the registrant is the driver (required when transportMode is self_vehicle)."
-          },
-          "plateNumber": {
-            "type": "string",
-            "description": "Vehicle plate number when isDriver is true.",
-            "maxLength": 32
-          },
-          "shareFuelCost": {
-            "type": "boolean",
-            "description": "Passenger willingness to share fuel cost; optional when not driver."
-          },
-          "vehicleSeatCapacity": {
-            "type": "number",
-            "description": "Optional vehicle seat capacity if participant is driver",
-            "example": 3,
-            "minimum": 1,
-            "maximum": 3
-          },
-          "participantNote": {
-            "type": "string",
-            "description": "Optional participant note",
-            "example": "Will arrive 30 minutes earlier",
-            "nullable": true
-          },
-          "participantMetadata": {
-            "description": "Optional traveler metadata (e.g. past peak climbs for Peak-Experience auto-approval).",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ParticipantMetadataDto"
-              }
-            ]
-          },
-          "selectedServiceIds": {
-            "description": "Optional add-on service ids (merged into participant_metadata on persist).",
-            "example": [
-              "breakfast",
-              "nissan"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "discountCode": {
-            "type": "string",
-            "description": "Optional promo code; **final price is always computed server-side** — never trust a client-supplied amount.",
-            "example": "PCT10",
-            "maxLength": 64
-          }
-        },
-        "required": [
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode"
-        ]
-      },
-      "CreateWaitlistItemDto": {
-        "type": "object",
-        "properties": {
-          "tourId": {
-            "type": "string",
-            "description": "Target tour identifier",
-            "example": "22222222-2222-4222-8222-222222222222"
-          },
-          "participantFullName": {
-            "type": "string",
-            "description": "Participant full name",
-            "example": "Sara Mohammadi",
-            "maxLength": 255
-          },
-          "participantContactPhone": {
-            "type": "string",
-            "description": "Primary participant contact phone",
-            "example": "+989351112233",
-            "maxLength": 64
-          },
-          "transportMode": {
-            "type": "string",
-            "description": "Participant transport mode",
-            "enum": [
-              "self_vehicle",
-              "group_vehicle",
-              "other"
-            ],
-            "example": "other"
-          },
-          "entryMode": {
-            "type": "string",
-            "description": "Entry mode for dual-mode access",
-            "enum": [
-              "telegram",
-              "web"
-            ],
-            "example": "telegram"
-          },
-          "telegramUserId": {
-            "type": "string",
-            "description": "Telegram user id; required when entryMode is telegram",
-            "example": "987654321"
-          },
-          "telegramUsername": {
-            "type": "string",
-            "description": "Optional Telegram username",
-            "example": "sara_waiting",
-            "nullable": true
-          }
-        },
-        "required": [
-          "tourId",
-          "participantFullName",
-          "participantContactPhone",
-          "transportMode",
-          "entryMode"
-        ]
-      },
-      "ErrorBodyDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "VALIDATION_FAILED"
-          },
-          "message": {
-            "type": "string",
-            "example": "Request validation failed"
-          },
-          "retryability": {
-            "type": "string",
-            "example": "NO_RETRY"
-          },
-          "details": {
-            "type": "object",
-            "example": {
-              "field_errors": [
-                {
-                  "field": "participantFullName",
-                  "reason": "required"
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "code",
-          "message",
-          "retryability"
-        ]
-      },
-      "ErrorResponseDto": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "$ref": "#/components/schemas/ErrorBodyDto"
-          },
-          "requestId": {
-            "type": "string",
-            "example": "req_1234567890"
-          }
-        },
-        "required": [
-          "error",
-          "requestId"
-        ]
-      },
-      "CreateBookingDto": {
-        "type": "object",
-        "properties": {
-          "tourId": {
-            "type": "string",
-            "description": "Tour to register for (booking is tied directly to the tour)",
-            "example": "22222222-2222-4222-8222-222222222222"
-          }
-        },
-        "required": [
-          "tourId"
-        ]
-      },
-      "UpdateRegistrationStatusDto": {
-        "type": "object",
-        "properties": {
-          "targetStatus": {
-            "type": "string",
-            "description": "Target registration status",
-            "enum": [
-              "Pending",
-              "Accepted",
-              "AcceptedPaid",
-              "Rejected",
-              "Cancelled",
-              "NoShow",
-              "Refunded"
-            ],
-            "example": "Accepted"
-          },
-          "expected_row_version": {
-            "type": "number",
-            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion` / `registrations.row_version`). Must match the row at apply time.",
-            "example": 1,
-            "minimum": 1
-          }
-        },
-        "required": [
-          "targetStatus",
-          "expected_row_version"
-        ]
-      },
-      "UpdateRegistrationPaymentDto": {
-        "type": "object",
-        "properties": {
-          "paymentStatus": {
-            "type": "string",
-            "description": "Target payment status",
-            "enum": [
-              "NotPaid",
-              "Partial",
-              "Paid"
-            ],
-            "example": "Partial"
-          },
-          "paidAmount": {
-            "type": "number",
-            "description": "Optional paid amount (non-negative)",
-            "example": 2500000,
-            "minimum": 0
-          },
-          "expected_row_version": {
-            "type": "number",
-            "description": "Optimistic concurrency token from `GET /api/v2/registrations/:id` (`rowVersion`). Must match the row at apply time.",
-            "example": 1,
-            "minimum": 1
-          }
-        },
-        "required": [
-          "paymentStatus",
-          "expected_row_version"
-        ]
-      },
-      "ConvertWaitlistItemDto": {
-        "type": "object",
-        "properties": {
-          "conversionReason": {
-            "type": "string",
-            "description": "Optional conversion reason",
-            "example": "capacity_available"
-          }
-        }
-      },
-      "CancelWaitlistItemDto": {
-        "type": "object",
-        "properties": {
-          "cancelReason": {
-            "type": "string",
-            "description": "Optional cancellation reason",
-            "example": "participant_requested"
-          }
-        }
-      },
-      "CreatePaymentIntentDto": {
-        "type": "object",
-        "properties": {
-          "registrationId": {
-            "type": "string",
-            "example": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-          },
-          "amount": {
-            "type": "number",
-            "example": 2500000
-          },
-          "currency": {
-            "type": "string",
-            "example": "IRR"
-          },
-          "paymentProvider": {
-            "type": "string",
-            "example": "mock_provider"
-          },
-          "provider": {
-            "type": "string",
-            "example": "mock_provider",
-            "deprecated": true
-          },
-          "providerPaymentId": {
-            "type": "string",
-            "example": "mock-pay-001",
-            "nullable": true
-          }
-        },
-        "required": [
-          "registrationId",
-          "amount",
-          "currency",
-          "paymentProvider"
-        ]
-      },
-      "PaymentResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "tenantId": {
-            "type": "string"
-          },
-          "registrationId": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "string"
-          },
-          "currency": {
-            "type": "string"
-          },
-          "method": {
-            "type": "string",
-            "enum": [
-              "Online",
-              "Manual"
-            ]
-          },
-          "provider": {
-            "type": "string"
-          },
-          "providerPaymentId": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Pending",
-              "Paid",
-              "Failed",
-              "Refunded",
-              "Cancelled"
-            ]
-          },
-          "paidAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "failedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "refundedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "clientSecret": {
-            "type": "string",
-            "nullable": true,
-            "description": "Stripe PaymentIntent client secret when applicable."
-          },
-          "checkoutUrl": {
-            "type": "string",
-            "nullable": true,
-            "description": "Hosted checkout URL (e.g. Zibal) when applicable."
-          }
-        },
-        "required": [
-          "id",
-          "tenantId",
-          "registrationId",
-          "amount",
-          "currency",
-          "method",
-          "provider",
-          "providerPaymentId",
-          "status",
-          "paidAt",
-          "failedAt",
-          "refundedAt",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "RefundPaymentDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "example": "operator initiated refund"
-          }
-        }
-      },
-      "PaymentWebhookDto": {
-        "type": "object",
-        "properties": {
-          "tenant_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "11111111-1111-4111-8111-111111111111",
-            "description": "Tenant metadata from provider payload."
-          },
-          "providerEventId": {
-            "type": "string",
-            "example": "evt-20260430-0001"
-          },
-          "providerPaymentId": {
-            "type": "string",
-            "example": "mock-pay-001"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "Paid",
-              "Failed",
-              "Refunded",
-              "Cancelled"
-            ]
-          },
-          "reason": {
-            "type": "string",
-            "example": "gateway timeout"
-          }
-        },
-        "required": [
-          "tenant_id",
-          "providerPaymentId",
-          "status"
-        ]
-      },
-      "CreateManualPaymentDto": {
-        "type": "object",
-        "properties": {
-          "registrationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "amount": {
-            "type": "string",
-            "example": "1200000"
-          },
-          "currency": {
-            "type": "string",
-            "example": "IRR"
-          }
-        },
-        "required": [
-          "registrationId",
-          "amount",
-          "currency"
-        ]
-      },
-      "SubmitReceiptDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string"
-          }
-        }
-      },
-      "AcknowledgeReconciliationFindingDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "ApplyReconciliationLedgerAdjustmentDto": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateWorkspaceRegionDto": {
         "type": "object",
         "properties": {}
@@ -9968,6 +10098,14 @@
           }
         }
       },
+      "AcknowledgeReconciliationFindingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ApplyReconciliationLedgerAdjustmentDto": {
+        "type": "object",
+        "properties": {}
+      },
       "EmergencyContactItemDto": {
         "type": "object",
         "properties": {
@@ -10053,6 +10191,22 @@
           "data",
           "version",
           "lastModified"
+        ]
+      },
+      "ResolveDraftConflictDto": {
+        "type": "object",
+        "properties": {
+          "clientDraft": {
+            "description": "Client-side draft state that conflicted with the server",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DraftSyncPayloadDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "clientDraft"
         ]
       }
     }

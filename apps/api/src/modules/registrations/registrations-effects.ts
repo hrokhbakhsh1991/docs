@@ -8,7 +8,7 @@ import {
   BookingFinalizationPhase,
   bookingFinalizationOutboxEventType
 } from "./domain/booking-finalization-pipeline";
-import { RegistrationStatus } from "./domain/registration-status";
+import { RegistrationStatus, RegistrationPaymentStatus } from "./domain/registration-status";
 import type {
   RegistrationOutboxSnapshot,
   WaitlistOutboxSnapshot,
@@ -65,6 +65,22 @@ export async function emitBookingFinalizationPipelineEvent(input: {
   if (input.phase === BookingFinalizationPhase.BOOKING_CREATED) {
     return;
   }
+  if (input.phase === BookingFinalizationPhase.BOOKING_CONFIRMED) {
+    await input.outboxService.addEvent(input.manager, {
+      tenantId: input.tenantId,
+      aggregateType: "Registration",
+      aggregateId: input.registrationId,
+      eventType: "booking.finalized",
+      payload: {
+        entityType: "booking",
+        entityId: input.registrationId,
+        registrationId: input.registrationId,
+        phase: input.phase,
+        timestamp: nowIso(),
+        ...(input.metadata ? { metadata: input.metadata } : {})
+      }
+    });
+  }
   const eventType = bookingFinalizationOutboxEventType(input.phase);
   await input.outboxService.addEvent(input.manager, {
     tenantId: input.tenantId,
@@ -101,6 +117,8 @@ export async function emitRegistrationCreatedEvent(input: {
       tourId: input.registration.tourId,
       status: input.registration.status,
       paymentRequired: input.paymentRequired,
+      quotedTotalMinor: input.registration.quotedTotalMinor ?? null,
+      currency: input.registration.quotedCurrencyCode ?? null,
       timestamp: nowIso()
     }
   });
@@ -144,16 +162,9 @@ export async function emitRegistrationPaymentUpdatedEvent(input: {
   outboxService: OutboxService;
   registration: RegistrationOutboxSnapshot;
   actorId: string;
-  /** @deprecated Prefer `finance.ledger.double_entry_applied` outbox; kept for optional inline summaries. */
-  ledgerFactsSummary?: Array<{
-    id: string;
-    journalId: string;
-    account: string;
-    side: string;
-    amount_minor: string;
-    correlationId: string;
-    idempotencyKey: string;
-  }>;
+  idempotencyKey: string;
+  nextPaymentStatus: RegistrationPaymentStatus;
+  nextPaidAmount?: string;
 }): Promise<void> {
   await input.outboxService.addEvent(input.manager, {
     tenantId: input.registration.tenantId,
@@ -164,12 +175,16 @@ export async function emitRegistrationPaymentUpdatedEvent(input: {
       entityType: "registration",
       entityId: input.registration.id,
       actorId: input.actorId,
+      tenantId: input.registration.tenantId,
+      registrationId: input.registration.id,
+      quotedTotalMinor: input.registration.quotedTotalMinor ?? null,
+      currency: input.registration.quotedCurrencyCode ?? null,
       metadata: {
-        paymentStatus: input.registration.paymentStatus,
-        paidAmount: input.registration.paidAmount ?? null,
-        ...(input.ledgerFactsSummary && input.ledgerFactsSummary.length > 0
-          ? { ledgerFacts: input.ledgerFactsSummary }
-          : {})
+        paymentStatus: input.nextPaymentStatus,
+        paidAmount: input.nextPaidAmount ?? null,
+        idempotencyKey: input.idempotencyKey,
+        previousPaymentStatus: input.registration.paymentStatus,
+        previousPaidAmount: input.registration.paidAmount ?? null,
       },
       timestamp: nowIso()
     }

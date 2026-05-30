@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
 import type { DataSource } from "typeorm";
-import { IdempotencyService } from "../../src/modules/idempotency/idempotency.service";
+import { SecurityIsolationBreachException } from "../../src/common/errors/security-isolation-breach.exception";
+import { IdempotencyService } from "../../src/modules/idempotency/repositories/idempotency.service";
 
 function createFixture(tenantId = "tenant-1") {
   const rows = new Map<string, any>();
@@ -164,4 +165,26 @@ test("near-simultaneous duplicate request returns in-progress conflict", async (
   releaseHandler();
   const firstResult = await first;
   assert.equal(firstResult.responseBody.ok, true);
+});
+
+test("findByKey rejects records whose tenantId does not match active tenant context", async () => {
+  const { service } = createFixture("tenant-a");
+  const repo = (service as unknown as { idempotencyRepository: { findOne: (_opts: unknown) => Promise<unknown> } })
+    .idempotencyRepository;
+  repo.findOne = async () => ({
+    id: "id-1",
+    tenantId: "tenant-b",
+    key: "k1",
+    endpoint: "/register",
+    requestHash: "h1",
+    responseBody: { ok: true },
+    statusCode: 201,
+    expiresAt: new Date(Date.now() + 60_000),
+    createdAt: new Date(),
+  });
+
+  await assert.rejects(
+    () => service.findByKey("k1"),
+    (error: unknown) => error instanceof SecurityIsolationBreachException
+  );
 });

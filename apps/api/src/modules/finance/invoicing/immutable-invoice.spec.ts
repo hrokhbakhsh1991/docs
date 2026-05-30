@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "../ledger/ledger-accounts";
+import { LEDGER_ACCOUNTS } from "../ledger/ledger-accounts";
 import { postDoubleEntryJournal } from "../ledger/post-double-entry-journal";
 import {
   issueImmutableInvoice,
@@ -23,7 +23,7 @@ test("issueImmutableInvoice rejects ledger lines from another tenant", () => {
   const otherTenant = "99999999-9999-4999-8999-999999999999";
   const { lines } = postDoubleEntryJournal({
     tenantId: otherTenant,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: `booking:${bookingId}`,
     amount_minor: "100",
     currency: "USD",
@@ -64,7 +64,7 @@ test("issueImmutableInvoice requires snapshotId", () => {
 test("issueImmutableInvoice seals payload and verifies integrity", () => {
   const { lines } = postDoubleEntryJournal({
     tenantId,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: `booking:${bookingId}`,
     amount_minor: "100",
     currency: "USD",

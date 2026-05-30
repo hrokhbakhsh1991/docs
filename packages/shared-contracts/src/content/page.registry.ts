@@ -17,7 +17,7 @@ export { z };
  */
 export const CONTENT_WORKSPACE_VALUES = [
   "general",
-  "denali",
+  "outdoor_pilot",
   "arctic",
   "urban",
 ] as const;
@@ -174,12 +174,13 @@ function seedWorkspacePages(workspace: Workspace, brandLabel: string): Workspace
  */
 export const PAGE_REGISTRY: PageRegistry = {
   general: seedWorkspacePages("general", "General"),
-  denali: seedWorkspacePages("denali", "Denali"),
+  outdoor_pilot: seedWorkspacePages("outdoor_pilot", "Outdoor Pilot"),
   arctic: seedWorkspacePages("arctic", "Arctic"),
   urban: seedWorkspacePages("urban", "Urban"),
 };
 
-export function getWorkspacePages(workspace: Workspace): WorkspacePages {
+/** @deprecated Use {@link getWorkspacePages} from `./content-workspace.factory` (tenant-slug driven). */
+export function getWorkspacePagesByRegistryKey(workspace: Workspace): WorkspacePages {
   return PAGE_REGISTRY[workspace];
 }
 

@@ -4,7 +4,7 @@ import { OutboxService } from "../../outbox/outbox.service";
 import type { PaymentEntity } from "../../payments/entities/payment.entity";
 import { bookingWalletId } from "./booking-ledger-authority.service";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { paymentAmountToLedgerMinorString } from "./payment-amount-to-ledger-minor";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 import { postAndPersistDoubleEntryJournal } from "./post-double-entry-journal";
@@ -36,7 +36,7 @@ export class PaymentCaptureLedgerAuthorityService {
 
     const { journalId, lines } = await postAndPersistDoubleEntryJournal(manager, {
       tenantId,
-      debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+      debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
       creditAccount: bookingWalletId(payment.registrationId),
       amount_minor: amountMinor,
       currency: payment.currency.trim().toUpperCase(),

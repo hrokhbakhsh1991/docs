@@ -46,7 +46,7 @@ const noopCaptureLedger = {
 } as never;
 
 const noopBookingLedger = {
-  applyPaidAmountProjectionToRegistration: () => undefined
+  projectPaidAmountFromLedgerLines: () => undefined,
 } as never;
 
 const requestContextTenant1 = {

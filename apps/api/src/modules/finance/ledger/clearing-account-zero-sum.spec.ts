@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { postDoubleEntryJournal } from "./post-double-entry-journal";
 import {
   findClearingZeroSumViolationsFromBalances,
@@ -15,7 +15,7 @@ test("balanced capture and reversal nets clearing account to zero", () => {
   const bookingId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const { lines: capture } = postDoubleEntryJournal({
     tenantId,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId(bookingId),
     amount_minor: "5000",
     currency: "IRR",
@@ -25,7 +25,7 @@ test("balanced capture and reversal nets clearing account to zero", () => {
   const { lines: reversal } = postDoubleEntryJournal({
     tenantId,
     debitAccount: bookingWalletId(bookingId),
-    creditAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    creditAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     amount_minor: "5000",
     currency: "IRR",
     correlationId: "test:refund",

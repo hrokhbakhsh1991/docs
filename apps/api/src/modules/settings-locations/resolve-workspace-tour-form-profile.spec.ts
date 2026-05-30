@@ -4,7 +4,7 @@ import type { Repository } from "typeorm";
 
 import { WorkspaceTourWizardTemplateEntity } from "./entities/workspace-tour-wizard-template.entity";
 import { WorkspaceTourCreationPresetEntity } from "./entities/workspace-tour-creation-preset.entity";
-import { resolveWorkspaceTourFormProfile } from "./resolve-workspace-tour-form-profile";
+import { resolveWorkspaceTourFormProfile } from "./repositories/resolve-workspace-tour-form-profile";
 
 function mockTemplateRepo(
   row: Pick<WorkspaceTourWizardTemplateEntity, "baseProfile"> | null,

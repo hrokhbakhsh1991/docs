@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type Redis from "ioredis";
+import { SecurityIsolationBreachException } from "../../../common/errors/security-isolation-breach.exception";
 import { RedisPaymentIdempotencyKeyStore } from "./redis-payment-idempotency-key.store";
+import { paymentGatewayIdempotencyDigest } from "./payment-idempotency-key.store";
+
+const REDIS_KEY_PREFIX = "paygw:idemp:v2:";
 
 /**
  * Minimal Redis subset used by {@link RedisPaymentIdempotencyKeyStore} (no TTL expiry simulation).
  */
 class MiniRedis {
-  private readonly data = new Map<string, string>();
+  readonly data = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
     return this.data.has(key) ? (this.data.get(key) as string) : null;
@@ -92,5 +96,23 @@ test("Redis IdempotencyKeyStore: failure is not cached — retry runs fn again",
   assert.equal(calls, 2);
   assert.equal(ok.replayed, false);
   assert.deepEqual(ok.value, { ok: true });
+  await store.onModuleDestroy();
+});
+
+test("Redis IdempotencyKeyStore: cross-tenant envelope read is blocked", async () => {
+  const mini = new MiniRedis();
+  const store = new RedisPaymentIdempotencyKeyStore(mini as unknown as Redis);
+  const scopeB = { tenantId: "tenant-b", operation: "test:op", idempotencyKey: "k-cross" };
+  const keyB = `${REDIS_KEY_PREFIX}${paymentGatewayIdempotencyDigest(scopeB)}`;
+  mini.data.set(keyB, JSON.stringify({ tenantId: "tenant-a", value: { n: 1 } }));
+
+  await assert.rejects(
+    () =>
+      store.runOnce(scopeB, async () => {
+        throw new Error("must not execute");
+      }),
+    (error: unknown) => error instanceof SecurityIsolationBreachException
+  );
+
   await store.onModuleDestroy();
 });

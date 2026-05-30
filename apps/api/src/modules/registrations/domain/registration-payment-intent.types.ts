@@ -17,6 +17,6 @@ export type RegistrationPaymentIntentSnapshot = {
 
 export type RegistrationPayableRegistration = {
   id: string;
-  quotedTotalMinor: string | null;
-  quotedCurrencyCode: string | null;
+  quotedTotalMinor?: string | null;
+  quotedCurrencyCode?: string | null;
 };

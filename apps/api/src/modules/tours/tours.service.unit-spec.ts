@@ -47,9 +47,12 @@ test("syncProductDepartureForTour throws when tour_products row is missing", asy
       };
     },
   };
+  (repo as unknown as { tourRepository: { manager: typeof manager } }).tourRepository = {
+    manager,
+  };
 
   await assert.rejects(
-    () => repo.syncProductDepartureForTour(manager as never, tour),
+    () => repo.syncProductDepartureForTour(tour),
     (err: unknown) => {
       assert.ok(err instanceof InternalServerErrorException);
       const body = err.getResponse() as { error?: { code?: string; message?: string } };
@@ -89,9 +92,12 @@ test("syncProductDepartureForTour throws when tour_departures row is missing", a
       };
     },
   };
+  (repo as unknown as { tourRepository: { manager: typeof manager } }).tourRepository = {
+    manager,
+  };
 
   await assert.rejects(
-    () => repo.syncProductDepartureForTour(manager as never, tour),
+    () => repo.syncProductDepartureForTour(tour),
     (err: unknown) => {
       assert.ok(err instanceof InternalServerErrorException);
       const body = err.getResponse() as { error?: { code?: string; message?: string } };

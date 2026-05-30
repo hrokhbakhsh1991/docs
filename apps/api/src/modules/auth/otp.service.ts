@@ -1,12 +1,15 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
+import { InjectDataSource } from "@nestjs/typeorm";
 import { randomUUID } from "node:crypto";
-import { DataSource, Repository } from "typeorm";
+import { DataSource } from "typeorm";
 
 import { normalizeOtpPhoneInput } from "../../common/phone/otp-phone-normalize";
 import { ConfigService } from "../../config/config.service";
-import type { MobileOtpPurpose } from "./entities/mobile-otp-challenge.entity";
-import { MobileOtpChallengeEntity } from "./entities/mobile-otp-challenge.entity";
+import type { MobileOtpPurpose } from "./mobile-otp.types";
+import {
+  OTP_CHALLENGE_REPOSITORY_PORT,
+  type OtpChallengeRepositoryPort,
+} from "./domain/ports/otp-challenge-repository.port";
 
 const DEV_STATIC_OTP = "1234";
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -14,8 +17,8 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 @Injectable()
 export class OtpService {
   constructor(
-    @InjectRepository(MobileOtpChallengeEntity)
-    private readonly challengeRepository: Repository<MobileOtpChallengeEntity>,
+    @Inject(OTP_CHALLENGE_REPOSITORY_PORT)
+    private readonly otpChallengeRepository: OtpChallengeRepositoryPort,
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService
@@ -54,8 +57,8 @@ export class OtpService {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
-          message: "OTP verification is not available"
-        }
+          message: "OTP verification is not available",
+        },
       });
     }
 
@@ -64,8 +67,8 @@ export class OtpService {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
-          message: "Invalid OTP code"
-        }
+          message: "Invalid OTP code",
+        },
       });
     }
 
@@ -87,29 +90,28 @@ export class OtpService {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
-          message: "Invalid or expired OTP challenge"
-        }
+          message: "Invalid or expired OTP challenge",
+        },
       });
     }
     if (row.used) {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
-          message: "OTP challenge already used"
-        }
+          message: "OTP challenge already used",
+        },
       });
     }
     if (row.expiresAt.getTime() <= Date.now()) {
       throw new UnauthorizedException({
         error: {
           code: "AUTH_OTP_INVALID",
-          message: "OTP challenge expired"
-        }
+          message: "OTP challenge expired",
+        },
       });
     }
 
-    row.used = true;
-    await this.challengeRepository.save(row);
+    await this.otpChallengeRepository.markChallengeUsed(row);
 
     return { success: true, mobile: row.mobile, purpose: row.purpose };
   }

@@ -3,7 +3,7 @@ import test from "node:test";
 import type { OutboxService } from "../../outbox/outbox.service";
 import { BookingLedgerAuthorityService, bookingWalletId } from "./booking-ledger-authority.service";
 import type { BookingLedgerLeaderRegistrationRow } from "./contracts/leader-registration-payment-ledger.contracts";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { mockLedgerPersistEntityManager } from "./test/mock-ledger-entity-manager";
 import {
   TEST_REGISTRATION_ID,
@@ -46,7 +46,7 @@ test("PAID with amount emits balanced journal and projects paid_amount", async (
   const booking = bookingWalletId(TEST_REGISTRATION_ID);
   const debit = ledgerFacts.find((l) => l.side === "debit");
   const credit = ledgerFacts.find((l) => l.side === "credit");
-  assert.equal(debit?.account, REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT);
+  assert.equal(debit?.account, LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING);
   assert.equal(credit?.account, booking);
   assert.equal(debit?.amount_minor, "2500");
   assert.equal(credit?.amount_minor, "2500");
@@ -81,7 +81,7 @@ test("NOT_PAID emits reversal journal and clears projection when prior paid exis
   const debit = ledgerFacts.find((l) => l.side === "debit");
   const credit = ledgerFacts.find((l) => l.side === "credit");
   assert.equal(debit?.account, booking);
-  assert.equal(credit?.account, REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT);
+  assert.equal(credit?.account, LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING);
   assert.equal(debit?.amount_minor, "100");
   assert.equal(registration.paidAmount, undefined);
   assert.equal(registration.paymentStatus, "NotPaid");

@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { EntityManager, FindOptionsWhere } from "typeorm";
-import { In, Repository } from "typeorm";
+import { EntityManager, In, Repository } from "typeorm";
 
 import { RegistrationEntity } from "../registration.entity";
 import type { RegistrationWriteRecord } from "../domain/registration-write.types";
@@ -12,6 +11,7 @@ import type {
   RegistrationsReadRepositoryPort,
 } from "../domain/ports/registrations-read.port";
 import { lockRegistrationForFinancialMutation } from "./lock-registration-for-financial-mutation";
+import { getIdempotentEntityManager } from "../../idempotency/idempotent-transaction.context";
 
 const asRegistrationWriteRecord = (row: RegistrationEntity): RegistrationWriteRecord => ({
   id: row.id,
@@ -61,8 +61,8 @@ const asRegistrationReadDetailRecord = (row: RegistrationEntity): RegistrationRe
 
 function mapClauseToEntityWhere(
   clause: RegistrationReadWhereClause
-): FindOptionsWhere<RegistrationEntity> {
-  const where: FindOptionsWhere<RegistrationEntity> = {};
+): import("typeorm").FindOptionsWhere<RegistrationEntity> {
+  const where: import("typeorm").FindOptionsWhere<RegistrationEntity> = {};
   if (clause.id != null) where.id = clause.id;
   if (clause.tenantId != null) where.tenantId = clause.tenantId;
   if (clause.deletedAt === null) where.deletedAt = null as never;
@@ -82,7 +82,7 @@ function mapClauseToEntityWhere(
 
 function toEntityWhere(
   where: RegistrationReadWhere
-): FindOptionsWhere<RegistrationEntity> | FindOptionsWhere<RegistrationEntity>[] {
+): import("typeorm").FindOptionsWhere<RegistrationEntity> | import("typeorm").FindOptionsWhere<RegistrationEntity>[] {
   if (Array.isArray(where)) {
     return where.map(mapClauseToEntityWhere);
   }
@@ -96,13 +96,13 @@ export class TypeOrmRegistrationsReadRepository implements RegistrationsReadRepo
     private readonly registrations: Repository<RegistrationEntity>
   ) {}
 
-  getDefaultManager(): EntityManager {
-    return this.registrations.manager;
+  private get activeManager(): EntityManager {
+    return getIdempotentEntityManager() ?? this.registrations.manager;
   }
 
   findOneStandalone(where: RegistrationReadWhere): Promise<RegistrationWriteRecord | null> {
-    return this.registrations
-      .findOne({ where: toEntityWhere(where) })
+    return this.activeManager
+      .findOne(RegistrationEntity, { where: toEntityWhere(where) })
       .then((row) => (row ? asRegistrationWriteRecord(row) : null));
   }
 
@@ -110,33 +110,24 @@ export class TypeOrmRegistrationsReadRepository implements RegistrationsReadRepo
     where: RegistrationReadWhere,
     order?: { createdAt: "ASC" | "DESC" }
   ): Promise<RegistrationWriteRecord[]> {
-    return this.registrations
-      .find({
+    return this.activeManager
+      .find(RegistrationEntity, {
         where: toEntityWhere(where),
         order: order ? { createdAt: order.createdAt } : undefined,
       })
       .then((rows) => rows.map(asRegistrationWriteRecord));
   }
 
-  findOneInManager(
-    manager: EntityManager,
-    where: RegistrationReadWhere
-  ): Promise<RegistrationWriteRecord | null> {
-    return manager
-      .findOne(RegistrationEntity, { where: toEntityWhere(where) })
-      .then((row) => (row ? asRegistrationWriteRecord(row) : null));
-  }
-
   findOneDetailStandalone(where: RegistrationReadWhere): Promise<RegistrationReadDetailRecord | null> {
-    return this.registrations
-      .findOne({ where: toEntityWhere(where) })
+    return this.activeManager
+      .findOne(RegistrationEntity, { where: toEntityWhere(where) })
       .then((row) => (row ? asRegistrationReadDetailRecord(row) : null));
   }
 
   lockForFinancialMutation(
-    manager: EntityManager,
     where: RegistrationReadWhere
   ): Promise<RegistrationWriteRecord> {
-    return lockRegistrationForFinancialMutation(manager, where);
+    return lockRegistrationForFinancialMutation(this.activeManager, where);
   }
 }
+

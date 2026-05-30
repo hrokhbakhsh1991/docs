@@ -6,6 +6,7 @@ import { TenantAbuseModule } from "../../common/tenant-abuse/tenant-abuse.module
 import { IdentityModule } from "../identity/identity.module";
 import { OutboxModule } from "../outbox/outbox.module";
 import { RegistrationsModule } from "../registrations/registrations.module";
+import { ToursModule } from "../tours/tours.module";
 import { TourEntity } from "../tours/entities/tour.entity";
 import { PaymentEntity } from "../payments/entities/payment.entity";
 import { BookingPriceSnapshotEntity } from "../pricing/entities/booking-price-snapshot.entity";
@@ -43,7 +44,8 @@ import { ReconciliationService } from "./reconciliation.service";
     TenantAbuseModule,
     IdentityModule,
     OutboxModule,
-    RegistrationsModule
+    RegistrationsModule,
+    ToursModule
   ],
   providers: [
     LoggingReconciliationJobAlertHooks,

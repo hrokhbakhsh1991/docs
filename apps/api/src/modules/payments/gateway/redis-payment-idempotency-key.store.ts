@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   Inject,
   Injectable,
@@ -9,21 +8,22 @@ import type Redis from "ioredis";
 import type { IdempotencyKeyStore, IdempotentRunResult, PaymentIdempotencyScope } from "./payment-idempotency-key.store";
 import {
   PAYMENTS_GATEWAY_IDEMPOTENCY_REDIS,
-  paymentGatewayIdempotencyCompositeKey
+  paymentGatewayIdempotencyDigest,
 } from "./payment-idempotency-key.store";
+import {
+  unwrapIdempotencyCacheValue,
+  wrapIdempotencyCacheValue,
+} from "./idempotency-cache-envelope";
 
 const PENDING_SENTINEL = "__payment_gateway_idempotency_pending__";
-const REDIS_KEY_PREFIX = "paygw:idemp:v1:";
+const REDIS_KEY_PREFIX = "paygw:idemp:v2:";
 
 function jsonClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function redisKey(scope: PaymentIdempotencyScope): string {
-  const digest = createHash("sha256")
-    .update(paymentGatewayIdempotencyCompositeKey(scope))
-    .digest("hex");
-  return `${REDIS_KEY_PREFIX}${digest}`;
+  return `${REDIS_KEY_PREFIX}${paymentGatewayIdempotencyDigest(scope)}`;
 }
 
 /**
@@ -54,7 +54,9 @@ export class RedisPaymentIdempotencyKeyStore implements IdempotencyKeyStore, OnM
     while (Date.now() < deadline) {
       const raw = await this.redis.get(key);
       if (raw && raw !== PENDING_SENTINEL) {
-        return { value: jsonClone(JSON.parse(raw) as T), replayed: true };
+        const parsed = JSON.parse(raw) as unknown;
+        const value = unwrapIdempotencyCacheValue<T>(scope.tenantId, parsed);
+        return { value: jsonClone(value) as T, replayed: true };
       }
       if (raw === PENDING_SENTINEL) {
         await this.sleepWhilePending(key, deadline);
@@ -66,7 +68,8 @@ export class RedisPaymentIdempotencyKeyStore implements IdempotencyKeyStore, OnM
         try {
           const value = await fn();
           const frozen = jsonClone(value);
-          await this.redis.set(key, JSON.stringify(frozen), "EX", this.resultTtlSec);
+          const envelope = wrapIdempotencyCacheValue(scope.tenantId, frozen);
+          await this.redis.set(key, JSON.stringify(envelope), "EX", this.resultTtlSec);
           return { value: jsonClone(frozen) as T, replayed: false };
         } catch (error: unknown) {
           await this.redis.del(key);

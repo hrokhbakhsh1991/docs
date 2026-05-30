@@ -3,8 +3,6 @@ import {
   type LedgerEntry,
   type LedgerJournal,
 } from "@repo/shared-contracts";
-import type { LedgerJournalLineEntity } from "./entities/ledger-journal-line.entity";
-import { ledgerJournalLineEntityToDomain } from "./ledger-journal-line.mapper";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 
 function toIsoDateTimeString(value: unknown): string {
@@ -70,11 +68,6 @@ export function toLedgerEntry(line: LedgerJournalLine): LedgerEntry {
     entry.metadata = line.metadata;
   }
   return entry;
-}
-
-/** Maps a persisted {@link LedgerJournalLineEntity} via the existing domain mapper. */
-export function toLedgerEntryFromEntity(row: LedgerJournalLineEntity): LedgerEntry {
-  return toLedgerEntry(ledgerJournalLineEntityToDomain(row));
 }
 
 /** Strict validation — throws {@link ZodError} on contract mismatch. */

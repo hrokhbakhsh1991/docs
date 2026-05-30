@@ -18,7 +18,7 @@ import {
 import type { CreateWorkspaceTourThemeDto } from "./dto/create-workspace-tour-theme.dto";
 import type { UpdateWorkspaceTourThemeDto } from "./dto/update-workspace-tour-theme.dto";
 import { WorkspaceTourThemeResponseDto } from "./dto/workspace-tour-theme-response.dto";
-import { WorkspaceTourThemeEntity } from "./entities/workspace-tour-theme.entity";
+import type { WorkspaceTourThemeRecord } from "./domain/workspace-catalog.records";
 
 @Injectable()
 export class TourThemesSettingsService {
@@ -53,7 +53,7 @@ export class TourThemesSettingsService {
     return String(value).trim();
   }
 
-  private toResponse(row: WorkspaceTourThemeEntity): WorkspaceTourThemeResponseDto {
+  private toResponse(row: WorkspaceTourThemeRecord): WorkspaceTourThemeResponseDto {
     return {
       id: row.id,
       name: row.name,

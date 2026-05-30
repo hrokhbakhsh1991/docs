@@ -25,6 +25,10 @@ async function generateOpenApi(): Promise<void> {
   }
 }
 
-generateOpenApi().catch((_error: unknown) => {
+generateOpenApi().catch((error: unknown) => {
+  process.stderr.write("FATAL: OpenAPI generation failed during pipeline execution.\n");
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  );
   process.exit(1);
 });

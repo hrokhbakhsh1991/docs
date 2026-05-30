@@ -10,9 +10,10 @@ import {
 
 import { DraftConflictException } from "../../src/modules/draft-engine/draft-conflict.exception";
 import { DraftEngineFacade } from "../../src/modules/draft-engine/draft-engine.facade";
+import { DefaultDraftConflictResolver } from "../../src/modules/draft-engine/domain/default-draft-conflict-resolver";
 import { DraftEventEntity } from "../../src/modules/draft-engine/entities/draft-event.entity";
 import { DraftSnapshotEntity } from "../../src/modules/draft-engine/entities/draft-snapshot.entity";
-import { PostgresDraftSnapshotStore } from "../../src/modules/draft-engine/storage/postgres-draft-snapshot.store";
+import { PostgresDraftSnapshotStore } from "../../src/modules/draft-engine/repositories/postgres-draft-snapshot.store";
 import { DraftScopeResolver } from "../../src/modules/draft-engine/storage/draft-scope.resolver";
 import type { RequestContextService } from "../../src/common/request-context/request-context.service";
 import type { AuditLogService } from "../../src/common/audit/audit-log.service";
@@ -54,6 +55,7 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
     { logEvent: async () => undefined } as unknown as AuditLogService,
     draftEventRepo,
     requestContext,
+    new DefaultDraftConflictResolver(),
   );
 
   try {
@@ -158,6 +160,7 @@ test("DraftEngineFacade legacy schema_version 1 → loadDraft → saveDraft (req
     { logEvent: async () => undefined } as unknown as AuditLogService,
     draftEventRepo,
     requestContext,
+    new DefaultDraftConflictResolver(),
   );
 
   try {

@@ -1,15 +1,14 @@
 import type { RegionalTourListScope } from "../../../../common/rbac/capability-grant-context-from-request";
-import type { EntityManager } from "typeorm";
-import type { DeepPartial } from "typeorm";
-import type { ListToursQueryDto } from "../../dto/list-tours-query.dto";
-import type { TourResponseDto } from "../../dto/tour-response.dto";
 import type { TourWriteRecord } from "../tour-write-record.types";
+import type { TourFilter, TourSort } from "@repo/shared-contracts";
 
 export const TOURS_CATALOG_REPOSITORY_PORT = Symbol("TOURS_CATALOG_REPOSITORY_PORT");
 
 export type ToursCatalogListPageInput = {
   tenantId: string;
-  query: ListToursQueryDto;
+  filter: TourFilter;
+  sort?: TourSort;
+  includeTotal?: boolean;
   regionalScope: RegionalTourListScope;
   page: number;
   limit: number;
@@ -18,57 +17,41 @@ export type ToursCatalogListPageInput = {
   cursorId: string | null;
 };
 
-export type ToursCatalogListPageResult = {
-  items: TourResponseDto[];
+export type ToursCatalogListPageOutput = {
+  items: TourWriteRecord[];
   total: number;
   page: number;
   limit: number;
 };
 
-/**
- * Persistence port for tenant-scoped tour catalog reads.
- * Application services depend on this interface; TypeORM lives only in adapters.
- *
- * **TypeORM policy (Phase 4):** `import type` from `typeorm` is permitted in port interfaces — see MAP §61.
- */
 export interface ToursCatalogRepositoryPort {
-  listPage(input: ToursCatalogListPageInput): Promise<ToursCatalogListPageResult>;
+  listTours(input: ToursCatalogListPageInput): Promise<ToursCatalogListPageOutput>;
 
-  /**
-   * Loads a tour with response relations for the tenant.
-   * @throws {NotFoundException} when the row is missing (tenant-scoped 404 envelope).
-   */
-  findByIdOrThrow(tenantId: string, tourId: string): Promise<TourWriteRecord>;
+  findByIdOrThrow(tourId: string, tenantId: string): Promise<TourWriteRecord>;
+
+  findById(tourId: string, tenantId: string): Promise<TourWriteRecord | null>;
 }
 
 export const TOURS_WRITE_REPOSITORY_PORT = Symbol("TOURS_WRITE_REPOSITORY_PORT");
 
 /**
- * Persistence port for tour catalog writes (create/update + product/departure sync).
- * Application services depend on this interface; TypeORM lives only in adapters.
- *
- * **TypeORM policy (Phase 4):** `import type` from `typeorm` is permitted in port interfaces — see MAP §61.
+ * Domain port for Tour writing.
  */
 export interface ToursWriteRepositoryPort {
-  getIdempotentManager(): EntityManager | null;
+  runInTransaction<T>(fn: () => Promise<T>): Promise<T>;
 
-  getDefaultManager(): EntityManager;
-
-  runInTransaction<T>(fn: (manager: EntityManager) => Promise<T>): Promise<T>;
-
-  createTourEntity(manager: EntityManager, data: DeepPartial<TourWriteRecord>): TourWriteRecord;
+  createTourEntity(data: any): TourWriteRecord;
 
   /** Save new tour, reload with response relations, sync product/departure rows. */
-  createTour(manager: EntityManager, tour: TourWriteRecord, tenantId: string): Promise<TourWriteRecord>;
+  createTour(tour: TourWriteRecord, tenantId: string): Promise<TourWriteRecord>;
 
   loadTourForUpdateLocking(
-    manager: EntityManager,
     tourId: string,
     tenantId: string
   ): Promise<TourWriteRecord | null>;
 
   /** Save tour patch, reload with response relations, sync product/departure rows. */
-  updateTour(manager: EntityManager, tour: TourWriteRecord, tenantId: string): Promise<TourWriteRecord>;
+  updateTour(tour: TourWriteRecord, tenantId: string): Promise<TourWriteRecord>;
 
-  syncProductDepartureForTour(manager: EntityManager, tour: TourWriteRecord): Promise<void>;
+  syncProductDepartureForTour(tour: TourWriteRecord): Promise<void>;
 }

@@ -1,4 +1,9 @@
+import { createHash } from "node:crypto";
 import { Injectable } from "@nestjs/common";
+import {
+  unwrapIdempotencyCacheValue,
+  wrapIdempotencyCacheValue,
+} from "./idempotency-cache-envelope";
 
 export type PaymentIdempotencyScope = {
   tenantId: string;
@@ -31,12 +36,20 @@ export function paymentGatewayIdempotencyCompositeKey(scope: PaymentIdempotencyS
   return `${scope.tenantId}\n${scope.operation}\n${scope.idempotencyKey}`;
 }
 
+/** SHA-256 digest binding tenant + operation + client idempotency key (Redis/Postgres namespace isolation). */
+export function paymentGatewayIdempotencyDigest(scope: PaymentIdempotencyScope): string {
+  const tenantId = scope.tenantId.trim();
+  const operation = scope.operation.trim();
+  const idempotencyKey = scope.idempotencyKey.trim();
+  return createHash("sha256").update(`${tenantId}:${operation}:${idempotencyKey}`).digest("hex");
+}
+
 function jsonClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function compositeKey(scope: PaymentIdempotencyScope): string {
-  return paymentGatewayIdempotencyCompositeKey(scope);
+  return paymentGatewayIdempotencyDigest(scope);
 }
 
 /**
@@ -59,11 +72,12 @@ export class InMemoryIdempotencyKeyStore implements IdempotencyKeyStore {
       .then(async () => {
         const hit = this.cache.get(key);
         if (hit !== undefined) {
-          return { value: jsonClone(hit) as T, replayed: true as const };
+          const value = unwrapIdempotencyCacheValue<T>(scope.tenantId, hit);
+          return { value: jsonClone(value) as T, replayed: true as const };
         }
         const value = await fn();
         const frozen = jsonClone(value);
-        this.cache.set(key, frozen);
+        this.cache.set(key, wrapIdempotencyCacheValue(scope.tenantId, frozen));
         return { value: jsonClone(frozen) as T, replayed: false as const };
       }) as Promise<IdempotentRunResult<T>>;
 

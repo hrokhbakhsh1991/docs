@@ -1,7 +1,7 @@
 import type { ContentWorkspace, Page } from "@repo/shared-contracts";
 import {
   getWorkspacePages,
-  resolveContentWorkspaceForTenantSlug,
+  resolveContentWorkspaceForTenant,
   resolveDefaultTourFormProfileForContentWorkspace,
 } from "@repo/shared-contracts";
 import type { TourFormProfile } from "@repo/types";
@@ -22,7 +22,7 @@ export type PublicSiteNavItem = {
 export type PublicCatalogApiStatus = "completed";
 
 const CONTENT_WORKSPACE_PROGRAM_LABEL: Record<ContentWorkspace, string> = {
-  denali: "برنامه Denali",
+  outdoor_pilot: "برنامه Outdoor Pilot",
   general: "برنامه کلاسیک",
   arctic: "برنامه کلاسیک",
   urban: "برنامه کلاسیک",
@@ -30,7 +30,7 @@ const CONTENT_WORKSPACE_PROGRAM_LABEL: Record<ContentWorkspace, string> = {
 
 export type PublicSiteConfig = {
   readonly tenantSlug: string;
-  readonly contentWorkspace: ReturnType<typeof resolveContentWorkspaceForTenantSlug>;
+  readonly contentWorkspace: ContentWorkspace;
   readonly programLabel: string;
   readonly tourFormProfile: TourFormProfile;
   readonly wizard: WorkspaceWizardConfig;
@@ -49,13 +49,24 @@ export type PublicSiteConfig = {
  * Single resolver for public marketing + catalog routes.
  * Pages and hooks must read this object — no `profile === "denali_pilot"` in UI.
  */
-export function resolvePublicSiteConfig(tenantSlug: string): PublicSiteConfig {
+export function resolvePublicSiteConfig(
+  tenantSlug: string,
+  options?: { tourFormProfile?: TourFormProfile; contentWorkspace?: ContentWorkspace },
+): PublicSiteConfig {
   const normalized = tenantSlug.trim().toLowerCase();
-  const contentWorkspace = resolveContentWorkspaceForTenantSlug(normalized);
+  const contentWorkspace = resolveContentWorkspaceForTenant({
+    tenantSlug: normalized,
+    tourFormProfile: options?.tourFormProfile,
+    contentWorkspace: options?.contentWorkspace,
+  });
   const programLabel = CONTENT_WORKSPACE_PROGRAM_LABEL[contentWorkspace];
-  const tourFormProfile = resolveDefaultTourFormProfileForContentWorkspace(contentWorkspace);
+  const tourFormProfile =
+    options?.tourFormProfile ?? resolveDefaultTourFormProfileForContentWorkspace(contentWorkspace);
   const wizard = buildWizardConfig(tourFormProfile);
-  const pages = getWorkspacePages(contentWorkspace);
+  const pages = getWorkspacePages(normalized, {
+    tourFormProfile,
+    contentWorkspace,
+  });
 
   return {
     tenantSlug: normalized,

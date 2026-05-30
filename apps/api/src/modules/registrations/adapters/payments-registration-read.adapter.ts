@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { EntityManager } from "typeorm";
+import { EntityManager } from "typeorm";
 
 import { PaymentsService } from "../../payments/payments.service";
 import type {
@@ -7,13 +7,16 @@ import type {
   RegistrationReadPort,
 } from "../domain/ports/registration-read.port";
 import type { RegistrationPaymentIntentSnapshot } from "../domain/registration-payment-intent.types";
+import { getIdempotentEntityManager } from "../../idempotency/idempotent-transaction.context";
 
 @Injectable()
 export class PaymentsRegistrationReadAdapter implements RegistrationReadPort {
-  constructor(@Inject(PaymentsService) private readonly paymentsService: PaymentsService) {}
+  constructor(
+    @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
+    @Inject(EntityManager) private readonly manager: EntityManager
+  ) {}
 
-  async createPaymentIntentWithManager(
-    manager: EntityManager,
+  async createPaymentIntent(
     input: CreateRegistrationPaymentIntentInput
   ): Promise<RegistrationPaymentIntentSnapshot> {
     const { registration, paymentProvider, providerPaymentId } = input;
@@ -22,7 +25,9 @@ export class PaymentsRegistrationReadAdapter implements RegistrationReadPort {
         ? Number(String(registration.quotedTotalMinor).trim())
         : NaN;
 
-    const payment = await this.paymentsService.createPaymentIntentWithManager(manager, {
+    const activeManager = getIdempotentEntityManager() ?? this.manager;
+
+    const payment = await this.paymentsService.createPaymentIntentWithManager(activeManager, {
       registrationId: registration.id,
       amount: totalMinorNum,
       currency: String(registration.quotedCurrencyCode ?? "").trim().toUpperCase(),
@@ -47,3 +52,4 @@ export class PaymentsRegistrationReadAdapter implements RegistrationReadPort {
     };
   }
 }
+

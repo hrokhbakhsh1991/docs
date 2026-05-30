@@ -24,8 +24,31 @@ import type {
   PaymentRepositoryPort
 } from "../domain/ports/payment-repository.port";
 
-const asPayment = (row: PaymentEntity | null): PaymentRecord | null => row;
-const asPaymentList = (rows: PaymentEntity[]): PaymentRecord[] => rows;
+const asPayment = (row: PaymentEntity | null): PaymentRecord | null => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    tenantId: row.tenantId,
+    registrationId: row.registrationId,
+    amount: row.amount,
+    currency: row.currency,
+    method: row.method,
+    provider: row.provider,
+    providerPaymentId: row.providerPaymentId,
+    status: row.status,
+    paidAt: row.paidAt,
+    failedAt: row.failedAt,
+    refundedAt: row.refundedAt,
+    ledgerJournalId: row.ledgerJournalId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt,
+  };
+};
+
+const asPaymentList = (rows: PaymentEntity[]): PaymentRecord[] => {
+  return rows.map((r) => asPayment(r)!);
+};
 
 const asRegistrationSnapshot = (row: RegistrationEntity | null): PaymentRegistrationSnapshot | null =>
   row

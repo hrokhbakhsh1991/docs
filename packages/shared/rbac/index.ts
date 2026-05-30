@@ -8,3 +8,4 @@ export * from "./jwt-capability-snapshot";
 export * from "./ability.factory";
 export * from "./capability-governance";
 export * from "./tour-lifecycle-governance";
+export * from "./workspace-plan-tiers";

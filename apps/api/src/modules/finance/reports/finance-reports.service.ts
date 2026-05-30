@@ -7,7 +7,7 @@ import { RequestContextService } from "../../../common/request-context/request-c
 import { ConfigService } from "../../../config/config.service";
 import { TenantDbContextService } from "../../../database/tenant-db-context.service";
 import { REDIS_CLIENT } from "../../../infra/redis/redis.constants";
-import { ledgerLinesFromFinanceOutboxRows } from "../reconciliation/payment-finance-reconciliation.loader";
+import { ledgerLinesFromFinanceOutboxRows } from "../reconciliation/payment-reconciliation-parse";
 import { PaymentEntity, PaymentMethod, PaymentStatus } from "../../payments/entities/payment.entity";
 import { PaymentReceiptEntity, ReceiptStatus } from "../../payments/entities/payment-receipt.entity";
 import type { FinanceLedgerEventRow } from "./finance-ledger-event.dto";

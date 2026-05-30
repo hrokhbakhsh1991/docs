@@ -18,7 +18,7 @@ const DELEGATED_METHODS: (keyof RegistrationsApplicationPort)[] = [
   "listBookings",
   "getRegistrationById",
   "updateRegistrationStatus",
-  "updateRegistrationPayment",
+
   "updatePaymentStatus",
   "createWaitlistItem",
   "convertWaitlistItem",
@@ -59,7 +59,7 @@ export class RegistrationsService implements RegistrationsApplicationPort, IRegi
   listBookings!: RegistrationsApplicationPort["listBookings"];
   getRegistrationById!: RegistrationsApplicationPort["getRegistrationById"];
   updateRegistrationStatus!: RegistrationsApplicationPort["updateRegistrationStatus"];
-  updateRegistrationPayment!: RegistrationsApplicationPort["updateRegistrationPayment"];
+
   updatePaymentStatus!: RegistrationsApplicationPort["updatePaymentStatus"];
   createWaitlistItem!: RegistrationsApplicationPort["createWaitlistItem"];
   convertWaitlistItem!: RegistrationsApplicationPort["convertWaitlistItem"];

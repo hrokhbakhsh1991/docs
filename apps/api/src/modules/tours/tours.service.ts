@@ -8,7 +8,6 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { instanceToPlain } from "class-transformer";
-import type { EntityManager } from "typeorm";
 
 import {
   ACCOMMODATION_TYPE_VALUES,
@@ -98,6 +97,10 @@ import {
   assertTourVisibleInRegionalScope,
 } from "./utils/apply-regional-tour-list-scope";
 import { FILE_STORAGE_PORT, type FileStoragePort } from "../../infra/storage/file-storage.port";
+import {
+  TOUR_CAPACITY_RESERVATION_PORT,
+  type TourCapacityReservationPort,
+} from "./domain/ports/tour-capacity-reservation.port";
 import { randomUUID } from "node:crypto";
 
 /**
@@ -122,12 +125,10 @@ export class ToursService {
     @Inject(ToursCatalogReadApplicationService)
     private readonly toursCatalogRead: ToursCatalogReadApplicationService,
     @Inject(FILE_STORAGE_PORT)
-    private readonly fileStorage: FileStoragePort
+    private readonly fileStorage: FileStoragePort,
+    @Inject(TOUR_CAPACITY_RESERVATION_PORT)
+    private readonly tourCapacityReservationPort: TourCapacityReservationPort
   ) {}
-
-  private writeManager(): EntityManager {
-    return this.toursWriteRepository.getIdempotentManager() ?? this.toursWriteRepository.getDefaultManager();
-  }
 
   private async assertDestinationBelongsToTenant(
     tenantId: string,
@@ -598,8 +599,6 @@ export class ToursService {
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    const writeManager = this.writeManager();
-
     try {
       const { profile: resolvedFormProfile, source: formProfileResolutionSource } =
         await this.settingsRepository.resolveTourFormProfile(tenantId, dto.sourcePresetId);
@@ -661,7 +660,7 @@ export class ToursService {
         await this.assertTripDetailsLeaderRefsForTenant(tenantId, details.tripDetails);
       }
 
-      const tour = this.toursWriteRepository.createTourEntity(writeManager, {
+      const tour = this.toursWriteRepository.createTourEntity({
         tenantId,
         title: dto.title,
         description: dto.description,
@@ -696,7 +695,7 @@ export class ToursService {
         assertTourStateReadyForOpenOnCreate(resolvedFormProfile, tour);
       }
 
-      const loaded = await this.toursWriteRepository.createTour(writeManager, tour, tenantId);
+      const loaded = await this.toursWriteRepository.createTour(tour, tenantId);
 
       const creator = this.requestContextService.getUserId();
       this.loggerService.info("tour.created", {
@@ -765,13 +764,8 @@ export class ToursService {
       });
     }
 
-    const idempotentEm = this.toursWriteRepository.getIdempotentManager();
-    if (idempotentEm) {
-      return this.executeUpdateTour(idempotentEm, tourId, dto, tenantId);
-    }
-
-    return this.toursWriteRepository.runInTransaction((em) =>
-      this.executeUpdateTour(em, tourId, dto, tenantId)
+    return this.toursWriteRepository.runInTransaction(() =>
+      this.executeUpdateTour(tourId, dto, tenantId)
     );
   }
 
@@ -787,12 +781,11 @@ export class ToursService {
    * (or the idempotency handler's shared EntityManager) to close TOCTOU vs live `acceptedCount`.
    */
   private async executeUpdateTour(
-    em: EntityManager,
     tourId: string,
     dto: UpdateTourDto,
     tenantId: string
   ): Promise<TourResponseDto> {
-    const tour = await this.toursWriteRepository.loadTourForUpdateLocking(em, tourId, tenantId);
+    const tour = await this.toursWriteRepository.loadTourForUpdateLocking(tourId, tenantId);
 
     if (!tour) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
@@ -1045,7 +1038,16 @@ export class ToursService {
         }
       }
 
-      const reloaded = await this.toursWriteRepository.updateTour(em, tour, tenantId);
+      const reloaded = await this.toursWriteRepository.updateTour(tour, tenantId);
+
+      if (dto.total_capacity !== undefined) {
+        await this.tourCapacityReservationPort.syncRemainingFromSnapshot({
+          tenantId,
+          tourId: reloaded.id,
+          totalCapacity: reloaded.totalCapacity,
+          acceptedCount: reloaded.acceptedCount,
+        });
+      }
 
       const editor = this.requestContextService.getUserId();
       this.loggerService.info("tour.updated", {

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { EntityManager } from "typeorm";
+import { EntityManager } from "typeorm";
 
 import { PricingEngineService } from "../../pricing/pricing-engine.service";
 import type {
@@ -8,16 +8,21 @@ import type {
   PricingQuoteResult,
 } from "../domain/pricing-catalog.types";
 import type { PricingCatalogPort } from "../domain/ports/pricing-catalog.port";
+import { getIdempotentEntityManager } from "../../idempotency/idempotent-transaction.context";
 
 @Injectable()
 export class PricingCatalogAdapter implements PricingCatalogPort {
-  constructor(@Inject(PricingEngineService) private readonly pricingEngine: PricingEngineService) {}
+  constructor(
+    @Inject(PricingEngineService) private readonly pricingEngine: PricingEngineService,
+    @Inject(EntityManager) private readonly manager: EntityManager
+  ) {}
 
   quote(
-    manager: EntityManager,
     input: PricingEngineInput,
     options?: PricingEngineQuoteOptions
   ): Promise<PricingQuoteResult> {
-    return this.pricingEngine.quote(manager, input, options);
+    const activeManager = getIdempotentEntityManager() ?? this.manager;
+    return this.pricingEngine.quote(activeManager, input, options);
   }
 }
+

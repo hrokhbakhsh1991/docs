@@ -6,8 +6,12 @@ import {
   PAGE_REGISTRY,
   PageSchema,
   WorkspacePagesSchema,
-  getWorkspacePages,
+  getWorkspacePagesByRegistryKey,
 } from "./page.registry";
+import {
+  getWorkspacePages,
+  resolveContentWorkspaceForTenant,
+} from "./content-workspace.factory";
 
 describe("page.registry", () => {
   it("PAGE_REGISTRY has landing and about for every content workspace", () => {
@@ -21,10 +25,18 @@ describe("page.registry", () => {
     }
   });
 
-  it("getWorkspacePages returns parseable landing routes", () => {
-    const denali = getWorkspacePages("denali");
-    PageSchema.parse(denali.landing);
-    assert.equal(denali.landing.route.path, "/");
-    assert.equal(denali.about.route.path, "/about");
+  it("getWorkspacePages resolves outdoor_pilot bundle from tour form profile hint", () => {
+    const pages = getWorkspacePages("mountain-club", { tourFormProfile: "denali_pilot" });
+    PageSchema.parse(pages.landing);
+    assert.equal(pages.landing.route.path, "/");
+    assert.equal(pages.about.route.path, "/about");
+    assert.equal(
+      resolveContentWorkspaceForTenant({
+        tenantSlug: "mountain-club",
+        tourFormProfile: "denali_pilot",
+      }),
+      "outdoor_pilot",
+    );
+    assert.deepEqual(pages, getWorkspacePagesByRegistryKey("outdoor_pilot"));
   });
 });

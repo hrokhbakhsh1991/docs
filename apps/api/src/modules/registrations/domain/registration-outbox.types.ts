@@ -8,6 +8,8 @@ export type RegistrationOutboxSnapshot = {
   status: RegistrationStatus;
   paymentStatus: RegistrationPaymentStatus;
   paidAmount?: string | null;
+  quotedTotalMinor?: string | null;
+  quotedCurrencyCode?: string | null;
 };
 
 /** Waitlist item fields required for outbox event payloads (no TypeORM entity). */

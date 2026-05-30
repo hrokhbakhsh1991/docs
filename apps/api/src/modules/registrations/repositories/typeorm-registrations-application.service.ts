@@ -8,7 +8,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, IsNull, Repository } from "typeorm";
+import { DataSource, EntityManager, IsNull, Repository } from "typeorm";
 import {
   registrationWhereForActor,
   syntheticBookingContactPhone,
@@ -18,6 +18,7 @@ import {
   tenantContextMissingError,
   tenantScopedResourceNotFoundError
 } from "../../../common/errors/error-response-builders";
+import { DoubleBookingConflictException } from "../../../common/errors/double-booking-conflict.exception";
 import { isOptimisticLockVersionMismatchError } from "../../../common/typeorm/optimistic-lock-version-mismatch";
 import { requestContextStorage } from "../../../common/request-context/request-context";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -28,7 +29,6 @@ import {
 } from "../../../common/rbac/workspace-access.helper";
 import type { RegistrationPaymentIntentSnapshot } from "../domain/registration-payment-intent.types";
 import { OutboxService } from "../../outbox/outbox.service";
-import { CancelWaitlistItemDto } from "../dto/cancel-waitlist-item.dto";
 import { ConvertWaitlistItemDto } from "../dto/convert-waitlist-item.dto";
 import {
   CreateRegistrationDto,
@@ -49,11 +49,7 @@ import {
   RegistrationResponseDto,
   WaitlistItemResponseDto
 } from "../dto/get-registration.dto";
-import { UpdateRegistrationPaymentDto } from "../dto/update-registration-payment.dto";
 import { UpdateRegistrationStatusDto } from "../dto/update-registration-status.dto";
-import { TourDetails } from "../../tours/entities/tour-details.entity";
-import { TourEntity } from "../../tours/entities/tour.entity";
-import { TourDepartureEntity } from "../../tours/entities/tour-departure.entity";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -63,7 +59,7 @@ import { lockRegistrationEntityForFinancialMutation } from "./lock-registration-
 import { WaitlistItemEntity, WaitlistItemStatus } from "../waitlist-item.entity";
 import { UserEntity } from "../../identity/entities/user.entity";
 import { TenantBootstrapService } from "../../tenant/tenant-bootstrap.service";
-import { createPricingSnapshot } from "../../pricing/create-pricing-snapshot";
+import { createPricingSnapshot } from "../../pricing/repositories/create-pricing-snapshot.repository";
 import { BookingPriceSnapshotEntity } from "../../pricing/entities/booking-price-snapshot.entity";
 import { PaymentStatus } from "../../payments/domain/payment.types";
 import { PaymentEntity } from "../../payments/entities/payment.entity";
@@ -72,7 +68,6 @@ import {
   emitBookingFinalizationPipelineEvent,
   emitPublicRegistrationAcceptedEvent,
   emitRegistrationCreatedEvent,
-  emitRegistrationPaymentUpdatedEvent,
   emitRegistrationStatusChangedEvent,
   emitRegistrationWaitlistedEvent,
   emitWaitlistCancelledEvent,
@@ -80,12 +75,10 @@ import {
 } from "../registrations-effects";
 import {
   assertJwtTenantMatchesTourForAuthenticatedMutation,
-  validatePaymentAmountConsistency,
   validatePaymentTransition,
   validateStatusTransition
 } from "../registrations-policy";
 import {
-  assertTourCapacityInvariant,
   assertUserNotAlreadyRegistered
 } from "../policies/registration-integrity.policy";
 import {
@@ -94,20 +87,31 @@ import {
   assertWaitlistPromotionAllowed
 } from "../policies/waitlist-integrity.policy";
 import { assertTourIsOpenForRegistration } from "../domain/tour-registration.policy";
+import type { TourCapacityPolicySnapshot } from "../domain/registration-policy.types";
+import { TourLifecycleStatus } from "@repo/domain-contracts";
 import { RegistrationQuoteApplicationService } from "../application/registration-quote.application.service";
 import { bookableTourDepartureId } from "../domain/bookable-departure-id";
 import {
   isCapacityConsumingRegistrationStatus,
   registrationStatusToOutboxEventType
 } from "../domain/registration-outbox-event-type";
-import { BookingLedgerAuthorityService } from "../../finance/ledger/booking-ledger-authority.service";
-import { assertFinancialIdempotencyKey } from "../../idempotency/financial-idempotency";
 import { getIdempotentEntityManager } from "../../idempotency/idempotent-transaction.context";
 import {
   BookingFinalizationPhase,
   assertSingleStepBookingFinalizationAdvance,
   bookingFinalizationPhaseFromFacts
 } from "../domain/booking-finalization-pipeline";
+import { REGISTRATIONS_TOUR_CATALOG_PORT, type RegistrationsTourCatalogPort, type TourCatalogSnapshot } from "../domain/ports/registrations-tour-catalog.port";
+import {
+  TOUR_CAPACITY_RESERVATION_PORT,
+  type TourCapacityReservationPort,
+} from "../../tours/domain/ports/tour-capacity-reservation.port";
+import {
+  clearRegistrationCapacityCompensations,
+  registerRegistrationCapacityCompensation,
+  runWithRegistrationCapacityCompensation,
+  takePendingRegistrationCapacityCompensations,
+} from "./registration-capacity-compensation.scope";
 import {
   REGISTRATIONS_READ_REPOSITORY_PORT,
   type RegistrationsReadRepositoryPort,
@@ -115,7 +119,11 @@ import {
 import type { RegistrationReadDetailRecord } from "../domain/registration-read-detail.types";
 import { toRegistrationReadWhere } from "./map-registration-read-where";
 import { PRICING_CATALOG_PORT, type PricingCatalogPort } from "../domain/ports/pricing-catalog.port";
-import type { RegistrationsApplicationPort } from "../domain/ports/registrations-application.port";
+import type {
+  RegistrationsApplicationPort,
+  CreateRegistrationCommand,
+  CancelWaitlistItemCommand
+} from "../domain/ports/registrations-application.port";
 import type { RegistrationWriteRecord, TourBookingLockRecord } from "../domain/registration-write.types";
 
 const asRegistrationWriteRecord = (row: RegistrationEntity): RegistrationWriteRecord => ({
@@ -136,7 +144,17 @@ const asRegistrationWriteRecord = (row: RegistrationEntity): RegistrationWriteRe
   updatedAt: row.updatedAt,
 });
 
-const asTourBookingLockRecord = (tour: TourEntity): TourBookingLockRecord => ({
+function tourCapacityPolicyFromCatalogSnapshot(
+  tour: TourCatalogSnapshot
+): TourCapacityPolicySnapshot {
+  return {
+    lifecycleStatus: tour.lifecycleStatus as TourLifecycleStatus,
+    acceptedCount: tour.acceptedCount,
+    totalCapacity: tour.totalCapacity,
+  };
+}
+
+const asTourBookingLockRecord = (tour: TourCatalogSnapshot): TourBookingLockRecord => ({
   id: tour.id,
   tenantId: tour.tenantId,
   tourId: tour.id,
@@ -177,24 +195,49 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     private readonly registrationQuoteApplication: RegistrationQuoteApplicationService,
     @Inject(REGISTRATIONS_READ_REPOSITORY_PORT)
     private readonly registrationsReadRepository: RegistrationsReadRepositoryPort,
-    @Inject(BookingLedgerAuthorityService)
-    private readonly bookingLedgerAuthority: BookingLedgerAuthorityService,
     @Inject(PRICING_CATALOG_PORT)
-    private readonly pricingCatalogPort: PricingCatalogPort
+    private readonly pricingCatalogPort: PricingCatalogPort,
+    @Inject(REGISTRATIONS_TOUR_CATALOG_PORT)
+    private readonly registrationsTourCatalogPort: RegistrationsTourCatalogPort,
+    @Inject(TOUR_CAPACITY_RESERVATION_PORT)
+    private readonly tourCapacityReservationPort: TourCapacityReservationPort
   ) {}
+
+  private get activeManager(): EntityManager {
+    return getIdempotentEntityManager() ?? this.dataSource.manager;
+  }
 
   /**
    * When HTTP idempotency wraps the controller, reuse that EntityManager so financial rows and
    * idempotency keys commit in one PostgreSQL transaction (see idempotent-transaction.context).
    */
-  private runInIdempotentOrOwnTransaction<T>(
+  private async runInIdempotentOrOwnTransaction<T>(
     fn: (_manager: EntityManager) => Promise<T>
   ): Promise<T> {
-    const em = getIdempotentEntityManager();
-    if (em) {
-      return fn(em);
+    return runWithRegistrationCapacityCompensation(async () => {
+      const em = getIdempotentEntityManager();
+      try {
+        const result = em ? await fn(em) : await this.dataSource.transaction(fn);
+        clearRegistrationCapacityCompensations();
+        return result;
+      } catch (error) {
+        await this.compensatePendingRegistrationCapacitySlots();
+        throw error;
+      }
+    });
+  }
+
+  private async compensatePendingRegistrationCapacitySlots(): Promise<void> {
+    const pending = takePendingRegistrationCapacityCompensations();
+    for (const slot of pending) {
+      try {
+        await this.tourCapacityReservationPort.releaseTicket(slot);
+      } catch (releaseError: unknown) {
+        this.logger.warn(
+          `registration_capacity_compensation_failed tour=${slot.tourId} tenant=${slot.tenantId}: ${String(releaseError)}`,
+        );
+      }
     }
-    return this.dataSource.transaction(fn);
   }
 
   /**
@@ -241,7 +284,6 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     // This is a read-only operation — it does not affect snapshot values.
     try {
       await this.pricingCatalogPort.quote(
-        manager,
         {
           tenantId: saved.tenantId,
           tourId: saved.tourId,
@@ -306,22 +348,20 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   }
 
   async createRegistration(
-    createDto: CreateRegistrationDto
+    command: CreateRegistrationCommand
   ): Promise<RegistrationResponseDto> {
-    const result = await this.dataSource.transaction(async (manager) => {
-      const tourPeek = await manager.findOne(TourEntity, {
-        where: { id: createDto.tourId },
-        select: { id: true, tenantId: true }
-      });
+    const createDto = command as any;
+    const result = await this.runInIdempotentOrOwnTransaction(async (manager) => {
+      const tourPeek = await this.registrationsTourCatalogPort.getTourSnapshot(manager, createDto.tourId);
       if (!tourPeek) {
         throw new NotFoundException(tenantScopedResourceNotFoundError());
       }
-      const tour = await this.requireTourInTenantForUpdate(
+      const tour = await this.requireTourInTenant(
         manager,
         createDto.tourId,
         tourPeek.tenantId
       );
-      assertTourIsOpenForRegistration(tour);
+      assertTourIsOpenForRegistration(tourCapacityPolicyFromCatalogSnapshot(tour));
       await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, createDto.tourId, {
         bookingTarget: createDto.bookingTarget,
         participantNationalId: createDto.participantNationalId
@@ -347,18 +387,9 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
           participantContactPhone: createDto.participantContactPhone
         }
       });
-      assertUserNotAlreadyRegistered(tour, existingRegistrations);
+      assertUserNotAlreadyRegistered(tourCapacityPolicyFromCatalogSnapshot(tour), existingRegistrations);
 
       await this.ensureNoActiveRegistrationDuplicate(manager, scopedPayload);
-      if (tour.acceptedCount >= tour.totalCapacity) {
-        // TODO: Replace with automatic waitlist creation in next slice.
-        throw new ConflictException({
-          error: {
-            code: "CAPACITY_FULL",
-            message: "Acceptance blocked because capacity is full"
-          }
-        });
-      }
 
       const paymentRequired =
         typeof tour.costContext?.requiresPayment === "boolean"
@@ -394,10 +425,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       });
 
       if (placement.consumesAcceptedCapacity) {
-        tour.acceptedCount += 1;
-        assertTourCapacityInvariant(tour);
-        await manager.save(tour);
-        await this.syncTourDepartureFromTour(manager, tour);
+        await this.consumeAcceptedCapacitySlot(manager, tour);
       }
 
       const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
@@ -476,7 +504,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       transportMode: input.transportMode as RegistrationTransportModeDto,
       entryMode: input.entryMode as RegistrationEntryModeDto
     } as CreateRegistrationDto;
-    return this.createRegistration(createDto);
+    return this.createRegistration(createDto as any);
   }
 
   async listRegistrationsForTour(tourId: string): Promise<RegistrationResponseDto[]> {
@@ -485,7 +513,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       await this.requireTourInTenant(manager, tourId, tenantId);
       const rows = await manager.find(RegistrationEntity, {
         where: { tourId, tenantId },
@@ -507,7 +535,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
 
     const cappedLimit = Math.min(Math.max(1, limit), 10_000);
 
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const registrations = await manager.find(RegistrationEntity, {
         where: { tenantId, deletedAt: IsNull() },
         order: { createdAt: "DESC" },
@@ -515,16 +543,8 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       });
 
       const tourIds = [...new Set(registrations.map((row) => row.tourId))];
-      const tours =
-        tourIds.length === 0
-          ? []
-          : await manager.find(TourEntity, {
-              where: { id: In(tourIds), tenantId, deletedAt: IsNull() },
-              select: ["id", "title"],
-            });
-      const titleByTourId = new Map(
-        tours.map((tour) => [tour.id, tour.title?.trim() || tour.id] as const),
-      );
+      const titleByTourId = await this.registrationsTourCatalogPort.getTourTitles(manager, tourIds, tenantId);
+      
 
       const rows = registrations.map((row) => ({
         ...this.toRegistrationResponse(row),
@@ -548,7 +568,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const total_count = await manager.count(RegistrationEntity, { where: { tenantId } });
       const pending_count = await manager.count(RegistrationEntity, {
         where: { tenantId, status: RegistrationStatus.PENDING },
@@ -563,7 +583,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       await this.requireTourInTenant(manager, tourId, tenantId);
       const rows = await manager.find(WaitlistItemEntity, {
         where: { tourId, tenantId },
@@ -652,7 +672,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
         registrationId
       );
       const readWhere = toRegistrationReadWhere(where);
-      const peek = await this.registrationsReadRepository.findOneInManager(manager, readWhere);
+      const peek = await this.registrationsReadRepository.findOneStandalone(readWhere);
       if (!peek) {
         throw new NotFoundException({
           error: {
@@ -661,14 +681,6 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
           }
         });
       }
-      const affectsAcceptedCounter =
-        isCapacityConsumingRegistrationStatus(peek.status) ||
-        isCapacityConsumingRegistrationStatus(payload.targetStatus);
-
-      const lockedTour =
-        peek.status !== payload.targetStatus && affectsAcceptedCounter
-          ? await this.requireTourInTenantForUpdate(manager, peek.tourId, peek.tenantId)
-          : null;
 
       const registration = await lockRegistrationEntityForFinancialMutation(manager, readWhere);
       this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
@@ -679,27 +691,24 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       );
 
       const previousStatus = registration.status;
+      const delta = this.calculateAcceptedCounterDelta(previousStatus, payload.targetStatus);
 
-      await this.ensureCapacityForAcceptance(
-        manager,
-        registration,
-        payload.targetStatus,
-        lockedTour
-      );
+      if (delta > 0) {
+        const tour = await this.requireTourInTenant(manager, peek.tourId, peek.tenantId);
+        await this.consumeAcceptedCapacitySlot(manager, tour);
+      } else if (delta < 0) {
+        const tour = await this.requireTourInTenant(manager, peek.tourId, peek.tenantId);
+        await this.releaseAcceptedCapacitySlot(manager, tour);
+      }
 
       registration.status = payload.targetStatus;
-      if (lockedTour) {
-        this.applyAcceptedCounterDelta(lockedTour, previousStatus, payload.targetStatus);
-        await manager.save(lockedTour);
-        await this.syncTourDepartureFromTour(manager, lockedTour);
-      }
       const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
 
       if (
         isCapacityConsumingRegistrationStatus(previousStatus) &&
         !isCapacityConsumingRegistrationStatus(payload.targetStatus)
       ) {
-        await this.promoteNextWaitlistItem(manager, saved, lockedTour);
+        await this.promoteNextWaitlistItem(manager, saved, null);
       }
 
       if (previousStatus !== payload.targetStatus) {
@@ -720,55 +729,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     });
   }
 
-  async updateRegistrationPayment(
-    registrationId: string,
-    payload: UpdateRegistrationPaymentDto,
-    idempotencyKey: string
-  ): Promise<RegistrationResponseDto> {
-    const idempotencyKeyTrimmed = assertFinancialIdempotencyKey(idempotencyKey);
-    return this.runInIdempotentOrOwnTransaction(async (manager) => {
-      const where = await registrationWhereForActor(
-        manager,
-        this.requestContextService,
-        registrationId
-      );
-      const readWhere = toRegistrationReadWhere(where);
-      const peek = await this.registrationsReadRepository.findOneInManager(manager, readWhere);
-      if (!peek) {
-        throw new NotFoundException({
-          error: {
-            code: "RESOURCE_NOT_FOUND",
-            message: "Resource not found in tenant scope"
-          }
-        });
-      }
-      await this.requireTourInTenantForUpdate(manager, peek.tourId, peek.tenantId);
-      const registration = await lockRegistrationEntityForFinancialMutation(manager, readWhere);
-      this.assertExpectedRegistrationRowVersion(registration, payload.expected_row_version);
-      validatePaymentTransition(
-        registration.status,
-        registration.paymentStatus,
-        payload.paymentStatus
-      );
-      validatePaymentAmountConsistency(payload.paymentStatus, payload.paidAmount);
 
-      await this.bookingLedgerAuthority.applyLeaderRegistrationPaymentMutation(
-        manager,
-        registration,
-        payload,
-        idempotencyKeyTrimmed
-      );
-      const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
-      const actorId = this.requestContextService.getUserId() ?? "unknown";
-      await emitRegistrationPaymentUpdatedEvent({
-        manager,
-        outboxService: this.outboxService,
-        registration: saved,
-        actorId
-      });
-      return this.toRegistrationResponse(saved);
-    });
-  }
 
   async updatePaymentStatus(
     id: string,
@@ -786,7 +747,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       });
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const registrationScope = await registrationWhereForActor(
         manager,
         this.requestContextService,
@@ -794,7 +755,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       );
       const readWhere = toRegistrationReadWhere(registrationScope);
 
-      const peek = await this.registrationsReadRepository.findOneInManager(manager, readWhere);
+      const peek = await this.registrationsReadRepository.findOneStandalone(readWhere);
       if (!peek) {
         throw new NotFoundException({
           error: {
@@ -831,8 +792,8 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   async createWaitlistItem(
     createDto: CreateWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
-      const tour = await manager.findOne(TourEntity, { where: { id: createDto.tourId } });
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
+      const tour = await this.registrationsTourCatalogPort.getTourSnapshot(manager, createDto.tourId);
       if (!tour) {
         throw new NotFoundException({
           error: {
@@ -864,7 +825,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
         }
       });
       assertNoDuplicateWaitlist(existingWaitlistItems);
-      assertTourAllowsWaitlist(tour);
+      assertTourAllowsWaitlist(tourCapacityPolicyFromCatalogSnapshot(tour));
       await this.ensureNoWaitingWaitlistDuplicate(manager, {
         tenantId,
         tourId: createDto.tourId,
@@ -892,7 +853,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     waitlistItemId: string,
     payload: ConvertWaitlistItemDto
   ): Promise<WaitlistItemResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
       if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
         throw new ConflictException({
@@ -920,21 +881,14 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
         tourId: waitlistItem.tourId,
         participantContactPhone: waitlistItem.participantContactPhone
       });
-      const tour = await this.requireTourInTenantForUpdate(
+      const tour = await this.requireTourInTenant(
         manager,
         waitlistItem.tourId,
         waitlistItem.tenantId
       );
-      assertTourIsOpenForRegistration(tour);
-      assertWaitlistPromotionAllowed(tour);
-      if (tour.acceptedCount >= tour.totalCapacity) {
-        throw new ConflictException({
-          error: {
-            code: "CAPACITY_FULL",
-            message: "Tour capacity reached. Cannot convert waitlist item."
-          }
-        });
-      }
+      assertTourIsOpenForRegistration(tourCapacityPolicyFromCatalogSnapshot(tour));
+      assertWaitlistPromotionAllowed(tourCapacityPolicyFromCatalogSnapshot(tour));
+      await this.consumeAcceptedCapacitySlot(manager, tour);
 
       const convertedRegistration = manager.create(RegistrationEntity, {
         tenantId: waitlistItem.tenantId,
@@ -957,10 +911,6 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       waitlistItem.status = WaitlistItemStatus.CONVERTED;
       waitlistItem.promotedRegistrationId = savedRegistrationWithSnapshot.id;
       waitlistItem.conversionReason = payload.conversionReason;
-      tour.acceptedCount += 1;
-      assertTourCapacityInvariant(tour);
-      await manager.save(tour);
-      await this.syncTourDepartureFromTour(manager, tour);
       const savedWaitlist = await manager.save(waitlistItem);
 
       const actorId = this.requestContextService.getUserId() ?? "unknown";
@@ -980,9 +930,10 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
 
   async cancelWaitlistItem(
     waitlistItemId: string,
-    payload: CancelWaitlistItemDto
+    command: CancelWaitlistItemCommand
   ): Promise<WaitlistItemResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    const payload = command as any;
+    return this.runInIdempotentOrOwnTransaction(async (manager) => {
       const waitlistItem = await this.requireWaitlistItemForUpdate(manager, waitlistItemId);
       if (waitlistItem.status !== WaitlistItemStatus.WAITING) {
         throw new ConflictException({
@@ -1006,7 +957,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     });
   }
 
-  private tourRequiresPayment(costContext: TourEntity["costContext"]): boolean {
+  private tourRequiresPayment(costContext: TourCatalogSnapshot["costContext"]): boolean {
     if (costContext == null || typeof costContext !== "object") {
       return false;
     }
@@ -1018,11 +969,8 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     manager: EntityManager,
     tourId: string,
   ): Promise<Record<string, unknown> | null> {
-    const detailsRow = await manager.findOne(TourDetails, {
-      where: { tourId },
-      select: { tripDetails: true },
-    });
-    const raw = detailsRow?.tripDetails;
+    const tour = await this.registrationsTourCatalogPort.getTourSnapshot(manager, tourId);
+    const raw = tour?.details?.tripDetails;
     if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
       return null;
     }
@@ -1068,7 +1016,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   }
 
   private assertPrivateCarRegistrationAllowed(
-    tour: TourEntity,
+    tour: TourCatalogSnapshot,
     tripDetails: Record<string, unknown> | null,
     transportMode: RegistrationTransportModeDto,
   ): void {
@@ -1096,7 +1044,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
    * auto-accept when `requirements.minRequiredPeaks` is met by traveler `userPastPeaksCount`.
    */
   private resolveInitialRegistrationPlacement(
-    tour: TourEntity,
+    tour: TourCatalogSnapshot,
     participantMetadata: ParticipantMetadataDto | undefined,
     tripDetails: Record<string, unknown> | null,
   ): {
@@ -1127,13 +1075,10 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   private async assertTourNationalIdRegistrationPolicyOrThrow(
     manager: EntityManager,
     tourId: string,
-    payload: { bookingTarget?: RegistrationBookingTargetDto; participantNationalId?: string }
+    payload: { bookingTarget?: string; participantNationalId?: string }
   ): Promise<void> {
-    const detailsRow = await manager.findOne(TourDetails, {
-      where: { tourId },
-      select: { tripDetails: true }
-    });
-    const participation = detailsRow?.tripDetails?.participation as
+    const tour = await this.registrationsTourCatalogPort.getTourSnapshot(manager, tourId);
+    const participation = tour?.details?.tripDetails?.participation as
       | { registrationNationalIdRequired?: boolean }
       | undefined;
     if (participation?.registrationNationalIdRequired !== true) {
@@ -1189,12 +1134,62 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     }
   }
 
-  private async requireTourInTenant(
+  private async consumeAcceptedCapacitySlot(
     manager: EntityManager,
-    tourId: string,
-    tenantId: string
-  ): Promise<TourEntity> {
-    const tour = await manager.findOne(TourEntity, { where: { id: tourId } });
+    tour: TourCatalogSnapshot
+  ): Promise<TourCatalogSnapshot> {
+    await this.tourCapacityReservationPort.reserveTicket({
+      tenantId: tour.tenantId,
+      tourId: tour.id,
+      totalCapacity: tour.totalCapacity,
+      acceptedCount: tour.acceptedCount,
+    });
+    try {
+      const updated = await this.registrationsTourCatalogPort.tryIncrementAcceptedCountAtomic(
+        manager,
+        tour.id,
+        tour.tenantId
+      );
+      if (!updated) {
+        throw new DoubleBookingConflictException();
+      }
+      registerRegistrationCapacityCompensation({
+        tenantId: tour.tenantId,
+        tourId: tour.id,
+        totalCapacity: tour.totalCapacity,
+      });
+      return updated;
+    } catch (error) {
+      await this.tourCapacityReservationPort.releaseTicket({
+        tenantId: tour.tenantId,
+        tourId: tour.id,
+        totalCapacity: tour.totalCapacity,
+      });
+      throw error;
+    }
+  }
+
+  private async releaseAcceptedCapacitySlot(
+    manager: EntityManager,
+    tour: TourCatalogSnapshot
+  ): Promise<TourCatalogSnapshot | null> {
+    const updated = await this.registrationsTourCatalogPort.tryDecrementAcceptedCountAtomic(
+      manager,
+      tour.id,
+      tour.tenantId
+    );
+    if (updated) {
+      await this.tourCapacityReservationPort.releaseTicket({
+        tenantId: tour.tenantId,
+        tourId: tour.id,
+        totalCapacity: tour.totalCapacity,
+      });
+    }
+    return updated;
+  }
+
+  private async requireTourInTenant(manager: EntityManager, tourId: string, tenantId: string): Promise<TourCatalogSnapshot> {
+    const tour = await this.registrationsTourCatalogPort.getTourSnapshot(manager, tourId);
     if (!tour) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -1204,18 +1199,8 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     return tour;
   }
 
-  private async requireTourInTenantForUpdate(
-    manager: EntityManager,
-    tourId: string,
-    tenantId: string
-  ): Promise<TourEntity> {
-    const tour = await manager
-      .getRepository(TourEntity)
-      .createQueryBuilder("tour")
-      .setLock("pessimistic_write")
-      .where("tour.id = :tourId", { tourId })
-      .andWhere("tour.tenant_id = :tenantId", { tenantId })
-      .getOne();
+  private async requireTourInTenantForUpdate(manager: EntityManager, tourId: string, tenantId: string): Promise<TourCatalogSnapshot> {
+    const tour = await this.registrationsTourCatalogPort.lockTourSnapshot(manager, tourId, tenantId);
 
     if (!tour) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
@@ -1224,24 +1209,8 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     return tour;
   }
 
-  /** Dual-write: mirror capacity/sold onto `tour_departures` when that row exists (foundation migration). */
-  private async syncTourDepartureFromTour(
-    manager: EntityManager,
-    tour: TourEntity
-  ): Promise<void> {
-    await manager.update(
-      TourDepartureEntity,
-      { id: tour.id },
-      {
-        soldCount: tour.acceptedCount,
-        capacityTotal: tour.totalCapacity,
-        lifecycleStatus: tour.lifecycleStatus
-      }
-    );
-  }
-
   private async ensureNoActiveRegistrationDuplicate(
-    manager: EntityManager,
+    _manager: EntityManager,
     payload: {
       tenantId: string;
       tourId: string;
@@ -1257,7 +1226,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       ],
     } as const;
 
-    const duplicateByPhone = await this.registrationsReadRepository.findOneInManager(manager, {
+    const duplicateByPhone = await this.registrationsReadRepository.findOneStandalone({
       tenantId: payload.tenantId,
       tourId: payload.tourId,
       participantContactPhone: payload.participantContactPhone,
@@ -1266,7 +1235,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
 
     const duplicateByTelegram =
       payload.telegramUserId && payload.telegramUserId.trim() !== ""
-        ? await this.registrationsReadRepository.findOneInManager(manager, {
+        ? await this.registrationsReadRepository.findOneStandalone({
             tenantId: payload.tenantId,
             tourId: payload.tourId,
             telegramUserId: payload.telegramUserId,
@@ -1615,19 +1584,19 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       tourId: detail.tourId,
       participantFullName: detail.participantFullName,
       participantContactPhone: detail.participantContactPhone,
-      bookingTarget: detail.bookingTarget,
-      participantNationalId: detail.participantNationalId,
+      bookingTarget: detail.bookingTarget ?? undefined,
+      participantNationalId: detail.participantNationalId ?? undefined,
       transportMode: detail.transportMode,
       entryMode: detail.entryMode,
-      telegramUserId: detail.telegramUserId,
-      telegramUsername: detail.telegramUsername,
-      vehicleSeatCapacity: detail.vehicleSeatCapacity,
-      participantNote: detail.participantNote,
+      telegramUserId: detail.telegramUserId ?? undefined,
+      telegramUsername: detail.telegramUsername ?? undefined,
+      vehicleSeatCapacity: detail.vehicleSeatCapacity ?? undefined,
+      participantNote: detail.participantNote ?? undefined,
       participantMetadata: detail.participantMetadata ?? null,
       status: detail.status,
-      rowVersion: detail.rowVersion,
+      rowVersion: detail.rowVersion ?? 1,
       paymentStatus: detail.paymentStatus,
-      paidAmount: detail.paidAmount,
+      paidAmount: detail.paidAmount ?? undefined,
       payment:
         paymentMetadata &&
         typeof paymentMetadata.provider === "string" &&
@@ -1685,66 +1654,26 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     };
   }
 
-  private async ensureCapacityForAcceptance(
-    manager: EntityManager,
-    registration: RegistrationEntity,
-    targetStatus: RegistrationStatus,
-    lockedTour?: TourEntity | null
-  ): Promise<void> {
-    if (
-      isCapacityConsumingRegistrationStatus(registration.status) ||
-      !isCapacityConsumingRegistrationStatus(targetStatus)
-    ) {
-      return;
-    }
-
-    const tour =
-      lockedTour ??
-      (await this.requireTourInTenantForUpdate(
-        manager,
-        registration.tourId,
-        registration.tenantId
-      ));
-
-    if (tour.acceptedCount >= tour.totalCapacity) {
-      throw new ConflictException({
-        error: {
-          code: "CAPACITY_FULL",
-          message: "Tour capacity reached. Cannot accept additional registrations."
-        }
-      });
-    }
-  }
-
-  private applyAcceptedCounterDelta(
-    tour: TourEntity,
+  private calculateAcceptedCounterDelta(
     previousStatus: RegistrationStatus,
     targetStatus: RegistrationStatus
-  ): void {
+  ): number {
     const wasAccepted = isCapacityConsumingRegistrationStatus(previousStatus);
     const willBeAccepted = isCapacityConsumingRegistrationStatus(targetStatus);
     if (wasAccepted === willBeAccepted) {
-      return;
+      return 0;
     }
-
-    if (willBeAccepted) {
-      tour.acceptedCount += 1;
-      assertTourCapacityInvariant(tour);
-      return;
-    }
-
-    tour.acceptedCount = Math.max(0, tour.acceptedCount - 1);
-    assertTourCapacityInvariant(tour);
+    return willBeAccepted ? 1 : -1;
   }
 
   /**
    * Phase 4: pessimistic tour lock (same query path as registration flows).
    */
   async lockTourRowForUpdate(
-    manager: EntityManager,
     tourId: string,
     tenantId: string
   ): Promise<TourBookingLockRecord> {
+    const manager = this.activeManager;
     const tour = await this.requireTourInTenantForUpdate(manager, tourId, tenantId);
     return asTourBookingLockRecord(tour);
   }
@@ -1753,14 +1682,12 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
    * Phase 4: one FIFO promotion when capacity allows — delegates to canonical promotion only.
    */
   async promoteNextWaitlistSlotIfEligible(
-    manager: EntityManager,
     tenantId: string,
     tourId: string,
     lockedTour: TourBookingLockRecord
   ): Promise<boolean> {
-    const tourEntity = await manager.findOne(TourEntity, {
-      where: { id: lockedTour.id, tenantId: lockedTour.tenantId },
-    });
+    const manager = this.activeManager;
+    const tourEntity = await this.registrationsTourCatalogPort.getTourSnapshot(manager, lockedTour.id);
     if (!tourEntity) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
@@ -1784,10 +1711,10 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
    * Must match manual conversion: {@link RegistrationQuoteApplicationService} quote + append-only snapshot.
    */
   async promoteNextWaitlistItemForPaymentFlow(
-    manager: EntityManager,
     releasedRegistration: RegistrationWriteRecord,
     lockedTour: TourBookingLockRecord | null
   ): Promise<boolean> {
+    const manager = this.activeManager;
     const reg = await manager.findOne(RegistrationEntity, {
       where: { id: releasedRegistration.id, tenantId: releasedRegistration.tenantId },
     });
@@ -1796,9 +1723,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     }
     const tourEntity =
       lockedTour != null
-        ? await manager.findOne(TourEntity, {
-            where: { id: lockedTour.id, tenantId: lockedTour.tenantId },
-          })
+        ? await this.registrationsTourCatalogPort.getTourSnapshot(manager, lockedTour.id)
         : null;
     return this.promoteNextWaitlistItem(manager, reg, tourEntity);
   }
@@ -1806,18 +1731,17 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   private async promoteNextWaitlistItem(
     manager: EntityManager,
     registration: RegistrationEntity,
-    lockedTour?: TourEntity | null
+    lockedTour?: TourCatalogSnapshot | null
   ): Promise<boolean> {
-    // Phase 2: canonical promotion transaction uses locked Tour counter + FIFO waitlist lock.
     const tour =
       lockedTour ??
-      (await this.requireTourInTenantForUpdate(
+      (await this.requireTourInTenant(
         manager,
         registration.tourId,
         registration.tenantId
       ));
-    assertTourIsOpenForRegistration(tour);
-    assertWaitlistPromotionAllowed(tour);
+    assertTourIsOpenForRegistration(tourCapacityPolicyFromCatalogSnapshot(tour));
+    assertWaitlistPromotionAllowed(tourCapacityPolicyFromCatalogSnapshot(tour));
     if (tour.acceptedCount >= tour.totalCapacity) {
       return false;
     }
@@ -1834,6 +1758,12 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       .getOne();
 
     if (!waitlistItem) {
+      return false;
+    }
+
+    try {
+      await this.consumeAcceptedCapacitySlot(manager, tour);
+    } catch {
       return false;
     }
 
@@ -1861,10 +1791,6 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     waitlistItem.status = WaitlistItemStatus.CONVERTED;
     waitlistItem.promotedRegistrationId = savedPromotedWithSnapshot.id;
     await manager.save(waitlistItem);
-    tour.acceptedCount += 1;
-    assertTourCapacityInvariant(tour);
-    await manager.save(tour);
-    await this.syncTourDepartureFromTour(manager, tour);
 
     const actorId = this.requestContextService.getUserId() ?? "system";
     await emitWaitlistConvertedAndAcceptedEvents({
@@ -1879,11 +1805,11 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   }
 
   async transitionRegistrationForPayment(
-    manager: EntityManager,
     registration: RegistrationWriteRecord,
     targetStatus: RegistrationStatus,
     actorId: string
   ): Promise<RegistrationWriteRecord> {
+    const manager = this.activeManager;
     const reg = await manager.findOne(RegistrationEntity, {
       where: { id: registration.id, tenantId: registration.tenantId },
     });
@@ -1910,34 +1836,31 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       targetStatus,
       registration.paymentStatus
     );
-    const affectsAcceptedCounter =
-      isCapacityConsumingRegistrationStatus(previousStatus) ||
-      isCapacityConsumingRegistrationStatus(targetStatus);
-    const lockedTour = affectsAcceptedCounter
-      ? await this.requireTourInTenantForUpdate(
-          manager,
-          registration.tourId,
-          registration.tenantId
-        )
-      : null;
-    await this.ensureCapacityForAcceptance(
-      manager,
-      registration,
-      targetStatus,
-      lockedTour
-    );
-    registration.status = targetStatus;
-    if (lockedTour) {
-      this.applyAcceptedCounterDelta(lockedTour, previousStatus, targetStatus);
-      await manager.save(lockedTour);
-      await this.syncTourDepartureFromTour(manager, lockedTour);
+    const delta = this.calculateAcceptedCounterDelta(previousStatus, targetStatus);
+
+    if (delta > 0) {
+      const tour = await this.requireTourInTenant(
+        manager,
+        registration.tourId,
+        registration.tenantId
+      );
+      await this.consumeAcceptedCapacitySlot(manager, tour);
+    } else if (delta < 0) {
+      const tour = await this.requireTourInTenant(
+        manager,
+        registration.tourId,
+        registration.tenantId
+      );
+      await this.releaseAcceptedCapacitySlot(manager, tour);
     }
+
+    registration.status = targetStatus;
     const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
     if (
       isCapacityConsumingRegistrationStatus(previousStatus) &&
       !isCapacityConsumingRegistrationStatus(targetStatus)
     ) {
-      await this.promoteNextWaitlistItem(manager, saved, lockedTour);
+      await this.promoteNextWaitlistItem(manager, saved, null);
     }
     await emitRegistrationStatusChangedEvent({
       manager,
@@ -1969,7 +1892,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
 
   async createPublicRegistrationOrWaitlist(input: {
     tourId: string;
-    bookingTarget?: RegistrationBookingTargetDto;
+    bookingTarget?: string;
     participantFullName: string;
     participantContactPhone: string;
     participantNationalId?: string;
@@ -1982,11 +1905,10 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
     shareFuelCost?: boolean;
     vehicleSeatCapacity?: number;
     participantNote?: string;
-    participantMetadata?: ParticipantMetadataDto;
+    participantMetadata?: Record<string, unknown>;
     selectedServiceIds?: string[];
     discountCode?: string | null;
     createPaymentIntent?: (
-      _manager: EntityManager,
       _registration: RegistrationWriteRecord
     ) => Promise<RegistrationPaymentIntentSnapshot>;
   }): Promise<
@@ -2000,10 +1922,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
   > {
     const store = requestContextStorage.getStore();
     const run = async (manager: EntityManager) => {
-      const tourPeek = await manager.findOne(TourEntity, {
-        where: { id: input.tourId },
-        select: { id: true, tenantId: true }
-      });
+      const tourPeek = await this.registrationsTourCatalogPort.getTourSnapshot(manager, input.tourId);
       if (!tourPeek) {
         throw new NotFoundException({
           error: {
@@ -2014,12 +1933,12 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       }
       const tenantId = tourPeek.tenantId;
       const scopedInput = { ...input, tenantId };
-      const tour = await this.requireTourInTenantForUpdate(
+      const tour = await this.requireTourInTenant(
         manager,
         input.tourId,
         tenantId
       );
-      assertTourIsOpenForRegistration(tour);
+      assertTourIsOpenForRegistration(tourCapacityPolicyFromCatalogSnapshot(tour));
       await this.assertTourNationalIdRegistrationPolicyOrThrow(manager, input.tourId, input);
       const existingRegistrations = await manager.find(RegistrationEntity, {
         where: {
@@ -2028,10 +1947,10 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
           participantContactPhone: input.participantContactPhone
         }
       });
-      assertUserNotAlreadyRegistered(tour, existingRegistrations);
+      assertUserNotAlreadyRegistered(tourCapacityPolicyFromCatalogSnapshot(tour), existingRegistrations);
       await this.ensureNoActiveRegistrationDuplicate(manager, scopedInput);
       if (tour.acceptedCount >= tour.totalCapacity) {
-        assertTourAllowsWaitlist(tour);
+        assertTourAllowsWaitlist(tourCapacityPolicyFromCatalogSnapshot(tour));
         const existingWaitlistItems = await manager.find(WaitlistItemEntity, {
           where: {
             tenantId,
@@ -2118,10 +2037,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
         paidAmount: undefined
       });
       if (placement.consumesAcceptedCapacity) {
-        tour.acceptedCount += 1;
-        assertTourCapacityInvariant(tour);
-        await manager.save(tour);
-        await this.syncTourDepartureFromTour(manager, tour);
+        await this.consumeAcceptedCapacitySlot(manager, tour);
       }
       const saved = await this.saveRegistrationOrVersionConflict(manager, registration);
       // Mandatory: create immutable price snapshot and stamp snapshotId onto the row.
@@ -2146,7 +2062,7 @@ export class TypeOrmRegistrationsApplicationService implements RegistrationsAppl
       }
       let paymentIntent: RegistrationPaymentIntentSnapshot | null = null;
       if (requiresPayment && input.createPaymentIntent) {
-        paymentIntent = await input.createPaymentIntent(manager, savedWithSnapshot);
+        paymentIntent = await input.createPaymentIntent(savedWithSnapshot);
       }
       return {
         type: "registration" as const,

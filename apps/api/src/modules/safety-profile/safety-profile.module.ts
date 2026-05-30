@@ -6,11 +6,13 @@ import { MedicalProfileEntity } from "./entities/medical-profile.entity";
 import { LocalDevMedicalProfileEncryptionAdapter } from "./encryption/local-dev-medical-profile-encryption.adapter";
 import {
   MEDICAL_PROFILE_ENCRYPTION,
-  type MedicalProfileEncryptionPort
+  type MedicalProfileEncryptionPort,
 } from "./encryption/medical-profile-encryption.port";
 import { ThrowingMedicalProfileEncryptionAdapter } from "./encryption/throwing-medical-profile-encryption.adapter";
 import { SafetyProfileController } from "./safety-profile.controller";
 import { SafetyProfileService } from "./safety-profile.service";
+import { SAFETY_PROFILE_PORT } from "./domain/ports/safety-profile.port";
+import { TypeOrmSafetyProfileRepository } from "./repositories/typeorm-safety-profile.repository";
 
 function createMedicalEncryptionAdapter(): MedicalProfileEncryptionPort {
   const secret = process.env.SAFETY_PROFILE_LOCAL_DATA_KEY?.trim();
@@ -24,12 +26,17 @@ function createMedicalEncryptionAdapter(): MedicalProfileEncryptionPort {
   imports: [TypeOrmModule.forFeature([EmergencyContactEntity, MedicalProfileEntity]), IdentityModule],
   controllers: [SafetyProfileController],
   providers: [
+    TypeOrmSafetyProfileRepository,
+    {
+      provide: SAFETY_PROFILE_PORT,
+      useExisting: TypeOrmSafetyProfileRepository,
+    },
     SafetyProfileService,
     {
       provide: MEDICAL_PROFILE_ENCRYPTION,
-      useFactory: () => createMedicalEncryptionAdapter()
-    }
+      useFactory: () => createMedicalEncryptionAdapter(),
+    },
   ],
-  exports: [SafetyProfileService, TypeOrmModule]
+  exports: [SafetyProfileService, TypeOrmModule],
 })
 export class SafetyProfileModule {}

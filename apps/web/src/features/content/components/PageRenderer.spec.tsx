@@ -5,8 +5,8 @@ import { PAGE_REGISTRY, PageBlockSchema } from "@repo/shared-contracts";
 
 import { SUPPORTED_PAGE_BLOCK_KINDS } from "../pageBlockKinds";
 
-test("ComponentFactory supports every kind on denali landing blocks", () => {
-  const blocks = PAGE_REGISTRY.denali.landing.sections.flatMap((section) => section.blocks);
+test("ComponentFactory supports every kind on outdoor_pilot landing blocks", () => {
+  const blocks = PAGE_REGISTRY.outdoor_pilot.landing.sections.flatMap((section) => section.blocks);
   assert.ok(blocks.length >= 2);
 
   for (const block of blocks) {
@@ -22,8 +22,8 @@ test("ComponentFactory supports every kind on denali landing blocks", () => {
   assert.ok(kinds.has("image"));
 });
 
-test("PAGE_REGISTRY.denali.landing matches PageRenderer route metadata", () => {
-  const page = PAGE_REGISTRY.denali.landing;
+test("PAGE_REGISTRY.outdoor_pilot.landing matches PageRenderer route metadata", () => {
+  const page = PAGE_REGISTRY.outdoor_pilot.landing;
   assert.equal(page.pageKey, "landing");
   assert.equal(page.route.path, "/");
   assert.ok(page.sections.some((section) => section.slug === "hero"));

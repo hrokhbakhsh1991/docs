@@ -10,6 +10,7 @@ import {
 
 import { DraftConflictException } from "./draft-conflict.exception";
 import { DraftEngineFacade } from "./draft-engine.facade";
+import { DefaultDraftConflictResolver } from "./domain/default-draft-conflict-resolver";
 import { DraftScopeResolver } from "./storage/draft-scope.resolver";
 import type { RequestContextService } from "../../common/request-context/request-context.service";
 import type { AuditLogService } from "../../common/audit/audit-log.service";
@@ -91,6 +92,7 @@ function createFacade(
     auditLog as unknown as AuditLogService,
     draftEventsRepository as never,
     requestContext,
+    new DefaultDraftConflictResolver(),
   );
 }
 
@@ -221,4 +223,60 @@ test("deleteForMember persists draft_deleted event", async () => {
   const facade = createFacade(store, undefined, { draftEvents: events });
   await facade.deleteForMember("denali-create");
   assert.ok(events.some((event) => event.eventType === "draft_deleted"));
+});
+
+test("resolveConflictForMember merges and persists at server.version + 1", async () => {
+  const store = new InMemoryDraftStore({
+    data: {
+      form: { basicInfo: { title: "Server title", tourType: "HIKE" } },
+      currentStepIndex: 1,
+      railLayoutVersion: 2,
+      registryLayoutVersion: 2,
+    },
+    version: 3,
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+    lastModified: 1000,
+  });
+  const actions: string[] = [];
+  const facade = createFacade(store, {
+    logEvent: async (input: { action: string }) => {
+      actions.push(input.action);
+    },
+  } as never);
+
+  const saved = await facade.resolveConflictForMember("ws-1", "denali-create", {
+    data: {
+      form: { basicInfo: { title: "Client title" } },
+      currentStepIndex: 2,
+      railLayoutVersion: 1,
+      registryLayoutVersion: 3,
+    },
+    version: 1,
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+    lastModified: 2000,
+  });
+
+  assert.equal(saved.version, 4);
+  assert.equal((saved.data as { currentStepIndex: number }).currentStepIndex, 2);
+  assert.equal(
+    (saved.data as { form: { basicInfo: { title: string } } }).form.basicInfo.title,
+    "Client title"
+  );
+  assert.ok(actions.includes("draft_engine.conflict_resolved"));
+});
+
+test("resolveConflictForMember rejects when server draft is missing", async () => {
+  const store = new InMemoryDraftStore();
+  const facade = createFacade(store);
+
+  await assert.rejects(
+    () =>
+      facade.resolveConflictForMember("ws-1", "denali-create", {
+        data: { form: {}, currentStepIndex: 0 },
+        version: 0,
+        schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+        lastModified: Date.now(),
+      }),
+    (error: unknown) => error instanceof Error && "status" in error && (error as { status: number }).status === 404
+  );
 });

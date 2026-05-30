@@ -1,4 +1,5 @@
 import type { DataSource } from "typeorm";
+import { DEFAULT_TOUR_FORM_PROFILE } from "@repo/types";
 
 import {
   storedTemplateRowIsLegacy,
@@ -64,7 +65,7 @@ export async function cleanupLegacyTemplates(
       field_rules_overlay = '{}'::jsonb,
       step_overrides = '{"skip":[],"insert":[]}'::jsonb,
       canonical_data = '{}'::jsonb,
-      base_profile = 'denali'
+      base_profile = '${DEFAULT_TOUR_FORM_PROFILE}'
   `);
 
   const presetsDeleted =

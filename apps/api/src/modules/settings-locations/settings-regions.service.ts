@@ -15,7 +15,7 @@ import {
 import type { CreateWorkspaceRegionDto } from "./dto/create-workspace-region.dto";
 import type { UpdateWorkspaceRegionDto } from "./dto/update-workspace-region.dto";
 import type { WorkspaceRegionResponseDto } from "./dto/workspace-region-response.dto";
-import { WorkspaceRegionEntity } from "./entities/workspace-region.entity";
+import type { WorkspaceRegionRecord } from "./domain/workspace-catalog.records";
 
 @Injectable()
 export class SettingsRegionsService {
@@ -38,7 +38,7 @@ export class SettingsRegionsService {
     return tenantId;
   }
 
-  private toResponse(row: WorkspaceRegionEntity): WorkspaceRegionResponseDto {
+  private toResponse(row: WorkspaceRegionRecord): WorkspaceRegionResponseDto {
     return {
       id: row.id,
       name: row.name,

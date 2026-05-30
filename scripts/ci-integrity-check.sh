@@ -12,6 +12,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
+# Flip Phase 4 Batch 4 Strict Architectural Boundary Enforce switch permanently
+export ARCHITECTURE_BOUNDARIES_ENFORCE=1
+
+
 step() {
   echo ""
   echo "==> $*"

@@ -1,4 +1,4 @@
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import { normalizeFinanceTenantId } from "./ledger-tenant-scope";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 
@@ -15,7 +15,7 @@ export type ClearingZeroSumViolation = {
 export function netClearingMinorByCurrencyFromLines(
   tenantId: string,
   ledgerLines: readonly LedgerJournalLine[],
-  clearingAccount: string = REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT
+  clearingAccount: string = LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING
 ): Map<string, bigint> {
   const tid = normalizeFinanceTenantId(tenantId);
   const net = new Map<string, bigint>();

@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, QueryFailedError } from "typeorm";
 import { PaymentGatewayIdempotencyEntity } from "../entities/payment-gateway-idempotency.entity";
 import type { IdempotencyKeyStore, IdempotentRunResult, PaymentIdempotencyScope } from "./payment-idempotency-key.store";
-import { paymentGatewayIdempotencyCompositeKey } from "./payment-idempotency-key.store";
+import { paymentGatewayIdempotencyDigest } from "./payment-idempotency-key.store";
+import { assertIdempotencyTenantScope } from "./idempotency-cache-envelope";
 
 const PENDING_TTL_MS = 90_000;
 const RESULT_TTL_MS = 86400_000 * 7;
@@ -15,7 +15,7 @@ function jsonClone<T>(value: T): T {
 }
 
 function digestOf(scope: PaymentIdempotencyScope): string {
-  return createHash("sha256").update(paymentGatewayIdempotencyCompositeKey(scope)).digest("hex");
+  return paymentGatewayIdempotencyDigest(scope);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -92,6 +92,7 @@ export class PostgresPaymentIdempotencyKeyStore implements IdempotencyKeyStore {
         }
 
         if (row.status === "completed" && row.resultPayload != null) {
+          assertIdempotencyTenantScope(row.tenantId, scope.tenantId);
           return { kind: "replay", payload: row.resultPayload } satisfies ClaimPhase;
         }
 

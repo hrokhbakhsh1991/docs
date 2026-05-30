@@ -29,6 +29,7 @@ import { SafetyProfileModule } from "./modules/safety-profile/safety-profile.mod
 import { DraftEngineModule } from "./modules/draft-engine/draft-engine.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ReconciliationModule } from "./modules/reconciliation/reconciliation.module";
+import { FinanceInvoicingModule } from "./modules/finance/finance-invoicing.module";
 import { JobSchedulerModule } from "./jobs/job-scheduler.module";
 import { TenantAbuseModule } from "./common/tenant-abuse/tenant-abuse.module";
 import { TenantUsageModule } from "./common/billing/tenant-usage.module";
@@ -101,6 +102,7 @@ import Redis from "ioredis";
     RegistrationsModule,
     PaymentsModule,
     ReconciliationModule,
+    FinanceInvoicingModule,
     OpsModule,
     SettingsLocationsModule,
     SafetyProfileModule,

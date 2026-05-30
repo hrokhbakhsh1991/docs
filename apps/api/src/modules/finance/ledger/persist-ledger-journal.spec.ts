@@ -3,7 +3,7 @@ import test from "node:test";
 import type { EntityManager } from "typeorm";
 import {
   bookingLedgerAccountId,
-  REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+  LEDGER_ACCOUNTS,
 } from "@repo/shared-contracts";
 import { isLedgerContractValidationFailure } from "./enforce-ledger-journal-contract";
 import { persistLedgerJournal } from "./persist-ledger-journal";
@@ -26,7 +26,7 @@ test("persistLedgerJournal inserts batch header before journal lines", async () 
 
   const result = postDoubleEntryJournal({
     tenantId: TENANT_ID,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
     amount_minor: "1000",
     currency: "IRR",
@@ -55,7 +55,7 @@ test("persistLedgerJournal throws LEDGER_CONTRACT_VALIDATION_FAILED before SQL w
 
   const result = postDoubleEntryJournal({
     tenantId: TENANT_ID,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
     amount_minor: "1000",
     currency: "IRR",
@@ -102,7 +102,7 @@ test("persistLedgerJournal upserts separate account_balances rows per currency",
 
   const usdJournal = postDoubleEntryJournal({
     tenantId: TENANT_ID,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
     amount_minor: "100",
     currency: "USD",
@@ -118,7 +118,7 @@ test("persistLedgerJournal upserts separate account_balances rows per currency",
 
   const irrJournal = postDoubleEntryJournal({
     tenantId: TENANT_ID,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
     amount_minor: "100",
     currency: "IRR",

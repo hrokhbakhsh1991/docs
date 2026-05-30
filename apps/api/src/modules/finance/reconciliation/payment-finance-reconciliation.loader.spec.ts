@@ -5,7 +5,7 @@ import {
   ledgerLinesFromFinanceOutboxRows,
   paymentAmountToMinorString,
   tryParseLedgerJournalLine
-} from "./payment-finance-reconciliation.loader";
+} from "./payment-reconciliation-parse";
 
 test("paymentAmountToMinorString normalizes integer-like decimals and trims", () => {
   assert.equal(paymentAmountToMinorString("100.00"), "100");

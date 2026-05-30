@@ -1,5 +1,4 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import type { EntityManager } from "typeorm";
 
 import { ConfigService } from "../../../config/config.service";
 import { RegistrationsService } from "../registrations.service";
@@ -36,7 +35,6 @@ export class RegistrationPlacementOrchestrator {
   ) {}
 
   private async createPaymentIntentForRegistration(
-    manager: EntityManager,
     registration: RegistrationPayableRegistration
   ): Promise<RegistrationPaymentIntentSnapshot> {
     const totalMinorNum =
@@ -65,7 +63,7 @@ export class RegistrationPlacementOrchestrator {
         }
       });
     }
-    return this.registrationReadPort.createPaymentIntentWithManager(manager, {
+    return this.registrationReadPort.createPaymentIntent({
       registration: {
         id: registration.id,
         quotedTotalMinor: registration.quotedTotalMinor ?? null,
@@ -84,8 +82,8 @@ export class RegistrationPlacementOrchestrator {
     const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
       ...bookingInput,
       tourId,
-      createPaymentIntent: async (manager, registration) =>
-        this.createPaymentIntentForRegistration(manager, registration)
+      createPaymentIntent: async (registration) =>
+        this.createPaymentIntentForRegistration(registration)
     });
 
     if (result.type === "waitlist") {
@@ -116,9 +114,10 @@ export class RegistrationPlacementOrchestrator {
   }> {
     const result = await this.registrationsService.createPublicRegistrationOrWaitlist({
       ...input.payload,
+      participantMetadata: input.payload.participantMetadata as Record<string, unknown> | undefined,
       tourId: input.tourId,
-      createPaymentIntent: async (manager, registration) =>
-        this.createPaymentIntentForRegistration(manager, registration)
+      createPaymentIntent: async (registration) =>
+        this.createPaymentIntentForRegistration(registration)
     });
 
     if (result.type === "waitlist") {
@@ -140,3 +139,4 @@ export class RegistrationPlacementOrchestrator {
     };
   }
 }
+

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { bookingWalletId } from "../ledger/booking-ledger-authority.service";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "../ledger/ledger-accounts";
+import { LEDGER_ACCOUNTS } from "../ledger/ledger-accounts";
 import { postDoubleEntryJournal } from "../ledger/post-double-entry-journal";
 import { PaymentStatus } from "../../payments/entities/payment.entity";
 import {
@@ -26,7 +26,7 @@ const bookingId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 function ledgerReceiveMinor(amount: string, currency: string) {
   const { lines } = postDoubleEntryJournal({
     tenantId,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId(bookingId),
     amount_minor: amount,
     currency,
@@ -41,7 +41,7 @@ test("rejects ledger lines that do not belong to report tenantId (strict isolati
   const otherTenant = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
   const foreignLines = postDoubleEntryJournal({
     tenantId: otherTenant,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingWalletId(bookingId),
     amount_minor: "1000",
     currency: "USD",

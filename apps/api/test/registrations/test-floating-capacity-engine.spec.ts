@@ -87,6 +87,11 @@ test("Scenario C: after capacity gate passes, free auto-accept tour places car o
     {} as never,
     {} as never,
     {} as never,
+    {
+      reserveTicket: async () => {},
+      releaseTicket: async () => {},
+      syncRemainingFromSnapshot: async () => {},
+    } as never,
   );
 
   const placement = (

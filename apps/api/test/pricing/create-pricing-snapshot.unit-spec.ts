@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
-import { createPricingSnapshot } from "../../src/modules/pricing/create-pricing-snapshot";
+import { createPricingSnapshot } from "../../src/modules/pricing/repositories/create-pricing-snapshot.repository";
 import { BookingPriceSnapshotEntity } from "../../src/modules/pricing/entities/booking-price-snapshot.entity";
 import { RegistrationEntity } from "../../src/modules/registrations/registration.entity";
 

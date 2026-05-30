@@ -3,9 +3,9 @@ import test from "node:test";
 
 import { resolvePublicSiteConfig } from "./resolve-public-site-config";
 
-test("resolvePublicSiteConfig: denali tenant uses denali workspace and wizard mode", () => {
-  const config = resolvePublicSiteConfig("denali");
-  assert.equal(config.contentWorkspace, "denali");
+test("resolvePublicSiteConfig: outdoor pilot profile uses outdoor_pilot workspace and denali wizard mode", () => {
+  const config = resolvePublicSiteConfig("mountain-club", { tourFormProfile: "denali_pilot" });
+  assert.equal(config.contentWorkspace, "outdoor_pilot");
   assert.equal(config.tourFormProfile, "denali_pilot");
   assert.equal(config.wizard.wizardMode, "denali");
   assert.equal(config.pages.landing.pageKey, "landing");

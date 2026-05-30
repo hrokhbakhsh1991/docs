@@ -6,7 +6,7 @@ import type {
   LeaderRegistrationPaymentPatchPayload
 } from "./contracts/leader-registration-payment-ledger.contracts";
 import { emitFinanceLedgerDoubleEntryAppliedOutbox } from "./emit-finance-ledger-journal-outbox";
-import { REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT } from "./ledger-accounts";
+import { LEDGER_ACCOUNTS } from "./ledger-accounts";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 import { postAndPersistDoubleEntryJournal } from "./post-double-entry-journal";
 
@@ -172,7 +172,7 @@ export class BookingLedgerAuthorityService {
     if (receiveMinor !== null) {
       const { lines } = await postAndPersistDoubleEntryJournal(manager, {
         tenantId: registration.tenantId,
-        debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+        debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
         creditAccount: bookingAccount,
         amount_minor: receiveMinor,
         currency,
@@ -191,7 +191,7 @@ export class BookingLedgerAuthorityService {
         const { lines } = await postAndPersistDoubleEntryJournal(manager, {
           tenantId: registration.tenantId,
           debitAccount: bookingAccount,
-          creditAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+          creditAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
           amount_minor: prevMinor.toString(),
           currency,
           correlationId: `${correlationBase}:clear:${idempotencyKey}`,

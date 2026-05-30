@@ -3,15 +3,15 @@ import { describe, it } from "node:test";
 import {
   assertLedgerJournalDoubleEntry,
   bookingLedgerAccountId,
-  REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+  LEDGER_ACCOUNTS,
 } from "@repo/shared-contracts";
 import type { LedgerJournalLineEntity } from "./entities/ledger-journal-line.entity";
 import {
   toLedgerEntry,
-  toLedgerEntryFromEntity,
   toLedgerJournalContractStrict,
   validateLedgerEntry,
 } from "./ledger.adapter";
+import { toLedgerEntryFromEntity } from "./repositories/ledger-entry-from-entity.mapper";
 import type { LedgerJournalLine } from "./ledger-journal-line";
 import { postDoubleEntryJournal } from "./post-double-entry-journal";
 
@@ -24,7 +24,7 @@ const REGISTRATION_ID = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 function balancedDomainLines(): [LedgerJournalLine, LedgerJournalLine] {
   const { journalId, lines } = postDoubleEntryJournal({
     tenantId: TENANT_ID,
-    debitAccount: REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT,
+    debitAccount: LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING,
     creditAccount: bookingLedgerAccountId(REGISTRATION_ID),
     amount_minor: "250000",
     currency: "IRR",
@@ -46,7 +46,7 @@ describe("ledger.adapter", () => {
     const [debit] = balancedDomainLines();
     const entry = toLedgerEntry(debit);
 
-    assert.equal(entry.accountId, REGISTRATION_LEADER_PAYMENT_CLEARING_ACCOUNT);
+    assert.equal(entry.accountId, LEDGER_ACCOUNTS.REGISTRATION_LEADER_PAYMENT_CLEARING);
     assert.equal(entry.amountMinor, "250000");
     assert.equal(entry.currency, "IRR");
     assert.equal(entry.side, "debit");

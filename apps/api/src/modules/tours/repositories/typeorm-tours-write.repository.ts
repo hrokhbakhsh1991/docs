@@ -8,7 +8,10 @@ import type { DeepPartial, EntityManager } from "typeorm";
 import { DataSource, Repository } from "typeorm";
 
 import { tenantScopedResourceNotFoundError } from "../../../common/errors/error-response-builders";
-import { getIdempotentEntityManager } from "../../idempotency/idempotent-transaction.context";
+import {
+  getIdempotentEntityManager,
+  runWithIdempotentEntityManager
+} from "../../idempotency/idempotent-transaction.context";
 import { TOUR_RESPONSE_RELATIONS } from "../constants/tour-response-relations";
 import type { ToursWriteRepositoryPort } from "../domain/ports/tours-repository.port";
 import { TourDepartureEntity } from "../entities/tour-departure.entity";
@@ -30,38 +33,40 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     private readonly dataSource: DataSource
   ) {}
 
-  getIdempotentManager(): EntityManager | null {
-    return getIdempotentEntityManager() ?? null;
+  private get activeManager(): EntityManager {
+    return getIdempotentEntityManager() ?? this.tourRepository.manager;
   }
 
-  getDefaultManager(): EntityManager {
-    return this.tourRepository.manager;
+  runInTransaction<T>(fn: () => Promise<T>): Promise<T> {
+    const em = getIdempotentEntityManager();
+    if (em) {
+      return fn();
+    }
+    return this.dataSource.transaction((manager) => {
+      return runWithIdempotentEntityManager(manager, fn);
+    });
   }
 
-  runInTransaction<T>(fn: (manager: EntityManager) => Promise<T>): Promise<T> {
-    return this.dataSource.transaction(fn);
+  createTourEntity(data: DeepPartial<TourEntity>): TourEntity {
+    return this.activeManager.getRepository(TourEntity).create(data);
   }
 
-  createTourEntity(manager: EntityManager, data: DeepPartial<TourEntity>): TourEntity {
-    return manager.getRepository(TourEntity).create(data);
-  }
-
-  async createTour(manager: EntityManager, tour: TourEntity, tenantId: string): Promise<TourEntity> {
+  async createTour(tour: TourEntity, tenantId: string): Promise<TourEntity> {
+    const manager = this.activeManager;
     const saved = await manager.getRepository(TourEntity).save(tour);
     const loaded = await this.findTourWithRelations(manager, tenantId, saved.id);
     if (!loaded) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    await this.syncProductDepartureForTour(manager, loaded);
+    await this.syncProductDepartureForTour(loaded);
     return loaded;
   }
 
   loadTourForUpdateLocking(
-    manager: EntityManager,
     tourId: string,
     tenantId: string
   ): Promise<TourEntity | null> {
-    return manager
+    return this.activeManager
       .getRepository(TourEntity)
       .createQueryBuilder("t")
       .leftJoinAndSelect("t.details", "details")
@@ -73,17 +78,19 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
       .getOne();
   }
 
-  async updateTour(manager: EntityManager, tour: TourEntity, tenantId: string): Promise<TourEntity> {
+  async updateTour(tour: TourEntity, tenantId: string): Promise<TourEntity> {
+    const manager = this.activeManager;
     const saved = await manager.getRepository(TourEntity).save(tour);
     const reloaded = await this.findTourWithRelations(manager, tenantId, saved.id);
     if (!reloaded) {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
-    await this.syncProductDepartureForTour(manager, reloaded);
+    await this.syncProductDepartureForTour(reloaded);
     return reloaded;
   }
 
-  async syncProductDepartureForTour(manager: EntityManager, tour: TourEntity): Promise<void> {
+  async syncProductDepartureForTour(tour: TourEntity): Promise<void> {
+    const manager = this.activeManager;
     const tourRepo = manager.getRepository(TourEntity);
     const tourProductRepo = manager.getRepository(TourProductEntity);
     const tourDepartureRepo = manager.getRepository(TourDepartureEntity);
@@ -184,3 +191,4 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     });
   }
 }
+

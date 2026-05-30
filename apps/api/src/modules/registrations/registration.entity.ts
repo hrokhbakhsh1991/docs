@@ -1,8 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, VersionColumn } from "typeorm";
 import { BaseTenantEntity } from "../../database/entities/base-tenant.entity";
 import type { PricingLineItem } from "../pricing/pricing.types";
-import { TourDepartureEntity } from "../tours/entities/tour-departure.entity";
-import { TourEntity } from "../tours/entities/tour.entity";
 import {
   BOOKING_PRICE_SNAPSHOT_ENTITY,
   type IBookingPriceSnapshotEntity
@@ -106,14 +104,6 @@ export class RegistrationEntity extends BaseTenantEntity {
 
   @Column({ type: "jsonb", name: "quoted_line_items_json", nullable: true })
   quotedLineItemsJson?: PricingLineItem[] | null;
-
-  @ManyToOne(() => TourEntity, { nullable: false })
-  @JoinColumn({ name: "tour_id", referencedColumnName: "id" })
-  tour!: TourEntity;
-
-  @ManyToOne(() => TourDepartureEntity, { nullable: false })
-  @JoinColumn({ name: "tour_departure_id", referencedColumnName: "id" })
-  tourDeparture!: TourDepartureEntity;
 
   /**
    * FK to the **canonical** booking price snapshot created during the checkout flow.

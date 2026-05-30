@@ -3,6 +3,7 @@ import test from "node:test";
 import type { QueryRunner } from "typeorm";
 import { TenantContextMissingError } from "../../common/errors/tenant-context-missing.error";
 import { TenantBindingMode } from "../../common/request-context/request-context";
+import { SET_LOCAL_RLS_TENANT_SQL } from "../rls-tenant-session";
 import { TenantSessionBindingService } from "../tenant-session-binding.service";
 
 function createServiceWithMissingContext() {
@@ -210,7 +211,7 @@ test("normal mode applies app.tenant_id set_config with tenant context", async (
   await service.applyTenantIdSetConfig({} as QueryRunner, originalQuery);
 
   assert.equal(executed.length, 1);
-  assert.equal(executed[0].sql, "SELECT set_config('app.tenant_id', $1, true)");
+  assert.equal(executed[0].sql, SET_LOCAL_RLS_TENANT_SQL);
   assert.deepEqual(executed[0].params, [tenantId]);
 });
 
@@ -272,7 +273,7 @@ test("normal request path injects app.tenant_id before first DB query", async ()
   await patchedQueryRunner.query("SELECT 1");
 
   const firstSetConfigIndex = executed.findIndex((sql) =>
-    sql.startsWith("SELECT set_config('app.tenant_id', $1, true)")
+    sql.startsWith(SET_LOCAL_RLS_TENANT_SQL)
   );
   const firstBusinessQueryIndex = executed.findIndex((sql) => sql === "SELECT 1");
   assert.ok(firstSetConfigIndex >= 0);

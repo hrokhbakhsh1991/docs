@@ -30,22 +30,22 @@ const asFinancialRecord = (row: RegistrationEntity): RegistrationFinancialRecord
 export class RegistrationFinancialMutationAdapter implements RegistrationFinancialMutationPort {
   async findRegistrationForReceipt(
     manager: EntityManager,
-    tenantId: string,
+    _tenantId: string,
     registrationId: string
   ): Promise<RegistrationFinancialRecord | null> {
     const row = await manager.findOne(RegistrationEntity, {
-      where: { id: registrationId, tenantId },
+      where: { id: registrationId },
     });
     return row ? asFinancialRecord(row) : null;
   }
 
   async findRegistrationPeekForReceipt(
     manager: EntityManager,
-    tenantId: string,
+    _tenantId: string,
     registrationId: string
   ): Promise<Pick<RegistrationFinancialRecord, "id" | "tourId" | "tenantId"> | null> {
     const row = await manager.findOne(RegistrationEntity, {
-      where: { id: registrationId, tenantId },
+      where: { id: registrationId },
       select: { id: true, tourId: true, tenantId: true },
     });
     return row ? { id: row.id, tourId: row.tourId, tenantId: row.tenantId } : null;
@@ -93,7 +93,7 @@ export class RegistrationFinancialMutationAdapter implements RegistrationFinanci
     entity.status = record.status as RegistrationStatus;
     entity.paymentStatus = record.paymentStatus as RegistrationPaymentStatus;
     if (record.paidAmount !== undefined) {
-      entity.paidAmount = record.paidAmount;
+      entity.paidAmount = record.paidAmount ?? undefined;
     }
     const saved = await manager.save(RegistrationEntity, entity);
     return asFinancialRecord(saved);

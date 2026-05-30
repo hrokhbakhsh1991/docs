@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
-import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
+import { TypeOrmRegistrationsWriteRepository } from "../../src/modules/registrations/repositories/typeorm-registrations-write.repository";
+import { RegistrationPaymentUpdatedLedgerListener } from "../../src/modules/finance/listeners/registration-payment-updated-ledger.listener";
+import { RegistrationFinancialMutationAdapter } from "../../src/modules/registrations/repositories/registration-finance-port.adapters";
+import { LedgerCommandBus } from "../../src/modules/finance/ledger/ledger-command-bus";
+import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
+import { mockLedgerPersistEntityManager } from "../../src/modules/finance/ledger/test/mock-ledger-entity-manager";
 import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
-import { createNullStandaloneRegistrationsReadTestDouble } from "./stub-registrations-read-repository";
+import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
+import { createRegistrationsTourCatalogPortTestDouble } from "./stub-registrations-tour-catalog.port";
+import { createNoOpTourCapacityReservationPortTestDouble } from "./stub-tour-capacity-reservation.port";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -264,6 +271,10 @@ function createServiceHarness() {
     }
   };
 
+  const writeRepo = new TypeOrmRegistrationsWriteRepository(
+    { manager } as never,
+    outboxService as never
+  );
   const service = new TypeOrmRegistrationsApplicationService(
     {} as never,
     {} as never,
@@ -272,29 +283,68 @@ function createServiceHarness() {
     requestContextService as never,
     outboxService as never,
     stubRegistrationQuoteApplication,
-    createNullStandaloneRegistrationsReadTestDouble(),
-    new BookingLedgerAuthorityService(outboxService as never),
-    {} as never // PricingEngineService stub
+    createRegistrationsReadRepositoryPortTestDouble(
+      {
+        async findOne(opts: any) {
+          return manager.findOne(RegistrationEntity, opts);
+        }
+      },
+      manager as never
+    ),
+    {} as never, // PricingCatalogPort stub
+    createRegistrationsTourCatalogPortTestDouble(tour),
+    createNoOpTourCapacityReservationPortTestDouble()
   );
 
-  return { service, registration, waitlist, tour, events };
+  return { service, writeRepo, registration, waitlist, tour, events, manager };
 }
 
-test("updateRegistrationPayment persists payment status and paid amount", async () => {
-  const { service, events } = createServiceHarness();
-  const updated = await service.updateRegistrationPayment(
-    TEST_REGISTRATION_ID,
-    {
-      paymentStatus: RegistrationPaymentStatus.PAID,
-      paidAmount: 2500,
-      expected_row_version: 1
-    },
-    "idem-stub-1"
+test("saveRegistrationPaymentUpdate emits registration.payment_updated for finance listener", async () => {
+  const { writeRepo, registration, events, manager } = createServiceHarness();
+  const updated = await writeRepo.saveRegistrationPaymentUpdate(
+    registration as any,
+    RegistrationPaymentStatus.PAID,
+    "2500",
+    "idem-stub-1",
+    "actor-1"
   );
   assert.equal(updated.paymentStatus, RegistrationPaymentStatus.PAID);
-  assert.equal(updated.paidAmount, "2500");
-  assert.ok(events.includes("finance.ledger.double_entry_applied"));
   assert.ok(events.includes("registration.payment_updated"));
+  assert.equal(events.includes("finance.ledger.double_entry_applied"), false);
+
+  const ledgerBus = new LedgerCommandBus(new BookingLedgerAuthorityService({
+    async addEvent(_manager, event) {
+      events.push(event.eventType);
+    },
+  } as never));
+  const listener = new RegistrationPaymentUpdatedLedgerListener(
+    ledgerBus,
+    new RegistrationFinancialMutationAdapter()
+  );
+  const ledgerManager = {
+    ...mockLedgerPersistEntityManager(),
+    findOne: manager.findOne.bind(manager),
+    save: manager.save.bind(manager),
+  };
+  await listener.handle(
+    ledgerManager as never,
+    registration.tenantId,
+    "outbox-stub-1",
+    {
+      entityId: registration.id,
+      metadata: {
+        paymentStatus: RegistrationPaymentStatus.PAID,
+        paidAmount: "2500",
+        idempotencyKey: "idem-stub-1",
+      },
+    }
+  );
+
+  const reloaded = await manager.findOne(RegistrationEntity, {
+    where: { id: registration.id, tenantId: registration.tenantId },
+  });
+  assert.equal(reloaded?.paidAmount, "2500");
+  assert.ok(events.includes("finance.ledger.double_entry_applied"));
 });
 
 test("convertWaitlistItem converts waiting item and emits conversion events", async () => {
