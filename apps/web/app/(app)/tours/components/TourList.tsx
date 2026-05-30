@@ -24,16 +24,17 @@ export type TourListProps = {
 
 function TourListComponent({ tours, onSelectTour, onDuplicateTour, onDeleteTour, emptyState }: TourListProps) {
   const t = useTranslations("tours.list");
+  const tCard = useTranslations("tours.card");
   if (tours.length === 0) {
     return (
       emptyState ?? (
-        <EmptyState embedded title="No tours yet" description="Create a tour to see it listed here." />
+        <EmptyState embedded title={t("emptyListTitle")} description={t("emptyListDesc")} />
       )
     );
   }
 
   return (
-    <ul className={gridStyles.grid} aria-label="Tour list">
+    <ul className={gridStyles.grid} aria-label={t("listAriaLabel")}>
       {tours.map((tour) => (
         <li key={tour.id}>
           <TourCard
@@ -53,7 +54,7 @@ function TourListComponent({ tours, onSelectTour, onDuplicateTour, onDeleteTour,
               : {})}
             {...(onDeleteTour
               ? {
-                  secondaryActionLabel: "Delete" as const,
+                  secondaryActionLabel: tCard("delete"),
                   onSecondaryActionClick: () => onDeleteTour(tour),
                 }
               : {})}

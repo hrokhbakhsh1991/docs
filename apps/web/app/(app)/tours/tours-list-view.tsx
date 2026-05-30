@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
+import { useCallback, useMemo, type ReactNode } from "react";
 
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
@@ -28,33 +29,15 @@ import {
 import { TourList } from "./components/TourList";
 import { ToursListSkeleton } from "./components/ToursListSkeleton";
 import type { TourSortColumn, TourStatusFilter } from "./tours-list-logic";
-import { CREATE_TOUR_ACTION_LABEL } from "./tours-copy";
 
 import styles from "./tours-list-view.module.css";
 
-function toursErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 404) {
-      return "Tours could not be found.";
-    }
-    return error.message.trim() || "Could not load tours.";
-  }
-  return "Could not load tours. Check your connection and try again.";
-}
-
-function noMatchDescription(search: string, statusFilter: TourStatusFilter): string {
-  const q = search.trim();
-  if (q && statusFilter !== "all") {
-    return `No tours matched "${q}" with the current status filter. Try All statuses or different keywords.`;
-  }
-  if (q) {
-    return `No tours matched "${q}". Try different keywords or clear the search.`;
-  }
-  if (statusFilter !== "all") {
-    return "No tours match the selected status on this page. Try setting status to All.";
-  }
-  return "Adjust search or filters and try again.";
-}
+const STATUS_FILTER_OPTIONS: readonly TourStatusFilter[] = [
+  "all",
+  "draft",
+  "active",
+  "archived",
+] as const;
 
 function uiStatusToQueryStatus(ui: TourStatusFilter): TourListQueryModel["status"] {
   switch (ui) {
@@ -88,6 +71,9 @@ function queryStatusToUiStatus(s: TourListQueryModel["status"]): TourStatusFilte
 
 export function ToursListView() {
   const router = useRouter();
+  const t = useTranslations("tours.list");
+  const tStatus = useTranslations("tours.status");
+  const tSort = useTranslations("tours.sort");
   const { isAuthenticated, isHydrated, user } = useAuth();
   const leaderToolbar =
     isHydrated && isAuthenticated && isLeaderRole(user?.role);
@@ -112,6 +98,45 @@ export function ToursListView() {
   const listSort = query.sort;
 
   const searchStale = searchInput.trim() !== query.search.trim();
+
+  const toursErrorMessage = useCallback(
+    (error: unknown): string => {
+      if (error instanceof ApiError) {
+        if (error.status === 404) {
+          return t("errorNotFound");
+        }
+        return error.message.trim() || t("errorLoadGeneric");
+      }
+      return t("errorLoadConnection");
+    },
+    [t],
+  );
+
+  const noMatchDescription = useCallback(
+    (search: string, statusFilter: TourStatusFilter): string => {
+      const q = search.trim();
+      if (q && statusFilter !== "all") {
+        return t("noMatchSearchAndStatus", { query: q });
+      }
+      if (q) {
+        return t("noMatchSearch", { query: q });
+      }
+      if (statusFilter !== "all") {
+        return t("noMatchStatus");
+      }
+      return t("noMatchGeneric");
+    },
+    [t],
+  );
+
+  const emptyToursDescription = useMemo(() => {
+    if (leaderToolbar) {
+      return liveApi
+        ? t("noToursDescLeaderLiveApi", { createTour: t("createTour") })
+        : t("noToursDescLeader", { createTour: t("createTour") });
+    }
+    return liveApi ? t("noToursDescViewerLiveApi") : t("noToursDescViewer");
+  }, [leaderToolbar, liveApi, t]);
 
   const handleSelectTour = useCallback(
     (id: string) => router.push(`/tours/${encodeURIComponent(id)}`),
@@ -164,7 +189,7 @@ export function ToursListView() {
     body = (
       <Card>
         <CardBody>
-          <LoadingState message="Loading session…" />
+          <LoadingState message={t("loadingSession")} />
         </CardBody>
       </Card>
     );
@@ -174,11 +199,11 @@ export function ToursListView() {
         <CardBody>
           <EmptyState
             embedded
-            title="Sign in required"
-            description="Your session is missing or expired. Sign in to load tours from the workspace API."
+            title={t("signInRequired")}
+            description={t("signInRequiredDesc")}
             action={
               <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                Sign in
+                {t("signIn")}
               </Button>
             }
           />
@@ -207,7 +232,7 @@ export function ToursListView() {
     body = (
       <Card>
         <CardBody>
-          <ErrorState title="Could not load tours" message={toursErrorMessage(error)} />
+          <ErrorState title={t("errorLoad")} message={toursErrorMessage(error)} />
         </CardBody>
       </Card>
     );
@@ -217,20 +242,12 @@ export function ToursListView() {
         <CardBody>
           <EmptyState
             embedded
-            title="No tours yet"
-            description={
-              leaderToolbar
-                ? liveApi
-                  ? `When your tenant has tours, they will appear here. Create one with ${CREATE_TOUR_ACTION_LABEL} (requires API), or add tours via your workspace tools.`
-                  : `Create your first tour with ${CREATE_TOUR_ACTION_LABEL}.`
-                : liveApi
-                  ? "When your tenant has tours, they will appear here."
-                  : "No tours are listed yet."
-            }
+            title={t("noToursYet")}
+            description={emptyToursDescription}
             action={
               leaderToolbar ? (
                 <Button type="button" variant="primary" onClick={() => router.push("/tours/new")}>
-                  {CREATE_TOUR_ACTION_LABEL}
+                  {t("createTour")}
                 </Button>
               ) : undefined
             }
@@ -247,42 +264,43 @@ export function ToursListView() {
         <CardHeader className={styles.listCardHeader}>
           <div className={styles.toolbar}>
             <div className={styles.toolbarGrow}>
-              <FormField label="Search">
+              <FormField label={t("searchLabel")}>
                 <Input
                   type="search"
-                  placeholder="Search tours…"
+                  placeholder={t("searchPlaceholder")}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   autoComplete="off"
-                  aria-label="Search tours"
+                  aria-label={t("searchAriaLabel")}
                 />
               </FormField>
             </div>
             <div className={styles.toolbarFixed}>
-              <FormField label="Status">
+              <FormField label={t("statusFilterLabel")}>
                 <Select
-                  aria-label="Filter by status"
+                  aria-label={t("statusFilterAriaLabel")}
                   value={statusUi}
                   onChange={(e) =>
                     onStatusChange(uiStatusToQueryStatus(e.target.value as TourStatusFilter))
                   }
                 >
-                  <option value="all">All</option>
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="archived">Archived</option>
+                  {STATUS_FILTER_OPTIONS.map((value) => (
+                    <option key={value} value={value}>
+                      {tStatus(value)}
+                    </option>
+                  ))}
                 </Select>
               </FormField>
             </div>
           </div>
           <small className={styles.toolbarMeta}>
-            Title and description (debounced 300ms).
-            {searchStale ? " Updating…" : ""}
+            {t("searchHint")}
+            {searchStale ? t("searchUpdating") : ""}
           </small>
-          <div className={styles.sortBar} role="group" aria-label="Sort tours">
+          <div className={styles.sortBar} role="group" aria-label={t("sortAriaLabel")}>
             <span className={styles.sortCellInner}>
               <Button type="button" variant="ghost" size="md" onClick={() => toggleTourSort("title")}>
-                Sort by title
+                {tSort("byTitle")}
               </Button>
               {sortGlyphColumn === "title" ? (
                 <span className={styles.sortDirectionGlyph} aria-hidden>
@@ -292,7 +310,7 @@ export function ToursListView() {
             </span>
             <span className={styles.sortCellInner}>
               <Button type="button" variant="ghost" size="md" onClick={() => toggleTourSort("price")}>
-                Sort by price
+                {tSort("byPrice")}
               </Button>
               {sortGlyphColumn === "price" ? (
                 <span className={styles.sortDirectionGlyph} aria-hidden>
@@ -310,7 +328,11 @@ export function ToursListView() {
         >
           {/* Skeleton only in the outer `tourQueryEnabled && isLoading` branch; keep list during refetch (keepPreviousData). */}
           {tours.length === 0 ? (
-            <EmptyState embedded title="No results found" description={noMatchDescription(query.search, statusUi)} />
+            <EmptyState
+              embedded
+              title={t("noResults")}
+              description={noMatchDescription(query.search, statusUi)}
+            />
           ) : (
             <TourList
               tours={tours}
@@ -323,11 +345,8 @@ export function ToursListView() {
           <CardFooter>
             <div className={styles.paginationBar}>
               <span className={styles.pageIndicator}>
-                Page {page} of {totalPages}
-                <span>
-                  {" "}
-                  · {total} tour{total === 1 ? "" : "s"}
-                </span>
+                {t("paginationPage", { page, totalPages })}
+                <span>{t("paginationTourCount", { count: total })}</span>
               </span>
               <span className={cn(styles.sortCellInner, styles.paginationTouchTargets)}>
                 <Button
@@ -336,7 +355,7 @@ export function ToursListView() {
                   disabled={isFetching || page <= 1}
                   onClick={handlePrev}
                 >
-                  Previous
+                  {t("paginationPrevious")}
                 </Button>
                 <Button
                   type="button"
@@ -344,7 +363,7 @@ export function ToursListView() {
                   disabled={isFetching || page >= totalPages}
                   onClick={handleNext}
                 >
-                  Next
+                  {t("paginationNext")}
                 </Button>
               </span>
             </div>

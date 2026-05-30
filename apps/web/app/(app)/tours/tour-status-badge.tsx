@@ -3,8 +3,9 @@
 import type { TourLifecycleStatus } from "@repo/types";
 import type { BadgeVariant } from "@tour/ui";
 import { Badge } from "@tour/ui";
+import { useTranslations } from "next-intl";
 
-import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
+import { apiLifecycleToFormStatus } from "@/components/tours/tour-lifecycle";
 
 import type { TourUiLifecycleStatus } from "./tour-display-types";
 
@@ -25,9 +26,10 @@ export type TourStatusBadgeProps =
 
 /** Prefer `lifecycleStatus` (API); `status` is for narrow cases that already hold a UI bucket. */
 export function TourStatusBadge(props: TourStatusBadgeProps) {
+  const tStatus = useTranslations("tours.status");
   const ui =
     props.lifecycleStatus != null
       ? apiLifecycleToFormStatus(props.lifecycleStatus)
       : props.status;
-  return <Badge variant={statusVariant(ui)}>{lifecycleDisplayLabel(ui)}</Badge>;
+  return <Badge variant={statusVariant(ui)}>{tStatus(ui)}</Badge>;
 }

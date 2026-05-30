@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import gridStyles from "./tour-list-grid.module.css";
 import styles from "./ToursListSkeleton.module.css";
 
@@ -9,8 +11,10 @@ export type ToursListSkeletonProps = {
 };
 
 export function ToursListSkeleton({ count = 6 }: ToursListSkeletonProps) {
+  const t = useTranslations("tours.list");
+
   return (
-    <ul className={gridStyles.grid} aria-busy="true" aria-label="Loading tours">
+    <ul className={gridStyles.grid} aria-busy="true" aria-label={t("loadingToursAria")}>
       {Array.from({ length: count }, (_, i) => (
         <li key={i} className={styles.cell}>
           <div className={styles.card}>

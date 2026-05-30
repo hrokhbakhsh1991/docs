@@ -38,6 +38,7 @@ export function TourCard({
   ...rest
 }: TourCardProps) {
   const t = useTranslations("tours.card");
+  const deleteLabel = t("delete");
   const priceUsd = extractTourPriceUsd(tour.costContext);
   const seatsRemaining =
     tour.totalCapacity > 0 ? Math.max(0, tour.totalCapacity - tour.acceptedCount) : null;
@@ -77,7 +78,7 @@ export function TourCard({
           type="button"
           variant="ghost"
           size="sm"
-          {...(secondaryActionLabel === "Delete"
+          {...(secondaryActionLabel === deleteLabel
             ? ({ "data-testid": `tour-delete-${tour.id}` } as const)
             : {})}
           onClick={(e) => {
@@ -103,6 +104,21 @@ export function TourCard({
       ) : null}
     </>
   ) : undefined;
+
+  const capacityValue =
+    tour.totalCapacity > 0 ? (
+      <>
+        {t("remainingCapacity", { count: seatsRemaining ?? 0 })}{" "}
+        {t("capacityFilled", {
+          accepted: tour.acceptedCount,
+          total: tour.totalCapacity,
+        })}
+      </>
+    ) : (
+      t("noDestination")
+    );
+
+  const priceValue = priceUsd > 0 ? formatTourPriceUsd(priceUsd) : t("free");
 
   return (
     <Card
@@ -130,17 +146,14 @@ export function TourCard({
           </dd>
         </dl>
         <p style={{ margin: 0 }}>
-          <strong>Capacity:</strong>{" "}
-          {tour.totalCapacity > 0
-            ? `${seatsRemaining} seats left (${tour.acceptedCount}/${tour.totalCapacity} filled)`
-            : "—"}
+          <strong>{t("capacityLabel")}</strong> {capacityValue}
         </p>
         <p style={{ margin: 0 }}>
-          <strong>Price:</strong> {formatTourPriceUsd(priceUsd)}
+          <strong>{t("priceLabel")}</strong> {priceValue}
         </p>
         {desc ? (
           <p style={{ margin: 0 }}>
-            <strong>About:</strong> {desc}
+            <strong>{t("aboutLabel")}</strong> {desc}
           </p>
         ) : null}
       </div>
