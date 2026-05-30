@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import {
   gatheringPickupStationIsConcrete,
+  isDenaliEventTourKind,
+  isDenaliTourKind,
   normalizeGatheringPickupStations,
   TOUR_TYPES,
   type TourFormProfile,
@@ -78,6 +80,15 @@ export function createTourSchemaForProfile(profile: TourFormProfile) {
     }
     const overview = data.tripDetails?.overview as Record<string, unknown> | undefined;
     const logistics = data.tripDetails?.logistics as Record<string, unknown> | undefined;
+
+    const kindRaw = overview?.denaliTourKind;
+    if (
+      typeof kindRaw === "string" &&
+      isDenaliTourKind(kindRaw) &&
+      isDenaliEventTourKind(kindRaw)
+    ) {
+      return;
+    }
 
     const gatheringPoints = normalizeGatheringPickupStations(logistics?.gatheringPoints);
     if (gatheringPoints.length === 0) {

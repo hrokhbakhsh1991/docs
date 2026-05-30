@@ -34,9 +34,6 @@ import { REGISTRATIONS_TOUR_CATALOG_PORT } from "./domain/ports/registrations-to
 import { RegistrationsTourCatalogAdapter } from "./adapters/registrations-tour-catalog.adapter";
 import { TourCapacityModule } from "../tours/tour-capacity.module";
 import { RegistrationFinancePortsModule } from "./registration-finance-ports.module";
-import { REGISTRATION_FINANCIAL_MUTATION_PORT } from "../../common/ports/registration-financial-mutation.port";
-import { FINANCE_RECEIPT_ACTOR_PORT } from "../../common/ports/finance-receipt-actor.port";
-import { RECONCILIATION_REGISTRATION_READ_PORT } from "../../common/ports/reconciliation-registration-read.port";
 
 @Global()
 @Module({
@@ -100,9 +97,7 @@ import { RECONCILIATION_REGISTRATION_READ_PORT } from "../../common/ports/reconc
   exports: [
     RegistrationsService,
     REGISTRATION_PAYMENT_PORT,
-    REGISTRATION_FINANCIAL_MUTATION_PORT,
-    FINANCE_RECEIPT_ACTOR_PORT,
-    RECONCILIATION_REGISTRATION_READ_PORT,
+    RegistrationFinancePortsModule,
   ]
 })
 export class RegistrationsModule {}

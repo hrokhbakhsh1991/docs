@@ -64,6 +64,20 @@ test("checkDenaliPilotPublishGeolocationZones rejects missing zones", () => {
   assert.match(violation.message, /gatheringPoints/);
 });
 
+test("checkDenaliPilotPublishGeolocationZones skips geo for event tour kinds", () => {
+  for (const denaliTourKind of ["event_reading", "event_cinema"] as const) {
+    const violation = checkDenaliPilotPublishGeolocationZones(
+      asTypesTripDetails(
+        denaliTripDetails(
+          { denaliTourKind, startPoint: undefined },
+          { gatheringPoints: [] },
+        ),
+      ),
+    );
+    assert.equal(violation, null, denaliTourKind);
+  }
+});
+
 test("checkDenaliPilotPublishGeolocationZones rejects text-only pins", () => {
   const violation = checkDenaliPilotPublishGeolocationZones(
     asTypesTripDetails(denaliTripDetails(

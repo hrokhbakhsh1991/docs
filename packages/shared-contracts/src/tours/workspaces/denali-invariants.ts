@@ -163,13 +163,23 @@ function isLocationConcrete(locRaw: unknown): boolean {
 }
 
 /**
- * Publish gate (OPEN): Denali pilot tours must pin gathering and start locations with text + coordinates.
+ * Publish gate (OPEN): outdoor Denali pilot tours must pin gathering and start locations with text + coordinates.
+ * Event tours (`event_reading` / `event_cinema`) hide logistics location fields in the wizard — skip this gate.
  */
 export function checkDenaliPilotPublishGeolocationZones(
   tripDetails: TourTripDetails | null | undefined,
 ): WorkspaceInvariantViolation | null {
   const overview = tripDetails?.overview as Record<string, unknown> | undefined;
   const logistics = tripDetails?.logistics as Record<string, unknown> | undefined;
+
+  const kindRaw = overview?.denaliTourKind;
+  if (
+    typeof kindRaw === "string" &&
+    isDenaliTourKind(kindRaw) &&
+    isDenaliEventTourKind(kindRaw)
+  ) {
+    return null;
+  }
 
   const gatheringPoints = normalizeGatheringPickupStations(logistics?.gatheringPoints);
   if (gatheringPoints.length === 0) {

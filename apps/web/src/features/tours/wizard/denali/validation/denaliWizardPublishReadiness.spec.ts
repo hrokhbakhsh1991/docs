@@ -97,6 +97,34 @@ test("getDenaliWizardPublishReadinessIssues: active without geo fails publish ga
   assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
 });
 
+test("getDenaliWizardPublishReadinessIssues: active event tour skips hidden gathering geo gate", () => {
+  const base = buildDenaliTourCreateTestValues();
+  const form = normalizeDenaliWizardForm({
+    ...base,
+    basicInfo: {
+      ...base.basicInfo,
+      tourType: "event_reading",
+      publishStatus: "active",
+      startDateTime: "2026-07-01T06:00:00.000Z",
+      startPoint: { addressText: "", latitude: null, longitude: null },
+    },
+    transport: {
+      ...base.transport,
+      transportMode: "none",
+    },
+    tripDetails: {
+      logistics: { gatheringPoints: [] },
+      overview: { customServiceLabels: [] },
+      metrics: {},
+    },
+  });
+  const issues = getDenaliWizardPublishReadinessIssues(form);
+  assert.ok(
+    !issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"),
+    JSON.stringify(issues),
+  );
+});
+
 test("geo violations include RHF paths for review navigation", () => {
   const missingGathering = publishGateMountainForm({
     basicInfo: { publishStatus: "active" },
