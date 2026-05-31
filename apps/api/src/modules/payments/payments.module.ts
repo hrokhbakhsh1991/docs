@@ -38,6 +38,8 @@ import { PAYMENT_REPOSITORY_PORT } from "./domain/ports/payment-repository.port"
 import { TenantPaymentConfigRepository } from "./repositories/tenant-payment-config.repository";
 import { TenantPaymentConfigService } from "./services/tenant-payment-config.service";
 import { TenantPaymentConfigCacheInvalidationSubscriber } from "./subscribers/tenant-payment-config-cache-invalidation.subscriber";
+import { TenantPaymentConfigCachePubSubListener } from "./subscribers/tenant-payment-config-cache-pubsub.listener";
+import { TenantPaymentConfigEgressGuardSubscriber } from "./subscribers/tenant-payment-config-egress-guard.subscriber";
 import { TypeOrmPaymentRepository } from "./repositories/typeorm-payment.repository";
 import { ToursCatalogModule } from "../tours/tours-catalog.module";
 
@@ -113,6 +115,8 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
     TenantPaymentConfigRepository,
     TenantPaymentConfigService,
     TenantPaymentConfigCacheInvalidationSubscriber,
+    TenantPaymentConfigCachePubSubListener,
+    TenantPaymentConfigEgressGuardSubscriber,
     PaymentGatewayFactory,
     {
       provide: PAYMENT_GATEWAY_FACTORY_PORT,

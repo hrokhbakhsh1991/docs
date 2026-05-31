@@ -7,6 +7,7 @@ import {
   type AccommodationTypeSlug,
   type MealPlanSlug
 } from "@repo/types";
+import { TourItineraryItemDto } from "./tour-itinerary-item.dto";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import {
@@ -163,33 +164,7 @@ export class TripDetailsPhotoDto {
   uploadedAt?: string;
 }
 
-export class TripDetailsDayPlanDto {
-  @ApiPropertyOptional({ example: 1 })
-  @IsInt()
-  @Min(1)
-  day!: number;
-
-  @ApiPropertyOptional({ example: "Approach" })
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @ApiPropertyOptional({ example: "Transfer to base camp." })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiPropertyOptional({ example: 8 })
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  distanceKm?: number;
-
-  @ApiPropertyOptional({ example: 450 })
-  @IsOptional()
-  @IsInt()
-  elevationGainM?: number;
-
+export class TripDetailsDayPlanDto extends TourItineraryItemDto {
   @ApiPropertyOptional({ type: () => [TripDetailsPhotoDto] })
   @IsOptional()
   @IsArray()
@@ -540,7 +515,11 @@ export class TripDetailsItineraryDto {
   @IsString({ each: true })
   specialExperiences?: string[];
 
-  @ApiPropertyOptional({ type: [TripDetailsDayPlanDto] })
+  @ApiPropertyOptional({
+    type: () => TourItineraryItemDto,
+    isArray: true,
+    description: "Structured per-day plans extending the canonical TourItineraryItemDto blueprint.",
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

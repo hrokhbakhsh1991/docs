@@ -1,6 +1,6 @@
 /**
  * Which {@link DenaliMatrixTag} bundles are active per category × duration.
- * Edit tags on fields in {@link ./denaliFieldRegistryData.ts}; edit cell recipes here.
+ * Edit tags on fields in `@repo/denali-domain` registry; edit cell recipes here.
  */
 
 import type { DenaliRuleModelCategory, DenaliRuleModelDuration } from "../rules/denaliRuleModel.types";

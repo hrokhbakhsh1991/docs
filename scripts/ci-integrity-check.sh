@@ -31,6 +31,9 @@ pnpm run depcruise
 step "pnpm test (draft-engine, shared, api unit tests)"
 pnpm run test
 
+step "React Query tenant cache isolation (query-key integrity)"
+pnpm run guardrails:query-key-integrity
+
 step "socket ci (supply-chain; skipped locally without SOCKET_SECURITY_API_TOKEN)"
 pnpm run audit:socket
 

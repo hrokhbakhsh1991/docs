@@ -13,13 +13,8 @@ import { TypeOrmRegistrationsApplicationService } from "../../src/modules/regist
 import { RegistrationCapacityService } from "../../src/modules/registrations/services/registration-capacity.service";
 import { RegistrationCreationService as RegistrationCreationServiceImpl } from "../../src/modules/registrations/services/registration-creation.service";
 import type { RegistrationCreationService } from "../../src/modules/registrations/services/registration-creation.service";
-import type { RegistrationCapacityService } from "../../src/modules/registrations/services/registration-capacity.service";
-import type { RegistrationPersistenceService } from "../../src/modules/registrations/services/registration-persistence.service";
-import type { RegistrationPlacementService } from "../../src/modules/registrations/services/registration-placement.service";
-import type { RegistrationPricingService } from "../../src/modules/registrations/services/registration-pricing.service";
-import type { OutboxService } from "../../src/modules/outbox/outbox.service";
-import { createRegistrationsTourCatalogPortTestDouble } from "../registrations/stub-registrations-tour-catalog.port";
 import { RegistrationPersistenceService } from "../../src/modules/registrations/services/registration-persistence.service";
+import type { RegistrationPlacementService } from "../../src/modules/registrations/services/registration-placement.service";
 import type { RegistrationPricingService } from "../../src/modules/registrations/services/registration-pricing.service";
 import { RegistrationPublicFlowMetrics } from "../../src/modules/registrations/services/registration-public-flow-metrics";
 import { RegistrationQueryService } from "../../src/modules/registrations/services/registration-query.service";
@@ -220,7 +215,7 @@ export function createRegistrationStateMachineStack(options: {
   const persistenceService = new RegistrationPersistenceService(
     harness(requestContext),
     harness<OutboxService>({
-      addEvent: async (_manager, event) => {
+      addEvent: async (_manager: EntityManager, event: { eventType: string; payload: unknown }) => {
         recordOutboxEvent({ eventType: event.eventType, payload: event.payload });
       },
     }),
@@ -234,7 +229,7 @@ export function createRegistrationStateMachineStack(options: {
   return new RegistrationStateMachineService(
     harness(requestContext),
     harness<OutboxService>({
-      addEvent: async (_manager, event) => {
+      addEvent: async (_manager: EntityManager, event: { eventType: string; payload: unknown }) => {
         recordOutboxEvent({ eventType: event.eventType, payload: event.payload });
       },
     }),
@@ -284,7 +279,7 @@ export function createRegistrationWaitlistService(options: {
   return new RegistrationWaitlistService(
     harness(options.requestContext),
     harness<OutboxService>({
-      addEvent: async (_manager, event) => {
+      addEvent: async (_manager: EntityManager, event: { eventType: string; payload: unknown }) => {
         recordOutboxEvent({ eventType: event.eventType, payload: event.payload });
       },
     }),
@@ -297,7 +292,7 @@ export function createRegistrationWaitlistService(options: {
     harness<RegistrationPricingService>({
       restoreImmutableRegistrationQuoteColumns: async () => undefined,
       ensureBookingPriceSnapshotLockedAndEmit: async () => undefined,
-      createAndStampSnapshot: async (_manager, registration) => registration,
+      createAndStampSnapshot: async (_manager: EntityManager, registration: RegistrationEntity) => registration,
     }),
     new RegistrationPublicFlowMetrics(),
   );
@@ -361,7 +356,7 @@ export function createRegistrationsApplicationFacade(options: {
   const persistenceService = new RegistrationPersistenceService(
     harness(options.requestContext),
     harness<OutboxService>({
-      addEvent: async (_manager, event) => {
+      addEvent: async (_manager: EntityManager, event: { eventType: string; payload: unknown }) => {
         recordOutboxEvent({ eventType: event.eventType, payload: event.payload });
       },
     }),
@@ -411,7 +406,7 @@ export function createRegistrationsApplicationFacade(options: {
     outboxCalls,
     captureOutboxEventTypes: options.captureOutboxEventTypes,
     requestContext: options.requestContext,
-    waitlistService,
+    waitlistService: waitlistService as RegistrationWaitlistService,
     capacityReservationPort: options.capacityReservationPort,
   });
 
@@ -428,7 +423,7 @@ export function createRegistrationsApplicationFacade(options: {
           unexpectedHarnessCall("RegistrationCreationService.createPublicRegistrationOrWaitlist"),
       }),
     stateMachineService,
-    waitlistService,
+    waitlistService as RegistrationWaitlistService,
     new RegistrationPublicFlowMetrics(),
   );
 }
@@ -491,7 +486,7 @@ export function createRegistrationCreationService(options: {
     harness<RegistrationPricingService>({
       restoreImmutableRegistrationQuoteColumns: async () => undefined,
       ensureBookingPriceSnapshotLockedAndEmit: async () => undefined,
-      createAndStampSnapshot: async (_manager, registration) => registration,
+      createAndStampSnapshot: async (_manager: EntityManager, registration: RegistrationEntity) => registration,
     }),
   );
 
@@ -508,14 +503,14 @@ export function createRegistrationCreationService(options: {
       tourRequiresPayment: () => false,
       loadTourTripDetailsForPlacement: async () => ({}),
       assertPrivateCarRegistrationAllowed: () => undefined,
-      participantMetadataForPersistence: ({ participantMetadata }) => participantMetadata,
+      participantMetadataForPersistence: ({ participantMetadata }: { participantMetadata: unknown }) => participantMetadata,
       resolveInitialRegistrationPlacement: () => ({
         status: RegistrationStatus.ACCEPTED,
         consumesAcceptedCapacity: true,
       }),
     }),
     harness<RegistrationPricingService>({
-      createAndStampSnapshot: async (_manager, registration) => registration,
+      createAndStampSnapshot: async (_manager: EntityManager, registration: RegistrationEntity) => registration,
     }),
     new RegistrationPublicFlowMetrics(),
     harness<IRegistrationLookupPort>({

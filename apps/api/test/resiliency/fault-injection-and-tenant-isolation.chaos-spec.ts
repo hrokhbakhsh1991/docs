@@ -228,7 +228,7 @@ function createCapacityCompensationFixture(options?: {
   const capacity = createTrackedTourCapacityReservationPort(store.tour);
 
   const service = createRegistrationsApplicationFacade({
-    manager: manager as EntityManager,
+    manager: manager as unknown as EntityManager,
     tour: store.tour,
     records: [store.registration],
     requestContext: createLeaderRequestContext(TENANT_ALPHA),
@@ -345,12 +345,12 @@ function createCrossTenantServiceFixture(): {
   };
 
   const service = createRegistrationsApplicationFacade({
-    manager: manager as EntityManager,
+    manager: manager as unknown as EntityManager,
     tour: betaTour,
     records: [betaRegistration],
     requestContext: tenantAlphaRequestContext,
     creationService: createRegistrationCreationService({
-      manager: manager as EntityManager,
+      manager: manager as unknown as EntityManager,
       tour: betaTour,
       requestContext: tenantAlphaRequestContext,
     }),

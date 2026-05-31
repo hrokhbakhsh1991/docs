@@ -406,13 +406,13 @@ function createConcurrencyService(store: ConcurrencyStore, _redisService: RedisT
 
   const requestContext = createLeaderRequestContext(TENANT_ID, "public-flow-actor");
   const service = createRegistrationsApplicationFacade({
-    manager: manager as EntityManager,
+    manager: manager as unknown as EntityManager,
     tour: store.tour,
     requestContext,
     catalogPort,
     capacityReservationPort: _redisService,
     creationService: createRegistrationCreationService({
-      manager: manager as EntityManager,
+      manager: manager as unknown as EntityManager,
       tour: store.tour,
       requestContext,
       catalogPort,

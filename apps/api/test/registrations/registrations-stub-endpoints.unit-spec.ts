@@ -280,7 +280,7 @@ function createServiceHarness() {
     outboxService as never
   );
   const service = createRegistrationsApplicationFacade({
-    manager: manager as EntityManager,
+    manager: manager as unknown as EntityManager,
     tour: tourCatalogState,
     captureOutboxEventTypes: events,
     requestContext: createLeaderRequestContext(registration.tenantId),

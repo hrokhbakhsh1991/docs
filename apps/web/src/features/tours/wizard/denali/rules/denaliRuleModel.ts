@@ -1,9 +1,9 @@
 // DEPRECATED: DO NOT EDIT field matrices or denaliRuleSet here — AUTO-GENERATED from the registry.
-// Edit denaliFieldRegistryData.ts + denaliRuleMatrixRecipes.ts, then: pnpm --filter web generate:denali-wizard
+// Edit packages/denali-domain/src/registry/denaliFieldRegistryData.ts + denaliRuleMatrixRecipes.ts, then: pnpm --filter web generate:denali-wizard
 /**
  * Denali rule engine — UI visibility and required state.
  *
- * Field matrices are generated from {@link ../registry/denaliFieldRegistryData.ts}.
+ * Field matrices are generated from `@repo/denali-domain` registry sources.
  * Run `pnpm --filter web generate:denali-wizard` after registry edits.
  */
 

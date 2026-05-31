@@ -5131,69 +5131,6 @@
           }
         }
       },
-      "TripDetailsPhotoDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "url": {
-            "type": "string"
-          },
-          "filename": {
-            "type": "string"
-          },
-          "size": {
-            "type": "number"
-          },
-          "mimeType": {
-            "type": "string"
-          },
-          "uploadedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "TripDetailsDayPlanDto": {
-        "type": "object",
-        "properties": {
-          "day": {
-            "type": "number",
-            "example": 1
-          },
-          "title": {
-            "type": "string",
-            "example": "Approach"
-          },
-          "description": {
-            "type": "string",
-            "example": "Transfer to base camp."
-          },
-          "distanceKm": {
-            "type": "number",
-            "example": 8
-          },
-          "elevationGainM": {
-            "type": "number",
-            "example": 450
-          },
-          "photos": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TripDetailsPhotoDto"
-            }
-          },
-          "location": {
-            "description": "Optional structured geolocation for this itinerary day.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TripDetailsLocationDataDto"
-              }
-            ]
-          }
-        }
-      },
       "TripDetailsSegmentActivitySegmentDto": {
         "type": "object",
         "properties": {
@@ -5227,6 +5164,30 @@
             "type": "number"
           },
           "locationName": {
+            "type": "string"
+          }
+        }
+      },
+      "TripDetailsPhotoDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "uploadedAt": {
             "type": "string"
           }
         }
@@ -5299,9 +5260,10 @@
             }
           },
           "dayPlans": {
+            "description": "Structured per-day plans extending the canonical TourItineraryItemDto blueprint.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TripDetailsDayPlanDto"
+              "$ref": "#/components/schemas/TourItineraryItemDto"
             }
           },
           "segmentActivities": {

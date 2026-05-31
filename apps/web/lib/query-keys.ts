@@ -144,3 +144,8 @@ export const tenantConfigKeys = {
   all: ["tenantConfig"] as const,
   detail: (tenantId: string) => [...tenantConfigKeys.all, tenantId] as const,
 };
+
+export const financeLedgerEventsKeys = {
+  all: ["finance", "reports", "ledger-events"] as const,
+  list: (tenantId: string) => [...financeLedgerEventsKeys.all, tenantId] as const,
+};

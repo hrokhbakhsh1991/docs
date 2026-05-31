@@ -25,7 +25,10 @@ export function createTypeOrmOptions(
     logging: false,
     migrationsTableName: "typeorm_migrations",
     migrationsTransactionMode: "each",
-    migrations
+    migrations,
+    ...(process.env.DATABASE_POOL_MAX
+      ? { extra: { max: Number(process.env.DATABASE_POOL_MAX) } }
+      : {}),
   };
 }
 

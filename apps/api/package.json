@@ -77,6 +77,7 @@
     "@repo/denali-domain": "workspace:*",
     "@repo/domain-contracts": "workspace:*",
     "@repo/shared": "workspace:*",
+    "@repo/security/egress-url": "workspace:*",
     "@repo/shared-contracts": "workspace:*",
     "@repo/tenant-host": "workspace:*",
     "@repo/types": "workspace:*",

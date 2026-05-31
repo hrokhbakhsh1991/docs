@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Generates Denali wizard artifacts from {@link ../src/features/tours/wizard/denali/registry/denaliFieldRegistryData.ts}.
+ * Generates Denali wizard artifacts from `@repo/denali-domain` registry sources.
  *
  *   pnpm --filter web generate:denali-wizard
  *

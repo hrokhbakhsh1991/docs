@@ -52,6 +52,7 @@ export class TenantPaymentConfigCacheInvalidationSubscriber
       }
       seen.add(normalized);
       this.tenantPaymentConfigService.invalidateTenant(tenantId, { origin, ...meta });
+      void this.tenantPaymentConfigService.publishDistributedInvalidation(tenantId);
     }
   }
 
@@ -62,6 +63,7 @@ export class TenantPaymentConfigCacheInvalidationSubscriber
     const tenantId = entity?.tenantId;
     if (tenantId) {
       this.tenantPaymentConfigService.invalidateTenant(tenantId, { origin });
+      void this.tenantPaymentConfigService.publishDistributedInvalidation(tenantId);
     }
   }
 

@@ -34,6 +34,9 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     orderBy() {
       return this;
     },
+    addOrderBy() {
+      return this;
+    },
     take() {
       return this;
     },
@@ -44,7 +47,7 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
       return this;
     },
     async getMany() {
-      return [row];
+      return row.status === OutboxEventStatus.PENDING ? [row] : [];
     }
   };
 
@@ -55,8 +58,25 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     async query() {
       return [];
     },
-    createQueryBuilder() {
-      return qb;
+    createQueryBuilder(entity?: unknown) {
+      if (entity === OutboxEventEntity || entity === "o") {
+        return qb;
+      }
+      return {
+        update() {
+          return this;
+        },
+        set() {
+          return this;
+        },
+        where() {
+          return this;
+        },
+        andWhere() {
+          return this;
+        },
+        async execute() {},
+      };
     },
     async findOne(entity: unknown, opts: { where: { id: string } }) {
       if (entity === OutboxEventEntity && opts.where.id === row.id) {

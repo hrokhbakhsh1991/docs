@@ -12,6 +12,7 @@ import {
 } from "@repo/shared";
 
 import { ApiError } from "@/lib/api-client";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import {
   getWorkspaceUserBookingSummary,
   postWorkspaceUserRewards
@@ -78,6 +79,7 @@ export function WorkspaceUserRewardsModal({
   onSaved
 }: WorkspaceUserRewardsModalProps): JSX.Element | null {
   const toast = useAppToast();
+  const tenantId = useWorkspaceQueryScope();
   const [activeTab, setActiveTab] = useState<RewardsTabId>("privileges");
   const [discountInput, setDiscountInput] = useState("");
   const [loyaltyClub, setLoyaltyClub] = useState<"" | WorkspaceLoyaltyClubBadgeId>("");
@@ -172,7 +174,7 @@ export function WorkspaceUserRewardsModal({
   }, [open, rewardsMutation, user]);
 
   const tripHistoryQuery = useQuery({
-    queryKey: ["workspace-user-booking-summary", user?.id],
+    queryKey: ["workspace-user-booking-summary", tenantId ?? "", user?.id],
     queryFn: () => getWorkspaceUserBookingSummary(user!.id),
     enabled: open && activeTab === "trips" && Boolean(user?.id)
   });

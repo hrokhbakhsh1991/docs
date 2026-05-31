@@ -1,5 +1,5 @@
 // DEPRECATED: DO NOT EDIT CANONICAL_TO_FORM_PATH_MAP here — AUTO-GENERATED from the registry.
-// Edit denaliFieldRegistryData.ts, then: pnpm --filter web generate:denali-wizard
+// Edit packages/denali-domain/src/registry/denaliFieldRegistryData.ts, then: pnpm --filter web generate:denali-wizard
 /**
  * Rule-engine required resolution (visibility + product required flags).
  *

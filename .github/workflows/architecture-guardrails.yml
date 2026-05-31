@@ -21,6 +21,29 @@ jobs:
       - name: Tenant isolation guardrails
         run: node scripts/check-tenant-isolation-guardrails.mjs
 
+  react-query-key-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: React Query tenant cache isolation guardrail
+        run: pnpm run guardrails:query-key-integrity
+
   tenant-security-static-gates:
     runs-on: ubuntu-latest
     steps:

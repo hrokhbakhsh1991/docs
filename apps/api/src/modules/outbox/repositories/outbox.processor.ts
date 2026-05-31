@@ -16,6 +16,17 @@ import {
 } from "../registration-accepted-sms-outbox.handler";
 
 import { ModuleRef } from "@nestjs/core";
+import { outboxPayloadTenantMismatch } from "./assert-outbox-payload-tenant-matches-row";
+import { assertOutboundUrlsInOutboxPayload } from "./assert-outbound-urls-in-outbox-payload";
+import { EgressUrlForbiddenError } from "@repo/security/egress-url";
+
+const POISON_DRAIN_MAX_PASSES = 10;
+
+type DeliveryFailureRecord = {
+  outboxId: string;
+  eventType: string;
+  errorMessage: string;
+};
 
 /**
  * Transactional outbox dispatcher.
@@ -49,29 +60,50 @@ export class OutboxProcessor {
     const maxRetry = this.configService.getOutboxMaxRetry();
     const batchSize = this.configService.getOutboxBatchSize();
 
-    const rows = await this.dataSource.transaction(async (manager) => {
-      const pendingTotal = await manager.count(OutboxEventEntity, {
-        where: { status: OutboxEventStatus.PENDING }
-      });
-      this.metrics.setPendingTotal(pendingTotal);
+    await this.refreshPendingTotalMetric();
 
-      // tenant-isolation:qb-exempt — pending queue is global; each row dispatched under runInTenantScope.
-      return manager
-        .createQueryBuilder(OutboxEventEntity, "o")
-        .where("o.status = :status", { status: OutboxEventStatus.PENDING })
-        .andWhere("(o.nextRetryAt IS NULL OR o.nextRetryAt <= :now)", {
-          now: new Date()
-        })
-        .orderBy("o.createdAt", "ASC")
-        .take(batchSize)
-        .setLock("pessimistic_write")
-        .setOnLocked("skip_locked")
-        .getMany();
-    });
+    await this.drainPoisonRowsAtQueueHead(batchSize, maxRetry);
 
-    for (const row of rows) {
+    const rows = await this.fetchPendingBatch(batchSize, maxRetry, { fairSlice: true });
+
+    const { poisonRows, candidateRows } = this.partitionBatchByTenantGuardAtIngress(rows);
+
+    if (poisonRows.length > 0) {
+      await this.bulkMarkOutboxPermanentlyFailed(
+        poisonRows.map((row) => row.id),
+        "OUTBOX_PAYLOAD_TENANT_MISMATCH",
+      );
+    }
+
+    const egressForbiddenRows: OutboxEventEntity[] = [];
+    const deliverableRows: OutboxEventEntity[] = [];
+    for (const row of candidateRows) {
+      const payload = row.payload as Record<string, unknown>;
       try {
-        const tenantId = row.tenantId.trim().toLowerCase();
+        await assertOutboundUrlsInOutboxPayload(payload);
+      } catch (error) {
+        if (error instanceof EgressUrlForbiddenError) {
+          egressForbiddenRows.push(row);
+          continue;
+        }
+        throw error;
+      }
+
+      deliverableRows.push(row);
+    }
+
+    if (egressForbiddenRows.length > 0) {
+      await this.bulkMarkOutboxPermanentlyFailed(
+        egressForbiddenRows.map((row) => row.id),
+        "OUTBOX_EGRESS_URL_FORBIDDEN",
+      );
+    }
+
+    const deliveryFailureOutboxIds: DeliveryFailureRecord[] = [];
+
+    for (const row of deliverableRows) {
+      const tenantId = row.tenantId.trim().toLowerCase();
+      try {
         await this.tenantDbContext.runInTenantScope(tenantId, async (manager) => {
           const payload = row.payload as Record<string, unknown>;
           if (row.eventType === OUTBOX_EVENT_TYPE_IDENTITY_EMAIL_VERIFICATION_SEND) {
@@ -166,31 +198,177 @@ export class OutboxProcessor {
         });
       } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
-        this.logger.warn(
-          `outbox_delivery_failed eventType=${row.eventType} id=${row.id}: ${errMsg}`
-        );
-        await this.dataSource.transaction(async (manager) => {
-          const fresh = await manager.findOne(OutboxEventEntity, { where: { id: row.id } });
-          if (!fresh) {
-            return;
-          }
-          fresh.retryCount += 1;
-          if (fresh.retryCount >= maxRetry) {
-            fresh.status = OutboxEventStatus.FAILED;
-            fresh.nextRetryAt = null;
-            this.metrics.incrementFailed();
-            this.logger.warn(`Outbox event ${fresh.id} reached max retry attempts`);
-          } else {
-            fresh.nextRetryAt = new Date(
-              Date.now() + 2 ** fresh.retryCount * 60 * 1000
-            );
-          }
-          await manager.save(fresh);
+        deliveryFailureOutboxIds.push({
+          outboxId: row.id,
+          eventType: row.eventType,
+          errorMessage: errMsg,
         });
       }
     }
 
+    await this.flushDeliveryFailureRegistry(deliveryFailureOutboxIds, maxRetry);
+
     this.metrics.setProcessingLatencyMs(Date.now() - started);
     this.metrics.setLastBatchProcessedAt(new Date().toISOString());
+  }
+
+  /**
+   * Applies retry/backoff or terminal FAILED states on the root DataSource after every
+   * runInTenantScope scope has released its pooled connection (no nested checkout).
+   */
+  private async flushDeliveryFailureRegistry(
+    records: DeliveryFailureRecord[],
+    maxRetry: number,
+  ): Promise<void> {
+    if (records.length === 0) {
+      return;
+    }
+
+    const permanentFailureIds: string[] = [];
+
+    await this.dataSource.transaction(async (manager) => {
+      for (const record of records) {
+        this.logger.warn(
+          `outbox_delivery_failed eventType=${record.eventType} id=${record.outboxId}: ${record.errorMessage}`,
+        );
+
+        const fresh = await manager.findOne(OutboxEventEntity, { where: { id: record.outboxId } });
+        if (!fresh) {
+          continue;
+        }
+
+        fresh.retryCount += 1;
+        if (fresh.retryCount >= maxRetry) {
+          fresh.status = OutboxEventStatus.FAILED;
+          fresh.nextRetryAt = null;
+          permanentFailureIds.push(fresh.id);
+          this.logger.warn(`Outbox event ${fresh.id} reached max retry attempts`);
+        } else {
+          fresh.nextRetryAt = new Date(
+            Date.now() + 2 ** fresh.retryCount * 60 * 1000,
+          );
+        }
+        await manager.save(fresh);
+      }
+    });
+
+    for (let index = 0; index < permanentFailureIds.length; index += 1) {
+      this.metrics.incrementFailed();
+    }
+  }
+
+  private async refreshPendingTotalMetric(): Promise<void> {
+    await this.dataSource.transaction(async (manager) => {
+      const pendingTotal = await manager.count(OutboxEventEntity, {
+        where: { status: OutboxEventStatus.PENDING },
+      });
+      this.metrics.setPendingTotal(pendingTotal);
+    });
+  }
+
+  private async fetchPendingBatch(
+    batchSize: number,
+    maxRetry: number,
+    options: { fairSlice: boolean },
+  ): Promise<OutboxEventEntity[]> {
+    return this.dataSource.transaction(async (manager) => {
+      // tenant-isolation:qb-exempt — pending queue is global; each row dispatched under runInTenantScope.
+      const query = manager
+        .createQueryBuilder(OutboxEventEntity, "o")
+        .where("o.status = :status", { status: OutboxEventStatus.PENDING })
+        .andWhere("(o.nextRetryAt IS NULL OR o.nextRetryAt <= :now)", {
+          now: new Date(),
+        })
+        .andWhere("o.retryCount < :maxRetry", { maxRetry })
+        .take(batchSize)
+        .setLock("pessimistic_write")
+        .setOnLocked("skip_locked");
+
+      if (options.fairSlice) {
+        query.orderBy("o.tenantId", "ASC").addOrderBy("o.createdAt", "ASC");
+      } else {
+        query.orderBy("o.createdAt", "ASC");
+      }
+
+      return query.getMany();
+    });
+  }
+
+  private partitionBatchByTenantGuardAtIngress(rows: OutboxEventEntity[]): {
+    poisonRows: OutboxEventEntity[];
+    candidateRows: OutboxEventEntity[];
+  } {
+    const poisonRows: OutboxEventEntity[] = [];
+    const candidateRows: OutboxEventEntity[] = [];
+
+    for (const row of rows) {
+      if (outboxPayloadTenantMismatch(row)) {
+        poisonRows.push(row);
+        continue;
+      }
+      candidateRows.push(row);
+    }
+
+    return { poisonRows, candidateRows };
+  }
+
+  /**
+   * Clears tenant-mismatch poison rows blocking the queue head via repeated bulk FAILED updates
+   * before deliverable work enters tenant-scoped dispatch.
+   */
+  private async drainPoisonRowsAtQueueHead(batchSize: number, maxRetry: number): Promise<void> {
+    for (let pass = 0; pass < POISON_DRAIN_MAX_PASSES; pass += 1) {
+      const rows = await this.fetchPendingBatch(batchSize, maxRetry, { fairSlice: false });
+      if (rows.length === 0) {
+        return;
+      }
+
+      const { poisonRows } = this.partitionBatchByTenantGuardAtIngress(rows);
+      if (poisonRows.length === 0) {
+        return;
+      }
+
+      await this.bulkMarkOutboxPermanentlyFailed(
+        poisonRows.map((row) => row.id),
+        "OUTBOX_PAYLOAD_TENANT_MISMATCH",
+      );
+
+      if (poisonRows.length < rows.length) {
+        return;
+      }
+    }
+
+    this.logger.warn(
+      `outbox_poison_drain_pass_cap_reached passes=${POISON_DRAIN_MAX_PASSES} batchSize=${batchSize}`,
+    );
+  }
+
+  private async bulkMarkOutboxPermanentlyFailed(outboxIds: string[], reason: string): Promise<void> {
+    if (outboxIds.length === 0) {
+      return;
+    }
+
+    const maxRetry = this.configService.getOutboxMaxRetry();
+    this.logger.warn(
+      `outbox_poison_bulk_failed count=${outboxIds.length} reason=${reason} ids_sample=${outboxIds.slice(0, 10).join(",")}`,
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .update(OutboxEventEntity)
+        .set({
+          status: OutboxEventStatus.FAILED,
+          nextRetryAt: null,
+          retryCount: () => `GREATEST(retry_count, ${maxRetry})`,
+        })
+        .where("id IN (:...outboxIds)", { outboxIds })
+        .andWhere("status = :status", { status: OutboxEventStatus.PENDING })
+        .execute();
+    });
+
+    for (let index = 0; index < outboxIds.length; index += 1) {
+      this.metrics.incrementFailed();
+    }
   }
 }

@@ -7,7 +7,7 @@ import { useDenaliCanonicalModel } from "./useDenaliCanonicalModel";
 
 /**
  * Reads a registry `canonicalPath` from the Denali canonical context.
- * Sole UI read path for step/component fields (see `denaliFieldRegistryData.ts`).
+ * Sole UI read path for step/component fields (see `@repo/denali-domain` registry).
  */
 export function useDenaliCanonicalValue<T = unknown>(canonicalPath: string): T {
   const model = useDenaliCanonicalModel();

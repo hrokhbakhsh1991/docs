@@ -2,6 +2,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
+import { fetchWithPinnedEgress } from "@repo/security/egress-url";
 
 import type { IPaymentGateway } from "./payment-gateway.interface";
 import type { CreatePaymentIntentGatewayInput, PaymentIntentGatewayResult } from "./payment-gateway.types";
@@ -63,7 +64,7 @@ async function createZibalPaymentIntentWithCredentials(
           },
         });
       }
-      const res = await fetch(ZIBAL_REQUEST_URL, {
+      const res = await fetchWithPinnedEgress(ZIBAL_REQUEST_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

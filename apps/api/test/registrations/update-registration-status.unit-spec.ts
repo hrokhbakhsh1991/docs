@@ -6,6 +6,7 @@ import {
   createLeaderRequestContext,
   createRegistrationsApplicationFacade,
 } from "../helpers/registrations-application.harness";
+import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -307,7 +308,7 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
 
   const requestContext = createLeaderRequestContext(store.tour.tenantId);
   const service = createRegistrationsApplicationFacade({
-    manager: manager as EntityManager,
+    manager: manager as unknown as EntityManager,
     tour: store.tour,
     outboxCalls,
     requestContext,
