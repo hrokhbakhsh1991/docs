@@ -3,7 +3,7 @@ import "dotenv/config";
 import { resolveTourOpsApiBaseUrl } from "../lib/tour-ops-api-origin";
 import { API } from "../lib/api-paths";
 
-async function _main() {
+async function main() {
   const origin = resolveTourOpsApiBaseUrl();
   if (!origin) {
     process.exit(1);
@@ -22,6 +22,7 @@ async function _main() {
     })
   });
 
-  const _body = await res.json();
+  void (await res.json());
 }
 
+void main();

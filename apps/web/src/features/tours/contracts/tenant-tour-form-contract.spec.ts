@@ -55,17 +55,27 @@ test("tenantModuleWizardValidationFlags relaxes itinerary and logistics without 
   assert.deepEqual(tenantModuleWizardValidationFlags(financeOnly), {
     relaxItineraryMinDays: true,
     relaxLogisticsPrimary: true,
+    requiresMountainTransportEconomics: false,
   });
   assert.deepEqual(tenantModuleWizardValidationFlags(withBuilder), {
     relaxItineraryMinDays: false,
     relaxLogisticsPrimary: false,
+    requiresMountainTransportEconomics: false,
   });
   assert.deepEqual(
     mergeWizardValidationFlagsWithTenant(
-      { relaxItineraryMinDays: false, relaxLogisticsPrimary: false },
+      {
+        relaxItineraryMinDays: false,
+        relaxLogisticsPrimary: false,
+        requiresMountainTransportEconomics: false,
+      },
       financeOnly,
     ),
-    { relaxItineraryMinDays: true, relaxLogisticsPrimary: true },
+    {
+      relaxItineraryMinDays: true,
+      relaxLogisticsPrimary: true,
+      requiresMountainTransportEconomics: false,
+    },
   );
 });
 

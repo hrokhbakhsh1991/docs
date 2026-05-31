@@ -85,7 +85,7 @@ test("collectDenaliWizardSubmitIssuePresentation groups shortDescription under d
 test("resolvePublishReadinessFormPath maps gathering geo message to gatheringPoints RHF path", () => {
   assert.equal(
     resolvePublishReadinessFormPath({
-      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
       message: "logistics.gatheringPoints must include at least one station for denali_pilot publish.",
     }),
     "tripDetails.logistics.gatheringPoints",
@@ -98,7 +98,7 @@ test("buildDenaliPublishReadinessIssueViews routes gathering readiness to denali
   const views = buildDenaliPublishReadinessIssueViews(
     [
       {
-        code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+        code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
         message: "حداقل یک نقطه تجمع با آدرس و مختصات جغرافیایی لازم است.",
         path: "tripDetails.logistics.gatheringPoints",
       },

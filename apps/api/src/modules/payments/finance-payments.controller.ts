@@ -1,10 +1,12 @@
 import {
-  BadRequestException,
   Body,
   Controller,
+  FileTypeValidator,
   Get,
   Inject,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   ParseUUIDPipe,
   Post,
   UploadedFile,
@@ -32,6 +34,9 @@ import { ManualPaymentService } from "./manual-payment.service";
 import { ReceiptService } from "../finance/receipts/receipt.service";
 import { CreateManualPaymentDto } from "./dto/create-manual-payment.dto";
 import { SubmitReceiptDto } from "./dto/submit-receipt.dto";
+
+const RECEIPT_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+const RECEIPT_UPLOAD_FILE_TYPE = /^(image\/(jpeg|png)|application\/pdf)$/;
 
 @ApiTags("Finance")
 @Controller("api/v2/finance")
@@ -64,17 +69,26 @@ export class FinancePaymentsController {
   @Post("payments/:id/receipt")
   @Roles(UserRole.Member, UserRole.Leader, UserRole.Admin, UserRole.Owner)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Create, "FinanceReceipt"))
-  @UseInterceptors(FileInterceptor("file"))
+  @UseInterceptors(
+    FileInterceptor("file", {
+      limits: { fileSize: RECEIPT_UPLOAD_MAX_BYTES },
+    }),
+  )
   @ApiConsumes("multipart/form-data")
   @ApiOperation({ summary: "Upload a payment receipt" })
   async submitReceipt(
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: SubmitReceiptDto,
-    @UploadedFile() file: Express.Multer.File | undefined
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: RECEIPT_UPLOAD_MAX_BYTES }),
+          new FileTypeValidator({ fileType: RECEIPT_UPLOAD_FILE_TYPE }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
   ) {
-    if (!file?.buffer?.length) {
-      throw new BadRequestException("file is required");
-    }
     return this.receiptService.submitReceipt({
       paymentId: id,
       actorUserId: this.requestContextService.getUserId()!,

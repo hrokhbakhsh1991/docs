@@ -8,7 +8,6 @@ import type { WorkspaceValidationRules } from "../strategies/workspace.strategy.
 import { WorkspaceStrategyRegistry } from "../strategies/workspace.strategy.registry";
 import type { TourTransportMode } from "../tour-transport-modes";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
-import { URBAN_LOGISTICS_WHITELIST } from "./create-tour-form-profile-strip";
 import { computeTourDurationDays } from "./tour-duration";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -29,29 +28,13 @@ function loadWorkspaceInvariantContext(profile: TourFormProfile): WorkspaceInvar
   return { validationRules, strip: stripRules.strip };
 }
 
-/** Ignore DTO class-transformer placeholders; only keys with a material value count as "sent". */
-function logisticsObjectKeysWithMaterialValues(log: Record<string, unknown>): string[] {
-  return Object.keys(log).filter((key) => {
-    const value = log[key];
-    if (value === undefined || value === null) {
-      return false;
-    }
-    if (typeof value === "string" && value.trim() === "") {
-      return false;
-    }
-    if (Array.isArray(value) && value.length === 0) {
-      return false;
-    }
-    return true;
-  });
-}
-
 function profileUsesTripDetailsStrip(profile: TourFormProfile): boolean {
   const { strip } = loadWorkspaceInvariantContext(profile);
   return (
     strip.clearsTripDetailsRoots.length > 0 ||
     strip.itineraryKeysToDelete.length > 0 ||
     strip.logisticsWhitelist != null ||
+    (strip.logisticsKeysToDelete != null && strip.logisticsKeysToDelete.length > 0) ||
     strip.clearsRootTransportModes
   );
 }
@@ -76,6 +59,8 @@ export function validateTripDetailsCanonical(
   td: TourTripDetails | null | undefined,
   /** When set (e.g. from `tours.transport_modes`), fuel rules apply if this list includes `private_car`. */
   rootTransportModes?: readonly TourTransportMode[] | null,
+  /** When set, gates mountain transport economics (fuelShareToman) requirements. */
+  profile?: TourFormProfile,
 ): void {
   if (td == null) {
     return;
@@ -105,14 +90,30 @@ export function validateTripDetailsCanonical(
     const modes = rootTransportModes ?? [];
     const hasPrivateCarInModes = modes.includes("private_car");
     const primaryIsPrivateCar = log.primaryTransportMode === "private_car";
-    const requiresFuelShare = hasPrivateCarInModes || primaryIsPrivateCar;
+    const requiresFuelShare =
+      profile != null &&
+      loadWorkspaceInvariantContext(profile).validationRules.invariantHints
+        .requiresMountainTransportEconomics &&
+      (hasPrivateCarInModes || primaryIsPrivateCar);
     if (requiresFuelShare && log.fuelShareToman == null) {
       throw new BadRequestException({
         error: {
           code: "VALIDATION_FIELD_FORMAT_INVALID",
           message:
-            "fuelShareToman is required when the tour uses private_car (root transportModes and/or primaryTransportMode)"
-        }
+            "fuelShareToman is required when the tour uses private_car (root transportModes and/or primaryTransportMode) for mountain/outdoor profiles",
+        },
+      });
+    }
+    if (
+      requiresFuelShare &&
+      log.fuelShareToman != null &&
+      (typeof log.fuelShareToman !== "number" || !Number.isFinite(log.fuelShareToman) || log.fuelShareToman < 0)
+    ) {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_FIELD_FORMAT_INVALID",
+          message: "fuelShareToman must be a number greater than or equal to zero for mountain/outdoor profiles",
+        },
       });
     }
 
@@ -240,7 +241,9 @@ function assertStripShapeForSlimProfiles(
 
 /**
  * Rejects **incoming** create payloads that still carry inactive groups for `cinema_event` / `urban_event`
- * before the server mutates them via `stripCreateTourDtoForFormProfile` (strict pre-strip).
+ * Ingress guard for profile-inactive tripDetails **before** post-strip invariants.
+ * Stale mountain-transport logistics keys are silently evicted by {@link stripCreateTourDtoForFormProfile}
+ * (Wave 3 / Task 3.5) — this hook rejects participation/itinerary/transport phantoms only.
  */
 export function assertIncomingTripDetailsBeforeFormProfileStrip(
   profile: TourFormProfile,
@@ -305,22 +308,6 @@ export function assertIncomingTripDetailsBeforeFormProfileStrip(
             `transportModes must be empty or omitted for ${profile} on create (city-format tours do not use root transport modes).`,
         },
       });
-    }
-  }
-
-  if (strip.logisticsWhitelist != null) {
-    if (tripDetails.logistics != null && typeof tripDetails.logistics === "object") {
-      const log = tripDetails.logistics as Record<string, unknown>;
-      for (const key of logisticsObjectKeysWithMaterialValues(log)) {
-        if (!URBAN_LOGISTICS_WHITELIST.has(key)) {
-          throw new BadRequestException({
-            error: {
-              code: "VALIDATION_PROFILE_INCOMING_LOGISTICS_EXTRA",
-              message: `logistics.${key} is not allowed for ${profile} on create before profile strip.`,
-            },
-          });
-        }
-      }
     }
   }
 }
@@ -395,22 +382,6 @@ export function assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
             `transportModes must be empty in patch for ${profile} (city-format tours do not use root transport modes).`,
         },
       });
-    }
-  }
-
-  if (strip.logisticsWhitelist != null) {
-    if ("logistics" in patchPlain && patchPlain.logistics != null && typeof patchPlain.logistics === "object") {
-      const log = patchPlain.logistics as Record<string, unknown>;
-      for (const key of logisticsObjectKeysWithMaterialValues(log)) {
-        if (!URBAN_LOGISTICS_WHITELIST.has(key)) {
-          throw new BadRequestException({
-            error: {
-              code: "VALIDATION_PROFILE_INCOMING_LOGISTICS_EXTRA",
-              message: `logistics.${key} is not allowed in tripDetails patch for ${profile} before profile strip.`,
-            },
-          });
-        }
-      }
     }
   }
 }
@@ -499,7 +470,7 @@ export function assertTripDetailsForFormProfile(
     assertWorkspaceTripDetails(profile, tripDetails, rootTransportModes);
   }
 
-  validateTripDetailsCanonical(tripDetails, rootTransportModes ?? undefined);
+  validateTripDetailsCanonical(tripDetails, rootTransportModes ?? undefined, profile);
 
   if (invariantHints.requiresEmptyRootTransportModes) {
     const modes = rootTransportModes ?? [];
@@ -532,6 +503,16 @@ export function assertCreateTourInvariants(
   resolvedFormProfile: TourFormProfile = "general",
 ): void {
   assertWorkspaceCreateDto(resolvedFormProfile, dto);
+
+  const metadata = dto.metadata;
+  if (
+    metadata != null &&
+    typeof metadata === "object" &&
+    !Array.isArray(metadata) &&
+    metadata.isStagingShell === true
+  ) {
+    return;
+  }
 
   assertTripDetailsForFormProfile(
     resolvedFormProfile,

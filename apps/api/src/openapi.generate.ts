@@ -2,8 +2,9 @@ import "reflect-metadata";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NestFactory } from "@nestjs/core";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import { DocumentationModule } from "./documentation/documentation.module";
+import { configureSwaggerDocumentBuilder } from "./swagger-document.config";
 
 async function generateOpenApi(): Promise<void> {
   const outputPath = join(process.cwd(), "openapi.json");
@@ -12,12 +13,7 @@ async function generateOpenApi(): Promise<void> {
     abortOnError: false
   });
   try {
-    const config = new DocumentBuilder()
-      .setTitle("API v2 Documentation")
-      .setVersion("2.0.0")
-      .addServer("/api/v2")
-      .addBearerAuth({ type: "http", scheme: "bearer", bearerFormat: "JWT" }, "bearer")
-      .build();
+    const config = configureSwaggerDocumentBuilder().build();
     const document = SwaggerModule.createDocument(app, config);
     writeFileSync(outputPath, JSON.stringify(document, null, 2));
   } finally {

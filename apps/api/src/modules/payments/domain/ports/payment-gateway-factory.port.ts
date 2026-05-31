@@ -15,7 +15,7 @@ export interface IPaymentGateway {
   createPaymentIntent(_input: CreatePaymentIntentGatewayInput): Promise<PaymentIntentGatewayResult>;
 }
 
-/** Resolves a gateway implementation by provider slug (`mock`, `stripe`, `zibal`, …). */
+/** Resolves a tenant-scoped gateway by provider slug (`mock`, `stripe`, `zibal`, …). */
 export interface PaymentGatewayFactoryPort {
-  forProvider(paymentProvider: string): IPaymentGateway;
+  forTenant(tenantId: string, paymentProvider: string): Promise<IPaymentGateway>;
 }

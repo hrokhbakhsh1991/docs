@@ -23,6 +23,7 @@ export function useDenaliTourWizardCreate() {
       themeCatalog?: readonly { id: string; name: string }[];
       sourcePresetId?: string;
       sourceTourId?: string;
+      stagingTourId?: string;
     }) => {
       return createTourFromWorkspaceWizardForm({
         values: input.values,
@@ -32,6 +33,7 @@ export function useDenaliTourWizardCreate() {
         themeCatalog: input.themeCatalog,
         sourcePresetId: input.sourcePresetId,
         sourceTourId: input.sourceTourId,
+        stagingTourId: input.stagingTourId,
       });
     },
     onSuccess: async () => {
@@ -40,7 +42,7 @@ export function useDenaliTourWizardCreate() {
         await deleteDraftSnapshot(ws, DENALI_CREATE_DRAFT_KEY).catch(() => undefined);
       }
       if (ws) {
-        await queryClient.invalidateQueries({ queryKey: tourKeys.listByWorkspace(ws) });
+        await queryClient.invalidateQueries({ queryKey: tourKeys.listRoot(ws) });
       } else {
         await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
       }

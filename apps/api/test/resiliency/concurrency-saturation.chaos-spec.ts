@@ -11,10 +11,15 @@ import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import type Redis from "ioredis";
 import { ConflictException } from "@nestjs/common";
-import { UserRole } from "../../src/common/auth/user-role.enum";
 import { CapacityExceededException } from "../../src/common/errors/capacity-exceeded.exception";
 import { DoubleBookingConflictException } from "../../src/common/errors/double-booking-conflict.exception";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
+import type { EntityManager } from "typeorm";
+import {
+  createLeaderRequestContext,
+  createRegistrationCreationService,
+  createRegistrationsApplicationFacade,
+} from "../helpers/registrations-application.harness";
 import {
   RegistrationEntity,
 } from "../../src/modules/registrations/registration.entity";
@@ -30,10 +35,7 @@ import type {
   RegistrationsTourCatalogPort,
   TourCatalogSnapshot,
 } from "../../src/modules/registrations/domain/ports/registrations-tour-catalog.port";
-import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
-import { createRegistrationsReadRepositoryPortTestDouble } from "../registrations/stub-registrations-read-repository";
 import type { TourCatalogPortTestDoubleState } from "../registrations/stub-registrations-tour-catalog.port";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const TOUR_ID = "22222222-2222-4222-8222-222222222222";
@@ -192,7 +194,7 @@ function isCapacityRejection(error: unknown): boolean {
   return error instanceof CapacityExceededException || error instanceof DoubleBookingConflictException;
 }
 
-function createConcurrencyService(store: ConcurrencyStore, redisService: RedisTourCapacityReservationService) {
+function createConcurrencyService(store: ConcurrencyStore, _redisService: RedisTourCapacityReservationService) {
   const gate = createAtomicStatementGate();
   const catalogPort = createConcurrentAtomicTourCatalogPort(store.tour, gate);
 
@@ -402,58 +404,21 @@ function createConcurrencyService(store: ConcurrencyStore, redisService: RedisTo
     },
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_manager: typeof manager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    },
-  };
-
-  const requestContextService = {
-    resolveEffectiveTenantId(): string {
-      return TENANT_ID;
-    },
-    getTenantId(): string {
-      return TENANT_ID;
-    },
-    getUserId(): string {
-      return "99999999-9999-4999-8999-999999999999";
-    },
-    getRole(): UserRole {
-      return UserRole.Owner;
-    },
-    getRequestId(): string {
-      return "concurrency-chaos-request";
-    },
-  };
-
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    requestContextService as never,
-    noopOutboxServiceForTests,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: { where: unknown }) {
-          return manager.findOne(RegistrationEntity, opts as { where: Record<string, unknown> });
-        },
-      },
-      manager as never,
-    ),
-    {
-      quote: async () => ({
-        total: "10000",
-        line_items: [],
-        pricing_version: "stub:v0",
-        pricing_rule_version: "stub:v0",
-        currency_code: "USD",
-      }),
-    } as never,
+  const requestContext = createLeaderRequestContext(TENANT_ID, "public-flow-actor");
+  const service = createRegistrationsApplicationFacade({
+    manager: manager as EntityManager,
+    tour: store.tour,
+    requestContext,
     catalogPort,
-    redisService,
-  );
+    capacityReservationPort: _redisService,
+    creationService: createRegistrationCreationService({
+      manager: manager as EntityManager,
+      tour: store.tour,
+      requestContext,
+      catalogPort,
+      capacityReservationPort: _redisService,
+    }),
+  });
 
   return { service, manager, catalogPort };
 }
@@ -521,8 +486,7 @@ test("Angle 3.1: Thundering Herd on the Last Remaining Capacity Slot", async (t)
     );
 
     const successes = results.filter(
-      (result): result is PromiseFulfilledResult<{ type: string }> =>
-        result.status === "fulfilled" && result.value.type === "registration",
+      (result) => result.status === "fulfilled" && result.value.type === "registration",
     );
     const capacityRejections = results.filter(
       (result): result is PromiseRejectedResult =>
@@ -578,8 +542,9 @@ test("Angle 3.2: Concurrent Waitlist Promotion Race", async (t) => {
       );
 
       const converted = convertResults.filter(
-        (result): result is PromiseFulfilledResult<{ status: WaitlistItemStatus }> =>
-          result.status === "fulfilled" && result.value.status === WaitlistItemStatus.CONVERTED,
+        (result) =>
+          result.status === "fulfilled" &&
+          (result.value as { status: WaitlistItemStatus }).status === WaitlistItemStatus.CONVERTED,
       );
       const safeFailures = convertResults.filter(
         (result): result is PromiseRejectedResult =>

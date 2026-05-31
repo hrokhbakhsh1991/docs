@@ -109,7 +109,8 @@ function createProcessorWithSingleRow(row: OutboxEventEntity): OutboxProcessor {
     {
       runInTenantScope: async (_tenantId: string, fn: (_manager: unknown) => Promise<void>) =>
         fn(manager)
-    } as never
+    } as never,
+    {} as never
   );
 }
 

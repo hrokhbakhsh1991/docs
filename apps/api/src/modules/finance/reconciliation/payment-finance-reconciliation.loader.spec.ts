@@ -56,7 +56,7 @@ test("ledgerLinesFromFinanceOutboxRows ignores wrong event types and invalid lin
     }
   } as unknown as OutboxEventEntity;
   const other = {
-    eventType: "payment.succeeded",
+    eventType: "payment.captured",
     payload: { lines: [] }
   } as unknown as OutboxEventEntity;
   const lines = ledgerLinesFromFinanceOutboxRows([other, finance], tenant);

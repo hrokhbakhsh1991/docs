@@ -9,6 +9,7 @@ import {
 /**
  * Redis sliding-window limits keyed by tenant / user / IP (HTTP).
  * Runs after {@link TenantMiddleware} so JWT tenant context is populated for most `/api/v2` routes.
+ * Unauthenticated catalog probes shard by entity id or host signature — never a shared `_public` bucket.
  */
 @Injectable()
 export class TenantRateLimitMiddleware implements NestMiddleware {

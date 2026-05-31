@@ -10,8 +10,36 @@ export type DenaliWizardPhotoRow = {
   uploadedAt?: string;
 };
 
-export function isClientBlobUrl(url: string | undefined | null): boolean {
+export function isClientBlobUrl(url: string | undefined | null): url is string {
   return typeof url === "string" && url.startsWith("blob:");
+}
+
+/** Release an object URL created via `URL.createObjectURL` (no-op for https URLs). */
+export function revokeDenaliBlobUrl(url: string | undefined | null): void {
+  if (!isClientBlobUrl(url)) {
+    return;
+  }
+  try {
+    URL.revokeObjectURL(url);
+  } catch {
+    // Already revoked or environment lacks URL API.
+  }
+}
+
+export function revokeBlobUrlsFromPhotoRows(
+  photos: readonly { url?: string | null }[] | undefined,
+): void {
+  for (const row of photos ?? []) {
+    revokeDenaliBlobUrl(row.url);
+  }
+}
+
+/** Revoke all in-session blob previews on gallery + itinerary before a structural form reset. */
+export function revokeBlobUrlsFromDenaliForm(form: DenaliCreateTourWizardForm): void {
+  revokeBlobUrlsFromPhotoRows(form.photosData?.photos);
+  for (const day of form.programNature.itinerary ?? []) {
+    revokeBlobUrlsFromPhotoRows(day.photos);
+  }
 }
 
 function hasBlobPhotos(photos: readonly DenaliWizardPhotoRow[] | undefined): boolean {

@@ -1,7 +1,7 @@
 /**
  * Single source of truth for the Denali create wizard.
  *
- * Edit field rows in {@link ./denaliFieldRegistryData.ts} and matrix recipes in
+ * Edit field rows in `@repo/denali-domain` registry data and matrix recipes in
  * {@link ./denaliRuleMatrixRecipes.ts}, then run:
  *
  *   pnpm --filter web generate:denali-wizard
@@ -19,7 +19,7 @@ import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
   type DenaliZodFieldKind,
-} from "./denaliFieldRegistryData";
+} from "@repo/denali-domain";
 import { getDenaliFieldCompletionWeight } from "./denaliFieldCompletionWeights";
 export type { DenaliFieldDefinition, DenaliZodFieldKind };
 export { DENALI_FIELD_DEFINITIONS };

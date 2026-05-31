@@ -26,7 +26,9 @@ import {
 import { TypeOrmToursWriteRepository } from "./repositories/typeorm-tours-write.repository";
 import { ToursCatalogModule } from "./tours-catalog.module";
 import { ToursCloneService } from "./services/tours-clone.service";
+import { TourPhotoUrlService } from "./services/tour-photo-url.service";
 import { ToursService } from "./tours.service";
+import { WorkspaceTourPhotosController } from "./workspace-tour-photos.controller";
 import { StorageModule } from "../../infra/storage/storage.module";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { TourCapacityModule } from "./tour-capacity.module";
@@ -52,7 +54,7 @@ import { TourCapacityModule } from "./tour-capacity.module";
     SettingsLocationsModule,
     StorageModule,
   ],
-  controllers: [ToursController, DashboardAggregateController],
+  controllers: [ToursController, DashboardAggregateController, WorkspaceTourPhotosController],
   providers: [
     {
       provide: TOURS_WRITE_REPOSITORY_PORT,
@@ -60,6 +62,7 @@ import { TourCapacityModule } from "./tour-capacity.module";
     },
     ToursCatalogReadApplicationService,
     ToursCloneService,
+    TourPhotoUrlService,
     ToursService,
     ThrottlerGuard,
   ],

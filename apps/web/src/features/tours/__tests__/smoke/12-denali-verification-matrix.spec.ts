@@ -6,7 +6,6 @@ import {
   denaliTitleInput,
   denaliWizardBackButton,
   denaliWizardNextButton,
-  _fillDenaliMountainBasicsForNavigation,
   fillDenaliShortDescription,
   fillDenaliTitle,
   installDenaliVerificationMatrixSetup,
@@ -15,6 +14,7 @@ import {
   setNativeSelectValue,
   SMOKE_DENALI_DRAFT_WORKSPACE_A,
   SMOKE_DENALI_DRAFT_WORKSPACE_B,
+  SMOKE_WORKSPACE_BASE_URL,
   waitForDraftConflictPatch,
   waitForDraftPatch,
   waitForDraftPatchAttempt,
@@ -43,7 +43,7 @@ async function saveDenaliDraftTitle(page: import("@playwright/test").Page, title
  */
 
 async function requireDenaliWizardVisible(page: import("@playwright/test").Page): Promise<void> {
-  const denali = page.getByTestId("denali-create-tour-wizard");
+  const denali = page.getByTestId("workspace-tour-wizard");
   const wizardReady = await denali
     .waitFor({ state: "visible", timeout: 20_000 })
     .then(() => true)
@@ -55,7 +55,7 @@ async function requireDenaliWizardVisible(page: import("@playwright/test").Page)
 
 test.describe("denali verification matrix", () => {
   test.beforeEach(async ({ page, context }, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL ?? process.env.PW_BASE_URL ?? "http://denali.localhost:3000";
+    const baseURL = testInfo.project.use.baseURL ?? SMOKE_WORKSPACE_BASE_URL;
     await installScopedDraftEngineRoutes(context);
     await installDenaliVerificationMatrixSetup(page, context, { baseURL });
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
@@ -108,7 +108,7 @@ test.describe("denali verification matrix", () => {
     await waitForDenaliDraftEngineInitialized(page);
     await restoreDenaliDraftAfterReload(page);
 
-    await expect(page.getByTestId("denali-draft-save-error")).toBeHidden();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeHidden();
     await expect(denaliTitleInput(page)).toHaveValue("Draft Restore Test");
   });
 
@@ -119,7 +119,7 @@ test.describe("denali verification matrix", () => {
     await applyDenaliWizardIntegrationPatch(page, {
       basicInfo: { title },
       programNature: { shortDescription: shortDesc },
-    });
+    } as Parameters<typeof applyDenaliWizardIntegrationPatch>[1]);
 
     await denaliWizardNextButton(page).click();
     await expect(page.getByTestId("denali-step-photos")).toBeVisible({ timeout: 15_000 });
@@ -141,9 +141,9 @@ test.describe("denali verification matrix", () => {
     await waitForDenaliDraftEngineInitialized(page);
     await restoreDenaliDraftAfterReload(page);
 
-    await expect(page.getByTestId("denali-draft-save-error")).toBeHidden();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeHidden();
     await expect(page.getByTestId("denali-step-program")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("denali-wizard-step-denali_program")).toHaveAttribute(
+    await expect(page.getByTestId("workspace-wizard-step-denali_program")).toHaveAttribute(
       "aria-current",
       "step",
     );
@@ -197,11 +197,11 @@ test.describe("denali verification matrix", () => {
     const patchPromise = waitForDraftPatchAttempt(page);
     await fillDenaliTitle(page, "Retry Flow Draft");
     await patchPromise;
-    await expect(page.getByTestId("denali-draft-save-error")).toBeVisible();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeVisible();
 
-    await page.getByTestId("denali-draft-save-error").getByRole("button").click();
+    await page.getByTestId("workspace-draft-save-error").getByRole("button").click();
     await expect.poll(() => patchAttempts).toBeGreaterThan(1);
-    await expect(page.getByTestId("denali-draft-save-error")).toBeHidden();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeHidden();
   });
 
   test("2d-logistics) network interruption on logistics step shows error and retry", async ({
@@ -209,7 +209,7 @@ test.describe("denali verification matrix", () => {
   }) => {
     await applyDenaliWizardIntegrationPatch(page, {
       basicInfo: { title: "Logistics Retry Draft" },
-    });
+    } as Parameters<typeof applyDenaliWizardIntegrationPatch>[1]);
 
     await advanceDenaliWizardToStep(page, "denali-step-logistics");
     await expect(page.getByTestId("denali-step-logistics")).toBeVisible();
@@ -251,17 +251,17 @@ test.describe("denali verification matrix", () => {
     });
 
     await setNativeSelectValue(page.getByTestId("denali-transport-mode"), "bus");
-    await expect(page.getByTestId("denali-draft-save-error")).toBeVisible();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeVisible();
     await expect(page.getByTestId("denali-step-logistics")).toBeVisible();
 
-    await page.getByTestId("denali-draft-save-error").getByRole("button").click();
+    await page.getByTestId("workspace-draft-save-error").getByRole("button").click();
     await expect.poll(() => patchAttempts).toBeGreaterThan(1);
-    await expect(page.getByTestId("denali-draft-save-error")).toBeHidden();
+    await expect(page.getByTestId("workspace-draft-save-error")).toBeHidden();
     await expect(page.getByTestId("denali-step-logistics")).toBeVisible();
   });
 
   test("2e) two tabs detect stale draft after concurrent save", async ({ context }, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL ?? process.env.PW_BASE_URL ?? "http://denali.localhost:3000";
+    const baseURL = testInfo.project.use.baseURL ?? SMOKE_WORKSPACE_BASE_URL;
     const pageA = await context.newPage();
     const pageB = await context.newPage();
 
@@ -293,7 +293,7 @@ test.describe("denali verification matrix", () => {
     await fillDenaliTitle(pageB, "Tab B Title ");
     await conflictPatchB;
 
-    await expect(pageB.getByTestId("denali-draft-stale-notice")).toBeVisible();
+    await expect(pageB.getByTestId("workspace-draft-stale-notice")).toBeVisible();
     await expect(titleB).toHaveValue(/Tab B Title/);
 
     await fillDenaliTitle(pageA, "Tab A still editable");
@@ -304,7 +304,7 @@ test.describe("denali verification matrix", () => {
   });
 
   test("2f) tenant-scoped drafts do not leak across workspace ids", async ({ context }, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL ?? process.env.PW_BASE_URL ?? "http://denali.localhost:3000";
+    const baseURL = testInfo.project.use.baseURL ?? SMOKE_WORKSPACE_BASE_URL;
 
     const pageA = await context.newPage();
     await installDenaliVerificationMatrixSetup(pageA, context, {
@@ -317,7 +317,7 @@ test.describe("denali verification matrix", () => {
     await waitForDenaliDraftEngineInitialized(pageA);
 
     const tenantATitle = "Tenant A Isolated Draft";
-    await applyDenaliWizardIntegrationPatch(pageA, { basicInfo: { title: "Tenant A seed" } });
+    await applyDenaliWizardIntegrationPatch(pageA, { basicInfo: { title: "Tenant A seed" } } as Parameters<typeof applyDenaliWizardIntegrationPatch>[1]);
     const patchPromise = waitForDraftPatch(pageA);
     await fillDenaliTitle(pageA, tenantATitle);
     const patchA = await patchPromise;

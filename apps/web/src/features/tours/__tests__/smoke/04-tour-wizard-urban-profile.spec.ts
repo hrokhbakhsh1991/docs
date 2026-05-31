@@ -7,6 +7,7 @@ import {
   installTourWizardSettingsRoutes,
   installUrbanWizardE2eSeed,
   smokeTourWizardNewUrl,
+  SMOKE_WIZARD_SHELL_TEST_ID,
   SMOKE_WIZARD_URBAN_E2E_QUERY,
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
@@ -34,7 +35,7 @@ test.describe("tour wizard urban workspace template (stepper)", () => {
   });
 
   test("urban template hides inactive steps regardless of tour type seed", async ({ page }) => {
-    const w = page.getByTestId("tour-create-wizard");
+    const w = page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID);
     await expect(w).toBeVisible({ timeout: 20_000 });
     await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
 

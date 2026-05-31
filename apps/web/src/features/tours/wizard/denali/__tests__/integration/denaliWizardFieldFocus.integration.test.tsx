@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { clearDenaliWizardFieldFocus, focusDenaliWizardField } from "../../denaliWizardFieldFocus";
 
 describe("focusDenaliWizardField", () => {
   beforeEach(() => {
-    Element.prototype.scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   afterEach(() => {

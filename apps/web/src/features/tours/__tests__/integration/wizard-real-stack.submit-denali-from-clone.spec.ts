@@ -58,7 +58,7 @@ test.describe("real-stack denali clone tour", () => {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByText(/در حال بارگذاری تور برای کپی/)).toBeHidden({ timeout: 45_000 });
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("workspace-tour-wizard")).toBeVisible({ timeout: 45_000 });
 
     const sourceTour = (await sourceTourRes.json()) as { title?: string };
     expect(sourceTour.title ?? "", "created tour must expose title for clone").toMatch(/1234567890/);
@@ -101,6 +101,6 @@ test.describe("real-stack denali clone tour", () => {
     await duplicateBtn.click();
     await expect(page).toHaveURL(new RegExp(`clone=${sourceTourId}`), { timeout: 30_000 });
     await expect(page.getByText(/در حال بارگذاری تور برای کپی/)).toBeHidden({ timeout: 45_000 });
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("workspace-tour-wizard")).toBeVisible({ timeout: 45_000 });
   });
 });

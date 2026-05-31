@@ -21,8 +21,9 @@ import { TOUR_FORM_PROFILE_VALUES_LIST, type TourFormProfile } from "@repo/types
 
 import { TourLifecycleStatus } from "@repo/domain-contracts";
 import { TOUR_TYPES, type TourType } from "@repo/types";
-import { DifficultyLevel, TourItineraryItem } from "../types/tour-trip-details.types";
+import { DifficultyLevel } from "../types/tour-trip-details.types";
 import { CostContextDto } from "./cost-context.dto";
+import { TourItineraryItemDto } from "./tour-itinerary-item.dto";
 import { TourTripDetailsDto } from "./trip-details.dto";
 import { TOUR_TITLE_MAX_LENGTH, TOUR_TITLE_MIN_LENGTH } from "./create-tour.dto";
 import {
@@ -186,22 +187,14 @@ export class UpdateTourDto {
   meetingPoint?: string;
 
   @ApiPropertyOptional({
-    type: "array",
-    items: {
-      type: "object",
-      properties: {
-        day: { type: "number", example: 1 },
-        title: { type: "string", example: "Base camp approach" },
-        description: { type: "string", example: "Drive and acclimatization hike." },
-        distanceKm: { type: "number", example: 8 },
-        elevationGainM: { type: "number", example: 450 }
-      }
-    }
+    type: () => TourItineraryItemDto,
+    isArray: true,
   })
   @IsOptional()
   @IsArray()
-  @IsObject({ each: true })
-  itinerary?: TourItineraryItem[];
+  @ValidateNested({ each: true })
+  @Type(() => TourItineraryItemDto)
+  itinerary?: TourItineraryItemDto[];
 
   @ApiPropertyOptional({
     description:
@@ -225,4 +218,15 @@ export class UpdateTourDto {
   @IsArray()
   @IsString({ each: true })
   customServiceLabels?: string[];
+
+  @ApiPropertyOptional({
+    type: "object",
+    additionalProperties: true,
+    description:
+      "Tenant-scoped dynamic extension bag for vertical-specific properties without schema migrations.",
+  })
+  @Transform(({ value }) => (typeof value === "string" ? JSON.parse(value) : value))
+  @IsOptional()
+  @IsObject({ message: "metadata must be a valid JSON object" })
+  metadata?: Record<string, unknown>;
 }

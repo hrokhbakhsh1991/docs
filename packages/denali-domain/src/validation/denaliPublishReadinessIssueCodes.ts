@@ -9,7 +9,7 @@ export const DENALI_PUBLISH_READINESS_BLOCKING_CODES = [
   "VALIDATION_RULE_REQUIRED_FIELD",
   "DENALI_TOUR_TYPE_REQUIRED",
   "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE",
-  "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+  "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
 ] as const;
 
 export type DenaliPublishReadinessBlockingCode =
@@ -44,24 +44,24 @@ export const DENALI_PUBLISH_READINESS_PATH_FIXTURES: Readonly<
       path: "basicInfo.publishStatus",
     },
   ],
-  DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES: [
+  OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES: [
     {
-      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
       message:
         "logistics.gatheringPoints must include at least one station for denali_pilot publish.",
     },
     {
-      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
       message: "حداقل یک نقطه تجمع با آدرس و مختصات جغرافیایی لازم است.",
       path: "tripDetails.logistics.gatheringPoints",
     },
     {
-      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
       message:
         "overview.startPoint must include non-empty addressText and finite latitude/longitude for denali_pilot publish.",
     },
     {
-      code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
       message: "نقطه شروع باید آدرس و مختصات جغرافیایی داشته باشد.",
       path: "basicInfo.startPoint",
     },

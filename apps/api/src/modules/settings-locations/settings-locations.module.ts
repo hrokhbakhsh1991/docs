@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
 import { IdempotencyModule } from "../idempotency/idempotency.module";
-import { AuditModule } from "../audit/audit.module";
 import { EquipmentSettingsService } from "./equipment-settings.service";
 import { WorkspaceDestinationEntity } from "./entities/workspace-destination.entity";
 import { WorkspaceEquipmentItemEntity } from "./entities/workspace-equipment-item.entity";
@@ -30,7 +29,6 @@ import { TypeOrmWorkspaceSettingsRepository } from "./repositories/typeorm-works
 @Module({
   imports: [
     IdempotencyModule,
-    AuditModule,
     TypeOrmModule.forFeature([
       WorkspaceRegionEntity,
       WorkspaceDestinationEntity,

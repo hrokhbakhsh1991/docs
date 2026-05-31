@@ -1,5 +1,5 @@
 import type { TourFormProfile } from "@repo/types";
-import { DenaliWorkspaceStrategy } from "./denali.workspace.strategy";
+import { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
 import { GeneralWorkspaceStrategy } from "./general.workspace.strategy";
 import type { IWorkspaceStrategy } from "./workspace.strategy.interface";
 
@@ -18,12 +18,12 @@ export function usesDenaliCanonicalTemplate(profile: TourFormProfile): boolean {
 
 /**
  * Resolves the workspace strategy for a tour form profile.
- * Defaults to {@link GeneralWorkspaceStrategy} when no Denali-specific strategy applies.
+ * Defaults to {@link GeneralWorkspaceStrategy} when no mountain/outdoor strategy applies.
  */
 export class WorkspaceStrategyRegistry {
   static resolve(profile: TourFormProfile): IWorkspaceStrategy {
     if (isDenaliStrategyProfile(profile)) {
-      return new DenaliWorkspaceStrategy(profile);
+      return new MountainOutdoorWorkspaceStrategy(profile);
     }
     return new GeneralWorkspaceStrategy(profile);
   }

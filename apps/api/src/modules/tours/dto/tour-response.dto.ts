@@ -4,9 +4,10 @@ import { normalizeLegacyOverviewTripStyleToTripStyles, type TourFormProfile } fr
 import { TourLifecycleStatus } from "@repo/domain-contracts";
 import { TOUR_TYPES, type TourType } from "@repo/types";
 import type { TourWriteRecord } from "../domain/tour-write-record.types";
-import { DifficultyLevel, TourItineraryItem } from "../types/tour-trip-details.types";
 import type { TourTripDetails } from "../types/tour-trip-details.types";
 import { TOUR_TRANSPORT_MODE_VALUES, type TourTransportMode } from "../tour-transport-modes";
+import { CostContextDto } from "./cost-context.dto";
+import { TourDetailsResponseDto } from "./tour-details-response.dto";
 
 /**
  * GET/POST/PATCH tour projection per `docs/20-architecture/contracts/api_endpoint_contracts_v2_base.md`
@@ -65,11 +66,9 @@ export class TourResponseDto {
   chatLink?: string | null;
 
   @ApiPropertyOptional({
-    example: { currency: "USD", totalCost: 1200 },
+    type: () => CostContextDto,
     nullable: true,
-    type: "object",
-    additionalProperties: true,
-    description: "Opaque pricing / operational JSON (JSONB)."
+    description: "Pricing / operational JSON (JSONB).",
   })
   costContext?: Record<string, unknown> | null;
 
@@ -109,6 +108,14 @@ export class TourResponseDto {
   formProfileSnapshot?: TourFormProfile | null;
 
   @ApiPropertyOptional({
+    type: Object,
+    nullable: true,
+    description:
+      "Tenant-scoped dynamic extension bag for vertical-specific properties without schema migrations.",
+  })
+  metadata?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({
     format: "uuid",
     nullable: true,
     description: "FK to workspace_destinations when the tour is linked to a Settings destination."
@@ -133,44 +140,9 @@ export class TourResponseDto {
 
   @ApiPropertyOptional({
     nullable: true,
-    type: "object",
-    properties: {
-      destinationName: { type: "string", nullable: true, example: "Damavand" },
-      elevationM: { type: "number", nullable: true, example: 5671 },
-      difficulty: { enum: Object.values(DifficultyLevel), nullable: true, example: DifficultyLevel.HARD },
-      durationDays: { type: "number", nullable: true, example: 3 },
-      meetingPoint: { type: "string", nullable: true, example: "Azadi Square, Gate 3" },
-      itinerary: {
-        type: "array",
-        nullable: true,
-        items: {
-          type: "object",
-          properties: {
-            day: { type: "number", example: 1 },
-            title: { type: "string", nullable: true, example: "Approach" },
-            description: { type: "string", nullable: true, example: "Transfer to base camp." },
-            distanceKm: { type: "number", nullable: true, example: 8 },
-            elevationGainM: { type: "number", nullable: true, example: 450 }
-          }
-        }
-      },
-      tripDetails: {
-        type: "object",
-        nullable: true,
-        additionalProperties: true,
-        description: "Structured trip details (JSONB). Separate from tour `description`."
-      }
-    }
+    type: () => TourDetailsResponseDto,
   })
-  details?: {
-    destinationName?: string | null;
-    elevationM?: number | null;
-    difficulty?: DifficultyLevel | null;
-    durationDays?: number | null;
-    meetingPoint?: string | null;
-    itinerary?: TourItineraryItem[] | null;
-    tripDetails?: TourTripDetails | null;
-  } | null;
+  details?: TourDetailsResponseDto | null;
 }
 
 /** Tour row shape required for {@link mapTourEntityToResponseDto} (entity or write port record). */
@@ -196,6 +168,7 @@ export function mapTourEntityToResponseDto(tour: TourResponseSource): TourRespon
   dto.tourType = tour.tourType ?? null;
   dto.transportModes = Array.isArray(tour.transportModes) ? [...tour.transportModes] : [];
   dto.formProfileSnapshot = tour.formProfileSnapshot ?? null;
+  dto.metadata = tour.metadata ?? null;
   dto.destinationId = tour.destination?.id ?? null;
   dto.destinationName = tour.destination?.name ?? null;
   dto.destinationRegionName = tour.destination?.region?.name ?? null;

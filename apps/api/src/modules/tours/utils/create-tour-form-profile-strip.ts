@@ -1,5 +1,10 @@
 import type { TourFormProfile } from "@repo/types";
 import {
+  stripCreateTourDtoForFormProfile as stripCreateTourDtoForFormProfileShared,
+  stripTripDetailsForFormProfile as stripTripDetailsForFormProfileShared,
+  type CreateTourDtoWireLike,
+} from "@repo/shared-contracts";
+import {
   URBAN_LOGISTICS_WHITELIST_KEYS,
   isDenaliTourKind,
 } from "@repo/types";
@@ -14,15 +19,10 @@ import type { TourTripDetails } from "../types/tour-trip-details.types";
 /**
  * Logistics keys that remain when `urban_event` strips the logistics wizard group (dates / meet).
  *
- * Canonical single source: {@link URBAN_LOGISTICS_WHITELIST_KEYS} in `@repo/types`. This
- * `Set` wrapper exists only for the existing `.has(key)` call sites in `assert-create-tour-invariants.ts`
- * — those call sites can be migrated to the array form in Phase C without re-touching the constant.
+ * Canonical single source: {@link URBAN_LOGISTICS_WHITELIST_KEYS} in `@repo/types`.
  */
 export const URBAN_LOGISTICS_WHITELIST: ReadonlySet<string> = new Set(URBAN_LOGISTICS_WHITELIST_KEYS);
 
-/**
- * Resolves strip metadata via {@link WorkspaceStrategyRegistry}; falls back to builders if resolution fails.
- */
 function loadFieldStripRules(profile: TourFormProfile): WorkspaceFieldStripRules {
   return WorkspaceStrategyRegistry.resolve(profile).getFieldStripRules();
 }
@@ -40,88 +40,60 @@ function stripDenaliSingleDayLogistics(td: TourTripDetails): void {
   }
 }
 
-/**
- * Server mirror of web `stripInactiveTourCreateGroupsForProfile` (Phase 4): drop tripDetails branches
- * that the resolved profile does not expose. Mutates `td` in place.
- *
- * Strip deltas come from {@link WorkspaceStrategyRegistry.resolve(profile).getFieldStripRules}.
- */
-export function stripTripDetailsForFormProfile(profile: TourFormProfile, td: TourTripDetails): void {
-  const { strip } = loadFieldStripRules(profile);
-  if (
-    strip.clearsTripDetailsRoots.length === 0 &&
-    strip.itineraryKeysToDelete.length === 0 &&
-    strip.logisticsWhitelist == null
-  ) {
+function assignTripDetailsInPlace(
+  target: TourTripDetails,
+  stripped: Record<string, unknown> | undefined,
+): void {
+  if (stripped == null || stripped === target) {
     return;
   }
-
-  const root = td as TourTripDetails & Record<string, unknown>;
-
-  for (const key of strip.clearsTripDetailsRoots) {
-    root[key] = undefined;
+  const root = target as TourTripDetails & Record<string, unknown>;
+  for (const key of Object.keys(root)) {
+    delete root[key];
   }
-
-  if (
-    strip.itineraryKeysToDelete.length > 0 &&
-    root.itinerary != null &&
-    typeof root.itinerary === "object"
-  ) {
-    const it = { ...(root.itinerary as Record<string, unknown>) };
-    for (const k of strip.itineraryKeysToDelete) {
-      delete it[k];
-    }
-    root.itinerary = it as TourTripDetails["itinerary"];
-  }
-
-  if (strip.logisticsWhitelist != null) {
-    if (root.logistics != null && typeof root.logistics === "object") {
-      const log = root.logistics as Record<string, unknown>;
-      const slim: Record<string, unknown> = {};
-      for (const key of strip.logisticsWhitelist) {
-        if (log[key] !== undefined) {
-          slim[key] = log[key];
-        }
-      }
-      root.logistics = slim as TourTripDetails["logistics"];
-    }
-  }
+  Object.assign(root, stripped);
 }
 
 /**
- * Same as {@link stripTripDetailsForFormProfile}, plus clears root `transportModes` when
- * the strategy's `strip.clearsRootTransportModes` flag is set (e.g. `urban_event`).
+ * Server mirror of web profile strip — delegates to `@repo/shared-contracts` and mutates in place.
+ * Silently evicts stale mountain-transport logistics keys (Wave 3 / Task 3.5).
+ */
+export function stripTripDetailsForFormProfile(profile: TourFormProfile, td: TourTripDetails): void {
+  const stripped = stripTripDetailsForFormProfileShared(profile, td as Record<string, unknown>);
+  assignTripDetailsInPlace(td, stripped);
+}
+
+/**
+ * Profile strip for create-tour DTOs. Runs shared ingress trimmer, then Denali single-day cleanup.
  */
 export function stripCreateTourDtoForFormProfile(profile: TourFormProfile, dto: CreateTourDto): void {
-  const fieldStripRules = loadFieldStripRules(profile);
-  const { strip, appliesDenaliSingleDayLogisticsStrip } = fieldStripRules;
-  if (
-    strip.clearsTripDetailsRoots.length === 0 &&
-    strip.itineraryKeysToDelete.length === 0 &&
-    strip.logisticsWhitelist == null &&
-    !strip.clearsRootTransportModes
-  ) {
-    if (!appliesDenaliSingleDayLogisticsStrip || dto.tripDetails == null) {
-      return;
+  const stripped = stripCreateTourDtoForFormProfileShared(
+    profile,
+    dto as CreateTourDto & CreateTourDtoWireLike,
+  );
+  if (stripped.tripDetails !== undefined && stripped.tripDetails !== dto.tripDetails) {
+    if (dto.tripDetails != null && typeof dto.tripDetails === "object") {
+      assignTripDetailsInPlace(
+        dto.tripDetails as TourTripDetails,
+        stripped.tripDetails ?? undefined,
+      );
+    } else {
+      dto.tripDetails = stripped.tripDetails as CreateTourDto["tripDetails"];
     }
   }
-  if (dto.tripDetails != null && typeof dto.tripDetails === "object") {
-    stripTripDetailsForFormProfile(profile, dto.tripDetails as TourTripDetails);
-  }
-
-  if (strip.clearsRootTransportModes) {
+  if ("transportModes" in stripped) {
+    dto.transportModes = stripped.transportModes as CreateTourDto["transportModes"];
+  } else {
     delete dto.transportModes;
   }
 
+  const { appliesDenaliSingleDayLogisticsStrip } = loadFieldStripRules(profile);
   if (appliesDenaliSingleDayLogisticsStrip && dto.tripDetails != null) {
     stripDenaliSingleDayLogistics(dto.tripDetails as TourTripDetails);
   }
 }
 
-/**
- * Persist-time strip for merged tour rows (PATCH / update paths).
- * Clears root `transportModes` when the strategy strip contract requires it.
- */
+/** Persist-time strip for merged tour rows (PATCH / update paths). */
 export function stripPersistedTourForFormProfile(profile: TourFormProfile, tour: TourWriteRecord): void {
   const td = tour.details?.tripDetails;
   if (td != null && typeof td === "object") {

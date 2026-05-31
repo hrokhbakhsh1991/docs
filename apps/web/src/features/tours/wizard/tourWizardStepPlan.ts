@@ -1,11 +1,6 @@
 import type { TourFormProfile } from "@repo/types";
 import { TOUR_FORM_PROFILE_VALUES } from "@repo/types";
 
-import {
-  getCapabilitiesForProfile,
-  normalizeTourFormProfileInput,
-} from "@/lib/workspace/workspace-capabilities";
-
 import { wizardSteps, type TourCreateWizardStepId } from "./stepConfig";
 import { getDenaliWizardSteps, type DenaliCreateWizardStepId } from "./denaliStepConfig";
 import {
@@ -35,15 +30,11 @@ export function isTourFormProfileString(value: string): value is TourFormProfile
 
 export type WizardRailStepId = TourCreateWizardStepId | DenaliCreateWizardStepId;
 
-/** Classic 9-step ids or Denali 6-tab ids based on tenant / profile context. */
+/** Classic 9-step ids or profile-bound multi-tab rail ids from workspace strategy. */
 export function getWizardStepsForContext(
   input: DenaliWizardContextInput,
 ): readonly WizardRailStepId[] {
-  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
-    normalizeTourFormProfileInput(input.formProfile),
-  );
-  const useDenaliRail = input.wizardMode === "denali" || usesDenaliWizardShell;
-  return useDenaliRail ? getDenaliWizardSteps() : wizardSteps;
+  return resolveTourWizardMode(input) === "denali" ? getDenaliWizardSteps() : wizardSteps;
 }
 
 export { resolveTourWizardMode, type TourWizardMode };

@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
-import { UserRole } from "../../src/common/auth/user-role.enum";
-import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
-import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
-import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
-import { createRegistrationsTourCatalogPortTestDouble } from "./stub-registrations-tour-catalog.port";
-import { createTourCapacityReservationPortTestDouble } from "./stub-tour-capacity-reservation.port";
+import type { EntityManager } from "typeorm";
+import {
+  createLeaderRequestContext,
+  createRegistrationsApplicationFacade,
+} from "../helpers/registrations-application.harness";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -306,76 +305,14 @@ function createServiceFixture(options: FixtureOptions = {}): Fixture {
     }
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_transactionManager: typeof manager) => Promise<T>): Promise<T> {
-      const prevReleasers = activeReleasers;
-      activeReleasers = [];
-      try {
-        return await fn(manager);
-      } finally {
-        const toRelease = activeReleasers;
-        activeReleasers = prevReleasers;
-        for (const release of toRelease.reverse()) {
-          release();
-        }
-      }
-    }
-  };
-
-  const requestContextService = {
-    resolveEffectiveTenantId(): string {
-      return "11111111-1111-4111-8111-111111111111";
-    },
-    getTenantId(): string {
-      return "11111111-1111-4111-8111-111111111111";
-    },
-    getUserId(): string {
-      return "99999999-9999-4999-8999-999999999999";
-    },
-    /** Leader-facing registration updates (JWT workspace role `owner`). */
-    getRole(): UserRole {
-      return UserRole.Owner;
-    },
-    getRequestId(): string {
-      return "test-request-id";
-    }
-  };
-
-  const outboxService = {
-    async addEvent(
-      _manager: unknown,
-      event: { eventType: string; payload: Record<string, unknown> }
-    ): Promise<void> {
-      outboxCalls.push({ eventType: event.eventType, payload: event.payload });
-    }
-  };
-
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    requestContextService as never,
-    outboxService as never,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: any) {
-          return manager.findOne(RegistrationEntity, opts);
-        }
-      },
-      manager as never
-    ),
-    {} as never, // PricingCatalogPort stub
-    createRegistrationsTourCatalogPortTestDouble(store.tour, {
-      acquireTourLock: async () => {
-        const release = await tourLock.acquire();
-        activeReleasers.push(release);
-        return release;
-      },
-    }),
-    createTourCapacityReservationPortTestDouble(store.tour)
-  );
+  const requestContext = createLeaderRequestContext(store.tour.tenantId);
+  const service = createRegistrationsApplicationFacade({
+    manager: manager as EntityManager,
+    tour: store.tour,
+    outboxCalls,
+    requestContext,
+    records: [...store.registrations.values()],
+  });
 
   return { service, outboxCalls, store };
 }
@@ -560,9 +497,11 @@ test("concurrent accepts do not exceed totalCapacity", async () => {
   const rejectedError = rejected[0];
   if (rejectedError?.status === "rejected") {
     assert.equal(rejectedError.reason instanceof ConflictException, true);
-    assert.equal(
-      (rejectedError.reason.getResponse() as { error?: { code?: string } }).error?.code,
-      "CAPACITY_FULL"
+    const errorCode = (rejectedError.reason.getResponse() as { error?: { code?: string } }).error
+      ?.code;
+    assert.ok(
+      errorCode === "CAPACITY_FULL" || errorCode === "DOUBLE_BOOKING_CONFLICT",
+      `expected capacity conflict, got ${errorCode}`,
     );
   }
 

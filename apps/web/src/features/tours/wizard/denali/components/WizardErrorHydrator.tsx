@@ -17,7 +17,7 @@ type WizardHydratedTarget = {
 function fallbackWizardTopNavigation() {
   if (typeof window === "undefined") return;
   window.scrollTo({ top: 0, behavior: "auto" });
-  const wizardRoot = document.querySelector<HTMLElement>('[data-testid="denali-create-tour-wizard"]');
+  const wizardRoot = document.querySelector<HTMLElement>('[data-testid="workspace-tour-wizard"]');
   wizardRoot?.focus?.();
 }
 

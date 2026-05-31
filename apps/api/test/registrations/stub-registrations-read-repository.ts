@@ -119,7 +119,10 @@ export function createRegistrationsReadRepositoryTestDouble(
 ) {
   return createRegistrationsReadRepositoryPortTestDouble(
     registrationRepository,
-    { findOne: (_entity, opts) => registrationRepository.findOne(opts) } as EntityManager
+    {
+      findOne: (_entity, opts) =>
+        registrationRepository.findOne({ where: (opts as { where?: unknown }).where ?? {} }),
+    } as EntityManager
   );
 }
 

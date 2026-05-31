@@ -326,7 +326,7 @@ export function ToursListView() {
             isFetching && !isLoading ? styles.listCardBodyFetching : undefined
           )}
         >
-          {/* Skeleton only in the outer `tourQueryEnabled && isLoading` branch; keep list during refetch (keepPreviousData). */}
+          {/* Skeleton only in the outer `tourQueryEnabled && isLoading` branch; refetch overlays without prior-tenant rows. */}
           {tours.length === 0 ? (
             <EmptyState
               embedded

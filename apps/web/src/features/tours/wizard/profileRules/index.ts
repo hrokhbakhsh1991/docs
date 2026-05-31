@@ -46,4 +46,3 @@ export {
   type ValidationIssueCode,
   type ValidationResult,
 } from "./validation";
-export type { ValidationIssue, ValidationResult } from "./validation";

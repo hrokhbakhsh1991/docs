@@ -17,6 +17,10 @@ import {
 } from "@repo/tenant-host";
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import {
+  TENANT_INGRESS_REGISTRY_PORT,
+  type TenantIngressRegistryPort,
+} from "./domain/ports/tenant-ingress-registry.port";
+import {
   TENANT_HOST_CACHE_TTL_SECONDS,
   TENANT_RESOLVER_REDIS
 } from "./tenant-resolver.constants";
@@ -64,6 +68,8 @@ export class TenantHostResolverService implements OnModuleDestroy {
     private readonly observabilityMetrics: ObservabilityMetricsService,
     @InjectRepository(TenantEntity)
     private readonly tenantRepository: Repository<TenantEntity>,
+    @Inject(TENANT_INGRESS_REGISTRY_PORT)
+    private readonly ingressRegistry: TenantIngressRegistryPort,
     @Inject(TENANT_RESOLVER_REDIS) private readonly redis: Redis
   ) {}
 
@@ -179,28 +185,38 @@ export class TenantHostResolverService implements OnModuleDestroy {
   }
 
   static extractInboundHost(req: Request, trustModel: TenantHostTrustModel): string | undefined {
-    let candidate: string | undefined;
-    if (TenantHostResolverService.shouldTrustForwardedHost(req, trustModel)) {
+    const trustedProxy = TenantHostResolverService.shouldTrustForwardedHost(req, trustModel);
+
+    if (trustedProxy) {
       const forwarded = req.headers["x-forwarded-host"];
       if (forwarded) {
         const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
         const first = raw.split(",")[0]?.trim() ?? "";
         const norm = normalizeInboundHostname(first);
         if (norm.ok) {
-          candidate = norm.host;
+          return norm.host;
         }
       }
-    }
 
-    if (!candidate) {
-      const hn = typeof req.hostname === "string" ? req.hostname : "";
-      const norm = normalizeInboundHostname(hn);
-      if (norm.ok) {
-        candidate = norm.host;
+      const hostHeader = req.headers.host;
+      if (hostHeader) {
+        const raw = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+        const norm = normalizeInboundHostname(raw);
+        if (norm.ok) {
+          return norm.host;
+        }
       }
+
+      return undefined;
     }
 
-    return candidate;
+    const hn = typeof req.hostname === "string" ? req.hostname : "";
+    const norm = normalizeInboundHostname(hn);
+    if (norm.ok) {
+      return norm.host;
+    }
+
+    return undefined;
   }
 
   static stripHostPort = stripHostPort;
@@ -253,41 +269,50 @@ export class TenantHostResolverService implements OnModuleDestroy {
       return null;
     }
     const outcome = this.parseWorkspaceTenantLabel(norm.host);
-    if (outcome.kind !== "label") {
-      return null;
-    }
-    const cacheKey = this.tenantHostCacheKey(norm.host);
-    try {
-      const cachedTenantId = await this.redis.get(cacheKey);
-      if (cachedTenantId && cachedTenantId.trim() !== "") {
-        this.observabilityMetrics.recordTenantResolverCacheHit();
-        // tenant-isolation:qb-exempt — loads TenantEntity by primary id from trusted cache entry.
-        return this.tenantRepository
-          .createQueryBuilder("t")
-          .where("t.id = :id", { id: cachedTenantId.trim() })
-          .andWhere("t.deleted_at IS NULL")
-          .getOne();
+    if (outcome.kind === "label") {
+      const cacheKey = this.tenantHostCacheKey(norm.host);
+      try {
+        const cachedTenantId = await this.redis.get(cacheKey);
+        if (cachedTenantId && cachedTenantId.trim() !== "") {
+          this.observabilityMetrics.recordTenantResolverCacheHit();
+          // tenant-isolation:qb-exempt — loads TenantEntity by primary id from trusted cache entry.
+          return this.tenantRepository
+            .createQueryBuilder("t")
+            .where("t.id = :id", { id: cachedTenantId.trim() })
+            .andWhere("t.deleted_at IS NULL")
+            .getOne();
+        }
+      } catch {
+        /* resolver cache failure must not break tenant resolution */
       }
-    } catch {
-      /* resolver cache failure must not break tenant resolution */
+
+      this.observabilityMetrics.recordTenantResolverCacheMiss();
+      const tenant = await this.resolveTenantEntityByLabel(outcome.label);
+      if (!tenant) {
+        return null;
+      }
+      try {
+        await this.redis.set(
+          cacheKey,
+          tenant.id,
+          "EX",
+          TENANT_HOST_CACHE_TTL_SECONDS
+        );
+      } catch {
+        /* ignore cache set failures */
+      }
+      return tenant;
     }
 
-    this.observabilityMetrics.recordTenantResolverCacheMiss();
-    const tenant = await this.resolveTenantEntityByLabel(outcome.label);
-    if (!tenant) {
+    if (outcome.kind === "reserved" || outcome.kind === "invalid_label") {
       return null;
     }
-    try {
-      await this.redis.set(
-        cacheKey,
-        tenant.id,
-        "EX",
-        TENANT_HOST_CACHE_TTL_SECONDS
-      );
-    } catch {
-      /* ignore cache set failures */
+
+    if (outcome.kind === "apex" || outcome.kind === "no_root_config") {
+      return null;
     }
-    return tenant;
+
+    return this.ingressRegistry.resolveTenantEntityByCustomHostname(norm.host);
   }
 
   async resolveTenantEntityFromRequest(req: Request): Promise<TenantEntity | null> {
@@ -298,11 +323,7 @@ export class TenantHostResolverService implements OnModuleDestroy {
     if (!inbound) {
       return null;
     }
-    const outcome = this.parseWorkspaceTenantLabel(inbound);
-    if (outcome.kind !== "label") {
-      return null;
-    }
-    return this.resolveTenantEntityByLabel(outcome.label);
+    return this.resolveTenantEntityFromHost(inbound);
   }
 
   async resolveTenantIdFromHost(host: string): Promise<string | null> {

@@ -7,18 +7,41 @@ import {
   isServerUnauthenticatedPayload,
   isSessionHydrateFetchFailure,
 } from "./session-hydrate";
+import {
+  buildSessionTokenStorageKey,
+  SESSION_TOKEN_STORAGE_DEFAULT_SCOPE,
+} from "./session";
 
-const STORAGE_KEY = "tour_ops_session_token";
+const DEFAULT_SCOPED_KEY = buildSessionTokenStorageKey(SESSION_TOKEN_STORAGE_DEFAULT_SCOPE);
+
+function mockBrowserWindow(localStorage: Storage): void {
+  const g = globalThis as typeof globalThis & { window?: typeof globalThis.window };
+  g.window = {
+    localStorage,
+    location: { hostname: "localhost" } as Location,
+  } as unknown as typeof globalThis.window;
+}
+
+function restoreBrowserWindow(prior: typeof globalThis.window | undefined): void {
+  const g = globalThis as typeof globalThis & { window?: typeof globalThis.window };
+  if (prior === undefined) {
+    Reflect.deleteProperty(globalThis, "window");
+  } else {
+    g.window = prior;
+  }
+}
 
 function mockLocalStorage(): Storage {
   const map = new Map<string, string>();
   return {
+    get length() {
+      return map.size;
+    },
     getItem: (key: string) => map.get(key) ?? null,
     setItem: (key: string, value: string) => map.set(key, value),
     removeItem: (key: string) => map.delete(key),
     clear: () => map.clear(),
-    key: () => null,
-    length: 0,
+    key: (index: number) => [...map.keys()][index] ?? null,
   } as Storage;
 }
 
@@ -35,31 +58,25 @@ test("isSessionHydrateFetchFailure treats abort and TypeError as transient", () 
 });
 
 test("applySessionHydratePayload clears mirror only when server unauthenticated", () => {
-  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
-  const prior = g.window;
+  const prior = globalThis.window;
   const storage = mockLocalStorage();
-  storage.setItem(STORAGE_KEY, "mirror");
-  g.window = { localStorage: storage };
+  storage.setItem(DEFAULT_SCOPED_KEY, "mirror");
+  mockBrowserWindow(storage);
 
   try {
     const user = applySessionHydratePayload({ authenticated: false });
     assert.equal(user, null);
-    assert.equal(storage.getItem(STORAGE_KEY), null);
+    assert.equal(storage.getItem(DEFAULT_SCOPED_KEY), null);
   } finally {
-    if (prior === undefined) {
-      delete g.window;
-    } else {
-      g.window = prior;
-    }
+    restoreBrowserWindow(prior);
   }
 });
 
 test("applySessionHydratePayload overwrites stale localStorage mirror when cookie token differs", () => {
-  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
-  const prior = g.window;
+  const prior = globalThis.window;
   const localStorage = mockLocalStorage();
-  localStorage.setItem(STORAGE_KEY, "stale-mirror-token");
-  g.window = { localStorage };
+  localStorage.setItem(DEFAULT_SCOPED_KEY, "stale-mirror-token");
+  mockBrowserWindow(localStorage);
 
   const header = Buffer.from(JSON.stringify({ alg: "RS256" }))
     .toString("base64")
@@ -86,21 +103,16 @@ test("applySessionHydratePayload overwrites stale localStorage mirror when cooki
       user_id: "11111111-1111-4111-8111-111111111111",
       tenant_id: "22222222-2222-4222-8222-222222222222",
     });
-    assert.equal(localStorage.getItem(STORAGE_KEY), token);
+    assert.equal(localStorage.getItem(DEFAULT_SCOPED_KEY), token);
   } finally {
-    if (prior === undefined) {
-      delete g.window;
-    } else {
-      g.window = prior;
-    }
+    restoreBrowserWindow(prior);
   }
 });
 
 test("applySessionHydratePayload syncs token when authenticated", () => {
-  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
-  const prior = g.window;
+  const prior = globalThis.window;
   const localStorage = mockLocalStorage();
-  g.window = { localStorage };
+  mockBrowserWindow(localStorage);
 
   const header = Buffer.from(JSON.stringify({ alg: "RS256" }))
     .toString("base64")
@@ -128,13 +140,9 @@ test("applySessionHydratePayload syncs token when authenticated", () => {
       tenant_id: "22222222-2222-4222-8222-222222222222",
     });
     assert.ok(user);
-    assert.equal(g.window?.localStorage.getItem(STORAGE_KEY), token);
+    assert.equal(globalThis.window?.localStorage.getItem(DEFAULT_SCOPED_KEY), token);
   } finally {
-    if (prior === undefined) {
-      delete g.window;
-    } else {
-      g.window = prior;
-    }
+    restoreBrowserWindow(prior);
   }
 });
 

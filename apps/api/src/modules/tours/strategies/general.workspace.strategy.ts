@@ -10,7 +10,7 @@ import { buildRequiredSubmitFields } from "./workspace.strategy.submit-fields";
 
 /**
  * Default/classic workspace strategy — used for all profiles not routed to
- * {@link DenaliWorkspaceStrategy}.
+ * {@link MountainOutdoorWorkspaceStrategy}.
  *
  * Optional publish/strip/invariant delegates live in legacy modules until Phase 2.2+
  * wiring; see SYSTEM_AUDIT.md delegate map.

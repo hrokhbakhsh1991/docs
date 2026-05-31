@@ -46,7 +46,7 @@ test("passes when all submit-required fields are present for general", () => {
     assertProfileRequiredFieldsForSubmit(
       "general",
       minimalDto({
-        cost_context: { totalCost: 1_000_000 },
+        cost_context: { totalCost: "1000000" },
         tripDetails: {
           itinerary: {
             segmentActivities: [{ dayNumber: 1, segments: [{ title: "leg" }] }],
@@ -98,7 +98,7 @@ const PROFILE_INVALID_PAYLOADS: ReadonlyArray<{
     profile: "cinema_event",
     label: "title without transport",
     dto: minimalDto({
-      cost_context: { totalCost: 500_000 },
+      cost_context: { totalCost: "500000" },
       tripDetails: {
         itinerary: { highlights: ["show"] },
         logistics: {},
@@ -141,7 +141,7 @@ test("denali_pilot: empty primaryTransportMode with empty transportModes passes 
     assertProfileRequiredFieldsForSubmit(
       "denali_pilot",
       minimalDto({
-        cost_context: { totalCost: 500_000 },
+        cost_context: { totalCost: "500000" },
         transportModes: [],
         tripDetails: {
           itinerary: {
@@ -149,7 +149,7 @@ test("denali_pilot: empty primaryTransportMode with empty transportModes passes 
           },
           logistics: {},
         },
-      } as CreateTourDto),
+      } as unknown as CreateTourDto),
     ),
   );
 });
@@ -159,7 +159,7 @@ test("tourEntityToProfileRequiredSubmitShape maps title, cost, and tripDetails",
   tour.title = "1234567890ab";
   tour.totalCapacity = 10;
   tour.lifecycleStatus = TourLifecycleStatus.DRAFT;
-  tour.costContext = { currency: "IRR", totalCost: 2_000_000 };
+  tour.costContext = { currency: "IRR", totalCost: "2000000" };
   tour.details = new TourDetails();
   tour.details.tripDetails = {
     schemaVersion: 1,
@@ -171,7 +171,7 @@ test("tourEntityToProfileRequiredSubmitShape maps title, cost, and tripDetails",
 
   const shape = tourEntityToProfileRequiredSubmitShape(tour);
   assert.equal(shape.title, tour.title);
-  assert.equal(shape.cost_context?.totalCost, 2_000_000);
+  assert.equal(shape.cost_context?.totalCost, "2000000");
   assert.equal(shape.tripDetails?.logistics?.primaryTransportMode, "bus");
 });
 

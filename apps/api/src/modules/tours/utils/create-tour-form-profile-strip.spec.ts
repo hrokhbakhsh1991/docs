@@ -108,12 +108,34 @@ test("stripCreateTourDtoForFormProfile: denali_pilot preserves crew and itinerar
   assert.equal(day1.photos[0].id, "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22");
 });
 
-test("stripCreateTourDtoForFormProfile: general does not mutate dto", () => {
+test("stripCreateTourDtoForFormProfile: general evicts stale fuelShareToman silently", () => {
   const dto = sampleDto();
+  stripCreateTourDtoForFormProfile("general", dto);
+  assert.equal(
+    (dto.tripDetails?.logistics as Record<string, unknown> | undefined)?.fuelShareToman,
+    undefined,
+  );
+  assert.ok(dto.tripDetails?.participation);
+});
+
+test("stripCreateTourDtoForFormProfile: general without mountain keys leaves dto unchanged", () => {
+  const dto = minimalGeneralDto();
   stripCreateTourDtoForFormProfile("general", dto);
   assert.ok(dto.tripDetails?.participation);
   assert.ok(dto.tripDetails?.itinerary?.dayPlans);
 });
+
+function minimalGeneralDto(): CreateTourDto {
+  return {
+    title: "1234567890ab",
+    total_capacity: 10,
+    tripDetails: {
+      participation: { minimumAge: 5 },
+      itinerary: { dayPlans: [{ day: 1, title: "day" }] },
+      logistics: { departureDate: "2026-06-01", primaryTransportMode: "bus" },
+    },
+  } as CreateTourDto;
+}
 
 test("stripCreateTourDtoForFormProfile: cinema_event removes participation and structured itinerary", () => {
   const dto = sampleDto();
@@ -122,6 +144,10 @@ test("stripCreateTourDtoForFormProfile: cinema_event removes participation and s
   assert.equal(dto.tripDetails?.itinerary?.dayPlans, undefined);
   assert.deepEqual(dto.tripDetails?.itinerary?.highlights, ["keep-me"]);
   assert.equal(dto.tripDetails?.logistics?.primaryTransportMode, "bus");
+  assert.equal(
+    (dto.tripDetails?.logistics as Record<string, unknown> | undefined)?.fuelShareToman,
+    undefined,
+  );
   assert.deepEqual(dto.transportModes, ["bus"]);
 });
 
@@ -225,7 +251,7 @@ test("P10: descriptor strip with empty deltas is a no-op (general / mountain_out
       overview: { tourThemeIds: ["t-1"] },
       participation: { minimumAge: 12 },
       itinerary: { dayPlans: [{ day: 1 }] },
-      logistics: { primaryTransportMode: "bus", fuelShareToman: 5000 },
+      logistics: { primaryTransportMode: "bus" },
     };
     const snapshot = JSON.stringify(td);
     stripTripDetailsForFormProfile(slug, td as never);

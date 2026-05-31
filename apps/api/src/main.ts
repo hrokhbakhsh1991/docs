@@ -1,14 +1,13 @@
 import "reflect-metadata";
 import { shutdownTracing, startTracing } from "./tracing";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { Logger, ShutdownSignal, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import express from "express";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
+import { configureSwaggerDocumentBuilder } from "./swagger-document.config";
 import { GlobalExceptionFilter } from "./common/errors/global-exception.filter";
 import { LoggerService } from "./common/logger/logger.service";
 import { ObservabilityMetricsService } from "./common/observability/observability-metrics.service";
@@ -21,6 +20,7 @@ import { TenantUsageMiddleware } from "./common/billing/tenant-usage.middleware"
 import { TenantMiddleware } from "./common/tenant/tenant.middleware";
 import { TenantResolverMiddleware } from "./common/tenant/tenant-resolver.middleware";
 import { ConfigService } from "./config/config.service";
+import { TenantCorsPolicyService } from "./modules/tenant/tenant-cors-policy.service";
 
 async function bootstrap() {
   startTracing();
@@ -52,17 +52,17 @@ async function bootstrap() {
   );
 
   const configService = app.get(ConfigService);
+  const tenantCorsPolicy = app.get(TenantCorsPolicyService);
   app.set("trust proxy", configService.getTrustProxySetting());
   // Swagger UI serves inline scripts; default Helmet CSP blocks it.
   app.use(helmet({ contentSecurityPolicy: false }));
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (configService.isCorsOriginAllowed(origin)) {
-        callback(null, true);
-        return;
-      }
-      callback(null, false);
+      void tenantCorsPolicy
+        .isOriginAllowed(origin)
+        .then((allowed) => callback(null, allowed))
+        .catch(() => callback(null, false));
     },
     credentials: true
   });
@@ -94,26 +94,9 @@ async function bootstrap() {
   app.useGlobalFilters(
     new GlobalExceptionFilter(loggerService, requestContextService, observabilityMetrics)
   );
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("API v2 Documentation")
-    .setVersion("2.0.0")
-    .addServer("/api/v2")
-    .addApiKey(
-      {
-        type: "apiKey",
-        in: "header",
-        name: "X-Internal-Api-Key",
-        description: "Internal API key for protected internal endpoints."
-      },
-      "internalApiKey"
-    )
-    .build();
+  const swaggerConfig = configureSwaggerDocumentBuilder().build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup("api/docs", app, swaggerDocument);
-  writeFileSync(
-    join(process.cwd(), "openapi.json"),
-    JSON.stringify(swaggerDocument, null, 2)
-  );
   await app.listen(configService.getPort());
 
   const gracefulShutdown = async (signal: NodeJS.Signals) => {

@@ -9,7 +9,7 @@ test.describe("denali pricing participant section", () => {
     expect(res?.status()).toBeDefined();
     expect(res!.status()).toBeLessThan(500);
 
-    const denali = page.getByTestId("denali-create-tour-wizard");
+    const denali = page.getByTestId("workspace-tour-wizard");
     if (!(await denali.isVisible().catch(() => false))) {
       test.skip(true, "Denali wizard not available on this host");
     }
@@ -31,7 +31,7 @@ test.describe("denali pricing participant section", () => {
     expect(res?.status()).toBeDefined();
     expect(res!.status()).toBeLessThan(500);
 
-    const denali = page.getByTestId("denali-create-tour-wizard");
+    const denali = page.getByTestId("workspace-tour-wizard");
     if (!(await denali.isVisible().catch(() => false))) {
       test.skip(true, "Denali wizard not available on this host");
     }

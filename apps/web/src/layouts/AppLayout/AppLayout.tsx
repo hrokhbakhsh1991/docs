@@ -21,7 +21,8 @@ import {
 import { LogoutButton } from "@/components/auth/logout-button";
 import { ApiError } from "@/lib/api-client";
 import {
-  PENDING_WORKSPACE_SESSION_TENANT_KEY,
+  clearPendingWorkspaceSessionTenantId,
+  readPendingWorkspaceSessionTenantId,
   scheduleWorkspaceHostNavigationIfNeeded,
 } from "@/lib/workspace/workspace-host-navigation";
 import { createWorkspaceSession } from "@/lib/services/auth.service";
@@ -69,7 +70,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     }
     let pending: string | null = null;
     try {
-      pending = sessionStorage.getItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+      pending = readPendingWorkspaceSessionTenantId();
     } catch {
       return;
     }
@@ -79,7 +80,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
     }
     if (trimmed.toLowerCase() === user.tenantId.trim().toLowerCase()) {
       try {
-        sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+        clearPendingWorkspaceSessionTenantId();
       } catch {
         /* ignore */
       }
@@ -90,7 +91,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
       try {
         const session = await createWorkspaceSession(trimmed);
         try {
-          sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+          clearPendingWorkspaceSessionTenantId();
         } catch {
           /* ignore */
         }
@@ -101,7 +102,7 @@ export function WorkspaceShell({ children }: WorkspaceShellProps) {
       } catch (error: unknown) {
         pendingWorkspaceRanRef.current = false;
         try {
-          sessionStorage.removeItem(PENDING_WORKSPACE_SESSION_TENANT_KEY);
+          clearPendingWorkspaceSessionTenantId();
         } catch {
           /* ignore */
         }

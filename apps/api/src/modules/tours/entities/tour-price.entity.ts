@@ -12,10 +12,13 @@ export enum TourPriceType {
 }
 
 @Entity("tour_prices")
-@Index("idx_tour_prices_departure", ["tourDepartureId"])
+@Index("idx_tour_prices_tenant_id_departure_id", ["tenantId", "tourDepartureId"])
 export class TourPriceEntity {
   @PrimaryGeneratedColumn("uuid", { name: "id" })
   id!: string;
+
+  @Column({ type: "uuid", name: "tenant_id", nullable: false })
+  tenantId!: string;
 
   @Column({ type: "uuid", name: "tour_departure_id" })
   tourDepartureId!: string;

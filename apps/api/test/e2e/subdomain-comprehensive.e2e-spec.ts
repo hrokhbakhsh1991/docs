@@ -164,7 +164,7 @@ test("unknown.localhost login → 404 TENANT_HOST_UNKNOWN", async () => {
   });
 
   assert.equal(res.status, 404);
-  assert.equal(res.body.error?.code, "TENANT_HOST_UNKNOWN");
+  assert.equal((res.body.error as { code?: string } | undefined)?.code, "TENANT_HOST_UNKNOWN");
   assertApiErrorEnvelope(res.body);
 });
 
@@ -186,7 +186,7 @@ test("Host/JWT mismatch — token for tenant1 used on tenant2 Host → TENANT_HO
   });
 
   assert.equal(res.status, 403);
-  assert.equal(res.body.error?.code, "TENANT_HOST_TOKEN_MISMATCH");
+  assert.equal((res.body.error as { code?: string } | undefined)?.code, "TENANT_HOST_TOKEN_MISMATCH");
   assertApiErrorEnvelope(res.body);
 });
 

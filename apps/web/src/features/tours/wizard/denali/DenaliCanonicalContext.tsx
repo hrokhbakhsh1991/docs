@@ -101,6 +101,7 @@ export function DenaliCanonicalProvider({
   uploadTourId: uploadTourIdProp = null,
   workspaceFormProfile,
   draftStatus = "IDLE",
+  stagingTourIdRef,
 }: {
   children: ReactNode;
   formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
@@ -114,6 +115,8 @@ export function DenaliCanonicalProvider({
   workspaceFormProfile?: TourFormProfile;
   /** Draft-engine status — drives quiet RHF writes during {@link applyCanonicalMvpToForm}. */
   draftStatus?: DraftStatus;
+  /** Optional ref mirrored with the lazy gallery staging tour id (for final submit). */
+  stagingTourIdRef?: React.MutableRefObject<string | null>;
 }) {
   const { control, getValues, setValue } = formMethods;
   const [, startCanonicalTransition] = useTransition();
@@ -147,9 +150,22 @@ export function DenaliCanonicalProvider({
     });
   }, [getValues]);
 
+  const clearStagingUploadTourId = useCallback(() => {
+    uploadTourIdRef.current = null;
+    setUploadTourIdState(null);
+    ensureUploadPromiseRef.current = null;
+    if (stagingTourIdRef) {
+      stagingTourIdRef.current = null;
+    }
+  }, [stagingTourIdRef]);
+
   useEffect(() => {
     syncCanonicalFromForm();
-  }, [syncToken, syncCanonicalFromForm]);
+    // Create mode: no external tour id — drop lazy staging shell when form resets (EC-RESET-01).
+    if (!uploadTourIdProp?.trim()) {
+      clearStagingUploadTourId();
+    }
+  }, [syncToken, syncCanonicalFromForm, uploadTourIdProp, clearStagingUploadTourId]);
 
   const basicsSelection = useMemo(
     () => basicsSelectionFromTourType(tourTypeWatch),
@@ -239,6 +255,9 @@ export function DenaliCanonicalProvider({
     }).then((id) => {
       uploadTourIdRef.current = id;
       setUploadTourIdState(id);
+      if (stagingTourIdRef) {
+        stagingTourIdRef.current = id;
+      }
       return id;
     });
     ensureUploadPromiseRef.current = promise;
@@ -247,7 +266,7 @@ export function DenaliCanonicalProvider({
     } finally {
       ensureUploadPromiseRef.current = null;
     }
-  }, [getValues, ruleSet, workspaceFormProfile]);
+  }, [getValues, ruleSet, workspaceFormProfile, stagingTourIdRef]);
 
   const checkPhotoPersistence = useCallback(
     (form?: DenaliCreateTourWizardForm): DenaliPhotoPersistenceCheck => {

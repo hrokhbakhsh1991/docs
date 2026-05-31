@@ -5,6 +5,12 @@ import {
   buildBffProxyHeadersFromTenant,
 } from "@/lib/api/get-api-base-url";
 import { resolveBffTenantContext } from "@/lib/tenant/runtime-tenant-context";
+import {
+  generateRequestId,
+  generateTraceparent,
+  getRequestIdFromHeaders,
+  getTraceparentFromHeaders,
+} from "@/lib/api/tracing-utils";
 
 import { lookupWorkspaceTenantMetadata } from "@/lib/tenant/lookup-workspace-tenant";
 
@@ -23,9 +29,8 @@ async function assertBffWorkspaceKnown(req: Request): Promise<void> {
     metadata.tenantId && metadata.tenantId !== "unknown" ? metadata.tenantId : undefined;
   if (hostTenantId && tenant.tenantId && tenant.tenantId !== hostTenantId) {
     logBffError("tenant_mismatch_detected", {
-      hostSlug: tenant.tenantSlug,
-      hostTenantId,
-      sessionTenantId: tenant.tenantId,
+      tenant_mismatch: true,
+      correlation_id: generateRequestId(),
     });
     throw createAppError(
       "TENANT_HOST_TOKEN_MISMATCH",
@@ -37,13 +42,6 @@ async function assertBffWorkspaceKnown(req: Request): Promise<void> {
     );
   }
 }
-
-import {
-  generateRequestId,
-  generateTraceparent,
-  getRequestIdFromHeaders,
-  getTraceparentFromHeaders,
-} from "@/lib/api/tracing-utils";
 
 /**
  * Tenant-scoped fetch for BFF route handlers. Slug from Host only; probes workspace before upstream.

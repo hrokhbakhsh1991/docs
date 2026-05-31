@@ -52,12 +52,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Prepare .env.test
-        run: cp apps/api/.env.test.example apps/api/.env.test
+      - name: Prepare API test environment
+        run: |
+          cp apps/api/.env.test.example apps/api/.env.test
+          cp apps/api/.env.test.example apps/api/.env
 
       - name: Run migrations
         working-directory: apps/api
         run: pnpm migrate:run
 
-      - name: Run E2E tests
-        run: pnpm test:e2e:ci
+      - name: Run multi-tenant isolation and RLS E2E suite
+        run: pnpm test:e2e:isolation

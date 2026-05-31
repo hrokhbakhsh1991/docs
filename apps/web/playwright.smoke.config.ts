@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
-const smokeBaseURL = process.env.PW_BASE_URL ?? "http://ws1-rbac.localhost:3000";
+import { resolveTestPlatformBaseUrl } from "./lib/test/smoke-platform-url";
+
+const smokeBaseURL = resolveTestPlatformBaseUrl();
 
 export default defineConfig({
   testDir: ".",

@@ -162,11 +162,13 @@ export {
   DEFAULT_TOUR_DOMAIN_PROFILE,
   TOUR_DOMAIN_PROFILE_VALUES,
   URBAN_LOGISTICS_WHITELIST_KEYS,
+  MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS,
   domainProfileFromTourTypeFallback,
   isTourDomainProfile,
   normalizeTourDomainProfileInput,
   type TourDomainProfile,
   type UrbanLogisticsWhitelistKey,
+  type MountainTransportEconomicsLogisticsKey,
 } from "./tour-domain-profile";
 export {
   WIZARD_SUBMIT_REQUIRED_FIELD_PATHS,

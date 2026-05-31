@@ -120,4 +120,8 @@ export class TourEntity extends BaseTenantEntity {
 
   @Column({ type: "bigint", name: "list_price_minor", nullable: true })
   listPriceMinor?: string | null;
+
+  /** Tenant-scoped extension bag (custom vertical fields without schema migrations). */
+  @Column({ type: "jsonb", name: "metadata", nullable: true })
+  metadata?: Record<string, unknown> | null;
 }

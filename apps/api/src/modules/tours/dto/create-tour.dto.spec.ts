@@ -127,7 +127,7 @@ test("CreateTourDto wire keys contract: canonical list is sorted, unique, and va
     lifecycle_status: "Draft",
     description: "Marketing copy for the tour detail page.",
     chat_link: "https://t.me/joinchat/example",
-    cost_context: { currency: "USD", totalCost: 1200 },
+    cost_context: { currency: "USD", totalCost: "1200" },
     autoAcceptRegistrations: true,
     tourType: TOUR_TYPES[0],
     formProfile: TOUR_FORM_PROFILE_VALUES_LIST[0],
@@ -145,7 +145,9 @@ test("CreateTourDto wire keys contract: canonical list is sorted, unique, and va
     },
     sourcePresetId: "00000000-0000-4000-8000-000000000001",
     sourceTourId: "00000000-0000-4000-8000-000000000002",
-    customServiceLabels: ["صبحانه"]
+    stagingTourId: "00000000-0000-4000-8000-000000000003",
+    customServiceLabels: ["صبحانه"],
+    metadata: { vertical: "mountain_outdoor", stageCount: 3 },
   };
   assert.deepEqual(new Set(Object.keys(payload)), new Set(CREATE_TOUR_DTO_WIRE_KEYS));
 

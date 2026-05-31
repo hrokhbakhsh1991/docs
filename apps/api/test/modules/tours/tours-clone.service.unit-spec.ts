@@ -74,17 +74,14 @@ test("ToursCloneService.cloneTripDetailsForWizard preserves 5-zone pins and itin
   assert.ok(sourceDayPhotoId);
   assert.ok(clonedDayPhotoId);
   assert.notEqual(clonedDayPhotoId, sourceDayPhotoId);
-  assert.equal(
-    cloned!.itinerary?.dayPlans?.[0]?.photos?.[0]?.url,
-    source.itinerary?.dayPlans?.[0]?.photos?.[0]?.url,
-  );
+  assert.equal("url" in (cloned!.itinerary?.dayPlans?.[0]?.photos?.[0] ?? {}), false);
   assert.equal(cloned!.photos?.length, 1);
   const sourceTourPhotoId = source.photos?.[0]?.id;
   const clonedTourPhotoId = cloned!.photos?.[0]?.id;
   assert.ok(sourceTourPhotoId);
   assert.ok(clonedTourPhotoId);
   assert.notEqual(clonedTourPhotoId, sourceTourPhotoId);
-  assert.equal(cloned!.photos?.[0]?.url, source.photos?.[0]?.url);
+  assert.equal("url" in (cloned!.photos?.[0] ?? {}), false);
 });
 
 test("ToursCloneService.tripDetailsToDenaliPresetDefaults maps nested itinerary location", () => {

@@ -11,7 +11,7 @@ import {
 test("allows requiresPayment when totalCost is positive", () => {
   assert.doesNotThrow(() =>
     assertRequiresPaymentHasPositiveAmount({
-      costContext: { requiresPayment: true, totalCost: 1_200_000, currency: "IRR" }
+      costContext: { requiresPayment: true, totalCost: "1200000", currency: "IRR" }
     })
   );
 });
@@ -28,7 +28,7 @@ test("allows requiresPayment when listPriceMinor is set", () => {
 test("skips when requiresPayment is not true", () => {
   assert.doesNotThrow(() =>
     assertRequiresPaymentHasPositiveAmount({
-      costContext: { totalCost: 0 }
+      costContext: { totalCost: "0" }
     })
   );
 });

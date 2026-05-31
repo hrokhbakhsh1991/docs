@@ -7,6 +7,19 @@ import { RegistrationsController } from "./registrations.controller";
 import { RegistrationQuoteApplicationService } from "./application/registration-quote.application.service";
 import { TypeOrmRegistrationsReadRepository } from "./repositories/typeorm-registrations-read.repository";
 import { TypeOrmRegistrationsApplicationService } from "./repositories/typeorm-registrations-application.service";
+import { RegistrationTransactionRunner } from "./services/registration-transaction.runner";
+import { RegistrationCapacityService } from "./services/registration-capacity.service";
+import { RegistrationPricingService } from "./services/registration-pricing.service";
+import { RegistrationTourAccessService } from "./services/registration-tour-access.service";
+import { RegistrationPersistenceService } from "./services/registration-persistence.service";
+import { RegistrationPlacementService } from "./services/registration-placement.service";
+import { RegistrationQueryService } from "./services/registration-query.service";
+import { RegistrationStateMachineService } from "./services/registration-state-machine.service";
+import { RegistrationWaitlistService } from "./services/registration-waitlist.service";
+import { RegistrationCreationService } from "./services/registration-creation.service";
+import { RegistrationAuthenticatedBookingInputService } from "./services/registration-authenticated-booking-input.service";
+import { REGISTRATION_LOOKUP_PORT } from "./domain/ports/registration-lookup.port";
+import { RegistrationPublicFlowMetrics } from "./services/registration-public-flow-metrics";
 import { REGISTRATIONS_APPLICATION_PORT } from "./domain/ports/registrations-application.port";
 import { REGISTRATIONS_READ_REPOSITORY_PORT } from "./domain/ports/registrations-read.port";
 import { REGISTRATIONS_WRITE_REPOSITORY_PORT } from "./domain/ports/registrations-write.port";
@@ -68,6 +81,22 @@ import { RegistrationFinancePortsModule } from "./registration-finance-ports.mod
       useClass: TypeOrmRegistrationsWriteRepository,
     },
     UpdateRegistrationPaymentHandler,
+    RegistrationPublicFlowMetrics,
+    RegistrationTransactionRunner,
+    RegistrationCapacityService,
+    RegistrationPricingService,
+    RegistrationTourAccessService,
+    RegistrationPersistenceService,
+    RegistrationPlacementService,
+    RegistrationQueryService,
+    RegistrationStateMachineService,
+    RegistrationWaitlistService,
+    RegistrationCreationService,
+    RegistrationAuthenticatedBookingInputService,
+    {
+      provide: REGISTRATION_LOOKUP_PORT,
+      useExisting: RegistrationAuthenticatedBookingInputService,
+    },
     TypeOrmRegistrationsApplicationService,
     {
       provide: REGISTRATIONS_APPLICATION_PORT,

@@ -85,7 +85,7 @@ test("getDenaliWizardPublishReadinessIssuesForTargetStatus: draft form still rep
     tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
   });
   const issues = getDenaliWizardPublishReadinessIssuesForTargetStatus(form, "active");
-  assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
+  assert.ok(issues.some((row) => row.code === "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
 });
 
 test("getDenaliWizardPublishReadinessIssues: active without geo fails publish gate", () => {
@@ -94,7 +94,7 @@ test("getDenaliWizardPublishReadinessIssues: active without geo fails publish ga
     tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
   });
   const issues = getDenaliWizardPublishReadinessIssues(form);
-  assert.ok(issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
+  assert.ok(issues.some((row) => row.code === "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES"));
 });
 
 test("getDenaliWizardPublishReadinessIssues: active event tour skips hidden gathering geo gate", () => {
@@ -120,7 +120,7 @@ test("getDenaliWizardPublishReadinessIssues: active event tour skips hidden gath
   });
   const issues = getDenaliWizardPublishReadinessIssues(form);
   assert.ok(
-    !issues.some((row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES"),
+    !issues.some((row) => row.code === "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES"),
     JSON.stringify(issues),
   );
 });
@@ -131,14 +131,14 @@ test("geo violations include RHF paths for review navigation", () => {
     tripDetails: { logistics: { gatheringPoints: [] }, overview: { customServiceLabels: [] }, metrics: {} },
   });
   const gatheringIssue = getDenaliWizardPublishReadinessIssues(missingGathering).find(
-    (row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+    (row) => row.code === "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
   );
   assert.equal(gatheringIssue?.path, "tripDetails.logistics.gatheringPoints");
 
   const missingStart = publishGateMountainForm({
     basicInfo: {
       publishStatus: "active",
-      startPoint: { addressText: "", latitude: undefined, longitude: undefined },
+      startPoint: { addressText: "", latitude: null, longitude: null },
     },
     tripDetails: {
       logistics: { gatheringPoints: [CONCRETE_GATHERING] },
@@ -147,7 +147,7 @@ test("geo violations include RHF paths for review navigation", () => {
     },
   });
   const startIssue = getDenaliWizardPublishReadinessIssues(missingStart).find(
-    (row) => row.code === "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+    (row) => row.code === "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
   );
   assert.equal(startIssue?.path, "basicInfo.startPoint");
 });
@@ -172,7 +172,7 @@ test("startPoint geo path resolves to denali_logistics in submit issue views", (
   const form = publishGateMountainForm({
     basicInfo: {
       publishStatus: "active",
-      startPoint: { addressText: "", latitude: undefined, longitude: undefined },
+      startPoint: { addressText: "", latitude: null, longitude: null },
     },
     tripDetails: {
       logistics: { gatheringPoints: [CONCRETE_GATHERING] },

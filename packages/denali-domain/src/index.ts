@@ -33,6 +33,7 @@ export {
   getDenaliFieldRegistryByStep,
   isDenaliAsyncAssetCanonicalPath,
   listDenaliRegistryCanonicalPaths,
+  type DenaliFieldRegistryEntry,
 } from "./registry/DenaliFieldRegistry";
 export { DENALI_GLOBAL_STRUCTURAL_INVARIANTS } from "./registry/denaliGlobalStructuralInvariants";
 export {
@@ -115,10 +116,13 @@ export type { TourWizardPrefillMeta } from "./adapters/tourWizardPrefillMeta";
 
 /** Validation */
 export {
+  denaliTourCreateSchemaRuleAware,
   getDenaliWizardSubmitIssues,
   getDenaliWizardStepIssues,
+  parseDenaliTourCreateForm,
   validateDenaliWizardForm,
   denaliTourCreateFormSchema,
+  type DenaliWizardValidationOptions,
 } from "./validation/denaliWizardFormZod";
 export {
   safeParseDenaliCanonicalFromWizardForm,

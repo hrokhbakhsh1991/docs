@@ -49,9 +49,10 @@ function cloneLocation(
   };
 }
 
-/** Clone isolation: new primary key per photo; URL/metadata unchanged. */
+/** Clone isolation: new primary key per photo; metadata only (no presigned URL). */
 function clonePhoto(photo: TripDetailsDayPlanPhoto): TripDetailsDayPlanPhoto {
-  return { ...photo, id: randomUUID() };
+  const { url: _url, ...rest } = photo;
+  return { ...rest, id: randomUUID() };
 }
 
 function cloneDayPlan(row: TripDetailsDayPlan): TripDetailsDayPlan {

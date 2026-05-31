@@ -80,8 +80,7 @@ function StepBody({ stepId }: { stepId: DenaliCreateWizardStepId }) {
 }
 
 function AuditBasicsStep() {
-  const { basicsSelection, confirmUserCategorySelection, updateCanonicalBasics } =
-    useDenaliCanonical();
+  const { basicsSelection, updateCanonicalBasics } = useDenaliCanonical();
   return (
     <div data-testid="denali-step-basics">
       <select
@@ -89,7 +88,6 @@ function AuditBasicsStep() {
         value={basicsSelection.category}
         onChange={(e) => {
           const category = e.target.value as "mountain" | "event";
-          confirmUserCategorySelection(category);
           updateCanonicalBasics({ category });
         }}
       >
@@ -163,7 +161,7 @@ function SyncContextFixture({
 
   return (
     <DenaliFormHarness defaultValues={defaultValues}>
-      {({ formMethods }) => (
+      {({ formMethods }: { formMethods: UseFormReturn<DenaliCreateTourWizardForm> }) => (
         <DenaliWizardSyncProvider isSyncing={false}>
           <DenaliWizardNavigationProvider
             visibleSteps={visibleSteps}

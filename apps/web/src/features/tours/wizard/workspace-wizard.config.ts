@@ -15,11 +15,21 @@ export type TourWizardMode = "classic" | "denali";
 export type WorkspaceWizardConfig = {
   readonly profile: TourFormProfile;
   readonly wizardMode: TourWizardMode;
+  /** DOM / telemetry rail identifier for the active wizard shell (`data-wizard-rail`). */
+  readonly railId: string;
   readonly roots: readonly string[];
   readonly inactiveFieldGroups: readonly WizardFieldGroupSlug[];
   readonly wizardCapacityStepRedundant: boolean;
   readonly workspaceDefinitionVersion: number | null;
 };
+
+/** Profile-scoped wizard rail id for shell layout attributes and test hooks. */
+export function resolveWizardRailId(profile: TourFormProfile | null | undefined): string {
+  if (profile == null) {
+    return "generic_base";
+  }
+  return getWizardConfig(profile).railId;
+}
 
 /** Profiles registered with Denali workspace UI in `@repo/shared-contracts`. */
 export const DENALI_WIZARD_PROFILES = ["denali_pilot", "urban_event"] as const satisfies readonly TourFormProfile[];
@@ -35,9 +45,12 @@ export function buildWizardConfig(profile: TourFormProfile): WorkspaceWizardConf
   const descriptor = getTourFormProfileDescriptor(profile);
   const workspace = getTourWorkspaceDefinition(profile);
 
+  const wizardMode = workspace?.ui.wizardMode ?? "classic";
+
   return {
     profile,
-    wizardMode: workspace?.ui.wizardMode ?? "classic",
+    wizardMode,
+    railId: wizardMode === "denali" ? "denali" : "generic_base",
     roots: workspace?.roots ?? [],
     inactiveFieldGroups: descriptor.inactiveFieldGroups,
     wizardCapacityStepRedundant: descriptor.wizardCapacityStepRedundant,

@@ -5,7 +5,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/app/*": ["./app/*"],
-      "@/lib/*": ["./lib/*"]
+      "@/lib/*": ["./lib/*"],
+      "@test-utils/*": ["./tests/utils/*"],
+      "@test-utils": ["./tests/utils/index.ts"]
     },
     "lib": [
       "dom",

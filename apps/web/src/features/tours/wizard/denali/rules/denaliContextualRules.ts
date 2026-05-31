@@ -15,7 +15,7 @@ import { getDenaliFormPathValue } from "../denaliFormPathUtils";
 import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
-} from "../registry/denaliFieldRegistryData";
+} from "@repo/denali-domain";
 import type { DenaliContextualRule } from "../registry/DenaliFieldRegistry.types";
 import { getCapabilitiesForProfile } from "@/lib/workspace/workspace-capabilities";
 import type { TourFormProfile } from "@repo/types";

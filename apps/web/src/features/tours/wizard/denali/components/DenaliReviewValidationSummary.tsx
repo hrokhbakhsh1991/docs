@@ -22,7 +22,7 @@ import {
 } from "../validation/denaliWizardPublishReadiness";
 import { useWizardErrorHydrator } from "./WizardErrorHydrator";
 
-type DenaliReviewValidationSummaryProps = {
+export type DenaliReviewValidationSummaryProps = {
   /** When set, clicking an error jumps to the wizard step and focuses the field. */
   onFocusField?: DenaliSubmitErrorFocusHandler;
   /**
@@ -125,7 +125,7 @@ export function DenaliReviewValidationSummary({
   const t = useTranslations("tours.denali");
   const { ruleSet } = useDenaliCanonical();
   const navigation = useDenaliWizardNavigationOptional();
-  const form = useDenaliWizardFormSnapshot();
+  const form = useDenaliWizardFormSnapshot({ debounceMs: 0 });
 
   const visibleSteps = useMemo(
     () => getDenaliWizardVisibleSteps(form, ruleSet),

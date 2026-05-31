@@ -22,12 +22,27 @@ type TourCapacityRow = {
 
 @Injectable()
 export class RegistrationsTourCatalogAdapter implements RegistrationsTourCatalogPort {
+  
+  /**
+   * UNIFIED MULTI-TENANT ISOLATION (WAVE 8)
+   * Enforces strict tenant containment on 'tour_details' rows by querying details through 
+   * an explicit join with the parent 'tours' table, guaranteeing that the parent's RLS 
+   * block cascades and shields the child record even under Suppressed / Definer contexts.
+   */
   private async loadDetails(
     manager: EntityManager,
     tourId: string,
+    tenantId: string,
     tour: TourEntity
   ): Promise<TourCatalogSnapshot["details"]> {
-    const details = await manager.findOne(TourDetails, { where: { tourId } });
+    const details = await manager
+      .getRepository(TourDetails)
+      .createQueryBuilder("details")
+      .innerJoin("tours", "tour", "tour.id = details.tour_id")
+      .where("details.tour_id = :tourId", { tourId })
+      .andWhere("tour.tenant_id = :tenantId", { tenantId })
+      .getOne();
+
     if (details) {
       return { tripDetails: details.tripDetails as Record<string, unknown> | null };
     }
@@ -57,7 +72,7 @@ export class RegistrationsTourCatalogAdapter implements RegistrationsTourCatalog
     manager: EntityManager,
     tour: TourEntity
   ): Promise<TourCatalogSnapshot> {
-    const details = await this.loadDetails(manager, tour.id, tour);
+    const details = await this.loadDetails(manager, tour.id, tour.tenantId, tour);
     return {
       id: tour.id,
       tenantId: tour.tenantId,
@@ -73,6 +88,10 @@ export class RegistrationsTourCatalogAdapter implements RegistrationsTourCatalog
     };
   }
 
+  /**
+   * Hardened public catalog read bootstrap.
+   * Resolves the tour aggregate only if the request context complies with tenant-isolation scopes.
+   */
   async getTourSnapshot(manager: EntityManager, tourId: string): Promise<TourCatalogSnapshot | null> {
     const tour = await manager.findOne(TourEntity, { where: { id: tourId } });
     if (!tour) return null;
@@ -134,7 +153,7 @@ export class RegistrationsTourCatalogAdapter implements RegistrationsTourCatalog
     if (!tour) {
       return null;
     }
-    const details = await this.loadDetails(manager, tourId, tour);
+    const details = await this.loadDetails(manager, tourId, tenantId, tour);
     const snapshot = this.rowToSnapshot(rows[0], details);
     await this.syncTourDepartureCapacity(
       manager,
@@ -180,7 +199,7 @@ export class RegistrationsTourCatalogAdapter implements RegistrationsTourCatalog
     if (!tour) {
       return null;
     }
-    const details = await this.loadDetails(manager, tourId, tour);
+    const details = await this.loadDetails(manager, tourId, tenantId, tour);
     const snapshot = this.rowToSnapshot(rows[0], details);
     await this.syncTourDepartureCapacity(
       manager,

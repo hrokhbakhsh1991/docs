@@ -87,20 +87,39 @@ function buildHeaders(options?: ApiRequestOptions, extra?: HeadersInit): Headers
   return headers;
 }
 
+function buildFetchInit(
+  init: RequestInit,
+  options?: ApiRequestOptions,
+): RequestInit {
+  return {
+    ...init,
+    credentials: init.credentials ?? "include",
+    cache: init.cache ?? "no-store",
+    signal: options?.signal ?? init.signal,
+  };
+}
+
 export const bffBrowserClient = {
   async get<T>(path: string, options?: ApiRequestOptions): Promise<T> {
-    const res = await fetch(path, { credentials: "include", cache: "no-store" });
+    const res = await fetch(
+      path,
+      buildFetchInit({ credentials: "include", cache: "no-store" }, options),
+    );
     return parseJsonResponse<T>(res, options);
   },
 
   async post<T>(path: string, body: unknown, options?: ApiRequestOptions): Promise<T> {
-    const res = await fetch(path, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-      headers: buildHeaders(options),
-      body: JSON.stringify(body),
-    });
+    const res = await fetch(
+      path,
+      buildFetchInit(
+        {
+          method: "POST",
+          headers: buildHeaders(options),
+          body: JSON.stringify(body),
+        },
+        options,
+      ),
+    );
     return parseJsonResponse<T>(res, options);
   },
 
@@ -112,43 +131,54 @@ export const bffBrowserClient = {
     } else if (typeof idem === "string" && idem.trim()) {
       headers.set("Idempotency-Key", idem.trim());
     }
-    const res = await fetch(path, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-      headers,
-      body: formData,
-    });
+    const res = await fetch(
+      path,
+      buildFetchInit(
+        {
+          method: "POST",
+          headers,
+          body: formData,
+        },
+        options,
+      ),
+    );
     return parseJsonResponse<T>(res, options);
   },
 
   async patch<T>(path: string, body: unknown, options?: ApiRequestOptions): Promise<T> {
-    const res = await fetch(path, {
-      method: "PATCH",
-      credentials: "include",
-      cache: "no-store",
-      headers: buildHeaders(options),
-      body: JSON.stringify(body),
-    });
+    const res = await fetch(
+      path,
+      buildFetchInit(
+        {
+          method: "PATCH",
+          headers: buildHeaders(options),
+          body: JSON.stringify(body),
+        },
+        options,
+      ),
+    );
     return parseJsonResponse<T>(res, options);
   },
 
   async delete<T>(path: string, options?: ApiRequestOptions): Promise<T> {
-    const res = await fetch(path, {
-      method: "DELETE",
-      credentials: "include",
-      cache: "no-store",
-      headers: buildHeaders(options),
-    });
+    const res = await fetch(
+      path,
+      buildFetchInit(
+        {
+          method: "DELETE",
+          headers: buildHeaders(options),
+        },
+        options,
+      ),
+    );
     return parseJsonResponse<T>(res, options);
   },
 
   async getBlob(path: string, options?: ApiRequestOptions): Promise<Blob> {
-    const res = await fetch(path, {
-      credentials: "include",
-      cache: "no-store",
-      headers: buildHeaders(options),
-    });
+    const res = await fetch(
+      path,
+      buildFetchInit({ headers: buildHeaders(options) }, options),
+    );
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw toApiError(res.status, data, options);

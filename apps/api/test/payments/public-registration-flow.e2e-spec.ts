@@ -60,7 +60,9 @@ test("public register returns paymentIntent when requiresPayment=true", async ()
       async resolveTenantFromTourId() {
         return "tenant-1";
       }
-    } as never
+    } as never,
+    {} as never,
+    {} as never,
   );
 
   const response = await controller.publicRegister("tour-1" as never, {
@@ -116,7 +118,9 @@ test("public register returns waitlist position when capacity full", async () =>
       async resolveTenantFromTourId() {
         return "tenant-1";
       }
-    } as never
+    } as never,
+    {} as never,
+    {} as never,
   );
 
   const response = await controller.publicRegister("tour-1" as never, {

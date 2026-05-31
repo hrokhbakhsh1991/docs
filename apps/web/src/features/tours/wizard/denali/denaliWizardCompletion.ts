@@ -4,7 +4,7 @@ import {
   DENALI_FIELD_REGISTRY,
   type DenaliFieldRegistryEntry,
 } from "./registry/DenaliFieldRegistry";
-import type { DenaliZodFieldKind } from "./registry/denaliFieldRegistryData";
+import type { DenaliZodFieldKind } from "@repo/denali-domain";
 
 export type DenaliWizardCompletionScore = {
   percentage: number;

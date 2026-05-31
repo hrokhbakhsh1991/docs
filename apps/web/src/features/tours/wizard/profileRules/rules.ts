@@ -321,13 +321,17 @@ function buildFieldRulesForProfile(
   inactiveGroups: ReadonlySet<FieldGroupId>,
 ): ReadonlyMap<WizardFieldPath, FieldRule> {
   const overrides = PROFILE_FIELD_REQUIRED_OVERRIDES[profile];
+  const requiresMountainTransportEconomics =
+    getTourFormProfileDescriptor(profile).invariants.requiresMountainTransportEconomics;
   const entries = BASE_FIELD_RULES.map((rule) => {
     const groupHidden =
       rule.belongsToGroup !== "always" && inactiveGroups.has(rule.belongsToGroup);
+    const mountainEconomicsHidden =
+      !requiresMountainTransportEconomics && rule.path === "logistics.fuelShareToman";
     const overriddenRequired = overrides.get(rule.path);
     const next: FieldRule = {
       ...rule,
-      visibility: groupHidden ? "hidden" : rule.visibility,
+      visibility: groupHidden || mountainEconomicsHidden ? "hidden" : rule.visibility,
       required: overriddenRequired ?? rule.required,
     };
     return [rule.path, next] as const;

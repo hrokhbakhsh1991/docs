@@ -17,12 +17,12 @@ function DenaliWizardClearAllPluginView(
   return (
     <div
       style={{ display: "flex", justifyContent: "flex-end" }}
-      data-testid="denali-wizard-clear-all-wrap"
+      data-testid="workspace-wizard-clear-all-wrap"
     >
       <Button
         type="button"
         variant="secondary"
-        data-testid="denali-wizard-clear-all"
+        data-testid="workspace-wizard-clear-all"
         onClick={() => {
           void props.onClearAll?.();
         }}
@@ -35,7 +35,7 @@ function DenaliWizardClearAllPluginView(
 
 /** Global create-wizard action: reset form + purge server draft. */
 export const denaliWizardClearAllPlugin: DenaliWizardHeaderPlugin = {
-  id: "denali-wizard-clear-all",
+  id: "workspace-wizard-clear-all",
   shouldRender: (context) => context.onClearAll != null,
   render: (context) => <DenaliWizardClearAllPluginView {...context} />,
 };

@@ -16,6 +16,7 @@ const nextConfig = {
   allowedDevOrigins: [
     "localhost",
     "*.localhost",
+    "workspace-test.localhost",
     "ws1-rbac.localhost",
     "ws2-rbac.localhost",
     "ws3-rbac.localhost",

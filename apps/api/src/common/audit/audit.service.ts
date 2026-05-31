@@ -99,17 +99,20 @@ export class AuditService {
       actor_user_id: actorUserId
     });
 
-    await this.tenantAudit.appendOrWarn({
-      tenantId,
-      actorUserId,
-      actor: input.actorDisplay,
-      userId: null,
-      action: input.action,
-      resourceType: input.resource?.type ?? "",
-      resourceId: input.resource?.id ?? null,
-      metadata,
-      requestId: correlationId,
-      clientIp
-    });
+    await this.tenantAudit.appendOrWarn(
+      {
+        tenantId,
+        actorUserId,
+        actor: input.actorDisplay,
+        userId: null,
+        action: input.action,
+        resourceType: input.resource?.type ?? "",
+        resourceId: input.resource?.id ?? null,
+        metadata,
+        requestId: correlationId,
+        clientIp
+      },
+      input.manager,
+    );
   }
 }

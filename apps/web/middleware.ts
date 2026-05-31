@@ -20,15 +20,32 @@ import { WORKSPACE_ASSERT_SKIP_HEADER } from "./lib/tenant/workspace-assert-skip
 
 const PROBE_RATE_WINDOW_MS = Number(process.env.WORKSPACE_PROBE_RATE_WINDOW_MS ?? "60000");
 const PROBE_RATE_MAX_PER_IP = Number(process.env.WORKSPACE_PROBE_RATE_MAX_PER_IP ?? "120");
+const PROBE_HIT_SWEEP_EVERY = 256;
 const probeHitsByIp = new Map<string, { count: number; windowStart: number }>();
+let probeHitChecks = 0;
+
+function pruneColdProbeHits(now: number): void {
+  for (const [ip, entry] of probeHitsByIp) {
+    if (now - entry.windowStart >= PROBE_RATE_WINDOW_MS) {
+      probeHitsByIp.delete(ip);
+    }
+  }
+}
 
 function isProbeRateLimited(ip: string | undefined): boolean {
   if (!ip?.trim() || !Number.isFinite(PROBE_RATE_WINDOW_MS) || !Number.isFinite(PROBE_RATE_MAX_PER_IP)) {
     return false;
   }
   const now = Date.now();
+  probeHitChecks += 1;
+  if (probeHitChecks % PROBE_HIT_SWEEP_EVERY === 0) {
+    pruneColdProbeHits(now);
+  }
   const entry = probeHitsByIp.get(ip);
   if (!entry || now - entry.windowStart >= PROBE_RATE_WINDOW_MS) {
+    if (entry && now - entry.windowStart >= PROBE_RATE_WINDOW_MS) {
+      probeHitsByIp.delete(ip);
+    }
     probeHitsByIp.set(ip, { count: 1, windowStart: now });
     return false;
   }

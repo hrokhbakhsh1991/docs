@@ -4,9 +4,8 @@
  * Auth transport (browser → Nest):
  * - The HttpOnly `session` cookie is scoped to the **Next.js origin** (`:3000`) only — it is **not**
  *   sent to Nest on another port (`:3001`) even with `withCredentials: true`.
- * - **Source of truth for Nest:** `localStorage` key `tour_ops_session_token` (`lib/auth/session.ts`),
- *   written on login (`persistSessionToken`), workspace switch, and hydrate
- *   (`session-hydrate.ts` overwrites when the cookie JWT differs from the mirror).
+ * - **Source of truth for Nest:** scoped `localStorage` mirror (`tour_ops_session_token:{scope}` in
+ *   `lib/auth/session.ts`), written on login, workspace switch, and hydrate.
  * - The request interceptor attaches `Authorization: Bearer <token>` from `getStoredSessionToken()`.
  * - Same-origin BFF routes (`/api/*`) use the cookie via `bffBrowserFetch` + `credentials: "include"`.
  * - Route protection in `middleware.ts` relies on the HttpOnly cookie only.
@@ -266,6 +265,8 @@ export type ApiRequestOptions = {
   skipGlobalErrorToast?: boolean;
   /** Override: use this JWT instead of the token from session storage. */
   authToken?: string;
+  /** Abort in-flight request when TanStack Query cancels or workspace switches. */
+  signal?: AbortSignal;
 };
 
 function mergeRequestConfig(options?: ApiRequestOptions) {
@@ -283,6 +284,7 @@ function mergeRequestConfig(options?: ApiRequestOptions) {
   }
   return {
     headers,
+    signal: options?.signal,
     attachIdempotency: options?.idempotencyKey === true,
     skipAuthRedirectOn401: options?.skipAuthRedirectOn401,
     skip403Redirect: options?.skip403Redirect,
@@ -341,21 +343,12 @@ function isLikelyNetworkOrTimeout(error: AxiosError): boolean {
   return false;
 }
 
-function devLogApiFailure(error: AxiosError): void {
-  if (process.env.NODE_ENV !== "development") return;
-  const _status = error.response?.status;
-  const _code = error.code;
-  const _method = (error.config?.method ?? "GET").toUpperCase();
-  const _url = error.config?.url ?? "unknown";
-}
-
 axiosApi.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (typeof window === "undefined") {
       return Promise.reject(error);
     }
-    devLogApiFailure(error);
 
     const cfg = error.config;
     const _status = error.response?.status;

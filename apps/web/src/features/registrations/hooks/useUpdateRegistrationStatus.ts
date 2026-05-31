@@ -5,10 +5,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { RegistrationStatus } from "@repo/types";
 
 import { invalidateWorkspaceQueries } from "@/features/registrations/invalidate-workspace-queries";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { updateRegistrationStatus } from "@/lib/services/registrations.service";
 
 export function useUpdateRegistrationStatus(tourId: string) {
   const queryClient = useQueryClient();
+  const tenantId = useWorkspaceQueryScope();
 
   return useMutation({
     mutationFn: async ({
@@ -21,7 +23,10 @@ export function useUpdateRegistrationStatus(tourId: string) {
       expected_row_version: number;
     }) => updateRegistrationStatus(id, { targetStatus, expected_row_version }),
     onSuccess: () => {
-      invalidateWorkspaceQueries(queryClient, tourId);
+      const scopedTenantId = tenantId?.trim();
+      if (scopedTenantId) {
+        invalidateWorkspaceQueries(queryClient, scopedTenantId, tourId);
+      }
     },
   });
 }

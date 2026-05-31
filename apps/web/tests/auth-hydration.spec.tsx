@@ -6,7 +6,7 @@ import "@/lib/test/auth-vitest-mocks";
 
 import React, { useEffect, useRef } from "react";
 import { act, render, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 
 import { apiClient, axiosApi } from "@/lib/api-client";
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context";
@@ -51,7 +51,10 @@ function ApiProbeAfterHydrate({
 describe("Auth hydration session bridge", () => {
   const sessionToken = buildTestSessionJwt();
   let fetchMock: ReturnType<typeof installAuthFetchMock>;
-  let axiosGetSpy: ReturnType<typeof vi.spyOn>;
+  let axiosGetSpy: MockInstance<
+    [url: string, config?: import("axios").AxiosRequestConfig],
+    Promise<unknown>
+  >;
 
   afterEach(() => {
     vi.useRealTimers();
@@ -77,8 +80,8 @@ describe("Auth hydration session bridge", () => {
     resetAuthTestStorage();
   });
 
-  it("mirrors cookie session into sessionStorage and sends Bearer after isHydrated", async () => {
-    expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBeNull();
+  it("mirrors cookie session into localStorage and sends Bearer after isHydrated", async () => {
+    expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBeNull();
 
     let authorizationFromClient: string | undefined;
     const onAuthorizedRequest = vi.fn((auth?: string) => {
@@ -91,7 +94,7 @@ describe("Auth hydration session bridge", () => {
     );
 
     await waitFor(() => {
-      expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe(sessionToken);
+      expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe(sessionToken);
     });
 
     await waitFor(() => {
@@ -117,8 +120,8 @@ describe("Auth hydration session bridge", () => {
     );
   });
 
-  it("retains sessionStorage when hydrate aborts before timeout budget (e.g. unmount)", async () => {
-    sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-abort");
+  it("retains localStorage mirror when hydrate aborts before timeout budget (e.g. unmount)", async () => {
+    localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-abort");
     fetchMock.mockRejectedValue(new DOMException("The operation was aborted.", "AbortError"));
 
     render(
@@ -128,7 +131,7 @@ describe("Auth hydration session bridge", () => {
     );
 
     await waitFor(() => {
-      expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-abort");
+      expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-abort");
     });
   });
 
@@ -137,7 +140,7 @@ describe("Auth hydration session bridge", () => {
     async () => {
       vi.useFakeTimers();
       let callCount = 0;
-      sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-timeout");
+      localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-timeout");
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
       fetchMock.mockImplementation((_input, init) => {
@@ -195,15 +198,15 @@ describe("Auth hydration session bridge", () => {
         expect(hydrateProbe()?.getAttribute("data-user-id")).toBe(DEFAULT_TEST_USER_ID);
       });
 
-      expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-timeout");
+      expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-timeout");
 
       warnSpy.mockRestore();
     },
     10_000,
   );
 
-  it("retains sessionStorage mirror on transient HTTP 503", async () => {
-    sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-503");
+  it("retains localStorage mirror on transient HTTP 503", async () => {
+    localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "keep-on-503");
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url.includes("/api/auth/session")) {
@@ -215,12 +218,12 @@ describe("Auth hydration session bridge", () => {
     render(<AuthProvider>{null}</AuthProvider>);
 
     await waitFor(() => {
-      expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-503");
+      expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBe("keep-on-503");
     });
   });
 
-  it("clears sessionStorage mirror when hydration reports unauthenticated", async () => {
-    sessionStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "stale-token");
+  it("clears localStorage mirror when hydration reports unauthenticated", async () => {
+    localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, "stale-token");
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
       if (url.includes("/api/auth/session")) {
@@ -235,7 +238,7 @@ describe("Auth hydration session bridge", () => {
     render(<AuthProvider>{null}</AuthProvider>);
 
     await waitFor(() => {
-      expect(sessionStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBeNull();
+      expect(localStorage.getItem(SESSION_TOKEN_STORAGE_KEY)).toBeNull();
     });
   });
 });

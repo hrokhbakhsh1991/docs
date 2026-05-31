@@ -60,12 +60,12 @@ function setDenaliFormLeaf(
   setDenaliFormPathValue(form, formPath, value);
 }
 
-export function clearDenaliNonVisibleFormValues(
+/** Canonical paths whose values should be stripped (rule-model hidden + contextual visibility). */
+export function collectDenaliNonVisibleCanonicalPaths(
   form: DenaliCreateTourWizardForm,
   model: DenaliRuleModel,
   uiOptions?: DenaliUIContextOptions,
-): DenaliCreateTourWizardForm {
-  const next = cloneDenaliFormSections(form);
+): readonly string[] {
   const pathsToClear = new Set<string>();
 
   for (const path of getHiddenFieldPathsFromModel(model)) {
@@ -79,6 +79,33 @@ export function clearDenaliNonVisibleFormValues(
       pathsToClear.add(path);
     }
   }
+
+  return [...pathsToClear];
+}
+
+/** RHF dot paths for {@link collectDenaliNonVisibleCanonicalPaths} (error eviction / clearErrors). */
+export function collectDenaliNonVisibleFormPaths(
+  form: DenaliCreateTourWizardForm,
+  model: DenaliRuleModel,
+  uiOptions?: DenaliUIContextOptions,
+): readonly string[] {
+  const formPaths = new Set<string>();
+  for (const canonicalPath of collectDenaliNonVisibleCanonicalPaths(form, model, uiOptions)) {
+    if (isDenaliAsyncAssetCanonicalPath(canonicalPath)) {
+      continue;
+    }
+    formPaths.add(mapDenaliCanonicalToFormPath(canonicalPath));
+  }
+  return [...formPaths];
+}
+
+export function clearDenaliNonVisibleFormValues(
+  form: DenaliCreateTourWizardForm,
+  model: DenaliRuleModel,
+  uiOptions?: DenaliUIContextOptions,
+): DenaliCreateTourWizardForm {
+  const next = cloneDenaliFormSections(form);
+  const pathsToClear = collectDenaliNonVisibleCanonicalPaths(form, model, uiOptions);
 
   for (const path of pathsToClear) {
     if (isDenaliAsyncAssetCanonicalPath(path)) {

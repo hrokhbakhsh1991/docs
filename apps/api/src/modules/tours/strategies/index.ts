@@ -19,7 +19,7 @@ export {
 } from "./workspace.strategy.builders";
 
 export { GeneralWorkspaceStrategy } from "./general.workspace.strategy";
-export { DenaliWorkspaceStrategy } from "./denali.workspace.strategy";
+export { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
 
 export {
   DENALI_STRATEGY_PROFILES,

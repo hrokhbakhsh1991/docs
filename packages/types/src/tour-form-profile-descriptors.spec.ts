@@ -11,7 +11,7 @@ import {
   __assertDescriptorTotality,
   getTourFormProfileDescriptor,
 } from "./tour-form-profile-descriptors";
-import { URBAN_LOGISTICS_WHITELIST_KEYS } from "./tour-domain-profile";
+import { URBAN_LOGISTICS_WHITELIST_KEYS, MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS } from "./tour-domain-profile";
 import {
   MOUNTAIN_ONLY_TRIP_DETAILS_OVERVIEW_KEYS as MOUNTAIN_ONLY_TRIP_DETAILS_OVERVIEW_KEYS_SHIM,
   type MountainOnlyTripDetailsOverviewKey as MountainOnlyTripDetailsOverviewKey_SHIM,
@@ -75,12 +75,13 @@ describe("TOUR_FORM_PROFILE_DESCRIPTORS — strip deltas mirror server stripTrip
     assert.deepEqual(d.logisticsWhitelist, URBAN_LOGISTICS_WHITELIST_KEYS);
   });
 
-  it("cinema_event clears participation + itinerary day plans, keeps logistics + transport modes", () => {
+  it("cinema_event clears participation + itinerary day plans, strips fuelShareToman, keeps logistics + transport modes", () => {
     const d = TOUR_FORM_PROFILE_DESCRIPTORS.cinema_event.strip;
     assert.deepEqual([...d.clearsTripDetailsRoots].sort(), ["participation"]);
     assert.deepEqual([...d.itineraryKeysToDelete].sort(), ["dayPlans", "segmentActivities"]);
     assert.equal(d.clearsRootTransportModes, false);
     assert.equal(d.logisticsWhitelist, undefined);
+    assert.deepEqual(d.logisticsKeysToDelete, MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS);
   });
 
   it("general / mountain_outdoor / nature_trip / cultural_tour have empty strip deltas (no profile-specific server strip)", () => {

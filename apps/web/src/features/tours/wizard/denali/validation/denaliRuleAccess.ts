@@ -5,6 +5,7 @@ export {
   DENALI_RAIL_TEST_FORCE_STEP_IDS,
   DENALI_STRUCTURAL_RAIL_STEPS,
   clearDenaliNonVisibleFormValues,
+  collectDenaliNonVisibleFormPaths,
   getDenaliStepPickShape,
   getDenaliWizardVisibleSteps,
   hasDenaliWizardClassification,

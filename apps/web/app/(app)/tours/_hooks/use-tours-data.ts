@@ -1,9 +1,16 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
+import { useAuthBffQueryGateForTenant } from "@/hooks/use-auth-bff-query-gate";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { tourKeys } from "@/lib/query-keys";
-import { getTours, type GetToursParams, type TourDetailDto } from "@/lib/services/tours.service";
+import {
+  getTours,
+  type GetToursParams,
+  type PaginatedToursResult,
+  type TourDetailDto,
+} from "@/lib/services/tours.service";
 
 import type { TourListQueryModel } from "./query-model";
 
@@ -29,11 +36,12 @@ export function useToursData(
   error: Error | null;
   refetch: () => void;
 } {
-  const enabled = options?.enabled ?? true;
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: [...tourKeys.lists(), query],
-    queryFn: () => getTours(buildGetToursParams(query)),
-    placeholderData: keepPreviousData,
+  const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
+  const enabled = (options?.enabled ?? true) && authBffQueryEnabled;
+  const { data, isLoading, isFetching, error, refetch } = useQuery<PaginatedToursResult>({
+    queryKey: [...tourKeys.listRoot(tenantId ?? ""), query],
+    queryFn: ({ signal }) => getTours(buildGetToursParams(query), { signal }),
     enabled,
   });
 

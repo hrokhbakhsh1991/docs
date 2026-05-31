@@ -4,6 +4,29 @@ import { PaymentCaptureLedgerAuthorityService } from "../ledger/payment-capture-
 import { PaymentRefundLedgerAuthorityService } from "../ledger/repositories/payment-refund-ledger-authority.service";
 import { PaymentStatus } from "../../payments/domain/payment.types";
 
+const UUID_V4_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function resolveValidatedEventTenantId(
+  payload: Record<string, unknown>,
+  scopedTenantId: string,
+): string {
+  const fromPayloadRaw =
+    (typeof payload.tenantId === "string" && payload.tenantId.trim()) ||
+    (typeof payload.tenant_id === "string" && payload.tenant_id.trim()) ||
+    "";
+  const scoped = scopedTenantId.trim().toLowerCase();
+  const fromPayload = fromPayloadRaw.trim().toLowerCase();
+
+  if (!fromPayload || !UUID_V4_REGEX.test(fromPayload)) {
+    throw new Error("PAYMENT_LEDGER_SYNC_TENANT_ID_INVALID");
+  }
+  if (scoped && fromPayload !== scoped) {
+    throw new Error("PAYMENT_LEDGER_SYNC_TENANT_SCOPE_MISMATCH");
+  }
+  return fromPayload;
+}
+
 @Injectable()
 export class PaymentLedgerSyncListener {
   private readonly logger = new Logger(PaymentLedgerSyncListener.name);
@@ -13,25 +36,35 @@ export class PaymentLedgerSyncListener {
     private readonly paymentRefundLedgerAuthority: PaymentRefundLedgerAuthorityService
   ) {}
 
-  async handle(manager: EntityManager, _tenantId: string, payload: Record<string, unknown>): Promise<void> {
+  async handle(manager: EntityManager, scopedTenantId: string, payload: Record<string, unknown>): Promise<void> {
     const paymentId = payload.entityId as string;
     const newStatus = payload.newStatus as string;
-    
+
     if (!paymentId) return;
 
     if (newStatus !== PaymentStatus.PAID && newStatus !== PaymentStatus.REFUNDED) {
       return;
     }
 
+    const tenantId = resolveValidatedEventTenantId(payload, scopedTenantId);
+
     try {
       const [paymentRow] = await manager.query(
-        `SELECT id, tenant_id AS "tenantId", registration_id AS "registrationId", amount, currency, paid_at AS "paidAt", refunded_at AS "refundedAt" FROM payments WHERE id = $1`,
-        [paymentId]
+        `SELECT id, tenant_id AS "tenantId", registration_id AS "registrationId", amount, currency, paid_at AS "paidAt", refunded_at AS "refundedAt"
+         FROM payments
+         WHERE id = $1 AND tenant_id = $2`,
+        [paymentId, tenantId],
       );
 
       if (!paymentRow) {
-        this.logger.warn(`Payment ${paymentId} not found for ledger sync`);
+        this.logger.warn(
+          `Payment ${paymentId} not found for ledger sync in tenant ${tenantId}`,
+        );
         return;
+      }
+
+      if (paymentRow.tenantId?.trim().toLowerCase() !== tenantId) {
+        throw new Error("PAYMENT_LEDGER_SYNC_TENANT_ROW_MISMATCH");
       }
 
       if (newStatus === PaymentStatus.PAID) {

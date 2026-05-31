@@ -80,8 +80,7 @@ export function TourWorkspaceTransportTab() {
 
       {showDeficit ? (
         <Alert variant="error" title={copy.deficitTitle} role="alert" data-testid="transport-deficit-alert">
-          <p style={{ margin: 0 }}>{copy.deficitMessage}</p>
-          <p style={{ margin: "0.5rem 0 0", fontSize: "var(--text-small-size)" }}>{copy.deficitMessageFa}</p>
+          <p style={{ margin: 0 }}>{copy.deficitMessageFa}</p>
         </Alert>
       ) : null}
 

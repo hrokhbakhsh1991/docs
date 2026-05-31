@@ -5,16 +5,17 @@ import {
   installSmokeTourOpsSessionToken,
   installTourWizardSettingsRoutes,
   installUrbanWizardE2eSeed,
+  SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
 /**
  * Smoke: Denali host serves the 5-step MVP create wizard shell (no live API required for DOM).
- * Run: `PW_BASE_URL=http://denali.localhost:3000 pnpm run build:smoke && PW_BASE_URL=http://denali.localhost:3000 playwright test -c playwright.smoke.config.ts src/features/tours/__tests__/smoke/10-denali-wizard-shell.spec.ts`
+ * Run: `TEST_PLATFORM_BASE_URL=http://workspace-test.localhost:3000 pnpm run build:smoke && playwright test -c playwright.smoke.config.ts src/features/tours/__tests__/smoke/10-denali-wizard-shell.spec.ts`
  */
 test.describe("denali tour create wizard shell", () => {
   test.beforeEach(async ({ page, context }) => {
 
-    const baseURL = test.info().project.use.baseURL || "http://denali.localhost:3000";
+    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
     await installUrbanWizardE2eSeed(page);
     await installLeaderWorkspaceSessionRoute(page);
     await installSmokeTourOpsSessionToken(page);
@@ -31,7 +32,7 @@ test.describe("denali tour create wizard shell", () => {
     expect(res?.status()).toBeDefined();
     expect(res!.status()).toBeLessThan(500);
 
-    const denali = page.getByTestId("denali-create-tour-wizard");
+    const denali = page.getByTestId("workspace-tour-wizard");
 
     // Wait for the Denali wizard shell to render
     await expect(denali).toBeVisible({ timeout: 15000 });

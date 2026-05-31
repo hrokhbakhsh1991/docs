@@ -8,7 +8,7 @@ import {
   getDenaliWizardSteps,
 } from "./denaliStepConfig";
 
-import { DENALI_FIELD_DEFINITIONS } from "./denali/registry/denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
 
 test("denaliStepRelocation: rail order matches phase 3 layout", () => {
   assert.deepEqual(getDenaliWizardSteps(), [

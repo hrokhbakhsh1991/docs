@@ -54,7 +54,8 @@ export type ExperienceLevel = (typeof EXPERIENCE_LEVEL_VALUES)[number];
 /** Structured day-by-day plan (same shape as legacy `tour_details.itinerary` JSON). */
 export interface TripDetailsDayPlanPhoto {
   id: string;
-  url: string;
+  /** Ephemeral presigned URL — populated on API read only; never persisted in JSONB. */
+  url?: string;
   filename: string;
   size: number;
   mimeType: string;
@@ -288,7 +289,7 @@ export interface TourTripDetails {
   policies?: TripDetailsPolicies;
   photos?: Array<{
     id: string;
-    url: string;
+    url?: string;
     filename: string;
     size: number;
     mimeType: string;

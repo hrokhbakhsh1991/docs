@@ -21,6 +21,7 @@ export const TOUR_PATCH_CONTRACT_DTO_KEYS = [
   "difficulty",
   "durationDays",
   "meetingPoint",
+  "metadata",
   "itinerary",
   "tripDetails",
 ] as const;
@@ -57,6 +58,7 @@ export const TOUR_PATCH_CONTRACT_RULES: readonly TourPatchContractRule[] = [
   { dtoKey: "difficulty", group: "tripDetails", requiredCapability: "tour.update.tripDetails" },
   { dtoKey: "durationDays", group: "tripDetails", requiredCapability: "tour.update.tripDetails" },
   { dtoKey: "meetingPoint", group: "tripDetails", requiredCapability: "tour.update.tripDetails" },
+  { dtoKey: "metadata", group: "core", requiredCapability: "tour.update.core" },
   { dtoKey: "itinerary", group: "tripDetails", requiredCapability: "tour.update.tripDetails" },
   { dtoKey: "tripDetails", group: "tripDetails", requiredCapability: "tour.update.tripDetails" },
 ] as const;

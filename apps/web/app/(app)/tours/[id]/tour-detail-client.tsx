@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import {
   Badge,
@@ -30,7 +30,7 @@ import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 
-import { apiLifecycleToFormStatus, lifecycleDisplayLabel } from "@/components/tours/tour-lifecycle";
+import { apiLifecycleToFormStatus } from "@/components/tours/tour-lifecycle";
 
 import { lifecycleBadgeVariant } from "./tour-detail-ui";
 import { TourTripDetailsPanel } from "./tour-trip-details-panel";
@@ -41,15 +41,13 @@ export type TourDetailClientProps = {
   tourId: string;
 };
 
-const breadcrumbTrail = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Tours", href: "/tours" },
-  { label: "Tour details" },
-] as const;
-
 export function TourDetailClient({ tourId }: TourDetailClientProps) {
   const router = useRouter();
+  const tDetail = useTranslations("tours.detail");
+  const tList = useTranslations("tours.list");
+  const tStatus = useTranslations("tours.status");
   const tTours = useTranslations("tours");
+  const tCard = useTranslations("tours.card");
   const { isHydrated, isAuthenticated, user } = useAuth();
 
   const liveApi = toursUseLiveApi();
@@ -57,6 +55,15 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   const { tour, isLoading, isFetching, isError, error, refetch } = useTourDetail(tourId, {
     enabled: queryEnabled,
   });
+
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: tList("breadcrumbHome"), href: "/dashboard" },
+      { label: tList("breadcrumbTours"), href: "/tours" },
+      { label: tour?.title?.trim() || tDetail("breadcrumbCurrent") },
+    ],
+    [tDetail, tList, tour?.title],
+  );
 
   const tripOverview = tour?.details?.tripDetails?.overview as
     | {
@@ -112,22 +119,24 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     gearOptionalIds,
   });
 
-  const errorMessage =
-    error instanceof ApiError
-      ? error.status === 404
-        ? "No tour was found with this id."
-        : error.message.trim() || "Could not load tour details. Please try again."
-      : "Could not load tour details. Please try again.";
+  const toursErrorMessage = useCallback(
+    (err: unknown): string => {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          return tDetail("errorNotFound");
+        }
+        return err.message.trim() || tDetail("errorLoadGeneric");
+      }
+      return tDetail("errorLoadConnection");
+    },
+    [tDetail],
+  );
 
   const chromeDescription =
     tour != null ? formatTourPriceUsd(extractTourPriceUsd(tour.costContext)) : undefined;
 
-  const documentTitle = tour?.title ?? "Tour details";
-
-  const tourSubtitle = useMemo(() => {
-    if (!tour) return undefined;
-    return lifecycleDisplayLabel(apiLifecycleToFormStatus(tour.lifecycleStatus));
-  }, [tour]);
+  const pageTitleDefault = tDetail("pageTitleDefault");
+  const documentTitle = tour?.title ?? pageTitleDefault;
 
   const resolveThemeLabel = (id: string): string => {
     const fromCatalog = themeNameById.get(id);
@@ -145,14 +154,14 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   if (liveApi && !isHydrated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Tour details"
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading session…" />
+            <LoadingState message={tDetail("loadingSession")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -162,19 +171,19 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   if (liveApi && isHydrated && !isAuthenticated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Tour details"
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Sign in required"
-              description="Your session is missing or expired. Sign in to load tour details."
+              title={tDetail("signInRequired")}
+              description={tDetail("signInRequiredDesc")}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in
+                  {tDetail("signIn")}
                 </Button>
               }
             />
@@ -187,19 +196,19 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   if (!liveApi && isHydrated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Tour details"
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Workspace API not configured"
-              description="Open this app on your workspace host (e.g. ws1-rbac.localhost) to load tour details."
+              title={tDetail("apiNotConfiguredTitle")}
+              description={tDetail("apiNotConfiguredDesc")}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-                  Back to dashboard
+                  {tDetail("backToDashboard")}
                 </Button>
               }
             />
@@ -212,14 +221,14 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
   if (isLoading) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Tour details"
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading tour…" />
+            <LoadingState message={tDetail("loadingTour")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -230,13 +239,17 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     return (
       <RegisteredWorkspacePage
         documentTitle={documentTitle}
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <ErrorState title="Could not load tour" message={errorMessage} onRetry={() => void refetch()} />
+            <ErrorState
+              title={tDetail("errorLoadTitle")}
+              message={toursErrorMessage(error)}
+              onRetry={() => void refetch()}
+            />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -247,18 +260,18 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
     return (
       <RegisteredWorkspacePage
         documentTitle={documentTitle}
-        title="Tour details"
-        breadcrumbItems={[...breadcrumbTrail]}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Tour not found"
-              description="No tour exists with this id."
+              title={tDetail("tourNotFoundTitle")}
+              description={tDetail("tourNotFoundDesc")}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-                  Back to tours
+                  {tDetail("backToTours")}
                 </Button>
               }
             />
@@ -270,12 +283,13 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
 
   const uiStatus = apiLifecycleToFormStatus(tour.lifecycleStatus);
   const locationLabel = formatTourLocationV2(tour);
-  const priceLabel = formatTourPriceUsd(extractTourPriceUsd(tour.costContext));
+  const priceUsd = extractTourPriceUsd(tour.costContext);
+  const priceLabel = priceUsd > 0 ? formatTourPriceUsd(priceUsd) : tCard("free");
   const descriptionText = (tour.description ?? "").trim();
   const capacityLabel =
     typeof tour.totalCapacity === "number" && Number.isFinite(tour.totalCapacity)
       ? String(tour.totalCapacity)
-      : "—";
+      : tDetail("emptyValue");
 
   const accessLevel = tour.accessLevel ?? "GUEST";
   const viewHints = tour.viewHints ?? { gpsUnlocked: false, gpsUnlockAt: null };
@@ -291,12 +305,20 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
 
   const detailRefreshing = Boolean(tour && !isLoading && isFetching);
 
+  const bookingSummary =
+    typeof tour.totalCapacity === "number"
+      ? tDetail("bookingSummaryWithCapacity", {
+          registered: tour.acceptedCount,
+          capacity: tour.totalCapacity,
+        })
+      : tDetail("bookingSummary", { registered: tour.acceptedCount });
+
   return (
     <RegisteredWorkspacePage
       documentTitle={documentTitle}
       title={tour.title}
       description={chromeDescription}
-      breadcrumbItems={[...breadcrumbTrail]}
+      breadcrumbItems={breadcrumbItems}
       actions={null}
     >
       <div
@@ -305,171 +327,170 @@ export function TourDetailClient({ tourId }: TourDetailClientProps) {
       >
         {detailRefreshing ? (
           <span className={styles.liveRegion} aria-live="polite">
-            Updating tour details
+            {tDetail("updatingLive")}
           </span>
         ) : null}
         <div className={styles.stack}>
-        <Card>
-          <CardHeader>
-            <div className={styles.headerRow}>
-              <CardTitle>Tour Information</CardTitle>
-              <Badge variant={lifecycleBadgeVariant(uiStatus)}>{lifecycleDisplayLabel(uiStatus)}</Badge>
-            </div>
-            {tourSubtitle ? <p className={styles.sectionLead}>{tourSubtitle}</p> : null}
-          </CardHeader>
-          <CardBody className={styles.panelBody}>
-            <dl className={styles.meta}>
-              <div className={styles.field}>
-                <dt className={styles.term}>Title</dt>
-                <dd className={styles.def}>{tour.title}</dd>
+          <Card>
+            <CardHeader>
+              <div className={styles.headerRow}>
+                <CardTitle>{tDetail("tourInformation")}</CardTitle>
+                <Badge variant={lifecycleBadgeVariant(uiStatus)}>{tStatus(uiStatus)}</Badge>
               </div>
-              <div className={`${styles.field} ${styles.fieldWide}`}>
-                <dt className={styles.term}>Description</dt>
-                <dd className={styles.def}>
-                  {descriptionText ? <p className={styles.descriptionBody}>{descriptionText}</p> : "—"}
-                </dd>
-              </div>
-              <div className={styles.field}>
-                <dt className={styles.term}>Location</dt>
-                <dd className={styles.def}>{locationLabel}</dd>
-              </div>
-              <div className={styles.field}>
-                <dt className={styles.term}>Capacity</dt>
-                <dd className={styles.def}>{capacityLabel}</dd>
-              </div>
-              <div className={styles.field}>
-                <dt className={styles.term}>Price</dt>
-                <dd className={styles.def}>{priceLabel}</dd>
-              </div>
-              {showTourChatLink ? (
+            </CardHeader>
+            <CardBody className={styles.panelBody}>
+              <dl className={styles.meta}>
                 <div className={styles.field}>
-                  <dt className={styles.term}>Communication link</dt>
+                  <dt className={styles.term}>{tDetail("fieldTitle")}</dt>
+                  <dd className={styles.def}>{tour.title}</dd>
+                </div>
+                <div className={`${styles.field} ${styles.fieldWide}`}>
+                  <dt className={styles.term}>{tDetail("fieldDescription")}</dt>
                   <dd className={styles.def}>
-                    <a href={leaderVisibleChatLink} target="_blank" rel="noopener noreferrer">
-                      {leaderVisibleChatLink}
-                    </a>
+                    {descriptionText ? (
+                      <p className={styles.descriptionBody}>{descriptionText}</p>
+                    ) : (
+                      tDetail("emptyValue")
+                    )}
                   </dd>
                 </div>
-              ) : null}
-            </dl>
-          </CardBody>
-        </Card>
-
-        <TourTripDetailsPanel
-          tour={tour}
-          accessLevel={accessLevel}
-          viewHints={viewHints}
-          showRegister={accessLevel === "GUEST" && tour.lifecycleStatus === "OPEN"}
-          onRegister={() => router.push(`/tours/${tourId}/register`)}
-        />
-
-        {themeIdList.length > 0 ? (
-          <Card data-testid="tour-detail-themes">
-            <CardHeader>
-              <CardTitle>{tTours("detail_tourThemes")}</CardTitle>
-            </CardHeader>
-            <CardBody className={styles.panelBody}>
-              <ul className={styles.equipmentList}>
-                {themeIdList.map((id) => (
-                  <li key={id}>{resolveThemeLabel(id)}</li>
-                ))}
-              </ul>
+                <div className={styles.field}>
+                  <dt className={styles.term}>{tDetail("fieldLocation")}</dt>
+                  <dd className={styles.def}>{locationLabel}</dd>
+                </div>
+                <div className={styles.field}>
+                  <dt className={styles.term}>{tDetail("fieldCapacity")}</dt>
+                  <dd className={styles.def}>{capacityLabel}</dd>
+                </div>
+                <div className={styles.field}>
+                  <dt className={styles.term}>{tDetail("fieldPrice")}</dt>
+                  <dd className={styles.def}>{priceLabel}</dd>
+                </div>
+                {showTourChatLink ? (
+                  <div className={styles.field}>
+                    <dt className={styles.term}>{tDetail("fieldCommunicationLink")}</dt>
+                    <dd className={styles.def}>
+                      <a href={leaderVisibleChatLink} target="_blank" rel="noopener noreferrer">
+                        {leaderVisibleChatLink}
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
             </CardBody>
           </Card>
-        ) : null}
 
-        {showEquipmentCard ? (
-          <Card data-testid="tour-detail-equipment">
+          <TourTripDetailsPanel
+            tour={tour}
+            accessLevel={accessLevel}
+            viewHints={viewHints}
+            showRegister={accessLevel === "GUEST" && tour.lifecycleStatus === "OPEN"}
+            onRegister={() => router.push(`/tours/${tourId}/register`)}
+          />
+
+          {themeIdList.length > 0 ? (
+            <Card data-testid="tour-detail-themes">
+              <CardHeader>
+                <CardTitle>{tTours("detail_tourThemes")}</CardTitle>
+              </CardHeader>
+              <CardBody className={styles.panelBody}>
+                <ul className={styles.equipmentList}>
+                  {themeIdList.map((id) => (
+                    <li key={id}>{resolveThemeLabel(id)}</li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {showEquipmentCard ? (
+            <Card data-testid="tour-detail-equipment">
+              <CardHeader>
+                <CardTitle>{tTours("detail_equipment")}</CardTitle>
+              </CardHeader>
+              <CardBody className={styles.panelBody}>
+                {gearAggregationIncomplete ? (
+                  <p className={styles.equipmentMuted}>{tTours("detail_equipmentLoadError")}</p>
+                ) : null}
+                {gearLists.required.length > 0 ? (
+                  <>
+                    <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
+                    <ul className={styles.equipmentList}>
+                      {gearLists.required.map((gear) => (
+                        <li key={`req-${gear.id}`}>{gear.name}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (gearRequiredIds?.length ?? 0) > 0 ? (
+                  <>
+                    <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
+                    <ul className={styles.equipmentList}>
+                      {(gearRequiredIds ?? []).map((id) => (
+                        <li key={`req-id-${id}`}>{id}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+                {gearLists.optional.length > 0 ? (
+                  <>
+                    <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
+                    <ul className={styles.equipmentList}>
+                      {gearLists.optional.map((gear) => (
+                        <li key={`opt-${gear.id}`}>{gear.name}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (gearOptionalIds?.length ?? 0) > 0 ? (
+                  <>
+                    <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
+                    <ul className={styles.equipmentList}>
+                      {(gearOptionalIds ?? []).map((id) => (
+                        <li key={`opt-id-${id}`}>{id}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </CardBody>
+            </Card>
+          ) : null}
+
+          <Card>
             <CardHeader>
-              <CardTitle>{tTours("detail_equipment")}</CardTitle>
+              <CardTitle>{tDetail("bookingTitle")}</CardTitle>
             </CardHeader>
             <CardBody className={styles.panelBody}>
-              {gearAggregationIncomplete ? (
-                <p className={styles.equipmentMuted}>{tTours("detail_equipmentLoadError")}</p>
-              ) : null}
-              {gearLists.required.length > 0 ? (
-                <>
-                  <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
-                  <ul className={styles.equipmentList}>
-                    {gearLists.required.map((gear) => (
-                      <li key={`req-${gear.id}`}>{gear.name}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : (gearRequiredIds?.length ?? 0) > 0 ? (
-                <>
-                  <p className={styles.equipmentSubheading}>{tTours("detail_requiredEquipment")}</p>
-                  <ul className={styles.equipmentList}>
-                    {(gearRequiredIds ?? []).map((id) => (
-                      <li key={`req-id-${id}`}>{id}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-              {gearLists.optional.length > 0 ? (
-                <>
-                  <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
-                  <ul className={styles.equipmentList}>
-                    {gearLists.optional.map((gear) => (
-                      <li key={`opt-${gear.id}`}>{gear.name}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : (gearOptionalIds?.length ?? 0) > 0 ? (
-                <>
-                  <p className={styles.equipmentSubheading}>{tTours("detail_optionalEquipment")}</p>
-                  <ul className={styles.equipmentList}>
-                    {(gearOptionalIds ?? []).map((id) => (
-                      <li key={`opt-id-${id}`}>{id}</li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
+              <p className={styles.bookingSummary}>{bookingSummary}</p>
             </CardBody>
           </Card>
-        ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Booking</CardTitle>
-          </CardHeader>
-          <CardBody className={styles.panelBody}>
-            <p className={styles.bookingSummary}>
-              <strong>{tour.acceptedCount}</strong> registered
-              {typeof tour.totalCapacity === "number" ? (
-                <>
-                  {" "}
-                  · <strong>{tour.totalCapacity}</strong> total capacity
-                </>
-              ) : null}
-            </p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Actions</CardTitle>
-          </CardHeader>
-          <CardBody className={styles.panelBody}>
-            <div className={styles.actionRow}>
-              {isLeaderRole(user?.role) ? (
-                <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}/edit`)}>
-                  Edit Tour
-                </Button>
-              ) : null}
-              {isLeaderRole(user?.role) ? (
-                <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}/workspace`)}>
-                  Registrations workspace
-                </Button>
-              ) : null}
-              {tour.lifecycleStatus === "OPEN" ? (
-                <Button type="button" variant="primary" onClick={() => router.push(`/tours/${tourId}/register`)}>
-                  Register
-                </Button>
-              ) : null}
-            </div>
-          </CardBody>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{tDetail("actionsTitle")}</CardTitle>
+            </CardHeader>
+            <CardBody className={styles.panelBody}>
+              <div className={styles.actionRow}>
+                {isLeaderRole(user?.role) ? (
+                  <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}/edit`)}>
+                    {tDetail("editTour")}
+                  </Button>
+                ) : null}
+                {isLeaderRole(user?.role) ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => router.push(`/tours/${tourId}/workspace`)}
+                  >
+                    {tDetail("registrationsWorkspace")}
+                  </Button>
+                ) : null}
+                {tour.lifecycleStatus === "OPEN" ? (
+                  <Button type="button" variant="primary" onClick={() => router.push(`/tours/${tourId}/register`)}>
+                    {tDetail("register")}
+                  </Button>
+                ) : null}
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </RegisteredWorkspacePage>

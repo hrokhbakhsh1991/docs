@@ -77,8 +77,10 @@ export function DenaliDailyItinerarySection() {
   const [draftRows, setDraftRows] = useState<DenaliItineraryDayRow[]>(rows);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canonicalProgramRef = useRef(program);
+  const pendingItineraryRef = useRef<DenaliItineraryDayRow[]>(rows);
 
   canonicalProgramRef.current = program;
+  pendingItineraryRef.current = draftRows;
 
   useEffect(() => {
     setDraftRows(rows);
@@ -90,28 +92,43 @@ export function DenaliDailyItinerarySection() {
     }
   }, [rows, rows.length, program.itinerary?.length, program, updateCanonical]);
 
+  const commitItineraryRows = useCallback(
+    (nextRows: DenaliItineraryDayRow[]) => {
+      updateCanonical({
+        program: { ...canonicalProgramRef.current, itinerary: nextRows },
+      });
+    },
+    [updateCanonical],
+  );
+
+  const flushPendingCommit = useCallback(() => {
+    if (debounceRef.current == null) {
+      return;
+    }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    commitItineraryRows(pendingItineraryRef.current);
+  }, [commitItineraryRows]);
+
   const scheduleCommit = useCallback(
     (nextRows: DenaliItineraryDayRow[]) => {
+      pendingItineraryRef.current = nextRows;
       if (debounceRef.current != null) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
         debounceRef.current = null;
-        updateCanonical({
-          program: { ...canonicalProgramRef.current, itinerary: nextRows },
-        });
+        commitItineraryRows(nextRows);
       }, ITINERARY_DEBOUNCE_MS);
     },
-    [updateCanonical],
+    [commitItineraryRows],
   );
 
   useEffect(
     () => () => {
-      if (debounceRef.current != null) {
-        clearTimeout(debounceRef.current);
-      }
+      flushPendingCommit();
     },
-    [],
+    [flushPendingCommit],
   );
 
   const itineraryErrors = errors.programNature?.itinerary;
@@ -175,15 +192,7 @@ export function DenaliDailyItinerarySection() {
               <Textarea
                 rows={3}
                 value={row.activities}
-                onBlur={() => {
-                  if (debounceRef.current != null) {
-                    clearTimeout(debounceRef.current);
-                    debounceRef.current = null;
-                    updateCanonical({
-                      program: { ...canonicalProgramRef.current, itinerary: draftRows },
-                    });
-                  }
-                }}
+                onBlur={flushPendingCommit}
                 onChange={(e) => {
                   const next = draftRows.map((r, i) =>
                     i === index ? { ...r, activities: e.target.value } : r,

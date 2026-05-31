@@ -11,7 +11,6 @@ import { wizardFormToCreateTourApiPayload } from "@/features/tours/wizard/contra
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import { createTour } from "@/lib/services/tours.service";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
-import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-session-log";
 
 import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTourPayload";
 import type { DenaliRuleSet } from "../denali/rules/denaliRuleModel";
@@ -62,6 +61,8 @@ export async function createTourFromWorkspaceWizardForm(input: {
   workspaceId?: string;
   sourcePresetId?: string;
   sourceTourId?: string;
+  /** Gallery staging shell to finalize instead of creating a duplicate tour row. */
+  stagingTourId?: string;
 }): Promise<unknown> {
   const normalized = prepareDenaliWizardFormForSubmit(input.values, input.ruleSet);
   const gate = evaluateDenaliWizardSubmitGate(normalized, {
@@ -69,65 +70,17 @@ export async function createTourFromWorkspaceWizardForm(input: {
     profile: input.workspaceFormProfile,
   });
   const blockingIssues = mergeDenaliActiveSubmitIssues(gate.submitIssues, gate.publishIssues);
-  debugSessionLog(
-    "createTourFromWorkspaceWizardForm.ts:submit-gate",
-    "Denali submit gate evaluated",
-    {
-      issueCount: blockingIssues.length,
-      issuePaths: blockingIssues.slice(0, 8).map((i) => i.path?.join(".") ?? i.message),
-      publishStatus: normalized.basicInfo.publishStatus,
-      transportMode: normalized.transport.transportMode,
-    },
-    "C",
-  );
   if (!gate.success) {
     throw new z.ZodError(blockingIssues);
   }
   let dto: CreateTourDto = mapDenaliWizardToCreateTourPayload(normalized);
   dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);
-  debugSessionLog(
-    "createTourFromWorkspaceWizardForm.ts:payload",
-    "Denali create DTO built",
-    summarizeDenaliCreatePayload(dto),
-    "A",
+  const mapped = mapCreateTourDto(
+    { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
+    { themeCatalog: input.themeCatalog },
   );
-  debugSessionLog(
-    "createTourFromWorkspaceWizardForm.ts:photos",
-    "Denali photo URL scan",
-    {
-      galleryBlobCount: (normalized.photosData?.photos ?? []).filter((p) =>
-        String(p?.url ?? "").startsWith("blob:"),
-      ).length,
-      galleryTotal: normalized.photosData?.photos?.length ?? 0,
-    },
-    "B",
-  );
-  try {
-    return await createTour(
-      mapCreateTourDto(
-        { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },
-        { themeCatalog: input.themeCatalog },
-      ),
-      { idempotencyKey: getWizardSubmitIdempotencyKey(input.workspaceId) },
-    );
-  } catch (err) {
-    debugSessionLog(
-      "createTourFromWorkspaceWizardForm.ts:api-error",
-      "Denali createTour failed",
-      {
-        errorName: err instanceof Error ? err.name : typeof err,
-        errorMessage: err instanceof Error ? err.message : String(err),
-        errorCode:
-          err != null && typeof err === "object" && "code" in err
-            ? String((err as { code: unknown }).code)
-            : undefined,
-        errorStatus:
-          err != null && typeof err === "object" && "status" in err
-            ? (err as { status: unknown }).status
-            : undefined,
-      },
-      "E",
-    );
-    throw err;
+  if (input.stagingTourId?.trim()) {
+    mapped.stagingTourId = input.stagingTourId.trim();
   }
+  return createTour(mapped, { idempotencyKey: getWizardSubmitIdempotencyKey(input.workspaceId) });
 }

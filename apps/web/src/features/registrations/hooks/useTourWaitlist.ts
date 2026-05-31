@@ -6,6 +6,7 @@ import type { WaitlistItemResponseDto } from "@repo/types";
 
 import { registrationKeys } from "@/lib/query-keys";
 import { listWaitlistItemsForTour } from "@/lib/services/registrations.service";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
 export function useTourWaitlist(
   tourId: string,
@@ -18,10 +19,11 @@ export function useTourWaitlist(
   error: Error | null;
   refetch: () => void;
 } {
-  const enabled = Boolean(tourId?.trim()) && (options?.enabled ?? true);
+  const tenantId = useWorkspaceQueryScope();
+  const enabled = Boolean(tourId?.trim() && tenantId?.trim()) && (options?.enabled ?? true);
   const { data, isPending, isFetching, isError, error, refetch } = useQuery({
-    queryKey: registrationKeys.tourWaitlist(tourId),
-    queryFn: () => listWaitlistItemsForTour(tourId),
+    queryKey: registrationKeys.tourWaitlist(tenantId ?? "", tourId),
+    queryFn: ({ signal }) => listWaitlistItemsForTour(tourId, { signal }),
     enabled,
   });
   const isLoading = enabled && isPending;

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { notifyDrivers } from "@/lib/services/transport-ops.service";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
 import {
   buildTransportRosterFromRegistrations,
@@ -22,6 +23,7 @@ import { useTourWorkspace } from "./tour-workspace-context";
 
 export function useTourTransportOps() {
   const { tourId, registrations, readOnly } = useTourWorkspace();
+  const tenantId = useWorkspaceQueryScope() ?? "";
 
   const [assignments, setAssignments] = useState<Record<string, string>>({});
   const [manualVehicles, setManualVehicles] = useState<ManualTransportVehicle[]>([]);
@@ -29,18 +31,21 @@ export function useTourTransportOps() {
   const [notifyPending, setNotifyPending] = useState(false);
 
   useEffect(() => {
-    const stored = loadTourTransportOps(tourId);
+    if (!tenantId) {
+      return;
+    }
+    const stored = loadTourTransportOps(tenantId, tourId);
     setAssignments(stored.assignments);
     setManualVehicles(stored.manualVehicles);
     setHydrated(true);
-  }, [tourId]);
+  }, [tenantId, tourId]);
 
   useEffect(() => {
-    if (!hydrated) {
+    if (!hydrated || !tenantId) {
       return;
     }
-    saveTourTransportOps(tourId, { assignments, manualVehicles });
-  }, [tourId, assignments, manualVehicles, hydrated]);
+    saveTourTransportOps(tenantId, tourId, { assignments, manualVehicles });
+  }, [tenantId, tourId, assignments, manualVehicles, hydrated]);
 
   const { drivers: regDrivers, passengers } = useMemo(
     () => buildTransportRosterFromRegistrations(registrations),

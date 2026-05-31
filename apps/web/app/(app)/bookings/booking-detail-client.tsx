@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
+import { useAuthBffQueryGateForTenant } from "@/hooks/use-auth-bff-query-gate";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import {
@@ -77,12 +79,14 @@ export function BookingDetailClient({
   const toast = useAppToast();
   const paymentSectionRef = useRef<HTMLDivElement>(null);
   const { isHydrated, isAuthenticated, user } = useAuth();
+  const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
   const liveApi = registrationsUseLiveApi();
   const registrationEnabled =
-    Boolean(registrationId) && liveApi && isHydrated && isAuthenticated;
+    Boolean(registrationId) && Boolean(tenantId?.trim()) && liveApi && authBffQueryEnabled;
 
   const registrationQuery = useQuery({
-    queryKey: registrationKeys.detail(registrationId),
+    queryKey: registrationKeys.detail(tenantId ?? "", registrationId),
     queryFn: () => getRegistrationById(registrationId),
     enabled: registrationEnabled,
     staleTime: 10_000,
@@ -94,7 +98,7 @@ export function BookingDetailClient({
 
   const tourId = registrationQuery.data?.tourId?.trim() ?? "";
   const tourQuery = useQuery({
-    queryKey: tourKeys.detail(tourId),
+    queryKey: tourKeys.detail(tenantId ?? "", tourId),
     queryFn: () => getTourById(tourId),
     enabled:
       Boolean(tourId) &&
@@ -123,14 +127,18 @@ export function BookingDetailClient({
       });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: registrationKeys.detail(registrationId) });
-      void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: registrationKeys.detail(tenantId ?? "", registrationId),
+      });
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.listRoot(tenantId ?? "") });
       toast.success({ message: "Payment intent created — status updates shortly." });
     },
     onError: (error: unknown) => {
       if (error instanceof ApiError && error.code === "PAYMENT_PENDING_EXISTS") {
         toast.info({ message: "A pending payment already exists — refreshing registration." });
-        void queryClient.invalidateQueries({ queryKey: registrationKeys.detail(registrationId) });
+        void queryClient.invalidateQueries({
+          queryKey: registrationKeys.detail(tenantId ?? "", registrationId),
+        });
         return;
       }
       const msg =
@@ -263,7 +271,7 @@ export function BookingDetailClient({
           onClick={() => {
             void registrationQuery.refetch();
             if (tourId) void tourQuery.refetch();
-            void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+            void queryClient.invalidateQueries({ queryKey: bookingKeys.listRoot(tenantId ?? "") });
           }}
         >
           {registrationQuery.isFetching ? "Refreshing…" : "Refresh now"}

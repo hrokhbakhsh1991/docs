@@ -1,3 +1,5 @@
+import type { EntityManager } from "typeorm";
+
 import type { AuditCategory } from "./audit-category";
 import type { AuditResource } from "./audit-resource";
 
@@ -17,4 +19,6 @@ export type RecordAuditEventInput = {
   metadata?: Record<string, unknown>;
   tenantId?: string;
   clientIp?: string;
+  /** When set, audit row persists on the same DB transaction as the caller's domain write. */
+  manager?: EntityManager;
 };

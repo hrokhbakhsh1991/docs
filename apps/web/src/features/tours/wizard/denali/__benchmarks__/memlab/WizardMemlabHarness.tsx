@@ -47,7 +47,7 @@ export function WizardMemlabHarness() {
             currentStepIndex={currentStepIndex}
             setCurrentStep={setCurrentStepIndex}
           >
-            <div data-testid="denali-memlab-harness">
+            <div data-testid="workspace-memlab-harness">
               <button
                 type="button"
                 data-testid="memlab-traverse-forward"

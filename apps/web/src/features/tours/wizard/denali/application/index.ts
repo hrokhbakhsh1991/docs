@@ -38,6 +38,7 @@ export { useDenaliCanonicalValue } from "../hooks/useDenaliCanonicalValue";
 export { useDenaliDestinationQuickAdd } from "../hooks/useDenaliDestinationQuickAdd";
 export { useDenaliEquipmentQuickAdd } from "../hooks/useDenaliEquipmentQuickAdd";
 export { useDebouncedLocationSearch } from "../hooks/useDebouncedLocationSearch";
+export { useDenaliBlobPhotoRowLifecycle } from "../hooks/useDenaliBlobPhotoRowLifecycle";
 
 // Rule UI Adapters (Application Layer logic for UI)
 export {

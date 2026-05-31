@@ -258,29 +258,36 @@ export class ConfigService {
   }
 
   /**
-   * Whether `Origin` may receive credentialed CORS responses. Undefined/empty Origin (non-browser) allowed.
+   * Tier 1 — explicit `CORS_ORIGIN` allowlist.
    */
-  isCorsOriginAllowed(originHeader: string | undefined): boolean {
-    if (originHeader === undefined || originHeader.trim() === "") {
-      return true;
-    }
-
+  isCorsOriginAllowedExplicitWhitelist(originHeader: string): boolean {
     const origin = originHeader.trim();
-
     const explicitNorm = new Set(
-      this.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean).map((o) => o.toLowerCase())
+      this.env.CORS_ORIGIN.split(",")
+        .map((o) => o.trim())
+        .filter(Boolean)
+        .map((o) => o.toLowerCase()),
     );
-    if (explicitNorm.has(origin.toLowerCase())) {
-      return true;
-    }
+    return explicitNorm.has(origin.toLowerCase());
+  }
 
-    if (this.env.NODE_ENV === "development") {
-      const devDefaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
-      if (devDefaults.includes(origin)) {
-        return true;
-      }
+  /**
+   * Tier 2 — localhost dev defaults.
+   */
+  isCorsOriginAllowedDevelopmentDefault(originHeader: string): boolean {
+    if (this.env.NODE_ENV !== "development") {
+      return false;
     }
+    const origin = originHeader.trim();
+    const devDefaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+    return devDefaults.includes(origin);
+  }
 
+  /**
+   * Tier 3a — platform `{slug}.{TENANT_ROOT_DOMAIN}` suffix match (sync).
+   * Custom apex domains are validated via {@link TenantIngressRegistryService} (async).
+   */
+  isCorsPlatformSuboriginAllowed(originHeader: string): boolean {
     if (!this.getCorsAllowTenantSuborigins()) {
       return false;
     }
@@ -292,7 +299,7 @@ export class ConfigService {
 
     let parsed: URL;
     try {
-      parsed = new URL(origin);
+      parsed = new URL(originHeader.trim());
     } catch {
       return false;
     }
@@ -311,6 +318,29 @@ export class ConfigService {
     }
 
     return true;
+  }
+
+  /**
+   * Whether `Origin` may receive credentialed CORS responses. Undefined/empty Origin (non-browser) allowed.
+   * Covers Tier 1, Tier 2, and Tier 3a (platform suffix) synchronously.
+   * White-label custom domains require {@link TenantCorsPolicyService.isOriginAllowed}.
+   */
+  isCorsOriginAllowed(originHeader: string | undefined): boolean {
+    if (originHeader === undefined || originHeader.trim() === "") {
+      return true;
+    }
+
+    const origin = originHeader.trim();
+
+    if (this.isCorsOriginAllowedExplicitWhitelist(origin)) {
+      return true;
+    }
+
+    if (this.isCorsOriginAllowedDevelopmentDefault(origin)) {
+      return true;
+    }
+
+    return this.isCorsPlatformSuboriginAllowed(origin);
   }
 
   /**

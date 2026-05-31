@@ -51,7 +51,7 @@ export interface WorkspaceCapabilities {
 
   /**
    * Publish-time geolocation pins (gathering / start) — API parity:
-   * `DenaliWorkspaceStrategy` only attaches `checkDenaliPilotPublishGeolocationZones` for `denali_pilot`.
+   * `MountainOutdoorWorkspaceStrategy` only attaches `checkDenaliPilotPublishGeolocationZones` for `denali_pilot`.
    */
   readonly requiresGeoPublish: boolean;
 

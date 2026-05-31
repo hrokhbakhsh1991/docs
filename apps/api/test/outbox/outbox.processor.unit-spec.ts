@@ -118,7 +118,8 @@ test("processor marks row DELIVERED after successful publish", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never
+    } as never,
+    {} as never
   );
 
   await processor.processBatch();
@@ -217,7 +218,8 @@ test("processor increments retryCount when publish fails", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never
+    } as never,
+    {} as never
   );
 
   await processor.processBatch();
@@ -314,7 +316,8 @@ test("processor marks FAILED when retries reach threshold", async () => {
     {
       runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never
+    } as never,
+    {} as never
   );
 
   await processor.processBatch();
@@ -406,7 +409,8 @@ function buildProcessorHarness(input: {
     {
       runInTenantScope: async (_tenantId: string, fn: (_m: typeof manager) => Promise<void>) =>
         fn(manager)
-    } as never
+    } as never,
+    {} as never
   );
 
   return { processor, metrics, auditDeliveries };

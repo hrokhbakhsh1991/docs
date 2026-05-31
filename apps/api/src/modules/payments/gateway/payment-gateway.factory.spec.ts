@@ -1,93 +1,121 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { BadRequestException } from "@nestjs/common";
+
 import { PaymentGatewayFactory } from "./payment-gateway.factory";
+import type { ResolvedPaymentGatewayCredentials } from "./payment-gateway-credentials.types";
 
-test("forProvider(zibal) throws when merchant is missing", () => {
+function makeTenantPaymentConfigService(
+  resolve: (tenantId: string, provider: string) => Promise<ResolvedPaymentGatewayCredentials>,
+) {
+  return { resolveForProvider: resolve };
+}
+
+test("forTenant(zibal) throws when merchant is missing", async () => {
   const config = {
     getNodeEnv: () => "development",
-    getStripeSecretKey: () => "",
-    getZibalMerchant: () => "",
-    getZibalCallbackUrl: () => "https://example.com/cb"
   };
   const factory = new PaymentGatewayFactory(
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
-    config as never
+    makeTenantPaymentConfigService(async () => ({
+      provider: "zibal",
+      zibal: { merchantId: "", callbackUrl: "https://example.com/cb" },
+    })) as never,
+    config as never,
   );
-  assert.throws(() => factory.forProvider("zibal"), BadRequestException);
+  await assert.rejects(() => factory.forTenant("tenant-a", "zibal"), BadRequestException);
 });
 
-test("forProvider(zibal) throws when callback URL is missing", () => {
+test("forTenant(zibal) throws when callback URL is missing", async () => {
   const config = {
     getNodeEnv: () => "development",
-    getStripeSecretKey: () => "",
-    getZibalMerchant: () => "123456",
-    getZibalCallbackUrl: () => ""
   };
   const factory = new PaymentGatewayFactory(
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
-    config as never
+    makeTenantPaymentConfigService(async () => ({
+      provider: "zibal",
+      zibal: { merchantId: "123456", callbackUrl: "" },
+    })) as never,
+    config as never,
   );
-  assert.throws(() => factory.forProvider("zibal"), BadRequestException);
+  await assert.rejects(() => factory.forTenant("tenant-a", "zibal"), BadRequestException);
 });
 
-test("forProvider(stripe) uses placeholder when secret is empty", () => {
+test("forTenant(stripe) uses placeholder when secret is empty", async () => {
   const placeholder = { providerId: "stripe_placeholder" };
-  const live = { providerId: "stripe_live" };
   const config = {
     getNodeEnv: () => "development",
-    getStripeSecretKey: () => "",
-    getZibalMerchant: () => "",
-    getZibalCallbackUrl: () => ""
   };
   const factory = new PaymentGatewayFactory(
     {} as never,
     placeholder as never,
-    live as never,
     {} as never,
-    config as never
+    makeTenantPaymentConfigService(async () => ({
+      provider: "stripe",
+      stripe: { secretKey: "" },
+    })) as never,
+    config as never,
   );
-  assert.equal(factory.forProvider("stripe"), placeholder);
+  const gateway = await factory.forTenant("tenant-a", "stripe");
+  assert.equal(gateway, placeholder);
 });
 
-test("forProvider(mock) throws in production", () => {
+test("forTenant(mock) throws in production", async () => {
   const config = {
     getNodeEnv: () => "production",
-    getStripeSecretKey: () => "",
-    getZibalMerchant: () => "",
-    getZibalCallbackUrl: () => ""
   };
   const factory = new PaymentGatewayFactory(
     {} as never,
     {} as never,
     {} as never,
-    {} as never,
-    config as never
+    makeTenantPaymentConfigService(async () => ({ provider: "mock" })) as never,
+    config as never,
   );
-  assert.throws(() => factory.forProvider("mock_provider"), BadRequestException);
+  await assert.rejects(() => factory.forTenant("tenant-a", "mock_provider"), BadRequestException);
 });
 
-test("forProvider(stripe) prefers live gateway when secret is set", () => {
+test("forTenant(stripe) prefers live gateway when secret is set", async () => {
   const placeholder = { providerId: "stripe_placeholder" };
-  const live = { providerId: "stripe_live" };
   const config = {
     getNodeEnv: () => "development",
-    getStripeSecretKey: () => "sk_test_123",
-    getZibalMerchant: () => "",
-    getZibalCallbackUrl: () => ""
   };
   const factory = new PaymentGatewayFactory(
     {} as never,
     placeholder as never,
-    live as never,
-    {} as never,
-    config as never
+    { runOnce: async (_scope: unknown, fn: () => Promise<unknown>) => ({ value: await fn() }) } as never,
+    makeTenantPaymentConfigService(async () => ({
+      provider: "stripe",
+      stripe: { secretKey: "sk_test_123" },
+    })) as never,
+    config as never,
   );
-  assert.equal(factory.forProvider("stripe"), live);
+  const gateway = await factory.forTenant("tenant-a", "stripe");
+  assert.equal(gateway.providerId, "stripe");
+  assert.notEqual(gateway, placeholder);
+});
+
+test("forTenant uses tenant-scoped secret over env fallback path", async () => {
+  const config = {
+    getNodeEnv: () => "development",
+  };
+  let resolvedTenant = "";
+  const factory = new PaymentGatewayFactory(
+    {} as never,
+    {} as never,
+    { runOnce: async (_scope: unknown, fn: () => Promise<unknown>) => ({ value: await fn() }) } as never,
+    makeTenantPaymentConfigService(async (tenantId) => {
+      resolvedTenant = tenantId;
+      return {
+        provider: "stripe",
+        stripe: { secretKey: "sk_test_tenant" },
+      };
+    }) as never,
+    config as never,
+  );
+  await factory.forTenant("Tenant-UUID", "stripe");
+  assert.equal(resolvedTenant, "tenant-uuid");
 });

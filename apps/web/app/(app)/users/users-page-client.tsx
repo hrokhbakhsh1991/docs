@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  keepPreviousData,
   type InfiniteData,
   useInfiniteQuery,
   useMutation,
@@ -11,6 +10,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useAuthBffQueryGateForTenant } from "@/hooks/use-auth-bff-query-gate";
 import { isLeaderRole, isWorkspaceOwner, useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
 import { userKeys } from "@/lib/query-keys";
@@ -92,7 +92,10 @@ export function UsersPageClient() {
   const { isHydrated, isAuthenticated, user: sessionUser } = useAuth();
   const liveApi = usersUseLiveApi();
   const leader = isLeaderRole(sessionUser?.role);
-  const listQueryEnabled = liveApi && isHydrated && isAuthenticated && leader;
+  const tenantId = sessionUser?.tenantId ?? "";
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
+  const listQueryEnabled =
+    liveApi && isHydrated && isAuthenticated && leader && authBffQueryEnabled;
   const initialQuerySearch = (searchParams.get("search") ?? "").trim();
   const initialQueryRole = parseRoleParam(searchParams.get("role"));
   /** Filter / sort controls — initialized from URL. */
@@ -115,22 +118,19 @@ export function UsersPageClient() {
 
   const activeSearchQuery = debouncedSearchQuery.trim();
   const activeRoleFilter = directoryUiState.roleFilter === "all" ? undefined : directoryUiState.roleFilter;
-  const tenantId = sessionUser?.tenantId ?? "";
   const userListQueryKey = useMemo(
     () =>
-      tenantId
-        ? userKeys.directoryList(tenantId, {
-            search: activeSearchQuery,
-            role: activeRoleFilter ?? "all",
-            limit: DIRECTORY_FETCH_LIMIT,
-            status: "ACTIVE",
-          })
-        : ([...userKeys.all, "list", "__no-tenant__"] as const),
+      userKeys.directoryList(tenantId, {
+        search: activeSearchQuery,
+        role: activeRoleFilter ?? "all",
+        limit: DIRECTORY_FETCH_LIMIT,
+        status: "ACTIVE",
+      }),
     [tenantId, activeSearchQuery, activeRoleFilter],
   );
 
   const pendingInvitesQueryKey = useMemo(
-    () => (tenantId ? userKeys.pendingInvites(tenantId) : ([...userKeys.all, "pending-invites", "__no-tenant__"] as const)),
+    () => userKeys.pendingInvites(tenantId),
     [tenantId],
   );
 
@@ -155,8 +155,7 @@ export function UsersPageClient() {
       }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    enabled: listQueryEnabled,
-    placeholderData: keepPreviousData,
+    enabled: listQueryEnabled && Boolean(tenantId?.trim()),
     staleTime: 30_000,
     gcTime: 300_000,
   });
@@ -174,7 +173,7 @@ export function UsersPageClient() {
   } = useQuery({
     queryKey: pendingInvitesQueryKey,
     queryFn: listPendingInvites,
-    enabled: listQueryEnabled && directoryTab === "pending",
+    enabled: listQueryEnabled && Boolean(tenantId?.trim()) && directoryTab === "pending",
     staleTime: 15_000,
   });
 

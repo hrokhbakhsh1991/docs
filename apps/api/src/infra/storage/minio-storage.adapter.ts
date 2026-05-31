@@ -54,6 +54,32 @@ export class MinioStorageAdapter implements FileStoragePort, OnModuleInit {
     }
   }
 
+  async deleteObjectsByPrefix(prefix: string): Promise<void> {
+    const normalized = prefix.trim();
+    if (normalized === "") {
+      return;
+    }
+    try {
+      const keys: string[] = [];
+      const stream = this.client.listObjectsV2(this.bucket, normalized, true);
+      await new Promise<void>((resolve, reject) => {
+        stream.on("data", (obj) => {
+          if (obj.name) {
+            keys.push(obj.name);
+          }
+        });
+        stream.on("error", reject);
+        stream.on("end", resolve);
+      });
+      if (keys.length === 0) {
+        return;
+      }
+      await this.client.removeObjects(this.bucket, keys);
+    } catch {
+      /* best-effort */
+    }
+  }
+
   /** Used by {@link StorageHealthService} — does not mutate bucket state. */
   async ping(): Promise<{ ok: true; bucket: string } | { ok: false; bucket: string; reason?: string }> {
     try {

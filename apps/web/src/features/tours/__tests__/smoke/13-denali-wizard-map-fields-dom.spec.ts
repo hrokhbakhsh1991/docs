@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * Smoke: map.md altitude / multi-day itinerary / gear DOM testids (no live API required).
- * Run: `PW_BASE_URL=http://denali.localhost:3000 pnpm run build:smoke && PW_BASE_URL=http://denali.localhost:3000 playwright test -c playwright.smoke.config.ts src/features/tours/__tests__/smoke/13-denali-wizard-map-fields-dom.spec.ts`
+ * Run: `TEST_PLATFORM_BASE_URL=http://workspace-test.localhost:3000 pnpm run build:smoke && playwright test -c playwright.smoke.config.ts src/features/tours/__tests__/smoke/13-denali-wizard-map-fields-dom.spec.ts`
  */
 async function setNativeSelectValue(locator: Locator, value: string): Promise<void> {
   await locator.evaluate(
@@ -16,7 +16,7 @@ async function setNativeSelectValue(locator: Locator, value: string): Promise<vo
 }
 
 async function requireDenaliWizard(page: Page): Promise<Locator> {
-  const denali = page.getByTestId("denali-create-tour-wizard");
+  const denali = page.getByTestId("workspace-tour-wizard");
   if (!(await denali.isVisible().catch(() => false))) {
     test.skip(true, "Denali wizard not available on this host");
   }
@@ -71,7 +71,7 @@ test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
     }
 
     await expect(page.getByTestId("denali-step-logistics")).toBeVisible({ timeout: 15_000 });
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     const gearList = w.getByTestId("denali-gear-list");
     const gearLoading = w.getByText(/در حال بارگذاری|loading/i);
     const gearEmpty = w.getByText(/تجهیز|equipment/i);
@@ -92,7 +92,7 @@ test.describe("denali map fields DOM (altitude, itinerary, gear)", () => {
       await next.click();
     }
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-step-review")).toBeVisible({ timeout: 15_000 });
     await expect(w.getByTestId("denali-summary-error")).toHaveCount(0);
   });

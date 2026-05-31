@@ -234,10 +234,10 @@ const CORE_REGISTRY: Record<string, UIError> = {
     message: "تغییر وضعیت درخواستی برای این تور مجاز نمی‌باشد.",
     action: "none",
   },
-  DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES: {
+  OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES: {
     title: "نقاط جغرافیایی ناقص",
     message:
-      "انتشار تورهای دنالی نیازمند حداقل یک ایستگاه تجمع (عنوان، آدرس و مختصات) و نقطه آغاز سفر روی نقشه است.",
+      "انتشار تورهای outdoor نیازمند حداقل یک ایستگاه تجمع (عنوان، آدرس و مختصات) و نقطه آغاز سفر روی نقشه است.",
     action: "none",
   },
   PAID_TOUR_REQUIRES_AMOUNT: {

@@ -15,7 +15,7 @@ import {
   readStoredThemePreference,
   readSystemThemePreference,
   resolveThemeMode,
-  THEME_STORAGE_KEY,
+  writeStoredThemePreference,
   type ThemeMode,
 } from "./theme-preference";
 
@@ -68,7 +68,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(next);
     applyThemeClass(next);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
+      writeStoredThemePreference(next);
     } catch {
       /* ignore */
     }
@@ -79,7 +79,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const next: ThemeMode = prev === "light" ? "dark" : "light";
       applyThemeClass(next);
       try {
-        localStorage.setItem(THEME_STORAGE_KEY, next);
+        writeStoredThemePreference(next);
       } catch {
         /* ignore */
       }

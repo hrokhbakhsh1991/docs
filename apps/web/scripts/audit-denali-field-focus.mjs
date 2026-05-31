@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const registrySrc = readFileSync(
-  "src/features/tours/wizard/denali/registry/denaliFieldRegistryData.ts",
+  "@repo/denali-domain",
   "utf8",
 );
 const focusSrc = readFileSync(

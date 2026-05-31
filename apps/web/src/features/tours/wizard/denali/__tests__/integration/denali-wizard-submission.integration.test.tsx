@@ -2,13 +2,33 @@
  * Denali create wizard — active publish must not POST when validation fails.
  */
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
-import { DenaliCreateTourWizard } from "@/components/tours/wizard/DenaliCreateTourWizard";
+import { WorkspaceTourWizard } from "@/components/tours/wizard/WorkspaceTourWizard";
 import { focusDenaliWizardField } from "@/features/tours/wizard/denali/denaliWizardFieldFocus";
+import { getWizardConfig } from "@/features/tours/wizard/workspace-wizard.config";
+import type { WizardSessionBlueprint } from "@/features/tours/wizard/wizard-session-blueprint.types";
 import { AppTestProviders } from "@test-utils/denali-integration-harness";
 
 const mockMutateAsync = jest.fn();
+
+const mockWizardTemplate = {
+  id: "test-template",
+  workspaceId: "workspace-test-id",
+  baseProfile: "denali_pilot" as const,
+  stepOverrides: { skip: [] as const, insert: [] as const },
+  fieldRulesOverlay: {},
+  presetId: null,
+  canonicalData: {},
+  wizardContractVersion: 1,
+  formProfileVersion: 1,
+};
+
+const mockSessionBlueprint: WizardSessionBlueprint = {
+  template: mockWizardTemplate,
+  profile: "denali_pilot",
+  shellConfig: getWizardConfig("denali_pilot"),
+};
 
 jest.mock("@/features/tours/wizard/hooks/useDenaliTourWizardCreate", () => ({
   useDenaliTourWizardCreate: () => ({
@@ -32,13 +52,6 @@ jest.mock("@/hooks/use-workspace-query-scope", () => ({
   useWorkspaceQueryScope: () => "workspace-test-id",
 }));
 
-jest.mock("@/hooks/use-tenant-wizard-template", () => ({
-  useTenantWizardTemplate: () => ({
-    data: { baseProfile: "denali_pilot", canonicalData: null },
-    isLoading: false,
-  }),
-}));
-
 jest.mock("@/hooks/use-settings-tour-themes", () => ({
   useSettingsTourThemes: () => ({ data: [] }),
 }));
@@ -59,10 +72,9 @@ const draftEngineState = {
   state: { status: "IDLE" as const, data: null, pendingDraft: null },
   setDraftData: jest.fn(),
   retry: jest.fn(),
-  // Never resolve: completing draft init enables watch→setDraftData loops that hang RTL in jsdom.
-  initialize: jest.fn(() => new Promise<void>(() => undefined)),
+  initialize: jest.fn(() => Promise.resolve()),
   applyDraft: jest.fn(),
-  clearDraft: jest.fn(),
+  clearDraft: jest.fn(() => Promise.resolve()),
 };
 
 jest.mock("@repo/draft-engine", () => ({
@@ -143,6 +155,51 @@ jest.mock("@/features/tours/wizard/denali/denaliWizardFieldFocus", () => ({
   clearDenaliWizardFieldFocus: jest.fn(),
 }));
 
+jest.mock("@/features/tours/wizard/denali/steps/DenaliBasicInfoStep", () => ({
+  DenaliBasicInfoStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliProgramNatureStep", () => ({
+  DenaliProgramNatureStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliLogisticsStep", () => ({
+  DenaliLogisticsStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliPricingStep", () => ({
+  DenaliPricingStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliPhotosStep", () => ({
+  DenaliPhotosStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliLegalStep", () => ({
+  DenaliLegalStep: () => null,
+}));
+jest.mock("@/features/tours/wizard/denali/steps/DenaliReviewStep", () => {
+  const ReactActual = jest.requireActual<typeof import("react")>("react");
+  return {
+    DenaliReviewStep: () =>
+      ReactActual.createElement(
+        "div",
+        { "data-testid": "denali-step-review" },
+        ReactActual.createElement(
+          "div",
+          { role: "alert", "data-testid": "denali-summary-error" },
+          ReactActual.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "denali-validation-field-link-basicInfo-title",
+              onClick: () => {
+                const { focusDenaliWizardField: focusField } = require("@/features/tours/wizard/denali/denaliWizardFieldFocus");
+                focusField("basicInfo.title");
+              },
+            },
+            "review.validationFieldIssue",
+          ),
+        ),
+      ),
+  };
+});
+
 jest.mock("@/features/tours/wizard/denali", () => {
   const ReactActual = jest.requireActual<typeof import("react")>("react");
 
@@ -180,29 +237,44 @@ const mockFocusDenaliWizardField = focusDenaliWizardField as jest.MockedFunction
   typeof focusDenaliWizardField
 >;
 
-describe("DenaliCreateTourWizard — active submission guard", () => {
+describe("WorkspaceTourWizard — active submission guard", () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     jest.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
   });
 
   test("blocks active submit, shows error, and focuses field when error link is clicked", async () => {
     render(
       <AppTestProviders>
-        <DenaliCreateTourWizard />
+        <WorkspaceTourWizard sessionBlueprint={mockSessionBlueprint} />
       </AppTestProviders>,
     );
 
-    const saveButton = await screen.findByTestId("denali-wizard-final-submit");
+    await act(async () => {
+      await Promise.resolve();
+      jest.advanceTimersByTime(600);
+    });
+
+    const saveButton = screen.getByTestId("workspace-wizard-final-submit");
     mockFocusDenaliWizardField.mockClear();
 
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    await waitFor(() => {
-      expect(screen.getByText("review.publishSubmitBlocked")).toBeInTheDocument();
+    await act(async () => {
+      jest.runOnlyPendingTimers();
     });
+
+    expect(screen.getByText("review.publishSubmitBlocked")).toBeInTheDocument();
 
     expect(mockMutateAsync).not.toHaveBeenCalled();
     expect(screen.getByTestId("denali-summary-error")).toBeInTheDocument();

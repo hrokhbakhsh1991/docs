@@ -10,7 +10,8 @@ import {
   registrationDetailsEndpointAvailable,
 } from "@/services/registrations";
 
-import { useAuthBffQueryGate } from "./use-auth-bff-query-gate";
+import { useAuthBffQueryGateForTenant } from "./use-auth-bff-query-gate";
+import { useWorkspaceQueryScope } from "./use-workspace-query-scope";
 
 export type RegistrationDetailsSource = "api" | "fallback";
 
@@ -25,16 +26,18 @@ export function useRegistrationDetails(
   source: RegistrationDetailsSource | null;
   refetch: () => void;
 } {
-  const { authBffQueryEnabled } = useAuthBffQueryGate();
-  const enabled = Boolean(registrationId?.trim()) && authBffQueryEnabled;
+  const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
+  const enabled =
+    Boolean(registrationId?.trim()) && Boolean(tenantId?.trim()) && authBffQueryEnabled;
   const endpointAvailable = registrationDetailsEndpointAvailable();
 
   const q = useQuery({
     queryKey: registrationId
-      ? [...registrationKeys.detail(registrationId), "inspection"]
-      : ["registrations", "detail", "inspection", "empty"],
+      ? [...registrationKeys.detail(tenantId ?? "", registrationId), "inspection"]
+      : ["registrations", tenantId ?? "", "detail", "inspection", "empty"],
     enabled,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!registrationId) {
         throw new Error("Registration id is required");
       }
@@ -44,7 +47,7 @@ export function useRegistrationDetails(
         throw new Error("Registration details endpoint is unavailable");
       }
       try {
-        const registration = await getRegistrationById(registrationId);
+        const registration = await getRegistrationById(registrationId, { signal });
         return { registration, source: "api" as const };
       } catch (error) {
         // TODO: keep temporary fallback to table row projection until endpoint reliability is guaranteed.

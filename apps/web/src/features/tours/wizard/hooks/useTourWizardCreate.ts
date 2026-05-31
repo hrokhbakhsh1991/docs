@@ -39,7 +39,7 @@ export function useTourWizardCreate() {
     onSuccess: async () => {
       const ws = workspaceId?.trim();
       if (ws) {
-        await queryClient.invalidateQueries({ queryKey: tourKeys.listByWorkspace(ws) });
+        await queryClient.invalidateQueries({ queryKey: tourKeys.listRoot(ws) });
       } else {
         await queryClient.invalidateQueries({ queryKey: tourKeys.lists() });
       }

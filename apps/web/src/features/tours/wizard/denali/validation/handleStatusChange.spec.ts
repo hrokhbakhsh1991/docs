@@ -11,7 +11,7 @@ describe("Denali publish flow critical integration cases (Vitest)", () => {
   it("1) blocks active publish and falls back to draft when required fields are missing", () => {
     const issues = [
       {
-        code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+        code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
         message: "missing geo zones",
       },
     ];
@@ -47,7 +47,7 @@ describe("Denali publish flow critical integration cases (Vitest)", () => {
         details: {
           validationErrors: [
             {
-              code: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+              code: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
               path: "tripDetails.logistics.gatheringPoints",
               message: "geo required",
             },

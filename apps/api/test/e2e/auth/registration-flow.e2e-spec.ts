@@ -68,12 +68,14 @@ before(async () => {
         userInAOnly: {
           phone: TENANT_A_OWNER_PHONE,
           email: "reg-flow-owner-a@auth-e2e.test",
+          subdomain: SUBDOMAIN_A,
           role: UserRole.Owner,
           fullName: "Reg flow tenant A owner",
         },
         userInBOnly: {
           phone: TENANT_B_OWNER_PHONE,
           email: "reg-flow-owner-b@auth-e2e.test",
+          subdomain: SUBDOMAIN_B,
           role: UserRole.Owner,
           fullName: "Reg flow tenant B owner",
         },

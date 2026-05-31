@@ -5,6 +5,7 @@ import { Button, FormField, Input } from "@tour/ui";
 
 import type { QuickAddFormProps } from "@/components/shared/quick-add/types";
 import { useQuickAddModal } from "@/components/shared/QuickAddModal";
+import { useDenaliBlobPhotoRowLifecycle } from "@/features/tours/wizard/denali/application";
 import {
   denaliImageFileAssetSchema,
   type DenaliFileAsset,
@@ -52,6 +53,7 @@ export function FileUploadField({
   metadataQuickAdd,
 }: FileUploadFieldProps) {
   const rows = useMemo(() => value ?? [], [value]);
+  useDenaliBlobPhotoRowLifecycle(rows);
   const [localError, setLocalError] = useState<string | null>(null);
   const quickAdd = useQuickAddModal();
   const atLimit = rows.length >= maxFiles;

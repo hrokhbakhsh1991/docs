@@ -16,6 +16,11 @@ import { isPendingEmailVerification, mapMeToEmailForm } from "./settings-me-shar
 import { pickMeErrorMessage } from "@/lib/me-api-error";
 
 import { patchMe } from "@/lib/me-client";
+import {
+  createScopedSessionStorage,
+  resolveStorageTenantId,
+} from "@/lib/storage/scoped-storage";
+import { useAuth } from "@/lib/auth/auth-context";
 
 import type { RefreshWorkspaceMeOptions, WorkspaceMeData } from "./workspace-me-provider";
 
@@ -28,11 +33,21 @@ type EmailFormValues = {
   email: string;
 };
 
-function emailPendingStorageKey(userId: string | undefined): string | null {
-  if (!userId || userId.trim() === "") {
-    return null;
-  }
-  return `tour_settings_email_pending_${userId}`;
+const SETTINGS_STORAGE_NAMESPACE = "settings";
+
+function emailPendingLogicalKey(userId: string): string {
+  return `email-pending:${userId.trim()}`;
+}
+
+function legacyEmailPendingKey(userId: string): string {
+  return `tour_settings_email_pending_${userId.trim()}`;
+}
+
+function emailPendingStorage(tenantId: string) {
+  return createScopedSessionStorage(
+    SETTINGS_STORAGE_NAMESPACE,
+    resolveStorageTenantId({ tenantId }),
+  );
 }
 
 /** Parses `#verify_email_token=…` (preferred; avoids server-side query logging). */
@@ -61,6 +76,7 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const [hashToken, setHashToken] = useState("");
   const [editingEmail, setEditingEmail] = useState(false);
@@ -102,25 +118,27 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
 
   const tokenSectionOpen = Boolean(urlToken) || manualTokenOpen;
 
-  const storageKey = emailPendingStorageKey(me.id);
+  const tenantId = user?.tenantId?.trim() ?? "";
+  const emailPendingKey =
+    me.id?.trim() ? emailPendingLogicalKey(me.id) : null;
 
   const clearPending = useCallback(() => {
-    if (typeof window !== "undefined" && storageKey) {
-      sessionStorage.removeItem(storageKey);
+    if (typeof window !== "undefined" && tenantId && emailPendingKey) {
+      emailPendingStorage(tenantId).removeItem(emailPendingKey);
     }
     setEmailChangePending(false);
     setPendingEmail(null);
-  }, [storageKey]);
+  }, [emailPendingKey, tenantId]);
 
   const persistPending = useCallback(
     (email: string) => {
-      if (typeof window !== "undefined" && storageKey) {
-        sessionStorage.setItem(storageKey, email);
+      if (typeof window !== "undefined" && tenantId && emailPendingKey) {
+        emailPendingStorage(tenantId).setItem(emailPendingKey, email);
       }
       setEmailChangePending(true);
       setPendingEmail(email);
     },
-    [storageKey],
+    [emailPendingKey, tenantId],
   );
 
   const openTokenEntry = useCallback(() => {
@@ -130,15 +148,18 @@ function EmailSettingsPanelInner({ me, refresh }: EmailSettingsPanelProps) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !storageKey) {
+    if (typeof window === "undefined" || !tenantId || !emailPendingKey || !me.id?.trim()) {
       return;
     }
-    const stored = sessionStorage.getItem(storageKey);
+    const storage = emailPendingStorage(tenantId);
+    const stored =
+      storage.migrateLegacyItem(emailPendingKey, legacyEmailPendingKey(me.id)) ??
+      storage.getItem(emailPendingKey);
     if (stored) {
       setEmailChangePending(true);
       setPendingEmail(stored === "1" ? null : stored);
     }
-  }, [storageKey]);
+  }, [emailPendingKey, me.id, tenantId]);
 
   useEffect(() => {
     if (urlToken) {

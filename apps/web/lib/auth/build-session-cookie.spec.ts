@@ -8,16 +8,24 @@ import {
   shouldClearLegacyHostOnlySessionCookie,
 } from "./build-session-cookie";
 
+function setNodeEnv(value: string | undefined): void {
+  Object.defineProperty(process.env, "NODE_ENV", {
+    value,
+    writable: true,
+    configurable: true,
+  });
+}
+
 test("resolveSessionCookieDomain is host-only in development by default", () => {
   const prevNodeEnv = process.env.NODE_ENV;
   const prevDomain = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
-  process.env.NODE_ENV = "development";
+  setNodeEnv("development");
   delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
 
   try {
     assert.equal(resolveSessionCookieDomain(), undefined);
   } finally {
-    process.env.NODE_ENV = prevNodeEnv;
+    setNodeEnv(prevNodeEnv);
     if (prevDomain === undefined) {
       delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
     } else {
@@ -29,13 +37,13 @@ test("resolveSessionCookieDomain is host-only in development by default", () => 
 test("resolveSessionCookieDomain uses NEXT_PUBLIC_SESSION_COOKIE_DOMAIN in production", () => {
   const prevNodeEnv = process.env.NODE_ENV;
   const prevDomain = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
-  process.env.NODE_ENV = "production";
+  setNodeEnv("production");
   process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN = "company.com";
 
   try {
     assert.equal(resolveSessionCookieDomain(), ".company.com");
   } finally {
-    process.env.NODE_ENV = prevNodeEnv;
+    setNodeEnv(prevNodeEnv);
     if (prevDomain === undefined) {
       delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
     } else {
@@ -53,12 +61,12 @@ test("buildClearHostOnlySessionCookieOptions omits domain", () => {
 test("shouldClearLegacyHostOnlySessionCookie when domain-scoped cookies are used", () => {
   const prevNodeEnv = process.env.NODE_ENV;
   const prevDomain = process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
-  process.env.NODE_ENV = "development";
+  setNodeEnv("development");
   process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN = ".localhost";
   try {
     assert.equal(shouldClearLegacyHostOnlySessionCookie(), true);
   } finally {
-    process.env.NODE_ENV = prevNodeEnv;
+    setNodeEnv(prevNodeEnv);
     if (prevDomain === undefined) {
       delete process.env.NEXT_PUBLIC_SESSION_COOKIE_DOMAIN;
     } else {

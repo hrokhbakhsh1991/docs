@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { assertLedgerJournalDoubleEntry } from "@repo/shared-contracts";
-import { DenaliWorkspaceStrategy } from "./denali.workspace.strategy";
+import { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
 import { GeneralWorkspaceStrategy } from "./general.workspace.strategy";
 import {
   isDenaliStrategyProfile,
@@ -18,9 +18,9 @@ describe("WorkspaceStrategyRegistry", () => {
     assert.equal(strategy.getPublishPolicy().publishGeolocationCheck, null);
   });
 
-  it("resolve(denali_pilot) returns DenaliWorkspaceStrategy with denali wizard and geo check", () => {
+  it("resolve(denali_pilot) returns MountainOutdoorWorkspaceStrategy with denali wizard and geo check", () => {
     const strategy = WorkspaceStrategyRegistry.resolve("denali_pilot");
-    assert.ok(strategy instanceof DenaliWorkspaceStrategy);
+    assert.ok(strategy instanceof MountainOutdoorWorkspaceStrategy);
     assert.equal(strategy.getWizardConfig().wizardMode, "denali");
     assert.equal(typeof strategy.getPublishPolicy().publishGeolocationCheck, "function");
     const rules = strategy.getValidationRules();
@@ -28,9 +28,9 @@ describe("WorkspaceStrategyRegistry", () => {
     assert.equal(rules.workspaceTripDetailsValidationPhase, "before_canonical");
   });
 
-  it("resolve(urban_event) uses Denali strategy without publish geolocation check", () => {
+  it("resolve(urban_event) uses mountain/outdoor strategy without publish geolocation check", () => {
     const strategy = WorkspaceStrategyRegistry.resolve("urban_event");
-    assert.ok(strategy instanceof DenaliWorkspaceStrategy);
+    assert.ok(strategy instanceof MountainOutdoorWorkspaceStrategy);
     assert.equal(strategy.getPublishPolicy().publishGeolocationCheck, null);
     const rules = strategy.getValidationRules();
     assert.equal(rules.appliesWorkspaceTripDetailsValidation, false);

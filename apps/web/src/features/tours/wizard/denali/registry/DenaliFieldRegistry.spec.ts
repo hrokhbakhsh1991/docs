@@ -12,7 +12,7 @@ import {
   isDenaliFieldInMatrixCell,
   listDenaliRegistryCanonicalPaths,
 } from "./DenaliFieldRegistry";
-import { DENALI_FIELD_DEFINITIONS } from "./denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
 
 test("DENALI_FIELD_REGISTRY aligns canonical paths with denaliRuleRequired map", () => {
   const map = denaliRegistryCanonicalToFormMap();

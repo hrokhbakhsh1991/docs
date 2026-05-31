@@ -37,10 +37,14 @@ async function main(): Promise<void> {
   await bench.run();
 
   const task = bench.tasks[0];
-  const latency = task?.result?.latency;
+  const result = task?.result;
+  const latency =
+    result?.state === "completed" && "latency" in result ? result.latency : undefined;
   const meanMs = latency?.mean ?? Number.POSITIVE_INFINITY;
   const p99Ms = latency?.p99 ?? Number.POSITIVE_INFINITY;
-  const samples = latency?.samplesCount ?? task?.result?.throughput?.samplesCount;
+  const throughput =
+    result?.state === "completed" && "throughput" in result ? result.throughput : undefined;
+  const samples = latency?.samplesCount ?? throughput?.samplesCount;
 
   console.log(
     JSON.stringify(

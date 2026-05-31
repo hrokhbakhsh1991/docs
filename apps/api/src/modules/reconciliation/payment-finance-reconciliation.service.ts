@@ -47,7 +47,7 @@ function errorCode(error: unknown): string {
 }
 
 /**
- * Periodic job: compares **PSP capture path** (`payment.succeeded` outbox + `payments`),
+ * Periodic job: compares **PSP capture path** (`payment.captured` outbox + `payments`),
  * **ledger** (`finance.ledger.double_entry_applied` outbox lines), and **booking price snapshots**
  * via {@link generatePaymentReconciliationReport}.
  *

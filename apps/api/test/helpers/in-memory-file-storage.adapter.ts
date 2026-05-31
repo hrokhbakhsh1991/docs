@@ -22,4 +22,16 @@ export class InMemoryFileStorageAdapter implements FileStoragePort {
   async deleteObject(key: string): Promise<void> {
     this.objects.delete(key);
   }
+
+  async deleteObjectsByPrefix(prefix: string): Promise<void> {
+    const normalized = prefix.trim();
+    if (normalized === "") {
+      return;
+    }
+    for (const key of [...this.objects.keys()]) {
+      if (key.startsWith(normalized)) {
+        this.objects.delete(key);
+      }
+    }
+  }
 }

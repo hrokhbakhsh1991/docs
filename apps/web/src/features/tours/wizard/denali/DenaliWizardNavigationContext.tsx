@@ -17,6 +17,7 @@ import {
 } from "./denaliWizardFieldFocus";
 
 type DenaliWizardNavigationContextValue = {
+  currentStepIndex: number;
   pendingFocusPath: string | null;
   navigateToField: (_stepId: DenaliCreateWizardStepId, _formPath: string) => void;
   consumePendingFocus: (_activeStepId: DenaliCreateWizardStepId) => void;
@@ -80,12 +81,13 @@ export function DenaliWizardNavigationProvider({
 
   const value = useMemo(
     () => ({
+      currentStepIndex,
       pendingFocusPath,
       navigateToField,
       consumePendingFocus,
       clearPendingFocus,
     }),
-    [clearPendingFocus, consumePendingFocus, navigateToField, pendingFocusPath],
+    [clearPendingFocus, consumePendingFocus, currentStepIndex, navigateToField, pendingFocusPath],
   );
 
   return (

@@ -147,6 +147,7 @@ function composeValidationFlagsForStep(
   return {
     relaxItineraryMinDays: profileFlags.relaxItineraryMinDays || beforeItineraryStep,
     relaxLogisticsPrimary: profileFlags.relaxLogisticsPrimary || beforeLogisticsStep,
+    requiresMountainTransportEconomics: profileFlags.requiresMountainTransportEconomics,
   };
 }
 

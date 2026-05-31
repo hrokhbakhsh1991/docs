@@ -1,6 +1,26 @@
-export const THEME_STORAGE_KEY = "web-ui-playground-theme";
+import {
+  buildScopedStorageKey,
+  createScopedLocalStorage,
+  SCOPED_STORAGE_DEVICE_TENANT,
+} from "@/lib/storage/scoped-storage";
+
+const THEME_NAMESPACE = "ui";
+const THEME_LOGICAL_KEY = "theme-preference";
+
+/** Fully scoped localStorage key for theme preference (`ui:_device:theme-preference`). */
+export const THEME_STORAGE_KEY = buildScopedStorageKey(
+  THEME_NAMESPACE,
+  SCOPED_STORAGE_DEVICE_TENANT,
+  THEME_LOGICAL_KEY,
+);
+
+const LEGACY_THEME_KEYS = ["web-ui-playground-theme", "theme"] as const;
 
 export type ThemeMode = "light" | "dark";
+
+function themeStorage() {
+  return createScopedLocalStorage(THEME_NAMESPACE, SCOPED_STORAGE_DEVICE_TENANT);
+}
 
 function browserWindow(): Window | undefined {
   if (typeof globalThis === "undefined") {
@@ -18,14 +38,28 @@ export function applyThemeClass(theme: ThemeMode): void {
   root.classList.add(theme === "dark" ? "theme-dark" : "theme-light");
 }
 
+function migrateLegacyThemePreference(storage: ReturnType<typeof themeStorage>): ThemeMode | null {
+  for (const legacyKey of LEGACY_THEME_KEYS) {
+    const migrated = storage.migrateLegacyItem(THEME_LOGICAL_KEY, legacyKey);
+    if (migrated === "light" || migrated === "dark") {
+      return migrated;
+    }
+  }
+  return null;
+}
+
 /** Explicit user choice in localStorage, if any. */
 export function readStoredThemePreference(): ThemeMode | null {
-  const win = browserWindow();
-  if (!win) {
+  if (!browserWindow()) {
     return null;
   }
   try {
-    const stored = win.localStorage.getItem(THEME_STORAGE_KEY);
+    const storage = themeStorage();
+    const migrated = migrateLegacyThemePreference(storage);
+    if (migrated) {
+      return migrated;
+    }
+    const stored = storage.getItem(THEME_LOGICAL_KEY);
     if (stored === "light" || stored === "dark") {
       return stored;
     }
@@ -33,6 +67,10 @@ export function readStoredThemePreference(): ThemeMode | null {
     /* ignore */
   }
   return null;
+}
+
+export function writeStoredThemePreference(theme: ThemeMode): void {
+  themeStorage().setItem(THEME_LOGICAL_KEY, theme);
 }
 
 export function readSystemThemePreference(): ThemeMode {

@@ -296,7 +296,10 @@ export class PaymentsService {
       const idempotencyKey =
         getFinancialIdempotencyKeyFromContext() ??
         `dev:create_payment_intent:${registration.tenantId}:${registration.id}:${dto.paymentProvider}`;
-      const gateway = this.paymentGatewayFactory.forProvider(dto.paymentProvider);
+      const gateway = await this.paymentGatewayFactory.forTenant(
+        registration.tenantId,
+        dto.paymentProvider,
+      );
       const gatewayResult = await gateway.createPaymentIntent({
         tenantId: registration.tenantId,
         idempotencyKey,
@@ -771,6 +774,7 @@ export class PaymentsService {
       payload: {
         entityType: "payment",
         entityId: payment.id,
+        tenantId: saved.tenantId,
         registrationId: payment.registrationId,
         actorId,
         previousStatus: previous,

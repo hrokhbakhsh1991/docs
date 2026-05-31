@@ -42,7 +42,7 @@ export function DenaliCustomServicesEditor({
                   <Input
                     type="text"
                     placeholder="مثلاً: نیسان، صبحانه"
-                    value={rowField.value ?? ""}
+                    value={typeof rowField.value === "string" ? rowField.value : ""}
                     onChange={(event) => rowField.onChange(event.currentTarget.value)}
                     onBlur={rowField.onBlur}
                     ref={rowField.ref}

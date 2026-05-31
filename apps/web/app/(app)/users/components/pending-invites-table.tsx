@@ -3,6 +3,7 @@
 import { EmptyState } from "@tour/ui";
 
 import type { PendingWorkspaceInviteDto } from "@/lib/services/users.service";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
 import { getInviteDisplayNote } from "../invite-name-notes";
 import { formatInviteExpiresLabelFa } from "../users-format";
@@ -26,6 +27,7 @@ export function PendingInvitesTable({
   isError,
   onRefresh
 }: PendingInvitesTableProps): JSX.Element {
+  const tenantId = useWorkspaceQueryScope() ?? "";
   if (isLoading) {
     return <p className={styles.pendingInvitesPlaceholder}>{copy.pendingLoading}</p>;
   }
@@ -53,7 +55,7 @@ export function PendingInvitesTable({
         </thead>
         <tbody>
           {rows.map((row) => {
-            const note = getInviteDisplayNote(row.inviteId, row.phone);
+            const note = tenantId ? getInviteDisplayNote(tenantId, row.inviteId, row.phone) : null;
             return (
               <tr key={row.inviteId}>
                 <td>

@@ -41,6 +41,12 @@ test("toUpdateTourApiBody omits requiresPayment when neither dto nor existing co
   assert.equal("requiresPayment" in cost, false);
 });
 
+test("toUpdateTourApiBody stringifies totalCost for wire ingress", () => {
+  const body = toUpdateTourApiBody(baseDto, {});
+  const cost = body.cost_context as Record<string, unknown>;
+  assert.equal(cost.totalCost, "100");
+});
+
 test("toUpdateTourApiBody omits lifecycle_status when dto omits it", () => {
   const { lifecycle_status: _removed, ...fieldEditDto } = baseDto;
   const body = toUpdateTourApiBody(fieldEditDto, {});

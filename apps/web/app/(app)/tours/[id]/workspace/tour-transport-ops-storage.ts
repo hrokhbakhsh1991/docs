@@ -1,3 +1,8 @@
+import {
+  createScopedSessionStorage,
+  resolveStorageTenantId,
+} from "@/lib/storage/scoped-storage";
+
 import type { ManualTransportVehicle } from "./build-tour-transport-roster";
 
 export type TourTransportOpsPersisted = {
@@ -5,18 +10,37 @@ export type TourTransportOpsPersisted = {
   manualVehicles: ManualTransportVehicle[];
 };
 
-const STORAGE_PREFIX = "tour-transport-ops:";
+const STORAGE_NAMESPACE = "tours";
 
-function storageKey(tourId: string): string {
-  return `${STORAGE_PREFIX}${tourId}`;
+function logicalKey(tourId: string): string {
+  return `transport-ops:${tourId.trim()}`;
 }
 
-export function loadTourTransportOps(tourId: string): TourTransportOpsPersisted {
+function legacyStorageKey(tenantId: string, tourId: string): string {
+  const scopedTenant = tenantId.trim();
+  const scopedTour = tourId.trim();
+  if (!scopedTenant || !scopedTour) {
+    return `tour-transport-ops:${scopedTour || scopedTenant}`;
+  }
+  return `tour-transport-ops:${scopedTenant}:${scopedTour}`;
+}
+
+function sessionForTenant(tenantId: string) {
+  return createScopedSessionStorage(
+    STORAGE_NAMESPACE,
+    resolveStorageTenantId({ tenantId }),
+  );
+}
+
+export function loadTourTransportOps(tenantId: string, tourId: string): TourTransportOpsPersisted {
   if (typeof window === "undefined") {
     return { assignments: {}, manualVehicles: [] };
   }
   try {
-    const raw = sessionStorage.getItem(storageKey(tourId));
+    const storage = sessionForTenant(tenantId);
+    const key = logicalKey(tourId);
+    const raw =
+      storage.migrateLegacyItem(key, legacyStorageKey(tenantId, tourId)) ?? storage.getItem(key);
     if (!raw) {
       return { assignments: {}, manualVehicles: [] };
     }
@@ -33,12 +57,16 @@ export function loadTourTransportOps(tourId: string): TourTransportOpsPersisted 
   }
 }
 
-export function saveTourTransportOps(tourId: string, state: TourTransportOpsPersisted): void {
+export function saveTourTransportOps(
+  tenantId: string,
+  tourId: string,
+  state: TourTransportOpsPersisted,
+): void {
   if (typeof window === "undefined") {
     return;
   }
   try {
-    sessionStorage.setItem(storageKey(tourId), JSON.stringify(state));
+    sessionForTenant(tenantId).setJson(logicalKey(tourId), state);
   } catch {
     /* quota / private mode */
   }

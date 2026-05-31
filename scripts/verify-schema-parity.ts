@@ -24,7 +24,7 @@ import {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
   type DenaliZodFieldKind,
-} from "../apps/web/src/features/tours/wizard/denali/registry/denaliFieldRegistryData";
+} from "@repo/denali-domain";
 import { denaliGearItemSchema } from "../apps/web/src/features/tours/wizard/schemas/denaliGearItemSchema";
 import {
   denaliCanonicalItineraryDayRowSchema,

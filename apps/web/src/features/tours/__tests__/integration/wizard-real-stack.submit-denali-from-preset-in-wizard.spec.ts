@@ -32,14 +32,14 @@ test.describe("real-stack denali in-wizard preset select", () => {
     expect(theme).toBeTruthy();
 
     await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("workspace-tour-wizard")).toBeVisible({ timeout: 45_000 });
 
-    const presetSelect = page.getByTestId("denali-wizard-preset-select");
+    const presetSelect = page.getByTestId("workspace-wizard-preset-select");
     await expect(presetSelect).toBeVisible({ timeout: 30_000 });
     await presetSelect.selectOption({ label: "دنالی — کوه یک‌روزه" });
-    await page.getByTestId("denali-wizard-preset-apply").click();
+    await page.getByTestId("workspace-wizard-preset-apply").click();
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-basics-category")).toHaveValue("outdoor", { timeout: 15_000 });
     await expect(w.getByTestId("denali-basics-duration")).toHaveValue("single_day");
 

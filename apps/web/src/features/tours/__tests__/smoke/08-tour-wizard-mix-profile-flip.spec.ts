@@ -7,6 +7,7 @@ import {
   installLeaderWorkspaceSessionRoute,
   installTourWizardSettingsRoutes,
   setNativeSelectValue,
+  SMOKE_WIZARD_SHELL_TEST_ID,
   SMOKE_WORKSPACE_BASE_URL,
 } from "./tour-wizard-smoke-helpers";
 
@@ -72,7 +73,7 @@ test.describe("tour wizard theme selection (profile stable)", () => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("tour-create-wizard")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID)).toBeVisible({ timeout: 20_000 });
     await expectWizardTemplateProfile(page, WORKSPACE_TEMPLATE_PROFILE);
     await fillTourWizardBasicInfoStep(page, {
       title: "abcdefghijabcdefghij",

@@ -7,14 +7,13 @@ import type {
   TourType,
 } from "@repo/types";
 
-import { ApiError } from "@/lib/api-client";
+import { ApiError, type ApiRequestOptions } from "@/lib/api-client";
 import { tourCreateContractSchema } from "@/features/tours/contracts/tour-form-contract";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 import { bffBrowserClient } from "@/lib/api/bff-browser-client";
 import { BFF } from "@/lib/api-paths";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
-import { debugSessionLog, summarizeDenaliCreatePayload } from "@/lib/debug-session-log";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 /** When true, list/read tours via same-origin BFF `GET /api/tours` (session cookie). */
@@ -80,6 +79,10 @@ export type CreateTourDto = {
   lifecycle_status: "Draft" | "Open";
   /** Workspace-defined custom service labels (Denali-family profiles). */
   customServiceLabels?: string[];
+  /** Finalize this gallery staging shell instead of inserting a parallel tour row. */
+  stagingTourId?: string;
+  /** Tenant extension bag (JSONB) — arbitrary vertical fields. */
+  metadata?: Record<string, unknown>;
 };
 
 /**
@@ -109,6 +112,8 @@ export type UpdateTourDto = {
   transportModes?: ("bus" | "train" | "plane" | "private_car")[];
   /** Workspace-defined custom service labels (Denali-family profiles). */
   customServiceLabels?: string[];
+  /** Tenant extension bag (JSONB). */
+  metadata?: Record<string, unknown>;
 };
 
 
@@ -138,7 +143,10 @@ type PaginatedToursApiBody = {
 /**
  * List tours with optional `search`, `page`, `limit`, and `status` (`GET /api/v2/tours`).
  */
-export async function getTours(params?: GetToursParams): Promise<PaginatedToursResult> {
+export async function getTours(
+  params?: GetToursParams,
+  options?: ApiRequestOptions,
+): Promise<PaginatedToursResult> {
   const search = params?.search?.trim() ?? "";
   const qs = new URLSearchParams();
   if (search) qs.set("search", search);
@@ -149,7 +157,7 @@ export async function getTours(params?: GetToursParams): Promise<PaginatedToursR
     qs.set("status", st);
   }
   const path = BFF.toursQuery(qs.toString());
-  const raw = await bffBrowserClient.get<PaginatedToursApiBody>(path);
+  const raw = await bffBrowserClient.get<PaginatedToursApiBody>(path, options);
   const rows = Array.isArray(raw.items) ? raw.items : [];
   const pageFallback = 1;
   const limitFallback = rows.length || 10;
@@ -161,9 +169,12 @@ export async function getTours(params?: GetToursParams): Promise<PaginatedToursR
   };
 }
 
-export async function getTourById(id: string): Promise<TourDetailDto | null> {
+export async function getTourById(
+  id: string,
+  options?: ApiRequestOptions,
+): Promise<TourDetailDto | null> {
   try {
-    const row = await bffBrowserClient.get<unknown>(BFF.tour(id));
+    const row = await bffBrowserClient.get<unknown>(BFF.tour(id), options);
     return mapTourResponseToDto(row);
   } catch (error: unknown) {
     if (error instanceof ApiError && error.status === 404) {
@@ -253,10 +264,21 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
   if (dto.customServiceLabels && dto.customServiceLabels.length > 0) {
     body.customServiceLabels = dto.customServiceLabels;
   }
+  if (dto.stagingTourId?.trim()) {
+    body.stagingTourId = dto.stagingTourId.trim();
+  }
+  if (dto.metadata != null && typeof dto.metadata === "object" && !Array.isArray(dto.metadata)) {
+    body.metadata = dto.metadata;
+  }
   delete body.formProfile;
   if (process.env.NODE_ENV !== "production") {
     const parsed = tourCreateContractSchema.safeParse(body);
     if (!parsed.success) {
+      // eslint-disable-next-line no-console -- dev-only wire contract drift signal
+      console.warn(
+        "[buildCreateTourPostBody] shared wire contract violation:",
+        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+      );
     }
   }
   return body;
@@ -279,44 +301,12 @@ export async function createTour(
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random()}`);
   const body = buildCreateTourPostBody(dto);
-  debugSessionLog(
-    "tours.service.ts:createTour",
-    "POST /tours wire body summary",
-    {
-      ...summarizeDenaliCreatePayload(dto),
-      wireKeys: Object.keys(body),
-      wireTransportModes: body.transportModes,
-      wireLifecycle: body.lifecycle_status,
-    },
-    "A",
-  );
-  try {
-    const raw = await bffBrowserClient.post<unknown>(BFF.tours, body, {
-      idempotencyKey,
-      /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
-      skip403Redirect: true,
-    });
-    debugSessionLog(
-      "tours.service.ts:createTour",
-      "POST /tours succeeded",
-      { tourId: (raw as { id?: string })?.id ?? "unknown" },
-      "E",
-    );
-    return mapTourResponseToDto(raw);
-  } catch (err) {
-    debugSessionLog(
-      "tours.service.ts:createTour",
-      "POST /tours rejected",
-      {
-        status: err instanceof ApiError ? err.status : undefined,
-        code: err instanceof ApiError ? err.code : undefined,
-        message: err instanceof ApiError ? err.message : err instanceof Error ? err.message : String(err),
-        primaryTransportMode: summarizeDenaliCreatePayload(dto).primaryTransportMode,
-      },
-      "E",
-    );
-    throw err;
-  }
+  const raw = await bffBrowserClient.post<unknown>(BFF.tours, body, {
+    idempotencyKey,
+    /** Let `/tours/new` show inline permission errors instead of a full-page `/403` redirect. */
+    skip403Redirect: true,
+  });
+  return mapTourResponseToDto(raw);
 }
 
 /** Reads `requiresPayment` from persisted `cost_context` (camelCase or snake_case). */
@@ -342,7 +332,7 @@ export function toUpdateTourApiBody(
       : {}),
   };
   merged.currency = "USD";
-  merged.totalCost = dto.price;
+  merged.totalCost = String(dto.price);
   const preserveRequiresPayment =
     dto.requiresPayment === true || costContextRequiresPayment(existingCostContext);
   if (preserveRequiresPayment) {
@@ -395,6 +385,9 @@ export function toUpdateTourApiBody(
   }
   if (dto.customServiceLabels !== undefined) {
     body.customServiceLabels = dto.customServiceLabels;
+  }
+  if (dto.metadata != null && typeof dto.metadata === "object" && !Array.isArray(dto.metadata)) {
+    body.metadata = dto.metadata;
   }
   return body;
 }

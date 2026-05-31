@@ -5,3 +5,4 @@
  * Phase 1.2: ledger {@link LedgerEntrySchema}, {@link LedgerJournalSchema}, {@link LEDGER_ACCOUNTS}.
  */
 export * from "./finance.schemas";
+export * from "./currency-minor-units";

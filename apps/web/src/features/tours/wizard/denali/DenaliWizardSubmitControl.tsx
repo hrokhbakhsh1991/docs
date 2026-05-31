@@ -9,13 +9,11 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
 import { logDenaliWizardDiagnosticReport } from "./denaliWizardDiagnostic";
-import { flattenDenaliFormErrors } from "./flattenDenaliFormErrors";
 import { useDenaliWizardNavigation } from "./DenaliWizardNavigationContext";
 import {
   evaluateDenaliWizardSubmitGate,
   focusDenaliSubmitValidationError,
 } from "./validation/denaliSubmitValidation";
-import { debugSessionLog } from "@/lib/debug-session-log";
 import { usePublishButtonGuard } from "./hooks/usePublishButtonGuard";
 
 type DenaliWizardSubmitControlProps = {
@@ -41,20 +39,8 @@ export function DenaliWizardSubmitControl({
   const publishButtonGuard = usePublishButtonGuard({ navLocked, ruleSet });
 
   const onInvalid = useCallback(
-    (fieldErrors: FieldErrors<DenaliCreateTourWizardForm>) => {
+    (_fieldErrors: FieldErrors<DenaliCreateTourWizardForm>) => {
       const values = getValues();
-      const flat = flattenDenaliFormErrors(fieldErrors);
-      debugSessionLog(
-        "DenaliWizardSubmitControl.tsx:onInvalid",
-        "RHF submit blocked by client validation",
-        {
-          errorCount: flat.length,
-          errorPaths: flat.slice(0, 10).map((e) => e.path),
-          errorMessages: flat.slice(0, 5).map((e) => e.message),
-          transportMode: values.transport?.transportMode,
-        },
-        "C",
-      );
       logDenaliWizardDiagnosticReport({
         form: values,
         activeEquipment: undefined,
@@ -80,7 +66,7 @@ export function DenaliWizardSubmitControl({
       variant="primary"
       onClick={() => void handleSubmit(onSubmit, onInvalid)()}
       disabled={publishButtonGuard.disabled}
-      data-testid="denali-wizard-final-submit"
+      data-testid="workspace-wizard-final-submit"
     >
       {isPending ? pendingLabel : submitLabel}
     </Button>

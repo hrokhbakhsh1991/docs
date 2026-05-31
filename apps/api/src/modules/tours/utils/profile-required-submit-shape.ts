@@ -7,7 +7,7 @@ import type { CreateTourDto } from "../dto/create-tour.dto";
  */
 export type ProfileRequiredSubmitShape = {
   title: string;
-  cost_context?: { totalCost?: number | null } | null;
+  cost_context?: { totalCost?: string | null } | null;
   tripDetails?: CreateTourDto["tripDetails"] | null;
   transportModes?: readonly string[] | null;
 };

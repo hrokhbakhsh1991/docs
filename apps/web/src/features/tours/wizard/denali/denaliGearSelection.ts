@@ -1,4 +1,19 @@
+import type { SettingsEquipmentDto } from "@/hooks/use-settings-equipment";
 import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
+
+function equipmentMatchesCatalogCategory(
+  row: SettingsEquipmentDto,
+  categorySlug: string | undefined,
+): boolean {
+  const compatibleCategories = row.compatibleCategories ?? [];
+  if (compatibleCategories.length === 0) {
+    return true;
+  }
+  if (categorySlug == null || categorySlug === "") {
+    return false;
+  }
+  return compatibleCategories.includes(categorySlug);
+}
 
 export function upsertGearItem(
   items: DenaliGearItem[] | undefined,
@@ -62,4 +77,78 @@ export function splitGearByRequired(items: DenaliGearItem[] | undefined): {
     }
   }
   return { required, optional };
+}
+
+function syntheticEquipmentRow(id: string): SettingsEquipmentDto {
+  return {
+    id,
+    name: id,
+    slug: id,
+    compatibleCategories: [],
+    description: null,
+    icon: null,
+    isActive: false,
+    sortOrder: 9999,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+export type GearDisplayListModel = {
+  displayEquipment: SettingsEquipmentDto[];
+  activeCatalogIds: ReadonlySet<string>;
+  selectedById: ReadonlyMap<string, DenaliGearItem>;
+  categoryFilteredCount: number;
+};
+
+/** Category-filtered active catalog plus preserved RHF selections outside the filter. */
+export function buildGearDisplayList(
+  catalog: readonly SettingsEquipmentDto[] | undefined,
+  categorySlug: string | undefined,
+  gearItems: readonly DenaliGearItem[] | undefined,
+): GearDisplayListModel {
+  const rows = catalog ?? [];
+  const byId = new Map<string, SettingsEquipmentDto>();
+  const activeCatalogIds = new Set<string>();
+  const visible: SettingsEquipmentDto[] = [];
+
+  for (const row of rows) {
+    const id = row.id.trim();
+    if (!id) {
+      continue;
+    }
+    byId.set(id, row);
+    if (!row.isActive) {
+      continue;
+    }
+    activeCatalogIds.add(id);
+    if (equipmentMatchesCatalogCategory(row, categorySlug)) {
+      visible.push(row);
+    }
+  }
+
+  const selectedById = new Map<string, DenaliGearItem>();
+  for (const item of gearItems ?? []) {
+    const id = item.id.trim();
+    if (!id) {
+      continue;
+    }
+    selectedById.set(id, { id, isRequired: item.isRequired === true });
+  }
+
+  const visibleIds = new Set(visible.map((row) => row.id.trim()));
+  const extras: SettingsEquipmentDto[] = [];
+  for (const id of selectedById.keys()) {
+    if (visibleIds.has(id)) {
+      continue;
+    }
+    extras.push(byId.get(id) ?? syntheticEquipmentRow(id));
+  }
+
+  return {
+    displayEquipment: [...visible, ...extras],
+    activeCatalogIds,
+    selectedById,
+    categoryFilteredCount: visible.length,
+  };
 }

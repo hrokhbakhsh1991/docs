@@ -123,12 +123,12 @@ export function DenaliTourCreationPresetBanner({
           gap: "0.65rem",
         }}
       >
-        <label htmlFor="denali-wizard-preset-select" style={{ fontWeight: 600 }}>
+        <label htmlFor="workspace-wizard-preset-select" style={{ fontWeight: 600 }}>
           {t("wizardPresetSelectLabel")}
         </label>
         <Select
-          id="denali-wizard-preset-select"
-          data-testid="denali-wizard-preset-select"
+          id="workspace-wizard-preset-select"
+          data-testid="workspace-wizard-preset-select"
           aria-label={t("wizardPresetSelectLabel")}
           value={selectedId}
           onChange={(e) => onSelectChange(e.target.value)}
@@ -150,7 +150,7 @@ export function DenaliTourCreationPresetBanner({
           <Button
             type="button"
             variant="primary"
-            data-testid="denali-wizard-preset-apply"
+            data-testid="workspace-wizard-preset-apply"
             onClick={applySelected}
             disabled={!selected?.isActive || workspaceFormProfile == null}
           >
@@ -160,7 +160,7 @@ export function DenaliTourCreationPresetBanner({
             <Button
               type="button"
               variant="secondary"
-              data-testid="denali-wizard-preset-clear"
+              data-testid="workspace-wizard-preset-clear"
               onClick={() => {
                 setLastAppliedPresetId(null);
                 onClear();

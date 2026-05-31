@@ -14,12 +14,14 @@ export const VALIDATION_PROFILE_REQUIRED_FIELD = "VALIDATION_PROFILE_REQUIRED_FI
 export function tourEntityToProfileRequiredSubmitShape(
   tour: TourPublishPolicySnapshot,
 ): ProfileRequiredSubmitShape {
-  let totalCost: number | undefined;
+  let totalCost: string | undefined;
   const raw = tour.costContext;
   if (raw && typeof raw === "object" && "totalCost" in raw) {
     const candidate = (raw as { totalCost?: unknown }).totalCost;
-    if (typeof candidate === "number" && !Number.isNaN(candidate)) {
-      totalCost = candidate;
+    if (typeof candidate === "string" && candidate.trim()) {
+      totalCost = candidate.trim();
+    } else if (typeof candidate === "number" && !Number.isNaN(candidate)) {
+      totalCost = String(candidate);
     }
   }
 

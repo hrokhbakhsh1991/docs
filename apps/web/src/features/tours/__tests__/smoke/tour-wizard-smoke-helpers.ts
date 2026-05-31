@@ -7,13 +7,18 @@ import {
 } from "@playwright/test";
 
 import { SESSION_TOKEN_COOKIE } from "../../../../../lib/auth/session-cookie";
+import { buildSessionTokenStorageKey } from "../../../../../lib/auth/session";
 import { decodeJwtPayload } from "../../../../../lib/auth/decode-jwt-payload";
+import { resolveTenantSlugFromHost } from "../../../../../lib/tenant/runtime-tenant-context";
 import {
   buildSmokeSessionJwt,
   LEADER_SMOKE_SESSION_JWT,
-  SESSION_TOKEN_STORAGE_KEY,
   SMOKE_WIZARD_JWT_TENANT_ID,
 } from "../../../../../lib/test/session-fixtures";
+import {
+  resolveTestPlatformBaseUrl,
+  resolveTestPlatformHostLabel,
+} from "../../../../../lib/test/smoke-platform-url";
 import {
   buildDenaliTourCreateTestValues,
   type DenaliCreateTourWizardForm,
@@ -21,12 +26,14 @@ import {
 
 export { SMOKE_WIZARD_JWT_TENANT_ID };
 
-/** JWT-shaped cookie value; middleware only checks non-empty; BFF decodes `sub` + `tenant_id`. */
-/** Default Playwright origin for tour wizard smoke (tenant host label required). */
-export const SMOKE_WORKSPACE_BASE_URL = "http://ws1-rbac.localhost:3000";
+/** Wave 4 workspace shell root (`WorkspaceTourWizard`). */
+export const SMOKE_WIZARD_SHELL_TEST_ID = "workspace-tour-wizard";
 
-/** Workspace host slug for smoke tests (`ws1-rbac.localhost`). */
-export const SMOKE_WIZARD_TENANT_SCOPE = "ws1-rbac";
+/** Default Playwright origin for tour wizard smoke (tenant host label required). */
+export const SMOKE_WORKSPACE_BASE_URL = resolveTestPlatformBaseUrl();
+
+/** Workspace host slug for smoke tests (derived from {@link SMOKE_WORKSPACE_BASE_URL}). */
+export const SMOKE_WIZARD_TENANT_SCOPE = resolveTestPlatformHostLabel();
 
 /** Loopback e2e profile seed (`TourCreateWizard` reads `?e2eTourType=` on localhost hosts). */
 export const SMOKE_WIZARD_URBAN_E2E_QUERY = "e2eTourType=city";
@@ -122,15 +129,18 @@ export async function addLeaderSmokeSessionCookie(
  * cross-origin Tour-Ops requests (the session cookie is not sent to another origin).
  */
 export async function installSmokeTourOpsSessionToken(page: Page, jwt: string = LEADER_SMOKE_SESSION_JWT): Promise<void> {
+  const hostname = new URL(SMOKE_WORKSPACE_BASE_URL).hostname;
+  const slug = resolveTenantSlugFromHost(hostname);
+  const key = buildSessionTokenStorageKey(slug ?? undefined, jwt);
   await page.addInitScript(
-    ({ key, token }: { key: string; token: string }) => {
+    ({ storageKey, token }: { storageKey: string; token: string }) => {
       try {
-        sessionStorage.setItem(key, token);
+        localStorage.setItem(storageKey, token);
       } catch {
         /* ignore */
       }
     },
-    { key: SESSION_TOKEN_STORAGE_KEY, token: jwt },
+    { storageKey: key, token: jwt },
   );
 }
 
@@ -156,20 +166,16 @@ async function fillRhfControl(locator: Locator, value: string): Promise<void> {
   await locator.dispatchEvent("change");
 }
 
-/** Waits until membership ability context has hydrated `form_builder` on the wizard shell. */
+/** Waits until the workspace wizard shell is hydrated for classic stepper smoke flows. */
 export async function waitForWizardFormBuilderHydrated(page: Page): Promise<void> {
-  await expect(page.getByTestId("tour-create-wizard")).toHaveAttribute(
-    "data-tenant-advanced-trip-details",
-    "1",
-    { timeout: 20_000 },
-  );
+  await expect(page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID)).toBeVisible({ timeout: 20_000 });
 }
 
 export async function fillTourWizardBasicInfoStep(
   page: Page,
   opts: { title: string; shortDescription: string; longDescription: string },
 ): Promise<void> {
-  const w = page.getByTestId("tour-create-wizard");
+  const w = page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID);
   await waitForWizardFormBuilderHydrated(page);
   const fields = [
     { locator: w.locator('input[name="overview.title"]'), value: opts.title },
@@ -215,13 +221,13 @@ export function buildSmokeWizardTemplateEnvelope(baseProfile: TourWizardSmokeTem
   };
 }
 
-/** Asserts `data-form-profile` on the wizard shell (workspace template authority). */
+/** Asserts workspace template profile on the wizard shell (template authority). */
 export async function expectWizardTemplateProfile(
   page: Page,
   workspaceTemplateProfile: TourWizardSmokeTemplateProfile,
 ): Promise<void> {
-  await expect(page.getByTestId("wizard-form-profile")).toHaveAttribute(
-    "data-form-profile",
+  await expect(page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID)).toHaveAttribute(
+    "data-resolved-form-profile",
     workspaceTemplateProfile,
     { timeout: 20_000 },
   );
@@ -516,7 +522,7 @@ export async function installScopedDraftEngineRoutes(
 }
 
 export async function requireDenaliWizard(page: Page): Promise<Locator> {
-  const denali = page.getByTestId("denali-create-tour-wizard");
+  const denali = page.getByTestId("workspace-tour-wizard");
   if (!(await denali.isVisible().catch(() => false))) {
     throw new Error("Denali wizard not available on this host (must be a Denali tenant subdomain)");
   }
@@ -525,9 +531,9 @@ export async function requireDenaliWizard(page: Page): Promise<Locator> {
 
 /** Clicks restore when `autoApply: false` leaves a pending server draft after reload. */
 export async function restoreDenaliDraftAfterReload(page: Page): Promise<void> {
-  const banner = page.getByTestId("denali-draft-restore-banner");
+  const banner = page.getByTestId("workspace-draft-restore-banner");
   if (await banner.isVisible().catch(() => false)) {
-    await page.getByTestId("denali-draft-restore-load").click();
+    await page.getByTestId("workspace-draft-restore-load").click();
   }
 }
 
@@ -551,7 +557,7 @@ export async function advanceDenaliWizardToStep(page: Page, stepTestId: string):
 }
 
 export async function fillDenaliMountainBasicsForNavigation(page: Page): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   await setNativeSelectValue(w.getByTestId("denali-basics-category"), "mountain");
   await setNativeSelectValue(w.getByTestId("denali-basics-duration"), "single_day");
 }
@@ -632,7 +638,7 @@ export async function installDenaliVerificationMatrixSetup(
 export async function waitForDenaliDraftEngineInitialized(page: Page): Promise<void> {
   await page.waitForFunction(
     () => {
-      const root = document.querySelector('[data-testid="denali-create-tour-wizard"]');
+      const root = document.querySelector('[data-testid="workspace-tour-wizard"]');
       if (!root) {
         return false;
       }
@@ -647,9 +653,9 @@ export async function waitForDenaliDraftEngineInitialized(page: Page): Promise<v
 
       // Draft engine is considered initialized when the wizard shell is mounted and no
       // transient draft-state banners are blocking hydration.
-      const restoreBanner = document.querySelector('[data-testid="denali-draft-restore-banner"]');
-      const staleNotice = document.querySelector('[data-testid="denali-draft-stale-notice"]');
-      const saveError = document.querySelector('[data-testid="denali-draft-save-error"]');
+      const restoreBanner = document.querySelector('[data-testid="workspace-draft-restore-banner"]');
+      const staleNotice = document.querySelector('[data-testid="workspace-draft-stale-notice"]');
+      const saveError = document.querySelector('[data-testid="workspace-draft-save-error"]');
       const hasBlockingDraftUi = Boolean(restoreBanner || staleNotice || saveError);
       return !hasBlockingDraftUi;
     },

@@ -21,6 +21,13 @@ test("getWizardConfig resolves classic rail for general and arctic nature_trip",
   assert.equal(isDenaliWizardModeFromProfile("general"), false);
 });
 
+test("getWizardConfig exposes profile-bound railId", () => {
+  assert.equal(getWizardConfig("denali_pilot").railId, "denali");
+  assert.equal(getWizardConfig("urban_event").railId, "denali");
+  assert.equal(getWizardConfig("general").railId, "generic_base");
+  assert.equal(getWizardConfig("nature_trip").railId, "generic_base");
+});
+
 test("buildWizardConfig exposes descriptor inactive groups and workspace roots", () => {
   const denali = buildWizardConfig("denali_pilot");
   assert.ok(denali.roots.length > 0);

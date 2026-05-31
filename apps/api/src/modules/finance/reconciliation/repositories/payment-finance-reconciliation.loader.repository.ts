@@ -91,7 +91,7 @@ export async function loadPaymentReconciliationReportInputForTenant(
   const outboxRows = await manager.find(OutboxEventEntity, {
     where: {
       tenantId: tid,
-      eventType: In(["payment.succeeded", "finance.ledger.double_entry_applied"]),
+      eventType: In(["payment.captured", "finance.ledger.double_entry_applied"]),
       createdAt: MoreThanOrEqual(since),
     },
     order: { createdAt: "DESC" },
@@ -99,7 +99,7 @@ export async function loadPaymentReconciliationReportInputForTenant(
   });
 
   const financeRows = outboxRows.filter((r) => r.eventType === "finance.ledger.double_entry_applied");
-  const succeededRows = outboxRows.filter((r) => r.eventType === "payment.succeeded");
+  const capturedRows = outboxRows.filter((r) => r.eventType === "payment.captured");
 
   const persistedLineRows = await manager.find(LedgerJournalLineEntity, {
     where: { tenantId: tid, createdAt: MoreThanOrEqual(since) },
@@ -126,7 +126,7 @@ export async function loadPaymentReconciliationReportInputForTenant(
 
   const providerCapturedPayments: ProviderCaptureFact[] = [];
   const seenProviderIds = new Set<string>();
-  for (const ev of succeededRows) {
+  for (const ev of capturedRows) {
     const entityId = ev.payload.entityId;
     if (typeof entityId !== "string" || entityId.trim() === "") {
       continue;

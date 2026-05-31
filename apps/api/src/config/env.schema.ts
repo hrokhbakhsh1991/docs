@@ -235,7 +235,7 @@ export const envSchema = z.object({
   ),
 
   /**
-   * Lookback window (days) for payment–ledger–snapshot reconciliation (`payment.succeeded` / ledger outbox / `payments`).
+   * Lookback window (days) for payment–ledger–snapshot reconciliation (`payment.captured` / ledger outbox / `payments`).
    */
   PAYMENT_FINANCE_RECONCILIATION_LOOKBACK_DAYS: z.preprocess(
     toNumber,

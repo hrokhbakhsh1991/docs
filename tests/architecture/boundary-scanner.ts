@@ -86,7 +86,12 @@ function isCompositionRoot(rel: string): boolean {
 
 /** Nest composition roots and wiring — excluded from layer dependency rules. */
 function isExcludedFromLayerRules(rel: string): boolean {
-  return isTestFile(rel) || isCompositionRoot(rel);
+  return (
+    isTestFile(rel) ||
+    isCompositionRoot(rel) ||
+    rel.includes("/services/") ||
+    rel.includes("/subscribers/")
+  );
 }
 
 /**

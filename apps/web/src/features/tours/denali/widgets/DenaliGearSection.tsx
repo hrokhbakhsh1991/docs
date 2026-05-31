@@ -4,20 +4,19 @@ import { useCallback, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { FormField } from "@tour/ui";
-
-import {
-  useSettingsEquipment,
-  type SettingsEquipmentDto,
-} from "@/hooks/use-settings-equipment";
+import { useSettingsEquipment } from "@/hooks/use-settings-equipment";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import type { DenaliGearItem } from "@/features/tours/wizard/schemas/denaliGearItemSchema";
 
 import {
+  buildGearDisplayList,
   normalizeGearItems,
   removeGearItem,
   upsertGearItem,
 } from "@/features/tours/wizard/denali/denaliGearSelection";
 import { useDenaliCanonical } from "@/features/tours/wizard/denali/application";
+import { useWizardLayout } from "@/features/tours/wizard/shell/context";
+import { useLayoutFieldValue } from "@/features/tours/wizard/shell/fieldAccess";
 
 export function DenaliGearSection() {
   const t = useTranslations("tours.denali");
@@ -26,66 +25,21 @@ export function DenaliGearSection() {
   const equipmentQuery = useSettingsEquipment();
   const { updateCanonical } = useDenaliCanonical();
 
+  const layout = useWizardLayout();
+  const gearFilter = layout.gearCatalogFilter;
+
   const gearItems = useWatch({
     name: "participantRequirements.gearItems",
   });
 
-  const catalogById = useMemo(() => {
-    const map = new Map<string, SettingsEquipmentDto>();
-    for (const row of equipmentQuery.data ?? []) {
-      const id = row.id.trim();
-      if (id) {
-        map.set(id, row);
-      }
-    }
-    return map;
-  }, [equipmentQuery.data]);
+  const classificationValue = useLayoutFieldValue(gearFilter.classificationFieldPath);
 
-  const activeEquipment = useMemo(
-    () => (equipmentQuery.data ?? []).filter((row) => row.isActive),
-    [equipmentQuery.data],
-  );
-
-  const activeEquipmentIdSet = useMemo(
-    () => new Set(activeEquipment.map((row) => row.id.trim()).filter(Boolean)),
-    [activeEquipment],
-  );
-
-  const selectedById = useMemo(() => {
-    const map = new Map<string, DenaliGearItem>();
-    for (const row of gearItems ?? []) {
-      const id = row.id.trim();
-      if (!id) continue;
-      map.set(id, { id, isRequired: row.isRequired === true });
-    }
-    return map;
-  }, [gearItems]);
+  const { displayEquipment, activeCatalogIds, selectedById, categoryFilteredCount } = useMemo(() => {
+    const categorySlug = gearFilter.resolveCategorySlug(classificationValue, layout.profile);
+    return buildGearDisplayList(equipmentQuery.data, categorySlug, gearItems);
+  }, [classificationValue, equipmentQuery.data, gearFilter, gearItems, layout.profile]);
 
   const hasRhfGearSelections = selectedById.size > 0;
-
-  /** Active catalog pills plus RHF-selected gear not in the active catalog (stale / inactive). */
-  const displayEquipment = useMemo(() => {
-    const extras: SettingsEquipmentDto[] = [];
-    for (const id of selectedById.keys()) {
-      if (activeEquipmentIdSet.has(id)) continue;
-      const catalogRow = catalogById.get(id);
-      extras.push(
-        catalogRow ?? {
-          id,
-          name: id,
-          slug: id,
-          category: null,
-          description: null,
-          icon: null,
-          isActive: false,
-          sortOrder: 9999,
-          createdAt: "",
-          updatedAt: "",
-        },
-      );
-    }
-    return [...activeEquipment, ...extras];
-  }, [activeEquipment, activeEquipmentIdSet, catalogById, selectedById]);
 
   /** RHF is source of truth for pills; canonical is synced after each gear change. */
   const commitGearItems = useCallback(
@@ -161,7 +115,7 @@ export function DenaliGearSection() {
   return (
     <FormField label={t("gear.title")} description={t("gear.hint")}>
       <>
-        {activeEquipment.length === 0 && hasRhfGearSelections ? (
+        {categoryFilteredCount === 0 && hasRhfGearSelections ? (
           <p
             style={{ margin: "0 0 0.65rem", fontSize: "0.85rem", color: "var(--color-warning-800)" }}
             data-testid="denali-gear-catalog-empty-stale-hint"
@@ -185,7 +139,7 @@ export function DenaliGearSection() {
             const selected = selectedById.get(equipmentId);
             const isIncluded = selected != null;
             const isRequired = selected?.isRequired === true;
-            const isStale = !activeEquipmentIdSet.has(equipmentId);
+            const isStale = !activeCatalogIds.has(equipmentId);
             const displayName = isStale ? equipmentId : item.name;
             const staleSuffix = t("gear.staleInactiveLabel");
 
@@ -243,63 +197,78 @@ export function DenaliGearSection() {
                   ? requiredStyle
                   : suggestedStyle;
 
+            const pillLabel = isIncluded && !isStale
+              ? `${displayName} (${isRequired ? t("gear.pillRequired") : t("gear.pillSuggested")})`
+              : isStale
+                ? `${displayName} (${staleSuffix})`
+                : displayName;
+
             return (
-              <div
+              <span
                 key={`${item.id}-${index}`}
-                onClick={() => handleIncludeChange(equipmentId, !isIncluded)}
-                style={activeStyle}
-                data-testid={`denali-gear-pill-${item.slug}`}
-                data-gear-stale={isStale ? "true" : "false"}
-                title={
-                  isStale
-                    ? `${displayName} (${staleSuffix})`
-                    : item.description || item.name
-                }
+                style={{ position: "relative", display: "inline-flex" }}
               >
-                {isIncluded ? (
-                  <>
-                    <span>{isStale ? "⚠️" : isRequired ? "🚨" : "🎒"}</span>
-                    <span>
-                      {displayName}
-                      {isStale
-                        ? ` (${staleSuffix})`
-                        : ` (${isRequired ? "الزامی" : "پیشنهادی"})`}
-                    </span>
-                    {!isStale ? (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRequiredChange(equipmentId, !isRequired);
-                        }}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "1.25rem",
-                          height: "1.25rem",
-                          borderRadius: "50%",
-                          backgroundColor: isRequired
-                            ? "var(--color-bg-surface)"
-                            : "var(--color-indicator-bg-muted)",
-                          fontSize: "0.75rem",
-                          marginLeft: "-0.25rem",
-                          transition: "transform 0.2s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                        title={isRequired ? "تغییر به پیشنهادی" : "تغییر به الزامی"}
-                      >
-                        {isRequired ? "🎒" : "🚨"}
-                      </span>
-                    ) : null}
-                  </>
-                ) : (
-                  <span>
-                    {displayName}
-                    {isStale ? ` (${staleSuffix})` : ""}
-                  </span>
-                )}
-              </div>
+                <button
+                  type="button"
+                  onClick={() => handleIncludeChange(equipmentId, !isIncluded)}
+                  style={{
+                    ...activeStyle,
+                    font: "inherit",
+                    margin: 0,
+                  }}
+                  data-testid={`denali-gear-pill-${item.slug}`}
+                  data-gear-stale={isStale ? "true" : "false"}
+                  title={
+                    isStale
+                      ? `${displayName} (${staleSuffix})`
+                      : item.description || item.name
+                  }
+                  aria-pressed={isIncluded}
+                >
+                  {isIncluded ? (
+                    <>
+                      <span aria-hidden>{isStale ? "⚠️" : isRequired ? "🚨" : "🎒"}</span>
+                      <span>{pillLabel}</span>
+                    </>
+                  ) : (
+                    <span>{pillLabel}</span>
+                  )}
+                </button>
+                {isIncluded && !isStale ? (
+                  <button
+                    type="button"
+                    aria-label={isRequired ? t("gear.toggleToSuggested") : t("gear.toggleToRequired")}
+                    onClick={() => handleRequiredChange(equipmentId, !isRequired)}
+                    style={{
+                      position: "absolute",
+                      top: "0.15rem",
+                      insetInlineEnd: "0.15rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "1.25rem",
+                      height: "1.25rem",
+                      padding: 0,
+                      border: "none",
+                      borderRadius: "50%",
+                      backgroundColor: isRequired
+                        ? "var(--color-bg-surface)"
+                        : "var(--color-indicator-bg-muted)",
+                      fontSize: "0.75rem",
+                      cursor: "pointer",
+                      transition: "transform 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.2)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    <span aria-hidden>{isRequired ? "🎒" : "🚨"}</span>
+                  </button>
+                ) : null}
+              </span>
             );
           })}
         </div>

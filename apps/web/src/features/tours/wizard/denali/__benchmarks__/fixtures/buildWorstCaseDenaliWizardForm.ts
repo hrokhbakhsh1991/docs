@@ -59,6 +59,26 @@ export function buildWorstCaseDenaliWizardForm(): DenaliCreateTourWizardForm {
       requiresManualAdminApproval: true,
       socialMediaLink: "https://example.com/tour",
       publishStatus: "active",
+      startPoint: {
+        addressText: "Damavand trailhead — benchmark start",
+        latitude: 35.9519,
+        longitude: 52.109,
+      },
+      summitPoint: {
+        addressText: "Summit zone — benchmark",
+        latitude: 35.955,
+        longitude: 52.1095,
+      },
+      campPoint: {
+        addressText: "High camp — benchmark",
+        latitude: 35.953,
+        longitude: 52.1092,
+      },
+      endPoint: {
+        addressText: "Return trailhead — benchmark",
+        latitude: 35.951,
+        longitude: 52.1085,
+      },
     },
     programNature: {
       ...base.programNature,
@@ -97,7 +117,7 @@ export function buildWorstCaseDenaliWizardForm(): DenaliCreateTourWizardForm {
       fitnessPrerequisiteText: "Prior 4000m+ summit experience required.",
       gearItems: Array.from({ length: MAX_GEAR_ITEMS }, (_, index) => ({
         id: `gear-${index + 1}`,
-        required: index % 2 === 0,
+        isRequired: index % 2 === 0,
       })),
     },
     policies: {
@@ -110,7 +130,9 @@ export function buildWorstCaseDenaliWizardForm(): DenaliCreateTourWizardForm {
         id: `cover-${index + 1}`,
         url: `https://example.com/photos/cover-${index + 1}.jpg`,
         filename: `cover-${index + 1}.jpg`,
+        size: 1024,
         mimeType: "image/jpeg",
+        uploadedAt: "2026-06-01T12:00:00.000Z",
         uploadStatus: "uploaded" as const,
       })),
     },
@@ -131,30 +153,9 @@ export function buildWorstCaseDenaliWizardForm(): DenaliCreateTourWizardForm {
         ...base.tripDetails.overview,
         peakHeight: 5610,
         customServiceLabels: ["porter", "cook", "medic", "photographer"],
-        startPoint: {
-          addressText: "Damavand trailhead — benchmark start",
-          latitude: 35.9519,
-          longitude: 52.109,
-        },
-        summitPoint: {
-          addressText: "Summit zone — benchmark",
-          latitude: 35.955,
-          longitude: 52.1095,
-        },
-        campPoint: {
-          addressText: "High camp — benchmark",
-          latitude: 35.953,
-          longitude: 52.1092,
-        },
-        endPoint: {
-          addressText: "Return trailhead — benchmark",
-          latitude: 35.951,
-          longitude: 52.1085,
-        },
       },
       metrics: {
         elevationGain: 2800,
-        distanceKm: 42,
       },
     },
   };

@@ -137,8 +137,9 @@ export class TripDetailsPhotoDto {
   id!: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  url!: string;
+  url?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -1,153 +1,179 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
+import type { EntityManager } from "typeorm";
+
 import { UserRole } from "../../src/common/auth/user-role.enum";
+import type { RequestContextService } from "../../src/common/request-context/request-context.service";
+import type { OutboxService } from "../../src/modules/outbox/outbox.service";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
-  RegistrationStatus
+  RegistrationStatus,
 } from "../../src/modules/registrations/registration.entity";
-import { UserEntity } from "../../src/modules/identity/entities/user.entity";
-import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
+import type { RegistrationCreationService } from "../../src/modules/registrations/services/registration-creation.service";
+import type { RegistrationQueryService } from "../../src/modules/registrations/services/registration-query.service";
+import { RegistrationPublicFlowMetrics } from "../../src/modules/registrations/services/registration-public-flow-metrics";
+import type { RegistrationCapacityService } from "../../src/modules/registrations/services/registration-capacity.service";
+import type { RegistrationPersistenceService } from "../../src/modules/registrations/services/registration-persistence.service";
+import { RegistrationStateMachineService } from "../../src/modules/registrations/services/registration-state-machine.service";
+import type { RegistrationTourAccessService } from "../../src/modules/registrations/services/registration-tour-access.service";
+import type { RegistrationTransactionRunner } from "../../src/modules/registrations/services/registration-transaction.runner";
+import type { RegistrationWaitlistService } from "../../src/modules/registrations/services/registration-waitlist.service";
 import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
 
-type MockManager = {
-  findOne: (_entity: unknown, _options: { where: Record<string, unknown> | Record<string, unknown>[] }) =>
-    Promise<RegistrationEntity | null>;
-  save: (_entity: RegistrationEntity) => Promise<RegistrationEntity>;
-  exists: (_entity: unknown, _options: { where: Record<string, unknown> }) => Promise<boolean>;
-  update: (_entity: unknown, _where: unknown, _values: unknown) => Promise<{ affected: number; raw: unknown[]; generatedMaps: unknown[] }>;
-  count: (_entity: unknown, _options: unknown) => Promise<number>;
-};
+const TENANT_ID = "11111111-1111-4111-8111-111111111111";
+const USER_ID = "33333333-3333-4333-8333-333333333333";
 
-function createServiceWithState(initial: RegistrationEntity | null): {
+function harness<T>(partial: object): T {
+  return partial as unknown as T;
+}
+
+function unexpectedHarnessCall(label: string): never {
+  throw new Error(`Unexpected harness invocation: ${label}`);
+}
+
+function createPaymentHarness(initial: RegistrationEntity | null): {
   service: TypeOrmRegistrationsApplicationService;
   getRegistration: () => RegistrationEntity | null;
 } {
   let current = initial;
 
-  const registrationMatchesWhere = (
-    row: RegistrationEntity,
-    clause: Record<string, unknown>
-  ): boolean =>
-    clause.id === row.id &&
-    (clause.tenantId === undefined || clause.tenantId === row.tenantId) &&
-    (clause.participantContactPhone === undefined ||
-      clause.participantContactPhone === row.participantContactPhone) &&
-    (clause.telegramUserId === undefined || clause.telegramUserId === row.telegramUserId);
-
-  const manager: MockManager = {
-    async findOne(entity, options) {
-      const name = (entity as { name?: string }).name;
-      if (name === UserEntity.name) {
+  const registrationRepository = {
+    async findOne({ where }: { where: Record<string, unknown> }) {
+      if (!current) {
         return null;
       }
-      if (name === RegistrationEntity.name) {
-        const w = options.where;
-        if (current == null) return null;
-        const reg = current;
-        if (Array.isArray(w)) {
-          return w.some((c) => registrationMatchesWhere(reg, c as Record<string, unknown>))
-            ? reg
-            : null;
-        }
-        return registrationMatchesWhere(reg, w as Record<string, unknown>) ? reg : null;
+      if (where.id !== current.id || where.tenantId !== current.tenantId) {
+        return null;
       }
-      return null;
+      return { ...current };
+    },
+  };
+
+  const manager = {
+    async findOne(entity: unknown, opts?: { where?: Record<string, unknown> }) {
+      if (entity !== RegistrationEntity || !current || !opts?.where) {
+        return null;
+      }
+      const where = opts.where;
+      if (where.id !== current.id || where.tenantId !== current.tenantId) {
+        return null;
+      }
+      return { ...current };
     },
     async save(entity: RegistrationEntity) {
-      current = {
-        ...entity,
-        updatedAt: new Date()
-      };
-      return current;
+      current = entity;
+      return entity;
     },
-    async exists(): Promise<boolean> {
-      // No snapshots or payments in this harness — snapshot guard short-circuits.
-      return false;
-    },
-    async update() {
-      return { affected: 1, raw: [], generatedMaps: [] };
-    },
-    async count() {
-      return 0;
-    }
-  };
-
-  const dataSource = {
-    async transaction<T>(fn: (_transactionManager: MockManager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    }
-  };
+  } as EntityManager;
 
   const requestContextService = {
-    resolveEffectiveTenantId(): string {
-      return "11111111-1111-4111-8111-111111111111";
+    resolveEffectiveTenantId: () => TENANT_ID,
+    getRole: () => UserRole.Owner,
+    getTenantId: () => TENANT_ID,
+    getUserId: () => USER_ID,
+  } satisfies Pick<
+    RequestContextService,
+    "resolveEffectiveTenantId" | "getRole" | "getTenantId" | "getUserId"
+  >;
+
+  const transactionRunner = {
+    get activeManager() {
+      return manager;
     },
-    getTenantId(): string {
-      return "11111111-1111-4111-8111-111111111111";
+    runInIdempotentOrOwnTransaction: async <T>(fn: (_manager: EntityManager) => Promise<T>) =>
+      fn(manager),
+  } satisfies Pick<
+    RegistrationTransactionRunner,
+    "activeManager" | "runInIdempotentOrOwnTransaction"
+  >;
+
+  const registrationsReadRepository = createRegistrationsReadRepositoryPortTestDouble(
+    registrationRepository,
+    manager,
+  );
+
+  const persistenceService = {
+    saveRegistrationOrVersionConflict: async (_manager: EntityManager, registration: RegistrationEntity) => {
+      current = registration;
+      return registration;
     },
-    getUserId(): string {
-      return "99999999-9999-4999-8999-999999999999";
-    },
-    getRole(): UserRole {
-      return UserRole.Owner;
-    },
-    getRequestId(): string {
-      return "test-request-id";
-    }
-  };
+  } satisfies Pick<RegistrationPersistenceService, "saveRegistrationOrVersionConflict">;
+
   const outboxService = {
-    async addEvent(): Promise<void> {}
-  };
+    addEvent: async () => undefined,
+  } satisfies Pick<OutboxService, "addEvent">;
+
+  const tourAccessService = {
+    getTenantIdForTourOrThrow: async () => unexpectedHarnessCall("RegistrationTourAccessService.getTenantIdForTourOrThrow"),
+    requireTourInTenant: async () => unexpectedHarnessCall("RegistrationTourAccessService.requireTourInTenant"),
+    requireTourInTenantForUpdate: async () =>
+      unexpectedHarnessCall("RegistrationTourAccessService.requireTourInTenantForUpdate"),
+    assertTourNationalIdRegistrationPolicyOrThrow: async () => undefined,
+  } satisfies Pick<
+    RegistrationTourAccessService,
+    | "getTenantIdForTourOrThrow"
+    | "requireTourInTenant"
+    | "requireTourInTenantForUpdate"
+    | "assertTourNationalIdRegistrationPolicyOrThrow"
+  >;
+
+  const capacityService = {
+    calculateAcceptedCounterDelta: () => unexpectedHarnessCall("RegistrationCapacityService.calculateAcceptedCounterDelta"),
+  } satisfies Pick<RegistrationCapacityService, "calculateAcceptedCounterDelta">;
+
+  const waitlistService = {
+    promoteNextWaitlistItem: async () =>
+      unexpectedHarnessCall("RegistrationWaitlistService.promoteNextWaitlistItem"),
+  } satisfies Pick<RegistrationWaitlistService, "promoteNextWaitlistItem">;
+
+  const stateMachineService = new RegistrationStateMachineService(
+    harness<RequestContextService>(requestContextService),
+    harness<OutboxService>(outboxService),
+    registrationsReadRepository,
+    harness<RegistrationTransactionRunner>(transactionRunner),
+    harness<RegistrationTourAccessService>(tourAccessService),
+    harness<RegistrationCapacityService>(capacityService),
+    harness<RegistrationPersistenceService>(persistenceService),
+    harness<RegistrationWaitlistService>(waitlistService),
+    new RegistrationPublicFlowMetrics(),
+  );
 
   const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    requestContextService as never,
-    outboxService as never,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: any) {
-          return manager.findOne(RegistrationEntity, opts);
-        }
-      },
-      manager as never
-    ),
-    {} as never,
-    {
-    getTourSnapshot: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
-    lockTourSnapshot: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
-    getTourTitles: async () => new Map(),
-    applyAcceptedCounterDelta: async () => {},
-    tryIncrementAcceptedCountAtomic: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 1, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
-    tryDecrementAcceptedCountAtomic: async () => ({ id: "11111111-1111-4111-8111-111111111111", tenantId: "11111111-1111-4111-8111-111111111111", lifecycleStatus: "OPEN", acceptedCount: 0, totalCapacity: 10, autoAcceptRegistrations: true, costContext: {}, details: { tripDetails: {} }, tourDepartureId: null, transportModes: ["bus"] }),
-    syncTourDepartureCapacity: async () => {}
-  } as never,
-  {
-    reserveTicket: async () => {},
-    releaseTicket: async () => {},
-    syncRemainingFromSnapshot: async () => {},
-  } as never
+    harness<RegistrationTransactionRunner>(transactionRunner),
+    harness<RegistrationTourAccessService>(tourAccessService),
+    harness<RegistrationQueryService>({
+      resolveAuthenticatedBookingInput: async () =>
+        unexpectedHarnessCall("RegistrationQueryService.resolveAuthenticatedBookingInput"),
+    }),
+    harness<RegistrationCreationService>({
+      createRegistration: async () =>
+        unexpectedHarnessCall("RegistrationCreationService.createRegistration"),
+      createBooking: async () => unexpectedHarnessCall("RegistrationCreationService.createBooking"),
+    }),
+    stateMachineService,
+    harness<RegistrationWaitlistService>({
+      createWaitlistItem: async () =>
+        unexpectedHarnessCall("RegistrationWaitlistService.createWaitlistItem"),
+    }),
+    new RegistrationPublicFlowMetrics(),
   );
 
   return {
     service,
-    getRegistration: () => current
+    getRegistration: () => current,
   };
 }
 
 function buildRegistration(
   registrationStatus: RegistrationStatus,
-  paymentStatus: RegistrationPaymentStatus
+  paymentStatus: RegistrationPaymentStatus,
 ): RegistrationEntity {
   return {
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    tenantId: "11111111-1111-4111-8111-111111111111",
+    tenantId: TENANT_ID,
     tourId: "22222222-2222-4222-8222-222222222222",
     tourDepartureId: "22222222-2222-4222-8222-222222222222",
     participantFullName: "Test User",
@@ -157,18 +183,18 @@ function buildRegistration(
     status: registrationStatus,
     paymentStatus,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   } as RegistrationEntity;
 }
 
 test("payment transition allowed: NotPaid -> Paid", async () => {
-  const { service, getRegistration } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.NOT_PAID)
+  const { service, getRegistration } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.NOT_PAID),
   );
 
   const result = await service.updatePaymentStatus(
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    RegistrationPaymentStatus.PAID
+    RegistrationPaymentStatus.PAID,
   );
 
   assert.equal(result.paymentStatus, RegistrationPaymentStatus.PAID);
@@ -176,143 +202,143 @@ test("payment transition allowed: NotPaid -> Paid", async () => {
 });
 
 test("payment transition allowed: NotPaid -> Failed", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.NOT_PAID)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.NOT_PAID),
   );
 
   const result = await service.updatePaymentStatus(
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    RegistrationPaymentStatus.FAILED
+    RegistrationPaymentStatus.FAILED,
   );
 
   assert.equal(result.paymentStatus, RegistrationPaymentStatus.FAILED);
 });
 
 test("payment transition allowed: Paid -> Refunded", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.PAID)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.PAID),
   );
 
   const result = await service.updatePaymentStatus(
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    RegistrationPaymentStatus.REFUNDED
+    RegistrationPaymentStatus.REFUNDED,
   );
 
   assert.equal(result.paymentStatus, RegistrationPaymentStatus.REFUNDED);
 });
 
 test("payment transition allowed: Failed -> Paid", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.FAILED)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.FAILED),
   );
 
   const result = await service.updatePaymentStatus(
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    RegistrationPaymentStatus.PAID
+    RegistrationPaymentStatus.PAID,
   );
 
   assert.equal(result.paymentStatus, RegistrationPaymentStatus.PAID);
 });
 
 test("payment transition allowed: Failed -> NotPaid", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.FAILED)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.FAILED),
   );
 
   const result = await service.updatePaymentStatus(
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    RegistrationPaymentStatus.NOT_PAID
+    RegistrationPaymentStatus.NOT_PAID,
   );
 
   assert.equal(result.paymentStatus, RegistrationPaymentStatus.NOT_PAID);
 });
 
 test("payment transition forbidden: Paid -> NotPaid", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.PAID)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.PAID),
   );
 
   await assert.rejects(
     () =>
       service.updatePaymentStatus(
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        RegistrationPaymentStatus.NOT_PAID
+        RegistrationPaymentStatus.NOT_PAID,
       ),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===
-        "PAYMENT_STATUS_TRANSITION_INVALID"
+        "PAYMENT_STATUS_TRANSITION_INVALID",
   );
 });
 
 test("payment transition forbidden: Refunded -> Paid", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.REFUNDED)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.REFUNDED),
   );
 
   await assert.rejects(
     () =>
       service.updatePaymentStatus(
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        RegistrationPaymentStatus.PAID
+        RegistrationPaymentStatus.PAID,
       ),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===
-        "PAYMENT_STATUS_TRANSITION_INVALID"
+        "PAYMENT_STATUS_TRANSITION_INVALID",
   );
 });
 
 test("payment transition forbidden: Refunded -> NotPaid", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.REFUNDED)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.PENDING, RegistrationPaymentStatus.REFUNDED),
   );
 
   await assert.rejects(
     () =>
       service.updatePaymentStatus(
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        RegistrationPaymentStatus.NOT_PAID
+        RegistrationPaymentStatus.NOT_PAID,
       ),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===
-        "PAYMENT_STATUS_TRANSITION_INVALID"
+        "PAYMENT_STATUS_TRANSITION_INVALID",
   );
 });
 
 test("payment transition forbidden for cancelled registration", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.CANCELLED, RegistrationPaymentStatus.NOT_PAID)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.CANCELLED, RegistrationPaymentStatus.NOT_PAID),
   );
 
   await assert.rejects(
     () =>
       service.updatePaymentStatus(
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        RegistrationPaymentStatus.PAID
+        RegistrationPaymentStatus.PAID,
       ),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===
-        "PAYMENT_STATUS_TRANSITION_INVALID"
+        "PAYMENT_STATUS_TRANSITION_INVALID",
   );
 });
 
 test("payment transition forbidden for rejected registration", async () => {
-  const { service } = createServiceWithState(
-    buildRegistration(RegistrationStatus.REJECTED, RegistrationPaymentStatus.NOT_PAID)
+  const { service } = createPaymentHarness(
+    buildRegistration(RegistrationStatus.REJECTED, RegistrationPaymentStatus.NOT_PAID),
   );
 
   await assert.rejects(
     () =>
       service.updatePaymentStatus(
         "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        RegistrationPaymentStatus.PAID
+        RegistrationPaymentStatus.PAID,
       ),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===
-        "PAYMENT_STATUS_TRANSITION_INVALID"
+        "PAYMENT_STATUS_TRANSITION_INVALID",
   );
 });

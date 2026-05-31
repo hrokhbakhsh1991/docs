@@ -32,6 +32,7 @@ export function buildDenaliWizardUploadTourPayload(input: {
   return {
     ...dto,
     lifecycle_status: "Draft",
+    metadata: { vertical: "staging_shell", isStagingShell: true },
     ...(title.length < CREATE_TOUR_TITLE_MIN_LENGTH ? { title: STAGING_TITLE_FALLBACK } : {}),
   };
 }

@@ -2,6 +2,8 @@
 
 import { Button } from "@tour/ui";
 
+import { useDenaliBlobPhotoRowLifecycle } from "../application";
+import { revokeDenaliBlobUrl } from "../preserveDenaliWizardBlobMedia";
 import type { DenaliItineraryDayPhoto } from "../denaliItinerarySync";
 import { FileUploadField } from "./FileUploadField";
 
@@ -25,6 +27,7 @@ export function DenaliItineraryDayPhotos({
   error,
 }: DenaliItineraryDayPhotosProps) {
   const rows = photos ?? [];
+  useDenaliBlobPhotoRowLifecycle(rows);
 
   return (
     <div data-testid={`denali-itinerary-photos-${day}`}>
@@ -76,6 +79,7 @@ export function DenaliItineraryDayPhotos({
                   fontSize: "0.65rem",
                 }}
                 onClick={() => {
+                  revokeDenaliBlobUrl(photo.url);
                   const next = rows.filter((_, i) => i !== index);
                   onChange(next.length > 0 ? next : undefined);
                 }}

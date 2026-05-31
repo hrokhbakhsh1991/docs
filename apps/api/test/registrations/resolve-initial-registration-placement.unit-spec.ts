@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
+import { RegistrationPlacementService } from "../../src/modules/registrations/services/registration-placement.service";
 import { RegistrationStatus } from "../../src/modules/registrations/registration.entity";
 import type { ParticipantMetadataDto } from "../../src/modules/registrations/dto/participant-metadata.dto";
-import type { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import type { TourCatalogSnapshot } from "../../src/modules/registrations/domain/ports/registrations-tour-catalog.port";
 
 type PlacementResult = {
   status: RegistrationStatus;
@@ -11,44 +11,20 @@ type PlacementResult = {
 };
 
 function resolvePlacement(
-  service: TypeOrmRegistrationsApplicationService,
-  tour: Partial<TourEntity>,
+  service: RegistrationPlacementService,
+  tour: Partial<TourCatalogSnapshot>,
   participantMetadata?: ParticipantMetadataDto,
   tripDetails?: Record<string, unknown> | null,
 ): PlacementResult {
-  return (
-    service as unknown as {
-      resolveInitialRegistrationPlacement(
-        _t: TourEntity,
-        _m?: ParticipantMetadataDto,
-        _td?: Record<string, unknown> | null,
-      ): PlacementResult;
-    }
-  ).resolveInitialRegistrationPlacement(
-    tour as TourEntity,
+  return service.resolveInitialRegistrationPlacement(
+    tour as TourCatalogSnapshot,
     participantMetadata,
     tripDetails ?? null,
   );
 }
 
-function placementService(): TypeOrmRegistrationsApplicationService {
-  return new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {
-      reserveTicket: async () => {},
-      releaseTicket: async () => {},
-      syncRemainingFromSnapshot: async () => {},
-    } as never
-  );
+function placementService(): RegistrationPlacementService {
+  return new RegistrationPlacementService({} as never);
 }
 
 test("paid tour with autoAcceptRegistrations stays Pending (PLACE-02)", () => {

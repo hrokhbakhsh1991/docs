@@ -146,7 +146,7 @@ test("assertTourStateReadyForOpenAfterPatch: urban_event title-only passes", () 
 
 test("assertTourStateReadyForOpenAfterPatch: mountain_outdoor missing edit-required fails", () => {
   const tour = draftTour({ formProfileSnapshot: "mountain_outdoor" });
-  tour.costContext = { totalCost: 2_000_000 };
+  tour.costContext = { totalCost: "2000000" };
   tour.details = new TourDetails();
   tour.details.tripDetails = {
     schemaVersion: 1,
@@ -185,7 +185,7 @@ test("assertTourStateReadyForOpenAfterPatch: general missing submit fields fails
 
 test("assertTourStateReadyForOpenAfterPatch: general with tripDetails subset passes", () => {
   const tour = draftTour({ formProfileSnapshot: "general" });
-  tour.costContext = { totalCost: 1_000_000 };
+  tour.costContext = { totalCost: "1000000" };
   tour.details = new TourDetails();
   tour.details.tripDetails = {
     schemaVersion: 1,
@@ -257,7 +257,7 @@ function denaliPublishTripDetails(withGeo: boolean): TourDetails["tripDetails"] 
 
 test("assertTourStateReadyForOpenAfterPatch: denali_pilot without geolocation zones fails", () => {
   const tour = draftTour({ formProfileSnapshot: "denali_pilot" });
-  tour.costContext = { totalCost: 1_000_000 };
+  tour.costContext = { totalCost: "1000000" };
   tour.transportModes = ["bus"];
   tour.details = new TourDetails();
   tour.details.tripDetails = denaliPublishTripDetails(false);
@@ -267,13 +267,13 @@ test("assertTourStateReadyForOpenAfterPatch: denali_pilot without geolocation zo
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
+    assert.equal(body.error?.code, "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
   }
 });
 
 test("assertTourStateReadyForOpenAfterPatch: denali_pilot with geolocation zones passes publish geo gate", () => {
   const tour = draftTour({ formProfileSnapshot: "denali_pilot" });
-  tour.costContext = { totalCost: 1_000_000 };
+  tour.costContext = { totalCost: "1000000" };
   tour.transportModes = ["bus"];
   tour.details = new TourDetails();
   tour.details.tripDetails = denaliPublishTripDetails(true);

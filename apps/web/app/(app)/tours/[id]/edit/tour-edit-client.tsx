@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useTranslations } from "next-intl";
+import { useCallback, useMemo } from "react";
 
 import {
   Button,
@@ -49,6 +50,8 @@ export function TourEditClient({
   initialSession?: TourEditInitialSession | null;
 }) {
   const router = useRouter();
+  const tEdit = useTranslations("tours.edit");
+  const tList = useTranslations("tours.list");
   const { isHydrated, isAuthenticated, user } = useAuth();
   const liveApi = toursUseLiveApi();
   const effectiveRole = isHydrated ? user?.role : user?.role ?? initialSession?.role;
@@ -75,26 +78,43 @@ export function TourEditClient({
     [workspaceFormProfile],
   );
 
-  const errorMessage =
-    error instanceof ApiError
-      ? error.status === 404
-        ? "No tour was found with this id."
-        : error.message.trim() || "Could not load tour details. Please try again."
-      : "Could not load tour details. Please try again.";
-
-  const lastCrumbLabel = tour?.title?.trim() ? tour.title : "Edit tour";
-  const breadcrumbTrail = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Tours", href: "/tours" },
-    { label: lastCrumbLabel },
-  ] as const;
-
-  const shellTitle = usesDenaliWizardShell ? "ویرایش تور" : "Edit tour";
-  const documentTitle = tour?.title
-    ? usesDenaliWizardShell
-      ? `ویرایش ${tour.title}`
-      : `Edit ${tour.title}`
+  const shellTitle = tEdit("pageTitle");
+  const documentTitle = tour?.title?.trim()
+    ? tEdit("pageTitleWithTour", { title: tour.title })
     : shellTitle;
+
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: tList("breadcrumbHome"), href: "/dashboard" },
+      { label: tList("breadcrumbTours"), href: "/tours" },
+      {
+        label: tour?.title?.trim() ? tour.title : tEdit("breadcrumbCurrent"),
+      },
+    ],
+    [tEdit, tList, tour?.title],
+  );
+
+  const toursErrorMessage = useCallback(
+    (err: unknown): string => {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          return tEdit("errorNotFound");
+        }
+        return err.message.trim() || tEdit("errorLoadGeneric");
+      }
+      return tEdit("errorLoadConnection");
+    },
+    [tEdit],
+  );
+
+  const pageDescription = useMemo(() => {
+    if (!tour?.title?.trim()) {
+      return undefined;
+    }
+    return usesDenaliWizardShell
+      ? tEdit("pageDescription", { title: tour.title })
+      : tEdit("pageDescriptionClassic", { title: tour.title });
+  }, [tEdit, tour?.title, usesDenaliWizardShell]);
 
   const canEditLifecycle =
     tour != null && (tour.lifecycleStatus === "DRAFT" || tour.lifecycleStatus === "OPEN");
@@ -104,12 +124,12 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading session…" />
+            <LoadingState message={tEdit("loadingSession")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -121,17 +141,17 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Sign in required"
-              description="Your session is missing or expired. Sign in to edit tours."
+              title={tEdit("signInRequired")}
+              description={tEdit("signInRequiredDesc")}
               action={
                 <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-                  Sign in
+                  {tEdit("signIn")}
                 </Button>
               }
             />
@@ -146,17 +166,17 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Leader access required"
-              description="Only users with the leader role can edit tours."
+              title={tEdit("leaderAccessRequired")}
+              description={tEdit("leaderAccessRequiredDesc")}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-                  Back to tours
+                  {tEdit("backToTours")}
                 </Button>
               }
             />
@@ -171,17 +191,17 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Workspace API not configured"
-              description="Open this app on your workspace host (e.g. ws1-rbac.localhost) to load and edit tours."
+              title={tEdit("apiNotConfiguredTitle")}
+              description={tEdit("apiNotConfiguredDesc")}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-                  Back to dashboard
+                  {tEdit("backToDashboard")}
                 </Button>
               }
             />
@@ -196,12 +216,12 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={shellTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading tour…" />
+            <LoadingState message={tEdit("loadingTour")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -211,14 +231,18 @@ export function TourEditClient({
   if (isError) {
     return (
       <RegisteredWorkspacePage
-        documentTitle={shellTitle}
+        documentTitle={documentTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
-            <ErrorState title="Could not load tour" message={errorMessage} onRetry={() => void refetch()} />
+            <ErrorState
+              title={tEdit("errorLoadTitle")}
+              message={toursErrorMessage(error)}
+              onRetry={() => void refetch()}
+            />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -228,19 +252,19 @@ export function TourEditClient({
   if (!tour) {
     return (
       <RegisteredWorkspacePage
-        documentTitle={shellTitle}
+        documentTitle={documentTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Tour not found"
-              description="No tour exists with this id."
+              title={tEdit("tourNotFoundTitle")}
+              description={tEdit("tourNotFoundDesc")}
               action={
                 <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-                  Back to tours
+                  {tEdit("backToTours")}
                 </Button>
               }
             />
@@ -255,21 +279,21 @@ export function TourEditClient({
       <RegisteredWorkspacePage
         documentTitle={documentTitle}
         title={shellTitle}
-        breadcrumbItems={[...breadcrumbTrail]}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={styles.stateCard}>
           <CardBody>
             <EmptyState
-              title="Tour is read-only"
-              description="This tour is closed/cancelled and cannot be edited."
+              title={tEdit("readOnlyTitle")}
+              description={tEdit("readOnlyDesc")}
               action={
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
                 >
-                  Back to tour
+                  {tEdit("backToTour")}
                 </Button>
               }
             />
@@ -285,12 +309,8 @@ export function TourEditClient({
     <RegisteredWorkspacePage
       documentTitle={documentTitle}
       title={shellTitle}
-      description={
-        usesDenaliWizardShell
-          ? `در حال ویرایش «${tour.title}» — تغییرات با PATCH ذخیره می‌شوند.`
-          : `Editing ${tour.title} — changes save via PATCH /api/v2/tours/${tourId}.`
-      }
-      breadcrumbItems={[...breadcrumbTrail]}
+      description={pageDescription}
+      breadcrumbItems={breadcrumbItems}
       actions={null}
     >
       <div
@@ -299,7 +319,7 @@ export function TourEditClient({
       >
         {editRefreshing ? (
           <span className={styles.liveRegion} aria-live="polite">
-            Updating tour data
+            {tEdit("updatingLive")}
           </span>
         ) : null}
         {usesDenaliWizardShell ? (

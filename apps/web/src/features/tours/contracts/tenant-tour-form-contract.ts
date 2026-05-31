@@ -124,9 +124,17 @@ export function tenantModuleWizardValidationFlags(
   contract: TenantTourFormContract,
 ): TourCreateWizardValidationFlags {
   if (contract.allowAdvancedTripDetails) {
-    return { relaxItineraryMinDays: false, relaxLogisticsPrimary: false };
+    return {
+      relaxItineraryMinDays: false,
+      relaxLogisticsPrimary: false,
+      requiresMountainTransportEconomics: false,
+    };
   }
-  return { relaxItineraryMinDays: true, relaxLogisticsPrimary: true };
+  return {
+    relaxItineraryMinDays: true,
+    relaxLogisticsPrimary: true,
+    requiresMountainTransportEconomics: false,
+  };
 }
 
 export function mergeWizardValidationFlagsWithTenant(
@@ -137,6 +145,8 @@ export function mergeWizardValidationFlagsWithTenant(
   return {
     relaxItineraryMinDays: base.relaxItineraryMinDays || tenant.relaxItineraryMinDays,
     relaxLogisticsPrimary: base.relaxLogisticsPrimary || tenant.relaxLogisticsPrimary,
+    requiresMountainTransportEconomics:
+      base.requiresMountainTransportEconomics || tenant.requiresMountainTransportEconomics,
   };
 }
 

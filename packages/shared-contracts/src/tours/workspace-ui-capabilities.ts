@@ -85,7 +85,7 @@ const PROFILE_UI_OVERRIDES: Partial<
 };
 
 /**
- * UI flags keyed by profile (parity with API `DenaliWorkspaceStrategy` publish/strip hooks).
+ * UI flags keyed by profile (parity with API `MountainOutdoorWorkspaceStrategy` publish/strip hooks).
  */
 export function getWorkspaceUiCapabilityFlags(profile: TourFormProfile): WorkspaceUiCapabilityFlags {
   return { ...DEFAULT_UI_FLAGS, ...PROFILE_UI_OVERRIDES[profile] };

@@ -13,6 +13,14 @@ function mockReq(partial: Partial<Request>): Request {
   return partial as Request;
 }
 
+function mockIngressRegistry(
+  resolveCustom: (hostname: string) => Promise<{ id: string; subdomain: string } | null> = async () => null,
+) {
+  return {
+    resolveTenantEntityByCustomHostname: resolveCustom,
+  };
+}
+
 test("normalizeInboundHostname: accepts tenant1.example.com (lowercased)", () => {
   const r = normalizeInboundHostname("Tenant1.Example.COM");
   assert.equal(r.ok, true);
@@ -157,17 +165,35 @@ test("extractInboundHost: ignores X-Forwarded-Host when trustForwardedHost is fa
   assert.equal(host, "real.example.com");
 });
 
-test("extractInboundHost: invalid forwarded host falls back to Host", () => {
+test("extractInboundHost: invalid forwarded host falls back to Host header when trusted proxy", () => {
   const req = mockReq({
-    headers: { "x-forwarded-host": "not_a_valid_host!.com" },
-    hostname: "fallback.example.com"
+    headers: {
+      "x-forwarded-host": "not_a_valid_host!.com",
+      host: "trusted-host.example.com:443",
+    },
+    hostname: "express-wrong.example.com",
+    socket: { remoteAddress: "10.0.0.1" } as unknown as Request["socket"],
   });
   const host = TenantHostResolverService.extractInboundHost(req, {
     trustProxy: true,
     trustedProxyCidrs: ["10.0.0.0/8"],
-    baseDomain: "example.com"
+    baseDomain: "example.com",
   });
-  assert.equal(host, "fallback.example.com");
+  assert.equal(host, "trusted-host.example.com");
+});
+
+test("extractInboundHost: trusted proxy reads raw Host header when X-Forwarded-Host absent", () => {
+  const req = mockReq({
+    headers: { host: "bookings.acme.com:8443" },
+    hostname: "internal-lb.local",
+    socket: { remoteAddress: "10.0.0.1" } as unknown as Request["socket"],
+  });
+  const host = TenantHostResolverService.extractInboundHost(req, {
+    trustProxy: true,
+    trustedProxyCidrs: ["10.0.0.0/8"],
+    baseDomain: "example.com",
+  });
+  assert.equal(host, "bookings.acme.com");
 });
 
 test("extractInboundHost: trust proxy true but untrusted remote ignores X-Forwarded-Host", () => {
@@ -254,7 +280,8 @@ test("resolver cache miss: queries repository and populates cache", async () => 
     config as never,
     obs as never,
     repo as never,
-    redis as never
+    mockIngressRegistry() as never,
+    redis as never,
   );
 
   const row = await svc.resolveTenantEntityFromHost("acme.app.example.com");
@@ -305,7 +332,8 @@ test("resolver cache hit: avoids subdomain DB lookup", async () => {
       }
     } as never,
     repo as never,
-    redis as never
+    mockIngressRegistry() as never,
+    redis as never,
   );
 
   const row = await svc.resolveTenantEntityFromHost("acme.app.example.com");
@@ -346,10 +374,92 @@ test("resolver rejects invalid hostname before cache lookup", async () => {
         return qb;
       }
     } as never,
-    redis as never
+    mockIngressRegistry() as never,
+    redis as never,
   );
 
   const row = await svc.resolveTenantEntityFromHost("bad_host!.example.com");
   assert.equal(row, null);
   assert.equal(redisGetCalls, 0);
+});
+
+test("resolver custom domain fallback: delegates outside_workspace host to ingress registry", async () => {
+  let customHostCalls = 0;
+  const ingress = mockIngressRegistry(async (hostname) => {
+    customHostCalls += 1;
+    assert.equal(hostname, "bookings.customer.com");
+    return {
+      id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      subdomain: "acme",
+    };
+  });
+  const redis = {
+    get: async () => null,
+    set: async () => "OK",
+    del: async () => 1,
+    quit: async () => undefined,
+  };
+  const svc = new TenantHostResolverService(
+    {
+      getTenantRootDomain: () => "app.example.com",
+      getTenantHostReservedSubdomains: () => new Set<string>(),
+      isTrustProxyEnabled: () => true,
+    } as never,
+    {
+      recordTenantResolverCacheHit: () => undefined,
+      recordTenantResolverCacheMiss: () => undefined,
+    } as never,
+    {
+      createQueryBuilder: () => {
+        throw new Error("subdomain lookup must not run for custom apex host");
+      },
+    } as never,
+    ingress as never,
+    redis as never,
+  );
+
+  const row = await svc.resolveTenantEntityFromHost("bookings.customer.com");
+  assert.equal(row?.id, "cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+  assert.equal(customHostCalls, 1);
+});
+
+test("resolver custom domain fallback: apex platform host does not query ingress registry", async () => {
+  let customHostCalls = 0;
+  const ingress = mockIngressRegistry(async () => {
+    customHostCalls += 1;
+    return null;
+  });
+  const redis = {
+    get: async () => null,
+    set: async () => "OK",
+    del: async () => 1,
+    quit: async () => undefined,
+  };
+  const svc = new TenantHostResolverService(
+    {
+      getTenantRootDomain: () => "app.example.com",
+      getTenantHostReservedSubdomains: () => new Set<string>(),
+      isTrustProxyEnabled: () => true,
+    } as never,
+    {
+      recordTenantResolverCacheHit: () => undefined,
+      recordTenantResolverCacheMiss: () => undefined,
+    } as never,
+    {
+      createQueryBuilder: () => {
+        const qb = {
+          where: () => qb,
+          andWhere: () => qb,
+          getOne: async () => null,
+        };
+        return qb;
+      },
+    } as never,
+    ingress as never,
+    redis as never,
+  );
+
+  const row = await svc.resolveTenantEntityFromHost("app.example.com");
+  assert.equal(row, null);
+  assert.equal(customHostCalls, 0);
 });

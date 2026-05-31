@@ -21,6 +21,7 @@ import {
   type TourResponseSource,
   TourResponseDto,
 } from "../dto/tour-response.dto";
+import { TourPhotoUrlService } from "../services/tour-photo-url.service";
 import { assertTourVisibleInRegionalScope } from "../utils/apply-regional-tour-list-scope";
 import { buildRegionalTourListScopeFromRequest } from "../utils/regional-tour-scope-from-request";
 
@@ -35,7 +36,22 @@ export class ToursCatalogReadApplicationService {
     private readonly toursCatalogRepository: ToursCatalogRepositoryPort,
     @Inject(RequestContextService)
     private readonly requestContextService: RequestContextService,
+    @Inject(TourPhotoUrlService)
+    private readonly tourPhotoUrlService: TourPhotoUrlService,
   ) {}
+
+  private async mapTourToResponse(tour: TourResponseSource): Promise<TourResponseDto> {
+    const dto = mapTourEntityToResponseDto(tour);
+    if (dto.details?.tripDetails) {
+      dto.details.tripDetails =
+        (await this.tourPhotoUrlService.enrichTripDetailsForResponse(
+          tour.tenantId,
+          tour.id,
+          dto.details.tripDetails,
+        )) ?? null;
+    }
+    return dto;
+  }
 
   async listTours(query: ListToursQueryDto): Promise<{
     items: TourResponseDto[];
@@ -89,7 +105,7 @@ export class ToursCatalogReadApplicationService {
     });
 
     return {
-      items: result.items.map((row) => mapTourEntityToResponseDto(row as TourResponseSource)),
+      items: await Promise.all(result.items.map((row) => this.mapTourToResponse(row as TourResponseSource))),
       total: result.total,
       page: result.page,
       limit: result.limit,
@@ -109,7 +125,24 @@ export class ToursCatalogReadApplicationService {
       throw new NotFoundException(tenantScopedResourceNotFoundError());
     }
 
-    return mapTourEntityToResponseDto(tour as TourResponseSource);
+    return this.mapTourToResponse(tour as TourResponseSource);
+  }
+
+  /** Raw tenant-scoped tour row for internal services (no photo URL enrichment). */
+  async getTourEntityById(tourId: string): Promise<TourResponseSource> {
+    const tenantId = this.requestContextService.resolveEffectiveTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException(tenantContextMissingError());
+    }
+
+    const tour = await this.toursCatalogRepository.findByIdOrThrow(tourId, tenantId);
+
+    const regionalScope = buildRegionalTourListScopeFromRequest(this.requestContextService);
+    if (!assertTourVisibleInRegionalScope(tour, regionalScope)) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+
+    return tour as TourResponseSource;
   }
 
   async getLeaderWorkspaceAggregate(limit = 200): Promise<{

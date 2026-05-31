@@ -7,6 +7,8 @@ import {
   formHasClientBlobMedia,
   isClientBlobUrl,
   preserveDenaliWizardBlobMedia,
+  revokeBlobUrlsFromDenaliForm,
+  revokeDenaliBlobUrl,
   stripBlobUrlsFromDenaliDraftPatch,
 } from "./preserveDenaliWizardBlobMedia";
 
@@ -22,6 +24,17 @@ const blobPhoto = {
 test("isClientBlobUrl detects blob scheme", () => {
   assert.equal(isClientBlobUrl("blob:http://x"), true);
   assert.equal(isClientBlobUrl("https://cdn/x.jpg"), false);
+});
+
+test("revokeDenaliBlobUrl is a no-op for https URLs", () => {
+  assert.doesNotThrow(() => revokeDenaliBlobUrl("https://cdn/x.jpg"));
+});
+
+test("revokeBlobUrlsFromDenaliForm revokes gallery and itinerary blobs", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  form.photosData = { photos: [blobPhoto] };
+  form.programNature.itinerary = [{ day: 1, activities: "hike", photos: [blobPhoto] }];
+  assert.doesNotThrow(() => revokeBlobUrlsFromDenaliForm(form));
 });
 
 test("preserveDenaliWizardBlobMedia restores gallery blobs dropped by normalization", () => {

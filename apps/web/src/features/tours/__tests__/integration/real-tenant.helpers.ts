@@ -395,7 +395,7 @@ export async function openDenaliCreateWizardWithFormPatch(
   options?: BuildDenaliSubmitFormOptions,
 ): Promise<void> {
   await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId("workspace-tour-wizard")).toBeVisible({ timeout: 45_000 });
   const patch = buildDenaliSubmitFormPatch(location, titleSuffix, options);
   await page.evaluate((patchJson) => {
     const apply = (
@@ -449,7 +449,7 @@ export async function createDenaliTourViaApi(
  * when the transport step is only visited in passing. Uncheck private car (mountain E2E shape).
  */
 export async function fillDenaliTransportStepGaps(page: Page): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   const privateCar = w.getByRole("checkbox", { name: /خودرو شخصی|ماشین شخصی/i });
   if (await privateCar.isVisible().catch(() => false) && (await privateCar.isChecked())) {
     await privateCar.uncheck();
@@ -470,7 +470,7 @@ export async function fillDenaliTransportStepGaps(page: Page): Promise<void> {
 
 /** Mountain tours require sports insurance; ensure checkbox state matches schema. */
 export async function fillDenaliParticipantsStepGaps(page: Page, tourType?: string): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   const insurance = w.getByRole("checkbox", { name: /بیمه ورزشی/i });
   if (await insurance.isVisible().catch(() => false)) {
     const isMountain = tourType ? tourType.startsWith("mountain_") : true;
@@ -485,7 +485,7 @@ export async function fillDenaliProgramStepGaps(
   page: Page,
   options?: { tourType?: DenaliTourKind },
 ): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   const altitude = w.getByTestId("denali-program-altitude");
   if (await altitude.isVisible().catch(() => false)) {
     await altitude.fill("4200");
@@ -554,7 +554,7 @@ export async function ensureActiveEquipment(
 
 /** Logistics step: select first gear item when list is shown (phase 3). */
 export async function fillDenaliGearStepGaps(page: Page): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   const gearList = w.getByTestId("denali-gear-list");
   if (!(await gearList.isVisible().catch(() => false))) {
     return;
@@ -595,7 +595,7 @@ export async function selectDenaliDestination(
   const dest = destinations.find((d) => d.id === destinationId);
   expect(dest, `destination ${destinationId}`).toBeTruthy();
 
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   const destInput = w.getByPlaceholder(/جستجوی مقصد/i);
   await destInput.click();
   await destInput.fill(dest!.name);
@@ -612,7 +612,7 @@ export async function advanceDenaliWizardToReview(
     destinationId?: string;
   },
 ): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   await expect(w).toBeVisible({ timeout: 20_000 });
 
   const tourType = options?.tourType ?? "mountain_day";
@@ -677,10 +677,10 @@ export async function advanceDenaliWizardToReview(
 }
 
 export async function clickDenaliWizardFinalSubmit(page: Page): Promise<void> {
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   await expect(w).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("denali-step-review")).toBeVisible({ timeout: 20_000 });
-  const btn = w.getByTestId("denali-wizard-final-submit");
+  const btn = w.getByTestId("workspace-wizard-final-submit");
   await expect(btn).toBeVisible({ timeout: 20_000 });
   await btn.click();
 }
@@ -742,7 +742,7 @@ export async function submitWizardAndExpectTourList(page: Page): Promise<string 
       { timeout: 90_000 },
     );
 
-  const denaliWizard = page.getByTestId("denali-create-tour-wizard");
+  const denaliWizard = page.getByTestId("workspace-tour-wizard");
   const isDenali = await denaliWizard.isVisible().catch(() => false);
   const createResponse = await Promise.all([
     waitForCreate(),
@@ -751,7 +751,7 @@ export async function submitWizardAndExpectTourList(page: Page): Promise<string 
 
   const responseText = await createResponse.text();
   if (createResponse.status() !== 201 && isDenali) {
-    const inlineAlert = page.locator('[data-testid="denali-create-tour-wizard"] [role="alert"]');
+    const inlineAlert = page.locator('[data-testid="workspace-tour-wizard"] [role="alert"]');
     const alertText = (await inlineAlert.textContent().catch(() => null))?.trim();
     expect(
       createResponse.status(),

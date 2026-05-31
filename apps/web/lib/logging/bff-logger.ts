@@ -2,7 +2,7 @@ type BffLogContext = Record<string, string | number | boolean | undefined>;
 
 /** Structured BFF logs (dev: console; production: hook to observability later). */
 export function logBffEvent(event: string, context: BffLogContext): void {
-  const _payload = { event, ...context, layer: "bff" as const };
+  void { event, ...context, layer: "bff" as const };
   if (process.env.NODE_ENV === "production") {
   } else {
   }

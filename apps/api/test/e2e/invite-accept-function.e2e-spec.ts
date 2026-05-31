@@ -97,6 +97,7 @@ before(async () => {
         dualMember: {
           phone: OWNER_PHONE,
           email: OWNER_EMAIL,
+          subdomain: SUBDOMAIN_A,
           role: UserRole.Owner,
           fullName: "Owner",
         },

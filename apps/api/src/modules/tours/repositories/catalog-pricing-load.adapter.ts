@@ -38,7 +38,7 @@ export class CatalogPricingLoadAdapter implements CatalogPricingLoadPort {
     }
 
     const prices = await priceRepo.find({
-      where: { tourDepartureId: departure.id }
+      where: { tourDepartureId: departure.id, tenantId: context.tenantId },
     });
 
     const q = quoteListPriceForTour(tour);

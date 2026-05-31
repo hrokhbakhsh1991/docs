@@ -12,7 +12,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { bffBrowserFetch, inflightBffGet } from "./inflight-bff-get";
+import { bffBrowserFetch, cancelInflightBffGets, inflightBffGet } from "./inflight-bff-get";
+import { evictWorkspaceQueryCaches } from "@/lib/query/evict-workspace-query-cache";
 import { decodeJwtPayload } from "./decode-jwt-payload";
 import { fetchMembershipAbilityContext } from "./membership-ability-context";
 import {
@@ -23,7 +24,7 @@ import {
   type SessionHydrateWire,
   warnSessionHydrate,
 } from "./session-hydrate";
-import { clearSessionToken, getStoredSessionToken, persistSessionToken } from "./session";
+import { clearSessionToken, getStoredSessionToken, persistSessionToken, buildSessionTokenStorageKey } from "./session";
 import { formatAuthAuditLabel, validateSessionToken } from "./validate-session-token";
 import type { WebSessionResponseBody } from "./types";
 
@@ -116,20 +117,24 @@ async function fetchSessionHydrate(signal?: AbortSignal): Promise<SessionHydrate
   });
 }
 
-async function fetchSessionHydrateWithTimeout(): Promise<SessionHydrateFetchResult> {
+async function fetchSessionHydrateWithTimeout(signal?: AbortSignal): Promise<SessionHydrateFetchResult> {
   const ac = new AbortController();
   const tid = window.setTimeout(() => ac.abort(), SESSION_HYDRATE_TIMEOUT_MS);
+  const onParentAbort = () => ac.abort();
+  signal?.addEventListener("abort", onParentAbort, { once: true });
   try {
     return await fetchSessionHydrate(ac.signal);
   } finally {
     window.clearTimeout(tid);
+    signal?.removeEventListener("abort", onParentAbort);
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
-  const prevTenantIdRef = useRef<string | null>(null);
+  const switchGenerationRef = useRef(0);
+  const membershipSwitchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const middlewareAudit = document.documentElement.getAttribute("data-auth-audit");
@@ -142,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const hydrateAbort = new AbortController();
 
     const applyMembershipContext = (userId: string, tenantId: string, signal?: AbortSignal) => {
       void fetchMembershipAbilityContext(signal).then((ctx) => {
@@ -209,21 +215,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let lastOutcome: "authenticated" | "unauthenticated" | "transient" = "transient";
 
       for (let attempt = 0; attempt < HYDRATE_MAX_ATTEMPTS && active; attempt += 1) {
+        if (hydrateAbort.signal.aborted) {
+          break;
+        }
         if (attempt > 0) {
           await sleep(hydrateBackoffDelayMs(attempt - 1));
-          if (!active) {
+          if (!active || hydrateAbort.signal.aborted) {
             break;
           }
         }
 
         try {
-          const hydrateResult = await fetchSessionHydrateWithTimeout();
+          const hydrateResult = await fetchSessionHydrateWithTimeout(hydrateAbort.signal);
+          if (!active || hydrateAbort.signal.aborted) {
+            break;
+          }
           lastOutcome = await consumeHydrateResponse(hydrateResult);
           if (lastOutcome === "authenticated" || lastOutcome === "unauthenticated") {
             break;
           }
         } catch (error: unknown) {
-          if (!active) {
+          if (!active || hydrateAbort.signal.aborted) {
             break;
           }
           const transient =
@@ -266,14 +278,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      hydrateAbort.abort();
+      cancelInflightBffGets();
     };
   }, []);
 
   useEffect(() => {
-    prevTenantIdRef.current = user?.tenantId?.trim() || null;
-  }, [user?.tenantId]);
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleStorageSync = (event: StorageEvent) => {
+      if (event.storageArea !== window.localStorage) {
+        return;
+      }
+      const tokenHint =
+        event.newValue?.trim() ||
+        event.oldValue?.trim() ||
+        getStoredSessionToken() ||
+        undefined;
+      const activeMirrorKey = buildSessionTokenStorageKey(undefined, tokenHint);
+      if (event.key !== activeMirrorKey) {
+        return;
+      }
+
+      const incoming = event.newValue?.trim() ?? "";
+      const outgoing = event.oldValue?.trim() ?? "";
+
+      if (!incoming) {
+        setUser(null);
+        logAuthAudit("AuthProvider", "Token missing");
+
+        if (!isPublicAuthBrowserRoute()) {
+          window.location.assign("/login");
+        }
+        return;
+      }
+
+      if (incoming !== outgoing) {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageSync);
+    return () => {
+      window.removeEventListener("storage", handleStorageSync);
+    };
+  }, []);
 
   const setSession = useCallback(async (session: WebSessionResponseBody) => {
+    membershipSwitchAbortRef.current?.abort();
+    const switchAbort = new AbortController();
+    membershipSwitchAbortRef.current = switchAbort;
+    const switchGeneration = switchGenerationRef.current + 1;
+    switchGenerationRef.current = switchGeneration;
+
+    evictWorkspaceQueryCaches();
+    cancelInflightBffGets();
     await persistSessionToken(session.session_token);
     const claims = decodeJwtPayload(session.session_token);
     const role = typeof claims?.role === "string" ? claims.role.trim() : undefined;
@@ -282,25 +343,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tenantId: session.tenant_id,
       role,
     };
+    const targetTenantId = baseUser.tenantId;
+    if (switchGenerationRef.current !== switchGeneration || switchAbort.signal.aborted) {
+      return;
+    }
+    evictWorkspaceQueryCaches();
+    cancelInflightBffGets();
     setUser(baseUser);
-    const ctx = await fetchMembershipAbilityContext();
+    const ctx = await fetchMembershipAbilityContext(switchAbort.signal);
+    if (switchGenerationRef.current !== switchGeneration || switchAbort.signal.aborted) {
+      return;
+    }
     if (ctx) {
-      setUser({
-        ...baseUser,
-        abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
-        capabilities: ctx.capabilities.length > 0 ? ctx.capabilities : null,
-        allowedRegionIds:
-          (ctx.allowed_region_ids?.length ?? 0) > 0 ? ctx.allowed_region_ids : null,
-        tenantModules: (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
+      setUser((prev) => {
+        if (!prev || prev.tenantId !== targetTenantId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          abilityLabels: ctx.labels.length > 0 ? ctx.labels : null,
+          capabilities: ctx.capabilities.length > 0 ? ctx.capabilities : null,
+          allowedRegionIds:
+            (ctx.allowed_region_ids?.length ?? 0) > 0 ? ctx.allowed_region_ids : null,
+          tenantModules: (ctx.tenant_modules?.length ?? 0) > 0 ? ctx.tenant_modules : null,
+        };
       });
     }
     logAuthAudit("AuthProvider", "Token found");
   }, []);
 
   const clearSession = useCallback(async () => {
+    membershipSwitchAbortRef.current?.abort();
+    switchGenerationRef.current += 1;
     await clearSessionToken();
     setUser(null);
-    prevTenantIdRef.current = null;
     logAuthAudit("AuthProvider", "Token missing");
   }, []);
 

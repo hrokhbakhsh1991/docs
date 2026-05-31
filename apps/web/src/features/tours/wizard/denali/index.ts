@@ -1,6 +1,6 @@
 /**
  * Wizard step components only — consumed by create/edit orchestrators:
- * `DenaliCreateTourWizard.tsx`, `DenaliTourEditForm.tsx`.
+ * `WorkspaceTourWizard.tsx`, `DenaliTourEditForm.tsx`.
  *
  * Everything else (hooks, context, rules, validation) must use deep imports.
  */

@@ -2,19 +2,19 @@ import type { PaymentGatewayFactoryPort } from "../../src/modules/payments/domai
 
 /** Use in unit tests that never call `createPaymentIntent`. */
 export const noopPaymentGatewayFactoryForTests = {
-  forProvider() {
+  async forTenant() {
     return {
       providerId: "noop",
       async createPaymentIntent() {
         throw new Error("payment gateway should not be invoked in this test");
-      }
+      },
     };
-  }
+  },
 } as unknown as PaymentGatewayFactoryPort;
 
 /** Minimal stub for tests that exercise `createPaymentIntent` without network. */
 export const stubPaymentGatewayFactoryForTests = {
-  forProvider() {
+  async forTenant() {
     return {
       providerId: "stub",
       async createPaymentIntent(input: { registrationId: string }) {
@@ -23,9 +23,9 @@ export const stubPaymentGatewayFactoryForTests = {
           provider: "stub",
           providerPaymentId: `stub_pi_${suffix}`,
           clientSecret: `stub_cs_${suffix}`,
-          status: "requires_payment_method" as const
+          status: "requires_payment_method" as const,
         };
-      }
+      },
     };
-  }
+  },
 } as unknown as PaymentGatewayFactoryPort;

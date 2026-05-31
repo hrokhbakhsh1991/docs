@@ -5,7 +5,7 @@
 
 /** @param {import('puppeteer').Page} page */
 async function waitForHarness(page) {
-  await page.waitForSelector('[data-testid="denali-memlab-harness"]', { timeout: 30_000 });
+  await page.waitForSelector('[data-testid="workspace-memlab-harness"]', { timeout: 30_000 });
 }
 
 function url() {

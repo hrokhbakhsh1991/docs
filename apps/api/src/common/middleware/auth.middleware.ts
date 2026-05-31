@@ -6,6 +6,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
+import { randomUUID } from "node:crypto";
 import { jwtVerify } from "jose";
 import type { NextFunction, Request, Response } from "express";
 import type { DataSource } from "typeorm";
@@ -294,10 +295,9 @@ export class AuthMiddleware implements NestMiddleware {
         hostTenantEntity.id.trim().toLowerCase() !== tenantId.trim().toLowerCase()
       ) {
         this.loggerService.warn("JWT tenant does not match resolved Host tenant", {
-          path: req.path,
-          method: req.method,
-          jwtTenantId: tenantId,
-          hostTenantId: hostTenantEntity.id
+          tenant_mismatch: true,
+          correlation_id:
+            this.requestContextService.tryGetRequestId()?.trim() || randomUUID(),
         });
         throw new ForbiddenException({
           error: {

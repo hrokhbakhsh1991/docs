@@ -534,15 +534,18 @@ function userRepoForCompleteRegistration(options: {
 
 function membershipRepoForCompleteRegistration(options?: {
   existing?: { role: string; sessionVersion: number; status: string } | null;
-}): ReturnType<typeof membershipRepoActive> & {
+}): Omit<ReturnType<typeof membershipRepoActive>, "findOne"> & {
+  findOne: () => Promise<{ role: string; sessionVersion: number; status: string } | null>;
   create: (_input: Record<string, unknown>) => Record<string, unknown>;
   save: (_row: Record<string, unknown>) => Promise<Record<string, unknown>>;
 } {
   const existing = options?.existing ?? null;
   const base = membershipRepoActive();
+  const { findOne: _baseFindOne, ...baseRest } = base;
   return {
-    ...base,
-    findOne: async () => existing,
+    ...baseRest,
+    findOne: async (): Promise<{ role: string; sessionVersion: number; status: string } | null> =>
+      existing,
     create: (input) => input,
     save: async (row) => row
   };

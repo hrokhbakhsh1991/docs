@@ -24,7 +24,7 @@ function minimalDto(overrides: Partial<CreateTourDto> = {}): CreateTourDto {
   };
 }
 
-test("allows private_car when fuelShareToman is set", () => {
+test("allows private_car when fuelShareToman is set (mountain_outdoor)", () => {
   assert.doesNotThrow(() =>
     assertCreateTourInvariants(
       minimalDto({
@@ -34,19 +34,34 @@ test("allows private_car when fuelShareToman is set", () => {
             fuelShareToman: 100_000
           }
         }
-      } as CreateTourDto)
+      } as CreateTourDto),
+      "mountain_outdoor",
     )
   );
 });
 
-test("rejects private_car without fuelShareToman", () => {
+test("general allows private_car without fuelShareToman", () => {
+  assert.doesNotThrow(() =>
+    assertCreateTourInvariants(
+      minimalDto({
+        tripDetails: {
+          logistics: { primaryTransportMode: "private_car" }
+        }
+      } as CreateTourDto),
+      "general",
+    )
+  );
+});
+
+test("rejects private_car without fuelShareToman for mountain_outdoor", () => {
   try {
     assertCreateTourInvariants(
       minimalDto({
         tripDetails: {
           logistics: { primaryTransportMode: "private_car" }
         }
-      } as CreateTourDto)
+      } as CreateTourDto),
+      "mountain_outdoor",
     );
     assert.fail("expected BadRequestException");
   } catch (e: unknown) {
@@ -56,7 +71,7 @@ test("rejects private_car without fuelShareToman", () => {
   }
 });
 
-test("rejects bus plus private_car in transportModes without fuelShareToman", () => {
+test("rejects bus plus private_car in transportModes without fuelShareToman for mountain_outdoor", () => {
   try {
     assertCreateTourInvariants(
       minimalDto({
@@ -64,7 +79,8 @@ test("rejects bus plus private_car in transportModes without fuelShareToman", ()
         tripDetails: {
           logistics: { primaryTransportMode: "bus" }
         }
-      } as CreateTourDto)
+      } as CreateTourDto),
+      "mountain_outdoor",
     );
     assert.fail("expected BadRequestException");
   } catch (e: unknown) {
@@ -74,7 +90,7 @@ test("rejects bus plus private_car in transportModes without fuelShareToman", ()
   }
 });
 
-test("allows bus plus private_car when fuelShareToman is set", () => {
+test("allows bus plus private_car when fuelShareToman is set (mountain_outdoor)", () => {
   assert.doesNotThrow(() =>
     assertCreateTourInvariants(
       minimalDto({
@@ -82,7 +98,8 @@ test("allows bus plus private_car when fuelShareToman is set", () => {
         tripDetails: {
           logistics: { primaryTransportMode: "bus", fuelShareToman: 250_000 }
         }
-      } as CreateTourDto)
+      } as CreateTourDto),
+      "mountain_outdoor",
     )
   );
 });
@@ -360,19 +377,14 @@ test("assertIncomingTripDetailsPatchFragment rejects cinema participation in pat
   }
 });
 
-test("assertIncomingTripDetailsPatchFragment rejects urban non-whitelist logistics key in patch", () => {
-  try {
+test("assertIncomingTripDetailsPatchFragment allows stale urban logistics keys (strip evicts)", () => {
+  assert.doesNotThrow(() =>
     assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip(
       "urban_event",
       { logistics: { primaryTransportMode: "bus", fuelShareToman: 1 } },
       undefined,
-    );
-    assert.fail("expected BadRequestException");
-  } catch (e: unknown) {
-    assert.ok(e instanceof BadRequestException);
-    const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "VALIDATION_PROFILE_INCOMING_LOGISTICS_EXTRA");
-  }
+    ),
+  );
 });
 
 test("assertIncomingTripDetailsPatchFragment rejects urban itinerary.dayPlans in patch", () => {
@@ -440,7 +452,7 @@ test("assertDenaliPilotTripDetails rejects missing denaliTourKind", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_REQUIRED");
   }
 });
 
@@ -458,7 +470,7 @@ test("assertDenaliPilotTripDetails rejects empty denaliTourKind", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_REQUIRED");
   }
 });
 
@@ -476,7 +488,7 @@ test("assertDenaliPilotTripDetails rejects invalid denaliTourKind", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_INVALID");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_INVALID");
   }
 });
 
@@ -494,7 +506,7 @@ test("assertDenaliPilotTripDetails rejects difficulty on event_cinema", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_EVENT_DIFFICULTY_FORBIDDEN");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_EVENT_DIFFICULTY_FORBIDDEN");
   }
 });
 
@@ -515,7 +527,7 @@ test("assertDenaliPilotTripDetails requires fuelShareToman for dong + private_ca
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_DONG_AMOUNT_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_DONG_AMOUNT_REQUIRED");
   }
 });
 
@@ -574,7 +586,7 @@ test("assertCreateTourInvariants rejects denali_pilot create without denaliTourK
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_REQUIRED");
   }
 });
 
@@ -588,7 +600,7 @@ test("assertCreateTourInvariants rejects denali_pilot total_capacity zero", () =
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TOTAL_CAPACITY_INVALID");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOTAL_CAPACITY_INVALID");
   }
 });
 
@@ -603,7 +615,7 @@ test("assertDenaliPilotTripDetails rejects logistics.groupSizeMax zero", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_GROUP_SIZE_MAX_INVALID");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_GROUP_SIZE_MAX_INVALID");
   }
 });
 
@@ -624,7 +636,7 @@ test("assertDenaliPilotTripDetails rejects mountain_day without fitnessLevel", (
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_PARTICIPATION_FITNESS_LEVEL_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_PARTICIPATION_FITNESS_LEVEL_REQUIRED");
   }
 });
 
@@ -659,7 +671,7 @@ test("assertDenaliPilotTripDetails rejects mountain_day without minimumAge", () 
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_PARTICIPATION_MINIMUM_AGE_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_PARTICIPATION_MINIMUM_AGE_REQUIRED");
   }
 });
 
@@ -697,6 +709,17 @@ test("assertDenaliPilotTripDetails allows valid mountain_day with dong amount", 
   );
 });
 
+test("assertCreateTourInvariants skips tripDetails rules for gallery staging shells", () => {
+  const dto = {
+    title: "Staging shell ten char title",
+    total_capacity: 4,
+    lifecycle_status: TourLifecycleStatus.DRAFT,
+    metadata: { vertical: "staging_shell", isStagingShell: true },
+  } as import("../dto/create-tour.dto").CreateTourDto;
+
+  assert.doesNotThrow(() => assertCreateTourInvariants(dto, "denali_pilot"));
+});
+
 test("assertDenaliPilotTripDetails rejects null tripDetails", () => {
   try {
     assertTripDetailsForFormProfile("denali_pilot", null, []);
@@ -704,7 +727,7 @@ test("assertDenaliPilotTripDetails rejects null tripDetails", () => {
   } catch (e: unknown) {
     assert.ok(e instanceof BadRequestException);
     const body = (e as BadRequestException).getResponse() as { error?: { code?: string } };
-    assert.equal(body.error?.code, "WORKSPACE_RULE_DENALI_TRIP_DETAILS_REQUIRED");
+    assert.equal(body.error?.code, "WORKSPACE_RULE_OUTDOOR_TRIP_DETAILS_REQUIRED");
   }
 });
 

@@ -190,7 +190,7 @@ test.describe("pre-release smoke flow", () => {
     await page.goto("/tours/tour-1/register");
     await page.getByLabel("Full name").fill("Alex Rivera");
     await page.getByLabel("Contact phone").fill("+100000000");
-    const submit = page.getByRole("button", { name: "Submit registration" });
+    const submit = page.getByRole("button", { name: "ثبت‌نام" });
     await expect(submit).toBeVisible();
     await submit.click();
     await expect(page.getByTestId("register-success")).toBeVisible();

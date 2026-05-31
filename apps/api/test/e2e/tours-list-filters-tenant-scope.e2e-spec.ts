@@ -62,6 +62,7 @@ async function seedTour(
   );
   await detailsRepo.save(
     detailsRepo.create({
+      tenantId: input.tenantId,
       tourId: tour.id,
       destinationName: null,
       elevationM: null,
@@ -87,11 +88,13 @@ before(async () => {
         tenantB: { id: TENANT_B, subdomain: SUBDOMAIN_B },
         userInAOnly: {
           phone: OWNER_A_PHONE,
+          subdomain: SUBDOMAIN_A,
           role: UserRole.Owner,
           fullName: "Tenant A Owner",
         },
         userInBOnly: {
           phone: OWNER_B_PHONE,
+          subdomain: SUBDOMAIN_B,
           role: UserRole.Owner,
           fullName: "Tenant B Owner",
         },

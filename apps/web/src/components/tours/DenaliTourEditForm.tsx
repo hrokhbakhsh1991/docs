@@ -24,6 +24,8 @@ import {
 import { useDenaliEditRuleSync } from "@/features/tours/wizard/denali/hooks/useDenaliEditRuleSync";
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
+import { LayoutProvider } from "@/features/tours/wizard/shell/context";
+import { getWizardLayout } from "@/features/tours/wizard/shell/layout";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 import { formatWizardApiErrorMessage } from "@/features/tours/wizard/format-wizard-api-error";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
@@ -133,6 +135,10 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
     () => resolveWorkspaceTourFormProfileFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
+  const shellLayout = useMemo(
+    () => getWizardLayout(workspaceFormProfile, wizardTemplateQuery.data ?? null),
+    [workspaceFormProfile, wizardTemplateQuery.data],
+  );
   const [ruleSyncToken, setRuleSyncToken] = useState(0);
 
   const initialValues = useMemo(() => {
@@ -152,6 +158,7 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
   return (
     <QuickAddModalProvider>
       <FormProvider {...formMethods}>
+        <LayoutProvider layout={shellLayout}>
         <DenaliCanonicalProvider
           formMethods={formMethods}
           syncToken={ruleSyncToken}
@@ -177,6 +184,7 @@ export function DenaliTourEditForm({ tour, onCancel, onSubmit, submitError }: De
             </CardBody>
           </Card>
         </DenaliCanonicalProvider>
+        </LayoutProvider>
       </FormProvider>
     </QuickAddModalProvider>
   );

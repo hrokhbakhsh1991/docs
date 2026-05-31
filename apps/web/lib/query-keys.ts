@@ -1,13 +1,17 @@
 export const tourKeys = {
   all: ["tours"] as const,
   lists: () => [...tourKeys.all, "list"] as const,
-  /** Tenant/workspace scoped list prefix to avoid cross-tenant invalidation. */
-  listByWorkspace: (workspaceId: string) =>
-    [...tourKeys.lists(), { workspaceId }] as const,
+  /** Prefix for all list caches in a workspace (invalidation). */
+  listRoot: (tenantId: string) => [...tourKeys.lists(), tenantId] as const,
+  /** @deprecated Prefer {@link tourKeys.listRoot}. */
+  listByWorkspace: (workspaceId: string) => tourKeys.listRoot(workspaceId),
   /** List cache key; optional `page` / `limit` align with `GET /api/v2/tours` query when present. */
-  list: (params: { search: string; page?: number; limit?: number }) =>
+  list: (
+    tenantId: string,
+    params: { search: string; page?: number; limit?: number }
+  ) =>
     [
-      ...tourKeys.lists(),
+      ...tourKeys.listRoot(tenantId),
       {
         search: params.search,
         ...(params.page !== undefined ? { page: params.page } : {}),
@@ -15,15 +19,31 @@ export const tourKeys = {
       },
     ] as const,
   details: () => [...tourKeys.all, "detail"] as const,
-  detail: (id: string | number) => [...tourKeys.details(), String(id)] as const,
+  detailRoot: (tenantId: string) => [...tourKeys.details(), tenantId] as const,
+  detail: (tenantId: string, id: string | number) =>
+    [...tourKeys.detailRoot(tenantId), String(id)] as const,
   /** Large page fetch for booking tour pickers. */
-  catalog: () => [...tourKeys.all, "catalog"] as const,
+  catalog: (tenantId: string) => [...tourKeys.all, "catalog", tenantId] as const,
+};
+
+export const workspaceTourCrewMembersKeys = {
+  all: ["workspace-tour-crew-members"] as const,
+  detail: (tenantId: string) => [...workspaceTourCrewMembersKeys.all, tenantId] as const,
+};
+
+export const financeReportsSummaryKeys = {
+  all: ["finance", "reports", "summary"] as const,
+  detail: (tenantId: string) => [...financeReportsSummaryKeys.all, tenantId] as const,
 };
 
 export const bookingKeys = {
   all: ["bookings"] as const,
+  /** Prefix for all booking list caches in a workspace (invalidation). */
+  listRoot: (tenantId: string) => [...bookingKeys.all, tenantId] as const,
   /** `GET /api/v2/bookings` has no query parameters in OpenAPI. */
-  lists: () => [...bookingKeys.all, "list"] as const,
+  list: (tenantId: string) => [...bookingKeys.listRoot(tenantId), "list"] as const,
+  /** @deprecated Prefer {@link bookingKeys.list}. */
+  lists: (tenantId: string) => bookingKeys.list(tenantId),
 };
 
 export const userKeys = {
@@ -59,14 +79,19 @@ export const leaderDashboardSummaryKey = leaderDashboardSummaryKeys.all;
 
 export const leaderRegistrationIndexKeys = {
   all: ["leader", "registration-index"] as const,
-  list: () => [...leaderRegistrationIndexKeys.all, "list"] as const,
+  listRoot: (tenantId: string) => [...leaderRegistrationIndexKeys.all, tenantId] as const,
+  list: (tenantId: string) => [...leaderRegistrationIndexKeys.listRoot(tenantId), "list"] as const,
 };
 
 export const registrationKeys = {
   all: ["registrations"] as const,
-  detail: (id: string) => [...registrationKeys.all, "detail", id] as const,
-  tourRegistrations: (tourId: string) => [...registrationKeys.all, "tour", tourId] as const,
-  tourWaitlist: (tourId: string) => [...registrationKeys.all, "tour", tourId, "waitlist"] as const,
+  tenantRoot: (tenantId: string) => [...registrationKeys.all, tenantId] as const,
+  detail: (tenantId: string, id: string) =>
+    [...registrationKeys.tenantRoot(tenantId), "detail", id] as const,
+  tourRegistrations: (tenantId: string, tourId: string) =>
+    [...registrationKeys.tenantRoot(tenantId), "tour", tourId] as const,
+  tourWaitlist: (tenantId: string, tourId: string) =>
+    [...registrationKeys.tenantRoot(tenantId), "tour", tourId, "waitlist"] as const,
 };
 
 export const settingsLocationsKeys = {

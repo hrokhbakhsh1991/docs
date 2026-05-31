@@ -9,6 +9,7 @@ import { listLeaderRegistrationRows } from "@/lib/services/leader-dashboard.serv
 
 import type { BookingDto } from "@repo/types";
 
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { useClientMounted } from "./use-client-mounted";
 
 export type LeaderRegistrationRow = BookingDto & {
@@ -26,11 +27,12 @@ function isLeaderReviewRoute(pathname: string): boolean {
 export function useLeaderTourRegistrations(enabled: boolean) {
   const pathname = usePathname() ?? "";
   const mounted = useClientMounted();
+  const tenantId = useWorkspaceQueryScope();
   const routeActive = isLeaderReviewRoute(pathname);
-  const queriesEnabled = Boolean(enabled && mounted && routeActive);
+  const queriesEnabled = Boolean(enabled && mounted && routeActive && tenantId?.trim());
 
   const indexQuery = useQuery({
-    queryKey: leaderRegistrationIndexKeys.list(),
+    queryKey: leaderRegistrationIndexKeys.list(tenantId ?? ""),
     queryFn: () => listLeaderRegistrationRows(),
     enabled: queriesEnabled,
     staleTime: 30_000,

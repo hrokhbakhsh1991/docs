@@ -33,7 +33,7 @@ async function openDenaliProgramStep(
     mainTourThemeId: theme?.id,
   });
 
-  const w = page.getByTestId("denali-create-tour-wizard");
+  const w = page.getByTestId("workspace-tour-wizard");
   await page.getByRole("button", { name: /Next|بعدی/ }).click();
   await expect(page.locator("form h2").first()).toContainText(/برنامه/, { timeout: 20_000 });
   if (theme) {
@@ -65,7 +65,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
 
     await openDenaliProgramStep(page, "mountain_day", theme!, runId);
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-program-altitude")).toBeVisible({ timeout: 10_000 });
   });
 
@@ -77,7 +77,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
 
     await openDenaliProgramStep(page, "mountain_day", natureTheme!, runId);
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-program-altitude")).toBeVisible({ timeout: 10_000 });
   });
 
@@ -91,7 +91,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
 
     await openDenaliProgramStep(page, "mountain_multi", theme!, runId);
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-daily-itinerary")).toBeVisible({ timeout: 10_000 });
     await expect(w.locator('[data-testid^="denali-itinerary-day-"]')).toHaveCount(3, {
       timeout: 15_000,
@@ -120,7 +120,7 @@ test.describe("real-stack denali map fields (altitude, itinerary, gear)", () => 
     await page.getByRole("button", { name: /Next|بعدی/ }).click();
     await expect(page.locator("form h2").first()).toContainText(/لجستیک|خدمات/, { timeout: 20_000 });
 
-    const w = page.getByTestId("denali-create-tour-wizard");
+    const w = page.getByTestId("workspace-tour-wizard");
     await expect(w.getByTestId("denali-gear-list")).toBeVisible({ timeout: 20_000 });
     await expect(w.getByText(gear.name)).toBeVisible();
   });

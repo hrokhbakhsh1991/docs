@@ -1,18 +1,16 @@
 export const TENANT_MANAGEMENT_DB_PORT = Symbol("TENANT_MANAGEMENT_DB_PORT");
 export const TENANT_AUDIT_EVENTS_PORT = Symbol("TENANT_AUDIT_EVENTS_PORT");
 
-export type AcceptWorkspaceInviteDbResult = {
-  ok: boolean;
-  error_code: string | null;
-  out_tenant_id: string | null;
-  out_role: string | null;
-};
-
 export interface TenantManagementDbPort {
-  acceptWorkspaceInviteByToken(
-    _token: string,
-    _userId: string
-  ): Promise<AcceptWorkspaceInviteDbResult>;
+  listUserWorkspacesForAuth(_userId: string): Promise<
+    Array<{
+      tenant_id: string;
+      tenant_name: string;
+      tenant_subdomain: string;
+      role: string;
+      session_version: number;
+    }>
+  >;
 }
 
 export interface TenantAuditEventsPort {

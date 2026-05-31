@@ -10,6 +10,7 @@ import {
   getTenantScopeKey,
   isTenantRuntimeApiPath,
   isTenantRuntimeLoginRoute,
+  resolvePartitionedPublicRateLimitBucket,
   resolveTenantRuntimePath,
   shouldBypassTenantRuntimePath
 } from "../tenant/tenant-runtime-policy";
@@ -267,19 +268,18 @@ export class TenantRateLimitService implements OnModuleDestroy {
 
   private async enforceApi(req: Request, ipSan: string): Promise<void> {
     const cfg = this.configService.getTenantRateLimitApiConfig();
+    const authenticatedTenantId = getTenantScopeKey("tenant", req, {
+      requestContextService: this.requestContextService,
+      configService: this.configService,
+    });
     const tenantId =
-      getTenantScopeKey("tenant", req, {
-        requestContextService: this.requestContextService,
-        configService: this.configService
-      }) ?? "_public";
+      authenticatedTenantId ?? resolvePartitionedPublicRateLimitBucket(req);
     const userId = getTenantScopeKey("user", req, {
       requestContextService: this.requestContextService,
       configService: this.configService
     });
 
-    this.abuseMetrics.recordTenantRequestObserved(
-      tenantId === "_public" ? undefined : tenantId
-    );
+    this.abuseMetrics.recordTenantRequestObserved(authenticatedTenantId ?? undefined);
 
     const tenantKey = `trl:v2:api:tenant:${tenantId}`;
     if (!(await this.slidingAllow(tenantKey, cfg.windowMs, cfg.perTenant))) {

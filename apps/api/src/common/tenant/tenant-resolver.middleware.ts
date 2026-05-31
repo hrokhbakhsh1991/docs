@@ -89,7 +89,6 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
       if (
         outcome.kind === "apex" ||
-        outcome.kind === "outside_workspace" ||
         outcome.kind === "no_root_config"
       ) {
         if (authRoute) {
@@ -127,6 +126,10 @@ export class TenantResolverMiddleware implements NestMiddleware {
             }
           });
         }
+        return next();
+      }
+
+      if (outcome.kind !== "label" && outcome.kind !== "outside_workspace") {
         return next();
       }
 

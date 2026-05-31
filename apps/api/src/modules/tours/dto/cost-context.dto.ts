@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsIn, IsNumberString, IsOptional, IsString, Length, MaxLength } from "class-validator";
 
 /** Denali pilot payment channel (offline receipt only). */
 export const TOUR_PAYMENT_MODE_VALUES = ["offline_receipt"] as const;
@@ -17,12 +16,10 @@ export class CostContextDto {
   @Length(3, 3)
   currency?: string;
 
-  @ApiPropertyOptional({ example: 1200 })
+  @ApiPropertyOptional({ example: "1200", description: "Major-unit amount as decimal string (no float ingress)." })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  totalCost?: number;
+  @IsNumberString()
+  totalCost?: string;
 
   @ApiPropertyOptional({ description: "Display / billing location hint until a dedicated column exists." })
   @IsOptional()

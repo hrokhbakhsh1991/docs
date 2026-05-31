@@ -43,6 +43,7 @@ import {
 } from "./pipes/update-tour-status-validation.pipe";
 import { assertTourCreateWritePreMerge } from "./policies/assert-tour-create-write-pipeline";
 import { assertTourPatchWritePreMerge } from "./policies/assert-tour-patch-write-pipeline";
+import { assertUpdateTourPatchWireContract } from "./utils/assert-update-tour-wire-contract";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { ToursService } from "./tours.service";
 import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
@@ -104,7 +105,11 @@ export class ToursController {
   @UseGuards(AuthorizationPresenceGuard, RolesGuard, AbilitiesGuard, CaslMirrorAbilitiesGuard)
   @Roles(UserRole.Owner, UserRole.Admin, UserRole.Leader)
   @CheckAbilities(({ ability }) => ability.can(AbilityAction.Update, "Tour"))
-  @UseInterceptors(FilesInterceptor("photos", 10))
+  @UseInterceptors(
+    FilesInterceptor("photos", 10, {
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
+  )
   async uploadPhotos(
     @Param("tourId") tourId: string,
     @UploadedFiles(
@@ -156,6 +161,7 @@ export class ToursController {
     @Param("tourId") tourId: string,
     @Body() dto: UpdateTourDto
   ): Promise<TourResponseDto> {
+    assertUpdateTourPatchWireContract(dto);
     assertTourPatchWritePreMerge({
       ability: this.abilityFactory.createForActiveRequest(),
       workspaceRole: this.requestContext.tryGetRole() ?? null,

@@ -4,8 +4,15 @@ import { createJsonResponse } from "./fetch-response";
 
 export { SESSION_TOKEN_COOKIE };
 
-/** localStorage mirror key (see `lib/auth/session.ts`). */
-export const SESSION_TOKEN_STORAGE_KEY = "tour_ops_session_token";
+export {
+  SESSION_TOKEN_STORAGE_KEY_PREFIX,
+  SESSION_TOKEN_STORAGE_DEFAULT_SCOPE,
+  LEGACY_SESSION_TOKEN_STORAGE_KEY,
+  buildSessionTokenStorageKey,
+} from "../auth/session";
+
+/** Default scoped localStorage mirror key for vitest/jsdom (no workspace subdomain on host). */
+export const SESSION_TOKEN_STORAGE_KEY = `tour_ops_session_token:_default`;
 
 /** Default Vitest auth-hydration actor ids. */
 export const DEFAULT_TEST_USER_ID = "11111111-1111-4111-8111-111111111111";

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { TenantRuntimeGuardService } from "./tenant-runtime-guard.service";

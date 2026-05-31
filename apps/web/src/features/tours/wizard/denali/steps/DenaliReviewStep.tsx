@@ -139,7 +139,7 @@ function formatScheduleLine(iso: string | undefined): string | undefined {
 export function DenaliReviewStep() {
   const t = useTranslations("tours.denali");
   const { getValues } = useFormContext<DenaliCreateTourWizardForm>();
-  const formForUi = useDenaliWizardFormSnapshot();
+  const formForUi = useDenaliWizardFormSnapshot({ debounceMs: 0 });
 
   const { basicsSelection, ruleSet } = useDenaliCanonical();
   const canonicalModelRaw = useDenaliCanonicalModel();

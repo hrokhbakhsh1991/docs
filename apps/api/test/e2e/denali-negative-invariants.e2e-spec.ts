@@ -170,7 +170,7 @@ test("POST /api/v2/tours rejects denali_pilot without denaliTourKind", async () 
     .send(body)
     .expect(400);
 
-  assert.equal(res.body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_REQUIRED");
+  assert.equal(res.body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_REQUIRED");
 });
 
 test("POST /api/v2/tours rejects denali_pilot invalid denaliTourKind", async () => {
@@ -194,7 +194,7 @@ test("POST /api/v2/tours rejects denali_pilot invalid denaliTourKind", async () 
     .send(body)
     .expect(400);
 
-  assert.equal(res.body.error?.code, "WORKSPACE_RULE_DENALI_TOUR_KIND_INVALID");
+  assert.equal(res.body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOUR_KIND_INVALID");
 });
 
 test("POST /api/v2/tours rejects denali_pilot mountain payload without participation", async () => {
@@ -219,7 +219,7 @@ test("POST /api/v2/tours rejects denali_pilot mountain payload without participa
     .send(body)
     .expect(400);
 
-  assert.equal(res.body.error?.code, "WORKSPACE_RULE_DENALI_PARTICIPATION_MINIMUM_AGE_REQUIRED");
+  assert.equal(res.body.error?.code, "WORKSPACE_RULE_OUTDOOR_PARTICIPATION_MINIMUM_AGE_REQUIRED");
 });
 
 test("POST /api/v2/tours rejects denali_pilot event payload with outdoor fields", async () => {
@@ -244,7 +244,7 @@ test("POST /api/v2/tours rejects denali_pilot event payload with outdoor fields"
     .send(body)
     .expect(400);
 
-  assert.equal(res.body.error?.code, "WORKSPACE_RULE_DENALI_EVENT_DIFFICULTY_FORBIDDEN");
+  assert.equal(res.body.error?.code, "WORKSPACE_RULE_OUTDOOR_EVENT_DIFFICULTY_FORBIDDEN");
 });
 
 test("POST /api/v2/tours rejects denali_pilot capacity 0", async () => {
@@ -274,5 +274,5 @@ test("POST /api/v2/tours rejects denali_pilot capacity 0", async () => {
     .send(body)
     .expect(400);
 
-  assert.equal(res.body.error?.code, "WORKSPACE_RULE_DENALI_TOTAL_CAPACITY_INVALID");
+  assert.equal(res.body.error?.code, "WORKSPACE_RULE_OUTDOOR_TOTAL_CAPACITY_INVALID");
 });

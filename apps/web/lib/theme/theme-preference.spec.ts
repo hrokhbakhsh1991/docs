@@ -6,15 +6,34 @@ import {
   readStoredThemePreference,
   resolveThemeMode,
   THEME_STORAGE_KEY,
+  writeStoredThemePreference,
 } from "./theme-preference";
 
-test("resolveThemeMode prefers localStorage over system", () => {
-  const g = globalThis as typeof globalThis & {
-    window?: Window & { localStorage: Storage; matchMedia: (q: string) => { matches: boolean } };
+type WindowStub = Pick<Window, "localStorage" | "matchMedia">;
+
+function installWindowStub(stub: WindowStub): () => void {
+  const prior = (globalThis as { window?: WindowStub }).window;
+  Object.defineProperty(globalThis, "window", {
+    value: stub,
+    writable: true,
+    configurable: true,
+  });
+  return () => {
+    if (prior === undefined) {
+      Reflect.deleteProperty(globalThis, "window");
+    } else {
+      Object.defineProperty(globalThis, "window", {
+        value: prior,
+        writable: true,
+        configurable: true,
+      });
+    }
   };
+}
+
+test("resolveThemeMode prefers localStorage over system", () => {
   const store = new Map<string, string>();
-  const prior = g.window;
-  g.window = {
+  const restoreWindow = installWindowStub({
     localStorage: {
       getItem: (k) => store.get(k) ?? null,
       setItem: (k, v) => store.set(k, v),
@@ -23,20 +42,16 @@ test("resolveThemeMode prefers localStorage over system", () => {
       key: () => null,
       length: 0,
     } as Storage,
-    matchMedia: () => ({ matches: true }),
-  };
+    matchMedia: () => ({ matches: true }) as MediaQueryList,
+  });
 
   try {
-    store.set(THEME_STORAGE_KEY, "light");
+    writeStoredThemePreference("light");
     assert.equal(resolveThemeMode(), "light");
     store.delete(THEME_STORAGE_KEY);
     assert.equal(resolveThemeMode(), "dark");
   } finally {
-    if (prior === undefined) {
-      delete g.window;
-    } else {
-      g.window = prior;
-    }
+    restoreWindow();
   }
 });
 
@@ -45,9 +60,7 @@ test("buildThemeInitScript references storage key", () => {
 });
 
 test("readStoredThemePreference returns null when unset", () => {
-  const g = globalThis as typeof globalThis & { window?: { localStorage: Storage } };
-  const prior = g.window;
-  g.window = {
+  const restoreWindow = installWindowStub({
     localStorage: {
       getItem: () => null,
       setItem: () => undefined,
@@ -56,14 +69,12 @@ test("readStoredThemePreference returns null when unset", () => {
       key: () => null,
       length: 0,
     } as Storage,
-  };
+    matchMedia: () => ({ matches: false }) as MediaQueryList,
+  });
+
   try {
     assert.equal(readStoredThemePreference(), null);
   } finally {
-    if (prior === undefined) {
-      delete g.window;
-    } else {
-      g.window = prior;
-    }
+    restoreWindow();
   }
 });

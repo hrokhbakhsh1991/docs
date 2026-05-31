@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { resolveTestPlatformBaseUrl } from "@/lib/test/smoke-platform-url";
+
 import {
   advanceDenaliWizardToStep,
   applyDenaliWizardIntegrationPatch,
@@ -9,12 +11,12 @@ import {
   installDenaliVerificationMatrixSetup,
   requireDenaliWizard,
   waitForDenaliWizardAuthHydrated,
-} from "../smoke/tour-wizard-smoke-helpers";
+} from "../../src/features/tours/__tests__/smoke/tour-wizard-smoke-helpers";
 
 async function tabToNextAndSubmit(page: Page): Promise<void> {
   const next = denaliWizardNextButton(page);
   for (let i = 0; i < 30; i += 1) {
-    const focused = await next.evaluate((el) => el === document.activeElement).catch(() => false);
+    const focused = await next.evaluate((el: HTMLElement) => el === document.activeElement).catch(() => false);
     if (focused) break;
     await page.keyboard.press("Tab");
   }
@@ -40,7 +42,7 @@ async function expectActiveElementMatches(page: Page, selectors: readonly string
 
 test.describe("denali ux integrity", () => {
   test.beforeEach(async ({ page, context }, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL ?? process.env.PW_BASE_URL ?? "http://denali.localhost:3000";
+    const baseURL = testInfo.project.use.baseURL ?? resolveTestPlatformBaseUrl();
     await installDenaliVerificationMatrixSetup(page, context, { baseURL });
     await page.goto("/tours/new", { waitUntil: "networkidle" });
     await waitForDenaliWizardAuthHydrated(page);
@@ -88,7 +90,7 @@ test.describe("denali ux integrity", () => {
 
     await applyDenaliWizardIntegrationPatch(page, {
       programNature: { shortDescription: "" },
-    });
+    } as Parameters<typeof applyDenaliWizardIntegrationPatch>[1]);
 
     const summary = page.getByTestId("denali-summary-error");
     await expect(summary).toBeVisible({ timeout: 15_000 });

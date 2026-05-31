@@ -6,6 +6,7 @@ import type { BookingDto } from "@repo/types";
 
 import { registrationKeys } from "@/lib/query-keys";
 import { listRegistrationsForTour } from "@/lib/services/registrations.service";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
 export function useTourRegistrations(
   tourId: string,
@@ -18,10 +19,11 @@ export function useTourRegistrations(
   error: Error | null;
   refetch: () => void;
 } {
-  const enabled = Boolean(tourId?.trim()) && (options?.enabled ?? true);
+  const tenantId = useWorkspaceQueryScope();
+  const enabled = Boolean(tourId?.trim() && tenantId?.trim()) && (options?.enabled ?? true);
   const { data, isPending, isFetching, isError, error, refetch } = useQuery({
-    queryKey: registrationKeys.tourRegistrations(tourId),
-    queryFn: () => listRegistrationsForTour(tourId),
+    queryKey: registrationKeys.tourRegistrations(tenantId ?? "", tourId),
+    queryFn: ({ signal }) => listRegistrationsForTour(tourId, { signal }),
     enabled,
   });
   const isLoading = enabled && isPending;

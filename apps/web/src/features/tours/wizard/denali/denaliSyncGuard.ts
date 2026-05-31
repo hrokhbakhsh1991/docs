@@ -1,6 +1,49 @@
 import type { MutableRefObject } from "react";
 
-import { deepEqualForLoopDebug } from "@/lib/debug-session-log";
+function deepEqualForLoopDebug(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (typeof a !== typeof b) {
+    return false;
+  }
+  if (a == null || b == null) {
+    return false;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+      if (!deepEqualForLoopDebug(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (typeof a === "object") {
+    if (typeof b !== "object") {
+      return false;
+    }
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj);
+    const bKeys = Object.keys(bObj);
+    if (aKeys.length !== bKeys.length) {
+      return false;
+    }
+    for (const key of aKeys) {
+      if (!Object.prototype.hasOwnProperty.call(bObj, key)) {
+        return false;
+      }
+      if (!deepEqualForLoopDebug(aObj[key], bObj[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
 
 /** Deep equality for Denali wizard / canonical snapshots (no lodash dependency). */
 export function denaliStateEqual(a: unknown, b: unknown): boolean {

@@ -53,7 +53,7 @@ test("DraftEngineFacade integration (requires DATABASE_URL)", async (t) => {
     scopeResolver,
     createDefaultDraftMigratorRegistry(),
     { logEvent: async () => undefined } as unknown as AuditLogService,
-    draftEventRepo,
+    draftEventRepo as never,
     requestContext,
     new DefaultDraftConflictResolver(),
   );
@@ -158,7 +158,7 @@ test("DraftEngineFacade legacy schema_version 1 → loadDraft → saveDraft (req
     scopeResolver,
     createDefaultDraftMigratorRegistry(),
     { logEvent: async () => undefined } as unknown as AuditLogService,
-    draftEventRepo,
+    draftEventRepo as never,
     requestContext,
     new DefaultDraftConflictResolver(),
   );

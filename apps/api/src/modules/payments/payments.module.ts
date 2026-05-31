@@ -22,6 +22,7 @@ import { FinanceLedgerModule } from "../finance/finance-ledger.module";
 import { OutboxModule } from "../outbox/outbox.module";
 import { TenantEntity } from "../identity/entities/tenant.entity";
 import { PaymentEntity } from "./entities/payment.entity";
+import { TenantPaymentConfigEntity } from "./entities/tenant-payment-config.entity";
 import { RegistrationEntity } from "../registrations/registration.entity";
 import { PaymentReceiptEntity } from "./entities/payment-receipt.entity";
 import { PaymentGatewayIdempotencyEntity } from "./entities/payment-gateway-idempotency.entity";
@@ -34,6 +35,9 @@ import { PaymentIntentRegistrationResolverApplicationService } from "./applicati
 import { PaymentsService } from "./payments.service";
 import { ManualPaymentService } from "./manual-payment.service";
 import { PAYMENT_REPOSITORY_PORT } from "./domain/ports/payment-repository.port";
+import { TenantPaymentConfigRepository } from "./repositories/tenant-payment-config.repository";
+import { TenantPaymentConfigService } from "./services/tenant-payment-config.service";
+import { TenantPaymentConfigCacheInvalidationSubscriber } from "./subscribers/tenant-payment-config-cache-invalidation.subscriber";
 import { TypeOrmPaymentRepository } from "./repositories/typeorm-payment.repository";
 import { ToursCatalogModule } from "../tours/tours-catalog.module";
 
@@ -48,6 +52,7 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
       PaymentReceiptEntity,
       RegistrationEntity,
       PaymentGatewayIdempotencyEntity,
+      TenantPaymentConfigEntity,
       TenantEntity
     ]),
     DatabaseModule,
@@ -105,6 +110,9 @@ import { ReceiptsModule } from "../finance/receipts/receipts.module";
     StripeLikePaymentGatewayPlaceholder,
     StripePaymentGateway,
     ZibalPaymentGateway,
+    TenantPaymentConfigRepository,
+    TenantPaymentConfigService,
+    TenantPaymentConfigCacheInvalidationSubscriber,
     PaymentGatewayFactory,
     {
       provide: PAYMENT_GATEWAY_FACTORY_PORT,

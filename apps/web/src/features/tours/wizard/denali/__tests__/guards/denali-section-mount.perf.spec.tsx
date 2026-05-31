@@ -12,7 +12,7 @@ jest.mock("@/features/tours/denali/sections", () => {
   const { useFormContext, Controller } = require("react-hook-form") as typeof import("react-hook-form");
   const { getDenaliFieldRegistryByStep } = require("@repo/denali-domain") as typeof import("@repo/denali-domain");
 
-  function makeStub(sectionId: string) {
+  function makeStub(sectionId: import("@/features/tours/wizard/denaliStepConfig").DenaliCreateWizardStepId) {
     return function SectionStub() {
       const { control } = useFormContext();
       const rows = getDenaliFieldRegistryByStep(sectionId).filter(

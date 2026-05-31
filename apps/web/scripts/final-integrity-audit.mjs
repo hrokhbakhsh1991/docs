@@ -24,8 +24,8 @@ function checkImports() {
       path: join(WEB_ROOT, "src/components/tours/DenaliTourEditForm.tsx"),
     },
     {
-      name: "DenaliCreateTourWizard",
-      path: join(WEB_ROOT, "src/components/tours/wizard/DenaliCreateTourWizard.tsx"),
+      name: "WorkspaceTourWizard",
+      path: join(WEB_ROOT, "src/components/tours/wizard/WorkspaceTourWizard.tsx"),
     },
   ];
   const stepsPattern = /wizard\/denali\/steps\//;
@@ -45,7 +45,7 @@ function checkImports() {
         detail: `${t.name}: zero direct wizard/denali/steps/* imports`,
       });
     }
-    if (t.name === "DenaliCreateTourWizard" && /DenaliBasicInfoStep|DenaliProgramNatureStep/.test(src)) {
+    if (t.name === "WorkspaceTourWizard" && /DenaliBasicInfoStep|DenaliProgramNatureStep/.test(src)) {
       findings.push({
         gate: "1-import-audit-transitive",
         status: "WARN",
@@ -99,7 +99,7 @@ function checkPlugin() {
   const plugin = read(
     join(WEB_ROOT, "src/features/tours/wizard/denali/plugins/DenaliTemplateSelectorPlugin.tsx"),
   );
-  const wizard = read(join(WEB_ROOT, "src/components/tours/wizard/DenaliCreateTourWizard.tsx"));
+  const wizard = read(join(WEB_ROOT, "src/components/tours/wizard/WorkspaceTourWizard.tsx"));
   if (!/activeStepId === "denali_basic"/.test(plugin)) {
     findings.push({
       gate: "5-plugin",
@@ -126,7 +126,7 @@ function checkPlugin() {
     findings.push({
       gate: "5-plugin-sync",
       status: "PASS",
-      detail: "onCanonicalSync bumps canonicalSyncToken in DenaliCreateTourWizard",
+      detail: "onCanonicalSync bumps canonicalSyncToken in WorkspaceTourWizard",
     });
   }
   const edit = read(join(WEB_ROOT, "src/components/tours/DenaliTourEditForm.tsx"));
@@ -150,7 +150,7 @@ async function main() {
   checkRegistryParity();
   checkPlugin();
 
-  const draftResult = spawnSync("pnpm", ["exec", "tsx", "scripts/denali-draft-navigation-stability.ts"], {
+  const draftResult = spawnSync("pnpm", ["exec", "tsx", "scripts/workspace-draft-navigation-stability.ts"], {
     cwd: WEB_ROOT,
     encoding: "utf8",
     stdio: "pipe",

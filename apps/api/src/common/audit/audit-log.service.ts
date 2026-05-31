@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import type { EntityManager } from "typeorm";
 
 import { AUDIT_CATEGORY } from "./audit-category";
 import { AuditService } from "./audit.service";
@@ -13,6 +14,8 @@ export type AuditLogEventInput = {
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
   category?: AuditCategory;
+  /** Active TypeORM transaction manager (same commit/rollback as domain writes). */
+  manager?: EntityManager;
 };
 
 /**
@@ -54,6 +57,7 @@ export class AuditLogService {
         before: input.before,
         after: input.after,
       },
+      manager: input.manager,
     });
   }
 }

@@ -153,8 +153,8 @@ function requireDraftSchema<StepId extends string, Form>(
   return draftSchema;
 }
 
-function registryRhfPathSet<StepId extends string>(
-  config: WizardTestConfig<StepId>,
+function registryRhfPathSet<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
 ): Set<string> {
   return new Set(config.fieldRegistry.map((def) => def.rhfPath));
 }
@@ -294,8 +294,8 @@ export function verifyErrorHandlingIntegrity<StepId extends string, Form>(
 /**
  * Every registry field assigned to a focusable step must have a focus-map entry for its RHF path.
  */
-export function verifyRegistryFocusCoverage<StepId extends string>(
-  config: WizardTestConfig<StepId>,
+export function verifyRegistryFocusCoverage<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
 ): void {
   const focusKeys = config.getFocusMapKeys();
   const nonFocusable = new Set(config.nonFocusableStepIds ?? []);
@@ -320,8 +320,8 @@ export function verifyRegistryFocusCoverage<StepId extends string>(
 /**
  * Every focus-map key must correspond to a registered RHF path.
  */
-export function verifyFocusMapOrphans<StepId extends string>(
-  config: WizardTestConfig<StepId>,
+export function verifyFocusMapOrphans<StepId extends string, Form>(
+  config: WizardTestConfig<StepId, Form>,
 ): void {
   const registryRhf = new Set(config.fieldRegistry.map((def) => def.rhfPath));
   const orphanFocusKeys = [...config.getFocusMapKeys()].filter((key) => !registryRhf.has(key));

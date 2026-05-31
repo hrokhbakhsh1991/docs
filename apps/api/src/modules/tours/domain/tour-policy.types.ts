@@ -12,6 +12,10 @@ export type TourCapacityPolicySnapshot = {
 };
 
 export type TourDetailsPolicySnapshot = {
+  /** Denormalized on persist → `tour_details.tenant_id`. */
+  tenantId?: string;
+  /** Denormalized on persist → `tour_details.tour_id`. */
+  tourId?: string;
   destinationName?: string | null;
   elevationM?: number | null;
   difficulty?: DifficultyLevel | null;

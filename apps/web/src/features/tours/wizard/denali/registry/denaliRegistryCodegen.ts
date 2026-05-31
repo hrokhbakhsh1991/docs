@@ -3,7 +3,7 @@
  * Used by `scripts/generate-denali-wizard-config.ts` and `scripts/registry-integrity-audit.ts`.
  */
 
-import { DENALI_FIELD_DEFINITIONS, type DenaliFieldDefinition } from "./denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS, type DenaliFieldDefinition } from "@repo/denali-domain";
 import { DENALI_MATRIX_CELL_TAGS, type DenaliMatrixCell } from "./denaliRuleMatrixRecipes";
 import {
   DENALI_RULE_MODEL_CATEGORIES,

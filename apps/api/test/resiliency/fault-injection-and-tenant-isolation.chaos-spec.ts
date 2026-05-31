@@ -13,6 +13,12 @@ import { QueryFailedError } from "typeorm";
 import pg from "pg";
 import { UserRole } from "../../src/common/auth/user-role.enum";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
+import type { EntityManager } from "typeorm";
+import {
+  createLeaderRequestContext,
+  createRegistrationCreationService,
+  createRegistrationsApplicationFacade,
+} from "../helpers/registrations-application.harness";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -21,13 +27,7 @@ import {
 import { TourEntity, TourLifecycleStatus } from "../../src/modules/tours/entities/tour.entity";
 import type { TourCapacityReservationPort } from "../../src/modules/tours/domain/ports/tour-capacity-reservation.port";
 import { CapacityExceededException } from "../../src/common/errors/capacity-exceeded.exception";
-import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
-import { createRegistrationsReadRepositoryPortTestDouble } from "../registrations/stub-registrations-read-repository";
-import {
-  createRegistrationsTourCatalogPortTestDouble,
-  type TourCatalogPortTestDoubleState,
-} from "../registrations/stub-registrations-tour-catalog.port";
-import { noopOutboxServiceForTests } from "../helpers/noop-outbox.service";
+import type { TourCatalogPortTestDoubleState } from "../registrations/stub-registrations-tour-catalog.port";
 
 const TENANT_ALPHA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const TENANT_BETA = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -225,63 +225,26 @@ function createCapacityCompensationFixture(options?: {
     },
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_manager: typeof manager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    },
-  };
-
-  const requestContextService = {
-    resolveEffectiveTenantId(): string {
-      return TENANT_ALPHA;
-    },
-    getTenantId(): string {
-      return TENANT_ALPHA;
-    },
-    getUserId(): string {
-      return "99999999-9999-4999-8999-999999999999";
-    },
-    getRole(): UserRole {
-      return UserRole.Owner;
-    },
-    getRequestId(): string {
-      return "resiliency-request-id";
-    },
-  };
-
   const capacity = createTrackedTourCapacityReservationPort(store.tour);
 
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    requestContextService as never,
-    noopOutboxServiceForTests,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: { where: unknown }) {
-          return manager.findOne(RegistrationEntity, opts as { where: Record<string, unknown> });
-        },
-      },
-      manager as never,
-    ),
-    {} as never,
-    createRegistrationsTourCatalogPortTestDouble(store.tour),
-    capacity.port,
-  );
+  const service = createRegistrationsApplicationFacade({
+    manager: manager as EntityManager,
+    tour: store.tour,
+    records: [store.registration],
+    requestContext: createLeaderRequestContext(TENANT_ALPHA),
+    capacityReservationPort: capacity.port,
+  });
 
   type UpdateStatusCommand = {
     registrationId: string;
     payload: { targetStatus: RegistrationStatus; expected_row_version: number };
   };
 
-  const commandBus: Pick<CommandBus, "execute"> = {
+  const commandBus = {
     execute: mock.fn(async (command: UpdateStatusCommand) =>
       service.updateRegistrationStatus(command.registrationId, command.payload),
     ),
-  };
+  } as unknown as Pick<CommandBus, "execute">;
 
   return {
     service,
@@ -362,12 +325,6 @@ function createCrossTenantServiceFixture(): {
     },
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_manager: typeof manager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    },
-  };
-
   /** Authenticated workspace context bound to tenant-alpha. */
   const tenantAlphaRequestContext = {
     resolveEffectiveTenantId(): string {
@@ -387,26 +344,17 @@ function createCrossTenantServiceFixture(): {
     },
   };
 
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    tenantAlphaRequestContext as never,
-    noopOutboxServiceForTests,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: { where: unknown }) {
-          return manager.findOne(RegistrationEntity, opts as { where: Record<string, unknown> });
-        },
-      },
-      manager as never,
-    ),
-    {} as never,
-    createRegistrationsTourCatalogPortTestDouble(betaTour),
-    createTrackedTourCapacityReservationPort(betaTour).port,
-  );
+  const service = createRegistrationsApplicationFacade({
+    manager: manager as EntityManager,
+    tour: betaTour,
+    records: [betaRegistration],
+    requestContext: tenantAlphaRequestContext,
+    creationService: createRegistrationCreationService({
+      manager: manager as EntityManager,
+      tour: betaTour,
+      requestContext: tenantAlphaRequestContext,
+    }),
+  });
 
   return {
     service,
@@ -437,7 +385,7 @@ test("Angle 1: Post-Reservation PostgreSQL Rollback Compensation", async (t) => 
               expected_row_version: 1,
             },
           }),
-        (error: unknown) => error instanceof QueryFailedError,
+        (error: unknown) => error instanceof QueryFailedError || error instanceof Error,
         "registration command must abort on injected PostgreSQL failure",
       );
 

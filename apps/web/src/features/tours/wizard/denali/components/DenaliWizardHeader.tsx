@@ -13,7 +13,7 @@ export function DenaliWizardHeader({ percentage }: { percentage: number }) {
   return (
     <div
       className={styles.root}
-      data-testid="denali-wizard-content-quality"
+      data-testid="workspace-wizard-content-quality"
       aria-label={t("contentQuality.ariaLabel", { percentage: clamped })}
     >
       <div className={styles.labelRow}>
@@ -35,7 +35,8 @@ export function DenaliWizardHeader({ percentage }: { percentage: number }) {
 }
 
 export function DenaliWizardContentQualityHeader() {
-  const form = useDenaliWizardFormSnapshot();
+  // Immediate snapshot — draft debounce in WorkspaceTourWizard owns the 500ms watch.
+  const form = useDenaliWizardFormSnapshot({ debounceMs: 0 });
   const percentage = calculateCompletionPercentage(form);
 
   return <DenaliWizardHeader percentage={percentage} />;

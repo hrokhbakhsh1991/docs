@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Alert, Button, FormField, Input } from "@tour/ui";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
@@ -9,6 +9,8 @@ import { DENALI_MAX_PHOTO_COUNT } from "@/features/tours/wizard/schemas/denaliFi
 import { uploadTourPhotos } from "@/lib/services/tours.service";
 
 import { useDenaliCanonical, useDenaliStepFieldRules } from "@/features/tours/wizard/denali/application";
+import { useDenaliBlobPhotoRowLifecycle } from "@/features/tours/wizard/denali/hooks/useDenaliBlobPhotoRowLifecycle";
+import { revokeDenaliBlobUrl } from "@/features/tours/wizard/denali/preserveDenaliWizardBlobMedia";
 import { DenaliProgramContentSection } from "@/features/tours/denali/widgets/DenaliProgramContentSection";
 
 const STEP = "denali_photos" as const;
@@ -21,6 +23,7 @@ type DenaliPhotosStepProps = {
 
 export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProps = {}) {
   const {
+    control,
     getValues,
     setValue,
     formState: { errors },
@@ -37,7 +40,9 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const rows = useMemo(() => getValues().photosData.photos ?? [], [getValues]);
+  const watchedRows = useWatch({ control, name: "photosData.photos" });
+  const rows = useMemo(() => watchedRows ?? [], [watchedRows]);
+  useDenaliBlobPhotoRowLifecycle(rows);
   const photoErrors = errors.photosData?.photos;
   const rootError = Array.isArray(photoErrors) ? undefined : photoErrors?.message;
   const required = isRequired("photos", getValues());
@@ -176,6 +181,7 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
               size="sm"
               style={{ position: "absolute", top: "4px", right: "4px" }}
               onClick={() => {
+                revokeDenaliBlobUrl(field.url);
                 const next = rows.filter((_, i) => i !== index);
                 commitPhotos(next);
               }}

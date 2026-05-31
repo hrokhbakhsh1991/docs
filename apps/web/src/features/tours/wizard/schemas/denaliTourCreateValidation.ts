@@ -2,8 +2,12 @@ import type { FieldPath, UseFormClearErrors, UseFormSetError } from "react-hook-
 
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import type { DenaliUIContextOptions } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
-import { getDenaliStepPickShape, resolveDenaliRuleModelFromForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import { type DenaliUIContextOptions } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
+import { clearHiddenFieldErrors, type LayoutManifest } from "@/features/tours/wizard/shell/layout";
+import {
+  getDenaliStepPickShape,
+  resolveDenaliRuleModelFromForm,
+} from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import {
   getDenaliWizardStepIssues,
   getDenaliWizardSubmitIssues,
@@ -56,6 +60,34 @@ export function getDenaliWizardStepSchemaRoot(
 }
 
 /**
+ * Clears RHF errors for fields hidden by the rule model / contextual visibility (EC-ZOD-04).
+ */
+export function clearDenaliWizardErrorsForHiddenFields(
+  form: DenaliCreateTourWizardForm,
+  clearErrors: UseFormClearErrors<DenaliCreateTourWizardForm>,
+  layout: Pick<LayoutManifest, "hiddenFieldEviction">,
+  options?: {
+    uiOptions?: DenaliUIContextOptions;
+    ruleSet?: DenaliRuleSet;
+  },
+): void {
+  const ruleSet = options?.ruleSet ?? denaliRuleSet;
+  const uiOptions = options?.uiOptions;
+  const model = resolveDenaliRuleModelFromForm(form, ruleSet);
+  if (model == null) {
+    return;
+  }
+
+  clearHiddenFieldErrors({
+    form,
+    clearErrors: (path) => clearErrors(path as FieldPath<DenaliCreateTourWizardForm>),
+    eviction: layout.hiddenFieldEviction,
+    ruleContext: model,
+    uiOptions,
+  });
+}
+
+/**
  * Runs Zod step validation and applies errors to RHF.
  */
 export function applyDenaliWizardStepValidation(
@@ -63,9 +95,15 @@ export function applyDenaliWizardStepValidation(
   stepId: DenaliCreateWizardStepId,
   setError: UseFormSetError<DenaliCreateTourWizardForm>,
   clearErrors: UseFormClearErrors<DenaliCreateTourWizardForm>,
+  layout: Pick<LayoutManifest, "hiddenFieldEviction">,
   uiOptions?: DenaliUIContextOptions,
   ruleSet: DenaliRuleSet = denaliRuleSet,
 ): boolean {
+  clearDenaliWizardErrorsForHiddenFields(form, clearErrors, layout, {
+    uiOptions,
+    ruleSet,
+  });
+
   if (stepId === "review") {
     clearErrors();
     const issues = getDenaliWizardSubmitIssues(form, uiOptions, ruleSet);

@@ -20,7 +20,7 @@ function readRequestIdFromApiError(error: ApiError): string | undefined {
 
 /**
  * User-facing wizard error text.
- * Tour activation / publish codes (`DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES`,
+ * Tour activation / publish codes (`OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES`,
  * `PAID_TOUR_REQUIRES_AMOUNT`, `INVALID_LIFECYCLE_TRANSITION`, …) resolve via {@link getUIError}
  * and Persian entries in `error-registry.ts`.
  */

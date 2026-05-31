@@ -25,7 +25,7 @@ test("DenaliTourCreationPresetBanner receives formMethods from plugin context (n
 });
 
 test("DenaliTourCreationPresetBanner exposes wizard test ids", () => {
-  assert.match(bannerSource, /data-testid="denali-wizard-preset-select"/);
-  assert.match(bannerSource, /data-testid="denali-wizard-preset-apply"/);
-  assert.match(bannerSource, /data-testid="denali-wizard-preset-clear"/);
+  assert.match(bannerSource, /data-testid="workspace-wizard-preset-select"/);
+  assert.match(bannerSource, /data-testid="workspace-wizard-preset-apply"/);
+  assert.match(bannerSource, /data-testid="workspace-wizard-preset-clear"/);
 });

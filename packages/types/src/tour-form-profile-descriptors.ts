@@ -2,7 +2,9 @@ import { TOUR_FORM_PROFILE_VALUES, type TourFormProfile } from "./tour-form-prof
 import type { TourType } from "./tour-classification";
 import {
   URBAN_LOGISTICS_WHITELIST_KEYS,
+  MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS,
   type UrbanLogisticsWhitelistKey,
+  type MountainTransportEconomicsLogisticsKey,
 } from "./tour-domain-profile";
 
 /**
@@ -99,6 +101,11 @@ export interface TourFormProfileStripDeltas {
    */
   readonly itineraryKeysToDelete: readonly ("dayPlans" | "segmentActivities")[];
   /**
+   * Keys inside `tripDetails.logistics` to delete after whitelist / root clears
+   * (e.g. `fuelShareToman` for `cinema_event`).
+   */
+  readonly logisticsKeysToDelete?: readonly MountainTransportEconomicsLogisticsKey[];
+  /**
    * When present, `tripDetails.logistics` is replaced with only the keys in this whitelist.
    * `urban_event` is the canonical case (single canonical list shared with API + web; see
    * {@link URBAN_LOGISTICS_WHITELIST_KEYS}).
@@ -133,6 +140,11 @@ export interface TourFormProfileInvariantHints {
    * {@link MOUNTAIN_ONLY_TRIP_DETAILS_OVERVIEW_KEYS} (parity-tested).
    */
   readonly mountainOverviewKeysToStripFromOverview: readonly MountainOnlyTripDetailsOverviewKey[];
+  /**
+   * When `true`, server + wizard require `logistics.fuelShareToman` when `private_car` is in play
+   * (mountain/outdoor strategies only — not urban/cinema/general).
+   */
+  readonly requiresMountainTransportEconomics: boolean;
 }
 
 /** Requiredness tier for Edit-only preset rows (wizard `FieldRule` still uses optional/required/forbidden only). */
@@ -222,6 +234,7 @@ const general: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: false,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    requiresMountainTransportEconomics: false,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };
@@ -241,6 +254,7 @@ const mountainOutdoor: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: true,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: [],
+    requiresMountainTransportEconomics: true,
   },
   edit: { tripDetailsPresetOverrides: MOUNTAIN_OUTDOOR_EDIT_PRESETS },
 };
@@ -260,6 +274,7 @@ const natureTrip: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: false,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    requiresMountainTransportEconomics: false,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };
@@ -280,6 +295,7 @@ const urbanEvent: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: false,
     requiresEmptyRootTransportModes: true,
     mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    requiresMountainTransportEconomics: false,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };
@@ -293,12 +309,14 @@ const cinemaEvent: TourFormProfileDescriptor = {
   strip: {
     clearsTripDetailsRoots: ["participation"],
     itineraryKeysToDelete: ["dayPlans", "segmentActivities"],
+    logisticsKeysToDelete: MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS,
     clearsRootTransportModes: false,
   },
   invariants: {
     allowsMountainOnlyOverviewKeys: false,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    requiresMountainTransportEconomics: false,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };
@@ -318,6 +336,7 @@ const culturalTour: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: false,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: MOUNTAIN_OVERVIEW_STRIP_KEYS,
+    requiresMountainTransportEconomics: false,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };
@@ -338,6 +357,7 @@ const denaliPilot: TourFormProfileDescriptor = {
     allowsMountainOnlyOverviewKeys: true,
     requiresEmptyRootTransportModes: false,
     mountainOverviewKeysToStripFromOverview: [],
+    requiresMountainTransportEconomics: true,
   },
   edit: { tripDetailsPresetOverrides: [] },
 };

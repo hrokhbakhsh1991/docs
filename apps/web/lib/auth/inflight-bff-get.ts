@@ -22,17 +22,33 @@ export function bffBrowserFetch(input: RequestInfo | URL, init?: RequestInit): P
 
 const inflight = new Map<string, Promise<unknown>>();
 
+/** Bumped on cross-host navigation / auth teardown to drop stale hydrate dedupe entries. */
+let bffInflightGeneration = 0;
+
+export function getBffInflightGeneration(): number {
+  return bffInflightGeneration;
+}
+
+/** Cancels shared in-flight BFF dedupe state (e.g. before subdomain workspace navigation). */
+export function cancelInflightBffGets(): void {
+  bffInflightGeneration += 1;
+  inflight.clear();
+}
+
 /**
  * Dedupes in-flight GETs (e.g. React Strict Mode double-mount).
  * Cache the **parsed** result — never a `Response`, whose body can only be read once.
  */
 export function inflightBffGet<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const generationAtStart = bffInflightGeneration;
   const existing = inflight.get(key);
   if (existing) {
     return existing as Promise<T>;
   }
   const promise = fetcher().finally(() => {
-    inflight.delete(key);
+    if (bffInflightGeneration === generationAtStart) {
+      inflight.delete(key);
+    }
   });
   inflight.set(key, promise);
   return promise;

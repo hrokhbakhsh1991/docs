@@ -67,13 +67,17 @@ export function LeaderReviewClient() {
 
   const leaderData = useLeaderTourRegistrations(hookEnabled);
 
+  const tenantId = user?.tenantId?.trim() ?? "";
+
   const invalidateAll = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: registrationKeys.all });
+    await queryClient.invalidateQueries({ queryKey: registrationKeys.tenantRoot(tenantId) });
     await queryClient.invalidateQueries({ queryKey: tourKeys.all });
     await queryClient.invalidateQueries({ queryKey: leaderDashboardSummaryKeys.all });
-    await queryClient.invalidateQueries({ queryKey: leaderRegistrationIndexKeys.all });
+    await queryClient.invalidateQueries({
+      queryKey: leaderRegistrationIndexKeys.listRoot(tenantId),
+    });
     await leaderData.refetchAll();
-  }, [queryClient, leaderData]);
+  }, [queryClient, leaderData, tenantId]);
 
   const filters = useLeaderReviewFilters(leaderData.rows, leaderData.pendingRows);
   const reviewState = useLeaderReviewState(leaderData.rows, filters.visibleRows, invalidateAll);

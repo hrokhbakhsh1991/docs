@@ -31,6 +31,7 @@ import {
 } from "../../common/errors/error-response-builders";
 import { AUDIT_CATEGORY } from "../../common/audit/audit-category";
 import { AuditLogService } from "../../common/audit/audit-log.service";
+import { getIdempotentEntityManager } from "../idempotency/idempotent-transaction.context";
 import { LoggerService } from "../../common/logger/logger.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { CreateTourDto } from "./dto/create-tour.dto";
@@ -46,6 +47,15 @@ import type { TourWriteRecord } from "./domain/tour-write-record.types";
 import type { TourDetailsPolicySnapshot } from "./domain/tour-policy.types";
 import type { TourTripDetails } from "./types/tour-trip-details.types";
 import { CURRENT_TRIP_DETAILS_SCHEMA_VERSION } from "./types/trip-details-schema";
+import {
+  findTourPhotoInTripDetails,
+  removeTourPhotoFromTripDetails,
+  stripPhotoUrlsFromTripDetails,
+  TOUR_PHOTO_PRESIGNED_URL_TTL_SECONDS,
+  tourPhotoStorageKey,
+  tourPhotoStoragePrefix,
+} from "./utils/tour-photo-storage.util";
+import { TourPhotoUrlService } from "./services/tour-photo-url.service";
 import { TourTripDetailsDto } from "./dto/trip-details.dto";
 import {
   assertTourPublishableBeforePatch,
@@ -75,21 +85,21 @@ import {
   assertIncomingTripDetailsPatchFragmentBeforeFormProfileStrip,
   assertTripDetailsForFormProfile,
 } from "./utils/assert-create-tour-invariants";
+import { assertCreateTourPostWireContract } from "./utils/assert-create-tour-wire-contract";
 import {
   stripCreateTourDtoForFormProfile,
   stripPersistedTourForFormProfile,
 } from "./utils/create-tour-form-profile-strip";
 import { shouldRefreshFormProfileSnapshotOnPatch } from "./tours-feature-flags";
-import { logTourFormProfileResolvedForCreate, logTourProfileInvariantRejected } from "./tours-profile-observability";
+import { logTourFormProfileResolvedForCreate, logTourProfileInvariantRejected, type TourFormProfileResolutionPayload } from "./tours-profile-observability";
 import { ToursCatalogReadApplicationService } from "./application/tours-catalog-read.application.service";
 import {
   TOURS_WRITE_REPOSITORY_PORT,
   type ToursWriteRepositoryPort,
 } from "./domain/ports/tours-repository.port";
 import {
-  currencyCodeFromCostContext,
+  applyDenormalizedTourCommercialColumns,
   extractTripLogisticsDates,
-  listPriceMinorFromCostContext
 } from "./utils/commercial-fields";
 import { buildRegionalTourListScopeFromRequest } from "../../common/rbac/capability-grant-context-from-request";
 import {
@@ -126,9 +136,24 @@ export class ToursService {
     private readonly toursCatalogRead: ToursCatalogReadApplicationService,
     @Inject(FILE_STORAGE_PORT)
     private readonly fileStorage: FileStoragePort,
+    @Inject(TourPhotoUrlService)
+    private readonly tourPhotoUrlService: TourPhotoUrlService,
     @Inject(TOUR_CAPACITY_RESERVATION_PORT)
     private readonly tourCapacityReservationPort: TourCapacityReservationPort
   ) {}
+
+  private async mapTourToResponse(tour: TourResponseSource): Promise<TourResponseDto> {
+    const dto = mapTourEntityToResponseDto(tour);
+    if (dto.details?.tripDetails) {
+      dto.details.tripDetails =
+        (await this.tourPhotoUrlService.enrichTripDetailsForResponse(
+          tour.tenantId,
+          tour.id,
+          dto.details.tripDetails,
+        )) ?? null;
+    }
+    return dto;
+  }
 
   private async assertDestinationBelongsToTenant(
     tenantId: string,
@@ -178,17 +203,24 @@ export class ToursService {
   }
 
   /** Keeps denormalized list/audit columns in sync with JSON details and cost_context. */
-  private applyDenormalizedTourListColumns(tour: TourWriteRecord): void {
+  private async applyDenormalizedTourListColumns(
+    tour: TourWriteRecord,
+    tenantId: string,
+  ): Promise<void> {
+    if (tour.details) {
+      tour.details.tenantId = tour.tenantId;
+      if (tour.id) {
+        tour.details.tourId = tour.id;
+      }
+    }
     const { startsOn, endsOn } = extractTripLogisticsDates(
       tour.details ?? null
     );
     tour.startsOn = startsOn ?? undefined;
     tour.endsOn = endsOn ?? undefined;
-    if (tour.costContext && typeof tour.costContext === "object") {
-      tour.currencyCode = currencyCodeFromCostContext(tour.costContext);
-      const minor = listPriceMinorFromCostContext(tour.costContext);
-      tour.listPriceMinor = minor ?? undefined;
-    }
+    await applyDenormalizedTourCommercialColumns(tour, tenantId, (tid) =>
+      this.identityRepository.resolveOperatingCurrencyCode(tid),
+    );
   }
 
   private assertFinanceCapabilityForPaymentTour(): void {
@@ -525,10 +557,10 @@ export class ToursService {
     if (normalized === null || normalized === undefined) {
       return normalized;
     }
-    return {
+    return stripPhotoUrlsFromTripDetails({
       ...normalized,
-      schemaVersion: normalized.schemaVersion ?? CURRENT_TRIP_DETAILS_SCHEMA_VERSION
-    };
+      schemaVersion: normalized.schemaVersion ?? CURRENT_TRIP_DETAILS_SCHEMA_VERSION,
+    });
   }
 
   /** Drops deprecated free-text `guideLanguage` from persisted logistics (use `guideLanguageIds`). */
@@ -564,7 +596,7 @@ export class ToursService {
         contentType: file.mimetype,
       });
       
-      const url = await this.fileStorage.getSignedUrl(key, 604800); // 7 days valid for preview
+      const url = await this.fileStorage.getSignedUrl(key, TOUR_PHOTO_PRESIGNED_URL_TTL_SECONDS);
 
       uploadedPhotos.push({
         id,
@@ -579,18 +611,161 @@ export class ToursService {
     return uploadedPhotos;
   }
 
-  async deletePhoto(_tourId: string, _photoId: string) {
+  async deletePhoto(tourId: string, photoId: string) {
     const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
       throw new ForbiddenException(tenantContextMissingError());
     }
 
-    // Since we don't have a separate tour_photos table yet, we just delete from storage.
-    // In Phase 6, we persist these to trip_details.photos. For now, best-effort delete.
-    // We would need the exact key. For MVP, assuming the client or backend knows the key or we just return success.
-    // To strictly follow the plan: "حذف فایل از Storage و حذف رکورد از DB".
-    // For now, we will return success. The actual persistence happens in `updateTour`.
-    return { success: true };
+    const trimmedTourId = tourId.trim();
+    const trimmedPhotoId = photoId.trim();
+    if (trimmedTourId === "" || trimmedPhotoId === "") {
+      throw new BadRequestException({
+        error: {
+          code: "VALIDATION_FIELD_FORMAT_INVALID",
+          message: "Invalid tour or photo id",
+        },
+      });
+    }
+
+    return this.toursWriteRepository.runInTransaction(async () => {
+      const tour = await this.toursWriteRepository.loadTourForUpdateLocking(trimmedTourId, tenantId);
+      if (!tour) {
+        throw new NotFoundException(tenantScopedResourceNotFoundError());
+      }
+
+      const tripDetails = tour.details?.tripDetails ?? null;
+      const photoRef = findTourPhotoInTripDetails(tripDetails, trimmedPhotoId);
+
+      if (photoRef?.filename?.trim()) {
+        await this.fileStorage.deleteObject(
+          tourPhotoStorageKey(tenantId, trimmedTourId, trimmedPhotoId, photoRef.filename.trim()),
+        );
+      } else {
+        await this.fileStorage.deleteObjectsByPrefix(
+          tourPhotoStoragePrefix(tenantId, trimmedTourId, trimmedPhotoId),
+        );
+      }
+
+      if (tripDetails != null) {
+        if (!tour.details) {
+          tour.details = {};
+        }
+        tour.details.tripDetails = removeTourPhotoFromTripDetails(tripDetails, trimmedPhotoId);
+        await this.toursWriteRepository.updateTour(tour, tenantId);
+      }
+
+      return { success: true };
+    });
+  }
+
+  /**
+   * Publishes a gallery staging shell (DRAFT tour created for early photo upload) instead of inserting a second row.
+   */
+  private async finalizeStagingTourShell(input: {
+    stagingTourId: string;
+    dto: CreateTourDto;
+    tenantId: string;
+    resolvedFormProfile: TourFormProfile;
+    details: TourDetailsPolicySnapshot | undefined;
+    formProfileResolutionSource: string;
+  }): Promise<TourWriteRecord & { createdAt: Date; updatedAt: Date }> {
+    const { stagingTourId, dto, tenantId, resolvedFormProfile, details, formProfileResolutionSource } =
+      input;
+
+    const staging = await this.toursWriteRepository.loadTourForUpdateLocking(stagingTourId, tenantId);
+    if (!staging) {
+      throw new NotFoundException(tenantScopedResourceNotFoundError());
+    }
+    if (staging.lifecycleStatus !== TourLifecycleStatus.DRAFT) {
+      throw new BadRequestException({
+        error: {
+          code: "TOUR_STAGING_NOT_DRAFT",
+          message: "stagingTourId must reference a tour in DRAFT lifecycle",
+        },
+      });
+    }
+    if (staging.acceptedCount > 0) {
+      throw new BadRequestException({
+        error: {
+          code: "TOUR_STAGING_HAS_REGISTRATIONS",
+          message: "stagingTourId cannot reference a tour with accepted registrations",
+        },
+      });
+    }
+
+    staging.title = dto.title;
+    staging.description = dto.description;
+    staging.totalCapacity = dto.total_capacity;
+    staging.lifecycleStatus = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
+    staging.chatLink = dto.chat_link;
+    staging.costContext = dto.cost_context
+      ? (instanceToPlain(dto.cost_context) as Record<string, unknown>)
+      : staging.costContext;
+    staging.autoAcceptRegistrations = dto.autoAcceptRegistrations;
+    staging.tourType = dto.tourType;
+    staging.transportModes = [...new Set(dto.transportModes ?? [])].sort() as TourTransportMode[];
+    staging.destination = this.destinationRelation(dto.destinationId ?? null);
+    staging.formProfileSnapshot = resolvedFormProfile;
+    if (dto.metadata !== undefined) {
+      staging.metadata = dto.metadata;
+    } else {
+      const prior = staging.metadata;
+      if (prior && typeof prior === "object" && !Array.isArray(prior)) {
+        const next = { ...(prior as Record<string, unknown>) };
+        delete next.isStagingShell;
+        staging.metadata = Object.keys(next).length > 0 ? next : null;
+      }
+    }
+    if (details !== undefined) {
+      staging.details = details;
+    }
+
+    await this.applyDenormalizedTourListColumns(staging, tenantId);
+
+    const nextLifecycle = this.normalizeLifecycleStatusInput(dto.lifecycle_status);
+    if (nextLifecycle === TourLifecycleStatus.OPEN) {
+      assertRequiresPaymentHasPositiveAmount({
+        costContext: staging.costContext,
+        listPriceMinor: staging.listPriceMinor,
+      });
+      assertTourStateReadyForOpenOnCreate(resolvedFormProfile, staging);
+    }
+
+    const loaded = await this.toursWriteRepository.updateTour(staging, tenantId);
+
+    const creator = this.requestContextService.getUserId();
+    this.loggerService.info("tour.staging_finalized", {
+      event: "tour.staging_finalized",
+      tour_id: loaded.id,
+      tenant_id: tenantId,
+      lifecycle_status: loaded.lifecycleStatus,
+      ...(creator ? { finalized_by_user_id: creator } : {}),
+    });
+
+    await this.auditLogService.logEvent({
+      category: AUDIT_CATEGORY.SECURITY,
+      action: "tour.create_from_staging_shell",
+      entity: "tour",
+      entityId: loaded.id,
+      after: {
+        lifecycle_status: loaded.lifecycleStatus,
+        title: loaded.title,
+        staging_tour_id: stagingTourId,
+        profile: resolvedFormProfile,
+        resolution_source: formProfileResolutionSource,
+      },
+      manager: getIdempotentEntityManager(),
+    });
+
+    logTourFormProfileResolvedForCreate(this.loggerService, {
+      op: "create_tour",
+      tenant_id: tenantId,
+      resolved_form_profile: resolvedFormProfile,
+      resolution_source: formProfileResolutionSource as TourFormProfileResolutionPayload["resolution_source"],
+    });
+
+    return loaded as TourWriteRecord & { createdAt: Date; updatedAt: Date };
   }
 
   async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
@@ -603,8 +778,9 @@ export class ToursService {
       const { profile: resolvedFormProfile, source: formProfileResolutionSource } =
         await this.settingsRepository.resolveTourFormProfile(tenantId, dto.sourcePresetId);
       try {
-        assertIncomingCreateTourDtoBeforeFormProfileStrip(resolvedFormProfile, dto);
         stripCreateTourDtoForFormProfile(resolvedFormProfile, dto);
+        assertIncomingCreateTourDtoBeforeFormProfileStrip(resolvedFormProfile, dto);
+        assertCreateTourPostWireContract(dto);
         // Draft CREATE: relaxed validation — strict profile gates apply on OPEN/PUBLISH (updateTour).
         assertCreateTourInvariants(dto, resolvedFormProfile);
       } catch (e) {
@@ -655,9 +831,24 @@ export class ToursService {
         this.assertFinanceCapabilityForPaymentTour();
         }
 
-        if (details?.tripDetails) {
+      if (details?.tripDetails) {
         await this.assertTripDetailsCatalogRefsForTenant(tenantId, details.tripDetails);
         await this.assertTripDetailsLeaderRefsForTenant(tenantId, details.tripDetails);
+      }
+
+      const stagingTourId = dto.stagingTourId?.trim();
+      if (stagingTourId) {
+        const loaded = await this.toursWriteRepository.runInTransaction(() =>
+          this.finalizeStagingTourShell({
+            stagingTourId,
+            dto,
+            tenantId,
+            resolvedFormProfile,
+            details,
+            formProfileResolutionSource,
+          }),
+        );
+        return this.mapTourToResponse(loaded as TourResponseSource);
       }
 
       const tour = this.toursWriteRepository.createTourEntity({
@@ -677,9 +868,10 @@ export class ToursService {
         destination: this.destinationRelation(dto.destinationId ?? null),
         details,
         formProfileSnapshot: resolvedFormProfile,
+        metadata: dto.metadata ?? null,
       });
 
-      this.applyDenormalizedTourListColumns(tour);
+      await this.applyDenormalizedTourListColumns(tour, tenantId);
       const createdBy = this.requestContextService.getUserId();
       if (createdBy) {
         tour.createdByUserId = createdBy;
@@ -695,7 +887,31 @@ export class ToursService {
         assertTourStateReadyForOpenOnCreate(resolvedFormProfile, tour);
       }
 
-      const loaded = await this.toursWriteRepository.createTour(tour, tenantId);
+      const loaded = await this.toursWriteRepository.runInTransaction(async () => {
+        const created = await this.toursWriteRepository.createTour(tour, tenantId);
+        let auditAction = "tour.create_blank";
+        if (dto.sourcePresetId) {
+          auditAction = "tour.create_from_preset";
+        } else if (dto.sourceTourId) {
+          auditAction = "tour.clone";
+        }
+        await this.auditLogService.logEvent({
+          category: AUDIT_CATEGORY.SECURITY,
+          action: auditAction,
+          entity: "tour",
+          entityId: created.id,
+          after: {
+            lifecycle_status: created.lifecycleStatus,
+            title: created.title,
+            ...(dto.sourcePresetId ? { preset_id: dto.sourcePresetId } : {}),
+            ...(dto.sourceTourId ? { source_tour_id: dto.sourceTourId } : {}),
+            profile: resolvedFormProfile,
+            resolution_source: formProfileResolutionSource,
+          },
+          manager: getIdempotentEntityManager(),
+        });
+        return created;
+      });
 
       const creator = this.requestContextService.getUserId();
       this.loggerService.info("tour.created", {
@@ -705,27 +921,6 @@ export class ToursService {
         lifecycle_status: loaded.lifecycleStatus,
         ...(creator ? { created_by_user_id: creator } : {})
       });
-      let auditAction = "tour.create_blank";
-      if (dto.sourcePresetId) {
-        auditAction = "tour.create_from_preset";
-      } else if (dto.sourceTourId) {
-        auditAction = "tour.clone";
-      }
-
-      await this.auditLogService.logEvent({
-        category: AUDIT_CATEGORY.SECURITY,
-        action: auditAction,
-        entity: "tour",
-        entityId: loaded.id,
-        after: {
-          lifecycle_status: loaded.lifecycleStatus,
-          title: loaded.title,
-          ...(dto.sourcePresetId ? { preset_id: dto.sourcePresetId } : {}),
-          ...(dto.sourceTourId ? { source_tour_id: dto.sourceTourId } : {}),
-          profile: resolvedFormProfile,
-          resolution_source: formProfileResolutionSource,
-        },
-      });
 
       logTourFormProfileResolvedForCreate(this.loggerService, {
         op: "create_tour",
@@ -734,7 +929,7 @@ export class ToursService {
         resolution_source: formProfileResolutionSource,
       });
 
-      return mapTourEntityToResponseDto(loaded as TourResponseSource);
+      return this.mapTourToResponse(loaded as TourResponseSource);
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;
@@ -853,6 +1048,9 @@ export class ToursService {
       }
       if (dto.autoAcceptRegistrations !== undefined) {
         tour.autoAcceptRegistrations = dto.autoAcceptRegistrations;
+      }
+      if (dto.metadata !== undefined) {
+        tour.metadata = dto.metadata;
       }
       if (dto.tourType !== undefined) {
         tour.tourType = dto.tourType;
@@ -1006,7 +1204,7 @@ export class ToursService {
         });
       }
 
-      this.applyDenormalizedTourListColumns(tour);
+      await this.applyDenormalizedTourListColumns(tour, tenantId);
 
       const effectiveLifecycle =
         dto.lifecycle_status !== undefined ? dto.lifecycle_status : tour.lifecycleStatus;
@@ -1058,7 +1256,7 @@ export class ToursService {
         ...(editor ? { updated_by_user_id: editor } : {})
       });
       const published = reloaded.lifecycleStatus === TourLifecycleStatus.OPEN;
-      void this.auditLogService.logEvent({
+      await this.auditLogService.logEvent({
         category: AUDIT_CATEGORY.SECURITY,
         action: published ? "tour.publish" : "tour.patch",
         entity: "tour",
@@ -1067,9 +1265,10 @@ export class ToursService {
           lifecycle_status: reloaded.lifecycleStatus,
           ...(dto.cost_context !== undefined ? { cost_context: reloaded.costContext } : {}),
         },
+        manager: getIdempotentEntityManager(),
       });
 
-      return mapTourEntityToResponseDto(reloaded as TourResponseSource);
+      return this.mapTourToResponse(reloaded as TourResponseSource);
     } catch (err) {
       if (err instanceof HttpException) {
         throw err;

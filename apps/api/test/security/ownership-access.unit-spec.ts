@@ -12,10 +12,18 @@ import {
 } from "../../src/modules/registrations/registration.entity";
 import { stubPaymentGatewayFactoryForTests } from "../helpers/noop-payment-gateway-factory";
 import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
-import { stubRegistrationQuoteApplication } from "../registrations/stub-pricing-engine";
-import { createRegistrationsReadRepositoryPortTestDouble } from "../registrations/stub-registrations-read-repository";
-import { createNoOpTourCapacityReservationPortTestDouble } from "../registrations/stub-tour-capacity-reservation.port";
+import type { RegistrationCreationService } from "../../src/modules/registrations/services/registration-creation.service";
+import type { RegistrationStateMachineService } from "../../src/modules/registrations/services/registration-state-machine.service";
+import type { RegistrationWaitlistService } from "../../src/modules/registrations/services/registration-waitlist.service";
+import { RegistrationPublicFlowMetrics } from "../../src/modules/registrations/services/registration-public-flow-metrics";
 import { UserRole } from "../../src/common/auth/user-role.enum";
+import {
+  createRegistrationQueryService,
+  createTransactionRunner,
+  harness,
+  unexpectedHarnessCall,
+} from "../helpers/registrations-application.harness";
+import type { EntityManager } from "typeorm";
 import { syntheticBookingContactPhone } from "../../src/common/security/ownership-scope";
 import {
   paymentEntityContractFixture,
@@ -113,30 +121,56 @@ function buildRegistrationsServiceHarness(actor: Actor) {
     }
   };
 
-  const registrationRepository = {
-    manager,
-    async findOne(opts: { where: unknown }) {
-      return manager.findOne({ name: "RegistrationEntity" }, opts as never);
-    }
+  const requestContext = {
+    getRole: () => actor.role ?? UserRole.Member,
+    resolveEffectiveTenantId: () => actor.tenantId,
+    getTenantId: () => actor.tenantId,
+    getUserId: () => actor.userId,
+    getRequestId: () => "req-test",
   };
 
+  const queryService = createRegistrationQueryService({
+    manager: manager as EntityManager,
+    records,
+    requestContext,
+  });
+
   const service = new TypeOrmRegistrationsApplicationService(
-    registrationRepository as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {
-      getRole: () => actor.role,
-      resolveEffectiveTenantId: () => actor.tenantId,
-      getTenantId: () => actor.tenantId,
-      getUserId: () => actor.userId
-    } as never,
-    { addEvent: async () => undefined } as never,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(registrationRepository as never, manager as never),
-    {} as never,
-    {} as never,
-    createNoOpTourCapacityReservationPortTestDouble()
+    harness(createTransactionRunner(manager as EntityManager)),
+    harness({
+      getTenantIdForTourOrThrow: async () =>
+        unexpectedHarnessCall("RegistrationTourAccessService.getTenantIdForTourOrThrow"),
+      requireTourInTenant: async () =>
+        unexpectedHarnessCall("RegistrationTourAccessService.requireTourInTenant"),
+      requireTourInTenantForUpdate: async () =>
+        unexpectedHarnessCall("RegistrationTourAccessService.requireTourInTenantForUpdate"),
+      assertTourNationalIdRegistrationPolicyOrThrow: async () => undefined,
+    }),
+    queryService,
+    harness<RegistrationCreationService>({
+      createRegistration: async () =>
+        unexpectedHarnessCall("RegistrationCreationService.createRegistration"),
+      createBooking: async () => unexpectedHarnessCall("RegistrationCreationService.createBooking"),
+      createPublicRegistrationOrWaitlist: async () =>
+        unexpectedHarnessCall("RegistrationCreationService.createPublicRegistrationOrWaitlist"),
+    }),
+    harness<RegistrationStateMachineService>({
+      updateRegistrationStatus: async () =>
+        unexpectedHarnessCall("RegistrationStateMachineService.updateRegistrationStatus"),
+      updatePaymentStatus: async () =>
+        unexpectedHarnessCall("RegistrationStateMachineService.updatePaymentStatus"),
+      transitionRegistrationForPayment: async () =>
+        unexpectedHarnessCall("RegistrationStateMachineService.transitionRegistrationForPayment"),
+    }),
+    harness<RegistrationWaitlistService>({
+      createWaitlistItem: async () =>
+        unexpectedHarnessCall("RegistrationWaitlistService.createWaitlistItem"),
+      convertWaitlistItem: async () =>
+        unexpectedHarnessCall("RegistrationWaitlistService.convertWaitlistItem"),
+      cancelWaitlistItem: async () =>
+        unexpectedHarnessCall("RegistrationWaitlistService.cancelWaitlistItem"),
+    }),
+    new RegistrationPublicFlowMetrics(),
   );
   return { service };
 }

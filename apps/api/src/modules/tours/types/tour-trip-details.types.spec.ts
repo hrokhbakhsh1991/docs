@@ -60,7 +60,7 @@ test("checkDenaliPilotPublishGeolocationZones rejects missing zones", () => {
     ),
   );
   assert.ok(violation);
-  assert.equal(violation.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
+  assert.equal(violation.code, "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
   assert.match(violation.message, /gatheringPoints/);
 });
 
@@ -90,7 +90,7 @@ test("checkDenaliPilotPublishGeolocationZones rejects text-only pins", () => {
     )),
   );
   assert.ok(violation);
-  assert.equal(violation.code, "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
+  assert.equal(violation.code, "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES");
 });
 
 test("checkDenaliPilotPublishGeolocationZones rejects latitude without longitude", () => {

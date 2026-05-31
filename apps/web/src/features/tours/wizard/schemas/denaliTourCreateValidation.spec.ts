@@ -5,6 +5,7 @@ import {
   buildDenaliTourCreateDefaultValues,
   normalizeDenaliWizardForm,
 } from "./denaliCore.schema";
+import { buildLayout } from "../shell/layout";
 import {
   applyDenaliWizardStepValidation,
   getDenaliWizardStepIssues,
@@ -48,6 +49,7 @@ test("getDenaliWizardSubmitIssues aligns with validateDenaliWizardForm", () => {
 test("applyDenaliWizardStepValidation on review runs submit gate", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.participantRequirements.fitnessLevel = undefined;
+  const layout = buildLayout("denali_pilot");
   const errors: { path: string; message: string }[] = [];
   const ok = applyDenaliWizardStepValidation(
     form,
@@ -56,6 +58,7 @@ test("applyDenaliWizardStepValidation on review runs submit gate", () => {
       errors.push({ path: String(path), message: opts.message ?? "" });
     },
     () => {},
+    layout,
   );
   assert.equal(ok, false);
   assert.ok(errors.some((e) => e.path === "participantRequirements.fitnessLevel"));
@@ -64,6 +67,7 @@ test("applyDenaliWizardStepValidation on review runs submit gate", () => {
 test("applyDenaliWizardStepValidation returns false when basic step invalid", () => {
   const form = buildDenaliTourCreateDefaultValues();
   form.basicInfo.title = "short";
+  const layout = buildLayout("denali_pilot");
   const errors: { path: string; message: string }[] = [];
   const ok = applyDenaliWizardStepValidation(
     form,
@@ -72,6 +76,7 @@ test("applyDenaliWizardStepValidation returns false when basic step invalid", ()
       errors.push({ path: String(path), message: opts.message ?? "" });
     },
     () => {},
+    layout,
   );
   assert.equal(ok, false);
   assert.ok(errors.some((e) => e.path.startsWith("basicInfo")));

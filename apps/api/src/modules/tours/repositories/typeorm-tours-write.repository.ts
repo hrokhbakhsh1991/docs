@@ -97,8 +97,10 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     const tourPriceRepo = manager.getRepository(TourPriceEntity);
 
     const { startsOn, endsOn } = extractTripLogisticsDates(tour.details ?? null);
-    const currency = currencyCodeFromCostContext(tour.costContext);
-    const listMinor = listPriceMinorFromCostContext(tour.costContext);
+    const currency = currencyCodeFromCostContext(tour.costContext, {
+      tourCurrencyCode: tour.currencyCode,
+    });
+    const listMinor = listPriceMinorFromCostContext(tour.costContext, { currencyCode: currency });
 
     if (!tour.tourProductId) {
       const product = tourProductRepo.create({
@@ -128,6 +130,7 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
       await tourRepo.save(tour);
 
       const price = tourPriceRepo.create({
+        tenantId: tour.tenantId,
         tourDepartureId: departure.id,
         priceType: TourPriceType.BASE,
         currencyCode: currency,
@@ -138,7 +141,7 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     }
 
     const product = await tourProductRepo.findOne({
-      where: { id: tour.tourProductId }
+      where: { id: tour.tourProductId, tenantId: tour.tenantId }
     });
     if (!product) {
       this.throwCatalogSyncIntegrityBroken("tour_products row missing for tour.tourProductId");
@@ -148,7 +151,9 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     await tourProductRepo.save(product);
 
     const departureId = tour.tourDepartureId ?? tour.id;
-    const dep = await tourDepartureRepo.findOne({ where: { id: departureId } });
+    const dep = await tourDepartureRepo.findOne({
+      where: { id: departureId, tenantId: tour.tenantId }
+    });
     if (!dep) {
       this.throwCatalogSyncIntegrityBroken("tour_departures row missing for tour.tourDepartureId");
     }
@@ -162,11 +167,16 @@ export class TypeOrmToursWriteRepository implements ToursWriteRepositoryPort {
     await tourDepartureRepo.save(dep);
 
     const basePrice = await tourPriceRepo.findOne({
-      where: { tourDepartureId: dep.id, priceType: TourPriceType.BASE }
+      where: {
+        tourDepartureId: dep.id,
+        priceType: TourPriceType.BASE,
+        tenantId: tour.tenantId
+      }
     });
     if (basePrice) {
       basePrice.currencyCode = currency;
       basePrice.amountMinor = listMinor ?? basePrice.amountMinor;
+      basePrice.tenantId = tour.tenantId;
       await tourPriceRepo.save(basePrice);
     }
   }

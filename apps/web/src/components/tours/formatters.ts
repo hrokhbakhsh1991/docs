@@ -21,7 +21,7 @@ export function extractTourPriceUsd(costContext: Record<string, unknown> | null 
 }
 
 export function buildCostContextUsd(totalCost: number): Record<string, unknown> {
-  return { currency: "USD", totalCost };
+  return { currency: "USD", totalCost: String(totalCost) };
 }
 
 /**

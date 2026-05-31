@@ -28,7 +28,7 @@ import {
 import { getDenaliWizardFieldFocusMapKeys } from "./denaliWizardFieldFocus";
 import { isFormPathNavigable } from "@/features/tours/wizard/testing/wizard-testing-utils";
 import { denaliRuleSet } from "./rules/denaliRuleModel";
-import { DENALI_FIELD_DEFINITIONS } from "./registry/denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
 import {
   DENALI_PUBLISH_READINESS_BLOCKING_CODES,
   DENALI_PUBLISH_READINESS_PATH_FIXTURES,
@@ -54,7 +54,7 @@ export type DenaliWizardTestConfig = WizardTestConfig<
       readonly validationRuleRequiredField: "VALIDATION_RULE_REQUIRED_FIELD";
       readonly tourTypeRequired: "DENALI_TOUR_TYPE_REQUIRED";
       readonly payloadUnbuildable: "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE";
-      readonly requiresGeolocationZones: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES";
+      readonly requiresGeolocationZones: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES";
     };
     buildIssueViews: (
       issues: readonly DenaliWizardPublishReadinessIssue[],
@@ -85,6 +85,10 @@ function buildActivePublishGuardForm(): DenaliCreateTourWizardForm {
   };
   return form;
 }
+
+const denaliTestTranslator = ((key: string) => key) as Parameters<
+  typeof buildDenaliPublishReadinessIssueViews
+>[3];
 
 export const denaliTestConfig = {
   railId: "denali",
@@ -117,7 +121,7 @@ export const denaliTestConfig = {
       [issue],
       form,
       denaliRuleSet,
-      (key: string) => key,
+      denaliTestTranslator,
     );
     return {
       formPath: view?.formPath ?? resolvePublishReadinessFormPath(issue),
@@ -152,13 +156,19 @@ export const denaliTestConfig = {
       validationRuleRequiredField: "VALIDATION_RULE_REQUIRED_FIELD",
       tourTypeRequired: "DENALI_TOUR_TYPE_REQUIRED",
       payloadUnbuildable: "DENALI_PUBLISH_PAYLOAD_UNBUILDABLE",
-      requiresGeolocationZones: "DENALI_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
+      requiresGeolocationZones: "OUTDOOR_PUBLISH_REQUIRES_GEOLOCATION_ZONES",
     },
     buildIssueViews: (
       issues: readonly DenaliWizardPublishReadinessIssue[],
       form: DenaliCreateTourWizardForm,
       t: (key: string) => string,
-    ) => buildDenaliPublishReadinessIssueViews(issues, form, denaliRuleSet, t),
+    ) =>
+      buildDenaliPublishReadinessIssueViews(
+        issues,
+        form,
+        denaliRuleSet,
+        t as Parameters<typeof buildDenaliPublishReadinessIssueViews>[3],
+      ),
   },
 } satisfies DenaliWizardTestConfig;
 

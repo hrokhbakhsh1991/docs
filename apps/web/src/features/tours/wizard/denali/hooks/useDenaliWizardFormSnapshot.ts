@@ -1,51 +1,74 @@
 "use client";
 
-import { useMemo } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFormContext } from "react-hook-form";
 
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
+import { useDenaliWizardNavigationOptional } from "../DenaliWizardNavigationContext";
+
+const DEFAULT_SNAPSHOT_DEBOUNCE_MS = 500;
+
+export type UseDenaliWizardFormSnapshotOptions = {
+  /** Debounce field-driven snapshot updates. `0` = immediate (review/submit). Default 500 (header). */
+  debounceMs?: number;
+};
+
 /**
- * Live Denali wizard form values for UI that must re-render on any field change
- * (progress bar, review validation summary, etc.).
+ * Denali wizard form values for progress UI, review summaries, and submit guards.
  *
- * Subscribes to each top-level RHF section instead of relying on a single root
- * `useWatch({ control })`, which can miss nested updates in some RHF versions.
+ * Field edits subscribe via RHF `watch` (no per-keystroke re-render unless `debounceMs` is 0).
+ * Wizard step index changes always refresh immediately.
  */
-export function useDenaliWizardFormSnapshot(): DenaliCreateTourWizardForm {
-  const { control, getValues } = useFormContext<DenaliCreateTourWizardForm>();
+export function useDenaliWizardFormSnapshot(
+  options?: UseDenaliWizardFormSnapshotOptions,
+): DenaliCreateTourWizardForm {
+  const debounceMs = options?.debounceMs ?? DEFAULT_SNAPSHOT_DEBOUNCE_MS;
+  const immediate = debounceMs === 0;
 
-  const basicInfo = useWatch({ control, name: "basicInfo" });
-  const programNature = useWatch({ control, name: "programNature" });
-  const transport = useWatch({ control, name: "transport" });
-  const pricingPayment = useWatch({ control, name: "pricingPayment" });
-  const participantRequirements = useWatch({ control, name: "participantRequirements" });
-  const policies = useWatch({ control, name: "policies" });
-  const photosData = useWatch({ control, name: "photosData" });
-  const tripDetails = useWatch({ control, name: "tripDetails" });
+  const { watch, getValues } = useFormContext<DenaliCreateTourWizardForm>();
+  const navigation = useDenaliWizardNavigationOptional();
+  const currentStepIndex = navigation?.currentStepIndex;
 
-  return useMemo(() => {
-    const base = getValues();
-    return {
-      ...base,
-      basicInfo: basicInfo ?? base.basicInfo,
-      programNature: programNature ?? base.programNature,
-      transport: transport ?? base.transport,
-      pricingPayment: pricingPayment ?? base.pricingPayment,
-      participantRequirements: participantRequirements ?? base.participantRequirements,
-      policies: policies ?? base.policies,
-      photosData: photosData ?? base.photosData,
-      tripDetails: tripDetails ?? base.tripDetails,
+  const [snapshot, setSnapshot] = useState<DenaliCreateTourWizardForm>(() => getValues());
+  const getValuesRef = useRef(getValues);
+  getValuesRef.current = getValues;
+
+  const refreshSnapshot = useCallback(() => {
+    setSnapshot(getValuesRef.current());
+  }, []);
+
+  useEffect(() => {
+    refreshSnapshot();
+  }, [currentStepIndex, refreshSnapshot]);
+
+  useEffect(() => {
+    if (immediate) {
+      const subscription = watch(() => {
+        setSnapshot(getValuesRef.current());
+      });
+      return () => subscription.unsubscribe();
+    }
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const subscription = watch(() => {
+      if (debounceTimer != null) {
+        clearTimeout(debounceTimer);
+      }
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        setSnapshot(getValuesRef.current());
+      }, debounceMs);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (debounceTimer != null) {
+        clearTimeout(debounceTimer);
+      }
     };
-  }, [
-    basicInfo,
-    programNature,
-    transport,
-    pricingPayment,
-    participantRequirements,
-    policies,
-    photosData,
-    tripDetails,
-    getValues,
-  ]);
+  }, [debounceMs, immediate, watch]);
+
+  return snapshot;
 }

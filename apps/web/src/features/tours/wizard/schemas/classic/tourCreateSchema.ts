@@ -479,7 +479,8 @@ export function buildTourCreateSchemaForFormProfile(
           });
         }
 
-        const needsFuelShare = supplemental || primaryTm === "private_car";
+        const needsFuelShare =
+          vf.requiresMountainTransportEconomics && (supplemental || primaryTm === "private_car");
         if (needsFuelShare && values.logistics.fuelShareToman == null) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,

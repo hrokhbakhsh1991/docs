@@ -9,7 +9,7 @@ test("normalizeCssVariableName strips leading --", () => {
 });
 
 test("buildTenantThemeStyle maps primaryColor to semantic tokens", () => {
-  const style = buildTenantThemeStyle({ primaryColor: "#e11d48" });
+  const style = buildTenantThemeStyle({ primaryColor: "#e11d48" }) as Record<string, string>;
   assert.equal(style["--color-primary"], "#e11d48");
   assert.equal(style["--color-primary-500"], "#e11d48");
   assert.equal(style["--color-text-link"], "#e11d48");
@@ -19,6 +19,6 @@ test("buildTenantThemeStyle: cssVariables override primaryColor", () => {
   const style = buildTenantThemeStyle({
     primaryColor: "#e11d48",
     cssVariables: { "color-primary": "#1e5a8e" },
-  });
+  }) as Record<string, string>;
   assert.equal(style["--color-primary"], "#1e5a8e");
 });

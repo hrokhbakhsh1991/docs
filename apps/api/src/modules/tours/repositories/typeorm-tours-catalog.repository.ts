@@ -70,6 +70,7 @@ const asTourWriteRecord = (row: TourEntity | null): TourWriteRecord | null => {
     tourDepartureId: row.tourDepartureId,
     createdByUserId: row.createdByUserId,
     formProfileSnapshot: row.formProfileSnapshot,
+    metadata: row.metadata ?? null,
     startsOn: row.startsOn,
     endsOn: row.endsOn,
     currencyCode: row.currencyCode,

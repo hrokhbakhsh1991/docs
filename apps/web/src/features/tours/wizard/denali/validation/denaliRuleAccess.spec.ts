@@ -67,15 +67,7 @@ test("resolveDenaliRuleModelFromForm uses template-merged ruleSet", () => {
   form.basicInfo.tourType = "mountain_day";
 
   const ruleSet = resolveDenaliRuleSetFromTemplate({
-    id: "t1",
-    workspaceId: "w1",
-    baseProfile: "denali_pilot",
-    stepOverrides: { skip: [], insert: [] },
     fieldRulesOverlay: { destinationId: { visibility: "hidden" } },
-    presetId: null,
-    canonicalData: {},
-    wizardContractVersion: 1,
-    formProfileVersion: 1,
   });
 
   const model = resolveDenaliRuleModelFromForm(form, ruleSet)!;

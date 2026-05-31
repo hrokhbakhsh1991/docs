@@ -575,6 +575,7 @@ export async function seedDenaliTours(): Promise<void> {
     let inserted = 0;
     for (const spec of specs) {
       const details = ds.getRepository(TourDetails).create({
+        tenantId: wsId,
         destinationName: dest?.name ?? null,
         elevationM: spec.tripDetails.overview?.maxAltitudeMeters ?? null,
         difficulty: spec.difficulty ?? null,

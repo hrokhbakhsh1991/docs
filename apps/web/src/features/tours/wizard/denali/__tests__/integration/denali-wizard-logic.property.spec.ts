@@ -41,7 +41,7 @@ const pricingPaymentArb = fc.record({
   includesTourInsurance: fc.boolean(),
 });
 
-const arbitraryWizardState: fc.Arbitrary<DenaliWizardState> = tourDateFieldsArb.chain(
+const arbitraryWizardState = tourDateFieldsArb.chain(
   (dates) =>
     fc.record({
       basicInfo: fc.record({
@@ -49,6 +49,8 @@ const arbitraryWizardState: fc.Arbitrary<DenaliWizardState> = tourDateFieldsArb.
         tourType: tourKindArb,
         startDateTime: fc.constant(dates.startDateTime),
         endDateTime: fc.constant(dates.endDateTime),
+        approximateReturnTime: fc.constant(undefined),
+        leaderUserIds: fc.constant([] as string[]),
         capacityMax: fc.option(fc.nat({ max: 200 }), { nil: undefined }),
       }),
       participantRequirements: fc.record({
@@ -56,7 +58,7 @@ const arbitraryWizardState: fc.Arbitrary<DenaliWizardState> = tourDateFieldsArb.
       }),
       pricingPayment: pricingPaymentArb,
     }),
-);
+) as fc.Arbitrary<DenaliWizardState>;
 
 function hasConflictingTourDates(patch: Partial<DenaliCreateTourWizardForm>): boolean {
   const start = patch.basicInfo?.startDateTime?.trim();
@@ -105,7 +107,7 @@ describe("denali wizard logic (property)", () => {
           programNature: {
             difficultyType: "physical",
             mainTourThemeId: "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
-          } as DenaliWizardState["programNature"],
+          } as unknown as DenaliWizardState["programNature"],
           pricingPayment: {
             ...state.pricingPayment,
             includesTransportInPrice: true,

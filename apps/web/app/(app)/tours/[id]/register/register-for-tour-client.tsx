@@ -3,7 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   Button,
@@ -46,37 +47,14 @@ import registerStyles from "./register-for-tour.module.css";
 const transportCopy = REGISTER_FOR_TOUR_COPY.transport;
 const validationCopy = REGISTER_FOR_TOUR_COPY.validation;
 
-function registerTourErrorMessage(error: unknown): string {
-  if (!(error instanceof ApiError)) {
-    return "Could not complete registration. Please try again.";
-  }
-  if (error.code === "REGISTRATION_DUPLICATE_ACTIVE") {
-    return "You already have an active registration for this tour.";
-  }
-  if (error.code === "PROFILE_NATIONAL_ID_REQUIRED") {
-    return "کد ملی در پروفایل شما ثبت نشده است. لطفاً کد ملی را در همین فرم وارد کنید.";
-  }
-  if (error.code === "REGISTRATION_AUTH_REQUIRED") {
-    return "This tour requires a signed-in session with your workspace cookies. Sign in again and retry.";
-  }
-  if (error.code === "PEAK_REQUIREMENT_NOT_MET") {
-    return "شما حداقل سوابق لازم برای ثبت‌نام در این تور را ندارید.";
-  }
-  return error.message.trim() || "Could not complete registration. Please try again.";
-}
-
-const breadcrumbTrail = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Tours", href: "/tours" },
-  { label: "Register" },
-] as const;
-
 export type RegisterForTourClientProps = {
   tourId: string;
 };
 
 export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   const router = useRouter();
+  const tRegister = useTranslations("tours.register");
+  const tList = useTranslations("tours.list");
   const queryClient = useQueryClient();
   const tenantId = useWorkspaceQueryScope();
   const toast = useAppToast();
@@ -133,13 +111,35 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       peaksRequired: validationCopy.peaksRequired,
       seatOnlySelfVehicle: transportCopy.seatOnlySelfVehicle,
       seatRange: transportCopy.seatRange,
-      isDriverRequired: "Please specify if you are the driver.",
-      plateNumberRequired: "Plate number is required for drivers.",
-      shareFuelCostRequired: "Please specify if you want to share fuel costs.",
+      isDriverRequired: tRegister("validationIsDriverRequired"),
+      plateNumberRequired: tRegister("validationPlateNumberRequired"),
+      shareFuelCostRequired: tRegister("validationShareFuelCostRequired"),
       sportsInsuranceRequired: transportCopy.sportsInsuranceRequired,
-      privateCarNotAllowedOnTour: "این تور امکان ثبت‌نام با خودروی شخصی ندارد.",
+      privateCarNotAllowedOnTour: tRegister("validationPrivateCarNotAllowed"),
     }),
-    [],
+    [tRegister],
+  );
+
+  const registerTourErrorMessage = useCallback(
+    (err: unknown): string => {
+      if (!(err instanceof ApiError)) {
+        return tRegister("errorRegisterGeneric");
+      }
+      if (err.code === "REGISTRATION_DUPLICATE_ACTIVE") {
+        return tRegister("errorDuplicateRegistration");
+      }
+      if (err.code === "PROFILE_NATIONAL_ID_REQUIRED") {
+        return tRegister("errorProfileNationalIdRequired");
+      }
+      if (err.code === "REGISTRATION_AUTH_REQUIRED") {
+        return tRegister("errorAuthRequired");
+      }
+      if (err.code === "PEAK_REQUIREMENT_NOT_MET") {
+        return tRegister("errorPeakRequirementNotMet");
+      }
+      return err.message.trim() || tRegister("errorRegisterGeneric");
+    },
+    [tRegister],
   );
 
   const {
@@ -256,13 +256,22 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       return publicRegisterTour(tourId, body);
     },
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: bookingKeys.all });
-      void queryClient.invalidateQueries({ queryKey: registrationKeys.tourWaitlist(tourId) });
-      void queryClient.invalidateQueries({ queryKey: registrationKeys.tourRegistrations(tourId) });
-      void queryClient.invalidateQueries({ queryKey: tourKeys.detail(tourId) });
+      const scopedTenantId = tenantId?.trim() ?? "";
+      void queryClient.invalidateQueries({ queryKey: bookingKeys.listRoot(scopedTenantId) });
+      void queryClient.invalidateQueries({
+        queryKey: registrationKeys.tourWaitlist(scopedTenantId, tourId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: registrationKeys.tourRegistrations(scopedTenantId, tourId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: tourKeys.detail(scopedTenantId, tourId),
+      });
       if (data.outcome === "registered") {
-        void queryClient.invalidateQueries({ queryKey: registrationKeys.detail(data.booking.id) });
-        toast.success({ message: "Registration submitted." });
+        void queryClient.invalidateQueries({
+          queryKey: registrationKeys.detail(scopedTenantId, data.booking.id),
+        });
+        toast.success({ message: tRegister("toastSuccess") });
       } else {
         toast.success({
           message: `You are on the waitlist (position ${data.queuePosition}).`,
@@ -274,13 +283,26 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
     },
   });
 
+  const pageTitleDefault = tRegister("pageTitle");
+  const breadcrumbItems = useMemo(
+    () => [
+      { label: tList("breadcrumbHome"), href: "/dashboard" },
+      { label: tList("breadcrumbTours"), href: "/tours" },
+      { label: tRegister("breadcrumbCurrent") },
+    ],
+    [tList, tRegister],
+  );
+
   useEffect(() => {
     placementMutation.reset();
     setBookingTarget("self");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId]);
 
-  const title = tour?.title ?? "Register for tour";
+  const title = tour?.title?.trim()
+    ? tRegister("pageTitleWithTour", { title: tour.title })
+    : pageTitleDefault;
+  const documentTitle = title;
   const placement = placementMutation.data;
   const lastRegId = placement?.outcome === "registered" ? placement.booking.id : undefined;
   const owesPaymentAfterRegister =
@@ -293,26 +315,33 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
         })
       : false;
 
-  const tourErrorMessage =
-    tourError instanceof ApiError
-      ? tourError.status === 404
-        ? "No tour was found with this id."
-        : tourError.message.trim() || "Could not load tour. Please try again."
-      : tourError instanceof Error
-        ? tourError.message
-        : "Could not load tour. Please try again.";
+  const tourErrorMessage = useCallback(
+    (err: unknown): string => {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          return tRegister("errorNotFound");
+        }
+        return err.message.trim() || tRegister("errorLoadGeneric");
+      }
+      if (err instanceof Error) {
+        return err.message.trim() || tRegister("errorLoadGeneric");
+      }
+      return tRegister("errorLoadConnection");
+    },
+    [tRegister],
+  );
 
   if (!isHydrated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={registerStyles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading session…" />
+            <LoadingState message={tRegister("loadingSession")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -322,17 +351,17 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (liveApiFull && !isAuthenticated) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <EmptyState
-          title="Sign in required"
-          description="Sign in to complete the registration intake."
+          title={tRegister("signInRequired")}
+          description={tRegister("signInRequiredDesc")}
           action={
             <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-              Sign in
+              {tRegister("signIn")}
             </Button>
           }
         />
@@ -343,17 +372,17 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (!liveApiFull) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <EmptyState
-          title="Workspace API not configured"
-          description="Use your workspace host so tours and registrations reach the live API."
+          title={tRegister("apiNotConfiguredTitle")}
+          description={tRegister("apiNotConfiguredDesc")}
           action={
             <Button type="button" variant="secondary" onClick={() => router.push("/dashboard")}>
-              Back to dashboard
+              {tRegister("backToDashboard")}
             </Button>
           }
         />
@@ -364,17 +393,17 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (isAuthenticated && !leaderTenantReady) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <EmptyState
-          title="Tenant not available"
-          description="Your account is missing tenant context. Sign in again to refresh your session."
+          title={tRegister("tenantNotAvailableTitle")}
+          description={tRegister("tenantNotAvailableDesc")}
           action={
             <Button type="button" variant="primary" onClick={() => router.push("/login")}>
-              Sign in again
+              {tRegister("signInAgain")}
             </Button>
           }
         />
@@ -385,14 +414,14 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (tourLoading) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={registerStyles.stateCard}>
           <CardBody>
-            <LoadingState message="Loading tour…" />
+            <LoadingState message={tRegister("loadingTour")} />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -402,14 +431,18 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (tourIsError) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <Card className={registerStyles.stateCard}>
           <CardBody>
-            <ErrorState title="Could not load tour" message={tourErrorMessage} onRetry={() => void refetchTour()} />
+            <ErrorState
+              title={tRegister("errorLoadTitle")}
+              message={tourErrorMessage(tourError)}
+              onRetry={() => void refetchTour()}
+            />
           </CardBody>
         </Card>
       </RegisteredWorkspacePage>
@@ -419,17 +452,17 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (!tour) {
     return (
       <RegisteredWorkspacePage
-        documentTitle="Register for tour"
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={pageTitleDefault}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <EmptyState
-          title="Tour not found"
-          description="No tour exists with this id."
+          title={tRegister("tourNotFoundTitle")}
+          description={tRegister("tourNotFoundDesc")}
           action={
             <Button type="button" variant="secondary" onClick={() => router.push("/tours")}>
-              Back to tours
+              {tRegister("backToTours")}
             </Button>
           }
         />
@@ -440,17 +473,17 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
   if (tour.lifecycleStatus !== "OPEN") {
     return (
       <RegisteredWorkspacePage
-        documentTitle={title}
-        title="Register for tour"
-        breadcrumbItems={[...breadcrumbTrail]}
+        documentTitle={documentTitle}
+        title={pageTitleDefault}
+        breadcrumbItems={breadcrumbItems}
         actions={null}
       >
         <EmptyState
-          title="Registrations are closed"
-          description="This tour is not accepting new registrations."
+          title={tRegister("registrationsClosedTitle")}
+          description={tRegister("registrationsClosedDesc")}
           action={
             <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}>
-              Back to tour
+              {tRegister("backToTour")}
             </Button>
           }
         />
@@ -462,10 +495,10 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
 
   return (
     <RegisteredWorkspacePage
-      documentTitle={title}
+      documentTitle={documentTitle}
       title={title}
-      description={tour?.title ? `Tour: ${tour.title}` : undefined}
-      breadcrumbItems={[...breadcrumbTrail]}
+      description={tour.title ? tRegister("pageDescription", { title: tour.title }) : undefined}
+      breadcrumbItems={breadcrumbItems}
       actions={null}
     >
       <div
@@ -477,7 +510,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
       >
         {tourRefetching ? (
           <span className={registerStyles.liveRegion} aria-live="polite">
-            Updating tour
+            {tRegister("updatingLive")}
           </span>
         ) : null}
         <Card>
@@ -512,7 +545,7 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                     {owesPaymentAfterRegister ? "Open registration & pay" : "Track status"}
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => router.push(`/tours/${tourId}`)}>
-                    Back to tour
+                    {tRegister("backToTour")}
                   </Button>
                 </div>
               </div>
@@ -731,7 +764,9 @@ export function RegisterForTourClient({ tourId }: RegisterForTourClientProps) {
                     variant="primary"
                     disabled={isSubmitting || placementMutation.isPending || submitBlocked}
                   >
-                    {placementMutation.isPending ? "Submitting…" : "Submit registration"}
+                    {placementMutation.isPending
+                      ? tRegister("actionSubmitting")
+                      : tRegister("actionSubmit")}
                   </Button>
                 </div>
               </form>

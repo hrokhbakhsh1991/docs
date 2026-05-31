@@ -16,15 +16,11 @@ import {
 
 const UUID_V4_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// DataSource-level idempotency marker: patch QueryRunner lifecycle only once.
+
 const TENANT_BINDING_PATCHED = Symbol("tenantBindingPatched");
-// Guards nested transaction flows when TypeORM internally triggers startTransaction.
 const IN_TYPEORM_START_TRANSACTION = Symbol("inTypeormStartTransaction");
-// Marks tx opened implicitly by this service (so release can safely close it).
 const TENANT_RLS_OPENED_TX_FOR_BINDING = Symbol("tenantRlsOpenedTxForBinding");
-// Prevents recursive query interception loops while patched query() calls originalQuery().
 const QUERY_REENTRY = Symbol("tenantRlsQueryReentry");
-/** Set while `ensurePostgresTransactionAndTenantGuc` runs `originalStartTransaction` so nested `query()` calls skip ensure (avoids re-entrant BEGIN). */
 const BYPASS_TENANT_ENSURE = Symbol("bypassTenantEnsure");
 
 type QueryRunnerWithTenantSymbols = QueryRunner & {
@@ -35,27 +31,6 @@ type QueryRunnerWithTenantSymbols = QueryRunner & {
 };
 
 @Injectable()
-/**
- * Tenant binding runtime boundary for all TypeORM QueryRunners.
- *
- * Architecture in one view:
- * - HTTP request flows rely on implicit binding: this service patches QueryRunner lifecycle
- *   and injects `app.tenant_id` before tenant-scoped SQL executes.
- * - Worker/scheduler flows rely on explicit binding: callers use `runInTenantContext(...)`
- *   (and typically `TenantDbContextService`) to create/restore scoped ALS tenant context.
- * - Suppressed mode (`runWithoutTenantBinding`) is a narrow bootstrap escape hatch with
- *   allow-listed read-only query shapes.
- *
- * Invariant:
- * - RLS tenant GUC (`app.tenant_id`) must be transaction-local and must not leak across
- *   pooled connections.
- *
- * Interception pipeline (high-level):
- * - connect() -> validate tenant-binding eligibility (no SQL mutation yet)
- * - startTransaction() -> enforce suppression policy + apply tenant GUC
- * - query() -> enforce allow-list, auto-open tx if needed, then ensure tenant GUC
- * - release() -> close implicit tx (if opened by binder) + RESET app.tenant_id
- */
 export class TenantSessionBindingService implements OnModuleInit {
   private warnedMissingAlsContext = false;
   constructor(
@@ -71,7 +46,6 @@ export class TenantSessionBindingService implements OnModuleInit {
       throw new Error("TENANT_CONTEXT_MISSING");
     }
 
-    // Reuse current ALS context when present, but restore full prior state afterwards.
     const existing = requestContextStorage.getStore();
     if (existing) {
       const previousTenantId = existing.tenantId;
@@ -99,7 +73,6 @@ export class TenantSessionBindingService implements OnModuleInit {
       }
     }
 
-    // No ALS context exists (typical background flow): create a scoped worker context.
     const workerRequestId = `worker-${randomUUID()}`;
     return requestContextStorage.run(
       {
@@ -116,26 +89,6 @@ export class TenantSessionBindingService implements OnModuleInit {
     );
   }
 
-  /**
-   * Runtime model for tenant DB binding:
-   *
-   * - Tenant GUC injection:
-   *   `app.tenant_id` is injected via `set_config(..., true)` only when a request
-   *   has a normal tenant-binding context and a real Postgres transaction exists.
-   *   This keeps RLS scoping transaction-local and avoids leaking tenant scope across
-   *   pooled connections.
-   *
-   * - QueryRunner patch strategy:
-   *   We monkey-patch each created `QueryRunner` (`connect`, `startTransaction`,
-   *   `query`, and `release`) to enforce a consistent pre-query binding contract
-   *   without requiring every repository/service call site to remember manual setup.
-   *
-   * - HTTP vs worker flows:
-   *   HTTP requests usually have ALS context, so implicit binding runs and validates
-   *   tenant context before DB access. Worker/scheduler paths may have no ALS context;
-   *   in that case implicit binding is intentionally skipped (warn-once), and those
-   *   flows are expected to use explicit tenant scoping helpers.
-   */
   onModuleInit(): void {
     if (
       (this.dataSource as DataSource & { [TENANT_BINDING_PATCHED]?: boolean })[
@@ -157,9 +110,6 @@ export class TenantSessionBindingService implements OnModuleInit {
       let tenantBound = false;
 
       queryRunner.connect = async () => {
-        // Interception point: connect
-        // Do a one-time tenant-context eligibility check for this runner.
-        // The actual GUC write happens only in tx/query interception.
         const connected = await originalConnect();
 
         if (!tenantBound) {
@@ -171,9 +121,6 @@ export class TenantSessionBindingService implements OnModuleInit {
       };
 
       queryRunner.startTransaction = async (isolationLevel) => {
-        // Interception point: transaction start
-        // Suppressed mode forbids explicit tx starts.
-        // In normal mode: start tx first, then inject tenant GUC.
         this.assertSuppressedModeTransactionAllowed(queryRunner);
         (queryRunner as QueryRunnerWithTenantSymbols)[IN_TYPEORM_START_TRANSACTION] = true;
         try {
@@ -185,10 +132,6 @@ export class TenantSessionBindingService implements OnModuleInit {
       };
 
       queryRunner.query = (async (...args: Parameters<QueryRunner["query"]>) => {
-        // Interception point: query
-        // Before each query:
-        // 1) enforce suppressed-mode allow-list
-        // 2) ensure active PG tx + tenant GUC in normal mode.
         const qr = queryRunner as QueryRunnerWithTenantSymbols;
         if (qr[QUERY_REENTRY]) {
           return await (originalQuery as (..._a: Parameters<QueryRunner["query"]>) => ReturnType<QueryRunner["query"]>).apply(
@@ -214,26 +157,34 @@ export class TenantSessionBindingService implements OnModuleInit {
       }) as QueryRunner["query"];
 
       queryRunner.release = async () => {
-        // Interception point: release
-        // Ensure this runner leaves no implicit tx/GUC state behind before pool reuse.
         const qr = queryRunner as QueryRunnerWithTenantSymbols;
-        const openedForBinding = qr[TENANT_RLS_OPENED_TX_FOR_BINDING] === true;
-        try {
-          if (openedForBinding && queryRunner.isTransactionActive) {
+        if (queryRunner.isTransactionActive) {
+          try {
             await queryRunner.rollbackTransaction();
-          }
-        } catch {
-          if (openedForBinding && queryRunner.isTransactionActive) {
-            try {
-              await queryRunner.rollbackTransaction();
-            } catch {
-              /* ignore */
+          } catch (error: unknown) {
+            this.loggerService.warn(
+              "tenant query-runner release forced rollback failed before GUC reset",
+              {
+                error: error instanceof Error ? error.message : String(error),
+              },
+            );
+            if (queryRunner.isTransactionActive) {
+              try {
+                await queryRunner.rollbackTransaction();
+              } catch {
+                /* best-effort recovery before GUC reset */
+              }
             }
           }
-        } finally {
-          qr[TENANT_RLS_OPENED_TX_FOR_BINDING] = undefined;
         }
-        await this.resetAppTenantIdForPool(queryRunner, originalQuery);
+        qr[TENANT_RLS_OPENED_TX_FOR_BINDING] = undefined;
+
+        try {
+          await this.resetAppTenantIdForPool(queryRunner, originalQuery);
+        } catch {
+          // Connection destroyed in resetAppTenantIdForPool — never return a poisoned socket.
+          return;
+        }
         return originalRelease();
       };
 
@@ -245,15 +196,9 @@ export class TenantSessionBindingService implements OnModuleInit {
     )[TENANT_BINDING_PATCHED] = true;
   }
 
-  /**
-   * Legacy hook from `connect()` — tenant GUC is applied from `query()` / `startTransaction()`
-   * so `set_config(..., true)` runs only inside a real Postgres transaction.
-   */
   async bindTenantId(queryRunner: QueryRunner): Promise<void> {
     const context = this.tryGetRequestContext();
     if (!context) {
-      // No ALS context (typical in e2e seed/bootstrap or worker startup): skip implicit binding.
-      // Runtime tenant security is still enforced for normal HTTP request flows that have context.
       return;
     }
     if (context) {
@@ -270,7 +215,6 @@ export class TenantSessionBindingService implements OnModuleInit {
     originalQuery: QueryRunner["query"],
     originalStartTransaction: QueryRunner["startTransaction"]
   ): Promise<void> {
-    // Called from query interception only; guarantees tx-local set_config semantics.
     const qr = queryRunner as QueryRunnerWithTenantSymbols;
     if (qr[IN_TYPEORM_START_TRANSACTION] || qr[BYPASS_TENANT_ENSURE]) {
       return;
@@ -289,12 +233,9 @@ export class TenantSessionBindingService implements OnModuleInit {
 
     const inTxRows = await this.readPostgresTxStateWithRecovery(queryRunner, originalQuery);
 
-    // TypeORM may mark a transaction active before the first SQL hits Postgres; trusting
-    // only txid_current_if_assigned() would autostart a binding-only tx that release() rolls back.
     const inPostgresTx =
       queryRunner.isTransactionActive || inTxRows[0]?.in_tx === true;
     if (!inPostgresTx) {
-      // Autostart a tx so set_config(..., true) remains LOCAL to this unit of work.
       qr[BYPASS_TENANT_ENSURE] = true;
       try {
         await (originalStartTransaction as QueryRunner["startTransaction"]).call(queryRunner);
@@ -307,11 +248,6 @@ export class TenantSessionBindingService implements OnModuleInit {
     await this.applyTenantIdSetConfig(queryRunner, originalQuery);
   }
 
-  /**
-   * Defensive recovery for pooled connections that may still be in aborted tx state.
-   * Without this, every subsequent query on that connection returns
-   * "current transaction is aborted" until an explicit rollback is issued.
-   */
   private async readPostgresTxStateWithRecovery(
     queryRunner: QueryRunner,
     originalQuery: QueryRunner["query"]
@@ -351,7 +287,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         await queryRunner.rollbackTransaction();
         return;
       } catch {
-        // Fallback below handles cases where TypeORM state and PG state diverge.
+        // Fallback context
       }
     }
     try {
@@ -361,7 +297,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         []
       );
     } catch {
-      // Ignore: there may be no active tx on this connection.
+      // Trace bypass
     }
   }
 
@@ -378,6 +314,13 @@ export class TenantSessionBindingService implements OnModuleInit {
       return;
     }
     const tenantId = this.resolveTenantIdForBindingOrThrow(queryRunner);
+    
+    /**
+     * UNIFIED MULTI-TENANT INFRASTRUCTURE ALIGNMENT (WAVE 8)
+     * * Applies the resolved active tenant identifier to the current transaction scope.
+     * Both standard tables ('tenant_id') and workspace catalog matrices ('workspace_id')
+     * share this unified GUC channel ('app.tenant_id') via their respective database policies.
+     */
     await (originalQuery as (..._a: unknown[]) => Promise<unknown>).call(
       queryRunner,
       SET_LOCAL_RLS_TENANT_SQL,
@@ -425,10 +368,6 @@ export class TenantSessionBindingService implements OnModuleInit {
     return tenantId;
   }
 
-  /**
-   * Clears session GUC before returning the physical connection to the pool.
-   * Invoked from the patched `QueryRunner.release()` in this service only.
-   */
   private async resetAppTenantIdForPool(
     queryRunner: QueryRunner,
     originalQuery: QueryRunner["query"]
@@ -443,9 +382,19 @@ export class TenantSessionBindingService implements OnModuleInit {
         []
       );
     } catch (error: unknown) {
-      this.loggerService.warn("tenant session binding reset failed", {
-        error: error instanceof Error ? error.message : String(error)
-      });
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.loggerService.warn(
+        "Physical connection socket termination forced due to GUC reset failure",
+        { error: err.message },
+      );
+      try {
+        if (!queryRunner.isReleased && queryRunner.connection.isConnected) {
+          await queryRunner.connection.destroy();
+        }
+      } catch {
+        /* non-throwing — socket teardown is best-effort after GUC reset failure */
+      }
+      throw new Error("TENANT_RLS_GUC_RESET_FAILED");
     }
   }
 
@@ -547,8 +496,7 @@ export class TenantSessionBindingService implements OnModuleInit {
         normalized.includes(" delete ") ||
         normalized.includes(" upsert ") ||
         normalized.includes(" into ");
-      const allowed = selectsTenants && subdomainLookup && softDeleteGuard && !hasMutationKeyword;
-      return allowed;
+      return selectsTenants && subdomainLookup && softDeleteGuard && !hasMutationKeyword;
     }
     if (reason === "public_tour_bootstrap_lookup") {
       const selectsTours =

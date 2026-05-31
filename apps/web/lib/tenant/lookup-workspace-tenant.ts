@@ -10,7 +10,50 @@ export type WorkspaceTenantMetadata = {
   slug: string;
 };
 
+type GlobalWithLookupCacheSweepTimer = typeof globalThis & {
+  __lookupCacheSweepTimer?: NodeJS.Timeout;
+};
+
+const globalSweep = globalThis as GlobalWithLookupCacheSweepTimer;
+
 const lookupCache = new Map<string, { data: WorkspaceTenantMetadata | null; expiresAt: number }>();
+const LOOKUP_CACHE_MAX_ENTRIES = 5000;
+const LOOKUP_CACHE_SWEEP_MS = 5 * 60 * 1000;
+
+function pruneExpiredLookupCacheEntries(): void {
+  const now = Date.now();
+  for (const [key, item] of lookupCache) {
+    if (now > item.expiresAt) {
+      lookupCache.delete(key);
+    }
+  }
+}
+
+function writeLookupCacheEntry(
+  cacheKey: string,
+  data: WorkspaceTenantMetadata | null,
+  expiresAt: number,
+): void {
+  if (!lookupCache.has(cacheKey) && lookupCache.size >= LOOKUP_CACHE_MAX_ENTRIES) {
+    const oldestKey = lookupCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      lookupCache.delete(oldestKey);
+    }
+  }
+  lookupCache.set(cacheKey, { data, expiresAt });
+}
+
+if (typeof setInterval === "function") {
+  if (globalSweep.__lookupCacheSweepTimer) {
+    clearInterval(globalSweep.__lookupCacheSweepTimer);
+  }
+  globalSweep.__lookupCacheSweepTimer = setInterval(() => {
+    pruneExpiredLookupCacheEntries();
+  }, LOOKUP_CACHE_SWEEP_MS);
+  if (globalSweep.__lookupCacheSweepTimer.unref) {
+    globalSweep.__lookupCacheSweepTimer.unref();
+  }
+}
 
 /** @internal Clears in-memory lookup cache (unit tests only). */
 export function resetWorkspaceLookupCacheForTests(): void {
@@ -58,13 +101,16 @@ export async function lookupWorkspaceTenantMetadata(
   const cacheKey = `${root}:${normalized}`;
   const now = Date.now();
   const cached = lookupCache.get(cacheKey);
-  if (cached && cached.expiresAt > now) {
-    return cached.data;
+  if (cached) {
+    if (cached.expiresAt > now) {
+      return cached.data;
+    }
+    lookupCache.delete(cacheKey);
   }
 
   const hostCheck = evaluateWorkspaceHost(`${normalized}.${root}`);
   if (!hostCheck.ok) {
-    lookupCache.set(cacheKey, { data: null, expiresAt: now + cacheTtlMs() });
+    writeLookupCacheEntry(cacheKey, null, now + cacheTtlMs());
     return null;
   }
 
@@ -95,6 +141,6 @@ export async function lookupWorkspaceTenantMetadata(
     data = failOpenWhenApiUnreachable() ? { tenantId: "unknown", slug: normalized } : null;
   }
 
-  lookupCache.set(cacheKey, { data, expiresAt: now + cacheTtlMs() });
+  writeLookupCacheEntry(cacheKey, data, now + cacheTtlMs());
   return data;
 }

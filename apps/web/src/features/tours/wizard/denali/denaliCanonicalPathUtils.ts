@@ -1,6 +1,6 @@
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
-import { DENALI_FIELD_DEFINITIONS } from "./registry/denaliFieldRegistryData";
+import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
 
 /**
  * Canonical model section roots — valid for spread reads/writes (`{ ...transport, mode }`).

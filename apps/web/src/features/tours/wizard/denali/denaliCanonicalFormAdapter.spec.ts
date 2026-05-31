@@ -131,7 +131,7 @@ test("sanitizeDenaliCanonicalModel coerces malformed itinerary/gathering strings
         id: " gp-1 ",
         title: undefined as any,
         time: 11 as any,
-        location: { addressText: "A" },
+        location: { addressText: "A", latitude: null, longitude: null },
       },
     ],
   });

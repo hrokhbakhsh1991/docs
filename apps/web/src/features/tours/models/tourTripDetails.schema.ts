@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import {
+  compactTripDetailsForApi as compactTripDetailsForApiShared,
+  filterUuidV4Strings,
+} from "@repo/shared-contracts";
+import {
   denaliLocationFromApi,
   gatheringPickupStationFromLegacyLocation,
   normalizeGatheringPickupStations,
@@ -81,30 +85,6 @@ function englishDigitsUnknown(raw: unknown): unknown {
     return normalizeNumericInput(raw.replace(/\u066b/g, "."));
   }
   return raw;
-}
-
-/** v4 UUID string filter for JSONB id arrays (`gear*Ids`, `tourThemeIds`, …). */
-const UUID_V4_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-export function filterUuidV4Strings(raw: unknown): string[] {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const x of raw) {
-    if (typeof x !== "string") {
-      continue;
-    }
-    const t = x.trim();
-    if (!UUID_V4_RE.test(t) || seen.has(t)) {
-      continue;
-    }
-    seen.add(t);
-    out.push(t);
-  }
-  return out;
 }
 
 function tripDetailsAudienceOverlapRefinement(
@@ -508,6 +488,8 @@ export const TourTripDetailsRootSchema = _defaultTripDetails.TourTripDetailsRoot
 
 export type TourTripDetails = z.infer<typeof TourTripDetailsSchema>;
 
+export { filterUuidV4Strings };
+
 /**
  * Applies requiredness constraints from field-config on top of base optional trip-details schema.
  * The config remains source-of-truth; unknown/unsupported field IDs are ignored safely.
@@ -631,6 +613,10 @@ function todayGregorianYmd(): string {
  * Builds stable RHF defaults for `tripDetails` from API `details.tripDetails` (often `Record<string, unknown>`).
  * Ensures `itinerary.dayPlans` is always an array for `useFieldArray`.
  */
+function isUuidV4(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export function normalizeTripDetailsFormDefault(
   raw: Record<string, unknown> | TourTripDetails | null | undefined,
 ): TourTripDetails {
@@ -663,7 +649,7 @@ export function normalizeTripDetailsFormDefault(
       const cleaned: Record<string, string> = {};
       for (const [k, v] of Object.entries(rawLabels)) {
         const kid = k.trim();
-        if (!UUID_V4_RE.test(kid) || typeof v !== "string") {
+        if (!isUuidV4(kid) || typeof v !== "string") {
           continue;
         }
         const t = v.trim().slice(0, 120);
@@ -841,139 +827,17 @@ export function normalizeTripDetailsFormDefault(
   return { ...o, itinerary: { ...itin, dayPlans } } as TourTripDetails;
 }
 
-function trimToUndefined(s: string): string | undefined {
-  const t = s.trim();
-  return t === "" ? undefined : t;
-}
-
-function finiteNumberOrUndefined(n: unknown): number | undefined {
-  const x = typeof n === "number" ? n : Number(n);
-  return Number.isFinite(x) ? x : undefined;
-}
-
 /**
  * Serialize `tripDetails` for `POST /api/v2/tours` (camelCase JSON, matches Nest `TourTripDetailsDto`).
- * - Drops `undefined`, empty strings, non-finite numbers, and empty `{}` / `[]` subtrees.
- * - Trims string values; string arrays keep only non-empty trimmed entries.
- * - `dayPlans`: keeps rows with integer `day` ≥ 1; omits blank optional fields per row.
- * - Final `JSON.parse(JSON.stringify)` guarantees no `undefined` leaks into axios JSON.
+ * Delegates to the shared wire contract in `@repo/shared-contracts`.
  */
-export function compactTripDetailsForApi(value: TourTripDetails | undefined): Record<string, unknown> | undefined {
-  if (value == null || typeof value !== "object") {
+export function compactTripDetailsForApi(
+  value: TourTripDetails | undefined,
+): Record<string, unknown> | undefined {
+  if (value == null) {
     return undefined;
   }
-  const root = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-  const part = root.participation;
-  if (part != null && typeof part === "object" && !Array.isArray(part)) {
-    delete (part as Record<string, unknown>).gearRequired;
-    delete (part as Record<string, unknown>).gearOptional;
-  }
-
-  function walkDayPlanRow(row: unknown): Record<string, unknown> | undefined {
-    if (row == null || typeof row !== "object" || Array.isArray(row)) {
-      return undefined;
-    }
-    const o = row as Record<string, unknown>;
-    const day = finiteNumberOrUndefined(o.day);
-    if (day === undefined || !Number.isInteger(day) || day < 1) {
-      return undefined;
-    }
-    const out: Record<string, unknown> = { day };
-    if (typeof o.title === "string") {
-      const t = trimToUndefined(o.title);
-      if (t !== undefined) {
-        out.title = t;
-      }
-    }
-    if (typeof o.description === "string") {
-      const t = trimToUndefined(o.description);
-      if (t !== undefined) {
-        out.description = t;
-      }
-    }
-    const distanceKm = finiteNumberOrUndefined(o.distanceKm);
-    if (distanceKm !== undefined && Number.isInteger(distanceKm) && distanceKm >= 0) {
-      out.distanceKm = distanceKm;
-    }
-    const elevationGainM = finiteNumberOrUndefined(o.elevationGainM);
-    if (elevationGainM !== undefined && Number.isInteger(elevationGainM)) {
-      out.elevationGainM = elevationGainM;
-    }
-    const photos = walk(o.photos, "photos");
-    if (photos !== undefined) {
-      out.photos = photos;
-    }
-    return out;
-  }
-
-  function walk(input: unknown, key?: string): unknown {
-    if (input === undefined) {
-      return undefined;
-    }
-    if (input === null) {
-      return null;
-    }
-    if (typeof input === "string") {
-      return trimToUndefined(input);
-    }
-    if (typeof input === "number") {
-      return Number.isFinite(input) ? input : undefined;
-    }
-    if (Array.isArray(input)) {
-      if (key === "dayPlans") {
-        const rows = (input as unknown[])
-          .map((row) => walkDayPlanRow(row))
-          .filter((r): r is Record<string, unknown> => r != null && Object.keys(r).length > 0);
-        return rows.length > 0 ? rows : undefined;
-      }
-      const primitives = (input as unknown[]).map((item) => walk(item, undefined));
-      const filtered = primitives.filter(
-        (x) => x !== undefined && x !== "" && !(typeof x === "number" && !Number.isFinite(x)),
-      );
-      return filtered.length > 0 ? filtered : undefined;
-    }
-    if (typeof input === "object") {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-        if (k === "bestFor") {
-          continue;
-        }
-        const next = walk(v, k);
-        if (next === undefined || next === null) {
-          continue;
-        }
-        if (Array.isArray(next) && next.length === 0) {
-          continue;
-        }
-        if (typeof next === "object" && next !== null && !Array.isArray(next)) {
-          const nk = Object.keys(next as Record<string, unknown>).length;
-          if (nk === 0) {
-            continue;
-          }
-        }
-        out[k] = next;
-      }
-      return Object.keys(out).length > 0 ? out : undefined;
-    }
-    return input;
-  }
-
-  const compacted = walk(root) as Record<string, unknown> | undefined;
-  if (compacted == null || Object.keys(compacted).length === 0) {
-    return undefined;
-  }
-  const logistics = compacted.logistics;
-  if (logistics && typeof logistics === "object" && !Array.isArray(logistics)) {
-    const lg = logistics as Record<string, unknown>;
-    const notes =
-      typeof lg.transportationNotes === "string" ? String(lg.transportationNotes).trim() : "";
-    if (notes.length > 0) {
-      lg.transportation = notes;
-    }
-    const accTypesRaw = lg.accommodationTypes;
-    if (Array.isArray(accTypesRaw) && accTypesRaw.length > 0) {
-      lg.accommodationType = (accTypesRaw as string[]).join(", ");
-    }
-  }
-  return JSON.parse(JSON.stringify(compacted)) as Record<string, unknown>;
+  return compactTripDetailsForApiShared(value as Record<string, unknown>) as
+    | Record<string, unknown>
+    | undefined;
 }

@@ -37,6 +37,7 @@ export type TourWriteRecord = {
   endsOn?: string | null;
   currencyCode?: string | null;
   listPriceMinor?: string | null;
+  metadata?: Record<string, unknown> | null;
   deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;

@@ -10,9 +10,10 @@ export function quoteListPriceForTour(tour: TourWriteRecord): {
   currencyCode: string;
 } {
   const cost = tour.costContext ?? undefined;
-  const minor = listPriceMinorFromCostContext(cost);
+  const currency = currencyCodeFromCostContext(cost, { tourCurrencyCode: tour.currencyCode });
+  const minor = listPriceMinorFromCostContext(cost, { currencyCode: currency });
   return {
     ...(minor ? { listPriceMinor: minor } : {}),
-    currencyCode: currencyCodeFromCostContext(cost)
+    currencyCode: currency,
   };
 }

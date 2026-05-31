@@ -1,4 +1,5 @@
 import type { TourFormProfile } from "@repo/types";
+import { getTourFormProfileDescriptor } from "@repo/types";
 
 import { getStepRule } from "@/features/tours/wizard/profileRules/getProfileRules";
 
@@ -14,11 +15,14 @@ export type TourCreateWizardValidationFlags = {
   relaxItineraryMinDays: boolean;
   /** When true, `logistics.primaryTransportMode` is not required (urban_event). */
   relaxLogisticsPrimary: boolean;
+  /** When true, `logistics.fuelShareToman` is required for private_car transport paths. */
+  requiresMountainTransportEconomics: boolean;
 };
 
 const DEFAULT_FLAGS: TourCreateWizardValidationFlags = {
   relaxItineraryMinDays: false,
   relaxLogisticsPrimary: false,
+  requiresMountainTransportEconomics: false,
 };
 
 let flags: TourCreateWizardValidationFlags = { ...DEFAULT_FLAGS };
@@ -42,6 +46,8 @@ export function mergeTourValidationFlagsForSchema(): TourCreateWizardValidationF
   return {
     relaxItineraryMinDays: flags.relaxItineraryMinDays || flatFormFlags.relaxItineraryMinDays,
     relaxLogisticsPrimary: flags.relaxLogisticsPrimary || flatFormFlags.relaxLogisticsPrimary,
+    requiresMountainTransportEconomics:
+      flags.requiresMountainTransportEconomics || flatFormFlags.requiresMountainTransportEconomics,
   };
 }
 
@@ -84,5 +90,7 @@ export function tourFormProfileToWizardValidationFlags(profile: TourFormProfile)
   return {
     relaxItineraryMinDays: itineraryHidden,
     relaxLogisticsPrimary: logisticsHidden,
+    requiresMountainTransportEconomics:
+      getTourFormProfileDescriptor(profile).invariants.requiresMountainTransportEconomics,
   };
 }

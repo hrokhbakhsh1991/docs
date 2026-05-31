@@ -75,3 +75,15 @@ export const URBAN_LOGISTICS_WHITELIST_KEYS = [
 ] as const;
 
 export type UrbanLogisticsWhitelistKey = (typeof URBAN_LOGISTICS_WHITELIST_KEYS)[number];
+
+/**
+ * Logistics keys tied to mountain/outdoor private-car dong economics.
+ * Stripped from non-outdoor profiles (`cinema_event`, …) on ingress/egress.
+ */
+export const MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS = [
+  "fuelShareToman",
+  "privateCarMode",
+] as const;
+
+export type MountainTransportEconomicsLogisticsKey =
+  (typeof MOUNTAIN_TRANSPORT_ECONOMICS_LOGISTICS_KEYS)[number];

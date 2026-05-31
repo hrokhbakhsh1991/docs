@@ -1,17 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ConflictException } from "@nestjs/common";
-import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
+import type { EntityManager } from "typeorm";
 import { TypeOrmRegistrationsWriteRepository } from "../../src/modules/registrations/repositories/typeorm-registrations-write.repository";
 import { RegistrationPaymentUpdatedLedgerListener } from "../../src/modules/finance/listeners/registration-payment-updated-ledger.listener";
 import { RegistrationFinancialMutationAdapter } from "../../src/modules/registrations/repositories/registration-finance-port.adapters";
 import { LedgerCommandBus } from "../../src/modules/finance/ledger/ledger-command-bus";
 import { BookingLedgerAuthorityService } from "../../src/modules/finance/ledger/booking-ledger-authority.service";
 import { mockLedgerPersistEntityManager } from "../../src/modules/finance/ledger/test/mock-ledger-entity-manager";
-import { stubRegistrationQuoteApplication } from "./stub-pricing-engine";
-import { createRegistrationsReadRepositoryPortTestDouble } from "./stub-registrations-read-repository";
-import { createRegistrationsTourCatalogPortTestDouble } from "./stub-registrations-tour-catalog.port";
-import { createNoOpTourCapacityReservationPortTestDouble } from "./stub-tour-capacity-reservation.port";
 import {
   RegistrationEntity,
   RegistrationPaymentStatus,
@@ -25,6 +21,10 @@ import {
   WaitlistItemStatus
 } from "../../src/modules/registrations/waitlist-item.entity";
 import { TEST_REGISTRATION_ID } from "../helpers/finance-contract-fixtures";
+import {
+  createLeaderRequestContext,
+  createRegistrationsApplicationFacade,
+} from "../helpers/registrations-application.harness";
 
 function createServiceHarness() {
   const registration = {
@@ -248,20 +248,6 @@ function createServiceHarness() {
     }
   };
 
-  const dataSource = {
-    async transaction<T>(fn: (_m: typeof manager) => Promise<T>): Promise<T> {
-      return fn(manager);
-    }
-  };
-
-  const requestContextService = {
-    resolveEffectiveTenantId: () => registration.tenantId,
-    getTenantId: () => registration.tenantId,
-    getUserId: () => "leader-1",
-    getRole: () => "owner",
-    getRequestId: () => "stub-request-id"
-  };
-
   const outboxService = {
     async addEvent(
       _manager: unknown,
@@ -271,30 +257,35 @@ function createServiceHarness() {
     }
   };
 
+  const tourCatalogState = {
+    id: tour.id,
+    tenantId: tour.tenantId,
+    acceptedCount: tour.acceptedCount,
+    totalCapacity: tour.totalCapacity,
+    lifecycleStatus: tour.lifecycleStatus,
+  };
+  Object.defineProperty(tour, "acceptedCount", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return tourCatalogState.acceptedCount;
+    },
+    set(value: number) {
+      tourCatalogState.acceptedCount = value;
+    },
+  });
+
   const writeRepo = new TypeOrmRegistrationsWriteRepository(
     { manager } as never,
     outboxService as never
   );
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    dataSource as never,
-    {} as never,
-    requestContextService as never,
-    outboxService as never,
-    stubRegistrationQuoteApplication,
-    createRegistrationsReadRepositoryPortTestDouble(
-      {
-        async findOne(opts: any) {
-          return manager.findOne(RegistrationEntity, opts);
-        }
-      },
-      manager as never
-    ),
-    {} as never, // PricingCatalogPort stub
-    createRegistrationsTourCatalogPortTestDouble(tour),
-    createNoOpTourCapacityReservationPortTestDouble()
-  );
+  const service = createRegistrationsApplicationFacade({
+    manager: manager as EntityManager,
+    tour: tourCatalogState,
+    captureOutboxEventTypes: events,
+    requestContext: createLeaderRequestContext(registration.tenantId),
+    records: [registration],
+  });
 
   return { service, writeRepo, registration, waitlist, tour, events, manager };
 }
@@ -313,7 +304,7 @@ test("saveRegistrationPaymentUpdate emits registration.payment_updated for finan
   assert.equal(events.includes("finance.ledger.double_entry_applied"), false);
 
   const ledgerBus = new LedgerCommandBus(new BookingLedgerAuthorityService({
-    async addEvent(_manager, event) {
+    async addEvent(_manager: unknown, event: { eventType: string }) {
       events.push(event.eventType);
     },
   } as never));
@@ -340,9 +331,9 @@ test("saveRegistrationPaymentUpdate emits registration.payment_updated for finan
     }
   );
 
-  const reloaded = await manager.findOne(RegistrationEntity, {
+  const reloaded = (await manager.findOne(RegistrationEntity, {
     where: { id: registration.id, tenantId: registration.tenantId },
-  });
+  })) as RegistrationEntity | null;
   assert.equal(reloaded?.paidAmount, "2500");
   assert.ok(events.includes("finance.ledger.double_entry_applied"));
 });
@@ -357,16 +348,15 @@ test("convertWaitlistItem converts waiting item and emits conversion events", as
   assert.equal(tour.acceptedCount, 1);
   assert.deepEqual(events, [
     "booking.created",
-    "booking.finalization.price_snapshot_locked",
     "waitlist.converted",
-    "registration.accepted"
+    "registration.accepted",
   ]);
 });
 
 test("cancelWaitlistItem cancels waiting item and emits cancellation event", async () => {
   const { service, waitlist, events } = createServiceHarness();
   const cancelled = await service.cancelWaitlistItem(waitlist.id, {
-    cancelReason: "participant_requested"
+    reason: "participant_requested"
   });
   assert.equal(cancelled.status, WaitlistItemStatus.CANCELLED);
   assert.equal(cancelled.cancelReason, "participant_requested");
@@ -375,9 +365,9 @@ test("cancelWaitlistItem cancels waiting item and emits cancellation event", asy
 
 test("cancelWaitlistItem rejects non-waiting items", async () => {
   const { service, waitlist } = createServiceHarness();
-  await service.cancelWaitlistItem(waitlist.id, { cancelReason: "first" });
+  await service.cancelWaitlistItem(waitlist.id, { reason: "first" });
   await assert.rejects(
-    () => service.cancelWaitlistItem(waitlist.id, { cancelReason: "second" }),
+    () => service.cancelWaitlistItem(waitlist.id, { reason: "second" }),
     (error: unknown) =>
       error instanceof ConflictException &&
       (error.getResponse() as { error?: { code?: string } }).error?.code ===

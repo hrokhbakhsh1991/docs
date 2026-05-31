@@ -8,6 +8,8 @@ import { useMemo } from "react";
 import { BookingStatusBadge } from "@/components/shared/badges";
 import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/api-client";
+import { useAuthBffQueryGateForTenant } from "@/hooks/use-auth-bff-query-gate";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { bookingKeys, tourKeys } from "@/lib/query-keys";
 import { bookingsUseLiveApi, getBookings } from "@/lib/services/bookings.service";
 import { getTours } from "@/lib/services/tours.service";
@@ -33,7 +35,9 @@ export function BookingsListView() {
   const router = useRouter();
   const { isHydrated, isAuthenticated } = useAuth();
   const liveApi = bookingsUseLiveApi();
-  const queryEnabled = liveApi && isHydrated && isAuthenticated;
+  const tenantId = useWorkspaceQueryScope();
+  const { authBffQueryEnabled } = useAuthBffQueryGateForTenant(tenantId);
+  const queryEnabled = liveApi && authBffQueryEnabled;
 
   const {
     data,
@@ -42,7 +46,7 @@ export function BookingsListView() {
     error: bookingsQueryError,
     refetch
   } = useQuery({
-    queryKey: bookingKeys.lists(),
+    queryKey: bookingKeys.list(tenantId ?? ""),
     queryFn: () => getBookings(),
     enabled: queryEnabled,
     staleTime: 30_000,
@@ -50,8 +54,8 @@ export function BookingsListView() {
   });
 
   const { data: toursData } = useQuery({
-    queryKey: tourKeys.catalog(),
-    queryFn: () => getTours({ search: "" }),
+    queryKey: tourKeys.catalog(tenantId ?? ""),
+    queryFn: ({ signal }) => getTours({ search: "" }, { signal }),
     enabled: queryEnabled,
     staleTime: 30_000,
     gcTime: 300_000,

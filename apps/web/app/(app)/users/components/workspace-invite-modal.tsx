@@ -13,6 +13,7 @@ import {
   type InviteUserResult
 } from "@/lib/services/users.service";
 import { useAppToast } from "@/lib/use-app-toast";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 
 import {
   migrateInviteNameNotePhoneToInviteId,
@@ -40,6 +41,7 @@ export function WorkspaceInviteModal({
   onInvited
 }: WorkspaceInviteModalProps): JSX.Element | null {
   const toast = useAppToast();
+  const tenantId = useWorkspaceQueryScope() ?? "";
   const [phone, setPhone] = useState("");
   const [nameNote, setNameNote] = useState("");
   const [role, setRole] = useState<InvitableWorkspaceRole>(UserRole.Member);
@@ -51,9 +53,9 @@ export function WorkspaceInviteModal({
     onSuccess: async (result) => {
       const trimmedPhone = phone.trim();
       const note = nameNote.trim();
-      if (note) {
-        setInviteNameNoteForPhone(trimmedPhone, note);
-        migrateInviteNameNotePhoneToInviteId(trimmedPhone, result.inviteId);
+      if (note && tenantId) {
+        setInviteNameNoteForPhone(tenantId, trimmedPhone, note);
+        migrateInviteNameNotePhoneToInviteId(tenantId, trimmedPhone, result.inviteId);
       }
       toast.success({ message: copy.successToast });
       await onInvited?.(result);

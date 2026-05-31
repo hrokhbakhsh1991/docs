@@ -2,9 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useInvalidateWorkspaceQueriesOnSwitch } from "@/hooks/use-invalidate-workspace-queries-on-switch";
+import { registerWorkspaceQueryClient } from "@/lib/query/evict-workspace-query-cache";
 
 function WorkspaceQueryScopeSync(): null {
   useInvalidateWorkspaceQueriesOnSwitch();
@@ -28,6 +29,10 @@ export function TourOpsQueryProvider({ children }: { children: ReactNode }) {
         },
       })
   );
+  useEffect(() => {
+    registerWorkspaceQueryClient(client);
+    return () => registerWorkspaceQueryClient(null);
+  }, [client]);
   return (
     <QueryClientProvider client={client}>
       <WorkspaceQueryScopeSync />

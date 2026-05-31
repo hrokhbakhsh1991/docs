@@ -22,7 +22,7 @@ type UseWizardStateGuardOptions = {
  */
 export function useWizardStateGuard(options?: UseWizardStateGuardOptions) {
   const { control, setValue } = useFormContext<DenaliCreateTourWizardForm>();
-  const form = useDenaliWizardFormSnapshot();
+  const form = useDenaliWizardFormSnapshot({ debounceMs: 0 });
 
   const publishStatus =
     (useWatch({ control, name: "basicInfo.publishStatus" }) as "draft" | "active" | undefined) ??

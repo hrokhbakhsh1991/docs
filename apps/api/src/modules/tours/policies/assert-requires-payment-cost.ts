@@ -1,7 +1,9 @@
 import { BadRequestException } from "@nestjs/common";
 
+import { DECIMAL_MAJOR_REGEX } from "@repo/shared-contracts";
+
 import type { CostContextDto } from "../dto/cost-context.dto";
-import { listPriceMinorFromCostContext } from "../utils/commercial-fields";
+import { isPositiveDecimalString, listPriceMinorFromCostContext } from "../utils/commercial-fields";
 
 export const PAID_TOUR_REQUIRES_AMOUNT = {
   error: {
@@ -20,6 +22,16 @@ function costContextRecord(
   return costContext as Record<string, unknown>;
 }
 
+function hasPositiveTotalCost(totalCost: unknown): boolean {
+  if (typeof totalCost === "string" && DECIMAL_MAJOR_REGEX.test(totalCost.trim())) {
+    return isPositiveDecimalString(totalCost.trim());
+  }
+  if (typeof totalCost === "number" && Number.isFinite(totalCost) && totalCost > 0) {
+    return true;
+  }
+  return false;
+}
+
 export function assertRequiresPaymentHasPositiveAmount(input: {
   costContext?: CostContextDto | Record<string, unknown> | null;
   listPriceMinor?: string | null;
@@ -29,9 +41,7 @@ export function assertRequiresPaymentHasPositiveAmount(input: {
     return;
   }
 
-  const totalCost = ctx.totalCost;
-  const hasTotalCost =
-    typeof totalCost === "number" && Number.isFinite(totalCost) && totalCost > 0;
+  const hasTotalCost = hasPositiveTotalCost(ctx.totalCost);
   const minor = input.listPriceMinor ?? listPriceMinorFromCostContext(ctx);
   const hasListPrice =
     minor != null && minor !== "" && minor !== "0" && Number(minor) > 0;

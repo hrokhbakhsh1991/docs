@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { RegistrationStatus } from "../../src/modules/registrations/registration.entity";
-import { TypeOrmRegistrationsApplicationService } from "../../src/modules/registrations/repositories/typeorm-registrations-application.service";
-import type { ParticipantMetadataDto } from "../../src/modules/registrations/dto/participant-metadata.dto";
-import type { TourEntity } from "../../src/modules/tours/entities/tour.entity";
+import { RegistrationPlacementService } from "../../src/modules/registrations/services/registration-placement.service";
+import type { TourCatalogSnapshot } from "../../src/modules/registrations/domain/ports/registrations-tour-catalog.port";
 import {
   resolveEffectiveCapacity,
   resolvePublicRegistrationCapacityBranch,
@@ -76,37 +75,13 @@ test("Scenario C contrast: FIXED at 50/50 still routes to waitlist", () => {
 });
 
 test("Scenario C: after capacity gate passes, free auto-accept tour places car owner as ACCEPTED", () => {
-  const service = new TypeOrmRegistrationsApplicationService(
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {
-      reserveTicket: async () => {},
-      releaseTicket: async () => {},
-      syncRemainingFromSnapshot: async () => {},
-    } as never,
-  );
+  const service = new RegistrationPlacementService({} as never);
 
-  const placement = (
-    service as unknown as {
-      resolveInitialRegistrationPlacement(
-        _t: TourEntity,
-        _m?: ParticipantMetadataDto,
-        _td?: Record<string, unknown> | null,
-      ): { status: RegistrationStatus; consumesAcceptedCapacity: boolean };
-    }
-  ).resolveInitialRegistrationPlacement(
+  const placement = service.resolveInitialRegistrationPlacement(
     {
       autoAcceptRegistrations: true,
       costContext: { requiresPayment: false },
-    } as TourEntity,
+    } as unknown as TourCatalogSnapshot,
     {
       transportIntake: { isDriver: true },
     },

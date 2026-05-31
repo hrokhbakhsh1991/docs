@@ -10,7 +10,7 @@ import { describeStructuralGuard } from "@/features/tours/wizard/testing/structu
 const webSrcRoot = join(__dirname, "../../../../../..");
 
 const wizardSource = readFileSync(
-  join(webSrcRoot, "components/tours/wizard/DenaliCreateTourWizard.tsx"),
+  join(webSrcRoot, "components/tours/wizard/WorkspaceTourWizard.tsx"),
   "utf8",
 );
 
@@ -26,7 +26,7 @@ const pluginSource = readFileSync(
 
 describeStructuralGuard("denali wizard header plugins", [
   {
-    name: "DenaliCreateTourWizard registers CREATE_PLUGINS with template selector",
+    name: "WorkspaceTourWizard registers CREATE_PLUGINS with template selector",
     run: () => {
       assert.match(wizardSource, /const CREATE_PLUGINS/);
       assert.match(wizardSource, /denaliTemplateSelectorPlugin/);

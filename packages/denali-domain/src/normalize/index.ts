@@ -14,6 +14,8 @@ export {
 
 export {
   clearDenaliNonVisibleFormValues,
+  collectDenaliNonVisibleCanonicalPaths,
+  collectDenaliNonVisibleFormPaths,
   normalizeDenaliFormPatch,
   normalizeDenaliWizardForm,
   stripRuleHiddenFieldValues,

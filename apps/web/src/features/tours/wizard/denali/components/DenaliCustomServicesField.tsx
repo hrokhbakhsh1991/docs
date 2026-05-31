@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { type FieldArrayPath, useFieldArray, useFormContext } from "react-hook-form";
+import { type FieldArrayPath, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import type { TourFormProfile } from "@repo/types";
 
@@ -31,10 +31,33 @@ export function DenaliCustomServicesField({
     [workspaceFormProfileProp, wizardTemplateQuery.data],
   );
   const { control, getValues } = useFormContext<DenaliCreateTourWizardForm>();
-  const isVisible = evaluateDenaliContextualVisibility(
-    "tripDetails.overview.customServiceLabels",
-    getValues(),
-    { workspaceFormProfile },
+  const tourType = useWatch({ control, name: "basicInfo.tourType" });
+  const requiresManualAdminApproval = useWatch({
+    control,
+    name: "basicInfo.requiresManualAdminApproval",
+  });
+
+  const formForVisibility = useMemo(() => {
+    const base = getValues();
+    return {
+      ...base,
+      basicInfo: {
+        ...base.basicInfo,
+        tourType: tourType ?? base.basicInfo.tourType,
+        requiresManualAdminApproval:
+          requiresManualAdminApproval ?? base.basicInfo.requiresManualAdminApproval,
+      },
+    };
+  }, [getValues, requiresManualAdminApproval, tourType]);
+
+  const isVisible = useMemo(
+    () =>
+      evaluateDenaliContextualVisibility(
+        "tripDetails.overview.customServiceLabels",
+        formForVisibility,
+        { workspaceFormProfile },
+      ),
+    [formForVisibility, workspaceFormProfile],
   );
   const { fields, append, remove } = useFieldArray({
     control,

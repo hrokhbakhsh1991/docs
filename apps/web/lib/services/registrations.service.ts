@@ -8,6 +8,7 @@ import type {
 
 import { bffBrowserClient } from "@/lib/api/bff-browser-client";
 import { BFF } from "@/lib/api-paths";
+import type { ApiRequestOptions } from "@/lib/api-client";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 import type { PaymentIntentResponse } from "./payments.service";
 import { coercePaymentIntentResponse } from "./payments.service";
@@ -219,18 +220,27 @@ export async function createWaitlistItem(payload: CreateWaitlistPayload): Promis
   });
 }
 
-export async function getRegistrationById(registrationId: string): Promise<BookingDto> {
-  const raw = await bffBrowserClient.get<unknown>(BFF.registration(registrationId));
+export async function getRegistrationById(
+  registrationId: string,
+  options?: ApiRequestOptions,
+): Promise<BookingDto> {
+  const raw = await bffBrowserClient.get<unknown>(BFF.registration(registrationId), options);
   return normalizeRegistrationPayload(raw);
 }
 
-export async function listRegistrationsForTour(tourId: string): Promise<BookingDto[]> {
-  const raw = await bffBrowserClient.get<unknown>(BFF.tourRegistrations(tourId));
+export async function listRegistrationsForTour(
+  tourId: string,
+  options?: ApiRequestOptions,
+): Promise<BookingDto[]> {
+  const raw = await bffBrowserClient.get<unknown>(BFF.tourRegistrations(tourId), options);
   return Array.isArray(raw) ? raw.map((row) => normalizeRegistrationPayload(row)) : [];
 }
 
-export async function listWaitlistItemsForTour(tourId: string): Promise<WaitlistItemResponseDto[]> {
-  return bffBrowserClient.get<WaitlistItemResponseDto[]>(BFF.tourWaitlistItems(tourId));
+export async function listWaitlistItemsForTour(
+  tourId: string,
+  options?: ApiRequestOptions,
+): Promise<WaitlistItemResponseDto[]> {
+  return bffBrowserClient.get<WaitlistItemResponseDto[]>(BFF.tourWaitlistItems(tourId), options);
 }
 
 export async function updateRegistrationStatus(

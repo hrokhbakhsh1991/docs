@@ -34,7 +34,7 @@ test.describe("real-stack denali create tour from settings preset", () => {
     await expect(createBtn).toBeVisible({ timeout: 30_000 });
     await createBtn.click();
 
-    await expect(page.getByTestId("denali-create-tour-wizard")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("workspace-tour-wizard")).toBeVisible({ timeout: 45_000 });
 
     const titleInput = page.getByLabel("نام تور");
     await expect(titleInput).toHaveValue("");

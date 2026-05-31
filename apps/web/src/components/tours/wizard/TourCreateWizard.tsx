@@ -1,15 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardBody, LoadingState } from "@tour/ui";
 
-import { DenaliCreateTourWizard } from "./DenaliCreateTourWizard";
+import { WorkspaceTourWizard } from "./WorkspaceTourWizard";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
-import {
-  getCapabilitiesForProfile,
-  normalizeTourFormProfileInput,
-} from "@/lib/workspace/workspace-capabilities";
+import { normalizeTourFormProfileInput } from "@/lib/workspace/workspace-capabilities";
+import { getWizardConfig } from "@/features/tours/wizard/workspace-wizard.config";
+import type { WizardSessionBlueprint } from "@/features/tours/wizard/wizard-session-blueprint.types";
 import {
   DataLegacyError,
   DATA_LEGACY_PROFILE_MISMATCH_MESSAGE,
@@ -19,7 +18,7 @@ import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
 /**
  * Tour-create orchestrator: resolves workspace template profile, validates storage,
- * then mounts the Denali or classic wizard shell from {@link getCapabilitiesForProfile}.
+ * then mounts the profile-bound wizard shell from {@link getWizardConfig}.
  */
 export function TourCreateWizard() {
   const t = useTranslations("tours.new");
@@ -33,10 +32,11 @@ export function TourCreateWizard() {
     [wizardTemplateQuery.data],
   );
 
-  const { usesDenaliWizardShell } = useMemo(
-    () => getCapabilitiesForProfile(normalizeTourFormProfileInput(workspaceFormProfile)),
+  const wizardShellConfig = useMemo(
+    () => getWizardConfig(normalizeTourFormProfileInput(workspaceFormProfile)),
     [workspaceFormProfile],
   );
+  const usesWorkspaceWizardShell = wizardShellConfig.wizardMode === "denali";
 
   const profileValidationError = useMemo((): DataLegacyError | null => {
     const template = wizardTemplateQuery.data;
@@ -50,6 +50,19 @@ export function TourCreateWizard() {
       return error instanceof DataLegacyError ? error : null;
     }
   }, [wizardTemplateQuery.data, workspaceFormProfile]);
+
+  const [sessionBlueprint, setSessionBlueprint] = useState<WizardSessionBlueprint | null>(null);
+
+  useEffect(() => {
+    if (!wizardTemplateQuery.data || workspaceFormProfile == null || sessionBlueprint) {
+      return;
+    }
+    setSessionBlueprint({
+      template: wizardTemplateQuery.data,
+      profile: workspaceFormProfile,
+      shellConfig: wizardShellConfig,
+    });
+  }, [wizardTemplateQuery.data, workspaceFormProfile, wizardShellConfig, sessionBlueprint]);
 
   if (wizardTemplateQuery.isLoading) {
     return (
@@ -123,8 +136,17 @@ export function TourCreateWizard() {
     );
   }
 
-  if (usesDenaliWizardShell) {
-    return <DenaliCreateTourWizard />;
+  if (usesWorkspaceWizardShell) {
+    if (!sessionBlueprint) {
+      return (
+        <Card>
+          <CardBody>
+            <LoadingState message="در حال آماده‌سازی ویزارد…" />
+          </CardBody>
+        </Card>
+      );
+    }
+    return <WorkspaceTourWizard sessionBlueprint={sessionBlueprint} />;
   }
 
   return (

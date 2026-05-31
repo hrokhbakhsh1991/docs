@@ -20,6 +20,7 @@ const MOCK_ACTIVE_EQUIPMENT = [
     category: null,
     description: null,
     icon: null,
+    compatibleCategories: [],
     isActive: true,
     sortOrder: 0,
     createdAt: "",
@@ -32,6 +33,7 @@ const MOCK_ACTIVE_EQUIPMENT = [
     category: null,
     description: null,
     icon: null,
+    compatibleCategories: [],
     isActive: true,
     sortOrder: 1,
     createdAt: "",
@@ -95,7 +97,7 @@ const reportStaleCatalog = buildDenaliWizardDiagnosticReport({
   source: "clone-hydration-simulation-stale-catalog",
 });
 
-const _output = {
+void {
   note: "Browser live state: open review step and run logDenaliWizardDiagnosticReport from console, or submit to trigger onInvalid JSON.",
   scenarios: {
     cloneWithMatchingWorkspaceGear: reportWithCatalog,

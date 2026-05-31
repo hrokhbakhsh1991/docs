@@ -69,7 +69,10 @@ import { wizardIssueLinkTestId } from "@/features/tours/wizard/testing/wizard-te
 import { DenaliFormNavigationHarness } from "@test-utils/denali-integration-harness";
 
 import { denaliTestConfig } from "../../wizardTestConfig.denali";
-import { DenaliReviewValidationSummary } from "../../components/DenaliReviewValidationSummary";
+import {
+  DenaliReviewValidationSummary,
+  type DenaliReviewValidationSummaryProps,
+} from "../../components/DenaliReviewValidationSummary";
 import { DenaliReviewStep } from "../../steps/DenaliReviewStep";
 
 function buildMountainDayForm(
@@ -109,7 +112,7 @@ const reviewNavigation = () => {
 
 function renderReviewSummary(
   defaultValues: DenaliCreateTourWizardForm,
-  publishIssues: Parameters<typeof DenaliReviewValidationSummary>[0]["publishIssues"] = [],
+  publishIssues: DenaliReviewValidationSummaryProps["publishIssues"] = [],
 ) {
   return render(
     <DenaliFormNavigationHarness defaultValues={defaultValues} navigation={reviewNavigation()}>

@@ -4,10 +4,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 import { useAuth } from "@/lib/auth/auth-context";
+import { evictWorkspaceQueryCaches } from "@/lib/query/evict-workspace-query-cache";
 
 /**
- * Drops React Query caches scoped to the previous workspace when JWT `tenant_id` changes
- * (workspace picker / session switch). Prevents themes/presets/template from leaking across tenants.
+ * Evicts React Query caches for the previous workspace when JWT `tenant_id` changes
+ * (workspace picker / session switch). Uses {@link QueryClient.removeQueries} — not
+ * invalidate — so stale prior-tenant keys are deleted from memory and cannot trigger
+ * ghost background refetches after the session has moved to another tenant.
  */
 export function useInvalidateWorkspaceQueriesOnSwitch(): void {
   const queryClient = useQueryClient();
@@ -18,11 +21,7 @@ export function useInvalidateWorkspaceQueriesOnSwitch(): void {
     const tenantId = user?.tenantId?.trim() || null;
     const prev = prevTenantIdRef.current;
     if (prev && tenantId && prev !== tenantId) {
-      void queryClient.invalidateQueries({ queryKey: ["settings"] });
-      void queryClient.invalidateQueries({ queryKey: ["tours"] });
-      void queryClient.invalidateQueries({ queryKey: ["users"] });
-      void queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      void queryClient.invalidateQueries({ queryKey: ["tenantConfig"] });
+      evictWorkspaceQueryCaches(queryClient);
     }
     prevTenantIdRef.current = tenantId;
   }, [queryClient, user?.tenantId]);

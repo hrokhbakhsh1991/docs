@@ -71,7 +71,7 @@ async function fetchFromProvider(
   return fetchNominatimSearch(query, { limit, countryCodes: "ir" });
 }
 
-function logProviderFallback(provider: GeocodingProviderId, err: unknown): void {
+function logProviderFallback(_provider: GeocodingProviderId, err: unknown): void {
   const status = err instanceof GeocodingProviderError ? err.status : 0;
   if (status === 0 || isProviderFailStatus(status)) {
   }

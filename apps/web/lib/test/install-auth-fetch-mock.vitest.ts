@@ -7,7 +7,7 @@ export type InstallAuthFetchMockOptions = AuthFetchHandlerOptions;
 
 export function installAuthFetchMock(
   options: InstallAuthFetchMockOptions = {},
-): ReturnType<typeof vi.fn> {
+) {
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
     handleAuthFetchRequest(input, init, options),
   );

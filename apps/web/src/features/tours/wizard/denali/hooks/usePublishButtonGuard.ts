@@ -25,7 +25,7 @@ export function usePublishButtonGuard(input: {
   ruleSet: DenaliRuleSet;
 }) {
   const { formState } = useFormContext<DenaliCreateTourWizardForm>();
-  const form = useDenaliWizardFormSnapshot();
+  const form = useDenaliWizardFormSnapshot({ debounceMs: 0 });
   const { publishStatus, publishIssues } = useWizardStateGuard({
     disableActiveWhileNotReady: true,
   });
