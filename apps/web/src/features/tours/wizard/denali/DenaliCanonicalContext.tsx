@@ -73,6 +73,8 @@ export type DenaliCanonicalContextValue = {
   /** Run before submit — surfaces blob: URLs instead of silent strip. */
   checkPhotoPersistence: (_form?: DenaliCreateTourWizardForm) => DenaliPhotoPersistenceCheck;
   clearPhotoPersistenceWarning: () => void;
+  /** Explicitly drop lazy gallery staging shell memory (never called from syncToken). */
+  abandonStagingShell: () => void;
 };
 
 /** Public wizard UI context — no direct `canonicalModel` (use `useDenaliCanonicalValue`). */
@@ -102,6 +104,7 @@ export function DenaliCanonicalProvider({
   workspaceFormProfile,
   draftStatus = "IDLE",
   stagingTourIdRef,
+  abandonStagingShellRef,
 }: {
   children: ReactNode;
   formMethods: UseFormReturn<DenaliCreateTourWizardForm>;
@@ -117,6 +120,8 @@ export function DenaliCanonicalProvider({
   draftStatus?: DraftStatus;
   /** Optional ref mirrored with the lazy gallery staging tour id (for final submit). */
   stagingTourIdRef?: React.MutableRefObject<string | null>;
+  /** Container ref populated with {@link abandonStagingShell} for imperative calls outside the provider tree. */
+  abandonStagingShellRef?: React.MutableRefObject<(() => void) | null>;
 }) {
   const { control, getValues, setValue } = formMethods;
   const [, startCanonicalTransition] = useTransition();
@@ -150,7 +155,7 @@ export function DenaliCanonicalProvider({
     });
   }, [getValues]);
 
-  const clearStagingUploadTourId = useCallback(() => {
+  const abandonStagingShell = useCallback(() => {
     uploadTourIdRef.current = null;
     setUploadTourIdState(null);
     ensureUploadPromiseRef.current = null;
@@ -161,11 +166,17 @@ export function DenaliCanonicalProvider({
 
   useEffect(() => {
     syncCanonicalFromForm();
-    // Create mode: no external tour id — drop lazy staging shell when form resets (EC-RESET-01).
-    if (!uploadTourIdProp?.trim()) {
-      clearStagingUploadTourId();
+  }, [syncToken, syncCanonicalFromForm]);
+
+  useEffect(() => {
+    if (!abandonStagingShellRef) {
+      return;
     }
-  }, [syncToken, syncCanonicalFromForm, uploadTourIdProp, clearStagingUploadTourId]);
+    abandonStagingShellRef.current = abandonStagingShell;
+    return () => {
+      abandonStagingShellRef.current = null;
+    };
+  }, [abandonStagingShell, abandonStagingShellRef]);
 
   const basicsSelection = useMemo(
     () => basicsSelectionFromTourType(tourTypeWatch),
@@ -302,8 +313,10 @@ export function DenaliCanonicalProvider({
       ensureUploadTourId,
       checkPhotoPersistence,
       clearPhotoPersistenceWarning,
+      abandonStagingShell,
     }),
     [
+      abandonStagingShell,
       basicsSelection,
       canonicalModel,
       checkPhotoPersistence,

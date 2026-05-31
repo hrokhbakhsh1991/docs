@@ -106,10 +106,9 @@ test.describe("denali verification matrix", () => {
     await waitForDenaliWizardAuthHydrated(page);
     await requireDenaliWizardVisible(page);
     await waitForDenaliDraftEngineInitialized(page);
-    await restoreDenaliDraftAfterReload(page);
+    await restoreDenaliDraftAfterReload(page, { title: "Draft Restore Test" });
 
     await expect(page.getByTestId("workspace-draft-save-error")).toBeHidden();
-    await expect(denaliTitleInput(page)).toHaveValue("Draft Restore Test");
   });
 
   test("2c-multi-step) partial hydration restores step 3 fields after reload", async ({ page }) => {
@@ -284,7 +283,6 @@ test.describe("denali verification matrix", () => {
     await applyDenaliWizardIntegrationPatch(pageB);
     await saveDenaliDraftTitle(pageA, "Tab A Title");
 
-    await restoreDenaliDraftAfterReload(pageB);
     await saveDenaliDraftTitle(pageB, "Tab B Title");
 
     await saveDenaliDraftTitle(pageA, "Tab A Updated");

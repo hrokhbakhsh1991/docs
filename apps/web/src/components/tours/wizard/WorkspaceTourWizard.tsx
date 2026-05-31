@@ -65,10 +65,7 @@ import {
 import { scrollTourFormToFirstError } from "@/components/tours/tourFormValidationSummary";
 import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
 import { ErrorBoundary } from "@/layouts";
-import {
-  createDenaliDraftAdapter,
-  isMeaningfulDenaliDraftSnapshot,
-} from "@/features/tours/drafts/denali-adapter";
+import { createDenaliDraftAdapter } from "@/features/tours/drafts/denali-adapter";
 
 type CaptureExceptionLike = (_error: unknown, _context?: Record<string, unknown>) => void;
 
@@ -222,13 +219,13 @@ export function WorkspaceTourWizard({
   const [canonicalSyncToken, setCanonicalSyncToken] = useState(0);
   const [draftInitComplete, setDraftInitComplete] = useState(false);
   const [staleDraftNoticeOpen, setStaleDraftNoticeOpen] = useState(false);
-  const [hasAppliedDraft, setHasAppliedDraft] = useState(false);
   const [stepBusy, setStepBusy] = useState(false);
 
   const isHydratingDraftRef = useRef(false);
   const initialHydrateDoneRef = useRef(false);
   const isSubmittingRef = useRef(false);
   const stagingTourIdRef = useRef<string | null>(null);
+  const abandonStagingShellRef = useRef<(() => void) | null>(null);
 
   const workspaceFormProfile = sessionBlueprint.profile;
   const resolvedProfile = workspaceFormProfile ?? DEFAULT_TOUR_FORM_PROFILE;
@@ -260,7 +257,6 @@ export function WorkspaceTourWizard({
     setDraftData,
     retry: retryDraft,
     initialize: initializeDraft,
-    applyDraft,
     clearDraft,
   } = useDraftEngine(draftConfig);
 
@@ -278,11 +274,11 @@ export function WorkspaceTourWizard({
         undefined,
         ruleSet,
       )?.formValues ?? defaultValues;
-    if (draftState.status !== "DRAFT_AVAILABLE" && draftState.data?.form) {
+    if (draftState.data?.form) {
       return mergeDenaliFormDefaults(templateBaseline, draftState.data.form);
     }
     return templateBaseline;
-  }, [defaultValues, draftState.data?.form, draftState.status, ruleSet, pinnedTemplate]);
+  }, [defaultValues, draftState.data?.form, ruleSet, pinnedTemplate]);
   const emptyFormBaseline = useMemo(
     () =>
       tryHydrateCanonicalTemplate(
@@ -330,20 +326,17 @@ export function WorkspaceTourWizard({
       revokeBlobUrlsFromDenaliForm(getValues());
       reset(emptyFormBaseline, DENALI_QUIET_FORM_RESET_OPTIONS);
       setCurrentStep(0);
-      // Bumps canonical sync — DenaliCanonicalProvider clears staging uploadTourId (EC-RESET-01).
       setCanonicalSyncToken((token) => token + 1);
-      setHasAppliedDraft(false);
     });
   }, [emptyFormBaseline, getValues, reset, withDraftHydration]);
 
   const handleClearAll = useCallback(async () => {
     await withDraftHydrationAsync(async () => {
+      abandonStagingShellRef.current?.();
       revokeBlobUrlsFromDenaliForm(getValues());
       reset(resetWizardToRegistryDefaults(), DENALI_QUIET_FORM_RESET_OPTIONS);
       setCurrentStep(0);
-      // Bumps canonical sync — DenaliCanonicalProvider clears staging uploadTourId (EC-RESET-01).
       setCanonicalSyncToken((token) => token + 1);
-      setHasAppliedDraft(false);
       await clearDraft();
     });
   }, [clearDraft, getValues, reset, withDraftHydrationAsync]);
@@ -382,9 +375,6 @@ export function WorkspaceTourWizard({
 
   useEffect(() => {
     if (!pinnedTemplate || !draftInitComplete || initialHydrateDoneRef.current) {
-      return;
-    }
-    if (draftState.status === "DRAFT_AVAILABLE") {
       return;
     }
     withDraftHydration(() => {
@@ -541,44 +531,10 @@ export function WorkspaceTourWizard({
     draftStatus: draftState.status,
   });
   const isDraftSyncing = draftState.status === "SYNCING";
-  const isDraftPresent =
-    draftState.status === "DRAFT_AVAILABLE" &&
-    isMeaningfulDenaliDraftSnapshot(draftState.pendingDraft?.data ?? null);
-  const draftBannerMode: "no_draft" | "draft_available" | "draft_applied" = !isDraftPresent
-    ? "no_draft"
-    : hasAppliedDraft
-      ? "draft_applied"
-      : "draft_available";
 
   const handleRetryDraft = useCallback(() => {
     void retryDraft();
   }, [retryDraft]);
-
-  const handleLoadDraft = useCallback(() => {
-    setHasAppliedDraft(true);
-    try {
-      const pending = draftState.pendingDraft?.data ?? null;
-      if (pending?.form) {
-        withDraftHydration(() => {
-          reset(mergeDenaliFormDefaults(emptyFormBaseline, pending.form), DENALI_QUIET_FORM_RESET_OPTIONS);
-          setCurrentStep(pending.currentStepIndex ?? 0);
-          setCanonicalSyncToken((token) => token + 1);
-        });
-      }
-      applyDraft();
-    } catch (error: unknown) {
-      reportDenaliDraftError(resolvedRailId, "apply", error, {
-        workspaceId: workspaceId ?? null,
-        draftStatus: draftStatusRef.current,
-      });
-      resetToEmptyForm();
-    }
-  }, [applyDraft, draftState.pendingDraft?.data, emptyFormBaseline, reset, resetToEmptyForm, resolvedRailId, withDraftHydration, workspaceId]);
-
-  const handleDiscardDraft = useCallback(() => {
-    setHasAppliedDraft(false);
-    void clearDraft();
-  }, [clearDraft]);
 
   const handleNext = () => {
     if (stepBusy || navLocked) {
@@ -683,6 +639,7 @@ export function WorkspaceTourWizard({
         stagingTourId: stagingTourIdRef.current ?? undefined,
       });
       await clearDraft();
+      abandonStagingShellRef.current?.();
       setCanonicalSyncToken((token) => token + 1);
       clearWizardSubmitIdempotencyKey(workspaceId ?? undefined);
       router.push("/tours");
@@ -766,6 +723,7 @@ export function WorkspaceTourWizard({
         workspaceFormProfile={workspaceFormProfile ?? undefined}
         draftStatus={draftState.status}
         stagingTourIdRef={stagingTourIdRef}
+        abandonStagingShellRef={abandonStagingShellRef}
       >
         <DenaliWizardSyncProvider isSyncing={isDraftSyncing}>
           <DenaliWizardNavigationProvider
@@ -794,71 +752,6 @@ export function WorkspaceTourWizard({
                     onClearAll: handleClearAll,
                   }}
                 />
-                {draftBannerMode === "draft_available" ? (
-                  <div
-                    role="status"
-                    data-testid="workspace-draft-restore-banner"
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "0.5rem",
-                      padding: "0.75rem",
-                      borderRadius: "0.5rem",
-                      background: "var(--color-surface-subtle)",
-                    }}
-                  >
-                    <span>{t("draftRestoreBanner")}</span>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        data-testid="workspace-draft-restore-load"
-                        onClick={handleLoadDraft}
-                      >
-                        {t("draftRestoreLoad")}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        data-testid="workspace-draft-restore-discard"
-                        onClick={handleDiscardDraft}
-                      >
-                        {t("draftRestoreDiscard")}
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-                {draftBannerMode === "draft_applied" ? (
-                  <div
-                    role="status"
-                    data-testid="workspace-draft-applied-banner"
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "0.5rem",
-                      padding: "0.75rem",
-                      borderRadius: "0.5rem",
-                      background: "var(--color-surface-subtle)",
-                    }}
-                  >
-                    <span>{t("draftRestoreBanner")}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      data-testid="workspace-draft-applied-reset"
-                      onClick={handleDiscardDraft}
-                    >
-                      {t("draftRestoreDiscard")}
-                    </Button>
-                  </div>
-                ) : null}
                 <WorkspaceWizardStepper steps={visibleSteps} currentIndex={currentStep} />
                 <WizardStepBody stepId={activeStepId} />
 

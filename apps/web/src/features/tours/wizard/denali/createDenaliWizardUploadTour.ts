@@ -1,13 +1,13 @@
 import type { TourFormProfile } from "@repo/types";
 
 import { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
-import { mapDenaliWizardToCreateTourPayload } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
+import { buildDenaliStagingShellProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
+import { mapDenaliCreateTourPayloadProjectionToDto } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import { createTour } from "@/lib/services/tours.service";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 
 import type { DenaliRuleSet } from "./rules/denaliRuleModel";
-import { prepareDenaliWizardFormForSubmit } from "./validation/denaliRuleAccess";
 
 /** Matches Nest `CreateTourDto` title constraints (`apps/api/.../create-tour.dto.ts`). */
 const CREATE_TOUR_TITLE_MIN_LENGTH = 10;
@@ -16,16 +16,17 @@ const CREATE_TOUR_TITLE_MIN_LENGTH = 10;
 const STAGING_TITLE_FALLBACK = "پیش‌نویس — در حال تکمیل ویزارد";
 
 /**
- * Same pipeline as {@link createTourFromWorkspaceWizardForm} (normalize → map → profile strip),
- * without submit validation. Upload shells are always draft tours.
+ * Lean staging projection for gallery upload shells — no submit validation or strict capacity gate.
+ * Upload shells are always draft tours with staging metadata.
  */
 export function buildDenaliWizardUploadTourPayload(input: {
   form: DenaliCreateTourWizardForm;
   ruleSet: DenaliRuleSet;
   workspaceFormProfile: TourFormProfile;
 }): CreateTourDto {
-  const normalized = prepareDenaliWizardFormForSubmit(input.form, input.ruleSet);
-  let dto = mapDenaliWizardToCreateTourPayload(normalized);
+  let dto = mapDenaliCreateTourPayloadProjectionToDto(
+    buildDenaliStagingShellProjection(input.form),
+  );
   dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);
 
   const title = dto.title.trim();

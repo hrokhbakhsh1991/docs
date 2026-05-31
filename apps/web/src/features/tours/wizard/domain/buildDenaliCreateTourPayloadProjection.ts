@@ -23,7 +23,10 @@ import {
 
 import { buildDenaliCancellationPolicyText } from "@/features/tours/wizard/denali/denaliCancellationPolicy";
 import { isClientBlobUrl } from "@/features/tours/wizard/denali/preserveDenaliWizardBlobMedia";
-import { denaliFormToCanonical } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
+import {
+  denaliFormToCanonical,
+  safeDenaliFormToCanonical,
+} from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
 import { readDenaliCanonicalBasics } from "@/features/tours/wizard/denali/denaliCanonicalBasicsControl";
 import type { CreateTourDto } from "@/lib/services/tours.service";
 import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.schema";
@@ -266,6 +269,63 @@ export function buildDenaliSubmitItinerarySlice(input: {
   return base;
 }
 
+function buildDenaliStagingTripDetailsSlice(input: {
+  denaliTourKind: DenaliTourKind;
+  destinationId?: string;
+  title: string;
+}): TourTripDetails {
+  return {
+    overview: {
+      denaliTourKind: input.denaliTourKind,
+      ...(input.destinationId ? { settingsMainDestinationId: input.destinationId } : {}),
+      shortIntro: "",
+      leaderUserIds: [],
+    },
+    itinerary: buildDenaliSubmitItinerarySlice({
+      dayPlans: [],
+      programNotes: undefined,
+      fallbackSegmentTitle: input.title,
+    }),
+  } as unknown as TourTripDetails;
+}
+
+function buildDenaliStagingShellProjectionFromCanonical(
+  canonical: DenaliCanonicalTourModel,
+  options?: BuildDenaliCreateTourPayloadProjectionOptions,
+): DenaliCreateTourPayloadProjection {
+  const formDuration = canonicalDurationToFormDuration(canonical.duration);
+  const category = canonical.category as DenaliTourCategory;
+  const denaliTourKind = denaliTourKindFromCanonical({
+    category,
+    duration: formDuration,
+    eventVariant: options?.eventVariant,
+  });
+  const apiTourType = denaliApiTourTypeFromCategory(category);
+  const transport = mapCanonicalTransport(canonical.transport);
+  const title = canonical.title.trim();
+
+  return {
+    title,
+    description: trimToUndefined(canonical.program.longDescription) ?? "",
+    tourType: apiTourType,
+    ...(canonical.destinationId ? { destinationId: canonical.destinationId } : {}),
+    capacity: isPositiveInt(canonical.capacityMax) ? canonical.capacityMax : 1,
+    price: 0,
+    autoAcceptRegistrations: canonical.requiresManualAdminApproval !== true,
+    lifecycle_status: "Draft",
+    tripDetails: buildDenaliStagingTripDetailsSlice({
+      denaliTourKind,
+      destinationId: canonical.destinationId,
+      title,
+    }),
+    ...(transport.transportModes && transport.transportModes.length > 0
+      ? { transportModes: transport.transportModes }
+      : transport.transportModes?.length === 0
+        ? { transportModes: [] }
+        : {}),
+  };
+}
+
 function denaliModeToApiPrimary(mode: DenaliCanonicalTourModel["transport"]["mode"]): string {
   if (mode === "minibus") return "midibus";
   if (mode === "train") return "train";
@@ -341,8 +401,12 @@ function mapCanonicalTransport(transport: DenaliCanonicalTourModel["transport"])
   };
 }
 
+export type DenaliCreateTourPayloadProjectionMode = "submit" | "staging";
+
 export type BuildDenaliCreateTourPayloadProjectionOptions = {
   eventVariant?: DenaliEventVariant;
+  /** `submit` enforces capacity and full tripDetails; `staging` uses safe placeholders for gallery shells. */
+  mode?: DenaliCreateTourPayloadProjectionMode;
 };
 
 function buildProjectionFromCanonical(
@@ -602,11 +666,20 @@ function denaliWizardLifecycleStatus(
 /** Resolves Denali wizard form → fully expanded create-tour projection (submit pipeline). */
 export function buildDenaliCreateTourPayloadProjection(
   form: DenaliCreateTourWizardForm,
+  options?: BuildDenaliCreateTourPayloadProjectionOptions,
 ): DenaliCreateTourPayloadProjection {
-  const canonical = denaliFormToCanonical(form);
+  const mode = options?.mode ?? "submit";
+  const canonical =
+    mode === "staging" ? safeDenaliFormToCanonical(form) : denaliFormToCanonical(form);
   const basics = readDenaliCanonicalBasics(
     form.basicInfo.tourType as DenaliTourKind | undefined,
   );
+
+  if (mode === "staging") {
+    return buildDenaliStagingShellProjectionFromCanonical(canonical, {
+      eventVariant: basics?.eventVariant,
+    });
+  }
 
   const projection = buildProjectionFromCanonical(canonical, {
     eventVariant: basics?.eventVariant,
@@ -642,6 +715,13 @@ export function buildDenaliCreateTourPayloadProjection(
     ...(customServiceLabels ? { customServiceLabels } : {}),
     lifecycle_status: denaliWizardLifecycleStatus(form.basicInfo.publishStatus),
   };
+}
+
+/** Lean gallery staging shell — placeholders only; finalize on submit overwrites capacity/price/tripDetails. */
+export function buildDenaliStagingShellProjection(
+  form: DenaliCreateTourWizardForm,
+): DenaliCreateTourPayloadProjection {
+  return buildDenaliCreateTourPayloadProjection(form, { mode: "staging" });
 }
 
 function mergeDenaliWizardOverviewIntoTripDetails(

@@ -529,11 +529,15 @@ export async function requireDenaliWizard(page: Page): Promise<Locator> {
   return denali;
 }
 
-/** Clicks restore when `autoApply: false` leaves a pending server draft after reload. */
-export async function restoreDenaliDraftAfterReload(page: Page): Promise<void> {
-  const banner = page.getByTestId("workspace-draft-restore-banner");
-  if (await banner.isVisible().catch(() => false)) {
-    await page.getByTestId("workspace-draft-restore-load").click();
+/** Asserts Path A auto-hydrate applied the draft snapshot after reload (no manual restore UI). */
+export async function restoreDenaliDraftAfterReload(
+  page: Page,
+  opts?: { title?: string },
+): Promise<void> {
+  await waitForDenaliDraftEngineInitialized(page);
+  await expect(page.getByTestId("workspace-draft-restore-banner")).toBeHidden();
+  if (opts?.title) {
+    await expect(denaliTitleInput(page)).toHaveValue(opts.title, { timeout: 15_000 });
   }
 }
 
@@ -653,10 +657,9 @@ export async function waitForDenaliDraftEngineInitialized(page: Page): Promise<v
 
       // Draft engine is considered initialized when the wizard shell is mounted and no
       // transient draft-state banners are blocking hydration.
-      const restoreBanner = document.querySelector('[data-testid="workspace-draft-restore-banner"]');
       const staleNotice = document.querySelector('[data-testid="workspace-draft-stale-notice"]');
       const saveError = document.querySelector('[data-testid="workspace-draft-save-error"]');
-      const hasBlockingDraftUi = Boolean(restoreBanner || staleNotice || saveError);
+      const hasBlockingDraftUi = Boolean(staleNotice || saveError);
       return !hasBlockingDraftUi;
     },
     { timeout: 20_000, polling: 200 },

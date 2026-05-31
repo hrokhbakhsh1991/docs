@@ -7,7 +7,10 @@ import {
   validateDenaliWizardForm,
 } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
 import { safeParseDenaliCanonicalFromWizardForm } from "@/features/tours/wizard/denali/validation/denaliSubmitValidation";
-import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
+import {
+  buildDenaliCreateTourPayloadProjection,
+  buildDenaliStagingShellProjection,
+} from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
 
 test("validateDenaliWizardForm rejects capacityMax zero", () => {
   const form = buildDenaliTourCreateDefaultValues();
@@ -71,6 +74,13 @@ test("buildDenaliCreateTourPayloadProjection throws when capacityMax is not posi
     () => buildDenaliCreateTourPayloadProjection(form),
     /capacityMax must be a positive integer/,
   );
+});
+
+test("buildDenaliStagingShellProjection accepts missing capacityMax with placeholder capacity", () => {
+  const form = buildDenaliTourCreateDefaultValues();
+  const dto = buildDenaliStagingShellProjection(form);
+  assert.equal(dto.capacity, 1);
+  assert.equal(dto.price, 0);
 });
 
 function canonicalIssueTouchesCapacity(path: PropertyKey[]): boolean {
