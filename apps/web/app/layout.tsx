@@ -37,6 +37,10 @@ export async function generateMetadata(): Promise<Metadata> {
       template: t("titleTemplate"),
     },
     description: t("description"),
+    icons: {
+      icon: [{ url: "/favicon.ico", sizes: "any" }],
+      shortcut: "/favicon.ico",
+    },
   };
 }
 

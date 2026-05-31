@@ -74,7 +74,7 @@ const HYDRATE_MAX_ATTEMPTS = 5;
 const HYDRATE_BASE_DELAY_MS = 400;
 
 function logAuthAudit(source: "middleware" | "AuthProvider", label: string): void {
-  console.log(`Auth Audit: ${label}`, { source });
+  console.info(`[auth-audit] ${label}`, { source });
 }
 
 function isPublicAuthBrowserRoute(): boolean {
@@ -135,8 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   const switchGenerationRef = useRef(0);
   const membershipSwitchAbortRef = useRef<AbortController | null>(null);
+  const middlewareAuditLoggedRef = useRef(false);
 
   useEffect(() => {
+    if (middlewareAuditLoggedRef.current) {
+      return;
+    }
+    middlewareAuditLoggedRef.current = true;
     const middlewareAudit = document.documentElement.getAttribute("data-auth-audit");
     if (middlewareAudit === "valid") {
       logAuthAudit("middleware", "Token found");
@@ -258,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (lastOutcome === "authenticated") {
           logAuthAudit("AuthProvider", "Token found");
         } else if (isPublicAuthBrowserRoute()) {
-          console.log("Auth Audit: No session yet (public route — expected before login)", {
+          console.info("[auth-audit] No session yet (public route — expected before login)", {
             source: "AuthProvider",
             hydrateOutcome: lastOutcome,
           });

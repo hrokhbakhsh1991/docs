@@ -96,7 +96,7 @@ function protectSessionRoute(
   const auditValue = authAuditHeaderValue(validation);
   if (process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console -- dev-only session audit (see MAP.md)
-    console.log(`Auth Audit: ${auditLabel}`);
+    console.info(`[auth-audit] ${auditLabel}`);
   }
 
   if (validation.status === "valid") {

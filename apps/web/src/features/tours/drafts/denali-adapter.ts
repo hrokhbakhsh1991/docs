@@ -90,7 +90,7 @@ export function createDenaliDraftAdapter(input: {
 
   return {
     id: `${DENALI_CREATE_DRAFT_KEY}:${workspaceId}`,
-    autoApply: false,
+    autoApply: true,
     conflictStrategy: "REFETCH_REAPPLY",
     debounceMs: 500,
     merge: (local, server) =>
@@ -126,13 +126,17 @@ export function createDenaliDraftAdapter(input: {
         railLayoutVersion: remote.data.railLayoutVersion,
         registryLayoutVersion: remote.data.registryLayoutVersion,
       });
+      const snapshot = sanitizeDenaliWizardDraftSnapshot({
+        form: hydrated.snapshot.form,
+        currentStepIndex: hydrated.snapshot.currentStepIndex,
+        railLayoutVersion: hydrated.snapshot.railLayoutVersion,
+        registryLayoutVersion: hydrated.snapshot.registryLayoutVersion,
+      });
+      if (!isMeaningfulDenaliDraftSnapshot(snapshot)) {
+        return null;
+      }
       return {
-        data: sanitizeDenaliWizardDraftSnapshot({
-          form: hydrated.snapshot.form,
-          currentStepIndex: hydrated.snapshot.currentStepIndex,
-          railLayoutVersion: hydrated.snapshot.railLayoutVersion,
-          registryLayoutVersion: hydrated.snapshot.registryLayoutVersion,
-        }),
+        data: snapshot,
         version: remote.version,
         schemaVersion: remote.schemaVersion,
         lastModified: remote.lastModified,

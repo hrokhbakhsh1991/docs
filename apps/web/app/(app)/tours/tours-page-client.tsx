@@ -9,6 +9,8 @@ import { Button, PageActions } from "@tour/ui";
 import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 
+import { SeedDenaliUiTestToursButton } from "@/features/tours/dev/SeedDenaliUiTestToursButton";
+
 import { ToursListView } from "./tours-list-view";
 
 export function ToursPageClient() {
@@ -20,6 +22,7 @@ export function ToursPageClient() {
     if (!isHydrated || !isAuthenticated || !isLeaderRole(user?.role)) return null;
     return (
       <PageActions>
+        <SeedDenaliUiTestToursButton />
         <Button type="button" variant="secondary" onClick={() => router.push("/tours/new")}>
           {t("createTour")}
         </Button>
