@@ -110,7 +110,7 @@ workspace-sdk  →  workspaces/*     ❌
 | # | کار | Exit |
 |---|-----|------|
 | 0.1 | ثبت `map.md` | merge |
-| 0.2 | `scripts/platform-transformation/baseline-metrics.mjs` | گزارش denali per layer |
+| 0.2 | `pnpm run baseline:platform-metrics` → `reports/phase-0-baseline-*.json` | گزارش denali per layer |
 | 0.3 | CI green روی main | test + smoke |
 | 0.4 | freeze لیست workspace | `denali_pilot`, `urban_event`, classic profiles |
 
