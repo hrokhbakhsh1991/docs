@@ -18,6 +18,7 @@ test.describe("tour edit urban profile PATCH (mocked API)", () => {
     await installSmokeTourOpsSessionToken(page);
     await addLeaderSmokeSessionCookie(context, baseURL);
     await installTourWizardSettingsRoutes(page, {
+      workspaceTemplateProfile: "urban_event",
       themes: [
         {
           id: THEME_ID,
@@ -152,8 +153,11 @@ test.describe("tour edit urban profile PATCH (mocked API)", () => {
     expect(res?.status() ?? 0).toBeLessThan(500);
 
     // Urban event is mapped to Denali rail, so it launches DenaliTourEditForm
-    await expect(page.getByTestId("denali-edit-tour-form")).toBeVisible({ timeout: 25_000 });
-    const nameInput = page.getByPlaceholder("مثلاً صعود دماوند از مسیر جنوبی");
+    const form = page.getByTestId("denali-edit-tour-form");
+    await expect(form).toBeVisible({ timeout: 25_000 });
+    const nameInput = form
+      .locator('[data-field-path="basicInfo.title"] input, [data-field-path="basicInfo.title"] textarea')
+      .first();
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
     await nameInput.fill("Urban edit smoke tour (updated)");
 

@@ -394,10 +394,10 @@ flowchart TD
 
 - [x] آخرین اجرای موفق `ci:integrity` روی `main` ([`reports/phase-0-ci-gate-2026-06-01.json`](reports/phase-0-ci-gate-2026-06-01.json))
 - [x] `@apps/web build` سبز (همان گزارش)
-- [ ] smoke subset §6.3 سبز — **باز** (۶ fail / ۱ pass در `qa:smoke:tour-wizard` 2026-06-01؛ follow-up)
+- [x] smoke subset §6.3 سبز — `pnpm run qa:smoke:tour-wizard` → 7 passed (2026-06-01)
 - [x] known issues §6.5 در `reports/` ثبت شده
 
-**وضعیت زیرفاز 0.3:** blocking gates سبز · smoke نیاز به PR تعمیر mock/hydration · سپس 0.4 freeze.
+**وضعیت زیرفاز 0.3:** تکمیل.
 
 ---
 
@@ -469,8 +469,11 @@ pnpm --filter @apps/api run qa:probe-wizard-tenants
 ### 7.6 Exit criteria
 
 - [x] لیست پروفایل در این سند و `tour-form-profile.ts` هم‌خوان
-- [ ] تیم freeze را در PR template ذکر می‌کند
-- [ ] هیچ PR باز برای پروفایل هشتم در flight نیست
+- [x] ثبت machine-readable: [`reports/phase-0-workspace-freeze.json`](reports/phase-0-workspace-freeze.json)
+- [x] تیم freeze را در PR template ذکر می‌کند (`Phase: N.M` + عدم افزودن پروفایل)
+- [x] هیچ PR باز برای پروفایل هشتم در flight نیست
+
+**وضعیت زیرفاز 0.4:** تکمیل — ورود به Phase 1.1 پس از review گزارش‌های `reports/`.
 
 ---
 
@@ -484,7 +487,7 @@ pnpm --filter @apps/api run qa:probe-wizard-tenants
 - [x] `phase-0-platform-baseline.md` merge
 - [x] `reports/phase-0-baseline-*.json` اولیه ([`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json))
 - [x] `pnpm run ci:integrity` سبز ([CI gate report](reports/phase-0-ci-gate-2026-06-01.json))
-- [ ] smoke §6.3 سبز (follow-up)
+- [x] smoke §6.3 سبز (`qa:smoke:tour-wizard`)
 - [ ] hotspot list §3.5 بدون تغییر scope در همان PR
 
 ### 8.2 اولین PR ساختاری

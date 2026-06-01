@@ -112,7 +112,7 @@ workspace-sdk  →  workspaces/*     ❌
 | 0.1 | ثبت `map.md` | merge |
 | 0.2 | `pnpm run baseline:platform-metrics` → `reports/phase-0-baseline-*.json` | گزارش denali per layer |
 | 0.3 | `pnpm run phase-0:ci-gate` → `reports/phase-0-ci-gate-*.json` | ci + web build سبز؛ smoke follow-up |
-| 0.4 | freeze لیست workspace | `denali_pilot`, `urban_event`, classic profiles |
+| 0.4 | freeze لیست workspace → `reports/phase-0-workspace-freeze.json` | `denali_pilot`, `urban_event`, classic profiles |
 
 ---
 

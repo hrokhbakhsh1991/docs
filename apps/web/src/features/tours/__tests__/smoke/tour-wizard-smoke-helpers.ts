@@ -313,9 +313,44 @@ export async function installTourWizardSettingsRoutes(
     opts.workspaceTemplateProfile === null
       ? null
       : opts.workspaceTemplateProfile ?? SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE;
-  if (profile === "denali_pilot") {
+  if (profile === "denali_pilot" || profile === "urban_event") {
     await installTourWizardInstantiateRoute(page);
   }
+}
+
+/** Session + cookie setup shared by tour wizard smoke specs. */
+export async function installTourWizardSmokeAuth(
+  page: Page,
+  context: BrowserContext,
+  baseURL: string = SMOKE_WORKSPACE_BASE_URL,
+  jwt: string = LEADER_SMOKE_SESSION_JWT,
+): Promise<void> {
+  await installLeaderWorkspaceSessionRoute(page, jwt);
+  await installSmokeTourOpsSessionToken(page, jwt);
+  await addLeaderSmokeSessionCookie(context, baseURL, jwt);
+}
+
+/** Denali-rail create wizard: auth, template routes, factory instantiate, optional draft mock. */
+export async function installDenaliWizardSmokeStack(
+  page: Page,
+  context: BrowserContext,
+  opts: {
+    baseURL?: string;
+    workspaceTemplateProfile?: Extract<TourWizardSmokeTemplateProfile, "denali_pilot" | "urban_event">;
+    draftRoutes?: boolean;
+  } = {},
+): Promise<void> {
+  const baseURL = opts.baseURL ?? SMOKE_WORKSPACE_BASE_URL;
+  const profile = opts.workspaceTemplateProfile ?? "denali_pilot";
+  await installTourWizardSmokeAuth(page, context, baseURL);
+  if (opts.draftRoutes !== false) {
+    await installScopedDraftEngineRoutes(context);
+  }
+  await installTourWizardSettingsRoutes(page, { workspaceTemplateProfile: profile });
+}
+
+export async function expectClassicWizardShellUnavailable(page: Page): Promise<void> {
+  await expect(page.getByTestId("wizard-classic-shell-unavailable")).toBeVisible({ timeout: 20_000 });
 }
 
 /** Mocks factory bridge `POST .../tour-wizard-template/instantiate` for Denali create wizard smoke. */
@@ -496,14 +531,15 @@ export async function installScopedDraftEngineRoutes(
     const method = route.request().method();
     if (method === "GET") {
       fetchUrls.push(url);
-      const entry = store.get(workspaceId);
+      let entry = store.get(workspaceId);
       if (!entry) {
-        await route.fulfill({
-          status: 404,
-          contentType: "application/json",
-          body: JSON.stringify({ error: "not_found" }),
-        });
-        return;
+        entry = {
+          data: {},
+          version: 0,
+          schemaVersion: 1,
+          lastModified: Date.now(),
+        };
+        store.set(workspaceId, entry);
       }
       await route.fulfill({
         status: 200,
