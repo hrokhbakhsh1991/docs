@@ -1,0 +1,124 @@
+{
+  "generatedAt": "2026-06-01T08:19:51.720Z",
+  "gitSha": "e71de72",
+  "tool": {
+    "ripgrep": true
+  },
+  "layers": {
+    "packages/denali-domain": {
+      "denali_token_count": 2680,
+      "missing": false
+    },
+    "packages/types/src/denali": {
+      "denali_token_count": 489,
+      "missing": false
+    },
+    "packages/shared-contracts": {
+      "denali_token_count": 175,
+      "missing": false
+    },
+    "apps/api/src/modules/tours": {
+      "denali_token_count": 208,
+      "missing": false
+    },
+    "apps/web/src/features/tours": {
+      "denali_token_count": 6275,
+      "missing": false
+    },
+    "apps/web/src/components/tours": {
+      "denali_token_count": 170,
+      "missing": false
+    },
+    "libs/core": {
+      "denali_token_count": 0,
+      "missing": false
+    },
+    "packages/draft-engine": {
+      "denali_token_count": 1,
+      "missing": false
+    },
+    "packages/platform-core": {
+      "denali_token_count": null,
+      "missing": true
+    },
+    "packages/workspace-sdk": {
+      "denali_token_count": null,
+      "missing": true
+    }
+  },
+  "global": {
+    "denali_import_edges": {
+      "@repo/denali-domain": 94,
+      "@repo/types/denali": 88
+    },
+    "direct_form_controls_wizard": 6,
+    "strategy_profile_constants": 11,
+    "dual_state_files": [
+      "apps/web/src/components/tours/wizard/WorkspaceTourWizard.tsx",
+      "apps/web/src/features/tours/denali/fields/DenaliCanonicalFieldControl.tsx",
+      "apps/web/src/features/tours/denali/fields/widgets/DenaliDestinationField.tsx",
+      "apps/web/src/features/tours/denali/fields/widgets/DenaliDifficultyLevelField.tsx",
+      "apps/web/src/features/tours/denali/fields/widgets/DenaliElevationGainField.tsx",
+      "apps/web/src/features/tours/denali/fields/widgets/DenaliPhotosField.tsx",
+      "apps/web/src/features/tours/denali/fields/widgets/DenaliTransportModeField.tsx",
+      "apps/web/src/features/tours/denali/hooks/useDenaliFieldRules.ts",
+      "apps/web/src/features/tours/denali/widgets/DenaliDailyItinerarySection.tsx",
+      "apps/web/src/features/tours/denali/widgets/DenaliGearSection.tsx",
+      "apps/web/src/features/tours/denali/widgets/DenaliItineraryStep.tsx",
+      "apps/web/src/features/tours/denali/widgets/DenaliPricingParticipantSection.tsx",
+      "apps/web/src/features/tours/denali/widgets/DenaliProgramContentSection.tsx",
+      "apps/web/src/features/tours/wizard/denali/DenaliApproximateReturnTimeField.tsx",
+      "apps/web/src/features/tours/wizard/denali/DenaliCanonicalContext.tsx",
+      "apps/web/src/features/tours/wizard/denali/DenaliDatetimeField.tsx",
+      "apps/web/src/features/tours/wizard/denali/DenaliWizardSyncContext.tsx",
+      "apps/web/src/features/tours/wizard/denali/components/DenaliGatheringPointsWidget.tsx",
+      "apps/web/src/features/tours/wizard/denali/components/DenaliLocationZoneField.tsx",
+      "apps/web/src/features/tours/wizard/denali/components/DenaliPeakExperienceField.tsx",
+      "apps/web/src/features/tours/wizard/denali/denaliCanonicalFormAdapter.ts",
+      "apps/web/src/features/tours/wizard/denali/hooks/useDenaliCanonicalModel.ts",
+      "apps/web/src/features/tours/wizard/denali/hooks/useDenaliDestinationQuickAdd.ts",
+      "apps/web/src/features/tours/wizard/denali/hooks/useDenaliEquipmentQuickAdd.ts",
+      "apps/web/src/features/tours/wizard/denali/hooks/useDenaliPublishReadiness.ts",
+      "apps/web/src/features/tours/wizard/denali/hooks/useDenaliStepFieldRules.ts"
+    ],
+    "composite_bypass_files": [
+      {
+        "path": "apps/web/src/features/tours/denali/widgets/DenaliProgramContentSection.tsx",
+        "exists": true,
+        "sha256": "e247622b4672b2b2"
+      },
+      {
+        "path": "apps/web/src/features/tours/denali/widgets/DenaliPricingParticipantSection.tsx",
+        "exists": true,
+        "sha256": "8f1916c85641ee51"
+      },
+      {
+        "path": "apps/web/src/features/tours/denali/widgets/DenaliDailyItinerarySection.tsx",
+        "exists": true,
+        "sha256": "7edd11d2deb35a74"
+      },
+      {
+        "path": "apps/web/src/features/tours/wizard/denali/steps/DenaliProgramContentSection.tsx",
+        "exists": true,
+        "sha256": "267c06b998ea3a2a"
+      },
+      {
+        "path": "apps/web/src/features/tours/wizard/denali/steps/DenaliPricingParticipantSection.tsx",
+        "exists": true,
+        "sha256": "39b429a5b7046330"
+      },
+      {
+        "path": "apps/web/src/features/tours/wizard/denali/steps/DenaliDailyItinerarySection.tsx",
+        "exists": true,
+        "sha256": "335d589f47de61ba"
+      },
+      {
+        "path": "apps/web/src/features/tours/wizard/DenaliTourCreationPresetBanner.tsx",
+        "exists": true,
+        "sha256": "76b6b3f798ad4170"
+      }
+    ],
+    "platform_core_denali_tokens": null,
+    "workspace_sdk_denali_tokens": null
+  }
+}

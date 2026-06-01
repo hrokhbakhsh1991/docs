@@ -235,13 +235,14 @@ flowchart TB
 - [x] `phase-0-platform-baseline.md` روی `main`
 - [x] تیم از تفکیک Draft FSM Phase 0 آگاه است (§2؛ `docs/phase0-safety-net-baseline.md`, `AGENTS.md`, PR template)
 
-**وضعیت زیرفاز 0.1:** تکمیل — گام بعدی [0.2 Baseline metrics](#5-زیرفاز-02--baseline-metrics-طراحی).
+**وضعیت زیرفاز 0.1:** تکمیل.
 
 ---
 
-## 5. زیرفاز 0.2 — Baseline metrics (طراحی)
+## 5. زیرفاز 0.2 — Baseline metrics
 
-**در فاز ۰ این PR:** فقط **قرارداد** — پیاده‌سازی در `scripts/platform-transformation/baseline-metrics.mjs` (PR جدا).
+**اسکریپت:** `scripts/platform-transformation/baseline-metrics.mjs` · **اجرا:** `pnpm run baseline:platform-metrics`  
+**خط مبنای ثبت‌شده:** [`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json) (به‌روز با همان دستور و تاریخ جدید)
 
 ### 5.1 هدف
 
@@ -254,7 +255,7 @@ flowchart TB
 | **ورودی** | globهای ثابت per layer (جدول §3.1) |
 | **خروجی JSON** | `reports/phase-0-baseline-YYYY-MM-DD.json` |
 | **خروجی MD** | `reports/phase-0-baseline-YYYY-MM-DD.md` (خلاصه انسانی) |
-| **اجرای محلی** | `node scripts/platform-transformation/baseline-metrics.mjs` (آینده) |
+| **اجرای محلی** | `pnpm run baseline:platform-metrics` |
 
 ### 5.3 متریک‌ها (schema پیشنهادی JSON)
 
@@ -308,9 +309,11 @@ flowchart TB
 
 ### 5.6 Exit criteria
 
-- [ ] اسکریپت `baseline-metrics.mjs` merge
-- [ ] حداقل یک JSON در `reports/` با تاریخ و sha
-- [ ] این سند به مسیر JSON لینک دهد
+- [x] اسکریپت `baseline-metrics.mjs` merge
+- [x] حداقل یک JSON در `reports/` با تاریخ و sha ([`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json))
+- [x] این سند به مسیر JSON لینک دهد
+
+**وضعیت زیرفاز 0.2:** تکمیل — گام بعدی [0.3 CI سبز](#6-زیرفاز-03--ci-سبز).
 
 ---
 
@@ -472,7 +475,7 @@ pnpm --filter @apps/api run qa:probe-wizard-tenants
 
 - [x] `map.md` merge
 - [x] `phase-0-platform-baseline.md` merge
-- [ ] `reports/phase-0-baseline-*.json` اولیه (PR اسکریپت 0.2)
+- [x] `reports/phase-0-baseline-*.json` اولیه ([`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json))
 - [ ] `pnpm run ci:integrity` سبز
 - [ ] smoke §6.3 سبز
 - [ ] hotspot list §3.5 بدون تغییر scope در همان PR
