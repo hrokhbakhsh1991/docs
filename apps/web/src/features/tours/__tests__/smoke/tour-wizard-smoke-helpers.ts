@@ -308,6 +308,43 @@ export async function installTourWizardSettingsRoutes(
 
   await page.context().route("**/api/settings/tour-wizard-template", fulfillTemplate);
   await page.route("**/api/settings/tour-wizard-template", fulfillTemplate);
+
+  const profile =
+    opts.workspaceTemplateProfile === null
+      ? null
+      : opts.workspaceTemplateProfile ?? SMOKE_DEFAULT_WORKSPACE_TEMPLATE_PROFILE;
+  if (profile === "denali_pilot") {
+    await installTourWizardInstantiateRoute(page);
+  }
+}
+
+/** Mocks factory bridge `POST .../tour-wizard-template/instantiate` for Denali create wizard smoke. */
+export async function installTourWizardInstantiateRoute(page: Page): Promise<void> {
+  const form = buildDenaliTourCreateTestValues();
+  const body = {
+    success: true,
+    draftState: {
+      data: { form },
+      version: 1,
+      schemaVersion: 1,
+      lastModified: Date.now(),
+    },
+  };
+
+  const fulfill = async (route: Route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
+  };
+
+  await page.context().route("**/api/settings/tour-wizard-template/instantiate**", fulfill);
+  await page.route("**/api/settings/tour-wizard-template/instantiate**", fulfill);
 }
 
 

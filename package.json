@@ -50,6 +50,7 @@
     "tsc": "pnpm --filter @repo/shared run lint && pnpm --filter @repo/domain-contracts run lint && pnpm --filter @repo/shared-contracts run lint && pnpm --filter @repo/draft-engine run lint && pnpm --filter @apps/api exec tsc --noEmit && pnpm --filter @apps/web exec tsc --noEmit && pnpm --filter @tour/ui run build && pnpm --filter @apps/telegram run lint",
     "depcruise:check": "depcruise --config dependency-cruiser.config.js apps --output-type err-long",
     "baseline:platform-metrics": "node scripts/platform-transformation/baseline-metrics.mjs",
+    "phase-0:ci-gate": "node scripts/platform-transformation/phase-0-ci-gate.mjs",
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
     "dev:integrity": "node scripts/dev-integrity-watcher.mjs",
     "audit:socket": "bash scripts/socket-ci-check.sh",

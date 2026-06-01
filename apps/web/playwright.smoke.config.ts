@@ -28,7 +28,7 @@ export default defineConfig({
           ...process.env,
           NODE_ENV: "development",
           HOSTNAME: "0.0.0.0",
-          PORT: "3000",
+          PORT: process.env.PORT?.trim() || "3000",
           NEXT_PUBLIC_TENANT_ROOT_DOMAIN: "localhost",
           NEXT_PUBLIC_API_DYNAMIC_ORIGIN: "true",
           NEXT_PUBLIC_API_PORT: "3001",

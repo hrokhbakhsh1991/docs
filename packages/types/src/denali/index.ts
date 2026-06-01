@@ -27,13 +27,18 @@ export {
   DENALI_CANONICAL_DURATION_VALUES,
   DENALI_CANONICAL_TRANSPORT_MODE_VALUES,
   DENALI_EVENT_VARIANT_VALUES,
+  denaliCanonicalBasicsFromTourKind,
+  denaliTourKindFromCanonical,
   type DenaliCanonicalCategory,
   type DenaliCanonicalDuration,
   type DenaliCanonicalTourModel,
   type DenaliCanonicalTransportMode,
   type DenaliEventVariant,
+  type DenaliTourDuration,
   type DenaliTripDetailsOverview,
 } from "./denaliCanonicalTourModel";
+
+export type { DenaliTourKind } from "../denali-tour-kind";
 
 export {
   DENALI_TEMPLATE_SCHEMA_VERSION,
