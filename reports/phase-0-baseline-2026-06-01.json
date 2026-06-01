@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-01T08:19:51.720Z",
-  "gitSha": "e71de72",
+  "generatedAt": "2026-06-01T13:39:26.163Z",
+  "gitSha": "d4b8f07",
   "tool": {
     "ripgrep": true
   },
@@ -10,7 +10,7 @@
       "missing": false
     },
     "packages/types/src/denali": {
-      "denali_token_count": 489,
+      "denali_token_count": 493,
       "missing": false
     },
     "packages/shared-contracts": {
@@ -18,11 +18,11 @@
       "missing": false
     },
     "apps/api/src/modules/tours": {
-      "denali_token_count": 208,
+      "denali_token_count": 213,
       "missing": false
     },
     "apps/web/src/features/tours": {
-      "denali_token_count": 6275,
+      "denali_token_count": 6298,
       "missing": false
     },
     "apps/web/src/components/tours": {
@@ -42,8 +42,8 @@
       "missing": true
     },
     "packages/workspace-sdk": {
-      "denali_token_count": null,
-      "missing": true
+      "denali_token_count": 0,
+      "missing": false
     }
   },
   "global": {
@@ -119,6 +119,6 @@
       }
     ],
     "platform_core_denali_tokens": null,
-    "workspace_sdk_denali_tokens": null
+    "workspace_sdk_denali_tokens": 0
   }
 }

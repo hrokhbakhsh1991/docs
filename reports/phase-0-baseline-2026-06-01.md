@@ -1,7 +1,7 @@
 # Phase 0 platform baseline — 2026-06-01
 
-- **Generated:** 2026-06-01T08:19:51.720Z
-- **Git SHA:** `e71de72`
+- **Generated:** 2026-06-01T13:39:26.163Z
+- **Git SHA:** `d4b8f07`
 - **JSON:** [reports/phase-0-baseline-2026-06-01.json](reports/phase-0-baseline-2026-06-01.json)
 
 ## Layers (`denali_token_count`)
@@ -9,15 +9,15 @@
 | Layer | Count |
 |-------|------:|
 | `packages/denali-domain` | 2680 |
-| `packages/types/src/denali` | 489 |
+| `packages/types/src/denali` | 493 |
 | `packages/shared-contracts` | 175 |
-| `apps/api/src/modules/tours` | 208 |
-| `apps/web/src/features/tours` | 6275 |
+| `apps/api/src/modules/tours` | 213 |
+| `apps/web/src/features/tours` | 6298 |
 | `apps/web/src/components/tours` | 170 |
 | `libs/core` | 0 |
 | `packages/draft-engine` | 1 |
 | `packages/platform-core` | — (missing) |
-| `packages/workspace-sdk` | — (missing) |
+| `packages/workspace-sdk` | 0 |
 
 ## Global
 
