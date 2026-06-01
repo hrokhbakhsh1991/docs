@@ -122,6 +122,7 @@ export class TenantIngressRegistryRepository implements TenantIngressRegistryPor
       /* cache failures must not break ingress resolution */
     }
 
+    // tenant-isolation:qb-exempt — trusted cache hit path reads tenant root by hostname, not tenant-owned rows.
     const row = await this.customDomainRepository
       .createQueryBuilder("d")
       .innerJoinAndSelect("d.tenant", "t")
@@ -176,6 +177,7 @@ export class TenantIngressRegistryRepository implements TenantIngressRegistryPor
     }
 
     const originHostname = hostnameFromWebOrigin(normalizedOrigin);
+    // tenant-isolation:qb-exempt — CORS registry lookup scans active tenant custom-domains globally by origin/hostname.
     const qb = this.customDomainRepository
       .createQueryBuilder("d")
       .innerJoin("d.tenant", "t")
