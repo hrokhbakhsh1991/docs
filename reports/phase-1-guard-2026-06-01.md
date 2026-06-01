@@ -1,7 +1,7 @@
 # Phase 1 guard — 2026-06-01
 
-- **Generated:** 2026-06-01T13:41:54.460Z
-- **Git SHA:** `d4b8f07`
+- **Generated:** 2026-06-01T15:34:18.897Z
+- **Git SHA:** `cafe04e`
 - **JSON:** [reports/phase-1-guard-2026-06-01.json](reports/phase-1-guard-2026-06-01.json)
 
 ## Checks

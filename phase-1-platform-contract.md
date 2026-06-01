@@ -267,9 +267,9 @@ packages/workspace-sdk/
 
 ### 4.4 ثبت در monorepo
 
-- [ ] `packages/workspace-sdk` تحت `packages/*` در `pnpm-workspace.yaml` (از قبل پوشش دارد)
-- [ ] ریشه: `pnpm --filter @repo/workspace-sdk build` در chain مناسب (در صورت نیاز `package.json` root scripts)
-- [ ] `turbo.json` / pipeline CI در صورت وجود task برای packages جدید
+- [x] `packages/workspace-sdk` تحت `packages/*` در `pnpm-workspace.yaml` (از قبل پوشش دارد)
+- [ ] ریشه: `pnpm --filter @repo/workspace-sdk build` در chain `pnpm run build` (عمداً خارج — pre-commit/`phase-1:guard` build می‌کند)
+- [x] CI: `phase-1:guard` + `integrity-gate` (push `main`) + root `pnpm test` — بدون `turbo.json` در repo
 
 ### 4.5 Exit criteria 1.1
 
@@ -277,9 +277,9 @@ packages/workspace-sdk/
 - [x] `pnpm --filter @repo/workspace-sdk test` سبز (تست scaffold)
 - [x] `rg -i denali packages/workspace-sdk/src` → **0** (توضیح denali-free فقط در `package.json` description)
 - [x] `rg '@repo/denali-domain' packages/workspace-sdk` → **0**
-- [ ] PR با `Phase: 1.1` merge
+- [x] PR با `Phase: 1.1` merge (`main` @ `cafe04e` و پیش‌تر)
 
-**وضعیت:** ✅ پیاده‌سازی محلی — منتظر PR
+**وضعیت:** ✅ merge شده روی `main`
 
 ---
 
@@ -365,9 +365,9 @@ export interface WorkspacePlugin {
 - [x] بدون import از `denali-domain` / `types/denali`
 - [x] JSDoc روی `WorkspacePlugin` و `CanonicalDocument` (`map.md` Phase 1)
 - [x] `WorkspaceWizardMode`: `classic` \| `schema` (نگاشت به API `denali` در bridge 1.3)
-- [ ] PR `Phase: 1.2` merge
+- [x] PR `Phase: 1.2` merge (`main`)
 
-**وضعیت:** ✅ پیاده‌سازی محلی — منتظر PR
+**وضعیت:** ✅ merge شده روی `main`
 
 ---
 
@@ -433,12 +433,12 @@ flowchart TB
 - [x] `@repo/workspace-sdk` در `apps/api` dependency
 - [x] `workspace.strategy.registry.spec.ts` — 11/11 (شامل SDK adapter + legacy plugin view)
 - [x] `pnpm --filter @apps/api run lint` (tsc) سبز
-- [ ] `pnpm run ci:integrity` / smoke — قبل از merge توصیه
-- [ ] PR `Phase: 1.3` merge
+- [x] `pnpm run ci:integrity` + `pnpm run qa:tour-wizard:smoke` (alias: `qa:smoke:tour-wizard`) — سبز محلی پس از merge فاز ۱
+- [x] PR `Phase: 1.3` merge (`main`؛ 1.3c به Phase 2 موکول)
 
 **پیاده‌سازی:** `SdkWorkspaceStrategyAdapter` برای `general` + `resolveWorkspacePluginForProfile` + `buildWorkspacePluginViewFromStrategy` (1.3b).
 
-**وضعیت:** ✅ محلی — منتظر PR
+**وضعیت:** ✅ merge شده روی `main`
 
 ---
 
@@ -484,11 +484,12 @@ pnpm run baseline:platform-metrics
 - [x] `pnpm run phase-1:guard` در `ci-integrity-check.sh`
 - [x] `workspace-sdk` test در root `pnpm test`
 - [x] [`map.md`](map.md) Phase 1 علامت ✅
-- [ ] PR `Phase: 1.4` merge روی `main`
+- [x] PR `Phase: 1.4` merge روی `main`
+- [x] GitHub `integrity-gate` روی `push` → `main` (job `integrity-gate-frontend`: `ci:integrity:frontend` / `phase-1:guard` + query-key)
 
 **دستور:** `pnpm run phase-1:guard`
 
-**وضعیت:** ✅ محلی — منتظر PR
+**وضعیت:** ✅ merge شده روی `main` — CI از راه دور: `backend-e2e-tests` (pnpm version conflict) در حال رفع workflow-only
 
 ---
 
