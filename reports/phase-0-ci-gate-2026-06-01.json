@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-01T08:27:25.135Z",
-  "gitSha": "f715a8d",
+  "generatedAt": "2026-06-01T15:45:55.139Z",
+  "gitSha": "cafe04e",
   "phase": "0.3",
   "environment": {
     "node": "v22.22.0",
@@ -13,7 +13,7 @@
       "required": true,
       "ok": true,
       "exitCode": 0,
-      "durationMs": 75813,
+      "durationMs": 102639,
       "stderrTail": "Pages directory cannot be found at /home/hamed/Music/docs/pages or /home/hamed/Music/docs/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.\nsocket-ci-check: skip — SOCKET_SECURITY_API_TOKEN is not set.\n  Set the token in CI secrets or run: pnpm exec socket login",
       "stdoutTail": null
     },
@@ -23,8 +23,8 @@
       "required": true,
       "ok": true,
       "exitCode": 0,
-      "durationMs": 88628,
-      "stderrTail": "aliCanonicalBasicsFromTourKind' is not exported from '@repo/types/denali' (imported as 'denaliCanonicalBasicsFromTourKind').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliTourKindFromCanonical' is not exported from '@repo/types/denali' (imported as 'denaliTourKindFromCanonical').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliCanonicalBasicsFromTourKind' is not exported from '@repo/types/denali' (imported as 'denaliCanonicalBasicsFromTourKind').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliTourKindFromCanonical' is not exported from '@repo/types/denali' (imported as 'denaliTourKindFromCanonical').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx",
+      "durationMs": 91364,
+      "stderrTail": "<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Parsing of /home/hamed/Music/docs/node_modules/.pnpm/next-intl@4.11.1_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_@playwright+test@1._3fe44nfzkebho5ww7o7mmjutz4/node_modules/next-intl/dist/esm/production/extractor/format/index.js for build dependencies failed at 'import(t)'.\n<w> Build dependencies behind this expression are ignored and might cause incorrect cache invalidation.\n<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Parsing of /home/hamed/Music/docs/node_modules/.pnpm/next-intl@4.11.1_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_@playwright+test@1._3fe44nfzkebho5ww7o7mmjutz4/node_modules/next-intl/dist/esm/production/extractor/format/index.js for build dependencies failed at 'import(t)'.\n<w> Build dependencies behind this expression are ignored and might cause incorrect cache invalidation.\n<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Parsing of /home/hamed/Music/docs/node_modules/.pnpm/next-intl@4.11.1_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_@playwright+test@1._3fe44nfzkebho5ww7o7mmjutz4/node_modules/next-intl/dist/esm/production/extractor/format/index.js for build dependencies failed at 'import(t)'.\n<w> Build dependencies behind this expression are ignored and might cause incorrect cache invalidation.",
       "stdoutTail": null
     },
     {
@@ -33,7 +33,7 @@
       "required": false,
       "ok": true,
       "exitCode": 0,
-      "durationMs": 5976,
+      "durationMs": 5676,
       "stderrTail": null,
       "stdoutTail": null
     },
@@ -43,8 +43,8 @@
       "required": false,
       "ok": true,
       "exitCode": 0,
-      "durationMs": 1412,
-      "stderrTail": null,
+      "durationMs": 1438,
+      "stderrTail": "password authentication failed for user \"test_user\"",
       "stdoutTail": null
     },
     {
@@ -53,7 +53,7 @@
       "required": false,
       "ok": false,
       "exitCode": 2,
-      "durationMs": 11624,
+      "durationMs": 11470,
       "stderrTail": null,
       "stdoutTail": "--filter @repo/shared run build && pnpm --filter @repo/denali-domain run build && pnpm --filter \"@apps/*\" run build\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/types@0.1.0 build /home/hamed/Music/docs/packages/types\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/config@0.1.0 build /home/hamed/Music/docs/packages/config\n> pnpm exec tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/domain-contracts@0.1.0 build /home/hamed/Music/docs/packages/domain-contracts\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/draft-engine@0.1.0 build /home/hamed/Music/docs/packages/draft-engine\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/shared-contracts@0.1.0 build /home/hamed/Music/docs/packages/shared-contracts\n> tsc -p tsconfig.json\n\nsrc/settings/tour-wizard-template-validation.schema.ts(12,8): error TS2307: Cannot find module '@repo/types/denali' or its corresponding type declarations.\n  There are types at '/home/hamed/Music/docs/packages/shared-contracts/node_modules/@repo/types/dist/denali/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.\n/home/hamed/Music/docs/packages/shared-contracts:\n ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @repo/shared-contracts@0.1.0 build: `tsc -p tsconfig.json`\nExit status 2\n ELIFECYCLE  Command failed with exit code 2."
     },
@@ -63,7 +63,7 @@
       "required": false,
       "ok": true,
       "exitCode": 0,
-      "durationMs": 2047,
+      "durationMs": 1656,
       "stderrTail": null,
       "stdoutTail": null
     },
@@ -73,9 +73,9 @@
       "required": true,
       "ok": false,
       "exitCode": 1,
-      "durationMs": 66496,
-      "stderrTail": "[WebServer]  ⨯ Failed to start server\n[WebServer] Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n[WebServer]     at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n[WebServer]     at listenInCluster (node:net:1997:12)\n[WebServer]     at node:net:2206:7\n[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {\n[WebServer]   code: 'EADDRINUSE',\n[WebServer]   errno: -98,\n[WebServer]   syscall: 'listen',\n[WebServer]   address: '0.0.0.0',\n[WebServer]   port: 3000\n[WebServer] }",
-      "stdoutTail": "Error: Process from config.webServer was not able to start. Exit code: 1"
+      "durationMs": 583295,
+      "stderrTail": "ebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: 'af7f8263-696c-4df0-9889-d8b7d0f10a4f'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: '0161568a-b4d8-435f-84d6-c8bc575e5848'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: 'ec584e7b-02ca-4563-82a3-9553956cb1c5'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: '1176895d-3145-4078-bd41-e1f8325427fa'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: '128c3315-4cb7-48ca-a627-0e43457d8d1b'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: 'cf2b42c5-97e3-4c00-8696-e5f4c70f4f29'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: 'de9ce3b6-52ab-4ede-872c-ee5f6d018f25'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: 'deb08030-839f-4c3d-a988-1f4ee3161ed5'\n[WebServer] }\n[WebServer] tenant_mismatch_detected {\n[WebServer]   layer: 'bff',\n[WebServer]   event: 'bff_error',\n[WebServer]   tenant_mismatch: true,\n[WebServer]   correlation_id: '75d20be4-0583-417a-88d1-3847e4ef5850'\n[WebServer] }",
+      "stdoutTail": "ise<void> {\n      647 |   const input = denaliTitleInput(page);\n    > 648 |   await input.fill(title);\n          |               ^\n      649 |   await input.dispatchEvent(\"input\");\n      650 |   await input.dispatchEvent(\"change\");\n      651 | }\n        at fillDenaliTitle (/home/hamed/Music/docs/apps/web/src/features/tours/__tests__/smoke/tour-wizard-smoke-helpers.ts:648:15)\n        at saveDenaliDraftTitle (/home/hamed/Music/docs/apps/web/src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:28:24)\n        at /home/hamed/Music/docs/apps/web/src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:284:5\n\n    Error Context: test-results/src-features-tours-__tests-49757-draft-after-concurrent-save/error-context.md\n\n  7 failed\n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:67:7 › denali verification matrix › 2a) kind switch mid-wizard purges ghost fields from UI \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:88:7 › denali verification matrix › 2b) navigation preserves valid fields and validations \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:102:7 › denali verification matrix › 2c) draft engine restore survives reload \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:114:7 › denali verification matrix › 2c-multi-step) partial hydration restores step 3 fields after reload \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:157:7 › denali verification matrix › 2d) draft save error is visible and retry clears it \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:206:7 › denali verification matrix › 2d-logistics) network interruption on logistics step shows error and retry \n    src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts:262:7 › denali verification matrix › 2e) two tabs detect stale draft after concurrent save \n  1 skipped\n  2 passed (8.6m)"
     }
   ],
   "knownIssues": [
@@ -102,16 +102,7 @@
       "note": "pnpm test:e2e:isolation requires Docker DB; run before large merges, not required for 0.3 exit."
     }
   ],
-  "smokeSuite": {
-    "command": "pnpm --filter @apps/web run qa:smoke:tour-wizard",
-    "ranAt": "2026-06-01",
-    "passed": 7,
-    "failed": 0,
-    "note": "PLAYWRIGHT_SMOKE host bypass + denali factory mocks"
-  },
   "exit03": {
-    "blockingPass": true,
-    "requiredPass": true,
-    "note": "ci_integrity, web_build, qa:smoke:tour-wizard green"
+    "requiredPass": false
   }
 }

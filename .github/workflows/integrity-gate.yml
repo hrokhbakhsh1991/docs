@@ -1,17 +1,25 @@
 # Monorepo integrity gate — same hardened checks as local pre-commit (full-repo scope).
 # Complements ui-integrity (web build/tokens) and architecture-guardrails (domain scripts).
+#
+# pull_request: full ci:integrity (eslint, depcruise, unit tests incl. API, socket, …).
+# push main:    frontend platform guardrails only (workspace-sdk + query-key integrity).
 
 name: integrity-gate
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 concurrency:
   group: integrity-gate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  integrity-gate:
+  integrity-gate-full:
+    name: Full integrity (PR)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -21,8 +29,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -37,3 +43,28 @@ jobs:
         env:
           SOCKET_SECURITY_API_TOKEN: ${{ secrets.SOCKET_SECURITY_API_TOKEN }}
         run: bash scripts/ci-integrity-check.sh
+
+  integrity-gate-frontend:
+    name: Frontend platform guardrails (main push)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend platform integrity (workspace-sdk + query-key)
+        run: bash scripts/ci-integrity-frontend.sh
