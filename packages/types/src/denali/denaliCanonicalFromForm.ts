@@ -54,8 +54,6 @@ export type DenaliWizardFormLike = {
     summitPoint?: DenaliLocationData;
     campPoint?: DenaliLocationData;
     endPoint?: DenaliLocationData;
-    /** @deprecated Use `startPointLocationText`. */
-    startPointVillage?: string;
     approximateReturnTime?: string;
     leaderUserIds?: string[];
     requiresLocalGuide?: boolean;
@@ -63,27 +61,15 @@ export type DenaliWizardFormLike = {
     requiresManualAdminApproval?: boolean;
     publishStatus?: string;
     socialMediaLink?: string;
-    /** @deprecated Use socialMediaLink. */
-    telegramUrl?: string;
-    /** @deprecated Use socialMediaLink. */
-    baleUrl?: string;
-    /** @deprecated Use socialMediaLink. */
-    eitaaUrl?: string;
   };
   programNature: {
     themeIds?: string[];
-    /** @deprecated Merged into themeIds on read. */
-    mainTourThemeId?: string;
     shortDescription?: string;
     longDescription?: string;
     difficultyLevel?: number | string;
     hikingHoursApprox?: number;
     hikingGoHours?: number;
     hikingReturnHours?: number;
-    /** @deprecated Use `hikingGoHours`. */
-    hikingUpHours?: number;
-    /** @deprecated Use `hikingReturnHours`. */
-    hikingDownHours?: number;
     itinerary?: Array<{
       day: number;
       activities: string;
@@ -98,13 +84,6 @@ export type DenaliWizardFormLike = {
         uploadedAt?: string;
       }>;
     }>;
-    /** @deprecated Use `tripDetails.metrics.elevationGain`. */
-    altitudeMeasurement?: number;
-    /** @deprecated Use `tripDetails.metrics.elevationGain`. */
-    altitudeGainApprox?: number;
-    itineraryOutline?: string;
-    /** @deprecated Merged into themeIds on read. */
-    secondaryTourThemeIds?: string[];
   };
   transport: {
     transportMode?: DenaliTransportMode;
@@ -119,10 +98,6 @@ export type DenaliWizardFormLike = {
     basePricePerPerson?: number;
     paymentMode?: string;
     includesTourInsurance?: boolean;
-    /** @deprecated Smart-pricing fields — ignored on read. */
-    basePriceWithPersonalCar?: number;
-    hasGroupTransportOption?: boolean;
-    priceWithGroupTransport?: number;
   };
   participantRequirements: {
     minimumAge?: number;
@@ -133,37 +108,18 @@ export type DenaliWizardFormLike = {
     sportsInsuranceRequired?: boolean;
     minRequiredPeaks?: number;
     fitnessPrerequisiteText?: string;
-    medicalNotes?: string;
-    technicalSkillNotes?: string;
     gearItems?: Array<{ id: string; isRequired: boolean }>;
-    requiredGearIds?: string[];
-    optionalGearIds?: string[];
   };
   policies: {
     policiesText?: string;
     cancellationDeadlineHours?: number;
     cancellationPenaltyPercentage?: number;
-    /** @deprecated Read via policiesText merge. */
-    cancellationPolicy?: string;
-    refundPolicy?: string;
-    attendanceRules?: string;
-    safetyPolicy?: string;
-    weatherPolicy?: string;
   };
   tripDetails?: {
     overview?: TripDetailsOverview;
     metrics?: TripDetailsMetrics;
     logistics?: {
       gatheringPoints?: unknown[];
-    };
-    itinerary?: {
-      dayPlans?: Array<{
-        day?: number;
-        title?: string;
-        description?: string;
-        location?: DenaliLocationData;
-        photos?: DenaliWizardPhotoRowInput[];
-      }>;
     };
   };
   photosData?: {
@@ -240,10 +196,7 @@ function trimOptionalString(value: string | undefined): string | undefined {
 }
 
 function startPointLocationFromForm(basic: DenaliWizardFormLike["basicInfo"]): string | undefined {
-  return (
-    denaliLocationAddressText(basic.startPoint) ??
-    trimOptionalString(basic.startPointLocationText ?? basic.startPointVillage)
-  );
+  return denaliLocationAddressText(basic.startPoint) ?? trimOptionalString(basic.startPointLocationText);
 }
 
 function resolveLocationZonesFromForm(basic: DenaliWizardFormLike["basicInfo"]): {
@@ -276,13 +229,13 @@ function resolveLocationZonesFromForm(basic: DenaliWizardFormLike["basicInfo"]):
 }
 
 function hikingGoHoursFromForm(program: DenaliWizardFormLike["programNature"]): number | undefined {
-  return program.hikingGoHours ?? program.hikingUpHours;
+  return program.hikingGoHours;
 }
 
 function hikingReturnHoursFromForm(
   program: DenaliWizardFormLike["programNature"],
 ): number | undefined {
-  return program.hikingReturnHours ?? program.hikingDownHours;
+  return program.hikingReturnHours;
 }
 
 function leaderUserIdsFromForm(ids: string[] | undefined): string[] | undefined {
@@ -292,7 +245,7 @@ function leaderUserIdsFromForm(ids: string[] | undefined): string[] | undefined 
 }
 
 function policiesTextFromForm(policies: DenaliWizardFormLike["policies"]): string | undefined {
-  return trimOptionalString(policies.policiesText ?? policies.cancellationPolicy);
+  return trimOptionalString(policies.policiesText);
 }
 
 function pricingRequiresPaymentFromForm(
@@ -300,10 +253,7 @@ function pricingRequiresPaymentFromForm(
 ): boolean | undefined {
   if (pricing.requiresPayment === true) return true;
   if (pricing.requiresPayment === false) return undefined;
-  const legacyPaid =
-    denaliFormAmountToCanonical(
-      pricing.basePriceWithPersonalCar ?? pricing.basePricePerPerson,
-    ) != null;
+  const legacyPaid = denaliFormAmountToCanonical(pricing.basePricePerPerson) != null;
   return legacyPaid ? true : undefined;
 }
 
@@ -315,17 +265,7 @@ function themeIdsFromProgramNature(program: DenaliWizardFormLike["programNature"
   const normalized = fromArray
     .map((id) => (typeof id === "string" ? id.trim() : ""))
     .filter((id) => id.length > 0 && UUID_V4.test(id));
-  if (normalized.length > 0) {
-    return [...new Set(normalized)];
-  }
-  const legacy: string[] = [];
-  const main = program.mainTourThemeId?.trim();
-  if (main && UUID_V4.test(main)) legacy.push(main);
-  for (const id of program.secondaryTourThemeIds ?? []) {
-    const t = typeof id === "string" ? id.trim() : "";
-    if (t && UUID_V4.test(t) && !legacy.includes(t)) legacy.push(t);
-  }
-  return legacy;
+  return [...new Set(normalized)];
 }
 
 function difficultyLevelFromForm(
@@ -382,54 +322,14 @@ function mapItineraryRows(
   });
 }
 
-function itineraryFromTripDetailsDayPlans(
-  tripDetails: DenaliWizardFormLike["tripDetails"],
-): DenaliCanonicalTourModel["program"]["itinerary"] {
-  const dayPlans = tripDetails?.itinerary?.dayPlans;
-  if (dayPlans == null || dayPlans.length === 0) {
-    return undefined;
-  }
-  const rows = dayPlans.map((plan, index) => {
-    const day =
-      typeof plan.day === "number" && Number.isFinite(plan.day) ? plan.day : index + 1;
-    const title = typeof plan.title === "string" ? plan.title.trim() : "";
-    const description = typeof plan.description === "string" ? plan.description.trim() : "";
-    const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(plan.photos);
-    return {
-      day,
-      activities: description || title,
-      ...(title ? { locationText: title } : {}),
-      ...(plan.location != null &&
-      (plan.location.addressText?.trim() ||
-        plan.location.latitude != null ||
-        plan.location.longitude != null)
-        ? {
-            location: {
-              addressText: plan.location.addressText?.trim() ?? "",
-              latitude: plan.location.latitude ?? null,
-              longitude: plan.location.longitude ?? null,
-            },
-          }
-        : {}),
-      ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
-    };
-  });
-  return rows.length > 0 ? rows : undefined;
-}
-
 function itineraryFromProgramNature(
   program: DenaliWizardFormLike["programNature"],
-  tripDetails?: DenaliWizardFormLike["tripDetails"],
 ): DenaliCanonicalTourModel["program"]["itinerary"] {
   const rows = program.itinerary;
   if (rows != null && rows.length > 0) {
     return mapItineraryRows(rows);
   }
-  const outline = program.itineraryOutline?.trim();
-  if (outline) {
-    return [{ day: 1, activities: outline }];
-  }
-  return itineraryFromTripDetailsDayPlans(tripDetails);
+  return undefined;
 }
 
 function resolveCanonicalBasicsFromFormTourType(
@@ -471,11 +371,8 @@ export function denaliCanonicalFromForm(
   const nonAttendanceDetails = trimOptionalString(
     form.tripDetails?.overview?.nonAttendanceDetails,
   );
-  const peakHeight =
-    form.tripDetails?.overview?.peakHeight ??
-    form.programNature.altitudeMeasurement;
-  const elevationGain =
-    form.tripDetails?.metrics?.elevationGain ?? form.programNature.altitudeGainApprox;
+  const peakHeight = form.tripDetails?.overview?.peakHeight;
+  const elevationGain = form.tripDetails?.metrics?.elevationGain;
 
   const overview: DenaliCanonicalTourModel["overview"] = {
     ...(nonAttendanceDetails != null ? { nonAttendanceDetails } : {}),
@@ -488,11 +385,10 @@ export function denaliCanonicalFromForm(
       ? { elevationGain }
       : undefined;
 
-  const itinerary =
-    itineraryFromProgramNature(form.programNature, form.tripDetails) ??
-    carryForward?.programItinerary;
+  const itinerary = itineraryFromProgramNature(form.programNature) ?? carryForward?.programItinerary;
   const photos =
     pickDenaliCanonicalGalleryPhotos(form.photosData?.photos) ?? carryForward?.photos;
+  const gearItems = form.participantRequirements.gearItems;
 
   return {
     category: basics.category,
@@ -532,10 +428,7 @@ export function denaliCanonicalFromForm(
     publishStatus:
       form.basicInfo.publishStatus === "active" ? "active" : "draft",
     socialMediaLink:
-      trimOptionalString(form.basicInfo.socialMediaLink) ??
-      trimOptionalString(form.basicInfo.telegramUrl) ??
-      trimOptionalString(form.basicInfo.baleUrl) ??
-      trimOptionalString(form.basicInfo.eitaaUrl),
+      trimOptionalString(form.basicInfo.socialMediaLink),
 
     program: {
       themeIds: themeIdsFromProgramNature(form.programNature),
@@ -555,8 +448,7 @@ export function denaliCanonicalFromForm(
       basePricePerPerson:
         requiresPayment === true
           ? denaliFormAmountToCanonical(
-              form.pricingPayment.basePricePerPerson ??
-                form.pricingPayment.basePriceWithPersonalCar,
+              form.pricingPayment.basePricePerPerson,
             )
           : undefined,
       paymentMode: "offline_receipt",
@@ -581,9 +473,8 @@ export function denaliCanonicalFromForm(
         form.participantRequirements.fitnessPrerequisiteText,
       ),
       gearItems:
-        form.participantRequirements.gearItems != null &&
-        form.participantRequirements.gearItems.length > 0
-          ? form.participantRequirements.gearItems
+        gearItems != null && gearItems.length > 0
+          ? gearItems
           : undefined,
     },
 

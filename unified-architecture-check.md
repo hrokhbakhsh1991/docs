@@ -1,0 +1,750 @@
+
+---
+
+# Structural Mapping Audit Dump (2026-06-01T02:49:21.890Z)
+
+## 1) Wizard Schema Dump (DenaliCreateTourWizardForm RHF paths)
+
+- basicInfo
+- basicInfo.approximateReturnTime
+- basicInfo.campPoint
+- basicInfo.capacityMax
+- basicInfo.capacityMin
+- basicInfo.destinationId
+- basicInfo.endDateTime
+- basicInfo.endPoint
+- basicInfo.gatheringPoint
+- basicInfo.leaderUserIds
+- basicInfo.localGuideName
+- basicInfo.meetingPoint
+- basicInfo.message
+- basicInfo.publishStatus
+- basicInfo.requiresLocalGuide
+- basicInfo.requiresManualAdminApproval
+- basicInfo.socialMediaLink
+- basicInfo.startDateTime
+- basicInfo.startPoint
+- basicInfo.startPointLocationText
+- basicInfo.summitPoint
+- basicInfo.title
+- basicInfo.tourType
+- participantRequirements
+- participantRequirements.fitnessLevel
+- participantRequirements.fitnessPrerequisiteText
+- participantRequirements.gearItems
+- participantRequirements.maximumAge
+- participantRequirements.minimumAge
+- participantRequirements.minRequiredPeaks
+- participantRequirements.nationalIdRequired
+- participantRequirements.sportsInsuranceRequired
+- photosData
+- photosData.photos
+- policies
+- policies.cancellationDeadlineHours
+- policies.cancellationPenaltyPercentage
+- policies.policiesText
+- pricingPayment
+- pricingPayment.basePricePerPerson
+- pricingPayment.includesTourInsurance
+- pricingPayment.paymentMode
+- pricingPayment.requiresPayment
+- programNature
+- programNature.difficultyLevel
+- programNature.hikingGoHours
+- programNature.hikingHoursApprox
+- programNature.hikingReturnHours
+- programNature.itinerary
+- programNature.longDescription
+- programNature.shortDescription
+- programNature.themeIds
+- transport
+- transport.adminCapacityApproval
+- transport.allowPersonalCar
+- transport.dongAmount
+- transport.seatPreference
+- transport.transportCost
+- transport.transportMode
+- transport.transportNotes
+- tripDetails
+- tripDetails.logistics
+- tripDetails.logistics.gatheringPoints
+- tripDetails.metrics
+- tripDetails.metrics.elevationGain
+- tripDetails.overview
+- tripDetails.overview.customServiceLabels
+- tripDetails.overview.nonAttendanceDetails
+- tripDetails.overview.peakHeight
+
+### Mismatched Field
+- (none)
+
+## 2) Template Storage Dump (DENALI_FIELD_DEFINITIONS + DenaliCanonicalTemplateData)
+
+- approximateReturnTime [STALE_PATH]
+- campPoint [STALE_PATH]
+- capacityMax [STALE_PATH]
+- capacityMin [STALE_PATH]
+- category [STALE_PATH]
+- customServiceLabels [STALE_PATH]
+- destinationId [STALE_PATH]
+- duration [STALE_PATH]
+- elevationGain [STALE_PATH]
+- endDateTime [STALE_PATH]
+- endPoint [STALE_PATH]
+- eventVariant [STALE_PATH]
+- gatheringPoint [STALE_PATH]
+- gatheringPoints [STALE_PATH]
+- id [STALE_PATH]
+- leaderUserIds [STALE_PATH]
+- localGuideName [STALE_PATH]
+- location [STALE_PATH]
+- meetingPoint [STALE_PATH]
+- metrics [STALE_PATH]
+- metrics.elevationGain [STALE_PATH]
+- nonAttendanceDetails [STALE_PATH]
+- overview [STALE_PATH]
+- overview.nonAttendanceDetails [STALE_PATH]
+- overview.peakHeight [STALE_PATH]
+- participants [STALE_PATH]
+- participants.fitnessLevel [STALE_PATH]
+- participants.fitnessPrerequisiteText [STALE_PATH]
+- participants.gearItems [STALE_PATH]
+- participants.id [STALE_PATH]
+- participants.isRequired [STALE_PATH]
+- participants.maximumAge [STALE_PATH]
+- participants.minimumAge [STALE_PATH]
+- participants.minRequiredPeaks [STALE_PATH]
+- participants.nationalIdRequired [STALE_PATH]
+- participants.sportsInsuranceRequired [STALE_PATH]
+- peakHeight [STALE_PATH]
+- photos [STALE_PATH]
+- policies
+- policies.cancellationDeadlineHours
+- policies.cancellationPenaltyPercentage
+- policies.policiesText
+- pricing [STALE_PATH]
+- pricing.basePricePerPerson [STALE_PATH]
+- pricing.includesTourInsurance [STALE_PATH]
+- pricing.paymentMode [STALE_PATH]
+- pricing.requiresPayment [STALE_PATH]
+- program [STALE_PATH]
+- program.activities [STALE_PATH]
+- program.day [STALE_PATH]
+- program.difficultyLevel [STALE_PATH]
+- program.filename [STALE_PATH]
+- program.hikingGoHours [STALE_PATH]
+- program.hikingHoursApprox [STALE_PATH]
+- program.hikingReturnHours [STALE_PATH]
+- program.id [STALE_PATH]
+- program.itinerary [STALE_PATH]
+- program.location [STALE_PATH]
+- program.locationText [STALE_PATH]
+- program.longDescription [STALE_PATH]
+- program.mimeType [STALE_PATH]
+- program.photos [STALE_PATH]
+- program.shortDescription [STALE_PATH]
+- program.size [STALE_PATH]
+- program.themeIds [STALE_PATH]
+- program.uploadedAt [STALE_PATH]
+- program.url [STALE_PATH]
+- publishStatus [STALE_PATH]
+- requiresLocalGuide [STALE_PATH]
+- requiresManualAdminApproval [STALE_PATH]
+- socialMediaLink [STALE_PATH]
+- startDateTime [STALE_PATH]
+- startPoint [STALE_PATH]
+- startPointLocationText [STALE_PATH]
+- summitPoint [STALE_PATH]
+- time [STALE_PATH]
+- title [STALE_PATH]
+- transport
+- transport.adminCapacityApproval
+- transport.allowPersonalCar
+- transport.dongAmount
+- transport.mode [STALE_PATH]
+- transport.seatPreference
+- transport.transportCost
+- transport.transportNotes
+- tripDetails.metrics.elevationGain
+- tripDetails.overview.customServiceLabels
+- tripDetails.overview.nonAttendanceDetails
+- tripDetails.overview.peakHeight
+
+### Mismatched Field
+- approximateReturnTime [not in Wizard Schema Dump]
+- campPoint [not in Wizard Schema Dump]
+- capacityMax [not in Wizard Schema Dump]
+- capacityMin [not in Wizard Schema Dump]
+- category [not in Wizard Schema Dump]
+- customServiceLabels [not in Wizard Schema Dump]
+- destinationId [not in Wizard Schema Dump]
+- duration [not in Wizard Schema Dump]
+- elevationGain [not in Wizard Schema Dump]
+- endDateTime [not in Wizard Schema Dump]
+- endPoint [not in Wizard Schema Dump]
+- eventVariant [not in Wizard Schema Dump]
+- gatheringPoint [not in Wizard Schema Dump]
+- gatheringPoints [not in Wizard Schema Dump]
+- id [not in Wizard Schema Dump]
+- leaderUserIds [not in Wizard Schema Dump]
+- localGuideName [not in Wizard Schema Dump]
+- location [not in Wizard Schema Dump]
+- meetingPoint [not in Wizard Schema Dump]
+- metrics [not in Wizard Schema Dump]
+- metrics.elevationGain [not in Wizard Schema Dump]
+- nonAttendanceDetails [not in Wizard Schema Dump]
+- overview [not in Wizard Schema Dump]
+- overview.nonAttendanceDetails [not in Wizard Schema Dump]
+- overview.peakHeight [not in Wizard Schema Dump]
+- participants [not in Wizard Schema Dump]
+- participants.fitnessLevel [not in Wizard Schema Dump]
+- participants.fitnessPrerequisiteText [not in Wizard Schema Dump]
+- participants.gearItems [not in Wizard Schema Dump]
+- participants.id [not in Wizard Schema Dump]
+- participants.isRequired [not in Wizard Schema Dump]
+- participants.maximumAge [not in Wizard Schema Dump]
+- participants.minimumAge [not in Wizard Schema Dump]
+- participants.minRequiredPeaks [not in Wizard Schema Dump]
+- participants.nationalIdRequired [not in Wizard Schema Dump]
+- participants.sportsInsuranceRequired [not in Wizard Schema Dump]
+- peakHeight [not in Wizard Schema Dump]
+- photos [not in Wizard Schema Dump]
+- pricing [not in Wizard Schema Dump]
+- pricing.basePricePerPerson [not in Wizard Schema Dump]
+- pricing.includesTourInsurance [not in Wizard Schema Dump]
+- pricing.paymentMode [not in Wizard Schema Dump]
+- pricing.requiresPayment [not in Wizard Schema Dump]
+- program [not in Wizard Schema Dump]
+- program.activities [not in Wizard Schema Dump]
+- program.day [not in Wizard Schema Dump]
+- program.difficultyLevel [not in Wizard Schema Dump]
+- program.filename [not in Wizard Schema Dump]
+- program.hikingGoHours [not in Wizard Schema Dump]
+- program.hikingHoursApprox [not in Wizard Schema Dump]
+- program.hikingReturnHours [not in Wizard Schema Dump]
+- program.id [not in Wizard Schema Dump]
+- program.itinerary [not in Wizard Schema Dump]
+- program.location [not in Wizard Schema Dump]
+- program.locationText [not in Wizard Schema Dump]
+- program.longDescription [not in Wizard Schema Dump]
+- program.mimeType [not in Wizard Schema Dump]
+- program.photos [not in Wizard Schema Dump]
+- program.shortDescription [not in Wizard Schema Dump]
+- program.size [not in Wizard Schema Dump]
+- program.themeIds [not in Wizard Schema Dump]
+- program.uploadedAt [not in Wizard Schema Dump]
+- program.url [not in Wizard Schema Dump]
+- publishStatus [not in Wizard Schema Dump]
+- requiresLocalGuide [not in Wizard Schema Dump]
+- requiresManualAdminApproval [not in Wizard Schema Dump]
+- socialMediaLink [not in Wizard Schema Dump]
+- startDateTime [not in Wizard Schema Dump]
+- startPoint [not in Wizard Schema Dump]
+- startPointLocationText [not in Wizard Schema Dump]
+- summitPoint [not in Wizard Schema Dump]
+- time [not in Wizard Schema Dump]
+- title [not in Wizard Schema Dump]
+- transport.mode [not in Wizard Schema Dump]
+- basicInfo [missing from this section]
+- basicInfo.approximateReturnTime [missing from this section]
+- basicInfo.campPoint [missing from this section]
+- basicInfo.capacityMax [missing from this section]
+- basicInfo.capacityMin [missing from this section]
+- basicInfo.destinationId [missing from this section]
+- basicInfo.endDateTime [missing from this section]
+- basicInfo.endPoint [missing from this section]
+- basicInfo.gatheringPoint [missing from this section]
+- basicInfo.leaderUserIds [missing from this section]
+- basicInfo.localGuideName [missing from this section]
+- basicInfo.meetingPoint [missing from this section]
+- basicInfo.message [missing from this section]
+- basicInfo.publishStatus [missing from this section]
+- basicInfo.requiresLocalGuide [missing from this section]
+- basicInfo.requiresManualAdminApproval [missing from this section]
+- basicInfo.socialMediaLink [missing from this section]
+- basicInfo.startDateTime [missing from this section]
+- basicInfo.startPoint [missing from this section]
+- basicInfo.startPointLocationText [missing from this section]
+- basicInfo.summitPoint [missing from this section]
+- basicInfo.title [missing from this section]
+- basicInfo.tourType [missing from this section]
+- participantRequirements [missing from this section]
+- participantRequirements.fitnessLevel [missing from this section]
+- participantRequirements.fitnessPrerequisiteText [missing from this section]
+- participantRequirements.gearItems [missing from this section]
+- participantRequirements.maximumAge [missing from this section]
+- participantRequirements.minimumAge [missing from this section]
+- participantRequirements.minRequiredPeaks [missing from this section]
+- participantRequirements.nationalIdRequired [missing from this section]
+- participantRequirements.sportsInsuranceRequired [missing from this section]
+- photosData [missing from this section]
+- photosData.photos [missing from this section]
+- pricingPayment [missing from this section]
+- pricingPayment.basePricePerPerson [missing from this section]
+- pricingPayment.includesTourInsurance [missing from this section]
+- pricingPayment.paymentMode [missing from this section]
+- pricingPayment.requiresPayment [missing from this section]
+- programNature [missing from this section]
+- programNature.difficultyLevel [missing from this section]
+- programNature.hikingGoHours [missing from this section]
+- programNature.hikingHoursApprox [missing from this section]
+- programNature.hikingReturnHours [missing from this section]
+- programNature.itinerary [missing from this section]
+- programNature.longDescription [missing from this section]
+- programNature.shortDescription [missing from this section]
+- programNature.themeIds [missing from this section]
+- transport.transportMode [missing from this section]
+- tripDetails [missing from this section]
+- tripDetails.logistics [missing from this section]
+- tripDetails.logistics.gatheringPoints [missing from this section]
+- tripDetails.metrics [missing from this section]
+- tripDetails.overview [missing from this section]
+
+## 3) Edit/Hydration Logic Paths (orchestrateDenaliWizardFromTemplate)
+
+- data.form [STALE_PATH]
+- result.draftState [STALE_PATH]
+- result.errors [STALE_PATH]
+- result.success [STALE_PATH]
+- template.fieldRulesOverlay [STALE_PATH]
+- template.id [STALE_PATH]
+- template.types [STALE_PATH]
+- template.workspaceId [STALE_PATH]
+
+### Mismatched Field
+- data.form [not in Wizard Schema Dump]
+- result.draftState [not in Wizard Schema Dump]
+- result.errors [not in Wizard Schema Dump]
+- result.success [not in Wizard Schema Dump]
+- template.fieldRulesOverlay [not in Wizard Schema Dump]
+- template.id [not in Wizard Schema Dump]
+- template.types [not in Wizard Schema Dump]
+- template.workspaceId [not in Wizard Schema Dump]
+- basicInfo [missing from this section]
+- basicInfo.approximateReturnTime [missing from this section]
+- basicInfo.campPoint [missing from this section]
+- basicInfo.capacityMax [missing from this section]
+- basicInfo.capacityMin [missing from this section]
+- basicInfo.destinationId [missing from this section]
+- basicInfo.endDateTime [missing from this section]
+- basicInfo.endPoint [missing from this section]
+- basicInfo.gatheringPoint [missing from this section]
+- basicInfo.leaderUserIds [missing from this section]
+- basicInfo.localGuideName [missing from this section]
+- basicInfo.meetingPoint [missing from this section]
+- basicInfo.message [missing from this section]
+- basicInfo.publishStatus [missing from this section]
+- basicInfo.requiresLocalGuide [missing from this section]
+- basicInfo.requiresManualAdminApproval [missing from this section]
+- basicInfo.socialMediaLink [missing from this section]
+- basicInfo.startDateTime [missing from this section]
+- basicInfo.startPoint [missing from this section]
+- basicInfo.startPointLocationText [missing from this section]
+- basicInfo.summitPoint [missing from this section]
+- basicInfo.title [missing from this section]
+- basicInfo.tourType [missing from this section]
+- participantRequirements [missing from this section]
+- participantRequirements.fitnessLevel [missing from this section]
+- participantRequirements.fitnessPrerequisiteText [missing from this section]
+- participantRequirements.gearItems [missing from this section]
+- participantRequirements.maximumAge [missing from this section]
+- participantRequirements.minimumAge [missing from this section]
+- participantRequirements.minRequiredPeaks [missing from this section]
+- participantRequirements.nationalIdRequired [missing from this section]
+- participantRequirements.sportsInsuranceRequired [missing from this section]
+- photosData [missing from this section]
+- photosData.photos [missing from this section]
+- policies [missing from this section]
+- policies.cancellationDeadlineHours [missing from this section]
+- policies.cancellationPenaltyPercentage [missing from this section]
+- policies.policiesText [missing from this section]
+- pricingPayment [missing from this section]
+- pricingPayment.basePricePerPerson [missing from this section]
+- pricingPayment.includesTourInsurance [missing from this section]
+- pricingPayment.paymentMode [missing from this section]
+- pricingPayment.requiresPayment [missing from this section]
+- programNature [missing from this section]
+- programNature.difficultyLevel [missing from this section]
+- programNature.hikingGoHours [missing from this section]
+- programNature.hikingHoursApprox [missing from this section]
+- programNature.hikingReturnHours [missing from this section]
+- programNature.itinerary [missing from this section]
+- programNature.longDescription [missing from this section]
+- programNature.shortDescription [missing from this section]
+- programNature.themeIds [missing from this section]
+- transport [missing from this section]
+- transport.adminCapacityApproval [missing from this section]
+- transport.allowPersonalCar [missing from this section]
+- transport.dongAmount [missing from this section]
+- transport.seatPreference [missing from this section]
+- transport.transportCost [missing from this section]
+- transport.transportMode [missing from this section]
+- transport.transportNotes [missing from this section]
+- tripDetails [missing from this section]
+- tripDetails.logistics [missing from this section]
+- tripDetails.logistics.gatheringPoints [missing from this section]
+- tripDetails.metrics [missing from this section]
+- tripDetails.metrics.elevationGain [missing from this section]
+- tripDetails.overview [missing from this section]
+- tripDetails.overview.customServiceLabels [missing from this section]
+- tripDetails.overview.nonAttendanceDetails [missing from this section]
+- tripDetails.overview.peakHeight [missing from this section]
+
+## 4) Draft/Save Logic Paths (denaliCanonicalFromForm)
+
+- adminCapacityApproval [STALE_PATH]
+- allowPersonalCar [STALE_PATH]
+- approximateReturnTime [STALE_PATH]
+- basicInfo
+- basicInfo.approximateReturnTime
+- basicInfo.baleUrl [STALE_PATH]
+- basicInfo.capacityMax
+- basicInfo.capacityMin
+- basicInfo.destinationId
+- basicInfo.eitaaUrl [STALE_PATH]
+- basicInfo.endDateTime
+- basicInfo.gatheringPoint
+- basicInfo.leaderUserIds
+- basicInfo.localGuideName
+- basicInfo.meetingPoint
+- basicInfo.publishStatus
+- basicInfo.requiresLocalGuide
+- basicInfo.requiresManualAdminApproval
+- basicInfo.socialMediaLink
+- basicInfo.startDateTime
+- basicInfo.telegramUrl [STALE_PATH]
+- basicInfo.title
+- basicInfo.tourType
+- campPoint [STALE_PATH]
+- capacityMax [STALE_PATH]
+- capacityMin [STALE_PATH]
+- category [STALE_PATH]
+- customServiceLabels [STALE_PATH]
+- destinationId [STALE_PATH]
+- dongAmount [STALE_PATH]
+- duration [STALE_PATH]
+- endDateTime [STALE_PATH]
+- endPoint [STALE_PATH]
+- gatheringPoint [STALE_PATH]
+- gatheringPoints [STALE_PATH]
+- leaderUserIds [STALE_PATH]
+- localGuideName [STALE_PATH]
+- meetingPoint [STALE_PATH]
+- mode [STALE_PATH]
+- participantRequirements.fitnessLevel
+- participantRequirements.fitnessPrerequisiteText
+- participantRequirements.gearItems
+- participantRequirements.gearItems.length [STALE_PATH]
+- participantRequirements.maximumAge
+- participantRequirements.minimumAge
+- participantRequirements.minRequiredPeaks
+- participantRequirements.nationalIdRequired
+- participantRequirements.sportsInsuranceRequired
+- participants [STALE_PATH]
+- participants.fitnessLevel [STALE_PATH]
+- participants.fitnessPrerequisiteText [STALE_PATH]
+- participants.gearItems [STALE_PATH]
+- participants.maximumAge [STALE_PATH]
+- participants.minimumAge [STALE_PATH]
+- participants.minRequiredPeaks [STALE_PATH]
+- participants.nationalIdRequired [STALE_PATH]
+- participants.sportsInsuranceRequired [STALE_PATH]
+- photosData
+- policies
+- policies.cancellationDeadlineHours
+- policies.cancellationPenaltyPercentage
+- policies.policiesText
+- pricing [STALE_PATH]
+- pricing.basePricePerPerson [STALE_PATH]
+- pricing.includesTourInsurance [STALE_PATH]
+- pricing.paymentMode [STALE_PATH]
+- pricing.requiresPayment [STALE_PATH]
+- pricingPayment
+- pricingPayment.basePricePerPerson
+- pricingPayment.basePriceWithPersonalCar [STALE_PATH]
+- pricingPayment.includesTourInsurance
+- program [STALE_PATH]
+- program.difficultyLevel [STALE_PATH]
+- program.hikingGoHours [STALE_PATH]
+- program.hikingHoursApprox [STALE_PATH]
+- program.hikingReturnHours [STALE_PATH]
+- program.itinerary [STALE_PATH]
+- program.longDescription [STALE_PATH]
+- program.shortDescription [STALE_PATH]
+- program.themeIds [STALE_PATH]
+- programNature
+- programNature.altitudeGainApprox [STALE_PATH]
+- programNature.altitudeMeasurement [STALE_PATH]
+- programNature.difficultyLevel
+- programNature.hikingHoursApprox
+- programNature.itinerary
+- programNature.longDescription
+- programNature.shortDescription
+- publishStatus [STALE_PATH]
+- requiresLocalGuide [STALE_PATH]
+- requiresManualAdminApproval [STALE_PATH]
+- socialMediaLink [STALE_PATH]
+- startDateTime [STALE_PATH]
+- startPoint [STALE_PATH]
+- startPointLocationText [STALE_PATH]
+- summitPoint [STALE_PATH]
+- title [STALE_PATH]
+- transport.adminCapacityApproval
+- transport.allowPersonalCar
+- transport.dongAmount
+- transport.mode [STALE_PATH]
+- transport.transportCost
+- transport.transportMode
+- transport.transportNotes
+- transportCost [STALE_PATH]
+- transportNotes [STALE_PATH]
+- tripDetails
+- tripDetails.metrics.elevationGain
+- tripDetails.overview
+
+### Mismatched Field
+- adminCapacityApproval [not in Wizard Schema Dump]
+- allowPersonalCar [not in Wizard Schema Dump]
+- approximateReturnTime [not in Wizard Schema Dump]
+- basicInfo.baleUrl [not in Wizard Schema Dump]
+- basicInfo.eitaaUrl [not in Wizard Schema Dump]
+- basicInfo.telegramUrl [not in Wizard Schema Dump]
+- campPoint [not in Wizard Schema Dump]
+- capacityMax [not in Wizard Schema Dump]
+- capacityMin [not in Wizard Schema Dump]
+- category [not in Wizard Schema Dump]
+- customServiceLabels [not in Wizard Schema Dump]
+- destinationId [not in Wizard Schema Dump]
+- dongAmount [not in Wizard Schema Dump]
+- duration [not in Wizard Schema Dump]
+- endDateTime [not in Wizard Schema Dump]
+- endPoint [not in Wizard Schema Dump]
+- gatheringPoint [not in Wizard Schema Dump]
+- gatheringPoints [not in Wizard Schema Dump]
+- leaderUserIds [not in Wizard Schema Dump]
+- localGuideName [not in Wizard Schema Dump]
+- meetingPoint [not in Wizard Schema Dump]
+- mode [not in Wizard Schema Dump]
+- participantRequirements.gearItems.length [not in Wizard Schema Dump]
+- participants [not in Wizard Schema Dump]
+- participants.fitnessLevel [not in Wizard Schema Dump]
+- participants.fitnessPrerequisiteText [not in Wizard Schema Dump]
+- participants.gearItems [not in Wizard Schema Dump]
+- participants.maximumAge [not in Wizard Schema Dump]
+- participants.minimumAge [not in Wizard Schema Dump]
+- participants.minRequiredPeaks [not in Wizard Schema Dump]
+- participants.nationalIdRequired [not in Wizard Schema Dump]
+- participants.sportsInsuranceRequired [not in Wizard Schema Dump]
+- pricing [not in Wizard Schema Dump]
+- pricing.basePricePerPerson [not in Wizard Schema Dump]
+- pricing.includesTourInsurance [not in Wizard Schema Dump]
+- pricing.paymentMode [not in Wizard Schema Dump]
+- pricing.requiresPayment [not in Wizard Schema Dump]
+- pricingPayment.basePriceWithPersonalCar [not in Wizard Schema Dump]
+- program [not in Wizard Schema Dump]
+- program.difficultyLevel [not in Wizard Schema Dump]
+- program.hikingGoHours [not in Wizard Schema Dump]
+- program.hikingHoursApprox [not in Wizard Schema Dump]
+- program.hikingReturnHours [not in Wizard Schema Dump]
+- program.itinerary [not in Wizard Schema Dump]
+- program.longDescription [not in Wizard Schema Dump]
+- program.shortDescription [not in Wizard Schema Dump]
+- program.themeIds [not in Wizard Schema Dump]
+- programNature.altitudeGainApprox [not in Wizard Schema Dump]
+- programNature.altitudeMeasurement [not in Wizard Schema Dump]
+- publishStatus [not in Wizard Schema Dump]
+- requiresLocalGuide [not in Wizard Schema Dump]
+- requiresManualAdminApproval [not in Wizard Schema Dump]
+- socialMediaLink [not in Wizard Schema Dump]
+- startDateTime [not in Wizard Schema Dump]
+- startPoint [not in Wizard Schema Dump]
+- startPointLocationText [not in Wizard Schema Dump]
+- summitPoint [not in Wizard Schema Dump]
+- title [not in Wizard Schema Dump]
+- transport.mode [not in Wizard Schema Dump]
+- transportCost [not in Wizard Schema Dump]
+- transportNotes [not in Wizard Schema Dump]
+- basicInfo.campPoint [missing from this section]
+- basicInfo.endPoint [missing from this section]
+- basicInfo.message [missing from this section]
+- basicInfo.startPoint [missing from this section]
+- basicInfo.startPointLocationText [missing from this section]
+- basicInfo.summitPoint [missing from this section]
+- participantRequirements [missing from this section]
+- photosData.photos [missing from this section]
+- pricingPayment.paymentMode [missing from this section]
+- pricingPayment.requiresPayment [missing from this section]
+- programNature.hikingGoHours [missing from this section]
+- programNature.hikingReturnHours [missing from this section]
+- programNature.themeIds [missing from this section]
+- transport [missing from this section]
+- transport.seatPreference [missing from this section]
+- tripDetails.logistics [missing from this section]
+- tripDetails.logistics.gatheringPoints [missing from this section]
+- tripDetails.metrics [missing from this section]
+- tripDetails.overview.customServiceLabels [missing from this section]
+- tripDetails.overview.nonAttendanceDetails [missing from this section]
+- tripDetails.overview.peakHeight [missing from this section]
+
+## 5) Clone Logic Paths (template clone service/script)
+
+- cloneResult.photoIdRemap [STALE_PATH]
+- cloneResult.tripDetails [STALE_PATH]
+- dto.autoAcceptRegistrations [STALE_PATH]
+- dto.chat_link [STALE_PATH]
+- dto.cost_context [STALE_PATH]
+- dto.customServiceLabels [STALE_PATH]
+- dto.description [STALE_PATH]
+- dto.destinationId [STALE_PATH]
+- dto.durationDays [STALE_PATH]
+- dto.lifecycle_status [STALE_PATH]
+- dto.meetingPoint [STALE_PATH]
+- dto.sourceTourId [STALE_PATH]
+- dto.title [STALE_PATH]
+- dto.total_capacity [STALE_PATH]
+- dto.tourType [STALE_PATH]
+- dto.transportModes [STALE_PATH]
+- dto.tripDetails [STALE_PATH]
+- orchestration.errors [STALE_PATH]
+- orchestration.payload [STALE_PATH]
+- orchestration.success [STALE_PATH]
+- program.itinerary [STALE_PATH]
+- projection.autoAcceptRegistrations [STALE_PATH]
+- projection.customServiceLabels [STALE_PATH]
+- projection.description [STALE_PATH]
+- projection.destinationId [STALE_PATH]
+- projection.durationDays [STALE_PATH]
+- projection.meetingPoint [STALE_PATH]
+- projection.tourType [STALE_PATH]
+- projection.transportModes [STALE_PATH]
+- source.autoAcceptRegistrations [STALE_PATH]
+- source.chatLink [STALE_PATH]
+- source.costContext [STALE_PATH]
+- source.description [STALE_PATH]
+- source.details [STALE_PATH]
+- source.title [STALE_PATH]
+- source.totalCapacity [STALE_PATH]
+- source.tourType [STALE_PATH]
+- source.transportModes [STALE_PATH]
+- template.canonicalData [STALE_PATH]
+- template.fieldRulesOverlay [STALE_PATH]
+- template.id [STALE_PATH]
+- template.workspaceId [STALE_PATH]
+- tour.clone.release_clone_operation_failed [STALE_PATH]
+- transport.mode [STALE_PATH]
+
+### Mismatched Field
+- cloneResult.photoIdRemap [not in Wizard Schema Dump]
+- cloneResult.tripDetails [not in Wizard Schema Dump]
+- dto.autoAcceptRegistrations [not in Wizard Schema Dump]
+- dto.chat_link [not in Wizard Schema Dump]
+- dto.cost_context [not in Wizard Schema Dump]
+- dto.customServiceLabels [not in Wizard Schema Dump]
+- dto.description [not in Wizard Schema Dump]
+- dto.destinationId [not in Wizard Schema Dump]
+- dto.durationDays [not in Wizard Schema Dump]
+- dto.lifecycle_status [not in Wizard Schema Dump]
+- dto.meetingPoint [not in Wizard Schema Dump]
+- dto.sourceTourId [not in Wizard Schema Dump]
+- dto.title [not in Wizard Schema Dump]
+- dto.total_capacity [not in Wizard Schema Dump]
+- dto.tourType [not in Wizard Schema Dump]
+- dto.transportModes [not in Wizard Schema Dump]
+- dto.tripDetails [not in Wizard Schema Dump]
+- orchestration.errors [not in Wizard Schema Dump]
+- orchestration.payload [not in Wizard Schema Dump]
+- orchestration.success [not in Wizard Schema Dump]
+- program.itinerary [not in Wizard Schema Dump]
+- projection.autoAcceptRegistrations [not in Wizard Schema Dump]
+- projection.customServiceLabels [not in Wizard Schema Dump]
+- projection.description [not in Wizard Schema Dump]
+- projection.destinationId [not in Wizard Schema Dump]
+- projection.durationDays [not in Wizard Schema Dump]
+- projection.meetingPoint [not in Wizard Schema Dump]
+- projection.tourType [not in Wizard Schema Dump]
+- projection.transportModes [not in Wizard Schema Dump]
+- source.autoAcceptRegistrations [not in Wizard Schema Dump]
+- source.chatLink [not in Wizard Schema Dump]
+- source.costContext [not in Wizard Schema Dump]
+- source.description [not in Wizard Schema Dump]
+- source.details [not in Wizard Schema Dump]
+- source.title [not in Wizard Schema Dump]
+- source.totalCapacity [not in Wizard Schema Dump]
+- source.tourType [not in Wizard Schema Dump]
+- source.transportModes [not in Wizard Schema Dump]
+- template.canonicalData [not in Wizard Schema Dump]
+- template.fieldRulesOverlay [not in Wizard Schema Dump]
+- template.id [not in Wizard Schema Dump]
+- template.workspaceId [not in Wizard Schema Dump]
+- tour.clone.release_clone_operation_failed [not in Wizard Schema Dump]
+- transport.mode [not in Wizard Schema Dump]
+- basicInfo [missing from this section]
+- basicInfo.approximateReturnTime [missing from this section]
+- basicInfo.campPoint [missing from this section]
+- basicInfo.capacityMax [missing from this section]
+- basicInfo.capacityMin [missing from this section]
+- basicInfo.destinationId [missing from this section]
+- basicInfo.endDateTime [missing from this section]
+- basicInfo.endPoint [missing from this section]
+- basicInfo.gatheringPoint [missing from this section]
+- basicInfo.leaderUserIds [missing from this section]
+- basicInfo.localGuideName [missing from this section]
+- basicInfo.meetingPoint [missing from this section]
+- basicInfo.message [missing from this section]
+- basicInfo.publishStatus [missing from this section]
+- basicInfo.requiresLocalGuide [missing from this section]
+- basicInfo.requiresManualAdminApproval [missing from this section]
+- basicInfo.socialMediaLink [missing from this section]
+- basicInfo.startDateTime [missing from this section]
+- basicInfo.startPoint [missing from this section]
+- basicInfo.startPointLocationText [missing from this section]
+- basicInfo.summitPoint [missing from this section]
+- basicInfo.title [missing from this section]
+- basicInfo.tourType [missing from this section]
+- participantRequirements [missing from this section]
+- participantRequirements.fitnessLevel [missing from this section]
+- participantRequirements.fitnessPrerequisiteText [missing from this section]
+- participantRequirements.gearItems [missing from this section]
+- participantRequirements.maximumAge [missing from this section]
+- participantRequirements.minimumAge [missing from this section]
+- participantRequirements.minRequiredPeaks [missing from this section]
+- participantRequirements.nationalIdRequired [missing from this section]
+- participantRequirements.sportsInsuranceRequired [missing from this section]
+- photosData [missing from this section]
+- photosData.photos [missing from this section]
+- policies [missing from this section]
+- policies.cancellationDeadlineHours [missing from this section]
+- policies.cancellationPenaltyPercentage [missing from this section]
+- policies.policiesText [missing from this section]
+- pricingPayment [missing from this section]
+- pricingPayment.basePricePerPerson [missing from this section]
+- pricingPayment.includesTourInsurance [missing from this section]
+- pricingPayment.paymentMode [missing from this section]
+- pricingPayment.requiresPayment [missing from this section]
+- programNature [missing from this section]
+- programNature.difficultyLevel [missing from this section]
+- programNature.hikingGoHours [missing from this section]
+- programNature.hikingHoursApprox [missing from this section]
+- programNature.hikingReturnHours [missing from this section]
+- programNature.itinerary [missing from this section]
+- programNature.longDescription [missing from this section]
+- programNature.shortDescription [missing from this section]
+- programNature.themeIds [missing from this section]
+- transport [missing from this section]
+- transport.adminCapacityApproval [missing from this section]
+- transport.allowPersonalCar [missing from this section]
+- transport.dongAmount [missing from this section]
+- transport.seatPreference [missing from this section]
+- transport.transportCost [missing from this section]
+- transport.transportMode [missing from this section]
+- transport.transportNotes [missing from this section]
+- tripDetails [missing from this section]
+- tripDetails.logistics [missing from this section]
+- tripDetails.logistics.gatheringPoints [missing from this section]
+- tripDetails.metrics [missing from this section]
+- tripDetails.metrics.elevationGain [missing from this section]
+- tripDetails.overview [missing from this section]
+- tripDetails.overview.customServiceLabels [missing from this section]
+- tripDetails.overview.nonAttendanceDetails [missing from this section]
+- tripDetails.overview.peakHeight [missing from this section]
+
