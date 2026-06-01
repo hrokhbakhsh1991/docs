@@ -1,7 +1,9 @@
 import type { TourFormProfile } from "@repo/types";
-import { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
 import { GeneralWorkspaceStrategy } from "./general.workspace.strategy";
+import { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
+import { SdkWorkspaceStrategyAdapter } from "./sdk.workspace.strategy.adapter";
 import type { IWorkspaceStrategy } from "./workspace.strategy.interface";
+import { resolveWorkspacePluginForProfile } from "./workspace-plugin.resolver";
 
 export const DENALI_STRATEGY_PROFILES = ["denali_pilot", "urban_event"] as const satisfies readonly TourFormProfile[];
 
@@ -25,6 +27,13 @@ export class WorkspaceStrategyRegistry {
     if (isDenaliStrategyProfile(profile)) {
       return new MountainOutdoorWorkspaceStrategy(profile);
     }
-    return new GeneralWorkspaceStrategy(profile);
+
+    const legacy = new GeneralWorkspaceStrategy(profile);
+    const plugin = resolveWorkspacePluginForProfile(profile);
+    if (plugin != null) {
+      return new SdkWorkspaceStrategyAdapter(profile, plugin, legacy);
+    }
+
+    return legacy;
   }
 }
