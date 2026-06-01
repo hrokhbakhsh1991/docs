@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-01T08:27:25.135Z",
+  "gitSha": "f715a8d",
+  "phase": "0.3",
+  "environment": {
+    "node": "v22.22.0",
+    "platform": "linux"
+  },
+  "gates": [
+    {
+      "name": "ci_integrity",
+      "command": "pnpm run ci:integrity",
+      "required": true,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 75813,
+      "stderrTail": "Pages directory cannot be found at /home/hamed/Music/docs/pages or /home/hamed/Music/docs/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.\nsocket-ci-check: skip — SOCKET_SECURITY_API_TOKEN is not set.\n  Set the token in CI secrets or run: pnpm exec socket login",
+      "stdoutTail": null
+    },
+    {
+      "name": "web_build",
+      "command": "pnpm --filter @apps/web build",
+      "required": true,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 88628,
+      "stderrTail": "aliCanonicalBasicsFromTourKind' is not exported from '@repo/types/denali' (imported as 'denaliCanonicalBasicsFromTourKind').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliTourKindFromCanonical' is not exported from '@repo/types/denali' (imported as 'denaliTourKindFromCanonical').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliCanonicalBasicsFromTourKind' is not exported from '@repo/types/denali' (imported as 'denaliCanonicalBasicsFromTourKind').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx\n\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\nAttempted import error: 'denaliTourKindFromCanonical' is not exported from '@repo/types/denali' (imported as 'denaliTourKindFromCanonical').\n\nImport trace for requested module:\n./app/(app)/settings/tour-wizard-template/DenaliTemplateSeedField.tsx\n./app/(app)/settings/tour-wizard-template/TemplateBuilderFieldRow.tsx\n./app/(app)/settings/tour-wizard-template/tour-wizard-template-builder-form.tsx\n./app/(app)/settings/tour-wizard-template/page.tsx",
+      "stdoutTail": null
+    },
+    {
+      "name": "structural_guards",
+      "command": "pnpm --filter @apps/web test:structural-guards",
+      "required": false,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 5976,
+      "stderrTail": null,
+      "stdoutTail": null
+    },
+    {
+      "name": "api_structural_integrity",
+      "command": "pnpm exec tsx src/scripts/audit-structural-integrity.ts",
+      "required": false,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 1412,
+      "stderrTail": null,
+      "stdoutTail": null
+    },
+    {
+      "name": "root_build_known_issue",
+      "command": "pnpm run build",
+      "required": false,
+      "ok": false,
+      "exitCode": 2,
+      "durationMs": 11624,
+      "stderrTail": null,
+      "stdoutTail": "--filter @repo/shared run build && pnpm --filter @repo/denali-domain run build && pnpm --filter \"@apps/*\" run build\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/types@0.1.0 build /home/hamed/Music/docs/packages/types\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/config@0.1.0 build /home/hamed/Music/docs/packages/config\n> pnpm exec tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/domain-contracts@0.1.0 build /home/hamed/Music/docs/packages/domain-contracts\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/draft-engine@0.1.0 build /home/hamed/Music/docs/packages/draft-engine\n> tsc -p tsconfig.json\n\n.                                        |  WARN  Unsupported engine: wanted: {\"node\":\">=24.0.0 <25\"} (current: {\"node\":\"v22.22.0\",\"pnpm\":\"9.12.0\"})\n\n> @repo/shared-contracts@0.1.0 build /home/hamed/Music/docs/packages/shared-contracts\n> tsc -p tsconfig.json\n\nsrc/settings/tour-wizard-template-validation.schema.ts(12,8): error TS2307: Cannot find module '@repo/types/denali' or its corresponding type declarations.\n  There are types at '/home/hamed/Music/docs/packages/shared-contracts/node_modules/@repo/types/dist/denali/index.d.ts', but this result could not be resolved under your current 'moduleResolution' setting. Consider updating to 'node16', 'nodenext', or 'bundler'.\n/home/hamed/Music/docs/packages/shared-contracts:\n ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @repo/shared-contracts@0.1.0 build: `tsc -p tsconfig.json`\nExit status 2\n ELIFECYCLE  Command failed with exit code 2."
+    },
+    {
+      "name": "draft_engine_test",
+      "command": "pnpm --filter @repo/draft-engine run test",
+      "required": false,
+      "ok": true,
+      "exitCode": 0,
+      "durationMs": 2047,
+      "stderrTail": null,
+      "stdoutTail": null
+    },
+    {
+      "name": "playwright_smoke_subset",
+      "command": "CI=1 PW_NO_REUSE_SERVER=1 pnpm exec playwright test -c playwright.smoke.config.ts src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts src/features/tours/__tests__/smoke/04-tour-wizard-urban-profile.spec.ts src/features/tours/__tests__/smoke/10-denali-wizard-shell.spec.ts",
+      "required": true,
+      "ok": false,
+      "exitCode": 1,
+      "durationMs": 66496,
+      "stderrTail": "[WebServer]  ⨯ Failed to start server\n[WebServer] Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n[WebServer]     at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n[WebServer]     at listenInCluster (node:net:1997:12)\n[WebServer]     at node:net:2206:7\n[WebServer]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {\n[WebServer]   code: 'EADDRINUSE',\n[WebServer]   errno: -98,\n[WebServer]   syscall: 'listen',\n[WebServer]   address: '0.0.0.0',\n[WebServer]   port: 3000\n[WebServer] }",
+      "stdoutTail": "Error: Process from config.webServer was not able to start. Exit code: 1"
+    }
+  ],
+  "knownIssues": [
+    {
+      "id": "node_engine",
+      "severity": "warn",
+      "note": "Root package.json wants Node 24; record actual runtime below.",
+      "observed": "v22.22.0"
+    },
+    {
+      "id": "root_pnpm_build",
+      "severity": "info",
+      "note": "Full `pnpm run build` may fail on @repo/shared-contracts → @repo/types/denali; not a Phase 0.3 blocker.",
+      "gate": "root_build_known_issue"
+    },
+    {
+      "id": "legacy_archive_docs",
+      "severity": "info",
+      "note": "quarantine-integrity-check.md / final-trace-audit.md may mention legacy_archive; runtime imports are zero."
+    },
+    {
+      "id": "e2e_isolation",
+      "severity": "info",
+      "note": "pnpm test:e2e:isolation requires Docker DB; run before large merges, not required for 0.3 exit."
+    }
+  ],
+  "smokeSuite": {
+    "command": "pnpm --filter @apps/web run qa:smoke:tour-wizard",
+    "ranAt": "2026-06-01",
+    "passed": 1,
+    "failed": 6,
+    "note": "workspace-tour-wizard not mounted; follow-up before Phase 1.1"
+  },
+  "exit03": {
+    "blockingPass": true,
+    "requiredPass": false,
+    "note": "ci_integrity and web_build pass; smoke subset red on 2026-06-01 runner"
+  }
+}

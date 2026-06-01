@@ -337,14 +337,18 @@ flowchart TB
 
 ### 6.3 Smoke حداقلی (Playwright)
 
-اجرا از `apps/web`:
+اجرا از `apps/web` (مسیر صحیح specs):
 
 ```bash
-pnpm exec playwright test \
-  tests/smoke/12-denali-verification-matrix.spec.ts \
-  tests/smoke/04-tour-wizard-urban-profile.spec.ts \
-  tests/smoke/10-denali-wizard-shell.spec.ts
+pnpm run build:smoke
+CI=1 PW_NO_REUSE_SERVER=1 pnpm exec playwright test -c playwright.smoke.config.ts \
+  src/features/tours/__tests__/smoke/12-denali-verification-matrix.spec.ts \
+  src/features/tours/__tests__/smoke/04-tour-wizard-urban-profile.spec.ts \
+  src/features/tours/__tests__/smoke/10-denali-wizard-shell.spec.ts
 ```
+
+یا کل سوئیت رسمی: `pnpm run qa:smoke:tour-wizard`  
+**ثبت نتیجه:** [`reports/phase-0-ci-gate-2026-06-01.json`](reports/phase-0-ci-gate-2026-06-01.json) · **اجرای gate:** `pnpm run phase-0:ci-gate`
 
 **پوشش:**
 
@@ -379,6 +383,7 @@ flowchart TD
 | Node engine | `package.json` می‌خواهد Node 24؛ محیط dev ممکن است 22 باشد | WARN در گزارش؛ CI باید نسخهٔ درست داشته باشد |
 | Root `pnpm build` | ممکن است `@repo/shared-contracts` → `@repo/types/denali` بشکند | ثبت؛ رفع در Phase 1 اگر SDK به shared-contracts وابسته شود |
 | `legacy_archive` در docs | `quarantine-integrity-check.md`, `final-trace-audit.md` | به‌روز docs اختیاری؛ runtime صفر |
+| Playwright smoke regression | `qa:smoke:tour-wizard` — `workspace-tour-wizard` گاهی mount نمی‌شود | ثبت 2026-06-01 در CI gate report؛ follow-up قبل از 1.1 |
 
 ### 6.6 اصل freeze در 0.3
 
@@ -387,10 +392,12 @@ flowchart TD
 
 ### 6.7 Exit criteria
 
-- [ ] آخرین اجرای موفق `ci:integrity` روی `main` (تاریخ در PR یا `reports/`)
-- [ ] `@apps/web build` سبز
-- [ ] smoke subset §6.3 سبز
-- [ ] known issues §6.5 در `reports/` یا این سند ثبت شده
+- [x] آخرین اجرای موفق `ci:integrity` روی `main` ([`reports/phase-0-ci-gate-2026-06-01.json`](reports/phase-0-ci-gate-2026-06-01.json))
+- [x] `@apps/web build` سبز (همان گزارش)
+- [ ] smoke subset §6.3 سبز — **باز** (۶ fail / ۱ pass در `qa:smoke:tour-wizard` 2026-06-01؛ follow-up)
+- [x] known issues §6.5 در `reports/` ثبت شده
+
+**وضعیت زیرفاز 0.3:** blocking gates سبز · smoke نیاز به PR تعمیر mock/hydration · سپس 0.4 freeze.
 
 ---
 
@@ -476,8 +483,8 @@ pnpm --filter @apps/api run qa:probe-wizard-tenants
 - [x] `map.md` merge
 - [x] `phase-0-platform-baseline.md` merge
 - [x] `reports/phase-0-baseline-*.json` اولیه ([`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json))
-- [ ] `pnpm run ci:integrity` سبز
-- [ ] smoke §6.3 سبز
+- [x] `pnpm run ci:integrity` سبز ([CI gate report](reports/phase-0-ci-gate-2026-06-01.json))
+- [ ] smoke §6.3 سبز (follow-up)
 - [ ] hotspot list §3.5 بدون تغییر scope در همان PR
 
 ### 8.2 اولین PR ساختاری
