@@ -7,48 +7,32 @@ jest.mock("@/components/tours/DenaliTourEditForm.module.css", () => ({
   sectionBody: "sectionBody",
 }));
 
-jest.mock("@/features/tours/denali/sections", () => {
+jest.mock("@/features/tours/denali/fields/DenaliFieldRenderer", () => {
   const React = require("react") as typeof import("react");
   const { useFormContext, Controller } = require("react-hook-form") as typeof import("react-hook-form");
-  const { getDenaliFieldRegistryByStep } = require("@repo/denali-domain") as typeof import("@repo/denali-domain");
 
-  function makeStub(sectionId: import("@/features/tours/wizard/denaliStepConfig").DenaliCreateWizardStepId) {
-    return function SectionStub() {
-      const { control } = useFormContext();
-      const rows = getDenaliFieldRegistryByStep(sectionId).filter(
-        (row: { inRuleModel?: boolean }) => row.inRuleModel !== false,
-      );
-      return React.createElement(
-        "div",
-        { "data-testid": `denali-section-body-${sectionId}` },
-        rows.map((row: { canonicalPath: string; rhfPath: string }) =>
-          React.createElement(Controller, {
-            key: row.canonicalPath,
-            control,
-            name: row.rhfPath,
-            render: ({ field }: { field: Record<string, unknown> }) =>
-              React.createElement("input", {
-                "data-canonical-path": row.canonicalPath,
-                "data-field-path": row.rhfPath,
-                value: typeof field.value === "string" ? field.value : "",
-                onChange: field.onChange,
-                onBlur: field.onBlur,
-                ref: field.ref,
-              }),
-          }),
-        ),
-      );
-    };
+  function DenaliFieldRendererStub({
+    field,
+  }: {
+    field: { canonicalPath: string; rhfPath: string };
+  }) {
+    const { control } = useFormContext();
+    return React.createElement(Controller, {
+      control,
+      name: field.rhfPath,
+      render: ({ field: rhfField }: { field: Record<string, unknown> }) =>
+        React.createElement("input", {
+          "data-canonical-path": field.canonicalPath,
+          "data-field-path": field.rhfPath,
+          value: typeof rhfField.value === "string" ? rhfField.value : "",
+          onChange: rhfField.onChange,
+          onBlur: rhfField.onBlur,
+          ref: rhfField.ref,
+        }),
+    });
   }
 
-  return {
-    DenaliBasicInfoSection: makeStub("denali_basic"),
-    DenaliProgramNatureSection: makeStub("denali_program"),
-    DenaliLogisticsSection: makeStub("denali_logistics"),
-    DenaliPricingSection: makeStub("denali_pricing"),
-    DenaliLegalSection: makeStub("denali_legal"),
-    DenaliPhotosSection: makeStub("denali_photos"),
-  };
+  return { DenaliFieldRenderer: DenaliFieldRendererStub };
 });
 
 import React from "react";

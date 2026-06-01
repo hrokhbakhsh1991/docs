@@ -1,4 +1,4 @@
-import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
+import type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
 import {
   presetDefaultsToDenaliFormPatch,

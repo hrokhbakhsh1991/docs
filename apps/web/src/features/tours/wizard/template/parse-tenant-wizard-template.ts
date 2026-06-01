@@ -1,7 +1,7 @@
 import { isTourFormProfile, normalizeTourFormProfileInput } from "@repo/types";
 
 import type { TenantWizardTemplate, TenantWizardTemplateEnvelope } from "./tenant-wizard-template.types";
-import { parseTenantWizardStepOverrides } from "./compose-wizard-steps";
+import { parseTenantWizardStepOverrides } from "./parse-denali-wizard-steps";
 
 export function parseTenantWizardTemplate(raw: unknown): TenantWizardTemplate | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {

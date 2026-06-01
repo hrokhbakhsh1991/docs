@@ -35,7 +35,6 @@ import {
   DIFFICULTY_RATING_MIN,
   isValidDifficultyRating,
 } from "../domain/difficulty-rating";
-import type { TripDetailsFieldConfig, TripDetailsFieldId } from "../config/tripDetailsFieldConfig";
 import {
   DEFAULT_TOURS_NEW_VALIDATION_MESSAGES,
   type ToursNewValidationMessages,
@@ -87,7 +86,7 @@ function englishDigitsUnknown(raw: unknown): unknown {
   return raw;
 }
 
-function tripDetailsAudienceOverlapRefinement(
+export function tripDetailsAudienceOverlapRefinement(
   value: unknown,
   ctx: z.RefinementCtx,
   messages: ToursNewValidationMessages,
@@ -107,7 +106,7 @@ function tripDetailsAudienceOverlapRefinement(
   }
 }
 
-function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
+export function buildTripDetailsSchemas(msgs: ToursNewValidationMessages) {
   function optionalIntInRange(min: number, max: number) {
     const rangeMsg = msgs.intBetween(min, max);
     return z.preprocess(
@@ -489,125 +488,6 @@ export const TourTripDetailsRootSchema = _defaultTripDetails.TourTripDetailsRoot
 export type TourTripDetails = z.infer<typeof TourTripDetailsSchema>;
 
 export { filterUuidV4Strings };
-
-/**
- * Applies requiredness constraints from field-config on top of base optional trip-details schema.
- * The config remains source-of-truth; unknown/unsupported field IDs are ignored safely.
- */
-export function applyTripDetailsRequirednessToSchema(
-  fieldConfig: TripDetailsFieldConfig[],
-  messages: ToursNewValidationMessages = DEFAULT_TOURS_NEW_VALIDATION_MESSAGES,
-): typeof TourTripDetailsRootSchema {
-  const {
-    TripDetailsOverviewSchema,
-    TripDetailsParticipationSchema,
-    TripDetailsLogisticsSchema,
-    TourTripDetailsBaseSchema,
-    requiredIntInRange: reqInt,
-    requiredShortText: reqShort,
-    requiredGearUuidIdsList: reqGearUuidIdsList,
-  } = buildTripDetailsSchemas(messages);
-
-  const requiredIds = new Set<TripDetailsFieldId>(
-    fieldConfig.filter((row) => row.requiredness === "required" && row.visibility !== "hidden").map((row) => row.id),
-  );
-
-  const overviewSchema = TripDetailsOverviewSchema.extend({
-    difficultyLevel: requiredIds.has("overview.difficultyLevel")
-      ? z.preprocess(
-          (raw) => {
-            if (raw === undefined || raw === null || raw === "") return raw;
-            if (typeof raw === "string") {
-              const n = Number(normalizeNumericInput(raw));
-              return Number.isFinite(n) ? n : raw;
-            }
-            return raw;
-          },
-          z
-            .number({ message: messages.difficultyRequiredMountain })
-            .min(DIFFICULTY_RATING_MIN, messages.difficultyRatingOutOfRange)
-            .max(DIFFICULTY_RATING_MAX, messages.difficultyRatingOutOfRange)
-            .refine(isValidDifficultyRating, { message: messages.difficultyRatingHalfStep }),
-        )
-      : TripDetailsOverviewSchema.shape.difficultyLevel,
-  });
-  const participationSchema = TripDetailsParticipationSchema.extend({
-    minimumAge: requiredIds.has("participation.minimumAge")
-      ? reqInt(0, 150, messages.minimumAgeRequiredMountain)
-      : TripDetailsParticipationSchema.shape.minimumAge,
-    gearRequiredIds: requiredIds.has("participation.gearRequiredIds")
-      ? reqGearUuidIdsList
-      : TripDetailsParticipationSchema.shape.gearRequiredIds,
-  });
-  const logisticsSchema = TripDetailsLogisticsSchema.extend({
-    meetingPoint: requiredIds.has("logistics.meetingPoint")
-      ? reqShort(2048, messages.meetingPointRequiredMountain)
-      : TripDetailsLogisticsSchema.shape.meetingPoint,
-    departureDate: requiredIds.has("logistics.departureDate")
-      ? reqShort(32, messages.departureDateRequiredMountain)
-      : TripDetailsLogisticsSchema.shape.departureDate,
-  });
-
-  const hasRequiredInOverview = [...requiredIds].some((id) => id.startsWith("overview."));
-  const hasRequiredInParticipation = [...requiredIds].some((id) => id.startsWith("participation."));
-  const hasRequiredInLogistics = [...requiredIds].some((id) => id.startsWith("logistics."));
-  const requiredSection = <T extends z.ZodTypeAny>(schema: T) => z.preprocess((value) => value ?? {}, schema);
-
-  const composed =
-    requiredIds.size === 0
-      ? TourTripDetailsBaseSchema
-      : TourTripDetailsBaseSchema.extend({
-          overview: hasRequiredInOverview ? requiredSection(overviewSchema) : overviewSchema.optional(),
-          participation: hasRequiredInParticipation
-            ? requiredSection(participationSchema)
-            : participationSchema.optional(),
-          logistics: hasRequiredInLogistics ? requiredSection(logisticsSchema) : logisticsSchema.optional(),
-        });
-
-  return composed
-    .superRefine((value, ctx) => {
-      tripDetailsAudienceOverlapRefinement(value, ctx, messages);
-    })
-    .superRefine((value, ctx) => {
-      const logistics = (value as { logistics?: { departureDate?: unknown; returnDate?: unknown } } | undefined)
-        ?.logistics;
-      if (!logistics) return;
-      const dep = typeof logistics.departureDate === "string" ? logistics.departureDate.trim() : "";
-      const ret = typeof logistics.returnDate === "string" ? logistics.returnDate.trim() : "";
-      const today = todayGregorianYmd();
-      if (dep && dep < today) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["logistics", "departureDate"],
-          message: messages.departureDateNotPast,
-        });
-      }
-      if (ret && ret < today) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["logistics", "returnDate"],
-          message: messages.returnDateNotPast,
-        });
-      }
-      if (dep && ret && ret < dep) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["logistics", "returnDate"],
-          message: messages.returnDateBeforeDeparture,
-        });
-      }
-    })
-    .optional() as typeof TourTripDetailsRootSchema;
-}
-
-/** Local-time Gregorian YMD; matches the picker's local "today" so timezone drift doesn't false-flag. */
-function todayGregorianYmd(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 /**
  * Builds stable RHF defaults for `tripDetails` from API `details.tripDetails` (often `Record<string, unknown>`).

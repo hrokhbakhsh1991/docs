@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { transformTourToDenaliWizardValues } from "./transformTourToDenaliWizardValues";
-import type { TourCloneSourceDto } from "./transformTourToWizardValues";
+import type { TourCloneSourceDto } from "./tourCloneSource.types";
 
 function makeApiTour(overrides: Partial<TourCloneSourceDto> = {}): TourCloneSourceDto {
   return {

@@ -37,6 +37,7 @@
     ".storybook",
     "stories",
     "typedoc-out",
-    "storybook-static"
+    "storybook-static",
+    "scripts"
   ]
 }

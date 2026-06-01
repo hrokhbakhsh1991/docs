@@ -1,1 +1,7 @@
-export { DenaliLegalSection as DenaliLegalStep } from "@/features/tours/denali/sections/DenaliLegalSection";
+"use client";
+
+import { DenaliRegistryFields } from "@/features/tours/denali/fields/DenaliRegistryFields";
+
+export function DenaliLegalStep() {
+  return <DenaliRegistryFields sectionId="denali_legal" />;
+}

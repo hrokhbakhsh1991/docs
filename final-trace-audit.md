@@ -1,82 +1,36 @@
-# Final Trace Audit
+نقشه‌ی راهِ مدرن‌سازیِ رادیکال (Enterprise Transformation Roadmap)
+فاز ۱: قرنطینه (Quarantine) - هفته اول
+هدف: ایزوله‌کردنِ تمامِ کدهای classic و جلوگیری از گسترشِ آن.
 
-## Target
+اقدام: انتقالِ تمامِ فایل‌هایِ classic به legacy_archive. هدف این نیست که الان پاک شوند، هدف این است که ببینیم سیستم کجا «داد می‌زند» که به آن‌ها نیاز دارد.
 
-- Template ID: `4931f36a-19ed-4cd1-9ec3-eb5d12eaf7f6`
+پرامپتِ مچ‌گیری (پایانِ فاز ۱): بعد از جابجایی، از کرسر بخواه:
 
-## Lifecycle Trace: `orchestrateDenaliWizardFromTemplate`
+"لیستِ تمامِ فایل‌هایی که بیلد را با ارور مواجه کرده‌اند به من بده. مشخص کن کدام ارور 'Dependency' است (یعنی کدِ مدرنِ Denali هنوز دارد از فایلِ قدیمیِ قرنطینه شده Import می‌کند)."
 
-1. `orchestrateDenaliWizardFromTemplate(...)` receives template + `canonicalData`.
-2. Branch: calls `denaliTemplateOrchestratorFactory.createDraftFromTemplate(...)`.
-3. Factory branch A (`resolveStoredTemplateCanonical`):
-   - Current DB `canonical_data` for this template is `{}` (repaired during this audit).
-   - Validation branch result: **ok**.
-4. Factory branch B (`resolveDenaliRuleSetFromOverlay`):
-   - `field_rules_overlay` is `{}`.
-   - Rule set resolves to defaults.
-5. Factory branch C (`tryHydrateCanonicalTemplate`):
-   - Hydration branch uses default values because canonical patch is empty.
-6. Factory branch D (`normalizeDenaliWizardForm` -> `finalizeDenaliWizardHydration` -> `pruneDenaliWizardFormToRegistry`):
-   - Applies normalized RHF-safe shape.
-7. Factory branch E (`prepareDraftForSync` + projection build):
-   - Projection succeeds.
-   - Final factory result: `success: true`.
-8. `orchestrateDenaliWizardFromTemplate` branch:
-   - `result.success === true`.
-   - `extractFormFromDraftState(...)` returns a valid object.
-   - Returns `{ success: true, form }`.
+فاز ۲: ساختِ رندرکننده‌یِ مرکزی (The Bridge) - هفته دوم
+هدف: حذفِ وابستگیِ مستقیمِ کامپوننت‌ها به فیلدهایِ دستی.
 
-### Branch Leak Verdict
+اقدام: ساختِ DenaliFieldRenderer.tsx. این کامپوننت «اینترپرایزترین» بخشِ کدِ تو خواهد بود. نباید برای هر فیلد JSX بنویسی؛ این رندرکننده باید Field را بگیرد و خودش تصمیم بگیرد کدام کامپوننت (Input, Select, Textarea) را چاپ کند.
 
-- No manual key lookup fallback found in `orchestrateDenaliWizardFromTemplate`.
-- No `[LEGACY_LEAK_FOUND: ...]` in this orchestrator path.
+پرامپتِ مچ‌گیری (پایانِ فاز ۲):
 
-## Persistence Trace: `denaliCanonicalFromForm.ts`
+"آیا DenaliFieldRenderer می‌تواند بر اساسِ registryRows تمامِ فیلدهایِ DenaliBasicInfoSection را بدونِ حتی یک خط JSX دستی رندر کند؟ لیستِ کامپوننت‌هایی که هنوز به JSX دستی نیاز دارند را جدا کن."
 
-### Mapping behavior (current code)
+فاز ۳: جراحیِ بخش‌به‌بخش (Component Swapping) - هفته سوم
+هدف: نابودیِ کدهایِ دستی (Hand-coded JSX) و جایگزینی با رندرِ پویا.
 
-- `basicInfo` mirror branch: `basicInfo: { ...form.basicInfo }`
-- `programNature` mirror branch: `programNature: { ...form.programNature }`
-- `transport` mirror branch: `transportForm: { ...form.transport }`
-- `tripDetails` mirror branch: spread + nested spread for `overview`, `metrics`, `logistics`
+اقدام: یک‌به‌یک Sectionها (BasicInfo, Logistics, Pricing) را باز کن، JSX دستی را پاک کن و با حلقه fields.map و DenaliFieldRenderer جایگزین کن.
 
-### Dangerous-call scan
+پرامپتِ مچ‌گیری (پایانِ فاز ۳):
 
-- Searched for function calls with `old`, `legacy`, `deprecated` in the called function name.
-- **Before fix**: serializer used `gatheringPickupStationFromLegacyLocation(...)`.
-- **Fix applied**:
-  - Added neutral function `gatheringPickupStationFromLocation(...)`.
-  - Updated serializer to call `gatheringPickupStationFromLocation(...)`.
-  - Kept legacy-name function as deprecated wrapper for compatibility.
+"بررسی کن: آیا هنوز فایلی در denali/sections/ وجود دارد که نامِ فیلدها را به صورتِ دستی (Hardcoded) در JSX نوشته باشد؟ همه را به حلقه registry.map تبدیل کن."
 
-### Dangerous-call verdict
+فاز ۴: کشتارِ نهایی (The Extermination) - هفته چهارم
+هدف: حذفِ کاملِ پوشه‌یِ legacy_archive.
 
-- `[DANGEROUS_CALL_DETECTED: gatheringPickupStationFromLegacyLocation]` **resolved by code fix**.
+اقدام: وقتی مطمئن شدیم هیچ‌کجایِ UI به کدهایِ کلاسیک وابسته نیست، کلِ پوشه‌یِ legacy_archive و هر فایلِ classic در ریپازیتوری را با دستور rm -rf نابود می‌کنیم.
 
-## Schema Compliance Check (RHF)
+پرامپتِ مچ‌گیری (پایانِ فاز ۴):
 
-Compared traced orchestrator output (`draftState.data.form`) to `DenaliCreateTourWizardForm` schema shape:
-
-- No unknown keys were found in traced RHF form payload.
-- No `[GHOST_FIELD_IN_PAYLOAD]` in orchestrator output.
-
-## Integrity Incident Found During Trace + Fix
-
-While tracing this specific template, a real DB leak was observed earlier:
-
-- `canonical_data` contained RHF-style keys (`basicInfo`, `programNature`, `pricingPayment`, ...)
-- Factory validation treated them as unknown canonical fields and failed.
-
-Applied repair:
-
-- Reset affected template rows to canonical shell `{}`:
-  - `4931f36a-19ed-4cd1-9ec3-eb5d12eaf7f6`
-  - `768660fa-47b2-45bf-8c9b-50da3cf4b5fa`
-  - `5ee26021-cf4b-4944-8240-9cea31d190b4`
-- Re-ran factory trace for target template: `success: true`.
-
-## Final Verdict
-
-- Orchestrator lifecycle: clean branch execution, no legacy fallback.
-- Persistence adapter: spread-based mirrors present; dangerous legacy-named call removed from active path.
-- RHF schema payload compliance (trace output): no ghost fields detected.
+"اسکنِ کاملِ کدبیس: آیا هیچ import یا referenceای به پوشه‌هایِ حذف‌شده یا کدهایِ دارایِ تگِ classic باقی مانده است؟ اگر هست، مسیرِ خطا را نشان بده."

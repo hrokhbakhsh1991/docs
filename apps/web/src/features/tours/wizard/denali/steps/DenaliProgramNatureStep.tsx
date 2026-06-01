@@ -1,1 +1,7 @@
-export { DenaliProgramNatureSection as DenaliProgramNatureStep } from "@/features/tours/denali/sections/DenaliProgramNatureSection";
+"use client";
+
+import { DenaliRegistryFields } from "@/features/tours/denali/fields/DenaliRegistryFields";
+
+export function DenaliProgramNatureStep() {
+  return <DenaliRegistryFields sectionId="denali_program" />;
+}

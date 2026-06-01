@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { DENALI_ROOTS } from "@repo/shared-contracts";
 
-import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
+import type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
 
 import { mapToDenaliWizardPatch } from "./mapToDenaliWizardPatch";

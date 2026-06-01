@@ -1,1 +1,7 @@
-export { DenaliLogisticsSection as DenaliLogisticsStep } from "@/features/tours/denali/sections/DenaliLogisticsSection";
+"use client";
+
+import { DenaliRegistryFields } from "@/features/tours/denali/fields/DenaliRegistryFields";
+
+export function DenaliLogisticsStep() {
+  return <DenaliRegistryFields sectionId="denali_logistics" />;
+}

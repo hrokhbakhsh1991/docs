@@ -1,5 +1,4 @@
-export type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
-export { tourCreateSchema } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
+export type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 export { mapCreateTourDto } from "@/features/tours/domain/mapCreateTourDto";
 export { stripCreateTourDtoForFormProfile } from "@/features/tours/domain/strip-create-tour-dto-for-profile";
 export {
@@ -7,7 +6,6 @@ export {
   mapDenaliWizardToCreateTourPayload,
   splitIsoDateTime,
 } from "@/features/tours/wizard/domain/mapDenaliWizardToCreateTourPayload";
-export { mapFormValuesToBackendPayload } from "@/features/tours/wizard/domain/mapWizardFormToCreateTourPayload";
 export {
   assertSubmitValidDenaliWizardForm,
   submitValidDenaliWizardDefaults,
@@ -15,7 +13,6 @@ export {
 export { buildCreateTourPostBody } from "@/lib/services/tours.service";
 
 export { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
-export type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
 export { readDenaliCanonicalBasics } from "@/features/tours/wizard/denali/denaliCanonicalBasicsControl";
 export {
   denaliCanonicalToForm,

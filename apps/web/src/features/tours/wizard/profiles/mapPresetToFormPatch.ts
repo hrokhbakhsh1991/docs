@@ -1,9 +1,7 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import { presetDefaultsToDenaliFormPatch } from "@/features/tours/wizard/presetDefaultsToDenaliFormPatch";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
-import { presetDefaultsToFormPatch } from "@/features/tours/wizard/tourCreationPresetMatch";
 import {
   getCapabilitiesForProfile,
   normalizeTourFormProfileInput,
@@ -14,24 +12,15 @@ export type PresetMapperContext = {
   matchMainTourThemeId?: string | null;
 };
 
-/**
- * Profile-aware preset defaults → wizard form patch (map-phase F2.5).
- *
- * @internal Use {@link mapWizardPrefillToFormPatch} at app/UI call sites.
- */
+/** Denali preset defaults → wizard form patch. */
 export function mapPresetToFormPatch(
   formProfile: TourFormProfile | string | null | undefined,
   defaults: Record<string, unknown>,
   ctx?: PresetMapperContext,
-): Partial<TourCreateFormValues> | Partial<DenaliCreateTourWizardForm> {
-  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
-    normalizeTourFormProfileInput(formProfile),
-  );
-  if (usesDenaliWizardShell) {
-    return presetDefaultsToDenaliFormPatch(defaults, {
-      matchTourType: ctx?.matchTourType,
-      matchMainTourThemeId: ctx?.matchMainTourThemeId,
-    });
-  }
-  return presetDefaultsToFormPatch(defaults);
+): Partial<DenaliCreateTourWizardForm> {
+  getCapabilitiesForProfile(normalizeTourFormProfileInput(formProfile));
+  return presetDefaultsToDenaliFormPatch(defaults, {
+    matchTourType: ctx?.matchTourType,
+    matchMainTourThemeId: ctx?.matchMainTourThemeId,
+  });
 }

@@ -17,8 +17,10 @@ import { Legacy, type TourFormProfile } from "@repo/types";
 
 type EventKind = Legacy.EventKind;
 
-import type { TourCreateWizardStepId } from "@/features/tours";
-import type { ValidationIssue, ValidationResult } from "@/features/tours";
+import type { DenaliCreateWizardStepId } from "@repo/denali-domain";
+
+type ValidationIssue = { readonly path: string; readonly code: string; readonly message?: string };
+type ValidationResult = { readonly isValid: boolean; readonly issues: readonly ValidationIssue[] };
 
 const _LOG_PREFIX = "tour_profile_obs";
 
@@ -63,8 +65,8 @@ function shouldEmitDeduped(signature: string): boolean {
 export type WizardRulesValidationFailurePayload = {
   readonly level: "autosave" | "step_nav" | "submit";
   readonly form_profile: TourFormProfile;
-  readonly step_id?: TourCreateWizardStepId;
-  readonly visible_step_ids?: readonly TourCreateWizardStepId[];
+  readonly step_id?: DenaliCreateWizardStepId;
+  readonly visible_step_ids?: readonly DenaliCreateWizardStepId[];
   readonly zod_trigger_ok?: boolean;
   readonly result: ValidationResult;
 };

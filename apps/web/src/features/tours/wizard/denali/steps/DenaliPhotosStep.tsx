@@ -1,1 +1,11 @@
-export { DenaliPhotosSection as DenaliPhotosStep } from "@/features/tours/denali/sections/DenaliPhotosSection";
+"use client";
+
+import { DenaliRegistryFields } from "@/features/tours/denali/fields/DenaliRegistryFields";
+
+export type DenaliPhotosStepProps = {
+  tourId?: string;
+};
+
+export function DenaliPhotosStep({ tourId }: DenaliPhotosStepProps = {}) {
+  return <DenaliRegistryFields sectionId="denali_photos" tourId={tourId} />;
+}

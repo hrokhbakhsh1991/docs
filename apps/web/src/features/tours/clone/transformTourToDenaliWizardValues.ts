@@ -26,7 +26,8 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { combineYmdAndTimeToIso } from "@/features/tours/wizard/denali/denaliDatetime";
 
-import type { TourCloneSourceDto } from "./transformTourToWizardValues";
+import type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
+export type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 
 /** New-tour wizard hydration only — clone path leaves API values unchanged. */
 export type DenaliWizardTourTransformMode = "clone" | "create";

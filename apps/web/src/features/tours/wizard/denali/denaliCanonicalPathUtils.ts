@@ -1,6 +1,7 @@
 import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
 import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
+import type { DenaliCanonicalPartial } from "@repo/denali-domain";
 
 import { LoggerService } from "@/lib/logging/logger.service";
 
@@ -77,6 +78,28 @@ const REGISTRY_CANONICAL_ALIASES: Record<string, string> = {
 
 export function resolveDenaliRegistryCanonicalPath(canonicalPath: string): string {
   return REGISTRY_CANONICAL_ALIASES[canonicalPath] ?? canonicalPath;
+}
+
+/** Build a shallow canonical partial from a registry canonical path leaf value. */
+export function buildDenaliCanonicalPartialFromPath(
+  canonicalPath: string,
+  value: unknown,
+): DenaliCanonicalPartial {
+  const resolved = resolveDenaliRegistryCanonicalPath(canonicalPath);
+  const segments = resolved.split(".").filter((segment) => segment.length > 0);
+  if (segments.length === 0) {
+    return {};
+  }
+  if (segments.length === 1) {
+    return { [segments[0]!]: value } as DenaliCanonicalPartial;
+  }
+
+  const [root, ...rest] = segments;
+  let nested: Record<string, unknown> = { [rest[rest.length - 1]!]: value };
+  for (let index = rest.length - 2; index >= 0; index -= 1) {
+    nested = { [rest[index]!]: nested };
+  }
+  return { [root!]: nested } as DenaliCanonicalPartial;
 }
 
 export type DenaliCanonicalSectionRoot = (typeof DENALI_CANONICAL_SECTION_ROOTS)[number];

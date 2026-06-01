@@ -1,15 +1,12 @@
 import type { TourFormProfile } from "@repo/types";
 import { TOUR_FORM_PROFILE_VALUES } from "@repo/types";
 
-import { wizardSteps, type TourCreateWizardStepId } from "./stepConfig";
 import { getDenaliWizardSteps, type DenaliCreateWizardStepId } from "./denaliStepConfig";
 import {
   resolveTourWizardMode,
   type DenaliWizardContextInput,
   type TourWizardMode,
 } from "./isDenaliWizardContext";
-
-export { getVisibleWizardStepsForProfile } from "./fieldGroups";
 export {
   denaliWizardSteps,
   denaliStepTitlesFa,
@@ -22,19 +19,18 @@ export {
   getDenaliWizardStepIssues,
   getDenaliWizardStepSchemaRoot,
 } from "./schemas/denaliTourCreateValidation";
-export { DENALI_STEP_TO_FIELD_GROUPS } from "./denaliWizardFieldGroups";
 
 export function isTourFormProfileString(value: string): value is TourFormProfile {
   return (TOUR_FORM_PROFILE_VALUES as readonly string[]).includes(value);
 }
 
-export type WizardRailStepId = TourCreateWizardStepId | DenaliCreateWizardStepId;
+export type WizardRailStepId = DenaliCreateWizardStepId;
 
-/** Classic 9-step ids or profile-bound multi-tab rail ids from workspace strategy. */
+/** Profile-bound multi-tab rail ids from workspace strategy (Denali-only). */
 export function getWizardStepsForContext(
-  input: DenaliWizardContextInput,
+  _input: DenaliWizardContextInput,
 ): readonly WizardRailStepId[] {
-  return resolveTourWizardMode(input) === "denali" ? getDenaliWizardSteps() : wizardSteps;
+  return getDenaliWizardSteps();
 }
 
 export { resolveTourWizardMode, type TourWizardMode };

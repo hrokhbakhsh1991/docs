@@ -1,36 +1,35 @@
 /**
- * Structural guard: flat-edit section suppress uses registry canonical paths.
+ * Structural guard: flat-edit sections render registry rows via DenaliFieldRenderer.
  */
 import assert from "node:assert/strict";
 
+import { getDenaliFieldRegistryByStep } from "@repo/denali-domain";
+
 import {
   DENALI_EDIT_SECTION_IDS,
-  getSuppressedCanonicalPathsForSection,
-  listEditFlatSuppressedCanonicalPaths,
 } from "@/features/tours/denali/fields/denaliSectionSuppress";
+import { shouldRenderDenaliRegistryField } from "@/features/tours/denali/fields/denaliFieldRendererAnchors";
 
 import { describeStructuralGuard } from "@/features/tours/wizard/testing/structural-guard";
 
-describeStructuralGuard("denali flat-edit section suppress", [
+describeStructuralGuard("denali flat-edit registry sections", [
   {
-    name: "uses registry canonical paths (not legacy RHF-style names)",
+    name: "every edit section has in-rule-model registry rows",
     run: () => {
-      const union = new Set(listEditFlatSuppressedCanonicalPaths());
-      assert.equal(union.has("transport.mode"), true);
-      assert.equal(union.has("pricing.basePricePerPerson"), true);
-      assert.equal(union.has("participants.minimumAge"), true);
-      assert.equal(union.has("policies.policiesText"), true);
-      assert.equal(union.has("transport.transportMode"), false);
-      assert.equal(union.has("pricingPayment.basePrice"), false);
+      for (const sectionId of DENALI_EDIT_SECTION_IDS) {
+        const rows = getDenaliFieldRegistryByStep(sectionId).filter(
+          (row) => row.inRuleModel !== false && shouldRenderDenaliRegistryField(row),
+        );
+        assert.ok(rows.length > 0, `expected registry rows for ${sectionId}`);
+      }
     },
   },
   {
-    name: "covers every in-rule-model path per edit section",
+    name: "uses canonical paths (not legacy RHF-style names)",
     run: () => {
-      for (const sectionId of DENALI_EDIT_SECTION_IDS) {
-        const suppressed = getSuppressedCanonicalPathsForSection(sectionId);
-        assert.ok(suppressed.size > 0, `expected suppress paths for ${sectionId}`);
-      }
+      const basic = getDenaliFieldRegistryByStep("denali_basic");
+      assert.equal(basic.some((row) => row.canonicalPath === "destinationId"), true);
+      assert.equal(basic.some((row) => row.canonicalPath === "basicInfo.destinationId"), false);
     },
   },
 ]);

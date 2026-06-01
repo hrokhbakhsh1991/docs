@@ -15,13 +15,8 @@ import {
 } from "@tour/ui";
 
 import { DenaliTourEditForm } from "@/components/tours/DenaliTourEditForm";
-import { TourForm } from "@/components/tours/TourForm";
 import { useTourDetail } from "@/features/tours/hooks/useTourDetail";
 import { updateTourDtoFromDenaliWizardForm } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
-import {
-  getCapabilitiesForProfile,
-  normalizeTourFormProfileInput,
-} from "@/lib/workspace/workspace-capabilities";
 import { resolveDenaliRuleSetFromTemplate } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
 import { resolveWorkspaceTourFormProfileFromTemplate } from "@/features/tours/wizard/resolveWorkspaceTourFormProfile";
 import { useSettingsTourThemes } from "@/hooks/use-settings-tour-themes";
@@ -31,8 +26,6 @@ import { RegisteredWorkspacePage } from "@/layouts/RegisteredWorkspacePage";
 import { ApiError } from "@/lib/api-client";
 import { isLeaderRole, useAuth } from "@/lib/auth/auth-context";
 import { toursUseLiveApi } from "@/lib/services/tours.service";
-
-import { updateTourDtoFromTourFormValues } from "../../tour-ui-mappers";
 
 import styles from "./tour-edit-client.module.css";
 
@@ -73,10 +66,6 @@ export function TourEditClient({
     () => resolveDenaliRuleSetFromTemplate(wizardTemplateQuery.data),
     [wizardTemplateQuery.data],
   );
-  const { usesDenaliWizardShell } = useMemo(
-    () => getCapabilitiesForProfile(normalizeTourFormProfileInput(workspaceFormProfile)),
-    [workspaceFormProfile],
-  );
 
   const shellTitle = tEdit("pageTitle");
   const documentTitle = tour?.title?.trim()
@@ -111,10 +100,8 @@ export function TourEditClient({
     if (!tour?.title?.trim()) {
       return undefined;
     }
-    return usesDenaliWizardShell
-      ? tEdit("pageDescription", { title: tour.title })
-      : tEdit("pageDescriptionClassic", { title: tour.title });
-  }, [tEdit, tour?.title, usesDenaliWizardShell]);
+    return tEdit("pageDescription", { title: tour.title });
+  }, [tEdit, tour?.title]);
 
   const canEditLifecycle =
     tour != null && (tour.lifecycleStatus === "DRAFT" || tour.lifecycleStatus === "OPEN");
@@ -322,50 +309,26 @@ export function TourEditClient({
             {tEdit("updatingLive")}
           </span>
         ) : null}
-        {usesDenaliWizardShell ? (
-          <DenaliTourEditForm
-            tour={tour}
-            submitError={updateMutation.error}
-            onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
-            onSubmit={async (values, meta) => {
-              const updated = await updateMutation.mutateAsync({
-                dto: updateTourDtoFromDenaliWizardForm(values, {
-                  themeCatalog: tourThemesQuery.data ?? [],
-                  formProfile: workspaceFormProfile,
-                  ruleSet: mergedRuleSet,
-                  patchIntent: meta.intent,
-                }),
-                mergeCostFrom: tour.costContext ?? null,
-              });
-              if (!updated) {
-                throw new Error("Tour not found");
-              }
-              router.push(`/tours/${encodeURIComponent(tourId)}`);
-            }}
-          />
-        ) : (
-          <TourForm
-            mode="edit"
-            tour={tour}
-            themeCatalogForFormProfile={tourThemesQuery.data ?? []}
-            onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
-            onSubmit={async (values, meta) => {
-              const updated = await updateMutation.mutateAsync({
-                dto: updateTourDtoFromTourFormValues(
-                  values,
-                  tour,
-                  tourThemesQuery.data ?? [],
-                  meta?.resolvedFormProfile,
-                ),
-                mergeCostFrom: tour.costContext ?? null,
-              });
-              if (!updated) {
-                throw new Error("Tour not found");
-              }
-              router.push(`/tours/${encodeURIComponent(tourId)}`);
-            }}
-          />
-        )}
+        <DenaliTourEditForm
+          tour={tour}
+          submitError={updateMutation.error}
+          onCancel={() => router.push(`/tours/${encodeURIComponent(tourId)}`)}
+          onSubmit={async (values, meta) => {
+            const updated = await updateMutation.mutateAsync({
+              dto: updateTourDtoFromDenaliWizardForm(values, {
+                themeCatalog: tourThemesQuery.data ?? [],
+                formProfile: workspaceFormProfile,
+                ruleSet: mergedRuleSet,
+                patchIntent: meta.intent,
+              }),
+              mergeCostFrom: tour.costContext ?? null,
+            });
+            if (!updated) {
+              throw new Error("Tour not found");
+            }
+            router.push(`/tours/${encodeURIComponent(tourId)}`);
+          }}
+        />
       </div>
     </RegisteredWorkspacePage>
   );

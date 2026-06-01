@@ -1,5 +1,5 @@
 /**
- * Checks flat-edit suppressed paths and template top-level keys against registry.
+ * Checks registry coverage for flat-edit sections and template top-level keys.
  */
 import { DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS } from "@repo/types/denali";
 import { DENALI_FIELD_DEFINITIONS } from "../../../packages/denali-domain/src/registry/denaliFieldRegistryData";
@@ -10,9 +10,8 @@ import {
 
 import {
   DENALI_EDIT_SECTION_IDS,
-  getSuppressedCanonicalPathsForSection,
-  listEditFlatSuppressedCanonicalPaths,
 } from "../src/features/tours/denali/fields/denaliSectionSuppress";
+import { shouldRenderDenaliRegistryField } from "../src/features/tours/denali/fields/denaliFieldRendererAnchors";
 
 const TEMPLATE_CONTAINERS = new Set([
   "overview",
@@ -35,25 +34,14 @@ const TEMPLATE_CONTAINERS = new Set([
 
 function main(): void {
   const registry = new Set(listDenaliRegistryCanonicalPaths());
-  const suppressedUnion = new Set(listEditFlatSuppressedCanonicalPaths());
   const issues: string[] = [];
 
-  for (const path of suppressedUnion) {
-    if (!registry.has(path)) {
-      issues.push(`flat-edit SUPPRESSED path not in registry: ${path}`);
-    }
-  }
-
   for (const sectionId of DENALI_EDIT_SECTION_IDS) {
-    const suppressedForSection = getSuppressedCanonicalPathsForSection(sectionId);
-    const rows = getDenaliFieldRegistryByStep(sectionId);
-    for (const row of rows) {
-      if (row.inRuleModel === false) continue;
-      if (!suppressedForSection.has(row.canonicalPath)) {
-        issues.push(
-          `registry path not suppressed for flat-edit section ${sectionId}: ${row.canonicalPath}`,
-        );
-      }
+    const rows = getDenaliFieldRegistryByStep(sectionId).filter(
+      (row) => row.inRuleModel !== false && shouldRenderDenaliRegistryField(row),
+    );
+    if (rows.length === 0) {
+      issues.push(`flat-edit section has no renderable registry rows: ${sectionId}`);
     }
   }
 
@@ -79,7 +67,7 @@ function main(): void {
     JSON.stringify({
       ok: true,
       registryPathCount: registry.size,
-      suppressedPathCount: suppressedUnion.size,
+      editSectionCount: DENALI_EDIT_SECTION_IDS.length,
       templateTopLevelKeys: DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS.length,
     }),
   );

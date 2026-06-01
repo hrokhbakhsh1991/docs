@@ -17,17 +17,16 @@ test("denaliWizardSteps: MVP 7-step rail", () => {
   ]);
 });
 
-test("getWizardStepsForContext: denali_pilot profile uses 7-step Denali rail", () => {
+test("getWizardStepsForContext: always returns Denali rail", () => {
   const steps = getWizardStepsForContext({ wizardMode: "classic", formProfile: "denali_pilot" });
   assert.equal(steps.length, 7);
   assert.equal(steps[0], "denali_basic");
   assert.equal(steps.at(-1), "review");
 });
 
-test("getWizardStepsForContext: non-denali tenant keeps classic 9-step rail", () => {
+test("getWizardStepsForContext: same rail for non-denali profile context", () => {
   const steps = getWizardStepsForContext({ wizardMode: "classic", tenantSlug: "ws1-rbac" });
-  assert.equal(steps.length, 9);
-  assert.equal(steps[0], "basic");
+  assert.deepEqual([...steps], [...denaliWizardSteps]);
 });
 
 test("resolveTourWizardMode from denali_pilot profile", () => {

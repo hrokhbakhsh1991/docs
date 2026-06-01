@@ -1,10 +1,10 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateWizardStepId } from "@/features/tours/wizard/stepConfig";
+import type { DenaliCreateWizardStepId } from "@/features/tours/wizard/denaliStepConfig";
 
 export type TenantWizardStepOverrides = {
-  readonly skip: readonly TourCreateWizardStepId[];
-  readonly insert: readonly TourCreateWizardStepId[];
+  readonly skip: readonly DenaliCreateWizardStepId[];
+  readonly insert: readonly DenaliCreateWizardStepId[];
 };
 
 export type TenantWizardTemplate = {

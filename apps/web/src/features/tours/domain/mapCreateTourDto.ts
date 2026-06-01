@@ -1,6 +1,6 @@
 import type { CreateTourDto } from "@/lib/services/tours.service";
 
-import type { SocialLink, TourLocationSectionModel } from "../models/tourCreateModel";
+import type { SocialLink, TourLocationSectionModel } from "../models/tourCreateSharedTypes";
 import {
   compactTripDetailsForApi,
   filterUuidV4Strings,

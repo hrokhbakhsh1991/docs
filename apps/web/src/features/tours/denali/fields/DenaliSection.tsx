@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo } from "react";
 
 import { getDenaliFieldRegistryByStep } from "@repo/denali-domain";
 
@@ -9,67 +9,33 @@ import { useDenaliStepFieldRules } from "@/features/tours/wizard/denali/applicat
 
 import editStyles from "@/components/tours/DenaliTourEditForm.module.css";
 
-import { DenaliFieldRenderer } from "./DenaliFieldRenderer";
-import {
-  getSuppressedCanonicalPathsForSection,
-  type DenaliEditSectionId,
-} from "./denaliSectionSuppress";
-import {
-  DenaliBasicInfoSection,
-  DenaliLegalSection,
-  DenaliLogisticsSection,
-  DenaliPhotosSection,
-  DenaliPricingSection,
-  DenaliProgramNatureSection,
-} from "../sections";
+import { DenaliRegistryFields } from "./DenaliRegistryFields";
+import { shouldRenderDenaliRegistryField } from "./denaliFieldRendererAnchors";
+import type { DenaliEditSectionId } from "./denaliSectionSuppress";
 
 export type { DenaliEditSectionId } from "./denaliSectionSuppress";
-
-const SECTION_BODY: Record<
-  DenaliEditSectionId,
-  (props: { tourId?: string }) => ReactNode
-> = {
-  denali_basic: () => <DenaliBasicInfoSection />,
-  denali_program: () => <DenaliProgramNatureSection />,
-  denali_logistics: () => <DenaliLogisticsSection />,
-  denali_pricing: () => <DenaliPricingSection />,
-  denali_legal: () => <DenaliLegalSection />,
-  denali_photos: (props) => <DenaliPhotosSection tourId={props.tourId} />,
-};
+export { DENALI_EDIT_SECTION_IDS } from "./denaliSectionSuppress";
 
 export type DenaliSectionProps = {
   sectionId: DenaliEditSectionId;
   tourId?: string;
 };
 
-/**
- * Flat-edit section: registry visibility gate + section body (decoupled from wizard/steps imports).
- * Supplemental registry rows render via {@link DenaliFieldRenderer} when not suppressed.
- */
+/** Flat-edit section — registry-driven fields via {@link DenaliFieldRenderer}. */
 export function DenaliSection({ sectionId, tourId }: DenaliSectionProps) {
   const { isVisible } = useDenaliStepFieldRules(sectionId);
   const registryRows = useMemo(() => getDenaliFieldRegistryByStep(sectionId), [sectionId]);
-  const suppressedPaths = useMemo(
-    () => getSuppressedCanonicalPathsForSection(sectionId),
-    [sectionId],
-  );
 
   const hasVisibleField = registryRows.some(
-    (row) => row.inRuleModel !== false && isVisible(row.canonicalPath),
+    (row) =>
+      row.inRuleModel !== false &&
+      shouldRenderDenaliRegistryField(row) &&
+      isVisible(row.canonicalPath),
   );
 
   if (!hasVisibleField) {
     return null;
   }
-
-  const supplemental = registryRows.filter(
-    (row) =>
-      row.inRuleModel !== false &&
-      !suppressedPaths.has(row.canonicalPath) &&
-      isVisible(row.canonicalPath),
-  );
-
-  const Body = SECTION_BODY[sectionId];
 
   return (
     <section
@@ -79,10 +45,7 @@ export function DenaliSection({ sectionId, tourId }: DenaliSectionProps) {
     >
       <h2 className={editStyles.sectionTitle}>{getDenaliStepTitleFa(sectionId)}</h2>
       <div className={editStyles.sectionBody}>
-        <Body tourId={tourId} />
-        {supplemental.map((field) => (
-          <DenaliFieldRenderer key={field.canonicalPath} field={field} />
-        ))}
+        <DenaliRegistryFields sectionId={sectionId} tourId={tourId} />
       </div>
     </section>
   );

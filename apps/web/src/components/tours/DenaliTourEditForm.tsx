@@ -8,7 +8,7 @@ import { Alert, Button, Card, CardBody } from "@tour/ui";
 import type { TourDetailDto } from "@/lib/services/tours.service";
 import type { DenaliTourEditPatchIntent } from "@/features/tours/edit/updateTourDtoFromDenaliWizardForm";
 import { transformTourToDenaliWizardValues } from "@/features/tours/clone/transformTourToDenaliWizardValues";
-import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
+import type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 import {
   DenaliSection,
   type DenaliEditSectionId,

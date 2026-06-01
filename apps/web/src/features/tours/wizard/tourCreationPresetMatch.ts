@@ -1,6 +1,5 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
 
 /** Active presets only — workspace sort order. */
@@ -32,34 +31,4 @@ export function listAllTourWizardPresetsSorted(
     if (d !== 0) return d;
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
-}
-
-const PATCH_SECTION_KEYS = [
-  "overview",
-  "pricing",
-  "schedule",
-  "location",
-  "itinerary",
-  "participation",
-  "logistics",
-  "policies",
-] as const;
-
-/**
- * Keeps only wizard-known roots from stored JSON (ignore unknown keys).
- *
- * @deprecated Prefer {@link mapPresetToFormPatch} or {@link mapWizardPrefillToFormPatch} at app call sites.
- */
-export function presetDefaultsToFormPatch(defaults: Record<string, unknown>): Partial<TourCreateFormValues> {
-  const patch: Partial<TourCreateFormValues> = {};
-  if (typeof defaults.autoAcceptRegistrations === "boolean") {
-    patch.autoAcceptRegistrations = defaults.autoAcceptRegistrations;
-  }
-  for (const key of PATCH_SECTION_KEYS) {
-    const v = defaults[key];
-    if (v != null && typeof v === "object" && !Array.isArray(v)) {
-      (patch as Record<string, unknown>)[key] = v;
-    }
-  }
-  return patch;
 }

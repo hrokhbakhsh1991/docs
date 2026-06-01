@@ -1,18 +1,10 @@
 import type { TourFormProfile } from "@repo/types";
 
-import type { TourCloneSourceDto } from "@/features/tours/clone/transformTourToWizardValues";
-import { transformTourToWizardValues } from "@/features/tours/clone/transformTourToWizardValues";
-import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
+import type { TourCloneSourceDto } from "@/features/tours/clone/tourCloneSource.types";
 import { mapToDenaliWizardPatch } from "@/features/tours/wizard/profiles/denali/mapToDenaliWizardPatch";
-import {
-  getCapabilitiesForProfile,
-  normalizeTourFormProfileInput,
-} from "@/lib/workspace/workspace-capabilities";
-import {
-  mapPresetToFormPatch,
-  type PresetMapperContext,
-} from "@/features/tours/wizard/profiles/mapPresetToFormPatch";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
+
+import type { PresetMapperContext } from "@/features/tours/wizard/profiles/mapPresetToFormPatch";
 
 export type WizardPrefillSource =
   | {
@@ -26,34 +18,21 @@ export type WizardPrefillSource =
       activeEquipmentIds?: readonly string[];
     };
 
-/**
- * Public entry for preset/clone → wizard form patch.
- * Workspace `formProfile` selects Denali (`mapToDenaliWizardPatch`) vs classic
- * (`mapPresetToFormPatch` / `transformTourToWizardValues`).
- */
+/** Denali-only preset/clone → wizard form patch. */
 export function mapWizardPrefillToFormPatch(
-  formProfile: TourFormProfile | string | null | undefined,
+  _formProfile: TourFormProfile | string | null | undefined,
   source: WizardPrefillSource,
-): Partial<TourCreateFormValues> | Partial<DenaliCreateTourWizardForm> {
-  const { usesDenaliWizardShell } = getCapabilitiesForProfile(
-    normalizeTourFormProfileInput(formProfile),
-  );
-  if (usesDenaliWizardShell) {
-    if (source.kind === "preset") {
-      return mapToDenaliWizardPatch({
-        kind: "preset",
-        defaults: source.defaults,
-        ctx: source.ctx,
-      });
-    }
+): Partial<DenaliCreateTourWizardForm> {
+  if (source.kind === "preset") {
     return mapToDenaliWizardPatch({
-      kind: "clone",
-      tour: source.tour,
-      activeEquipmentIds: source.activeEquipmentIds,
+      kind: "preset",
+      defaults: source.defaults,
+      ctx: source.ctx,
     });
   }
-  if (source.kind === "preset") {
-    return mapPresetToFormPatch(formProfile, source.defaults, source.ctx);
-  }
-  return transformTourToWizardValues(source.tour);
+  return mapToDenaliWizardPatch({
+    kind: "clone",
+    tour: source.tour,
+    activeEquipmentIds: source.activeEquipmentIds,
+  });
 }

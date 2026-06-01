@@ -20,7 +20,7 @@ All suites use `describe…(structural guard)` or `describe…(perf guard)` via 
 | `denali-draft-registry-coverage.guard.test.ts` | Config | Draft sanitize round-trip |
 | `denali-error-handling-integrity.guard.test.ts` | Config | Blocking codes ↔ registry/focus paths |
 | `denali-template-canonical-registry.guard.test.ts` | Domain | Template keys ↔ registry |
-| `denali-section-suppress.guard.test.ts` | Domain | Flat-edit suppress paths |
+| `denali-section-suppress.guard.test.ts` | Domain | Flat-edit registry row coverage |
 | `denali-wizard-header-plugins.guard.test.ts` | Filesystem | Create vs edit header plugins |
 | `denali-section-mount.perf.spec.tsx` | Perf | `DenaliSection` mount latency |
 

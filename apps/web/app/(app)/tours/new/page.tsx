@@ -7,9 +7,6 @@ import { routing } from "@/i18n/routing";
 import { TourCreateWizardChunkLoading } from "./tour-create-wizard-chunk-loading";
 import { TourCreateWizardWrapper } from "./tour-create-wizard-wrapper";
 
-/** Types only — Zod schema stays client-side in the wizard/form layer. */
-export type { TourCreateModel } from "@/features/tours/models/tourCreateModel";
-
 const LOCALE = routing.defaultLocale;
 
 export async function generateMetadata(): Promise<Metadata> {
