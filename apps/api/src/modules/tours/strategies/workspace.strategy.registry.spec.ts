@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { assertLedgerJournalDoubleEntry } from "@repo/shared-contracts";
+import { MOCK_WORKSPACE_PLUGIN_ID } from "@repo/workspace-sdk";
 import { MountainOutdoorWorkspaceStrategy } from "./mountain-outdoor.workspace.strategy";
-import { GeneralWorkspaceStrategy } from "./general.workspace.strategy";
+import { SdkWorkspaceStrategyAdapter } from "./sdk.workspace.strategy.adapter";
 import {
   isDenaliStrategyProfile,
   WorkspaceStrategyRegistry,
 } from "./workspace.strategy.registry";
 import { buildValidationRules } from "./workspace.strategy.builders";
+import { buildWorkspacePluginViewFromStrategy } from "./legacy-workspace-plugin.view";
 
 describe("WorkspaceStrategyRegistry", () => {
-  it("resolve(general) returns GeneralWorkspaceStrategy with classic wizard", () => {
+  it("resolve(general) returns SdkWorkspaceStrategyAdapter wired to mock plugin", () => {
     const strategy = WorkspaceStrategyRegistry.resolve("general");
-    assert.ok(strategy instanceof GeneralWorkspaceStrategy);
+    assert.ok(strategy instanceof SdkWorkspaceStrategyAdapter);
     assert.equal(strategy.profile, "general");
+    assert.equal(strategy.getWorkspacePlugin().id, MOCK_WORKSPACE_PLUGIN_ID);
     assert.equal(strategy.getWizardConfig().wizardMode, "classic");
     assert.equal(strategy.getPublishPolicy().publishGeolocationCheck, null);
   });
@@ -37,9 +40,9 @@ describe("WorkspaceStrategyRegistry", () => {
     assert.equal(rules.workspaceTripDetailsValidationPhase, "never");
   });
 
-  it("resolve(nature_trip) uses General strategy with Arctic workspace validation", () => {
+  it("resolve(nature_trip) uses legacy general strategy (no SDK binding yet)", () => {
     const strategy = WorkspaceStrategyRegistry.resolve("nature_trip");
-    assert.ok(strategy instanceof GeneralWorkspaceStrategy);
+    assert.ok(!(strategy instanceof SdkWorkspaceStrategyAdapter));
     const rules = strategy.getValidationRules();
     assert.equal(typeof rules.workspaceValidation?.checkCapacity, "function");
     assert.equal(rules.workspaceValidation?.checkTripDetails(null), null);
@@ -105,5 +108,13 @@ describe("WorkspaceStrategyRegistry", () => {
   it("buildValidationRules returns descriptor-backed inactive groups", () => {
     const rules = buildValidationRules("urban_event");
     assert.ok(rules.inactiveFieldGroups.length > 0);
+  });
+
+  it("buildWorkspacePluginViewFromStrategy maps API denali wizard to SDK schema mode", () => {
+    const strategy = WorkspaceStrategyRegistry.resolve("denali_pilot");
+    const view = buildWorkspacePluginViewFromStrategy(strategy);
+    assert.equal(strategy.getWizardConfig().wizardMode, "denali");
+    assert.equal(view.wizard.wizardMode, "schema");
+    assert.ok(view.wizard.roots.length > 0);
   });
 });
