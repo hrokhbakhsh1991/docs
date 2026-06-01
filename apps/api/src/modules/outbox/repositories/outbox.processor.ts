@@ -354,6 +354,7 @@ export class OutboxProcessor {
     );
 
     await this.dataSource.transaction(async (manager) => {
+      // tenant-isolation:qb-exempt — outbox poison-marking runs on global queue ids, not tenant-scoped row reads.
       await manager
         .createQueryBuilder()
         .update(OutboxEventEntity)

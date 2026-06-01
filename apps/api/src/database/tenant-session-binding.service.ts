@@ -484,19 +484,32 @@ export class TenantSessionBindingService implements OnModuleInit {
         normalized.includes(" from tenants ") ||
         normalized.includes(" from \"tenants\" ") ||
         /(?:^|\s)from\s+(?:"[^"]+"\.)?"tenants"(?:\s|$)/.test(normalized);
+      const selectsTenantDomains =
+        normalized.includes(" from tenant_custom_domains ") ||
+        normalized.includes(" from \"tenant_custom_domains\" ") ||
+        /(?:^|\s)from\s+(?:"[^"]+"\.)?"tenant_custom_domains"(?:\s|$)/.test(normalized);
       const subdomainLookup = normalized.includes("subdomain");
+      const customDomainLookup =
+        normalized.includes("hostname") || normalized.includes("web_origin");
       const softDeleteGuard =
         normalized.includes("deleted_at is null") ||
         normalized.includes("deleted_at\" is null") ||
         normalized.includes("\"deleted_at\" is null") ||
         /(?:^|\s)(?:"[^"]+"\.)?"deleted_at"\s+is\s+null(?:\s|$)/.test(normalized);
+      const activeDomainGuard =
+        normalized.includes("is_active = true") ||
+        normalized.includes("\"is_active\" = true");
       const hasMutationKeyword =
         normalized.includes(" insert ") ||
         normalized.includes(" update ") ||
         normalized.includes(" delete ") ||
         normalized.includes(" upsert ") ||
         normalized.includes(" into ");
-      return selectsTenants && subdomainLookup && softDeleteGuard && !hasMutationKeyword;
+      const tenantTableLookupAllowed =
+        selectsTenants && subdomainLookup && softDeleteGuard;
+      const customDomainLookupAllowed =
+        selectsTenantDomains && customDomainLookup && softDeleteGuard && activeDomainGuard;
+      return (tenantTableLookupAllowed || customDomainLookupAllowed) && !hasMutationKeyword;
     }
     if (reason === "public_tour_bootstrap_lookup") {
       const selectsTours =
