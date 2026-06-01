@@ -1,370 +1,275 @@
-🧱 تعریف نهایی پلتفرم
+# Enterprise Transformation Map
 
-پلتفرمی که باید بسازی:
+**Tour Ops — از Denali-locked Platform به Workspace-Based Platform**
 
-یک Schema-driven, Plugin-based, Workspace-agnostic Platform
-که بتواند چندین مدل کسب‌وکار (workspace) را بدون تغییر در core اجرا کند.
+> **وضعیت:** نقشهٔ اجرایی (North Star + Migration Plan)  
+> **اجرا:** طبق فازها — هر sub-phase = PR جدا  
+> **آخرین هم‌ترازی:** branch `main` (Tour Ops monorepo)
 
-🧠 اصل‌های غیرقابل مذاکره (Non-Negotiables)
+---
 
-قبل از هر چیز، این‌ها قانون هستن:
+## خلاصهٔ یک‌خطی
 
-1. Core هیچ دانشی از Denali ندارد
+**Platform logic = generic · Workspace logic = injectable**
 
-اگر core بداند:
+Core نباید Denali (یا هیچ workspace خاص) را بشناسد. Denali = **Plugin** در `packages/workspaces/denali/`، نه بخشی از engine.
 
-step چیست در Denali
-canonical shape چیست در Denali
+---
 
-سیستم fail است.
+## 1. هدف نهایی
 
-2. فقط یک Source of Truth وجود دارد
+| ویژگی | معنی عملی |
+|--------|-----------|
+| Workspace-agnostic Core | بدون `denali` / `Denali*` / `@repo/denali-domain` در لایهٔ platform |
+| Workspace = Plugin | هر مدل کسب‌وکار = package مستقل + contract واحد |
+| Schema-driven UI | registry → rule engine → renderer → widget |
+| Canonical = تنها SoT | RHF فقط adapter موقت (حذف در Phase 4a) |
+| DB generic | `canonical_data` JSON + `workspace_type` |
+| Workspace جدید | فقط plugin + bootstrap — بدون touch core |
 
-❗️فقط Canonical Model
+---
 
-RHF = فقط ابزار فرم
-UI = فقط مصرف‌کننده
-API = فقط مصرف‌کننده
-3. Workspace = Plugin
+## 2. وضعیت فعلی repo (Baseline)
 
-یعنی:
+### امتیازدهی
 
-اضافه کردن workspace جدید = فقط اضافه کردن یک پکیج
-بدون تغییر در core
-4. Renderer باید 100% coverage داشته باشد
+| حوزه | وضعیت | شواهد |
+|------|--------|--------|
+| Core workspace-agnostic | 🔴 | `denali` در `apps/api`, `packages`, `libs` |
+| Workspace به‌صورت package | 🔴 | `packages/workspaces/` وجود ندارد |
+| Backend strategy | 🟡 | `IWorkspaceStrategy` فقط tours/backend |
+| Dual state RHF + canonical | 🔴 | `DenaliWizardSyncContext`, adapter دوطرفه |
+| Renderer coverage | 🔴 | input مستقیم در steps/composites |
+| DB canonical | 🟡/🔴 | `trip_details` jsonb + template `canonical_data` |
+| Guardrails پایه | 🟢 | depcruise, architecture-guardrails, denali CI |
+| Guardrail «denali در core = fail» | 🔴 | وجود ندارد |
 
-اگر حتی یک input مستقیم در JSX بنویسی:
+### استخراج‌های جزئی (قبل از migration کامل)
 
-→ معماری ناقص است
+| مسیر | نقش |
+|------|------|
+| `packages/denali-domain/` | registry, rules, adapters — هنوز Denali-named |
+| `packages/types/src/denali/` | canonical wire types → باید به plugin |
+| `shared-contracts/.../workspaces/denali*.ts` | workspace definition → باید به plugin |
+| `apps/api/.../strategies/` | backend strategy — Denali-aware |
+| `packages/draft-engine/` | ✅ generic |
+| `libs/core/` | ✅ بدون Denali |
 
-🧩 لایه‌های سیستم (از پایین به بالا)
-🗄️ 1. Data Layer (Database)
-هدف:
+### Hotspots حذف (اولویت)
 
-ذخیره داده بدون وابستگی به workspace
+- **API:** `workspace.strategy.registry.ts`, `create-tour-form-profile-strip`, `trip-details.dto`, `tour-details.entity`
+- **Web:** `wizard/denali/**`, `denali/fields`, `WorkspaceTourWizard.tsx`, `bindings/denali.ts`, duplicate `rules/generated/`
+- **DB:** `TourEntity` columns + `TourDetails.trip_details` jsonb
 
-ساختار اصلی
-جدول اصلی (tours)
-id
-workspace_id
-canonical_data (JSON)
-status
-created_at
-چرا JSON؟
+---
 
-چون:
+## 3. ساختار packages هدف
 
-هر workspace schema خودش را دارد
-structure ثابت نیست
-نکته مهم
+```text
+packages/
+  workspace-sdk/           # Contract — ZERO denali imports
+  platform-core/           # Field/Rule/Step/Renderer — ZERO denali
+  workspaces/
+    denali/                # migration از denali-domain + types + web slice
+    urban/                 # workspace دوم (DoD)
+apps/
+  api/                     # generic engine + plugin loader
+  web/                     # generic wizard shell + bootstrap
+```
 
-❗️Database نباید بداند Denali چیست
+**قانون import:**
 
-Index Strategy
-فقط روی فیلدهای مهم index بزن
-نه کل canonical
+```text
+platform-core  →  workspace-sdk
+workspaces/*   →  workspace-sdk, platform-core (optional)
+apps/*         →  platform-core, workspace-sdk, workspaces/* (bootstrap)
+platform-core  →  workspaces/*   ❌
+workspace-sdk  →  workspaces/*     ❌
+```
 
-مثلاً:
+---
 
-destination
-date
-price
-Template Storage
+## 4. اصول غیرقابل مذاکره
 
-جدول templates:
+1. Core workspace-agnostic — بدون `denali_*` در `platform-core` و `workspace-sdk`
+2. Canonical = تنها SoT — UI از canonical؛ update فقط canonical (Phase 4a: حذف RHF mirror)
+3. Workspace = Plugin — bootstrap از contract؛ بدون `if (profile === 'denali_pilot')` در core
+4. Renderer 100% — ممنوع: `<input>`, `<select>`, `<textarea>` مستقیم در wizard path
+5. DB workspace-agnostic — `canonical_data` + `workspace_type`
 
-id
-workspace_id
-template_data (canonical shape)
-Draft Storage
+---
 
-دو حالت:
+## 5. فازبندی Migration
 
-داخل همان جدول (status = draft)
-جدول جدا drafts
-⚙️ 2. Backend Layer
-هدف:
+> هر sub-phase = PR جدا + exit criteria · ترتیب: **0 → 1 → 2 → 3 → 4 → 5**
 
-اجرای logic بدون وابستگی به workspace خاص
+### Phase 0 — Freeze & Baseline (~1 PR)
 
-2.1 Workspace Registry
+| # | کار | Exit |
+|---|-----|------|
+| 0.1 | ثبت `map.md` | merge |
+| 0.2 | `scripts/platform-transformation/baseline-metrics.mjs` | گزارش denali per layer |
+| 0.3 | CI green روی main | test + smoke |
+| 0.4 | freeze لیست workspace | `denali_pilot`, `urban_event`, classic profiles |
 
-سیستمی که workspaceها را ثبت می‌کند:
+---
 
-workspace_id
-schema
-validators
-transformers
-2.2 Request Flow
+### Phase 1 — Contract (`packages/workspace-sdk`)
 
-وقتی request میاد:
+**هدف:** contract در TypeScript — بدون جابجایی Denali
 
-workspace_id خوانده می‌شود
-workspace resolve می‌شود
-schema مربوطه load می‌شود
-validation انجام می‌شود
-canonical ذخیره می‌شود
-2.3 Validation
+| Sub-phase | کار | Exit |
+|-----------|-----|------|
+| 1.1 | scaffold `@repo/workspace-sdk` | build سبز؛ صفر import از denali-domain |
+| 1.2 | types: `WorkspacePlugin`, `WorkspaceFieldRegistry`, `WorkspaceRuleSet`, `CanonicalDocument`, … | mock plugin tests |
+| 1.3 | bridge `IWorkspaceStrategy` → SDK (backward compatible) | API tests سبز |
+| 1.4 | guardrail: SDK denali-free + depcruise | CI fail اگر denali در SDK |
 
-❌ اشتباه:
+**DoD Phase 1:** `@repo/workspace-sdk` + mock plugin + adapter — **هنوز بدون جابجایی فایل Denali**
 
-validateDenaliTour()
+---
 
-✔️ درست:
+### Phase 2 — Denali Isolation (`packages/workspaces/denali`)
 
-validate(workspace.schema, data)
-2.4 Transformation Layer
+| Sub-phase | کار |
+|-----------|-----|
+| 2.1 | shell package + `denaliPlugin: WorkspacePlugin` |
+| 2.2 | move: `denali-domain` → `workspaces/denali/domain`؛ types؛ contracts — shim `@repo/denali-domain` موقت |
+| 2.3 | API `WorkspacePluginRegistry` + shadow validation |
+| 2.4 | حذف `DENALI_STRATEGY_PROFILES` و constants از API core |
+| 2.5 | Web `WorkspacePluginProvider` — هنوز legacy render path |
 
-بین canonical و database:
+**DoD Phase 2:** plugin implements contract · API loader · `workspace-sdk` بدون denali
 
-canonical → db format
-db → canonical
-2.5 Business Logic
+---
 
-باید generic باشد:
+### Phase 3 — Renderer (`packages/platform-core`)
 
-pricing
-availability
-permissions
+| Sub-phase | کار |
+|-----------|-----|
+| 3.1 | `FieldRegistryEngine`, `RuleEngine`, `StepEngine`, `GenericFieldRenderer`, `CompositeFieldRenderer` |
+| 3.2 | generic widgets در core؛ custom در `workspaces/denali/widgets` |
+| 3.3 | migrate steps یکی‌یکی (Legal → Photos → Basic → Pricing → Logistics → Program → Review) |
+| 3.4 | deprecate `DenaliFieldRenderer`, duplicate generated rules, sections bypass |
+| 3.5 | ESLint: no form controls در `**/wizard/**` |
 
-اگر Denali-specific شد:
+**DoD Phase 3:** تمام steps از renderer · `platform-core` denali-free · smoke سبز
 
-→ باید برود داخل plugin
+---
 
-2.6 API Design
+### Phase 4 — Canonical SoT + Workspace دوم
 
-همه endpointها باید workspace-aware باشند:
+**4a — Single canonical state**
 
-مثلاً:
+- `CanonicalStore` · input → `updateCanonical` · RHF فقط برای submit resolver
+- حذف `DenaliWizardSyncContext` dual write
+- round-trip tests canonical ↔ API
 
-create tour
-update tour
-get tour
+**4b — `packages/workspaces/urban` (Platform DoD)**
 
-همه باید workspace_id داشته باشند
+- minimal plugin · 3-step wizard · tenant provision · E2E create → publish
+- **صفر** PR در `platform-core`
 
-🧠 3. Domain Layer (Core Engine)
+**DoD Phase 4:** urban بدون تغییر core · denali + urban همان engine · canonical SoT
 
-این مهم‌ترین بخش است
+---
 
-3.1 Field Registry Engine
+### Phase 5 — Data Layer
 
-تعریف می‌کند:
+- schema: `workspace_type`, `canonical_data` JSONB
+- backfill از `TourEntity` + `trip_details`
+- dual-read → write canonical only → deprecate Denali-specific columns
+- list/filter روی projected columns (نه GIN روی کل JSON مگر لازم)
 
-چه فیلدهایی وجود دارند
-کجا هستند
-چه نوعی دارند
-3.2 Canonical Model
+**DoD Phase 5:** API persist فقط canonical + workspace_type · backfill verified
 
-یک object generic:
+---
 
-nested
-dynamic
-workspace-specific data داخلش
-3.3 Rule Engine
+## 6. Guardrails (فاز به فاز)
 
-قوانین مثل:
+| فاز | Guardrail | blocking |
+|-----|-----------|----------|
+| 1 | SDK denali-free | ✅ |
+| 2 | core ↛ workspaces (تا platform-core) | ✅ |
+| 3 | no direct form controls در wizard | ✅ |
+| 4 | urban بدون import denali | ✅ |
+| all | baseline metrics regression | 📊 |
 
-hide field
-require field
-enable/disable
+```bash
+rg -i denali packages/platform-core packages/workspace-sdk   # → 0 (هدف نهایی)
+rg '<input|<select|<textarea' apps/web/.../wizard --glob '!*.spec.*'  # → 0
+```
 
-باید:
+---
 
-pure باشند
-بدون وابستگی به UI
-3.4 Step Engine
+## 7. تست‌ها
 
-تعریف می‌کند:
+| لایه | مسیر | فاز |
+|------|------|-----|
+| denali-domain unit | `packages/denali-domain/**/*.spec.ts` | 1–2 |
+| workspace-sdk unit | `packages/workspace-sdk/**/*.spec.ts` | 1+ |
+| structural guards | `wizard/denali/__tests__/guards/` | 3 |
+| smoke | `features/tours/__tests__/smoke/` | all |
+| integration | `integration/wizard-real-stack.*.spec.ts` | 2–4 |
+| API e2e | `pnpm test:e2e:isolation` | all |
+| urban E2E | `submit-urban.spec.ts` | 4 |
 
-wizard steps
-ترتیب مراحل
-فیلدهای هر step
-3.5 Validation Engine
-بر اساس schema
-workspace-specific
-3.6 Renderer قرارداد (نه UI)
+**قانون:** هیچ PR فاز N اگر smoke/isolation Denali قرمز باشد.
 
-Core فقط contract تعریف می‌کند:
+---
 
-field → component key
-نه اینکه React بداند
-🧩 4. Workspace Plugin Layer
+## 8. وابستگی فازها (DAG)
 
-هر workspace یک package جداست
+```text
+Phase 0 → Phase 1 → Phase 2 ──→ Phase 5 (shadow بعد از 2.3)
+              ↓
+         Phase 3 → Phase 4a → Phase 4b → Phase 5 cutover
+```
 
-هر workspace باید این‌ها را داشته باشد:
-1. Registry Data
+**Overlap مجاز:** Phase 5 schema موازی Phase 3 · Phase 4a از step 3.3.3  
+**Overlap ممنوع:** Phase 4b قبل از 3.1 · Phase 5 cutover قبل از 4a
 
-لیست تمام فیلدها
+---
 
-2. Schema
+## 9. ریسک‌ها
 
-Zod یا هر validator
+| ریسک | Mitigation |
+|------|------------|
+| `DenaliCanonicalTourModel` coupling | `CanonicalDocument` generic در SDK |
+| Renderer ناقص | step-by-step PR + ESLint |
+| Dual state | Phase 4a + feature flag |
+| Composite bypass | `CompositeFieldRenderer` |
+| `@repo/denali-domain` importers | re-export shim + codemod |
+| DB migration | dual-read/write + backfill |
 
-3. Rules
+---
 
-business rules
+## 10. Definition of Done — Platform
 
-4. Step Definition
+- [ ] Phase 1–4b complete
+- [ ] workspace جدید بدون تغییر `platform-core`
+- [ ] `rg -i denali packages/platform-core packages/workspace-sdk` → 0
+- [ ] Wizard: 0 input مستقیم (ESLint)
+- [ ] E2E denali + urban
+- [ ] API: `validate(plugin.schema, canonical)`
+- [ ] DB: `canonical_data` + `workspace_type`
 
-ساختار wizard
+---
 
-5. Widgets
+## 11. مرجع سریع (مسیرهای کلیدی امروز)
 
-کامپوننت‌های خاص
+| نقش | مسیر |
+|-----|------|
+| Registry | `packages/denali-domain/src/registry/denaliFieldRegistryData.ts` |
+| Codegen | `apps/web/scripts/generate-denali-wizard-config.ts` |
+| Adapter / sync | `denaliCanonicalFormAdapter.ts`, `DenaliWizardSyncContext.tsx`, `drafts/denali-adapter.ts` |
+| API strategy | `apps/api/.../strategies/workspace.strategy.*` |
+| Wizard shell | `WorkspaceTourWizard.tsx`, `wizard/bindings/denali.ts` |
 
-6. Transformers
+---
 
-اگر نیاز به mapping خاص دارد
+## شروع اجرا
 
-نکته مهم
+**Phase 0 → Phase 1.1** — هر sub-phase یک PR با exit criteria همین سند.
 
-❗️هیچ چیز shared با Denali نباید hardcoded باشد
-
-🖥️ 5. Frontend Layer
-5.1 Workspace Bootstrapping
-
-وقتی UI load می‌شود:
-
-workspace_id گرفته می‌شود
-workspace config load می‌شود
-provider ساخته می‌شود
-5.2 Canonical State
-
-فقط یک state:
-
-canonical
-5.3 Form Layer
-
-RHF یا هر فرم:
-
-فقط adapter
-sync با canonical
-5.4 Renderer Engine
-
-برای هر field:
-
-registry lookup
-rule check
-widget render
-5.5 Widgets
-
-دو نوع:
-
-1. Generic
-input
-select
-checkbox
-2. Custom
-complex UI
-workspace-specific
-5.6 Composite Fields (راه درست)
-
-❌ الان:
-
-bypass renderer
-
-✔️ باید:
-
-registry بتواند nested/group تعریف کند
-5.7 Step Rendering
-
-هر step:
-
-fields.map
-renderer
-5.8 No Hardcoding
-
-❌ ممنوع:
-
-input مستقیم
-path دستی
-useController پراکنده
-🔄 6. Data Flow (صحیح)
-جریان درست
-user input
-update canonical
-renderer re-render
-submit → API
-store canonical
-چیزی که نباید باشد
-dual write
-RHF source of truth
-🔌 7. Plugin Resolution
-runtime چه کار می‌کند:
-workspace_id می‌گیرد
-plugin را load می‌کند
-config را inject می‌کند
-config شامل:
-registry
-schema
-rules
-widgets
-steps
-🚫 8. چیزهایی که باید حذف شوند
-در سیستم فعلی تو:
-DenaliCanonicalContext
-DenaliFieldRenderer
-DenaliCreateForm
-DENALI_* constants
-composite bypass logic
-dual state
-🎯 9. ویژگی‌های نهایی سیستم
-وقتی درست پیاده‌سازی شود:
-اضافه کردن workspace جدید:
-فقط یک package جدید
-بدون تغییر در core
-تغییر UI:
-فقط registry یا widget
-تغییر schema:
-فقط در plugin
-تست:
-هر workspace جدا تست می‌شود
-🧨 10. بزرگ‌ترین ریسک‌ها (که باید حل شوند)
-1. Canonical coupling
-
-الان:
-
-DenaliCanonicalTourModel
-
-باید:
-
-generic Canonical
-2. Renderer ناقص
-
-باید:
-
-همه fieldها را پوشش دهد
-3. Dual state
-
-باید:
-
-حذف شود
-4. Composite hack
-
-باید:
-
-با registry حل شود
-5. Backend coupling
-
-باید:
-
-workspace-aware شود
-🧾 جمع‌بندی نهایی
-
-تو الان داری:
-
-یک سیستم خیلی پیشرفته
-ولی تک-ورک‌اسپیسی (Denali-locked)
-
-باید برسی به:
-
-یک Engine عمومی (Platform)
-+
-چند Plugin (Workspace)
-
-🧠 جمله‌ای که باید همیشه یادت باشه:
-
-Platform logic = generic
-Workspace logic = injectable
+> Platform logic = generic · Workspace logic = injectable
