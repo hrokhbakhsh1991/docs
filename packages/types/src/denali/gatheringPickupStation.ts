@@ -111,18 +111,18 @@ export function gatheringPickupStationIsConcrete(station: DenaliGatheringPickupS
   );
 }
 
-/** Maps a single legacy `overview.gatheringPoint` pin into one nested station. */
-export function gatheringPickupStationFromLegacyLocation(
-  legacy: DenaliLocationData,
+/** Maps a single location pin into one nested gathering station row. */
+export function gatheringPickupStationFromLocation(
+  location: DenaliLocationData,
   opts?: { title?: string; time?: string; id?: string },
 ): DenaliGatheringPickupStation {
   const station: DenaliGatheringPickupStation = {
-    title: opts?.title?.trim() || legacy.addressText.trim() || "ایستگاه تجمع",
+    title: opts?.title?.trim() || location.addressText.trim() || "ایستگاه تجمع",
     time: opts?.time,
     location: {
-      addressText: legacy.addressText,
-      latitude: legacy.latitude,
-      longitude: legacy.longitude,
+      addressText: location.addressText,
+      latitude: location.latitude,
+      longitude: location.longitude,
     },
   };
   if (opts?.id?.trim()) {

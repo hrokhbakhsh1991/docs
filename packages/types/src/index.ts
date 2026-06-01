@@ -38,7 +38,7 @@ export {
 export { denaliLocationFromApi } from "./denali/locationData";
 export {
   EMPTY_GATHERING_PICKUP_STATION,
-  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationFromLocation,
   gatheringPickupStationIsConcrete,
   gatheringPickupStationToPersisted,
   normalizeGatheringPickupStation,

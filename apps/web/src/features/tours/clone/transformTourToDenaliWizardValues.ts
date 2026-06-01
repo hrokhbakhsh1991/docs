@@ -7,7 +7,7 @@ import {
   type DenaliTourKind,
 } from "@repo/types";
 import {
-  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationFromLocation,
   normalizeGatheringPickupStations,
 } from "@repo/types";
 import {
@@ -502,7 +502,7 @@ export function transformTourToDenaliWizardValues(
   if (gatheringPointsMapped.length === 0 && locations.gatheringPoint) {
     gatheringPointsMapped = [
       {
-        ...gatheringPickupStationFromLegacyLocation(locations.gatheringPoint),
+        ...gatheringPickupStationFromLocation(locations.gatheringPoint),
         id: remintClonePhotoId(),
       },
     ];

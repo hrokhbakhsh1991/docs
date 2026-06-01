@@ -76,8 +76,7 @@ function nonAttendanceDetailsToFormOverview(
 }
 
 function peakHeightFromForm(form: DenaliCreateTourWizardForm): number | undefined {
-  const value =
-    form.tripDetails?.overview?.peakHeight ?? (form.programNature as any).altitudeMeasurement;
+  const value = form.tripDetails?.overview?.peakHeight;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
@@ -87,8 +86,7 @@ function peakHeightFromCanonical(canonical: DenaliCanonicalTourModel): number | 
 }
 
 function elevationGainFromForm(form: DenaliCreateTourWizardForm): number | undefined {
-  const value =
-    form.tripDetails?.metrics?.elevationGain ?? (form.programNature as any).altitudeGainApprox;
+  const value = form.tripDetails?.metrics?.elevationGain;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
@@ -186,11 +184,7 @@ export function createInitialDenaliCanonicalModel(
     requiresManualAdminApproval:
       form.basicInfo.requiresManualAdminApproval === true ? true : undefined,
     publishStatus: form.basicInfo.publishStatus === "active" ? "active" : "draft",
-    socialMediaLink:
-      form.basicInfo.socialMediaLink ??
-      (form.basicInfo as { telegramUrl?: string }).telegramUrl ??
-      (form.basicInfo as { baleUrl?: string }).baleUrl ??
-      (form.basicInfo as { eitaaUrl?: string }).eitaaUrl,
+    socialMediaLink: form.basicInfo.socialMediaLink,
     program: {
       themeIds: form.programNature.themeIds ?? [],
       shortDescription: form.programNature.shortDescription?.trim() ?? "",
@@ -319,100 +313,7 @@ export function basicsDurationToCanonicalDuration(
  * Delegates to `@repo/types` — single source for forward mapping.
  */
 export function denaliFormToCanonical(form: DenaliCreateTourWizardForm): DenaliCanonicalTourModel {
-  const base = denaliCanonicalFromForm(form);
-  return sanitizeDenaliCanonicalModel({
-    ...base,
-    startPointLocationText:
-      form.basicInfo.startPointLocationText ?? base.startPointLocationText,
-    startPoint: form.basicInfo.startPoint ?? base.startPoint,
-    summitPoint: form.basicInfo.summitPoint ?? base.summitPoint,
-    campPoint: form.basicInfo.campPoint ?? base.campPoint,
-    endPoint: form.basicInfo.endPoint ?? base.endPoint,
-    gatheringPoints:
-      form.tripDetails?.logistics?.gatheringPoints ?? base.gatheringPoints,
-    customServiceLabels:
-      customServiceLabelsFromForm(form) ?? base.customServiceLabels,
-    overview: overviewToCanonical(form, base),
-    metrics: metricsToCanonical(form, base),
-    approximateReturnTime: form.basicInfo.approximateReturnTime ?? base.approximateReturnTime,
-    socialMediaLink:
-      form.basicInfo.socialMediaLink ??
-      (form.basicInfo as any).telegramUrl ??
-      (form.basicInfo as any).baleUrl ??
-      (form.basicInfo as any).eitaaUrl ??
-      base.socialMediaLink,
-    leaderUserIds:
-      form.basicInfo.leaderUserIds != null && form.basicInfo.leaderUserIds.length > 0
-        ? form.basicInfo.leaderUserIds
-        : base.leaderUserIds,
-    requiresLocalGuide:
-      form.basicInfo.requiresLocalGuide === true
-        ? true
-        : form.basicInfo.requiresLocalGuide === false
-          ? undefined
-          : base.requiresLocalGuide,
-    localGuideName:
-      form.basicInfo.requiresLocalGuide === true
-        ? form.basicInfo.localGuideName ?? base.localGuideName
-        : undefined,
-    requiresManualAdminApproval:
-      form.basicInfo.requiresManualAdminApproval === true
-        ? true
-        : base.requiresManualAdminApproval,
-    publishStatus: form.basicInfo.publishStatus ?? "draft",
-    program: {
-      ...base.program,
-      difficultyLevel: form.programNature.difficultyLevel,
-      hikingHoursApprox: form.programNature.hikingHoursApprox,
-      hikingGoHours: form.programNature.hikingGoHours,
-      hikingReturnHours: form.programNature.hikingReturnHours,
-      itinerary:
-        form.programNature.itinerary != null && form.programNature.itinerary.length > 0
-          ? form.programNature.itinerary.map((row) => {
-              const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
-              return {
-                day: row.day,
-                activities: row.activities,
-                ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
-                ...(row.location != null ? { location: row.location } : {}),
-                ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
-              };
-            })
-          : form.programNature.itinerary,
-      themeIds: form.programNature.themeIds ?? base.program.themeIds,
-    },
-    participants: {
-      ...base.participants,
-      fitnessLevel: form.participantRequirements.fitnessLevel,
-      maximumAge: form.participantRequirements.maximumAge,
-      nationalIdRequired: form.participantRequirements.nationalIdRequired,
-      sportsInsuranceRequired: form.participantRequirements.sportsInsuranceRequired,
-      minRequiredPeaks: form.participantRequirements.minRequiredPeaks,
-      fitnessPrerequisiteText: form.participantRequirements.fitnessPrerequisiteText,
-      gearItems: form.participantRequirements.gearItems,
-    },
-    pricing: {
-      ...base.pricing,
-      requiresPayment:
-        form.pricingPayment.requiresPayment === true
-          ? true
-          : form.pricingPayment.requiresPayment === false
-            ? undefined
-            : base.pricing.requiresPayment,
-      basePricePerPerson:
-        form.pricingPayment.requiresPayment === true
-          ? (form.pricingPayment.basePricePerPerson ?? base.pricing.basePricePerPerson)
-          : undefined,
-      includesTourInsurance: form.pricingPayment.includesTourInsurance === true,
-      paymentMode: "offline_receipt",
-    },
-    policies: {
-      policiesText: form.policies.policiesText ?? base.policies.policiesText,
-      cancellationDeadlineHours: form.policies.cancellationDeadlineHours,
-      cancellationPenaltyPercentage: form.policies.cancellationPenaltyPercentage,
-    },
-    photos: pickDenaliCanonicalGalleryPhotos(form.photosData?.photos),
-  });
+  return sanitizeDenaliCanonicalModel(denaliCanonicalFromForm(form));
 }
 
 /**

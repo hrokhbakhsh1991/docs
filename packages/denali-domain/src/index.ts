@@ -147,8 +147,23 @@ export {
   denaliCanonicalToForm,
   safeDenaliFormToCanonical,
   mergeDenaliCanonicalPartial,
+  isDenaliWizardTourTypeSelected,
+  createInitialDenaliCanonicalModel,
+  canonicalDurationToBasicsDuration,
+  basicsDurationToCanonicalDuration,
+  applyCanonicalMvpToForm,
+  denaliCanonicalFormSetValueOptions,
+  DENALI_QUIET_FORM_SET_VALUE_OPTIONS,
+  DENALI_USER_FORM_SET_VALUE_OPTIONS,
+  DENALI_QUIET_FORM_RESET_OPTIONS,
   type DenaliCanonicalPartial,
+  type ApplyCanonicalMvpToFormOptions,
+  type DenaliCanonicalFormEngineStatus,
 } from "./adapters/denaliCanonicalFormAdapter";
+export {
+  denaliCanonicalOptionalTrimmedString,
+  sanitizeDenaliCanonicalModel,
+} from "./adapters/denaliCanonicalSchemaRegistry";
 export {
   tryHydrateCanonicalTemplate,
   validateCanonicalTemplateData,

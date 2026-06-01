@@ -55,6 +55,7 @@
     "schema:align": "node --env-file=.env --import tsx src/scripts/align-post-login-schema.ts",
     "migrate:tour-theme-tags": "node --env-file=.env --import tsx src/scripts/migrate-tour-theme-tags.ts",
     "migrate:template-canonical": "node --env-file=.env --import tsx src/scripts/migrate-template-canonical-data.ts",
+    "seed:template-structure": "node --env-file=.env --import tsx src/scripts/seed-template-structure.ts",
     "audit:template-canonical-integrity": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-integrity.ts",
     "audit:template-jsonb-clone-integrity": "node --env-file=.env --import tsx src/scripts/audit-template-jsonb-clone-integrity.ts",
     "audit:template-canonical-zod-drift": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-zod-drift.ts",

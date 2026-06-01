@@ -6,7 +6,7 @@ import {
 } from "@repo/shared-contracts";
 import {
   denaliLocationFromApi,
-  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationFromLocation,
   normalizeGatheringPickupStations,
 } from "@repo/types";
 
@@ -678,7 +678,7 @@ export function normalizeTripDetailsFormDefault(
           ? (logRaw as Record<string, unknown>)
           : {};
       if (!Array.isArray(lg.gatheringPoints) || lg.gatheringPoints.length === 0) {
-        lg.gatheringPoints = [gatheringPickupStationFromLegacyLocation(legacyGP)];
+        lg.gatheringPoints = [gatheringPickupStationFromLocation(legacyGP)];
         o.logistics = lg;
       }
       delete ov.gatheringPoint;

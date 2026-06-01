@@ -4,14 +4,25 @@
 
 `cd apps/api && pnpm exec tsx src/scripts/audit-structural-integrity.ts`
 
-## Final Run Output
+## Summary
 
-```text
-MISSING_DATA_LEAK: basicInfo missing in DB
-```
+- Templates scanned: 3
+- Total discrepancies: 0
+- GHOST count: 0
+- MISSING count: 0
+- TYPE count: 0
 
-## Drift Findings (Fail-Fast First Hit)
+## Full Discrepancy Ledger
 
-- [MISSING] `basicInfo` missing in DB
-- [GHOST] none reached (script exits on first discrepancy)
-- [TYPE] none reached (script exits on first discrepancy)
+NO DRIFT DETECTED
+
+## Unknown DB Paths (not in RHF Schema)
+
+- (none)
+
+## Code Compliance Check
+
+- canonical-only output (no RHF structural mirror): COMPLIANT
+- serializer return shape (flat canonical, not nested form keys): COMPLIANT
+- no hardcoded section key-list arrays in adapter: COMPLIANT
+

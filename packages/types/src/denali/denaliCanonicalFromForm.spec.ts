@@ -13,7 +13,7 @@ test("denaliCanonicalFromForm maps mountain_day MVP fields", () => {
       capacityMax: 20,
     },
     programNature: {
-      mainTourThemeId: "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+      themeIds: ["b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
       shortDescription: "Short",
     },
     transport: { transportMode: "organizer_vehicle", transportNotes: "Bring water" },

@@ -1,0 +1,67 @@
+{
+  "basicInfo": {
+    "title": "صعود به قله دماوند - جبهه جنوبی",
+    "tourType": "mountain_day",
+    "destinationId": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "startDateTime": "2026-06-01T08:00:00.000Z",
+    "endDateTime": "",
+    "capacityMax": 15,
+    "approximateReturnTime": "20:30",
+    "leaderUserIds": [],
+    "requiresLocalGuide": false,
+    "requiresManualAdminApproval": false,
+    "publishStatus": "draft"
+  },
+  "programNature": {
+    "themeIds": [
+      "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"
+    ],
+    "shortDescription": "یک برنامه جذاب برای صعود به بام ایران.",
+    "longDescription": "برنامه کامل صعود به قله دماوند از جبهه جنوبی با پشتیبانی تیم فنی.",
+    "difficultyLevel": 5,
+    "hikingHoursApprox": 8,
+    "hikingGoHours": 5,
+    "hikingReturnHours": 3,
+    "itinerary": []
+  },
+  "transport": {
+    "transportMode": "organizer_vehicle",
+    "transportNotes": "حمل‌ونقل سازماندهی‌شده از تهران"
+  },
+  "pricingPayment": {
+    "requiresPayment": true,
+    "basePricePerPerson": 500000,
+    "includesTourInsurance": false
+  },
+  "participantRequirements": {
+    "minimumAge": 18,
+    "fitnessLevel": "medium",
+    "nationalIdRequired": false,
+    "sportsInsuranceRequired": true,
+    "gearItems": []
+  },
+  "policies": {
+    "policiesText": "لطفاً ۱۵ دقیقه قبل از حرکت در محل تجمع حاضر شوید.",
+    "cancellationDeadlineHours": 48,
+    "cancellationPenaltyPercentage": 20
+  },
+  "photosData": {
+    "photos": []
+  },
+  "tripDetails": {
+    "logistics": {
+      "gatheringPoints": []
+    },
+    "overview": {
+      "customServiceLabels": [
+        "صبحانه",
+        "راهنمای محلی"
+      ],
+      "nonAttendanceDetails": "در صورت عدم حضور، هزینه بازگشت بر عهده شرکت‌کننده است.",
+      "peakHeight": 5610
+    },
+    "metrics": {
+      "elevationGain": 1200
+    }
+  }
+}

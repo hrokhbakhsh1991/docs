@@ -22,7 +22,7 @@ import {
   type DenaliLocationData,
 } from "./locationData";
 import {
-  gatheringPickupStationFromLegacyLocation,
+  gatheringPickupStationFromLocation,
   normalizeGatheringPickupStations,
   type DenaliGatheringPickupStation,
 } from "./gatheringPickupStation";
@@ -167,7 +167,7 @@ function resolveGatheringPointsFromForm(form: DenaliWizardFormLike): DenaliGathe
   const legacyPin =
     form.basicInfo.gatheringPoint ?? denaliLocationFromText(trimOptionalString(form.basicInfo.meetingPoint));
   if (legacyPin) {
-    return [gatheringPickupStationFromLegacyLocation(legacyPin)];
+    return [gatheringPickupStationFromLocation(legacyPin)];
   }
   return [];
 }
@@ -390,7 +390,7 @@ export function denaliCanonicalFromForm(
     pickDenaliCanonicalGalleryPhotos(form.photosData?.photos) ?? carryForward?.photos;
   const gearItems = form.participantRequirements.gearItems;
 
-  return {
+  const canonical: DenaliCanonicalTourModel = {
     category: basics.category,
     duration: formDurationToCanonical(basics.duration),
 
@@ -490,4 +490,6 @@ export function denaliCanonicalFromForm(
 
     photos,
   };
+
+  return canonical;
 }
