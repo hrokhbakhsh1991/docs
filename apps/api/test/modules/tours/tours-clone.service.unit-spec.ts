@@ -130,7 +130,7 @@ function minimalCloneTourMocks(overrides: Partial<CloneUnitTestDeps> = {}): Clon
     toursCatalogRead: overrides.toursCatalogRead ?? base.toursCatalogRead,
     settingsRepository: overrides.settingsRepository ?? base.settingsRepository,
     requestContext: overrides.requestContext ?? base.requestContext,
-  };
+  } as CloneUnitTestDeps;
 }
 
 function createToursCloneServiceForUnitTests(overrides: CloneUnitTestDeps = {}): ToursCloneService {
@@ -829,8 +829,8 @@ test("ToursCloneService.cloneTour passes empty overlay when template fieldRulesO
       },
       templateOrchestrator: {
         listModernOverlayStoragePaths: () => listDenaliSettingsOverlayStoragePaths(),
-        createDraftFromTemplate: async (input: { fieldRulesOverlay?: unknown }) => {
-          capturedOverlay = input.fieldRulesOverlay;
+        createDraftFromTemplate: async (input: unknown) => {
+          capturedOverlay = (input as { fieldRulesOverlay?: unknown }).fieldRulesOverlay;
           return { success: true, payload: { title: "Clone", tourType: "mountain", transportModes: [] } };
         },
       },

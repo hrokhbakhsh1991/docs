@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-06-01T01:52:51.507Z",
+  "saveEntrypoint": "TourWizardTemplateBuilderForm.submit / submitSave → applyClientValidation → buildTourWizardTemplatePayloadFromForm → useUpdateTourWizardTemplate.mutateAsync → PATCH /api/settings/tour-wizard-template",
+  "clientGuards": {
+    "submitChecksInFlightRef": true,
+    "submitChecksIsPending": true,
+    "isSavingStateAndRef": true,
+    "submitSaveViaHandleSubmit": true,
+    "uiDisablesOnIsSaveBusy": true,
+    "mutationDedupesConcurrentCalls": false,
+    "inFlightAbortOrVersionToken": false
+  },
+  "apiPersistence": {
+    "fieldRulesOverlayMerge": false,
+    "fieldRulesOverlayReplace": true,
+    "canonicalDataReplace": true
+  },
+  "payloadShape": "Full `fieldRulesOverlay` snapshot from current RHF overlay form + full `canonicalData` from wizard form (same request).",
+  "raceScenarios": [
+    {
+      "id": "overlay_b_finishes_first",
+      "label": "Save A (title→hidden) slow; Save B (program→required) fast",
+      "firstCompletes": "save_b",
+      "persistedOverlay": {
+        "title": {
+          "visibility": "hidden",
+          "required": "optional"
+        },
+        "program.shortDescription": {
+          "visibility": "active",
+          "required": "optional"
+        }
+      },
+      "expectedIfSerialized": {
+        "title": {
+          "visibility": "hidden",
+          "required": "optional"
+        },
+        "program.shortDescription": {
+          "visibility": "active",
+          "required": "required"
+        }
+      },
+      "lostEdits": [
+        "program.shortDescription (expected visibility=active required=required, got visibility=active required=optional)"
+      ],
+      "pass": false
+    },
+    {
+      "id": "overlay_a_finishes_first",
+      "label": "Save A fast; Save B slow (reverse ordering)",
+      "firstCompletes": "save_a",
+      "persistedOverlay": {
+        "title": {
+          "visibility": "always",
+          "required": "optional"
+        },
+        "program.shortDescription": {
+          "visibility": "active",
+          "required": "required"
+        }
+      },
+      "expectedIfSerialized": {
+        "title": {
+          "visibility": "hidden",
+          "required": "optional"
+        },
+        "program.shortDescription": {
+          "visibility": "active",
+          "required": "required"
+        }
+      },
+      "lostEdits": [
+        "title (expected visibility=hidden required=optional, got visibility=always required=optional)"
+      ],
+      "pass": false
+    }
+  ],
+  "doubleMutateUnlocked": {
+    "bothStartedBeforePending": true,
+    "concurrentInFlight": 2
+  },
+  "doubleSubmitWithRefGuard": {
+    "secondCallIgnored": true,
+    "concurrentInFlight": 1
+  },
+  "staticFindings": [
+    "No `handleSave` symbol; save path is `submitSave` → `submit(\"save\")` from `handleSubmit(submitSave)` and Publish `onClick`.",
+    "`submit(\"save\")` returns early when `isSavingRef.current || updateMutation.isPending` (synchronous ref lock).",
+    "Save/Publish use `disabled={isSaveBusy}` where `isSaveBusy = isSaving || updateMutation.isPending`.",
+    "`useUpdateTourWizardTemplate` uses bare `useMutation` + `mutateAsync` (no dedupe queue).",
+    "Each save builds full `fieldRulesOverlay` + full `canonicalData` snapshots (not field deltas).",
+    "`TourWizardTemplateSettingsService.updateForWorkspace` replaces entire `field_rules_overlay` and `canonical_data` JSONB columns.",
+    "Unlocked double-save simulation: max concurrent = 2. With ref guard: started=1, max concurrent = 1.",
+    "If two PATCHes complete, overlay race scenarios show last-write-wins loss on the non-winning snapshot."
+  ],
+  "pass": true
+}

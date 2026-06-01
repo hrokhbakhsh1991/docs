@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-06-01T01:50:40.743Z",
+  "templatesScanned": 3,
+  "templatesWithNonEmptyCanonical": 0,
+  "usedSyntheticFixture": true,
+  "registryDefinition": "DENALI_FIELD_DEFINITIONS canonical paths → storage (`toDenaliTemplateStoragePath`) + ZOD_KIND_ARRAY_ELEMENT_KEYS + location object keys; compared to live JSONB.",
+  "perTemplate": [
+    {
+      "id": "4931f36a-19ed-4cd1-9ec3-eb5d12eaf7f6",
+      "workspaceId": "a0dcacb3-b6da-430f-86e1-5e36cb4c2113",
+      "baseProfile": "urban_event",
+      "canonicalKeyCount": 0,
+      "registryGhostPaths": [],
+      "discardedTopLevelKeys": [],
+      "zodValidationIssues": [],
+      "pruneRoundTripLostPaths": []
+    },
+    {
+      "id": "768660fa-47b2-45bf-8c9b-50da3cf4b5fa",
+      "workspaceId": "fd3bd26d-d267-4b0f-a7a2-ca696e7f6246",
+      "baseProfile": "denali",
+      "canonicalKeyCount": 0,
+      "registryGhostPaths": [],
+      "discardedTopLevelKeys": [],
+      "zodValidationIssues": [],
+      "pruneRoundTripLostPaths": []
+    },
+    {
+      "id": "5ee26021-cf4b-4944-8240-9cea31d190b4",
+      "workspaceId": "2a61927b-1816-4e39-ae0f-d398bbdd40e5",
+      "baseProfile": "denali",
+      "canonicalKeyCount": 0,
+      "registryGhostPaths": [],
+      "discardedTopLevelKeys": [],
+      "zodValidationIssues": [],
+      "pruneRoundTripLostPaths": []
+    }
+  ],
+  "syntheticProbes": [
+    {
+      "id": "synthetic-smuggled-keys",
+      "label": "Deliberate smuggled keys in canonical_data",
+      "registryGhostPaths": [
+        "__ghostTopLevel",
+        "photos[].__ghostPhotoField",
+        "program.itinerary[].__ghostItineraryRow"
+      ],
+      "pruneRoundTripLostPaths": [
+        "<orchestration_failed>"
+      ],
+      "notes": [
+        "Registry ghosts: __ghostTopLevel, program.itinerary[].__ghostItineraryRow, photos[].__ghostPhotoField"
+      ]
+    },
+    {
+      "id": "synthetic-clean-prune-roundtrip",
+      "label": "Valid rich canonical → hydrate → pruneDenaliWizardFormToRegistry → export",
+      "registryGhostPaths": [],
+      "pruneRoundTripLostPaths": [],
+      "notes": [
+        "Measures registry-addressable fields dropped by prune pipeline (category/title/photos/itinerary should survive)"
+      ]
+    }
+  ],
+  "aggregate": {
+    "registryGhostPaths": [
+      "__ghostTopLevel",
+      "photos[].__ghostPhotoField",
+      "program.itinerary[].__ghostItineraryRow"
+    ],
+    "discardedTopLevelKeys": [],
+    "pruneRoundTripLostPaths": [
+      "<orchestration_failed>"
+    ]
+  },
+  "pass": true
+}

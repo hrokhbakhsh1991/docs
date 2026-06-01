@@ -21,7 +21,6 @@ export const DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS = [
   "destinationId",
   "endDateTime",
   "endPoint",
-  "eventVariant",
   "gatheringPoints",
   "leaderUserIds",
   "localGuideName",

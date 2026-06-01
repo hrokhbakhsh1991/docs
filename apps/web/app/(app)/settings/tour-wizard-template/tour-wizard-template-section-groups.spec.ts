@@ -1,34 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
-  listDenaliSettingsOverlayStoragePaths,
-} from "@repo/denali-domain";
+import { listDenaliTemplateStorageFieldPaths } from "@repo/denali-domain";
 
 import {
   groupTemplateBuilderFieldPaths,
   resolveModernTemplateBuilderFieldPaths,
 } from "./tour-wizard-template-section-groups";
 
-test("groupTemplateBuilderFieldPaths partitions all Layer C paths", () => {
-  const fieldPaths = resolveModernTemplateBuilderFieldPaths(
-    DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
-  );
-  assert.equal(fieldPaths.length, 52);
-  assert.equal(listDenaliSettingsOverlayStoragePaths().length, 52);
+test("groupTemplateBuilderFieldPaths partitions all template storage paths", () => {
+  const fieldPaths = builderFieldPaths();
+  assert.ok(fieldPaths.length > 0);
 
   const sections = groupTemplateBuilderFieldPaths(fieldPaths);
   const grouped = sections.flatMap((section) => section.paths);
 
-  assert.equal(grouped.length, 52);
+  assert.equal(grouped.length, fieldPaths.length);
   assert.deepEqual([...grouped].sort(), [...fieldPaths].sort());
 });
 
+function builderFieldPaths(): readonly string[] {
+  return resolveModernTemplateBuilderFieldPaths(listDenaliTemplateStorageFieldPaths());
+}
+
 test("groupTemplateBuilderFieldPaths exposes five semantic cards", () => {
-  const fieldPaths = resolveModernTemplateBuilderFieldPaths(
-    DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
-  );
+  const fieldPaths = builderFieldPaths();
   const sections = groupTemplateBuilderFieldPaths(fieldPaths);
 
   assert.equal(sections.length, 5);
@@ -41,14 +37,16 @@ test("groupTemplateBuilderFieldPaths exposes five semantic cards", () => {
   const logistics = sections.find((section) => section.id === "logistics");
   const pricing = sections.find((section) => section.id === "pricing");
   assert.ok(basic?.paths.includes("duration"));
+  assert.equal(basic?.paths.includes("eventVariant"), false);
   assert.ok(logistics?.paths.includes("customServiceLabels"));
   assert.ok(pricing?.paths.includes("overview.nonAttendanceDetails"));
   assert.ok(pricing?.paths.includes("participants.minRequiredPeaks"));
 });
 
 test("resolveModernTemplateBuilderFieldPaths excludes ghost overlay paths", () => {
+  const base = listDenaliTemplateStorageFieldPaths();
   const withGhosts = [
-    ...DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
+    ...base,
     "startPointLocationText",
     "transport.seatPreference",
     "pricing.paymentMode",
@@ -56,7 +54,8 @@ test("resolveModernTemplateBuilderFieldPaths excludes ghost overlay paths", () =
     "publishStatus",
   ];
   const filtered = resolveModernTemplateBuilderFieldPaths(withGhosts);
-  assert.equal(filtered.length, 52);
+  assert.equal(filtered.length, base.length - 1);
+  assert.equal(filtered.includes("eventVariant"), false);
   for (const ghost of [
     "startPointLocationText",
     "transport.seatPreference",

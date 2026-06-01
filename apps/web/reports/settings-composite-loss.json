@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-06-01T01:46:46.572Z",
+  "saveAdapter": "canonicalDataFromWizardForm → @repo/types/denali denaliCanonicalFromForm (Settings builder submit)",
+  "adapterNote": "Reload simulated by orchestrateDenaliWizardFromTemplate on saved canonical (same as settings page re-open). API persists full canonicalData replacement (no server-side field merge).",
+  "scenarios": [
+    {
+      "id": "save_adapter_exports_gallery_photos",
+      "pass": true,
+      "detail": "canonicalDataFromWizardForm includes gallery photos",
+      "baseline": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "afterSave": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "afterReload": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "checks": {
+        "galleryPhotosExported": true
+      }
+    },
+    {
+      "id": "itinerary_only_edit_save_reload",
+      "pass": true,
+      "detail": "Itinerary-only: category/title preserved on save; itinerary updated; reload form matches",
+      "baseline": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "afterSave": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_EDITED_ITINERARY_ONLY__"
+      },
+      "afterReload": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_EDITED_ITINERARY_ONLY__"
+      },
+      "checks": {
+        "categoryUntouchedOnSave": true,
+        "titleUntouchedOnSave": true,
+        "photosUntouchedOnSave": true,
+        "categoryUntouchedOnReload": true,
+        "titleUntouchedOnReload": true,
+        "photosInFormOnReload": true,
+        "itineraryUpdatedOnSave": true,
+        "itineraryShownOnReload": true
+      }
+    },
+    {
+      "id": "photos_only_edit_save_reload",
+      "pass": true,
+      "detail": "Photos-only: siblings preserved; photo edit persisted through save/reload form",
+      "baseline": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "baseline-a.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "afterSave": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "__COMPOSITE_EDITED_PHOTO_ONLY__.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "afterReload": {
+        "category": "mountain",
+        "duration": "single",
+        "title": "__COMPOSITE_BASELINE_TITLE__",
+        "photosCount": 2,
+        "firstPhotoFilename": "__COMPOSITE_EDITED_PHOTO_ONLY__.jpg",
+        "itineraryDay1": "__COMPOSITE_BASELINE_DAY1__"
+      },
+      "checks": {
+        "categoryUntouchedOnSave": true,
+        "titleUntouchedOnSave": true,
+        "itineraryUntouchedOnSave": true,
+        "categoryUntouchedOnReload": true,
+        "titleUntouchedOnReload": true,
+        "itineraryInFormOnReload": true,
+        "photoEditPersistedOnSave": true,
+        "photoEditShownOnReload": true,
+        "photosCountOnSave": true,
+        "photosCountInFormOnReload": true
+      }
+    }
+  ],
+  "pass": true
+}

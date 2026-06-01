@@ -56,6 +56,12 @@
     "migrate:tour-theme-tags": "node --env-file=.env --import tsx src/scripts/migrate-tour-theme-tags.ts",
     "migrate:template-canonical": "node --env-file=.env --import tsx src/scripts/migrate-template-canonical-data.ts",
     "audit:template-canonical-integrity": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-integrity.ts",
+    "audit:template-jsonb-clone-integrity": "node --env-file=.env --import tsx src/scripts/audit-template-jsonb-clone-integrity.ts",
+    "audit:template-canonical-zod-drift": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-zod-drift.ts",
+    "audit:template-canonical-ghost-fields": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-ghost-fields.ts",
+    "audit:template-api-injection": "node --import tsx src/scripts/audit-template-api-injection.ts",
+    "audit:template-instantiate-isolation": "node --import tsx src/scripts/audit-template-instantiate-isolation.ts",
+    "audit:template-schema-resilience": "node --import tsx src/scripts/audit-template-schema-resilience.ts",
     "report:template-health": "node --env-file=.env --import tsx src/scripts/report-template-health.ts"
   },
   "dependencies": {

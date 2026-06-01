@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-06-01T01:47:08.710Z",
+  "endpoint": "POST /api/v2/settings/tour-wizard-template/instantiate",
+  "apiAcceptsClientTemplateId": false,
+  "repositoryLookup": "findTourWizardTemplateByWorkspace(workspaceId) — unique index on workspace_id",
+  "scenarios": [
+    {
+      "id": "api_no_client_template_id",
+      "label": "POST instantiate exposes only seedDraft query param (no client templateId)",
+      "pass": true,
+      "detail": "SettingsTourWizardTemplateController.instantiateTemplate → updateForWorkspace({ seedDraft }); template row resolved server-side by effective tenant workspace only."
+    },
+    {
+      "id": "repository_no_find_by_template_id",
+      "label": "WorkspaceSettingsRepositoryPort has no find-by-template-id API",
+      "pass": true,
+      "detail": "Only findTourWizardTemplateByWorkspace(workspaceId) exists; lookup is workspace-scoped."
+    },
+    {
+      "id": "service_tenant_a_instantiate_uses_own_row",
+      "label": "Tenant A instantiate hydrates only Tenant A canonical (not B)",
+      "pass": true,
+      "detail": "payload.workspaceId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa, templateId=11111111-1111-4111-8111-111111111111, hydratedTitle=__TENANT_A_TEMPLATE_SECRET__"
+    },
+    {
+      "id": "service_tenant_a_no_row_404",
+      "label": "Tenant A instantiate without configured row → NotFound (no fallback to B)",
+      "pass": true,
+      "detail": "NotFoundException"
+    },
+    {
+      "id": "orchestrator_cross_tenant_payload_would_hydrate",
+      "label": "Direct orchestrator call with Tenant B canonical under Tenant A ids (control — no tenant gate)",
+      "pass": true,
+      "detail": "Orchestrator is in-memory only; isolation must be enforced in API service + repository."
+    },
+    {
+      "id": "service_blocks_cross_tenant_via_lookup",
+      "label": "Service path never loads Tenant B row when effective tenant is A",
+      "pass": true,
+      "detail": "Instantiate always uses findTourWizardTemplateByWorkspace(effectiveTenantId) result."
+    }
+  ],
+  "dbProbe": {
+    "attempted": false,
+    "skippedReason": "SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string",
+    "distinctWorkspaces": 0,
+    "crossWorkspaceDuplicateIds": false
+  },
+  "summary": {
+    "pass": true,
+    "serviceIsTenantBoundary": true,
+    "orchestratorIsTenantBoundary": false
+  }
+}

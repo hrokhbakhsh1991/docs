@@ -6,10 +6,10 @@ import { denaliCanonicalToForm } from "@repo/denali-domain";
 import { buildDenaliTourCreateDefaultValues } from "../../src/features/tours/wizard/schemas/denaliCore.schema";
 import {
   buildTourWizardTemplatePayloadFromForm,
-  packTemplateCanonicalForPersist,
+  canonicalDataFromWizardForm,
 } from "./tour-wizard-template-builder-form";
 
-test("packTemplateCanonicalForPersist keeps duration and itinerary from preview form", () => {
+test("canonicalDataFromWizardForm keeps duration and itinerary from classified wizard form", () => {
   const defaults = buildDenaliTourCreateDefaultValues();
   const form = denaliCanonicalToForm(
     {
@@ -34,21 +34,15 @@ test("packTemplateCanonicalForPersist keeps duration and itinerary from preview 
     },
   );
 
-  const leftFlat = {
-    category: "mountain",
-    duration: "single",
-    title: "Left title override ignored when preview classified",
-  };
+  const canonical = canonicalDataFromWizardForm(form);
 
-  const packed = packTemplateCanonicalForPersist(form, leftFlat);
-
-  assert.equal(packed.duration, "multi");
-  assert.equal(packed.title, "Alpine trek");
-  const itinerary = (packed.program as { itinerary?: unknown[] })?.itinerary;
+  assert.equal(canonical.duration, "multi");
+  assert.equal(canonical.title, "Alpine trek");
+  const itinerary = canonical.program?.itinerary;
   assert.ok(Array.isArray(itinerary) && itinerary.length === 1);
 });
 
-test("buildTourWizardTemplatePayloadFromForm preserves preview itinerary via canonicalLayerA", () => {
+test("buildTourWizardTemplatePayloadFromForm persists wizard adapter canonical unchanged", () => {
   const defaults = buildDenaliTourCreateDefaultValues();
   const form = denaliCanonicalToForm(
     {
@@ -73,27 +67,13 @@ test("buildTourWizardTemplatePayloadFromForm preserves preview itinerary via can
     },
   );
 
-  const canonicalLayerA = packTemplateCanonicalForPersist(form, { category: "mountain" });
   const payload = buildTourWizardTemplatePayloadFromForm(
-    { fieldRulesOverlay: {}, canonicalData: {} },
+    { fieldRulesOverlay: {} },
     ["title"],
-    { canonicalLayerA },
+    { canonicalData: canonicalDataFromWizardForm(form) },
   );
 
   const itinerary = (payload.canonicalData.program as { itinerary?: unknown[] })?.itinerary;
   assert.ok(Array.isArray(itinerary) && itinerary.length === 1);
   assert.equal(payload.canonicalData.duration, "multi");
-});
-
-test("packTemplateCanonicalForPersist applies left-panel duration when preview lacks tourType", () => {
-  const packed = packTemplateCanonicalForPersist(null, {
-    category: "mountain",
-    duration: "single",
-    title: "Seed only",
-    "program.shortDescription": "Brief",
-  });
-
-  assert.equal(packed.category, "mountain");
-  assert.equal(packed.duration, "single");
-  assert.equal(packed.title, "Seed only");
 });

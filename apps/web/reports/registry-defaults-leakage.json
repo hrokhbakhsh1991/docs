@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-06-01T01:46:59.550Z",
+  "entrypoint": "orchestrateDenaliWizardFromTemplate → denaliTemplateOrchestratorFactory.createDraftFromTemplate",
+  "pipeline": "resolveStoredTemplateCanonical → tryHydrateCanonicalTemplate( patch, resetWizardToRegistryDefaults() ) → denaliCanonicalToForm(merged, existingForm) → normalize → finalize → pruneDenaliWizardFormToRegistry",
+  "registryRhfPathCount": 57,
+  "scenarios": [
+    {
+      "id": "empty_canonical_registry_shell",
+      "label": "Empty {} canonical → registry default shell (no stale merge)",
+      "pass": true,
+      "detail": "roots=basicInfo,programNature,transport,pricingPayment,participantRequirements,policies,photosData,tripDetails; ghosts=0"
+    },
+    {
+      "id": "sparse_legacy_merge",
+      "label": "Sparse legacy canonical merges onto defaults (title preserved, no ghosts)",
+      "pass": true,
+      "detail": "title=__OLD_REGISTRY_TEMPLATE_TITLE__; ghosts=—"
+    },
+    {
+      "id": "synthetic_new_registry_paths",
+      "label": "New registry paths absent in old canonical receive fresh defaults",
+      "pass": true,
+      "detail": "photosData.photos=default; tripDetails.logistics.gatheringPoints=default; tripDetails.metrics.elevationGain=default; participantRequirements.gearItems=default; programNature.itinerary=default"
+    },
+    {
+      "id": "stale_defaultValues_pruned",
+      "label": "Stale keys injected via defaultValues are stripped by prune (not merged forward)",
+      "pass": true,
+      "detail": "ghost in defaults=true; in orchestrated=false; after prune=false"
+    },
+    {
+      "id": "fossil_canonical_rejected",
+      "label": "Fossil canonical keys fail resolve before hydration (no stale JSON merge)",
+      "pass": true,
+      "detail": "tripDetails: Invalid canonical path \"tripDetails\" — use \"overview.peakHeight\" in canonicalData JSON instead."
+    },
+    {
+      "id": "prune_registry_shell",
+      "label": "Hydrated output is registry-pruned shell (DENALI_ROOTS only, no extra top-level keys)",
+      "pass": true,
+      "detail": "roots=basicInfo,programNature,transport,pricingPayment,participantRequirements,policies,photosData,tripDetails"
+    },
+    {
+      "id": "defined_paths_backfill_not_shrink",
+      "label": "Legacy template hydration defines ≥ fresh prune paths (registry backfill, not stale shrink)",
+      "pass": true,
+      "detail": "sparse=22, freshPrune=18 of 57 registry paths"
+    }
+  ],
+  "newFieldProbe": {
+    "paths": [
+      "photosData.photos",
+      "tripDetails.logistics.gatheringPoints",
+      "tripDetails.metrics.elevationGain",
+      "participantRequirements.gearItems",
+      "programNature.itinerary"
+    ],
+    "allMatchFreshDefaults": true,
+    "perPath": {
+      "photosData.photos": true,
+      "tripDetails.logistics.gatheringPoints": true,
+      "tripDetails.metrics.elevationGain": true,
+      "participantRequirements.gearItems": true,
+      "programNature.itinerary": true
+    }
+  },
+  "ghostProbe": {
+    "ghostInDefaultsInjected": true,
+    "ghostInOrchestratedForm": false,
+    "ghostAfterManualPrune": false
+  },
+  "summary": {
+    "pass": true
+  }
+}

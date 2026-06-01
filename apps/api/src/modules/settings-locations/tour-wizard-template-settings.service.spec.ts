@@ -226,7 +226,7 @@ test("instantiateForWorkspace regression: fossil-only canonical fails before orc
   );
 });
 
-test("Should auto-seed minimal canonical data if template is empty and return success", async () => {
+test("instantiateForWorkspace succeeds with empty canonical via orchestrator registry defaults", async () => {
   const provisionedAt = new Date("2024-06-01T12:00:00.000Z");
   const row = makeHydratableTemplateRow({
     canonicalData: {} as WorkspaceTourWizardTemplateRecord["canonicalData"],
@@ -236,8 +236,6 @@ test("Should auto-seed minimal canonical data if template is empty and return su
 
   const savedRows: WorkspaceTourWizardTemplateRecord[] = [];
   const infos: Array<{ message: string; meta: Record<string, unknown> }> = [];
-  const warnings: Array<{ message: string; meta: Record<string, unknown> }> = [];
-  const errors: Array<{ message: string; meta: Record<string, unknown> }> = [];
 
   const settingsRepository = {
     findTourWizardTemplateByWorkspace: async () => row,
@@ -258,12 +256,8 @@ test("Should auto-seed minimal canonical data if template is empty and return su
     info: (message: string, meta: Record<string, unknown> = {}) => {
       infos.push({ message, meta });
     },
-    warn: (message: string, meta: Record<string, unknown> = {}) => {
-      warnings.push({ message, meta });
-    },
-    error: (message: string, meta: Record<string, unknown> = {}) => {
-      errors.push({ message, meta });
-    },
+    warn: () => undefined,
+    error: () => undefined,
   } as unknown as LoggerService;
 
   const service = new TourWizardTemplateSettingsService(
@@ -284,18 +278,15 @@ test("Should auto-seed minimal canonical data if template is empty and return su
   const result = await service.instantiateForWorkspace();
 
   assert.equal(result.success, true);
-  assert.equal(savedRows.length, 1);
-  assert.equal(savedRows[0]?.canonicalData.title, "New Tour");
-  assert.equal(savedRows[0]?.canonicalData.category, "mountain");
-  assert.equal(savedRows[0]?.canonicalData.duration, "single");
+  assert.equal(savedRows.length, 0);
   assert.equal(
     infos.some((entry) => entry.message === "tour_wizard_template_minimal_seed_applied"),
-    true,
+    false,
   );
-  assert.equal(result.payload?.title, "New Tour");
+  assert.ok(result.draftState.data.form);
 });
 
-test("instantiateForWorkspace regression: empty canonical after user save rejects before orchestrator", async () => {
+test("instantiateForWorkspace regression: empty canonical after user save still orchestrates", async () => {
   const row = makeHydratableTemplateRow();
   row.canonicalData = {} as WorkspaceTourWizardTemplateRecord["canonicalData"];
   row.createdAt = new Date("2024-06-01T12:00:00.000Z");
@@ -309,36 +300,12 @@ test("instantiateForWorkspace regression: empty canonical after user save reject
     },
   } as unknown as TemplateOrchestratorService;
 
-  const { service, errors, warnings } = makeService({ row, templateOrchestrator });
+  const { service } = makeService({ row, templateOrchestrator });
 
-  await assert.rejects(
-    () => service.instantiateForWorkspace(),
-    (err: unknown) => {
-      assert.ok(err instanceof BadRequestException);
-      const response = err.getResponse() as {
-        error?: {
-          code?: string;
-          message?: string;
-          details?: { correlationId?: string; failureKind?: string };
-        };
-      };
-      assert.equal(response.error?.code, "TEMPLATE_CANONICAL_EMPTY");
-      assert.equal(
-        response.error?.message,
-        "The selected template contains no data. Please select a valid template with itinerary or program details.",
-      );
-      assert.equal(response.error?.details?.correlationId, "corr-test");
-      assert.equal(response.error?.details?.failureKind, "hydration_empty");
-      return true;
-    },
-  );
+  const result = await service.instantiateForWorkspace();
 
-  assert.equal(orchestratorCalled, false);
-  assert.equal(errors.length, 0);
-  assert.equal(warnings.length, 1);
-  assert.equal(warnings[0]?.message, "tour_wizard_template_empty");
-  assert.equal(warnings[0]?.meta.errorCode, "TEMPLATE_CANONICAL_EMPTY");
-  assert.equal(warnings[0]?.meta.correlationId, "corr-test");
+  assert.equal(result.success, true);
+  assert.equal(orchestratorCalled, true);
 });
 
 test("instantiateForWorkspace throws DataCorruptionError when orchestrator reports canonical_validation failure", async () => {

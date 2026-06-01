@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-06-01T01:47:02.206Z",
+  "mockNote": "Injected tryHydrateCanonicalTemplate return { formValues: partial corrupt + ghost root }; factory post-pipeline is authoritative before client sees instantiate payload.",
+  "scenarios": [
+    {
+      "id": "try_hydrate_null_registry_fallback",
+      "pass": true,
+      "detail": "Empty canonical → tryHydrate null → factory uses registry defaults + prune",
+      "evidence": {
+        "hydratedWasNull": true,
+        "hasRoots": true
+      }
+    },
+    {
+      "id": "mock_corrupt_try_hydrate_factory_prune",
+      "pass": true,
+      "detail": "Corrupt partial hydrate healed to full DENALI_ROOTS; registry title preserved; ghost root stripped",
+      "evidence": {
+        "registryFieldCount": 59,
+        "missingRequired": [
+          "basicInfo.tourType"
+        ]
+      }
+    },
+    {
+      "id": "invalid_canonical_factory_rejects",
+      "pass": true,
+      "detail": "Zod canonical validation fails before hydrate (no corrupt form emitted)",
+      "evidence": {
+        "errors": [
+          "duration: Invalid option: expected one of \"single\"|\"multi\""
+        ]
+      }
+    },
+    {
+      "id": "client_rejects_failed_instantiate",
+      "pass": true,
+      "detail": "success:false → factoryHydrationRejected; submit rail unreachable"
+    },
+    {
+      "id": "client_rejects_missing_form_envelope",
+      "pass": true,
+      "detail": "Missing draftState.form → rejected; wizard not ready"
+    },
+    {
+      "id": "hypothetical_empty_form_object_submit_blocked",
+      "pass": true,
+      "detail": "If API leaked {} form, wizard would render but submit guards block empty canonical",
+      "evidence": {
+        "wizardFormReady": true,
+        "missingRequired": [
+          "basicInfo.tourType",
+          "basicInfo.title"
+        ]
+      }
+    },
+    {
+      "id": "factory_empty_canonical_submit_guard",
+      "pass": true,
+      "detail": "Registry-default factory form blocked by isWizardFormCanonicalEmpty on submit"
+    }
+  ],
+  "staticWorkspaceTourWizardGuards": [
+    {
+      "id": "factory_hydration_rejected_early_return",
+      "present": true,
+      "detail": "Dedicated rejected UI before main wizard shell"
+    },
+    {
+      "id": "rejected_testid_banner",
+      "present": true,
+      "detail": "data-testid for factory rejection card"
+    },
+    {
+      "id": "wizard_form_ready_gate",
+      "present": true,
+      "detail": "Submit rail gated on hydration applied"
+    },
+    {
+      "id": "visible_steps_empty_without_ready",
+      "present": true,
+      "detail": "No visible steps until wizardFormReady"
+    },
+    {
+      "id": "submit_canonical_empty_guard",
+      "present": true,
+      "detail": "handleSubmit blocks empty canonical export"
+    },
+    {
+      "id": "no_try_hydrate_in_wizard",
+      "present": true,
+      "detail": "Wizard does not call tryHydrateCanonicalTemplate directly (factory/instantiate only)"
+    },
+    {
+      "id": "orchestration_error_root",
+      "present": true,
+      "detail": "Preset/clear orchestration failures surface root error"
+    },
+    {
+      "id": "hydration_parity_throw",
+      "present": true,
+      "detail": "Parity mismatch throws HydrationParityError in hydrate effect (ErrorBoundary dependent)"
+    },
+    {
+      "id": "client_merge_no_registry_prune",
+      "present": true,
+      "detail": "Client merge path finalizes but does not re-prune registry (relies on factory-pruned instantiate payload)"
+    }
+  ],
+  "pass": true
+}

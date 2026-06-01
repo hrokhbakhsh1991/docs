@@ -55,3 +55,16 @@ test("createDraftFromTemplate respects defaultValues override", async () => {
   const form = result.draftState.data.form as { basicInfo?: { title?: string } };
   assert.equal(form.basicInfo?.title, "Override title");
 });
+
+test("createDraftFromTemplate succeeds with empty canonicalData using registry defaults", async () => {
+  const result = await denaliTemplateOrchestratorFactory.createDraftFromTemplate({
+    workspaceId: "ws-1",
+    templateId: "tpl-1",
+    canonicalData: {},
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.draftState.version, 0);
+  assert.ok(result.draftState.data.form);
+  assert.equal(typeof result.draftState.data.currentStepIndex, "number");
+});

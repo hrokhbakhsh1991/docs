@@ -98,6 +98,101 @@ test("denaliCanonicalFromForm throws when tourType is missing", () => {
   );
 });
 
+const GALLERY_PHOTO_ID = "c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33";
+
+test("denaliCanonicalFromForm maps photosData.photos to canonical photos", () => {
+  const canonical = denaliCanonicalFromForm({
+    basicInfo: {
+      title: "Gallery tour",
+      tourType: "mountain_day",
+      destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      startDateTime: "2026-06-01T08:00:00.000Z",
+      capacityMax: 20,
+    },
+    programNature: { shortDescription: "Short" },
+    transport: { transportMode: "none" },
+    pricingPayment: { requiresPayment: false },
+    participantRequirements: {},
+    policies: {},
+    photosData: {
+      photos: [
+        {
+          id: GALLERY_PHOTO_ID,
+          url: `https://cdn.example.test/${GALLERY_PHOTO_ID}/cover.jpg`,
+          filename: "cover.jpg",
+          size: 2048,
+          mimeType: "image/jpeg",
+          uploadedAt: "2026-05-01T12:00:00.000Z",
+        },
+      ],
+    },
+  });
+
+  assert.equal(canonical.photos?.length, 1);
+  assert.equal(canonical.photos?.[0]?.filename, "cover.jpg");
+});
+
+test("denaliCanonicalFromForm maps programNature.itinerary into program.itinerary", () => {
+  const canonical = denaliCanonicalFromForm({
+    basicInfo: {
+      title: "Multi-day",
+      tourType: "mountain_multi",
+      destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      startDateTime: "2026-06-01T08:00:00.000Z",
+      capacityMax: 12,
+    },
+    programNature: {
+      shortDescription: "Short",
+      itinerary: [{ day: 1, activities: "Summit push", locationText: "Camp A" }],
+    },
+    transport: { transportMode: "none" },
+    pricingPayment: { requiresPayment: false },
+    participantRequirements: {},
+    policies: {},
+  });
+
+  assert.equal(canonical.program.itinerary?.length, 1);
+  assert.equal(canonical.program.itinerary?.[0]?.activities, "Summit push");
+  assert.equal(canonical.program.itinerary?.[0]?.locationText, "Camp A");
+});
+
+test("denaliCanonicalFromForm carryForward retains itinerary when form slice was cleared", () => {
+  const canonical = denaliCanonicalFromForm(
+    {
+      basicInfo: {
+        title: "Day hike",
+        tourType: "mountain_day",
+        destinationId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        startDateTime: "2026-06-01T08:00:00.000Z",
+        capacityMax: 20,
+      },
+      programNature: { shortDescription: "Short" },
+      transport: { transportMode: "none" },
+      pricingPayment: { requiresPayment: false },
+      participantRequirements: {},
+      policies: {},
+      photosData: {
+        photos: [
+          {
+            id: GALLERY_PHOTO_ID,
+            url: `https://cdn.example.test/${GALLERY_PHOTO_ID}/cover.jpg`,
+            filename: "cover.jpg",
+            size: 2048,
+            mimeType: "image/jpeg",
+            uploadedAt: "2026-05-01T12:00:00.000Z",
+          },
+        ],
+      },
+    },
+    {
+      programItinerary: [{ day: 1, activities: "Carried forward day" }],
+    },
+  );
+
+  assert.equal(canonical.program.itinerary?.[0]?.activities, "Carried forward day");
+  assert.equal(canonical.photos?.length, 1);
+});
+
 test("denaliCanonicalFromForm throws when tourType is invalid", () => {
   assert.throws(
     () =>

@@ -93,14 +93,9 @@ export class DenaliTemplateOrchestratorFactory implements DenaliTemplateOrchestr
       undefined,
       ruleSet,
     );
-    if (hydrated == null) {
-      return failureOutput(
-        ["Template canonicalData produced no hydratable wizard fields."],
-        { failureKind: "hydration_empty" },
-      );
-    }
 
-    let form = normalizeDenaliWizardForm(hydrated.formValues, undefined, ruleSet);
+    let form = hydrated?.formValues ?? defaultValues;
+    form = normalizeDenaliWizardForm(form, undefined, ruleSet);
     form = finalizeDenaliWizardHydration(form, ruleSet);
     form = pruneDenaliWizardFormToRegistry(form);
 

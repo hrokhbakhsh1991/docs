@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-06-01T02:17:21.387Z",
+  "instrumentation": [
+    "`draft-engine.client.ts` → `patch_start` / `patch_success` / `patch_409` with ISO timestamp, clientVersion, serverVersion on 409",
+    "`denali-adapter.ts` → `adapter_on_push_start` before `patchDraftSnapshot`",
+    "`WorkspaceTourWizard.tsx` → `wizard_watch_debounced`, `wizard_set_draft_user`, `wizard_set_draft_step` before `setDraftData({ source: 'user' })`",
+    "Enable: `localStorage.draftEngineTrace=1` or `?draftTrace=1`"
+  ],
+  "wizardDraftHooks": [
+    "RHF `watch()` debounced → `pushDraftUserEditRef` → `setDraftData` (engine debounce 500ms default in denali adapter)",
+    "`currentStep` effect → immediate `setDraftData` (can fire near watch debounce)",
+    "`onPush` is only on `DraftEngineConfig` in `denali-adapter.ts`, not in WorkspaceTourWizard"
+  ],
+  "engineMutex": {
+    "maxConcurrentOnPush": 1,
+    "pushCount": 2
+  },
+  "staleVersionSimulation": [
+    {
+      "seq": 2,
+      "at": "2026-06-01T02:17:21.359Z",
+      "atMs": 0,
+      "clientVersion": 1,
+      "outcome": "409",
+      "serverVersionAfter": 2,
+      "concurrentWith": null
+    },
+    {
+      "seq": 2,
+      "at": "2026-06-01T02:17:21.360Z",
+      "atMs": 1,
+      "clientVersion": 1,
+      "outcome": "409",
+      "serverVersionAfter": 2,
+      "concurrentWith": 1
+    }
+  ],
+  "simultaneousPatchSimulation": [
+    {
+      "seq": 1,
+      "at": "2026-06-01T02:17:21.379Z",
+      "atMs": 1,
+      "clientVersion": 2,
+      "outcome": "409",
+      "serverVersionAfter": 3,
+      "concurrentWith": null
+    },
+    {
+      "seq": 2,
+      "at": "2026-06-01T02:17:21.384Z",
+      "atMs": 6,
+      "clientVersion": 2,
+      "outcome": "409",
+      "serverVersionAfter": 3,
+      "concurrentWith": null
+    }
+  ],
+  "simulatedWizardTimeline": [
+    {
+      "at": "2026-06-01T02:17:21.385Z",
+      "deltaMs": 0,
+      "kind": "wizard_watch_debounced",
+      "detail": "RHF watch → pushDraftUserEdit",
+      "meta": "debounceMs=400"
+    },
+    {
+      "at": "2026-06-01T02:17:21.386Z",
+      "deltaMs": 1,
+      "kind": "wizard_set_draft_user",
+      "detail": "pushDraftUserEditRef",
+      "meta": "currentStepIndex=0, draftStatus=\"DIRTY\""
+    },
+    {
+      "at": "2026-06-01T02:17:21.386Z",
+      "deltaMs": 0,
+      "kind": "adapter_on_push_start",
+      "detail": "denali-create:ws-audit",
+      "meta": "version=2, lastModified=1780280241785"
+    },
+    {
+      "at": "2026-06-01T02:17:21.386Z",
+      "deltaMs": 0,
+      "kind": "patch_start",
+      "detail": "ws-audit/denali-create",
+      "meta": "clientVersion=2"
+    },
+    {
+      "at": "2026-06-01T02:17:21.387Z",
+      "deltaMs": 1,
+      "kind": "patch_409",
+      "detail": "ws-audit/denali-create",
+      "meta": "clientVersion=2, serverVersion=3, elapsedMs=42"
+    }
+  ],
+  "verdict": "Not simultaneous PATCH from the client engine: `syncInFlight` mutex keeps one `onPush` at a time. Observed 409s match **optimistic concurrency** (`postgres-draft-snapshot.store`: reject when `clientVersion !== storedVersion`). Typical cause: server version advanced (another tab, prior successful PATCH, or initialize/fetch drift) while local engine still held an older `version` when PATCH was built.",
+  "conclusion": "stale_version"
+}

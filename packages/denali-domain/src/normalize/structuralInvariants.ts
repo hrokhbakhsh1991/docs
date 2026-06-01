@@ -71,6 +71,13 @@ function applyStructuralInvariantRule(
             ? true
             : evaluateDenaliContextualVisibility(canonicalPath, form, ctx.uiOptions);
       if (!visible) {
+        if (canonicalPath === "program.itinerary" || canonicalPath === "photos") {
+          const formPath = mapDenaliCanonicalToFormPath(canonicalPath);
+          const existing = getDenaliFormPathValue(form, formPath);
+          if (Array.isArray(existing) && existing.length > 0) {
+            return;
+          }
+        }
         clearDenaliCanonicalLeaf(form, canonicalPath);
       }
       return;
@@ -118,6 +125,10 @@ function applyGlobalStructuralInvariant(
     case "syncProgramItineraryToDayCount": {
       const isMulti = basics?.duration === "multi_day";
       if (!isMulti) {
+        // Keep persisted template/canonical itinerary rows on single-day profiles (settings seed reload).
+        if (form.programNature.itinerary != null && form.programNature.itinerary.length > 0) {
+          return;
+        }
         form.programNature.itinerary = undefined;
         return;
       }

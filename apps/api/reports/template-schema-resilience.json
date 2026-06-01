@@ -1,0 +1,226 @@
+{
+  "generatedAt": "2026-06-01T01:48:11.067Z",
+  "schema": "denaliCanonicalTemplateDataSchema (strict deep-partial Zod in @repo/types/denali)",
+  "resolver": "resolveStoredTemplateCanonical → fossil/top-level gate → templateToCanonical → validateDenaliCanonicalTemplateData → denaliCanonicalTemplateDataSchema.safeParse",
+  "orchestratorGate": "DenaliTemplateOrchestratorFactory.createDraftFromTemplate calls resolveStoredTemplateCanonical first; hydration runs only when resolved.ok",
+  "serviceGate": "TourWizardTemplateSettingsService.resolveValidatedCanonicalDataOrThrow before templateOrchestrator.createDraftFromTemplate",
+  "cases": [
+    {
+      "id": "valid_partial_control",
+      "label": "Positive control: valid partial canonical",
+      "expectRejected": false,
+      "resolverRejected": false,
+      "resolverIssuePaths": [],
+      "orchestratorSuccess": true,
+      "orchestratorFailureKind": null,
+      "orchestratorReachedHydration": true,
+      "pass": true
+    },
+    {
+      "id": "root_not_object",
+      "label": "Root canonicalData is array",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "<root>"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "duration_wrong_type",
+      "label": "duration numeric instead of enum string",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "duration"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "duration_invalid_enum",
+      "label": "duration invalid enum (single_day)",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "duration"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "category_invalid_enum",
+      "label": "category invalid enum (volcano)",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "category"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "capacity_max_wrong_type",
+      "label": "capacityMax string instead of int",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "capacityMax"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "transport_nested_invalid_enum",
+      "label": "transport.mode deep-nested invalid enum",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "transport.mode"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "program_theme_invalid_uuid",
+      "label": "program.themeIds invalid UUID element",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "program.themeIds.0"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "program_difficulty_wrong_type",
+      "label": "program.difficultyLevel string instead of number",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "program.difficultyLevel"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "program_itinerary_day_wrong_type",
+      "label": "program.itinerary[].day string instead of int",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "program.itinerary.0.day"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "photos_invalid_mime",
+      "label": "photos[].mimeType invalid enum pattern",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "photos.0.mimeType"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "publish_status_invalid_enum",
+      "label": "publishStatus invalid enum",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "publishStatus"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "unknown_top_level_strict",
+      "label": "Unknown top-level key (strict schema)",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "smuggledTopLevel"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "unknown_program_nested_strict",
+      "label": "Unknown nested program key (strict)",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "program.rogueNested"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "fossil_trip_details_root",
+      "label": "Fossil tripDetails root (pre-Zod fossil gate)",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "tripDetails"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    },
+    {
+      "id": "start_datetime_unparseable",
+      "label": "startDateTime unparseable ISO string",
+      "expectRejected": true,
+      "resolverRejected": true,
+      "resolverIssuePaths": [
+        "startDateTime"
+      ],
+      "orchestratorSuccess": false,
+      "orchestratorFailureKind": "canonical_validation",
+      "orchestratorReachedHydration": false,
+      "pass": true
+    }
+  ],
+  "serviceInstantiateProbe": {
+    "brokenRowRejected": true,
+    "orchestratorInvoked": false,
+    "errorCode": "TEMPLATE_CANONICAL_DATA_CORRUPT"
+  },
+  "summary": {
+    "total": 16,
+    "rejectedAsExpected": 15,
+    "incorrectlyAccepted": 0,
+    "pass": true
+  }
+}

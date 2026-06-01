@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { denaliCanonicalToForm } from "@repo/denali-domain";
+
+import { buildDenaliTourCreateDefaultValues } from "../../src/features/tours/wizard/schemas/denaliCore.schema";
 import {
   buildTourWizardTemplateBuilderDefaults,
   buildTourWizardTemplatePayloadFromForm,
-  canonicalSeedRegistrationPath,
+  canonicalDataFromWizardForm,
   mapOverlayValidationPathToFormPath,
   overlayRowRegistrationPath,
-  packCanonicalFormValuesToTemplateData,
   parseOverlayValidationIssuePath,
-  readCanonicalNestedValue,
-  unpackCanonicalTemplateToFormValues,
-  writeCanonicalNestedValue,
+  templateSeedRhfPath,
 } from "./tour-wizard-template-builder-form";
 
 test("overlayRowRegistrationPath uses bracket notation for dotted storage paths", () => {
@@ -25,11 +25,10 @@ test("overlayRowRegistrationPath uses bracket notation for dotted storage paths"
   );
 });
 
-test("canonicalSeedRegistrationPath uses bracket notation for dotted storage paths", () => {
-  assert.equal(
-    canonicalSeedRegistrationPath("overview.peakHeight"),
-    "canonicalData[overview.peakHeight]",
-  );
+test("templateSeedRhfPath maps storage paths to registry wizard RHF paths", () => {
+  assert.equal(templateSeedRhfPath("title"), "basicInfo.title");
+  assert.equal(templateSeedRhfPath("overview.peakHeight"), "tripDetails.overview.peakHeight");
+  assert.equal(templateSeedRhfPath("duration"), "basicInfo.tourType");
 });
 
 test("parseOverlayValidationIssuePath resolves full dotted storage paths", () => {
@@ -47,79 +46,64 @@ test("parseOverlayValidationIssuePath resolves full dotted storage paths", () =>
   });
 });
 
-test("mapOverlayValidationPathToFormPath maps canonical and overlay issues", () => {
-  assert.equal(
-    mapOverlayValidationPathToFormPath("canonicalData.overview.peakHeight"),
-    "canonicalData[overview.peakHeight]",
-  );
+test("mapOverlayValidationPathToFormPath maps overlay issues only", () => {
+  assert.equal(mapOverlayValidationPathToFormPath("canonicalData.overview.peakHeight"), undefined);
   assert.equal(
     mapOverlayValidationPathToFormPath("fieldRulesOverlay.overview.peakHeight.visibility"),
     "fieldRulesOverlay[overview.peakHeight].visibility",
   );
 });
 
-test("unpack and pack round-trip nested canonical storage paths", () => {
-  const canonical = {
-    title: "Alpine trek",
-    overview: { peakHeight: 4200 },
-    program: { themeIds: ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"] },
-  };
-  const flat = unpackCanonicalTemplateToFormValues(canonical, [
-    "title",
-    "overview.peakHeight",
-    "program.themeIds",
-  ]);
-  assert.equal(flat.title, "Alpine trek");
-  assert.equal(flat["overview.peakHeight"], 4200);
-  assert.deepEqual(flat["program.themeIds"], ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
-
-  const packed = packCanonicalFormValuesToTemplateData(flat);
-  assert.deepEqual(packed, canonical);
-});
-
-test("readCanonicalNestedValue and writeCanonicalNestedValue dot-walk", () => {
-  const root: Record<string, unknown> = {};
-  writeCanonicalNestedValue(root, "transport.mode", "bus");
-  assert.equal(readCanonicalNestedValue(root, "transport.mode"), "bus");
-});
-
-test("buildTourWizardTemplateBuilderDefaults unpacks canonical JSONB into flat seed map", () => {
+test("buildTourWizardTemplateBuilderDefaults reads overlay only", () => {
   const defaults = buildTourWizardTemplateBuilderDefaults(
     {
       id: "tpl-1",
-      fieldRulesOverlay: { title: { visibility: "always" } },
+      fieldRulesOverlay: { title: { visibility: "always", required: "" } },
       canonicalData: { title: "Seed title", overview: { peakHeight: 3000 } },
     } as never,
     ["title", "overview.peakHeight"],
   );
-  assert.equal(defaults.canonicalData.title, "Seed title");
-  assert.equal(defaults.canonicalData["overview.peakHeight"], 3000);
+  assert.equal(defaults.fieldRulesOverlay.title?.visibility, "always");
+  assert.equal((defaults as { canonicalData?: unknown }).canonicalData, undefined);
 });
 
-test("buildTourWizardTemplatePayloadFromForm reads flat dotted overlay keys only", () => {
+test("buildTourWizardTemplatePayloadFromForm accepts Layer A from wizard adapter", () => {
+  const defaults = buildDenaliTourCreateDefaultValues();
+  const form = denaliCanonicalToForm(
+    {
+      category: "mountain",
+      duration: "single",
+      title: "Saved",
+      destinationId: defaults.basicInfo.destinationId,
+      startDateTime: defaults.basicInfo.startDateTime,
+      program: { themeIds: [], shortDescription: "Short" },
+      transport: { mode: "none" },
+      pricing: { paymentMode: "offline_receipt" },
+      participants: {},
+      policies: { policiesText: "" },
+    },
+    defaults,
+    {
+      basics: { category: "mountain", duration: "single_day", eventVariant: undefined },
+    },
+  );
+
+  const canonicalData = canonicalDataFromWizardForm(form);
   const payload = buildTourWizardTemplatePayloadFromForm(
     {
       fieldRulesOverlay: {
         title: { visibility: "always", required: "" },
         "overview.peakHeight": { visibility: "hidden", required: "optional" },
-        overview: {
-          peakHeight: { visibility: "active", required: "" },
-        },
-      },
-      canonicalData: {
-        title: "Saved",
-        "overview.peakHeight": 4100,
       },
     },
-    ["title", "overview.peakHeight", "program.themeIds"],
+    ["title", "overview.peakHeight"],
+    { canonicalData },
   );
 
   assert.deepEqual(payload.fieldRulesOverlay, {
     title: { visibility: "always" },
     "overview.peakHeight": { visibility: "hidden", required: "optional" },
   });
-  assert.deepEqual(payload.canonicalData, {
-    title: "Saved",
-    overview: { peakHeight: 4100 },
-  });
+  assert.equal(payload.canonicalData.title, "Saved");
+  assert.equal(payload.canonicalData.duration, "single");
 });

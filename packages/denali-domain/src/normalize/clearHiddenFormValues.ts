@@ -111,6 +111,12 @@ export function clearDenaliNonVisibleFormValues(
     if (isDenaliAsyncAssetCanonicalPath(path)) {
       continue;
     }
+    if (path === "program.itinerary") {
+      const rows = next.programNature.itinerary;
+      if (rows != null && rows.length > 0) {
+        continue;
+      }
+    }
     if (path === "eventVariant") {
       const basics = readDenaliCanonicalBasics(next.basicInfo.tourType as DenaliTourKind | undefined);
       if (basics?.category === "event") {

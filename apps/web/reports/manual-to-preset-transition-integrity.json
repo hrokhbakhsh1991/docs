@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-06-01T00:55:03.203Z",
+  "architectureNote": "Tour Create no longer exposes manualWizardMode; \"manual\" = empty template canonical + in-form edits, then DenaliTourCreationPresetBanner → applyDenaliWizardPreset → orchestrateDenaliWizardFromTemplate (preset canonical only) → reset(form, DENALI_QUIET_FORM_RESET_OPTIONS).",
+  "scenarios": [
+    {
+      "id": "factory_ignores_manual_base",
+      "pass": true,
+      "detail": "baseValues ignored; preset output identical with/without manual form"
+    },
+    {
+      "id": "preset_wipes_manual_orchestration",
+      "pass": true,
+      "detail": "manual markers absent; preset title/shortDescription applied; transportCost preserved",
+      "manualLeaks": []
+    },
+    {
+      "id": "partial_preset_clears_manual_title",
+      "pass": true,
+      "detail": "partial preset hydrates from registry base; manual title not retained",
+      "manualLeaks": []
+    },
+    {
+      "id": "rhf_quiet_reset_wipes_manual",
+      "pass": true,
+      "detail": "DenaliTourCreationPresetBanner reset() replaces manual with full preset form",
+      "manualLeaks": []
+    },
+    {
+      "id": "classic_preset_merge_baseline",
+      "pass": true,
+      "detail": "classic rail merges patch onto baseValues (Denali path does not)"
+    },
+    {
+      "id": "merge_helper_shallow_reference",
+      "pass": true,
+      "detail": "mergeDenaliFormDefaults reference: Denali preset uses factory reset(), not this helper",
+      "manualLeaks": []
+    }
+  ],
+  "pass": true
+}

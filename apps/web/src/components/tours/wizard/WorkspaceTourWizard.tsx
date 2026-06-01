@@ -2,7 +2,6 @@
 
 import { useDraftEngine } from "@repo/draft-engine";
 import { DEFAULT_TOUR_FORM_PROFILE } from "@repo/types";
-import { isDenaliCanonicalTemplateDataEmpty } from "@repo/types/denali";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -75,6 +74,7 @@ import { QuickAddModalProvider } from "@/components/shared/QuickAddModal";
 import { ErrorBoundary } from "@/layouts";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import type { TourWizardTemplateInstantiateResponse } from "@/features/tours/wizard/hooks/useInstantiateWorkspaceTemplate";
+import { appendDraftEngineTrace } from "@/lib/draft-engine-trace";
 import { createDenaliDraftAdapter } from "@/features/tours/drafts/denali-adapter";
 import { isWizardFormCanonicalEmpty } from "@/features/tours/wizard/validation/wizardCanonicalSubmitGuard";
 
@@ -301,10 +301,6 @@ export function WorkspaceTourWizard({
     () => resolveDenaliRuleSetFromTemplate(pinnedTemplate),
     [pinnedTemplate],
   );
-  const manualWizardMode = useMemo(
-    () => isDenaliCanonicalTemplateDataEmpty(pinnedTemplate?.canonicalData),
-    [pinnedTemplate?.canonicalData],
-  );
   const defaultValues = useMemo(() => buildDenaliTourCreateDefaultValues(), []);
 
   const currentStepRef = useRef(currentStep);
@@ -329,7 +325,7 @@ export function WorkspaceTourWizard({
   } = useDraftEngine(draftConfig);
 
   const instantiateTemplateQuery = useInstantiateWorkspaceTemplate(
-    Boolean(workspaceId && pinnedTemplate && !manualWizardMode),
+    Boolean(workspaceId && pinnedTemplate),
   );
 
   const setDraftDataRef = useRef(setDraftData);
@@ -427,13 +423,12 @@ export function WorkspaceTourWizard({
     workspaceId,
   ]);
 
-  const templateHydrationReady = manualWizardMode
-    ? draftInitComplete
-    : draftInitComplete &&
-      factoryInstantiateSettled &&
-      !instantiateTemplateQuery.isFetching &&
-      !factoryHydrationRejected &&
-      factoryWizardForm != null;
+  const templateHydrationReady =
+    draftInitComplete &&
+    factoryInstantiateSettled &&
+    !instantiateTemplateQuery.isFetching &&
+    !factoryHydrationRejected &&
+    factoryWizardForm != null;
 
   const wizardFormReady = templateHydrationReady && formHydrationApplied;
 
@@ -515,7 +510,7 @@ export function WorkspaceTourWizard({
   useEffect(() => {
     setFormHydrationApplied(false);
     initialHydrateDoneRef.current = false;
-  }, [manualWizardMode, pinnedTemplate.id, workspaceId]);
+  }, [pinnedTemplate.id, workspaceId]);
 
   useLayoutEffect(() => {
     const nextWorkspace = workspaceId?.trim() || null;
@@ -575,21 +570,6 @@ export function WorkspaceTourWizard({
       return;
     }
 
-    if (manualWizardMode) {
-      withDraftHydration(() => {
-        const draftForm = draftState.data?.form as Partial<DenaliCreateTourWizardForm> | undefined;
-        let merged = mergeDenaliFormDefaults(defaultValues, draftForm ?? {});
-        merged = finalizeDenaliWizardHydration(merged, ruleSet);
-        const stepFromDraft = draftState.data?.currentStepIndex ?? 0;
-        reset(merged, DENALI_QUIET_FORM_RESET_OPTIONS);
-        setCurrentStep(stepFromDraft);
-        setCanonicalSyncToken((token) => token + 1);
-        initialHydrateDoneRef.current = true;
-        setFormHydrationApplied(true);
-      });
-      return;
-    }
-
     const mergedForm = computeMergedWizardForm();
     if (mergedForm == null) {
       return;
@@ -604,11 +584,9 @@ export function WorkspaceTourWizard({
     });
   }, [
     computeMergedWizardForm,
-    defaultValues,
     draftState.data?.currentStepIndex,
     draftState.data?.form,
     draftState.status,
-    manualWizardMode,
     pinnedTemplate,
     reset,
     ruleSet,
@@ -665,6 +643,10 @@ export function WorkspaceTourWizard({
     if (draftStatusRef.current === "CONFLICT_RESOLVING") {
       return;
     }
+    appendDraftEngineTrace("wizard_set_draft_user", "pushDraftUserEditRef", {
+      currentStepIndex: currentStepRef.current,
+      draftStatus: draftStatusRef.current,
+    });
     setDraftDataRef.current(
       {
         form: getValuesRef.current(),
@@ -708,6 +690,10 @@ export function WorkspaceTourWizard({
     if (!formMethodsRef.current.formState.isDirty) {
       return;
     }
+    appendDraftEngineTrace("wizard_set_draft_step", "currentStep effect → setDraftData", {
+      currentStep,
+      draftStatus: draftStatusRef.current,
+    });
     setDraftDataRef.current(
       {
         form: getValuesRef.current(),
@@ -931,9 +917,7 @@ export function WorkspaceTourWizard({
   const wizardHydrationLoading =
     Boolean(workspaceId && pinnedTemplate) &&
     !wizardFormReady &&
-    (manualWizardMode
-      ? !draftInitComplete
-      : !factoryInstantiateSettled || instantiateTemplateQuery.isFetching);
+    (!factoryInstantiateSettled || instantiateTemplateQuery.isFetching);
 
   if (wizardHydrationLoading) {
     return (
@@ -945,7 +929,7 @@ export function WorkspaceTourWizard({
     );
   }
 
-  if (!manualWizardMode && factoryHydrationRejected) {
+  if (factoryHydrationRejected) {
     return (
       <Card data-testid="workspace-tour-wizard-factory-rejected">
         <CardBody>
@@ -1021,15 +1005,6 @@ export function WorkspaceTourWizard({
               data-wizard-step-count={String(visibleSteps.length)}
             >
               <CardBody style={{ display: "grid", gap: "1rem" }}>
-                {manualWizardMode ? (
-                  <div
-                    role="status"
-                    data-testid="workspace-wizard-manual-mode-notice"
-                    className={cn(alertStyles.alertBanner, alertStyles.alertBannerWarning)}
-                  >
-                    <p style={{ margin: 0 }}>{t("wizard.manualModeNotice")}</p>
-                  </div>
-                ) : null}
                 <DenaliWizardContentQualityHeader />
                 <DenaliWizardHeaderPlugins
                   plugins={CREATE_PLUGINS}

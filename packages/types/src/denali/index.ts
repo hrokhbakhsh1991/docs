@@ -83,6 +83,7 @@ export { isDenaliCanonicalTemplateDataEmpty } from "./isDenaliCanonicalTemplateD
 
 export {
   denaliCanonicalFromForm,
+  type DenaliCanonicalFromFormCarryForward,
   DenaliCanonicalTourTypeRequiredError,
   type DenaliWizardFormLike,
 } from "./denaliCanonicalFromForm";

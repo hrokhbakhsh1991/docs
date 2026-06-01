@@ -2,9 +2,10 @@
 
 import { FormField, Select } from "@tour/ui";
 import { useTranslations } from "next-intl";
-import type { Control, UseFormRegister } from "react-hook-form";
+import type { Control, UseFormRegister, UseFormSetValue } from "react-hook-form";
 
 import type { DenaliOverlayFieldHint } from "@repo/denali-domain";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliTemplateSeedFieldDefinition } from "@/lib/validation/tour-wizard-template-builder-form";
 import {
   overlayRowRegistrationPath,
@@ -27,7 +28,9 @@ type DestinationOption = {
 
 export type TemplateBuilderFieldRowProps = {
   storagePath: string;
-  control: Control<TourWizardTemplateBuilderFormValues>;
+  overlayControl: Control<TourWizardTemplateBuilderFormValues>;
+  wizardControl: Control<DenaliCreateTourWizardForm>;
+  setWizardValue: UseFormSetValue<DenaliCreateTourWizardForm>;
   register: UseFormRegister<TourWizardTemplateBuilderFormValues>;
   destinationOptions: readonly DestinationOption[];
   leaderOptions: readonly DestinationOption[];
@@ -42,7 +45,8 @@ export type TemplateBuilderFieldRowProps = {
 
 export function TemplateBuilderFieldRow({
   storagePath,
-  control,
+  wizardControl,
+  setWizardValue,
   register,
   destinationOptions,
   leaderOptions,
@@ -129,7 +133,8 @@ export function TemplateBuilderFieldRow({
         <div className={styles.seedControl}>
           <DenaliTemplateSeedField
             storagePath={storagePath}
-            control={control}
+            control={wizardControl}
+            setWizardValue={setWizardValue}
             destinationOptions={destinationOptions}
             leaderOptions={leaderOptions}
             onDestinationSelected={onDestinationSelected}

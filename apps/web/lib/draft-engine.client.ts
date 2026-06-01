@@ -1,6 +1,8 @@
 import { DraftConflictError, type DraftSyncPayload } from "@repo/draft-engine";
 import { DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION } from "@repo/shared-contracts";
 
+import { appendDraftEngineTrace } from "./draft-engine-trace";
+
 /** Reject missing scope before `encodeURIComponent(undefined)` becomes the literal path segment `"undefined"`. */
 function assertDraftScope(workspaceId: string, draftKey: string): void {
   const ws = workspaceId.trim();
@@ -79,6 +81,13 @@ export async function patchDraftSnapshot<T>(
   draftKey: string,
   payload: DraftSyncPayload<T>,
 ): Promise<DraftSyncPayload<T>> {
+  const patchStartedAt = Date.now();
+  appendDraftEngineTrace("patch_start", `${workspaceId}/${draftKey}`, {
+    clientVersion: payload.version,
+    lastModified: payload.lastModified,
+    schemaVersion: payload.schemaVersion ?? DRAFT_SNAPSHOT_DEFAULT_SCHEMA_VERSION,
+  });
+
   const res = await fetch(draftPath(workspaceId, draftKey), {
     method: "PATCH",
     credentials: "include",
@@ -90,9 +99,17 @@ export async function patchDraftSnapshot<T>(
       lastModified: payload.lastModified,
     }),
   });
+  const elapsedMs = Date.now() - patchStartedAt;
+
   if (res.status === 409) {
     const conflictBody = (await res.json().catch(() => null)) as unknown;
     const server = readConflictServer<T>(conflictBody);
+    appendDraftEngineTrace("patch_409", `${workspaceId}/${draftKey}`, {
+      elapsedMs,
+      clientVersion: payload.version,
+      serverVersion: server?.version ?? null,
+      serverLastModified: server?.lastModified ?? null,
+    });
     if (server) {
       throw new DraftConflictError(server);
     }
@@ -105,6 +122,11 @@ export async function patchDraftSnapshot<T>(
   if (!parsed) {
     throw new Error("patchDraftSnapshot: invalid response payload");
   }
+  appendDraftEngineTrace("patch_success", `${workspaceId}/${draftKey}`, {
+    elapsedMs,
+    clientVersion: payload.version,
+    serverVersion: parsed.version,
+  });
   return parsed;
 }
 

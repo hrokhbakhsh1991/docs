@@ -13,17 +13,17 @@ const GHOST_OVERLAY_PATHS = [
   "transport.seatPreference",
 ] as const;
 
-test("listDenaliSettingsOverlayStoragePaths returns 51 section-bound storage paths", () => {
+test("listDenaliSettingsOverlayStoragePaths returns unique section-bound storage paths", () => {
   const paths = listDenaliSettingsOverlayStoragePaths();
   assert.equal(paths.length, 51);
   assert.equal(new Set(paths).size, paths.length);
+  assert.equal(paths.includes("eventVariant"), false);
 });
 
-test("listDenaliSettingsOverlayStoragePaths aligns with rule-model path count", () => {
-  assert.equal(
-    listDenaliSettingsOverlayStoragePaths().length,
-    listDenaliRuleFieldPaths().length,
-  );
+test("listDenaliSettingsOverlayStoragePaths aligns with rule-model path count and includes duration", () => {
+  const paths = listDenaliSettingsOverlayStoragePaths();
+  assert.equal(paths.length, listDenaliRuleFieldPaths().length);
+  assert.equal(paths.includes("duration"), true);
 });
 
 test("listDenaliSettingsOverlayStoragePaths excludes ghost and deprecated overlay paths", () => {

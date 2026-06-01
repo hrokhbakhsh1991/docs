@@ -26,7 +26,11 @@ import {
   normalizeGatheringPickupStations,
   type DenaliGatheringPickupStation,
 } from "./gatheringPickupStation";
-import { pickDenaliCanonicalItineraryDayPhotos } from "./denaliCanonicalPhotoPick";
+import {
+  pickDenaliCanonicalGalleryPhotos,
+  pickDenaliCanonicalItineraryDayPhotos,
+  type DenaliWizardPhotoRowInput,
+} from "./denaliCanonicalPhotoPick";
 import type {
   DenaliCanonicalDuration,
   DenaliCanonicalTourModel,
@@ -152,7 +156,28 @@ export type DenaliWizardFormLike = {
     logistics?: {
       gatheringPoints?: unknown[];
     };
+    itinerary?: {
+      dayPlans?: Array<{
+        day?: number;
+        title?: string;
+        description?: string;
+        location?: DenaliLocationData;
+        photos?: DenaliWizardPhotoRowInput[];
+      }>;
+    };
   };
+  photosData?: {
+    photos?: DenaliWizardPhotoRowInput[];
+  };
+};
+
+/**
+ * Slices to retain when rule-engine hydration clears hidden RHF paths before save
+ * (e.g. single-day `programNature.itinerary`, gallery on partial edits).
+ */
+export type DenaliCanonicalFromFormCarryForward = {
+  photos?: DenaliCanonicalTourModel["photos"];
+  programItinerary?: DenaliCanonicalTourModel["program"]["itinerary"];
 };
 
 /** Wizard form slice for `tripDetails.overview`. */
@@ -329,6 +354,84 @@ export class DenaliCanonicalTourTypeRequiredError extends Error {
   }
 }
 
+type ItineraryRowInput = NonNullable<DenaliWizardFormLike["programNature"]["itinerary"]>[number];
+
+function mapItineraryRows(
+  rows: readonly ItineraryRowInput[],
+): NonNullable<DenaliCanonicalTourModel["program"]["itinerary"]> {
+  return rows.map((row) => {
+    const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
+    return {
+      day: row.day,
+      activities: row.activities,
+      ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
+      ...(row.location != null &&
+      (row.location.addressText?.trim() ||
+        row.location.latitude != null ||
+        row.location.longitude != null)
+        ? {
+            location: {
+              addressText: row.location.addressText?.trim() ?? "",
+              latitude: row.location.latitude ?? null,
+              longitude: row.location.longitude ?? null,
+            },
+          }
+        : {}),
+      ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
+    };
+  });
+}
+
+function itineraryFromTripDetailsDayPlans(
+  tripDetails: DenaliWizardFormLike["tripDetails"],
+): DenaliCanonicalTourModel["program"]["itinerary"] {
+  const dayPlans = tripDetails?.itinerary?.dayPlans;
+  if (dayPlans == null || dayPlans.length === 0) {
+    return undefined;
+  }
+  const rows = dayPlans.map((plan, index) => {
+    const day =
+      typeof plan.day === "number" && Number.isFinite(plan.day) ? plan.day : index + 1;
+    const title = typeof plan.title === "string" ? plan.title.trim() : "";
+    const description = typeof plan.description === "string" ? plan.description.trim() : "";
+    const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(plan.photos);
+    return {
+      day,
+      activities: description || title,
+      ...(title ? { locationText: title } : {}),
+      ...(plan.location != null &&
+      (plan.location.addressText?.trim() ||
+        plan.location.latitude != null ||
+        plan.location.longitude != null)
+        ? {
+            location: {
+              addressText: plan.location.addressText?.trim() ?? "",
+              latitude: plan.location.latitude ?? null,
+              longitude: plan.location.longitude ?? null,
+            },
+          }
+        : {}),
+      ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
+    };
+  });
+  return rows.length > 0 ? rows : undefined;
+}
+
+function itineraryFromProgramNature(
+  program: DenaliWizardFormLike["programNature"],
+  tripDetails?: DenaliWizardFormLike["tripDetails"],
+): DenaliCanonicalTourModel["program"]["itinerary"] {
+  const rows = program.itinerary;
+  if (rows != null && rows.length > 0) {
+    return mapItineraryRows(rows);
+  }
+  const outline = program.itineraryOutline?.trim();
+  if (outline) {
+    return [{ day: 1, activities: outline }];
+  }
+  return itineraryFromTripDetailsDayPlans(tripDetails);
+}
+
 function resolveCanonicalBasicsFromFormTourType(
   tourType: DenaliTourKind | undefined,
 ): DenaliCanonicalBasicsSelection {
@@ -343,7 +446,10 @@ function resolveCanonicalBasicsFromFormTourType(
  * Maps legacy `DenaliCreateTourWizardForm` to the Phase 4 canonical MVP model.
  * Requires a valid `basicInfo.tourType`; missing strings default to "".
  */
-export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanonicalTourModel {
+export function denaliCanonicalFromForm(
+  form: DenaliWizardFormLike,
+  carryForward?: DenaliCanonicalFromFormCarryForward,
+): DenaliCanonicalTourModel {
   const basics = resolveCanonicalBasicsFromFormTourType(form.basicInfo.tourType);
 
   const requiresPayment = pricingRequiresPaymentFromForm(form.pricingPayment);
@@ -381,6 +487,12 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
     typeof elevationGain === "number" && Number.isFinite(elevationGain)
       ? { elevationGain }
       : undefined;
+
+  const itinerary =
+    itineraryFromProgramNature(form.programNature, form.tripDetails) ??
+    carryForward?.programItinerary;
+  const photos =
+    pickDenaliCanonicalGalleryPhotos(form.photosData?.photos) ?? carryForward?.photos;
 
   return {
     category: basics.category,
@@ -433,30 +545,7 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
       hikingHoursApprox: form.programNature.hikingHoursApprox,
       hikingGoHours: hikingGoHoursFromForm(form.programNature),
       hikingReturnHours: hikingReturnHoursFromForm(form.programNature),
-      itinerary:
-        form.programNature.itinerary != null && form.programNature.itinerary.length > 0
-          ? form.programNature.itinerary.map((row) => {
-              const dayPhotos = pickDenaliCanonicalItineraryDayPhotos(row.photos);
-              return {
-                day: row.day,
-                activities: row.activities,
-                ...(row.locationText?.trim() ? { locationText: row.locationText.trim() } : {}),
-                ...(row.location != null &&
-                (row.location.addressText?.trim() ||
-                  row.location.latitude != null ||
-                  row.location.longitude != null)
-                  ? {
-                      location: {
-                        addressText: row.location.addressText?.trim() ?? "",
-                        latitude: row.location.latitude ?? null,
-                        longitude: row.location.longitude ?? null,
-                      },
-                    }
-                  : {}),
-                ...(dayPhotos != null && dayPhotos.length > 0 ? { photos: dayPhotos } : {}),
-              };
-            })
-          : undefined,
+      itinerary,
     },
 
     transport,
@@ -507,5 +596,7 @@ export function denaliCanonicalFromForm(form: DenaliWizardFormLike): DenaliCanon
         form.policies.cancellationPenaltyPercentage,
       ),
     },
+
+    photos,
   };
 }

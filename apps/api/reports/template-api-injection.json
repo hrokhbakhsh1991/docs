@@ -1,0 +1,215 @@
+{
+  "generatedAt": "2026-06-01T01:51:19.689Z",
+  "endpoint": "PATCH /api/v2/settings/tour-wizard-template",
+  "validationChain": "UpdateWorkspaceTourWizardTemplateDto (@IsObject) → validateWorkspaceWizardTemplatePayload → validateDenaliCanonicalTemplateData → denaliCanonicalTemplateDataSchema.safeParse → sanitizeDenaliCanonicalTemplateData on success",
+  "dtoLayerNote": "class-validator does not validate enums, numeric bounds, or nested keys on canonicalData; only JSON object shape.",
+  "cases": [
+    {
+      "id": "valid_partial_baseline",
+      "label": "Positive control: valid partial canonical",
+      "expectRejected": false,
+      "validatorRejected": false,
+      "validatorErrorPaths": [],
+      "serviceRejected": false,
+      "serviceSaved": true,
+      "serviceErrorCode": null,
+      "pass": true
+    },
+    {
+      "id": "invalid_duration_enum",
+      "label": "Invalid duration enum string (single_day)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.duration"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_duration_negative_number",
+      "label": "Invalid duration type (numeric -1)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.duration"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_category_enum",
+      "label": "Invalid category enum (volcano)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.category"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "negative_capacity_max",
+      "label": "Negative capacityMax",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.capacityMax"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "zero_capacity_max",
+      "label": "Zero capacityMax (min 1)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.capacityMax"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "negative_program_difficulty",
+      "label": "program.difficultyLevel below min (0)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.program.difficultyLevel"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "negative_hiking_hours",
+      "label": "program.hikingHoursApprox negative",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.program.hikingHoursApprox"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_transport_mode",
+      "label": "Invalid transport.mode enum",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.transport.mode"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_publish_status",
+      "label": "Invalid publishStatus enum",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.publishStatus"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "fossil_trip_details_root",
+      "label": "Fossil tripDetails root key",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.tripDetails"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "unknown_program_nested_key",
+      "label": "Unknown nested program key (strict)",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.program.smuggledSlice"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_overlay_visibility",
+      "label": "Invalid fieldRulesOverlay.visibility enum",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "fieldRulesOverlay.title.visibility"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_start_datetime",
+      "label": "Unparsable startDateTime string",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.startDateTime"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    },
+    {
+      "id": "invalid_theme_uuid",
+      "label": "Invalid program.themeIds UUID",
+      "expectRejected": true,
+      "validatorRejected": true,
+      "validatorErrorPaths": [
+        "canonicalData.program.themeIds.0"
+      ],
+      "serviceRejected": true,
+      "serviceSaved": false,
+      "serviceErrorCode": "VALIDATION_FAILED",
+      "pass": true
+    }
+  ],
+  "httpProbe": {
+    "attempted": false,
+    "skippedReason": "Set AUDIT_PATCH_BEARER_TOKEN and AUDIT_TENANT_HOST for live PATCH probe",
+    "status": null,
+    "errorCode": null,
+    "rejectedInvalidDuration": false
+  },
+  "summary": {
+    "total": 15,
+    "rejectedAsExpected": 14,
+    "incorrectlyAccepted": 0,
+    "incorrectlyRejected": 0,
+    "pass": true
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-06-01T00:46:52.142Z",
+  "mode": "db_transaction",
+  "usedSyntheticRichFixture": true,
+  "source": {
+    "id": "4931f36a-19ed-4cd1-9ec3-eb5d12eaf7f6",
+    "workspaceId": "a0dcacb3-b6da-430f-86e1-5e36cb4c2113",
+    "baseProfile": "urban_event",
+    "canonicalBytes": 566,
+    "overlayBytes": 176,
+    "overlayKeyCount": 3
+  },
+  "clone": {
+    "id": "0b9c13cd-53a4-44ff-9665-1a9b5fb61cf3",
+    "workspaceId": "00311449-1df0-4413-8d61-26c6ac82e9ed"
+  },
+  "jsonbParity": {
+    "canonicalDataEqual": true,
+    "fieldRulesOverlayEqual": true,
+    "stepOverridesEqual": true,
+    "canonicalDiffPaths": [],
+    "overlayDiffPaths": [],
+    "stepOverridesDiffPaths": []
+  },
+  "envelopeLeakScan": {
+    "cloneContainsSourceTemplateId": false,
+    "cloneContainsSourceWorkspaceId": false,
+    "cloneContainsSourcePresetId": false,
+    "hits": []
+  },
+  "rowEnvelope": {
+    "cloneIdDiffersFromSource": true,
+    "cloneWorkspaceDiffersFromSource": true
+  },
+  "pass": true
+}

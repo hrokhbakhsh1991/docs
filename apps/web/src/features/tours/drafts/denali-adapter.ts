@@ -4,6 +4,7 @@ import {
   denaliDraftOrchestrator,
   DENALI_REGISTRY_LAYOUT_VERSION,
 } from "@repo/denali-domain";
+import { appendDraftEngineTrace } from "@/lib/draft-engine-trace";
 import { deleteDraftSnapshot, fetchDraftSnapshot, patchDraftSnapshot } from "@/lib/draft-engine.client";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
@@ -149,6 +150,11 @@ export function createDenaliDraftAdapter(input: {
       if (!workspaceId) {
         throw new Error("Cannot push Denali draft without workspace scope");
       }
+      appendDraftEngineTrace("adapter_on_push_start", `${DENALI_CREATE_DRAFT_KEY}:${workspaceId}`, {
+        version: payload.version,
+        lastModified: payload.lastModified,
+        currentStepIndex: payload.data.currentStepIndex,
+      });
       const snapshot = snapshotFromOrchestrator(
         normalizeDenaliWizardForm(payload.data.form, undefined, input.getRuleSet()),
         input.getRuleSet(),

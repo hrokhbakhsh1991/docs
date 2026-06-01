@@ -3,14 +3,18 @@
 import { Button } from "@tour/ui";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import {
-  DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
   getDenaliSettingsOverlayFieldHints,
+  listDenaliTemplateStorageFieldPaths,
   type DenaliOverlayFieldHint,
 } from "@repo/denali-domain";
+import { isDenaliCanonicalTemplateDataEmpty } from "@repo/types/denali";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
+import { DENALI_QUIET_FORM_RESET_OPTIONS } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
+import { orchestrateDenaliWizardFromTemplate } from "@/features/tours/wizard/domain/orchestrateDenaliWizardFromTemplate";
 import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
 import { ApiError } from "@/lib/api-client";
 import { AbilityAction } from "@/lib/casl/ability-actions";
@@ -19,20 +23,19 @@ import { handleValidationApiError } from "@/lib/errors/apply-api-validation-erro
 import { useTourDestinations } from "@/hooks/use-tour-destinations";
 import { useWorkspaceTourCrewMembers } from "@/hooks/use-workspace-tour-crew-members";
 import {
-  applyUniversalValidationIssuesToForm,
+  applyUniversalValidationIssuesToOverlayForm,
+  applyUniversalValidationIssuesToWizardForm,
   buildPreviewWizardTemplate,
-  packTemplateCanonicalForPersist,
   buildTourWizardTemplateBuilderDefaults,
   buildTourWizardTemplatePayloadFromForm,
-  canonicalSeedRegistrationPath,
-  packCanonicalFormValuesToTemplateData,
+  canonicalDataFromWizardForm,
+  isWizardFormCanonicalExportError,
   mapOverlayValidationPathToFormPath,
+  templateSeedRhfPath,
   type TourWizardTemplateBuilderFormValues,
 } from "@/lib/validation/tour-wizard-template-builder-form";
 import { validateDenaliWorkspaceTemplate } from "@/lib/validation/universal-validator";
 import { useUpdateTourWizardTemplate } from "@/hooks/use-update-tour-wizard-template";
-
-import { isDenaliCanonicalTemplateDataEmpty } from "@repo/types/denali";
 
 import formStyles from "../settings-profile-form.module.css";
 import styles from "./tour-wizard-template.module.css";
@@ -67,14 +70,18 @@ export function TourWizardTemplateBuilderForm({
   const t = useTranslations("settings");
   const ability = useAbility();
   const updateMutation = useUpdateTourWizardTemplate();
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const [rootMessage, setRootMessage] = useState<string | null>(null);
-  const previewFormRef = useRef<UseFormReturn<DenaliCreateTourWizardForm> | null>(null);
+  const [canonicalSyncToken, setCanonicalSyncToken] = useState(0);
+  const [wizardHydrated, setWizardHydrated] = useState(false);
+  const [wizardHydrationError, setWizardHydrationError] = useState<readonly string[] | null>(null);
 
   const canManageTemplate = ability.can(AbilityAction.Update, "TourWizardTemplate");
   const canPublish = ability.can(AbilityAction.Update, "TourWizardTemplate");
 
   const fieldPaths = useMemo(
-    () => resolveModernTemplateBuilderFieldPaths(DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS),
+    () => resolveModernTemplateBuilderFieldPaths(listDenaliTemplateStorageFieldPaths()),
     [],
   );
   const fieldHints = useMemo(() => getDenaliSettingsOverlayFieldHints(), []);
@@ -116,26 +123,63 @@ export function TourWizardTemplateBuilderForm({
     }));
   }, [crewMembersQuery.data]);
 
-  const defaultValues = useMemo(
+  const overlayDefaults = useMemo(
     () => buildTourWizardTemplateBuilderDefaults(template, fieldPaths),
     [template, fieldPaths],
   );
 
-  const configForm = useForm<TourWizardTemplateBuilderFormValues>({
-    defaultValues,
+  const overlayForm = useForm<TourWizardTemplateBuilderFormValues>({
+    defaultValues: overlayDefaults,
     mode: "onSubmit",
   });
 
-  const { register, handleSubmit, reset, setError, clearErrors, formState, control, setValue } =
-    configForm;
+  const wizardForm = useForm<DenaliCreateTourWizardForm>({
+    defaultValues: buildDenaliTourCreateDefaultValues(),
+    mode: "onSubmit",
+  });
 
+  const { register, handleSubmit, reset, setError, clearErrors, formState, control } = overlayForm;
   const watchedOverlay = useWatch({ control, name: "fieldRulesOverlay" });
-  const watchedCanonicalData = useWatch({ control, name: "canonicalData" });
 
-  const packedCanonicalData = useMemo(
-    () => packCanonicalFormValuesToTemplateData(watchedCanonicalData ?? defaultValues.canonicalData),
-    [defaultValues.canonicalData, watchedCanonicalData],
-  );
+  const savedTemplateKey = template
+    ? `${template.id}:${template.updatedAt ?? template.createdAt ?? ""}`
+    : null;
+
+  useEffect(() => {
+    if (!template || !savedTemplateKey) {
+      setWizardHydrated(false);
+      setWizardHydrationError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setWizardHydrated(false);
+    setWizardHydrationError(null);
+
+    void orchestrateDenaliWizardFromTemplate(
+      template,
+      (template.canonicalData ?? {}) as Record<string, unknown>,
+    ).then((result) => {
+      if (cancelled) {
+        return;
+      }
+      if (!result.success) {
+        setWizardHydrationError(result.errors);
+        return;
+      }
+      wizardForm.reset(result.form, DENALI_QUIET_FORM_RESET_OPTIONS);
+      setCanonicalSyncToken((token) => token + 1);
+      setWizardHydrated(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [savedTemplateKey, template, wizardForm]);
+
+  useEffect(() => {
+    reset(overlayDefaults);
+  }, [overlayDefaults, reset]);
 
   const previewTemplate = useMemo(() => {
     if (!template) {
@@ -143,85 +187,121 @@ export function TourWizardTemplateBuilderForm({
     }
     return buildPreviewWizardTemplate(
       template,
-      { fieldRulesOverlay: watchedOverlay ?? defaultValues.fieldRulesOverlay },
+      { fieldRulesOverlay: watchedOverlay ?? overlayDefaults.fieldRulesOverlay },
       fieldPaths,
+      (template.canonicalData ?? {}) as Record<string, unknown>,
     );
-  }, [defaultValues.fieldRulesOverlay, fieldPaths, template, watchedOverlay]);
-
-  useEffect(() => {
-    reset(defaultValues);
-  }, [defaultValues, reset]);
+  }, [fieldPaths, overlayDefaults.fieldRulesOverlay, template, watchedOverlay]);
 
   const handleDestinationSelected = useCallback(
     (destinationId: string) => {
       const altitudeM = destinationById.get(destinationId)?.altitudeM;
-      if (typeof altitudeM === "number" && Number.isFinite(altitudeM) && altitudeM > 0) {
-        setValue(canonicalSeedRegistrationPath("overview.peakHeight"), altitudeM, {
-          shouldDirty: true,
-        });
+      const peakPath = templateSeedRhfPath("overview.peakHeight");
+      if (
+        typeof altitudeM === "number" &&
+        Number.isFinite(altitudeM) &&
+        altitudeM > 0 &&
+        peakPath
+      ) {
+        wizardForm.setValue(peakPath, altitudeM, { shouldDirty: true });
       }
     },
-    [destinationById, setValue],
+    [destinationById, wizardForm],
   );
 
   const applyClientValidation = useCallback(
     (mode: "save" | "publish") => {
-      const formValues = configForm.getValues();
-      const canonicalLayerA = packTemplateCanonicalForPersist(
-        previewFormRef.current?.getValues(),
-        formValues.canonicalData ?? {},
-      );
-      const payload = buildTourWizardTemplatePayloadFromForm(formValues, fieldPaths, {
-        canonicalLayerA,
+      const overlayValues = overlayForm.getValues();
+      let canonicalData;
+      try {
+        canonicalData = canonicalDataFromWizardForm(wizardForm.getValues());
+      } catch (error) {
+        clearErrors();
+        wizardForm.clearErrors();
+        if (isWizardFormCanonicalExportError(error)) {
+          wizardForm.setError("basicInfo.tourType", {
+            type: "manual",
+            message: error.message,
+          });
+        }
+        setRootMessage(t("tourWizardTemplateValidationFailed"));
+        return null;
+      }
+
+      const payload = buildTourWizardTemplatePayloadFromForm(overlayValues, fieldPaths, {
+        canonicalData,
       });
 
       const issues = validateDenaliWorkspaceTemplate(payload, { mode });
       clearErrors();
+      wizardForm.clearErrors();
       setRootMessage(null);
       if (issues.length === 0) {
         return payload;
       }
-      applyUniversalValidationIssuesToForm(setError, issues);
+      applyUniversalValidationIssuesToOverlayForm(setError, issues);
+      applyUniversalValidationIssuesToWizardForm(wizardForm.setError, issues);
       setRootMessage(t("tourWizardTemplateValidationFailed"));
       return null;
     },
-    [clearErrors, configForm, fieldPaths, setError, t],
+    [clearErrors, fieldPaths, overlayForm, setError, t, wizardForm],
   );
 
   const submit = useCallback(
     async (mode: "save" | "publish") => {
-      const payload = applyClientValidation(mode);
-      if (!payload) {
+      if (mode === "save") {
+        if (isSavingRef.current || updateMutation.isPending) {
+          return;
+        }
+        isSavingRef.current = true;
+        setIsSaving(true);
+      } else if (isSavingRef.current || updateMutation.isPending) {
         return;
       }
 
-      clearErrors("root");
-      setRootMessage(null);
-
       try {
-        await updateMutation.mutateAsync({
-          fieldRulesOverlay: payload.fieldRulesOverlay,
-          canonicalData: payload.canonicalData as Record<string, unknown>,
-          publish: mode === "publish",
-        });
-        onSaved?.();
-      } catch (error) {
-        if (error instanceof ApiError) {
-          const handled = handleValidationApiError(error, setError, {
-            mapPath: mapOverlayValidationPathToFormPath,
-          });
-          if (handled) {
-            setRootMessage(t("tourWizardTemplateValidationFailed"));
-            return;
-          }
-          setRootMessage(error.message);
+        const payload = applyClientValidation(mode);
+        if (!payload) {
           return;
         }
-        setRootMessage(t("tourWizardTemplateSaveFailed"));
+
+        clearErrors("root");
+        setRootMessage(null);
+
+        try {
+          await updateMutation.mutateAsync({
+            fieldRulesOverlay: payload.fieldRulesOverlay,
+            canonicalData: payload.canonicalData as Record<string, unknown>,
+            publish: mode === "publish",
+          });
+          onSaved?.();
+        } catch (error) {
+          if (error instanceof ApiError) {
+            const handled = handleValidationApiError(error, setError, {
+              mapPath: mapOverlayValidationPathToFormPath,
+            });
+            if (handled) {
+              setRootMessage(t("tourWizardTemplateValidationFailed"));
+              return;
+            }
+            setRootMessage(error.message);
+            return;
+          }
+          setRootMessage(t("tourWizardTemplateSaveFailed"));
+        }
+      } finally {
+        if (mode === "save") {
+          isSavingRef.current = false;
+          setIsSaving(false);
+        }
       }
     },
     [applyClientValidation, clearErrors, onSaved, setError, t, updateMutation],
   );
+
+  const submitSave = useCallback(() => void submit("save"), [submit]);
+
+  const isSaveBusy = isSaving || updateMutation.isPending;
 
   if (!template) {
     return <p className={formStyles.loadError}>{t("tourWizardTemplateNotConfigured")}</p>;
@@ -231,10 +311,10 @@ export function TourWizardTemplateBuilderForm({
     return <p className={formStyles.readOnlyBanner}>{t("tourWizardTemplateReadOnlyBanner")}</p>;
   }
 
-  const canonicalTopLevelKeys = Object.keys(packedCanonicalData).filter(
-    (key) => packedCanonicalData[key] !== undefined,
+  const isCanonicalEmpty = isDenaliCanonicalTemplateDataEmpty(template.canonicalData);
+  const canonicalTopLevelKeys = Object.keys(template.canonicalData ?? {}).filter(
+    (key) => (template.canonicalData as Record<string, unknown>)[key] !== undefined,
   );
-  const isCanonicalEmpty = isDenaliCanonicalTemplateDataEmpty(packedCanonicalData);
 
   return (
     <div className={styles.builderRoot} data-testid="tour-wizard-template-builder">
@@ -268,12 +348,6 @@ export function TourWizardTemplateBuilderForm({
               {t("tourWizardTemplateStatusUpdatedAt")}: {template.updatedAt}
             </li>
           ) : null}
-          {template.createdAt && template.updatedAt ? (
-            <li>
-              {t("tourWizardTemplateStatusAutoSeedEligible")}:{" "}
-              {template.createdAt === template.updatedAt ? "true" : "false"}
-            </li>
-          ) : null}
         </ul>
       </aside>
 
@@ -281,7 +355,7 @@ export function TourWizardTemplateBuilderForm({
         <form
           id={CONFIG_FORM_ID}
           className={`${styles.configForm} ${styles.configPanel}`}
-          onSubmit={handleSubmit(() => void submit("save"))}
+          onSubmit={handleSubmit(submitSave)}
           noValidate
         >
           <header className={styles.dashboardHeader}>
@@ -301,25 +375,34 @@ export function TourWizardTemplateBuilderForm({
                 </header>
 
                 <div className={styles.fieldRows}>
-                  {section.paths.map((path) => (
-                    <TemplateBuilderFieldRow
-                      key={path}
-                      storagePath={path}
-                      control={control}
-                      register={register}
-                      destinationOptions={activeDestinations}
-                      leaderOptions={leaderOptions}
-                      onDestinationSelected={
-                        path === "destinationId" ? handleDestinationSelected : undefined
-                      }
-                      visibilityError={formState.errors.fieldRulesOverlay?.[path]?.visibility?.message}
-                      requiredError={formState.errors.fieldRulesOverlay?.[path]?.required?.message}
-                      seedError={formState.errors.canonicalData?.[path]?.message}
-                      hints={fieldHints.get(path)}
-                      overlayHintMessageKey={overlayHintMessageKey}
-                      overlayHintBadgeLabelKey={overlayHintBadgeLabelKey}
-                    />
-                  ))}
+                  {section.paths.map((path) => {
+                    const seedRhfPath = templateSeedRhfPath(path);
+                    return (
+                      <TemplateBuilderFieldRow
+                        key={path}
+                        storagePath={path}
+                        overlayControl={control}
+                        wizardControl={wizardForm.control}
+                        setWizardValue={wizardForm.setValue}
+                        register={register}
+                        destinationOptions={activeDestinations}
+                        leaderOptions={leaderOptions}
+                        onDestinationSelected={
+                          path === "destinationId" ? handleDestinationSelected : undefined
+                        }
+                        visibilityError={formState.errors.fieldRulesOverlay?.[path]?.visibility?.message}
+                        requiredError={formState.errors.fieldRulesOverlay?.[path]?.required?.message}
+                        seedError={
+                          seedRhfPath
+                            ? wizardForm.getFieldState(seedRhfPath).error?.message
+                            : undefined
+                        }
+                        hints={fieldHints.get(path)}
+                        overlayHintMessageKey={overlayHintMessageKey}
+                        overlayHintBadgeLabelKey={overlayHintBadgeLabelKey}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             ))}
@@ -329,8 +412,10 @@ export function TourWizardTemplateBuilderForm({
         {previewTemplate ? (
           <TourWizardTemplatePreviewPanel
             previewTemplate={previewTemplate}
-            canonicalData={packedCanonicalData}
-            previewFormRef={previewFormRef}
+            formMethods={wizardForm}
+            canonicalSyncToken={canonicalSyncToken}
+            wizardHydrated={wizardHydrated}
+            hydrationError={wizardHydrationError}
           />
         ) : null}
       </div>
@@ -338,14 +423,14 @@ export function TourWizardTemplateBuilderForm({
       {rootMessage ? <p className={formStyles.loadError}>{rootMessage}</p> : null}
 
       <div className={styles.builderActions}>
-        <Button type="submit" form={CONFIG_FORM_ID} disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? t("tourWizardTemplateSaving") : t("tourWizardTemplateSave")}
+        <Button type="submit" form={CONFIG_FORM_ID} disabled={isSaveBusy} aria-busy={isSaveBusy}>
+          {isSaveBusy ? t("tourWizardTemplateSaving") : t("tourWizardTemplateSave")}
         </Button>
         {canPublish ? (
           <Button
             type="button"
             variant="primary"
-            disabled={updateMutation.isPending}
+            disabled={isSaveBusy}
             onClick={() => void submit("publish")}
           >
             {t("tourWizardTemplatePublish")}

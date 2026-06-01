@@ -2,7 +2,6 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 
 import { normalizeTourFormProfileInput } from "@repo/types";
 import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
-import { isDenaliCanonicalTemplateDataEmpty } from "@repo/types/denali";
 
 import { DataCorruptionError } from "../../common/errors/data-corruption.exception";
 import { authRequiredError, tenantContextMissingError } from "../../common/errors/error-response-builders";
@@ -27,17 +26,6 @@ import {
 } from "./validate-workspace-wizard-template";
 
 const DENALI_CREATE_DRAFT_KEY = "denali-create";
-
-const TEMPLATE_EMPTY_USER_MESSAGE =
-  "The selected template contains no data. Please select a valid template with itinerary or program details.";
-
-/** First-run workspace seed applied when canonical_data was never configured via Settings. */
-const MINIMAL_TEMPLATE_CANONICAL_SEED: DenaliCanonicalTemplateData = {
-  category: "mountain",
-  duration: "single",
-  title: "New Tour",
-  program: { shortDescription: "", themeIds: [] },
-};
 
 @Injectable()
 export class TourWizardTemplateSettingsService {
@@ -82,68 +70,11 @@ export class TourWizardTemplateSettingsService {
     );
   }
 
-  /** True when the row was provisioned but Settings never persisted canonical seed (updatedAt unchanged). */
-  private isTemplateCanonicalNeverUserConfigured(
-    row: WorkspaceTourWizardTemplateRecord,
-  ): boolean {
-    return row.updatedAt.getTime() === row.createdAt.getTime();
-  }
-
-  /**
-   * Persists a minimal hydratable canonical seed when the workspace template row was never
-   * configured. Skips rows the user has already saved (updatedAt advanced) to avoid overwriting.
-   */
-  async ensureMinimalTemplateSeed(
-    row: WorkspaceTourWizardTemplateRecord,
-  ): Promise<WorkspaceTourWizardTemplateRecord> {
-    if (!isDenaliCanonicalTemplateDataEmpty(row.canonicalData)) {
-      return row;
-    }
-    if (!this.isTemplateCanonicalNeverUserConfigured(row)) {
-      return row;
-    }
-
-    const correlationId = this.resolveCorrelationId();
-    row.canonicalData = { ...MINIMAL_TEMPLATE_CANONICAL_SEED };
-    const saved = await this.settingsRepository.saveTourWizardTemplate(row);
-    this.logger.info("tour_wizard_template_minimal_seed_applied", {
-      correlationId,
-      templateId: saved.id,
-      workspaceId: saved.workspaceId,
-    });
-    return saved;
-  }
-
-  private throwEmptyTemplateError(row: WorkspaceTourWizardTemplateRecord): never {
-    const correlationId = this.resolveCorrelationId();
-    this.logger.warn("tour_wizard_template_empty", {
-      correlationId,
-      errorCode: "TEMPLATE_CANONICAL_EMPTY",
-      templateId: row.id,
-      workspaceId: row.workspaceId,
-    });
-    throw new BadRequestException({
-      error: {
-        code: "TEMPLATE_CANONICAL_EMPTY",
-        message: TEMPLATE_EMPTY_USER_MESSAGE,
-        retryability: "NO_RETRY",
-        details: {
-          correlationId,
-          failureKind: "hydration_empty",
-        },
-      },
-    });
-  }
-
   private throwInstantiateOrchestratorFailure(
     row: WorkspaceTourWizardTemplateRecord,
     result: OrchestrationOutput,
   ): never {
     const correlationId = this.resolveCorrelationId();
-
-    if (result.failureKind === "hydration_empty") {
-      this.throwEmptyTemplateError(row);
-    }
 
     if (
       result.failureKind === "canonical_validation" &&
@@ -322,23 +253,18 @@ export class TourWizardTemplateSettingsService {
       });
     }
 
-    const seededRow = await this.ensureMinimalTemplateSeed(row);
-    const canonicalData = this.resolveValidatedCanonicalDataOrThrow(seededRow);
-    const fieldRulesOverlay = this.resolveFieldRulesOverlay(seededRow);
-
-    if (isDenaliCanonicalTemplateDataEmpty(canonicalData)) {
-      this.throwEmptyTemplateError(seededRow);
-    }
+    const canonicalData = this.resolveValidatedCanonicalDataOrThrow(row);
+    const fieldRulesOverlay = this.resolveFieldRulesOverlay(row);
 
     const result = await this.templateOrchestrator.createDraftFromTemplate({
-      workspaceId: seededRow.workspaceId,
-      templateId: seededRow.id,
+      workspaceId: row.workspaceId,
+      templateId: row.id,
       canonicalData: canonicalData as Record<string, unknown>,
       fieldRulesOverlay,
     });
 
     if (!result.success) {
-      this.throwInstantiateOrchestratorFailure(seededRow, result);
+      this.throwInstantiateOrchestratorFailure(row, result);
     }
 
     let draftState = result.draftState;

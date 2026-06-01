@@ -5,6 +5,8 @@ export const DENALI_TEMPLATE_BUILDER_GHOST_PATHS = [
   "pricing.paymentMode",
   "transport.transportNotes",
   "transport.seatPreference",
+  /** Not a Layer A top-level key — classification uses category + duration only. */
+  "eventVariant",
 ] as const;
 
 const GHOST_PATH_SET = new Set<string>(DENALI_TEMPLATE_BUILDER_GHOST_PATHS);
@@ -34,7 +36,6 @@ export const TOUR_WIZARD_TEMPLATE_SECTION_GROUPS: readonly TourWizardTemplateSec
       "title",
       "category",
       "duration",
-      "eventVariant",
       "destinationId",
       "leaderUserIds",
       "overview.peakHeight",

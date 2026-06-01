@@ -9,6 +9,14 @@ import {
   listDenaliTemplateCanonicalFieldPaths,
 } from "@repo/denali-domain";
 
+import { listDenaliTemplateStorageFieldPaths } from "@repo/denali-domain";
+
+import {
+  DENALI_TEMPLATE_SEED_COMPOSITE_ZOD_KINDS,
+  getDenaliTemplateSeedFieldDefinition,
+  templateSeedRhfPath,
+} from "@/lib/validation/tour-wizard-template-builder-form";
+import { resolveModernTemplateBuilderFieldPaths } from "@/app/(app)/settings/tour-wizard-template/tour-wizard-template-section-groups";
 import { describeStructuralGuard } from "@/features/tours/wizard/testing/structural-guard";
 
 /** Top-level canonical model keys that are containers, not 1:1 registry rows. */
@@ -49,6 +57,27 @@ describeStructuralGuard("denali template canonical registry", [
         (key) => !registryPaths.has(key) && !TEMPLATE_CONTAINER_KEYS.has(key),
       );
       assert.deepEqual(unknown, []);
+    },
+  },
+  {
+    name: "every settings builder seed storagePath maps to registry rhfPath",
+    run: () => {
+      const paths = resolveModernTemplateBuilderFieldPaths(listDenaliTemplateStorageFieldPaths());
+      const missing: string[] = [];
+      for (const storagePath of paths) {
+        const definition = getDenaliTemplateSeedFieldDefinition(storagePath);
+        if (!definition) {
+          missing.push(storagePath);
+          continue;
+        }
+        if (DENALI_TEMPLATE_SEED_COMPOSITE_ZOD_KINDS.has(definition.zodKind)) {
+          continue;
+        }
+        if (templateSeedRhfPath(storagePath) !== definition.rhfPath) {
+          missing.push(storagePath);
+        }
+      }
+      assert.deepEqual(missing, []);
     },
   },
 ]);

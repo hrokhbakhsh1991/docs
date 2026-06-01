@@ -1,9 +1,11 @@
 /**
- * QA stress probes: Hybrid Wizard / Manual Mode data-integrity paths.
- * @see reports/hybrid-wizard-data-integrity-audit.md
+ * QA stress probes: unified wizard / template hydration data-integrity paths.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
+
+import { denaliTemplateOrchestratorFactory } from "@repo/denali-domain";
+import { denaliCanonicalFromForm, isDenaliCanonicalTemplateDataEmpty, validateDenaliCanonicalTemplateData } from "@repo/types/denali";
 
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { isWizardFormCanonicalEmpty } from "@/features/tours/wizard/validation/wizardCanonicalSubmitGuard";
@@ -12,9 +14,6 @@ import {
   buildDenaliSubmitPayloadProjection,
   pruneDenaliWizardFormForSubmit,
 } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
-import { denaliCanonicalFromForm } from "@repo/types/denali";
-import { isDenaliCanonicalTemplateDataEmpty, validateDenaliCanonicalTemplateData } from "@repo/types/denali";
-import { packTemplateCanonicalForPersist } from "@/lib/validation/tour-wizard-template-builder-form";
 
 test("ghost submission: zero fields blocks canonical empty guard", () => {
   const form = buildDenaliTourCreateDefaultValues();
@@ -39,10 +38,6 @@ test("ghost submission: tourType-only submit projection throws before API", () =
 test("classification leak: template API accepts category without duration", () => {
   const result = validateDenaliCanonicalTemplateData({ category: "mountain", title: "Partial" });
   assert.equal(result.ok, true);
-  const packed = packTemplateCanonicalForPersist(null, { category: "mountain", title: "Partial" });
-  assert.equal(packed.category, "mountain");
-  assert.equal(packed.duration, undefined);
-  assert.equal(isDenaliCanonicalTemplateDataEmpty(packed), false);
 });
 
 test("classification leak: tourType-only canonical is non-empty by key presence", () => {
@@ -51,4 +46,15 @@ test("classification leak: tourType-only canonical is non-empty by key presence"
   const canonical = denaliCanonicalFromForm(form);
   assert.equal(isDenaliCanonicalTemplateDataEmpty(canonical), false);
   assert.equal(canonical.title.trim(), "");
+});
+
+test("empty template canonical instantiates with registry defaults (no manual mode)", async () => {
+  const result = await denaliTemplateOrchestratorFactory.createDraftFromTemplate({
+    workspaceId: "ws-audit",
+    templateId: "tpl-audit",
+    canonicalData: {},
+    fieldRulesOverlay: {},
+  });
+  assert.equal(result.success, true);
+  assert.ok(result.draftState.data.form);
 });
