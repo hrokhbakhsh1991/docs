@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T12:00:00.000Z",
+  "generatedAt": "2026-06-01T13:39:24.491Z",
   "phase": "0.4",
   "source": "packages/types/src/tour-form-profile.ts",
   "TOUR_FORM_PROFILE_VERSION": 1,
@@ -48,10 +48,21 @@
       "frozen": true
     }
   ],
-  "qaTenantSlugs": ["denali", "urban-demo", "mix-demo"],
+  "qaTenantSlugs": [
+    "denali",
+    "urban-demo",
+    "mix-demo"
+  ],
   "rules": {
     "noNewProfilesUntilPhase1Complete": true,
     "noRenameDenaliInApiCoreUntilPhase2": true,
     "TOUR_FORM_PROFILE_VERSIONBumpRequiresSnapshotTests": true
+  },
+  "verification": {
+    "verifiedAt": "2026-06-01T13:39:24.491Z",
+    "gitSha": "d4b8f07",
+    "profileCount": 7,
+    "matchesTourFormProfileValues": true,
+    "matchesWorkspaceRegistryWizardMode": true
   }
 }
