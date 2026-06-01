@@ -28,8 +28,11 @@ pnpm run eslint
 step "pnpm depcruise (architecture rules, full tree)"
 pnpm run depcruise
 
-step "pnpm test (draft-engine, shared, api unit tests)"
+step "pnpm test (draft-engine, workspace-sdk, shared, api unit tests)"
 pnpm run test
+
+step "phase 1 workspace-sdk guard (denali-free contract)"
+pnpm run phase-1:guard
 
 step "React Query tenant cache isolation (query-key integrity)"
 pnpm run guardrails:query-key-integrity

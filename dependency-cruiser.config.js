@@ -130,6 +130,18 @@ module.exports = {
       },
     },
     {
+      name: "workspace-sdk-denali-free",
+      severity: "error",
+      comment:
+        "@repo/workspace-sdk must not import Denali packages (map.md Phase 1.4).",
+      from: {
+        path: "^packages/workspace-sdk/",
+      },
+      to: {
+        path: "(^packages/denali-domain/|^packages/types/.*/denali/)",
+      },
+    },
+    {
       name: "no-test-to-internal-implementation-imports",
       severity: "error",
       comment:
