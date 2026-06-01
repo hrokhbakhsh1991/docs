@@ -9,6 +9,7 @@ on:
 jobs:
   backend-e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     services:
       postgres:
@@ -34,6 +35,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+    env:
+      TENANT_ROOT_DOMAIN: localhost
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,9 +59,5 @@ jobs:
           cp apps/api/.env.test.example apps/api/.env.test
           cp apps/api/.env.test.example apps/api/.env
 
-      - name: Run migrations
-        working-directory: apps/api
-        run: pnpm migrate:run
-
-      - name: Run multi-tenant isolation and RLS E2E suite
-        run: pnpm --filter @repo/types run build && pnpm --filter @repo/shared run build && pnpm e2e:migrate && pnpm --dir apps/api exec node --import tsx --test --test-concurrency=1 test/api.e2e-spec.ts
+      - name: Run API E2E (stable gate)
+        run: pnpm run test:api:e2e:ci
