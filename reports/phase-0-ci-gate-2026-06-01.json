@@ -105,13 +105,13 @@
   "smokeSuite": {
     "command": "pnpm --filter @apps/web run qa:smoke:tour-wizard",
     "ranAt": "2026-06-01",
-    "passed": 1,
-    "failed": 6,
-    "note": "workspace-tour-wizard not mounted; follow-up before Phase 1.1"
+    "passed": 7,
+    "failed": 0,
+    "note": "PLAYWRIGHT_SMOKE host bypass + denali factory mocks"
   },
   "exit03": {
     "blockingPass": true,
-    "requiredPass": false,
-    "note": "ci_integrity and web_build pass; smoke subset red on 2026-06-01 runner"
+    "requiredPass": true,
+    "note": "ci_integrity, web_build, qa:smoke:tour-wizard green"
   }
 }

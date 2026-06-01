@@ -35,6 +35,8 @@ export default defineConfig({
           NEXT_PUBLIC_E2E_WIZARD_SEED: "true",
           NEXT_PUBLIC_TOUR_WIZARD_SERVER_DRAFT: "1",
           NEXT_PUBLIC_ENABLE_DENALI_DRAFT: "1",
+          PLAYWRIGHT_SMOKE: "1",
+          PLAYWRIGHT_SMOKE_TENANT_ID: "00311449-1df0-4413-8d61-26c6ac82e9ed",
         },
       },
   reporter: [["list"]],

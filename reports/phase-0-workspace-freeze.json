@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-06-01T12:00:00.000Z",
+  "phase": "0.4",
+  "source": "packages/types/src/tour-form-profile.ts",
+  "TOUR_FORM_PROFILE_VERSION": 1,
+  "profiles": [
+    {
+      "id": "general",
+      "wizardMode": "classic",
+      "migration": "legacy_default",
+      "frozen": true
+    },
+    {
+      "id": "mountain_outdoor",
+      "wizardMode": "classic",
+      "migration": "legacy_vertical",
+      "frozen": true
+    },
+    {
+      "id": "nature_trip",
+      "wizardMode": "classic",
+      "migration": "legacy_vertical",
+      "frozen": true
+    },
+    {
+      "id": "urban_event",
+      "wizardMode": "denali",
+      "migration": "target_workspace_phase_4b",
+      "frozen": true
+    },
+    {
+      "id": "cinema_event",
+      "wizardMode": "classic",
+      "migration": "frozen_no_expansion",
+      "frozen": true
+    },
+    {
+      "id": "cultural_tour",
+      "wizardMode": "classic",
+      "migration": "frozen_no_expansion",
+      "frozen": true
+    },
+    {
+      "id": "denali_pilot",
+      "wizardMode": "denali",
+      "migration": "primary_denali_plugin",
+      "usesDenaliCanonicalTemplate": true,
+      "frozen": true
+    }
+  ],
+  "qaTenantSlugs": ["denali", "urban-demo", "mix-demo"],
+  "rules": {
+    "noNewProfilesUntilPhase1Complete": true,
+    "noRenameDenaliInApiCoreUntilPhase2": true,
+    "TOUR_FORM_PROFILE_VERSIONBumpRequiresSnapshotTests": true
+  }
+}

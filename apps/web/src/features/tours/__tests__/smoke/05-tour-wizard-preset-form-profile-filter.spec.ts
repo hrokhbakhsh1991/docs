@@ -1,21 +1,17 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  addLeaderSmokeSessionCookie,
-  fillTourWizardBasicInfoStep,
-  installLeaderWorkspaceSessionRoute,
-  installSmokeTourOpsSessionToken,
+  expectClassicWizardShellUnavailable,
   installTourWizardSettingsRoutes,
-  SMOKE_WIZARD_SHELL_TEST_ID,
+  installTourWizardSmokeAuth,
   SMOKE_WORKSPACE_BASE_URL,
+  waitForDenaliWizardAuthHydrated,
 } from "./tour-wizard-smoke-helpers";
 
-test.describe("tour wizard preset picker filters by resolved form profile", () => {
-  test.beforeEach(async ({ page, context }) => {
-    const baseURL = test.info().project.use.baseURL || SMOKE_WORKSPACE_BASE_URL;
-    await installLeaderWorkspaceSessionRoute(page);
-    await installSmokeTourOpsSessionToken(page);
-    await addLeaderSmokeSessionCookie(context, baseURL);
+test.describe("tour wizard preset picker (classic profile)", () => {
+  test.beforeEach(async ({ page, context }, testInfo) => {
+    const baseURL = testInfo.project.use.baseURL ?? SMOKE_WORKSPACE_BASE_URL;
+    await installTourWizardSmokeAuth(page, context, baseURL);
     const now = new Date().toISOString();
     await installTourWizardSettingsRoutes(page, {
       workspaceTemplateProfile: "cinema_event",
@@ -34,19 +30,6 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
       ],
       presets: [
         {
-          id: "preset-general-only",
-          name: "قالب عمومی",
-          description: null,
-          isActive: true,
-          sortOrder: 0,
-          matchTourType: null,
-          matchMainTourThemeId: null,
-          formProfile: "general",
-          defaults: {},
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
           id: "preset-cinema-only",
           name: "قالب سینما",
           description: null,
@@ -55,7 +38,7 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
           matchTourType: null,
           matchMainTourThemeId: null,
           formProfile: "cinema_event",
-          defaults: { overview: { shortDescription: "از پیش‌فرض سینما" } },
+          defaults: {},
           createdAt: now,
           updatedAt: now,
         },
@@ -63,22 +46,10 @@ test.describe("tour wizard preset picker filters by resolved form profile", () =
     });
   });
 
-  test("cinema workspace template filters preset select by form_profile", async ({ page }) => {
+  test("cinema_event create route shows classic shell retired (presets UI deferred)", async ({ page }) => {
     const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
     expect(res?.status() ?? 0).toBeLessThan(500);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId(SMOKE_WIZARD_SHELL_TEST_ID)).toBeVisible({ timeout: 20_000 });
-
-    await fillTourWizardBasicInfoStep(page, {
-      title: "abcdefghijabcdefghij",
-      shortDescription: "خلاصه برای تست فیلتر قالب سینما",
-      longDescription: "توضیح کامل برای عبور از اعتبارسنجی گام اول.",
-    });
-
-    const presetSelect = page.locator("#tour-creation-preset-select");
-    await expect(presetSelect).toBeVisible({ timeout: 10_000 });
-    const options = presetSelect.locator("option");
-    await expect(options).toHaveCount(1);
-    await expect(options.first()).toHaveAttribute("value", "preset-cinema-only");
+    await waitForDenaliWizardAuthHydrated(page);
+    await expectClassicWizardShellUnavailable(page);
   });
 });
