@@ -140,6 +140,8 @@ pnpm run phase-0:verify-freeze        # تأیید freeze ↔ tour-form-profile.
 
 **هدف:** contract در TypeScript — بدون جابجایی Denali
 
+SDK integration is partial (`general` only); full profile coverage moves to Phase 2.
+
 | Sub-phase | کار | Exit | وضعیت |
 |-----------|-----|------|--------|
 | 1.1 | scaffold `@repo/workspace-sdk` | build سبز؛ صفر import از denali-domain | ✅ |

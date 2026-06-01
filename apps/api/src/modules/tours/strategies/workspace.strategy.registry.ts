@@ -21,6 +21,8 @@ export function usesDenaliCanonicalTemplate(profile: TourFormProfile): boolean {
 /**
  * Resolves the workspace strategy for a tour form profile.
  * Defaults to {@link GeneralWorkspaceStrategy} when no mountain/outdoor strategy applies.
+ *
+ * SDK adapter currently applied only for `general`. Other profiles remain on legacy strategies until Phase 2 plugin migration.
  */
 export class WorkspaceStrategyRegistry {
   static resolve(profile: TourFormProfile): IWorkspaceStrategy {

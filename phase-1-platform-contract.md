@@ -401,7 +401,9 @@ flowchart TB
 
 1. **1.3a** — `SdkWorkspaceStrategyAdapter` فقط برای پروفایل `general` از mock plugin (feature flag یا registry branch).
 2. **1.3b** — `LegacyStrategyWorkspacePluginAdapter`: ساخت `WorkspacePlugin` view از `MountainOutdoorWorkspaceStrategy` / builders بدون move فایل.
-3. **1.3c** — همهٔ پروفایل‌ها از registry یکسان؛ حذف شاخه‌های تکراری فقط وقتی تست‌ها ثابت ماندند.
+3. **1.3c** — **Deferred to Phase 2 (plugin rollout phase).** همهٔ پروفایل‌ها از registry یکسان؛ حذف شاخه‌های تکراری فقط وقتی تست‌ها ثابت ماندند.
+
+> **Phase 1 scope:** Only the `general` profile is bridged via SDK (mock plugin). Remaining profiles stay on legacy strategies until Phase 2 plugin migration.
 
 ### 6.3 فایل‌های API تحت تأثیر (حداقل)
 
