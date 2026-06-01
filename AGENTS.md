@@ -2,6 +2,13 @@
 
 Guidance for AI agents working in this repository.
 
+## Platform migration (workspace-based architecture)
+
+- **North Star:** Platform logic = generic · Workspace logic = injectable ([`map.md`](map.md)).
+- **Phase 0–5 plan:** [`map.md`](map.md) · Phase 0 execution detail: [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md).
+- **Structural / wizard / workspace PRs:** Put `Phase: N.M` in the PR description (e.g. `Phase: 0.2`, `Phase: 1.1`) and stay within that phase’s scope.
+- **Two different “Phase 0” docs:** Platform freeze = `phase-0-platform-baseline.md`; Draft Engine FSM = [`docs/phase0-safety-net-baseline.md`](docs/phase0-safety-net-baseline.md) — do not mix them.
+
 ## Cursor Cloud specific instructions
 
 ### Product overview

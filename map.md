@@ -105,6 +105,8 @@ workspace-sdk  →  workspaces/*     ❌
 
 ### Phase 0 — Freeze & Baseline (~1 PR)
 
+> **جزئیات اجرایی و تحلیل مسیر:** [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md)
+
 | # | کار | Exit |
 |---|-----|------|
 | 0.1 | ثبت `map.md` | merge |
@@ -270,6 +272,6 @@ Phase 0 → Phase 1 → Phase 2 ──→ Phase 5 (shadow بعد از 2.3)
 
 ## شروع اجرا
 
-**Phase 0 → Phase 1.1** — هر sub-phase یک PR با exit criteria همین سند.
+**Phase 0 → Phase 1.1** — هر sub-phase یک PR با exit criteria همین سند؛ فاز ۰: [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md).
 
 > Platform logic = generic · Workspace logic = injectable
