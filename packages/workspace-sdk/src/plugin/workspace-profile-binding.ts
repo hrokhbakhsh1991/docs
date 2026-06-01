@@ -9,6 +9,7 @@ export interface WorkspaceProfileBinding {
 }
 
 /** Phase 1.2 default bindings — expanded when real plugins land in Phase 2. */
+/** Only `general` profile is bound in Phase 1. Full bindings will be introduced in Phase 2. */
 export const DEFAULT_WORKSPACE_PROFILE_BINDINGS: readonly WorkspaceProfileBinding[] = [
   { profile: "general", pluginId: MOCK_WORKSPACE_PLUGIN_ID },
 ];
