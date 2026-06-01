@@ -18,6 +18,9 @@ step() {
   echo ""
 }
 
+step "build @repo/types (workspace-sdk tsc dependency; not committed to git)"
+pnpm --filter @repo/types run build
+
 step "phase 1 workspace-sdk guard (denali-free contract, build, test, depcruise)"
 pnpm run phase-1:guard
 
