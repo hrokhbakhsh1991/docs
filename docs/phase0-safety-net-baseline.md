@@ -1,5 +1,8 @@
 # Phase 0 Safety Net Baseline
 
+> **Scope:** This document is **Draft Engine FSM** Phase 0 (draft restore, retry, navigation).  
+> **Not** platform/workspace migration — for that see [`phase-0-platform-baseline.md`](../phase-0-platform-baseline.md) and the full roadmap in [`map.md`](../map.md).
+
 This document defines the behavior baseline that must remain stable before starting the Draft Engine FSM refactor.
 
 ## Wizard E2E Baseline (Playwright)

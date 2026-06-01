@@ -1,3 +1,9 @@
+## Platform migration (if applicable)
+
+- **Phase:** `Phase: _._` (e.g. `Phase: 0.1`, `Phase: 1.2`) — required for structural / wizard / workspace changes
+- **Map:** [map.md](map.md) · Phase 0 detail: [phase-0-platform-baseline.md](phase-0-platform-baseline.md)
+- [ ] Work is scoped to a phase in the map (or map updated in a prior PR)
+
 ## Backend Freeze Pre-Checklist (must be fully checked)
 
 - [ ] `docs/backend-freeze-pr-checklist.md` کامل بررسی و تیک شده است.
