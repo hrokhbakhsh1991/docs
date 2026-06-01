@@ -11,7 +11,7 @@
     "dev": "pnpm --filter @apps/api dev",
     "build": "pnpm --filter @repo/types run build && pnpm --filter @repo/config run build && pnpm --filter @repo/domain-contracts run build && pnpm --filter @repo/draft-engine run build && pnpm --filter @repo/shared-contracts run build && pnpm --filter @repo/shared run build && pnpm --filter @repo/denali-domain run build && pnpm --filter \"@apps/*\" run build",
     "lint": "pnpm --filter \"@apps/*\" run lint",
-    "test": "pnpm --filter @repo/draft-engine run test && pnpm --filter @repo/shared run test && pnpm --filter \"@apps/api\" run test",
+    "test": "pnpm --filter @repo/draft-engine run test && pnpm --filter @repo/workspace-sdk run test && pnpm --filter @repo/shared run test && pnpm --filter \"@apps/api\" run test",
     "test:pbt": "pnpm exec jest --config jest.pbt.config.js",
     "test:denali": "jest --config apps/web/jest.pbt.config.js",
     "bench:denali": "pnpm --filter @apps/web run bench:denali",
@@ -61,7 +61,9 @@
     "fix:barrels": "node scripts/fix-barrels.mjs --write",
     "fix:unused-vars": "node scripts/remove-unused-vars.mjs --write",
     "test:precommit": "node scripts/precommit-jest-staged.mjs",
-    "test-pairing:staged": "node scripts/precommit-test-pairing-staged.mjs"
+    "test-pairing:staged": "node scripts/precommit-test-pairing-staged.mjs",
+    "phase-1:guard": "node scripts/platform-transformation/phase-1-guard.mjs",
+    "phase-0:verify-freeze": "node scripts/platform-transformation/verify-workspace-freeze.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

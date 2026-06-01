@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-06-01T13:29:27.130Z",
+  "gitSha": "0a8846e",
+  "phase": "1.4",
+  "checks": [
+    {
+      "id": "g1_no_denali_tokens",
+      "description": "rg -i denali packages/workspace-sdk/src → 0",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g2_no_denali_domain_import",
+      "description": "no @repo/denali-domain in workspace-sdk",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g3_no_types_denali_import",
+      "description": "no @repo/types/denali in workspace-sdk",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g5b_workspace_sdk_build",
+      "description": "pnpm --filter @repo/workspace-sdk build",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g5_workspace_sdk_test",
+      "description": "pnpm --filter @repo/workspace-sdk test",
+      "required": true,
+      "ok": true,
+      "detail": "0.6s"
+    },
+    {
+      "id": "g4_depcruise_workspace_sdk",
+      "description": "depcruise packages/workspace-sdk (incl. workspace-sdk-denali-free rule)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "exit14": {
+    "pass": true,
+    "note": "workspace-sdk denali-free + build + test + depcruise"
+  }
+}

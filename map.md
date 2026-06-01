@@ -4,7 +4,14 @@
 
 > **وضعیت:** نقشهٔ اجرایی (North Star + Migration Plan)  
 > **اجرا:** طبق فازها — هر sub-phase = PR جدا  
-> **آخرین هم‌ترازی:** branch `main` (Tour Ops monorepo)
+> **Branch:** `main` · **فاز جاری:** **2.1** (`packages/workspaces/denali`) — فاز ۰–۱ تکمیل
+
+| فاز | وضعیت | مرجع |
+|-----|--------|------|
+| **0** Freeze & Baseline | ✅ تکمیل | [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md) · [`reports/`](reports/) |
+| **1** Contract | ✅ تکمیل | [`phase-1-platform-contract.md`](phase-1-platform-contract.md) |
+| **2** Denali isolation | 🔵 بعدی | §5 |
+| **3–5** | ⏳ | §5 |
 
 ---
 
@@ -103,31 +110,50 @@ workspace-sdk  →  workspaces/*     ❌
 
 > هر sub-phase = PR جدا + exit criteria · ترتیب: **0 → 1 → 2 → 3 → 4 → 5**
 
-### Phase 0 — Freeze & Baseline (~1 PR)
+### Phase 0 — Freeze & Baseline ✅
 
-> **جزئیات اجرایی و تحلیل مسیر:** [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md)
+> **جزئیات:** [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md) · **Draft FSM (جدا):** [`docs/phase0-safety-net-baseline.md`](docs/phase0-safety-net-baseline.md)
 
-| # | کار | Exit |
-|---|-----|------|
-| 0.1 | ثبت `map.md` | merge |
-| 0.2 | `pnpm run baseline:platform-metrics` → `reports/phase-0-baseline-*.json` | گزارش denali per layer |
-| 0.3 | `pnpm run phase-0:ci-gate` → `reports/phase-0-ci-gate-*.json` | ci + web build سبز؛ smoke follow-up |
-| 0.4 | freeze لیست workspace → `reports/phase-0-workspace-freeze.json` | `denali_pilot`, `urban_event`, classic profiles |
+| # | کار | Exit | وضعیت |
+|---|-----|------|--------|
+| 0.1 | ثبت `map.md` + PR template `Phase: N.M` | merge | ✅ |
+| 0.2 | `pnpm run baseline:platform-metrics` | [`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json) | ✅ |
+| 0.3 | `pnpm run phase-0:ci-gate` | [`reports/phase-0-ci-gate-2026-06-01.json`](reports/phase-0-ci-gate-2026-06-01.json) — `ci:integrity` + `@apps/web build` + `qa:smoke:tour-wizard` | ✅ |
+| 0.4 | freeze پروفایل‌ها | [`reports/phase-0-workspace-freeze.json`](reports/phase-0-workspace-freeze.json) + `pnpm run phase-0:verify-freeze` | ✅ |
+
+**دستورات نگهداری فاز ۰:**
+
+```bash
+pnpm run baseline:platform-metrics    # متریک denali per layer
+pnpm run phase-0:ci-gate              # gate کامل 0.3 (طولانی)
+pnpm run qa:smoke:tour-wizard         # smoke رسمی 7 spec
+pnpm run phase-0:verify-freeze        # تأیید freeze ↔ tour-form-profile.ts
+```
+
+**قوانین تا پایان Phase 1:** بدون پروفایل جدید در `TOUR_FORM_PROFILE_VALUES` · بدون rename گسترده `denali_*` در API core · hotspotهای §2 بدون تغییر scope در همان PR.
 
 ---
 
-### Phase 1 — Contract (`packages/workspace-sdk`)
+### Phase 1 — Contract (`packages/workspace-sdk`) ✅
+
+> **جزئیات اجرایی کامل:** [`phase-1-platform-contract.md`](phase-1-platform-contract.md)
 
 **هدف:** contract در TypeScript — بدون جابجایی Denali
 
-| Sub-phase | کار | Exit |
-|-----------|-----|------|
-| 1.1 | scaffold `@repo/workspace-sdk` | build سبز؛ صفر import از denali-domain |
-| 1.2 | types: `WorkspacePlugin`, `WorkspaceFieldRegistry`, `WorkspaceRuleSet`, `CanonicalDocument`, … | mock plugin tests |
-| 1.3 | bridge `IWorkspaceStrategy` → SDK (backward compatible) | API tests سبز |
-| 1.4 | guardrail: SDK denali-free + depcruise | CI fail اگر denali در SDK |
+| Sub-phase | کار | Exit | وضعیت |
+|-----------|-----|------|--------|
+| 1.1 | scaffold `@repo/workspace-sdk` | build سبز؛ صفر import از denali-domain | ✅ |
+| 1.2 | `WorkspacePlugin`, `WorkspaceFieldRegistry`, `WorkspaceRuleSet`, `CanonicalDocument`, … | mock plugin tests | ✅ |
+| 1.3 | bridge `IWorkspaceStrategy` → SDK (backward compatible) | API adapter + registry tests | ✅ |
+| 1.4 | guardrail: SDK denali-free + `phase-1:guard` | CI (`ci:integrity`) | ✅ |
 
-**DoD Phase 1:** `@repo/workspace-sdk` + mock plugin + adapter — **هنوز بدون جابجایی فایل Denali**
+**DoD Phase 1:** `@repo/workspace-sdk` + mock plugin + API adapter + guard — **بدون جابجایی فایل Denali**
+
+```bash
+pnpm --filter @repo/workspace-sdk build
+pnpm run phase-1:guard
+pnpm run phase-0:verify-freeze   # freeze هنوز معتبر
+```
 
 ---
 
@@ -206,17 +232,19 @@ rg '<input|<select|<textarea' apps/web/.../wizard --glob '!*.spec.*'  # → 0
 
 ## 7. تست‌ها
 
-| لایه | مسیر | فاز |
-|------|------|-----|
+| لایه | مسیر / دستور | فاز |
+|------|----------------|-----|
 | denali-domain unit | `packages/denali-domain/**/*.spec.ts` | 1–2 |
 | workspace-sdk unit | `packages/workspace-sdk/**/*.spec.ts` | 1+ |
-| structural guards | `wizard/denali/__tests__/guards/` | 3 |
-| smoke | `features/tours/__tests__/smoke/` | all |
-| integration | `integration/wizard-real-stack.*.spec.ts` | 2–4 |
+| structural guards | `apps/web/.../wizard/denali/__tests__/guards/` | 3 |
+| smoke (gate فاز ۰) | `pnpm run qa:smoke:tour-wizard` → `apps/web/src/features/tours/__tests__/smoke/` (01,02,04,05,07,08,10) | 0+ |
+| smoke (اختیاری) | 11, 12, 13 در همان پوشه؛ `qa:smoke:denali-map-fields` برای 13 | 0+ |
+| integration | `apps/web/src/features/tours/__tests__/integration/wizard-real-stack.*.spec.ts` | 2–4 |
 | API e2e | `pnpm test:e2e:isolation` | all |
-| urban E2E | `submit-urban.spec.ts` | 4 |
+| urban E2E | `wizard-real-stack.submit-urban.spec.ts` | 4 |
+| draft-engine | `pnpm --filter @repo/draft-engine run test` | Draft FSM doc |
 
-**قانون:** هیچ PR فاز N اگر smoke/isolation Denali قرمز باشد.
+**قانون:** هیچ PR فاز N اگر `qa:smoke:tour-wizard` یا isolation مرتبط قرمز باشد.
 
 ---
 
@@ -258,20 +286,29 @@ Phase 0 → Phase 1 → Phase 2 ──→ Phase 5 (shadow بعد از 2.3)
 
 ---
 
-## 11. مرجع سریع (مسیرهای کلیدی امروز)
+## 11. مرجع سریع
 
 | نقش | مسیر |
 |-----|------|
+| نقشه + فازها | این فایل (`map.md`) |
+| اجرای فاز ۰ | [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md) |
+| اجرای فاز ۱ | [`phase-1-platform-contract.md`](phase-1-platform-contract.md) |
+| گزارش baseline | [`reports/phase-0-baseline-2026-06-01.json`](reports/phase-0-baseline-2026-06-01.json) |
+| گزارش CI gate | [`reports/phase-0-ci-gate-2026-06-01.json`](reports/phase-0-ci-gate-2026-06-01.json) |
+| freeze پروفایل | [`reports/phase-0-workspace-freeze.json`](reports/phase-0-workspace-freeze.json) |
 | Registry | `packages/denali-domain/src/registry/denaliFieldRegistryData.ts` |
 | Codegen | `apps/web/scripts/generate-denali-wizard-config.ts` |
-| Adapter / sync | `denaliCanonicalFormAdapter.ts`, `DenaliWizardSyncContext.tsx`, `drafts/denali-adapter.ts` |
-| API strategy | `apps/api/.../strategies/workspace.strategy.*` |
-| Wizard shell | `WorkspaceTourWizard.tsx`, `wizard/bindings/denali.ts` |
+| Adapter / sync | `apps/web/.../denaliCanonicalFormAdapter.ts`, `DenaliWizardSyncContext.tsx` |
+| API strategy | `apps/api/src/modules/tours/strategies/workspace.strategy.*` |
+| Wizard shell | `apps/web/src/components/tours/wizard/WorkspaceTourWizard.tsx` |
+| پروفایل‌ها (SoT) | `packages/types/src/tour-form-profile.ts` |
 
 ---
 
 ## شروع اجرا
 
-**Phase 0 → Phase 1.1** — هر sub-phase یک PR با exit criteria همین سند؛ فاز ۰: [`phase-0-platform-baseline.md`](phase-0-platform-baseline.md).
+**فاز جاری: Phase 2.1** — shell `packages/workspaces/denali` (راهنما: [`map.md` §5 Phase 2](map.md#phase-2--denali-isolation-packagesworkspacesdenali) · [`phase-1-platform-contract.md` §12.1](phase-1-platform-contract.md#پیوست-a--چک‌لیست-ورود-phase-21)).
+
+فاز ۰ بسته است؛ قبل از PR ساختاری: `pnpm run phase-0:verify-freeze` و در صورت نیاز `pnpm run qa:smoke:tour-wizard`.
 
 > Platform logic = generic · Workspace logic = injectable
