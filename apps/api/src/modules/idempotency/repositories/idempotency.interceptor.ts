@@ -13,6 +13,7 @@ import { runWithIdempotentEntityManager } from "../idempotent-transaction.contex
 import { IdempotencyService } from "./idempotency.service";
 import { IDEMPOTENCY_POLICY_KEY, type IdempotencyPolicy } from "../idempotent.decorator";
 import { assertHttpIdempotencyKeyFormat } from "../http-idempotency-key";
+import { buildTourCloneIdempotencyScope } from "../tour-clone-idempotency.util";
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -35,6 +36,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<{
       method: string;
       originalUrl?: string;
+      params?: Record<string, string>;
       body?: Record<string, unknown>;
       headers: Record<string, string | string[] | undefined>;
     }>();
@@ -59,11 +61,45 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const requestHash = this.idempotencyService.createRequestHash({
-      method: request.method,
-      path: request.originalUrl ?? policy.endpoint,
-      body: request.body ?? null
-    });
+    let endpoint = policy.endpoint;
+    let requestHash: string;
+
+    if (policy.hashMode === "tour-clone-source") {
+      const sourceTourId = request.params?.sourceTourId;
+      if (typeof sourceTourId !== "string" || sourceTourId.trim().length === 0) {
+        throw new BadRequestException({
+          error: {
+            code: "VALIDATION_REQUIRED_FIELD_MISSING",
+            message: "sourceTourId route parameter is required for clone idempotency",
+          },
+        });
+      }
+      const workspaceId = this.requestContextService.resolveEffectiveTenantId();
+      if (!workspaceId?.trim()) {
+        throw new BadRequestException({
+          error: {
+            code: "VALIDATION_REQUIRED_FIELD_MISSING",
+            message: "Active workspace is required for clone idempotency",
+          },
+        });
+      }
+      const scope = buildTourCloneIdempotencyScope({
+        sourceTourId,
+        workspaceId,
+      });
+      endpoint = scope.endpoint;
+      requestHash = this.idempotencyService.createRequestHash({
+        method: request.method,
+        path: scope.path,
+        body: scope.body,
+      });
+    } else {
+      requestHash = this.idempotencyService.createRequestHash({
+        method: request.method,
+        path: request.originalUrl ?? policy.endpoint,
+        body: request.body ?? null,
+      });
+    }
 
     if (policy.tenantSource === "body") {
       const field = policy.tenantBodyField ?? "tenantId";
@@ -84,7 +120,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         .executeWithIdempotency(
           {
             key: idempotencyKey,
-            endpoint: policy.endpoint,
+            endpoint,
             requestHash,
             statusCode: policy.statusCode
           },

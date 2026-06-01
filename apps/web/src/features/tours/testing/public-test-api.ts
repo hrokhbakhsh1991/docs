@@ -36,7 +36,7 @@ export {
   isDenaliFieldRequiredOnStep,
   isDenaliFieldVisibleOnStep,
 } from "@/features/tours/wizard/denali/rules/denaliUIAdapter";
-export { finalizeDenaliWizardHydration } from "@/features/tours/wizard/denali/denaliFormHydration";
+export { finalizeDenaliWizardHydration } from "@repo/denali-domain";
 export { patchDenaliTransportForMode } from "@/features/tours/wizard/denali/transport/patchDenaliTransportForMode";
 export { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
 export {

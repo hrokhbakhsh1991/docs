@@ -19,6 +19,14 @@ export class InMemoryFileStorageAdapter implements FileStoragePort {
     return `memory://receipts/${key}`;
   }
 
+  async copyObject(params: { sourceKey: string; destKey: string }): Promise<void> {
+    const body = this.objects.get(params.sourceKey);
+    if (body == null) {
+      throw new Error(`InMemoryFileStorageAdapter: missing object ${params.sourceKey}`);
+    }
+    this.objects.set(params.destKey, Buffer.from(body));
+  }
+
   async deleteObject(key: string): Promise<void> {
     this.objects.delete(key);
   }

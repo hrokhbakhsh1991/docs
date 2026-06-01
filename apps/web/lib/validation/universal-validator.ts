@@ -1,7 +1,12 @@
-import { validateDenaliCanonicalTemplateData } from "@repo/types/denali";
+import {
+  formatDenaliTemplatePathSuggestion,
+  toDenaliTemplateStoragePath,
+  validateDenaliCanonicalTemplateData,
+} from "@repo/types/denali";
+import { listDenaliSettingsOverlayStoragePaths } from "@repo/denali-domain";
 
-import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
-import { denaliRuleSet, listDenaliRuleFieldPaths } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
+import { tryHydrateCanonicalTemplate } from "@repo/denali-domain";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { mapTemplateToRuleModel } from "@/features/tours/wizard/domain/ruleModelConverter";
 import { getDenaliWizardSubmitIssues } from "@/features/tours/wizard/denali/validation/denaliWizardFormZod";
@@ -59,10 +64,15 @@ function validateOverlayPatches(
       continue;
     }
     if (!allowedPaths.has(path)) {
+      const storagePath = toDenaliTemplateStoragePath(path);
+      const suggestion =
+        storagePath !== path && allowedPaths.has(storagePath)
+          ? `Invalid overlay path "${path}" — use canonical path "${storagePath}" instead.`
+          : formatDenaliTemplatePathSuggestion(path);
       issues.push({
         path: fieldPath,
         code: "VALIDATION_UNKNOWN_FIELD",
-        message: `Unknown Denali rule field path "${path}"`,
+        message: suggestion,
       });
       continue;
     }
@@ -138,7 +148,7 @@ export function validateDenaliWorkspaceTemplate(
   options?: UniversalValidatorOptions,
 ): UniversalValidationIssue[] {
   const ruleSet = options?.ruleSet ?? denaliRuleSet;
-  const allowedPaths = new Set(listDenaliRuleFieldPaths(ruleSet));
+  const allowedPaths = new Set(listDenaliSettingsOverlayStoragePaths());
   const issues: UniversalValidationIssue[] = [];
 
   issues.push(...validateOverlayPatches(payload.fieldRulesOverlay, allowedPaths));

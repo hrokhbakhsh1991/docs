@@ -1,5 +1,5 @@
 /**
- * Regression: Denali in-wizard preset apply uses shared domain hydration pipeline.
+ * Regression: Denali in-wizard preset apply uses factory orchestration (single hydration authority).
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,16 +12,18 @@ const bannerSource = readFileSync(
   "utf8",
 );
 
-test("DenaliTourCreationPresetBanner applies presets via applyDenaliWizardPreset + finalizeDenaliWizardHydration", () => {
+test("DenaliTourCreationPresetBanner applies presets via applyDenaliWizardPreset (factory orchestrator)", () => {
   assert.match(bannerSource, /applyDenaliWizardPreset/);
-  assert.match(bannerSource, /finalizeDenaliWizardHydration/);
-  assert.doesNotMatch(bannerSource, /useFormContext/);
+  assert.match(bannerSource, /wizardTemplate/);
+  assert.doesNotMatch(bannerSource, /tryHydrateCanonicalTemplate/);
+  assert.doesNotMatch(bannerSource, /finalizeDenaliWizardHydration/);
+  assert.doesNotMatch(bannerSource, /useFormContext\s*\(/);
   assert.doesNotMatch(bannerSource, /presetDefaultsToDenaliFormPatch/);
 });
 
 test("DenaliTourCreationPresetBanner receives formMethods from plugin context (no RHF context)", () => {
   assert.match(bannerSource, /formMethods:/);
-  assert.match(bannerSource, /const \{ getValues, reset \} = formMethods/);
+  assert.match(bannerSource, /const \{ reset \} = formMethods/);
 });
 
 test("DenaliTourCreationPresetBanner exposes wizard test ids", () => {

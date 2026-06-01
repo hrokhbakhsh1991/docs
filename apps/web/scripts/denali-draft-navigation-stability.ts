@@ -10,6 +10,7 @@ import { buildWorstCaseDenaliWizardForm } from "@/features/tours/wizard/denali/_
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
 import { applyDenaliInvariantState } from "@/features/tours/wizard/denali/validation/denaliInvariantEngine";
 import { normalizeDenaliWizardForm } from "@/features/tours/wizard/denali/validation/denaliRuleAccess";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 import { sanitizeDenaliWizardDraftSnapshot } from "@/features/tours/drafts/sanitizeDenaliWizardDraftSnapshot";
 import type { DenaliWizardDraftSnapshot } from "@/features/tours/drafts/denali-wizard-draft.types";
 
@@ -46,7 +47,7 @@ function simulateNavigationWrite(form: ReturnType<typeof buildWorstCaseDenaliWiz
     currentStepIndex: stepIndex % steps.length,
     railLayoutVersion: 3,
   };
-  return sanitizeDenaliWizardDraftSnapshot(snapshot).form;
+  return sanitizeDenaliWizardDraftSnapshot(snapshot, denaliRuleSet).form;
 }
 
 function main(): void {

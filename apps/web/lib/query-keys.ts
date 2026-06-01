@@ -124,6 +124,8 @@ export const settingsTourPresetsKeys = {
 export const settingsTourWizardTemplateKeys = {
   all: ["settings", "tourWizardTemplate"] as const,
   detail: (tenantId: string) => [...settingsTourWizardTemplateKeys.all, tenantId] as const,
+  instantiate: (tenantId: string) =>
+    [...settingsTourWizardTemplateKeys.all, "instantiate", tenantId] as const,
 };
 
 export const auditTrailKeys = {

@@ -2,15 +2,20 @@ import type { TourFormProfile } from "@repo/types";
 
 import type { TourCreateFormValues } from "@/features/tours/wizard/schemas/classic/tourCreateSchema";
 import type { TenantTourFormContract } from "@/features/tours/contracts/tenant-tour-form-contract";
-import { tryHydrateCanonicalTemplate } from "@/features/tours/wizard/denali/canonicalTemplateHydration";
 import type { DenaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
-import { templateToCanonical, type DenaliCanonicalTemplateData } from "@repo/types/denali";
+import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
 import type { DenaliCreateTourWizardForm } from "./schemas/denaliCore.schema";
 import type { SettingsTourThemeDto } from "@/lib/settings-tour-themes.client";
+import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
 
 import { applyTourWizardPatch } from "./applyTourWizardPatch";
 import { mapWizardPrefillToFormPatch } from "./profiles/mapWizardPrefillToFormPatch";
 import type { PresetMapperContext } from "./profiles/mapPresetToFormPatch";
+import {
+  orchestrateDenaliWizardFromTemplate,
+  presetCanonicalDataForFactory,
+  type OrchestrateDenaliWizardResult,
+} from "@/features/tours/wizard/domain/orchestrateDenaliWizardFromTemplate";
 
 /** Shared input for preset apply (banner + `?presetId=` bootstrap). */
 export type ApplyWizardPresetInput = {
@@ -24,10 +29,23 @@ export type ApplyWizardPresetInput = {
 };
 
 export type ApplyDenaliWizardPresetInput = ApplyWizardPresetInput & {
-  baseValues: DenaliCreateTourWizardForm;
-  /** Tenant overlay rule set from {@link mapTemplateToRuleModel}. */
+  /** @deprecated Ignored — factory uses registry defaults as hydration base. */
+  baseValues?: DenaliCreateTourWizardForm;
   ruleSet: DenaliRuleSet;
+  template: TenantWizardTemplate;
 };
+
+/**
+ * Denali preset pipeline via {@link denaliTemplateOrchestratorFactory} (single hydration authority).
+ */
+export async function applyDenaliWizardPreset(
+  input: ApplyDenaliWizardPresetInput,
+): Promise<OrchestrateDenaliWizardResult> {
+  return orchestrateDenaliWizardFromTemplate(
+    input.template,
+    presetCanonicalDataForFactory(input.canonicalData),
+  );
+}
 
 /**
  * Classic wizard preset pipeline: {@link mapWizardPrefillToFormPatch} → {@link applyTourWizardPatch}.
@@ -50,28 +68,6 @@ export function applyClassicWizardPreset(
     tenantFormContract: input.tenantFormContract,
   });
   return mergedValues;
-}
-
-/**
- * Denali preset pipeline: {@link templateToCanonical} → {@link tryHydrateCanonicalTemplate}
- * with tenant {@link DenaliRuleSet}. Legacy `defaults` roots are not merged.
- */
-export function applyDenaliWizardPreset(
-  input: ApplyDenaliWizardPresetInput,
-): DenaliCreateTourWizardForm {
-  const canonicalPatch = templateToCanonical({
-    canonicalData: input.canonicalData,
-  });
-  if (Object.keys(canonicalPatch).length === 0) {
-    return input.baseValues;
-  }
-  const hydrated = tryHydrateCanonicalTemplate(
-    canonicalPatch,
-    input.baseValues,
-    undefined,
-    input.ruleSet,
-  );
-  return hydrated?.formValues ?? input.baseValues;
 }
 
 /** Banner / in-wizard apply (classic rail). */

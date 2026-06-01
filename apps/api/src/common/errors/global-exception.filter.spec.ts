@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { HttpStatus } from "@nestjs/common";
 import { BadRequestException } from "@nestjs/common";
+import { DataCorruptionError } from "./data-corruption.exception";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 import { TenantContextMissingError } from "./tenant-context-missing.error";
 
@@ -139,4 +140,92 @@ test("GlobalExceptionFilter maps ValidationPipe errors to details.validationErro
   assert.equal(res.error.details.validationErrors.length, 2);
   assert.equal(res.error.details.validationErrors[0]?.path, "phone");
   assert.equal(res.error.details.validationErrors[1]?.path, "otp");
+});
+
+test("GlobalExceptionFilter maps DataCorruptionError to 422 with details.issues", () => {
+  let statusCode = 0;
+  let payload: unknown;
+
+  const response = {
+    status(code: number) {
+      statusCode = code;
+      return this;
+    },
+    json(body: unknown) {
+      payload = body;
+      return this;
+    },
+  };
+
+  const request = {
+    path: "/api/v2/settings/tour-wizard-template/instantiate",
+    method: "POST",
+    url: "/api/v2/settings/tour-wizard-template/instantiate",
+    headers: {} as Record<string, string | string[] | undefined>,
+    requestId: "req-corrupt",
+  };
+
+  const host = {
+    switchToHttp: () => ({
+      getResponse: () => response,
+      getRequest: () => request,
+    }),
+  };
+
+  const logger = { error: () => undefined };
+  const requestContext = {
+    tryGetRequestId: () => "req-corrupt",
+    tryGetCorrelationId: () => "req-corrupt",
+    tryGetTenantId: () => "ws-tenant",
+  };
+  const metrics = { recordHttpException: () => undefined };
+
+  const filter = new GlobalExceptionFilter(
+    logger as never,
+    requestContext as never,
+    metrics as never,
+  );
+
+  filter.catch(
+    new DataCorruptionError({
+      templateId: "00000000-0000-4000-8000-000000000111",
+      workspaceId: "00000000-0000-4000-8000-000000000abc",
+      issues: [{ path: "overview.denaliTourKind", message: "Unrecognized key" }],
+    }),
+    host as never,
+  );
+
+  assert.equal(statusCode, HttpStatus.UNPROCESSABLE_ENTITY);
+  const res = payload as {
+    success: boolean;
+    requestId: string;
+    error: {
+      code: string;
+      message: string;
+      retryability: string;
+      correlationId: string;
+      details: {
+        templateId: string;
+        workspaceId: string;
+        issues: Array<{ path: string; message: string }>;
+        requestId: string;
+        tenantId?: string;
+        timestamp?: string;
+      };
+    };
+  };
+  assert.equal(res.success, false);
+  assert.equal(res.requestId, "req-corrupt");
+  assert.equal(res.error.code, "TEMPLATE_CANONICAL_DATA_CORRUPT");
+  assert.equal(res.error.message, "Stored workspace tour wizard template canonical_data is invalid");
+  assert.equal(res.error.retryability, "NO_RETRY");
+  assert.equal(res.error.correlationId, "req-corrupt");
+  assert.equal(res.error.details.templateId, "00000000-0000-4000-8000-000000000111");
+  assert.equal(res.error.details.workspaceId, "00000000-0000-4000-8000-000000000abc");
+  assert.deepEqual(res.error.details.issues, [
+    { path: "overview.denaliTourKind", message: "Unrecognized key" },
+  ]);
+  assert.equal(res.error.details.requestId, "req-corrupt");
+  assert.equal(res.error.details.tenantId, "ws-tenant");
+  assert.ok(res.error.details.timestamp);
 });

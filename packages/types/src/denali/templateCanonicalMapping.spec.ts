@@ -50,3 +50,16 @@ test("sanitizeDenaliCanonicalTemplateData is idempotent", () => {
   const twice = sanitizeDenaliCanonicalTemplateData(once);
   assert.deepEqual(once, twice);
 });
+
+test("sanitizeDenaliCanonicalTemplateData reports discarded top-level keys via callback", () => {
+  const discarded: string[] = [];
+  sanitizeDenaliCanonicalTemplateData(
+    { title: "a", tripDetails: { x: 1 }, basicInfo: { y: 2 } },
+    {
+      onDiscardedKey: (key) => {
+        discarded.push(key);
+      },
+    },
+  );
+  assert.deepEqual(discarded.sort(), ["basicInfo", "tripDetails"].sort());
+});

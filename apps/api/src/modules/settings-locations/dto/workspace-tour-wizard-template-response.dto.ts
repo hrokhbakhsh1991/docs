@@ -36,6 +36,12 @@ export class WorkspaceTourWizardTemplateResponseDto {
 
   @ApiProperty({ example: 1 })
   formProfileVersion!: number;
+
+  @ApiProperty({ type: String, format: "date-time" })
+  createdAt!: string;
+
+  @ApiProperty({ type: String, format: "date-time" })
+  updatedAt!: string;
 }
 
 export class WorkspaceTourWizardTemplateEnvelopeDto {

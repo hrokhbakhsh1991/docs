@@ -1,11 +1,10 @@
+import { LoggerService } from "@/lib/logging/logger.service";
+
 type BffLogContext = Record<string, string | number | boolean | undefined>;
 
-/** Structured BFF logs (dev: console; production: hook to observability later). */
+/** Structured BFF info events (non-fatal; always visible in production via stderr). */
 export function logBffEvent(event: string, context: BffLogContext): void {
-  void { event, ...context, layer: "bff" as const };
-  if (process.env.NODE_ENV === "production") {
-  } else {
-  }
+  LoggerService.info(`[bff] ${event}`, { layer: "bff", ...context });
 }
 
 /** Phase 15.2 — correlate FE failures with API `requestId` / tenant / role. */
@@ -20,5 +19,5 @@ export function logBffError(
     role?: string;
   },
 ): void {
-  logBffEvent("bff_error", { message, ...context });
+  LoggerService.error(message, { layer: "bff", event: "bff_error", ...context });
 }

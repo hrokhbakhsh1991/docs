@@ -3,6 +3,7 @@
  * `registrations.tour_departure_id` (see migrations and RegistrationsModule).
  */
 import { Module, forwardRef } from "@nestjs/common";
+import { DraftEngineModule } from "../draft-engine/draft-engine.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CqrsModule } from "@nestjs/cqrs";
 import { DatabaseModule } from "../../database/database.module";
@@ -13,6 +14,7 @@ import { IdentityModule } from "../identity/identity.module";
 import { SettingsLocationsModule } from "../settings-locations/settings-locations.module";
 
 import { DashboardAggregateController } from "./dashboard-aggregate.controller";
+import { ToursCloneController } from "./controllers/tours-clone.controller";
 import { ToursController } from "./tours.controller";
 import { TourDetails } from "./entities/tour-details.entity";
 import { TourEntity } from "./entities/tour.entity";
@@ -26,12 +28,14 @@ import {
 import { TypeOrmToursWriteRepository } from "./repositories/typeorm-tours-write.repository";
 import { ToursCatalogModule } from "./tours-catalog.module";
 import { ToursCloneService } from "./services/tours-clone.service";
+import { ToursCloneSourceLockService } from "./services/tours-clone-source-lock.service";
 import { TourPhotoUrlService } from "./services/tour-photo-url.service";
 import { ToursService } from "./tours.service";
 import { WorkspaceTourPhotosController } from "./workspace-tour-photos.controller";
 import { StorageModule } from "../../infra/storage/storage.module";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { TourCapacityModule } from "./tour-capacity.module";
+import { TourCloneStorageModule } from "./tour-clone-storage.module";
 
 @Module({
   imports: [
@@ -53,8 +57,15 @@ import { TourCapacityModule } from "./tour-capacity.module";
     forwardRef(() => IdentityModule),
     SettingsLocationsModule,
     StorageModule,
+    DraftEngineModule,
+    TourCloneStorageModule,
   ],
-  controllers: [ToursController, DashboardAggregateController, WorkspaceTourPhotosController],
+  controllers: [
+    ToursController,
+    ToursCloneController,
+    DashboardAggregateController,
+    WorkspaceTourPhotosController,
+  ],
   providers: [
     {
       provide: TOURS_WRITE_REPOSITORY_PORT,
@@ -62,6 +73,7 @@ import { TourCapacityModule } from "./tour-capacity.module";
     },
     ToursCatalogReadApplicationService,
     ToursCloneService,
+    ToursCloneSourceLockService,
     TourPhotoUrlService,
     ToursService,
     ThrottlerGuard,

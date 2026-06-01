@@ -53,7 +53,10 @@
     "openapi:dev": "nest build && node dist/openapi.generate.js",
     "migrate:run": "TS_MIGRATIONS=1 node --env-file=.env --import tsx src/scripts/run-migrations.ts",
     "schema:align": "node --env-file=.env --import tsx src/scripts/align-post-login-schema.ts",
-    "migrate:tour-theme-tags": "node --env-file=.env --import tsx src/scripts/migrate-tour-theme-tags.ts"
+    "migrate:tour-theme-tags": "node --env-file=.env --import tsx src/scripts/migrate-tour-theme-tags.ts",
+    "migrate:template-canonical": "node --env-file=.env --import tsx src/scripts/migrate-template-canonical-data.ts",
+    "audit:template-canonical-integrity": "node --env-file=.env --import tsx src/scripts/audit-template-canonical-integrity.ts",
+    "report:template-health": "node --env-file=.env --import tsx src/scripts/report-template-health.ts"
   },
   "dependencies": {
     "@casl/ability": "^6.7.3",

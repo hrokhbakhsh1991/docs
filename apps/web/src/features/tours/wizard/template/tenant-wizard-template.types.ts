@@ -17,6 +17,8 @@ export type TenantWizardTemplate = {
   readonly canonicalData: Readonly<Record<string, unknown>>;
   readonly wizardContractVersion: number;
   readonly formProfileVersion: number;
+  readonly createdAt?: string;
+  readonly updatedAt?: string;
 };
 
 export type TenantWizardTemplateEnvelope = {

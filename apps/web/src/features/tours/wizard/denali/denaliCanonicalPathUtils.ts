@@ -2,6 +2,13 @@ import type { DenaliCanonicalTourModel } from "@repo/types/denali";
 
 import { DENALI_FIELD_DEFINITIONS } from "@repo/denali-domain";
 
+import { LoggerService } from "@/lib/logging/logger.service";
+
+import {
+  DenaliProductionErrorCode,
+  DenaliUnknownCanonicalPathError,
+} from "../errors/denali-production-errors";
+
 /**
  * Canonical model section roots — valid for spread reads/writes (`{ ...transport, mode }`).
  * Registry leaves live under these prefixes (e.g. `transport.mode`, `program.themeIds`).
@@ -102,8 +109,18 @@ export function isKnownDenaliCanonicalPath(canonicalPath: string): boolean {
 export function getDenaliCanonicalPathValue(
   model: DenaliCanonicalTourModel,
   canonicalPath: string,
+  context?: { workspaceId?: string | null; sourceTourId?: string | null },
 ): unknown {
-  if (process.env.NODE_ENV === "development" && !isKnownDenaliCanonicalPath(canonicalPath)) {
+  if (!isKnownDenaliCanonicalPath(canonicalPath)) {
+    const message = `[${DenaliProductionErrorCode.UNKNOWN_CANONICAL_PATH}] unknown canonical path: ${canonicalPath}`;
+    LoggerService.error(message, {
+      code: DenaliProductionErrorCode.UNKNOWN_CANONICAL_PATH,
+      layer: "denali_canonical_path",
+      canonicalPath,
+      workspaceId: context?.workspaceId ?? undefined,
+      sourceTourId: context?.sourceTourId ?? undefined,
+    });
+    throw new DenaliUnknownCanonicalPathError(canonicalPath, message);
   }
 
   const segments = resolveDenaliRegistryCanonicalPath(canonicalPath)

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
+import { DraftEngineModule } from "../draft-engine/draft-engine.module";
 import { IdempotencyModule } from "../idempotency/idempotency.module";
 import { EquipmentSettingsService } from "./equipment-settings.service";
 import { WorkspaceDestinationEntity } from "./entities/workspace-destination.entity";
@@ -28,6 +29,7 @@ import { TypeOrmWorkspaceSettingsRepository } from "./repositories/typeorm-works
 
 @Module({
   imports: [
+    DraftEngineModule,
     IdempotencyModule,
     TypeOrmModule.forFeature([
       WorkspaceRegionEntity,

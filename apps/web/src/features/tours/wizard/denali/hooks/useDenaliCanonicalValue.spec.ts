@@ -8,6 +8,7 @@ import {
   getDenaliCanonicalPathValue,
   isKnownDenaliCanonicalPath,
 } from "../denaliCanonicalPathUtils";
+import { DenaliUnknownCanonicalPathError } from "../../errors/denali-production-errors";
 import { applyDenaliStructuralInvariants } from "../validation/denaliInvariantEngine";
 import {
   clearDenaliNonVisibleFormValues,
@@ -55,7 +56,10 @@ test("getDenaliCanonicalPathValue reads nested registry paths", () => {
       ?.shortDescription,
     "Short",
   );
-  assert.equal(getDenaliCanonicalPathValue(minimalCanonical, "missing.path"), undefined);
+  assert.throws(
+    () => getDenaliCanonicalPathValue(minimalCanonical, "missing.path"),
+    (error: unknown) => error instanceof DenaliUnknownCanonicalPathError,
+  );
 });
 
 test("getDenaliCanonicalPathValue: mountain + mode none clears ghost transportCost on canonical", () => {

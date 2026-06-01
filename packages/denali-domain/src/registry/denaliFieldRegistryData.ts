@@ -39,6 +39,13 @@ export type DenaliZodFieldKind =
   | "minRequiredPeaks"
   | "adminCapacityApproval";
 
+export type DenaliSettingsSurface =
+  | "section"
+  | "review"
+  | "implicit"
+  | "deprecated"
+  | "json_only";
+
 export interface DenaliFieldDefinition {
   canonicalPath: string;
   stepId: DenaliCreateWizardStepId;
@@ -49,6 +56,8 @@ export interface DenaliFieldDefinition {
   ruleDefaults: { required: boolean; hidden: boolean };
   cellOverrides?: Partial<Record<DenaliMatrixCell, { required: boolean; hidden: boolean }>>;
   inRuleModel?: boolean;
+  /** Settings overlay table surface; defaults to `"section"` when omitted. */
+  settingsSurface?: DenaliSettingsSurface;
   fieldKind?: DenaliFieldKind;
   wire?: DenaliFieldWireProjection | readonly DenaliFieldWireProjection[];
   notes?: string;
@@ -81,6 +90,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "publishStatus",
     tags: ["core"] as const,
     ruleDefaults: { required: true, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "review",
+    notes: "Review step publish gate only; excluded from Settings overlay (Layer C).",
   },
   {
     canonicalPath: "category",
@@ -191,6 +203,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: [] as const,
     ruleDefaults: { required: false, hidden: false },
     inRuleModel: false,
+    settingsSurface: "deprecated",
   },
   {
     canonicalPath: "startPointLocationText",
@@ -200,6 +213,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "stringOptional",
     tags: ["optional_basic"] as const,
     ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "deprecated",
+    notes: "Legacy review summary only; no modern wizard input — excluded from Settings overlay (Layer C).",
   },
   {
     canonicalPath: "approximateReturnTime",
@@ -379,6 +395,7 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
       "event:single_day": { required: false, hidden: true },
     },
     inRuleModel: false,
+    settingsSurface: "deprecated",
     wire: { kind: "tripDetails.overview", field: "gatheringPoint" },
     notes: "Canonical 5-zone gathering point (singular); nested coords use prefix lookup.",
   },
@@ -463,9 +480,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "tripDetails.overview.customServiceLabels",
     zodPath: "tripDetails.overview.customServiceLabels",
     zodKind: "stringArrayDefault",
-    tags: [] as const,
+    tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: true },
-    inRuleModel: false,
+    settingsSurface: "section",
     wire: [
       { kind: "createTourDto", field: "customServiceLabels" },
       { kind: "tripDetails.overview", field: "customServiceLabels" },
@@ -480,9 +497,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "tripDetails.overview.nonAttendanceDetails",
     zodPath: "tripDetails.overview.nonAttendanceDetails",
     zodKind: "stringOptional",
-    tags: [] as const,
+    tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: true },
-    inRuleModel: false,
+    settingsSurface: "section",
     wire: [{ kind: "tripDetails.overview", field: "nonAttendanceDetails" }],
     contextualVisibility: { kind: "whenTruthy", watchCanonical: "basicInfo.tourType" },
     notes: "Optional admin note for non-attendance; shown on pricing step after tour kind is selected.",
@@ -542,7 +559,10 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "stringOptional",
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "implicit",
     wire: { kind: "tripDetails.logistics", field: "transportationNotes" },
+    notes: "Wire/hydrate only; no create-wizard section input.",
   },
   {
     canonicalPath: "transport.seatPreference",
@@ -553,9 +573,11 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     tags: ["core"] as const,
     ruleDefaults: { required: false, hidden: false },
     inRuleModel: false,
+    settingsSurface: "deprecated",
     contextualVisibility: { kind: "transportTrainSeatVisible" },
     contextualRequired: { kind: "transportTrainSeatVisible" },
     wire: { kind: "tripDetails", field: "transport" },
+    notes: "Legacy train seat preference; no modern wizard input — excluded from Settings overlay (Layer C).",
   },
   {
     canonicalPath: "transport.adminCapacityApproval",
@@ -611,6 +633,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     zodKind: "paymentMode",
     tags: ["core"] as const,
     ruleDefaults: { required: true, hidden: false },
+    inRuleModel: false,
+    settingsSurface: "implicit",
+    notes: "Adapter constant offline_receipt; excluded from Settings overlay (Layer C).",
   },
   {
     canonicalPath: "pricing.includesTourInsurance",
@@ -749,9 +774,9 @@ export const DENALI_FIELD_DEFINITIONS: readonly DenaliFieldDefinition[] = [
     rhfPath: "participantRequirements.minRequiredPeaks",
     zodPath: "participantRequirements.minRequiredPeaks",
     zodKind: "minRequiredPeaks",
-    tags: [] as const,
+    tags: ["mountain_participants", "non_mountain_participants_hidden"] as const,
     ruleDefaults: { required: false, hidden: false },
-    inRuleModel: false,
+    settingsSurface: "section",
     contextualVisibility: { kind: "peakExperienceVisible" },
     structuralInvariant: { kind: "clearWhenNotVisible" },
   },

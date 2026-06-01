@@ -13,7 +13,12 @@ import type { TourTripDetails } from "@/features/tours/models/tourTripDetails.sc
 import { mapTourResponseToDto } from "@/lib/mappers/tour.mapper";
 import { bffBrowserClient } from "@/lib/api/bff-browser-client";
 import { BFF } from "@/lib/api-paths";
+import {
+  CreateTourWireContractError,
+  DenaliProductionErrorCode,
+} from "@/features/tours/wizard/errors/denali-production-errors";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
+import { LoggerService } from "@/lib/logging/logger.service";
 import { isTourOpsApiConfigured } from "../tour-ops-api-origin";
 
 /** When true, list/read tours via same-origin BFF `GET /api/tours` (session cookie). */
@@ -192,7 +197,7 @@ function buildCostContextForCreate(dto: CreateTourDto): Record<string, unknown> 
   }
   if (typeof dto.price === "number" && Number.isFinite(dto.price)) {
     ctx.currency = "USD";
-    ctx.totalCost = dto.price;
+    ctx.totalCost = String(dto.price);
   }
   if (dto.requiresPayment === true) {
     ctx.requiresPayment = true;
@@ -271,16 +276,21 @@ export function buildCreateTourPostBody(dto: CreateTourDto): Record<string, unkn
     body.metadata = dto.metadata;
   }
   delete body.formProfile;
-  if (process.env.NODE_ENV !== "production") {
-    const parsed = tourCreateContractSchema.safeParse(body);
-    if (!parsed.success) {
-      // eslint-disable-next-line no-console -- dev-only wire contract drift signal
-      console.warn(
-        "[buildCreateTourPostBody] shared wire contract violation:",
-        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
-      );
-    }
+
+  const parsed = tourCreateContractSchema.safeParse(body);
+  if (!parsed.success) {
+    const issueSummary = parsed.error.issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; ");
+    const message = `[${DenaliProductionErrorCode.CREATE_TOUR_WIRE_CONTRACT_VIOLATION}] shared wire contract violation: ${issueSummary}`;
+    LoggerService.error(message, {
+      code: DenaliProductionErrorCode.CREATE_TOUR_WIRE_CONTRACT_VIOLATION,
+      layer: "create_tour_wire_contract",
+      issueCount: parsed.error.issues.length,
+    });
+    throw new CreateTourWireContractError(message, issueSummary);
   }
+
   return body;
 }
 

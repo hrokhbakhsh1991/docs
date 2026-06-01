@@ -1,27 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { parseDenaliTourCreateForm } from "../denali/validation/denaliWizardFormZod";
+import {
+  assertDenaliLegacySchemaAllowed,
+  DenaliLegacySchemaForbiddenError,
+  parseDenaliTourCreateForm,
+} from "@repo/denali-domain";
+
 import { buildDenaliTourCreateTestValues } from "./denaliTourCreateFormModel";
-test("parseDenaliTourCreateForm does not throw when NODE_ENV=test", () => {
-  const prev = process.env.NODE_ENV;
-  (process.env as any).NODE_ENV = "test";
-  try {
-    assert.doesNotThrow(() => parseDenaliTourCreateForm(buildDenaliTourCreateTestValues()));
-  } finally {
-    (process.env as any).NODE_ENV = prev;
-  }
+
+test("assertDenaliLegacySchemaAllowed throws in all environments for forbidden sites", () => {
+  assert.throws(
+    () => assertDenaliLegacySchemaAllowed("submit"),
+    (error: unknown) => error instanceof DenaliLegacySchemaForbiddenError,
+  );
 });
 
-test("parseDenaliTourCreateForm throws in development", () => {
-  const prev = process.env.NODE_ENV;
-  (process.env as any).NODE_ENV = "development";
-  try {
-    assert.throws(
-      () => parseDenaliTourCreateForm(buildDenaliTourCreateTestValues()),
-      /Legacy base schema used in forbidden context/,
-    );
-  } finally {
-    (process.env as any).NODE_ENV = prev;
-  }
+test("parseDenaliTourCreateForm throws when legacy parse is invoked", () => {
+  assert.throws(
+    () => parseDenaliTourCreateForm(buildDenaliTourCreateTestValues()),
+    (error: unknown) => error instanceof DenaliLegacySchemaForbiddenError,
+  );
 });

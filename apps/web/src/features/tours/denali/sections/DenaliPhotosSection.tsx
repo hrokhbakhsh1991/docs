@@ -8,7 +8,11 @@ import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas
 import { DENALI_MAX_PHOTO_COUNT } from "@/features/tours/wizard/schemas/denaliFileAssetSchema";
 import { uploadTourPhotos } from "@/lib/services/tours.service";
 
-import { useDenaliCanonical, useDenaliStepFieldRules } from "@/features/tours/wizard/denali/application";
+import {
+  useDenaliCanonical,
+  useDenaliFormHostOptional,
+  useDenaliStepFieldRules,
+} from "@/features/tours/wizard/denali/application";
 import { useDenaliBlobPhotoRowLifecycle } from "@/features/tours/wizard/denali/hooks/useDenaliBlobPhotoRowLifecycle";
 import { revokeDenaliBlobUrl } from "@/features/tours/wizard/denali/preserveDenaliWizardBlobMedia";
 import { DenaliProgramContentSection } from "@/features/tours/denali/widgets/DenaliProgramContentSection";
@@ -22,6 +26,9 @@ type DenaliPhotosStepProps = {
 };
 
 export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProps = {}) {
+  const host = useDenaliFormHostOptional();
+  const enablePhotoUpload = host?.capabilities.enablePhotoUpload ?? true;
+
   const {
     control,
     getValues,
@@ -42,7 +49,7 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
 
   const watchedRows = useWatch({ control, name: "photosData.photos" });
   const rows = useMemo(() => watchedRows ?? [], [watchedRows]);
-  useDenaliBlobPhotoRowLifecycle(rows);
+  useDenaliBlobPhotoRowLifecycle(enablePhotoUpload ? rows : []);
   const photoErrors = errors.photosData?.photos;
   const rootError = Array.isArray(photoErrors) ? undefined : photoErrors?.message;
   const required = isRequired("photos", getValues());
@@ -109,89 +116,144 @@ export function DenaliPhotosSection({ tourId: tourIdProp }: DenaliPhotosStepProp
     <div style={{ display: "grid", gap: "0.85rem" }} data-testid="denali-section-photos">
       <DenaliProgramContentSection />
 
-      {photoPersistenceWarning ? (
-        <Alert variant="warning" role="status" data-testid="denali-photos-persistence-warning">
-          {photoPersistenceWarning}
-        </Alert>
-      ) : null}
+      {enablePhotoUpload ? (
+        <>
+          {photoPersistenceWarning ? (
+            <Alert variant="warning" role="status" data-testid="denali-photos-persistence-warning">
+              {photoPersistenceWarning}
+            </Alert>
+          ) : null}
 
-      <FormField
-        label={
-          required
-            ? "آپلود عکس (الزامی - حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
-            : "آپلود عکس (حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
-        }
-        error={uploadError ?? rootError}
-      >
-        <Input
-          type="file"
-          multiple
-          accept={ACCEPT}
-          disabled={atLimit || uploading}
-          onChange={(event) => void handleFileChange(event)}
-          data-testid="denali-photos-upload-input"
-        />
-      </FormField>
-
-      {uploading ? (
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>در حال آپلود…</p>
-      ) : null}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-          gap: "1rem",
-          marginTop: "0.25rem",
-        }}
-        data-testid="denali-photos-container"
-      >
-        {rows.map((field, index) => (
-          <div
-            key={`${field.id}-${index}`}
-            style={{
-              border: "1px solid var(--color-slate-200)",
-              borderRadius: "8px",
-              overflow: "hidden",
-              position: "relative",
-            }}
+          <FormField
+            label={
+              required
+                ? "آپلود عکس (الزامی - حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
+                : "آپلود عکس (حداکثر ۱۰ فایل، هر فایل ۵ مگابایت)"
+            }
+            error={uploadError ?? rootError}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- wizard photo preview uses blob/object URLs */}
-            <img
-              src={field.url}
-              alt={field.filename}
-              style={{ width: "100%", height: "150px", objectFit: "cover" }}
-              data-testid={`denali-photos-preview-${index}`}
+            <Input
+              type="file"
+              multiple
+              accept={ACCEPT}
+              disabled={atLimit || uploading}
+              onChange={(event) => void handleFileChange(event)}
+              data-testid="denali-photos-upload-input"
             />
+          </FormField>
+
+          {uploading ? (
+            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}>در حال آپلود…</p>
+          ) : null}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: "1rem",
+              marginTop: "0.25rem",
+            }}
+            data-testid="denali-photos-container"
+          >
+            {rows.map((field, index) => (
+              <div
+                key={`${field.id}-${index}`}
+                style={{
+                  border: "1px solid var(--color-slate-200)",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- wizard photo preview uses blob/object URLs */}
+                <img
+                  src={field.url}
+                  alt={field.filename}
+                  style={{ width: "100%", height: "150px", objectFit: "cover" }}
+                  data-testid={`denali-photos-preview-${index}`}
+                />
+                <div
+                  style={{
+                    padding: "0.5rem",
+                    background: "var(--color-slate-50)",
+                    fontSize: "0.75rem",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {field.filename}
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  style={{ position: "absolute", top: "4px", right: "4px" }}
+                  onClick={() => {
+                    revokeDenaliBlobUrl(field.url);
+                    const next = rows.filter((_, i) => i !== index);
+                    commitPhotos(next);
+                  }}
+                  data-testid={`denali-photos-remove-${index}`}
+                >
+                  حذف
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <p
+            style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-slate-500)" }}
+            data-testid="denali-photos-preview-disabled-hint"
+          >
+            آپلود عکس در پیش‌نمایش قالب غیرفعال است. مقادیر seed را در JSON کاننیکال تنظیم کنید.
+          </p>
+          {rows.length > 0 ? (
             <div
               style={{
-                padding: "0.5rem",
-                background: "var(--color-slate-50)",
-                fontSize: "0.75rem",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                gap: "1rem",
+                marginTop: "0.25rem",
               }}
+              data-testid="denali-photos-preview-readonly-container"
             >
-              {field.filename}
+              {rows.map((field, index) => (
+                <div
+                  key={`${field.id}-${index}`}
+                  style={{
+                    border: "1px solid var(--color-slate-200)",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- template preview may show persisted URLs */}
+                  <img
+                    src={field.url}
+                    alt={field.filename}
+                    style={{ width: "100%", height: "150px", objectFit: "cover" }}
+                    data-testid={`denali-photos-preview-readonly-${index}`}
+                  />
+                  <div
+                    style={{
+                      padding: "0.5rem",
+                      background: "var(--color-slate-50)",
+                      fontSize: "0.75rem",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {field.filename}
+                  </div>
+                </div>
+              ))}
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              style={{ position: "absolute", top: "4px", right: "4px" }}
-              onClick={() => {
-                revokeDenaliBlobUrl(field.url);
-                const next = rows.filter((_, i) => i !== index);
-                commitPhotos(next);
-              }}
-              data-testid={`denali-photos-remove-${index}`}
-            >
-              حذف
-            </Button>
-          </div>
-        ))}
-      </div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

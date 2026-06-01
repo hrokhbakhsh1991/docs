@@ -46,6 +46,19 @@ export class MinioStorageAdapter implements FileStoragePort, OnModuleInit {
     return this.client.presignedGetObject(this.bucket, key, expiresInSeconds);
   }
 
+  async copyObject(params: { sourceKey: string; destKey: string }): Promise<void> {
+    const sourceKey = params.sourceKey.trim();
+    const destKey = params.destKey.trim();
+    if (sourceKey === "" || destKey === "") {
+      throw new Error("MinioStorageAdapter.copyObject: sourceKey and destKey are required");
+    }
+    await this.client.copyObject(
+      this.bucket,
+      destKey,
+      `/${this.bucket}/${sourceKey}`,
+    );
+  }
+
   async deleteObject(key: string): Promise<void> {
     try {
       await this.client.removeObject(this.bucket, key);

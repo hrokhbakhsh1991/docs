@@ -9,6 +9,7 @@ import { AuthModule } from "../auth/auth.module";
 import { registerTourDraftMigrators } from "./adapters/tour-draft-migrators.provider";
 import { DraftEventEntity } from "./entities/draft-event.entity";
 import { DraftSnapshotEntity } from "./entities/draft-snapshot.entity";
+import { TemplateOrchestratorService } from "./services/template-orchestrator.service";
 import { DraftEngineController } from "./draft-engine.controller";
 import { DraftEngineFacade } from "./draft-engine.facade";
 import { DraftEngineService } from "./draft-engine.service";
@@ -46,6 +47,7 @@ import { TypeOrmDraftEventsRepository } from "./repositories/typeorm-draft-event
     },
     DraftEngineFacade,
     DraftEngineService,
+    TemplateOrchestratorService,
     DefaultDraftConflictResolver,
     {
       provide: DRAFT_STORAGE_PORT,
@@ -65,6 +67,6 @@ import { TypeOrmDraftEventsRepository } from "./repositories/typeorm-draft-event
       useValue: tourCreateDraftAccessPolicy,
     },
   ],
-  exports: [DraftEngineFacade, DraftEngineService, DRAFT_ENGINE_ACCESS_POLICY],
+  exports: [DraftEngineFacade, DraftEngineService, TemplateOrchestratorService, DRAFT_ENGINE_ACCESS_POLICY],
 })
 export class DraftEngineModule {}

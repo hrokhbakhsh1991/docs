@@ -4,6 +4,7 @@ import test from "node:test";
 import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas/denaliTourCreateFormModel";
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
 import { createDenaliDraftAdapter, isMeaningfulDenaliDraftSnapshot } from "./denali-adapter";
 import { DENALI_WIZARD_RAIL_LAYOUT_VERSION } from "./sanitizeDenaliWizardDraftSnapshot";
@@ -73,6 +74,7 @@ test("createDenaliDraftAdapter merge keeps local currentStepIndex", () => {
   const adapter = createDenaliDraftAdapter({
     workspaceId: "w1",
     getCurrentStepIndex: () => 4,
+    getRuleSet: () => denaliRuleSet,
   });
   const local = {
     form: buildDenaliTourCreateTestValues(),
@@ -94,6 +96,7 @@ test("createDenaliDraftAdapter merge preserves relocated program content from lo
   const adapter = createDenaliDraftAdapter({
     workspaceId: "w1",
     getCurrentStepIndex: () => 2,
+    getRuleSet: () => denaliRuleSet,
   });
 
   const base = buildDenaliTourCreateTestValues();
@@ -124,6 +127,7 @@ test("createDenaliDraftAdapter merge remaps legacy photos step index to new rail
   const adapter = createDenaliDraftAdapter({
     workspaceId: "w1",
     getCurrentStepIndex: () => 1,
+    getRuleSet: () => denaliRuleSet,
   });
 
   const base = buildDenaliTourCreateTestValues();
@@ -156,6 +160,7 @@ test("createDenaliDraftAdapter scopes draft id and fetch path to workspaceId", a
     const adapterA = createDenaliDraftAdapter({
       workspaceId: "ws-tenant-a",
       getCurrentStepIndex: () => 0,
+      getRuleSet: () => denaliRuleSet,
     });
     assert.equal(adapterA.id, "denali-create:ws-tenant-a");
     await adapterA.onFetch!();
@@ -167,6 +172,7 @@ test("createDenaliDraftAdapter scopes draft id and fetch path to workspaceId", a
     const adapterB = createDenaliDraftAdapter({
       workspaceId: "ws-tenant-b",
       getCurrentStepIndex: () => 0,
+      getRuleSet: () => denaliRuleSet,
     });
     assert.equal(adapterB.id, "denali-create:ws-tenant-b");
     await adapterB.onFetch!();
@@ -183,6 +189,7 @@ test("createDenaliDraftAdapter onPush rejects empty workspace scope", async () =
   const adapter = createDenaliDraftAdapter({
     workspaceId: "",
     getCurrentStepIndex: () => 0,
+    getRuleSet: () => denaliRuleSet,
   });
 
   await assert.rejects(

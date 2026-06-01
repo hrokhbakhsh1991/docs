@@ -16,19 +16,15 @@ function DenaliTemplateSelectorPluginView(
   return (
     <DenaliTourCreationPresetBanner
       presets={presetsQuery.data}
+      wizardTemplate={props.wizardTemplate}
       formMethods={props.formMethods}
       ruleSet={props.ruleSet}
       workspaceFormProfile={props.workspaceFormProfile}
       onApplied={() => {
         props.onCanonicalSync();
       }}
-      onClear={
-        props.onClearForm
-          ? () => {
-              props.onClearForm?.();
-            }
-          : undefined
-      }
+      onClear={props.onClearForm}
+      onOrchestrationError={props.onOrchestrationError}
       clearLabel={t("wizardPresetClear")}
     />
   );

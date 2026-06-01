@@ -26,3 +26,40 @@ test("validateDenaliWorkspaceTemplate accepts partial canonical payload", () => 
   });
   assert.equal(issues.length, 0);
 });
+
+test("validateDenaliWorkspaceTemplate rejects tripDetails canonical root with hint", () => {
+  const issues = validateDenaliWorkspaceTemplate({
+    fieldRulesOverlay: {},
+    canonicalData: { tripDetails: { overview: { peakHeight: 5610 } } },
+  });
+  assert.ok(issues.some((i) => i.path === "canonicalData.tripDetails"));
+  assert.ok(issues.some((i) => i.message.includes("overview.peakHeight")));
+});
+
+test("validateDenaliWorkspaceTemplate rejects legacy overlay path with storage hint", () => {
+  const issues = validateDenaliWorkspaceTemplate({
+    fieldRulesOverlay: {
+      "tripDetails.overview.peakHeight": { visibility: "always" },
+    },
+    canonicalData: {},
+  });
+  assert.ok(
+    issues.some(
+      (i) =>
+        i.path === "fieldRulesOverlay.tripDetails.overview.peakHeight" &&
+        i.message.includes("overview.peakHeight"),
+    ),
+  );
+});
+
+test("validateDenaliWorkspaceTemplate rejects pruned ghost overlay paths on save", () => {
+  const issues = validateDenaliWorkspaceTemplate({
+    fieldRulesOverlay: {
+      publishStatus: { visibility: "always" },
+      "pricing.paymentMode": { required: "required" },
+    },
+    canonicalData: {},
+  });
+  assert.ok(issues.some((i) => i.path === "fieldRulesOverlay.publishStatus"));
+  assert.ok(issues.some((i) => i.path === "fieldRulesOverlay.pricing.paymentMode"));
+});

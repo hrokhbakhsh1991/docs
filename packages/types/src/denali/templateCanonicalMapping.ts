@@ -12,13 +12,29 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
+export type SanitizeDenaliCanonicalTemplateOptions = {
+  /** Invoked for each top-level key discarded during fossil strip (observability hook). */
+  onDiscardedKey?: (discardedKey: string) => void;
+};
+
 /**
  * Strips any key not declared on {@link DenaliCanonicalTourModel} (top-level).
  * Legacy `defaults`, `overview`, `fieldRulesOverlay`, etc. are discarded entirely.
+ * When {@link SanitizeDenaliCanonicalTemplateOptions.onDiscardedKey} is set, each
+ * discarded key is reported (wire to LoggerService.warn at the API boundary).
  */
-export function sanitizeDenaliCanonicalTemplateData(value: unknown): DenaliCanonicalTemplateData {
+export function sanitizeDenaliCanonicalTemplateData(
+  value: unknown,
+  options?: SanitizeDenaliCanonicalTemplateOptions,
+): DenaliCanonicalTemplateData {
   if (!isPlainObject(value)) {
     return {};
+  }
+  const allowed = new Set<string>(DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      options?.onDiscardedKey?.(key);
+    }
   }
   const data: Record<string, unknown> = {};
   for (const key of DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS) {
@@ -44,11 +60,12 @@ export function collectDiscardedTemplateKeys(value: unknown): string[] {
  */
 export function templateToCanonical(
   template: StoredWorkspaceTourTemplateRow | null | undefined,
+  options?: SanitizeDenaliCanonicalTemplateOptions,
 ): DenaliCanonicalTemplateData {
   if (template == null) {
     return {};
   }
-  return sanitizeDenaliCanonicalTemplateData(template.canonicalData);
+  return sanitizeDenaliCanonicalTemplateData(template.canonicalData, options);
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   DATA_LEGACY_PROFILE_MISMATCH_MESSAGE,
 } from "@/features/tours/wizard/validation/data-legacy-error";
 import { validateWorkspaceTemplateAtWizardLoad } from "@/features/tours/wizard/validation/strict-profile-validator";
+import { useWorkspaceQueryScope } from "@/hooks/use-workspace-query-scope";
 import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
 
 /**
@@ -22,6 +23,7 @@ import { useTenantWizardTemplate } from "@/hooks/use-tenant-wizard-template";
  */
 export function TourCreateWizard() {
   const t = useTranslations("tours.new");
+  const workspaceId = useWorkspaceQueryScope();
   const wizardTemplateQuery = useTenantWizardTemplate();
 
   const workspaceFormProfile = useMemo(
@@ -54,7 +56,7 @@ export function TourCreateWizard() {
   const [sessionBlueprint, setSessionBlueprint] = useState<WizardSessionBlueprint | null>(null);
 
   useEffect(() => {
-    if (!wizardTemplateQuery.data || workspaceFormProfile == null || sessionBlueprint) {
+    if (!wizardTemplateQuery.data || workspaceFormProfile == null) {
       return;
     }
     setSessionBlueprint({
@@ -62,7 +64,7 @@ export function TourCreateWizard() {
       profile: workspaceFormProfile,
       shellConfig: wizardShellConfig,
     });
-  }, [wizardTemplateQuery.data, workspaceFormProfile, wizardShellConfig, sessionBlueprint]);
+  }, [wizardTemplateQuery.data, workspaceFormProfile, wizardShellConfig, workspaceId]);
 
   if (wizardTemplateQuery.isLoading) {
     return (

@@ -6,7 +6,7 @@ import {
   type DraftSnapshot,
   type DraftStoragePort,
 } from "@repo/shared-contracts";
-import { Repository } from "typeorm";
+import { Repository, QueryFailedError, type EntityManager } from "typeorm";
 
 import { tryGetActiveTraceLogFields } from "../../../common/observability/active-trace-log-fields";
 import { RequestContextService } from "../../../common/request-context/request-context.service";
@@ -44,6 +44,33 @@ export class PostgresDraftSnapshotStore implements DraftStoragePort {
       schemaVersion: Number(row.schemaVersion ?? CURRENT_DRAFT_SCHEMA_VERSION),
       lastModified: Number(row.lastModified),
     };
+  }
+
+  private isDraftScopeUniqueViolation(error: unknown): boolean {
+    if (!(error instanceof QueryFailedError)) {
+      return false;
+    }
+    const driverCode = (error as QueryFailedError & { driverError?: { code?: string } }).driverError
+      ?.code;
+    return driverCode === "23505";
+  }
+
+  private async loadScopeSnapshotOrThrow(
+    manager: EntityManager,
+    scope: DraftScope,
+    fallback: DraftSnapshot,
+  ): Promise<DraftSnapshot> {
+    const row = await manager.findOne(DraftSnapshotEntity, {
+      where: {
+        workspaceId: scope.workspaceId,
+        userId: scope.userId,
+        draftKey: scope.draftKey,
+      },
+    });
+    if (row == null) {
+      throw new DraftConflictException(fallback);
+    }
+    return this.toSnapshot(row);
   }
 
   async find(scope: DraftScope): Promise<DraftSnapshot | null> {
@@ -122,19 +149,33 @@ export class PostgresDraftSnapshotStore implements DraftStoragePort {
           });
         }
 
-        const saved = await manager.save(
-          manager.create(DraftSnapshotEntity, {
-            workspaceId: scope.workspaceId,
-            userId: scope.userId,
-            draftKey: scope.draftKey,
-            data: snapshot.data,
-            version: 1,
-            schemaVersion,
-            lastModified: String(snapshot.lastModified),
-            traceId: this.resolveTraceId(),
-          }),
-        );
-        return this.toSnapshot(saved);
+        try {
+          const saved = await manager.save(
+            manager.create(DraftSnapshotEntity, {
+              workspaceId: scope.workspaceId,
+              userId: scope.userId,
+              draftKey: scope.draftKey,
+              data: snapshot.data,
+              version: 1,
+              schemaVersion,
+              lastModified: String(snapshot.lastModified),
+              traceId: this.resolveTraceId(),
+            }),
+          );
+          return this.toSnapshot(saved);
+        } catch (error: unknown) {
+          if (!this.isDraftScopeUniqueViolation(error)) {
+            throw error;
+          }
+          throw new DraftConflictException(
+            await this.loadScopeSnapshotOrThrow(manager, scope, {
+              data: snapshot.data,
+              version: 0,
+              schemaVersion,
+              lastModified: Number(snapshot.lastModified) || Date.now(),
+            }),
+          );
+        }
       }
 
       const storedVersion = Number(existing.version);

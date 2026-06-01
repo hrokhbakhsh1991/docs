@@ -12,7 +12,7 @@ import type { CreateTourDto } from "@/lib/services/tours.service";
 import { createTour } from "@/lib/services/tours.service";
 import { getWizardSubmitIdempotencyKey } from "@/features/tours/wizard/wizardSubmitSession";
 
-import { mapDenaliWizardToCreateTourPayload } from "./mapDenaliWizardToCreateTourPayload";
+import { mapDenaliWizardFormToSubmitDto } from "./buildDenaliCreateTourPayloadProjection";
 import type { DenaliRuleSet } from "../denali/rules/denaliRuleModel";
 import { prepareDenaliWizardFormForSubmit } from "../denali/validation/denaliRuleAccess";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
@@ -73,7 +73,7 @@ export async function createTourFromWorkspaceWizardForm(input: {
   if (!gate.success) {
     throw new z.ZodError(blockingIssues);
   }
-  let dto: CreateTourDto = mapDenaliWizardToCreateTourPayload(normalized);
+  let dto: CreateTourDto = mapDenaliWizardFormToSubmitDto(normalized);
   dto = stripCreateTourDtoForFormProfile(input.workspaceFormProfile, dto);
   const mapped = mapCreateTourDto(
     { ...dto, sourcePresetId: input.sourcePresetId, sourceTourId: input.sourceTourId },

@@ -1,4 +1,7 @@
+import { toDenaliTemplateStoragePath } from "@repo/types/denali";
+
 import { mapDenaliCanonicalToFormPath } from "./denaliRuleRequired";
+import { listDenaliSettingsOverlayStoragePaths } from "./listDenaliSettingsOverlayStoragePaths";
 import {
   DENALI_RULE_MODEL_CATEGORIES,
   DENALI_RULE_MODEL_DURATIONS,
@@ -22,6 +25,25 @@ const REQUIREDNESS: ReadonlySet<string> = new Set([
 
 const VISIBILITY: ReadonlySet<string> = new Set(["always", "active", "hidden"]);
 
+let cachedSettingsOverlayAllowList: ReadonlySet<string> | undefined;
+
+function settingsOverlayAllowList(): ReadonlySet<string> {
+  cachedSettingsOverlayAllowList ??= new Set(listDenaliSettingsOverlayStoragePaths());
+  return cachedSettingsOverlayAllowList;
+}
+
+function isAllowedSettingsOverlayPath(path: string, allowed: ReadonlySet<string>): boolean {
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (allowed.has(trimmed)) {
+    return true;
+  }
+  const storagePath = toDenaliTemplateStoragePath(trimmed);
+  return storagePath !== trimmed && allowed.has(storagePath);
+}
+
 export function parseFieldRulesOverlay(
   raw: Readonly<Record<string, unknown>> | undefined,
 ): ReadonlyMap<string, FieldRuleOverlayPatch> {
@@ -29,7 +51,11 @@ export function parseFieldRulesOverlay(
   if (!raw) {
     return out;
   }
+  const allowed = settingsOverlayAllowList();
   for (const [path, value] of Object.entries(raw)) {
+    if (!isAllowedSettingsOverlayPath(path, allowed)) {
+      continue;
+    }
     if (!path.trim() || !value || typeof value !== "object" || Array.isArray(value)) {
       continue;
     }
@@ -71,11 +97,14 @@ function applyOverlayToField(
     return field;
   }
 
+  const matrixDefaultHidden = field.hidden;
+
   let hidden = field.hidden;
   if (patch.visibility === "hidden") {
     hidden = true;
   } else if (patch.visibility === "always" || patch.visibility === "active") {
-    hidden = false;
+    // Conflict A safeguard: do not unhide matrix-hard-hidden cells (e.g. itinerary on single-day).
+    hidden = matrixDefaultHidden ? true : false;
   }
 
   let required = field.required;

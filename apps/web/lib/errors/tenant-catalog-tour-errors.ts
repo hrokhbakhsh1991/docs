@@ -1,4 +1,5 @@
 import type { ApiError } from "@/lib/api-client";
+import { LoggerService } from "@/lib/logging/logger.service";
 
 /** Backend codes for `tripDetails` workspace catalog validation (400). */
 export const TENANT_CATALOG_ERROR_CODES = {
@@ -81,5 +82,11 @@ export function logTenantCatalogMismatchDev(apiError: ApiError): void {
   }
   const { invalidIds } = parseTenantCatalogErrorPayload(apiError.data);
   if (invalidIds.length > 0) {
+    LoggerService.error("denali.catalog_tenant_mismatch_dev", {
+      code: "DENALI_CATALOG_TENANT_MISMATCH_DEV",
+      layer: "tenant_catalog",
+      invalidIdCount: invalidIds.length,
+      apiCode: apiError.code,
+    });
   }
 }

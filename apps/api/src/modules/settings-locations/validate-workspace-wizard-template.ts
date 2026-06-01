@@ -1,5 +1,17 @@
+import type { TourFormProfile } from "@repo/types";
 import {
+  buildDenaliTourCreateDefaultValues,
+  DENALI_FIELD_DEFINITIONS,
+  getDenaliWizardSubmitIssues,
+  listDenaliSettingsOverlayStoragePaths,
+  resolveDenaliRuleSetFromOverlay,
+  tryHydrateCanonicalTemplate,
+} from "@repo/denali-domain";
+import {
+  formatDenaliTemplatePathSuggestion,
+  toDenaliTemplateStoragePath,
   validateDenaliCanonicalTemplateData,
+  type DenaliCanonicalTemplateData,
   type DenaliCanonicalTemplateValidationIssue,
 } from "@repo/types/denali";
 
@@ -30,6 +42,8 @@ function validateOverlayRecord(
     ];
   }
 
+  const allowedPaths = new Set(listDenaliSettingsOverlayStoragePaths());
+
   for (const [path, raw] of Object.entries(overlay)) {
     const fieldPath = `fieldRulesOverlay.${path}`;
     if (!path.trim()) {
@@ -37,6 +51,19 @@ function validateOverlayRecord(
         path: fieldPath,
         code: "VALIDATION_FIELD_FORMAT_INVALID",
         message: "Overlay field path cannot be empty",
+      });
+      continue;
+    }
+    if (!allowedPaths.has(path)) {
+      const storagePath = toDenaliTemplateStoragePath(path);
+      const message =
+        storagePath !== path && allowedPaths.has(storagePath)
+          ? `Invalid overlay path "${path}" — use canonical path "${storagePath}" instead.`
+          : formatDenaliTemplatePathSuggestion(path);
+      out.push({
+        path: fieldPath,
+        code: "VALIDATION_UNKNOWN_FIELD",
+        message,
       });
       continue;
     }
@@ -97,11 +124,17 @@ export type ValidateWorkspaceWizardTemplateInput = {
   canonicalData?: unknown;
 };
 
+export type WorkspaceWizardTemplateValidationOutcome = {
+  errors: ValidationFieldError[];
+  sanitizedCanonical?: DenaliCanonicalTemplateData;
+};
+
 /** Server-side template payload validation (canonical + overlay enums). */
-export function collectWorkspaceWizardTemplateValidationErrors(
+export function validateWorkspaceWizardTemplatePayload(
   input: ValidateWorkspaceWizardTemplateInput,
-): ValidationFieldError[] {
+): WorkspaceWizardTemplateValidationOutcome {
   const errors: ValidationFieldError[] = [];
+  let sanitizedCanonical: DenaliCanonicalTemplateData | undefined;
 
   if (input.fieldRulesOverlay !== undefined) {
     errors.push(...validateOverlayRecord(input.fieldRulesOverlay));
@@ -111,10 +144,115 @@ export function collectWorkspaceWizardTemplateValidationErrors(
     const canonicalResult = validateDenaliCanonicalTemplateData(input.canonicalData);
     if (!canonicalResult.ok) {
       errors.push(...mapCanonicalIssues(canonicalResult.issues));
+    } else {
+      sanitizedCanonical = canonicalResult.data;
     }
   }
 
+  return { errors, sanitizedCanonical };
+}
+
+/** Server-side template payload validation (canonical + overlay enums). */
+export function collectWorkspaceWizardTemplateValidationErrors(
+  input: ValidateWorkspaceWizardTemplateInput,
+): ValidationFieldError[] {
+  return validateWorkspaceWizardTemplatePayload(input).errors;
+}
+
+function mapSubmitIssuesToPublishErrors(
+  issues: readonly { path: readonly PropertyKey[]; message: string }[],
+): ValidationFieldError[] {
+  return issues.map((issue) => {
+    const dotPath = issue.path.map(String).join(".");
+    return {
+      path: dotPath.length > 0 ? `canonicalData.${dotPath}` : "canonicalData",
+      code: "VALIDATION_REQUIRED_FIELD_MISSING",
+      message: issue.message,
+    };
+  });
+}
+
+/** Classification seed stored in canonical JSON but excluded from the rule-model matrix. */
+const PUBLISH_ALLOWED_IN_RULE_MODEL_FALSE_PATHS = new Set(["duration"]);
+
+function readValueAtStoragePath(
+  canonical: DenaliCanonicalTemplateData,
+  storagePath: string,
+): unknown {
+  const segments = storagePath.split(".");
+  let current: unknown = canonical;
+  for (const segment of segments) {
+    if (!isPlainObject(current)) {
+      return undefined;
+    }
+    current = current[segment];
+  }
+  return current;
+}
+
+function collectDeprecatedFieldsInPublish(
+  sanitizedCanonical: DenaliCanonicalTemplateData,
+): ValidationFieldError[] {
+  const errors: ValidationFieldError[] = [];
+
+  for (const def of DENALI_FIELD_DEFINITIONS) {
+    if (def.inRuleModel !== false) {
+      continue;
+    }
+    const storagePath = toDenaliTemplateStoragePath(def.canonicalPath);
+    if (PUBLISH_ALLOWED_IN_RULE_MODEL_FALSE_PATHS.has(storagePath)) {
+      continue;
+    }
+    if (readValueAtStoragePath(sanitizedCanonical, storagePath) === undefined) {
+      continue;
+    }
+    errors.push({
+      path: `canonicalData.${storagePath}`,
+      code: "VALIDATION_DEPRECATED_FIELDS_IN_PUBLISH",
+      message: `Deprecated field "${storagePath}" cannot be present in a published template.`,
+    });
+  }
+
   return errors;
+}
+
+/**
+ * Publish submit-gate: registry hygiene on sanitized canonical, hydrate seeds, then
+ * evaluate required-field matrix using overlay-merged {@link DenaliRuleSet}
+ * (headless — no React/RHF).
+ */
+export function collectWorkspaceWizardTemplatePublishErrors(
+  nextOverlay: Record<string, unknown> | undefined,
+  sanitizedCanonical: DenaliCanonicalTemplateData,
+  profile?: TourFormProfile,
+): ValidationFieldError[] {
+  const deprecatedErrors = collectDeprecatedFieldsInPublish(sanitizedCanonical);
+  if (deprecatedErrors.length > 0) {
+    return deprecatedErrors;
+  }
+
+  const ruleSet = resolveDenaliRuleSetFromOverlay(nextOverlay ?? {});
+
+  const hydrated = tryHydrateCanonicalTemplate(
+    sanitizedCanonical,
+    buildDenaliTourCreateDefaultValues(),
+    undefined,
+    ruleSet,
+  );
+  if (hydrated == null) {
+    return [
+      {
+        path: "canonicalData",
+        code: "VALIDATION_PUBLISH_HYDRATION_FAILED",
+        message: "Template hydration failed on publish due to empty canonical content.",
+      },
+    ];
+  }
+
+  const uiOptions =
+    profile != null ? { workspaceFormProfile: profile } : undefined;
+  const submitIssues = getDenaliWizardSubmitIssues(hydrated.formValues, uiOptions, ruleSet);
+  return mapSubmitIssuesToPublishErrors(submitIssues);
 }
 
 export function assertWorkspaceWizardTemplateValid(

@@ -39,6 +39,8 @@ export function parseTenantWizardTemplate(raw: unknown): TenantWizardTemplate | 
       typeof o.formProfileVersion === "number" && Number.isFinite(o.formProfileVersion)
         ? o.formProfileVersion
         : 1,
+    createdAt: typeof o.createdAt === "string" ? o.createdAt : undefined,
+    updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
   };
 }
 

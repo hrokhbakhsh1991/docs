@@ -5,6 +5,7 @@ import { buildDenaliTourCreateTestValues } from "@/features/tours/wizard/schemas
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { getDenaliWizardSteps } from "@/features/tours/wizard/denaliStepConfig";
+import { denaliRuleSet } from "@/features/tours/wizard/denali/rules/denaliRuleModel";
 
 import {
   DENALI_WIZARD_RAIL_LAYOUT_VERSION,
@@ -37,7 +38,7 @@ test("sanitizeDenaliWizardDraftSnapshot purges ghost outdoor fields on event tou
     form,
     currentStepIndex: 4,
     railLayoutVersion: 1,
-  });
+  }, denaliRuleSet);
 
   assert.equal(sanitized.form.programNature?.difficultyLevel, undefined);
   assert.equal(sanitized.form.programNature?.hikingHoursApprox, undefined);
@@ -51,10 +52,65 @@ test("sanitizeDenaliWizardDraftSnapshot preserves valid mountain draft content",
     form,
     currentStepIndex: 2,
     railLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
-  });
+  }, denaliRuleSet);
 
   assert.equal(sanitized.form.programNature.shortDescription, form.programNature.shortDescription);
   assert.equal(sanitized.currentStepIndex, 2);
+});
+
+test("sanitizeDenaliWizardDraftSnapshot strips non-registry root keys via prune", () => {
+  const form = buildDenaliTourCreateDefaultValues() as DenaliCreateTourWizardForm &
+    Record<string, unknown>;
+  form.__smuggledDraftRoot = "poison";
+
+  const sanitized = sanitizeDenaliWizardDraftSnapshot(
+    {
+      form,
+      currentStepIndex: 0,
+      railLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+    },
+    denaliRuleSet,
+  );
+
+  assert.equal(
+    (sanitized.form as DenaliCreateTourWizardForm & Record<string, unknown>).__smuggledDraftRoot,
+    undefined,
+  );
+});
+
+const GHOST_GATHERING_KEY = "__ghostGatheringPointRowKey";
+
+test("sanitizeDenaliWizardDraftSnapshot strips ghost keys inside gatheringPoints rows", () => {
+  const form = buildDenaliTourCreateTestValues();
+  form.tripDetails = {
+    ...form.tripDetails,
+    logistics: {
+      ...form.tripDetails.logistics,
+      gatheringPoints: [
+        {
+          title: "Meet",
+          time: "08:00",
+          location: { addressText: "Station", latitude: 35.7, longitude: 51.4 },
+          [GHOST_GATHERING_KEY]: "must not survive draft sanitize",
+        } as NonNullable<
+          DenaliCreateTourWizardForm["tripDetails"]["logistics"]
+        >["gatheringPoints"][number] & { [GHOST_GATHERING_KEY]: string },
+      ],
+    },
+  };
+
+  const sanitized = sanitizeDenaliWizardDraftSnapshot(
+    {
+      form,
+      currentStepIndex: 1,
+      railLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
+    },
+    denaliRuleSet,
+  );
+
+  const row = sanitized.form.tripDetails.logistics?.gatheringPoints?.[0] as Record<string, unknown>;
+  assert.equal(row?.title, "Meet");
+  assert.equal(row?.[GHOST_GATHERING_KEY], undefined);
 });
 
 test("sanitizeDenaliWizardDraftSnapshot prunes legacy keys not present in registry", () => {
@@ -66,7 +122,7 @@ test("sanitizeDenaliWizardDraftSnapshot prunes legacy keys not present in regist
     form: form as unknown as DenaliCreateTourWizardForm,
     currentStepIndex: 1,
     railLayoutVersion: DENALI_WIZARD_RAIL_LAYOUT_VERSION,
-  });
+  }, denaliRuleSet);
 
   const sanitizedBasic = sanitized.form.basicInfo as Record<string, unknown>;
   assert.equal(sanitizedBasic.isMultiDay, undefined);

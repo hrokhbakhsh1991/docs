@@ -5,10 +5,11 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { DenaliRuleSet } from "@repo/denali-domain";
-import { finalizeDenaliWizardHydration } from "@repo/denali-domain";
 import type { TourFormProfile } from "@repo/types";
 
 import type { SettingsTourPresetDto } from "@/lib/settings-tour-presets.client";
+import { DENALI_QUIET_FORM_RESET_OPTIONS } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
+import type { TenantWizardTemplate } from "@/features/tours/wizard/template/tenant-wizard-template.types";
 
 import { applyDenaliWizardPreset } from "./tourCreationPresetApply";
 import { listAllTourWizardPresetsSorted } from "./tourCreationPresetMatch";
@@ -16,28 +17,33 @@ import type { DenaliWizardHeaderPluginFormMethods } from "@/features/tours/wizar
 
 export type DenaliTourCreationPresetBannerProps = {
   presets: SettingsTourPresetDto[] | undefined;
+  wizardTemplate: TenantWizardTemplate;
   /** RHF access from wizard shell — plugins must not use `useFormContext` directly. */
   formMethods: DenaliWizardHeaderPluginFormMethods;
   ruleSet: DenaliRuleSet;
   workspaceFormProfile: TourFormProfile | undefined;
   /** Called after preset hydrate + form reset (use to bump canonical sync). */
   onApplied?: (_presetId: string) => void;
-  /** Reset form to workspace template baseline (clear applied preset). */
-  onClear?: () => void;
+  /** Reset form to workspace template baseline via factory (clear applied preset). */
+  onClear?: () => void | Promise<void>;
+  /** Factory orchestration failures (preset apply / clear). */
+  onOrchestrationError?: (_errors: readonly string[]) => void;
   clearLabel?: string;
 };
 
 export function DenaliTourCreationPresetBanner({
   presets,
+  wizardTemplate,
   formMethods,
   ruleSet,
   workspaceFormProfile,
   onApplied,
   onClear,
+  onOrchestrationError,
   clearLabel,
 }: DenaliTourCreationPresetBannerProps) {
   const t = useTranslations("tours.new");
-  const { getValues, reset } = formMethods;
+  const { reset } = formMethods;
 
   const templateReady = workspaceFormProfile != null;
 
@@ -51,6 +57,7 @@ export function DenaliTourCreationPresetBanner({
 
   const [selectedId, setSelectedId] = useState<string>("");
   const [lastAppliedPresetId, setLastAppliedPresetId] = useState<string | null>(null);
+  const [applyBusy, setApplyBusy] = useState(false);
 
   useEffect(() => {
     const ids = new Set(choiceList.map((p) => p.id));
@@ -64,21 +71,38 @@ export function DenaliTourCreationPresetBanner({
 
   const appliedForCurrentChoice = selected != null && lastAppliedPresetId === selected.id;
 
-  const applySelected = useCallback(() => {
-    if (!selected?.isActive || workspaceFormProfile == null) {
+  const applySelected = useCallback(async () => {
+    if (!selected?.isActive || workspaceFormProfile == null || applyBusy) {
       return;
     }
-    const mergedValues = applyDenaliWizardPreset({
-      workspaceFormProfile,
-      ruleSet,
-      canonicalData: selected.canonicalData,
-      baseValues: getValues(),
-    });
-    const finalized = finalizeDenaliWizardHydration(mergedValues, ruleSet);
-    reset(finalized, { keepDefaultValues: true, keepDirty: true });
-    setLastAppliedPresetId(selected.id);
-    onApplied?.(selected.id);
-  }, [getValues, onApplied, reset, ruleSet, selected, workspaceFormProfile]);
+    setApplyBusy(true);
+    try {
+      const result = await applyDenaliWizardPreset({
+        workspaceFormProfile,
+        ruleSet,
+        template: wizardTemplate,
+        canonicalData: selected.canonicalData,
+      });
+      if (!result.success) {
+        onOrchestrationError?.(result.errors);
+        return;
+      }
+      reset(result.form, DENALI_QUIET_FORM_RESET_OPTIONS);
+      setLastAppliedPresetId(selected.id);
+      onApplied?.(selected.id);
+    } finally {
+      setApplyBusy(false);
+    }
+  }, [
+    applyBusy,
+    onApplied,
+    onOrchestrationError,
+    reset,
+    ruleSet,
+    selected,
+    wizardTemplate,
+    workspaceFormProfile,
+  ]);
 
   const onSelectChange = useCallback((nextId: string) => {
     setSelectedId(nextId);
@@ -151,8 +175,10 @@ export function DenaliTourCreationPresetBanner({
             type="button"
             variant="primary"
             data-testid="workspace-wizard-preset-apply"
-            onClick={applySelected}
-            disabled={!selected?.isActive || workspaceFormProfile == null}
+            onClick={() => {
+              void applySelected();
+            }}
+            disabled={!selected?.isActive || workspaceFormProfile == null || applyBusy}
           >
             {t("wizardPresetApply")}
           </Button>
@@ -163,7 +189,7 @@ export function DenaliTourCreationPresetBanner({
               data-testid="workspace-wizard-preset-clear"
               onClick={() => {
                 setLastAppliedPresetId(null);
-                onClear();
+                void onClear();
               }}
             >
               {clearLabel ?? t("wizardPresetClear")}

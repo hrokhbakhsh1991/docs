@@ -768,7 +768,10 @@ export class ToursService {
     return loaded as TourWriteRecord & { createdAt: Date; updatedAt: Date };
   }
 
-  async createTour(dto: CreateTourDto): Promise<TourResponseDto> {
+  async createTour(
+    dto: CreateTourDto,
+    options?: { assignedTourId?: string },
+  ): Promise<TourResponseDto> {
     const tenantId = this.requestContextService.resolveEffectiveTenantId();
     if (!tenantId) {
       throw new ForbiddenException(tenantContextMissingError());
@@ -852,6 +855,7 @@ export class ToursService {
       }
 
       const tour = this.toursWriteRepository.createTourEntity({
+        ...(options?.assignedTourId ? { id: options.assignedTourId } : {}),
         tenantId,
         title: dto.title,
         description: dto.description,

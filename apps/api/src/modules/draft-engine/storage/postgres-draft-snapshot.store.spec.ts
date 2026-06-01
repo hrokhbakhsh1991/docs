@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { NotFoundException } from "@nestjs/common";
 import { CURRENT_DRAFT_SCHEMA_VERSION } from "@repo/shared-contracts";
+import { QueryFailedError } from "typeorm";
 
 import { DraftConflictException } from "../draft-conflict.exception";
 import { PostgresDraftSnapshotStore } from "../repositories/postgres-draft-snapshot.store";
@@ -181,6 +182,72 @@ test("delete throws when delete affects zero rows", async () => {
   await assert.rejects(
     () => store.delete(scope),
     (err: unknown) => err instanceof NotFoundException,
+  );
+});
+
+test("upsert maps concurrent first-insert unique violation to DraftConflictException", async () => {
+  const winnerRow = mockRow({
+    version: 1,
+    data: { value: "winner" },
+    lastModified: "5000",
+    schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+  });
+
+  let findCalls = 0;
+  const manager = {
+    findOne: async () => {
+      findCalls += 1;
+      return findCalls === 1 ? null : winnerRow;
+    },
+    create: (_entity: unknown, partial: Partial<DraftSnapshotEntity>) =>
+      ({ ...partial, version: partial.version ?? 1 } as DraftSnapshotEntity),
+    save: async () => {
+      const err = new QueryFailedError("", [], new Error("duplicate key value violates unique constraint"));
+      Object.assign(err, { driverError: { code: "23505" } });
+      throw err;
+    },
+    update: async () => ({ affected: 1 }),
+  };
+
+  const draftsRepository = {
+    findOne: manager.findOne,
+    create: manager.create,
+    save: manager.save,
+    update: manager.update,
+    manager: {
+      transaction: async <T>(fn: (_em: typeof manager) => Promise<T>) => fn(manager),
+    },
+    delete: async () => ({ affected: 1 }),
+    createQueryBuilder: () => ({
+      where: () => ({
+        andWhere: () => ({
+          getSql: () => "SELECT",
+          getParameters: () => ({}),
+        }),
+      }),
+    }),
+  };
+
+  const store = new PostgresDraftSnapshotStore(draftsRepository as never, undefined);
+
+  await assert.rejects(
+    () =>
+      store.upsert(scope, {
+        data: { value: "loser" },
+        version: 0,
+        schemaVersion: CURRENT_DRAFT_SCHEMA_VERSION,
+        lastModified: 6000,
+      }),
+    (err: unknown) => {
+      assert.ok(err instanceof DraftConflictException);
+      const response = err.getResponse() as {
+        error?: { code?: string; details?: { server?: { version?: number; data?: unknown } } };
+      };
+      assert.equal(response.error?.code, "DRAFT_CONFLICT");
+      assert.equal(response.error?.details?.server?.version, 1);
+      assert.deepEqual(response.error?.details?.server?.data, { value: "winner" });
+      return true;
+    },
   );
 });
 

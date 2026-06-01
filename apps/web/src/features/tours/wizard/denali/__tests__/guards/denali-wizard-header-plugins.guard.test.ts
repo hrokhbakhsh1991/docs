@@ -34,7 +34,9 @@ describeStructuralGuard("denali wizard header plugins", [
       assert.match(wizardSource, /<DenaliWizardHeaderPlugins/);
       assert.match(wizardSource, /onCanonicalSync:\s*\(\)\s*=>\s*setCanonicalSyncToken/);
       assert.match(wizardSource, /onClearAll:\s*handleClearAll/);
-      assert.match(wizardSource, /resetWizardToRegistryDefaults/);
+      assert.match(wizardSource, /orchestrateDenaliWizardFromTemplate/);
+      assert.match(wizardSource, /emptyDenaliWizardCanonicalData/);
+      assert.match(wizardSource, /wizardFormReady/);
     },
   },
   {

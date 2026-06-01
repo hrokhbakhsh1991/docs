@@ -5,15 +5,23 @@ import { TenantEntity } from "../modules/identity/entities/tenant.entity";
 import { IdempotencyModule } from "../modules/idempotency/idempotency.module";
 import { EmailVerificationTokensCleanupJob } from "./email-verification-tokens-cleanup.job";
 import { IdempotencyCleanupJob } from "./idempotency-cleanup.job";
+import { PendingStorageDeletionCleanupJob } from "./pending-storage-deletion-cleanup.job";
+import { TourCloneStorageModule } from "../modules/tours/tour-clone-storage.module";
 import { SchedulerLockService } from "./scheduler-lock.service";
 import { SchedulerRuntimeMetricsService } from "./scheduler-runtime-metrics.service";
 
 @Global()
 @Module({
-  imports: [DatabaseModule, IdempotencyModule, TypeOrmModule.forFeature([TenantEntity])],
+  imports: [
+    DatabaseModule,
+    IdempotencyModule,
+    TourCloneStorageModule,
+    TypeOrmModule.forFeature([TenantEntity]),
+  ],
   providers: [
     IdempotencyCleanupJob,
     EmailVerificationTokensCleanupJob,
+    PendingStorageDeletionCleanupJob,
     SchedulerLockService,
     SchedulerRuntimeMetricsService
   ],

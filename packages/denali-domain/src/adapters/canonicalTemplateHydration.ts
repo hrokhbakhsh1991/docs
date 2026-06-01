@@ -1,4 +1,8 @@
 import type { DenaliCanonicalTemplateData } from "@repo/types/denali";
+import {
+  validateDenaliCanonicalTemplateData,
+  type DenaliCanonicalTemplateValidationResult,
+} from "@repo/types/denali";
 
 import type { DenaliCreateTourWizardForm } from "../schemas/denaliCore.schema";
 import type { TourWizardPrefillMeta } from "./tourWizardPrefillMeta";
@@ -28,6 +32,18 @@ function hasCanonicalTemplateContent(
   );
 }
 
+/** Both keys must be present on the patch before template hydrate may set tour classification. */
+function patchDeclaresClassification(patch: DenaliCanonicalPartial): boolean {
+  return patch.category !== undefined && patch.duration !== undefined;
+}
+
+/** Layer A boundary: stateless Zod validation for workspace template canonicalData. */
+export function validateCanonicalTemplateData(
+  value: unknown,
+): DenaliCanonicalTemplateValidationResult {
+  return validateDenaliCanonicalTemplateData(value);
+}
+
 /**
  * Hydrates workspace template / preset `canonicalData` into wizard RHF state using the
  * same rule-engine finalize path as draft hydration used to.
@@ -47,16 +63,31 @@ export function tryHydrateCanonicalTemplate(
     return null;
   }
 
+  const classificationDeclared = patchDeclaresClassification(patch);
   const baseCanonical = safeDenaliFormToCanonical(defaultValues);
   const mergedCanonical = mergeDenaliCanonicalPartial(baseCanonical, patch);
   const priorBasics = readDenaliCanonicalBasics(defaultValues.basicInfo.tourType);
-  const basics = {
-    category: mergedCanonical.category,
-    duration: canonicalDurationToBasicsDuration(mergedCanonical.duration),
-    eventVariant: priorBasics?.category === "event" ? priorBasics.eventVariant : undefined,
-  };
+  const basics = classificationDeclared
+    ? {
+        category: mergedCanonical.category,
+        duration: canonicalDurationToBasicsDuration(mergedCanonical.duration),
+        eventVariant:
+          mergedCanonical.category === "event" && priorBasics?.category === "event"
+            ? priorBasics.eventVariant
+            : undefined,
+      }
+    : priorBasics ?? undefined;
 
-  const formFromCanonical = denaliCanonicalToForm(mergedCanonical, defaultValues, { basics });
+  let formFromCanonical = denaliCanonicalToForm(mergedCanonical, defaultValues, { basics });
+  if (!classificationDeclared) {
+    formFromCanonical = {
+      ...formFromCanonical,
+      basicInfo: {
+        ...formFromCanonical.basicInfo,
+        tourType: defaultValues.basicInfo.tourType,
+      },
+    };
+  }
   const formValues = finalizeDenaliWizardHydration(formFromCanonical, ruleSet);
 
   return { formValues, wizardMeta };

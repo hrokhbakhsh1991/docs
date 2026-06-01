@@ -12,6 +12,37 @@ export {
   type DenaliCategoryEnum,
 } from "./layout/denaliCategoryEnum";
 
+/** Catalog clone / reference registry */
+export {
+  CatalogRegistry,
+  catalogRegistry,
+  GLOBAL_CATALOG_ARRAY_FIELD_NAMES,
+  OVERVIEW_TOUR_INSTANCE_PIN_FIELD_NAMES,
+  type CatalogReferenceKey,
+  type CatalogRegistryResolveInput,
+  type GlobalCatalogReferenceKey,
+  type TourInstanceReferenceKey,
+} from "./catalog/catalog-registry";
+export {
+  cloneTripDetailsWithRemap,
+  type CloneTripDetailsResult,
+  type CloneTripDetailsWithRemapOptions,
+  type DenaliTripDetailsCloneSource,
+} from "./catalog/clone-trip-details-with-remap";
+export {
+  copyCatalogReferenceArray,
+  remintLocation,
+  remintPhoto,
+  safeRemintTripDetailsRegistryWalk,
+  createRegistryWalkContext,
+  type RegistryWalkContext,
+} from "./catalog/safe-remint-registry-walk";
+export {
+  buildDenaliClonePresetFromTripDetails,
+  readDenaliClonePresetFormPath,
+  type BuildDenaliClonePresetOptions,
+} from "./catalog/clone-storage-preset-walker";
+
 /** Draft sync */
 export * from "./draft/index";
 
@@ -19,6 +50,7 @@ export * from "./draft/index";
 export {
   DENALI_FIELD_DEFINITIONS,
   type DenaliFieldDefinition,
+  type DenaliSettingsSurface,
   type DenaliZodFieldKind,
 } from "./registry/denaliFieldRegistryData";
 export { DENALI_FIELD_REGISTRY } from "./registry/DenaliFieldRegistry";
@@ -58,6 +90,11 @@ export {
 } from "./schemas/denaliCore.schema";
 export { denaliTourCreateBaseSchema } from "./schemas/denaliTourCreateBaseSchema";
 export { denaliCanonicalTourSchema } from "./schemas/denaliCanonicalTourSchema.unified";
+export {
+  assertDenaliLegacySchemaAllowed,
+  type DenaliLegacySchemaSite,
+} from "./schemas/denaliLegacySchemaGuard";
+export { DenaliLegacySchemaForbiddenError } from "./schemas/denaliLegacySchemaForbiddenError";
 
 /** Rules */
 export * from "./rules/denaliRuleModel";
@@ -67,6 +104,16 @@ export {
   listDenaliTemplateCanonicalFieldPaths,
   DENALI_TEMPLATE_SCHEMA,
 } from "./rules/deriveDenaliTemplateSchema";
+export { listDenaliTemplateStorageFieldPaths } from "./rules/listDenaliTemplateStorageFieldPaths";
+export {
+  DENALI_MODERN_SETTINGS_OVERLAY_STORAGE_PATHS,
+  listDenaliSettingsOverlayStoragePaths,
+} from "./rules/listDenaliSettingsOverlayStoragePaths";
+export {
+  getDenaliSettingsOverlayFieldHints,
+  type DenaliOverlayContextualHintKey,
+  type DenaliOverlayFieldHint,
+} from "./rules/denaliOverlayFieldHints";
 export {
   parseFieldRulesOverlay,
   applyOverlayToRuleSet,
@@ -104,10 +151,32 @@ export {
 } from "./adapters/denaliCanonicalFormAdapter";
 export {
   tryHydrateCanonicalTemplate,
+  validateCanonicalTemplateData,
   type HydratedDenaliWizardForm,
 } from "./adapters/canonicalTemplateHydration";
 export { readDenaliCanonicalBasics, patchDenaliCanonicalBasics } from "./adapters/canonical-basics";
 export { finalizeDenaliWizardHydration } from "./adapters/denaliFormHydration";
+export {
+  buildDenaliCreateTourPayloadProjection,
+  buildDenaliStagingShellProjection,
+  buildDenaliSubmitItinerarySlice,
+  denaliDayPlansToSegmentActivities,
+  denaliTourKindToApiTourType,
+  splitIsoDateTime,
+  type BuildDenaliCreateTourPayloadProjectionOptions,
+  type DenaliCreateTourPayloadProjectionMode,
+} from "./projection/buildDenaliCreateTourPayloadProjection";
+export type { DenaliCreateTourPayloadProjection } from "./projection/wizardMapperHelpers";
+export {
+  DenaliTemplateOrchestratorFactory,
+  denaliTemplateOrchestratorFactory,
+} from "./rules/factory/DenaliTemplateOrchestratorFactory";
+export type {
+  DenaliTemplateOrchestratorContract,
+  OrchestrationOptions,
+  OrchestrationOutput,
+  WorkspaceTemplatePayload,
+} from "./rules/factory/denaliTemplateOrchestrator.types";
 export {
   getDenaliFormPathValue,
   setDenaliFormPathValue,

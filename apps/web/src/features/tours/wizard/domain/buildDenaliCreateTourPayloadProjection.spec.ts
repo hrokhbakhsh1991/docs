@@ -12,7 +12,14 @@ import {
   denaliFormToCanonical,
 } from "@/features/tours/wizard/denali/denaliCanonicalFormAdapter";
 import { submitValidDenaliWizardDefaults } from "@/features/tours/testing/denaliSubmitTestHelpers";
-import { buildDenaliCreateTourPayloadProjection } from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
+import {
+  buildDenaliCreateTourPayloadProjection,
+  buildDenaliSubmitPayloadProjection,
+  FatalProjectionError,
+  pruneDenaliWizardFormForSubmit,
+  pruneDenaliWizardFormToRegistry,
+} from "@/features/tours/wizard/domain/buildDenaliCreateTourPayloadProjection";
+import type { DenaliCreateTourWizardForm } from "@/features/tours/wizard/schemas/denaliCore.schema";
 import { buildDenaliTourCreateDefaultValues } from "@/features/tours/wizard/schemas/denaliLogistics.schema";
 
 /** Expected value for the registry-only overview field under test. */
@@ -112,3 +119,49 @@ test("projection contract: manual overview merge does not drop other overview fi
   assert.equal(overview?.maxAltitudeMeters, EXPECTED_PEAK_HEIGHT_M);
   assert.equal(overview?.elevationGainMeters, EXPECTED_ELEVATION_GAIN_M);
 });
+
+function buildDirtyFormWithRegistryInvalidKeys(clean: DenaliCreateTourWizardForm): DenaliCreateTourWizardForm {
+  const dirty = structuredClone(clean) as DenaliCreateTourWizardForm & Record<string, unknown>;
+  dirty.__ghostMatrixSmuggle = { staleRuleMatrixCell: true };
+  dirty.__unregisteredWizardRoot = "draft-merge leftover";
+  dirty.tripDetails = {
+    ...dirty.tripDetails,
+    overview: {
+      ...dirty.tripDetails.overview,
+      __ghostOverviewKey: "must not reach projection",
+    } as DenaliCreateTourWizardForm["tripDetails"]["overview"],
+  };
+  return dirty;
+}
+
+test("golden-file: prune + submit projection matches factory-clean output when form has registry-invalid keys", () => {
+  const cleanForm = submitValidDenaliWizardDefaults();
+  const dirtyForm = buildDirtyFormWithRegistryInvalidKeys(cleanForm);
+
+  const factoryCleanPruned = pruneDenaliWizardFormToRegistry(cleanForm);
+  const factoryReference = buildDenaliSubmitPayloadProjection(factoryCleanPruned);
+
+  const dirtyPruned = pruneDenaliWizardFormToRegistry(dirtyForm);
+  const pipelineProjection = buildDenaliSubmitPayloadProjection(dirtyPruned);
+
+  assert.deepEqual(
+    pipelineProjection,
+    factoryReference,
+    "prune + buildDenaliSubmitPayloadProjection must yield the same submit payload for dirty vs clean forms when ghosts are stripped",
+  );
+  assert.deepEqual(
+    dirtyPruned,
+    factoryCleanPruned,
+    "pruneDenaliWizardFormToRegistry must normalize dirty draft-smuggled forms to the factory-clean registry shape",
+  );
+});
+
+test("pruneDenaliWizardFormForSubmit throws FatalProjectionError on non-registry root keys", () => {
+  const cleanForm = submitValidDenaliWizardDefaults();
+  const dirtyForm = buildDirtyFormWithRegistryInvalidKeys(cleanForm);
+  assert.throws(
+    () => pruneDenaliWizardFormForSubmit(dirtyForm),
+    (error: unknown) => error instanceof FatalProjectionError,
+  );
+});
+

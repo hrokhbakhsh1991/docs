@@ -34,7 +34,7 @@ export default function TourWizardTemplateSettingsPage() {
       breadcrumbItems={[...breadcrumbItems]}
       actions={null}
     >
-      <SettingsLayout>
+      <SettingsLayout wide>
         <SettingsSectionCard
           title={t("tourWizardTemplateSectionTitle")}
           description={t("tourWizardTemplateSectionDescription")}

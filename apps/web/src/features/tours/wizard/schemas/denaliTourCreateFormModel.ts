@@ -36,8 +36,16 @@ export function mergeDenaliFormDefaults(
     tripDetails: {
       ...defaults.tripDetails,
       ...patch.tripDetails,
+      overview: {
+        ...defaults.tripDetails?.overview,
+        ...patch.tripDetails?.overview,
+      },
+      metrics: {
+        ...defaults.tripDetails?.metrics,
+        ...patch.tripDetails?.metrics,
+      },
       logistics: {
-        ...defaults.tripDetails.logistics,
+        ...defaults.tripDetails?.logistics,
         ...patch.tripDetails?.logistics,
       },
     },

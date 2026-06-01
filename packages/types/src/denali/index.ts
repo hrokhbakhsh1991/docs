@@ -26,10 +26,12 @@ export {
   DENALI_CANONICAL_CATEGORY_VALUES,
   DENALI_CANONICAL_DURATION_VALUES,
   DENALI_CANONICAL_TRANSPORT_MODE_VALUES,
+  DENALI_EVENT_VARIANT_VALUES,
   type DenaliCanonicalCategory,
   type DenaliCanonicalDuration,
   type DenaliCanonicalTourModel,
   type DenaliCanonicalTransportMode,
+  type DenaliEventVariant,
   type DenaliTripDetailsOverview,
 } from "./denaliCanonicalTourModel";
 
@@ -44,7 +46,13 @@ export {
 export {
   DENALI_CANONICAL_TEMPLATE_TOP_LEVEL_KEYS,
   TEMPLATE_SCHEMA_ALIGNED_WITH_CANONICAL_MODEL,
+  denaliCanonicalTemplateDataSchema,
   validateDenaliCanonicalTemplateData,
+  formatDenaliTemplatePathSuggestion,
+  suggestDenaliTemplateStoragePath,
+  toDenaliTemplateStoragePath,
+  listDenaliTemplateLegacyOverlayPaths,
+  DENALI_TEMPLATE_RULE_PATH_TO_STORAGE_PATH,
   type DenaliCanonicalTemplateValidationIssue,
   type DenaliCanonicalTemplateValidationResult,
 } from "./validateCanonicalTemplateData";
@@ -61,7 +69,17 @@ export {
   storedTemplateRowIsLegacy,
   templateToCanonical,
   type CleanupLegacyTemplatesReport,
+  type SanitizeDenaliCanonicalTemplateOptions,
 } from "./templateCanonicalMapping";
+
+export {
+  resolveStoredTemplateCanonical,
+  type ResolveStoredTemplateCanonicalOptions,
+  type ResolvedStoredTemplateCanonical,
+  type StoredTemplateCanonicalRow,
+} from "./resolveStoredTemplateCanonical";
+
+export { isDenaliCanonicalTemplateDataEmpty } from "./isDenaliCanonicalTemplateDataEmpty";
 
 export {
   denaliCanonicalFromForm,
