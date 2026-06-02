@@ -1,6 +1,13 @@
 /**
  * Generic persisted wizard document — platform source of truth.
  */
+import {
+  assertPlainObjectShield,
+  assertStablePlainPrototype,
+  clonePlainObjectShield,
+  type PlainObjectShieldFail,
+} from "./plain-object-shield";
+
 export interface CanonicalDocument {
   readonly schemaVersion: number;
   readonly roots: readonly string[];
@@ -31,9 +38,26 @@ const MAX_KEYS_PER_OBJECT = 500;
 const MAX_PATH_SEGMENTS = 16;
 const MAX_STRING_LENGTH = 64_000;
 
+const DOCUMENT_SHIELD_OPTIONS = {
+  maxDepth: MAX_DEPTH,
+  maxKeysPerObject: MAX_KEYS_PER_OBJECT,
+  onLeaf(value: unknown, path: string, _depth: number): void {
+    if (typeof value === "string" && value.length > MAX_STRING_LENGTH) {
+      fail("CANONICAL_INVALID_DATA", `String too long at ${path}`);
+    }
+    if (typeof value === "number" && !Number.isFinite(value)) {
+      fail("CANONICAL_INVALID_DATA", `Non-finite number at ${path}`);
+    }
+  },
+} as const;
+
 function fail(code: CanonicalDocumentValidationErrorCode, message: string): never {
   throw new CanonicalDocumentValidationError(code, message);
 }
+
+const shieldFail: PlainObjectShieldFail = (message) => {
+  fail("CANONICAL_INVALID_DATA", message);
+};
 
 function assertSafeRootName(root: string, index: number): void {
   if (FORBIDDEN_ROOT_KEYS.has(root)) {
@@ -51,115 +75,11 @@ function assertSafeRootName(root: string, index: number): void {
 }
 
 function assertCanonicalDataNode(value: unknown, path: string, depth: number): void {
-  if (depth > MAX_DEPTH) {
-    fail("CANONICAL_INVALID_DATA", `Max depth exceeded at ${path}`);
-  }
-
-  if (value == null) {
-    return;
-  }
-
-  if (Array.isArray(value)) {
-    fail("CANONICAL_INVALID_DATA", `Arrays are not allowed at ${path}`);
-  }
-
-  if (typeof value === "string") {
-    if (value.length > MAX_STRING_LENGTH) {
-      fail("CANONICAL_INVALID_DATA", `String too long at ${path}`);
-    }
-    return;
-  }
-
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      fail("CANONICAL_INVALID_DATA", `Non-finite number at ${path}`);
-    }
-    return;
-  }
-
-  if (typeof value === "boolean") {
-    return;
-  }
-
-  if (typeof value === "bigint") {
-    fail("CANONICAL_INVALID_DATA", `BigInt is not allowed at ${path}`);
-  }
-
-  if (typeof value === "symbol" || typeof value === "function") {
-    fail("CANONICAL_INVALID_DATA", `Unsupported exotic value at ${path}`);
-  }
-
-  if (typeof value !== "object") {
-    fail("CANONICAL_INVALID_DATA", `Unsupported value at ${path}`);
-  }
-
-  assertPlainObjectBounded(value, path, depth);
-}
-
-function assertPlainObjectBounded(
-  value: unknown,
-  path: string,
-  depth: number,
-): asserts value is Record<string, unknown> {
-  if (depth > MAX_DEPTH) {
-    fail("CANONICAL_INVALID_DATA", `Max depth exceeded at ${path}`);
-  }
-  if (value == null || typeof value !== "object" || Array.isArray(value)) {
-    fail("CANONICAL_INVALID_DATA", `Expected object at ${path}`);
-  }
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype) {
-    fail("CANONICAL_INVALID_DATA", `Non-plain object at ${path}`);
-  }
-  const keys = Object.keys(value);
-  if (keys.length > MAX_KEYS_PER_OBJECT) {
-    fail("CANONICAL_INVALID_DATA", `Too many keys at ${path}`);
-  }
-  const symbols = Object.getOwnPropertySymbols(value);
-  if (symbols.length > 0) {
-    fail("CANONICAL_INVALID_DATA", `Symbol keys are not allowed at ${path}`);
-  }
-  for (const key of keys) {
-    if (FORBIDDEN_ROOT_KEYS.has(key)) {
-      fail("CANONICAL_INVALID_DATA", `Forbidden key "${key}" at ${path}`);
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (descriptor?.get != null || descriptor?.set != null) {
-      fail("CANONICAL_INVALID_DATA", `Accessor property "${key}" is not allowed at ${path}`);
-    }
-    assertCanonicalDataNode(
-      (value as Record<string, unknown>)[key],
-      `${path}.${key}`,
-      depth + 1,
-    );
-  }
+  assertPlainObjectShield(value, path, depth, DOCUMENT_SHIELD_OPTIONS, shieldFail);
 }
 
 function deepCloneFreezePlainData(value: unknown, path: string, depth: number): unknown {
-  if (depth > MAX_DEPTH) {
-    fail("CANONICAL_INVALID_DATA", `Max depth exceeded at ${path}`);
-  }
-
-  if (value == null) {
-    return value;
-  }
-
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    fail("CANONICAL_INVALID_DATA", `Arrays are not allowed at ${path}`);
-  }
-
-  assertPlainObjectBounded(value, path, depth);
-
-  const source = value as Record<string, unknown>;
-  const clone: Record<string, unknown> = {};
-  for (const key of Object.keys(source)) {
-    clone[key] = deepCloneFreezePlainData(source[key], `${path}.${key}`, depth + 1);
-  }
-  return Object.freeze(clone);
+  return clonePlainObjectShield(value, path, depth, DOCUMENT_SHIELD_OPTIONS, shieldFail);
 }
 
 /**
@@ -231,10 +151,7 @@ export function assertCanonicalDocument(document: CanonicalDocument): void {
     fail("CANONICAL_INVALID_DATA", "data must be a plain object");
   }
 
-  const dataProto = Object.getPrototypeOf(document.data);
-  if (dataProto !== Object.prototype) {
-    fail("CANONICAL_INVALID_DATA", "data must be a plain object");
-  }
+  assertStablePlainPrototype(document.data, "data", shieldFail);
 
   for (const key of Object.keys(document.data)) {
     if (!seenRoots.has(key)) {

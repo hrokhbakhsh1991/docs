@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
 
+import { testRuleContext, TEST_TENANT_ID } from "../__fixtures__/rule-context.fixture";
 import {
   starterFieldRegistry,
   starterRuleSet,
@@ -83,7 +84,7 @@ describe("RuleEngine", () => {
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
     assert.throws(
-      () => engine.resolveCellId({ dimensions: { variant: "other" } }),
+      () => engine.resolveCellId(testRuleContext({ variant: "other" })),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "RULE_CONTEXT_UNMATCHED");
@@ -96,7 +97,7 @@ describe("RuleEngine", () => {
   it("resolves exact dimension match to matching cell", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.equal(
-      engine.resolveCellId({ dimensions: { variant: "default" } }),
+      engine.resolveCellId(testRuleContext({ variant: "default" })),
       "default",
     );
   });
@@ -115,9 +116,10 @@ describe("RuleEngine", () => {
       ],
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
-    const state = engine.resolveEffectiveField("field.a", {
-      dimensions: { variant: "default" },
-    });
+    const state = engine.resolveEffectiveField(
+      "field.a",
+      testRuleContext({ variant: "default" }),
+    );
     assert.equal(state.required, false);
   });
 
@@ -138,7 +140,7 @@ describe("RuleEngine", () => {
       ],
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
-    const visible = engine.listEffectiveFields({ dimensions: { variant: "default" } });
+    const visible = engine.listEffectiveFields(testRuleContext({ variant: "default" }));
     assert.equal(visible.length, 1);
     assert.equal(visible[0]?.fieldId, "field.b");
   });
@@ -191,7 +193,7 @@ describe("RuleEngine", () => {
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
     assert.equal(
-      engine.resolveCellId({ dimensions: { variant: "premium" } }),
+      engine.resolveCellId(testRuleContext({ variant: "premium" })),
       "premium",
     );
   });
@@ -229,7 +231,7 @@ describe("RuleEngine", () => {
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
     assert.equal(
-      engine.resolveCellId({ dimensions: { variant: "premium", tier: "gold" } }),
+      engine.resolveCellId(testRuleContext({ variant: "premium", tier: "gold" })),
       "full",
     );
   });
@@ -261,12 +263,13 @@ describe("RuleEngine", () => {
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
     assert.equal(
-      engine.resolveCellId({ dimensions: { variant: "premium" } }),
+      engine.resolveCellId(testRuleContext({ variant: "premium" })),
       "premium",
     );
-    const state = engine.resolveEffectiveField("field.a", {
-      dimensions: { variant: "premium" },
-    });
+    const state = engine.resolveEffectiveField(
+      "field.a",
+      testRuleContext({ variant: "premium" }),
+    );
     assert.equal(state.required, false);
   });
 
@@ -296,10 +299,14 @@ describe("RuleEngine", () => {
       ],
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
-    assert.equal(engine.resolveCellId({ dimensions: { variant: "premium" } }), "high-priority-catch-all");
-    const state = engine.resolveEffectiveField("field.a", {
-      dimensions: { variant: "premium" },
-    });
+    assert.equal(
+      engine.resolveCellId(testRuleContext({ variant: "premium" })),
+      "high-priority-catch-all",
+    );
+    const state = engine.resolveEffectiveField(
+      "field.a",
+      testRuleContext({ variant: "premium" }),
+    );
     assert.equal(state.required, false);
   });
 
@@ -328,7 +335,7 @@ describe("RuleEngine", () => {
     };
     const engine = makeEngine(minimalRegistry, ruleSet);
     assert.throws(
-      () => engine.resolveCellId({ dimensions: { variant: "x" } }),
+      () => engine.resolveCellId(testRuleContext({ variant: "x" })),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "AMBIGUOUS_RULE_RESOLUTION");
@@ -341,7 +348,7 @@ describe("RuleEngine", () => {
   it("throws RULE_CONTEXT_UNMATCHED for empty dimensions without catch-all cell", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.throws(
-      () => engine.resolveCellId({ dimensions: {} }),
+      () => engine.resolveCellId(testRuleContext({})),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "RULE_CONTEXT_UNMATCHED");
@@ -354,9 +361,9 @@ describe("RuleEngine", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.throws(
       () =>
-        engine.resolveCellId({
-          dimensions: { variant: "default", attack_dim_0: "x" },
-        }),
+        engine.resolveCellId(
+          testRuleContext({ variant: "default", attack_dim_0: "x" }),
+        ),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "INVALID_RULE_CONTEXT");
@@ -369,7 +376,10 @@ describe("RuleEngine", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.throws(
       () =>
-        engine.resolveCellId({ dimensions: null } as unknown as RuleContext),
+        engine.resolveCellId({
+          tenantId: TEST_TENANT_ID,
+          dimensions: null,
+        } as unknown as RuleContext),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "RULE_CONTEXT_UNMATCHED");
@@ -380,7 +390,7 @@ describe("RuleEngine", () => {
 
   it("integrates with starter plugin registry and ruleSet", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
-    const fields = engine.listEffectiveFields({ dimensions: { variant: "default" } });
+    const fields = engine.listEffectiveFields(testRuleContext({ variant: "default" }));
     assert.equal(fields.length, 2);
     const title = fields.find((f) => f.fieldId === "basics.title");
     assert.ok(title);
@@ -391,10 +401,9 @@ describe("RuleEngine", () => {
   it("forceCellId returns requested cell when valid", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.equal(
-      engine.resolveCellId({
-        dimensions: { variant: "other" },
-        forceCellId: "default",
-      }),
+      engine.resolveCellId(
+        testRuleContext({ variant: "other" }, { forceCellId: "default" }),
+      ),
       "default",
     );
   });
@@ -406,10 +415,9 @@ describe("RuleEngine", () => {
       const engine = makeEngine(starterFieldRegistry, starterRuleSet);
       assert.throws(
         () =>
-          engine.resolveCellId({
-            dimensions: { variant: "default" },
-            forceCellId: "default",
-          }),
+          engine.resolveCellId(
+            testRuleContext({ variant: "default" }, { forceCellId: "default" }),
+          ),
         (error: unknown) => {
           assert.ok(error instanceof PlatformCoreError);
           assert.equal(error.code, "INVALID_RULE_CONTEXT");
@@ -425,10 +433,9 @@ describe("RuleEngine", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
     assert.throws(
       () =>
-        engine.resolveCellId({
-          dimensions: { variant: "default" },
-          forceCellId: "missing",
-        }),
+        engine.resolveCellId(
+          testRuleContext({ variant: "default" }, { forceCellId: "missing" }),
+        ),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "INVALID_RULE_SET");
@@ -439,11 +446,146 @@ describe("RuleEngine", () => {
 
   it("reuses RuleEngineScope for repeated calls with the same context", () => {
     const engine = makeEngine(starterFieldRegistry, starterRuleSet);
-    const context: RuleContext = { dimensions: { variant: "default" } };
+    const context = testRuleContext({ variant: "default" });
     const scopeA = engine.createScope(context);
     const scopeB = engine.createScope(context);
     assert.equal(scopeA, scopeB);
     assert.equal(engine.resolveCellId(context), "default");
     assert.equal(scopeA.resolveCellId(), "default");
+  });
+});
+
+describe("RuleEngine tenant isolation", () => {
+  it("throws TENANT_ISOLATION_VIOLATION when tenantId is missing", () => {
+    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+    assert.throws(
+      () =>
+        engine.resolveCellId({
+          dimensions: { variant: "default" },
+        } as RuleContext),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "TENANT_ISOLATION_VIOLATION");
+        return true;
+      },
+    );
+  });
+
+  it("throws TENANT_ISOLATION_VIOLATION when tenantId is empty", () => {
+    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+    assert.throws(
+      () => engine.resolveCellId({ tenantId: "  ", dimensions: { variant: "default" } }),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "TENANT_ISOLATION_VIOLATION");
+        return true;
+      },
+    );
+  });
+
+  it("throws INVALID_RULE_CONTEXT when tenantId has invalid format", () => {
+    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+    assert.throws(
+      () => engine.resolveCellId({ tenantId: "bad tenant!", dimensions: { variant: "default" } }),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "INVALID_RULE_CONTEXT");
+        return true;
+      },
+    );
+  });
+
+  it("Tenant_A and Tenant_B with identical dimensions receive isolated RuleEngineScope instances", () => {
+    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+    const ctxA = testRuleContext({ variant: "default" }, { tenantId: "tenant_a" });
+    const ctxB = testRuleContext({ variant: "default" }, { tenantId: "tenant_b" });
+
+    const scopeA = engine.createScope(ctxA);
+    const scopeB = engine.createScope(ctxB);
+
+    assert.notEqual(scopeA, scopeB);
+    assert.equal(scopeA.resolveCellId(), "default");
+    assert.equal(scopeB.resolveCellId(), "default");
+  });
+
+  it("concurrent resolution keeps tenant scopes isolated under identical matrix dimensions", async () => {
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [{ fieldId: "field.a", required: true, hidden: false }],
+        },
+      ],
+    };
+    const engine = makeEngine(minimalRegistry, ruleSet);
+
+    const tasks = Array.from({ length: 200 }, (_, index) => {
+      const tenantId = index % 2 === 0 ? "tenant_a" : "tenant_b";
+      return Promise.resolve().then(() => {
+        const scope = engine.createScope(testRuleContext({ variant: "default" }, { tenantId }));
+        scope.resolveEffectiveField("field.a");
+        return { tenantId, scope };
+      });
+    });
+
+    const results = await Promise.all(tasks);
+
+    const scopesA = results.filter((r) => r.tenantId === "tenant_a").map((r) => r.scope);
+    const scopesB = results.filter((r) => r.tenantId === "tenant_b").map((r) => r.scope);
+
+    assert.ok(scopesA.length > 0);
+    assert.ok(scopesB.length > 0);
+
+    const canonicalA = engine.createScope(testRuleContext({ variant: "default" }, { tenantId: "tenant_a" }));
+    const canonicalB = engine.createScope(testRuleContext({ variant: "default" }, { tenantId: "tenant_b" }));
+
+    for (const scope of scopesA) {
+      assert.equal(scope, canonicalA);
+    }
+    for (const scope of scopesB) {
+      assert.equal(scope, canonicalB);
+    }
+    assert.notEqual(canonicalA, canonicalB);
+  });
+
+  it("LRU eviction for tenant_A does not evict tenant_B cached scope", () => {
+    const cells = [
+      ...Array.from({ length: 65 }, (_, index) => ({
+        cellId: `cell-${index}`,
+        dimensions: { variant: `v-${index}` },
+        fieldOverrides: [{ fieldId: "field.a", hidden: false }],
+      })),
+      {
+        cellId: "default",
+        dimensions: { variant: "default" },
+        fieldOverrides: [{ fieldId: "field.a", hidden: false }],
+      },
+    ];
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells,
+    };
+    const engine = makeEngine(minimalRegistry, ruleSet);
+
+    const tenantBContext = testRuleContext({ variant: "default" }, { tenantId: "tenant_b" });
+    const tenantBScopeBefore = engine.createScope(tenantBContext);
+
+    for (let i = 0; i < 65; i += 1) {
+      engine.resolveCellId(
+        testRuleContext({ variant: `v-${i}` }, { tenantId: "tenant_a" }),
+      );
+    }
+
+    const tenantBScopeAfter = engine.createScope(tenantBContext);
+    assert.equal(tenantBScopeBefore, tenantBScopeAfter);
+    assert.notEqual(tenantBScopeBefore, engine.createScope(
+      testRuleContext({ variant: "default" }, { tenantId: "tenant_a" }),
+    ));
   });
 });

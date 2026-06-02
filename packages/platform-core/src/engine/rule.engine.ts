@@ -6,7 +6,9 @@ import {
 import { PlatformCoreError } from "../errors/platform-core.error";
 import type { EffectiveFieldState } from "../types/effective-field-state";
 import type { RuleContext } from "../types/rule-context";
-import { buildRuleContextScopeKey } from "../utils/rule-context-scope-key";
+import { normalizeRuleContext } from "../utils/rule-context";
+import { buildRuleContextDimensionKey } from "../utils/rule-context-scope-key";
+import { assertRuleContextTenantId } from "../utils/rule-context-tenant";
 import { FieldRegistryEngine } from "./field-registry.engine";
 import { RuleEngineScope } from "./rule-engine.scope";
 import { RuleCellIndex } from "./rule-cell-index";
@@ -15,7 +17,8 @@ const MAX_SCOPE_CACHE_SIZE = 64;
 
 export class RuleEngine {
   private readonly cellIndex: RuleCellIndex;
-  private readonly scopeCache = new Map<string, RuleEngineScope>();
+  /** Per-tenant LRU scope caches — eviction never crosses tenant boundaries. */
+  private readonly scopeCacheByTenant = new Map<string, Map<string, RuleEngineScope>>();
 
   constructor(
     private readonly ruleSet: WorkspaceRuleSet,
@@ -56,22 +59,34 @@ export class RuleEngine {
   }
 
   private scopeFor(context: RuleContext): RuleEngineScope {
-    const key = buildRuleContextScopeKey(context, this.ruleSet.matrixDimensions);
-    const cached = this.scopeCache.get(key);
+    const normalized = normalizeRuleContext(context);
+    const tenantId = assertRuleContextTenantId(normalized);
+    const dimensionKey = buildRuleContextDimensionKey(
+      normalized,
+      this.ruleSet.matrixDimensions,
+    );
+
+    let tenantCache = this.scopeCacheByTenant.get(tenantId);
+    if (tenantCache == null) {
+      tenantCache = new Map<string, RuleEngineScope>();
+      this.scopeCacheByTenant.set(tenantId, tenantCache);
+    }
+
+    const cached = tenantCache.get(dimensionKey);
     if (cached != null) {
-      this.scopeCache.delete(key);
-      this.scopeCache.set(key, cached);
+      tenantCache.delete(dimensionKey);
+      tenantCache.set(dimensionKey, cached);
       return cached;
     }
 
-    const scope = new RuleEngineScope(this.ruleSet, this.fieldEngine, this.cellIndex, context);
-    if (this.scopeCache.size >= MAX_SCOPE_CACHE_SIZE) {
-      const oldest = this.scopeCache.keys().next().value;
+    const scope = new RuleEngineScope(this.ruleSet, this.fieldEngine, this.cellIndex, normalized);
+    if (tenantCache.size >= MAX_SCOPE_CACHE_SIZE) {
+      const oldest = tenantCache.keys().next().value;
       if (oldest != null) {
-        this.scopeCache.delete(oldest);
+        tenantCache.delete(oldest);
       }
     }
-    this.scopeCache.set(key, scope);
+    tenantCache.set(dimensionKey, scope);
     return scope;
   }
 }

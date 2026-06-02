@@ -8,6 +8,7 @@ import {
 } from "@app-tour/workspace-sdk";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
+import { testRuleContext } from "../__fixtures__/rule-context.fixture";
 import { PlatformWizardEngine } from "./platform-wizard.engine";
 
 function pluginWithDuplicateFieldId(): WorkspacePlugin {
@@ -142,7 +143,7 @@ function pluginWithAmbiguousCatchAllCells(): WorkspacePlugin {
 describe("PlatformWizardEngine", () => {
   it("fromPlugin builds render plan end-to-end for starter", () => {
     const engine = PlatformWizardEngine.fromPlugin(starterWorkspacePlugin);
-    const plan = engine.buildRenderPlan({ dimensions: { variant: "default" } });
+    const plan = engine.buildRenderPlan(testRuleContext({ variant: "default" }));
     assert.equal(plan.length, 2);
     assert.equal(plan[0]?.stepId, "basics");
     assert.equal(plan[1]?.stepId, "details");
@@ -224,9 +225,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "ok" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
     assert.equal(result.violations.length, 1);
     assert.equal(result.violations[0]?.code, "UNKNOWN_CANONICAL_PATH");
@@ -243,9 +242,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "ok" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
     assert.equal(result.violations.length, 1);
     assert.equal(result.violations[0]?.code, "REQUIRED_FIELD_EMPTY");
@@ -278,9 +275,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "ok" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, true);
   });
 
@@ -294,9 +289,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "ok" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
     assert.equal(result.violations[0]?.code, "CANONICAL_TYPE_MISMATCH");
     assert.equal(result.violations[0]?.fieldId, "basics.title");
@@ -312,9 +305,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "Summary text" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, true);
     assert.deepEqual(result.violations, []);
   });
@@ -360,9 +351,7 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "Summary text", status: "@@INVALID@@" },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
     assert.equal(result.violations[0]?.code, "CANONICAL_TYPE_MISMATCH");
     assert.equal(result.violations[0]?.fieldId, "details.status");
@@ -408,11 +397,73 @@ describe("PlatformWizardEngine", () => {
         details: { summary: "Summary text", secret: 12345 },
       },
     });
-    const result = engine.validateCanonical(document, {
-      dimensions: { variant: "default" },
-    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
     assert.equal(result.violations[0]?.code, "CANONICAL_TYPE_MISMATCH");
     assert.equal(result.violations[0]?.fieldId, "details.secret");
+  });
+});
+
+describe("validateCanonical high-cardinality", () => {
+  it("validates 1,200 hidden fields across 50 steps with zero violations", () => {
+    const stepCount = 50;
+    const fieldsPerStep = 24;
+    const roots = Array.from({ length: stepCount }, (_, index) => `step-${index}`);
+    const fields = roots.flatMap((stepId) =>
+      Array.from({ length: fieldsPerStep }, (_, index) => ({
+        id: `${stepId}.field-${index}`,
+        canonicalPath: `${stepId}.field-${index}`,
+        stepId,
+        kind: "text" as const,
+        required: false,
+      })),
+    );
+
+    const data: Record<string, Record<string, string>> = {};
+    for (const root of roots) {
+      const bucket: Record<string, string> = {};
+      for (let index = 0; index < fieldsPerStep; index += 1) {
+        bucket[`field-${index}`] = "ok";
+      }
+      data[root] = bucket;
+    }
+
+    const plugin: WorkspacePlugin = {
+      ...starterWorkspacePlugin,
+      fieldRegistry: { version: 1, fields },
+      wizard: {
+        ...starterWorkspacePlugin.wizard,
+        roots,
+      },
+      ruleSet: {
+        ...starterWorkspacePlugin.ruleSet,
+        cells: [
+          {
+            cellId: "default",
+            dimensions: { variant: "default" },
+            fieldOverrides: fields.map((field) => ({
+              fieldId: field.id,
+              hidden: true,
+            })),
+          },
+        ],
+      },
+    };
+
+    const engine = PlatformWizardEngine.fromPlugin(plugin);
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots,
+      data,
+    });
+    const context = testRuleContext({ variant: "default" });
+
+    const first = engine.validateCanonical(document, context);
+    const second = engine.validateCanonical(document, context);
+
+    assert.equal(first.ok, true);
+    assert.equal(second.ok, true);
+    assert.deepEqual(first.violations, []);
+    assert.deepEqual(second.violations, []);
   });
 });

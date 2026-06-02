@@ -1,15 +1,24 @@
 import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk";
+import {
+  assertStablePlainPrototype,
+  readOwnDataProperty,
+} from "@app-tour/workspace-sdk";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 
 const FORBIDDEN_OBJECT_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 const MAX_COMPOSITE_DEPTH = 16;
+const MAX_COMPOSITE_KEYS = 500;
+const MAX_COMPOSITE_STACK = MAX_COMPOSITE_DEPTH * MAX_COMPOSITE_KEYS;
 const MIN_DATE_YEAR = 1970;
 const MAX_DATE_YEAR = 2100;
 
 /** ISO-8601 calendar date or date-time (Z or numeric offset). */
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+
+const compositeNodeStack: unknown[] = [];
+const compositeDepthStack: number[] = [];
 
 export type CanonicalValueValidationOptions = {
   readonly enumOptions?: readonly string[];
@@ -86,65 +95,115 @@ function assertValidEnumToken(
   }
 }
 
-function assertCompositeNestedValue(
-  value: unknown,
-  canonicalPath: string,
-  depth: number,
-): void {
-  if (depth > MAX_COMPOSITE_DEPTH) {
-    throw new PlatformCoreError(
-      "CANONICAL_TYPE_MISMATCH",
-      `composite at "${canonicalPath}" exceeds max nested depth (${MAX_COMPOSITE_DEPTH})`,
-      { canonicalPath, kind: "composite" },
-    );
-  }
+function compositeFail(canonicalPath: string, message: string): never {
+  throw new PlatformCoreError(
+    "CANONICAL_TYPE_MISMATCH",
+    message,
+    { canonicalPath, kind: "composite" },
+  );
+}
 
-  if (value == null) {
+function assertCompositeLeaf(
+  leaf: unknown,
+  path: string,
+  canonicalPath: string,
+): void {
+  if (leaf == null) {
     return;
   }
-
-  if (Array.isArray(value)) {
-    throw new PlatformCoreError(
-      "CANONICAL_TYPE_MISMATCH",
-      `composite at "${canonicalPath}" cannot contain arrays`,
-      { canonicalPath, kind: "composite" },
-    );
+  if (typeof leaf === "string" || typeof leaf === "boolean") {
+    return;
   }
-
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    if (typeof value === "number" && !Number.isFinite(value)) {
-      throw typeMismatch(canonicalPath, "composite", "non-finite number in nested value");
+  if (typeof leaf === "number") {
+    if (!Number.isFinite(leaf)) {
+      throw typeMismatch(path, "composite", "non-finite number in nested value");
     }
     return;
   }
+  if (typeof leaf === "bigint") {
+    throw typeMismatch(path, "composite", "BigInt in nested value");
+  }
+  compositeFail(canonicalPath, `Unsupported nested value at ${path}`);
+}
 
-  if (typeof value === "bigint") {
-    throw typeMismatch(canonicalPath, "composite", "BigInt in nested value");
+function assertCompositeNodeObject(
+  node: object,
+  path: string,
+  canonicalPath: string,
+): void {
+  const fail = (message: string): never => compositeFail(canonicalPath, message);
+  assertStablePlainPrototype(node, path, fail);
+
+  if (Object.getOwnPropertySymbols(node).length > 0) {
+    compositeFail(canonicalPath, `Symbol keys are not allowed at ${path}`);
   }
 
-  if (typeof value !== "object") {
-    throw typeMismatch(canonicalPath, "composite", typeof value);
+  const enumerableKeys = Object.keys(node);
+  const ownNames = Object.getOwnPropertyNames(node);
+  if (ownNames.length !== enumerableKeys.length) {
+    compositeFail(canonicalPath, `Hidden non-enumerable keys are not allowed at ${path}`);
   }
 
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype) {
-    throw new PlatformCoreError(
-      "CANONICAL_TYPE_MISMATCH",
-      `composite at "${canonicalPath}" nested value must be a plain object`,
-      { canonicalPath, kind: "composite" },
-    );
+  if (enumerableKeys.length > MAX_COMPOSITE_KEYS) {
+    compositeFail(canonicalPath, `Too many keys at ${path}`);
   }
+}
 
-  const record = value as Record<string, unknown>;
-  for (const key of Object.keys(record)) {
-    if (FORBIDDEN_OBJECT_KEYS.has(key)) {
-      throw new PlatformCoreError(
-        "CANONICAL_TYPE_MISMATCH",
-        `composite at "${canonicalPath}" contains forbidden key "${key}"`,
-        { canonicalPath, kind: "composite", segment: key },
+/**
+ * Flat iterative composite walk — no recursive call frames on hot path.
+ */
+function assertCompositeIterative(value: unknown, canonicalPath: string): void {
+  compositeNodeStack.length = 0;
+  compositeDepthStack.length = 0;
+  compositeNodeStack.push(value);
+  compositeDepthStack.push(0);
+
+  while (compositeNodeStack.length > 0) {
+    const node = compositeNodeStack.pop()!;
+    const depth = compositeDepthStack.pop()!;
+
+    if (depth > MAX_COMPOSITE_DEPTH) {
+      compositeFail(
+        canonicalPath,
+        `composite at "${canonicalPath}" exceeds max nested depth (${MAX_COMPOSITE_DEPTH})`,
       );
     }
-    assertCompositeNestedValue(record[key], `${canonicalPath}.${key}`, depth + 1);
+
+    if (node == null || typeof node !== "object" || Array.isArray(node)) {
+      compositeFail(canonicalPath, `composite at "${canonicalPath}" must be a plain object`);
+    }
+
+    assertCompositeNodeObject(node, canonicalPath, canonicalPath);
+    const fail = (message: string): never => compositeFail(canonicalPath, message);
+    const record = node as Record<string, unknown>;
+    const keys = Object.keys(record);
+
+    for (let index = keys.length - 1; index >= 0; index -= 1) {
+      const key = keys[index]!;
+      if (FORBIDDEN_OBJECT_KEYS.has(key)) {
+        compositeFail(
+          canonicalPath,
+          `composite at "${canonicalPath}" contains forbidden key "${key}"`,
+        );
+      }
+
+      const childPath = `${canonicalPath}.${key}`;
+      const child = readOwnDataProperty(record, key, childPath, fail);
+
+      if (child == null) {
+        continue;
+      }
+
+      if (typeof child === "object" && !Array.isArray(child)) {
+        if (compositeNodeStack.length >= MAX_COMPOSITE_STACK) {
+          compositeFail(canonicalPath, `composite at "${canonicalPath}" exceeds walk stack limit`);
+        }
+        compositeNodeStack.push(child);
+        compositeDepthStack.push(depth + 1);
+      } else {
+        assertCompositeLeaf(child, childPath, canonicalPath);
+      }
+    }
   }
 }
 
@@ -189,19 +248,10 @@ export function assertCanonicalValueMatchesKind(
       if (value == null || typeof value !== "object" || Array.isArray(value)) {
         throw typeMismatch(canonicalPath, kind, typeof value);
       }
-      const keys = Object.keys(value as object);
-      if (keys.length === 0) {
+      if (Object.keys(value as object).length === 0) {
         throw emptyRequired(canonicalPath, kind);
       }
-      const proto = Object.getPrototypeOf(value);
-      if (proto !== Object.prototype) {
-        throw new PlatformCoreError(
-          "CANONICAL_TYPE_MISMATCH",
-          `composite at "${canonicalPath}" must be a plain object`,
-          { canonicalPath, kind },
-        );
-      }
-      assertCompositeNestedValue(value, canonicalPath, 1);
+      assertCompositeIterative(value, canonicalPath);
       return;
     }
     default: {
@@ -222,6 +272,18 @@ export function isEmptyCanonicalValue(
 ): boolean {
   if (value === undefined || value === null) {
     return true;
+  }
+
+  if (kind === "text" && typeof value === "string" && value.trim() === "") {
+    return true;
+  }
+
+  if (kind === "enum" && typeof value === "string" && value.trim() === "") {
+    return true;
+  }
+
+  if (kind === "composite" && typeof value === "object" && value != null && !Array.isArray(value)) {
+    return Object.keys(value as object).length === 0;
   }
 
   try {

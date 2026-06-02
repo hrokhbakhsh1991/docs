@@ -7,6 +7,7 @@ import type {
   WorkspaceWizardSurface,
 } from "@app-tour/workspace-sdk";
 
+import { testRuleContext } from "../__fixtures__/rule-context.fixture";
 import {
   starterFieldRegistry,
   starterRuleSet,
@@ -62,7 +63,7 @@ describe("RenderPlanBuilder", () => {
       starterRuleSet,
       starterWizardSurface,
     );
-    const plan = builder.build({ dimensions: { variant: "default" } });
+    const plan = builder.build(testRuleContext({ variant: "default" }));
     assert.equal(plan.length, 2);
     assert.equal(plan[0]?.stepId, "basics");
     assert.equal(plan[0]?.fields.length, 1);
@@ -102,9 +103,7 @@ describe("RenderPlanBuilder", () => {
       inactiveFieldGroups: [],
       wizardCapacityStepRedundant: false,
     };
-    const plan = makeBuilder(registry, ruleSet, wizard).build({
-      dimensions: { variant: "default" },
-    });
+    const plan = makeBuilder(registry, ruleSet, wizard).build(testRuleContext({ variant: "default" }));
     assert.deepEqual(plan, []);
   });
 
@@ -140,9 +139,7 @@ describe("RenderPlanBuilder", () => {
       inactiveFieldGroups: [],
       wizardCapacityStepRedundant: false,
     };
-    const plan = makeBuilder(registry, ruleSet, wizard).build({
-      dimensions: { variant: "default" },
-    });
+    const plan = makeBuilder(registry, ruleSet, wizard).build(testRuleContext({ variant: "default" }));
     assert.equal(plan[0]?.fields[0]?.kind, "composite");
     assert.deepEqual(plan[0]?.fields[0]?.uiHints, { compositeId: "widget.peak" });
   });
@@ -179,9 +176,7 @@ describe("RenderPlanBuilder", () => {
       inactiveFieldGroups: [],
       wizardCapacityStepRedundant: false,
     };
-    const plan = makeBuilder(registry, ruleSet, wizard).build({
-      dimensions: { variant: "default" },
-    });
+    const plan = makeBuilder(registry, ruleSet, wizard).build(testRuleContext({ variant: "default" }));
     assert.equal(plan.length, 1);
     assert.equal(plan[0]?.stepId, "step-a");
     assert.ok(!plan.some((step) => step.stepId === "orphan-step"));
@@ -193,7 +188,7 @@ describe("RenderPlanBuilder", () => {
       starterRuleSet,
       starterWizardSurface,
     );
-    const plan = builder.build({ dimensions: { variant: "default" } });
+    const plan = builder.build(testRuleContext({ variant: "default" }));
     for (const step of plan) {
       for (const field of step.fields) {
         assert.equal(field.canonicalPath, field.fieldId);
@@ -208,7 +203,7 @@ describe("RenderPlanBuilder", () => {
       wizardCapacityStepRedundant: true,
     };
     const builder = makeBuilder(starterFieldRegistry, starterRuleSet, wizard);
-    const plan = builder.build({ dimensions: { variant: "default" } });
+    const plan = builder.build(testRuleContext({ variant: "default" }));
     assert.equal(plan[0]?.uiHints?.wizardCapacityStepRedundant, "true");
     assert.equal(plan[1]?.uiHints?.wizardCapacityStepRedundant, "true");
   });
@@ -219,7 +214,7 @@ describe("RenderPlanBuilder", () => {
       starterRuleSet,
       starterWizardSurface,
     );
-    const plan = builder.build({ dimensions: { variant: "default" } });
+    const plan = builder.build(testRuleContext({ variant: "default" }));
     assert.equal(JSON.stringify(plan), STARTER_PLAN_SNAPSHOT);
   });
 });
