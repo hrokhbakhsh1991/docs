@@ -1,47 +1,34 @@
+/**
+ * @repo/workspace-sdk — workspace plugin contract (`map.md` Phase 1).
+ */
 export const WORKSPACE_SDK_VERSION = 1 as const;
 
 export type WorkspaceSdkVersion = typeof WORKSPACE_SDK_VERSION;
 
 export {
-  assertCanonicalDocument,
   assertCanonicalDocumentRoots,
-  assertCanonicalPathSegments,
   CanonicalDocumentValidationError,
   createCanonicalDocument,
   type CanonicalDocument,
-  type CanonicalDocumentValidationErrorCode,
 } from "./canonical/canonical-document";
 
-export { parseCanonicalDocumentFromStorage } from "./ingress/parse-canonical-document";
-export { parseWorkspacePluginFromStorage } from "./ingress/parse-workspace-plugin";
-
-export { starterWorkspacePlugin } from "./reference/starter-workspace.plugin";
+export { mockWorkspacePlugin } from "./mock/mock-workspace.plugin";
 
 export {
-  assertWorkspacePlugin,
   isWorkspacePlugin,
-  WorkspacePluginValidationError,
   type WorkspacePlugin,
-  type WorkspacePluginValidationErrorCode,
 } from "./plugin/workspace-plugin";
 
 export {
-  STARTER_WORKSPACE_PLUGIN_ID,
+  MOCK_WORKSPACE_PLUGIN_ID,
   type WorkspacePluginId,
 } from "./plugin/workspace-plugin-id";
 
 export {
-  DEFAULT_WORKSPACE_TYPE_BINDINGS,
-  resolveWorkspacePluginIdForType,
-  type WorkspaceTypeBinding,
-} from "./plugin/workspace-type-binding";
-
-export {
-  isWorkspaceTypeId,
-  STARTER_WORKSPACE_TYPE,
-  workspaceTypesFromPlugin,
-  type WorkspaceTypeId,
-} from "./plugin/workspace-type";
+  DEFAULT_WORKSPACE_PROFILE_BINDINGS,
+  resolveWorkspacePluginIdForProfile,
+  type WorkspaceProfileBinding,
+} from "./plugin/workspace-profile-binding";
 
 export {
   type WorkspaceLifecycleContract,

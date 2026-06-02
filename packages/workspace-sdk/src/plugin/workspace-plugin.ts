@@ -1,41 +1,20 @@
-import type { WorkspaceFieldRegistry } from "../registry/field-registry";
-import type { WorkspaceRuleSet } from "../registry/rule-set";
-import type { WorkspaceLifecycleContract } from "./workspace-lifecycle";
-import type { WorkspacePluginId } from "./workspace-plugin-id";
-import type { WorkspaceValidationHooks } from "./workspace-validation";
-import type { WorkspaceWizardSurface } from "./workspace-wizard-surface";
+export type { WorkspacePlugin } from "./workspace-plugin.contract";
 
-/**
- * Workspace plugin contract (`map.md` Phase 1 — Contract).
- *
- * Platform code depends on this interface; concrete workspaces (Phase 2+)
- * implement it without coupling core to a specific business model.
- */
-export interface WorkspacePlugin {
-  readonly id: WorkspacePluginId;
-  readonly version: number;
-  /** Subset of frozen `TOUR_FORM_PROFILE_VALUES` this plugin serves. */
-  readonly supportedProfiles: readonly string[];
-  readonly fieldRegistry: WorkspaceFieldRegistry;
-  readonly ruleSet: WorkspaceRuleSet;
-  readonly wizard: WorkspaceWizardSurface;
-  readonly validation: WorkspaceValidationHooks;
-  readonly lifecycle: WorkspaceLifecycleContract;
-}
+export {
+  assertWorkspacePlugin,
+  WorkspacePluginValidationError,
+  type WorkspacePluginValidationErrorCode,
+} from "./workspace-plugin-validation";
 
+import { assertWorkspacePlugin } from "./workspace-plugin-validation";
+import type { WorkspacePlugin } from "./workspace-plugin.contract";
+
+/** Shallow structural check — use {@link assertWorkspacePlugin} before runtime use. */
 export function isWorkspacePlugin(value: unknown): value is WorkspacePlugin {
-  if (value == null || typeof value !== "object") {
+  try {
+    assertWorkspacePlugin(value);
+    return true;
+  } catch {
     return false;
   }
-  const candidate = value as WorkspacePlugin;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.version === "number" &&
-    Array.isArray(candidate.supportedProfiles) &&
-    candidate.fieldRegistry != null &&
-    candidate.ruleSet != null &&
-    candidate.wizard != null &&
-    candidate.validation != null &&
-    candidate.lifecycle != null
-  );
 }
