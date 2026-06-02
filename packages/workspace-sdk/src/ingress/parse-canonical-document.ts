@@ -1,6 +1,7 @@
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
+  freezeCanonicalDocumentData,
   type CanonicalDocument,
 } from "../canonical/canonical-document";
 
@@ -13,5 +14,9 @@ export function parseCanonicalDocumentFromStorage(raw: unknown): CanonicalDocume
   }
   const candidate = raw as CanonicalDocument;
   assertCanonicalDocument(candidate);
-  return candidate;
+  return {
+    schemaVersion: candidate.schemaVersion,
+    roots: candidate.roots,
+    data: freezeCanonicalDocumentData(candidate.data),
+  };
 }

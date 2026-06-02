@@ -191,6 +191,113 @@ describe("CanonicalDocument", () => {
       data: { basics: { title: "ok" } },
     });
     assert.equal(doc.roots[0], "basics");
+    assert.equal(Object.isFrozen(doc.data), true);
+    assert.equal(Object.isFrozen(doc.data.basics), true);
+  });
+
+  it("rejects Proxy objects with unstable prototype chain at ingress", () => {
+    let flip = false;
+    const proxy = new Proxy(
+      { title: "ok" },
+      {
+        getPrototypeOf(): object | null {
+          flip = !flip;
+          return flip ? Object.prototype : null;
+        },
+      },
+    );
+    assert.throws(
+      () =>
+        createCanonicalDocument({
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: { basics: proxy },
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof CanonicalDocumentValidationError);
+        assert.equal(error.code, "CANONICAL_INVALID_DATA");
+        return true;
+      },
+    );
+  });
+
+  it("rejects hidden non-enumerable keys at ingress", () => {
+    const poisoned: Record<string, unknown> = { title: "ok" };
+    Object.defineProperty(poisoned, "secret", {
+      value: "leak",
+      enumerable: false,
+    });
+    assert.throws(
+      () =>
+        createCanonicalDocument({
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: { basics: poisoned },
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof CanonicalDocumentValidationError);
+        assert.equal(error.code, "CANONICAL_INVALID_DATA");
+        return true;
+      },
+    );
+  });
+
+  it("rejects symbol keys on nested nodes at ingress", () => {
+    const poisoned: Record<string, unknown> = { title: "ok" };
+    Object.defineProperty(poisoned, Symbol("hidden"), {
+      value: "leak",
+      enumerable: false,
+    });
+    assert.throws(
+      () =>
+        createCanonicalDocument({
+          schemaVersion: 1,
+          roots: ["basics"],
+          data: { basics: poisoned },
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof CanonicalDocumentValidationError);
+        assert.equal(error.code, "CANONICAL_INVALID_DATA");
+        return true;
+      },
+    );
+  });
+
+  it("deep clone uses Object.create(Object.prototype) without source prototype pollution", () => {
+    const source = { title: "ok", nested: { count: 1 } };
+    const doc = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["basics"],
+      data: { basics: source },
+    });
+    assert.equal(Object.getPrototypeOf(doc.data.basics), Object.prototype);
+    assert.equal(Object.getPrototypeOf(doc.data.basics.nested), Object.prototype);
+    assert.notEqual(doc.data.basics, source);
+    assert.notEqual((doc.data.basics as Record<string, unknown>).nested, source.nested);
+  });
+
+  it("parseCanonicalDocumentFromStorage rejects polluted nested accessors", () => {
+    const payload: Record<string, unknown> = {
+      schemaVersion: 1,
+      roots: ["basics"],
+      data: {
+        basics: {},
+      },
+    };
+    Object.defineProperty((payload.data as Record<string, unknown>).basics as object, "title", {
+      get() {
+        return "exfiltrated";
+      },
+      enumerable: true,
+    });
+    assert.throws(
+      () => parseCanonicalDocumentFromStorage(payload),
+      (error: unknown) => {
+        assert.ok(error instanceof CanonicalDocumentValidationError);
+        assert.equal(error.code, "CANONICAL_INVALID_DATA");
+        return true;
+      },
+    );
   });
 
   it("parseWorkspacePluginFromStorage validates plugins", () => {

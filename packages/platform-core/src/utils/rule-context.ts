@@ -1,5 +1,6 @@
 import { PlatformCoreError } from "../errors/platform-core.error";
 import type { RuleContext } from "../types/rule-context";
+import { assertRuleContextTenantId } from "./rule-context-tenant";
 
 /**
  * Normalizes rule context dimensions: null/undefined → `{}`; rejects non-plain objects.
@@ -9,9 +10,11 @@ export function normalizeRuleContext(context: RuleContext): RuleContext {
     throw new PlatformCoreError("INVALID_RULE_CONTEXT", "RuleContext is required");
   }
 
+  const tenantId = assertRuleContextTenantId(context);
+
   const rawDimensions = context.dimensions;
   if (rawDimensions == null) {
-    return { ...context, dimensions: {} };
+    return { ...context, tenantId, dimensions: {} };
   }
 
   if (typeof rawDimensions !== "object" || Array.isArray(rawDimensions)) {
@@ -34,6 +37,7 @@ export function normalizeRuleContext(context: RuleContext): RuleContext {
 
   return {
     ...context,
+    tenantId,
     dimensions,
   };
 }

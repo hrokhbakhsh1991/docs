@@ -7,6 +7,7 @@ import type {
   WorkspaceWizardSurface,
 } from "@app-tour/workspace-sdk";
 
+import { testRuleContext } from "../__fixtures__/rule-context.fixture";
 import {
   starterFieldRegistry,
   starterRuleSet,
@@ -52,7 +53,7 @@ function scopeFor(
   ruleEngine: RuleEngine,
   dimensions: Record<string, string>,
 ): RuleEngineScope {
-  return ruleEngine.createScope({ dimensions });
+  return ruleEngine.createScope(testRuleContext(dimensions));
 }
 
 describe("StepEngine", () => {

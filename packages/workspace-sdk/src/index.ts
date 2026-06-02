@@ -8,9 +8,16 @@ export {
   assertCanonicalPathSegments,
   CanonicalDocumentValidationError,
   createCanonicalDocument,
+  freezeCanonicalDocumentData,
   type CanonicalDocument,
   type CanonicalDocumentValidationErrorCode,
 } from "./canonical/canonical-document";
+
+export {
+  assertPlainObjectShield,
+  assertStablePlainPrototype,
+  readOwnDataProperty,
+} from "./canonical/plain-object-shield";
 
 export { parseCanonicalDocumentFromStorage } from "./ingress/parse-canonical-document";
 export { parseWorkspacePluginFromStorage } from "./ingress/parse-workspace-plugin";

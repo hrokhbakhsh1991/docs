@@ -66,4 +66,41 @@ describe("assertCanonicalValueMatchesKind", () => {
       },
     );
   });
+
+  it("rejects composite values with unstable Proxy prototype", () => {
+    let flip = false;
+    const proxy = new Proxy(
+      { nested: "ok" },
+      {
+        getPrototypeOf(): object | null {
+          flip = !flip;
+          return flip ? Object.prototype : null;
+        },
+      },
+    );
+    assert.throws(
+      () => assertCanonicalValueMatchesKind(proxy, "composite", "widget.body"),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "CANONICAL_TYPE_MISMATCH");
+        return true;
+      },
+    );
+  });
+
+  it("rejects composite values with hidden non-enumerable keys", () => {
+    const poisoned: Record<string, unknown> = { nested: "ok" };
+    Object.defineProperty(poisoned, "secret", {
+      value: "tunnel",
+      enumerable: false,
+    });
+    assert.throws(
+      () => assertCanonicalValueMatchesKind(poisoned, "composite", "widget.body"),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "CANONICAL_TYPE_MISMATCH");
+        return true;
+      },
+    );
+  });
 });
