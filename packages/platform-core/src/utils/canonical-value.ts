@@ -10,6 +10,7 @@ const FORBIDDEN_OBJECT_KEYS = new Set(["__proto__", "prototype", "constructor"])
 const MAX_COMPOSITE_DEPTH = 16;
 const MAX_COMPOSITE_KEYS = 500;
 const MAX_COMPOSITE_STACK = MAX_COMPOSITE_DEPTH * MAX_COMPOSITE_KEYS;
+const MAX_ENUM_OPTIONS = 500;
 const MIN_DATE_YEAR = 1970;
 const MAX_DATE_YEAR = 2100;
 
@@ -90,7 +91,23 @@ function assertValidEnumToken(
     );
   }
 
-  if (!enumOptions.includes(trimmed)) {
+  if (enumOptions.length > MAX_ENUM_OPTIONS) {
+    throw new PlatformCoreError(
+      "CARDINALITY_VIOLATION",
+      `enum field at "${canonicalPath}" exceeds maximum enumOptions count (${MAX_ENUM_OPTIONS})`,
+      { canonicalPath, enumOptionCount: enumOptions.length },
+    );
+  }
+
+  const normalizedValue = trimmed.normalize("NFC");
+  let matched = false;
+  for (const option of enumOptions) {
+    if (option.normalize("NFC") === normalizedValue) {
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) {
     throw typeMismatch(canonicalPath, "enum", `unknown enum label "${trimmed}"`);
   }
 }
@@ -122,6 +139,9 @@ function assertCompositeLeaf(
   }
   if (typeof leaf === "bigint") {
     throw typeMismatch(path, "composite", "BigInt in nested value");
+  }
+  if (typeof leaf === "symbol") {
+    compositeFail(canonicalPath, `Symbol primitive is not allowed at ${path}`);
   }
   compositeFail(canonicalPath, `Unsupported nested value at ${path}`);
 }

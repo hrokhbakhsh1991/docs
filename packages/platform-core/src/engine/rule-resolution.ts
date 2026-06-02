@@ -9,7 +9,9 @@ export function cellMatchesDimensions(
 ): boolean {
   const cellDimensions = cell.dimensions;
   for (const key of Object.keys(cellDimensions)) {
-    if (dimensions[key] !== cellDimensions[key]) {
+    const cellValue = cellDimensions[key]!.normalize("NFC");
+    const contextValue = dimensions[key]?.normalize("NFC");
+    if (contextValue !== cellValue) {
       return false;
     }
   }
@@ -23,15 +25,29 @@ function matchedDimensionKeyCount(
   let count = 0;
   const cellDimensions = cell.dimensions;
   for (const key of Object.keys(cellDimensions)) {
-    if (dimensions[key] === cellDimensions[key]) {
+    const cellValue = cellDimensions[key]!.normalize("NFC");
+    const contextValue = dimensions[key]?.normalize("NFC");
+    if (contextValue === cellValue) {
       count += 1;
     }
   }
   return count;
 }
 
-const specScratch = new Uint16Array(MAX_RULE_CELL_INDEX_SIZE);
-const priorityScratch = new Int16Array(MAX_RULE_CELL_INDEX_SIZE);
+type MatchScratchPool = {
+  readonly spec: Uint16Array;
+  readonly priority: Int16Array;
+};
+
+/**
+ * Allocates isolated scratch buffers per call — safe across concurrent workers.
+ */
+export function createScratchPool(size: number = MAX_RULE_CELL_INDEX_SIZE): MatchScratchPool {
+  return {
+    spec: new Uint16Array(size),
+    priority: new Int16Array(size),
+  };
+}
 
 /**
  * Pick the single best matching cell by specificity then priority.
@@ -60,6 +76,8 @@ export function pickBestMatchingCell(
       { matchCount: count },
     );
   }
+
+  const { spec: specScratch, priority: priorityScratch } = createScratchPool(count);
 
   for (let i = 0; i < count; i += 1) {
     specScratch[i] = matchedDimensionKeyCount(matches[i]!, dimensions);

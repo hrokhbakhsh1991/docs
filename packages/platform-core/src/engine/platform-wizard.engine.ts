@@ -14,17 +14,14 @@ import {
   getCanonicalValue,
   isEmptyCanonicalValue,
 } from "../utils/canonical-path";
-import {
-  matchesHiddenFieldCheckpoint,
-  passesHiddenFieldKindGate,
-  type HiddenFieldCheckpoint,
-} from "../utils/hidden-field-checkpoint";
 import { normalizeRuleContext } from "../utils/rule-context";
 import { FieldRegistryEngine } from "./field-registry.engine";
 import { RenderPlanBuilder } from "./render-plan.builder";
 import { RuleEngine } from "./rule.engine";
 import { assertWorkspacePluginForPlatform } from "./sdk-error-map";
 import { ValidationStatusMap } from "./validation-status-map";
+
+const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
 
 /**
  * Facade for platform wizard engines. Apps must use this entry point only.
@@ -34,7 +31,6 @@ import { ValidationStatusMap } from "./validation-status-map";
 export class PlatformWizardEngine {
   private readonly renderPlanBuilder: RenderPlanBuilder;
   private readonly validationStatus = new ValidationStatusMap();
-  private readonly hiddenFieldCheckpoints = new Map<string, HiddenFieldCheckpoint>();
 
   private constructor(
     private readonly plugin: WorkspacePlugin,
@@ -52,6 +48,14 @@ export class PlatformWizardEngine {
     assertWorkspacePluginForPlatform(plugin);
 
     const fieldEngine = new FieldRegistryEngine(plugin.fieldRegistry);
+    if (fieldEngine.listAll().length > MAX_ALLOWED_REGISTRY_FIELDS) {
+      throw new PlatformCoreError(
+        "REGISTRY_CARDINALITY_VIOLATION",
+        `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
+        { fieldCount: fieldEngine.listAll().length },
+      );
+    }
+
     const ruleEngine = new RuleEngine(plugin.ruleSet, fieldEngine);
     return new PlatformWizardEngine(plugin, fieldEngine, ruleEngine);
   }
@@ -78,6 +82,19 @@ export class PlatformWizardEngine {
       throw error;
     }
 
+    const fieldCount = this.fieldEngine.listAll().length;
+    if (fieldCount > MAX_ALLOWED_REGISTRY_FIELDS) {
+      return {
+        ok: false,
+        violations: [
+          {
+            code: "REGISTRY_CARDINALITY_VIOLATION",
+            message: `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
+          },
+        ],
+      };
+    }
+
     const scope = this.ruleEngine.createScope(context);
     this.validationStatus.reset();
 
@@ -95,6 +112,18 @@ export class PlatformWizardEngine {
 
       try {
         const value = getCanonicalValue(document.data, field.canonicalPath);
+
+        if (hidden && value !== undefined) {
+          if (field.kind !== "composite") {
+            this.validationStatus.record(
+              "HIDDEN_FIELD_POISON",
+              field.id,
+              `Hidden field "${field.id}" must not contain a value at "${field.canonicalPath}"`,
+            );
+            continue;
+          }
+        }
+
         if (value === undefined) {
           if (effective.required && !hidden) {
             this.validationStatus.record(
@@ -113,36 +142,10 @@ export class PlatformWizardEngine {
           continue;
         }
 
-        if (hidden) {
-          const checkpoint = this.hiddenFieldCheckpoints.get(field.id);
-          if (
-            checkpoint != null &&
-            matchesHiddenFieldCheckpoint(checkpoint, document.data, field.kind, value)
-          ) {
-            continue;
-          }
-
-          if (passesHiddenFieldKindGate(value, field.kind, field.enumOptions)) {
-            this.hiddenFieldCheckpoints.set(field.id, {
-              documentData: document.data,
-              kind: field.kind,
-              tag: value,
-            });
-            continue;
-          }
-        }
-
         try {
           assertCanonicalValueMatchesKind(value, field.kind, field.canonicalPath, {
             enumOptions: field.enumOptions,
           });
-          if (hidden) {
-            this.hiddenFieldCheckpoints.set(field.id, {
-              documentData: document.data,
-              kind: field.kind,
-              tag: value,
-            });
-          }
         } catch (error) {
           if (error instanceof PlatformCoreError) {
             this.validationStatus.record(error.code, field.id, error.message);

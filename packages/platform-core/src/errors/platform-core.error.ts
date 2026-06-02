@@ -16,7 +16,10 @@ export type PlatformCoreErrorCode =
   | "REQUIRED_FIELD_EMPTY"
   | "CANONICAL_ROOT_UNKNOWN"
   | "RULE_CONTEXT_UNMATCHED"
-  | "AMBIGUOUS_RULE_RESOLUTION";
+  | "AMBIGUOUS_RULE_RESOLUTION"
+  | "CARDINALITY_VIOLATION"
+  | "HIDDEN_FIELD_POISON"
+  | "REGISTRY_CARDINALITY_VIOLATION";
 
 export type PlatformCoreErrorDetails = Readonly<Record<string, unknown>>;
 

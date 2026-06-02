@@ -1,9 +1,17 @@
 import {
   assertCanonicalDocument,
   CanonicalDocumentValidationError,
-  freezeCanonicalDocumentData,
   type CanonicalDocument,
 } from "../canonical/canonical-document";
+import { deepCloneFreezeFromStorage } from "./ingress-storage-sanitizer";
+
+function wrapIngressError(error: unknown): never {
+  if (error instanceof CanonicalDocumentValidationError) {
+    throw error;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  throw new CanonicalDocumentValidationError("CANONICAL_INVALID_DATA", message);
+}
 
 export function parseCanonicalDocumentFromStorage(raw: unknown): CanonicalDocument {
   if (raw == null || typeof raw !== "object" || Array.isArray(raw)) {
@@ -12,11 +20,15 @@ export function parseCanonicalDocumentFromStorage(raw: unknown): CanonicalDocume
       "Stored canonical document must be a plain object",
     );
   }
-  const candidate = raw as CanonicalDocument;
-  assertCanonicalDocument(candidate);
-  return {
-    schemaVersion: candidate.schemaVersion,
-    roots: candidate.roots,
-    data: freezeCanonicalDocumentData(candidate.data),
-  };
+
+  let sanitized: CanonicalDocument;
+  try {
+    sanitized = deepCloneFreezeFromStorage<CanonicalDocument>(raw, "document", {
+      allowArrays: true,
+    });
+  } catch (error: unknown) {
+    wrapIngressError(error);
+  }
+  assertCanonicalDocument(sanitized);
+  return Object.freeze(sanitized);
 }

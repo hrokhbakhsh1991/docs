@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test": "NODE_ENV=test node --import tsx --test \"src/**/*.spec.ts\""
+    "test": "NODE_ENV=test node --import tsx --test \"src/**/*.spec.ts\" \"test/**/*.spec.ts\""
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

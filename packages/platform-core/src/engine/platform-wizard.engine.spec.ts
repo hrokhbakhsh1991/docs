@@ -310,7 +310,7 @@ describe("PlatformWizardEngine", () => {
     assert.deepEqual(result.violations, []);
   });
 
-  it("validateCanonical rejects invalid enum token on hidden field", () => {
+  it("validateCanonical rejects HIDDEN_FIELD_POISON when hidden field has enum value", () => {
     const plugin: WorkspacePlugin = {
       ...starterWorkspacePlugin,
       fieldRegistry: {
@@ -353,11 +353,11 @@ describe("PlatformWizardEngine", () => {
     });
     const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
-    assert.equal(result.violations[0]?.code, "CANONICAL_TYPE_MISMATCH");
+    assert.equal(result.violations[0]?.code, "HIDDEN_FIELD_POISON");
     assert.equal(result.violations[0]?.fieldId, "details.status");
   });
 
-  it("validateCanonical reports CANONICAL_TYPE_MISMATCH for wrong type on hidden field", () => {
+  it("validateCanonical reports HIDDEN_FIELD_POISON when hidden field has any value", () => {
     const plugin: WorkspacePlugin = {
       ...starterWorkspacePlugin,
       fieldRegistry: {
@@ -399,15 +399,15 @@ describe("PlatformWizardEngine", () => {
     });
     const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
-    assert.equal(result.violations[0]?.code, "CANONICAL_TYPE_MISMATCH");
+    assert.equal(result.violations[0]?.code, "HIDDEN_FIELD_POISON");
     assert.equal(result.violations[0]?.fieldId, "details.secret");
   });
 });
 
 describe("validateCanonical high-cardinality", () => {
-  it("validates 1,200 hidden fields across 50 steps with zero violations", () => {
-    const stepCount = 50;
-    const fieldsPerStep = 24;
+  it("validates 1,000 hidden fields across 40 steps when document omits hidden paths", () => {
+    const stepCount = 40;
+    const fieldsPerStep = 25;
     const roots = Array.from({ length: stepCount }, (_, index) => `step-${index}`);
     const fields = roots.flatMap((stepId) =>
       Array.from({ length: fieldsPerStep }, (_, index) => ({
@@ -421,11 +421,7 @@ describe("validateCanonical high-cardinality", () => {
 
     const data: Record<string, Record<string, string>> = {};
     for (const root of roots) {
-      const bucket: Record<string, string> = {};
-      for (let index = 0; index < fieldsPerStep; index += 1) {
-        bucket[`field-${index}`] = "ok";
-      }
-      data[root] = bucket;
+      data[root] = {};
     }
 
     const plugin: WorkspacePlugin = {

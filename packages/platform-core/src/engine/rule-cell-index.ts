@@ -8,8 +8,12 @@ export { MAX_RULE_CELL_INDEX_SIZE } from "./rule-cell-limits";
 
 export type DimensionSignature = string;
 
+function normalizeDimensionValue(value: string): string {
+  return value.normalize("NFC");
+}
+
 /**
- * Builds a dimension signature using a pre-sorted key order (no per-call localeCompare).
+ * Builds a dimension signature using a pre-sorted key order (NFC-normalized values).
  */
 export function buildDimensionSignature(
   dimensions: Readonly<Record<string, string>>,
@@ -19,7 +23,7 @@ export function buildDimensionSignature(
   for (const key of sortedKeyOrder) {
     const value = dimensions[key];
     if (value !== undefined) {
-      parts.push(`${key}=${value}`);
+      parts.push(`${key}=${normalizeDimensionValue(value)}`);
     }
   }
   return parts.join("|");
@@ -48,8 +52,8 @@ export class RuleCellIndex {
   constructor(ruleSet: WorkspaceRuleSet) {
     if (ruleSet.cells.length > MAX_RULE_CELL_INDEX_SIZE) {
       throw new PlatformCoreError(
-        "INVALID_RULE_SET",
-        `ruleSet.cells exceeds rule cell index limit (${MAX_RULE_CELL_INDEX_SIZE})`,
+        "CARDINALITY_VIOLATION",
+        `ruleSet.cells exceeds maximum cardinality (${MAX_RULE_CELL_INDEX_SIZE})`,
         { cellCount: ruleSet.cells.length },
       );
     }
@@ -74,7 +78,7 @@ export class RuleCellIndex {
   }
 
   /**
-   * Returns matching cells in a reusable scratch buffer — consume synchronously before the next call.
+   * Returns a defensive clone of matching cells — safe to retain across async boundaries.
    * @param maxDimensionKeys — upper bound from matrixDimensions.length (prevents key-count DoS).
    */
   findMatches(
@@ -111,13 +115,14 @@ export class RuleCellIndex {
       appendFromBucket(this.cellsByDimensionKeyCount.get(keyCount));
     }
 
-    return matches;
+    return [...matches];
   }
 
   /**
    * Exact signature bucket (O(1)); does not include partial-dimension cells unless signature matches.
    */
   findExactBucket(dimensions: Readonly<Record<string, string>>): readonly WorkspaceRuleCell[] {
-    return this.exactBuckets.get(this.signatureFor(dimensions)) ?? [];
+    const bucket = this.exactBuckets.get(this.signatureFor(dimensions));
+    return bucket != null ? [...bucket] : [];
   }
 }
