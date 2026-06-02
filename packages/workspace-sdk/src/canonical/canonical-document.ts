@@ -182,9 +182,9 @@ export function createCanonicalDocument(input: {
     data: input.data,
   };
   assertCanonicalDocument(document);
-  return {
+  return Object.freeze({
     schemaVersion: document.schemaVersion,
-    roots: document.roots,
+    roots: Object.freeze([...document.roots]),
     data: freezeCanonicalDocumentData(document.data),
-  };
+  });
 }

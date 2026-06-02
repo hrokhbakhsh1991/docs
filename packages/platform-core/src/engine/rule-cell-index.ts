@@ -13,6 +13,31 @@ function normalizeDimensionValue(value: string): string {
 }
 
 /**
+ * Deep-freezes an isolated copy of a rule cell so runtime plugin mutation cannot alter the index.
+ */
+function isolateRuleCell(cell: WorkspaceRuleCell): WorkspaceRuleCell {
+  const dimensions: Record<string, string> = {};
+  for (const [key, value] of Object.entries(cell.dimensions)) {
+    dimensions[key] = value;
+  }
+
+  const fieldOverrides = cell.fieldOverrides.map((override) =>
+    Object.freeze({
+      fieldId: override.fieldId,
+      ...(override.hidden != null ? { hidden: override.hidden } : {}),
+      ...(override.required != null ? { required: override.required } : {}),
+    }),
+  );
+
+  return Object.freeze({
+    cellId: cell.cellId,
+    dimensions: Object.freeze(dimensions),
+    ...(cell.priority != null ? { priority: cell.priority } : {}),
+    fieldOverrides: Object.freeze(fieldOverrides),
+  });
+}
+
+/**
  * Builds a dimension signature using a pre-sorted key order (NFC-normalized values).
  */
 export function buildDimensionSignature(
@@ -46,8 +71,6 @@ export class RuleCellIndex {
   private readonly sortedDimensionKeys: readonly string[];
   private readonly exactBuckets = new Map<DimensionSignature, WorkspaceRuleCell[]>();
   private readonly cellsByDimensionKeyCount = new Map<number, WorkspaceRuleCell[]>();
-  private readonly matchScratch: WorkspaceRuleCell[] = [];
-  private readonly matchSeenScratch = new Set<string>();
 
   constructor(ruleSet: WorkspaceRuleSet) {
     if (ruleSet.cells.length > MAX_RULE_CELL_INDEX_SIZE) {
@@ -61,14 +84,15 @@ export class RuleCellIndex {
     this.sortedDimensionKeys = [...ruleSet.matrixDimensions].sort((a, b) => a.localeCompare(b));
 
     for (const cell of ruleSet.cells) {
-      const signature = this.signatureFor(cell.dimensions);
+      const isolated = isolateRuleCell(cell);
+      const signature = this.signatureFor(isolated.dimensions);
       const exactList = this.exactBuckets.get(signature) ?? [];
-      exactList.push(cell);
+      exactList.push(isolated);
       this.exactBuckets.set(signature, exactList);
 
-      const keyCount = Object.keys(cell.dimensions).length;
+      const keyCount = Object.keys(isolated.dimensions).length;
       const countList = this.cellsByDimensionKeyCount.get(keyCount) ?? [];
-      countList.push(cell);
+      countList.push(isolated);
       this.cellsByDimensionKeyCount.set(keyCount, countList);
     }
   }
@@ -87,20 +111,19 @@ export class RuleCellIndex {
   ): readonly WorkspaceRuleCell[] {
     const contextKeyCount = Object.keys(dimensions).length;
     const upper = Math.min(contextKeyCount, maxDimensionKeys);
-    const matches = this.matchScratch;
-    matches.length = 0;
-    this.matchSeenScratch.clear();
+    const matches: WorkspaceRuleCell[] = [];
+    const matchSeen = new Set<string>();
 
     const appendFromBucket = (bucket: readonly WorkspaceRuleCell[] | undefined): void => {
       if (!bucket) {
         return;
       }
       for (const cell of bucket) {
-        if (this.matchSeenScratch.has(cell.cellId)) {
+        if (matchSeen.has(cell.cellId)) {
           continue;
         }
         if (cellMatchesDimensions(cell, dimensions)) {
-          this.matchSeenScratch.add(cell.cellId);
+          matchSeen.add(cell.cellId);
           matches.push(cell);
         }
       }
