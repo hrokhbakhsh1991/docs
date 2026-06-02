@@ -32,7 +32,7 @@ export function normalizeRuleContext(context: RuleContext): RuleContext {
         `RuleContext.dimensions["${key}"] must be a string`,
       );
     }
-    dimensions[key] = value;
+    dimensions[key] = value.normalize("NFC");
   }
 
   return {

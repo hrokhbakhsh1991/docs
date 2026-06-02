@@ -7,8 +7,7 @@ import { PlatformCoreError } from "../errors/platform-core.error";
 import type { EffectiveFieldState } from "../types/effective-field-state";
 import type { RuleContext } from "../types/rule-context";
 import { normalizeRuleContext } from "../utils/rule-context";
-import { buildRuleContextDimensionKey } from "../utils/rule-context-scope-key";
-import { assertRuleContextTenantId } from "../utils/rule-context-tenant";
+import { buildRuleContextScopeKey } from "../utils/rule-context-scope-key";
 import { FieldRegistryEngine } from "./field-registry.engine";
 import { RuleEngineScope } from "./rule-engine.scope";
 import { RuleCellIndex } from "./rule-cell-index";
@@ -17,7 +16,7 @@ const MAX_SCOPE_CACHE_SIZE = 64;
 
 export class RuleEngine {
   private readonly cellIndex: RuleCellIndex;
-  /** Per-tenant LRU scope caches — eviction never crosses tenant boundaries. */
+  /** Per-tenant LRU scope caches keyed by full multi-tenant boundary signature. */
   private readonly scopeCacheByTenant = new Map<string, Map<string, RuleEngineScope>>();
 
   constructor(
@@ -60,11 +59,8 @@ export class RuleEngine {
 
   private scopeFor(context: RuleContext): RuleEngineScope {
     const normalized = normalizeRuleContext(context);
-    const tenantId = assertRuleContextTenantId(normalized);
-    const dimensionKey = buildRuleContextDimensionKey(
-      normalized,
-      this.ruleSet.matrixDimensions,
-    );
+    const scopeKey = buildRuleContextScopeKey(normalized, this.ruleSet.matrixDimensions);
+    const tenantId = normalized.tenantId;
 
     let tenantCache = this.scopeCacheByTenant.get(tenantId);
     if (tenantCache == null) {
@@ -72,10 +68,10 @@ export class RuleEngine {
       this.scopeCacheByTenant.set(tenantId, tenantCache);
     }
 
-    const cached = tenantCache.get(dimensionKey);
+    const cached = tenantCache.get(scopeKey);
     if (cached != null) {
-      tenantCache.delete(dimensionKey);
-      tenantCache.set(dimensionKey, cached);
+      tenantCache.delete(scopeKey);
+      tenantCache.set(scopeKey, cached);
       return cached;
     }
 
@@ -86,7 +82,7 @@ export class RuleEngine {
         tenantCache.delete(oldest);
       }
     }
-    tenantCache.set(dimensionKey, scope);
+    tenantCache.set(scopeKey, scope);
     return scope;
   }
 }

@@ -1,0 +1,35 @@
+{
+  "name": "app-tour",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "build": "pnpm --filter @app-tour/workspace-sdk run build && pnpm --filter @app-tour/platform-core run build",
+    "lint": "pnpm --filter @app-tour/workspace-sdk run lint && pnpm --filter @app-tour/platform-core run lint && eslint \"packages/workspace-sdk/src/**/*.ts\" \"packages/platform-core/src/**/*.ts\" --ignore-pattern \"**/*.spec.ts\"",
+    "test": "pnpm --filter @app-tour/workspace-sdk run test && pnpm --filter @app-tour/platform-core run test",
+    "test:adversarial": "NODE_ENV=test node --import tsx --test packages/workspace-sdk/test/adversarial-canonical-ingress.spec.ts packages/platform-core/test/adversarial-validation.spec.ts packages/platform-core/test/rule-engine-concurrency.spec.ts",
+    "guard:architecture": "depcruise packages --config dependency-cruiser.config.js --output-type err",
+    "guard:import-boundary": "node scripts/guards/import-boundary-ast.mjs",
+    "guard:symlink": "node scripts/guards/symlink-guard.mjs",
+    "ci:integrity": "bash scripts/ci-integrity-check.sh",
+    "prepare": "husky",
+    "phase-0:guard": "node scripts/guards/phase-0-guard.mjs",
+    "baseline:metrics": "node scripts/guards/baseline-metrics.mjs",
+    "phase-0:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run phase-0:guard && pnpm run baseline:metrics",
+    "phase-1:guard": "node scripts/guards/phase-1-guard.mjs",
+    "phase-1:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:symlink && pnpm run phase-1:guard"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "dependency-cruiser": "^16.10.4",
+    "eslint": "^8.57.1",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
+    "typescript": "5.9.3"
+  }
+}

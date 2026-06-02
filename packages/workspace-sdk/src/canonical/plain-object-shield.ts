@@ -114,6 +114,32 @@ export function rejectExoticLeaf(
   }
 }
 
+/**
+ * Rejects plain objects that mimic array instances (numeric index + length).
+ */
+export function rejectArrayLikePlainObject(
+  value: object,
+  path: string,
+  fail: PlainObjectShieldFail,
+): void {
+  if (!Object.prototype.hasOwnProperty.call(value, "length")) {
+    return;
+  }
+  const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+  if (
+    lengthDescriptor != null &&
+    "value" in lengthDescriptor &&
+    typeof lengthDescriptor.value === "number"
+  ) {
+    failWithLog(
+      fail,
+      path,
+      "array-like object",
+      `Array-like plain object (length=${lengthDescriptor.value}) is not allowed at ${path}`,
+    );
+  }
+}
+
 export type PlainObjectShieldOptions = {
   readonly maxDepth: number;
   readonly maxKeysPerObject: number;
@@ -155,6 +181,7 @@ export function assertPlainObjectShield(
   }
 
   assertStablePlainPrototype(value, path, fail);
+  rejectArrayLikePlainObject(value, path, fail);
 
   const symbols = Object.getOwnPropertySymbols(value);
   if (symbols.length > 0) {
@@ -228,6 +255,7 @@ export function clonePlainObjectShield(
   }
 
   assertStablePlainPrototype(value, path, fail);
+  rejectArrayLikePlainObject(value, path, fail);
 
   const clone = Object.create(Object.prototype) as Record<string, unknown>;
   const keys = Object.keys(value);

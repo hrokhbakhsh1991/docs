@@ -51,7 +51,7 @@ describe("RuleCellIndex", () => {
     assert.equal(exact[0]?.cellId, "default");
   });
 
-  it("throws INVALID_RULE_SET when cell count exceeds index limit", () => {
+  it("throws CARDINALITY_VIOLATION when cell count exceeds index limit", () => {
     const cells = Array.from({ length: 257 }, (_, i) => ({
       cellId: `cell-${i}`,
       dimensions: { variant: `v-${i}` },
@@ -67,7 +67,7 @@ describe("RuleCellIndex", () => {
         }),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
-        assert.equal(error.code, "INVALID_RULE_SET");
+        assert.equal(error.code, "CARDINALITY_VIOLATION");
         return true;
       },
     );

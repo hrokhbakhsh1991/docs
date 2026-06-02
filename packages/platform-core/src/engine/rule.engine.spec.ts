@@ -41,7 +41,7 @@ function makeEngine(
 }
 
 describe("RuleEngine", () => {
-  it("throws INVALID_RULE_SET when ruleSet.cells exceeds rule cell index limit", () => {
+  it("throws CARDINALITY_VIOLATION when ruleSet.cells exceeds rule cell index limit", () => {
     const cells = Array.from({ length: 257 }, (_, index) => ({
       cellId: `cell-${index}`,
       dimensions: { variant: `v-${index}` },
@@ -57,7 +57,7 @@ describe("RuleEngine", () => {
       () => makeEngine(minimalRegistry, ruleSet),
       (error: unknown) => {
         assert.ok(error instanceof PlatformCoreError);
-        assert.equal(error.code, "INVALID_RULE_SET");
+        assert.equal(error.code, "CARDINALITY_VIOLATION");
         assert.equal(error.details?.cellCount, 257);
         return true;
       },
