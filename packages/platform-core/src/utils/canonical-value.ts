@@ -18,9 +18,6 @@ const MAX_DATE_YEAR = 2100;
 const ISO_DATE_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})?)?$/;
 
-const compositeNodeStack: unknown[] = [];
-const compositeDepthStack: number[] = [];
-
 export type CanonicalValueValidationOptions = {
   readonly enumOptions?: readonly string[];
 };
@@ -173,10 +170,8 @@ function assertCompositeNodeObject(
  * Flat iterative composite walk — no recursive call frames on hot path.
  */
 function assertCompositeIterative(value: unknown, canonicalPath: string): void {
-  compositeNodeStack.length = 0;
-  compositeDepthStack.length = 0;
-  compositeNodeStack.push(value);
-  compositeDepthStack.push(0);
+  const compositeNodeStack: unknown[] = [value];
+  const compositeDepthStack: number[] = [0];
 
   while (compositeNodeStack.length > 0) {
     const node = compositeNodeStack.pop()!;

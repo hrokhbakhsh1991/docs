@@ -23,6 +23,7 @@ const SCAN_ROOTS = [
 /** Post-build execution surface — must match forbidden policy in source. */
 const DIST_SCAN_ROOTS = [
   path.join(REPO_ROOT, "packages/platform-core/dist"),
+  path.join(REPO_ROOT, "packages/workspace-sdk/dist"),
 ];
 
 /** Repo-relative file paths allowed to invoke createRequire-bound callables (empty for packages). */

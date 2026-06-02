@@ -54,7 +54,7 @@ const STARTER_LIFECYCLE = {
   allowedTransitions: [{ from: "DRAFT", to: "OPEN" }],
 };
 
-/** Reference plugin for tests and phase-2 bootstrap (moves to `packages/workspaces/starter`). */
+/** Reference plugin for tests and phase-2 bootstrap (relocates to a dedicated workspace package). */
 export const starterWorkspacePlugin: WorkspacePlugin = {
   id: STARTER_WORKSPACE_PLUGIN_ID,
   version: 1,

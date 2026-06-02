@@ -1,6 +1,8 @@
 import {
-  assertCanonicalDocument,
   CanonicalDocumentValidationError,
+  parseCanonicalDocumentFromStorage,
+  parseWorkspacePluginFromStorage,
+  WorkspacePluginValidationError,
   type CanonicalDocument,
   type WorkspacePlugin,
 } from "@app-tour/workspace-sdk";
@@ -18,7 +20,10 @@ import { normalizeRuleContext } from "../utils/rule-context";
 import { FieldRegistryEngine } from "./field-registry.engine";
 import { RenderPlanBuilder } from "./render-plan.builder";
 import { RuleEngine } from "./rule.engine";
-import { assertWorkspacePluginForPlatform } from "./sdk-error-map";
+import {
+  assertWorkspacePluginForPlatform,
+  mapWorkspacePluginValidationError,
+} from "./sdk-error-map";
 import { ValidationStatusMap } from "./validation-status-map";
 
 const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
@@ -30,7 +35,6 @@ const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
  */
 export class PlatformWizardEngine {
   private readonly renderPlanBuilder: RenderPlanBuilder;
-  private readonly validationStatus = new ValidationStatusMap();
 
   private constructor(
     private readonly plugin: WorkspacePlugin,
@@ -45,9 +49,18 @@ export class PlatformWizardEngine {
   }
 
   static fromPlugin(plugin: WorkspacePlugin): PlatformWizardEngine {
-    assertWorkspacePluginForPlatform(plugin);
+    let sanitized: WorkspacePlugin;
+    try {
+      sanitized = parseWorkspacePluginFromStorage(plugin);
+    } catch (error) {
+      if (error instanceof WorkspacePluginValidationError) {
+        throw mapWorkspacePluginValidationError(error);
+      }
+      throw error;
+    }
+    assertWorkspacePluginForPlatform(sanitized);
 
-    const fieldEngine = new FieldRegistryEngine(plugin.fieldRegistry);
+    const fieldEngine = new FieldRegistryEngine(sanitized.fieldRegistry);
     if (fieldEngine.listAll().length > MAX_ALLOWED_REGISTRY_FIELDS) {
       throw new PlatformCoreError(
         "REGISTRY_CARDINALITY_VIOLATION",
@@ -56,8 +69,8 @@ export class PlatformWizardEngine {
       );
     }
 
-    const ruleEngine = new RuleEngine(plugin.ruleSet, fieldEngine);
-    return new PlatformWizardEngine(plugin, fieldEngine, ruleEngine);
+    const ruleEngine = new RuleEngine(sanitized.ruleSet, fieldEngine);
+    return new PlatformWizardEngine(sanitized, fieldEngine, ruleEngine);
   }
 
   buildRenderPlan(context: RuleContext): readonly RenderStepPlan[] {
@@ -65,8 +78,13 @@ export class PlatformWizardEngine {
   }
 
   validateCanonical(document: CanonicalDocument, context: RuleContext): ValidationResult {
+    let sanitized: CanonicalDocument;
     try {
-      assertCanonicalDocument(document);
+      sanitized = parseCanonicalDocumentFromStorage({
+        schemaVersion: document.schemaVersion,
+        roots: document.roots,
+        data: document.data as Record<string, unknown>,
+      });
     } catch (error) {
       if (error instanceof CanonicalDocumentValidationError) {
         return {
@@ -95,8 +113,8 @@ export class PlatformWizardEngine {
       };
     }
 
+    const validationStatus = new ValidationStatusMap();
     const scope = this.ruleEngine.createScope(context);
-    this.validationStatus.reset();
 
     for (const field of this.fieldEngine.listAll()) {
       const effective = scope.resolveEffectiveField(field.id);
@@ -111,11 +129,11 @@ export class PlatformWizardEngine {
       const hidden = effective.hidden;
 
       try {
-        const value = getCanonicalValue(document.data, field.canonicalPath);
+        const value = getCanonicalValue(sanitized.data, field.canonicalPath);
 
         if (hidden && value !== undefined) {
           if (field.kind !== "composite") {
-            this.validationStatus.record(
+            validationStatus.record(
               "HIDDEN_FIELD_POISON",
               field.id,
               `Hidden field "${field.id}" must not contain a value at "${field.canonicalPath}"`,
@@ -126,7 +144,7 @@ export class PlatformWizardEngine {
 
         if (value === undefined) {
           if (effective.required && !hidden) {
-            this.validationStatus.record(
+            validationStatus.record(
               "UNKNOWN_CANONICAL_PATH",
               field.id,
               `No value at canonical path "${field.canonicalPath}"`,
@@ -148,20 +166,20 @@ export class PlatformWizardEngine {
           });
         } catch (error) {
           if (error instanceof PlatformCoreError) {
-            this.validationStatus.record(error.code, field.id, error.message);
+            validationStatus.record(error.code, field.id, error.message);
           } else {
             throw error;
           }
         }
       } catch (error) {
         if (error instanceof PlatformCoreError) {
-          this.validationStatus.record(error.code, field.id, error.message);
+          validationStatus.record(error.code, field.id, error.message);
         } else {
           throw error;
         }
       }
     }
 
-    return this.validationStatus.finalize();
+    return validationStatus.finalize();
   }
 }

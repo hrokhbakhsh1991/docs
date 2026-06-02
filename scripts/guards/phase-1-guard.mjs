@@ -16,7 +16,16 @@ const PLATFORM_CORE_DIST = path.join(
   "packages/platform-core/dist/index.js",
 );
 const PLATFORM_CORE_ROOT = path.join(REPO_ROOT, "packages/platform-core");
-const MIN_PLATFORM_CORE_TESTS = 30;
+const WORKSPACE_SDK_ROOT = path.join(REPO_ROOT, "packages/workspace-sdk");
+const MIN_PLATFORM_CORE_TESTS = 94;
+const MIN_WORKSPACE_SDK_TESTS = 39;
+const ADVERSARIAL_SPEC_PATHS = [
+  "packages/workspace-sdk/test/adversarial-canonical-ingress.spec.ts",
+  "packages/workspace-sdk/test/storage-ingress-immutability.spec.ts",
+  "packages/platform-core/test/adversarial-validation.spec.ts",
+  "packages/platform-core/test/rule-engine-concurrency.spec.ts",
+  "packages/platform-core/test/runtime-isolation.spec.ts",
+];
 const DETAIL_MAX = 2000;
 
 /** @typedef {{ id: string, description: string, required: boolean, ok: boolean, detail?: string | null }} GuardCheck */
@@ -54,6 +63,19 @@ function truncateDetail(text) {
   return `${t.slice(0, DETAIL_MAX)}\n… (truncated)`;
 }
 
+/** Node test runner reports `# tests N` (TAP) or `ℹ tests N` (spec reporter). */
+function parseTestCount(output) {
+  const matches = [...String(output).matchAll(/[#ℹ] tests (\d+)/g)];
+  if (matches.length === 0) {
+    return null;
+  }
+  return Number.parseInt(matches[matches.length - 1][1], 10);
+}
+
+function outputHasTestFailures(output) {
+  return [...String(output).matchAll(/[#ℹ] fail (\d+)/g)].some((m) => Number.parseInt(m[1], 10) > 0);
+}
+
 /** @returns {GuardCheck} */
 function checkPlatformCoreDistExists() {
   const ok = fs.existsSync(PLATFORM_CORE_DIST);
@@ -67,6 +89,65 @@ function checkPlatformCoreDistExists() {
 }
 
 /** @returns {GuardCheck} */
+function checkWorkspaceSdkTestCount() {
+  const r = spawnSync("pnpm", ["--filter", "@app-tour/workspace-sdk", "run", "test"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const count = parseTestCount(output);
+  const ok = r.status === 0 && count != null && count >= MIN_WORKSPACE_SDK_TESTS;
+  return {
+    id: "g2b_workspace_sdk_test_count",
+    description: `workspace-sdk tests ≥ ${MIN_WORKSPACE_SDK_TESTS}`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${count} tests`
+      : truncateDetail(
+          count != null
+            ? `${count} tests (need ≥ ${MIN_WORKSPACE_SDK_TESTS})\n${output}`
+            : output,
+        ),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkAdversarialSpecFilesTracked() {
+  const missing = ADVERSARIAL_SPEC_PATHS.filter((rel) => !fs.existsSync(path.join(REPO_ROOT, rel)));
+  const ok = missing.length === 0;
+  return {
+    id: "g9_adversarial_spec_files",
+    description: "adversarial test/**/*.spec.ts entry files exist on disk",
+    required: true,
+    ok,
+    detail: ok ? null : `missing: ${missing.join(", ")}`,
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkAdversarialSpecsExecute() {
+  const r = spawnSync("pnpm", ["run", "test:adversarial"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    env: { ...process.env, NODE_ENV: "test" },
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const ok = r.status === 0 && !outputHasTestFailures(output);
+  return {
+    id: "g10_adversarial_specs_execute",
+    description: "pnpm run test:adversarial — adversarial entry specs pass",
+    required: true,
+    ok,
+    detail: ok ? "adversarial specs green" : truncateDetail(output),
+  };
+}
+
+/** @returns {GuardCheck} */
 function checkPlatformCoreTestCount() {
   const r = spawnSync("pnpm", ["--filter", "@app-tour/platform-core", "run", "test"], {
     cwd: REPO_ROOT,
@@ -75,8 +156,7 @@ function checkPlatformCoreTestCount() {
     maxBuffer: 8 * 1024 * 1024,
   });
   const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
-  const match = output.match(/# tests (\d+)/);
-  const count = match ? Number.parseInt(match[1], 10) : null;
+  const count = parseTestCount(output);
   const ok = r.status === 0 && count != null && count >= MIN_PLATFORM_CORE_TESTS;
   return {
     id: "g2_platform_core_test_count",
@@ -249,7 +329,10 @@ function renderMarkdown(report, jsonRel, dateSlug) {
 function main() {
   const checks = [
     checkPlatformCoreDistExists(),
+    checkWorkspaceSdkTestCount(),
     checkPlatformCoreTestCount(),
+    checkAdversarialSpecFilesTracked(),
+    checkAdversarialSpecsExecute(),
     checkNoDenaliInPlatformCore(),
     checkNoReactInPlatformCore(),
     checkArchitectureGuard(),
@@ -267,7 +350,7 @@ function main() {
     checks,
     exit16: {
       pass: requiredOk,
-      note: "platform-core: dist + ≥30 tests + denali-free + no react + depcruise",
+      note: "platform-core: dist + ≥94 tests + workspace-sdk ≥39 (133 total) + adversarial + denali-free + no react + depcruise",
     },
   };
 

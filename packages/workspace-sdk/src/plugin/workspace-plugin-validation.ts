@@ -21,6 +21,13 @@ const FIELD_KINDS = new Set<WorkspaceFieldKind>([
 
 const WIZARD_MODES = new Set<WorkspaceWizardMode>(["classic", "schema"]);
 
+const MAX_FIELD_REGISTRY_FIELDS = 1000;
+const MAX_RULE_SET_CELLS = 256;
+const MAX_ENUM_OPTIONS_PER_FIELD = 500;
+const MAX_MATRIX_DIMENSIONS = 16;
+const MAX_FIELD_OVERRIDES_PER_CELL = 1000;
+const MAX_DIMENSION_VALUE_LENGTH = 64_000;
+
 export type WorkspacePluginValidationErrorCode =
   | "PLUGIN_INVALID_SHAPE"
   | "UNKNOWN_FIELD_ID"
@@ -66,6 +73,13 @@ export function assertWorkspaceFieldRegistry(registry: unknown): asserts registr
 
   if (!Array.isArray(registry.fields)) {
     fail("INVALID_FIELD_REGISTRY", "fieldRegistry.fields must be an array");
+  }
+
+  if (registry.fields.length > MAX_FIELD_REGISTRY_FIELDS) {
+    fail(
+      "INVALID_FIELD_REGISTRY",
+      `fieldRegistry.fields exceeds maximum count (${MAX_FIELD_REGISTRY_FIELDS})`,
+    );
   }
 
   const seenIds = new Set<string>();
@@ -130,6 +144,12 @@ export function assertWorkspaceFieldRegistry(registry: unknown): asserts registr
           `fieldRegistry.fields[${index}] kind enum requires non-empty enumOptions`,
         );
       }
+      if (field.enumOptions.length > MAX_ENUM_OPTIONS_PER_FIELD) {
+        fail(
+          "INVALID_FIELD_REGISTRY",
+          `fieldRegistry.fields[${index}].enumOptions exceeds maximum count (${MAX_ENUM_OPTIONS_PER_FIELD})`,
+        );
+      }
       const seenEnum = new Set<string>();
       for (const [optIndex, option] of field.enumOptions.entries()) {
           if (typeof option !== "string" || option.trim() === "") {
@@ -177,6 +197,13 @@ export function assertWorkspaceRuleSet(
     fail("INVALID_RULE_SET", "ruleSet.matrixDimensions must be an array");
   }
 
+  if (ruleSet.matrixDimensions.length > MAX_MATRIX_DIMENSIONS) {
+    fail(
+      "INVALID_RULE_SET",
+      `ruleSet.matrixDimensions exceeds maximum count (${MAX_MATRIX_DIMENSIONS})`,
+    );
+  }
+
   const allowedDimensions = new Set<string>();
   for (const [index, dimension] of ruleSet.matrixDimensions.entries()) {
     if (typeof dimension !== "string" || dimension.length === 0) {
@@ -191,6 +218,13 @@ export function assertWorkspaceRuleSet(
 
   if (!Array.isArray(ruleSet.cells)) {
     fail("INVALID_RULE_SET", "ruleSet.cells must be an array");
+  }
+
+  if (ruleSet.cells.length > MAX_RULE_SET_CELLS) {
+    fail(
+      "INVALID_RULE_SET",
+      `ruleSet.cells exceeds maximum count (${MAX_RULE_SET_CELLS})`,
+    );
   }
 
   const seenCellIds = new Set<string>();
@@ -227,6 +261,12 @@ export function assertWorkspaceRuleSet(
           `cell "${cell.cellId}" dimension "${key}" must be a string value`,
         );
       }
+      if (value.length > MAX_DIMENSION_VALUE_LENGTH) {
+        fail(
+          "INVALID_RULE_SET",
+          `cell "${cell.cellId}" dimension "${key}" exceeds maximum length (${MAX_DIMENSION_VALUE_LENGTH})`,
+        );
+      }
       dimensions[key] = value;
     }
 
@@ -236,6 +276,13 @@ export function assertWorkspaceRuleSet(
 
     if (!Array.isArray(cell.fieldOverrides)) {
       fail("INVALID_RULE_SET", `ruleSet.cells[${index}].fieldOverrides must be an array`);
+    }
+
+    if (cell.fieldOverrides.length > MAX_FIELD_OVERRIDES_PER_CELL) {
+      fail(
+        "INVALID_RULE_SET",
+        `ruleSet.cells[${index}].fieldOverrides exceeds maximum count (${MAX_FIELD_OVERRIDES_PER_CELL})`,
+      );
     }
 
     for (const [overrideIndex, override] of cell.fieldOverrides.entries()) {

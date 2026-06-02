@@ -5,6 +5,8 @@ import type {
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 
+const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
+
 export class FieldRegistryEngine {
   private readonly fields: readonly WorkspaceFieldRegistryEntry[];
   private readonly byId: ReadonlyMap<string, WorkspaceFieldRegistryEntry>;
@@ -16,6 +18,14 @@ export class FieldRegistryEngine {
       throw new PlatformCoreError(
         "INVALID_RULE_SET",
         "fieldRegistry.fields must be an array",
+      );
+    }
+
+    if (registry.fields.length > MAX_ALLOWED_REGISTRY_FIELDS) {
+      throw new PlatformCoreError(
+        "REGISTRY_CARDINALITY_VIOLATION",
+        `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
+        { fieldCount: registry.fields.length },
       );
     }
 
