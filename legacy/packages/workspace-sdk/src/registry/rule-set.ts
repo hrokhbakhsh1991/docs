@@ -4,14 +4,10 @@ export interface WorkspaceRuleFieldOverride {
   readonly required?: boolean;
 }
 
+/** Matrix cell — dimensions map to tag values (tour kind, duration, …). */
 export interface WorkspaceRuleCell {
   readonly cellId: string;
   readonly dimensions: Readonly<Record<string, string>>;
-  /**
-   * Higher values win when multiple cells match the same context.
-   * Required to be distinct across multiple catch-all cells (`dimensions: {}`).
-   */
-  readonly priority?: number;
   readonly fieldOverrides: readonly WorkspaceRuleFieldOverride[];
 }
 

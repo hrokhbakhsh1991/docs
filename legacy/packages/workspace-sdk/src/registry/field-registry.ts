@@ -1,3 +1,4 @@
+/** Renderer-facing field kinds (Phase 3 platform-core renderer input). */
 export type WorkspaceFieldKind =
   | "text"
   | "number"
@@ -6,6 +7,7 @@ export type WorkspaceFieldKind =
   | "boolean"
   | "composite";
 
+/** One schema-driven field row in a workspace plugin registry. */
 export interface WorkspaceFieldRegistryEntry {
   readonly id: string;
   readonly canonicalPath: string;
@@ -14,8 +16,6 @@ export interface WorkspaceFieldRegistryEntry {
   readonly required: boolean;
   readonly groupSlug?: string;
   readonly tags?: readonly string[];
-  /** When kind is `enum`, allowed stored values (validated at platform runtime). */
-  readonly enumOptions?: readonly string[];
 }
 
 export interface WorkspaceFieldRegistry {

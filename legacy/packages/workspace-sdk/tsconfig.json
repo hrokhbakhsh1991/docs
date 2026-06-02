@@ -1,9 +1,13 @@
 {
   "extends": "../config/tsconfig.base.json",
   "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "outDir": "./dist",
     "rootDir": "./src",
-    "noEmit": false
+    "declaration": true,
+    "noEmit": false,
+    "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]

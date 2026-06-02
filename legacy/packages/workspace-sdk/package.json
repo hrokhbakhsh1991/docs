@@ -1,8 +1,8 @@
 {
-  "name": "@app-tour/workspace-sdk",
+  "name": "@repo/workspace-sdk",
   "version": "0.1.0",
   "private": true,
-  "description": "Workspace plugin contract — platform-generic",
+  "description": "Workspace plugin contract — platform-generic (map.md Phase 1)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,10 +14,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test": "NODE_ENV=test node --import tsx --test \"src/**/*.spec.ts\""
+    "test": "node --import tsx --test \"src/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@repo/types": "workspace:*"
   },
   "devDependencies": {
-    "@app-tour/config": "workspace:*",
+    "@repo/config": "workspace:*",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }
