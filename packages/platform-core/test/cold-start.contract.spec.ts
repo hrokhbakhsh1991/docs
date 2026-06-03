@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
+
 import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine.js";
 import { PlatformCoreError } from "../src/errors/platform-core.error.js";
 import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
 import { STARTER_PLAN_SNAPSHOT } from "./fixtures/starter-plan-golden.js";
+import { testRuleContext } from "./fixtures/rule-context.fixture.js";
 
 describe("platform-core cold start", () => {
   it("create does not build the plugin graph", () => {
@@ -64,6 +67,21 @@ describe("platform-core cold start", () => {
       tenantId: "tenant-cold-start",
       dimensions: { variant: "default" },
     });
+    assert.equal(engine.isInitialized(), true);
+  });
+
+  it("validateCanonical lazily inits on first call without prior tryInit", () => {
+    const engine = PlatformWizardEngine.create(createTestStarterPlugin());
+    assert.equal(engine.isInitialized(), false);
+    const result = engine.validateCanonical(
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: { basics: { title: "My tour" }, details: { summary: "ok" } },
+      }),
+      testRuleContext({ variant: "default" }, { tenantId: "cold-validate-lazy" }),
+    );
+    assert.equal(result.ok, true);
     assert.equal(engine.isInitialized(), true);
   });
 

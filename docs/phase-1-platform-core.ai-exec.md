@@ -662,6 +662,7 @@ visibility_semantics:
 ordering_logic:
   steps_source: "union fieldRegistry.entry.stepId + wizard.roots"
   order: "wizard.roots order first, then steps without root in registry discovery order"
+  listStepIds_implementation: "single discovery pass; emit wizard.roots ∩ union then discoveryOrder \\ roots (no sort/partition buffers)"
   inactiveFieldGroups: "groupSlug in array → all fields with groupSlug hidden before cell overrides"
   wizardCapacityStepRedundant: "phase 1 parse-only; optional uiHints in plan metadata"
 
@@ -974,6 +975,7 @@ contracts:
     title: "canonical-field-validation-contract module exists"
     specRel: src/contracts/canonical-field-validation-contract.ts
     guardIds: [g11_phase1_contract_behaviors]
+    behavioral_2026_06_03: "passesHiddenFieldKindGate delegates to isEmptyCanonicalValue; hidden composite values skip HIDDEN_FIELD_POISON; inactiveFieldGroups skip document validation"
   - id: adversarial-plugin-ingress
     title: "headless ingress skips invalid theme at platform init"
     specRel: test/adversarial-plugin-ingress.spec.ts
