@@ -1,6 +1,7 @@
 import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk/plugin-types";
 
 import type { PlatformCoreErrorCode } from "../errors/platform-core.error";
+import { isEmptyCanonicalValue } from "../utils/canonical-value";
 
 /**
  * Single contract table for hidden-field poison vs canonical kind validation.
@@ -48,36 +49,16 @@ export function hiddenFieldPoisonViolation(
   };
 }
 
-/** Lightweight kind gate (hidden-field fast path) — mirrors scalar emptiness in {@link isEmptyCanonicalValue}. */
+/** Non-empty value for kind — inverse of {@link isEmptyCanonicalValue} (undefined/null → false). */
 export function passesHiddenFieldKindGate(
   value: unknown,
   kind: WorkspaceFieldKind,
   enumOptions?: readonly string[],
 ): boolean {
-  switch (kind) {
-    case "text":
-      return typeof value === "string" && value.length > 0 && value.trim().length > 0;
-    case "number":
-      return typeof value === "number" && Number.isFinite(value);
-    case "boolean":
-      return typeof value === "boolean";
-    case "date":
-      return typeof value === "string" && value.length >= 10;
-    case "enum":
-      if (typeof value !== "string" || value.length === 0 || value.trim() !== value) {
-        return false;
-      }
-      return enumOptions != null && enumOptions.length > 0 && enumOptions.includes(value);
-    case "composite":
-      return (
-        value != null &&
-        typeof value === "object" &&
-        !Array.isArray(value) &&
-        Object.keys(value as object).length > 0
-      );
-    default:
-      return false;
+  if (value === undefined || value === null) {
+    return false;
   }
+  return !isEmptyCanonicalValue(value, kind, { enumOptions });
 }
 
 export type KindValidationViolation = {

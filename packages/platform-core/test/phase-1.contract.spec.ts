@@ -254,6 +254,11 @@ function assertFieldValidationContractModule(): void {
   const text = fs.readFileSync(contractPath, "utf8");
   assert.ok(text.includes("HIDDEN_FIELD_POISON"));
   assert.ok(text.includes("hiddenFieldPoisonViolation"));
+  assert.ok(text.includes("passesHiddenFieldKindGate"));
+  assert.ok(
+    text.includes("isEmptyCanonicalValue"),
+    "passesHiddenFieldKindGate must be wired to isEmptyCanonicalValue",
+  );
 }
 
 function assertTestsUseSdkSubpathsOnly(): void {

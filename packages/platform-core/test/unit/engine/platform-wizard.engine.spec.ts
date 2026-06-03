@@ -365,6 +365,165 @@ describe("PlatformWizardEngine", () => {
     assert.equal(result.violations[0]?.fieldId, "details.status");
   });
 
+  it("validateCanonical skips fields in inactiveFieldGroups even when data is invalid", () => {
+    const plugin: WorkspacePlugin = {
+      ...createTestStarterPlugin(),
+      fieldRegistry: {
+        version: 1,
+        fields: [
+          ...createTestStarterPlugin().fieldRegistry.fields,
+          {
+            id: "details.pricingAmount",
+            canonicalPath: "details.pricingAmount",
+            stepId: "details",
+            kind: "text",
+            required: true,
+            groupSlug: "pricing",
+          },
+        ],
+      },
+      wizard: {
+        ...createTestStarterPlugin().wizard,
+        inactiveFieldGroups: ["pricing"],
+      },
+    };
+    const engine = loadPlatformWizard(plugin);
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["basics", "details"],
+      data: {
+        basics: { title: "My tour" },
+        details: { summary: "Summary text", pricingAmount: 99999 },
+      },
+    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
+    assert.equal(result.ok, true);
+    assert.equal(result.violations.length, 0);
+  });
+
+  it("validateCanonical reports violation for inactive group field when group is active", () => {
+    const plugin: WorkspacePlugin = {
+      ...createTestStarterPlugin(),
+      fieldRegistry: {
+        version: 1,
+        fields: [
+          ...createTestStarterPlugin().fieldRegistry.fields,
+          {
+            id: "details.pricingAmount",
+            canonicalPath: "details.pricingAmount",
+            stepId: "details",
+            kind: "text",
+            required: true,
+            groupSlug: "pricing",
+          },
+        ],
+      },
+      wizard: {
+        ...createTestStarterPlugin().wizard,
+        inactiveFieldGroups: [],
+      },
+    };
+    const engine = loadPlatformWizard(plugin);
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["basics", "details"],
+      data: {
+        basics: { title: "My tour" },
+        details: { summary: "Summary text", pricingAmount: 99999 },
+      },
+    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
+    assert.equal(result.ok, false);
+    assert.ok(
+      result.violations.some(
+        (v) => v.fieldId === "details.pricingAmount" && v.code === "CANONICAL_TYPE_MISMATCH",
+      ),
+    );
+  });
+
+  it("validateCanonical allows hidden composite with benign object (no HIDDEN_FIELD_POISON)", () => {
+    const plugin: WorkspacePlugin = {
+      ...createTestStarterPlugin(),
+      fieldRegistry: {
+        version: 1,
+        fields: [
+          ...createTestStarterPlugin().fieldRegistry.fields,
+          {
+            id: "details.meta",
+            canonicalPath: "details.meta",
+            stepId: "details",
+            kind: "composite",
+            required: false,
+          },
+        ],
+      },
+      ruleSet: {
+        ...createTestStarterPlugin().ruleSet,
+        cells: [
+          {
+            cellId: "default",
+            dimensions: { variant: "default" },
+            fieldOverrides: [
+              { fieldId: "basics.title", required: true, hidden: false },
+              { fieldId: "details.summary", hidden: false },
+              { fieldId: "details.meta", hidden: true },
+            ],
+          },
+        ],
+      },
+    };
+    const engine = loadPlatformWizard(plugin);
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["basics", "details"],
+      data: {
+        basics: { title: "My tour" },
+        details: { summary: "Summary text", meta: { note: "internal" } },
+      },
+    });
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
+    assert.equal(result.ok, true);
+    assert.ok(!result.violations.some((v) => v.code === "HIDDEN_FIELD_POISON"));
+  });
+
+  it("validateCanonical maps tryInit failure via validationResultFromPlatformError", () => {
+    const engine = PlatformWizardEngine.create(createTestStarterPlugin());
+    engine.init();
+    const broken = pluginWithOrphanOverride();
+    const internal = engine as { runtime: null; pluginInput: WorkspacePlugin };
+    internal.runtime = null;
+    internal.pluginInput = broken;
+    const result = engine.validateCanonical(
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: { basics: { title: "My tour" }, details: { summary: "ok" } },
+      }),
+      testRuleContext({ variant: "default" }),
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.violations.length, 1);
+    assert.equal(result.violations[0]?.code, "UNKNOWN_FIELD_ID");
+    assert.match(result.violations[0]?.message ?? "", /orphan\.field/);
+  });
+
+  it("tryBuildRenderPlan returns PlatformResult failure when tryInit fails (no throw)", () => {
+    const engine = PlatformWizardEngine.create(createTestStarterPlugin());
+    engine.init();
+    const internal = engine as {
+      runtime: null;
+      pluginInput: WorkspacePlugin;
+    };
+    internal.runtime = null;
+    internal.pluginInput = pluginWithOrphanOverride();
+    const plan = engine.tryBuildRenderPlan(testRuleContext({ variant: "default" }));
+    assert.equal(plan.ok, false);
+    if (plan.ok) {
+      return;
+    }
+    assert.equal(plan.error.code, "UNKNOWN_FIELD_ID");
+  });
+
   it("validateCanonical reports HIDDEN_FIELD_POISON when hidden field has any value", () => {
     const plugin: WorkspacePlugin = {
       ...createTestStarterPlugin(),

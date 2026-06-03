@@ -45,6 +45,7 @@ export function validateCanonicalDocument(args: {
   for (const field of fieldEngine.listAll()) {
     const effective = scope.resolveEffectiveField(field.id);
 
+    // Align with render-plan: inactive groups are hidden in UI — skip validation (not HIDDEN_FIELD_POISON).
     if (
       field.groupSlug != null &&
       plugin.wizard.inactiveFieldGroups.includes(field.groupSlug)

@@ -85,6 +85,112 @@ describe("facade integration — public PlatformWizardEngine API", () => {
     assert.equal(altTitle?.required, false);
   });
 
+  function pluginWithDateAndBooleanFields(): WorkspacePlugin {
+    return {
+      ...createTestStarterPlugin(),
+      fieldRegistry: {
+        version: 1,
+        fields: [
+          ...createTestStarterPlugin().fieldRegistry.fields,
+          {
+            id: "details.startDate",
+            canonicalPath: "details.startDate",
+            stepId: "details",
+            kind: "date",
+            required: true,
+          },
+          {
+            id: "details.active",
+            canonicalPath: "details.active",
+            stepId: "details",
+            kind: "boolean",
+            required: true,
+          },
+        ],
+      },
+      ruleSet: {
+        ...createTestStarterPlugin().ruleSet,
+        cells: [
+          {
+            cellId: "default",
+            dimensions: { variant: "default" },
+            fieldOverrides: [
+              { fieldId: "basics.title", required: true, hidden: false },
+              { fieldId: "details.summary", hidden: false },
+              { fieldId: "details.startDate", hidden: false },
+              { fieldId: "details.active", hidden: false },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  it("validateCanonical reports CANONICAL_TYPE_MISMATCH for invalid date through facade", () => {
+    const loaded = PlatformWizardEngine.tryFromPlugin(pluginWithDateAndBooleanFields());
+    assert.equal(loaded.ok, true);
+    if (!loaded.ok) {
+      return;
+    }
+    const result = loaded.value.validateCanonical(
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: {
+          basics: { title: "My tour" },
+          details: { summary: "ok", startDate: "not-a-date", active: true },
+        },
+      }),
+      testRuleContext({ variant: "default" }, { tenantId: "facade-date" }),
+    );
+    assert.equal(result.ok, false);
+    assert.ok(result.violations.some((v) => v.code === "CANONICAL_TYPE_MISMATCH"));
+    assert.equal(result.violations.find((v) => v.fieldId === "details.startDate")?.fieldId, "details.startDate");
+  });
+
+  it("validateCanonical reports CANONICAL_TYPE_MISMATCH for invalid boolean through facade", () => {
+    const loaded = PlatformWizardEngine.tryFromPlugin(pluginWithDateAndBooleanFields());
+    assert.equal(loaded.ok, true);
+    if (!loaded.ok) {
+      return;
+    }
+    const result = loaded.value.validateCanonical(
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: {
+          basics: { title: "My tour" },
+          details: { summary: "ok", startDate: "2026-06-03", active: "yes" },
+        },
+      }),
+      testRuleContext({ variant: "default" }, { tenantId: "facade-boolean" }),
+    );
+    assert.equal(result.ok, false);
+    assert.ok(result.violations.some((v) => v.code === "CANONICAL_TYPE_MISMATCH"));
+    assert.equal(result.violations.find((v) => v.fieldId === "details.active")?.fieldId, "details.active");
+  });
+
+  it("validateCanonical accepts boolean false as non-empty through facade", () => {
+    const loaded = PlatformWizardEngine.tryFromPlugin(pluginWithDateAndBooleanFields());
+    assert.equal(loaded.ok, true);
+    if (!loaded.ok) {
+      return;
+    }
+    const result = loaded.value.validateCanonical(
+      createCanonicalDocument({
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: {
+          basics: { title: "My tour" },
+          details: { summary: "ok", startDate: "2026-06-03", active: false },
+        },
+      }),
+      testRuleContext({ variant: "default" }, { tenantId: "facade-boolean-false" }),
+    );
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.violations, []);
+  });
+
   it("validateCanonical reports CANONICAL_TYPE_MISMATCH through facade for wrong primitive kind", () => {
     const loaded = PlatformWizardEngine.tryFromPlugin(createTestStarterPlugin());
     assert.equal(loaded.ok, true);

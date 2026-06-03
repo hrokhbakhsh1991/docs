@@ -2,7 +2,10 @@ import type { WorkspaceFieldRegistryEntry } from "@app-tour/workspace-sdk/plugin
 
 import { isPlatformCoreError } from "../errors/platform-result";
 import type { EffectiveFieldState } from "../types/effective-field-state";
-import { hiddenFieldPoisonViolation } from "../contracts/canonical-field-validation-contract";
+import {
+  hiddenFieldPoisonViolation,
+  passesHiddenFieldKindGate,
+} from "../contracts/canonical-field-validation-contract";
 import { getCanonicalValue } from "../utils/canonical-path";
 import {
   tryAssertCanonicalValueMatchesKind,
@@ -38,6 +41,14 @@ export function validateFieldValue(
   });
   if (poison != null) {
     validationStatus.record(poison.code, field.id, poison.message);
+    return;
+  }
+
+  if (
+    hidden &&
+    value !== undefined &&
+    !passesHiddenFieldKindGate(value, field.kind, field.enumOptions)
+  ) {
     return;
   }
 
