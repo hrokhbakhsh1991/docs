@@ -473,4 +473,24 @@ describe("phase 1 closure contract", () => {
     assert.match(source, /export const createFreshStarterPlugin = createTestStarterPlugin/);
     assert.equal(source.includes("getStarterWorkspacePlugin"), false);
   });
+
+  it("createFreshStarterPlugin returns a new plugin object on each call", async () => {
+    const { createFreshStarterPlugin } = await import("./fixtures/starter.fixture.js");
+    const first = createFreshStarterPlugin();
+    const second = createFreshStarterPlugin();
+    assert.notEqual(first, second);
+    assert.equal(first.fieldRegistry, second.fieldRegistry);
+  });
+
+  it("facade-integration.spec.ts defines at least five behavioral tests", () => {
+    const source = fs.readFileSync(
+      path.join(PKG_ROOT, "test", "facade-integration.spec.ts"),
+      "utf8",
+    );
+    const itCount = (source.match(/\bit\s*\(/g) ?? []).length;
+    assert.ok(
+      itCount >= 5,
+      `facade-integration.spec.ts must have ≥5 it blocks (found ${itCount})`,
+    );
+  });
 });

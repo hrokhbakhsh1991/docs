@@ -178,12 +178,20 @@ module.exports = {
     },
     {
       name: "apps-api-allowed-packages",
-      comment: "Phase 3.2 API allowed workspace dependencies",
+      comment: "Phase 3.2+ API allowed workspace dependencies (incl. phase-4 tenant-kernel / platform-events)",
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|workspaces/starter|config)",
+        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|config)",
       },
+    },
+    {
+      name: "apps-no-platform-core-src-deep-import",
+      comment:
+        "Phase 1 facade integrity — apps must import @app-tour/platform-core entry, not packages/platform-core/src",
+      severity: "error",
+      from: { path: "^apps/" },
+      to: { path: "^packages/platform-core/src" },
     },
   ],
   options: {

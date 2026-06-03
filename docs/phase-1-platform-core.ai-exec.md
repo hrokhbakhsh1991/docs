@@ -656,7 +656,7 @@ functions:
 
 visibility_semantics:
   hidden: "all fields hidden"
-  empty: "visible but zero non-hidden fields"
+  empty: "step has zero registry fields (wizard.roots-only empty step)"
   active: "at least one visible field"
 
 ordering_logic:
@@ -1209,8 +1209,9 @@ dod_delivered_verified:
 
 dod_closure_covenant_MAP_14_1:
   - "phase-1-platform-core.mdoc DF remediated guard:doc-sync green"
-  - "brutal audit maturity 95/100 technical — reports/phase-1-brutal-audit"
-  - "pnpm run phase-1:guard green g1-g6 g8 g10-g13"
+  - "brutal audit maturity 95/100 technical — reports/phase-1-brutal-audit-2026-06-03.md"
+  - "pnpm run phase-1:guard green g1-g6 g8 g10-g13 g3b g3c"
+  - "apps import facade only — depcruise apps-no-platform-core-src-deep-import"
   - open_human: "MAP §14.1 architect sign-off — reports/phase-1-closure-readiness-2026-06-03.md"
 
 phase_1_complete_when_ALL:

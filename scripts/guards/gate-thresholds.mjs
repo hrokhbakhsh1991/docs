@@ -16,12 +16,12 @@ export const WORKSPACE_SDK_TEST_MIN = {
 };
 
 export const PLATFORM_CORE_TEST_MIN = {
-  phase1: 132,
+  phase1: 148,
 };
 
 /** phase-1-guard g2 — closure suite only (excludes test/unit/**) */
 export const PLATFORM_CORE_CLOSURE_TEST_MIN = {
-  phase1: 50,
+  phase1: 56,
 };
 
 /** phase-1-guard g13 — facade-path share within closure specs (excludes test/unit/**) */
@@ -45,6 +45,14 @@ export const APPS_API_TEST_MIN = {
 
 export const APPS_WEB_TEST_MIN = {
   phase3: 10,
+};
+
+export const TENANT_KERNEL_TEST_MIN = {
+  phase4: 6,
+};
+
+export const PLATFORM_EVENTS_TEST_MIN = {
+  phase4: 2,
 };
 
 export const UI_PRIMITIVES_VISUAL_TEST_MIN = {

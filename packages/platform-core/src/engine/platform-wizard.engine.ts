@@ -30,6 +30,9 @@ import {
 } from "./rule-engine-scope-policy";
 import { validateCanonicalDocument } from "./validate-canonical-document";
 
+/**
+ * Reserved for Phase 2+ facade options. Phase 1 ignores all keys; pass `{}` or omit.
+ */
 export type PlatformWizardEngineOptions = Record<string, never>;
 
 /** Package-internal — import from tests via relative path only (not in index.ts). */
