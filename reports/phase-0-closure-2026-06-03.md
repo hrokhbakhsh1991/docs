@@ -21,6 +21,7 @@
 | P0-CRIT-02 | Isolated validation hooks per ingress parse |
 | P0-CRIT-03 | `deepFreeze` on starter plugin graph |
 | P0-CRIT-04 | `FORBIDDEN_TENANT_CLAIM_MISMATCH` test in `ToursService` |
+| P0-CRIT-01b | `canonical-validation.spec.ts` — per-call engine, tenant A/B isolation |
 | P0-GATE-01/02 | 10 covenant modules (+ denali binding + supplemental specs) |
 | P0-GATE-03 | Ingress `console.*` check without `rg` |
 | P0-GATE-05 | `test:adversarial` in `phase-0:integration-gate` |
