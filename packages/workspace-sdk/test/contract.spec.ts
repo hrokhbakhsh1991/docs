@@ -27,6 +27,67 @@ const REQUIRED_DIST_EXPORTS = [
 
 const REQUIRED_AUTH_EXPORTS = ["buildTenantAuthz", "canAccessWorkspaceTheme"] as const;
 
+/** P0-GATE-04 — frozen root barrel runtime surface; new exports require explicit allowlist update. */
+const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
+  "CanonicalDocumentValidationError",
+  "DEFAULT_WORKSPACE_TYPE_BINDINGS",
+  "IngressSanitizationError",
+  "STARTER_THEME_TOKENS_STYLESHEET",
+  "STARTER_WORKSPACE_PLUGIN_ID",
+  "STARTER_WORKSPACE_TYPE",
+  "WORKSPACE_SDK_VERSION",
+  "WORKSPACE_THEME_CSS_VARIABLE",
+  "WorkspacePluginIngressError",
+  "WorkspacePluginShapeError",
+  "WorkspaceThemeValidationError",
+  "assertCanonicalDocument",
+  "assertCanonicalDocumentRoots",
+  "assertCanonicalPathSegments",
+  "assertStablePlainPrototype",
+  "assertTenantThemeSealed",
+  "assertWorkspacePlugin",
+  "assertWorkspaceThemeContract",
+  "assertWorkspaceThemeSealed",
+  "buildTenantAuthz",
+  "buildTourAuthHeaders",
+  "canAccessWorkspaceTheme",
+  "createCanonicalDocument",
+  "createStarterWorkspacePlugin",
+  "createTenantAuthz",
+  "explainWorkspacePluginRejection",
+  "freezeCanonicalDocumentData",
+  "getStarterWorkspacePlugin",
+  "getWorkspaceRuleCell",
+  "getWorkspaceThemePresets",
+  "isWorkspacePlugin",
+  "isWorkspaceSdkValidationError",
+  "isWorkspaceTypeId",
+  "noopWorkspaceValidationHooks",
+  "normalizeTenantCssKey",
+  "normalizeThemeCssKey",
+  "parseCanonicalDocumentFromStorage",
+  "parseTenantAuthContext",
+  "parseWorkspacePluginFromStorage",
+  "readOwnDataProperty",
+  "resolveWorkspacePluginIdForType",
+  "sdkErr",
+  "sdkOk",
+  "snapshotWorkspaceTheme",
+  "starterWorkspacePlugin",
+  "tryParseCanonicalDocumentFromStorage",
+  "tryParseTenantAuthContext",
+  "tryParseWorkspacePluginFromStorage",
+  "tryValidateTenantTheme",
+  "validateTenantTheme",
+  "validateWorkspacePlugin",
+  "workspaceAccentCssValue",
+  "workspaceSdkValidationErrorCode",
+  "workspaceThemePresets",
+  "workspaceTypesFromPlugin",
+]);
+
+const IGNORED_RUNTIME_META_KEYS = new Set(["__esModule", "default", "module.exports"]);
+
 describe("workspace-sdk foundation contract", () => {
   describe("dist publish surface", () => {
     it("defines package exports and built entry files (KS-04)", () => {
@@ -76,6 +137,41 @@ describe("workspace-sdk foundation contract", () => {
       const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
       assert.equal(r.status, 0, out);
       assert.match(out, /DIST_SURFACE_OK/);
+    });
+
+    it("root barrel has no undeclared runtime exports (P0-GATE-04 allowlist)", () => {
+      const allowed = [...ALLOWED_ROOT_RUNTIME_EXPORTS];
+      const ignored = [...IGNORED_RUNTIME_META_KEYS];
+      const probe = `
+        const sdk = await import(${JSON.stringify(path.join(SDK_ROOT, "dist/index.js"))});
+        const allowed = new Set(${JSON.stringify(allowed)});
+        const ignored = new Set(${JSON.stringify(ignored)});
+        const runtimeNames = Object.keys(sdk).filter((name) => !ignored.has(name));
+        const unexpected = runtimeNames.filter((name) => !allowed.has(name));
+        const missing = [...allowed].filter((name) => !(name in sdk));
+        if (unexpected.length) {
+          console.error("unexpected:", unexpected.join(", "));
+          process.exit(1);
+        }
+        if (missing.length) {
+          console.error("missing:", missing.join(", "));
+          process.exit(2);
+        }
+        console.log("ROOT_BARREL_ALLOWLIST_OK");
+      `;
+      const r = spawnSync(process.execPath, ["--input-type=module", "-e", probe], {
+        cwd: SDK_ROOT,
+        encoding: "utf8",
+      });
+      const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+      assert.equal(r.status, 0, out);
+      assert.match(out, /ROOT_BARREL_ALLOWLIST_OK/);
+    });
+
+    it("root index documents transitional TourClient surface (P0-SDK-02 deferred)", () => {
+      const indexSrc = fs.readFileSync(path.join(SDK_ROOT, "src/index.ts"), "utf8");
+      assert.match(indexSrc, /tour-client\.contract/);
+      assert.match(indexSrc, /TourClient/);
     });
 
     it("auth subpath exposes buildTenantAuthz and denies cross-tenant theme access", () => {
