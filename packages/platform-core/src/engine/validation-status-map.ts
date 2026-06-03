@@ -1,6 +1,9 @@
 import type { ValidationResult, ValidationViolation } from "../types/validation-result";
 
-const OK_RESULT: ValidationResult = { ok: true, violations: [] };
+const OK_RESULT: ValidationResult = Object.freeze({
+  ok: true,
+  violations: Object.freeze([]),
+});
 
 type MutableViolation = {
   code: string;

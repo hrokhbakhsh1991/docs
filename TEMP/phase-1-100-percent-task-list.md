@@ -8,7 +8,7 @@
 
 ```text
 Phase 1 technical gate: PASS (phase-1:gate محلی 2026-06-03)
-Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ working tree · فاز ۴–۸ باز
+Phase 1 operational completion: ~96% — فاز ۰–۵ doc بسته @ working tree · فاز ۶–۸ + G.1 باز
 ```
 
 **Baseline فاز ۰:** 2026-06-03 · SHA `ac12e3f` · همه §A.1–A.8 سبز · [`reports/phase-1-guard-2026-06-03.json`](../reports/phase-1-guard-2026-06-03.json) (14/14)
@@ -85,9 +85,9 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 
 | ID | کار ریز | فایل | DoD | وضعیت |
 |----|---------|------|-----|--------|
-| P3-01a | `createViolationCollector`: دو `record` همان `fieldId` → یک violation | `test/unit/engine/validation-status-map.spec.ts` (جدید) | assert dedupe | ☐ |
-| P3-02a | حذف یا استفاده `isEmptyRuleDimensions` | `rule-resolution.ts` | `rg` فقط تعریف یا 1+ call site | ☐ |
-| P3-03a | تست مستند: plan row `hidden: false` ≠ visibility authority | `render-plan.spec.ts` | comment + assert fields omitted when hidden | ☐ |
+| P3-01a | `createViolationCollector`: دو `record` همان `fieldId` → یک violation | `test/unit/engine/validation-status-map.spec.ts` (جدید) | assert dedupe | ✅ |
+| P3-02a | حذف یا استفاده `isEmptyRuleDimensions` | `rule-resolution.ts` | `rg` فقط تعریف یا 1+ call site | ✅ حذف export مرده |
+| P3-03a | تست مستند: plan row `hidden: false` ≠ visibility authority | `render-plan.spec.ts` | comment + assert fields omitted when hidden | ✅ |
 | P3-04a | (اختیاری) `pickBestMatchingCell` pool limit | `rule-resolution` unit | فقط اگر مسیر reachable ساخته شود | ☐ |
 
 ---
@@ -99,8 +99,8 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 | `no-starter-plugin` | فقط depcruise | ☐ اختیاری: integration `it` که import runtime ممنوع را fail کند (subprocess) | ☐ |
 | `sdk-subpath-imports` | فقط grep | ☐ اختیاری: AST test روی consumer sample | ☐ |
 | `field-validation-contract` | structural فقط | **P1-01** | ✅ |
-| `fresh-starter-fixture` | regex فقط | ☐ `it`: دو بار `createFreshStarterPlugin()` → دو reference ≠ | ☐ |
-| `facade-integration-gate` | `fs.existsSync` در contract | ✅ محتوا در `facade-integration.spec.ts` — ☐ اضافه assert `it` count ≥5 در contract | ☐ |
+| `fresh-starter-fixture` | regex فقط | ☐ `it`: دو بار `createFreshStarterPlugin()` → دو reference ≠ | ✅ |
+| `facade-integration-gate` | `fs.existsSync` در contract | ✅ محتوا در `facade-integration.spec.ts` — ☐ اضافه assert `it` count ≥5 در contract | ✅ |
 
 ---
 
@@ -109,8 +109,8 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 | ID | کار | مراحل ریز | DoD | وضعیت |
 |----|-----|-----------|-----|--------|
 | **RP-1** | ساده‌سازی `listStepIds` (**AT-RPS-01**) | D.1 جایگزینی body طبق §11.5 audit · D.2 `step.engine.spec.ts` · D.3 `phase-1:gate` | 6 test سبز · رفتار یکسان | ✅ |
-| **PW-1** | `PlatformWizardEngineOptions` (**AT-PWE-01**) | گزینه A: JSDoc «Phase 2+» · یا B: حذف param (breaking) | تصمیم معمار · compile apps | ☐ |
-| **BL-03** | `OK_RESULT` immutability | ☐ `Object.freeze(OK_RESULT.violations)` یا clone در `finalize` + یک `it` | ☐ |
+| **PW-1** | `PlatformWizardEngineOptions` (**AT-PWE-01**) | گزینه A: JSDoc «Phase 2+» · یا B: حذف param (breaking) | تصمیم معمار · compile apps | ✅ JSDoc |
+| **BL-03** | `OK_RESULT` immutability | ☐ `Object.freeze(OK_RESULT.violations)` یا clone در `finalize` + یک `it` | ✅ |
 
 ---
 
@@ -118,10 +118,10 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 
 | ID | کار ریز | فایل | DoD | وضعیت |
 |----|---------|------|-----|--------|
-| E.1 | g3: `rg -i denali` روی `packages/platform-core/test` (جدا از src) | `phase-1-guard.mjs` | check جدید یا g3b · document در MAP §13 | ☐ |
-| E.2 | پس از build: `rg -i denali packages/platform-core/dist` | `phase-1-guard.mjs` یا release script | 0 match · نیاز `pnpm build` | ☐ |
-| E.3 | g4: word-boundary برای `react` در description | `phase-1-guard.mjs` | بدون false positive `workspace-agnostic` | ☐ |
-| E.4 | depcruise + rule: ممنوعیت `import from '../../platform-core/src'` در `apps/` | `dependency-cruiser.config.js` | violation = 0 | ☐ |
+| E.1 | g3: `rg -i denali` روی `packages/platform-core/test` (جدا از src) | `phase-1-guard.mjs` | check جدید یا g3b · document در MAP §13 | ✅ g3b |
+| E.2 | پس از build: `rg -i denali packages/platform-core/dist` | `phase-1-guard.mjs` یا release script | 0 match · نیاز `pnpm build` | ✅ g3c |
+| E.3 | g4: word-boundary برای `react` در description | `phase-1-guard.mjs` | بدون false positive `workspace-agnostic` | ✅ `-w` |
+| E.4 | depcruise + rule: ممنوعیت `import from '../../platform-core/src'` در `apps/` | `dependency-cruiser.config.js` | violation = 0 | ✅ |
 
 ---
 
@@ -129,12 +129,12 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 
 | ID | کار ریز | فایل | DoD | وضعیت |
 |----|---------|------|-----|--------|
-| F.1 | commit + push `audits/phase-1-forensic-audit.md` | `audits/` | در `main` remote | ☐ |
-| F.2 | به‌روز `reports/phase-1-closure-readiness-2026-06-03.md`: لینک §9–§13 · درصد · بازها | `reports/` | یک صفحه truth | ☐ |
-| F.3 | اصلاح doc integrity: `StepEngine` / `render-plan.builder` → `render-plan.steps` / `render-plan.ts` | `docs/audits/phase-1-documentation-integrity-2026-06-03.mdoc` | هم‌خوان repo | ☐ |
-| F.4 | ai-exec `empty` visibility typo: «zero registry fields» | `phase-1-platform-core.ai-exec.md` §4.4 | هم‌خوان `step.engine.spec.ts` | ☐ |
-| F.5 | `guard:doc-sync` + `doc:markdoc:validate` | — | PASS | ☐ |
-| F.6 | ایجاد `reports/phase-1-brutal-audit-2026-06-03.md` یا حذف لینک شکسته | `phase-1-platform-core.mdoc` | بدون broken link | ☐ |
+| F.1 | commit + push `audits/phase-1-forensic-audit.md` | `audits/` | در `main` remote | ☐ (با commit بعدی) |
+| F.2 | به‌روز `reports/phase-1-closure-readiness-2026-06-03.md`: لینک §9–§13 · درصد · بازها | `reports/` | یک صفحه truth | ✅ |
+| F.3 | اصلاح doc integrity: `StepEngine` / `render-plan.builder` → `render-plan.steps` / `render-plan.ts` | `docs/audits/phase-1-documentation-integrity-2026-06-03.mdoc` | هم‌خوان repo | ✅ |
+| F.4 | ai-exec `empty` visibility typo: «zero registry fields» | `phase-1-platform-core.ai-exec.md` §4.4 | هم‌خوان `step.engine.spec.ts` | ✅ |
+| F.5 | `guard:doc-sync` + `doc:markdoc:validate` | — | PASS | ✅ |
+| F.6 | ایجاد `reports/phase-1-brutal-audit-2026-06-03.md` یا حذف لینک شکسته | `phase-1-platform-core.mdoc` | بدون broken link | ✅ |
 | F.7 | header این فایل TEMP → SHA نهایی پس از merge | `TEMP/phase-1-100-percent-task-list.md` | `Phase 1 operational completion: 100%` | ☐ |
 
 ---
@@ -154,10 +154,10 @@ Phase 1 operational completion: ~93% — فاز ۰–۲ بسته · RP-1 @ worki
 
 | # | بسته | import مجاز | کار تأیید | وضعیت |
 |---|------|-------------|-----------|--------|
-| H.1 | `apps/api` | `PlatformWizardEngine` | `canonical-validation.ts` + spec | ☐ |
-| H.2 | `apps/web` | engine + `RenderStepPlan` / `RenderFieldPlan` types | wizard host | ☐ |
-| H.3 | `workspaces/starter` test | `PlatformWizardEngine` | `starter.plugin.spec.ts` | ☐ |
-| H.4 | عدم `tenantId` در API tour | P0-CRIT-04 | ☐ بررسی `ToursService` wrapper اگر هنوز PARTIAL | ☐ |
+| H.1 | `apps/api` | `PlatformWizardEngine` | `canonical-validation.ts` + spec | ✅ facade import |
+| H.2 | `apps/web` | engine + `RenderStepPlan` / `RenderFieldPlan` types | wizard host | ✅ |
+| H.3 | `workspaces/starter` test | `PlatformWizardEngine` | `starter.plugin.spec.ts` | ✅ |
+| H.4 | عدم `tenantId` در API tour | P0-CRIT-04 | ☐ بررسی `ToursService` wrapper (خارج از diff فعلی) | ☐ |
 
 ---
 
@@ -243,36 +243,37 @@ pnpm run test:phase-1
 | مرحله | ID | کار | وضعیت |
 |-------|-----|------|--------|
 | 3.1 | RP-1 | `listStepIds` simplify | ✅ 2026-06-03 |
-| 3.2 | BL-03 | OK_RESULT freeze (اختیاری) | ☐ |
-| 3.3 | PW-1 | Options JSDoc (اختیاری) | ☐ |
+| 3.2 | BL-03 | OK_RESULT freeze (اختیاری) | ✅ 2026-06-03 |
+| 3.3 | PW-1 | Options JSDoc (اختیاری) | ✅ |
 
 ---
 
-### فاز اجرایی ۴ — Contract hardening (`Phase: 1.x-contract-r1`)
+### فاز اجرایی ۴ — Contract hardening (`Phase: 1.x-contract-r1`) ✅
 
 | مرحله | ID | کار | وضعیت |
 |-------|-----|------|--------|
-| 4.1 | §C | fresh-starter · field-validation behavioral asserts | ☐ |
-| 4.2 | P3-01a | violation dedupe test | ☐ |
-| 4.3 | P3-02a | `isEmptyRuleDimensions` cleanup | ☐ |
+| 4.1 | §C | fresh-starter · field-validation behavioral asserts | ✅ 2026-06-03 |
+| 4.2 | P3-01a | violation dedupe test | ✅ |
+| 4.3 | P3-02a | `isEmptyRuleDimensions` cleanup | ✅ 2026-06-03 |
+| 4.4 | P3-03a | render-plan hidden row authority | ✅ 2026-06-03 |
 
 ---
 
-### فاز اجرایی ۵ — Documentation (`Phase: 1.x-doc-closure`)
+### فاز اجرایی ۵ — Documentation (`Phase: 1.x-doc-closure`) ✅
 
 | مرحله | ID | کار | وضعیت |
 |-------|-----|------|--------|
-| 5.1 | F.1 | commit forensic audit | ☐ |
-| 5.2 | F.2–F.6 | readiness · integrity · ai-exec typo · links | ☐ |
-| 5.3 | F.5 | doc-sync + markdoc | ☐ |
+| 5.1 | F.1 | commit forensic audit | ☐ با push نهایی |
+| 5.2 | F.2–F.6 | readiness · integrity · ai-exec typo · links | ✅ 2026-06-03 |
+| 5.3 | F.5 | doc-sync + markdoc | ✅ |
 
 ---
 
-### فاز اجرایی ۶ — CI paranoid (`Phase: 1.x-guard-hardening`) — اختیاری
+### فاز اجرایی ۶ — CI paranoid (`Phase: 1.x-guard-hardening`) ✅
 
 | مرحله | ID | کار | وضعیت |
 |-------|-----|------|--------|
-| 6.1 | E.1–E.4 | guard extensions | ☐ |
+| 6.1 | E.1–E.4 | guard extensions | ✅ 2026-06-03 |
 
 ---
 

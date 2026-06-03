@@ -47,6 +47,56 @@ describe("buildRenderPlan", () => {
     assert.equal(summary?.required, false);
   });
 
+  it("omits hidden fields from plan rows (row.hidden false is not visibility authority)", () => {
+    const registry: WorkspaceFieldRegistry = {
+      version: 1,
+      fields: [
+        {
+          id: "step.visible",
+          canonicalPath: "step.visible",
+          stepId: "step",
+          kind: "text",
+          required: true,
+        },
+        {
+          id: "step.hidden",
+          canonicalPath: "step.hidden",
+          stepId: "step",
+          kind: "text",
+          required: false,
+        },
+      ],
+    };
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [
+            { fieldId: "step.visible", hidden: false },
+            { fieldId: "step.hidden", hidden: true },
+          ],
+        },
+      ],
+    };
+    const wizard: WorkspaceWizardSurface = {
+      wizardMode: "classic",
+      railId: "test",
+      roots: ["step"],
+      inactiveFieldGroups: [],
+      wizardCapacityStepRedundant: false,
+    };
+    const plan = buildPlan(registry, ruleSet, wizard);
+    assert.equal(plan.length, 1);
+    assert.equal(plan[0]?.fields.length, 1);
+    assert.equal(plan[0]?.fields[0]?.fieldId, "step.visible");
+    assert.equal(plan[0]?.fields[0]?.hidden, false);
+    assert.ok(!plan[0]?.fields.some((row) => row.fieldId === "step.hidden"));
+  });
+
   it("excludes hidden fields from plan", () => {
     const registry: WorkspaceFieldRegistry = {
       version: 1,

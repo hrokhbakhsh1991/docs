@@ -161,9 +161,3 @@ export function pickBestMatchingCell(
 
   return matches[dominant.bestIndex]!;
 }
-
-export function isEmptyRuleDimensions(
-  dimensions: Readonly<Record<string, string>>,
-): boolean {
-  return Object.keys(dimensions).length === 0;
-}

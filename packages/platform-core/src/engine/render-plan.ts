@@ -82,6 +82,7 @@ function toRenderFieldPlan(
     kind: entry.kind,
     canonicalPath: entry.canonicalPath,
     required: effective.required,
+    // Omitted hidden fields are excluded above; row.hidden is not the visibility authority (BL-04).
     hidden: false,
     stepId: entry.stepId,
     uiHints: entry.kind === "composite" ? { compositeId: entry.id } : undefined,

@@ -8,7 +8,7 @@ verdict: Aligned with codebase
 
 # Phase 1 Documentation Integrity Report
 
-{% verdict status="PASS" score="94 tests / depcruise" /%}
+{% verdict status="PASS" score="154 tests / depcruise" /%}
 
 **Scope:** Markdoc retrofit for [`phase-1-platform-core.mdoc`](../phase-1-platform-core.mdoc) — engine mapping, anti-pattern ↔ depcruise parity, test registry (≥ 30 criterion).
 
@@ -22,13 +22,13 @@ verdict: Aligned with codebase
 
 ## 2. Engine mapping (documented)
 
-| Engine | Source | Tests linked in §6.1 |
-|--------|--------|----------------------|
+| Component | Source | Tests linked in §6.1 |
+|-----------|--------|-------------------|
 | **FieldRegistryEngine** | `field-registry.engine.ts` | 7 cases |
-| **RuleEngine** | `rule.engine.ts` + `rule-cell-index.ts` | 25 + 4 + 4 concurrency |
-| **StepEngine** | `step.engine.ts` | 6 cases |
-| **RenderPlanBuilder** | `render-plan.builder.ts` | 7 cases |
-| **PlatformWizardEngine** | `platform-wizard.engine.ts` | 15 cases |
+| **RuleEngine** | `rule.engine.ts` + `rule-cell-index.ts` | 25 + 4 + concurrency |
+| **Step ordering** | `render-plan.steps.ts` (plain functions — **not** `StepEngine` class) | 6 cases (`step.engine.spec.ts`) |
+| **Render plan** | `render-plan.ts` | 8 cases (`render-plan.spec.ts`) |
+| **PlatformWizardEngine** | `platform-wizard.engine.ts` | facade + wizard + cold-start specs |
 
 Mermaid diagrams: §1.4 pipeline, §3.5 per-engine flows, orchestration facade.
 
@@ -48,21 +48,31 @@ Mermaid diagrams: §1.4 pipeline, §3.5 per-engine flows, orchestration facade.
 
 | Metric | Documented | Repo |
 |--------|------------|------|
-| Minimum | ≥ 30 | **94** pass |
-| Spec files | 11 linked in §6.1 | 11 on disk |
-| `phase-1-guard` | `g2_platform_core_test_count` ≥ 94 | PASS at audit |
+| Minimum | ≥ 30 | **154** pass (56 closure + 98 unit, 2026-06-03) |
+| Spec files | 20 under `packages/platform-core/test` | on disk |
+| `phase-1-guard` | `g2_platform_core_test_count` ≥ 132 | PASS |
 
-## 5. Verification
+## 5. Forensic cross-links (2026-06-03)
+
+| Section | Report |
+|---------|--------|
+| Contract vs engine gaps · BL-01–04 | [`audits/phase-1-forensic-audit.md`](../../audits/phase-1-forensic-audit.md) §9–§10 |
+| Architectural theater · RP-1 | same §11 |
+| Tenant isolation | same §12 |
+| Facade integrity | same §13 |
+| Brutal maturity summary | [`reports/phase-1-brutal-audit-2026-06-03.md`](../../reports/phase-1-brutal-audit-2026-06-03.md) |
+
+## 6. Verification
 
 ```bash
 pnpm run guard:doc-sync
 pnpm run doc:markdoc:validate
-pnpm --filter @app-tour/platform-core test    # 94 pass
-pnpm run phase-1:guard
-pnpm run guard:architecture                   # depcruise
+pnpm --filter @app-tour/platform-core test
+pnpm run phase-1:gate
+pnpm run guard:architecture
 ```
 
-## 6. Conclusion
+## 7. Conclusion
 
 Phase 1 documentation **matches the current codebase** for engines, guards, and test counts.
 

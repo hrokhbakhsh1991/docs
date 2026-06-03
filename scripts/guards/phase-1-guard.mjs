@@ -230,12 +230,61 @@ function checkNoDenaliInPlatformCore() {
 }
 
 /** @returns {GuardCheck} */
+function checkNoDenaliInPlatformCoreTests() {
+  const testRoot = path.join(PLATFORM_CORE_ROOT, "test");
+  if (!fs.existsSync(testRoot)) {
+    return {
+      id: "g3b_denali_in_platform_core_test",
+      description: "rg -i denali packages/platform-core/test → 0",
+      required: true,
+      ok: true,
+      detail: "no test/ directory",
+    };
+  }
+  const r = rg(["-i", "denali"], testRoot);
+  const ok = r.lines.length === 0;
+  return {
+    id: "g3b_denali_in_platform_core_test",
+    description: "rg -i denali packages/platform-core/test → 0",
+    required: true,
+    ok,
+    detail: ok ? null : truncateDetail(r.lines.slice(0, 15).join("\n")),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkNoDenaliInPlatformCoreDist() {
+  if (!fs.existsSync(PLATFORM_CORE_DIST)) {
+    return {
+      id: "g3c_denali_in_platform_core_dist",
+      description: "rg -i denali packages/platform-core/dist → 0 (after build)",
+      required: true,
+      ok: false,
+      detail: "dist missing — run pnpm build",
+    };
+  }
+  const distRoot = path.join(PLATFORM_CORE_ROOT, "dist");
+  const r = rg(["-i", "denali"], distRoot);
+  const ok = r.lines.length === 0;
+  return {
+    id: "g3c_denali_in_platform_core_dist",
+    description: "rg -i denali packages/platform-core/dist → 0 (after build)",
+    required: true,
+    ok,
+    detail: ok ? null : truncateDetail(r.lines.slice(0, 15).join("\n")),
+  };
+}
+
+/** @returns {GuardCheck} */
 function checkNoReactInPlatformCore() {
-  const r = rg(["react", "react-dom", "from \"react\""], PLATFORM_CORE_ROOT);
+  const r = rg(
+    ["-w", "react", "-w", "react-dom", "from \"react\"", "from 'react'"],
+    PLATFORM_CORE_ROOT,
+  );
   const ok = r.lines.length === 0;
   return {
     id: "g4_no_react_imports",
-    description: "no react/react-dom imports in platform-core",
+    description: "no react/react-dom word-boundary imports in platform-core",
     required: true,
     ok,
     detail: ok ? null : truncateDetail(r.lines.join("\n")),
@@ -440,6 +489,8 @@ function main() {
     checkFacadeTestRatio(),
     checkAdversarialSpecsExecute(),
     checkNoDenaliInPlatformCore(),
+    checkNoDenaliInPlatformCoreTests(),
+    checkNoDenaliInPlatformCoreDist(),
     checkNoReactInPlatformCore(),
     checkArchitectureGuard(),
     checkImportBoundaryGuard(),
