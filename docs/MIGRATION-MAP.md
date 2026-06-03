@@ -597,9 +597,10 @@ WorkspacePluginRegistry.register({
 
 ---
 
-### فاز ۱ — Platform core (engine)
+### فاز ۱ — Platform core (engine) — **Closed: Zero-Debt Verified**
 
-> **راهنمای کامل:** [`phase-1-platform-core.md`](phase-1-platform-core.md) — sub-phase 1.1–1.6، API engines، ≥30 tests، anti-patterns legacy  
+> **Status:** **Closed: Zero-Debt Verified** (2026-06-03) — forensic: [`audits/phase-1-forensic-audit.md`](../audits/phase-1-forensic-audit.md) · sign-off: [`reports/phase-1-architect-signoff-checklist-2026-06-03.md`](../reports/phase-1-architect-signoff-checklist-2026-06-03.md) · gate: `pnpm run phase-1:gate` (16/16) @ `7000685`  
+> **راهنمای کامل:** [`phase-1-platform-core.md`](phase-1-platform-core.md) — sub-phase 1.1–1.6، API engines، ≥148 tests، anti-patterns legacy  
 > **Hardening:** Engine invariants require adversarial specs — not grep-only closure.
 
 | # | کار | Exit |
@@ -607,9 +608,9 @@ WorkspacePluginRegistry.register({
 | 1.1 | `packages/platform-core` scaffold | build + depcruise rules |
 | 1.2 | `FieldRegistryEngine` | ≥ 6 tests |
 | 1.3 | `RuleEngine` | ≥ 8 tests |
-| 1.4 | `StepEngine` | ≥ 5 tests |
-| 1.5 | `RenderPlanBuilder` (headless) | ≥ 6 tests |
-| 1.6 | `PlatformWizardEngine` + bootstrap validation + `phase-1:guard` | ≥ 30 tests cumulative |
+| 1.4 | `render-plan.steps` (not `StepEngine` class) | ≥ 6 tests |
+| 1.5 | `buildRenderPlan` / `render-plan.ts` (headless) | ≥ 8 tests |
+| 1.6 | `PlatformWizardEngine` + bootstrap validation + `phase-1:guard` | ≥ 148 tests · 16 guard checks |
 
 **Enforcement (§12):**
 

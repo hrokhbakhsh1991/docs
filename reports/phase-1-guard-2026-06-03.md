@@ -1,7 +1,7 @@
 # Phase 1 gate — 2026-06-03
 
-- **Generated:** 2026-06-03T23:09:50.112Z
-- **Git SHA:** `ac12e3f`
+- **Generated:** 2026-06-03T23:57:45.727Z
+- **Git SHA:** `7000685`
 - **JSON:** [reports/phase-1-guard-2026-06-03.json](reports/phase-1-guard-2026-06-03.json)
 
 ## Checks
@@ -18,6 +18,8 @@
 | g13_facade_test_ratio | yes | PASS |
 | g10_adversarial_specs_execute | yes | PASS |
 | g3_no_denali_tokens | yes | PASS |
+| g3b_denali_in_platform_core_test | yes | PASS |
+| g3c_denali_in_platform_core_dist | yes | PASS |
 | g4_no_react_imports | yes | PASS |
 | g5_depcruise_architecture | yes | PASS |
 | g6_import_boundary | yes | PASS |
