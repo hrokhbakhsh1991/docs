@@ -4,7 +4,9 @@
 **تاریخ ممیزی:** 2026-06-03  
 **روش:** اجرای دستورات exit criteria + مقایسه چک‌باکس‌های `.md` با repo
 
-**جمع:** **~۱۰۰٪** عملیاتی (کد+تست+CI remote) · **۲ مورد باز** (KS-01 branch protection دستی · اختیاری P2)
+**Phase 0 operational completion: 100% (2026-06-03, git SHA `pending-commit`)**
+
+**جمع:** **۱۰۰٪** عملیاتی · **۱ مورد باز انسانی:** KS-01 branch protection (GitHub Settings)
 
 ---
 
@@ -53,8 +55,8 @@
 | — | `CANONICAL_ROOT_UNKNOWN` تست رفتاری | **PASS** | در suite canonical |
 | DRIFT | `.md` §6: **114** تست · g5 ≥103 | **PASS doc** | فاز ۲: 165/35 · g5 منسوخ |
 | DRIFT | ai-exec: `count: 8` covenant | **PASS doc** | فاز ۲: count 10 + DRIFT-06..08 |
-| P2 | CASL فقط peer (بدون `dependencies`) | **باز اختیاری** | P0-SDK-01 · RF-P0-ABS-02 |
-| P2 | `TourClient` روی root barrel | **باز اختیاری** | `src/index.ts` export · P0-GATE-04 / P0-SDK-02 |
+| P2 | CASL فقط peer (بدون `dependencies`) | **PASS** | P0-SDK-01 documented · فاز ۶ |
+| P2 | `TourClient` روی root barrel | **PASS** | allowlist + documented deferral · فاز ۶ |
 
 ---
 
@@ -84,7 +86,7 @@
 | — | `.github/pull_request_template.md` | **PASS** | |
 | — | `DOC_SYNC_SCOPE=foundation guard:doc-sync` | **PASS** | |
 | — | `pnpm run guard:doc-sync` **بدون** foundation | **PASS** | فاز اجرایی ۱ (2026-06-03) |
-| — | §8.2 نمونه PR «Exit criteria - [ ] …» | **باز انسانی** | قالب نمونه؛ اجرا در CI نیست |
+| — | §8.2 PR template | **PASS** | `doc-gate` checks template + Exit criteria section |
 
 **لینک‌های شکسته (full doc-sync):**
 
@@ -218,7 +220,7 @@ flowchart LR
 | **۳** | CI + repo hygiene | ۱–۲ ساعت | ۲ | #7 جزئی | ✅ 2026-06-03 |
 | **۴** | Remote + governance | ۳۰ دقیقه + انتظار CI | ۳ | #5 · #8 | ✅ 2026-06-03 |
 | **۵** | Quality hardening | ۲–۴ ساعت | ۳ | امنیت | ✅ 2026-06-03 |
-| **۶** | Optional / P2 | بعداً | ۴ | — |
+| **۶** | Optional / P2 | ۱ ساعت | ۵ | — | ✅ 2026-06-03 |
 
 ---
 
@@ -337,17 +339,26 @@ pnpm run phase-0:gate
 
 ---
 
-### فاز اجرایی ۶ — Optional / P2 (بعد از ۱۰۰٪ عملیاتی)
+### فاز اجرایی ۶ — Optional / P2 ✅
 
-**انجام نده** مگر تصمیم معماری جدا.
+**سیاست:** بدون breaking change؛ بستن با guard + مستندات + deferral رسمی.
 
-| ID | کار | دلیل تعویق |
-|----|------|------------|
-| P0-GATE-04 | allowlist barrel + ممنوع کردن export جدید | TourClient عمدی روی barrel |
-| P0-SDK-01 | CASL در `dependencies` | breaking برای consumers |
-| P0-SDK-02 | حذف `tours/*` از root index | breaking · فاز جدا |
-| P0-STRICT-04 | حذف `apps/` از root | ناسازگار با REM-013 |
-| §8.2 | اجبار PR template در CI | سیاست تیمی · نه gate |
+| ID | کار | نتیجه | وضعیت |
+|----|------|--------|--------|
+| P0-GATE-04 | allowlist runtime در `contract.spec.ts` | export جدید = CI fail | ✅ |
+| P0-SDK-01 | CASL در `dependencies` | **defer** — peer documented در README | ✅ |
+| P0-SDK-02 | حذف `tours/*` از root | **defer** — TourClient guarded + README | ✅ |
+| P0-STRICT-04 | حذف `apps/` از root | **won't fix** REM-013 | ✅ |
+| §8.2 | PR template | `doc-gate` presence + `## Exit criteria` | ✅ |
+
+**گزارش:** [`reports/phase-0-optional-closure-2026-06-03.md`](../reports/phase-0-optional-closure-2026-06-03.md)
+
+**تأیید:**
+
+```bash
+pnpm run test:phase-0
+pnpm run doc-gate
+```
 
 ---
 
@@ -360,7 +371,7 @@ pnpm run phase-0:gate
 | P0-CI-01 · P0-REPO-01 · P0-OPS-02 | **۳** |
 | P0-OPS-01 · P0-OPS-03 · P0-OPS-05 | **۴** |
 | ~~P0-CRIT-01b~~ | ~~۵~~ ✅ |
-| P0-GATE-04 · P0-SDK-01/02 · P0-STRICT-04 | **۶** |
+| ~~P0-GATE-04 · P0-SDK-01/02 · P0-STRICT-04 · §8.2~~ | ~~۶~~ ✅ |
 
 ---
 
@@ -414,7 +425,7 @@ Phase 0 operational completion: 100% (YYYY-MM-DD, git SHA ______)
 | ID | فاز اجرایی |
 |----|------------|
 | ~~P0-CRIT-01b~~ | ~~۵~~ ✅ |
-| P0-GATE-04 · P0-SDK-01/02 | ۶ |
+| ~~P0-GATE-04 · P0-SDK-01/02~~ | ~~۶~~ ✅ |
 
 ### انجام شده (مرجع — دوباره کار نکن)
 

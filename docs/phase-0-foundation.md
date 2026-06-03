@@ -743,4 +743,18 @@ pnpm run guard:doc-sync   # Docs-as-Code §19 (phases 0–2)
 
 ---
 
-**فاز ۰:** ✅ Foundation closure complete (2026-06-03) — `phase-0:gate` + ۱۰ covenant · **بعد:** [Phase 1.1](phase-1-platform-core.md#41-زیرفاز-11--scaffold)
+### 15. Optional / P2 closure (execution phase 6)
+
+| ID | وضعیت |
+|----|--------|
+| P0-GATE-04 | allowlist runtime در [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) |
+| P0-SDK-01 | CASL peer-only — [`packages/workspace-sdk/README.md`](../packages/workspace-sdk/README.md) |
+| P0-SDK-02 | TourClient روی barrel (موقت) — همان allowlist + README |
+| P0-STRICT-04 | **Won't fix** (REM-013) |
+| §8.2 | PR template در `doc-gate` |
+
+جزئیات: [`reports/phase-0-optional-closure-2026-06-03.md`](../reports/phase-0-optional-closure-2026-06-03.md).
+
+---
+
+**فاز ۰:** ✅ Foundation closure complete (2026-06-03) — `phase-0:gate` + ۱۰ covenant + P2 documented · **بعد:** [Phase 1.1](phase-1-platform-core.md#41-زیرفاز-11--scaffold)
