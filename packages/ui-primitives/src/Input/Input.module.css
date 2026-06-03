@@ -1,0 +1,28 @@
+.control {
+  min-height: var(--layout-min-tap-target);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: var(--border-width-default) var(--layout-border-style-solid) var(--color-border);
+  border-radius: var(--radius-sm);
+  width: var(--layout-width-full);
+}
+
+.control:focus-visible {
+  outline: var(--focus-outline-width) var(--layout-border-style-solid) var(--color-focus-ring);
+  outline-offset: var(--focus-outline-offset);
+  border-color: var(--color-primary);
+}
+
+.control:disabled {
+  background: var(--color-bg-disabled);
+  color: var(--color-text-muted);
+  cursor: var(--layout-cursor-not-allowed);
+}
+
+.controlInvalid {
+  border-color: var(--color-danger);
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "@app-tour/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "noUnusedLocals": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"]
+  },
+  "include": ["src/css-modules.d.ts", "src/**/*.spec.tsx", "test/**/*.ts", "test/**/*.tsx"]
+}

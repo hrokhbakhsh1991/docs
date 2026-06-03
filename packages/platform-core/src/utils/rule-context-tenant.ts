@@ -5,9 +5,9 @@ import type { RuleContext } from "../types/rule-context";
 const TENANT_ID_PATTERN = /^[a-z][a-z0-9_-]{0,127}$/i;
 
 /**
- * Validates RuleContext.tenantId — required for multi-tenant scope cache isolation.
+ * Validates `RuleContext.tenantId` — single authority for normalize + scope cache keys.
  */
-export function assertRuleContextTenantId(context: RuleContext): string {
+export function assertTenantId(context: RuleContext): string {
   if (typeof context.tenantId !== "string") {
     throw new PlatformCoreError(
       "TENANT_ISOLATION_VIOLATION",
@@ -38,3 +38,6 @@ export function assertRuleContextTenantId(context: RuleContext): string {
 
   return context.tenantId;
 }
+
+/** @deprecated Use {@link assertTenantId}. */
+export const assertRuleContextTenantId = assertTenantId;

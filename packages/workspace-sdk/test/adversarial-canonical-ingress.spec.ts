@@ -6,9 +6,9 @@ import {
   assertWorkspacePlugin,
   CanonicalDocumentValidationError,
   createCanonicalDocument,
-  starterWorkspacePlugin,
-  WorkspacePluginValidationError,
+  isWorkspaceSdkValidationError,
 } from "../src/index";
+import { createFreshStarterPlugin } from "./lib/immutable-harness.js";
 
 /** Cyrillic small letter i (U+0456) — visually similar to Latin i. */
 const HOMOGLYPH_I = "\u0456";
@@ -29,7 +29,8 @@ describe("adversarial canonical ingress", () => {
 
   it("rejects plugin fields whose canonicalPath contains unicode homoglyphs", () => {
     const badPlugin = {
-      ...starterWorkspacePlugin,
+      ...createFreshStarterPlugin(),
+
       fieldRegistry: {
         version: 1,
         fields: [
@@ -46,7 +47,7 @@ describe("adversarial canonical ingress", () => {
     assert.throws(
       () => assertWorkspacePlugin(badPlugin),
       (error: unknown) => {
-        assert.ok(error instanceof WorkspacePluginValidationError);
+        assert.ok(isWorkspaceSdkValidationError(error));
         assert.equal(error.code, "INVALID_FIELD_REGISTRY");
         return true;
       },
@@ -85,7 +86,7 @@ describe("adversarial canonical ingress", () => {
         }),
       (error: unknown) => {
         assert.ok(error instanceof CanonicalDocumentValidationError);
-        assert.equal(error.code, "CANONICAL_INVALID_DATA");
+        assert.equal(error.code, "CANONICAL_FORBIDDEN_BIGINT");
         return true;
       },
     );

@@ -1,0 +1,53 @@
+---
+title: Phase 3 Zero-Debt Forensic Audit
+phase: 3
+gitSha: e8fc3a8
+generatedAt: 2026-06-03T00:00:00Z
+verdict: Zero-Debt Verified
+debtScore: "100/100"
+gateReport: reports/phase-3-gate-2026-06-03.json
+---
+
+# Phase 3 Zero-Debt Forensic Audit Report
+
+{% verdict status="Zero-Debt Verified" score="100/100" /%}
+
+**Role:** Principal Auditor (final zero-debt pass)  
+**Scope:** `workspace-sdk` CASL, `workspace-starter`, `@apps/api`, `@apps/web`, guards §13  
+**Method:** Canonical-layer ripgrep, barrel import scan, `pnpm run phase-3:gate` (exit 0).
+
+## Executive summary
+
+| Control | Result |
+|---------|--------|
+| Legacy table access outside Canonical Service | **0 violations** |
+| Dual-write paths | **Blocked** (`DUAL_WRITE_FORBIDDEN`) |
+| Barrel `@app-tour/ui-primitives` (non-subpath) | **0** |
+| `pnpm run phase-3:gate` | **exit 0** (15/15) |
+
+## Tenant binding (P3-INT-02)
+
+`x-authenticated-tenant-id` is **required** on tour routes; `x-tenant-id` alone returns **403** `FORBIDDEN_TENANT_UNAUTHENTICATED`. Mismatched pair → `FORBIDDEN_TENANT_CLAIM_MISMATCH`. See integrity report [`phase-3-documentation-integrity-2026-06-03.mdoc`](phase-3-documentation-integrity-2026-06-03.mdoc).
+
+## Canonical enforcement
+
+**Single write surface:** `in_memory.tour_records` via `CanonicalTourService`.
+
+```
+POST /tours → ToursService → CanonicalTourService.writeTour
+  → accessibleBy (CASL) → ScopedTourRepository → in_memory.tour_records
+```
+
+**CRITICAL FAIL count:** **0**
+
+## Barrel audit
+
+Subpath-only: `@app-tour/ui-primitives/button`, `/input` in `apps/web`.
+
+## Gate validation
+
+`pnpm run phase-3:gate` — includes `phase-2:gate`, `phase-3:guard`, `audit-boundary`.
+
+## Sign-off
+
+**Phase 3 is now Zero-Debt Verified** per [`phase-3-design-system.md`](../phase-3-design-system.md) §15.

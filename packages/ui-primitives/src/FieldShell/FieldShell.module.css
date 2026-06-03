@@ -1,0 +1,31 @@
+.field {
+  display: var(--layout-display-flex);
+  flex-direction: var(--layout-flex-direction-column);
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-small-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-primary);
+}
+
+.requiredMark {
+  color: var(--color-danger);
+  margin-inline-start: var(--space-1);
+}
+
+.help {
+  margin: var(--space-0);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin: var(--space-0);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-leading);
+  color: var(--color-danger);
+}

@@ -1,16 +1,16 @@
 import { PlatformCoreError } from "../errors/platform-core.error";
-import type { RuleContext } from "../types/rule-context";
-import { assertRuleContextTenantId } from "./rule-context-tenant";
+import type { RuleContextResolution } from "../types/rule-context-resolution";
+import { assertTenantId } from "./rule-context-tenant";
 
 /**
  * Normalizes rule context dimensions: null/undefined → `{}`; rejects non-plain objects.
  */
-export function normalizeRuleContext(context: RuleContext): RuleContext {
+export function normalizeRuleContext(context: RuleContextResolution): RuleContextResolution {
   if (context == null || typeof context !== "object") {
     throw new PlatformCoreError("INVALID_RULE_CONTEXT", "RuleContext is required");
   }
 
-  const tenantId = assertRuleContextTenantId(context);
+  const tenantId = assertTenantId(context);
 
   const rawDimensions = context.dimensions;
   if (rawDimensions == null) {

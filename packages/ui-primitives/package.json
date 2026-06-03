@@ -1,0 +1,74 @@
+{
+  "name": "@app-tour/ui-primitives",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic UI primitives — semantic design tokens only. Import via subpaths (barrel deprecated).",
+  "sideEffects": [
+    "./dist/Button/Button.module.css",
+    "./dist/Input/Input.module.css",
+    "./dist/FieldShell/FieldShell.module.css",
+    "./dist/Alert/Alert.module.css",
+    "./dist/Badge/Badge.module.css"
+  ],
+  "files": [
+    "dist/Button",
+    "dist/Input",
+    "dist/FieldShell",
+    "dist/Alert",
+    "dist/Badge",
+    "dist/utils"
+  ],
+  "exports": {
+    "./button": {
+      "types": "./dist/Button/Button.d.ts",
+      "default": "./dist/Button/Button.js"
+    },
+    "./input": {
+      "types": "./dist/Input/Input.d.ts",
+      "default": "./dist/Input/Input.js"
+    },
+    "./field-shell": {
+      "types": "./dist/FieldShell/FieldShell.d.ts",
+      "default": "./dist/FieldShell/FieldShell.js"
+    },
+    "./alert": {
+      "types": "./dist/Alert/Alert.d.ts",
+      "default": "./dist/Alert/Alert.js"
+    },
+    "./badge": {
+      "types": "./dist/Badge/Badge.d.ts",
+      "default": "./dist/Badge/Badge.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && node ./scripts/build.mjs && tsc -p tsconfig.build.json",
+    "lint": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "pnpm run lint && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-concurrency=1 \"src/**/*.spec.tsx\" \"test/**/*.spec.ts\"",
+    "test:visual": "pnpm run build && NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test --test-concurrency=1 \"test/visual/**/*.spec.tsx\"",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@app-tour/theme-react": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@happy-dom/global-registrator": "^17.4.4",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "happy-dom": "^17.4.4",
+    "storybook": "^8.6.14",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

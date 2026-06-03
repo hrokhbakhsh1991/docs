@@ -9,15 +9,62 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./ingress": {
+      "types": "./dist/ingress/index.d.ts",
+      "default": "./dist/ingress/index.js"
+    },
+    "./registry": {
+      "types": "./dist/registry/index.d.ts",
+      "default": "./dist/registry/index.js"
+    },
+    "./canonical": {
+      "types": "./dist/canonical/index.d.ts",
+      "default": "./dist/canonical/index.js"
+    },
+    "./plugin-types": {
+      "types": "./dist/plugin-types/index.d.ts",
+      "default": "./dist/plugin-types/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "default": "./dist/auth/index.js"
+    },
+    "./auth/casl": {
+      "types": "./dist/auth/casl/index.d.ts",
+      "default": "./dist/auth/casl/index.js"
+    },
+    "./theme": {
+      "types": "./dist/theme/index.d.ts",
+      "default": "./dist/theme/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin/index.d.ts",
+      "default": "./dist/plugin/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test": "NODE_ENV=test node --import tsx --test \"src/**/*.spec.ts\" \"test/**/*.spec.ts\""
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\"",
+    "test:phase-0": "pnpm run build && NODE_ENV=test LEGACY_IMPORT_SCAN_SCOPE=foundation node --import tsx --test test/phase-0.contract.spec.ts",
+    "test:invariants": "NODE_ENV=test node --import tsx --test test/invariant-manifest.contract.spec.ts",
+    "test:contract:foundation": "pnpm run test:phase-0",
+    "test:contract:monorepo": "NODE_ENV=test node --import tsx --test test/legacy-import.monorepo.contract.spec.ts",
+    "test:contract": "pnpm run test:phase-0"
+  },
+  "peerDependencies": {
+    "@casl/ability": "^6.7.3"
+  },
+  "peerDependenciesMeta": {
+    "@casl/ability": {
+      "optional": true
+    }
   },
   "devDependencies": {
+    "@casl/ability": "^6.7.3",
     "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"
   }

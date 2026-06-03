@@ -4,6 +4,7 @@ import type { WorkspaceLifecycleContract } from "./workspace-lifecycle";
 import type { WorkspacePluginId } from "./workspace-plugin-id";
 import type { WorkspaceTypeId } from "./workspace-type";
 import type { WorkspaceValidationHooks } from "./workspace-validation";
+import type { WorkspaceThemeContract } from "../theme/workspace-theme.contract";
 import type { WorkspaceWizardSurface } from "./workspace-wizard-surface";
 
 /**
@@ -21,4 +22,6 @@ export interface WorkspacePlugin {
   readonly wizard: WorkspaceWizardSurface;
   readonly validation: WorkspaceValidationHooks;
   readonly lifecycle: WorkspaceLifecycleContract;
+  /** Optional workspace brand tokens (`--ws-*` CSS variables). */
+  readonly theme?: WorkspaceThemeContract;
 }

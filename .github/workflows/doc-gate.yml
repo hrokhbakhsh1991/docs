@@ -1,0 +1,39 @@
+# Docs-as-Code Doc-Gate (MIGRATION-MAP §19).
+# Required before Phase 3.1 code merge; runs documentation-sync + Markdoc + audit-boundary.
+
+name: doc-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: doc-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doc-gate:
+    name: Documentation Doc-Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Doc-Gate
+        run: pnpm run doc-gate

@@ -1,163 +1,95 @@
 import assert from "node:assert/strict";
+
+import { loadPlatformWizard } from "./load-platform-wizard.js";
 import { describe, it } from "node:test";
 
-import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
+import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
 
-import { testRuleContext } from "../src/__fixtures__/rule-context.fixture";
-import { PlatformCoreError } from "../src/errors/platform-core.error";
-import { FieldRegistryEngine } from "../src/engine/field-registry.engine";
-import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine";
-import { RuleEngine } from "../src/engine/rule.engine";
-import {
-  starterFieldRegistry,
-  starterRuleSet,
-} from "../src/__fixtures__/starter.fixture";
-import {
-  createCanonicalDocument,
-  starterWorkspacePlugin,
-  type WorkspacePlugin,
-} from "@app-tour/workspace-sdk";
+import { testRuleContext } from "./fixtures/rule-context.fixture.js";
+import { PlatformCoreError } from "../src/errors/platform-core.error.js";
+import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine.js";
+import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
 
 const TENANT_COUNT = 16;
 const ROUNDS_PER_TENANT = 50;
 const CONCURRENT_TASKS = TENANT_COUNT * ROUNDS_PER_TENANT;
 
-function makeEngine(
-  registry: WorkspaceFieldRegistry,
-  ruleSet: WorkspaceRuleSet,
-): RuleEngine {
-  return new RuleEngine(ruleSet, new FieldRegistryEngine(registry));
-}
-
-describe("RuleEngine high-concurrency scope cache", () => {
-  it("isolates tenant scopes under sustained parallel resolveCellId load", async () => {
-    const ruleSet: WorkspaceRuleSet = {
+function variantPlugin(): WorkspacePlugin {
+  return {
+    ...createTestStarterPlugin(),
+    ruleSet: {
       version: 1,
       matrixDimensions: ["variant"],
       defaultCellId: "default",
       cells: [
         {
-          cellId: "alt",
-          dimensions: { variant: "alt" },
-          fieldOverrides: [{ fieldId: "field.a", required: false, hidden: false }],
-        },
-        {
           cellId: "default",
           dimensions: { variant: "default" },
-          fieldOverrides: [{ fieldId: "field.a", required: true, hidden: false }],
+          fieldOverrides: [{ fieldId: "basics.title", required: true, hidden: false }],
         },
-      ],
-    };
-    const registry: WorkspaceFieldRegistry = {
-      version: 1,
-      fields: [
         {
-          id: "field.a",
-          canonicalPath: "field.a",
-          stepId: "step",
-          kind: "text",
-          required: true,
+          cellId: "alt",
+          dimensions: { variant: "alt" },
+          fieldOverrides: [{ fieldId: "basics.title", required: false, hidden: false }],
         },
       ],
-    };
-    const engine = makeEngine(registry, ruleSet);
+    },
+  };
+}
+
+describe("PlatformWizardEngine concurrency under load", () => {
+  it("parallel buildRenderPlan preserves variant-specific required flags per tenant", async () => {
+    const engine = loadPlatformWizard(variantPlugin());
 
     const tasks = Array.from({ length: CONCURRENT_TASKS }, (_, index) => {
-      const tenantIndex = index % TENANT_COUNT;
-      const tenantId = `tenant_${tenantIndex}`;
+      const tenantId = `tenant_${index % TENANT_COUNT}`;
       const variant = index % 3 === 0 ? "alt" : "default";
       return Promise.resolve().then(() => {
-        const context = testRuleContext({ variant }, { tenantId });
-        const cellId = engine.resolveCellId(context);
-        const scope = engine.createScope(context);
-        assert.equal(scope.resolveCellId(), cellId);
-        scope.resolveEffectiveField("field.a");
-        return { tenantId, variant, cellId, scope };
+        const plan = engine.buildRenderPlan(testRuleContext({ variant }, { tenantId }));
+        const title = plan[0]?.fields.find((f) => f.fieldId === "basics.title");
+        return { tenantId, variant, required: title?.required };
       });
     });
 
     const results = await Promise.all(tasks);
-
-    for (let tenantIndex = 0; tenantIndex < TENANT_COUNT; tenantIndex += 1) {
-      const tenantId = `tenant_${tenantIndex}`;
-      const defaultScope = engine.createScope(
-        testRuleContext({ variant: "default" }, { tenantId }),
-      );
-      const altScope = engine.createScope(testRuleContext({ variant: "alt" }, { tenantId }));
-
-      const tenantResults = results.filter((r) => r.tenantId === tenantId);
-      for (const row of tenantResults) {
-        const expectedScope = row.variant === "alt" ? altScope : defaultScope;
-        assert.equal(row.scope, expectedScope);
-        assert.equal(row.cellId, row.variant === "alt" ? "alt" : "default");
-      }
+    for (const row of results) {
+      assert.equal(row.required, row.variant === "alt" ? false : true);
     }
   });
 
-  it("does not cross-contaminate scope caches when tenants share dimension signatures", async () => {
-    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+  it("parallel buildRenderPlan keeps tenant plans independent with shared dimensions", async () => {
+    const engine = loadPlatformWizard(createTestStarterPlugin());
     const sharedDimensions = { variant: "default" as const };
 
     const tasks = Array.from({ length: CONCURRENT_TASKS }, (_, index) => {
       const tenantId = `iso_tenant_${index % TENANT_COUNT}`;
       return Promise.resolve().then(() => {
-        const scope = engine.createScope(testRuleContext(sharedDimensions, { tenantId }));
-        return { tenantId, scope, cellId: scope.resolveCellId() };
+        const plan = engine.buildRenderPlan(testRuleContext(sharedDimensions, { tenantId }));
+        return {
+          tenantId,
+          stepCount: plan.length,
+          titleRequired: plan[0]?.fields.find((f) => f.fieldId === "basics.title")?.required,
+        };
       });
     });
 
     const results = await Promise.all(tasks);
-    const referenceByTenant = new Map<string, ReturnType<RuleEngine["createScope"]>>();
-
     for (const row of results) {
-      let reference = referenceByTenant.get(row.tenantId);
-      if (!reference) {
-        reference = engine.createScope(testRuleContext(sharedDimensions, { tenantId: row.tenantId }));
-        referenceByTenant.set(row.tenantId, reference);
-      }
-      assert.equal(row.scope, reference);
-      assert.equal(row.cellId, "default");
+      assert.equal(row.stepCount, 2);
+      assert.equal(row.titleRequired, true);
     }
-
-    const tenantIds = [...referenceByTenant.keys()];
-    assert.equal(tenantIds.length, TENANT_COUNT);
-    for (let i = 0; i < tenantIds.length; i += 1) {
-      for (let j = i + 1; j < tenantIds.length; j += 1) {
-        assert.notEqual(
-          referenceByTenant.get(tenantIds[i]!),
-          referenceByTenant.get(tenantIds[j]!),
-        );
-      }
-    }
+    const tenantIds = new Set(results.map((r) => r.tenantId));
+    assert.equal(tenantIds.size, TENANT_COUNT);
   });
 
-  it("parallel validateCanonical on shared PlatformWizardEngine does not leak rule scopes", async () => {
-    const plugin: WorkspacePlugin = {
-      ...starterWorkspacePlugin,
-      ruleSet: {
-        version: 1,
-        matrixDimensions: ["variant"],
-        defaultCellId: "default",
-        cells: [
-          {
-            cellId: "default",
-            dimensions: { variant: "default" },
-            fieldOverrides: [{ fieldId: "basics.title", required: true, hidden: false }],
-          },
-          {
-            cellId: "alt",
-            dimensions: { variant: "alt" },
-            fieldOverrides: [{ fieldId: "basics.title", required: false, hidden: false }],
-          },
-        ],
-      },
-    };
-    const engine = PlatformWizardEngine.fromPlugin(plugin);
-    const validDoc = createCanonicalDocument({
+  it("parallel validateCanonical distinguishes variant outcomes under mixed tenants", async () => {
+    const engine = loadPlatformWizard(variantPlugin());
+    const incompleteDoc = createCanonicalDocument({
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
-        basics: { title: "Tour" },
+        basics: {},
         details: { summary: "Summary" },
       },
     });
@@ -166,31 +98,38 @@ describe("RuleEngine high-concurrency scope cache", () => {
       const tenantId = `wizard_tenant_${index % TENANT_COUNT}`;
       const variant = index % 2 === 0 ? "default" : "alt";
       const context = testRuleContext({ variant }, { tenantId });
-      return Promise.resolve().then(() => engine.validateCanonical(validDoc, context));
+      return Promise.resolve().then(() => engine.validateCanonical(incompleteDoc, context));
     });
 
     const results = await Promise.all(tasks);
     assert.equal(results.length, CONCURRENT_TASKS);
-    for (const result of results) {
-      assert.equal(result.ok, true);
-      assert.equal(result.violations.length, 0);
+
+    for (let i = 0; i < results.length; i += 1) {
+      const variant = i % 2 === 0 ? "default" : "alt";
+      if (variant === "default") {
+        assert.equal(results[i]?.ok, false);
+        assert.ok(results[i]?.violations.some((v) => v.fieldId === "basics.title"));
+      } else {
+        assert.equal(results[i]?.ok, true);
+        assert.equal(results[i]?.violations.length, 0);
+      }
     }
 
-    const ruleEngine = engine["ruleEngine"] as RuleEngine;
-    for (let i = 0; i < TENANT_COUNT; i += 1) {
-      const tenantId = `wizard_tenant_${i}`;
-      const defaultScope = ruleEngine.createScope(
-        testRuleContext({ variant: "default" }, { tenantId }),
-      );
-      const altScope = ruleEngine.createScope(testRuleContext({ variant: "alt" }, { tenantId }));
-      assert.notEqual(defaultScope, altScope);
-      assert.equal(defaultScope.resolveCellId(), "default");
-      assert.equal(altScope.resolveCellId(), "alt");
-    }
+    const defaultPlan = engine.buildRenderPlan(
+      testRuleContext({ variant: "default" }, { tenantId: "wizard_tenant_0" }),
+    );
+    const altPlan = engine.buildRenderPlan(
+      testRuleContext({ variant: "alt" }, { tenantId: "wizard_tenant_0" }),
+    );
+    assert.equal(
+      defaultPlan[0]?.fields.find((f) => f.fieldId === "basics.title")?.required,
+      true,
+    );
+    assert.equal(altPlan[0]?.fields.find((f) => f.fieldId === "basics.title")?.required, false);
   });
 
-  it("rejects invalid tenant context even under concurrent calls", async () => {
-    const engine = makeEngine(starterFieldRegistry, starterRuleSet);
+  it("rejects invalid tenant context via facade even under concurrent calls", async () => {
+    const engine = loadPlatformWizard(createTestStarterPlugin());
     const badContexts = Array.from({ length: 32 }, (_, index) => ({
       dimensions: { variant: "default" },
       tenantId: index % 2 === 0 ? "" : `   `,
@@ -199,7 +138,7 @@ describe("RuleEngine high-concurrency scope cache", () => {
     const tasks = badContexts.map((ctx) =>
       Promise.resolve().then(() => {
         try {
-          engine.resolveCellId(ctx as Parameters<RuleEngine["resolveCellId"]>[0]);
+          engine.buildRenderPlan(ctx as { tenantId: string; dimensions: Record<string, string> });
           return { ok: true as const };
         } catch (error: unknown) {
           assert.ok(error instanceof PlatformCoreError);

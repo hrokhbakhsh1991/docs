@@ -1,4 +1,4 @@
-import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk";
+import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk/plugin-types";
 
 export interface RenderFieldPlan {
   readonly fieldId: string;

@@ -1,6 +1,7 @@
 /**
  * Generic persisted wizard document — platform source of truth.
  */
+import { sdkErr, sdkOk, type SdkResult } from "../errors/sdk-result";
 import {
   assertPlainObjectShield,
   assertStablePlainPrototype,
@@ -19,7 +20,12 @@ export type CanonicalDocumentValidationErrorCode =
   | "CANONICAL_INVALID_ROOTS"
   | "CANONICAL_DUPLICATE_ROOT"
   | "CANONICAL_INVALID_DATA"
-  | "CANONICAL_ROOT_UNKNOWN";
+  | "CANONICAL_ROOT_UNKNOWN"
+  | "CANONICAL_MAX_DEPTH_EXCEEDED"
+  | "CANONICAL_FORBIDDEN_BIGINT"
+  | "CANONICAL_FORBIDDEN_SYMBOL"
+  | "CANONICAL_TOO_MANY_KEYS"
+  | "CANONICAL_FORBIDDEN_KEY";
 
 export class CanonicalDocumentValidationError extends Error {
   readonly code: CanonicalDocumentValidationErrorCode;
@@ -55,8 +61,17 @@ function fail(code: CanonicalDocumentValidationErrorCode, message: string): neve
   throw new CanonicalDocumentValidationError(code, message);
 }
 
+function canonicalCodeFromShieldMessage(message: string): CanonicalDocumentValidationErrorCode {
+  if (message.includes("Max depth exceeded")) return "CANONICAL_MAX_DEPTH_EXCEEDED";
+  if (message.includes("BigInt is not allowed")) return "CANONICAL_FORBIDDEN_BIGINT";
+  if (message.includes("Symbol is not allowed")) return "CANONICAL_FORBIDDEN_SYMBOL";
+  if (message.includes("Too many keys")) return "CANONICAL_TOO_MANY_KEYS";
+  if (message.includes("Forbidden key")) return "CANONICAL_FORBIDDEN_KEY";
+  return "CANONICAL_INVALID_DATA";
+}
+
 const shieldFail: PlainObjectShieldFail = (message) => {
-  fail("CANONICAL_INVALID_DATA", message);
+  fail(canonicalCodeFromShieldMessage(message), message);
 };
 
 function assertSafeRootName(root: string, index: number): void {
@@ -92,26 +107,39 @@ export function freezeCanonicalDocumentData(
 }
 
 /**
- * Validates dot-path segment safety for registry canonical paths.
+ * Validates dot-path segment safety for registry canonical paths (non-throwing).
  */
-export function assertCanonicalPathSegments(path: string): void {
+export function validateCanonicalPathSegments(
+  path: string,
+): SdkResult<null, CanonicalDocumentValidationErrorCode> {
   const segments = path.split(".");
   if (segments.length === 0 || segments.length > MAX_PATH_SEGMENTS) {
-    fail("CANONICAL_INVALID_DATA", `Invalid canonical path "${path}"`);
+    return sdkErr("CANONICAL_INVALID_DATA", `Invalid canonical path "${path}"`);
   }
   for (const segment of segments) {
     if (FORBIDDEN_ROOT_KEYS.has(segment)) {
-      fail(
+      return sdkErr(
         "CANONICAL_INVALID_DATA",
         `Forbidden path segment "${segment}" in "${path}"`,
       );
     }
     if (!/^[a-z][a-z0-9_-]*$/i.test(segment)) {
-      fail(
+      return sdkErr(
         "CANONICAL_INVALID_DATA",
         `Invalid path segment "${segment}" in "${path}"`,
       );
     }
+  }
+  return sdkOk(null);
+}
+
+/**
+ * Validates dot-path segment safety for registry canonical paths.
+ */
+export function assertCanonicalPathSegments(path: string): void {
+  const result = validateCanonicalPathSegments(path);
+  if (!result.ok) {
+    throw new CanonicalDocumentValidationError(result.error.code, result.error.message);
   }
 }
 

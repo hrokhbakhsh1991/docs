@@ -1,0 +1,85 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>WizardStepKey | @apps/web API</title><meta name="description" content="Documentation for @apps/web API"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="../index.html" class="title">@apps/web API</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><ul class="tsd-breadcrumb" aria-label="Breadcrumb"><li><a href="../modules/src_features_tours_wizard_wizardStepEngine.html">src/features/tours/wizard/wizardStepEngine</a></li><li><a href="" aria-current="page">WizardStepKey</a></li></ul><h1>Type Alias WizardStepKey</h1></div><div class="tsd-signature"><span class="tsd-kind-type-alias">WizardStepKey</span><span class="tsd-signature-symbol">:</span> <a href="src_features_tours_wizard_stepConfig.TourCreateWizardStepId.html" class="tsd-signature-type tsd-kind-type-alias">TourCreateWizardStepId</a></div><div class="tsd-comment tsd-typography"><h1 id="wizard-step-engine" class="tsd-anchor-link">Wizard Step Engine<a href="#wizard-step-engine" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>Single, explicit surface for <strong>all</strong> step-related decisions in the tour-create wizard. It
+wraps the existing primitives (<code>stepConfig</code>, <code>fieldGroups</code>, <code>tourCreateValidationPolicy</code>) so
+that consumers — today only <code>TourCreateWizardShell</code>, tomorrow possibly autosave hooks or a
+future &quot;dynamic step engine&quot; rewrite — depend on <strong>one</strong> module instead of three.</p>
+<h2 id="source-of-truth-chain" class="tsd-anchor-link">Source of truth chain<a href="#source-of-truth-chain" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Authoritative module</th>
+<th>Engine accessor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ordered step ids</td>
+<td><code>stepConfig.ts → wizardSteps</code></td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getorderedsteps" class="tsd-kind-method">wizardStepEngine.getOrderedSteps</a></td>
+</tr>
+<tr>
+<td>RHF trigger paths per step</td>
+<td><code>stepConfig.ts → stepTriggerFields</code></td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#gettriggerfieldsforstep" class="tsd-kind-method">wizardStepEngine.getTriggerFieldsForStep</a></td>
+</tr>
+<tr>
+<td>Persian title per step</td>
+<td><code>stepConfig.ts → stepTitlesFa</code></td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getsteptitlefa" class="tsd-kind-method">wizardStepEngine.getStepTitleFa</a></td>
+</tr>
+<tr>
+<td>Primary field group per step</td>
+<td><code>fieldGroups.ts → STEP_PRIMARY_FIELD_GROUP</code></td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getprimarygroupforstep" class="tsd-kind-method">wizardStepEngine.getPrimaryGroupForStep</a></td>
+</tr>
+<tr>
+<td>Step visibility for a profile</td>
+<td><code>fieldGroups.ts → getVisibleWizardStepsForProfile</code></td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getstepsforprofile" class="tsd-kind-method">wizardStepEngine.getStepsForProfile</a></td>
+</tr>
+<tr>
+<td>Empty-theme-catalog prune</td>
+<td><code>fieldGroups.ts → pruneWizardStepsWithoutActiveThemes</code></td>
+<td>merged into <a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getvisiblestepsforruntime" class="tsd-kind-method">wizardStepEngine.getVisibleStepsForRuntime</a></td>
+</tr>
+<tr>
+<td>Zod relax flags for current step</td>
+<td><code>tourCreateValidationPolicy.ts → tourFormProfileToWizardValidationFlags</code> + position rules</td>
+<td><a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getvalidationflagsforstep" class="tsd-kind-method">wizardStepEngine.getValidationFlagsForStep</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="interactions" class="tsd-anchor-link">Interactions<a href="#interactions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><strong>Field groups (<code>STEP_PRIMARY_FIELD_GROUP</code>):</strong> every visible step (except <code>review</code>) is owned by
+one <a href="src_features_tours_wizard_fieldGroups.FieldGroupId.html" class="tsd-kind-type-alias">FieldGroupId</a>. When a profile makes a group inactive
+(<a href="../functions/src_features_tours_wizard_fieldGroups.getVisibleWizardStepsForProfile.html" class="tsd-kind-function">getVisibleWizardStepsForProfile</a>), the engine simply does not list that step. Future
+group-by-group autosave can read <a href="src_features_tours_wizard_wizardStepEngine.WizardStepConfig.html#primarygroup" class="tsd-kind-property">WizardStepConfig.primaryGroup</a> from
+<a href="../variables/src_features_tours_wizard_wizardStepEngine.wizardStepEngine.html#getstepconfig" class="tsd-kind-method">wizardStepEngine.getStepConfig</a> to know which top-level form roots to persist.</li>
+<li><strong>Profile (<code>TourFormProfile</code>):</strong> all visibility rules flow through <code>fieldGroups.ts</code> which is the
+only place where &quot;this profile hides these groups&quot; is encoded. The engine never re-derives
+profile-specific knowledge — it merely composes existing primitives.</li>
+<li><strong>Validation flags (<code>buildTourWizardValidationFlags</code>):</strong> the engine merges two signals into one
+<a href="src_features_tours_wizard_schemas_classic_tourCreateValidationPolicy.TourCreateWizardValidationFlags.html" class="tsd-kind-type-alias">TourCreateWizardValidationFlags</a>:
+<ol>
+<li>Static profile defaults from <code>tourFormProfileToWizardValidationFlags(profile)</code>.</li>
+<li><strong>Position-based relaxation</strong>: while the user is on a step <em>before</em> <code>itinerary</code> or
+<code>logistics</code>, those refinements are relaxed so RHF cannot fail validation on fields the
+user has not yet reached. This pre-existed as <code>buildTourWizardValidationFlags</code> inside the
+wizard component; it is now testable and reusable here.</li>
+</ol>
+</li>
+</ul>
+<h2 id="behavior-guarantees" class="tsd-anchor-link">Behavior guarantees<a href="#behavior-guarantees" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><strong>No behavior change</strong> vs the pre-engine code. Each accessor delegates to the same primitives
+the wizard used directly. Parity is exercised by <code>wizardStepEngine.spec.ts</code>.</li>
+<li>The engine is <strong>pure</strong>: no React hooks, no <code>useState</code>, no <code>useMemo</code>. Callers are expected to
+memoize results where it matters (e.g. <code>useMemo(() =&gt; engine.getVisibleStepsForRuntime(...), [...])</code>).</li>
+</ul>
+<h2 id="future-readiness" class="tsd-anchor-link">Future readiness<a href="#future-readiness" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>The <a href="src_features_tours_wizard_wizardStepEngine.WizardStepConfig.html" class="tsd-kind-type-alias">WizardStepConfig</a> array exposes <code>id + primaryGroup + triggerFields + titleFa</code> in one
+place, which is the data shape a future autosave-per-group hook needs to know which RHF roots
+to persist when a step is left.</p>
+</div><aside class="tsd-sources"><ul><li>Defined in <a href="https://github.com/hrokhbakhsh1991/docs/blob/86298c4b94ffc79a1596f62686fce4751a5cb618/apps/web/src/features/tours/wizard/wizardStepEngine.ts#L80">apps/web/src/features/tours/wizard/wizardStepEngine.ts:80</a></li></ul></aside></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#wizard-step-engine"><span>Wizard <wbr/>Step <wbr/>Engine</span></a><ul><li><a href="#source-of-truth-chain"><span>Source of truth chain</span></a></li><li><a href="#interactions"><span>Interactions</span></a></li><li><a href="#behavior-guarantees"><span>Behavior guarantees</span></a></li><li><a href="#future-readiness"><span>Future readiness</span></a></li></ul></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="../index.html">@apps/web API</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer><p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer><div class="overlay"></div></body></html>

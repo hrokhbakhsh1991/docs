@@ -1,0 +1,37 @@
+/**
+ * Light theme — platform semantic colors.
+ */
+:root,
+.theme-light {
+  --color-primary: #1e5a8e;
+  --color-primary-hover: #174a73;
+  --color-primary-fg: #ffffff;
+
+  --color-bg-page: #f6f7f9;
+  --color-bg-surface: #ffffff;
+  --color-bg-muted: #eef1f4;
+  --color-bg-disabled: #e4e7eb;
+
+  --color-text-primary: #1a1f26;
+  --color-text-secondary: #5c6570;
+  --color-text-muted: #8a939e;
+  --color-text-link: #1e5a8e;
+
+  --color-border-default: #d8dde3;
+  --color-border-strong: #b8c0ca;
+  --color-border-subtle: #e8ebef;
+
+  --color-success: #1f7a4d;
+  --color-success-bg: #e6f4ec;
+  --color-warning: #b35900;
+  --color-warning-bg: #fff4e5;
+  --color-danger: #c5222d;
+  --color-danger-bg: #fcebec;
+  --color-info: #1e5a8e;
+  --color-info-bg: #e8f1f8;
+
+  --focus-ring-color: rgba(30, 90, 142, 0.35);
+  --focus-ring-offset: #ffffff;
+
+  color-scheme: light;
+}

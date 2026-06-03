@@ -686,5 +686,17 @@ rg -l legacy_archive . --glob '!node_modules' --glob '!.next' --glob '!dist'
 | این فایل | اجرای فاز ۰ |
 | [`docs/phase0-safety-net-baseline.md`](docs/phase0-safety-net-baseline.md) | Phase 0 Draft FSM |
 | [`final-integrity-report.md`](final-integrity-report.md) | آخرین structural template audit |
+| [`reports/phase-0-environment-2026-06-01.md`](reports/phase-0-environment-2026-06-01.md) | گام ۰ audit2 — محیط + سیاست API |
 
 **بعد از تکمیل چک‌لیست §8.1 → شروع Phase 1.1 در `map.md`.**
+
+### پیوست D — گام ۰ (audit2): محیط و سیاست
+
+| # | اقدام | وضعیت |
+|---|--------|--------|
+| 0.1 | Node **24** + pnpm **9.12.0** (`.nvmrc`, `engines`, CI) | انجام شد |
+| 0.2 | Docker E2E (`docker-compose.e2e.yml`, host **5434** / **6380**) | انجام شد |
+| 0.3 | ثبت SHA پس از merge مهم (`ad1e361` on `main`) | انجام شد |
+| 0.4 | سیاست API — بدون تغییر مسیر/شکل API تا تأیید صریح | [`AGENTS.md`](AGENTS.md) |
+
+جزئیات: [`reports/phase-0-environment-2026-06-01.md`](reports/phase-0-environment-2026-06-01.md).

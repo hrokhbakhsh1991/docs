@@ -6,25 +6,45 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { guardRequire } from "./lib/guard-require.mjs";
 
-const require = createRequire(import.meta.url);
-const ts = require("typescript");
+const ts = guardRequire("typescript");
+
+import {
+  FOUNDATION_GATE_IMPORT_BOUNDARY_SCAN_ROOTS,
+  IMPORT_BOUNDARY_DENALI_BREACH_ALLOWLIST,
+  IMPORT_BOUNDARY_SCAN_ROOTS,
+  resolveExistingRoots,
+} from "./foundation-gate-config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 
-const SCAN_ROOTS = [
-  path.join(REPO_ROOT, "packages/workspace-sdk"),
-  path.join(REPO_ROOT, "packages/platform-core"),
-];
+const IS_FOUNDATION_SCOPE = process.env.PHASE_0_GUARD_SCOPE === "foundation";
 
-/** Post-build execution surface — must match forbidden policy in source. */
-const DIST_SCAN_ROOTS = [
-  path.join(REPO_ROOT, "packages/platform-core/dist"),
-  path.join(REPO_ROOT, "packages/workspace-sdk/dist"),
-];
+const scanRelRoots = IS_FOUNDATION_SCOPE
+  ? FOUNDATION_GATE_IMPORT_BOUNDARY_SCAN_ROOTS
+  : IMPORT_BOUNDARY_SCAN_ROOTS;
+
+const SCAN_ROOTS = resolveExistingRoots(scanRelRoots).filter((p) => fs.existsSync(p));
+
+const UI_PRIMITIVES_BARREL = /^@app-tour\/ui-primitives$/;
+const UI_PRIMITIVES_ALLOWED_SUBPATHS = new Set([
+  "button",
+  "input",
+  "field-shell",
+  "alert",
+  "badge",
+]);
+
+/** Post-build execution surface — foundation scans workspace-sdk dist only (H-12). */
+const DIST_SCAN_ROOTS = IS_FOUNDATION_SCOPE
+  ? [path.join(REPO_ROOT, "packages/workspace-sdk/dist")]
+  : [
+      path.join(REPO_ROOT, "packages/platform-core/dist"),
+      path.join(REPO_ROOT, "packages/workspace-sdk/dist"),
+    ];
 
 /** Repo-relative file paths allowed to invoke createRequire-bound callables (empty for packages). */
 const CREATE_REQUIRE_CALL_WHITELIST = new Set([]);
@@ -102,6 +122,32 @@ function pushHit(hits, filePath, sf, node, spec, reason, lineOverride) {
 
 function isForbiddenModule(specText) {
   return FORBIDDEN.some((re) => re.test(specText));
+}
+
+function isUiPrimitivesBarrelImport(specText) {
+  return UI_PRIMITIVES_BARREL.test(specText);
+}
+
+function isUiPrimitivesInvalidSubpath(specText) {
+  const prefix = "@app-tour/ui-primitives/";
+  if (!specText.startsWith(prefix)) {
+    return false;
+  }
+  const sub = specText.slice(prefix.length).split("/")[0];
+  return !UI_PRIMITIVES_ALLOWED_SUBPATHS.has(sub);
+}
+
+function recordUiPrimitivesImport(hits, filePath, sf, node, spec) {
+  if (spec.dynamic) {
+    return;
+  }
+  if (isUiPrimitivesBarrelImport(spec.text)) {
+    pushHit(hits, filePath, sf, node, spec.text, "ui-primitives-barrel-import");
+    return;
+  }
+  if (isUiPrimitivesInvalidSubpath(spec.text)) {
+    pushHit(hits, filePath, sf, node, spec.text, "ui-primitives-unknown-subpath");
+  }
 }
 
 function isForbiddenVmSpecifier(specText) {
@@ -365,8 +411,8 @@ function checkFile(filePath) {
 
     if (ts.isMetaProperty(node)) {
       if (
-        node.keyword.kind === ts.SyntaxKind.ImportKeyword &&
-        node.name.text === "meta"
+        node.keyword?.kind === ts.SyntaxKind.ImportKeyword &&
+        node.name?.text === "meta"
       ) {
         const parent = node.parent;
         if (
@@ -380,6 +426,7 @@ function checkFile(filePath) {
 
     for (const spec of collectModuleSpecifiers(node, sf)) {
       recordModuleSpec(hits, filePath, sf, node, spec);
+      recordUiPrimitivesImport(hits, filePath, sf, node, spec);
     }
 
     if (ts.isCallExpression(node)) {
@@ -474,11 +521,25 @@ function scanDistFile(filePath) {
   return hits;
 }
 
+function isImportBoundaryAllowlisted(filePath) {
+  const rel = path.relative(REPO_ROOT, filePath).replaceAll("\\", "/");
+  return IMPORT_BOUNDARY_DENALI_BREACH_ALLOWLIST.includes(rel);
+}
+
 function main() {
   const violations = [];
 
   for (const root of SCAN_ROOTS) {
+    if (root.endsWith(`${path.sep}ui-primitives`) || root.includes(`${path.sep}ui-primitives${path.sep}`)) {
+      continue;
+    }
     for (const file of listSourceFiles(root)) {
+      if (file.includes(`${path.sep}packages${path.sep}ui-primitives${path.sep}`)) {
+        continue;
+      }
+      if (isImportBoundaryAllowlisted(file)) {
+        continue;
+      }
       violations.push(...checkFile(file));
     }
   }

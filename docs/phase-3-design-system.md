@@ -1,0 +1,744 @@
+# Phase 3 — Design System & App Integration Plan
+
+> **Canonical (Markdoc):** [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · §19 · `pnpm run guard:doc-sync`  
+> **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)  
+> **Integrity:** [`audits/phase-3-documentation-integrity-2026-06-03.mdoc`](audits/phase-3-documentation-integrity-2026-06-03.mdoc)
+
+**app-tour — راهنمای اجرایی کامل فاز سه**
+
+> **نقش:** بسط عمیق فاز ۳ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) §۱۱ · **الزام:** [`MIGRATION-MAP.md` §۱۸ — PHASE PROTOCOL & ZERO-DEBT COVENANT](MIGRATION-MAP.md#۱۸-phase-protocol--zero-debt-covenant)  
+> **پیش‌نیاز:** فاز ۲ **Closed: Zero-Debt Verified** — [`phase-2-design-system.md`](phase-2-design-system.md) · forensic: [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) · `pnpm run phase-2:gate` سبز  
+> **North Star:** Platform shell = generic · Workspace = injectable plugin · Authority = CASL قبل از ingress · Visual = subpath-only primitives  
+> **Docs-as-Code (§19):** Markdoc canonical — [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · `pnpm run guard:doc-sync`  
+> **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · legacy [`.md`](audits/phase-3-zero-debt-forensic-audit.md)  
+> **Integrity report:** [`audits/phase-3-documentation-integrity-2026-06-03.mdoc`](audits/phase-3-documentation-integrity-2026-06-03.mdoc)  
+> **وضعیت:** **Closed: Zero-Debt Verified** (platform scaffold 3.0–3.5) — `pnpm run phase-3:gate` · backlog: Playwright (soft), Select/Checkbox (3.3.x optional)
+
+---
+
+## فهرست
+
+1. [چرا فاز ۳ بعد از Zero-Debt فاز ۲](#1-چرا-فاز-۳-بعد-از-zero-debt-فاز-۲)
+2. [استانداردهای enterprise (مرجع صنعت ۲۰۲۶)](#2-استانداردهای-enterprise-مرجع-صنعت-۲۰۲۶)
+3. [درس‌های فاز ۲ — forensic و شکست‌های واقعی](#3-درس‌های-فاز-۲--forensic-و-شکست‌های-واقعی)
+4. [انتقال فاز ۲ → ۳: بدهی‌ها به Invariant](#4-انتقال-فاز-۲--۳-بدهی‌ها-به-invariant)
+5. [تعریف دقیق خروجی فاز ۳](#5-تعریف-دقیق-خروجی-فاز-۳)
+6. [معماری یکپارچه‌سازی (apps × packages)](#6-معماری-یکپارچه‌سازی-apps--packages)
+7. [DAG و زیرفازها](#7-dag-و-زیرفازها)
+8. [زیرفاز 3.0 — CASL & authority layer](#8-زیرفاز-30--casl--authority-layer)
+9. [زیرفاز 3.1 — `packages/workspaces/starter`](#9-زیرفاز-31--packagesworkspacesstarter)
+10. [زیرفاز 3.2 — `apps/api`](#10-زیرفاز-32--appsapi)
+11. [زیرفاز 3.3 — `apps/web`](#11-زیرفاز-33--appsweb)
+12. [زیرفاز 3.4–3.5 — canonical SoT + observability](#12-زیرفاز-34۳5--canonical-sot--observability)
+13. [**PHASE 3 ENFORCEMENT** (الزام CI)](#13-phase-3-enforcement-الزام-ci)
+14. [آنچه در فاز ۳ ممنوع است](#14-آنچه-در-فاز-۳-ممنوع-است)
+15. [Definition of Done فاز ۳](#15-definition-of-done-فاز-۳)
+16. [چک‌لیست ورود به فاز ۴](#16-چک‌لیست-ورود-به-فاز-۴)
+17. [پل به MIGRATION-MAP §4–§10](#17-پل-به-migration-map-۴۱۰)
+18. [پیوست‌ها](#18-پیوست‌ها)
+
+---
+
+## 1. چرا فاز ۳ بعد از Zero-Debt فاز ۲
+
+### 1.1 ترتیب صحیح پلتفرم (به‌روز)
+
+```text
+Phase 0  contract (workspace-sdk)
+    ↓
+Phase 1  engine headless (platform-core)
+    ↓
+Phase 2  visual layer — Closed: Zero-Debt Verified ✅
+    ↓
+Phase 3  starter workspace + apps/* + CASL  ← این سند
+    ↓
+Phase 4  tenant-kernel (RLS, subdomain)
+    ↓
+Phase 6  Denali plugin
+```
+
+**قانون:** فاز ۳ **اولین consumer واقعی** `@app-tour/ui-primitives` و `@app-tour/theme-react` است. بدون فاز ۲ بسته‌شده، تکرار SB-01 (mapper bypass)، SB-02 (`dist/` leakage)، و barrel pollution در `apps/web` قطعی است.
+
+### 1.2 شکست‌هایی که فاز ۳ باید جلوگیری کند
+
+| ریسک | منشأ (فاز ۲ / legacy) | قانون فاز ۳ |
+|------|------------------------|-------------|
+| Barrel `@app-tour/ui-primitives` | راحتی import در shell | **فقط subpath** + AST guard از خط اول `apps/*` |
+| `dist/tokens/` یا mapper روی دیسک | SB-02 «private = not on index» | `guard:artifact-surface` + `files` whitelist |
+| CSS literal در primitive | P2-005 backlog قدیمی | wiring test + dist grep در gate |
+| Theme بدون CASL | ingress فقط payload-safe | `ability.can` **قبل از** `validateWorkspaceThemeIngress` |
+| Denali در shell | legacy coupling | static import از `workspaces/denali` **ممنوع** تا فاز ۶ |
+
+### 1.3 خروجی فاز ۳ در یک جمله
+
+> **یک workspace starter و دو app نازک (web + api) end-to-end ثابت می‌کنند که engine، tokens، primitives، theme chain، و CASL با هم کار می‌کنند — بدون barrel، بدون leakage در `dist/`، و بدون ادعای دروغین Security Seal.**
+
+---
+
+## 2. استانداردهای enterprise (مرجع صنعت ۲۰۲۶)
+
+این بخش **الزام معماری فاز ۳** است — بر اساس forensic فاز ۲ و مرور صنعت monorepo + design system.
+
+### 2.1 Monorepo: Turborepo/pnpm + boundary enforcement
+
+| اصل | منبع صنعت | پیاده‌سازی app-tour (فاز ۳) |
+|-----|-----------|------------------------------|
+| Workspace packages با graph صریح | Turborepo / Nx task graph | `pnpm-workspace.yaml` + `depcruise packages apps` |
+| قوانین import قابل اجرا | Nx module boundaries | `dependency-cruiser.config.js` + `import-boundary-ast.mjs` |
+| Gate قبل از merge | Trunk-based CI | `phase-3:gate` (§13) + `phase-2:gate` frozen baseline |
+
+### 2.2 Design system packaging: subpath exports، نه barrel
+
+| الگو | وضعیت صنعت ۲۰۲۶ | تصمیم app-tour |
+|------|------------------|----------------|
+| Single package + root barrel | رایج اما مستعد leakage | **رد شد** — SB-01/SB-03 |
+| Single package + **subpath `exports`** | پیش‌فرض مدرن (`@acme/ui/button`) | **✅ `@app-tour/ui-primitives/{button,input,...}`** |
+| Per-component npm packages | فقط وقتی cadence جدا | **نه** در فاز ۳ |
+| `sideEffects` دقیق | `false` + whitelist CSS paths | **✅** لیست صریح `*.module.css` per primitive |
+
+**قانون barrel:** هیچ `export *` در `package.json` `exports["."]` برای ui-primitives یا mapper subpath برای theme-react.
+
+### 2.3 جلوگیری از Barrel Index pollution در apps بزرگ
+
+| تاکتیک | اجرا |
+|--------|------|
+| ESLint `no-restricted-imports` (فاز ۳.3+) | مسیر `@app-tour/ui-primitives` بدون subpath → error |
+| AST guard در CI | `import-boundary-ast.mjs` — barrel = `ui-primitives-barrel-import` |
+| Ripgrep audit | `audit-ui-primitives-boundary.mjs` — فقط `import`/`require` واقعی |
+| App `predev`/`prebuild`/`prelint` | `@apps/web` — guard قبل از Next.js |
+| Code review checklist | [پیوست C](#پیوست-c--pr-template-snippet) |
+
+### 2.4 CI/CD Zero-Debt at scale
+
+| لایه | مکانیزم |
+|------|---------|
+| **Per-PR** | `phase-3:gate` subset + affected package tests |
+| **Per-sub-phase** | PR label `Phase: 3.x` + enforcement row در §13 |
+| **Per-publishable package** | `postbuild` → `prune-dist` + `guard:artifact-surface` |
+| **Doc-Code** | به‌روزرسانی [Phase Gate Audit Table](MIGRATION-MAP.md#phase-gate-audit-table) در همان PR |
+| **Forensic** | audit archived در `docs/audits/` قبل از بستن فاز |
+
+### 2.5 ESM-only vs Dual-package (CJS + ESM)
+
+**وضعیت فاز ۲:** `@app-tour/ui-primitives` و `@app-tour/theme-react` با `tsc` → **CommonJS** `dist/*.js`؛ Next.js 15 از `transpilePackages` استفاده می‌کند.
+
+| گزینه | مزیت | معایب | فاز ۳ |
+|-------|------|-------|-------|
+| **A — CJS-only (وضع موجود)** | ساده؛ با Next کار می‌کند | tree-shake محافظه‌کار | **پیش‌فرض تا 3.3 stable** |
+| **B — ESM-only (`"type":"module"`)** | tree-shake بهتر؛ استاندارد ۲۰۲۶ | مهاجرت `tsc` + تست consumer | **3.4+ evaluate** (invariant P3-PKG-02) |
+| **C — Dual-package (exports import + require)** | سازگاری حداکثری | پیچیدگی build (Effect-TS-style) | **فقط اگر B blocker شود** |
+
+**تصمیم فاز ۳.3:** گزینه **A** — بدون تغییر emit. **شرط:** `exports` subpath + `sideEffects` CSS whitelist + `transpilePackages` در `apps/web/next.config.ts`.  
+**Invariant P3-PKG-02 (فاز ۳.4):** PR جدا برای ESM emit یا dual `exports` — **باید** `guard:artifact-surface` و consumer smoke (`@apps/web build`) سبز بماند.
+
+---
+
+## 3. درس‌های فاز ۲ — forensic و شکست‌های واقعی
+
+مرجع کامل: [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md).
+
+### 3.1 Debt Score 94/100 — تفسیر
+
+| بعد | امتیاز | معنی برای فاز ۳ |
+|-----|--------|------------------|
+| SB-02 / dist | 30/30 | الگوی `files` + `prune-dist` را برای هر publishable جدید تکرار کنید |
+| CSS literals | 25/25 | هر primitive جدید → wiring spec + dist scan |
+| Barrel imports | 22/25 | **−3:** تا قبل از `apps/*` فقط package-layer تست شده بود |
+| CI enforcement | 17/20 | **−3:** `pnpm build` root بدون `guard:artifact-surface` — در `phase-3:gate` جبران |
+
+### 3.2 ریسک‌های باقی‌مانده (غیر نقص فعال)
+
+1. **Consumer boundary** — `apps/web` باید در forensic بعدی **0** barrel violation نشان دهد.
+2. **Root build vs gate** — `phase-3:gate` باید artifact + import boundary را اجبار کند.
+3. **theme-react on-disk mappers** — در `files` whitelist ولی خارج از `exports`؛ **قبول** فقط اگر npm resolve مسدود باشد (L-01 ✅).
+
+### 3.3 درس SB-01 (CRITICAL)
+
+`./internal` یک **public bypass** بود — نه «فایل private روی دیسک». فاز ۳: هر wrapper در `theme-react` باید از **provider + ingress** عبور کند؛ **ممنوع** export mapper جدید.
+
+### 3.4 درس barrel & tree-shaking
+
+- Barrel index → همه چیز قابل resolve → bundler و انسان اشتباه می‌کنند.
+- Subpath + absent `"."` export → public API صریح.
+- `sideEffects: ["./dist/Button/Button.module.css", ...]` → JS tree-shakeable، CSS حفظ‌شده ([Digdir / designsystemet](https://github.com/digdir/designsystemet/issues/2477) — `false` کور برای CSS).
+
+---
+
+## 4. انتقال فاز ۲ → ۳: بدهی‌ها به Invariant
+
+موارد زیر در فاز ۲ **Backlog** یا **پذیرفته‌شده** بودند. در فاز ۳ آن‌ها **Invariant** هستند — نقض = توقف PR (§18 Covenant).
+
+| ID فاز ۲ | وضعیت فاز ۲ | Phase 3 Invariant | زیرفاز | Enforcement (§13) |
+|----------|-------------|-------------------|--------|-------------------|
+| **Select** (P1 §9.2) | Backlog — not Complete | **P3-UI-01** — subpath `./select` + tokenized CSS + wiring test | 3.3.x | `P3-E-PRIM-NEW` |
+| **Checkbox** (P1 §9.2) | Backlog — not Complete | **P3-UI-02** — subpath `./checkbox` + a11y contract | 3.3.x | `P3-E-PRIM-NEW` |
+| **P2-005** (CSS literals) | Backlog → **بسته در remediation** | **P3-UI-00** — صفر literal در `src` و `dist` CSS | همه | `P3-E-CSS-01` |
+| **Badge** (`:global`, hygiene) | Backlog → **✅ remediated فاز ۲** | **P3-UI-03** — ممنوع `:global(.theme-*)` در primitives | نگهداری | `P3-E-CSS-02` |
+| **SB-02** dist leakage | Partial → **Verified** | **P3-PKG-01** — `dist/` ⊆ `files` | هر build | `P3-E-ARTIFACT` |
+| **Barrel import** | 0 در packages | **P3-APP-01** — 0 barrel در `apps/**` | 3.3+ | `P3-E-BARREL` |
+| **SB-01** internal export | Remediated | **P3-THM-01** — `exports` فقط `.` برای theme-react | نگهداری | `P3-E-L01` |
+| **CASL قبل ingress** | **✅ Verified (3.0)** | **P3-SEC-01** — handoff غیرقابل تعویض | 3.0 | `P3-E-CASL-01` |
+| **Consumer −3 debt** | Forensic gap | **P3-APP-02** — `@apps/web` guards از خط اول | 3.3 ✅ scaffold | `predev` hooks |
+| **Root build −3 debt** | Forensic gap | **P3-CI-01** — `phase-3:gate` includes artifact | 3.5 | `phase-3:gate` |
+| **ESM tree-shake** | CJS emit | **P3-PKG-02** — evaluate ESM/dual | 3.4+ | optional PR |
+
+**تفاوت Invariant vs Backlog:** Backlog می‌تواند در gate نادیده گرفته شود؛ **Invariant** در `phase-3:gate` یا sub-gate مربوطه **blocking** است.
+
+---
+
+## 5. تعریف دقیق خروجی فاز ۳
+
+### 5.1 خروجی‌های hard
+
+| # | خروجی | مسیر |
+|---|--------|------|
+| H1 | `ability.ts` + tests | `packages/workspace-sdk/src/auth/` |
+| H2 | `packages/workspaces/starter` plugin | `packages/workspaces/starter/` |
+| H3 | `apps/api` — health + `POST /tours` + CASL queries | `apps/api/` |
+| H4 | `apps/web` — ThemeProviderChain + wizard host + subpath primitives | `apps/web/` |
+| H5 | Canonical-only write path (no dual-write) | API + web loaders |
+| H6 | `phase-3:gate` + report JSON | `scripts/guards/phase-3-guard.mjs` |
+| H7 | Phase Gate Audit Table row **Closed** | `MIGRATION-MAP.md` §18 |
+
+### 5.2 خروجی‌های soft
+
+- Playwright: create tour happy path
+- Playwright: theme denied when CASL fails
+- ESLint `no-restricted-imports` در `apps/web`
+- Optional: `pnpm build` root runs `guard:artifact-surface`
+
+### 5.3 Definition of Done (یک جمله)
+
+> **Starter workspace روی engine واقعی، با web/api shell که CASL، ingress، subpath primitives، و canonical SoT را اثبات می‌کنند — و Phase Gate Audit Table برای فاز ۳ همه متریک‌ها 0 نشان می‌دهد.**
+
+---
+
+## 6. معماری یکپارچه‌سازی (apps × packages)
+
+### 6.1 لایه‌ها
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  apps/web          apps/api                                 │
+│  pre* → import-boundary + audit-boundary                    │
+│  ThemeProviderChain · WorkspaceWizardHost · routes          │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│  packages/workspaces/starter   (plugin — first-party)       │
+│  theme/tokens.css · fieldRegistry · ruleSet                   │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│  platform-core  ← workspace-sdk (ability + contract)        │
+│  theme-react    ← design-tokens                             │
+│  ui-primitives  ← design-tokens (subpaths only)             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 ساختار هدف `apps/web`
+
+```text
+apps/web/
+  app/                    # Next.js App Router
+  src/
+    shell/                # layout، nav — بدون Denali
+    wizard/               # WorkspaceWizardHost (loader)
+    providers/            # AppProviders — ThemeProviderChain
+    bootstrap/            # listBootstrapWorkspacePlugins() — no static workspaces/*
+  package.json            # predev/prebuild/prelint → guards
+```
+
+**وضعیت (2026-06-03):** `app/layout.tsx`, `src/providers/app-providers.tsx` (`ThemeProviderChain` + `starterWorkspacePlugin`), `src/shell/home-shell.tsx` (`@app-tour/ui-primitives/button`), `src/wizard/workspace-wizard-host.tsx`, `/tours/new`, `src/bootstrap/workspace-plugins.ts` (dynamic — no static `workspaces/denali`).
+
+### 6.3 Handoff امنیتی (غیرقابل تعویض)
+
+```text
+1. Resolve actor + tenant context
+2. ability.can('access', WorkspaceTheme)     ← 3.0
+3. validateWorkspaceThemeIngress(...)        ← 2.2.1
+4. snapshotWorkspaceTheme → Provider → DOM
+```
+
+### 6.4 Import law (apps)
+
+| مجاز | ممنوع |
+|------|--------|
+| `@app-tour/ui-primitives/button` | `@app-tour/ui-primitives` |
+| `@app-tour/theme-react` (providers) | `@app-tour/theme-react/internal` |
+| `@app-tour/workspace-sdk` | `packages/workspaces/denali` static |
+| `@app-tour/design-tokens/styles.css` | `legacy/*` |
+
+---
+
+## 7. DAG و زیرفازها
+
+```text
+3.0 CASL (ability.ts) + theme handoff contract
+    ↓
+3.1 packages/workspaces/starter
+    ↓
+3.2 apps/api (health, POST /tours, accessibleBy)
+    ↓
+3.3 apps/web (shell, wizard host, Playwright)  ← scaffold ✅
+    ↓
+3.4 canonical-only state
+    ↓
+3.5 observability + phase-3-gate
+    ↓
+→ Phase 4 tenant-kernel / RLS
+```
+
+| Sub-phase | PR label | وابستگی | اندازه هدف |
+|-----------|----------|---------|------------|
+| 3.0 | `Phase: 3.0` | فاز 2.5 ✅ | ≤ 500 خط |
+| 3.1 | `Phase: 3.1` | 3.0 | ≤ 600 خط |
+| 3.2 | `Phase: 3.2` | 3.0, 3.1 | ≤ 800 خط |
+| 3.3 | `Phase: 3.3` | 3.0–3.2 | ≤ 1000 خط (split per app area) |
+| 3.3.x | `Phase: 3.3.x` | 3.3 | Select/Checkbox primitives |
+| 3.4 | `Phase: 3.4` | 3.2, 3.3 | ≤ 400 خط |
+| 3.5 | `Phase: 3.5` | 3.0–3.4 | gate + reports |
+
+**Overlap ممنوع:** `packages/workspaces/denali` · تغییر export surface فاز ۲ بدون remediation PR · barrel در apps.
+
+**Docs-as-Code (قبل از merge هر کد 3.1+):** [`MIGRATION-MAP.md` §19](MIGRATION-MAP.md#۱۹-documentation-governance--dod) — `pnpm run doc-gate` سبز · [`phase-3-design-system.md`](phase-3-design-system.md) باید با جزئیات پیاده‌سازی (CASL §8، API boundary §10.4) هم‌خوان باشد.
+
+---
+
+## 8. زیرفاز 3.0 — CASL & authority layer
+
+> جزئیات سیاست: [`phase-2-design-system.md` §15](phase-2-design-system.md#15-phase-3-infrastructure--access-control) · [MAP § Phase 3 CASL](MIGRATION-MAP.md#phase-3-infrastructure--access-control)
+
+### 8.1 هدف
+
+ثابت کردن **who** قبل از **what** (ingress).
+
+### 8.2 کارها
+
+| # | کار |
+|---|-----|
+| 1 | `packages/workspace-sdk/src/auth/ability.ts` — `defineAbilityFor` |
+| 2 | Subjects: `Workspace`, `Tenant`, `Plugin`, `WorkspaceTheme`, `CanonicalDocument` |
+| 3 | Unit tests — deny cross-tenant theme |
+| 4 | Contract test: `ThemeProviderChain` fails closed without `ability.can` (mock) |
+
+### 8.3 Exit criteria 3.0
+
+- [x] `@casl/ability` در workspace-sdk (pure) — `^6.7.3` runtime dep; no React/Prisma in `src/auth/**`
+- [x] ≥ 8 ability tests — **23** in `packages/workspace-sdk/src/auth/ability.spec.ts` (Workspace/Plugin cross-tenant, `owner` role)
+- [x] Documented handoff در `theme-react` — `ability.ts` §6.3 comment + `WorkspaceThemeProvider` CASL gate before `useThemeIngressGuard`
+- [x] `P3-E-CASL-01` سبز (§13) — workspace-sdk ability tests + theme-react cross-tenant deny provider test; `phase-2:gate` regression green
+
+**Sub-phase 3.0 seal:** **Verified** (engineering audit 2026-06-02). Whole Phase 3 remains **In progress** until 3.1–3.5 DoD (§15).
+
+---
+
+## 9. زیرفاز 3.1 — `packages/workspaces/starter`
+
+### 9.1 هدف
+
+اولین **workspace plugin** کامل (غیر Denali) با `theme/tokens.css` تحت CASL.
+
+### 9.2 ساختار
+
+```text
+packages/workspaces/starter/
+  package.json
+  src/
+    index.ts              # WorkspacePlugin export
+  theme/
+    tokens.css            # --ws-* overrides only
+```
+
+### 9.3 قوانین
+
+- `--ws-*` prefix اجباری
+- بدون import از `ui-primitives` در plugin (host render می‌کند)
+- `assertWorkspacePlugin` + theme validation از SDK
+
+### 9.4 Exit criteria 3.1
+
+- [x] plugin در `@app-tour/workspace-starter` — `apps/web` bootstrap via `listBootstrapWorkspacePlugins()`
+- [x] `theme/tokens.css` — `--ws-*` only (validated in package test)
+- [x] `P3-E-WS-01` — deps: workspace-sdk, platform-core, design-tokens only; `depcruise` starter ↛ `apps/*`
+
+---
+
+## 10. زیرفاز 3.2 — `apps/api`
+
+### 10.1 هدف
+
+API نازک با **canonical in-memory SoT** (`in_memory.tour_records`)، health، `POST /tours`، **accessibleBy** روی queries. **Postgres + Prisma `accessibleBy` = فاز ۴+** (نه runtime فعلی فاز ۳.2).
+
+### 10.2 Guard-first
+
+| Hook | Command |
+|------|---------|
+| pretest / prebuild | `guard:import-boundary` (همان monorepo) |
+| CI | `phase-3:gate` subset برای api |
+
+### 10.3 Exit criteria 3.2
+
+- [x] `GET /health` integration test
+- [x] `POST /tours` با canonical validation
+- [x] Test: tenant A cannot read tenant B record
+- [x] بدون raw `findMany({})` در handlers (`guard:api-queries` + `ScopedTourRepository`)
+
+### 10.4 API boundary definitions (Doc-Gate §19)
+
+> **Doc-Gate markers:** `CASL logic` · `API boundary` · `accessibleBy` — enforced by `pnpm run doc-gate`.
+
+| Boundary | Allowed | Forbidden |
+|----------|---------|-----------|
+| **Write path** | `POST /tours` → `ToursService` → `CanonicalTourService` → `ScopedTourRepository` → `in_memory.tour_records` | Direct `db/*` repository import from `tours.routes` / `tours.service` |
+| **CASL** | `createApiAbility` + `accessibleByTourWhere` in `apps/api/src/casl/api-ability.ts` | Procedural `if (role === …)` in handlers |
+| **Tenant binding** | `TenantKernel` in `apps/api` — `Authorization: Bearer dev.<payload>` **or** explicit headers (`x-authenticated-tenant-id`, `x-user-id`, `x-actor-role`, `x-membership-status`, `x-workspace-id`) — **no defaults** | Missing header → **401** `UNAUTHORIZED_*`; claim mismatch → **403** |
+| **Cross-tenant read** | `ScopedTourRepository.findFirst` → **403** `FORBIDDEN_TOUR_READ_CROSS_TENANT` | Masking as **404** |
+| **Legacy tables** | `LegacyCanonicalAdapter` (read mirror / write throws `DUAL_WRITE_FORBIDDEN`) | Prisma / `workspace_tour*` in `apps/api/src` handlers |
+| **Import surface** | `@app-tour/workspace-sdk`, `@app-tour/platform-core`, `@app-tour/workspace-starter` (validation only) | `@app-tour/ui-primitives`, `packages/workspaces/denali` |
+
+**Guards:** `guard:import-boundary`, `guard:api-queries`, `phase-3:api-gate`.
+
+---
+
+## 11. زیرفاز 3.3 — `apps/web`
+
+### 11.1 هدف
+
+Shell production-first با **خط اول کد** تحت import-boundary.
+
+### 11.2 وضعیت scaffold
+
+| Item | Status |
+|------|--------|
+| `@apps/web` package | ✅ |
+| `ThemeProviderChain` + `starterWorkspacePlugin` | ✅ `src/providers/app-providers.tsx` |
+| Subpath `Button` import | ✅ `src/shell/home-shell.tsx` |
+| `predev` / `prebuild` / `prelint` guards | ✅ |
+| Wizard host | ✅ `WorkspaceWizardHost` + `/tours/new` |
+| Select / Checkbox primitives | ⏳ P3-UI-01/02 |
+| ESLint restricted imports | ✅ `apps/web/.eslintrc.cjs` `no-restricted-imports` |
+| Playwright smoke | ⏳ soft / non-blocking (`phase-3-guard`) |
+| Dev session (no JWT) | ✅ `src/session/dev-app-session.ts` — static `createTenantAbility` admin for local wizard |
+
+### 11.3 Primitives backlog → فاز ۳.3.x
+
+| Component | Subpath | Invariant |
+|-----------|---------|-----------|
+| Select | `@app-tour/ui-primitives/select` | P3-UI-01 |
+| Checkbox | `@app-tour/ui-primitives/checkbox` | P3-UI-02 |
+
+هر PR primitive:
+
+1. `package.json` `exports` + `files` + `sideEffects` entry
+2. `tsconfig.build` include folder؛ `tokens/` excluded from dist
+3. `component-token-maps` + wiring spec
+4. Storybook/visual entry
+5. `P3-E-PRIM-NEW` (§13)
+
+### 11.4 Renderer wiring
+
+- `PlatformWizardEngine` + `RenderPlan` → map `uiHints` → subpath imports (registry در shell)
+- **ممنوع** `<input>` خام — ESLint (§11.4)
+
+### 11.5 Exit criteria 3.3
+
+- [x] Scaffold + guards on lifecycle scripts
+- [x] WorkspaceWizardHost renders starter step
+- [ ] Playwright: create tour
+- [ ] Playwright: CASL deny → no workspace theme on DOM
+- [x] `rg` barrel در `apps/web` → 0 import violations (`test/barrel-hunt.spec.ts` + ESLint)
+- [x] WorkspaceWizardHost CASL deny-by-default (`test/workspace-wizard-host.security.spec.tsx`)
+- [ ] Select + Checkbox shipped (invariants P3-UI-01/02)
+
+---
+
+## 12. زیرفاز 3.4–3.5 — canonical SoT + observability
+
+### 12.1 3.4 — canonical only
+
+- [x] یک مسیر write به `in_memory.tour_records` via `CanonicalTourService`
+- [x] ممنوع dual-write — `LegacyCanonicalAdapter.writeLegacyTour` throws
+- [x] `validateCanonicalLegacySync` at end of API write pipeline
+- [x] `apps/web` — `CanonicalClientService` (canonical document shapes only)
+
+### 12.2 3.5 — observability + gate
+
+- [x] structured logging در api (`pino` + `withRequestLogging`)
+- [x] health endpoint (`GET /health`)
+- [x] `phase-3-guard.mjs` + `reports/phase-3-gate-*.json`
+- [x] Archive audit: [`docs/audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)
+
+---
+
+## 13. PHASE 3 ENFORCEMENT (الزام CI)
+
+> **این بخش اجباری است.** هر sub-task فاز ۳ **باید** شناسه enforcement زیر را در PR checklist داشته باشد. نقض = FAIL `phase-3:gate` یا block merge.
+
+### 13.1 نگاشت Covenant → Enforcement
+
+| Covenant (MAP §18) | Enforcement ID | Mechanism |
+|--------------------|----------------|-----------|
+| Safety First | `P3-E-CASL-01`, `P3-E-L01` | ability tests + `verify:exports` |
+| Guard-First | `P3-E-*` all | scripts زیر قبل از feature merge |
+| Honest Reporting | `P3-E-DOC-01` | PR must update audit table |
+| Artifact Check | `P3-E-ARTIFACT` | `guard:artifact-surface` |
+| Doc-Code Parity | `P3-E-DOC-01` | same PR as code |
+
+### 13.2 جدول enforcement per sub-task
+
+| Sub-task / event | Enforcement ID | CI command / test | FAIL if |
+|------------------|------------------|-------------------|---------|
+| **Any PR touching `apps/**`** | `P3-E-BARREL` | `pnpm run guard:import-boundary` + `audit-boundary` | Any `ui-primitives-barrel-import` |
+| **`@apps/web` dev/build/lint** | `P3-E-APP-HOOK` | `pnpm --filter @apps/web run lint` (runs pre*) | Guards fail |
+| **New ui-primitive** | `P3-E-PRIM-NEW` | ui-primitives test + `P3-E-CSS-01` | Missing wiring spec; barrel `.` export; `dist/tokens/` |
+| **New primitive — barrel leakage test** | `P3-E-PRIM-BARREL` | Add/extend test: consumer `import from "@app-tour/ui-primitives"` must fail audit | Audit passes on forbidden import fixture |
+| **Edit `*.module.css` (primitives)** | `P3-E-CSS-01` | `component-token-maps-wiring.spec.ts` + optional dist grep | Forbidden literal patterns |
+| **Badge/Alert CSS global coupling** | `P3-E-CSS-02` | `rg ':global' packages/ui-primitives/src` | Any match |
+| **Publishable package build** | `P3-E-ARTIFACT` | `pnpm run guard:artifact-surface` | File outside `files` whitelist |
+| **theme-react export change** | `P3-E-L01` | `pnpm --filter @app-tour/theme-react run verify:exports` | `./internal`, `./harness`, stray `dist/` |
+| **New workspace package** | `P3-E-WS-01` | `depcruise` — no `apps` import from workspaces in reverse | Boundary violation |
+| **CASL + theme** | `P3-E-CASL-01` | workspace-sdk ability tests + theme-react provider test | Theme DOM without ability pass |
+| **API DB query** | `P3-E-DB-01` | integration test accessibleBy | Cross-tenant read |
+| **Phase 3 close** | `P3-E-DOC-01` | Manual + CI | Audit table not updated; no archived forensic |
+| **Docs-as-Code / Doc-Gate** | `P3-E-DOC-GATE` | `pnpm run doc-gate` | Registry missing; broken doc links; Markdoc parse fail; `audit-boundary` fail |
+| **Full phase gate** | `P3-E-GATE` | `pnpm run phase-3:gate` | Any required check false |
+
+### 13.3 `P3-E-PRIM-BARREL` — test contract (الزام)
+
+وقتی primitive جدید اضافه می‌شود، **باید** یکی از موارد زیر وجود داشته باشد:
+
+1. **Guard regression fixture** در `packages/ui-primitives/test/` یا `scripts/guards/` که import barrel را detect می‌کند (موجود: `audit-ui-primitives-boundary.mjs`).
+2. **Integration test** در `apps/web` که `pnpm run guard:ui-primitives-boundary` در CI برای همان PR اجرا شده است.
+
+**متن الزام PR:** «If a new primitive is added, CI MUST prove zero barrel-import leakage via `P3-E-BARREL` + `P3-E-PRIM-NEW`.»
+
+### 13.4 `phase-3:gate` (هدف root `package.json`)
+
+```json
+{
+  "scripts": {
+    "phase-3:guard": "node scripts/guards/phase-3-guard.mjs",
+    "phase-3:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:artifact-surface && pnpm run audit-boundary && pnpm run phase-2:gate && pnpm run phase-3:guard"
+  }
+}
+```
+
+**توجه:** `phase-2:gate` **frozen baseline** — فاز ۳ نباید regression فاز ۲ ایجاد کند.
+
+### 13.5 `scripts/guards/phase-3-guard.mjs` — checks (هدف PR 3.5)
+
+| # | Check | FAIL if |
+|---|--------|---------|
+| 1 | `pnpm --filter @apps/web run lint` | pre* guards fail |
+| 2 | `apps/web` exists + no barrel imports | `P3-E-BARREL` |
+| 3 | `pnpm --filter @app-tour/workspace-sdk test` | ability tests missing |
+| 4 | `packages/workspaces/starter` build/test | plugin invalid |
+| 5 | `apps/api` integration (when present) | accessibleBy test fail |
+| 6 | `guard:artifact-surface` | SB-02 regression |
+| 7 | Phase 3 invariants Select/Checkbox (if 3.3.x merged) | subpath missing |
+| 8 | Write `reports/phase-3-gate-YYYY-MM-DD.json` | — |
+| 9 | `rg -i denali apps packages/workspaces/starter` | denali in phase 3 scope |
+
+### 13.6 ESLint (apps/web — PR 3.3+)
+
+```javascript
+// apps/web/.eslintrc.cjs (implemented)
+"no-restricted-imports": ["error", {
+  paths: [{
+    name: "@app-tour/ui-primitives",
+    message: "Use subpaths: @app-tour/ui-primitives/button, /input, …",
+  }],
+}],
+```
+
+---
+
+## 14. آنچه در فاز ۳ ممنوع است
+
+| # | ممنوع | به‌جای آن |
+|---|--------|-----------|
+| 1 | Barrel `@app-tour/ui-primitives` | subpaths |
+| 2 | `@app-tour/theme-react/internal` یا mapper export | providers + ingress |
+| 3 | static `import from 'packages/workspaces/denali'` | starter only؛ Denali فاز ۶ |
+| 4 | Theme ingress بدون CASL | §6.3 handoff |
+| 5 | Raw Prisma queries | `accessibleBy` |
+| 6 | Dual-write canonical + legacy | 3.4 |
+| 7 | «Fully satisfied» seal language | Verified Remediated + audit |
+| 8 | Literal CSS در primitive modules | `var(--*)` |
+| 9 | `dist/**` outside `files` | prune + artifact guard |
+| 10 | Skip `predev` guards در apps | همیشه اجرا |
+
+---
+
+## 15. Definition of Done فاز ۳
+
+### 15.0 Sub-phase gate status (canonical metrics)
+
+> **Phase Gate Audit Table (Dist/ · CSS · Barrel columns):** [`MIGRATION-MAP.md` §18 — Phase Gate Audit Table](MIGRATION-MAP.md#phase-gate-audit-table). Update that table when a sub-phase verifies or the whole phase closes.
+
+| Sub-phase | Enforcement ID | Security seal (sub-phase) | Verification |
+|-----------|----------------|---------------------------|--------------|
+| **3.0** CASL + theme handoff | `P3-E-CASL-01` | ✅ **Verified** | `defineAbilityFor` + subjects; 15 ability tests; `ThemeProviderChain` + provider CASL deny; `pnpm run phase-2:gate` PASS |
+| 3.1 | `P3-E-WS-01` | ✅ **Verified** | `@app-tour/workspace-starter` + boundary tests |
+| 3.2 | `P3-E-DB-01` | ✅ Enforced | `apps/api` + `accessibleByTourWhere` / `ScopedTourRepository` |
+| 3.3 | `P3-E-BARREL`, `P3-E-APP-HOOK` | ✅ Enforced | `@apps/web` guards + ESLint barrel + `WorkspaceWizardHost` |
+| 3.4 | `P3-E-CANONICAL-34` | ✅ Enforced | `CanonicalTourService` + `validateCanonicalLegacySync` |
+| 3.5 | `P3-E-GATE` | ✅ Enforced | `phase-3:gate` + `reports/phase-3-gate-*.json` |
+
+**Whole Phase 3 row in MAP:** **Closed: Zero-Debt Verified** (2026-06-03) — forensic [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md) · `pnpm run phase-3:gate` exit 0.
+
+---
+
+**Security Seal (MAP §18):** **Closed: Zero-Debt Verified** — only after:
+
+| Metric | Required |
+|--------|----------|
+| Dist/ Leakage | **0** |
+| CSS Literal Debt | **0** |
+| Barrel Import Violations | **0** |
+| `phase-3:gate` | PASS |
+| Forensic audit archived | `docs/audits/phase-3-*.md` |
+
+### 15.1 چک‌لیست
+
+- [x] 3.0 CASL + handoff (`P3-E-CASL-01` verified 2026-06-02)
+- [x] 3.1 starter workspace (`P3-E-WS-01`)
+- [x] 3.2 apps/api + accessibleBy tests (`P3-E-DB-01`)
+- [x] 3.3 apps/web wizard + guards (`P3-E-BARREL`, `P3-E-APP-HOOK`; Playwright optional backlog)
+- [ ] 3.3.x Select + Checkbox (P3-UI-01/02) — optional; non-blocking per gate
+- [x] 3.4 canonical-only (`P3-E-CANONICAL-34`)
+- [x] 3.5 phase-3-gate + report
+- [x] Phase Gate Audit Table row 3 → **Closed: Zero-Debt Verified**
+- [x] §13 enforcement IDs verified (`reports/phase-3-gate-2026-06-03.json`)
+
+### 15.2 Phase 2 items — وضعیت نهایی در فاز ۳
+
+| Item | فاز ۲ | فاز ۳ |
+|------|-------|-------|
+| Button, Input, FieldShell, Alert, Badge | ✅ Complete | Maintained — `P3-E-CSS-01` |
+| Select, Checkbox | Backlog (3.3.x) | **P3-UI-01/02** — optional until subpaths ship; `phase-3-guard` reports `required: false` |
+| SB-01, SB-03 | Remediated | `P3-E-L01` regression watch |
+| SB-02 | Verified | `P3-E-ARTIFACT` |
+| P2-005 CSS | Remediated | `P3-E-CSS-01` permanent |
+
+---
+
+## 16. چک‌لیست ورود به فاز ۴
+
+- [x] این سند — §8–§15 complete
+- [x] [`phase-3-design-system.md` §15](#15-definition-of-done-فاز-۳) ✅
+- [x] `phase-3:gate` سبز
+- [x] Forensic Phase 3 archived — [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)
+- [ ] Tenant subdomain design reviewed ([MAP §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting))
+- [ ] RLS migration plan drafted — **not** implemented in Phase 3
+
+---
+
+## 17. پل به MIGRATION-MAP §4–§10
+
+| MAP § | فاز ۳ سهم |
+|-------|----------|
+| §4 WorkspacePlugin | starter implements |
+| §5 Infra | Docker Postgres/Redis for **local dev stack**; API tour SoT = **in-memory** until Phase 4 RLS |
+| §6 Events | hook points only — full bus فاز ۴–۵ |
+| §7 Tenant | CASL now؛ RLS فاز ۴ |
+| §8 Plugin lifecycle | contractVersion on starter |
+| §10 Observability | 3.5 baseline |
+
+**فاز ۴ بعدی:** tenant-kernel + `TenantThemeProvider` production + RLS.
+
+---
+
+## 18. پیوست‌ها
+
+### پیوست A — dependency graph (فاز ۳)
+
+```text
+design-tokens        → (none)
+workspace-sdk        → (ability.ts فاز ۳)
+ui-primitives        → design-tokens (subpaths)
+theme-react          → design-tokens, workspace-sdk
+platform-core        → workspace-sdk only
+workspaces/starter   → workspace-sdk, platform-core, design-tokens (theme.css)
+apps/web             → theme-react, ui-primitives/*, workspace-sdk, platform-core
+apps/api             → workspace-sdk, platform-core (Phase 3.2: in-memory SoT; `@casl/prisma` فاز ۴+)
+apps/web             ↛ workspaces/* static
+```
+
+### پیوست B — دستورات verification
+
+```bash
+nvm use && corepack enable
+pnpm install
+pnpm build
+pnpm test
+pnpm run guard:import-boundary
+pnpm run guard:artifact-surface
+pnpm run audit-boundary
+pnpm run phase-2:gate    # frozen baseline
+pnpm run phase-3:gate    # when implemented (3.5)
+pnpm --filter @apps/web run lint
+```
+
+### پیوست C — PR template snippet
+
+```markdown
+Phase: 3.x
+
+## Covenant (MIGRATION-MAP §18)
+- [ ] Read §18 before starting
+- [ ] Enforcement IDs: P3-E-___
+
+## Sub-phase (phase-3-design-system.md §8–12)
+- [ ] …
+
+## Zero-Debt
+- [ ] No barrel `@app-tour/ui-primitives`
+- [ ] guard:artifact-surface if publishable touched
+- [ ] CSS wiring test if primitive touched
+
+## Phase Gate Audit Table
+- [ ] Updated if closing sub-phase
+```
+
+### پیوست D — مراجع خارجی (تحقیق ۲۰۲۶)
+
+- [Component Library Architecture and Governance](https://sujeet.pro/articles/component-library-architecture-and-governance) — subpath exports، `sideEffects`، Turborepo/Nx.
+- [Rollup library architecture (FSD)](https://feature-sliced.design/blog/rollup-library-architecture) — public API as gate، preserveModules، dual ESM/CJS optional.
+- [Effect-TS monorepo build](https://deepwiki.com/Effect-TS/effect/1.1-monorepo-structure-and-build-system) — dual emit pipeline reference for P3-PKG-02.
+- [Designsystemet sideEffects / tree-shaking #2477](https://github.com/digdir/designsystemet/issues/2477) — explicit CSS `sideEffects` paths.
+- [Subpath exports when structural failure requires it](https://dev.to/7onic/design-to-code-8-the-cosmetics-of-modularity-2bc7) — `npm pack` verification pattern.
+
+### پیوست E — forensic baseline (فاز ۲)
+
+- [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md) — Debt Score **94/100**؛ residual −6 = consumer + root build (addressed in §4, §13).
+
+### پیوست F — ماتریس تست فاز ۳ (هدف)
+
+| ID | لایه | سناریو | انتظار |
+|----|------|--------|--------|
+| A-1 | ability | tenant A cannot access tenant B theme | deny |
+| A-2 | ability | admin can access workspace theme | allow |
+| W-1 | apps/web | `prelint` without guards hacked | PASS |
+| W-2 | apps/web | import barrel in fixture | FAIL `P3-E-BARREL` |
+| W-3 | apps/web | Playwright create tour | pass |
+| W-4 | apps/web | CASL deny → no `--ws-*` on DOM | pass |
+| API-1 | apps/api | health | 200 |
+| API-2 | apps/api | cross-tenant read | 403/empty |
+| UI-3 | ui-primitives | Select subpath + wiring | PASS |
+| UI-4 | ui-primitives | Checkbox a11y | PASS |
+| PKG-1 | guards | artifact-surface | PASS |
+| G-3 | gate | phase-3-gate | PASS |
+
+### پیوست G — `phase-3:gate` (الزامات صریح)
+
+**وابستگی:** `scripts/guards/phase-3-guard.mjs` (PR **3.5**) — تا آن زمان از subset در §13.4 استفاده کنید.
+
+**CI:** `.github/workflows/phase-3-gate.yml` (هدف) — `pnpm run phase-3:gate` on `Phase: 3.x` PRs.
+
+**ادغام نهایی:** پس از DoD فاز ۳، افزودن به `ci:integrity` در کنار `phase-2:gate`.
+
+---
+
+**شروع:** [§8 زیرفاز 3.0](#8-زیرفاز-30--casl--authority-layer) — پس از `pnpm run phase-2:gate` سبز و مطالعه [MIGRATION-MAP §18](MIGRATION-MAP.md#۱۸-phase-protocol--zero-debt-covenant).

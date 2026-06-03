@@ -1,4 +1,4 @@
-import type { WorkspaceFieldRegistryEntry } from "@app-tour/workspace-sdk";
+import type { WorkspaceFieldRegistryEntry } from "@app-tour/workspace-sdk/plugin-types";
 
 export interface EffectiveFieldState {
   readonly fieldId: string;

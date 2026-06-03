@@ -1,0 +1,14 @@
+{
+  "name": "@app-tour/guards",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Local toolchain for scripts/guards (no root hoisting)",
+  "scripts": {
+    "architecture": "depcruise packages apps --config ../../dependency-cruiser.config.js --output-type err"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "^16.10.4",
+    "typescript": "5.9.3"
+  }
+}

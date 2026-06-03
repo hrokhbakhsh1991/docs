@@ -1,0 +1,33 @@
+{
+  "name": "@app-tour/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform design tokens — CSS custom properties; main entry exports SemanticCssVariableName and platform token unions (see ./tokens)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "tokens.meta.json"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/index.css",
+    "./semantic": {
+      "types": "./dist/generated/semantic-tokens.d.ts",
+      "default": "./dist/generated/semantic-tokens.js"
+    },
+    "./tokens": {
+      "types": "./dist/generated/tokens.d.ts",
+      "default": "./dist/generated/tokens.js"
+    },
+    "./tokens.meta.json": "./tokens.meta.json"
+  },
+  "scripts": {
+    "build": "node ./scripts/generate-tokens.mjs && node ./scripts/build.mjs && tsc -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "typescript": "5.9.3"
+  }
+}

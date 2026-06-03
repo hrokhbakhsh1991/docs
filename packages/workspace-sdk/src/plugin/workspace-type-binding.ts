@@ -14,7 +14,7 @@ export const DEFAULT_WORKSPACE_TYPE_BINDINGS: readonly WorkspaceTypeBinding[] = 
 
 export function resolveWorkspacePluginIdForType(
   workspaceType: WorkspaceTypeId,
-  bindings: readonly WorkspaceTypeBinding[] = DEFAULT_WORKSPACE_TYPE_BINDINGS,
+  bindings: readonly WorkspaceTypeBinding[],
 ): WorkspacePluginId | null {
   return bindings.find((b) => b.workspaceType === workspaceType)?.pluginId ?? null;
 }

@@ -1,0 +1,35 @@
+---
+title: Phase 0 Documentation Compliance Audit
+phase: 0
+format: markdoc
+verdict: Docs-as-Code Retrofit
+gitSha: pending
+generatedAt: 2026-06-03
+---
+
+# Phase 0 — Documentation Compliance (Docs-as-Code §19)
+
+{% verdict status="Retrofit Complete" score="registry" /%}
+
+## Scope
+
+- Phase guide: [`phase-0-foundation.mdoc`](../phase-0-foundation.mdoc)
+- Packages: `@app-tour/workspace-sdk`, `@app-tour/config`
+- MAP: [§11 Phase 0](../MIGRATION-MAP.md#۱۱-فازبندی-migration)
+
+## Controls
+
+| Control | Result |
+|---------|--------|
+| `phase-registry.json` entry | PASS |
+| Markdoc phase guide | PASS (retrofit) |
+| Package README → MAP | PASS |
+| `pnpm run guard:doc-sync` | PASS (post-fix) |
+
+## Architecture diagram
+
+Phase 0 guide includes mermaid foundation DAG (legacy §1.2 retained in Markdoc source).
+
+## Sign-off
+
+Phase 0 documentation aligned with §19 for registry, Markdoc, and package README linkage.

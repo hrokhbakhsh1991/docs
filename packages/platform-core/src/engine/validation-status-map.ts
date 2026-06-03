@@ -8,45 +8,51 @@ type MutableViolation = {
   message: string;
 };
 
-/**
- * In-place violation recorder — reuses slots; dedupes by fieldId on hot path.
- */
-export class ValidationStatusMap {
-  private readonly buffer: MutableViolation[] = [];
-  private readonly fieldIndex = new Map<string, number>();
-  private size = 0;
+export type ViolationCollector = {
+  reset(): void;
+  record(code: string, fieldId: string | undefined, message: string): void;
+  finalize(): ValidationResult;
+};
 
-  reset(): void {
-    this.size = 0;
-    this.fieldIndex.clear();
-  }
+/** In-place violation recorder — reuses slots; dedupes by fieldId on hot path. */
+export function createViolationCollector(): ViolationCollector {
+  const buffer: MutableViolation[] = [];
+  const fieldIndex = new Map<string, number>();
+  let size = 0;
 
-  record(code: string, fieldId: string | undefined, message: string): void {
-    if (fieldId != null) {
-      if (this.fieldIndex.has(fieldId)) {
-        return;
+  return {
+    reset() {
+      size = 0;
+      fieldIndex.clear();
+    },
+
+    record(code: string, fieldId: string | undefined, message: string) {
+      if (fieldId != null) {
+        if (fieldIndex.has(fieldId)) {
+          return;
+        }
+        fieldIndex.set(fieldId, size);
       }
-      this.fieldIndex.set(fieldId, this.size);
-    }
 
-    const slot = this.buffer[this.size];
-    if (slot != null) {
-      slot.code = code;
-      slot.fieldId = fieldId;
-      slot.message = message;
-    } else {
-      this.buffer[this.size] = { code, fieldId, message };
-    }
-    this.size += 1;
-  }
+      const slot = buffer[size];
+      if (slot != null) {
+        slot.code = code;
+        slot.fieldId = fieldId;
+        slot.message = message;
+      } else {
+        buffer[size] = { code, fieldId, message };
+      }
+      size += 1;
+    },
 
-  finalize(): ValidationResult {
-    if (this.size === 0) {
-      return OK_RESULT;
-    }
-    return {
-      ok: false,
-      violations: this.buffer.slice(0, this.size) as readonly ValidationViolation[],
-    };
-  }
+    finalize(): ValidationResult {
+      if (size === 0) {
+        return OK_RESULT;
+      }
+      return {
+        ok: false,
+        violations: buffer.slice(0, size) as readonly ValidationViolation[],
+      };
+    },
+  };
 }

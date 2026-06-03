@@ -2,12 +2,20 @@ export const PLATFORM_CORE_VERSION = 1 as const;
 
 export type PlatformCoreVersion = typeof PLATFORM_CORE_VERSION;
 
-export { PlatformWizardEngine } from "./engine/platform-wizard.engine";
+export { PlatformWizardEngine, type PlatformWizardEngineOptions } from "./engine/platform-wizard.engine";
 
 export {
   PlatformCoreError,
   type PlatformCoreErrorCode,
 } from "./errors/platform-core.error";
+
+export {
+  platformFail,
+  platformOk,
+  platformErr,
+  isPlatformCoreError,
+  type PlatformResult,
+} from "./errors/platform-result";
 
 export type { RuleContext } from "./types/rule-context";
 export type { RenderFieldPlan, RenderStepPlan } from "./types/render-plan";

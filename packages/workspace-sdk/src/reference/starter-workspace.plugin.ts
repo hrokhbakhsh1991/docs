@@ -1,67 +1,30 @@
-import { noopWorkspaceValidationHooks } from "../plugin/workspace-validation";
-import type { WorkspacePlugin } from "../plugin/workspace-plugin";
-import { STARTER_WORKSPACE_PLUGIN_ID } from "../plugin/workspace-plugin-id";
-import { STARTER_WORKSPACE_TYPE } from "../plugin/workspace-type";
+import {
+  workspaceThemePresets,
+  WORKSPACE_THEME_CSS_VARIABLE,
+} from "../theme/workspace-theme-presets";
+import {
+  createStarterWorkspacePlugin,
+  STARTER_THEME_TOKENS_STYLESHEET,
+} from "./starter-plugin-core";
 
-const STARTER_FIELD_REGISTRY = {
-  version: 1,
-  fields: [
-    {
-      id: "basics.title",
-      canonicalPath: "basics.title",
-      stepId: "basics",
-      kind: "text" as const,
-      required: true,
-      tags: ["core"],
-    },
-    {
-      id: "details.summary",
-      canonicalPath: "details.summary",
-      stepId: "details",
-      kind: "text" as const,
-      required: false,
-    },
-  ],
-};
+export { STARTER_THEME_TOKENS_STYLESHEET, createStarterWorkspacePlugin } from "./starter-plugin-core";
 
-const STARTER_RULE_SET = {
-  version: 1,
-  matrixDimensions: ["variant"],
-  defaultCellId: "default",
-  cells: [
-    {
-      cellId: "default",
-      dimensions: { variant: "default" },
-      fieldOverrides: [
-        { fieldId: "basics.title", required: true, hidden: false },
-        { fieldId: "details.summary", hidden: false },
-      ],
-    },
-  ],
-};
+const starterTheme = {
+  ...workspaceThemePresets["platform-primary"],
+  optionalStylesheet: STARTER_THEME_TOKENS_STYLESHEET,
+  cssVariables: {
+    [WORKSPACE_THEME_CSS_VARIABLE.colorAccent]: "var(--color-primary)",
+  },
+} as const;
 
-const STARTER_WIZARD_SURFACE = {
-  wizardMode: "classic" as const,
-  railId: "starter_base",
-  roots: ["basics", "details"],
-  inactiveFieldGroups: [],
-  wizardCapacityStepRedundant: false,
-};
+/** Reference starter plugin — frozen at module init (deterministic identity). */
+export const starterWorkspacePlugin = Object.freeze(
+  createStarterWorkspacePlugin(starterTheme),
+) as ReturnType<typeof createStarterWorkspacePlugin>;
 
-const STARTER_LIFECYCLE = {
-  initialStatus: "DRAFT",
-  publishStatus: "OPEN",
-  allowedTransitions: [{ from: "DRAFT", to: "OPEN" }],
-};
-
-/** Reference plugin for tests and phase-2 bootstrap (relocates to a dedicated workspace package). */
-export const starterWorkspacePlugin: WorkspacePlugin = {
-  id: STARTER_WORKSPACE_PLUGIN_ID,
-  version: 1,
-  supportedWorkspaceTypes: [STARTER_WORKSPACE_TYPE],
-  fieldRegistry: STARTER_FIELD_REGISTRY,
-  ruleSet: STARTER_RULE_SET,
-  wizard: STARTER_WIZARD_SURFACE,
-  validation: noopWorkspaceValidationHooks,
-  lifecycle: STARTER_LIFECYCLE,
-};
+/**
+ * @deprecated Prefer `starterWorkspacePlugin` or `createFreshStarterPlugin()` in contract tests.
+ */
+export function getStarterWorkspacePlugin(): typeof starterWorkspacePlugin {
+  return starterWorkspacePlugin;
+}

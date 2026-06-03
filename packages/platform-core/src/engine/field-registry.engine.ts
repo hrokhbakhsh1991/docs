@@ -1,37 +1,42 @@
 import type {
   WorkspaceFieldRegistry,
   WorkspaceFieldRegistryEntry,
-} from "@app-tour/workspace-sdk";
+} from "@app-tour/workspace-sdk/registry";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
+import {
+  platformFail,
+  platformOk,
+  unwrapPlatformResult,
+  type PlatformResult,
+} from "../errors/platform-result";
 
-const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
+import { MAX_ALLOWED_REGISTRY_FIELDS } from "./rule-cell-limits";
+
+function validateRegistryStructure(
+  registry: WorkspaceFieldRegistry,
+): PlatformResult<void> {
+  if (!Array.isArray(registry.fields)) {
+    return platformFail("INVALID_RULE_SET", "fieldRegistry.fields must be an array");
+  }
+  if (registry.fields.length > MAX_ALLOWED_REGISTRY_FIELDS) {
+    return platformFail(
+      "REGISTRY_CARDINALITY_VIOLATION",
+      `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
+      { fieldCount: registry.fields.length },
+    );
+  }
+  return platformOk(undefined);
+}
 
 export class FieldRegistryEngine {
   private readonly fields: readonly WorkspaceFieldRegistryEntry[];
   private readonly byId: ReadonlyMap<string, WorkspaceFieldRegistryEntry>;
-  private readonly byCanonicalPath: ReadonlyMap<string, WorkspaceFieldRegistryEntry>;
   private readonly byStepId: ReadonlyMap<string, readonly WorkspaceFieldRegistryEntry[]>;
 
-  constructor(registry: WorkspaceFieldRegistry) {
-    if (!Array.isArray(registry.fields)) {
-      throw new PlatformCoreError(
-        "INVALID_RULE_SET",
-        "fieldRegistry.fields must be an array",
-      );
-    }
-
-    if (registry.fields.length > MAX_ALLOWED_REGISTRY_FIELDS) {
-      throw new PlatformCoreError(
-        "REGISTRY_CARDINALITY_VIOLATION",
-        `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
-        { fieldCount: registry.fields.length },
-      );
-    }
-
+  private constructor(registry: WorkspaceFieldRegistry) {
     const seen = new Set<string>();
     const idMap = new Map<string, WorkspaceFieldRegistryEntry>();
-    const pathMap = new Map<string, WorkspaceFieldRegistryEntry>();
     const stepMap = new Map<string, WorkspaceFieldRegistryEntry[]>();
 
     for (const field of registry.fields) {
@@ -42,8 +47,7 @@ export class FieldRegistryEngine {
         );
       }
       seen.add(field.id);
-      idMap.set(field.id, field);
-      pathMap.set(field.canonicalPath, field);
+      idMap.set(field.id, Object.freeze({ ...field }));
 
       const stepFields = stepMap.get(field.stepId) ?? [];
       stepFields.push(field);
@@ -52,18 +56,32 @@ export class FieldRegistryEngine {
 
     this.fields = Object.freeze([...registry.fields]);
     this.byId = idMap;
-    this.byCanonicalPath = pathMap;
     this.byStepId = new Map(
       [...stepMap.entries()].map(([stepId, entries]) => [stepId, Object.freeze([...entries])]),
     );
   }
 
-  getById(fieldId: string): WorkspaceFieldRegistryEntry | undefined {
-    return this.byId.get(fieldId);
+  static tryCreate(registry: WorkspaceFieldRegistry): PlatformResult<FieldRegistryEngine> {
+    const structure = validateRegistryStructure(registry);
+    if (!structure.ok) {
+      return structure;
+    }
+    try {
+      return platformOk(new FieldRegistryEngine(registry));
+    } catch (error: unknown) {
+      if (error instanceof PlatformCoreError) {
+        return platformFail(error.code, error.message, error.details);
+      }
+      throw error;
+    }
   }
 
-  getByCanonicalPath(path: string): WorkspaceFieldRegistryEntry | undefined {
-    return this.byCanonicalPath.get(path);
+  static create(registry: WorkspaceFieldRegistry): FieldRegistryEngine {
+    return unwrapPlatformResult(FieldRegistryEngine.tryCreate(registry));
+  }
+
+  getById(fieldId: string): WorkspaceFieldRegistryEntry | undefined {
+    return this.byId.get(fieldId);
   }
 
   listByStep(stepId: string): readonly WorkspaceFieldRegistryEntry[] {
@@ -74,14 +92,19 @@ export class FieldRegistryEngine {
     return this.fields;
   }
 
-  assertKnownFieldIds(fieldIds: readonly string[]): void {
+  tryAssertKnownFieldIds(fieldIds: readonly string[]): PlatformResult<void> {
     for (const fieldId of fieldIds) {
       if (!this.byId.has(fieldId)) {
-        throw new PlatformCoreError(
+        return platformFail(
           "UNKNOWN_FIELD_ID",
           `Unknown field id "${fieldId}" in registry`,
         );
       }
     }
+    return platformOk(undefined);
+  }
+
+  assertKnownFieldIds(fieldIds: readonly string[]): void {
+    unwrapPlatformResult(this.tryAssertKnownFieldIds(fieldIds));
   }
 }
