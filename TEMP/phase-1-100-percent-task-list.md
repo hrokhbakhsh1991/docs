@@ -242,7 +242,7 @@ pnpm run test:phase-1
 
 | مرحله | ID | کار | وضعیت |
 |-------|-----|------|--------|
-| 3.1 | RP-1 | `listStepIds` simplify | ☐ |
+| 3.1 | RP-1 | `listStepIds` simplify | ✅ 2026-06-03 |
 | 3.2 | BL-03 | OK_RESULT freeze (اختیاری) | ☐ |
 | 3.3 | PW-1 | Options JSDoc (اختیاری) | ☐ |
 

@@ -662,7 +662,7 @@ visibility_semantics:
 ordering_logic:
   steps_source: "union fieldRegistry.entry.stepId + wizard.roots"
   order: "wizard.roots order first, then steps without root in registry discovery order"
-  listStepIds_implementation: "single discovery pass; emit wizard.roots ∩ union then discoveryOrder \\ roots (no sort/partition buffers)"
+  listStepIds_implementation: "single discovery pass; emit wizard.roots ∩ union then discoveryOrder \\ roots (no sort/partition buffers) — landed render-plan.steps.ts RP-1"
   inactiveFieldGroups: "groupSlug in array → all fields with groupSlug hidden before cell overrides"
   wizardCapacityStepRedundant: "phase 1 parse-only; optional uiHints in plan metadata"
 
