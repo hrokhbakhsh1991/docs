@@ -5,6 +5,7 @@ import { isFieldEffectivelyHidden } from "./field-visibility";
 import type { FieldRegistryEngine } from "./field-registry.engine";
 import type { RuleEngineScope } from "./rule-engine.scope";
 
+/** §4.4 ordering_logic: wizard.roots order first, then registry discovery order for the rest. */
 export function listStepIds(
   wizard: WorkspaceWizardSurface,
   fieldEngine: FieldRegistryEngine,
@@ -18,7 +19,6 @@ export function listStepIds(
       discoveryOrder.push(field.stepId);
     }
   }
-
   for (const stepId of wizard.roots) {
     if (!seen.has(stepId)) {
       seen.add(stepId);
@@ -26,23 +26,9 @@ export function listStepIds(
     }
   }
 
-  const rootsIndex = new Map(
-    wizard.roots.map((stepId, index) => [stepId, index] as const),
-  );
-
-  const rooted: string[] = [];
-  const orphan: string[] = [];
-
-  for (const stepId of discoveryOrder) {
-    if (rootsIndex.has(stepId)) {
-      rooted.push(stepId);
-    } else {
-      orphan.push(stepId);
-    }
-  }
-
-  rooted.sort((a, b) => rootsIndex.get(a)! - rootsIndex.get(b)!);
-
+  const inRoots = new Set(wizard.roots);
+  const rooted = wizard.roots.filter((id) => seen.has(id));
+  const orphan = discoveryOrder.filter((id) => !inRoots.has(id));
   return [...rooted, ...orphan];
 }
 
