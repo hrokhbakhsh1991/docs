@@ -1,0 +1,121 @@
+{
+  "version": 2,
+  "docsRoot": "docs",
+  "phases": [
+    {
+      "phase": 0,
+      "title": "Foundation",
+      "doc": "phase-0-foundation.mdoc",
+      "legacyMarkdown": "phase-0-foundation.md",
+      "mapSection": "فاز ۰",
+      "packages": ["packages/workspace-sdk", "packages/config"],
+      "packageReadmeMustLink": "phase-0-foundation.md"
+    },
+    {
+      "phase": 1,
+      "title": "Platform core",
+      "doc": "phase-1-platform-core.mdoc",
+      "legacyMarkdown": "phase-1-platform-core.md",
+      "mapSection": "فاز ۱",
+      "packages": ["packages/platform-core"],
+      "packageReadmeMustLink": "phase-1-platform-core.md"
+    },
+    {
+      "phase": 2,
+      "title": "Design system",
+      "doc": "phase-2-design-system.mdoc",
+      "legacyMarkdown": "phase-2-design-system.md",
+      "mapSection": "فاز ۲",
+      "packages": [
+        "packages/design-tokens",
+        "packages/ui-primitives",
+        "packages/theme-react"
+      ],
+      "packageReadmeMustLink": "phase-2-design-system.md"
+    },
+    {
+      "phase": 3,
+      "title": "Starter workspace + apps",
+      "doc": "phase-3-design-system.mdoc",
+      "legacyMarkdown": "phase-3-design-system.md",
+      "mapSection": "فاز ۳",
+      "packageReadmeMustLink": "phase-3-design-system.md",
+      "requiredDocSections": [
+        "CASL",
+        "accessibleBy",
+        "API boundary",
+        "CanonicalTourService"
+      ],
+      "packages": [
+        "packages/workspaces/starter",
+        "apps/api",
+        "apps/web"
+      ],
+      "subPhases": {
+        "3.0-doc": {
+          "title": "Docs-as-Code scaffold",
+          "requiresDocGate": true
+        },
+        "3.1": {
+          "title": "workspace-starter",
+          "blockedUntil": ["3.0-doc"],
+          "requiresDocGate": true
+        }
+      }
+    }
+  ],
+  "markdoc": {
+    "config": "markdoc/config.mjs",
+    "phaseGuideGlob": "phase-*.mdoc",
+    "auditGlob": "audits/*.mdoc"
+  },
+  "audits": [
+    {
+      "phase": 0,
+      "format": "markdoc",
+      "doc": "audits/phase-0-foundation-doc-compliance.mdoc"
+    },
+    {
+      "phase": 0,
+      "format": "markdoc",
+      "doc": "audits/phase-0-documentation-integrity-2026-06-03.mdoc"
+    },
+    {
+      "phase": 1,
+      "format": "markdoc",
+      "doc": "audits/phase-1-platform-core-doc-compliance.mdoc"
+    },
+    {
+      "phase": 1,
+      "format": "markdoc",
+      "doc": "audits/phase-1-documentation-integrity-2026-06-03.mdoc"
+    },
+    {
+      "phase": 2,
+      "format": "markdoc",
+      "doc": "audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc",
+      "legacyMarkdown": "audits/phase-2-zero-debt-forensic-audit-2026-06-02.md"
+    },
+    {
+      "phase": 2,
+      "format": "markdoc",
+      "doc": "audits/phase-2-documentation-integrity-2026-06-03.mdoc"
+    },
+    {
+      "phase": 3,
+      "format": "markdoc",
+      "doc": "audits/phase-3-zero-debt-forensic-audit.mdoc",
+      "legacyMarkdown": "audits/phase-3-zero-debt-forensic-audit.md"
+    },
+    {
+      "phase": 3,
+      "format": "markdoc",
+      "doc": "audits/phase-3-documentation-integrity-2026-06-03.mdoc"
+    }
+  ],
+  "zeroDebtDocSync": {
+    "phasesRequired": [0, 1, 2, 3],
+    "foundationPhasesRequired": [0],
+    "note": "foundation-gate: DOC_SYNC_SCOPE=foundation uses foundationPhasesRequired only (sdk + config). Full seal: phasesRequired [0–3] via doc-gate / integration."
+  }
+}

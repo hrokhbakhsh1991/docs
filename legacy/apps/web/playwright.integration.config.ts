@@ -1,3 +1,7 @@
+/**
+ * Playwright integration config — used by `qa:tour-wizard:integration-*`, `qa:denali:integration-map-fields`.
+ * Script registry: qa.scripts.config.mjs (naming: qa:<module>:<type>).
+ */
 import { defineConfig, devices } from "@playwright/test";
 
 const port = process.env.PW_WEB_PORT?.trim() || "3002";

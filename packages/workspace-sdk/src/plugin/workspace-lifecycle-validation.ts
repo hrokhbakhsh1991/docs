@@ -1,11 +1,13 @@
+import { sdkErr, sdkOk, type SdkResult } from "../errors/sdk-result";
+import type { LifecycleGraphErrorCode } from "../errors/workspace-validation-errors.js";
 import type { WorkspaceLifecycleContract } from "./workspace-lifecycle";
 
 /**
- * Returns an error message when the lifecycle graph is invalid; otherwise null.
+ * Validates lifecycle graph structure (acyclic, reachable publish, no orphans).
  */
 export function validateLifecycleGraph(
   lifecycle: WorkspaceLifecycleContract,
-): string | null {
+): SdkResult<null, LifecycleGraphErrorCode> {
   const states = new Set<string>();
   states.add(lifecycle.initialStatus);
   states.add(lifecycle.publishStatus);
@@ -23,9 +25,9 @@ export function validateLifecycleGraph(
   const visited = new Set<string>();
   const stack = new Set<string>();
 
-  const dfs = (node: string): string | null => {
+  const dfs = (node: string): LifecycleGraphErrorCode | null => {
     if (stack.has(node)) {
-      return `Cycle detected at lifecycle state "${node}"`;
+      return "CYCLE_DETECTED";
     }
     if (visited.has(node)) {
       return null;
@@ -45,7 +47,7 @@ export function validateLifecycleGraph(
   for (const node of states) {
     const cycle = dfs(node);
     if (cycle != null) {
-      return cycle;
+      return sdkErr(cycle, `Cycle detected at lifecycle state "${node}"`);
     }
   }
 
@@ -64,21 +66,25 @@ export function validateLifecycleGraph(
   }
 
   if (!reachable.has(lifecycle.publishStatus)) {
-    return `publishStatus "${lifecycle.publishStatus}" is not reachable from initialStatus "${lifecycle.initialStatus}"`;
+    return sdkErr(
+      "UNREACHABLE_PUBLISH",
+      `publishStatus "${lifecycle.publishStatus}" is not reachable from initialStatus "${lifecycle.initialStatus}"`,
+    );
   }
 
   for (const state of states) {
     if (state !== lifecycle.initialStatus && !reachable.has(state)) {
-      return `Orphan lifecycle state "${state}" is not reachable from initialStatus`;
+      return sdkErr("ORPHAN_STATE", `Orphan lifecycle state "${state}" is not reachable from initialStatus`);
     }
   }
 
-  return null;
+  return sdkOk(null);
 }
 
+/** @deprecated Use {@link validateLifecycleGraph} (SdkResult). */
 export function assertAcyclicLifecycleGraph(lifecycle: WorkspaceLifecycleContract): void {
-  const message = validateLifecycleGraph(lifecycle);
-  if (message != null) {
-    throw new Error(message);
+  const result = validateLifecycleGraph(lifecycle);
+  if (!result.ok) {
+    throw new Error(result.error.message);
   }
 }

@@ -8,6 +8,20 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import {
+  PHASE_1_FACADE_TEST_RATIO_MIN,
+  PLATFORM_CORE_CLOSURE_TEST_MIN,
+  PLATFORM_CORE_TEST_MIN,
+  WORKSPACE_SDK_TEST_MIN,
+} from "./gate-thresholds.mjs";
+import { measureFacadeTestRatio } from "./lib/facade-test-ratio.mjs";
+import {
+  evaluatePackageTestRun,
+  outputHasTestFailures,
+  parseTestCount,
+  parseTestCountSum,
+} from "./lib/parse-test-output.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const REPORTS_DIR = path.join(REPO_ROOT, "reports");
@@ -16,16 +30,23 @@ const PLATFORM_CORE_DIST = path.join(
   "packages/platform-core/dist/index.js",
 );
 const PLATFORM_CORE_ROOT = path.join(REPO_ROOT, "packages/platform-core");
-const WORKSPACE_SDK_ROOT = path.join(REPO_ROOT, "packages/workspace-sdk");
-const MIN_PLATFORM_CORE_TESTS = 94;
-const MIN_WORKSPACE_SDK_TESTS = 39;
+const MIN_PLATFORM_CORE_TESTS = PLATFORM_CORE_TEST_MIN.phase1;
+const MIN_PLATFORM_CORE_CLOSURE_TESTS = PLATFORM_CORE_CLOSURE_TEST_MIN.phase1;
+const MIN_WORKSPACE_SDK_TESTS = WORKSPACE_SDK_TEST_MIN.phase1;
 const ADVERSARIAL_SPEC_PATHS = [
   "packages/workspace-sdk/test/adversarial-canonical-ingress.spec.ts",
   "packages/workspace-sdk/test/storage-ingress-immutability.spec.ts",
   "packages/platform-core/test/adversarial-validation.spec.ts",
+  "packages/platform-core/test/adversarial-plugin-ingress.spec.ts",
   "packages/platform-core/test/rule-engine-concurrency.spec.ts",
   "packages/platform-core/test/runtime-isolation.spec.ts",
 ];
+
+const PHASE_1_CONTRACT_SPEC = "packages/platform-core/test/phase-1.contract.spec.ts";
+const FACADE_INTEGRATION_SPEC = "packages/platform-core/test/facade-integration.spec.ts";
+/** Path relative to @app-tour/platform-core package root for `pnpm exec --test`. */
+const FACADE_INTEGRATION_TEST_ARG = "test/facade-integration.spec.ts";
+const MIN_PHASE_1_BEHAVIOR_TESTS = 14;
 const DETAIL_MAX = 2000;
 
 /** @typedef {{ id: string, description: string, required: boolean, ok: boolean, detail?: string | null }} GuardCheck */
@@ -61,19 +82,6 @@ function truncateDetail(text) {
   const t = String(text).trim();
   if (t.length <= DETAIL_MAX) return t;
   return `${t.slice(0, DETAIL_MAX)}\n… (truncated)`;
-}
-
-/** Node test runner reports `# tests N` (TAP) or `ℹ tests N` (spec reporter). */
-function parseTestCount(output) {
-  const matches = [...String(output).matchAll(/[#ℹ] tests (\d+)/g)];
-  if (matches.length === 0) {
-    return null;
-  }
-  return Number.parseInt(matches[matches.length - 1][1], 10);
-}
-
-function outputHasTestFailures(output) {
-  return [...String(output).matchAll(/[#ℹ] fail (\d+)/g)].some((m) => Number.parseInt(m[1], 10) > 0);
 }
 
 /** @returns {GuardCheck} */
@@ -115,19 +123,6 @@ function checkWorkspaceSdkTestCount() {
 }
 
 /** @returns {GuardCheck} */
-function checkAdversarialSpecFilesTracked() {
-  const missing = ADVERSARIAL_SPEC_PATHS.filter((rel) => !fs.existsSync(path.join(REPO_ROOT, rel)));
-  const ok = missing.length === 0;
-  return {
-    id: "g9_adversarial_spec_files",
-    description: "adversarial test/**/*.spec.ts entry files exist on disk",
-    required: true,
-    ok,
-    detail: ok ? null : `missing: ${missing.join(", ")}`,
-  };
-}
-
-/** @returns {GuardCheck} */
 function checkAdversarialSpecsExecute() {
   const r = spawnSync("pnpm", ["run", "test:adversarial"], {
     cwd: REPO_ROOT,
@@ -156,11 +151,15 @@ function checkPlatformCoreTestCount() {
     maxBuffer: 8 * 1024 * 1024,
   });
   const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
-  const count = parseTestCount(output);
-  const ok = r.status === 0 && count != null && count >= MIN_PLATFORM_CORE_TESTS;
+  const count = parseTestCountSum(output);
+  const ok =
+    r.status === 0 &&
+    count != null &&
+    count >= MIN_PLATFORM_CORE_TESTS &&
+    !outputHasTestFailures(output);
   return {
     id: "g2_platform_core_test_count",
-    description: `platform-core tests ≥ ${MIN_PLATFORM_CORE_TESTS}`,
+    description: `platform-core tests ≥ ${MIN_PLATFORM_CORE_TESTS} (closure + unit:internal)`,
     required: true,
     ok,
     detail: ok
@@ -170,6 +169,50 @@ function checkPlatformCoreTestCount() {
             ? `${count} tests (need ≥ ${MIN_PLATFORM_CORE_TESTS})\n${output}`
             : output,
         ),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkPlatformCoreClosureTestCount() {
+  const r = spawnSync("pnpm", ["--filter", "@app-tour/platform-core", "run", "test:closure"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const { ok, count, output } = evaluatePackageTestRun(r, MIN_PLATFORM_CORE_CLOSURE_TESTS);
+  return {
+    id: "g2c_platform_core_closure_test_count",
+    description: `platform-core closure tests ≥ ${MIN_PLATFORM_CORE_CLOSURE_TESTS} (excludes test/unit/**)`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${count} closure tests`
+      : truncateDetail(
+          count != null
+            ? `${count} closure tests (need ≥ ${MIN_PLATFORM_CORE_CLOSURE_TESTS})\n${output}`
+            : output,
+        ),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkPlatformCoreUnitInternalTests() {
+  const r = spawnSync("pnpm", ["--filter", "@app-tour/platform-core", "run", "test:unit:internal"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const count = parseTestCount(output);
+  const ok = r.status === 0 && count != null && !outputHasTestFailures(output);
+  return {
+    id: "g2d_unit_internal_tests",
+    description: "test:unit:internal passes (non-gating package policy)",
+    required: true,
+    ok,
+    detail: ok ? `${count} unit tests` : truncateDetail(output),
   };
 }
 
@@ -200,7 +243,17 @@ function checkNoReactInPlatformCore() {
 }
 
 /** @returns {GuardCheck} */
-function checkResolutionNegativeTests() {
+function checkFacadeIntegrationSpec() {
+  const specPath = path.join(REPO_ROOT, FACADE_INTEGRATION_SPEC);
+  if (!fs.existsSync(specPath)) {
+    return {
+      id: "g12_facade_integration_spec",
+      description: "facade-integration.spec.ts executes public PlatformWizardEngine behaviors",
+      required: true,
+      ok: false,
+      detail: `missing ${FACADE_INTEGRATION_SPEC}`,
+    };
+  }
   const r = spawnSync(
     "pnpm",
     [
@@ -211,7 +264,7 @@ function checkResolutionNegativeTests() {
       "--import",
       "tsx",
       "--test",
-      "src/engine/rule.engine.spec.ts",
+      FACADE_INTEGRATION_TEST_ARG,
     ],
     {
       cwd: REPO_ROOT,
@@ -224,15 +277,15 @@ function checkResolutionNegativeTests() {
   const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
   const ok =
     r.status === 0 &&
-    output.includes("prefers specificity over priority") &&
-    output.includes("prefers specific dimension match over catch-all") &&
-    output.includes("prefers more matched context keys");
+    !outputHasTestFailures(output) &&
+    output.includes("tryFromPlugin → buildRenderPlan matches starter golden snapshot") &&
+    output.includes("CANONICAL_TYPE_MISMATCH");
   return {
-    id: "g7_resolution_negative_tests",
-    description: "rule.engine.spec specificity matrix tests execute and pass",
+    id: "g12_facade_integration_spec",
+    description: "facade-integration.spec.ts executes public PlatformWizardEngine behaviors",
     required: true,
     ok,
-    detail: ok ? null : truncateDetail(output),
+    detail: ok ? "facade integration green" : truncateDetail(output),
   };
 }
 
@@ -269,6 +322,55 @@ function checkImportBoundaryGuard() {
     required: true,
     ok,
     detail: ok ? null : truncateDetail((r.stdout ?? r.stderr ?? "").trim()) || `exit ${r.status}`,
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkPhase1ContractBehaviors() {
+  const r = spawnSync("pnpm", ["--filter", "@app-tour/platform-core", "run", "test:phase-1"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const count = parseTestCount(output);
+  const ok =
+    r.status === 0 &&
+    count != null &&
+    count >= MIN_PHASE_1_BEHAVIOR_TESTS &&
+    !outputHasTestFailures(output);
+  return {
+    id: "g11_phase1_contract_behaviors",
+    description: `phase-1.contract.spec.ts ≥ ${MIN_PHASE_1_BEHAVIOR_TESTS} behavioral rows (not count-only gate)`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${count} contract tests (${PHASE_1_CONTRACT_SPEC})`
+      : truncateDetail(
+          count != null
+            ? `${count} tests (need ≥ ${MIN_PHASE_1_BEHAVIOR_TESTS})\n${output}`
+            : output,
+        ),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkFacadeTestRatio() {
+  const testRoot = path.join(PLATFORM_CORE_ROOT, "test");
+  const { total, facade, ratio } = measureFacadeTestRatio(testRoot);
+  const min = PHASE_1_FACADE_TEST_RATIO_MIN;
+  const ok = total > 0 && ratio >= min;
+  const pct = `${Math.round(ratio * 100)}%`;
+  const minPct = `${Math.round(min * 100)}%`;
+  return {
+    id: "g13_facade_test_ratio",
+    description: `facade-path tests ≥ ${minPct} of closure spec cases (excl. test/unit/**)`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${facade}/${total} cases (${pct})`
+      : `${facade}/${total} cases (${pct}; need ≥ ${minPct})`,
   };
 }
 
@@ -331,13 +433,16 @@ function main() {
     checkPlatformCoreDistExists(),
     checkWorkspaceSdkTestCount(),
     checkPlatformCoreTestCount(),
-    checkAdversarialSpecFilesTracked(),
+    checkPlatformCoreClosureTestCount(),
+    checkPlatformCoreUnitInternalTests(),
+    checkPhase1ContractBehaviors(),
+    checkFacadeIntegrationSpec(),
+    checkFacadeTestRatio(),
     checkAdversarialSpecsExecute(),
     checkNoDenaliInPlatformCore(),
     checkNoReactInPlatformCore(),
     checkArchitectureGuard(),
     checkImportBoundaryGuard(),
-    checkResolutionNegativeTests(),
     checkSymlinkGuard(),
   ];
 
@@ -350,7 +455,7 @@ function main() {
     checks,
     exit16: {
       pass: requiredOk,
-      note: "platform-core: dist + ≥94 tests + workspace-sdk ≥39 (133 total) + adversarial + denali-free + no react + depcruise",
+      note: "platform-core: dist + ≥132 tests + facade ratio g13 + workspace-sdk ≥39 + adversarial + denali-free + no react + depcruise",
     },
   };
 

@@ -4,8 +4,8 @@ import { describe, it } from "node:test";
 import {
   parseCanonicalDocumentFromStorage,
   parseWorkspacePluginFromStorage,
-  starterWorkspacePlugin,
 } from "../src/index";
+import { createFreshStarterPlugin } from "./lib/immutable-harness.js";
 
 describe("storage ingress immutability", () => {
   it("parseCanonicalDocumentFromStorage deep-freezes nested document data", () => {
@@ -27,7 +27,7 @@ describe("storage ingress immutability", () => {
   });
 
   it("parseWorkspacePluginFromStorage deep-freezes plugin roots", () => {
-    const parsed = parseWorkspacePluginFromStorage(starterWorkspacePlugin);
+    const parsed = parseWorkspacePluginFromStorage(createFreshStarterPlugin());
     assert.throws(() => {
       (parsed.fieldRegistry.fields as unknown[]).push({});
     });

@@ -1,185 +1,219 @@
-import {
-  CanonicalDocumentValidationError,
-  parseCanonicalDocumentFromStorage,
-  parseWorkspacePluginFromStorage,
-  WorkspacePluginValidationError,
-  type CanonicalDocument,
-  type WorkspacePlugin,
-} from "@app-tour/workspace-sdk";
+import { parseWorkspacePluginFromStorage } from "@app-tour/workspace-sdk/ingress";
+import type {
+  CanonicalDocument,
+  WorkspacePlugin,
+} from "@app-tour/workspace-sdk/plugin-types";
 
+import { validationResultFromPlatformError } from "../errors/ingress-bridge";
 import { PlatformCoreError } from "../errors/platform-core.error";
+import {
+  platformFail,
+  platformOk,
+  unwrapPlatformResult,
+  type PlatformResult,
+} from "../errors/platform-result";
+import {
+  mapPluginIngressFailure,
+  tryValidateWorkspacePluginForPlatform,
+} from "../errors/sdk-error-map";
 import type { RenderStepPlan } from "../types/render-plan";
 import type { RuleContext } from "../types/rule-context";
+import type { RuleContextResolution } from "../types/rule-context-resolution";
 import type { ValidationResult } from "../types/validation-result";
-import {
-  assertCanonicalValueMatchesKind,
-  getCanonicalValue,
-  isEmptyCanonicalValue,
-} from "../utils/canonical-path";
 import { normalizeRuleContext } from "../utils/rule-context";
 import { FieldRegistryEngine } from "./field-registry.engine";
-import { RenderPlanBuilder } from "./render-plan.builder";
+import { buildRenderPlan } from "./render-plan";
 import { RuleEngine } from "./rule.engine";
 import {
-  assertWorkspacePluginForPlatform,
-  mapWorkspacePluginValidationError,
-} from "./sdk-error-map";
-import { ValidationStatusMap } from "./validation-status-map";
+  DEFAULT_RULE_ENGINE_SCOPE_POLICY,
+  type RuleEngineScopePolicy,
+} from "./rule-engine-scope-policy";
+import { validateCanonicalDocument } from "./validate-canonical-document";
 
-const MAX_ALLOWED_REGISTRY_FIELDS = 1000;
+export type PlatformWizardEngineOptions = Record<string, never>;
+
+/** Package-internal — import from tests via relative path only (not in index.ts). */
+export type PlatformWizardEngineInternalOptions = {
+  readonly ruleEngineScopePolicy?: RuleEngineScopePolicy;
+};
+
+type WizardRuntime = {
+  readonly plugin: WorkspacePlugin;
+  readonly fieldEngine: FieldRegistryEngine;
+  readonly ruleEngine: RuleEngine;
+};
+
+function sanitizePluginAtCreate(plugin: WorkspacePlugin): WorkspacePlugin {
+  try {
+    return parseWorkspacePluginFromStorage(plugin, { includeTheme: false });
+  } catch (error: unknown) {
+    const mapped = mapPluginIngressFailure(error);
+    if (mapped != null && !mapped.ok) {
+      throw mapped.error;
+    }
+    throw error;
+  }
+}
 
 /**
- * Facade for platform wizard engines. Apps must use this entry point only.
+ * Facade for platform wizard engines. Importing this module performs no plugin work.
  *
- * Future: ValidationMode draft/submit and plugin.validation hooks (phase 3 API).
+ * - {@link PlatformWizardEngine.create} — clones/freezes plugin at construction; engines on first `tryInit`.
+ * - {@link PlatformWizardEngine.tryFromPlugin} — eager bootstrap (`tryInit` before return).
+ * - **One engine per tenant session** — pass `tenantId` on every `RuleContext`; do not share across tenants.
+ * - Init failures are **not** cached; each `tryInit` re-attempts `buildRuntime`.
  */
 export class PlatformWizardEngine {
-  private readonly renderPlanBuilder: RenderPlanBuilder;
+  private readonly ruleEngineScopePolicy: RuleEngineScopePolicy;
+  private readonly pluginInput: WorkspacePlugin;
+  private runtime: WizardRuntime | null = null;
 
   private constructor(
-    private readonly plugin: WorkspacePlugin,
-    private readonly fieldEngine: FieldRegistryEngine,
-    private readonly ruleEngine: RuleEngine,
+    plugin: WorkspacePlugin,
+    options: PlatformWizardEngineInternalOptions,
   ) {
-    this.renderPlanBuilder = new RenderPlanBuilder(
-      plugin.wizard,
-      fieldEngine,
-      ruleEngine,
-    );
+    this.pluginInput = sanitizePluginAtCreate(plugin);
+    this.ruleEngineScopePolicy =
+      options.ruleEngineScopePolicy ?? DEFAULT_RULE_ENGINE_SCOPE_POLICY;
   }
 
-  static fromPlugin(plugin: WorkspacePlugin): PlatformWizardEngine {
-    let sanitized: WorkspacePlugin;
+  /** Clones plugin via headless ingress — does not build field/rule engines until `tryInit`. */
+  static create(
+    plugin: WorkspacePlugin,
+    options: PlatformWizardEngineOptions = {},
+  ): PlatformWizardEngine {
+    return new PlatformWizardEngine(plugin, options);
+  }
+
+  /** Package-internal — not exported from index.ts. */
+  static createForTests(
+    plugin: WorkspacePlugin,
+    options: PlatformWizardEngineInternalOptions = {},
+  ): PlatformWizardEngine {
+    return new PlatformWizardEngine(plugin, options);
+  }
+
+  isInitialized(): boolean {
+    return this.runtime != null;
+  }
+
+  tryInit(): PlatformResult<void> {
+    if (this.runtime != null) {
+      return platformOk(undefined);
+    }
+
+    const built = this.buildRuntime();
+    if (!built.ok) {
+      return platformFail(built.error.code, built.error.message, built.error.details);
+    }
+
+    this.runtime = built.value;
+    return platformOk(undefined);
+  }
+
+  init(): void {
+    unwrapPlatformResult(this.tryInit());
+  }
+
+  static tryFromPlugin(
+    plugin: WorkspacePlugin,
+    options: PlatformWizardEngineOptions = {},
+  ): PlatformResult<PlatformWizardEngine> {
+    let engine: PlatformWizardEngine;
     try {
-      sanitized = parseWorkspacePluginFromStorage(plugin);
-    } catch (error) {
-      if (error instanceof WorkspacePluginValidationError) {
-        throw mapWorkspacePluginValidationError(error);
+      engine = PlatformWizardEngine.create(plugin, options);
+    } catch (error: unknown) {
+      if (error instanceof PlatformCoreError) {
+        return platformFail(error.code, error.message, error.details);
       }
       throw error;
     }
-    assertWorkspacePluginForPlatform(sanitized);
-
-    const fieldEngine = new FieldRegistryEngine(sanitized.fieldRegistry);
-    if (fieldEngine.listAll().length > MAX_ALLOWED_REGISTRY_FIELDS) {
-      throw new PlatformCoreError(
-        "REGISTRY_CARDINALITY_VIOLATION",
-        `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
-        { fieldCount: fieldEngine.listAll().length },
-      );
+    const initialized = engine.tryInit();
+    if (!initialized.ok) {
+      return initialized;
     }
+    return platformOk(engine);
+  }
 
-    const ruleEngine = new RuleEngine(sanitized.ruleSet, fieldEngine);
-    return new PlatformWizardEngine(sanitized, fieldEngine, ruleEngine);
+  tryBuildRenderPlan(context: RuleContext): PlatformResult<readonly RenderStepPlan[]> {
+    const ready = this.tryEnsureRuntime();
+    if (!ready.ok) {
+      return ready;
+    }
+    try {
+      const resolution = normalizeRuleContext(context);
+      const { plugin, fieldEngine, ruleEngine } = ready.value;
+      return platformOk(
+        buildRenderPlan(plugin.wizard, fieldEngine, ruleEngine, resolution),
+      );
+    } catch (error: unknown) {
+      if (error instanceof PlatformCoreError) {
+        return platformFail(error.code, error.message, error.details);
+      }
+      throw error;
+    }
   }
 
   buildRenderPlan(context: RuleContext): readonly RenderStepPlan[] {
-    return this.renderPlanBuilder.build(normalizeRuleContext(context));
+    return unwrapPlatformResult(this.tryBuildRenderPlan(context));
   }
 
   validateCanonical(document: CanonicalDocument, context: RuleContext): ValidationResult {
-    let sanitized: CanonicalDocument;
-    try {
-      sanitized = parseCanonicalDocumentFromStorage({
-        schemaVersion: document.schemaVersion,
-        roots: document.roots,
-        data: document.data as Record<string, unknown>,
-      });
-    } catch (error) {
-      if (error instanceof CanonicalDocumentValidationError) {
-        return {
-          ok: false,
-          violations: [
-            {
-              code: error.code,
-              message: error.message,
-            },
-          ],
-        };
-      }
-      throw error;
+    const ready = this.tryEnsureRuntime();
+    if (!ready.ok) {
+      return validationResultFromPlatformError(ready.error);
     }
 
-    const fieldCount = this.fieldEngine.listAll().length;
-    if (fieldCount > MAX_ALLOWED_REGISTRY_FIELDS) {
-      return {
-        ok: false,
-        violations: [
-          {
-            code: "REGISTRY_CARDINALITY_VIOLATION",
-            message: `fieldRegistry.fields exceeds maximum allowed count (${MAX_ALLOWED_REGISTRY_FIELDS})`,
-          },
-        ],
-      };
-    }
-
-    const validationStatus = new ValidationStatusMap();
-    const scope = this.ruleEngine.createScope(context);
-
-    for (const field of this.fieldEngine.listAll()) {
-      const effective = scope.resolveEffectiveField(field.id);
-
-      if (
-        field.groupSlug != null &&
-        this.plugin.wizard.inactiveFieldGroups.includes(field.groupSlug)
-      ) {
-        continue;
-      }
-
-      const hidden = effective.hidden;
-
-      try {
-        const value = getCanonicalValue(sanitized.data, field.canonicalPath);
-
-        if (hidden && value !== undefined) {
-          if (field.kind !== "composite") {
-            validationStatus.record(
-              "HIDDEN_FIELD_POISON",
-              field.id,
-              `Hidden field "${field.id}" must not contain a value at "${field.canonicalPath}"`,
-            );
-            continue;
-          }
-        }
-
-        if (value === undefined) {
-          if (effective.required && !hidden) {
-            validationStatus.record(
-              "UNKNOWN_CANONICAL_PATH",
-              field.id,
-              `No value at canonical path "${field.canonicalPath}"`,
-            );
-          }
-          continue;
-        }
-
-        if (
-          !effective.required &&
-          isEmptyCanonicalValue(value, field.kind, { enumOptions: field.enumOptions })
-        ) {
-          continue;
-        }
-
-        try {
-          assertCanonicalValueMatchesKind(value, field.kind, field.canonicalPath, {
-            enumOptions: field.enumOptions,
-          });
-        } catch (error) {
-          if (error instanceof PlatformCoreError) {
-            validationStatus.record(error.code, field.id, error.message);
-          } else {
-            throw error;
-          }
-        }
-      } catch (error) {
-        if (error instanceof PlatformCoreError) {
-          validationStatus.record(error.code, field.id, error.message);
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    return validationStatus.finalize();
+    const resolution = normalizeRuleContext(context) as RuleContextResolution;
+    return validateCanonicalDocument({
+      plugin: ready.value.plugin,
+      fieldEngine: ready.value.fieldEngine,
+      ruleEngine: ready.value.ruleEngine,
+      document,
+      context: resolution,
+    });
   }
+
+  private tryEnsureRuntime(): PlatformResult<WizardRuntime> {
+    const init = this.tryInit();
+    if (!init.ok) {
+      return platformFail(init.error.code, init.error.message, init.error.details);
+    }
+    return platformOk(this.runtime!);
+  }
+
+  private buildRuntime(): PlatformResult<WizardRuntime> {
+    const validated = tryValidateWorkspacePluginForPlatform(this.pluginInput);
+    if (!validated.ok) {
+      return validated;
+    }
+
+    const fieldEngine = FieldRegistryEngine.tryCreate(validated.value.fieldRegistry);
+    if (!fieldEngine.ok) {
+      return fieldEngine;
+    }
+
+    const ruleEngine = RuleEngine.tryCreate(
+      validated.value.ruleSet,
+      fieldEngine.value,
+      this.ruleEngineScopePolicy,
+    );
+    if (!ruleEngine.ok) {
+      return ruleEngine;
+    }
+
+    return platformOk({
+      plugin: validated.value,
+      fieldEngine: fieldEngine.value,
+      ruleEngine: ruleEngine.value,
+    });
+  }
+}
+
+/** Package-internal test factory — not exported from index.ts. */
+export function createPlatformWizardEngineForTests(
+  plugin: WorkspacePlugin,
+  options: PlatformWizardEngineInternalOptions = {},
+): PlatformWizardEngine {
+  return PlatformWizardEngine.createForTests(plugin, options);
 }

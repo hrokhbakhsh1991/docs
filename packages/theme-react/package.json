@@ -1,0 +1,48 @@
+{
+  "name": "@app-tour/theme-react",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform / tenant / workspace theme provider chain",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/providers",
+    "dist/ingress",
+    "dist/tenant",
+    "dist/types"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ./scripts/verify-export-allowlist.mjs",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "NODE_ENV=test node --import ./test/register-dom.mjs --import tsx --test --test-concurrency=1 \"src/**/*.spec.ts\" \"src/**/*.spec.tsx\" \"test/**/*.spec.tsx\"",
+    "verify:exports": "node ./scripts/verify-export-allowlist.mjs"
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@happy-dom/global-registrator": "^17.4.4",
+    "happy-dom": "^17.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

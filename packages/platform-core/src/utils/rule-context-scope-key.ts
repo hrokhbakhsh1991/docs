@@ -1,23 +1,7 @@
-import type { RuleContext } from "../types/rule-context";
-import { PlatformCoreError } from "../errors/platform-core.error";
+import type { RuleContextResolution } from "../types/rule-context-resolution";
+import { assertTenantId } from "./rule-context-tenant";
 import { filterRuleContextDimensions } from "./rule-context-dimensions";
 import { normalizeRuleContext } from "./rule-context";
-
-function assertTenantIdForScopeKey(context: RuleContext): string {
-  if (typeof context.tenantId !== "string") {
-    throw new PlatformCoreError(
-      "TENANT_ISOLATION_VIOLATION",
-      "RuleContext.tenantId is required and must be a non-empty string",
-    );
-  }
-  if (context.tenantId.length === 0 || context.tenantId.trim() === "") {
-    throw new PlatformCoreError(
-      "TENANT_ISOLATION_VIOLATION",
-      "RuleContext.tenantId is required and must be a non-empty string",
-    );
-  }
-  return context.tenantId.trim();
-}
 
 function normalizeDimensionValue(value: string): string {
   return value.normalize("NFC");
@@ -27,7 +11,7 @@ function normalizeDimensionValue(value: string): string {
  * Dimension-only cache key (tenant-agnostic segment, NFC-normalized values).
  */
 export function buildRuleContextDimensionKey(
-  context: RuleContext,
+  context: RuleContextResolution,
   matrixDimensions: readonly string[],
 ): string {
   if (context.forceCellId != null) {
@@ -49,11 +33,11 @@ export function buildRuleContextDimensionKey(
  * Full scope cache key — `t:${tenantId}` prefix + NFC-normalized dimension signature.
  */
 export function buildRuleContextScopeKey(
-  context: RuleContext,
+  context: RuleContextResolution,
   matrixDimensions: readonly string[],
 ): string {
   const normalized = normalizeRuleContext(context);
-  const tenantId = assertTenantIdForScopeKey(normalized);
+  const tenantId = assertTenantId(normalized);
   const dimensionKey = buildRuleContextDimensionKey(normalized, matrixDimensions);
   return `t:${tenantId}\0${dimensionKey}`;
 }

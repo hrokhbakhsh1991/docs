@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
+
+import { loadPlatformWizard } from "./load-platform-wizard.js";
 import { describe, it } from "node:test";
 
-import {
-  createCanonicalDocument,
-  starterWorkspacePlugin,
-  type WorkspacePlugin,
-} from "@app-tour/workspace-sdk";
+import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
+import type { WorkspacePlugin } from "@app-tour/workspace-sdk/plugin-types";
 
-import { testRuleContext } from "../src/__fixtures__/rule-context.fixture";
+import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
+import { testRuleContext } from "./fixtures/rule-context.fixture.js";
+import { documentWithRuntimePoison } from "./lib/canonical-document-poison.js";
 import { PlatformCoreError } from "../src/errors/platform-core.error";
+import { FieldRegistryEngine } from "../src/engine/field-registry.engine";
 import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine";
 import { RuleEngine } from "../src/engine/rule.engine";
 import { assertCanonicalValueMatchesKind } from "../src/utils/canonical-value";
@@ -31,7 +33,7 @@ describe("adversarial validation — unicode homoglyphs", () => {
   });
 
   it("validateCanonical reports UNKNOWN_CANONICAL_PATH when only homoglyph value is present", () => {
-    const engine = PlatformWizardEngine.fromPlugin(starterWorkspacePlugin);
+    const engine = loadPlatformWizard(createTestStarterPlugin());
     const document = createCanonicalDocument({
       schemaVersion: 1,
       roots: ["basics", "details"],
@@ -53,7 +55,8 @@ describe("adversarial validation — unicode homoglyphs", () => {
     assert.equal(nfc.normalize("NFC"), nfd.normalize("NFC"));
 
     const plugin: WorkspacePlugin = {
-      ...starterWorkspacePlugin,
+      ...createTestStarterPlugin(),
+
       ruleSet: {
         version: 1,
         matrixDimensions: ["variant"],
@@ -73,8 +76,11 @@ describe("adversarial validation — unicode homoglyphs", () => {
       },
     };
 
-    const engine = PlatformWizardEngine.fromPlugin(plugin);
-    const ruleEngine = engine["ruleEngine"] as RuleEngine;
+    loadPlatformWizard(plugin);
+    const ruleEngine = RuleEngine.create(
+      plugin.ruleSet,
+      FieldRegistryEngine.create(plugin.fieldRegistry),
+    );
     const nfcScope = ruleEngine.createScope(
       testRuleContext({ variant: nfc }, { tenantId: "tenant_nfc" }),
     );
@@ -116,11 +122,12 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
 
   it("validateCanonical rejects BigInt inside registered composite fields", () => {
     const plugin: WorkspacePlugin = {
-      ...starterWorkspacePlugin,
+      ...createTestStarterPlugin(),
+
       fieldRegistry: {
         version: 1,
         fields: [
-          ...starterWorkspacePlugin.fieldRegistry.fields,
+          ...createTestStarterPlugin().fieldRegistry.fields,
           {
             id: "details.meta",
             canonicalPath: "details.meta",
@@ -131,8 +138,8 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
         ],
       },
     };
-    const engine = PlatformWizardEngine.fromPlugin(plugin);
-    const document = {
+    const engine = loadPlatformWizard(plugin);
+    const document = documentWithRuntimePoison({
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
@@ -146,24 +153,22 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
           },
         },
       },
-    };
+    });
 
-    const result = engine.validateCanonical(
-      document as Parameters<PlatformWizardEngine["validateCanonical"]>[0],
-      testRuleContext({ variant: "default" }),
-    );
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
-    assert.equal(result.violations[0]?.code, "CANONICAL_INVALID_DATA");
+    assert.equal(result.violations[0]?.code, "SANITIZE_BIGINT_NOT_ALLOWED");
     assert.match(result.violations[0]?.message ?? "", /BigInt/i);
   });
 
   it("hidden composite field with BigInt poison is rejected at document ingress", () => {
     const plugin: WorkspacePlugin = {
-      ...starterWorkspacePlugin,
+      ...createTestStarterPlugin(),
+
       fieldRegistry: {
         version: 1,
         fields: [
-          ...starterWorkspacePlugin.fieldRegistry.fields,
+          ...createTestStarterPlugin().fieldRegistry.fields,
           {
             id: "details.meta",
             canonicalPath: "details.meta",
@@ -174,7 +179,7 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
         ],
       },
       ruleSet: {
-        ...starterWorkspacePlugin.ruleSet,
+        ...createTestStarterPlugin().ruleSet,
         cells: [
           {
             cellId: "default",
@@ -188,8 +193,8 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
         ],
       },
     };
-    const engine = PlatformWizardEngine.fromPlugin(plugin);
-    const document = {
+    const engine = loadPlatformWizard(plugin);
+    const document = documentWithRuntimePoison({
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
@@ -199,14 +204,11 @@ describe("adversarial validation — exotic BigInt in composite trees", () => {
           meta: { nested: { value: BigInt(7) } },
         },
       },
-    };
+    });
 
-    const result = engine.validateCanonical(
-      document as Parameters<PlatformWizardEngine["validateCanonical"]>[0],
-      testRuleContext({ variant: "default" }),
-    );
+    const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
     assert.equal(result.ok, false);
-    assert.equal(result.violations[0]?.code, "CANONICAL_INVALID_DATA");
+    assert.equal(result.violations[0]?.code, "SANITIZE_BIGINT_NOT_ALLOWED");
     assert.match(result.violations[0]?.message ?? "", /BigInt/i);
   });
 });

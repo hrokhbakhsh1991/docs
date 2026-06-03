@@ -1,0 +1,48 @@
+@import "@app-tour/design-tokens/styles.css";
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+}
+
+main {
+  max-width: var(--layout-max-form);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.app-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-shell__header nav {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.app-shell__header a {
+  color: var(--color-text-primary);
+}
+
+[data-workspace-wizard] section {
+  margin-bottom: var(--space-6);
+}
+
+[data-workspace-wizard] label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}

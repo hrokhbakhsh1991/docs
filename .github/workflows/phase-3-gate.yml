@@ -1,0 +1,49 @@
+# Phase 3.5 — apps/api+web, starter, CASL, canonical SoT (phase-3:gate).
+
+name: phase-3-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: phase-3-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Phase 3 platform gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Phase 3 gate
+        run: pnpm run phase-3:gate
+
+      - name: Upload phase-3 gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-3-gate-report
+          path: reports/phase-3-gate-*.json
+          if-no-files-found: ignore

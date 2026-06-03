@@ -1,3 +1,7 @@
+/**
+ * Playwright smoke config — used by `qa:tour-wizard:smoke`, `qa:denali:smoke-map-fields`, etc.
+ * Script registry: qa.scripts.config.mjs (naming: qa:<module>:<type>).
+ */
 import { defineConfig } from "@playwright/test";
 
 import { resolveTestPlatformBaseUrl } from "./lib/test/smoke-platform-url";

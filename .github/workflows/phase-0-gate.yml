@@ -1,0 +1,90 @@
+# Phase 0.5 — KS-01 gate split (see docs/phase-0-foundation.mdoc §9).
+# Foundation-Gate is pure-contract-only; Integration-Gate is cross-phase-trunk-integrity.
+# Phase 0 closure = packages/workspace-sdk/test/phase-0.contract.spec.ts (H-06).
+# foundation-gate job: required for PR merge (branch protection job name).
+# integration-gate: trunk integrity — full monorepo build/test + guards (REM-013).
+
+name: phase-0-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: phase-0-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation-gate:
+    name: Phase 0 foundation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      LEGACY_IMPORT_SCAN_SCOPE: foundation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Scope Assert
+        run: node scripts/guards/foundation-scope-assert.mjs
+
+      - name: Phase 0 foundation gate (Zero-Debt Covenant — H-06)
+        run: pnpm run phase-0:foundation-gate
+
+  integration-gate:
+    name: Phase 0 integration gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # H-12 — full monorepo legacy-import depcruise (all packages/workspaces).
+      LEGACY_IMPORT_SCAN_SCOPE: monorepo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Phase 0 integration gate (trunk integrity)
+        run: pnpm run phase-0:integration-gate
+
+      - name: Upload integration gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-0-integration-gate-report
+          path: |
+            reports/phase-0-foundation-gate-*.json
+            reports/phase-0-baseline-*.json
+          if-no-files-found: ignore

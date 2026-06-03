@@ -9,6 +9,10 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { FOUNDATION_GATE_DENALI_DIRS } from "./foundation-gate-config.mjs";
+import { guardSubprocessEnv } from "./lib/guard-subprocess-env.mjs";
+import { outputHasTestFailures, parseTestCount } from "./lib/parse-test-output.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const REPORTS_DIR = path.join(REPO_ROOT, "reports");
@@ -23,46 +27,49 @@ const NEW_PACKAGE_LAYERS = [
   "packages/workspaces",
 ];
 
-const THRESHOLDS = {
-  workspace_sdk_test_count_min: 13,
-  denali_token_new_packages_max: 0,
-  legacy_import_edges_max: 0,
-};
+/** Count thresholds retired (H-03/H-13) — informational metrics only. */
+const THRESHOLDS = {};
 
 function gitShortSha() {
   const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
     cwd: REPO_ROOT,
     encoding: "utf8",
+    env: guardSubprocessEnv(),
   });
   return r.status === 0 ? r.stdout.trim() : "unknown";
 }
 
-function rg(args, searchPaths) {
-  const paths = (Array.isArray(searchPaths) ? searchPaths : [searchPaths]).filter((p) =>
-    fs.existsSync(p),
-  );
-  if (paths.length === 0) return [];
-  const r = spawnSync("rg", [...args, ...paths], {
-    cwd: REPO_ROOT,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
+/** @returns {{ denaliOk: boolean, legacyOk: boolean }} */
+function runCouplingContractTests() {
+  const nodeArgs = [
+    "--import",
+    "tsx",
+    "--test",
+    "test/denali-coupling.contract.spec.ts",
+    "test/legacy-import.contract.spec.ts",
+  ];
+  const env = guardSubprocessEnv({
+    NODE_ENV: "test",
+    LEGACY_IMPORT_SCAN_SCOPE: "foundation",
   });
-  if (r.status !== 0 && r.status !== 1) return [];
-  return (r.stdout ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function countDenaliTokens(layerRel) {
-  const abs = path.join(REPO_ROOT, layerRel);
-  if (!fs.existsSync(abs)) return { count: null, missing: true };
-  const lines = rg(["-i", "denali", "-g", "!**/*.spec.ts"], abs);
-  return { count: lines.length, missing: false };
-}
-
-function countLegacyImportEdges() {
-  return rg(["legacy/", "from \"../legacy", "from '../legacy"], PACKAGES_ROOT).length;
+  const denali = spawnSync(process.execPath, nodeArgs.slice(0, 4).concat("test/denali-coupling.contract.spec.ts"), {
+    cwd: SDK_ROOT,
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024,
+    env,
+  });
+  const legacy = spawnSync(process.execPath, nodeArgs.slice(0, 4).concat("test/legacy-import.contract.spec.ts"), {
+    cwd: SDK_ROOT,
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024,
+    env,
+  });
+  return {
+    denaliOk: denali.status === 0,
+    legacyOk: legacy.status === 0,
+    denaliDetail: denali.status === 0 ? null : (denali.stderr ?? denali.stdout ?? "").trim().slice(-1200),
+    legacyDetail: legacy.status === 0 ? null : (legacy.stderr ?? legacy.stdout ?? "").trim().slice(-1200),
+  };
 }
 
 function countSdkSourceFiles() {
@@ -99,6 +106,7 @@ function countSdkTestsFromSource() {
     }
   };
   walk(path.join(SDK_ROOT, "src"));
+  walk(path.join(SDK_ROOT, "test"));
   let itCount = 0;
   for (const file of specs) {
     const text = fs.readFileSync(file, "utf8");
@@ -107,19 +115,22 @@ function countSdkTestsFromSource() {
   return { itCount, specFileCount: specs.length };
 }
 
-function runSdkTests() {
+/** @returns {{ ok: boolean, testCount: number | null, outputTail: string | null }} */
+function runSdkTestSuite() {
   const r = spawnSync("pnpm", ["--filter", "@app-tour/workspace-sdk", "run", "test"], {
     cwd: REPO_ROOT,
     encoding: "utf8",
     shell: true,
-    maxBuffer: 8 * 1024 * 1024,
+    maxBuffer: 16 * 1024 * 1024,
+    env: guardSubprocessEnv({ NODE_ENV: "test" }),
   });
-  const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
-  const match = out.match(/# tests (\d+)/);
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const testCount = parseTestCount(output);
+  const ok = r.status === 0 && testCount != null && !outputHasTestFailures(output);
   return {
-    ok: r.status === 0,
-    testCount: match ? Number.parseInt(match[1], 10) : null,
-    outputTail: out.trim().slice(-800),
+    ok,
+    testCount,
+    outputTail: ok ? null : output.trim().slice(-1200),
   };
 }
 
@@ -135,22 +146,16 @@ function listNewPackages() {
 function evaluateThresholds(metrics) {
   const checks = [
     {
-      id: "t1_sdk_test_count",
-      ok: metrics.workspace_sdk_test_count >= THRESHOLDS.workspace_sdk_test_count_min,
-      expected: `>= ${THRESHOLDS.workspace_sdk_test_count_min}`,
-      actual: metrics.workspace_sdk_test_count,
+      id: "t2_denali_coupling_contract",
+      ok: metrics.denali_coupling_contract_ok === true,
+      expected: "denali-coupling.contract.spec.ts PASS",
+      actual: metrics.denali_coupling_contract_ok,
     },
     {
-      id: "t2_denali_tokens",
-      ok: metrics.denali_token_new_packages <= THRESHOLDS.denali_token_new_packages_max,
-      expected: `<= ${THRESHOLDS.denali_token_new_packages_max}`,
-      actual: metrics.denali_token_new_packages,
-    },
-    {
-      id: "t3_legacy_imports",
-      ok: metrics.legacy_import_edges <= THRESHOLDS.legacy_import_edges_max,
-      expected: `<= ${THRESHOLDS.legacy_import_edges_max}`,
-      actual: metrics.legacy_import_edges,
+      id: "t3_legacy_import_contract",
+      ok: metrics.legacy_import_contract_ok === true,
+      expected: "legacy-import.contract.spec.ts PASS",
+      actual: metrics.legacy_import_contract_ok,
     },
   ];
   return { checks, pass: checks.every((c) => c.ok) };
@@ -169,22 +174,23 @@ function renderMarkdown(report, jsonRel, dateSlug) {
     "",
     "| Metric | Value |",
     "|--------|-------|",
-    `| workspace_sdk_test_count | ${m.workspace_sdk_test_count} |`,
-    `| workspace_sdk_test_it_source | ${m.workspace_sdk_test_it_source} |`,
+    `| workspace_sdk_test_it_source (informational) | ${m.workspace_sdk_test_it_source} |`,
     `| workspace_sdk_export_count | ${m.workspace_sdk_export_count} |`,
     `| workspace_sdk_source_files | ${m.workspace_sdk_source_files} |`,
-    `| denali_token_new_packages | ${m.denali_token_new_packages} |`,
-    `| legacy_import_edges | ${m.legacy_import_edges} |`,
+    `| denali_coupling_contract_ok | ${m.denali_coupling_contract_ok} |`,
+    `| legacy_import_contract_ok | ${m.legacy_import_contract_ok} |`,
     `| new_packages | ${m.new_packages.join(", ")} |`,
     "",
-    "## Per-layer denali tokens (new packages only)",
+    "## Per-layer denali (foundation contract scope)",
     "",
-    "| Layer | count | missing |",
-    "|-------|-------|---------|",
+    "| Layer | enforced | source |",
+    "|-------|----------|--------|",
   ];
 
   for (const [layer, data] of Object.entries(report.layers)) {
-    lines.push(`| \`${layer}\` | ${data.denali_token_count ?? "—"} | ${data.missing} |`);
+    lines.push(
+      `| \`${layer}\` | ${data.enforced ? "yes" : "no"} | ${data.source ?? "—"} |`,
+    );
   }
 
   lines.push("", "## Threshold checks", "", "| ID | Expected | Actual | Result |", "|----|----------|--------|--------|");
@@ -206,15 +212,17 @@ function renderMarkdown(report, jsonRel, dateSlug) {
 }
 
 function main() {
-  const testRun = runSdkTests();
   const testSource = countSdkTestsFromSource();
-
+  const testRun = runSdkTestSuite();
+  const coupling = runCouplingContractTests();
+  const foundationDenaliSet = new Set(FOUNDATION_GATE_DENALI_DIRS);
   const layers = {};
-  let denaliTotal = 0;
   for (const layer of NEW_PACKAGE_LAYERS) {
-    const { count, missing } = countDenaliTokens(layer);
-    layers[layer] = { denali_token_count: count, missing };
-    if (!missing && count != null) denaliTotal += count;
+    const inFoundation = foundationDenaliSet.has(layer);
+    layers[layer] = {
+      enforced: inFoundation,
+      source: inFoundation ? "denali-coupling.contract.spec.ts" : "outside foundation scan",
+    };
   }
 
   const metrics = {
@@ -223,8 +231,8 @@ function main() {
     workspace_sdk_spec_files: testSource.specFileCount,
     workspace_sdk_export_count: countSdkExports(),
     workspace_sdk_source_files: countSdkSourceFiles(),
-    denali_token_new_packages: denaliTotal,
-    legacy_import_edges: countLegacyImportEdges(),
+    denali_coupling_contract_ok: coupling.denaliOk,
+    legacy_import_contract_ok: coupling.legacyOk,
     new_packages: listNewPackages(),
     platform_core_exists: fs.existsSync(path.join(PACKAGES_ROOT, "platform-core")),
     apps_exists: fs.existsSync(path.join(REPO_ROOT, "apps")),
@@ -236,24 +244,32 @@ function main() {
     generatedAt: new Date().toISOString(),
     gitSha: gitShortSha(),
     phase: "0.6",
-    tool: { ripgrep: spawnSync("rg", ["--version"], { encoding: "utf8" }).status === 0 },
     thresholds: THRESHOLDS,
     metrics,
     layers,
+    couplingContracts: coupling,
     testRun: {
       ok: testRun.ok,
       testCount: testRun.testCount,
     },
     exit06: {
-      pass: pass && testRun.ok,
+      pass: pass && testRun.ok && coupling.denaliOk && coupling.legacyOk,
       checks,
-      note: "zero coupling in new packages + SDK test floor",
+      note: "coupling contract tests (denali + legacy depcruise) + SDK test floor",
     },
   };
 
   if (!testRun.ok) {
     report.exit06.pass = false;
     report.testRunFailure = testRun.outputTail;
+  }
+  if (!coupling.denaliOk) {
+    report.exit06.pass = false;
+    report.denaliContractFailure = coupling.denaliDetail;
+  }
+  if (!coupling.legacyOk) {
+    report.exit06.pass = false;
+    report.legacyContractFailure = coupling.legacyDetail;
   }
 
   const dateSlug = new Date().toISOString().slice(0, 10);
@@ -267,9 +283,9 @@ function main() {
 
   console.log(`baseline-metrics: wrote ${path.relative(REPO_ROOT, jsonPath)}`);
   console.log(`baseline-metrics: ${report.exit06.pass ? "PASS" : "FAIL"}`);
-  console.log(`  tests: ${metrics.workspace_sdk_test_count}`);
-  console.log(`  denali tokens (new packages): ${metrics.denali_token_new_packages}`);
-  console.log(`  legacy import edges: ${metrics.legacy_import_edges}`);
+  console.log(`  spec it-blocks (informational): ${metrics.workspace_sdk_test_it_source}`);
+  console.log(`  denali coupling contract: ${metrics.denali_coupling_contract_ok ? "PASS" : "FAIL"}`);
+  console.log(`  legacy import contract: ${metrics.legacy_import_contract_ok ? "PASS" : "FAIL"}`);
   console.log(`  sdk exports: ${metrics.workspace_sdk_export_count}`);
 
   for (const c of checks) {

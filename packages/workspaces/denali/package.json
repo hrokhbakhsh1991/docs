@@ -1,0 +1,10 @@
+{
+  "name": "@app-tour/workspace-denali",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Denali workspace probe — contract negative-test target only (H-01)",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

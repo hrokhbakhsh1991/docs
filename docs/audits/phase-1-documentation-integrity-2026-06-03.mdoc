@@ -1,0 +1,69 @@
+---
+title: Phase 1 Documentation Integrity Report
+phase: 1
+format: markdoc
+generatedAt: 2026-06-03
+verdict: Aligned with codebase
+---
+
+# Phase 1 Documentation Integrity Report
+
+{% verdict status="PASS" score="94 tests / depcruise" /%}
+
+**Scope:** Markdoc retrofit for [`phase-1-platform-core.mdoc`](../phase-1-platform-core.mdoc) — engine mapping, anti-pattern ↔ depcruise parity, test registry (≥ 30 criterion).
+
+## 1. Markdoc migration
+
+| Artifact | Status |
+|----------|--------|
+| Canonical guide | [`phase-1-platform-core.mdoc`](../phase-1-platform-core.mdoc) |
+| Legacy mirror | [`phase-1-platform-core.md`](../phase-1-platform-core.md) |
+| `pnpm run doc:markdoc:validate` | PASS |
+
+## 2. Engine mapping (documented)
+
+| Engine | Source | Tests linked in §6.1 |
+|--------|--------|----------------------|
+| **FieldRegistryEngine** | `field-registry.engine.ts` | 7 cases |
+| **RuleEngine** | `rule.engine.ts` + `rule-cell-index.ts` | 25 + 4 + 4 concurrency |
+| **StepEngine** | `step.engine.ts` | 6 cases |
+| **RenderPlanBuilder** | `render-plan.builder.ts` | 7 cases |
+| **PlatformWizardEngine** | `platform-wizard.engine.ts` | 15 cases |
+
+Mermaid diagrams: §1.4 pipeline, §3.5 per-engine flows, orchestration facade.
+
+## 3. Anti-pattern ↔ dependency-cruiser
+
+| Doc ID | depcruise / guard | Match |
+|--------|-------------------|-------|
+| A1 Denali | `g3_no_denali_tokens` | ✅ |
+| A2 workspaces | `platform-core-no-workspaces` | ✅ |
+| A3 legacy | `no-legacy-imports` | ✅ |
+| A4 React | `g4_no_react_imports` | ✅ |
+| A5 procedural denali | code review (no automated rule) | ✅ documented |
+| apps import | `platform-core-no-apps` | ✅ (§8 aligned) |
+| SDK-only deps | `platform-core-only-sdk` | ✅ |
+
+## 4. Test exit criteria (≥ 30)
+
+| Metric | Documented | Repo |
+|--------|------------|------|
+| Minimum | ≥ 30 | **94** pass |
+| Spec files | 11 linked in §6.1 | 11 on disk |
+| `phase-1-guard` | `g2_platform_core_test_count` ≥ 94 | PASS at audit |
+
+## 5. Verification
+
+```bash
+pnpm run guard:doc-sync
+pnpm run doc:markdoc:validate
+pnpm --filter @app-tour/platform-core test    # 94 pass
+pnpm run phase-1:guard
+pnpm run guard:architecture                   # depcruise
+```
+
+## 6. Conclusion
+
+Phase 1 documentation **matches the current codebase** for engines, guards, and test counts.
+
+**Phase 1 Documentation Integrity: VERIFIED**

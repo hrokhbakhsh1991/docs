@@ -1,4 +1,4 @@
-import { readOwnDataProperty } from "@app-tour/workspace-sdk";
+import { readOwnDataProperty } from "@app-tour/workspace-sdk/canonical";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 
@@ -14,6 +14,55 @@ function pathTraversalFail(message: string): never {
     throw new PlatformCoreError("UNKNOWN_CANONICAL_PATH", message);
   }
   throw new PlatformCoreError("CANONICAL_TYPE_MISMATCH", message);
+}
+
+type SegmentTraversal = {
+  readonly value: unknown;
+  readonly traversalPrefix: string;
+};
+
+function readCanonicalSegmentAt(
+  current: unknown,
+  segment: string,
+  traversalPrefix: string,
+  path: string,
+): SegmentTraversal {
+  if (FORBIDDEN_SEGMENTS.has(segment)) {
+    throw new PlatformCoreError(
+      "UNKNOWN_CANONICAL_PATH",
+      `Forbidden path segment "${segment}" in "${path}"`,
+      { path, segment },
+    );
+  }
+  if (current == null) {
+    return { value: undefined, traversalPrefix };
+  }
+  if (typeof current !== "object") {
+    throw new PlatformCoreError(
+      "CANONICAL_TYPE_MISMATCH",
+      `Cannot traverse canonical path "${path}" through non-object value at segment "${segment}"`,
+      { path, segment, actual: typeof current },
+    );
+  }
+  if (Array.isArray(current)) {
+    throw new PlatformCoreError(
+      "CANONICAL_TYPE_MISMATCH",
+      `Cannot traverse canonical path "${path}" through array at segment "${segment}"`,
+      { path, segment },
+    );
+  }
+  if (!Object.prototype.hasOwnProperty.call(current, segment)) {
+    return { value: undefined, traversalPrefix };
+  }
+
+  const nextPrefix = `${traversalPrefix}.${segment}`;
+  const value = readOwnDataProperty(
+    current as object,
+    segment,
+    nextPrefix,
+    pathTraversalFail,
+  );
+  return { value, traversalPrefix: nextPrefix };
 }
 
 /**
@@ -32,42 +81,12 @@ export function getCanonicalValue(
   let traversalPrefix = "data";
 
   for (const segment of segments) {
-    if (FORBIDDEN_SEGMENTS.has(segment)) {
-      throw new PlatformCoreError(
-        "UNKNOWN_CANONICAL_PATH",
-        `Forbidden path segment "${segment}" in "${path}"`,
-        { path, segment },
-      );
-    }
-    if (current == null) {
+    const step = readCanonicalSegmentAt(current, segment, traversalPrefix, path);
+    if (step.value === undefined && step.traversalPrefix === traversalPrefix) {
       return undefined;
     }
-    if (typeof current !== "object") {
-      throw new PlatformCoreError(
-        "CANONICAL_TYPE_MISMATCH",
-        `Cannot traverse canonical path "${path}" through non-object value at segment "${segment}"`,
-        { path, segment, actual: typeof current },
-      );
-    }
-    if (Array.isArray(current)) {
-      throw new PlatformCoreError(
-        "CANONICAL_TYPE_MISMATCH",
-        `Cannot traverse canonical path "${path}" through array at segment "${segment}"`,
-        { path, segment },
-      );
-    }
-    if (!Object.prototype.hasOwnProperty.call(current, segment)) {
-      return undefined;
-    }
-
-    const traversalPath = `${traversalPrefix}.${segment}`;
-    current = readOwnDataProperty(
-      current as object,
-      segment,
-      traversalPath,
-      pathTraversalFail,
-    );
-    traversalPrefix = traversalPath;
+    current = step.value;
+    traversalPrefix = step.traversalPrefix;
   }
 
   return current;

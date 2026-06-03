@@ -17,7 +17,9 @@ Guidance for AI agents working in this repository.
 
 ### Node.js version
 
-Root `package.json` requires **Node.js 24** (`engines.node`: `>=24.0.0 <25`). Use `nvm use 24` (or install via `nvm install 24`) before `pnpm` commands. `.nvmrc` still says `22` but CI/backend workflows also use 22 — prefer **24** locally to satisfy the root engine check.
+Root `package.json` requires **Node.js 24** (`engines.node`: `>=24.0.0 <25`) and **pnpm 9.12.0** (`packageManager`). Run `nvm use` (`.nvmrc` → `24`) then `corepack enable` before `pnpm`. Ensure `which node` resolves to nvm’s Node 24, not the IDE-bundled Node 22.
+
+**E2E / API path policy (audit step 0.4):** Do not change REST route shapes, controller paths, or DB schema to make CI green without explicit human approval. Prefer workflow/env/fixture fixes; stop and ask before API changes.
 
 ### First-time env files (not committed)
 

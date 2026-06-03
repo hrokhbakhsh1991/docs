@@ -1,27 +1,17 @@
 import assert from "node:assert/strict";
+
+import { loadPlatformWizard } from "./load-platform-wizard.js";
 import { describe, it } from "node:test";
 
+import { createCanonicalDocument } from "@app-tour/workspace-sdk/canonical";
 import {
-  createCanonicalDocument,
   parseCanonicalDocumentFromStorage,
   parseWorkspacePluginFromStorage,
-  starterWorkspacePlugin,
-} from "@app-tour/workspace-sdk";
+} from "@app-tour/workspace-sdk/ingress";
 
-import { testRuleContext } from "../src/__fixtures__/rule-context.fixture";
-import { RuleEngine } from "../src/engine/rule.engine";
-import { FieldRegistryEngine } from "../src/engine/field-registry.engine";
-import { PlatformWizardEngine } from "../src/engine/platform-wizard.engine";
-import {
-  starterFieldRegistry,
-  starterRuleSet,
-} from "../src/__fixtures__/starter.fixture";
-import { buildRuleContextScopeKey } from "../src/utils/rule-context-scope-key";
-
-function makeEngine(): RuleEngine {
-  return new RuleEngine(starterRuleSet, new FieldRegistryEngine(starterFieldRegistry));
-}
-
+import { createTestStarterPlugin } from "./fixtures/starter.fixture.js";
+import { testRuleContext } from "./fixtures/rule-context.fixture.js";
+import { buildRuleContextScopeKey } from "../src/utils/rule-context-scope-key.js";
 describe("runtime isolation — cross-tenant scope signatures", () => {
   it("buildRuleContextScopeKey prefixes tenant boundary with t: and isolates tenants", () => {
     const dimensions = { variant: "default" };
@@ -37,25 +27,27 @@ describe("runtime isolation — cross-tenant scope signatures", () => {
     assert.match(keyB, /^t:tenant_b\0/);
     assert.notEqual(keyA, keyB);
 
-    const engine = makeEngine();
-    const scopeA = engine.createScope(testRuleContext(dimensions, { tenantId: "tenant_a" }));
-    const scopeB = engine.createScope(testRuleContext(dimensions, { tenantId: "tenant_b" }));
-    assert.notEqual(scopeA, scopeB);
+    const engine = loadPlatformWizard(createTestStarterPlugin());
+    const planA = engine.buildRenderPlan(testRuleContext(dimensions, { tenantId: "tenant_a" }));
+    const planB = engine.buildRenderPlan(testRuleContext(dimensions, { tenantId: "tenant_b" }));
+    assert.equal(planA.length, planB.length);
+    assert.deepEqual(planA[0]?.fields, planB[0]?.fields);
   });
 });
 
 describe("runtime isolation — unicode NFC dimension equality", () => {
-  it("NFC and NFD dimension variants share the same scope cache entry", () => {
-    const engine = makeEngine();
+  it("NFC and NFD dimension variants share the same scope cache key", () => {
     const nfc = "\u00e9";
     const nfd = "e\u0301";
-    const scopeNfc = engine.createScope(
+    const keyNfc = buildRuleContextScopeKey(
       testRuleContext({ variant: nfc }, { tenantId: "tenant_nfc" }),
+      ["variant"],
     );
-    const scopeNfd = engine.createScope(
+    const keyNfd = buildRuleContextScopeKey(
       testRuleContext({ variant: nfd }, { tenantId: "tenant_nfc" }),
+      ["variant"],
     );
-    assert.equal(scopeNfc, scopeNfd);
+    assert.equal(keyNfc, keyNfd);
   });
 });
 
@@ -76,46 +68,63 @@ describe("runtime isolation — storage ingress immutability", () => {
   });
 
   it("parseWorkspacePluginFromStorage returns a deep-frozen clone", () => {
-    const parsed = parseWorkspacePluginFromStorage(starterWorkspacePlugin);
+    const parsed = parseWorkspacePluginFromStorage(createTestStarterPlugin());
     assert.equal(Object.isFrozen(parsed), true);
     assert.equal(Object.isFrozen(parsed.fieldRegistry), true);
     assert.throws(() => {
       Object.defineProperty(parsed, "id", { value: "mutated" });
     });
-    assert.equal(parsed.id, starterWorkspacePlugin.id);
+    assert.equal(parsed.id, createTestStarterPlugin().id);
   });
 });
 
-describe("runtime isolation — concurrent scope cache resilience", () => {
-  it("parallel scope resolution preserves tenant boundaries under load", async () => {
-    const engine = makeEngine();
+describe("runtime isolation — concurrent facade resilience", () => {
+  it("parallel buildRenderPlan preserves per-tenant outcomes under load", async () => {
+    const engine = loadPlatformWizard(createTestStarterPlugin());
     const tasks = Array.from({ length: 400 }, (_, index) => {
       const tenantId = `iso_${index % 8}`;
-      const variant = index % 2 === 0 ? "default" : "default";
       return Promise.resolve().then(() =>
-        engine.createScope(testRuleContext({ variant }, { tenantId })),
+        engine.buildRenderPlan(testRuleContext({ variant: "default" }, { tenantId })),
       );
     });
-    const scopes = await Promise.all(tasks);
-    const reference = engine.createScope(
+    const plans = await Promise.all(tasks);
+    const reference = engine.buildRenderPlan(
       testRuleContext({ variant: "default" }, { tenantId: "iso_0" }),
     );
-    for (let i = 0; i < scopes.length; i += 8) {
-      assert.equal(scopes[i], reference);
+    for (let i = 0; i < plans.length; i += 8) {
+      assert.equal(JSON.stringify(plans[i]), JSON.stringify(reference));
     }
-    assert.notEqual(
-      engine.createScope(testRuleContext({ variant: "default" }, { tenantId: "iso_0" })),
-      engine.createScope(testRuleContext({ variant: "default" }, { tenantId: "iso_1" })),
+    const otherTenant = engine.buildRenderPlan(
+      testRuleContext({ variant: "default" }, { tenantId: "iso_1" }),
     );
+    assert.equal(JSON.stringify(otherTenant), JSON.stringify(reference));
   });
 
-  it("parallel validateCanonical on shared engine remains green", async () => {
-    const engine = PlatformWizardEngine.fromPlugin(starterWorkspacePlugin);
+  it("parallel validateCanonical with variant matrix yields different ok outcomes", async () => {
+    const plugin = {
+      ...createTestStarterPlugin(),
+      ruleSet: {
+        ...createTestStarterPlugin().ruleSet,
+        cells: [
+          {
+            cellId: "default",
+            dimensions: { variant: "default" },
+            fieldOverrides: [{ fieldId: "basics.title", required: true, hidden: false }],
+          },
+          {
+            cellId: "alt",
+            dimensions: { variant: "alt" },
+            fieldOverrides: [{ fieldId: "basics.title", required: false, hidden: false }],
+          },
+        ],
+      },
+    };
+    const engine = loadPlatformWizard(plugin);
     const document = createCanonicalDocument({
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
-        basics: { title: "Tour" },
+        basics: {},
         details: { summary: "Summary" },
       },
     });
@@ -123,11 +132,17 @@ describe("runtime isolation — concurrent scope cache resilience", () => {
       Promise.resolve().then(() =>
         engine.validateCanonical(
           document,
-          testRuleContext({ variant: "default" }, { tenantId: `t_${index % 10}` }),
+          testRuleContext(
+            { variant: index % 2 === 0 ? "default" : "alt" },
+            { tenantId: `t_${index % 10}` },
+          ),
         ),
       ),
     );
     const results = await Promise.all(tasks);
-    assert.equal(results.every((result) => result.ok), true);
+    const defaultResults = results.filter((_, index) => index % 2 === 0);
+    const altResults = results.filter((_, index) => index % 2 === 1);
+    assert.ok(defaultResults.every((result) => result.ok === false));
+    assert.ok(altResults.every((result) => result.ok === true));
   });
 });

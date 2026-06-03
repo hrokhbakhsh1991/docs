@@ -1,4 +1,4 @@
-import type { WorkspaceWizardSurface } from "@app-tour/workspace-sdk";
+import type { WorkspaceWizardSurface } from "@app-tour/workspace-sdk/plugin-types";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 import type { FieldRegistryEngine } from "./field-registry.engine";

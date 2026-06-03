@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-03T16:52:59.699Z",
+  "gitSha": "e8fc3a8",
+  "phase": "0.5-foundation",
+  "gateScope": {
+    "script": "phase-0-guard.mjs",
+    "scope": "foundation-gate",
+    "foundationGate": "pnpm run phase-0:foundation-gate — workspace-sdk + config only (Phase 0 closure)",
+    "integrationGate": "pnpm run phase-0:integration-gate — full monorepo build/test + trunk guards (REM-013)",
+    "phase0ClosureContract": "pnpm run test:phase-0 — phase-0.contract.spec.ts (dist + denali + legacy + invariant manifest; H-06)",
+    "importBoundaryScanRoots": [
+      "packages/workspace-sdk"
+    ],
+    "countThresholdsRetired": true
+  },
+  "checks": [
+    {
+      "id": "g4_depcruise_architecture",
+      "description": "depcruise packages/workspace-sdk packages/config",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g4b_import_boundary",
+      "description": "pnpm run guard:import-boundary (workspace-sdk only)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g7_doc_sync",
+      "description": "pnpm run guard:doc-sync",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "exit05": {
+    "pass": true,
+    "note": "foundation-gate: test:phase-0 (phase-0.contract.spec.ts) + scoped depcruise/import + doc-sync"
+  }
+}

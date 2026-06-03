@@ -1,0 +1,27 @@
+# Zero-Debt Architecture Enforcement
+
+## Doc-First Covenant
+
+You are forbidden from modifying any core architectural file (in `packages/platform-core`, `workspace-sdk`, or `apps/api`) without first proposing the necessary update to the relevant markdown file in `docs/` using Markdoc format.
+
+## Verification Step
+
+After any code change, append:
+
+`Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL].`
+
+## Sync Check
+
+If I ask for a code change, you must state:
+
+`Updating documentation for this change`
+
+before writing the code.
+
+## Doc-Quality Standard
+
+Updating documentation means adding technical details, logic explanations, or diagrams. Simple sentence changes are insufficient.
+
+## Git hook
+
+Commits that touch protected packages without a matching `docs/` change are blocked by `scripts/guard-docs.sh` (see Husky pre-commit).

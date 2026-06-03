@@ -7,7 +7,8 @@ services:
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: test_pass
     ports:
-      - "5432:5432"
+      # Host 5434 avoids clashing with dev Postgres on 5432; set DB_PORT/DATABASE_PORT=5434 in .env.test when using this stack.
+      - "5434:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test_user -d tours_test"]
       interval: 5s
@@ -21,7 +22,8 @@ services:
     image: redis:7
     container_name: tours-e2e-redis
     ports:
-      - "6379:6379"
+      # Host 6380 avoids clashing with dev Redis on 6379; set REDIS_PORT=6380 in .env.test when using this stack.
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

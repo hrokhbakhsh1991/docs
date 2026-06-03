@@ -1,0 +1,47 @@
+{
+  "name": "@apps/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 3 thin shell — ThemeProvider chain, wizard host (no workspace static imports)",
+  "scripts": {
+    "guard:import-boundary": "node ../../scripts/guards/import-boundary-ast.mjs",
+    "audit-boundary": "node ../../scripts/guards/audit-ui-primitives-boundary.mjs",
+    "guard:ui-primitives-boundary": "pnpm run audit-boundary",
+    "guard:no-raw-wizard-input": "node ./scripts/guard-no-raw-wizard-input.mjs",
+    "predev": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
+    "dev": "next dev --port 3000",
+    "prebuild": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
+    "build": "next build",
+    "prelint": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
+    "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\"",
+    "validate:canonical-sot": "NODE_ENV=test node --import tsx --test test/canonical-sot.spec.ts",
+    "phase-3:web-gate": "pnpm run prelint && pnpm run lint && pnpm run test && pnpm run build",
+    "start": "next start --port 3000"
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/platform-core": "workspace:*",
+    "@app-tour/theme-react": "workspace:*",
+    "@app-tour/ui-primitives": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "@app-tour/workspace-starter": "workspace:*",
+    "next": "^15.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@happy-dom/global-registrator": "^17.4.4",
+    "@testing-library/react": "^16.3.0",
+    "@typescript-eslint/parser": "^8.46.2",
+    "eslint": "^8.57.1",
+    "happy-dom": "^17.4.4",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

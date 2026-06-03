@@ -1,0 +1,50 @@
+# Phase 1.6 — platform-core gate (build, tests, architecture, phase-1-guard).
+# See docs/phase-1-platform-core.mdoc §4.6, docs/phase-1-platform-core.ai-exec.md, and §7.
+
+name: phase-1-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: phase-1-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Phase 1 platform-core gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Phase 1 gate
+        run: pnpm run phase-1:gate
+
+      - name: Upload phase-1 gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-1-gate-report
+          path: reports/phase-1-guard-*.json
+          if-no-files-found: ignore

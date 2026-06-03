@@ -1,0 +1,253 @@
+import { sdkOk, type SdkResult } from "../errors/sdk-result";
+import type { WorkspaceFieldRegistry } from "../registry/field-registry";
+import { validateWorkspaceFieldRegistry } from "../registry/validate-field-registry";
+import { validateWorkspaceRuleSet } from "../registry/validate-rule-set";
+import { fail, isPlainObject, requireArray, requireFiniteNumber, requireNonEmptyString, requirePlainObject, violation } from "../registry/schema-helper";
+import type { WorkspaceLifecycleContract } from "./workspace-lifecycle";
+import { validateLifecycleGraph } from "./workspace-lifecycle-validation";
+import type { WorkspacePlugin } from "./workspace-plugin.contract";
+import type { WorkspaceValidationHooks } from "./workspace-validation";
+import type { WorkspaceWizardMode, WorkspaceWizardSurface } from "./workspace-wizard-surface";
+import {
+  throwWorkspaceValidationError,
+  type WorkspaceSdkValidationErrorCode,
+} from "../errors/workspace-validation-errors.js";
+
+export {
+  throwWorkspaceValidationError,
+  isWorkspaceSdkValidationError,
+  workspaceSdkValidationErrorCode,
+  WorkspaceHooksValidationError,
+  WorkspaceLifecycleValidationError,
+  WorkspacePluginShapeError,
+  WorkspaceRegistryValidationError,
+  WorkspaceRuleSetValidationError,
+  WorkspaceThemeValidationError,
+  WorkspaceWizardValidationError,
+  type WorkspaceSdkValidationError,
+  type WorkspaceSdkValidationErrorCode,
+  type WorkspacePluginValidationErrorCode,
+} from "../errors/workspace-validation-errors.js";
+export { assertWorkspaceFieldRegistry, validateWorkspaceFieldRegistry } from "../registry/validate-field-registry";
+export { assertWorkspaceRuleSet, validateWorkspaceRuleSet } from "../registry/validate-rule-set";
+
+const WIZARD_MODES = new Set<WorkspaceWizardMode>(["classic", "schema"]);
+
+type PluginResult = SdkResult<WorkspacePlugin, WorkspaceSdkValidationErrorCode>;
+
+function throwOnError(result: SdkResult<unknown, WorkspaceSdkValidationErrorCode>): void {
+  if (!result.ok) {
+    throwWorkspaceValidationError(result.error.code, result.error.message, {
+      cause: result.error.cause,
+    });
+  }
+}
+
+function validateWorkspaceWizardSurface(
+  wizard: unknown,
+): SdkResult<WorkspaceWizardSurface, WorkspaceSdkValidationErrorCode> {
+  const root = requirePlainObject(wizard, "wizard", "INVALID_WIZARD_SURFACE");
+  if (!root.ok) return root;
+
+  if (!WIZARD_MODES.has(root.value.wizardMode as WorkspaceWizardMode)) {
+    return fail(violation("INVALID_WIZARD_SURFACE", 'wizard.wizardMode must be "classic" or "schema"'));
+  }
+
+  const railId = requireNonEmptyString(root.value.railId, "wizard.railId", "INVALID_WIZARD_SURFACE");
+  if (!railId.ok) return railId;
+
+  const roots = requireArray(root.value.roots, "wizard.roots", "INVALID_WIZARD_SURFACE");
+  if (!roots.ok) return roots;
+  for (const [index, entry] of roots.value.entries()) {
+    const rootName = requireNonEmptyString(entry, `wizard.roots[${index}]`, "INVALID_WIZARD_SURFACE");
+    if (!rootName.ok) return rootName;
+  }
+
+  const inactive = requireArray(
+    root.value.inactiveFieldGroups,
+    "wizard.inactiveFieldGroups",
+    "INVALID_WIZARD_SURFACE",
+  );
+  if (!inactive.ok) return inactive;
+  for (const [index, group] of inactive.value.entries()) {
+    const groupName = requireNonEmptyString(
+      group,
+      `wizard.inactiveFieldGroups[${index}]`,
+      "INVALID_WIZARD_SURFACE",
+    );
+    if (!groupName.ok) return groupName;
+  }
+
+  if (typeof root.value.wizardCapacityStepRedundant !== "boolean") {
+    return fail(
+      violation("INVALID_WIZARD_SURFACE", "wizard.wizardCapacityStepRedundant must be a boolean"),
+    );
+  }
+
+  return sdkOk(root.value as unknown as WorkspaceWizardSurface);
+}
+
+function validateWorkspaceValidationHooks(
+  validation: unknown,
+): SdkResult<WorkspaceValidationHooks, WorkspaceSdkValidationErrorCode> {
+  const root = requirePlainObject(validation, "validation", "INVALID_VALIDATION_HOOKS");
+  if (!root.ok) return root;
+  if (typeof root.value.checkCapacity !== "function") {
+    return fail(violation("INVALID_VALIDATION_HOOKS", "validation.checkCapacity must be a function"));
+  }
+  if (typeof root.value.checkTripDetails !== "function") {
+    return fail(violation("INVALID_VALIDATION_HOOKS", "validation.checkTripDetails must be a function"));
+  }
+  return sdkOk(root.value as unknown as WorkspaceValidationHooks);
+}
+
+function validateWorkspaceLifecycleContract(
+  lifecycle: unknown,
+): SdkResult<WorkspaceLifecycleContract, WorkspaceSdkValidationErrorCode> {
+  const root = requirePlainObject(lifecycle, "lifecycle", "INVALID_LIFECYCLE");
+  if (!root.ok) return root;
+
+  const initialStatus = requireNonEmptyString(
+    root.value.initialStatus,
+    "lifecycle.initialStatus",
+    "INVALID_LIFECYCLE",
+  );
+  if (!initialStatus.ok) return initialStatus;
+
+  const publishStatus = requireNonEmptyString(
+    root.value.publishStatus,
+    "lifecycle.publishStatus",
+    "INVALID_LIFECYCLE",
+  );
+  if (!publishStatus.ok) return publishStatus;
+
+  const transitions = requireArray(
+    root.value.allowedTransitions,
+    "lifecycle.allowedTransitions",
+    "INVALID_LIFECYCLE",
+  );
+  if (!transitions.ok) return transitions;
+
+  for (const [index, transition] of transitions.value.entries()) {
+    if (!isPlainObject(transition)) {
+      return fail(
+        violation("INVALID_LIFECYCLE", `lifecycle.allowedTransitions[${index}] must be an object`),
+      );
+    }
+    const from = requireNonEmptyString(
+      transition.from,
+      `lifecycle.allowedTransitions[${index}].from`,
+      "INVALID_LIFECYCLE",
+    );
+    if (!from.ok) return from;
+    const to = requireNonEmptyString(
+      transition.to,
+      `lifecycle.allowedTransitions[${index}].to`,
+      "INVALID_LIFECYCLE",
+    );
+    if (!to.ok) return to;
+  }
+
+  const lifecycleResult = validateLifecycleGraph({
+    initialStatus: initialStatus.value,
+    publishStatus: publishStatus.value,
+    allowedTransitions: transitions.value as WorkspaceLifecycleContract["allowedTransitions"],
+  });
+  if (!lifecycleResult.ok) {
+    return fail(violation(lifecycleResult.error.code, lifecycleResult.error.message));
+  }
+
+  return sdkOk(root.value as unknown as WorkspaceLifecycleContract);
+}
+
+function validateCanonicalPathsAlignWithWizard(
+  registry: WorkspaceFieldRegistry,
+  wizard: WorkspaceWizardSurface,
+): SdkResult<null, WorkspaceSdkValidationErrorCode> {
+  const rootSet = new Set(wizard.roots);
+
+  for (const field of registry.fields) {
+    const topLevel = field.canonicalPath.split(".")[0];
+    if (!topLevel || !rootSet.has(topLevel)) {
+      return fail(
+        violation(
+          "INVALID_FIELD_REGISTRY",
+          `Field "${field.id}" canonicalPath root "${topLevel ?? ""}" is not in wizard.roots`,
+        ),
+      );
+    }
+  }
+
+  for (const stepId of new Set(registry.fields.map((field) => field.stepId))) {
+    if (!rootSet.has(stepId)) {
+      return fail(
+        violation(
+          "INVALID_WIZARD_SURFACE",
+          `stepId "${stepId}" has registry fields but is not listed in wizard.roots`,
+        ),
+      );
+    }
+  }
+
+  return sdkOk(null);
+}
+
+/**
+ * Headless validation pipeline: shape → registry → rules → wizard → lifecycle → hooks.
+ * Theme/CSS validation is a separate ingress step (not JSON-persisted hook functions).
+ */
+export function validateWorkspacePluginCore(
+  value: unknown,
+): PluginResult {
+  const root = requirePlainObject(value, "plugin", "PLUGIN_INVALID_SHAPE");
+  if (!root.ok) return root;
+
+  const id = requireNonEmptyString(root.value.id, "plugin.id", "PLUGIN_INVALID_SHAPE");
+  if (!id.ok) return id;
+
+  const version = requireFiniteNumber(root.value.version, "plugin.version", "PLUGIN_INVALID_SHAPE");
+  if (!version.ok) return version;
+
+  const types = requireArray(
+    root.value.supportedWorkspaceTypes,
+    "plugin.supportedWorkspaceTypes",
+    "PLUGIN_INVALID_SHAPE",
+  );
+  if (!types.ok) return types;
+  for (const [index, workspaceType] of types.value.entries()) {
+    const typeId = requireNonEmptyString(
+      workspaceType,
+      `plugin.supportedWorkspaceTypes[${index}]`,
+      "PLUGIN_INVALID_SHAPE",
+    );
+    if (!typeId.ok) return typeId;
+  }
+
+  const registry = validateWorkspaceFieldRegistry(root.value.fieldRegistry);
+  if (!registry.ok) return registry;
+
+  const knownFieldIds = new Set(registry.value.fields.map((field) => field.id));
+  const ruleSet = validateWorkspaceRuleSet(root.value.ruleSet, knownFieldIds);
+  if (!ruleSet.ok) return ruleSet;
+
+  const wizard = validateWorkspaceWizardSurface(root.value.wizard);
+  if (!wizard.ok) return wizard;
+
+  const alignment = validateCanonicalPathsAlignWithWizard(registry.value, wizard.value);
+  if (!alignment.ok) return alignment;
+
+  const validation = validateWorkspaceValidationHooks(root.value.validation);
+  if (!validation.ok) return validation;
+
+  const lifecycle = validateWorkspaceLifecycleContract(root.value.lifecycle);
+  if (!lifecycle.ok) return lifecycle;
+
+  return sdkOk(root.value as unknown as WorkspacePlugin);
+}
+
+/**
+ * Headless plugin validation (Phase 1 / platform-core ingress) — no theme/CSS module load.
+ */
+export function assertWorkspacePluginCore(value: unknown): asserts value is WorkspacePlugin {
+  throwOnError(validateWorkspacePluginCore(value));
+}

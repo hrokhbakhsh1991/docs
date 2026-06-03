@@ -1,4 +1,4 @@
-import type { WorkspaceRuleCell, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
+import type { WorkspaceRuleCell, WorkspaceRuleSet } from "@app-tour/workspace-sdk/registry";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 import { MAX_RULE_CELL_INDEX_SIZE } from "./rule-cell-limits";
@@ -52,15 +52,6 @@ export function buildDimensionSignature(
     }
   }
   return parts.join("|");
-}
-
-/**
- * Stable dimension key for hash buckets (cold path / tests without precomputed order).
- */
-export function dimensionSignature(dimensions: Readonly<Record<string, string>>): DimensionSignature {
-  const keys = Object.keys(dimensions);
-  keys.sort((a, b) => a.localeCompare(b));
-  return buildDimensionSignature(dimensions, keys);
 }
 
 /**
@@ -139,13 +130,5 @@ export class RuleCellIndex {
     }
 
     return [...matches];
-  }
-
-  /**
-   * Exact signature bucket (O(1)); does not include partial-dimension cells unless signature matches.
-   */
-  findExactBucket(dimensions: Readonly<Record<string, string>>): readonly WorkspaceRuleCell[] {
-    const bucket = this.exactBuckets.get(this.signatureFor(dimensions));
-    return bucket != null ? [...bucket] : [];
   }
 }

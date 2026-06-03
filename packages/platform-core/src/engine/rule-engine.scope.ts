@@ -1,19 +1,23 @@
-import { getWorkspaceRuleCell, type WorkspaceRuleSet } from "@app-tour/workspace-sdk";
+import { getWorkspaceRuleCell, type WorkspaceRuleSet } from "@app-tour/workspace-sdk/registry";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 import type { EffectiveFieldState } from "../types/effective-field-state";
-import type { RuleContext } from "../types/rule-context";
+import type { RuleContextResolution } from "../types/rule-context-resolution";
 import { filterRuleContextDimensions } from "../utils/rule-context-dimensions";
 import { normalizeRuleContext } from "../utils/rule-context";
 import type { FieldRegistryEngine } from "./field-registry.engine";
 import type { RuleCellIndex } from "./rule-cell-index";
 import { pickBestMatchingCell } from "./rule-resolution";
+import {
+  DEFAULT_RULE_ENGINE_SCOPE_POLICY,
+  type RuleEngineScopePolicy,
+} from "./rule-engine-scope-policy";
 
 /**
  * Per–RuleContext transaction scope: one cell resolution + memoized effective fields.
  */
 export class RuleEngineScope {
-  private readonly normalized: RuleContext;
+  private readonly normalized: RuleContextResolution;
   private readonly filteredDimensions: Record<string, string>;
   private resolvedCellId: string | undefined;
   private readonly effectiveByFieldId = new Map<string, EffectiveFieldState>();
@@ -22,7 +26,8 @@ export class RuleEngineScope {
     private readonly ruleSet: WorkspaceRuleSet,
     private readonly fieldEngine: FieldRegistryEngine,
     private readonly cellIndex: RuleCellIndex,
-    context: RuleContext,
+    context: RuleContextResolution,
+    private readonly policy: RuleEngineScopePolicy = DEFAULT_RULE_ENGINE_SCOPE_POLICY,
   ) {
     this.normalized = normalizeRuleContext(context);
     this.filteredDimensions = filterRuleContextDimensions(
@@ -41,10 +46,10 @@ export class RuleEngineScope {
     }
 
     if (this.normalized.forceCellId != null) {
-      if (process.env.NODE_ENV !== "test") {
+      if (!this.policy.allowForceCellId) {
         throw new PlatformCoreError(
           "INVALID_RULE_CONTEXT",
-          "forceCellId is only allowed when NODE_ENV is test",
+          "forceCellId is only allowed when rule engine test policy enables it",
         );
       }
       const forced = getWorkspaceRuleCell(this.ruleSet, this.normalized.forceCellId);
