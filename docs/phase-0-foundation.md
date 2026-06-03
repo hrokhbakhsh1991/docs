@@ -553,7 +553,7 @@ Node **24** (`.nvmrc` + `engines`) · `node-version-file: .nvmrc` · trigger: `p
 - [x] workflow روی PR و push به main
 - [x] گزارش JSON در `reports/`
 - [x] `guard:doc-sync` در `phase-0:gate` (§9.2)
-- [ ] **remote:** GitHub Actions سبز پس از push (محلی ✅ · راهنما: [`reports/GITHUB_BRANCH_PROTECTION.md`](../reports/GITHUB_BRANCH_PROTECTION.md))
+- [x] **remote:** GitHub Actions سبز پس از push — [`phase-0-gate` run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) · commit `06f747f` · jobs: **Phase 0 foundation gate** + **Phase 0 integration gate** success
 
 ---
 

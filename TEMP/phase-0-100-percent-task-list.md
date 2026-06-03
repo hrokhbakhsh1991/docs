@@ -4,7 +4,7 @@
 **تاریخ ممیزی:** 2026-06-03  
 **روش:** اجرای دستورات exit criteria + مقایسه چک‌باکس‌های `.md` با repo
 
-**جمع:** **~۹۵٪** بسته عملیاتی محلی · **۵ مورد باز** (ریموت، branch protection، PR hygiene، P0-CRIT-01b، اختیاری P2)
+**جمع:** **~۹۸٪** بسته عملیاتی · **۳ مورد باز** (KS-01 branch protection دستی · P0-CRIT-01b فاز ۵ · اختیاری P2)
 
 ---
 
@@ -103,7 +103,7 @@
 | — | `reports/phase-0-gate-*.json` (§3.1 / workflow upload) | **PASS** | فاز ۳: workflow آپلود `phase-0-foundation-gate-*.json` |
 | — | `guard:doc-sync` در integration-gate | **PASS** | scope=foundation |
 | — | `test:adversarial` در integration | **PASS** | repo دارد · yaml ai-exec قدیمی بدون آن |
-| — | Remote GitHub Actions | **باز** | `.md` §9.4 `[ ]` · P1E-05 |
+| — | Remote GitHub Actions | **PASS** | [run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) · `06f747f` |
 | — | Branch protection KS-01 | **باز انسانی** | P0-OPS-03 |
 | DRIFT | `.md` §9.3 جدول g1–g7 | **PASS doc** | فاز ۲: covenant 10 + g4/g4b/g7 |
 | — | Husky + `ci:integrity` | **PASS** | `.husky/pre-commit` موجود |
@@ -129,7 +129,7 @@
 | 2 | SDK build + `test:phase-0` + full test | **PASS** | — |
 | 3 | `guard:architecture` | **PASS** | — |
 | 4 | MIGRATION-MAP + phase-0 + phase-1 | **PASS** | — |
-| 5 | CI سبز محلی **و** remote | **PARTIAL** | push + Actions · P0-OPS-01 |
+| 5 | CI سبز محلی **و** remote | **PASS** | P0-OPS-01 · KS-01 branch protection دستی |
 | 6 | baseline JSON + PASS | **PASS** | — |
 | 7 | denali coupling = 0 (contract) | **PASS** | — |
 | 8 | هیچ PR باز خارج scope | **باز** | `gh pr list` · P0-OPS-05 |
@@ -216,7 +216,7 @@ flowchart LR
 | **۱** | Doc-links (full doc-sync) | ۱–۲ ساعت | — | #9 | ✅ 2026-06-03 |
 | **۲** | Doc-truth (md + ai-exec) | ۲–۳ ساعت | ۱ | #4 | ✅ 2026-06-03 |
 | **۳** | CI + repo hygiene | ۱–۲ ساعت | ۲ | #7 جزئی | ✅ 2026-06-03 |
-| **۴** | Remote + governance | ۳۰ دقیقه + انتظار CI | ۳ | #5 · #8 |
+| **۴** | Remote + governance | ۳۰ دقیقه + انتظار CI | ۳ | #5 · #8 | ✅ 2026-06-03 |
 | **۵** | Quality hardening | ۲–۴ ساعت | ۳ | امنیت |
 | **۶** | Optional / P2 | بعداً | ۴ | — |
 
@@ -294,25 +294,25 @@ test ! -d packages/workspaces/denali || test -f packages/workspaces/denali/READM
 
 ---
 
-### فاز اجرایی ۴ — Remote + governance (`Phase: 0.5-closure-remote`)
+### فاز اجرایی ۴ — Remote + governance (`Phase: 0.5-closure-remote`) ✅
 
 **هدف:** §12 #5 و #8 · P1E-05 · KS-01.
 
-| مرحله | ID | کار | مسئول |
-|-------|-----|------|--------|
-| 4.1 | — | commit همه فازهای ۱–۳ | dev |
-| 4.2 | P0-OPS-01 | `git push` → بررسی Actions | dev + GitHub |
-| 4.3 | P0-OPS-01b | هر دو job سبز: **Phase 0 foundation gate** · **Phase 0 integration gate** | GitHub UI |
-| 4.4 | P0-OPS-03 | Branch protection: required check = foundation gate | admin |
-| 4.5 | P0-OPS-05 | `gh pr list --state open` — بستن/برچسب PRهای خارج scope فاز ۰ | dev |
-| 4.6 | — | `.md` §9.4: `[ ]` → `[x]` remote | doc در فاز ۲ یا اینجا |
+| مرحله | ID | کار | مسئول | وضعیت |
+|-------|-----|------|--------|--------|
+| 4.1 | — | commit همه فازهای ۱–۳ | dev | ✅ `06f747f` |
+| 4.2 | P0-OPS-01 | `git push` → بررسی Actions | dev + GitHub | ✅ `main` pushed |
+| 4.3 | P0-OPS-01b | هر دو job سبز | GitHub | ✅ [run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) |
+| 4.4 | P0-OPS-03 | Branch protection: required check = foundation gate | admin | ⏳ **دستی** — راهنما در `GITHUB_BRANCH_PROTECTION.md` |
+| 4.5 | P0-OPS-05 | PR hygiene | dev | ✅ open فقط **#3** (خارج scope فاز ۰) |
+| 4.6 | — | `.md` §9.4 remote `[x]` | doc | ✅ |
 
-**تأیید فاز ۴:**
+**تأیید فاز ۴ (2026-06-03):**
 
-- Screenshot یا لینک run سبز Actions
-- `reports/phase-0-foundation-gate-*.json` با `gitSha` همان commit
+- [Actions run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) — **Phase 0 foundation gate** · **Phase 0 integration gate** = success · SHA `06f747f`
+- گزارش commit: `reports/phase-0-foundation-gate-2026-06-03.json` (در tree؛ `gitSha` در push بعدی doc هم‌خوان شود)
 
-**PR:** معمولاً همان push فاز ۱–۳ · بدون PR جدا مگر فقط doc checkbox
+**PR:** push مستقیم `main` · doc follow-up برای §9.4
 
 ---
 
@@ -369,7 +369,7 @@ pnpm run phase-0:gate
 | # | §12 | پس از فاز |
 |---|-----|-----------|
 | 1–4 | legacy · SDK · arch · docs | ✅ الان |
-| 5 | CI remote | **۴** |
+| 5 | CI remote | **۴** ✅ |
 | 6 | baseline | ✅ الان |
 | 7 | denali coupling | ✅ (**۳** README probe) |
 | 8 | PR hygiene | **۴** |
@@ -405,9 +405,9 @@ Phase 0 operational completion: 100% (YYYY-MM-DD, git SHA ______)
 | ~~P0-CI-01~~ | ~~۳~~ ✅ |
 | ~~P0-REPO-01~~ | ~~۳~~ ✅ |
 | ~~P0-OPS-02~~ | ~~۳~~ ✅ |
-| P0-OPS-01 | ۴ |
-| P0-OPS-03 | ۴ |
-| P0-OPS-05 | ۴ |
+| ~~P0-OPS-01~~ | ~~۴~~ ✅ |
+| P0-OPS-03 | ۴ (admin دستی) |
+| ~~P0-OPS-05~~ | ~~۴~~ ✅ |
 
 ### P1 — کیفیت
 
