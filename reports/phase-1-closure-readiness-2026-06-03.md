@@ -1,34 +1,33 @@
-# Phase 1 — closure readiness (technical prerequisites)
+# Phase 1 — closure readiness
 
 | Field | Value |
 |-------|--------|
-| **Date** | 2026-06-03 (updated) |
-| **Operational completion** | **~95%** — see [`TEMP/phase-1-100-percent-task-list.md`](../TEMP/phase-1-100-percent-task-list.md) |
-| **Status** | Technical gate green · **MAP §14.1 architect sign-off** remains human |
+| **Date** | 2026-06-03 |
+| **Status** | **Closed: Zero-Debt Verified** (technical) |
+| **Git SHA** | `7000685` |
+| **Operational completion** | **100%** (automated criteria) |
 
 ## Evidence
 
 | Check | Command / artifact |
 |-------|-------------------|
-| Phase 1 guard | `pnpm run phase-1:gate` |
-| **Baseline فاز ۰ (§A)** | 2026-06-03 @ `ac12e3f` — همه A.1–A.8 سبز |
-| Latest platform commits | `741fd9d` (P1/P2) · `2476827` (RP-1) · working tree: BL-03, P3, §C |
-| Guard report | [`phase-1-guard-2026-06-03.json`](phase-1-guard-2026-06-03.json) (14/14; 148+ tests at last gate run) |
-| Forensic audit | [`audits/phase-1-forensic-audit.md`](../audits/phase-1-forensic-audit.md) |
-| §9 Contract vs engine | forensic §9.3–§9.4 — P1/P2/P3 gaps addressed in tree |
-| §11 Architectural theater | forensic §11 — **RP-1** landed |
-| §12 Tenant isolation | forensic §12 — **0 CIV** |
-| §13 Facade integrity | forensic §13 — **0 breach** |
+| Phase 1 guard | `pnpm run phase-1:gate` → **16/16 PASS** |
+| Guard report | [`phase-1-guard-2026-06-03.json`](phase-1-guard-2026-06-03.json) |
+| Forensic audit | [`audits/phase-1-forensic-audit.md`](../audits/phase-1-forensic-audit.md) §1–§13 |
+| §14.1 checklist | [`phase-1-architect-signoff-checklist-2026-06-03.md`](phase-1-architect-signoff-checklist-2026-06-03.md) |
 | Brutal maturity | [`phase-1-brutal-audit-2026-06-03.md`](phase-1-brutal-audit-2026-06-03.md) |
 | Documentation integrity | [`docs/audits/phase-1-documentation-integrity-2026-06-03.mdoc`](../docs/audits/phase-1-documentation-integrity-2026-06-03.mdoc) |
-| Doc compliance | [`docs/audits/phase-1-platform-core-doc-compliance.mdoc`](../docs/audits/phase-1-platform-core-doc-compliance.mdoc) |
+| Task list | [`TEMP/phase-1-100-percent-task-list.md`](../TEMP/phase-1-100-percent-task-list.md) |
 
-## Open (human)
+## Closed work (summary)
 
-- **G.1:** MAP §14.1 architect sign-off before declaring Phase 1 “closed” in program tracking.
-- **G.4:** Remote CI `phase-1:gate` on final SHA after push.
+- P1/P2 validation · RP-1 · BL-03 · P3 · §C contract hardening · §E guards (g3b · g3c · g4 · facade depcruise)
+- MAP §11 فاز ۱ → **Closed: Zero-Debt Verified**
 
-## Open (optional / non-blocking)
+## Optional follow-up
 
-- §E CI guard hardening (denali in `test/`, `dist/`, react word-boundary)
-- §H consumer verification checklist in TEMP
+| Item | Owner |
+|------|--------|
+| Human architect counter-sign line in sign-off checklist | Architect |
+| GitHub branch protection `phase-1-gate` required | Admin |
+| Remote CI green after `git push` | CI |

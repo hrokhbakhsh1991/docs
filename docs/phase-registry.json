@@ -17,6 +17,9 @@
       "doc": "phase-1-platform-core.mdoc",
       "legacyMarkdown": "phase-1-platform-core.md",
       "mapSection": "فاز ۱",
+      "closureStatus": "Closed: Zero-Debt Verified",
+      "closureDate": "2026-06-03",
+      "closureGitSha": "7000685",
       "packages": ["packages/platform-core"],
       "packageReadmeMustLink": "phase-1-platform-core.md"
     },
@@ -60,6 +63,39 @@
           "title": "workspace-starter",
           "blockedUntil": ["3.0-doc"],
           "requiresDocGate": true
+        }
+      }
+    },
+    {
+      "phase": 4,
+      "title": "Tenant kernel",
+      "doc": "phase-4-tenant-kernel.mdoc",
+      "legacyMarkdown": "phase-4-tenant-kernel.md",
+      "mapSection": "فاز ۴",
+      "packageReadmeMustLink": "phase-4-tenant-kernel.md",
+      "aiExecIndex": "phase-4/phase-4.ai-exec.index.md",
+      "requiredDocSections": [
+        "هم‌ترازی",
+        "tenant-kernel",
+        "RLS",
+        "Forensic Truth",
+        "PHASE 4 ENFORCEMENT",
+        "Gate of Gates"
+      ],
+      "packages": [
+        "packages/tenant-kernel",
+        "packages/platform-events",
+        "apps/api",
+        "apps/web"
+      ],
+      "subPhases": {
+        "4.0": {
+          "title": "Red-flag prerequisite R0-R3",
+          "blockedUntil": ["3.5"]
+        },
+        "4.1": {
+          "title": "tenant-kernel package",
+          "blockedUntil": ["4.0"]
         }
       }
     }
@@ -114,7 +150,7 @@
     }
   ],
   "zeroDebtDocSync": {
-    "phasesRequired": [0, 1, 2, 3],
+    "phasesRequired": [0, 1, 2, 3, 4],
     "foundationPhasesRequired": [0],
     "note": "foundation-gate: DOC_SYNC_SCOPE=foundation uses foundationPhasesRequired only (sdk + config). Full seal: phasesRequired [0–3] via doc-gate / integration."
   }

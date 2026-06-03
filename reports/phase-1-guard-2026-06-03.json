@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-03T23:09:50.112Z",
-  "gitSha": "ac12e3f",
+  "generatedAt": "2026-06-03T23:57:45.727Z",
+  "gitSha": "7000685",
   "phase": "1.6",
   "checks": [
     {
@@ -19,31 +19,31 @@
     },
     {
       "id": "g2_platform_core_test_count",
-      "description": "platform-core tests ≥ 132 (closure + unit:internal)",
+      "description": "platform-core tests ≥ 148 (closure + unit:internal)",
       "required": true,
       "ok": true,
-      "detail": "148 tests"
+      "detail": "154 tests"
     },
     {
       "id": "g2c_platform_core_closure_test_count",
-      "description": "platform-core closure tests ≥ 50 (excludes test/unit/**)",
+      "description": "platform-core closure tests ≥ 56 (excludes test/unit/**)",
       "required": true,
       "ok": true,
-      "detail": "56 closure tests"
+      "detail": "58 closure tests"
     },
     {
       "id": "g2d_unit_internal_tests",
       "description": "test:unit:internal passes (non-gating package policy)",
       "required": true,
       "ok": true,
-      "detail": "92 unit tests"
+      "detail": "96 unit tests"
     },
     {
       "id": "g11_phase1_contract_behaviors",
       "description": "phase-1.contract.spec.ts ≥ 14 behavioral rows (not count-only gate)",
       "required": true,
       "ok": true,
-      "detail": "17 contract tests (packages/platform-core/test/phase-1.contract.spec.ts)"
+      "detail": "19 contract tests (packages/platform-core/test/phase-1.contract.spec.ts)"
     },
     {
       "id": "g12_facade_integration_spec",
@@ -57,7 +57,7 @@
       "description": "facade-path tests ≥ 60% of closure spec cases (excl. test/unit/**)",
       "required": true,
       "ok": true,
-      "detail": "54/56 cases (96%)"
+      "detail": "56/58 cases (97%)"
     },
     {
       "id": "g10_adversarial_specs_execute",
@@ -74,8 +74,22 @@
       "detail": null
     },
     {
+      "id": "g3b_denali_in_platform_core_test",
+      "description": "rg -i denali packages/platform-core/test → 0",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g3c_denali_in_platform_core_dist",
+      "description": "rg -i denali packages/platform-core/dist → 0 (after build)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
       "id": "g4_no_react_imports",
-      "description": "no react/react-dom imports in platform-core",
+      "description": "no react/react-dom word-boundary imports in platform-core",
       "required": true,
       "ok": true,
       "detail": null
