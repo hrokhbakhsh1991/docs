@@ -4,7 +4,7 @@
 **تاریخ ممیزی:** 2026-06-03  
 **روش:** اجرای دستورات exit criteria + مقایسه چک‌باکس‌های `.md` با repo
 
-**Phase 0 operational completion: 100% (2026-06-03, git SHA `pending-commit`)**
+**Phase 0 operational completion: 100% (2026-06-03, git SHA `14ce42c`)**
 
 **جمع:** **۱۰۰٪** عملیاتی · **۱ مورد باز انسانی:** KS-01 branch protection (GitHub Settings)
 
