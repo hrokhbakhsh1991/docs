@@ -548,6 +548,14 @@ Node **24** (`.nvmrc` + `engines`) · `node-version-file: .nvmrc` · trigger: `p
 
 > g1/g2/g3/g5 (dist file · rg denali · rg legacy · test count ≥103) **منسوخ** — جایگزین: covenantهای بالا.
 
+### 9.4.1 API tenant engine isolation (P0-CRIT-01b)
+
+[`apps/api/src/tours/canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts) allocates a **new** `PlatformWizardEngine` on every `buildValidatedCanonicalDocument` call (no process-wide singleton). Regression: [`canonical-validation.spec.ts`](../apps/api/src/tours/canonical-validation.spec.ts) — per-call engine count + tenant `a`/`b` back-to-back document isolation.
+
+```bash
+pnpm --filter @apps/api test
+```
+
 ### 9.4 Exit criteria 0.5
 
 - [x] workflow روی PR و push به main

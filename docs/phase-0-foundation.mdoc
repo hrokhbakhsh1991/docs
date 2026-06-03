@@ -740,6 +740,14 @@ Scope: [`foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.m
 | Test count floor (g5) / grep denali (g2) | **Retired** — replaced by covenant modules | N/A | — |
 | `test:adversarial` | **integration-gate only** (not in `test:phase-0`) | N/A | Trunk |
 
+### 9.4.1 API tenant engine isolation (P0-CRIT-01b)
+
+| Claim | Verification |
+|-------|--------------|
+| Per-call `PlatformWizardEngine` (no module singleton) | [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts) |
+| Tenant A/B back-to-back isolation | [`canonical-validation.spec.ts`](../apps/api/src/tours/canonical-validation.spec.ts) |
+| Command | `pnpm --filter @apps/api test` |
+
 ### 9.4 Exit criteria 0.5
 
 - [x] workflow روی PR و push به main (دو job)

@@ -4,7 +4,7 @@
 **تاریخ ممیزی:** 2026-06-03  
 **روش:** اجرای دستورات exit criteria + مقایسه چک‌باکس‌های `.md` با repo
 
-**جمع:** **~۹۸٪** بسته عملیاتی · **۳ مورد باز** (KS-01 branch protection دستی · P0-CRIT-01b فاز ۵ · اختیاری P2)
+**جمع:** **~۱۰۰٪** عملیاتی (کد+تست+CI remote) · **۲ مورد باز** (KS-01 branch protection دستی · اختیاری P2)
 
 ---
 
@@ -15,10 +15,10 @@
 | **0.1** | EC-01-* | apps/ در root هست | **PARTIAL** (strict FAIL · Integration PASS) |
 | **0.2** | build + test:phase-0 + contracts | ۱۰ covenant · 165 تست | **PASS** |
 | **0.3** | guards + phase-0:gate | محلی سبز | **PASS** |
-| **0.4** | docs + doc-sync foundation | foundation PASS · full FAIL | **PARTIAL** |
-| **0.5** | workflow + gate محلی/remote | محلی PASS · remote باز | **PARTIAL** |
+| **0.4** | docs + doc-sync | foundation + full PASS | **PASS** |
+| **0.5** | workflow + gate محلی/remote | محلی + remote PASS | **PASS** |
 | **0.6** | baseline + artifact | JSON در `reports/` | **PASS** |
-| **§12** | ۹ مورد ورود فاز ۱ | ۶ PASS · ۳ باز/انسانی | **PARTIAL** |
+| **§12** | ۹ مورد ورود فاز ۱ | ۸ PASS · KS-01 دستی | **PARTIAL** |
 
 ---
 
@@ -132,7 +132,7 @@
 | 5 | CI سبز محلی **و** remote | **PASS** | P0-OPS-01 · KS-01 branch protection دستی |
 | 6 | baseline JSON + PASS | **PASS** | — |
 | 7 | denali coupling = 0 (contract) | **PASS** | — |
-| 8 | هیچ PR باز خارج scope | **باز** | `gh pr list` · P0-OPS-05 |
+| 8 | PR hygiene | **PASS** | open فقط **#3** (map — خارج scope فاز ۰) |
 | 9 | `guard:doc-sync` | **PASS** | foundation + full monorepo ✅ |
 
 ---
@@ -217,7 +217,7 @@ flowchart LR
 | **۲** | Doc-truth (md + ai-exec) | ۲–۳ ساعت | ۱ | #4 | ✅ 2026-06-03 |
 | **۳** | CI + repo hygiene | ۱–۲ ساعت | ۲ | #7 جزئی | ✅ 2026-06-03 |
 | **۴** | Remote + governance | ۳۰ دقیقه + انتظار CI | ۳ | #5 · #8 | ✅ 2026-06-03 |
-| **۵** | Quality hardening | ۲–۴ ساعت | ۳ | امنیت |
+| **۵** | Quality hardening | ۲–۴ ساعت | ۳ | امنیت | ✅ 2026-06-03 |
 | **۶** | Optional / P2 | بعداً | ۴ | — |
 
 ---
@@ -316,17 +316,17 @@ test ! -d packages/workspaces/denali || test -f packages/workspaces/denali/READM
 
 ---
 
-### فاز اجرایی ۵ — Quality hardening (`Phase: 0.2-closure-quality`)
+### فاز اجرایی ۵ — Quality hardening (`Phase: 0.2-closure-quality`) ✅
 
 **هدف:** شکاف‌های امنیتی/تست باقی‌مانده (بدون تغییر معماری trunk).
 
-| مرحله | ID | کار | DoD |
-|-------|-----|------|-----|
-| 5.1 | P0-CRIT-01b | spec: دو `buildValidatedCanonicalDocument` پشت‌سرهم tenant A/B | cache/engine نشت ندهد |
-| 5.2 | — | `pnpm --filter @apps/api test` سبز | exit 0 |
-| 5.3 | — | `pnpm run test:phase-0` سبز | بعد از هر تغییر |
+| مرحله | ID | کار | DoD | وضعیت |
+|-------|-----|------|-----|--------|
+| 5.1 | P0-CRIT-01b | `canonical-validation.spec.ts` — per-call engine + A/B back-to-back | cache/engine نشت ندهد | ✅ |
+| 5.2 | — | `pnpm --filter @apps/api test` | 47 pass | ✅ |
+| 5.3 | — | `pnpm run test:phase-0` | exit 0 | ✅ |
 
-**تأیید فاز ۵:**
+**تأیید فاز ۵ (2026-06-03):**
 
 ```bash
 pnpm --filter @apps/api test
@@ -359,7 +359,7 @@ pnpm run phase-0:gate
 | P0-DOC-FIX-08 (a–d) · P0-DOC-FIX-09 (a–e) | **۲** |
 | P0-CI-01 · P0-REPO-01 · P0-OPS-02 | **۳** |
 | P0-OPS-01 · P0-OPS-03 · P0-OPS-05 | **۴** |
-| P0-CRIT-01b | **۵** |
+| ~~P0-CRIT-01b~~ | ~~۵~~ ✅ |
 | P0-GATE-04 · P0-SDK-01/02 · P0-STRICT-04 | **۶** |
 
 ---
@@ -413,7 +413,7 @@ Phase 0 operational completion: 100% (YYYY-MM-DD, git SHA ______)
 
 | ID | فاز اجرایی |
 |----|------------|
-| P0-CRIT-01b | ۵ |
+| ~~P0-CRIT-01b~~ | ~~۵~~ ✅ |
 | P0-GATE-04 · P0-SDK-01/02 | ۶ |
 
 ### انجام شده (مرجع — دوباره کار نکن)
