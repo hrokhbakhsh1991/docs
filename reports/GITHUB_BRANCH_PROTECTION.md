@@ -7,10 +7,16 @@
 | **Phase 0 foundation gate** | **Yes** (recommended) | `pnpm run phase-0:foundation-gate` |
 | **Phase 0 integration gate** | Team policy (trunk integrity) | `pnpm run phase-0:integration-gate` |
 
+## Verified remote run (2026-06-03)
+
+| Commit | Workflow run | Foundation gate | Integration gate |
+|--------|--------------|-----------------|------------------|
+| `06f747f` | [Actions run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) | success | success |
+
 ## Steps (human / admin)
 
-1. Push branch with Phase 0 fixes to `origin` and open PR → `main`.
-2. Confirm both jobs green under **Actions** → `phase-0-gate`.
+1. Push branch with Phase 0 fixes to `origin` and open PR → `main`. _(Done: `main` @ `06f747f`)_
+2. Confirm both jobs green under **Actions** → `phase-0-gate`. _(Done — see table above.)_
 3. **Settings → Branches → Branch protection** for `main`:
    - Require status check: **Phase 0 foundation gate** (exact job name from workflow).
    - Optionally also: **Phase 0 integration gate**.

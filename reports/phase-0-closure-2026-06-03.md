@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|--------|
 | **Date** | 2026-06-03 |
-| **Git SHA** | `e8fc3a8` (phase-3 closure verify; uncommitted doc/ci changes on top) |
+| **Git SHA** | `06f747f` (pushed `main` 2026-06-03) |
+| **Remote CI** | [phase-0-gate #26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) — foundation + integration **success** |
 | **Mode** | Integration Foundation (REM-013) |
 | **Local gate** | `pnpm run phase-0:gate` PASS |
 | **CI artifact path** | `reports/phase-0-foundation-gate-*.json` (integration job upload fixed P0-CI-01) |
@@ -37,9 +38,9 @@
 
 | ID | Item |
 |----|------|
-| P0-OPS-01 | Remote GitHub Actions green after push |
-| P0-OPS-03 | Branch protection — see [`GITHUB_BRANCH_PROTECTION.md`](GITHUB_BRANCH_PROTECTION.md) |
-| P0-OPS-05 | `gh pr list` hygiene |
+| ~~P0-OPS-01~~ | ~~Remote GitHub Actions green after push~~ — run 26900279746 |
+| P0-OPS-03 | Branch protection — **admin manual** — see [`GITHUB_BRANCH_PROTECTION.md`](GITHUB_BRANCH_PROTECTION.md) |
+| P0-OPS-05 | PR hygiene — open: **#3** (map rewrite, out of Phase 0 scope); no blocking Phase 0 PRs |
 | P0-SDK-* / P0-STRICT | Optional cleanups — not blocking closure |
 
 ## Verification
