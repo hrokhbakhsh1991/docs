@@ -163,8 +163,8 @@ describe("tenant-security (TenantKernel ingress)", () => {
     assert.equal((res.body as { error?: string }).error, UNAUTHORIZED_DEV_BEARER_DISABLED);
   });
 
-  it("POST with dev Bearer (no headers) succeeds when dev bearer allowed", async () => {
-    process.env.NODE_ENV = "development";
+  it("POST with dev Bearer (no headers) succeeds when dev bearer allowed in test env", async () => {
+    process.env.NODE_ENV = "test";
     process.env.AUTH_ALLOW_DEV_BEARER = "true";
     const authorization = encodeDevBearerToken({
       userId: "jwt-user",

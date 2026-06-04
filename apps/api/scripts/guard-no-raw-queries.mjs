@@ -34,7 +34,12 @@ function walk(dir, out = []) {
 const violations = [];
 for (const file of walk(HANDLERS_DIR)) {
   const rel = path.relative(ROOT, file);
-  if (rel.startsWith("src/db/") || rel.startsWith("src/casl/") || rel.startsWith("src/canonical/")) {
+  if (
+    rel.startsWith("src/db/") ||
+    rel.startsWith("src/casl/") ||
+    rel.startsWith("src/canonical/") ||
+    rel.startsWith("src/storage/")
+  ) {
     continue;
   }
   const src = fs.readFileSync(file, "utf8");

@@ -1,3 +1,4 @@
+import type { WorkspaceFieldKind } from "../plugin-types";
 import { createNoopWorkspaceValidationHooks } from "../plugin/workspace-validation";
 import type { WorkspacePlugin } from "../plugin/workspace-plugin";
 import { STARTER_WORKSPACE_PLUGIN_ID } from "../plugin/workspace-plugin-id";
@@ -15,6 +16,19 @@ function deepFreeze<T>(value: T): T {
     }
   }
   return value;
+}
+
+/** Phase 3 shell — text only until Select/Checkbox primitives ship (P0-05). */
+export const STARTER_ALLOWED_FIELD_KINDS = ["text"] as const satisfies readonly WorkspaceFieldKind[];
+
+function assertStarterFieldKinds(): void {
+  for (const field of STARTER_FIELD_REGISTRY.fields) {
+    if (!(STARTER_ALLOWED_FIELD_KINDS as readonly string[]).includes(field.kind)) {
+      throw new Error(
+        `Starter field "${field.id}" uses kind "${field.kind}"; allowed: ${STARTER_ALLOWED_FIELD_KINDS.join(", ")}`,
+      );
+    }
+  }
 }
 
 export const STARTER_FIELD_REGISTRY = deepFreeze({
@@ -37,6 +51,8 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
     },
   ],
 });
+
+assertStarterFieldKinds();
 
 export const STARTER_RULE_SET = deepFreeze({
   version: 1,

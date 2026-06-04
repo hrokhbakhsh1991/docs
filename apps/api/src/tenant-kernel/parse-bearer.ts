@@ -1,6 +1,7 @@
 import type { ActorRole, MembershipStatus, TenantAuthContext } from "@app-tour/workspace-sdk";
 import { parseTenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { assertAuthEnvironmentIntegrity } from "./auth-env";
 import { UNAUTHORIZED_INVALID_BEARER_TOKEN } from "./auth-errors";
 
 export const DEV_BEARER_PREFIX = "dev.";
@@ -30,6 +31,7 @@ export function isDevBearerAuthorization(authorization: string): boolean {
  * Unsigned dev bearer (`dev.<base64url(json)>`) — only when AUTH_ALLOW_DEV_BEARER=true.
  */
 export function tryParseDevBearerToken(authorization: string): TenantAuthContext {
+  assertAuthEnvironmentIntegrity();
   const token = bearerToken(authorization);
   if (token === null || !token.startsWith(DEV_BEARER_PREFIX)) {
     throw new Error(UNAUTHORIZED_INVALID_BEARER_TOKEN);

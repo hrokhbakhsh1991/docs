@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-06-04T05:54:37.154Z",
+  "gitSha": "319129a",
+  "phase": "3.5",
+  "reportDate": "2026-06-04",
+  "enforcement": {
+    "doc": "docs/phase-3-design-system.md §13",
+    "gateCommand": "pnpm run phase-3:gate"
+  },
+  "checks": [
+    {
+      "id": "p3_doc_gate",
+      "enforcementId": "P3-E-DOC-GATE",
+      "description": "pnpm run doc-gate (Docs-as-Code scaffold — required before 3.1)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_apps_web_exists",
+      "enforcementId": "P3-E-APP-HOOK",
+      "description": "apps/web package exists",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_apps_api_exists",
+      "enforcementId": "P3-E-DB-01",
+      "description": "apps/api package exists",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_apps_web_lint",
+      "enforcementId": "P3-E-APP-HOOK",
+      "description": "pnpm --filter @apps/web run lint (prelint guards)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_audit_boundary",
+      "enforcementId": "P3-E-BARREL",
+      "description": "pnpm run audit-boundary",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_import_boundary",
+      "enforcementId": "P3-E-BARREL",
+      "description": "pnpm run guard:import-boundary",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_guard_architecture",
+      "enforcementId": "P3-E-WS-01",
+      "description": "pnpm run guard:architecture",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_artifact_surface",
+      "enforcementId": "P3-E-ARTIFACT",
+      "description": "pnpm run guard:artifact-surface",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_workspace_sdk_tests",
+      "enforcementId": "P3-E-CASL-01",
+      "description": "workspace-sdk tests ≥ 100 (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "176 tests"
+    },
+    {
+      "id": "p3_starter_build",
+      "enforcementId": "P3-E-WS-01",
+      "description": "pnpm --filter @app-tour/workspace-starter run build",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_starter_tests",
+      "enforcementId": "P3-E-WS-01",
+      "description": "workspace-starter tests ≥ 15 (enforced count)",
+      "required": true,
+      "ok": true,
+      "detail": "20 tests"
+    },
+    {
+      "id": "p3_theme_react_verify_exports",
+      "enforcementId": "P3-E-L01",
+      "description": "pnpm --filter @app-tour/theme-react run verify:exports",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_api_gate",
+      "enforcementId": "P3-E-DB-01",
+      "description": "pnpm --filter @apps/api run phase-3:api-gate",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_web_gate",
+      "enforcementId": "P3-E-APP-HOOK",
+      "description": "pnpm --filter @apps/web run phase-3:web-gate",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_canonical_sync",
+      "enforcementId": "P3-E-CANONICAL-34",
+      "description": "apps/api validate:canonical-sync",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p3_ui_select_checkbox_optional",
+      "enforcementId": "P3-UI-01/02",
+      "description": "Select/Checkbox subpaths (optional until 3.3.x)",
+      "required": false,
+      "ok": true,
+      "detail": "select=false checkbox=false"
+    },
+    {
+      "id": "p3_no_denali",
+      "enforcementId": "P3-E-WS-01",
+      "description": "rg -i denali in phase-3 src/ only (excl. tests)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "exit": {
+    "pass": true,
+    "requiredTotal": 16,
+    "requiredPassed": 16,
+    "optionalTotal": 1,
+    "note": "Phase 3 close — CASL, canonical SoT, apps/api+web, barrel, artifact surface"
+  }
+}

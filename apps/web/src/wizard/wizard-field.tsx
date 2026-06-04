@@ -3,6 +3,33 @@
 import type { RenderFieldPlan } from "@app-tour/platform-core";
 import { Input } from "@app-tour/ui-primitives/input";
 
+function UnsupportedWizardField({
+  field,
+  value,
+}: {
+  readonly field: RenderFieldPlan;
+  readonly value: string;
+}) {
+  const label = field.canonicalPath;
+
+  return (
+    <div
+      data-unsupported-kind={field.kind}
+      data-field-id={field.fieldId}
+      role="status"
+      aria-live="polite"
+    >
+      <p>
+        <strong>{label}</strong> — not supported in Phase 3 shell ({field.kind})
+      </p>
+      <output aria-label={`${label} (read-only)`}>{value || "—"}</output>
+      <p data-unsupported-hint>
+        This field is read-only until Select/Checkbox primitives ship. Form state is unchanged.
+      </p>
+    </div>
+  );
+}
+
 export function WizardField({
   field,
   value,
@@ -34,9 +61,5 @@ export function WizardField({
     );
   }
 
-  return (
-    <p data-unsupported-kind={field.kind}>
-      Unsupported field kind: {field.kind}
-    </p>
-  );
+  return <UnsupportedWizardField field={field} value={value} />;
 }
