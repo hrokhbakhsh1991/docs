@@ -1,5 +1,7 @@
 import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
 
+import { logger } from "../observability/logger";
+
 export type RegisteredTenant = {
   readonly id: string;
   readonly subdomain: string;
@@ -21,6 +23,20 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     theme: { primaryColor: "#dc2626", cssVariables: { "--color-primary": "#dc2626" } },
   },
 ];
+
+function warnDevTenantRegistryInProduction(): void {
+  if (process.env.NODE_ENV === "production") {
+    logger.warn(
+      {
+        event: "tenant.registry.dev_tenants",
+        count: DEV_TENANTS.length,
+      },
+      "DEV_TENANTS static registry is active in production — replace with tenant-kernel / DB resolution before go-live",
+    );
+  }
+}
+
+warnDevTenantRegistryInProduction();
 
 export function listRegisteredTenants(): readonly RegisteredTenant[] {
   return DEV_TENANTS;

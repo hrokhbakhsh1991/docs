@@ -1,4 +1,4 @@
-// Phase 4 schema reference — runtime may use pg + infra/sql/001_tenant_rls.sql until Prisma client is wired.
+// Phase 5 data layer — canonical_data SoT, projections, outbox, audit
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,12 +20,48 @@ model Tenant {
 }
 
 model Tour {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  canonical      Json     @map("canonical_data")
+  title          String?
+  schemaVersion  Int      @default(1) @map("schema_version")
+  createdAt      DateTime @default(now()) @map("created_at")
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, id])
+  @@index([tenantId])
+  @@index([tenantId, title])
+  @@map("tours")
+}
+
+model OutboxEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  aggregateType  String    @map("aggregate_type")
+  aggregateId    String    @map("aggregate_id") @db.Uuid
+  eventType      String    @map("event_type")
+  payload        Json      @default("{}")
+  status         String    @default("pending")
+  domainEventId  String?   @map("domain_event_id")
+  correlationId  String?   @map("correlation_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  processedAt    DateTime? @map("processed_at")
+
+  @@unique([tenantId, domainEventId])
+  @@index([tenantId, status, createdAt])
+  @@map("outbox_events")
+}
+
+model AuditEvent {
   id         String   @id @default(uuid()) @db.Uuid
   tenantId   String   @map("tenant_id") @db.Uuid
-  canonical  Json
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  metadata   Json     @default("{}")
   createdAt  DateTime @default(now()) @map("created_at")
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
 
-  @@index([tenantId, id])
-  @@map("tours")
+  @@index([tenantId, createdAt])
+  @@map("audit_events")
 }

@@ -1,8 +1,7 @@
 /**
- * Phase 3.2 — storage surfaces touched by @apps/api (canonical write path only).
- * No Postgres tables, legacy entities, or dual-write targets in this scaffold.
+ * Phase 3.2+ — storage surfaces allowed on the canonical write path (STORAGE_DRIVER).
  */
-export const PHASE_32_CANONICAL_STORAGE = ["in_memory.tour_records"] as const;
+export const PHASE_32_CANONICAL_STORAGE = ["in_memory.tour_records", "prisma.tours"] as const;
 
 export type Phase32CanonicalStorage = (typeof PHASE_32_CANONICAL_STORAGE)[number];
 

@@ -4,7 +4,8 @@ import { describe, it, beforeEach } from "node:test";
 import { resetDomainEventBusForTests, subscribeDomainEvent } from "@app-tour/platform-events";
 
 import { createApiAbility } from "../casl/api-ability";
-import { InMemoryTourRepository } from "../db/in-memory-tour.repository";
+import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
+import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { CanonicalTourService } from "./canonical-tour.service";
 import { LegacyCanonicalAdapter } from "./legacy-canonical-adapter";
 
@@ -20,7 +21,7 @@ describe("CanonicalTourService TourCreated event", () => {
     });
 
     const service = new CanonicalTourService(
-      new InMemoryTourRepository(),
+      new TourStorageDbAdapter(new InMemoryTourRepository()),
       new LegacyCanonicalAdapter(),
     );
     const ability = createApiAbility({

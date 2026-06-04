@@ -43,7 +43,9 @@
     "phase-3:guard": "node scripts/guards/phase-3-guard.mjs",
     "phase-3:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:artifact-surface && pnpm run audit-boundary && pnpm run phase-2:gate && pnpm run doc-gate && pnpm run phase-3:guard",
     "phase-4:guard": "node scripts/guards/phase-4-guard.mjs",
-    "phase-4:gate": "pnpm build && pnpm test && pnpm run phase-3:gate && pnpm run phase-4:guard"
+    "phase-4:gate": "pnpm build && pnpm test && pnpm run phase-3:gate && pnpm run phase-4:guard",
+    "phase-5:guard": "node scripts/guards/phase-5-guard.mjs",
+    "phase-5:gate": "pnpm build && pnpm test && pnpm run phase-4:gate && pnpm run phase-5:guard"
   },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",

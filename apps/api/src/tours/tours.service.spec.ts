@@ -5,12 +5,16 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
 import { CanonicalTourService } from "../canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../canonical/legacy-canonical-adapter";
-import { InMemoryTourRepository } from "../db/in-memory-tour.repository";
+import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
+import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { ToursService } from "./tours.service";
 
 describe("ToursService", () => {
   const service = new ToursService(
-    new CanonicalTourService(new InMemoryTourRepository(), new LegacyCanonicalAdapter()),
+    new CanonicalTourService(
+      new TourStorageDbAdapter(new InMemoryTourRepository()),
+      new LegacyCanonicalAdapter(),
+    ),
   );
 
   const activeMember: TenantAuthContext = {

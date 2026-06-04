@@ -53,9 +53,8 @@ github_workflow:
 
 pre_commit_ci_integrity:
   script: scripts/ci-integrity-check.sh
-  runs: [phase-0:gate, phase-1-guard delta]
-  does_NOT_run: phase-3:gate
-  note: "Appendix G stale claim add phase-3:gate to ci:integrity — NOT implemented"
+  runs: [phase-0:gate, phase-1:gate, phase-2:gate, phase-3:gate]
+  note: "Full chain 0→1→2→3 on every commit (P0-01 closed 2026-06-04)"
 
 pr_policy:
   title_body_label: "Phase: 3.x"

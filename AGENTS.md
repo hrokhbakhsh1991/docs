@@ -24,7 +24,8 @@ pnpm run test:contract            # KS-02/04: dist surface + no-legacy-imports (
 pnpm run phase-0:foundation-gate  # Phase 0 closure: workspace-sdk + config + scoped guards
 pnpm run phase-0:integration-gate   # trunk: full build + test + architecture + import-boundary
 pnpm run phase-0:gate               # foundation-gate then integration-gate
-pnpm run ci:integrity               # phase-0:gate + phase-1:gate + phase-2:gate — pre-commit via Husky
+pnpm run ci:integrity               # phase-0:gate → phase-1:gate → phase-2:gate → phase-3:gate — pre-commit
+pnpm run phase-3:gate               # apps/starter integration + doc-gate (also inside ci:integrity)
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)
 pnpm run baseline:metrics
 pnpm run doc-gate              # Docs-as-Code Doc-Gate (MAP §19) — required before Phase 3.1 merge

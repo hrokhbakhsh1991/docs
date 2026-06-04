@@ -10,12 +10,14 @@
     "audit-boundary": "node ../../scripts/guards/audit-ui-primitives-boundary.mjs",
     "prebuild": "pnpm run guard:import-boundary && pnpm run guard:api-queries",
     "prelint": "pnpm run guard:import-boundary && pnpm run guard:api-queries",
-    "pretest": "pnpm run guard:import-boundary && pnpm run guard:api-queries",
-    "build": "tsc -p tsconfig.json",
+    "pretest": "pnpm run guard:import-boundary && pnpm run guard:api-queries && pnpm run prisma:generate",
+    "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
+    "build": "pnpm run prisma:generate && tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --test \"src/**/*.spec.ts\" \"test/**/*.spec.ts\"",
     "validate:canonical-sync": "node ./scripts/validate-canonical-sync.mjs",
     "phase-3:api-gate": "pnpm run build && pnpm run test && pnpm run guard:import-boundary && pnpm run guard:api-queries && pnpm run validate:canonical-sync",
+    "test:phase-5": "NODE_ENV=test node --import tsx --test test/phase-5.contract.spec.ts",
     "start": "node dist/main.js",
     "dev": "tsx src/main.ts"
   },
@@ -26,12 +28,14 @@
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
     "@casl/ability": "^6.7.3",
+    "@prisma/client": "^6.19.0",
     "jose": "^6.1.0",
     "pino": "^9.6.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
+    "prisma": "^6.19.0",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.6",
     "typescript": "5.9.3"

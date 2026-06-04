@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { createApiAbility } from "../casl/api-ability";
-import { InMemoryTourRepository } from "./in-memory-tour.repository";
+import { TourStorageDbAdapter } from "./tour-storage.adapter";
+import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { ScopedTourRepository } from "./scoped-tour.repository";
 
 describe("ScopedTourRepository cross-tenant policy", () => {
   it("findFirst throws FORBIDDEN when record exists under another tenant", async () => {
-    const inner = new InMemoryTourRepository();
+    const inner = new TourStorageDbAdapter(new InMemoryTourRepository());
     const owner = createApiAbility({
       userId: "u1",
       tenantId: "tenant-a",

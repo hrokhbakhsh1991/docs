@@ -7,6 +7,10 @@ import type { ScopedTenantAuthz, TenantAuthz } from "@app-tour/workspace-sdk";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
+import {
+  getCanonicalStringValue,
+  setCanonicalStringValue,
+} from "@/tours/tour-wizard-draft-path";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { WizardAccessDenied } from "./wizard-access-denied";
@@ -24,40 +28,9 @@ export type WorkspaceWizardHostProps = {
   readonly dimensions?: Readonly<Record<string, string>>;
 };
 
-function fieldValue(draft: TourWizardDraft, fieldId: string): string {
-  if (fieldId === "basics.title") {
-    return draft.data.basics?.title ?? "";
-  }
-  if (fieldId === "details.summary") {
-    return draft.data.details?.summary ?? "";
-  }
-  return "";
-}
-
-function setFieldValue(draft: TourWizardDraft, fieldId: string, value: string): TourWizardDraft {
-  if (fieldId === "basics.title") {
-    return {
-      ...draft,
-      data: {
-        ...draft.data,
-        basics: { ...draft.data.basics, title: value },
-      },
-    };
-  }
-  if (fieldId === "details.summary") {
-    return {
-      ...draft,
-      data: {
-        ...draft.data,
-        details: { ...draft.data.details, summary: value },
-      },
-    };
-  }
-  return draft;
-}
-
 /**
  * Workspace wizard host — CASL gate before plugin load; deny-by-default (no wizard DOM on 403).
+ * Field binding follows {@link RenderFieldPlan} from the platform engine (canonicalPath, kind, hidden).
  */
 export function WorkspaceWizardHost({
   pluginId,
@@ -136,14 +109,19 @@ export function WorkspaceWizardHost({
       {steps.map((step) => (
         <section key={step.stepId} data-wizard-step={step.stepId}>
           <h2>{step.stepId}</h2>
-          {step.fields.map((field) => (
-            <WizardField
-              key={field.fieldId}
-              field={field}
-              value={fieldValue(draft, field.fieldId)}
-              onChange={(next) => onDraftChange(setFieldValue(draft, field.fieldId, next))}
-            />
-          ))}
+          {step.fields.map((field) => {
+            const path = field.canonicalPath;
+            const value = getCanonicalStringValue(draft, path);
+
+            return (
+              <WizardField
+                key={`${field.fieldId}:${path}`}
+                field={field}
+                value={value}
+                onChange={(next) => onDraftChange(setCanonicalStringValue(draft, path, next))}
+              />
+            );
+          })}
         </section>
       ))}
       {renderFooter?.(draft)}

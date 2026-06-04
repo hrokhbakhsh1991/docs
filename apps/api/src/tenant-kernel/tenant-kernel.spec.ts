@@ -64,8 +64,8 @@ describe("TenantKernel.resolveTenantContextFromRequest", () => {
     );
   });
 
-  it("resolves from dev Bearer token without headers when dev bearer allowed", async () => {
-    process.env.NODE_ENV = "development";
+  it("resolves from dev Bearer token without headers when dev bearer allowed in test env", async () => {
+    process.env.NODE_ENV = "test";
     process.env.AUTH_ALLOW_DEV_BEARER = "true";
     const authorization = encodeDevBearerToken({
       userId: "jwt-u",

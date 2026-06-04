@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
@@ -17,6 +17,14 @@ const FORBIDDEN_STORAGE_PATTERNS = [
   /\blegacy\/apps\/api\b/i,
 ];
 
+/** Storage/Prisma bootstrap files — not handler layers. */
+const STORAGE_LAYER_ALLOWED_REL = [
+  "storage/",
+  "db/prisma.ts",
+  "db/with-canonical-transaction.ts",
+  "canonical/canonical-storage.ts",
+];
+
 function listTsFiles(dir: string, out: string[] = []): string[] {
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, ent.name);
@@ -27,23 +35,28 @@ function listTsFiles(dir: string, out: string[] = []): string[] {
 }
 
 describe("Phase 3.2 integrity audit (automated)", () => {
-  it("canonical write path touches only in-memory canonical tour store", () => {
-    assert.deepEqual([...PHASE_32_CANONICAL_STORAGE], ["in_memory.tour_records"]);
+  it("canonical write path uses only declared storage surfaces", () => {
+    assert.deepEqual([...PHASE_32_CANONICAL_STORAGE], ["in_memory.tour_records", "prisma.tours"]);
     const hits: string[] = [];
     for (const file of listTsFiles(SRC_DIR)) {
+      const rel = relative(SRC_DIR, file);
       const src = readFileSync(file, "utf8");
       for (const pattern of FORBIDDEN_STORAGE_PATTERNS) {
-        if (pattern.test(src)) hits.push(`${file}: ${pattern}`);
+        if (!pattern.test(src)) continue;
+        if (STORAGE_LAYER_ALLOWED_REL.some((p) => rel.startsWith(p))) {
+          continue;
+        }
+        hits.push(`${rel}: ${pattern}`);
       }
     }
-    assert.deepEqual(hits, [], "legacy/SQL/Prisma storage is forbidden in Phase 3.2 apps/api");
+    assert.deepEqual(hits, [], "legacy/SQL/Prisma outside storage/ is forbidden in apps/api handlers");
   });
 
   it("handlers never call storage find* directly (ScopedTourRepository only)", () => {
     const violations: string[] = [];
     for (const file of listTsFiles(SRC_DIR)) {
-      const rel = file.replace(`${SRC_DIR}/`, "");
-      if (rel.startsWith("db/") || rel.startsWith("casl/")) continue;
+      const rel = relative(SRC_DIR, file);
+      if (rel.startsWith("db/") || rel.startsWith("casl/") || rel.startsWith("storage/")) continue;
       const src = readFileSync(file, "utf8");
       if (
         /tourRepository\.(findMany|findFirst|findById)\s*\(/.test(src) ||

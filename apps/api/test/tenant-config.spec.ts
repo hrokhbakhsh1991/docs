@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import { createRequestListener } from "../src/app";
 import { CanonicalTourService } from "../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapter";
-import { InMemoryTourRepository } from "../src/db/in-memory-tour.repository";
+import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
+import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
+import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
 import { ToursService } from "../src/tours/tours.service";
 const TENANT_A_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -41,7 +43,7 @@ function listen(handler: ReturnType<typeof createRequestListener>) {
 
 describe("GET /api/v2/tenant-config", () => {
   it("returns tenant-a theme for matching host and auth", async () => {
-    const store = new InMemoryTourRepository();
+    const store = new TourStorageDbAdapter(new InMemoryTourRepository());
     const toursService = new ToursService(
       new CanonicalTourService(store, new LegacyCanonicalAdapter()),
     );
