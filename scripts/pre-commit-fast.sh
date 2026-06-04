@@ -64,6 +64,7 @@ if [ -n "$(echo "$LINT_FILES" | tr -d '[:space:]')" ]; then
         echo "pre-commit-fast: prettier --check"
         while IFS= read -r f; do
           [ -z "$f" ] && continue
+          [ -e "$ROOT/$f" ] || continue
           pnpm exec prettier --check "$f"
         done <<< "$PRETTIER_FILES"
       else
