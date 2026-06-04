@@ -44,10 +44,27 @@ Phase 4 guard step 4 (`phase-4:guard`) runs **`p4_rls_integration_tests`**, whic
 | `STORAGE_DRIVER` | `prisma` | Set automatically in guard spawn; **must** be `prisma` in CI job env for 4.2 runtime parity |
 
 ```bash
+# Dev profile (Phase 4 implementation — docs/phase-4/dev/docker-compose.yml)
+# Host port defaults to 5434 when 5432 is already in use (PHASE4_DB_PORT).
+# Use app_tour (non-superuser) for RLS tests — postgres superuser bypasses RLS.
+docker compose -f docs/phase-4/dev/docker-compose.yml up -d
+export DATABASE_URL_ADMIN="${DATABASE_URL_ADMIN:-postgresql://postgres:postgres@localhost:${PHASE4_DB_PORT:-5434}/tour_db}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@localhost:${PHASE4_DB_PORT:-5434}/tour_db}"
+export DATABASE_URL_ADMIN="${DATABASE_URL_ADMIN:-postgresql://postgres:postgres@localhost:${PHASE4_DB_PORT:-5434}/tour_db}"
+export STORAGE_DRIVER=prisma
+psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql 2>/dev/null || true
+pnpm --filter @apps/api exec prisma migrate dev --name phase4_schema
+psql "$DATABASE_URL_ADMIN" -f infra/sql/001_tenant_rls.sql
+pnpm run phase-4:gate
+```
+
+Alternate stack (repo root `infra/docker-compose.yml`, port 5433):
+
+```bash
 export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev}"
 export STORAGE_DRIVER=prisma
 docker compose -f infra/docker-compose.yml up -d
-# Apply infra/sql/001_tenant_rls.sql before first RLS integration run
+psql "$DATABASE_URL" -f infra/sql/001_tenant_rls.sql
 pnpm run phase-4:gate
 ```
 

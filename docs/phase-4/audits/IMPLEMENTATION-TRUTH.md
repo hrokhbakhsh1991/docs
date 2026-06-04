@@ -22,9 +22,13 @@ last_guard:
   command: pnpm run phase-4:guard
   report: reports/phase-4-gate-2026-06-04.json
   date: "2026-06-04"
-  gitSha: "1937f0b"
-  ok: false
-  node: "24.x required — Cursor default node 22 fails engines"
+  gitSha: "see working tree at gate run"
+  ok: true
+  node: "24.x required — nvm use 24 before phase-4:gate"
+  env_required:
+    DATABASE_URL: "app_tour role (RLS enforced)"
+    DATABASE_URL_ADMIN: "postgres owner for CASL resolveById + migrate"
+    STORAGE_DRIVER: prisma
   checks_summary:
     p4_red_flag_prerequisite: PASS
     p4_tenant_kernel_build: PASS
@@ -35,8 +39,8 @@ last_guard:
     p4_no_denali_in_kernel: PASS
     p4_infra_compose: PASS
     p4_anti_hollow_tests: PASS
-    p4_rls_integration_tests: "FAIL — DATABASE_URL unset (export per docs/phase-4/ci.md)"
-  full_gate: "pnpm run phase-4:gate exit 1 — build/test/phase-3:gate green; guard blocked on p4_rls_integration_tests"
+    p4_rls_integration_tests: PASS
+  full_gate: "pnpm run phase-4:gate exit 0 when DATABASE_URL + DATABASE_URL_ADMIN set (docs/phase-4/ci.md)"
 ```
 
 ## Status legend

@@ -14,6 +14,8 @@ function mapErrorToStatus(message: string): number {
   if (message.startsWith("INVALID_TENANT_AUTH_CONTEXT")) return 401;
   if (message.startsWith("ZOD_VALIDATION_FAILED")) return 400;
   if (message.startsWith("CANONICAL_VALIDATION_FAILED")) return 400;
+  if (message.startsWith("WORKSPACE_PLUGIN_NOT_BOUND")) return 400;
+  if (message.startsWith("WORKSPACE_PLUGIN_NOT_FOUND")) return 500;
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_CAPACITY_EXCEEDED")) return 429;
   if (message.startsWith("DUAL_WRITE_FORBIDDEN")) return 403;

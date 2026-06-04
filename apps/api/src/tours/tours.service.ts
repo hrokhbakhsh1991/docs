@@ -2,6 +2,7 @@ import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import { CanonicalTourService } from "../canonical/canonical-tour.service";
 import { createApiAbility } from "../casl/api-ability";
 import type { TourRecord } from "../db/tour-record";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { buildValidatedCanonicalDocument } from "./canonical-validation";
 import { parseCreateTourBody } from "./create-tour.schema";
 
@@ -17,7 +18,8 @@ export class ToursService {
     const body = parseCreateTourBody(rawBody);
     assertTenantClaimMatchesAuth(body.tenantId, auth);
 
-    const canonical = buildValidatedCanonicalDocument(body, auth.tenantId);
+    const workspaceType = resolveWorkspaceTypeForTenant(auth.tenantId);
+    const canonical = buildValidatedCanonicalDocument(body, auth.tenantId, workspaceType);
     return this.canonical.writeTour({
       ability,
       tenantId: auth.tenantId,

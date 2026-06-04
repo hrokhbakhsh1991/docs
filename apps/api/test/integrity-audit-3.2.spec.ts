@@ -22,6 +22,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "storage/",
   "db/prisma.ts",
   "db/with-canonical-transaction.ts",
+  "db/with-tenant-rls.ts",
   "canonical/canonical-storage.ts",
 ];
 

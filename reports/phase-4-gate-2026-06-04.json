@@ -1,8 +1,8 @@
 {
   "gate": "phase-4",
   "date": "2026-06-04",
-  "gitSha": "1937f0b",
-  "ok": false,
+  "gitSha": "6395caa",
+  "ok": true,
   "checks": [
     {
       "id": "p4_red_flag_prerequisite",
@@ -66,8 +66,8 @@
       "enforcementId": "P4-E-RLS-01",
       "description": "apps/api RLS + tenant-security integration (DATABASE_URL + STORAGE_DRIVER=prisma)",
       "required": true,
-      "ok": false,
-      "detail": "DATABASE_URL unset — required for p4_rls_integration_tests (see docs/phase-4/ci.md)"
+      "ok": true,
+      "detail": null
     },
     {
       "id": "p4_anti_hollow_tests",

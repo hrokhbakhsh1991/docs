@@ -1,49 +1,70 @@
-# Phase 4 — AI execution documentation hub
+# Phase 4 — AI execution hub
 
-Modular **AI-execution** spec for Tenant Kernel (Phase 4). Narrative human guide remains at [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md); Markdoc canonical at [`../phase-4-tenant-kernel.mdoc`](../phase-4-tenant-kernel.mdoc).
+```yaml
+agent_entry: phase-4-ai-exec.md
+sole_execution_entry: phase-4-ai-exec.md
+load_tiers: appendices/agent-load-tiers.md
+fail_token: FAIL
+```
 
-## Canonical entrypoint (agents)
+**Optimization:** [`AI-READABILITY-REPORT.md`](AI-READABILITY-REPORT.md) · **Gap register (7):** [`audits/PHASE-4-GAP-REGISTER.md`](audits/PHASE-4-GAP-REGISTER.md) · **Truth:** [`audits/IMPLEMENTATION-TRUTH.md`](audits/IMPLEMENTATION-TRUTH.md) · **Future board:** [`FUTURE-PROOFING-REPORT.md`](FUTURE-PROOFING-REPORT.md)
 
-- **Central index:** [`../phase-4-tenant-kernel.ai-exec.md`](../phase-4-tenant-kernel.ai-exec.md)
-- **Detailed modules:** [`phase-4.ai-exec.index.md`](phase-4.ai-exec.index.md)
+**Scores (2026-06-04):** **doc 100** (precision pack pre-code) · **execution 29** · weighted **~74** until code  
+**Precision pack:** [`appendices/PRECISION-DOC-INDEX.md`](appendices/PRECISION-DOC-INDEX.md) · closure: [`audits/CLOSURE-CHECKLIST.md`](audits/CLOSURE-CHECKLIST.md)
 
-## Navigation
+## Agent load (deterministic)
 
-| File | Contents | When to load |
-|------|----------|--------------|
-| [`phase-4.ai-exec.index.md`](phase-4.ai-exec.index.md) | `document_meta`, agent boot, module map | Every session (cold start) |
-| [`phase-4-overview.md`](phase-4-overview.md) | STEP 1 phase detection · §1–§5 platform/enterprise/outputs/architecture | Context + design |
-| [`phase-4-state-machine.md`](phase-4-state-machine.md) | State model · DAG · §0 alignment | Before any subphase transition |
-| [`phase-4-enforcement.md`](phase-4-enforcement.md) | §14 verification (`P4-E-*`) · §15 forbidden · §16 DoD · §17 phase 5 entry | Every PR |
-| [`phase-4-guard.md`](phase-4-guard.md) | `phase-4-guard.mjs` checks · CI pipeline | Gate debug / 4.6 |
-| [`subphases/4.0-gate-of-gates.md`](subphases/4.0-gate-of-gates.md) | R0–R3 (§7) | Subphase 4.0 |
-| [`subphases/4.1-tenant-kernel.md`](subphases/4.1-tenant-kernel.md) | `@app-tour/tenant-kernel` (§8) | Subphase 4.1 |
-| [`subphases/4.2-postgres-rls.md`](subphases/4.2-postgres-rls.md) | Postgres + RLS + Prisma (§9) | Subphase 4.2 |
-| [`subphases/4.3-provisioning.md`](subphases/4.3-provisioning.md) | Two tenants (§10) | Subphase 4.3 |
-| [`subphases/4.4-tenant-theme.md`](subphases/4.4-tenant-theme.md) | TenantTheme production (§11) | Subphase 4.4 |
-| [`subphases/4.5-platform-events.md`](subphases/4.5-platform-events.md) | Event bus (§12) | Subphase 4.5 |
-| [`subphases/4.6-phase-gate.md`](subphases/4.6-phase-gate.md) | `phase-4:gate` + forensic (§13) | Subphase 4.6 |
-| [`appendices/dependency-graph.md`](appendices/dependency-graph.md) | Appendix A | Import-boundary work |
-| [`appendices/test-matrix.md`](appendices/test-matrix.md) | Appendix E | Test planning |
-| [`appendices/map-bridge.md`](appendices/map-bridge.md) | Appendix G | MAP cross-ref |
-| [`appendices/pr-template.md`](appendices/pr-template.md) | Appendix C | PR checklist |
-| [`audits/verification-matrix.md`](audits/verification-matrix.md) | P4-E-* ↔ p4_* binding | Every PR |
-| [`QUALITY-VALIDATION.md`](QUALITY-VALIDATION.md) | Quality pass report | Validation |
+| Tier | When | Files |
+|------|------|-------|
+| **T0** | Implement / validate subphase | `phase-4-ai-exec.md` + `subphases/{id}.md` + `phase-4-enforcement.md` + `audits/verification-matrix.md` |
+| **T1** | Gate debug / 4.6 | + `ci.md`, `phase-4-guard.md` |
+| **T2** | Architecture dispute | + `phase-4-overview.md`, `phase-4-state-machine.md` |
+| **T3** | Humans only | `phase-4-tenant-kernel.md` |
 
-## Recommended read order
+**RULE:** T0 tasks loading `phase-4-overview.md` → **FAIL**
 
-1. [`phase-4.ai-exec.index.md`](phase-4.ai-exec.index.md) — `agent_boot` + `document_meta`
-2. [`phase-4-state-machine.md`](phase-4-state-machine.md) — transitions + DAG
-3. [`phase-4-enforcement.md`](phase-4-enforcement.md) — `P4-E-*` for active PR
-4. Active file under [`subphases/`](subphases/) for `current_subphase`
-5. [`phase-4-overview.md`](phase-4-overview.md) — only if enterprise §2 or §5 architecture needed
+## Canonical entrypoints
 
-## Validation
+| Role | File |
+|------|------|
+| Agent router | [`phase-4-ai-exec.md`](phase-4-ai-exec.md) |
+| Index + DRIFT | [`phase-4.ai-exec.index.md`](phase-4.ai-exec.index.md) |
+| Cold start | [`../phase-4-tenant-kernel.ai-exec.md`](../phase-4-tenant-kernel.ai-exec.md) |
 
-- [`QUALITY-VALIDATION.md`](QUALITY-VALIDATION.md) — Phase 4 quality pass
-- [`../phases/DOCUMENTATION-CURATION-VALIDATION.md`](../phases/DOCUMENTATION-CURATION-VALIDATION.md) — cross-phase curation
+## Knowledge ownership (no duplicates)
 
-## Related (human + Markdoc)
+[`appendices/knowledge-index.md`](appendices/knowledge-index.md)
 
-- Narrative guide: [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md)
-- Doc-Gate canonical: [`../phase-4-tenant-kernel.mdoc`](../phase-4-tenant-kernel.mdoc)
+## Execution DAG
+
+```text
+4.0 → 4.1 → 4.2 → 4.3 → 4.6
+              ├→ 4.4 ∥ 4.5
+```
+
+[`audits/subphase-enforcement-map.md`](audits/subphase-enforcement-map.md) · [`audits/execution-action-index.md`](audits/execution-action-index.md)
+
+## Modules
+
+| Module | File |
+|--------|------|
+| P4-E-* · forbidden · DoD | [`phase-4-enforcement.md`](phase-4-enforcement.md) |
+| CI | [`ci.md`](ci.md) |
+| p4_* | [`phase-4-guard.md`](phase-4-guard.md) |
+| Verification | [`audits/verification-matrix.md`](audits/verification-matrix.md) |
+| Traceability (R→A→V→C) | [`audits/TRACEABILITY-MATRIX.md`](audits/TRACEABILITY-MATRIX.md) |
+| Consistency audit | [`audits/CONSISTENCY-REPORT.md`](audits/CONSISTENCY-REPORT.md) |
+| Subphases | [`subphases/`](subphases/) |
+| Verification commands | [`appendices/verification-commands.md`](appendices/verification-commands.md) |
+| Legacy ↔ app-tour bridge | [`appendices/legacy-structure-bridge.md`](appendices/legacy-structure-bridge.md) |
+| Completion proof schema | [`appendices/subphase-completion-schema.md`](appendices/subphase-completion-schema.md) |
+| Workspace interoperability | [`appendices/workspace-interoperability-model.md`](appendices/workspace-interoperability-model.md) |
+| Industry alignment (2026) | [`appendices/industry-alignment-2026.md`](appendices/industry-alignment-2026.md) |
+| Implementation truth (repo honesty) | [`audits/IMPLEMENTATION-TRUTH.md`](audits/IMPLEMENTATION-TRUTH.md) |
+| Anti-hollow contract | [`appendices/anti-hollow-contract.md`](appendices/anti-hollow-contract.md) |
+| Observability scaffold | [`appendices/observability.md`](appendices/observability.md) |
+
+## Human + Markdoc
+
+- [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md)
+- [`../phase-4-tenant-kernel.mdoc`](../phase-4-tenant-kernel.mdoc)
