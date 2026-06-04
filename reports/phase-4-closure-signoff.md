@@ -5,7 +5,7 @@ signoff_type: phase-4-entry-ready
 date: "2026-06-04"
 phase_3_entry_sha: "1937f0b"
 phase_4_doc_hardening_sha: "6395caa"
-phase_4_storage_gate_sha: "set-at-commit"
+phase_4_storage_gate_sha: "210d9f7"
 status: READY_TO_DEVELOP
 gate_command: pnpm run phase-4:gate
 gate_report: reports/phase-4-gate-2026-06-04.json
@@ -21,43 +21,43 @@ Phase 3 integration scaffold remains locked at **`1937f0b`** (`feat(phase-3): cl
 
 Source: [`reports/phase-4-gate-2026-06-04.json`](phase-4-gate-2026-06-04.json) — `ok: true`
 
-| Check ID | Enforcement | Required | Result |
-|----------|-------------|----------|--------|
-| `p4_red_flag_prerequisite` | P4-E-RF-40 | yes | PASS |
-| `p4_tenant_kernel_build` | — | yes | PASS |
-| `p4_tenant_kernel_test` | P4-E-HOST-01 | yes | PASS |
-| `p4_platform_events_build` | — | yes | PASS |
-| `p4_platform_events_test` | P4-E-EVT-01 | yes | PASS |
-| `p4_contract_spec` | — | yes | PASS |
-| `p4_no_denali_in_kernel` | — | yes | PASS |
-| `p4_infra_compose` | — | yes | PASS |
-| **`p4_rls_integration_tests`** | **P4-E-RLS-01** | **yes** | **PASS** |
-| `p4_anti_hollow_tests` | P4-E-RLS-01 | yes | PASS |
+| Check ID                       | Enforcement     | Required | Result   |
+| ------------------------------ | --------------- | -------- | -------- |
+| `p4_red_flag_prerequisite`     | P4-E-RF-40      | yes      | PASS     |
+| `p4_tenant_kernel_build`       | —               | yes      | PASS     |
+| `p4_tenant_kernel_test`        | P4-E-HOST-01    | yes      | PASS     |
+| `p4_platform_events_build`     | —               | yes      | PASS     |
+| `p4_platform_events_test`      | P4-E-EVT-01     | yes      | PASS     |
+| `p4_contract_spec`             | —               | yes      | PASS     |
+| `p4_no_denali_in_kernel`       | —               | yes      | PASS     |
+| `p4_infra_compose`             | —               | yes      | PASS     |
+| **`p4_rls_integration_tests`** | **P4-E-RLS-01** | **yes**  | **PASS** |
+| `p4_anti_hollow_tests`         | P4-E-RLS-01     | yes      | PASS     |
 
 Nested closure chain inside `phase-4:gate`: `pnpm build` → `pnpm test` → `pnpm run phase-3:gate` → `pnpm run phase-4:guard`.
 
 ## Appendix E test matrix ↔ evidence
 
-| Matrix ID | Layer | Scenario | Verified by |
-|-----------|-------|----------|-------------|
-| TK-1 / TK-2 | tenant-kernel | Host label rules | `p4_tenant_kernel_test` |
-| RLS-1 | postgres | Tenant A cannot read tenant B rows | `p4_rls_integration_tests` → `test/rls-isolation.integration.spec.ts` |
-| AUTH-1 | api | Dev bearer gated | `test/tenant-security.spec.ts` (in guard spawn) |
-| EVT-1 | events | Domain events carry tenantId | `p4_platform_events_test` |
-| TH-1 | web | Tenant theme/config route | `GET /api/v2/tenant-config` — prove in 4.4 subphase |
-| OBS-1 | api | Structured logging scaffold | Non-blocking (4.1–4.5) |
+| Matrix ID   | Layer         | Scenario                           | Verified by                                                           |
+| ----------- | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| TK-1 / TK-2 | tenant-kernel | Host label rules                   | `p4_tenant_kernel_test`                                               |
+| RLS-1       | postgres      | Tenant A cannot read tenant B rows | `p4_rls_integration_tests` → `test/rls-isolation.integration.spec.ts` |
+| AUTH-1      | api           | Dev bearer gated                   | `test/tenant-security.spec.ts` (in guard spawn)                       |
+| EVT-1       | events        | Domain events carry tenantId       | `p4_platform_events_test`                                             |
+| TH-1        | web           | Tenant theme/config route          | `GET /api/v2/tenant-config` — prove in 4.4 subphase                   |
+| OBS-1       | api           | Structured logging scaffold        | Non-blocking (4.1–4.5)                                                |
 
 ## Storage architecture delivered (this commit)
 
-| Component | Path |
-|-----------|------|
-| Prisma schema + migrations | `apps/api/prisma/` |
-| RLS session wrapper | `apps/api/src/db/with-tenant-rls.ts` |
-| Prisma tour repository (RLS transactions) | `apps/api/src/storage/prisma-tour.repository.ts` |
-| CASL id probe (admin URL) | `DATABASE_URL_ADMIN` + `getPrismaAdmin()` |
-| Workspace plugin validate-before-persist | `apps/api/src/workspace/`, `canonical-validation.ts` |
-| Dev Postgres stack | `docs/phase-4/dev/docker-compose.yml` |
-| RLS SQL | `infra/sql/001_tenant_rls.sql` |
+| Component                                 | Path                                                 |
+| ----------------------------------------- | ---------------------------------------------------- |
+| Prisma schema + migrations                | `apps/api/prisma/`                                   |
+| RLS session wrapper                       | `apps/api/src/db/with-tenant-rls.ts`                 |
+| Prisma tour repository (RLS transactions) | `apps/api/src/storage/prisma-tour.repository.ts`     |
+| CASL id probe (admin URL)                 | `DATABASE_URL_ADMIN` + `getPrismaAdmin()`            |
+| Workspace plugin validate-before-persist  | `apps/api/src/workspace/`, `canonical-validation.ts` |
+| Dev Postgres stack                        | `docs/phase-4/dev/docker-compose.yml`                |
+| RLS SQL                                   | `infra/sql/001_tenant_rls.sql`                       |
 
 ## Mandatory local / CI environment
 
