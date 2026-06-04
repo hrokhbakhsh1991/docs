@@ -1,19 +1,19 @@
-# Phase 0 baseline — 2026-06-03
+# Phase 0 baseline — 2026-06-04
 
-- **Generated:** 2026-06-03T16:54:06.478Z
-- **Git SHA:** `e8fc3a8`
-- **JSON:** [reports/phase-0-baseline-2026-06-03.json](reports/phase-0-baseline-2026-06-03.json)
+- **Generated:** 2026-06-04T01:05:27.915Z
+- **Git SHA:** `b8734e9`
+- **JSON:** [reports/phase-0-baseline-2026-06-04.json](reports/phase-0-baseline-2026-06-04.json)
 
 ## Summary metrics
 
 | Metric | Value |
 |--------|-------|
-| workspace_sdk_test_it_source (informational) | 147 |
+| workspace_sdk_test_it_source (informational) | 149 |
 | workspace_sdk_export_count | 4 |
 | workspace_sdk_source_files | 67 |
 | denali_coupling_contract_ok | true |
 | legacy_import_contract_ok | true |
-| new_packages | config, design-tokens, platform-core, theme-react, ui-primitives, workspace-sdk, workspaces |
+| new_packages | config, design-tokens, platform-core, platform-events, tenant-kernel, theme-react, ui-primitives, workspace-sdk, workspaces |
 
 ## Per-layer denali (foundation contract scope)
 
