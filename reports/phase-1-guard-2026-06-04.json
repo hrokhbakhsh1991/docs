@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T02:56:17.629Z",
+  "generatedAt": "2026-06-04T04:14:42.652Z",
   "gitSha": "8fcee69",
   "phase": "1.6",
   "checks": [
@@ -57,7 +57,7 @@
       "description": "facade-path tests ≥ 60% of closure spec cases (excl. test/unit/**)",
       "required": true,
       "ok": true,
-      "detail": "65/67 cases (97%)"
+      "detail": "65/77 cases (84%)"
     },
     {
       "id": "g10_adversarial_specs_execute",
@@ -89,7 +89,7 @@
     },
     {
       "id": "g4_no_react_imports",
-      "description": "no react/react-dom word-boundary imports in platform-core",
+      "description": "no react/react-dom imports in platform-core src/ (excl. test paths like theme-react)",
       "required": true,
       "ok": true,
       "detail": null
