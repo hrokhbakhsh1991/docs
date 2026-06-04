@@ -25,7 +25,7 @@ module.exports = {
           {
             name: "@app-tour/ui-primitives",
             message:
-              "P3-E-BARREL: import subpaths only — @app-tour/ui-primitives/button, /input, /field-shell, /alert, /badge",
+              "P3-E-BARREL: import subpaths only — @app-tour/ui-primitives/button, /input, /select, /checkbox, /field-shell, /alert, /badge",
           },
         ],
       },

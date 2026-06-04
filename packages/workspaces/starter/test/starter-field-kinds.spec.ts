@@ -3,11 +3,13 @@ import { describe, it } from "node:test";
 
 import { getStarterWorkspacePlugin } from "../src/starter.plugin";
 
-describe("starter workspace field kinds (P0-05)", () => {
-  it("registry uses only text fields until Select/Checkbox ship", () => {
+const ALLOWED_FIELD_KINDS = new Set(["text", "enum", "boolean"]);
+
+describe("starter workspace field kinds (3.3.x)", () => {
+  it("registry uses only allowed field kinds", () => {
     const { fieldRegistry } = getStarterWorkspacePlugin();
     for (const field of fieldRegistry.fields) {
-      assert.equal(field.kind, "text", `field ${field.id}`);
+      assert.ok(ALLOWED_FIELD_KINDS.has(field.kind), `field ${field.id} kind ${field.kind}`);
     }
   });
 });

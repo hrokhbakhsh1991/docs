@@ -188,6 +188,8 @@ function main() {
       files: [
         "dist/Button",
         "dist/Input",
+        "dist/Select",
+        "dist/Checkbox",
         "dist/FieldShell",
         "dist/Alert",
         "dist/Badge",
@@ -205,6 +207,10 @@ function main() {
         "dist/Alert/Alert.d.ts",
         "dist/Badge/Badge.js",
         "dist/Badge/Badge.d.ts",
+        "dist/Select/Select.js",
+        "dist/Select/Select.d.ts",
+        "dist/Checkbox/Checkbox.js",
+        "dist/Checkbox/Checkbox.d.ts",
       ],
     }),
   );

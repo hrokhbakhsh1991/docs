@@ -4,7 +4,9 @@ import { Alert } from "../src/Alert/Alert";
 import { Badge } from "../src/Badge/Badge";
 import { Button } from "../src/Button/Button";
 import { FieldShell } from "../src/FieldShell/FieldShell";
+import { Checkbox } from "../src/Checkbox/Checkbox";
 import { Input } from "../src/Input/Input";
+import { Select } from "../src/Select/Select";
 
 const meta: Meta = {
   title: "Atoms/Form",
@@ -22,6 +24,23 @@ export const ButtonSecondary: StoryObj = {
 
 export const InputField: StoryObj = {
   render: () => <Input aria-label="Title" placeholder="Enter title" />,
+};
+
+export const SelectField: StoryObj = {
+  render: () => (
+    <Select
+      aria-label="Status"
+      options={[
+        { value: "draft", label: "Draft" },
+        { value: "open", label: "Open" },
+      ]}
+      value="draft"
+    />
+  ),
+};
+
+export const CheckboxField: StoryObj = {
+  render: () => <Checkbox aria-label="Featured tour" defaultChecked />,
 };
 
 export const FieldShellExample: StoryObj = {

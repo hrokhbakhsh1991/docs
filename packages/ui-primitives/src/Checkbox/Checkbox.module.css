@@ -1,0 +1,22 @@
+.control {
+  width: var(--layout-icon-slot);
+  height: var(--layout-icon-slot);
+  margin: var(--space-0);
+  accent-color: var(--color-primary);
+  cursor: var(--layout-cursor-pointer);
+}
+
+.control:focus-visible {
+  outline: var(--focus-outline-width) var(--layout-border-style-solid) var(--color-focus-ring);
+  outline-offset: var(--focus-outline-offset);
+}
+
+.control:disabled {
+  cursor: var(--layout-cursor-not-allowed);
+  opacity: var(--opacity-disabled);
+}
+
+.controlInvalid {
+  outline: var(--focus-outline-width) var(--layout-border-style-solid) var(--color-danger);
+  outline-offset: var(--focus-outline-offset);
+}

@@ -10,7 +10,15 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-const ALLOWED_SUBPATHS = new Set(["button", "input", "field-shell", "alert", "badge"]);
+const ALLOWED_SUBPATHS = new Set([
+  "button",
+  "input",
+  "select",
+  "checkbox",
+  "field-shell",
+  "alert",
+  "badge",
+]);
 
 const SCAN_ROOTS = [
   path.join(REPO_ROOT, "apps"),

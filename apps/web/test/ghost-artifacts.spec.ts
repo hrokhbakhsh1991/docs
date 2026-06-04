@@ -9,6 +9,8 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 const WEB_CONSUMED = [
   { pkgDir: "packages/ui-primitives", spec: "@app-tour/ui-primitives/button", exportKey: "./button" },
   { pkgDir: "packages/ui-primitives", spec: "@app-tour/ui-primitives/input", exportKey: "./input" },
+  { pkgDir: "packages/ui-primitives", spec: "@app-tour/ui-primitives/select", exportKey: "./select" },
+  { pkgDir: "packages/ui-primitives", spec: "@app-tour/ui-primitives/checkbox", exportKey: "./checkbox" },
   { pkgDir: "packages/theme-react", spec: "@app-tour/theme-react", exportKey: "." },
 ] as const;
 

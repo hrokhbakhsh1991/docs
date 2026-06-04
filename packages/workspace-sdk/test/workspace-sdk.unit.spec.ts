@@ -48,7 +48,7 @@ describe("createFreshStarterPlugin()", () => {
   it("applies default rule cell overrides", () => {
     const cell = getWorkspaceRuleCell(createFreshStarterPlugin().ruleSet, "default");
     assert.ok(cell);
-    assert.equal(cell.fieldOverrides.length, 2);
+    assert.equal(cell.fieldOverrides.length, 4);
   });
 
   it("includes platform-primary workspace theme preset for harness demos", () => {
