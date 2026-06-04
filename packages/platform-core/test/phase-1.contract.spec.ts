@@ -1,3 +1,10 @@
+/**
+ * Phase 1 closure contracts (g11). Canonical spec paths and gates:
+ * - Subphase 1.4: `test/unit/engine/render-plan.steps.spec.ts` (not `step.engine.spec.ts`)
+ * - Facade integration: `test/facade-integration.spec.ts` (g12)
+ * - Facade test ratio minimum: `PHASE_1_FACADE_TEST_RATIO_MIN = 0.6` in
+ *   `scripts/guards/gate-thresholds.mjs` (g13, measured by `facade-test-ratio.mjs`)
+ */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -7,6 +14,13 @@ import { describe, it } from "node:test";
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = path.resolve(PKG_ROOT, "../..");
+const RENDER_PLAN_STEPS_SPEC = path.join(
+  PKG_ROOT,
+  "test",
+  "unit",
+  "engine",
+  "render-plan.steps.spec.ts",
+);
 const CRUISE_STARTER_HELPER = path.join(PKG_ROOT, "test/lib/cruise-no-starter-plugin.mjs");
 
 /** Minimum behavioral rows in this file (not a package test-count floor). */
@@ -33,7 +47,7 @@ export const PHASE_1_CLOSURE_CONTRACTS = [
   },
   {
     id: "headless-plugin-ingress",
-    title: "buildRuntime uses includeTheme:false",
+    title: "plugin ingress uses includeTheme:false at create (sanitizePluginAtCreate)",
     specRel: "test/phase-1.contract.spec.ts",
     guardIds: ["g11_phase1_contract_behaviors"],
   },
@@ -69,7 +83,8 @@ export const PHASE_1_CLOSURE_CONTRACTS = [
   },
   {
     id: "field-validation-contract",
-    title: "canonical-field-validation-contract module exists",
+    title:
+      "canonical-field-validation-contract exists; passesHiddenFieldKindGate wired in validate-canonical-field",
     specRel: "src/contracts/canonical-field-validation-contract.ts",
     guardIds: ["g11_phase1_contract_behaviors"],
   },
@@ -135,7 +150,7 @@ function assertBuildRuntimeUsesHeadlessPluginIngress(): void {
   assert.match(
     text,
     /parseWorkspacePluginFromStorage\([^)]*\{\s*includeTheme:\s*false\s*\}/,
-    "plugin ingress must use includeTheme: false",
+    "plugin ingress must use includeTheme: false at create (sanitizePluginAtCreate)",
   );
   assert.match(
     text,
@@ -243,6 +258,28 @@ function assertSingleFacadeExport(): void {
   assert.equal(exports["./*"], null);
 }
 
+function assertSubphase14NamingLaw(): void {
+  assert.equal(
+    fs.existsSync(path.join(PKG_ROOT, "src", "engine", "step.engine.ts")),
+    false,
+    "src/engine/step.engine.ts must not exist — use render-plan.steps.ts",
+  );
+  assert.ok(
+    fs.existsSync(RENDER_PLAN_STEPS_SPEC),
+    "test/unit/engine/render-plan.steps.spec.ts required for subphase 1.4",
+  );
+}
+
+function assertFacadeTestRatioMinimum(): void {
+  const thresholdsPath = path.join(REPO_ROOT, "scripts", "guards", "gate-thresholds.mjs");
+  const text = fs.readFileSync(thresholdsPath, "utf8");
+  assert.match(
+    text,
+    /export const PHASE_1_FACADE_TEST_RATIO_MIN\s*=\s*0\.6\s*;/,
+    "g13 facade ratio minimum must be 0.6 in gate-thresholds.mjs",
+  );
+}
+
 function assertFieldValidationContractModule(): void {
   const contractPath = path.join(
     PKG_ROOT,
@@ -257,7 +294,14 @@ function assertFieldValidationContractModule(): void {
   assert.ok(text.includes("passesHiddenFieldKindGate"));
   assert.ok(
     text.includes("isEmptyCanonicalValue"),
-    "passesHiddenFieldKindGate must be wired to isEmptyCanonicalValue",
+    "passesHiddenFieldKindGate must delegate to isEmptyCanonicalValue",
+  );
+
+  const validateFieldPath = path.join(PKG_ROOT, "src", "engine", "validate-canonical-field.ts");
+  const validateFieldText = fs.readFileSync(validateFieldPath, "utf8");
+  assert.ok(
+    validateFieldText.includes("passesHiddenFieldKindGate"),
+    "validate-canonical-field must call passesHiddenFieldKindGate (BL-01)",
   );
 }
 
@@ -371,8 +415,16 @@ describe("phase 1 closure contract", () => {
     assertNoSpecFilesUnderSrc();
   });
 
-  it("buildRuntime parses plugin with includeTheme: false", () => {
+  it("plugin ingress parses with includeTheme: false at create", () => {
     assertBuildRuntimeUsesHeadlessPluginIngress();
+  });
+
+  it("subphase 1.4 uses render-plan.steps.spec.ts and forbids step.engine.ts", () => {
+    assertSubphase14NamingLaw();
+  });
+
+  it("gate-thresholds defines PHASE_1_FACADE_TEST_RATIO_MIN = 0.6 for g13", () => {
+    assertFacadeTestRatioMinimum();
   });
 
   it("production src does not expose fromPlugin", () => {

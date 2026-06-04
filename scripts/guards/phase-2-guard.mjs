@@ -9,12 +9,18 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import {
+  DESIGN_TOKENS_TEST_MIN,
+  PHASE_2_BEHAVIOR_CONTRACT_MIN,
   THEME_REACT_TEST_MIN,
   UI_PRIMITIVES_TEST_MIN,
   UI_PRIMITIVES_VISUAL_TEST_MIN,
   WORKSPACE_SDK_TEST_MIN,
 } from "./gate-thresholds.mjs";
-import { evaluatePackageTestRun } from "./lib/parse-test-output.mjs";
+import {
+  evaluatePackageTestRun,
+  outputHasTestFailures,
+  parseTestCount,
+} from "./lib/parse-test-output.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -34,6 +40,8 @@ const MIN_WORKSPACE_SDK_TESTS = WORKSPACE_SDK_TEST_MIN.phase2;
 const MIN_UI_PRIMITIVES_TESTS = UI_PRIMITIVES_TEST_MIN.phase2;
 const MIN_THEME_REACT_TESTS = THEME_REACT_TEST_MIN.phase2;
 const MIN_VISUAL_TESTS = UI_PRIMITIVES_VISUAL_TEST_MIN.phase2;
+const MIN_DESIGN_TOKENS_TESTS = DESIGN_TOKENS_TEST_MIN.phase2;
+const PHASE_2_CONTRACT_SPEC = "packages/platform-core/test/phase-2.contract.spec.ts";
 const DETAIL_MAX = 2000;
 
 /** @typedef {{ id: string, description: string, required: boolean, ok: boolean, detail?: string | null }} GuardCheck */
@@ -102,6 +110,25 @@ function checkValidateDesignTokens() {
     required: true,
     ok,
     detail: ok ? null : truncateDetail((r.stdout ?? "") + (r.stderr ?? "")),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkDesignTokensTests() {
+  const r = runPnpm(["--filter", "@app-tour/design-tokens", "run", "test"]);
+  const { ok, count, output } = evaluatePackageTestRun(r, MIN_DESIGN_TOKENS_TESTS);
+  return {
+    id: "p2_design_tokens_tests",
+    description: `design-tokens tests ≥ ${MIN_DESIGN_TOKENS_TESTS} (tokens.meta.json contract)`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${count} tests`
+      : truncateDetail(
+          count != null
+            ? `${count} tests (need ≥ ${MIN_DESIGN_TOKENS_TESTS})\n${output}`
+            : output,
+        ),
   };
 }
 
@@ -275,12 +302,13 @@ function checkThemeReactNoInternalExport() {
       path.join(REPO_ROOT, "apps"),
     ],
   );
-  const importHits = r.lines.filter(
-    (line) =>
-      !line.includes("phase-2-guard.mjs") &&
-      !line.includes("verify-export-allowlist.mjs") &&
-      !line.includes("TEMP/"),
-  );
+  const importHits = r.lines.filter((line) => {
+    if (line.includes("phase-2-guard.mjs")) return false;
+    if (line.includes("verify-export-allowlist.mjs")) return false;
+    if (line.includes("phase-2.contract.spec.ts")) return false;
+    if (line.includes("TEMP/")) return false;
+    return /from\s+["']@app-tour\/theme-react\/internal["']/.test(line);
+  });
   const ok = !hasInternal && importHits.length === 0;
   return {
     id: "p2_theme_react_no_internal_export",
@@ -296,6 +324,36 @@ function checkThemeReactNoInternalExport() {
           ]
             .filter(Boolean)
             .join("\n"),
+        ),
+  };
+}
+
+/** @returns {GuardCheck} */
+function checkPhase2ContractBehaviors() {
+  const r = spawnSync("pnpm", ["--filter", "@app-tour/platform-core", "run", "test:phase-2"], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const output = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const count = parseTestCount(output);
+  const ok =
+    r.status === 0 &&
+    count != null &&
+    count >= PHASE_2_BEHAVIOR_CONTRACT_MIN &&
+    !outputHasTestFailures(output);
+  return {
+    id: "p2_phase2_contract_behaviors",
+    description: `phase-2.contract.spec.ts ≥ ${PHASE_2_BEHAVIOR_CONTRACT_MIN} behavioral rows`,
+    required: true,
+    ok,
+    detail: ok
+      ? `${count} contract tests (${PHASE_2_CONTRACT_SPEC})`
+      : truncateDetail(
+          count != null
+            ? `${count} tests (need ≥ ${PHASE_2_BEHAVIOR_CONTRACT_MIN})\n${output}`
+            : output,
         ),
   };
 }
@@ -323,6 +381,7 @@ function main() {
   const checks = [
     checkDesignTokensDist(),
     checkValidateDesignTokens(),
+    checkDesignTokensTests(),
     checkUiPrimitivesBuild(),
     checkUiPrimitivesNoBarrelExport(),
     checkArtifactSurfaceGuard(),
@@ -350,6 +409,7 @@ function main() {
     checkThemeReactExportAllowlistL01(),
     checkThemeReactNoInternalExport(),
     checkPlatformCoreNoDesignTokens(),
+    checkPhase2ContractBehaviors(),
   ];
 
   const requiredOk = checks.filter((c) => c.required).every((c) => c.ok);

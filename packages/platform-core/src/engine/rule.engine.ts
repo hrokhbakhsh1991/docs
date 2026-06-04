@@ -35,6 +35,10 @@ export class RuleEngine {
     this.cellIndex = new RuleCellIndex(ruleSet);
   }
 
+  /**
+   * Bootstrap: `defaultCellId` must exist in `ruleSet.cells`. Runtime resolution does not
+   * silently fall back to it — unmatched dimensions → `RULE_CONTEXT_UNMATCHED` (see 1.3-rule-engine.md).
+   */
   static tryCreate(
     ruleSet: WorkspaceRuleSet,
     fieldEngine: FieldRegistryEngine,

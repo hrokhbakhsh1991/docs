@@ -19,7 +19,7 @@ contracts:
     specRel: test/phase-1.contract.spec.ts
     guardIds: [g11_phase1_contract_behaviors]
   - id: headless-plugin-ingress
-    title: "buildRuntime uses includeTheme:false"
+    title: "plugin ingress uses includeTheme:false at create (sanitizePluginAtCreate)"
     specRel: test/phase-1.contract.spec.ts
     guardIds: [g11_phase1_contract_behaviors]
   - id: sdk-subpath-imports
@@ -45,7 +45,7 @@ contracts:
     specRel: test/phase-1.contract.spec.ts
     guardIds: [g11_phase1_contract_behaviors]
   - id: field-validation-contract
-    title: "canonical-field-validation-contract module exists"
+    title: "canonical-field-validation-contract exists; passesHiddenFieldKindGate wired in validate-canonical-field"
     specRel: src/contracts/canonical-field-validation-contract.ts
     guardIds: [g11_phase1_contract_behaviors]
     behavioral_2026_06_03: "passesHiddenFieldKindGate delegates to isEmptyCanonicalValue; hidden composite values skip HIDDEN_FIELD_POISON; inactiveFieldGroups skip document validation"

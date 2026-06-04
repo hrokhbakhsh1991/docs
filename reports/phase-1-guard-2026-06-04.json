@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T01:51:37.128Z",
-  "gitSha": "d880989",
+  "generatedAt": "2026-06-04T02:56:17.629Z",
+  "gitSha": "8fcee69",
   "phase": "1.6",
   "checks": [
     {
@@ -22,28 +22,28 @@
       "description": "platform-core tests ≥ 148 (closure + unit:internal)",
       "required": true,
       "ok": true,
-      "detail": "158 tests"
+      "detail": "172 tests"
     },
     {
       "id": "g2c_platform_core_closure_test_count",
       "description": "platform-core closure tests ≥ 56 (excludes test/unit/**)",
       "required": true,
       "ok": true,
-      "detail": "58 closure tests"
+      "detail": "67 closure tests"
     },
     {
       "id": "g2d_unit_internal_tests",
       "description": "test:unit:internal passes (non-gating package policy)",
       "required": true,
       "ok": true,
-      "detail": "100 unit tests"
+      "detail": "105 unit tests"
     },
     {
       "id": "g11_phase1_contract_behaviors",
       "description": "phase-1.contract.spec.ts ≥ 14 behavioral rows (not count-only gate)",
       "required": true,
       "ok": true,
-      "detail": "19 contract tests (packages/platform-core/test/phase-1.contract.spec.ts)"
+      "detail": "21 contract tests (packages/platform-core/test/phase-1.contract.spec.ts)"
     },
     {
       "id": "g12_facade_integration_spec",
@@ -57,7 +57,7 @@
       "description": "facade-path tests ≥ 60% of closure spec cases (excl. test/unit/**)",
       "required": true,
       "ok": true,
-      "detail": "56/58 cases (97%)"
+      "detail": "65/67 cases (97%)"
     },
     {
       "id": "g10_adversarial_specs_execute",

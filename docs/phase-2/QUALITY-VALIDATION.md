@@ -32,7 +32,7 @@ validation_meta:
 | `phase-2.ai-exec.index.md` | UPDATED | STEP 1; AGENT_START_SEQUENCE; DRIFT-P2-11; central_stub; binding |
 | `phase-2/README.md` | UPDATED | Central stub as primary entrypoint |
 | `phase-2-design-system.md` | UPDATED | Central stub + gate header |
-| `phase-2-guards.md` | VERIFIED | 14× p2_* execution order |
+| `phase-2-guards.md` | VERIFIED | 15× p2_* execution order |
 | `phase-2-ci.md` | VERIFIED | 8-step package.json chain |
 | `phase-2-state-machine.md` | VERIFIED | execution_mode + forbidden/failure states |
 | `phase-2-enforcement.md` | VERIFIED | P3E + floors ≥148 |
@@ -53,7 +53,8 @@ validation_meta:
 | T-2 vs T-3 label | MERGED — DRIFT-P2-08 |
 | ui-primitives barrel | MERGED — DRIFT-P2-09 |
 | platform-core 132 vs 148 | MERGED — DRIFT-P2-10 |
-| ci:integrity vs phase-2:gate | MERGED — DRIFT-P2-11 |
+| ci:integrity vs phase-2:gate | CLOSED — DRIFT-P2-11; `ci-integrity-check.sh` runs `phase-2:gate` |
+| phase-2 behavioral contract | CLOSED — `phase-2.contract.spec.ts` + `p2_phase2_contract_behaviors` |
 
 ## Remaining actionable content
 
@@ -62,7 +63,7 @@ validation_meta:
 | Central index | `phase-2-design-system.ai-exec.md` | Agent cold start |
 | Detailed index | `phase-2.ai-exec.index.md` | DRIFT-P2-01..11 |
 | Gate | `phase-2-ci.md` | `pnpm run phase-2:gate` |
-| Guards | `phase-2-guards.md` | 14× p2_* |
+| Guards | `phase-2-guards.md` | 15× p2_* |
 | Thresholds | `gate-thresholds.mjs` | 50 / 12 / 4 / 4 |
 | Subphases | `subphases/2.1`–`2.5` + `2.2.1` | exit_criteria_* |
 | Phase 3 entry | `phase-2-enforcement.md` | P3E-01..P3E-10 |

@@ -58,3 +58,11 @@ export const PLATFORM_EVENTS_TEST_MIN = {
 export const UI_PRIMITIVES_VISUAL_TEST_MIN = {
   phase2: 4,
 };
+
+/** phase-2-guard p2_phase2_contract_behaviors — manifest rows in phase-2.contract.spec.ts */
+export const PHASE_2_BEHAVIOR_CONTRACT_MIN = 8;
+
+/** phase-2-guard p2_design_tokens_tests — tokens.meta.json contract specs */
+export const DESIGN_TOKENS_TEST_MIN = {
+  phase2: 3,
+};

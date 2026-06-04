@@ -49,7 +49,11 @@ export function hiddenFieldPoisonViolation(
   };
 }
 
-/** Non-empty value for kind — inverse of {@link isEmptyCanonicalValue} (undefined/null → false). */
+/**
+ * Non-empty value for kind — inverse of {@link isEmptyCanonicalValue} (undefined/null → false).
+ * Wired from {@link validateFieldValue} in `validate-canonical-field.ts` for hidden composite leaves.
+ * Unit table: `test/unit/contracts/hidden-field-kind-gate.spec.ts`.
+ */
 export function passesHiddenFieldKindGate(
   value: unknown,
   kind: WorkspaceFieldKind,

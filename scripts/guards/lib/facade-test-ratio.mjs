@@ -2,6 +2,8 @@
 /**
  * Count platform-core test cases that exercise the public facade path.
  * A spec file counts as facade when it imports PlatformWizardEngine or loadPlatformWizard.
+ * Closure specs only (excludes `test/unit/**`). Gate minimum:
+ * `PHASE_1_FACADE_TEST_RATIO_MIN = 0.6` in `scripts/guards/gate-thresholds.mjs` (g13).
  */
 import fs from "node:fs";
 import path from "node:path";

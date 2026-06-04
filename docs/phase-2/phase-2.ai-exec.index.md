@@ -56,7 +56,10 @@ AGENT_START_SEQUENCE:
     forbid: barrel ui-primitives · platform-core design-tokens · theme-react/internal
   5_gate_execution:
     action: RUN pnpm run phase-2:gate
-    bind: p2_* from phase-2-guards.md
+    bind: p2_* from phase-2-guards.md (incl. p2_phase2_contract_behaviors)
+  5b_contract_behaviors:
+    action: RUN pnpm --filter @app-tour/platform-core run test:phase-2
+    manifest: docs/phase-2/audits/closure-contracts.md
   6_audit_generation:
     action: VERIFY reports/phase-2-gate-*.json all required p2_* ok
   7_next_phase_handoff:
@@ -72,6 +75,7 @@ AGENT_START_SEQUENCE:
 | STEP 1 — Phase detection | [`phase-2-overview.md`](phase-2-overview.md) |
 | STATE MODEL · DAG | [`phase-2-state-machine.md`](phase-2-state-machine.md) |
 | Forensic truth §13 | [`audits/forensic-template.md`](audits/forensic-template.md) |
+| Closure contracts (p2_phase2_contract_behaviors) | [`audits/closure-contracts.md`](audits/closure-contracts.md) |
 | §1–§5 | [`phase-2-overview.md`](phase-2-overview.md) |
 | Subphase 2.1 | [`subphases/2.1-design-tokens.md`](subphases/2.1-design-tokens.md) |
 | Subphase 2.2 | [`subphases/2.2-workspace-theme-contract.md`](subphases/2.2-workspace-theme-contract.md) |
@@ -154,9 +158,9 @@ doc_drift:
     repo: "gate-thresholds.mjs PLATFORM_CORE_TEST_MIN.phase1 = 148"
     resolution: "PC-1 and P3E-03 reference ≥148 — not 132"
   - id: DRIFT-P2-11
-    source: "md implies Husky ci:integrity equals phase-2:gate"
-    repo: "ci-integrity-check.sh runs phase-0:gate + phase-1-guard only"
-    resolution: "Phase 2 closure requires explicit pnpm run phase-2:gate in PR CI"
+    source: "md implied Husky ci:integrity excluded phase-2:gate"
+    repo: "ci-integrity-check.sh runs phase-0:gate + phase-1:gate + phase-2:gate"
+    resolution: "CLOSED — pre-commit and PR CI both require full phase-2:gate"
 ```
 
 
@@ -196,8 +200,8 @@ hard_fail_triggers:
     result: FAIL — DRIFT-P2-07
   - condition: "Agent enforces platform-core regression floor 132 in phase-2 docs or gates"
     result: FAIL — DRIFT-P2-10 repo floor is 148
-  - condition: "Agent treats ci:integrity pre-commit pass as phase-2:gate closure"
-    result: FAIL — DRIFT-P2-11
+  - condition: "Agent treats ci:integrity pre-commit pass without phase-2:gate in ci-integrity-check.sh"
+    result: FAIL — DRIFT-P2-11 regression
 
 conditional_pass:
   - "MAP §14.1 architect sign-off open while phase-2 technical gate green"

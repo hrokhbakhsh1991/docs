@@ -89,5 +89,8 @@ function toRenderFieldPlan(
   };
 }
 
-/** @internal re-export for step visibility unit tests */
+/**
+ * @internal Re-export for step visibility unit tests in
+ * `test/unit/engine/render-plan.steps.spec.ts`.
+ */
 export { getStepVisibility, listActiveSteps, listStepIds } from "./render-plan.steps";

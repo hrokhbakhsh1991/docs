@@ -1,7 +1,7 @@
 # Phase 0 baseline — 2026-06-04
 
-- **Generated:** 2026-06-04T01:50:10.356Z
-- **Git SHA:** `d880989`
+- **Generated:** 2026-06-04T01:56:52.406Z
+- **Git SHA:** `d52b767`
 - **JSON:** [reports/phase-0-baseline-2026-06-04.json](reports/phase-0-baseline-2026-06-04.json)
 
 ## Summary metrics

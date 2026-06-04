@@ -201,6 +201,20 @@ pnpm run phase-1:guard
 
 **Note:** Most rows in `phase-1.contract.spec.ts` are **structural/guard** tests. Several manifest `specRel` paths point at **other** spec files; coverage below separates **manifest enforcement** from **behavioral** coverage.
 
+#### 9.1.1 Repo test file map (names aligned to tree — 2026-06-04)
+
+| Subsystem | Spec path (actual) | Removed / renamed |
+|-----------|-------------------|-------------------|
+| Step ordering / visibility | [`test/unit/engine/render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts) | ~~`step.engine.spec.ts`~~ · ~~`StepEngine` class~~ |
+| Render plan | [`test/unit/engine/render-plan.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.spec.ts) | — |
+| Facade / bootstrap | [`test/unit/engine/platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) | — |
+| Rule resolution | [`test/unit/engine/rule-resolution.spec.ts`](../packages/platform-core/test/unit/engine/rule-resolution.spec.ts) | — |
+| Rule engine | [`test/unit/engine/rule.engine.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.spec.ts) · [`rule.engine.force-cell.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.force-cell.spec.ts) | — |
+| Hidden field gate (BL-01) | [`test/unit/contracts/hidden-field-kind-gate.spec.ts`](../packages/platform-core/test/unit/contracts/hidden-field-kind-gate.spec.ts) | — |
+| Closure / adversarial | [`test/phase-1.contract.spec.ts`](../packages/platform-core/test/phase-1.contract.spec.ts) · [`test/facade-integration.spec.ts`](../packages/platform-core/test/facade-integration.spec.ts) · [`test/adversarial-*.spec.ts`](../packages/platform-core/test/) · [`test/runtime-isolation.spec.ts`](../packages/platform-core/test/runtime-isolation.spec.ts) · [`test/validate-canonical-mutation.spec.ts`](../packages/platform-core/test/validate-canonical-mutation.spec.ts) | — |
+
+**Production `src/engine/` (no `step.engine.ts`):** `render-plan.steps.ts` · `render-plan.ts` · `platform-wizard.engine.ts` · `rule.engine.ts` · `rule-resolution.ts` · `validate-canonical-document.ts` · `validate-canonical-field.ts`.
+
 ---
 
 ### 9.2 `PHASE_1_CLOSURE_CONTRACTS` — behavioral coverage matrix
@@ -216,13 +230,13 @@ pnpm run phase-1:guard
 | `no-test-policy-export` | `index.ts` omits test policy types | **Structural** — read `index.ts` | **N/A** (export surface) |
 | `starter-fixture-location` | Fixture only under `test/fixtures/` | **Structural** — `fs.existsSync` | **N/A** (layout) |
 | `dist-import-purity` | Built `dist/index.js` import purity | **Structural** — probe subprocess (needs build) | Same probe as `import-purity` |
-| `field-validation-contract` | Module exists; mentions poison helpers | **Structural** — file exists + string `includes` | **Partial** — `hiddenFieldPoisonViolation` exercised via [`platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts); **`passesHiddenFieldKindGate` never called** (see §9.3, BL-01) |
+| `field-validation-contract` | Module exists; mentions poison helpers | **Structural** + **partial behavioral** | `hiddenFieldPoisonViolation` via engine specs; **`passesHiddenFieldKindGate`** wired + `hidden-field-kind-gate.spec.ts` (BL-01 closed) |
 | `adversarial-plugin-ingress` | Headless init skips invalid theme | Contract only checks **file exists** (`facade-integration` gate duplicate) | **Yes** — `adversarial-plugin-ingress.spec.ts` |
 | `single-facade-export` | `package.json` exports only `.` | **Structural** — JSON keys | **N/A** |
 | `facade-integration-gate` | Public facade API gated | Contract only **`fs.existsSync`** on `facade-integration.spec.ts` | **Yes** — [`test/facade-integration.spec.ts`](../packages/platform-core/test/facade-integration.spec.ts) (5 runtime `it`s) |
 | `fresh-starter-fixture` | Per-call factory, no singleton | **Structural** — regex on fixture source | **Indirect** — all tests use `createTestStarterPlugin()`; no `it` named for alias |
 
-**Summary:** Of 14 manifest rows, **6** are layout/export/graph-only with no meaningful runtime assertion. Of the remainder, **4** have dedicated behavioral specs elsewhere; **2** (`field-validation-contract`, `fresh-starter-fixture`) are **under-tested** relative to their implied semantics.
+**Summary:** Of 14 manifest rows, **6** are layout/export/graph-only with no meaningful runtime assertion. Of the remainder, **5** have dedicated behavioral specs elsewhere; **1** (`fresh-starter-fixture`) is structural-only (factory alias + indirect use). **`field-validation-contract`** — BL-01 closed: `passesHiddenFieldKindGate` wired + `hidden-field-kind-gate.spec.ts` + contract assertion on `validate-canonical-field.ts`.
 
 ---
 
@@ -236,7 +250,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 |----------------|--------------------------------------|---------------|---------------|
 | `hidden-non-composite-poison` | Hidden + non-composite + `value !== undefined` → `HIDDEN_FIELD_POISON` | Used in `validate-canonical-field.ts` via `hiddenFieldPoisonViolation` | **Covered** — `platform-wizard.engine.spec.ts` (enum + generic value) |
 | `visible-kind-strict` | Visible value → `assertCanonicalValueMatchesKind` | `validate-canonical-field.ts` | **Covered** — facade + `canonical-value.spec.ts` (text/enum/composite); **gaps:** `date`, `boolean` kinds never asserted through **engine** `validateCanonical` |
-| `passesHiddenFieldKindGate` | Documented mirror of scalar non-emptiness | **Not imported** by `src/` or `test/` | **No test** — dead export (BL-01) |
+| `passesHiddenFieldKindGate` | Documented mirror of scalar non-emptiness | **Wired** in `validate-canonical-field.ts` L47–51; unit table in `hidden-field-kind-gate.spec.ts` | **Resolved** (BL-01, 2026-06-04 P0) |
 | Hidden **composite** + value allowed (no poison) | Table row: poison does not apply | `hiddenFieldPoisonViolation` returns `null` for `kind === "composite"` | **No test** proving hidden composite object **passes** poison gate and skips scalar kind check when value present |
 | `CANONICAL_FIELD_VALIDATION_CONTRACT` array | Documentation table | N/A | **No test** asserts table rows stay in sync with code |
 
@@ -244,7 +258,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 
 | Behavior | Implementation | Unit-test gap |
 |----------|----------------|---------------|
-| `inactiveFieldGroups` → **skip** field validation (`continue`) | `validate-canonical-document.ts:48–52` | **No test** — render hides inactive groups ([`step.engine.spec.ts`](../packages/platform-core/test/unit/engine/step.engine.spec.ts)); **validation never asserted** to ignore bad data under inactive group |
+| `inactiveFieldGroups` → **skip** field validation (`continue`) | `validate-canonical-document.ts:48–52` | **No test** — render hides inactive groups ([`render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts)); **validation never asserted** to ignore bad data under inactive group |
 | `validateCanonical` before `tryInit` | `validationResultFromPlatformError(ready.error)` | **No test** — cold-start covers lazy init for `buildRenderPlan`, not `validateCanonical` error mapping |
 | `tryBuildRenderPlan` / init failure `PlatformResult` | `platform-wizard.engine.ts:138–141` | **No test** — only `buildRenderPlan` throw path via tenant isolation |
 | Ingress failure inside `validateCanonicalDocument` | `mapCanonicalIngressFailure` + `parseCanonicalDocumentFromStorage` | **No engine-level test** — storage freeze tested in `runtime-isolation.spec.ts` on SDK parser only |
@@ -258,7 +272,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 | `pickBestMatchingCell` — `tieCount > 1` → `AMBIGUOUS_RULE_RESOLUTION` | **Covered** — `rule.engine.spec.ts` |
 | `pickBestMatchingCell` — `count === 0` → `INVALID_RULE_SET` | **No direct test** (unreachable via `RuleEngineScope` today: empty matches → `RULE_CONTEXT_UNMATCHED` first) |
 | `pickBestMatchingCell` — `count > MAX_RULE_CELL_INDEX_SIZE` | **No test** |
-| `isEmptyRuleDimensions` | **Unused in repo** — export only (BL-02) |
+| `isEmptyRuleDimensions` | **Removed** — no export in `rule-resolution.ts` (BL-02 / G-03 closed) |
 | `defaultCellId` | Validated at `RuleEngine.tryCreate` | **No runtime fallback** when `findMatches` is empty — uses catch-all cells or `RULE_CONTEXT_UNMATCHED`; ai-exec wording “none → defaultCellId” is **not** auto-resolution (documented nuance, not a stub) |
 | Bootstrap: multiple `dimensions:{}` without distinct priority | Enforced in **workspace-sdk** `validate-rule-set.ts`, not engine | **Covered** — `platform-wizard.engine.spec.ts` via `tryFromPlugin` (SDK throw), not `RuleCellIndex` |
 | `forceCellId` | Bypasses `pickBestMatchingCell` when test policy allows | **Covered** — `rule.engine.force-cell.spec.ts`; production policy denies (not a lie) |
@@ -271,7 +285,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 |----------|---------------|
 | `includeWorkspaceStepUiHints: true` + `wizardCapacityStepRedundant` | **Covered** — `render-plan.spec.ts` |
 | Plan rows always `hidden: false` | Intentional (hidden fields omitted) | **No test** documenting consumer must not treat `hidden` on rows as visibility source |
-| `getStepVisibility` / empty root step | **Covered** — `step.engine.spec.ts` |
+| `getStepVisibility` / empty root step | **Covered** — `render-plan.steps.spec.ts` |
 
 #### 9.3.5 Explicitly deferred (not engine gaps)
 
@@ -287,8 +301,8 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 
 | ID | Severity | Location | Finding | Evidence |
 |----|----------|----------|---------|----------|
-| **BL-01** | **Medium** | `canonical-field-validation-contract.ts` → `passesHiddenFieldKindGate` | **Orphan contract API** — docstring claims parity with `isEmptyCanonicalValue`, but **engine validation never calls it**; phase-1 contract only checks file contains `hiddenFieldPoisonViolation` strings | `rg passesHiddenFieldKindGate` → single file (definition only). `validate-canonical-field.ts` uses `isEmptyCanonicalValue` from `utils/canonical-value.ts` |
-| **BL-02** | **Low** | `rule-resolution.ts` → `isEmptyRuleDimensions` | **Dead export** — zero call sites in monorepo; suggests dimension-empty helper used in resolution, but `RuleEngineScope` never references it | `rg isEmptyRuleDimensions` → definition only |
+| **BL-01** | ~~Medium~~ **Closed** | `canonical-field-validation-contract.ts` → `passesHiddenFieldKindGate` | **Resolved** — `validate-canonical-field.ts` calls gate for hidden non-composite poison; `hidden-field-kind-gate.spec.ts` + `phase-1.contract` wiring assertion | `validate-canonical-field.ts` L47–51 imports from contract |
+| **BL-02** | ~~Low~~ **Closed** | `rule-resolution.ts` → `isEmptyRuleDimensions` | **Removed** — dead export deleted; no call sites required (G-03) | `rg isEmptyRuleDimensions` → 0 |
 | **BL-03** | **Low** | `validation-status-map.ts` → `OK_RESULT` | **Shared singleton success object** — `finalize()` returns frozen `{ ok: true, violations: [] }` without per-call clone. Not a RuleEngine bypass (violations still recorded on failure path), but **mutable-array hazard** if any consumer ever mutates `violations` on success | `const OK_RESULT` reused at `finalize()` when `size === 0`; no immutability test |
 | **BL-04** | **Info** | `render-plan.ts` → `toRenderFieldPlan` | **`hidden: false` hardcoded** on every emitted row while hidden fields are **omitted** from the plan | By design per file comment; misleading only if UI treats row `hidden` as authority — **not** skipping RuleEngine |
 
@@ -306,13 +320,13 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 
 | Priority | Test target |
 |----------|-------------|
-| P1 | `passesHiddenFieldKindGate` — either **wire** to `isEmptyCanonicalValue` / delete export, **or** unit table test per kind |
+| ~~P1~~ | ~~`passesHiddenFieldKindGate` wire~~ — **done** (BL-01 closed 2026-06-04) |
 | P1 | `inactiveFieldGroups` — invalid value under inactive group does **not** produce violations |
 | P2 | Hidden **composite** with benign object value — no `HIDDEN_FIELD_POISON` |
 | P2 | `validateCanonical` on uninitialized engine → `validationResultFromPlatformError` shape |
 | P2 | `date` / `boolean` kinds through `validateCanonical` facade |
 | P3 | `createViolationCollector` dedupe-by-`fieldId` behavior |
-| P3 | Remove or use `isEmptyRuleDimensions`; add `pickBestMatchingCell` pool-limit test if reachable |
+| ~~P3~~ | ~~`isEmptyRuleDimensions`~~ removed (G-03); optional `pickBestMatchingCell` pool-limit test if reachable |
 
 ---
 
@@ -322,7 +336,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 |------|--------|
 | Contract manifest vs concrete unit tests | **14** rows; **6** structural-only; **2** under-tested (`field-validation-contract`, `fresh-starter-fixture`) |
 | Engine requirements without unit test | **§9.3** — **15+** distinct gaps (validation skip, facade error paths, kinds, helpers) |
-| Behavioral Lies in `src/engine/` | **0** RuleEngine stubs; **4** rows (**BL-01**–**BL-04**), **1** medium (**BL-01** orphan gate) |
+| Behavioral Lies in `src/engine/` | **0** RuleEngine stubs; **2** open rows (**BL-03**–**BL-04**); **BL-01** · **BL-02** closed |
 | RuleEngine execution on hot path | **Verified real** for render + validate |
 
 ---
@@ -360,7 +374,7 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 | `listActiveSteps` | plain function | **Yes** — filter to active steps | `.filter` → **nested work**: per step calls `getStepVisibility` → full field scan (**O(steps × fields)**); not forbidden by doc |
 | Classes / helpers | — | **None allowed** beyond plain functions | **0 classes** — compliant |
 
-**Doc vs code (visibility):** ai-exec lists `empty: "visible but zero non-hidden fields"` (internally inconsistent wording). Implementation and tests use **`empty` = step has zero registry fields** ([`step.engine.spec.ts`](../packages/platform-core/test/unit/engine/step.engine.spec.ts) “wizard.roots step with no fields → empty”). That is **not** theater — it is a **doc typo**; code matches tests.
+**Doc vs code (visibility):** ai-exec lists `empty: "visible but zero non-hidden fields"` (internally inconsistent wording). Implementation and tests use **`empty` = step has zero registry fields** ([`render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts) “wizard.roots step with no fields → empty”). That is **not** theater — it is a **doc typo**; code matches tests.
 
 ---
 
@@ -389,14 +403,14 @@ Grouped by subsystem. Items marked **integration-only** are covered only via `Pl
 
 | ID | File | Verdict | Rationale |
 |----|------|---------|-----------|
-| **AT-RPS-01** | `render-plan.steps.ts` → `listStepIds` | **Low — Architectural Theater** | **Partition + sort** (`rooted` / `orphan` / `rootsIndex` / `.sort()`) implements the same ordering as a **two-filter** algorithm mandated by §4.4. Extra buffers and CC are **not** required for correctness; they read like “algorithm design” polish. |
+| **AT-RPS-01** | `render-plan.steps.ts` → `listStepIds` | ~~Theater~~ **Closed (RP-1)** | **Landed 2026-06-04** — §4.4 two-filter emit (`roots ∩ union` then `discovery \ roots`); tests [`render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts) green |
 | **AT-RPS-02** | `render-plan.steps.ts` → `listActiveSteps` | **Not theater** (perf smell only) | Nested scans are a consequence of the **required** three-function API; doc does not require single-pass fusion. |
 | **AT-RPS-03** | `render-plan.steps.ts` overall | **Not theater** | No `StepEngine`, no classes, no indirection beyond doc-mandated `RuleEngineScope` + `isFieldEffectivelyHidden`. |
 | **AT-PWE-01** | `platform-wizard.engine.ts` → `PlatformWizardEngineOptions` | **Cosmetic — mild theater** | `Record<string, never>` on public `create`/`tryFromPlugin` suggests future options without Phase 1 behavior. Harmless but **not doc-driven**. |
 | **AT-PWE-02** | `platform-wizard.engine.ts` → dual APIs | **Not theater** | `tryInit`/`init`, `tryBuildRenderPlan`/`buildRenderPlan` mirror §5 **error_model_layers** (`PlatformResult` vs throw). |
 | **AT-PWE-03** | `platform-wizard.engine.ts` overall | **Not theater** | Branch count tracks bootstrap, lazy runtime, and ingress sanitization **one-to-one** with §4.6; thin orchestrator over real engines. |
 
-**Overall judgment:** **`platform-wizard.engine.ts` is not over-architected** for Phase 1 — the class and `PlatformResult` paths are the specified deliverable. **`render-plan.steps.ts` is mostly lean**; only **`listStepIds`** warrants a simplification refactor (**AT-RPS-01**).
+**Overall judgment:** **`platform-wizard.engine.ts` is not over-architected** for Phase 1 — the class and `PlatformResult` paths are the specified deliverable. **`render-plan.steps.ts` is lean** — **RP-1** landed; no open theater items on step ordering.
 
 ---
 
@@ -430,18 +444,19 @@ export function listStepIds(
   }
 
   const inRoots = new Set(wizard.roots);
-  const rooted = wizard.roots.filter((id) => seen.has(id));
-  const orphan = discoveryOrder.filter((id) => !inRoots.has(id));
-  return [...rooted, ...orphan];
+  return [
+    ...wizard.roots.filter((id) => seen.has(id)),
+    ...discoveryOrder.filter((id) => !inRoots.has(id)),
+  ];
 }
 ```
 
-| Step | Action |
+| Step | Status |
 |------|--------|
-| 1 | Replace body of `listStepIds` as above (or equivalent ≤2-pass logic). |
-| 2 | Run `pnpm --filter @app-tour/platform-core test test/unit/engine/step.engine.spec.ts` — must stay green (6 tests). |
-| 3 | Run `pnpm run phase-1:gate` — no contract/guard drift. |
-| 4 | Optional: add one comment citing §4.4 `ordering_logic` so future edits do not reintroduce sort/partition theater. |
+| 1 | **Done** — body matches repo `render-plan.steps.ts` |
+| 2 | **Done** — `render-plan.steps.spec.ts` (6 tests) green |
+| 3 | **Done** — `phase-1:gate` 16/16 @ `8fcee69` (2026-06-04) |
+| 4 | **Done** — inline §4.4 two-filter comment in source |
 
 **Out of scope (not demanded):** fusing `listActiveSteps` into one pass (**AT-RPS-02**) — behavior-preserving optimization only; not Phase 1 doc debt.
 
@@ -460,7 +475,7 @@ export function listStepIds(
 
 | File | Architectural Theater | Refactor demanded |
 |------|----------------------|-----------------|
-| `render-plan.steps.ts` | **1** low item (**AT-RPS-01**) | **Yes** — **RP-1** |
+| `render-plan.steps.ts` | **0** open (**AT-RPS-01** closed) | **RP-1 landed** |
 | `platform-wizard.engine.ts` | **1** cosmetic item (**AT-PWE-01**) | **Optional** — **PW-1** only |
 
 ---
@@ -469,6 +484,11 @@ export function listStepIds(
 
 - Operator: critical review vs `phase-1-platform-core.ai-exec.md` §4.4 / §4.6.
 - Outcome: §11 appended; facade cleared; `listStepIds` simplification recommended.
+
+### Scan log — 2026-06-04 (RP-1 + BL-01 + §9 file map)
+
+- Operator: land RP-1 two-filter `listStepIds`; confirm BL-01 `passesHiddenFieldKindGate` wired (not deleted); align §9.1.1 spec paths to repo tree.
+- Outcome: **AT-RPS-01 closed**; **BL-01 closed**; no `step.engine.spec.ts` references in §9.
 
 ---
 
@@ -859,3 +879,674 @@ Therefore **all rule resolution and render-plan construction** for consumers goe
 
 - Operator: `index.ts` + `package.json` exports + post-build `node resolve` / runtime `import *` + monorepo consumer `rg`.
 - Outcome: §13 appended; FIB register empty.
+
+---
+
+## 14. Mock replacement sweep — `test/unit/engine/` (2026-06-04)
+
+### 14.1 Command & scope
+
+| Field | Value |
+|-------|--------|
+| **Directive** | Find tests that **mock** `RuleEngine` or `FieldRegistryEngine`; replace mocks with real instances from [`starter.fixture.ts`](../packages/platform-core/test/fixtures/starter.fixture.ts); on failure, **do not fix tests** — report engine architectural flaws |
+| **Scan root** | `packages/platform-core/test/unit/engine/` |
+| **Fixture authority** | `createTestStarterPlugin` / `testStarterFieldRegistry` / `testStarterRuleSet` / `testStarterWizardSurface` |
+| **Post-scan test run** | `node --test test/unit/engine/*.spec.ts` → **77/77 pass** (unchanged — no test edits for this sweep) |
+
+### 14.2 Search methodology
+
+| Pattern | Tool | Result under `test/unit/engine/` |
+|---------|------|----------------------------------|
+| `mock`, `Mock`, `stub`, `sinon`, `jest`, `vi.` | `rg` | **0** matches |
+| Fake engine objects (`RuleEngine = {`, `FieldRegistryEngine = {`, `createMock`) | `rg` | **0** matches |
+| Prototype spy / `vi.mock` / `mock.module` | repo-wide `packages/platform-core/test` | **0** matches |
+
+**Conclusion:** No test file **substitutes** `RuleEngine` or `FieldRegistryEngine` with doubles. Every spec that touches those classes calls **`FieldRegistryEngine.create(registry)`** and **`RuleEngine.create(ruleSet, fieldEngine[, scopePolicy])`** on the real implementations.
+
+### 14.3 Per-file inventory (`test/unit/engine/`)
+
+| Spec file | Uses real `FieldRegistryEngine`? | Uses real `RuleEngine`? | Starter fixture used? | Engine mocks? |
+|-----------|----------------------------------|-------------------------|----------------------|---------------|
+| [`field-registry.engine.spec.ts`](../packages/platform-core/test/unit/engine/field-registry.engine.spec.ts) | Yes (`create` / `tryCreate`) | No (not in scope) | Yes — `testStarterFieldRegistry()` for happy paths; inline arrays for duplicate/cardinality | **None** |
+| [`rule.engine.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.spec.ts) | Yes | Yes (`makeEngine` → `create`) | Yes — starter for integration + several scenarios; `minimalRegistry` for controlled negative paths | **None** |
+| [`rule.engine.force-cell.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.force-cell.spec.ts) | Yes — `testStarterFieldRegistry()` | Yes | Yes | **None** |
+| [`rule-cell-index.spec.ts`](../packages/platform-core/test/unit/engine/rule-cell-index.spec.ts) | No — tests `RuleCellIndex` only | No | Partial — `baseRuleSet` inline (not engine) | **None** |
+| [`render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts) | Yes | Yes (`makeStepContext`) | Yes — starter integration; `minimalRegistry` + custom `ruleSet` for visibility edge cases | **None** |
+| [`render-plan.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.spec.ts) | Yes | Yes (`buildPlan`) | Yes — starter full plan; inline registries for hidden/composite/empty-step cases | **None** |
+| [`platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) | Yes (via facade bootstrap) | Yes (via facade) | Yes — `createTestStarterPlugin()` + spread mutations for bootstrap failures | **None** |
+| [`validation-status-map.spec.ts`](../packages/platform-core/test/unit/engine/validation-status-map.spec.ts) | No | No | No (collector only) | **None** |
+
+### 14.4 List of replaced mocks
+
+| # | File | Mock type removed | Replaced with |
+|---|------|-------------------|---------------|
+| — | — | — | **No replacements performed** |
+
+**Reason:** Zero qualifying mocks. Tests are not theatrical via **engine doubles**; they exercise real engines with **synthetic inline `WorkspaceFieldRegistry` / `WorkspaceRuleSet` / `WorkspaceWizardSurface`** where the scenario requires shapes the starter plugin does not provide (ambiguous cells, orphan overrides, `inactiveFieldGroups`, empty root steps, force-cell policy, etc.).
+
+### 14.5 Why wholesale `minimalRegistry` → starter was not substituted
+
+Replacing inline `minimalRegistry` with `testStarterFieldRegistry()` **without** retaining custom `ruleSet`/`wizard` would change assertions (e.g. `RULE_CONTEXT_UNMATCHED` for `variant: "other"`, `AMBIGUOUS_RULE_RESOLUTION` ties, hidden-field overrides on `field.a` / `field.b`). That is **fixture tailoring**, not mock removal. Per directive, those tests were **not** altered; no post-replacement failures were observed because **no replacement was applied**.
+
+### 14.6 Architectural flaws exposed by mock removal
+
+| ID | Severity | Finding |
+|----|----------|---------|
+| — | — | **None** — no mock→starter substitution was executed; engine hot paths already use real `RuleEngine` / `FieldRegistryEngine` instances |
+
+**Related (pre-existing, not mock-induced):** Synthetic registries remain the right tool for negative-path unit tests until the suite adopts **starter-derived plugins** (`{ ...createTestStarterPlugin(), ruleSet: { ... } }`) consistently — pattern already used in `platform-wizard.engine.spec.ts`, not an engine flaw.
+
+### 14.7 Sign-off — mock sweep
+
+| Check | Result |
+|-------|--------|
+| `RuleEngine` / `FieldRegistryEngine` class mocks in `test/unit/engine/` | **0** |
+| Mocks replaced with `starter.fixture.ts` | **0** (nothing to replace) |
+| Tests broken by this sweep | **0** |
+| Engine architectural flaws filed from failed replacements | **0** |
+
+### Scan log — 2026-06-04 (mock replacement sweep)
+
+- Operator: user directive — theatrical mock audit on `test/unit/engine/`.
+- Commands: `rg` mock/stub/fake patterns; read all 8 spec files; `node --test test/unit/engine/*.spec.ts`.
+- Outcome: §14 appended; replacement list empty; engines verified real.
+
+---
+
+## 15. `validateCanonical` integrity probe — silent-test register (2026-06-04)
+
+### 15.1 Probe definition
+
+| Field | Value |
+|-------|--------|
+| **Directive** | Temporarily disable document validation in [`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts) `validateCanonical()` (stub `{ ok: true, violations: [] }` instead of `validateCanonicalDocument(...)`) |
+| **Command** | `pnpm --filter @app-tour/platform-core test` (`test:closure` + `test:unit:internal`) |
+| **Silent test (strict)** | An `it()` that calls `engine.validateCanonical` / facade `validateCanonical` and **asserts `result.ok === false` or a specific violation code**, but **still passes** while the stub is active |
+| **False-confidence test (weak)** | Stays green while validation is stubbed but only asserts `ok: true`, empty violations, or init side effects — cannot prove `validateCanonicalDocument` ran |
+| **Restore** | `validateCanonicalDocument` call restored immediately after probe; `pnpm test` re-run → green |
+
+### 15.2 Mutation (reverted)
+
+```typescript
+// Probe only (reverted):
+return { ok: true, violations: [] };
+// validateCanonicalDocument({ ... }) commented out
+```
+
+Init/bootstrap failures still return `validationResultFromPlatformError` **before** the stub; those paths were not mutated.
+
+### 15.3 Verdict — strict silent tests
+
+| Metric | Value |
+|--------|-------|
+| **Strict silent tests** | **0** |
+| **Integrity audit (strict)** | **PASS** — every test that required validation failure through the facade **failed** (red) while the stub was active |
+
+**Failed as expected (non-silent; validation gate was exercised):**
+
+| ID | Test title | File |
+|----|------------|------|
+| ST-PROBE-F01 | `validateCanonical reports UNKNOWN_CANONICAL_PATH when only homoglyph value is present` | [`test/adversarial-validation.spec.ts`](../packages/platform-core/test/adversarial-validation.spec.ts) |
+| ST-PROBE-F02 | `validateCanonical rejects BigInt inside registered composite fields` | same |
+| ST-PROBE-F03 | `hidden composite field with BigInt poison is rejected at document ingress` | same |
+| ST-PROBE-F04 | `validateCanonical reports REQUIRED_FIELD_EMPTY for missing visible required field` | [`test/facade-integration.spec.ts`](../packages/platform-core/test/facade-integration.spec.ts) |
+| ST-PROBE-F05 | `validateCanonical reports CANONICAL_TYPE_MISMATCH for invalid date through facade` | same |
+| ST-PROBE-F06 | `validateCanonical reports CANONICAL_TYPE_MISMATCH for invalid boolean through facade` | same |
+| ST-PROBE-F07 | `validateCanonical reports CANONICAL_TYPE_MISMATCH through facade for wrong primitive kind` | same |
+| ST-PROBE-F08 | `headless init still validates canonical after malicious theme on plugin object` | [`test/adversarial-plugin-ingress.spec.ts`](../packages/platform-core/test/adversarial-plugin-ingress.spec.ts) |
+| ST-PROBE-F09 | `parallel validateCanonical distinguishes variant outcomes under mixed tenants` | [`test/rule-engine-concurrency.spec.ts`](../packages/platform-core/test/rule-engine-concurrency.spec.ts) |
+| ST-PROBE-F10 | `parallel validateCanonical with variant matrix yields different ok outcomes` | [`test/runtime-isolation.spec.ts`](../packages/platform-core/test/runtime-isolation.spec.ts) |
+| ST-PROBE-F11 | `validateCanonical reports UNKNOWN_CANONICAL_PATH when required path is absent` | [`test/unit/engine/platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) |
+| ST-PROBE-F12 | `validateCanonical reports REQUIRED_FIELD_EMPTY for missing visible required field` | same |
+| ST-PROBE-F13 | `validateCanonical reports CANONICAL_TYPE_MISMATCH for wrong primitive on required text` | same |
+| ST-PROBE-F14 | `validateCanonical rejects HIDDEN_FIELD_POISON when hidden field has enum value` | same |
+| ST-PROBE-F15 | `validateCanonical reports violation for inactive group field when group is active` | same |
+| ST-PROBE-F16 | `validateCanonical reports HIDDEN_FIELD_POISON when hidden field has any value` | same |
+| ST-PROBE-F17 | `validates 1,000 hidden fields across 40 steps when document omits hidden paths` (second assertion: `missingVisible.ok === false`) | same (`describe` `validateCanonical high-cardinality`) |
+
+### 15.4 False-confidence register (weak positives — not strict silents)
+
+These **`it()` blocks stayed green** with validation stubbed. They do **not** meet the strict silent definition (they expect success or test non-facade helpers), but they **do not prove** `validateCanonicalDocument` executed.
+
+| ID | Test title | File | Why weak |
+|----|------------|------|----------|
+| ST-WEAK-01 | `validateCanonical lazily inits on first call without prior tryInit` | [`test/cold-start.contract.spec.ts`](../packages/platform-core/test/cold-start.contract.spec.ts) | Asserts `isInitialized()` + `ok: true` on valid doc only |
+| ST-WEAK-02 | `validateCanonical accepts boolean false as non-empty through facade` | [`test/facade-integration.spec.ts`](../packages/platform-core/test/facade-integration.spec.ts) | Expects `ok: true` |
+| ST-WEAK-03 | `validateCanonical accepts required number 0 as non-empty` | [`test/unit/engine/platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) | Expects `ok: true` |
+| ST-WEAK-04 | `validateCanonical passes for valid starter document` | same | Expects `ok: true` |
+| ST-WEAK-05 | `validateCanonical skips fields in inactiveFieldGroups even when data is invalid` | same | Invalid `pricingAmount` + inactive group → expects `ok: true`; **indistinguishable from stub** |
+| ST-WEAK-06 | `validateCanonical allows hidden composite with benign object (no HIDDEN_FIELD_POISON)` | same | Expects `ok: true`; empty violations also match stub |
+| ST-WEAK-07 | `getCanonicalValue does not alias homoglyph segments to ASCII registry paths` | [`test/adversarial-validation.spec.ts`](../packages/platform-core/test/adversarial-validation.spec.ts) | **No** `validateCanonical` — path helper only |
+| ST-WEAK-08 | `assertCanonicalValueMatchesKind rejects BigInt deep inside composite nodes` | same | **Direct** `assertCanonicalValueMatchesKind` — bypasses facade stub |
+| ST-WEAK-09 | `canonical-field-validation-contract module is present` | [`test/phase-1.contract.spec.ts`](../packages/platform-core/test/phase-1.contract.spec.ts) | File-existence contract only |
+
+**Note:** `validateCanonical maps tryInit failure via validationResultFromPlatformError` **failed** (red) in one run and is **not** listed as weak — it asserts `ok: false` from init remapping; if it ever passes under stub, treat as a regression.
+
+### 15.5 Coverage gap (architectural, not silent)
+
+| Finding | Detail |
+|---------|--------|
+| **No direct `validateCanonicalDocument` unit spec** | `rg validateCanonicalDocument packages/platform-core/test` → **0**; document validation is integration-tested only via `PlatformWizardEngine.validateCanonical` |
+| **Utils still tested in isolation** | [`test/unit/utils/canonical-value.spec.ts`](../packages/platform-core/test/unit/utils/canonical-value.spec.ts) and path helpers stay green under facade stub — correct for unit scope, but **false confidence** if mistaken for end-to-end validation |
+
+### 15.6 Sign-off — integrity probe
+
+| Check | Result |
+|-------|--------|
+| Strict silent tests (failure-expected, stayed green) | **0** |
+| Failure-expected `validateCanonical` tests under stub | **17+ failed** (red) |
+| Engine mutation reverted | **Yes** |
+| Post-restore `pnpm --filter @app-tour/platform-core test` | **PASS** (expected) |
+
+### Scan log — 2026-06-04 (`validateCanonical` integrity probe)
+
+- Operator: user directive — comment out `validateCanonicalDocument` in facade; report silent test IDs.
+- Commands: `pnpm --filter @app-tour/platform-core test`; targeted `platform-wizard.engine.spec.ts`; TAP reporter on closure specs.
+- Outcome: §15 appended; **strict silent register empty**; weak-positive register ST-WEAK-01…09; mutation reverted.
+
+---
+
+## 16. Module & instance persistence scan — cross-tenant leakage register (2026-06-04)
+
+### 16.1 Methodology
+
+| Step | Action |
+|------|--------|
+| Scope | All of [`packages/platform-core/src/`](../packages/platform-core/src/) (35 TypeScript modules) |
+| Module-level | `rg '^const \|^let \|^var \|^export const \|^static '` + manual read of every file |
+| Class static | `rg 'static '` on classes — only **factory** methods (`create` / `tryCreate` / `tryFromPlugin`); **no** `static` fields |
+| Global `let` / `var` | `rg '^let \|^var '` → **0** at module scope |
+| Instance graph | Trace `PlatformWizardEngine` → `WizardRuntime` → `RuleEngine` → `RuleEngineScope` / `FieldRegistryEngine` / `RuleCellIndex` |
+| Leakage model | **Cross-tenant leakage** = tenant A’s rule/validation outcome or PII-bearing scope state observable by tenant B on a **different code path** (wrong cell, wrong effective field, merged cache key, shared mutable document reference) |
+
+**North-star contract (facade):** [`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts) documents **one engine per tenant session**; `tenantId` is required on every `RuleContext` ([`rule-context.ts`](../packages/platform-core/src/types/rule-context.ts)).
+
+### 16.2 Executive summary
+
+| Category | Count | Cross-tenant leakage? |
+|----------|-------|------------------------|
+| Module-level `const` (immutable config / maps / singleton return values) | **18** symbols | **No** — no tenant/document payload |
+| `PlatformWizardEngine` class-level static state | **0** fields | **N/A** |
+| Instance state that **survives calls** on the **same** `PlatformWizardEngine` | **4** structures | **No** under keyed isolation; **ops risk** if host violates one-engine-per-tenant |
+| Instance state **not** shared across **different** `PlatformWizardEngine` instances | All runtime graphs | **No** — new `RuleEngine` per initialized engine |
+
+**Verdict:** No variable was found that causes **correctness** cross-tenant leakage when `tenantId` is valid and cache keys are built via [`buildRuleContextScopeKey`](../packages/platform-core/src/utils/rule-context-scope-key.ts). The only **multi-tenant-retentive** structure is `RuleEngine.scopeCacheByTenant` on a **single** engine instance (by design for LRU performance; partitioned by `tenantId`).
+
+### 16.3 `PlatformWizardEngine` instance persistence (per engine, not across engines)
+
+| ID | Location | Persists across calls? | Shared across engine instances? | Cross-tenant leakage? |
+|----|----------|------------------------|----------------------------------|------------------------|
+| PWE-01 | `pluginInput: WorkspacePlugin` | Yes (lifetime of engine) | **No** | **No** — frozen plugin snapshot at create; no tenant channel |
+| PWE-02 | `runtime: WizardRuntime \| null` | Yes after first successful `tryInit` | **No** | **No** — holds per-engine `fieldEngine` + `ruleEngine` |
+| PWE-03 | `ruleEngineScopePolicy` | Yes | **No** (per engine); often **same object ref** as `DEFAULT_RULE_ENGINE_SCOPE_POLICY` (PERS-09) | **No** — policy flags only; default is empty frozen `{}` |
+| PWE-04 | Init failure not cached (comment L67) | N/A | **No** | **No** — failed `tryInit` does not pin partial runtime |
+
+New `PlatformWizardEngine.create(plugin)` → new instance → **no** reuse of PWE-02 from other instances.
+
+### 16.4 `WizardRuntime` subgraph (created once per successful init)
+
+| ID | Class | Instance fields | Persists | Across engines? | Cross-tenant leakage? |
+|----|-------|-----------------|----------|-----------------|------------------------|
+| RT-01 | `FieldRegistryEngine` | `fields`, `byId`, `byStepId` (frozen maps) | Yes | **No** | **No** — immutable registry index; no `tenantId` |
+| RT-02 | `RuleCellIndex` | `exactBuckets`, `cellsByDimensionKeyCount` | Yes | **No** | **No** — immutable rule topology |
+| RT-03 | `RuleEngine` | `scopeCacheByTenant: Map<tenantId, Map<scopeKey, RuleEngineScope>>` | Yes | **No** | **No** (correctness) — see §16.6 |
+| RT-04 | `RuleEngineScope` (cached) | `normalized`, `filteredDimensions`, `resolvedCellId`, `effectiveByFieldId` | Yes while in RT-03 cache | **No** | **No** — scope key includes `t:${tenantId}\0…`; see §16.6 |
+| RT-05 | `validateCanonicalDocument` | `createViolationCollector()` per call | **No** (new collector each validation) | **No** | **No** — except shared frozen `OK_RESULT` return (PERS-01) |
+
+### 16.5 Module-level persistence (entire process — visible to all `PlatformWizardEngine` instances)
+
+All entries are **`const`** only (no module-level `let` / `var`). None hold per-request document data or tenant-specific rule outcomes.
+
+| ID | Symbol | File | Mutable? | Holds tenant data? | Cross-tenant leakage? |
+|----|--------|------|----------|-------------------|------------------------|
+| PERS-01 | `OK_RESULT` | [`validation-status-map.ts`](../packages/platform-core/src/engine/validation-status-map.ts) | **Frozen** singleton | **No** | **No** — shared `{ ok: true, violations: [] }`; violations array frozen empty; failure paths allocate new objects |
+| PERS-02 | `FORBIDDEN_SEGMENTS` | [`canonical-path.ts`](../packages/platform-core/src/utils/canonical-path.ts) | Frozen `Set` | **No** | **No** — proto-pollution guard constants |
+| PERS-03 | `FORBIDDEN_OBJECT_KEYS` | [`canonical-value-composite.ts`](../packages/platform-core/src/utils/canonical-value-composite.ts) | Frozen `Set` | **No** | **No** |
+| PERS-04 | `MAX_COMPOSITE_*`, depth/stack limits | `canonical-value-composite.ts` | Numbers | **No** | **No** |
+| PERS-05 | `MAX_ENUM_OPTIONS`, date bounds, `ISO_DATE_TIME_PATTERN` | [`canonical-value-text.ts`](../packages/platform-core/src/utils/canonical-value-text.ts) | Regex + numbers | **No** | **No** |
+| PERS-06 | `MAX_DIMENSION_VALUE_LENGTH` | [`rule-context-dimensions.ts`](../packages/platform-core/src/utils/rule-context-dimensions.ts) | Number | **No** | **No** |
+| PERS-07 | `TENANT_ID_PATTERN` | [`rule-context-tenant.ts`](../packages/platform-core/src/utils/rule-context-tenant.ts) | Regex | **No** | **No** — validation only |
+| PERS-08 | `THEME_SDK_VALIDATION_CODES`, `SDK_TO_PLATFORM_CODE` | [`sdk-error-map.ts`](../packages/platform-core/src/errors/sdk-error-map.ts) | Frozen maps/sets | **No** | **No** |
+| PERS-09 | `DEFAULT_RULE_ENGINE_SCOPE_POLICY` | [`rule-engine-scope-policy.ts`](../packages/platform-core/src/engine/rule-engine-scope-policy.ts) | `Object.freeze({})` | **No** | **No** — same empty policy ref across engines is intentional |
+| PERS-10 | `INGRESS_SANITIZATION_TO_PLATFORM` | [`ingress-sanitization-map.ts`](../packages/platform-core/src/errors/ingress-sanitization-map.ts) | Static map | **No** | **No** |
+| PERS-11 | `CANONICAL_FIELD_VALIDATION_CONTRACT` | [`canonical-field-validation-contract.ts`](../packages/platform-core/src/contracts/canonical-field-validation-contract.ts) | Frozen table | **No** | **No** |
+| PERS-12 | `MAX_RULE_CELL_INDEX_SIZE`, `MAX_ALLOWED_REGISTRY_FIELDS` | [`rule-cell-limits.ts`](../packages/platform-core/src/engine/rule-cell-limits.ts) | Numbers | **No** | **No** |
+| PERS-13 | `MAX_SCOPE_CACHE_SIZE` (= 64) | [`rule.engine.ts`](../packages/platform-core/src/engine/rule.engine.ts) | Number | **No** | **No** |
+| PERS-14 | `PLATFORM_CORE_VERSION` | [`index.ts`](../packages/platform-core/src/index.ts) | `1 as const` | **No** | **No** |
+| PERS-15 | `assertRuleContextTenantId` | `rule-context-tenant.ts` | Function alias | **No** | **No** |
+
+**Not module singletons:** [`createScratchPool`](../packages/platform-core/src/engine/rule-resolution.ts) allocates **new** `Uint16Array` / `Int16Array` per `pickBestMatchingCell` invocation (safe for concurrency; no cross-call buffer reuse).
+
+### 16.6 Deep dive — `RuleEngine.scopeCacheByTenant` (flagged as requested)
+
+```mermaid
+flowchart LR
+  PWE[PlatformWizardEngine instance]
+  RE[RuleEngine.scopeCacheByTenant]
+  T1["Map entry tenant_A"]
+  T2["Map entry tenant_B"]
+  S1[RuleEngineScope scopes]
+  PWE --> RE
+  RE --> T1 --> S1
+  RE --> T2
+```
+
+| Question | Answer |
+|----------|--------|
+| Persists across different `PlatformWizardEngine` instances? | **No** — each engine’s `buildRuntime()` constructs a **new** `RuleEngine` |
+| Persists across `validateCanonical` / `buildRenderPlan` on the **same** engine? | **Yes** — LRU per `tenantId`, max 64 scope keys per tenant ([`rule.engine.ts`](../packages/platform-core/src/engine/rule.engine.ts) L85–111) |
+| Cache key | [`buildRuleContextScopeKey`](../packages/platform-core/src/utils/rule-context-scope-key.ts): `` `t:${tenantId}\0${dimensionKey}` `` after `assertTenantId` + NFC dimension normalization |
+| Can tenant B read tenant A’s `RuleEngineScope`? | **No** — outer map keyed by `tenantId` string; inner map keyed by full scope key including `t:` prefix |
+| Can wrong `tenantId` in context poison another partition? | **No** — attacker-supplied `tenantId` only selects that partition; does not merge tenants |
+| Document / canonical payload in cache? | **No** — scopes hold plugin/rule/registry **effective field state**, not `CanonicalDocument` |
+| Residual risk | **Operational:** reusing one engine for many tenants retains scope objects until LRU eviction (**memory**, not wrong answers). **Contract violation** (shared engine) is host responsibility; tests enforce isolation under parallel mixed tenants ([`runtime-isolation.spec.ts`](../packages/platform-core/test/runtime-isolation.spec.ts), [`rule-engine-concurrency.spec.ts`](../packages/platform-core/test/rule-engine-concurrency.spec.ts)) |
+
+**Why this is not cross-tenant leakage:** Returned `RuleEngineScope` is always from `tenantCache.get(scopeKey)` where `scopeKey` was derived from the **current** call’s `assertTenantId(context)`. Tenant A’s cached scopes live under `scopeCacheByTenant.get("tenant_A")` and are never returned for `tenantId: "tenant_B"`.
+
+### 16.7 Ephemeral / call-local state (not persistence across engines)
+
+| Pattern | Example | Notes |
+|---------|---------|-------|
+| Per-validation collector | `createViolationCollector()` buffer + `fieldIndex` | New closure per `validateCanonicalDocument`; `reset()` clears slots |
+| Per-call dimension filter `Set` | `filterRuleContextDimensions` L12 | Local `allowed` set |
+| Per-call render maps | `listStepIds` `inRoots` | Local `Set` |
+| Constructor-local `idMap` / `stepMap` | `FieldRegistryEngine` constructor | Promoted to frozen instance maps on RT-01 |
+
+### 16.8 Findings register — leakage & hygiene
+
+| ID | Severity | Finding |
+|----|----------|---------|
+| CTL-00 | — | **No cross-tenant correctness leakage** identified in `src/` for keyed cache + frozen plugin graph |
+| CTL-01 | **Info** | `OK_RESULT` (PERS-01) is a **shared frozen success object** across all engines and validations — safe if callers treat `ValidationResult` as read-only (violations on failure are new arrays) |
+| CTL-02 | **Low / ops** | `scopeCacheByTenant` (RT-03) retains up to **64 scopes × N tenants** per **single** `PlatformWizardEngine` — memory retention across tenants when hosts multiplex one engine; not a data bleed |
+| CTL-03 | **Info** | `DEFAULT_RULE_ENGINE_SCOPE_POLICY` (PERS-09) shared by reference across engines — immutable empty object |
+| CTL-04 | **Info** | Zero `static` instance fields on any class; zero module-level `let`/`var` |
+
+### 16.9 Sign-off — persistence scan
+
+| Check | Result |
+|-------|--------|
+| Module-level `let` / `var` | **0** |
+| Class `static` mutable fields | **0** |
+| Singleton / shared frozen module constants | **18** (PERS-01…15) — none tenant-specific |
+| State surviving across **different** `PlatformWizardEngine` instances | **None** (only shared immutable module constants) |
+| State surviving across calls on **same** engine | **PWE-01…04**, **RT-01…04** |
+| Cross-tenant leakage vulnerabilities | **0** |
+
+### Scan log — 2026-06-04 (module persistence / cross-tenant)
+
+- Operator: user directive — forensic scan `packages/platform-core/src/` for static/global/singleton persistence; explain non-leakage; append to audit.
+- Commands: full `src/` grep + read `platform-wizard.engine.ts`, `rule.engine.ts`, `rule-engine.scope.ts`, `validation-status-map.ts`, `rule-context-scope-key.ts`.
+- Outcome: §16 appended; **CTL-00** no correctness leakage; RT-03 flagged with partition rationale.
+
+---
+
+## 17. Internal-function coverage — `render-plan.ts` & `rule-resolution.ts` (2026-06-04)
+
+### 17.1 Methodology
+
+| Step | Detail |
+|------|--------|
+| Scope | [`render-plan.ts`](../packages/platform-core/src/engine/render-plan.ts), [`rule-resolution.ts`](../packages/platform-core/src/engine/rule-resolution.ts) |
+| **Internal** | Non-exported `function` declarations only (not exported `buildRenderPlan` / `pickBestMatchingCell` / etc.) |
+| Tooling | `npx c8@10.1.2` with `--include` on both files; full suite: `test/unit/**/*.spec.ts` + `test/*.spec.ts` (158 tests) |
+| Corroboration | Node `--experimental-test-coverage` (same uncovered line ranges on `render-plan.ts` / `rule-resolution.ts`) |
+
+### 17.2 Inventory — internal functions
+
+| File | Function | Lines | Exported? |
+|------|----------|-------|-----------|
+| `render-plan.ts` | `buildFieldsForStep` | 48–64 | **No** |
+| `render-plan.ts` | `toRenderFieldPlan` | 66–90 | **No** |
+| `rule-resolution.ts` | `matchedDimensionKeyCount` | 21–35 | **No** |
+| `rule-resolution.ts` | `findDominantMatchIndex` | 59–94 | **No** |
+| `rule-resolution.ts` | `throwAmbiguousRuleResolution` | 96–120 | **No** |
+
+**Related exported helpers in `rule-resolution.ts` (not internal, but same file gaps):** `cellMatchesDimensions`, `createScratchPool`, `pickBestMatchingCell`.
+
+### 17.3 Uncovered branches / statements (gaps)
+
+| ID | File | Function / site | Uncovered source lines | Why uncovered | Production reachability |
+|----|------|-----------------|------------------------|---------------|------------------------|
+| COV-GAP-01 | `render-plan.ts` | **`toRenderFieldPlan`** — `!entry` guard | **73–77** (`throw` `UNKNOWN_FIELD_ID`) | No test builds a plan after `listByStep` returns an id missing from `byId` | **Defensive** — `buildFieldsForStep` only iterates `fieldEngine.listByStep(stepId)`; `getById` should always hit |
+| COV-GAP-02 | `rule-resolution.ts` | **`pickBestMatchingCell`** — `count === 0` | **132–136** | Callers use `RuleEngineScope.resolveCellId` which throws `RULE_CONTEXT_UNMATCHED` when `findMatches` is empty **before** `pickBestMatchingCell` | **Unreachable** on current call graph ([`rule-engine.scope.ts`](../packages/platform-core/src/engine/rule-engine.scope.ts) L71–84) |
+| COV-GAP-03 | `rule-resolution.ts` | **`pickBestMatchingCell`** — `count > MAX_RULE_CELL_INDEX_SIZE` | **143–148** | `RuleCellIndex` constructor rejects `cells.length > 256`; `findMatches` cannot return more than cell count | **Unreachable** unless `pickBestMatchingCell` is called directly with a synthetic 257+ array |
+
+**c8 line coverage (full Phase 1 test suite):** `render-plan.ts` **93.54%** stmts (uncovered **73–77**); `rule-resolution.ts` **93.25%** stmts (uncovered **132–136**, **143–148**).
+
+**No unit test imports `pickBestMatchingCell` or `cellMatchesDimensions` directly** — coverage is indirect via `RuleEngine` / `RuleCellIndex`.
+
+### 17.4 Internal functions with **no** uncovered lines (proof map)
+
+#### `buildFieldsForStep` (`render-plan.ts` 48–64)
+
+| Lines | Behavior | Covering test (file · `it()` title) |
+|-------|----------|-------------------------------------|
+| 56–61 | Loop `listByStep`, skip hidden, push row | [`render-plan.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.spec.ts) · `builds full plan for starter plugin` (L33–48) |
+| 57–58 | `continue` on hidden | same file · `omits hidden fields from plan rows` (L50–98) |
+| 40–42 | Parent skips empty step (`fields.length === 0`) | same file · `excludes hidden fields from plan` (L100–134), `omits empty root steps from plan` (L173–209) |
+| 60 | `toRenderFieldPlan(...)` | same file · `preserves composite kind with uiHints.compositeId` (L136–171) |
+
+#### `matchedDimensionKeyCount` (`rule-resolution.ts` 21–35)
+
+| Lines | Behavior | Covering test |
+|-------|----------|---------------|
+| 27–33 | Per-dimension equality / increment | [`rule.engine.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.spec.ts) · `prefers more matched context keys over higher priority on fewer keys` (L277–313) — exercises `findDominantMatchIndex` → L68 |
+| 30–31 | `count += 1` on match | same · `prefers specificity over priority when partial cell matches` (L315–350) |
+| 104–107 | Second pass in `throwAmbiguousRuleResolution` | same · `throws AMBIGUOUS_RULE_RESOLUTION when priority and specificity tie` (L389–421) |
+
+#### `findDominantMatchIndex` (`rule-resolution.ts` 59–94)
+
+| Lines | Behavior | Covering test |
+|-------|----------|---------------|
+| 67–70 | Fill scratch arrays | any multi-cell `resolveCellId` — e.g. `prefers specific dimension match over catch-all cell` (L247–275) |
+| 76–83 | Pick higher specificity / priority | `prefers more matched context keys…` (L277–313), `prefers higher priority when multiple catch-all cells match` (L352–387) |
+| 86–91 | `tieCount` for ambiguous tie | `throws AMBIGUOUS_RULE_RESOLUTION when priority and specificity tie` (L389–421) → L153–159 in `pickBestMatchingCell` |
+
+#### `throwAmbiguousRuleResolution` (`rule-resolution.ts` 96–120)
+
+| Lines | Behavior | Covering test |
+|-------|----------|---------------|
+| 102–108 | Collect `tiedCellIds` | [`rule.engine.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.spec.ts) · `throws AMBIGUOUS_RULE_RESOLUTION when priority and specificity tie` (L389–421) — asserts `error.details?.tiedCellIds` |
+| 110–118 | Throw `PlatformCoreError` | same test — L413–420 |
+
+### 17.5 Five most complex functions — line-level test map (including exports)
+
+Used because **gaps exist** in the same files; this table is the “proof” companion for covered paths.
+
+| Rank | Function | File:L–L | Complexity driver | Primary tests touching lines |
+|------|----------|----------|-------------------|------------------------------|
+| 1 | `pickBestMatchingCell` | `rule-resolution.ts` 126–163 | Empty / 1 / N / tie / limit guards | **Covered:** L138–139 → `resolves exact dimension match` (`rule.engine.spec.ts` L96+); L150–162 → `prefers more matched context keys` (L277+); L153–159 → `AMBIGUOUS_RULE_RESOLUTION` (L389+). **Uncovered:** L132–136, L143–148 (COV-GAP-02/03) |
+| 2 | `findDominantMatchIndex` | 59–94 | O(n) scan + tie detection | All multi-match `resolveCellId` tests above; **full** internal coverage |
+| 3 | `buildRenderPlan` | `render-plan.ts` 23–46 | Step loop + uiHints option | [`render-plan.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.spec.ts) full describe; L34–36 → `exposes wizardCapacityStepRedundant…` (L221–231); L38–42 → starter + empty-step tests |
+| 4 | `throwAmbiguousRuleResolution` | `rule-resolution.ts` 96–120 | Tie enumeration + error details | `throws AMBIGUOUS_RULE_RESOLUTION…` (L389–421) — **full** internal coverage |
+| 5 | `toRenderFieldPlan` | `render-plan.ts` 66–90 | Registry lookup + composite uiHints | L71–89 → `preserves composite kind…` (L136–171), `builds full plan for starter` (L33–48); **gap** L73–77 (COV-GAP-01) |
+
+**`cellMatchesDimensions` (exported, 6–19):** L14–15 false branch → [`rule-cell-index.spec.ts`](../packages/platform-core/test/unit/engine/rule-cell-index.spec.ts) · `findMatches returns partial-dimension and catch-all cells` (L44–49) (premium cell fails `variant`+`tier` combo); L17 return true → same test matching cells.
+
+### 17.6 Sign-off — internal coverage
+
+| Check | Result |
+|-------|--------|
+| Internal functions in scope | **5** |
+| Internal functions with **zero** uncovered statements | **4** (`buildFieldsForStep`, `matchedDimensionKeyCount`, `findDominantMatchIndex`, `throwAmbiguousRuleResolution`) |
+| Internal functions with uncovered statements | **1** (`toRenderFieldPlan` **73–77**) |
+| Same-file exported gaps | `pickBestMatchingCell` **132–136**, **143–148** (defensive / unreachable on current graph) |
+| Recommended test additions (optional) | Direct `pickBestMatchingCell([], {})` and `pickBestMatchingCell(Array(257).fill(cell), {})`; render-plan test with mocked `getById` returning `undefined` — only if policy requires 100% line cover |
+
+### Scan log — 2026-06-04 (render-plan / rule-resolution coverage)
+
+- Operator: user directive — list uncovered internal branches with file:line; prove or append audit.
+- Commands: `c8` scoped coverage on both files + full `platform-core` test suite (158 tests); read internal function bodies + `rule.engine.spec.ts` / `render-plan.spec.ts` / `rule-cell-index.spec.ts`.
+- Outcome: §17 appended; **COV-GAP-01…03**; four internal helpers fully covered.
+
+---
+
+## 18. Forensic Truth covenant audit — FT-P1-01 / FT-P1-02 / FT-P1-12 (2026-06-04)
+
+### 18.1 Authority & selection
+
+| Field | Value |
+|-------|--------|
+| **Source** | [`docs/phase-1-platform-core.ai-exec.md`](../docs/phase-1-platform-core.ai-exec.md) → [`docs/phase-1/audits/forensic-template.md`](../docs/phase-1/audits/forensic-template.md) §9.4 |
+| **Comparator** | [`packages/platform-core/src/`](../packages/platform-core/src/) (production `src/` only; tests cited for enforcement paths) |
+| **Why these three** | **FT-P1-01** — headless ingress boundary (North Star). **FT-P1-02** — forbidden static API / bootstrap class surface. **FT-P1-12** — forbidden `StepEngine` class vs required plain-function step module. |
+
+### 18.2 Summary
+
+| FT ID | Covenant violations | Compliant |
+|-------|---------------------|-----------|
+| **FT-P1-01** | **1** (`CV-P1-01`) | Theme codes → `PLUGIN_INVALID_SHAPE` mapper present; no `workspace-sdk/theme` import in `src/` |
+| **FT-P1-02** | **0** | `fromPlugin` absent from `src/`; `create` + `tryFromPlugin` present |
+| **FT-P1-12** | **0** | No `StepEngine` class; `step.engine.ts` absent; `render-plan.steps.ts` is functions-only |
+
+---
+
+### 18.3 FT-P1-01 — Headless platform — no theme in engine
+
+**Forensic YAML (repo truth lines):**
+
+```yaml
+claim: "Headless platform — no theme in engine"
+repo: "buildRuntime uses includeTheme:false; theme SDK codes → PLUGIN_INVALID_SHAPE at boundary"
+```
+
+#### Line-by-line vs `src/`
+
+| FT line / clause | Required by FT | Actual in `src/` | Verdict |
+|------------------|----------------|------------------|---------|
+| No theme in engine | No theme runtime / theme subpath imports in engine | `rg theme` in `src/`: only [`sdk-error-map.ts`](../packages/platform-core/src/errors/sdk-error-map.ts) L25–34 (error-code set) + [`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts) L51 `{ includeTheme: false }`. **No** `import …/theme` | **Match** |
+| `buildRuntime uses includeTheme:false` | `buildRuntime()` must apply headless ingress flag | [`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts) **`buildRuntime()` L188–212** calls `tryValidateWorkspacePluginForPlatform(this.pluginInput)` only — **no** `parseWorkspacePluginFromStorage(…, { includeTheme: false })` | **Covenant Violation `CV-P1-01`** |
+| Where `includeTheme: false` actually lives | (implied by closure contract `headless-plugin-ingress`) | **`sanitizePluginAtCreate()` L49–51** → `parseWorkspacePluginFromStorage(plugin, { includeTheme: false })`; invoked from **constructor L78** (`create` / `tryFromPlugin` / `createForTests`) | Discrepancy: flag is on **create-time sanitize**, not on **`buildRuntime`** |
+| `theme SDK codes → PLUGIN_INVALID_SHAPE at boundary` | Theme validation codes map to `PLUGIN_INVALID_SHAPE` at platform boundary | [`sdk-error-map.ts`](../packages/platform-core/src/errors/sdk-error-map.ts) L59–60: `THEME_SDK_VALIDATION_CODES` → `"PLUGIN_INVALID_SHAPE"` | **Match** (mapper structure) |
+| Theme codes exercised at runtime | (implied) | With `includeTheme: false`, ingress uses `assertWorkspacePluginCore` (SDK); invalid theme on plugin object does **not** fail init ([`adversarial-plugin-ingress.spec.ts`](../packages/platform-core/test/adversarial-plugin-ingress.spec.ts)) — theme mapper is **dormant** on headless path | Behavioral drift; **not** an import/class violation |
+
+**`CV-P1-01` detail**
+
+| Field | Value |
+|-------|--------|
+| **Rule text** | FT-P1-01 `repo`: "`buildRuntime` uses `includeTheme:false`" |
+| **Violation site** | `platform-wizard.engine.ts` **L188–189** — `buildRuntime` validates via `tryValidateWorkspacePluginForPlatform`, not headless parse |
+| **Compliant site (different function)** | **L49–51** `sanitizePluginAtCreate` |
+| **Repo enforcement** | [`phase-1.contract.spec.ts`](../packages/platform-core/test/phase-1.contract.spec.ts) `assertBuildRuntimeUsesHeadlessPluginIngress()` regex-matches **file** `platform-wizard.engine.ts`, not the `buildRuntime` function body — gate green, **FT wording ≠ code locality** |
+
+**Bootstrap chain (subphase 1.6 — aligns with code, not FT-P1-01 literal):**
+
+| Step | Documented in [`1.6-guardrails-facade.md`](../docs/phase-1/subphases/1.6-guardrails-facade.md) | Code |
+|------|--------------------------------------------------------------------------------------------------|------|
+| 1 | `create`/`tryFromPlugin` → `includeTheme: false` | L78 → L49–51 |
+| 2 | `tryInit` → `tryValidateWorkspacePluginForPlatform` | L108 → L188–189 |
+
+---
+
+### 18.4 FT-P1-02 — Fail-fast `fromPlugin`
+
+**Forensic YAML:**
+
+```yaml
+claim: "Fail-fast fromPlugin"
+repo: "fromPlugin REMOVED — use create + init OR tryFromPlugin"
+forbidden_api: "PlatformWizardEngine.fromPlugin"
+enforcement: "no-fromPlugin-api contract; rg fromPlugin in src/ → 0"
+```
+
+#### Line-by-line vs `src/`
+
+| FT line / clause | Required | Actual (`platform-wizard.engine.ts` + all `src/`) | Verdict |
+|------------------|----------|---------------------------------------------------|---------|
+| `fromPlugin REMOVED` | No `static fromPlugin` on class | `export class PlatformWizardEngine` **L69** — static methods: **`create` L84**, **`createForTests` L92**, **`tryFromPlugin` L121** only | **Match** |
+| `use create + init OR tryFromPlugin` | Bootstrap surfaces | `create` → `tryInit`/`init` **L103–118**; `tryFromPlugin` → `create` + `tryInit` **L127–137** | **Match** |
+| `forbidden_api: PlatformWizardEngine.fromPlugin` | Must not exist | **Absent** | **Match** |
+| `rg fromPlugin in src/ → 0` | No substring `fromPlugin` in production `src/` | `rg fromPlugin packages/platform-core/src` → **0 files** | **Match** |
+| Fail-fast on bad plugin at bootstrap | Eager/lazy failure without sticky state | `sanitizePluginAtCreate` **throws** `PlatformCoreError` at **L53–56**; `tryFromPlugin` returns `PlatformResult` failure **L129–136**; no `initError` field on class | **Match** |
+| Class must not expose engine getters (1.6) | No `getFieldEngine` / `getRuleEngine` / `getStepEngine` | `rg getStepEngine\|getFieldEngine\|getRuleEngine` in `src/` → **0** | **Match** |
+
+**Imports on facade (structural — allowed internal wiring):**
+
+| Import | `platform-wizard.engine.ts` line | FT impact |
+|--------|----------------------------------|-----------|
+| `./field-registry.engine` | L24 | Internal — **not** on barrel ([`index.ts`](../packages/platform-core/src/index.ts)) — OK |
+| `./rule.engine` | L26 | Same |
+| `./render-plan` | L25 | Same |
+| `@app-tour/workspace-sdk/ingress` | L1 | Required for headless parse — OK |
+
+**Covenant violations:** **none** for FT-P1-02.
+
+---
+
+### 18.5 FT-P1-12 — Subphase 1.4 ≠ `StepEngine` class
+
+**Forensic YAML:**
+
+```yaml
+claim: "Subphase 1.4 = StepEngine class"
+repo: "render-plan.steps plain functions only — step.engine.ts removed from src/"
+enforcement: "file layout §3.4 + subphase_1_4_naming_law"
+```
+
+#### Line-by-line vs `src/`
+
+| FT line / clause | Required | Actual | Verdict |
+|------------------|----------|--------|---------|
+| `step.engine.ts removed from src/` | File must not exist | `Glob **/step.engine*` under `packages/platform-core/src` → **0** | **Match** |
+| `render-plan.steps plain functions only` | No `StepEngine` class in step module | [`render-plan.steps.ts`](../packages/platform-core/src/engine/render-plan.steps.ts): **`export function`** `listStepIds` L9, `getStepVisibility` L35, `listActiveSteps` L60 — **no** `class` | **Match** |
+| No `StepEngine` anywhere in engine | Class name forbidden | `rg 'StepEngine\|class Step' packages/platform-core/src` → **0** | **Match** |
+| Step logic not a separate engine class | Functions + helpers only | [`render-plan.ts`](../packages/platform-core/src/engine/render-plan.ts) imports `listActiveSteps` from `./render-plan.steps` L10; builds plan L38–42 | **Match** |
+| Re-export for tests | (not forbidden by FT) | `render-plan.ts` **L92–93** `export { getStepVisibility, listActiveSteps, listStepIds } from "./render-plan.steps"` — still **functions**, not a class | **Match** |
+| `PlatformWizardEngine` must not import `StepEngine` | No step engine coupling | Facade imports: `render-plan` L25 only — **no** `step.engine` import | **Match** |
+
+**Engine classes that *do* exist (allowed — not step surface):**
+
+| Class | File | On barrel? |
+|-------|------|------------|
+| `FieldRegistryEngine` | `field-registry.engine.ts` | **No** |
+| `RuleEngine` | `rule.engine.ts` | **No** |
+| `RuleEngineScope` | `rule-engine.scope.ts` | **No** |
+| `RuleCellIndex` | `rule-cell-index.ts` | **No** |
+| `PlatformWizardEngine` | `platform-wizard.engine.ts` | **Yes** (only engine class on barrel) |
+
+**Covenant violations:** **none** for FT-P1-12.
+
+---
+
+### 18.6 Covenant violation register
+
+| ID | FT rule | Type | Location | Discrepancy |
+|----|---------|------|----------|-------------|
+| **CV-P1-01** | FT-P1-01 | **Ingress locality / FT wording** | [`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts) **`buildRuntime` L188–189** vs **L49–51** | FT states `buildRuntime uses includeTheme:false`; code applies `includeTheme: false` only in **`sanitizePluginAtCreate`**, not in **`buildRuntime`**. Headless behavior is preserved via two-step bootstrap ([`1.6-guardrails-facade.md`](../docs/phase-1/subphases/1.6-guardrails-facade.md) L28–31). |
+
+### 18.7 Related FT rules (not in top-3 — spot check)
+
+| ID | Quick result |
+|----|----------------|
+| FT-P1-05 | [`index.ts`](../packages/platform-core/src/index.ts) does **not** export `RuleEngine` / `FieldRegistryEngine` — **compliant** with anti-pattern intent; also exports `platformOk` / `PlatformCoreError` (bootstrap types) — not flagged as CV (not import/class leakage). |
+| FT-P1-08 | [`package.json`](../packages/platform-core/package.json) `exports["."]` only, `"./*": null` — **compliant**. |
+
+### 18.8 Sign-off
+
+| Check | Result |
+|-------|--------|
+| FT-P1-01 / 02 / 12 line-by-line vs `src/` | **Done** |
+| Covenant violations | **1** (`CV-P1-01`) |
+| Import/class violations (02, 12) | **0** |
+
+### Scan log — 2026-06-04 (Forensic Truth FT-P1)
+
+- Operator: compare three FT-P1 rules from ai-exec forensic template to `packages/platform-core/src/`.
+- Commands: read `forensic-template.md`, `platform-wizard.engine.ts`, `index.ts`, `render-plan.steps.ts`; `rg fromPlugin|StepEngine|theme` on `src/`.
+- Outcome: §18 appended; **CV-P1-01** (`buildRuntime` vs `sanitizePluginAtCreate` for `includeTheme:false`).
+
+---
+
+## 19. Mutation attack — `validate-canonical-document` robustness (2026-06-04)
+
+### 19.1 Target & method
+
+| Field | Value |
+|-------|--------|
+| **Hot path** | [`validate-canonical-document.ts`](../packages/platform-core/src/engine/validate-canonical-document.ts) via `PlatformWizardEngine.validateCanonical` (real engines, no mocks) |
+| **Spec** | [`test/validate-canonical-mutation.spec.ts`](../packages/platform-core/test/validate-canonical-mutation.spec.ts) (in `test:closure`) |
+| **Harness** | `runValidateCanonical` — fails test on raw `TypeError` / non-`PlatformCoreError` throws; accepts `ValidationResult` or thrown `PlatformCoreError` |
+
+### 19.2 Mutation matrix
+
+| ID | Payload (syntactically valid envelope, malicious semantics) | Outcome | Raw `TypeError`? |
+|----|--------------------------------------------------------------|---------|------------------|
+| MUT-01 | Nested orphan path `basics.shadow.fieldId = "nonexistent.widget.id"` (not in registry) | `ValidationResult` **`ok: true`** | **No** |
+| MUT-02 | Top-level root `phantomRoot` not in `document.roots` | `ok: false`, code **`CANONICAL_ROOT_UNKNOWN`** (ingress → `validationResultFromPlatformError`) | **No** |
+| MUT-03 | Composite `details.meta.widgetFieldId = "registry.does.not.exist"` | `ok: true` (composite object accepted; no fieldId graph walk) | **No** |
+| MUT-04 | Composite `details.meta` = **array** (`documentWithRuntimePoison`) | `ok: false`, **`SANITIZE_ARRAY_NOT_ALLOWED`** (ingress map) | **No** |
+| MUT-05 | Required `basics.title` absent; homoglyph key holds value | `ok: false`, **`UNKNOWN_CANONICAL_PATH`** / `basics.title` | **No** |
+| MUT-06 | `details.meta.__proto__` pollution object (`documentWithRuntimePoison`) | `ok: false`, **`SANITIZE_NON_PLAIN_PROTOTYPE`** (ingress map) | **No** |
+
+**Path handling:** [`validate-canonical-field.ts`](../packages/platform-core/src/engine/validate-canonical-field.ts) L25–32 catches **`PlatformCoreError`** from [`getCanonicalValue`](../packages/platform-core/src/utils/canonical-path.ts) and records violations; other errors rethrow (none observed in matrix).
+
+### 19.3 Security / robustness register
+
+| ID | Severity | Finding |
+|----|----------|---------|
+| **SRF-19-00** | — | **No Security/Robustness Flaw** — zero raw **`TypeError`** (or other non-`PlatformCoreError`) escapes from `validateCanonical` on mutation matrix |
+| **SRF-19-01** | **Info** (policy, not crash) | **MUT-01 / MUT-03:** Engine validates **registry fields only** (`fieldEngine.listAll()` loop L45–57); unregistered nested keys and bogus `fieldId` strings inside composite payloads can yield **`ok: true`** — semantic acceptance, not a crash |
+| **SRF-19-02** | **Info** | Ingress errors (`CanonicalDocumentValidationError` / `IngressSanitizationError`) map to **`ValidationResult`** via [`mapCanonicalIngressFailure`](../packages/platform-core/src/errors/ingress-bridge.ts) — no uncaught SDK throw through facade for MUT-02/04/06 |
+
+### 19.4 Verdict
+
+| Check | Result |
+|-------|--------|
+| Raw `TypeError` on malicious canonical input | **0** |
+| `PlatformCoreError` / `ValidationResult` structured outcomes | **6/6** mutations |
+| Audit flag **Security/Robustness Flaw** (TypeError crash) | **Not filed** |
+
+### Scan log — 2026-06-04 (validate-canonical mutation)
+
+- Operator: mutation attack on `validate-canonical-document` path; record TypeError vs structured errors.
+- Commands: new `validate-canonical-mutation.spec.ts`; `node --test` (6/6 pass); read `validate-canonical-document.ts`, `validate-canonical-field.ts`, ingress bridge.
+- Outcome: §19 appended; **no SRF TypeError**; MUT-01/03 semantic gaps noted as Info only.
+
+---
+
+## 20. `rule-resolution.ts` — specificity, ambiguity, determinism (2026-06-04)
+
+### 20.1 Most complex function
+
+| Rank | Function | Lines | Role |
+|------|----------|-------|------|
+| **1** | **`pickBestMatchingCell`** | 126–163 | Orchestrates scratch pool, `findDominantMatchIndex`, tie detection, `throwAmbiguousRuleResolution` |
+| 2 | `findDominantMatchIndex` | 59–94 | Specificity (`matchedDimensionKeyCount`) then `priority` scan + `tieCount` |
+| 3 | `throwAmbiguousRuleResolution` | 96–120 | Fail-fast on tie — builds `tiedCellIds` |
+
+### 20.2 Lexicographic fallback vs specificity rule (doc authority)
+
+| Doc | Rule |
+|-----|------|
+| [`docs/phase-1/subphases/1.3-rule-engine.md`](../docs/phase-1/subphases/1.3-rule-engine.md) L15–16 | Same specificity **and** priority → **`AMBIGUOUS_RULE_RESOLUTION`** — **NO lexicographic fallback**; else most matched keys → higher priority → one winner |
+| [`docs/phase-1-platform-core.mdoc`](../docs/phase-1-platform-core.mdoc) §4.3 | Same (Persian): tie → ambiguous; no lexicographic fallback |
+| [`rule-resolution.ts`](../packages/platform-core/src/engine/rule-resolution.ts) L122–124 | Comment: **no alphabetical fallback** |
+
+**Code search:** `localeCompare`, `sort`, `lexicographic` in `rule-resolution.ts` → **0**. Winner selection is **only** via `findDominantMatchIndex` (spec then priority); `tieCount > 1` → throw.
+
+### 20.3 Proof tests
+
+| Spec | File |
+|------|------|
+| **New** | [`test/unit/engine/rule-resolution.spec.ts`](../packages/platform-core/test/unit/engine/rule-resolution.spec.ts) |
+| Existing | [`rule.engine.spec.ts`](../packages/platform-core/test/unit/engine/rule.engine.spec.ts) · `throws AMBIGUOUS_RULE_RESOLUTION when priority and specificity tie` |
+
+| Test | Proves |
+|------|--------|
+| `picks higher specificity before priority` | Doc “most matched keys” beats higher priority on catch-all |
+| `throws AMBIGUOUS… — no lexicographic winner` | `variant: x` + cells `z-last` / `a-first` (same spec/priority) → **throw**, `tiedCellIds: ["z-last","a-first"]` — **no** `cellId` winner |
+| `ambiguous tie does not pick a-first when match array order is reversed` | Reordered `matches` still throws; `tiedCellIds` order follows **input array**, not alphabetical resolution |
+| `resolution is deterministic across 200 re-runs` | **200** calls → **1** JSON signature of `{ code, tiedCellIds, specificity, priority }` |
+
+### 20.4 Non-deterministic engine flaw register
+
+| ID | Result |
+|----|--------|
+| **NDE-20-00** | **Not filed** — ambiguous path is **deterministic** (always `AMBIGUOUS_RULE_RESOLUTION` with stable details for fixed `matches` + dimensions) |
+| **NDE-20-01** | **Info** — `tiedCellIds` **enumeration order** mirrors `matches` array order in `throwAmbiguousRuleResolution` (L103–108), not `cellId` sort; docs do not require sorted `tiedCellIds` |
+
+### Scan log — 2026-06-04 (rule-resolution ambiguity)
+
+- Operator: identify complexity hotspot; test ambiguous input vs doc specificity rule; 200-run determinism check.
+- Outcome: §20 appended; new `rule-resolution.spec.ts` (5/5 pass); **no Non-Deterministic Engine Flaw**.
+
+---
+
+## 21. Phase 1 Closure — All Checks Passed (2026-06-04)
+
+| Field | Value |
+|-------|--------|
+| **Event** | Phase 1 codebase **locked** for program tracking (technical) |
+| **Git SHA** | `8fcee69` |
+| **Commands** | `pnpm test` **PASS** · `pnpm run phase-1:gate` **PASS** (16/16) |
+| **North Star** | g3 · g3b · g3c · g4 → **0** violations |
+| **Tenant isolation** | Verified — forensic §18–§20 · `runtime-isolation.spec.ts` · `rule-engine-concurrency.spec.ts` |
+| **Theater** | **RP-1** landed (`listStepIds` two-filter); **AT-RPS-01** closed |
+| **Contract API** | **BL-01** closed — `passesHiddenFieldKindGate` wired in `validate-canonical-field.ts` (not orphan) |
+| **Facade ratio** | g13 **65/67 (97%)** ≥ `PHASE_1_FACADE_TEST_RATIO_MIN` **0.6** |
+| **Sign-off doc** | [`reports/phase-1-closure-signoff-2026-06-04.md`](../reports/phase-1-closure-signoff-2026-06-04.md) |
+
+**Attestation:** Phase 1 platform-core is architecturally sound for Phase 2 entry. Human architect counter-sign remains optional per MAP §14.1.
+
+> **LOCK:** Do not add Phase 1 scope to `packages/platform-core` without a new phase doc + doc-first covenant. Phase 2 work proceeds under [`docs/phase-2-design-system.mdoc`](../docs/phase-2-design-system.mdoc).

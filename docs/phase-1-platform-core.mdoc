@@ -576,6 +576,7 @@ export type StepVisibility = "active" | "hidden" | "empty";
 ### منطق
 
 - steps از union `fieldRegistry.entry.stepId` + `wizard.roots`؛ **ترتیب:** ابتدا stepهای موجود در `wizard.roots` به ترتیب roots، سپس stepهای بدون root به ترتیب کشف در registry
+- **`listStepIds` (RP-1):** یک pass کشف → `union` در `Set`؛ خروجی = `wizard.roots.filter(∈union)` سپس `discoveryOrder.filter(∉roots)` — بدون partition/sort جدا
 - **`inactiveFieldGroups`:** هر `groupSlug` در این آرایه → همه فیلدهای با آن `groupSlug` → `hidden: true` (قبل از merge cell overrides)
 - **`wizardCapacityStepRedundant`:** فاز ۱ — parse-only؛ رفتار UI در فاز ۳؛ engine فقط flag را در plan metadata expose می‌کند (optional `uiHints`)
 
@@ -707,6 +708,8 @@ export interface ValidationResult {
 - **`HIDDEN_FIELD_POISON` (REM-016):** اگر فیلد **hidden** (rule + `inactiveFieldGroups`) و `kind !== "composite"` باشد ولی در `canonical.data` مقداره داشته باشد → violation — تست در [`platform-wizard.engine.spec.ts`](../../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts)
 - **نه** `plugin.validation` hooks — deferred فاز ۳ API
 - Prune hidden keys در API/UI (فاز ۳) مکمل است؛ core فقط poison را گزارش می‌دهد
+
+- **Phase 1 — registry-scoped validation only (G-04 / G-05):** `validateCanonical` walks **`fieldEngine.listAll()`** registry fields only. Extra keys under `canonical.data` that are not registered paths, and arbitrary string keys inside a **composite** payload (including fake `fieldId`-shaped keys), are **accepted** (`ok: true`) unless a future policy adds a structural scan. Product explicitly defers orphan-path and composite-key rejection to Phase 3+ API / UI prune — not a crash or `TypeError` (forensic MUT-01 / MUT-03).
 
 ### Guard script: `phase-1-guard.mjs`
 

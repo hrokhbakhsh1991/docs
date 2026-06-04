@@ -114,9 +114,9 @@ doc_drift:
     repo: "g6_import_boundary = pnpm run guard:import-boundary in phase-1-guard.mjs"
     resolution: "Use guard ID table in phase_1_guard_checks — g6 is import-boundary AST"
   - id: DRIFT-03
-    source: "mdoc §4.6 / §9.4 g13 lists ≥30% package policy AND ≥60% closure in adjacent rows"
+    source: "historical mdoc g13 30% row (retired)"
     repo: "gate-thresholds.mjs PHASE_1_FACADE_TEST_RATIO_MIN = 0.6 enforced by g13 on closure specs"
-    resolution: "Enforce 60% (0.6) closure ratio — ignore 30% row for gate execution"
+    resolution: "Enforce 0.6 minimum facade-path share in closure specs (excl. test/unit/**)"
   - id: DRIFT-04
     source: "DAG mermaid P14 label 1.4_step_engine / historical StepEngine naming"
     repo: "render-plan.steps.ts plain functions; step.engine.ts removed from src/"

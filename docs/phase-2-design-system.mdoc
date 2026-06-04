@@ -301,7 +301,7 @@ export interface WorkspacePlugin {
 | Layer | Package | When | Responsibility |
 |-------|---------|------|----------------|
 | **Contract + storage validation** | `@app-tour/workspace-sdk` | Plugin load / parse | `WorkspaceThemeContract` shape, `--ws-*` keys, `assertThemeCssValueIsSafe`, T-1–T-7 ([§8.2.1](#821-theme-ingress-security-زیرفاز-221)) |
-| **Runtime ingress guard** | `@app-tour/theme-react` | Before DOM | `validateWorkspaceThemeIngress` → `snapshotWorkspaceTheme` (sealed theme) |
+| **Runtime ingress guard** | `@app-tour/theme-react` | Before DOM | Internal: `validateWorkspaceThemeIngress` → `snapshotWorkspaceTheme` (via `WorkspaceThemeProvider` / `useThemeIngressGuard` — **not** on public package export) |
 
 ```mermaid
 flowchart TB
@@ -331,8 +331,10 @@ flowchart TB
 
 1. `defineAbilityFor(context)` — [`packages/workspace-sdk/src/auth/casl/index.ts`](../../packages/workspace-sdk/src/auth/casl/index.ts) (یا `buildTenantAuthz` در [`ability.ts`](../../packages/workspace-sdk/src/auth/ability.ts) برای مسیر pure)
 2. `ability.can("access", workspaceThemeSubject(...))` — deny → no workspace theme wrapper
-3. `validateWorkspaceThemeIngress(plugin, theme)` — [`packages/theme-react/src/ingress/theme-ingress-guard.ts`](../../packages/theme-react/src/ingress/theme-ingress-guard.ts)
+3. `WorkspaceThemeProvider` / `ThemeProviderChain` — ingress runs inside the provider (`useThemeIngressGuard` → `validateWorkspaceThemeIngress` in [`theme-ingress-guard.ts`](../../packages/theme-react/src/ingress/theme-ingress-guard.ts))
 4. `snapshotWorkspaceTheme` → CSS variables on subtree root only
+
+**Public integrator API:** import only `PlatformThemeProvider`, `TenantThemeProvider`, `WorkspaceThemeProvider`, `ThemeProviderChain` from `@app-tour/theme-react` — do **not** deep-import ingress helpers.
 
 **Implementation notes:**
 
@@ -480,6 +482,7 @@ packages/design-tokens/
 - [x] `tokens.meta.json` کامل و هم‌خوان با CSS port شده
 - [x] import در harness: `import "@app-tour/design-tokens/styles.css"`
 - [x] `pnpm run validate-design-tokens` (یا فراخوانی از `phase-2:guard`) — **PASS**
+- [x] `pnpm --filter @app-tour/design-tokens run test` — `tokens-meta.contract.spec.mjs` (≥3 rows؛ `p2_design_tokens_tests`)
 - [x] `rg -i denali packages/design-tokens` → 0
 - [x] depcruise: `design-tokens` ↛ workspaces, ↛ apps, ↛ legacy
 
@@ -627,7 +630,7 @@ packages/ui-primitives/
 
 - [x] build + unit tests (React Testing Library یا snapshot سبک) ≥ 12 (۲۲+ unit + wiring test)
 - [x] هر component در playground با light/dark (Storybook + `test:visual`)
-- [x] depcruise: ui-primitives → design-tokens (+ `@app-tour/theme-react` برای ingress harness)
+- [x] depcruise: ui-primitives → design-tokens only (production); `@app-tour/theme-react` **devDependency** for Storybook ingress harness — not a runtime dep edge
 - [x] `rg "#[0-9a-fA-F]{6}" packages/ui-primitives/src` → 0 (hex فقط در stories/tests در صورت نیاز)
 
 ---
@@ -675,7 +678,7 @@ export function WorkspaceThemeProvider(props: { theme: WorkspaceThemeContract; c
 
 ### 11.1 `phase-2-guard` + `phase-2:gate`
 
-جزئیات blocking در [پیوست G](#پیوست-g--phase-2gate-الزامات-صریح). خلاصه: `phase-2:gate` = build + test + `guard:architecture` + `guard:import-boundary` + `guard:symlink` + `phase-2:guard`؛ ماتریس تست در [پیوست F](#پیوست-f--ماتریس-تست-فاز-۲).
+جزئیات blocking در [پیوست G](#پیوست-g--phase-2gate-الزامات-صریح). خلاصه: `phase-2:gate` = `check:node-engine` + build + test + `test:phase-2` + `guard:architecture` + `guard:import-boundary` + `validate-design-tokens` + `guard:artifact-surface` + `audit-boundary` + `phase-2:guard` (بدون `guard:symlink` — symlink در `phase-1:gate` / `ci:integrity`)؛ ماتریس تست در [پیوست F](#پیوست-f--ماتریس-تست-فاز-۲).
 
 ### 11.2 Visual QA
 
@@ -693,7 +696,7 @@ export function WorkspaceThemeProvider(props: { theme: WorkspaceThemeContract; c
 
 - [x] `pnpm run phase-2:gate` سبز (یا معادل: `phase-2:guard` پس از build/test)
 - [x] `reports/phase-2-gate-YYYY-MM-DD.json` با gitSha
-- [ ] pre-commit یا `ci:integrity` شامل `phase-2:gate` کامل — **اختیاری**؛ `ci:integrity` فعلی integrity gate جداگانه دارد
+- [x] pre-commit / `ci:integrity` شامل `phase-0:gate` + `phase-1:gate` + `phase-2:gate` کامل (`scripts/ci-integrity-check.sh`)
 
 ---
 
@@ -725,7 +728,7 @@ export function WorkspaceThemeProvider(props: { theme: WorkspaceThemeContract; c
 - [x] `@app-tour/theme-react` — provider chain + tests + L-01 export allowlist (`verify:exports`)
 - [x] `phase-2:gate` سبز — گزارش در `reports/phase-2-gate-*.json` (آخرین اجرا: `pnpm run phase-2:guard` / `phase-2:gate`)
 - [x] depcruise rules برای پکیج‌های جدید
-- [x] `platform-core` / `workspace-sdk` tests بدون regression (133+ کل monorepo test)
+- [x] `platform-core` / `workspace-sdk` tests بدون regression (phase-2-guard floors: SDK ≥50، platform-core via `pnpm test` + `test:phase-2`)
 - [x] صفر `denali` در design-tokens / ui-primitives
 - [x] سند mapping RenderPlan → primitive (§5.4) در PR آخر
 
@@ -829,7 +832,7 @@ Actor context
 
 **الزام implementation (`@app-tour/theme-react`):**
 
-`WorkspaceThemeProvider` **باید** (فاز ۳.3+) قبل از `useThemeIngressGuard` / `validateWorkspaceThemeIngress`:
+`WorkspaceThemeProvider` **باید** (پیاده‌سازی در theme-react فاز ۲.۴؛ apps/api و apps/web در فاز ۳ `ability` را inject می‌کنند) قبل از `useThemeIngressGuard` / ingress داخلی:
 
 1. `ability.can('access', workspaceThemeSubject)` را بررسی کند (ability از context/prop inject‌شده — نه import static role).
 2. در صورت **false**: children را بدون workspace theme wrapper رندر کند یا `WorkspaceThemeAccessDenied` ثابت — **بدون** فراخوانی ingress.
@@ -966,7 +969,7 @@ Phase: 2.x
 | UI-2 | ui-primitives | FieldShell `aria-invalid` | a11y attrs |
 | TR-1 | theme-react | cascade platform → tenant mock → workspace | `--ws-*` scoped |
 | TR-2 | theme-react | workspace override روی subtree only | sibling unchanged |
-| PC-1 | platform-core | regression suite | **132+** pass، بدون import design-tokens |
+| PC-1 | platform-core | regression suite | **148+** pass (phase-1 floor)، بدون import design-tokens |
 | G-1 | guards | `phase-2:guard` | all checks PASS |
 
 **حداقل شمارش (gate):** workspace-sdk theme/ingress ≥ **7** · ui-primitives ≥ **12** · theme-react ≥ **4** · design-tokens guard = **1** job.
@@ -979,30 +982,35 @@ Phase: 2.x
 {
   "scripts": {
     "validate-design-tokens": "node scripts/guards/validate-design-tokens.mjs",
-    "phase-2:guard": "node scripts/guards/phase-2-guard.mjs",
-    "phase-2:gate": "pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run guard:symlink && pnpm run phase-2:guard"
+    "phase-2:guard": "node scripts/phase-2-guard.mjs",
+    "phase-2:gate": "pnpm run check:node-engine && pnpm build && pnpm test && pnpm --filter @app-tour/platform-core run test:phase-2 && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run validate-design-tokens && pnpm run guard:artifact-surface && pnpm run audit-boundary && pnpm run phase-2:guard"
   }
 }
 ```
 
-**`scripts/guards/phase-2-guard.mjs` — checks blocking:**
+**`scripts/guards/phase-2-guard.mjs` — checks blocking (p2_* ids):** see [`docs/phase-2/phase-2-guards.md`](phase-2/phase-2-guards.md). Floors from `gate-thresholds.mjs`: workspace-sdk ≥ **50**, ui-primitives ≥ **12**, theme-react ≥ **4**, visual ≥ **4**, `phase-2.contract` ≥ **8**, design-tokens unit tests ≥ **3**.
 
-| # | Check | FAIL if |
-|---|--------|---------|
-| 1 | `pnpm --filter @app-tour/design-tokens run build` | dist/css missing |
-| 2 | `validate-design-tokens.mjs` | tokens.meta.json drift |
-| 3 | `pnpm --filter @app-tour/workspace-sdk test` | count < baseline (133 monorepo min؛ SDK theme tests present) |
-| 4 | `pnpm --filter @app-tour/ui-primitives test` | count < **12** |
-| 5 | `pnpm --filter @app-tour/theme-react test` | count < **4** |
-| 6 | `pnpm run guard:architecture` | depcruise violation |
-| 7 | `pnpm run guard:import-boundary` | AST boundary violation |
-| 8 | `rg -i denali packages/design-tokens packages/ui-primitives packages/theme-react` | any match |
-| 9 | `rg "design-tokens" packages/platform-core/package.json packages/platform-core/src` | platform-core must not depend on tokens |
-| 10 | Write `reports/phase-2-gate-YYYY-MM-DD.json` | missing gitSha / failedChecks |
+| # | p2_* id | FAIL if |
+|---|---------|---------|
+| 1 | `p2_design_tokens_dist` | `dist/index.css` missing |
+| 2 | `p2_validate_design_tokens` | `tokens.meta.json` drift |
+| 3 | `p2_design_tokens_tests` | design-tokens `test` count < 3 |
+| 4 | `p2_ui_primitives_no_barrel` | barrel export or `dist/index.js` |
+| 5 | `p2_workspace_sdk_tests` | SDK tests < **50** |
+| 6 | `p2_ui_primitives_tests` | ui-primitives tests < **12** |
+| 7 | `p2_theme_react_tests` | theme-react tests < **4** |
+| 8 | `p2_visual_regression` | `test:visual` < **4** |
+| 9 | `p2_phase2_contract_behaviors` | `test:phase-2` < **8** |
+| 10 | `p2_no_denali` | `rg -i denali` in phase-2 src |
+| 11 | `p2_platform_core_no_tokens` | platform-core imports design-tokens |
+| 12+ | L-01 / artifact | `p2_artifact_surface_guard`, export allowlist, no `./internal` |
+| — | report | `reports/phase-2-gate-YYYY-MM-DD.json` |
 
-**CI:** `.github/workflows/phase-2-gate.yml` → `pnpm run phase-2:gate` on PRs با label `Phase: 2.x`.
+**CI:** `.github/workflows/phase-2-gate.yml` → `pnpm run phase-2:gate` on every `push` / `pull_request` to `main` (label `Phase: 2.x` = PR policy doc only).
 
-**پس از DoD فاز ۲:** ادغام در `ci:integrity` / pre-commit (همان الگوی `phase-1:gate`).
+**Pre-commit:** `ci:integrity` = `phase-0:gate` + `phase-1:gate` + `phase-2:gate` ([`scripts/ci-integrity-check.sh`](../scripts/ci-integrity-check.sh)).
+
+**L-01 note (CD-05):** Tarballs may contain extra `dist/` paths (e.g. `dist/ingress/`) not listed in `exports` — Node resolution blocks deep imports; treat as non-API artifacts in security reviews.
 
 ---
 

@@ -2,16 +2,17 @@
 
 | Field | Value |
 |-------|--------|
-| **Date** | 2026-06-03 |
-| **Git SHA** | `7000685` (platform-core closure chain) |
+| **Date** | 2026-06-04 (re-verified) |
+| **Git SHA** | `8fcee69` |
 | **Gate** | `pnpm run phase-1:gate` → **16/16 PASS** |
+| **Final sign-off** | [`phase-1-closure-signoff-2026-06-04.md`](phase-1-closure-signoff-2026-06-04.md) |
 | **Authority** | [MIGRATION-MAP.md §14.1](../docs/MIGRATION-MAP.md#۱۴۱-phase-completion-law-mandatory) |
 
 ## Paranoid audit (§14.1)
 
 | # | Criterion | Evidence | Result |
 |---|-----------|----------|--------|
-| 1 | `phase-1.contract.spec.ts` exists and passes | 19 contract `it`s green | **PASS** |
+| 1 | `phase-1.contract.spec.ts` exists and passes | 21 contract `it`s green | **PASS** |
 | 2 | Adversarial specs execute (g10) | plugin-ingress · validation · concurrency · isolation | **PASS** |
 | 3 | depcruise + import boundary (g5 · g6) | `guard:architecture` · `guard:import-boundary` | **PASS** |
 | 4 | Not grep-only closure (R1) | Behavioral tests for BL-01 · P1/P2 · facade · §C | **PASS** |
@@ -30,9 +31,9 @@
 
 ## Technical attestation
 
-All automated §14.1 criteria above are satisfied at commit `7000685`. Phase 1 is **technically closed** for program tracking pending any optional human counter-sign below.
+All automated §14.1 criteria above are satisfied at commit `8fcee69`. Phase 1 is **technically closed** for program tracking pending any optional human counter-sign below.
 
 | Role | Name | Date | Signature |
 |------|------|------|-----------|
-| Engineering verification | Agent + local CI | 2026-06-03 | `phase-1-guard` 16/16 @ `7000685` |
+| Engineering verification | Agent + local CI | 2026-06-04 | `pnpm test` + `phase-1-guard` 16/16 @ `8fcee69` — see [closure sign-off](phase-1-closure-signoff-2026-06-04.md) |
 | Architect (MAP §14.1) | _pending human_ | | |
