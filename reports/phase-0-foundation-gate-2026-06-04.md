@@ -1,7 +1,7 @@
 # Phase 0 foundation gate — 2026-06-04
 
-- **Generated:** 2026-06-04T01:04:15.494Z
-- **Git SHA:** `b8734e9`
+- **Generated:** 2026-06-04T01:48:52.349Z
+- **Git SHA:** `d880989`
 - **JSON:** [reports/phase-0-foundation-gate-2026-06-04.json](reports/phase-0-foundation-gate-2026-06-04.json)
 
 ## Checks

@@ -1,0 +1,864 @@
+---
+title: Phase 4 — Tenant Kernel
+phase: 4
+format: markdoc
+sourceMarkdown: phase-4-tenant-kernel.md
+convertedAt: 2026-06-03
+---
+# Phase 4 — Tenant Kernel & Multi-Tenant Enterprise Boundary
+
+> **Canonical (Markdoc):** [`phase-4-tenant-kernel.mdoc`](phase-4-tenant-kernel.mdoc) · §19 · `pnpm run guard:doc-sync`  
+> **Forensic (on closure):** `docs/audits/phase-4-zero-debt-forensic-audit.mdoc` — created at Phase 4 **Closed**  
+> **Red-flag entry gate:** [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) — **R0–R3 blocking** before 4.1
+
+**app-tour — راهنمای اجرایی کامل فاز چهار**
+
+> **نقش:** بسط عمیق فاز ۴ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) §۱۱ · §۷ · §۶ (scaffold) · **الزام:** [§12 Zero-Debt Covenant](MIGRATION-MAP.md#۱۲-the-zero-debt-covenant-mandatory-enforcement) · [§14 Constitution](MIGRATION-MAP.md#۱۴-the-constitution-of-phases)  
+> **پیش‌نیاز:** [`phase-0-foundation.md`](phase-0-foundation.md) · [`phase-1-platform-core.md`](phase-1-platform-core.md) · [`phase-2-design-system.md`](phase-2-design-system.md) (**Closed**) · [`phase-3-design-system.md`](phase-3-design-system.md) · `pnpm run phase-3:gate` سبز · زیرفاز **4.0** (R0–R3)  
+> **North Star:** همان MAP — Platform logic = generic · Workspace = injectable · **Tenant = security boundary** ([`MIGRATION-MAP.md` §1](MIGRATION-MAP.md#۱-دید-کلی--چه-می‌سازیم))  
+> **وضعیت:** **Open** — **سند اجرایی فاز ۴** (فازبندی + الزام طراحی) · پیاده‌سازی کد در PRهای جدا طبق زیرفاز 4.0→4.6  
+> **تمرکز این سند:** *چه* بسازیم و *با چه متدولوژی صنعتی* — نه لیست commitهای از پیش انجام‌شده
+
+---
+
+## نام‌گذاری — اشتباه رایج
+
+| سند | «فاز ۴» یعنی |
+|-----|----------------|
+| **app-tour** ([`MIGRATION-MAP.md`](MIGRATION-MAP.md) §11) | `packages/tenant-kernel` · Postgres+RLS · subdomain · `TenantThemeProvider` production · in-process event bus |
+| **legacy Tour Ops** ([`legacy/map.md`](../legacy/map.md)) | Canonical SoT + `workspaces/urban` — **نام‌هم‌معنی** · مرجع port انتخابی فقط |
+
+---
+
+## فهرست
+
+0. [هم‌ترازی با فاز ۰–۳ و MAP (بدون تناقض)](#0-هم‌ترازی-با-فاز-۰۳-و-map-بدون-تناقض)
+1. [چرا فاز ۴ قبل از فاز ۵ و ۶](#1-چرا-فاز-۴-قبل-از-فاز-۵-و-۶)
+2. [استانداردهای enterprise — multi-tenant (۲۰۲۵–۲۰۲۶)](#2-استانداردهای-enterprise--multi-tenant-۲۰۲۵۲۰۲۶)
+3. [درس‌های legacy — port / anti-port](#3-درس‌های-legacy--port--anti-port)
+4. [تعریف دقیق خروجی فاز ۴](#4-تعریف-دقیق-خروجی-فاز-۴)
+5. [معماری tenant kernel + defense-in-depth](#5-معماری-tenant-kernel--defense-in-depth)
+6. [DAG و زیرفازها](#6-dag-و-زیرفازها)
+7. [زیرفاز 4.0 — Gate of Gates (R0–R3)](#7-زیرفاز-40--gate-of-gates-r0r3)
+8. [زیرفاز 4.1 — `packages/tenant-kernel`](#8-زیرفاز-41--packagestenant-kernel)
+9. [زیرفاز 4.2 — Postgres + Redis + RLS + Prisma](#9-زیرفاز-42--postgres--redis--rls--prisma)
+10. [زیرفاز 4.3 — provision + دو tenant](#10-زیرفاز-43--provision--دو-tenant)
+11. [زیرفاز 4.4 — `TenantThemeProvider` production](#11-زیرفاز-44--tenantthemeprovider-production)
+12. [زیرفاز 4.5 — in-process event bus](#12-زیرفاز-45--in-process-event-bus)
+13. [زیرفاز 4.6 — `phase-4:gate` + forensic](#13-زیرفاز-46--phase-4gate--forensic)
+14. [**PHASE 4 ENFORCEMENT** (الزام CI)](#14-phase-4-enforcement-الزام-ci)
+15. [آنچه در فاز ۴ ممنوع است](#15-آنچه-در-فاز-۴-ممنوع-است)
+16. [Definition of Done فاز ۴](#16-definition-of-done-فاز-۴)
+17. [چک‌لیست ورود به فاز ۵](#17-چک‌لیست-ورود-به-فاز-۵)
+18. [پیوست‌ها](#18-پیوست‌ها)
+
+---
+
+## 0. هم‌ترازی با فاز ۰–۳ و MAP (بدون تناقض)
+
+این جدول **قرارداد ثابت** است — فاز ۴ چیز جدید اضافه می‌کند، نه جایگزین اصول فازهای قبل.
+
+| لایه / موضوع | فاز ۰ | فاز ۱ | فاز ۲ | فاز ۳ | فاز ۴ (این سند) |
+|--------------|-------|-------|-------|-------|------------------|
+| **Contract** | `workspace-sdk` · `CanonicalDocument` | `PlatformWizardEngine` headless | `WorkspaceThemeContract` · tokens | `starter` plugin · `apps/*` · **CASL** | **Tenant boundary** · RLS · Postgres SoT |
+| **Core** | — | ↛ design-tokens · ↛ tenant | همان | همان | **بدون** تغییر `platform-core` |
+| **Visual** | — | — | `design-tokens` · `ui-primitives` · `theme-react` | `ThemeProviderChain` · subpath-only | `TenantThemeProvider` **production** (نه mock) |
+| **AuthZ** | — | — | ingress `--ws-*` | `createApiAbility` · `accessibleBy` (app) · `WorkspaceTheme` قبل ingress | همان CASL + **RLS** DB |
+| **داده tours** | — | — | — | **in-memory** + Docker dev اختیاری | **Postgres + RLS** پیش‌فرض runtime |
+| **Infra MAP §5** | برنامه‌ریزی | — | — | Postgres/Redis **local dev** | RLS migration + seed tenant |
+| **Events MAP §6** | — | — | — | hook فقط | in-process bus (**outbox = فاز ۵**) |
+
+### 0.1 تناقض‌های آگاهانه (از قبل حل‌شده — فاز ۴ تکمیل می‌کند)
+
+| تناقض | توضیح هماهنگ | مرجع |
+|--------|--------------|------|
+| فاز ۳ «Postgres» vs RLS فاز ۴ | فاز ۳: Docker + dev · **SoT تور = in-memory** · CASL در app | [`phase-0-foundation.md` §9](phase-0-foundation.md) · [`phase-3-design-system.md` §17](phase-3-design-system.md) |
+| فاز ۳ «Closed» vs red flags | **Gate فاز ۳** = scaffold بصری/اپ · **۴.0** = بستن RF P0/P1 tenant ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md)) | [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) |
+| `TenantTheme` فاز ۲ stub vs فاز ۴ | Types در [`workspace-sdk` `TenantThemeConfig`](packages/workspace-sdk/src/theme/tenant-theme.contract.ts) فاز ۲ · **Provider + DB** فاز ۴ | [`phase-2-design-system.md` §8.3](phase-2-design-system.md#83-تفکیک-از-tenant-فاز-۴) |
+| سه اپ MAP §3.5 vs یک `apps/web` | **فاز ۳–۴:** یک shell (`apps/web`) · contract bootstrap مشترک · **deploy جدا** Marketing/Portal/Admin بعداً | [`MIGRATION-MAP.md` §3.5](MIGRATION-MAP.md#۳۵-application-structure) |
+| Legacy `app.tenant_id` vs MAP | پورت از legacy: نام session را **`app.current_tenant_id`** نگه دار ([MAP §7.1](MIGRATION-MAP.md#۷۱-مدل-پیش‌فرض-فاز-۴۵)) | [`legacy/.../rls-tenant-session.ts`](../legacy/apps/api/src/database/rls-tenant-session.ts) |
+
+### 0.2 پل از [`phase-3-design-system.md` §16](phase-3-design-system.md#16-چک‌لیست-ورود-به-فاز-۴)
+
+| شرط ورود فاز ۳ (§16) | تحویل در فاز ۴ |
+|----------------------|----------------|
+| [ ] Tenant subdomain design reviewed | **۴.1** — `parseWorkspaceTenantLabelFromHost` + reserved labels + سند host policy |
+| [ ] RLS migration plan drafted | **۴.2** — [`infra/sql/001_tenant_rls.sql`](../infra/sql/001_tenant_rls.sql) + Prisma schema مرجع |
+| [x] `phase-3:gate` · forensic فاز ۳ | **P4-E-REG-03** — regression در `phase-4:gate` |
+
+### 0.3 قوانین import (توسعه MAP §2 — نه نقض)
+
+```text
+# از MAP §2 — بدون تغییر
+platform-core        → workspace-sdk only (headless)
+workspace-sdk        ↛ workspaces/* · ↛ design-tokens
+apps/web             ↛ workspaces/* static import
+
+# افزودنی فاز ۴ (ثبت در depcruise همان gate)
+tenant-kernel        → workspace-sdk (types/helpers only)
+platform-events      → (pure TS — بدون workspace)
+apps/api             → tenant-kernel, platform-events, workspace-sdk, platform-core, workspace-starter
+apps/web             → theme-react, ui-primitives/*, workspace-sdk, platform-core, design-tokens
+                     (+ host helpers از tenant-kernel در صورت نیاز server-side)
+platform-core        ↛ tenant-kernel
+```
+
+**حفظ فاز ۳:** `apps/web` همچنان **فقط** `starterWorkspacePlugin` از registry تا فاز ۶ — tenant resolve جدا از workspace plugin است ([`phase-3-design-system.md` §6](phase-3-design-system.md)).
+
+---
+
+## 1. چرا فاز ۴ قبل از فاز ۵ و ۶
+
+### 1.1 ترتیب صحیح پلتفرم
+
+```text
+Phase 0  contract (workspace-sdk)
+    ↓
+Phase 1  engine headless (platform-core)
+    ↓
+Phase 2  visual layer — Closed: Zero-Debt Verified ✅
+    ↓
+Phase 3  starter + apps/* + CASL — gate سبز (scaffold) · red-flag honesty → 4.0
+    ↓
+Phase 4  tenant-kernel + RLS + Postgres SoT  ← این سند
+    ↓
+Phase 5  canonical JSONB schema + transactional outbox
+    ↓
+Phase 6  Denali workspace plugin
+```
+
+**قانون:** Denali = اولین **workspace محصول**، نه اولین **مرز امنیتی tenant**. بدون فاز ۴، «multi-tenant» در marketing و «dev-tenant-local» در runtime یکی نیستند ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md)).
+
+### 1.2 شکست‌هایی که فاز ۴ باید ببندد
+
+| ریسک (فاز ۳) | Red flag | قانون فاز ۴ |
+|--------------|----------|-------------|
+| In-memory canonical SoT | RF-F01 | Postgres persistence + restart survival |
+| Unsigned `dev.<base64>` bearer | RF-F09 | Fail-closed prod؛ JWT/host lookup |
+| Module-static web session | RF-F05 | Per-request RSC session |
+| Web wizard بدون API persist | RF-F08 | Server Action → `POST /tours` (R3) + Postgres در 4.2 |
+| CASL بدون RLS | RF-G07 | Testcontainers RLS e2e |
+| Host/subdomain design باز | phase-3 §16 | 4.1 design + 4.2 migration |
+
+### 1.3 خروجی فاز ۴ در یک جمله
+
+> **هر request (API و web) با هویت tenant تأییدشده resolve می‌شود؛ دادهٔ tenant-scoped در Postgres با CASL + RLS جدا می‌ماند؛ و تم visual tenant از kernel تغذیه می‌شود — نه env ثابت.**
+
+---
+
+## 2. استانداردهای enterprise — multi-tenant (۲۰۲۵–۲۰۲۶)
+
+این بخش **الزام طراحی** فاز ۴ است — بر اساس مرور صنعت B2B SaaS (AWS · Cadence · HLD Handbook · Emergen 2025) و تطبیق با [`MIGRATION-MAP.md` §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting). **نه** لیست ابزار اختیاری.
+
+### 2.0 طیف ایزولاسیون — Pool · Bridge · Silo
+
+صنعت SaaS در ۲۰۲۵–۲۰۲۶ تقریباً روی **سه الگوی داده** توافق دارد (نام‌ها در AWS: *pool / bridge / silo*):
+
+| الگو | جداسازی | هزینه/tenant | عملیات | مقیاس معمول | مناسب برای |
+|------|---------|-------------|--------|-------------|------------|
+| **Pool** | منطقی — shared schema + `tenant_id` + **RLS** | پایین‌ترین | پایین‌ترین (یک migration) | هزاران tenant | **B2B SMB** · اکثریت app-tour |
+| **Bridge** | منطقی — schema-per-tenant یا DB-per-tenant روی یک cluster | متوسط | **بالا** (N× migration · catalog bloat) | ~۱۰۰–۱٬۰۰۰ | tenantهای enterprise بزرگ بدون compliance سخت |
+| **Silo** | فیزیکی — DB/VPC/stack جدا | ۱۰×–۵۰× | بالاترین | ده‌ها–صدها | HIPAA/PCI/FedRAMP · قرارداد enterprise |
+
+```text
+                    ایزولاسیون قوی‌تر
+    Pool  ──────────►  Bridge  ──────────►  Silo
+    (تراکم)              (منطقی جدا)           (فیزیکی جدا)
+```
+
+**درس ۲۰۲۶ (Cadence · AWS Database Blog):**
+
+- **پیش‌فرض B2B:** Pool + RLS — تا ~۵۰۰–۱٬۰۰۰ tenant بدون تغییر معماری پایه.
+- **Bridge (schema-per-tenant):** در Postgres با tenant زیاد → **catalog bloat** و هزینه plan per query؛ AWS برای bridge ترجیح **database-per-tenant** می‌دهد نه schema-per-tenant در مقیاس بالا.
+- **Silo:** فقط وقتی auditor یا قرارداد **فیزیکی** می‌خواهد — در app-tour = **فاز ۷**، نه فاز ۴.
+
+### 2.1 تصمیم app-tour — چرا Pool + RLS (نه Bridge/Silo در فاز ۴)
+
+| معیار | انتخاب فاز ۴ | به تعویق انداختن |
+|--------|--------------|------------------|
+| مدل محصول | اپراتور تور B2B · چند workspace · **tenant = SaaS boundary** | Silo per tenant |
+| داده | `tenant_id` روی tours/tenants · JSONB canonical در فاز ۵ | schema-per-tenant migrations |
+| امنیت | **CASL (لایه ۱)** + **RLS (لایه ۲)** | فقط `WHERE tenant_id` در کد |
+| هویت | Subdomain + JWT/session ([MAP §7.3](MIGRATION-MAP.md#۷۳-tenant-resolution-web--api)) | `tenantId` از query/body |
+| مقیاس هدف | استارتاپ پلتفرم → صدها tenant | ۱۰٬۰۰۰ schema |
+
+**قانون فاز ۴:** اگر جدول tenant-scoped است → `tenant_id UUID NOT NULL` + index `(tenant_id, …)` + RLS policy — **بدون استثنا**.
+
+**Hybrid (فاز ۷+):** جدول `tenant_routes` + `TenantConnectionRouter` — همان tenant ممکن است بعداً `tier: "silo"` بگیرد؛ **کد application یکسان**، فقط resolver connection عوض می‌شود ([MAP §7.2](MIGRATION-MAP.md#۷۲-hybrid-tier-فاز-۷--enterprise-contract)).
+
+### 2.2 Tenant resolution — شناسایی tenant (قبل از هر query)
+
+سه لایه استاندارد SaaS (Zenn / industry 2025):
+
+| لایه | سؤال | app-tour فاز ۴ |
+|------|------|----------------|
+| **1. Resolution** | این request متعلق به کدام tenant است؟ | `Host` subdomain → label → lookup `tenants.subdomain` · یا JWT `tenantId` verified |
+| **2. Isolation** | داده چگونه جدا می‌ماند؟ | Pool + RLS + CASL |
+| **3. Execution** | بقیه pipeline در context همان tenant | ALS / middleware · همه serviceها |
+
+**الگوهای resolution (B2B):**
+
+| الگو | مثال | app-tour |
+|------|------|----------|
+| **Subdomain** | `acme.app-tour.com` | **پیش‌فرض** — `{label}.localhost` در dev |
+| Header (service) | `X-Tenant-Id` پس از auth | فقط **بعد از** verify — نه منبع اول |
+| Path | `/t/acme/...` | marketing عمومی؛ **نه** مسیر اصلی اپراتور |
+| Custom domain | `tours.customer.com` | فاز ۷+ (ingress registry) |
+
+**ترتیب اعتماد (fail-closed — MAP R4):**
+
+```text
+1. JWT / session معتبر (claim tenantId + membership)
+2. Host subdomain → DB mapping (با reserved labels: api, www, admin, …)
+3. Headers صریح (x-authenticated-tenant-id, …) — فقط اگر (1) یا (2) تأیید کرده
+4. هر چیز دیگر → 401/403 — بدون اجرای business logic
+```
+
+**ممنوع (۲۳٪ incident class — misconfiguration):** `tenantId` از query string، body مهمان، یا `dev.<base64>` بدون gate در production ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md) RF-F09).
+
+### 2.3 Row-Level Security (PostgreSQL) — الگوی canonical ۲۰۲۶
+
+| گام | الزام | جزئیات |
+|-----|--------|--------|
+| 1 | Schema | `tenant_id UUID NOT NULL` · FK به `tenants` · **UUID** (نه int sequential — opaque) |
+| 2 | Index | `(tenant_id, id)` یا `(tenant_id, created_at)` — policy از index استفاده کند نه seq scan |
+| 3 | Enable | `ALTER TABLE … ENABLE ROW LEVEL SECURITY` |
+| 4 | Force | `ALTER TABLE … FORCE ROW LEVEL SECURITY` — owner هم تحت policy |
+| 5 | Policy | `USING` + `WITH CHECK` — هر دو با `current_setting('app.current_tenant_id', true)::uuid` |
+| 6 | Context | `SELECT set_config('app.current_tenant_id', $1, true)` **اولین** statement در **transaction** |
+| 7 | Role | runtime as `app_user` غیر-superuser — تست cross-tenant = ۰ row |
+| 8 | Perf guard | `statement_timeout` روی role · policy **بدون** subquery per row |
+
+**متغیر session (هم‌نام MAP §7.1):** `app.current_tenant_id`
+
+**ممنوع:**
+
+- `SET app.current_tenant_id = …` بدون `LOCAL` / `set_config(..., true)` روی **PgBouncer transaction pooling**
+- Policy با subquery روی هر row (`tenant_id IN (SELECT …)`) — overhead ۵–۱۵٪+ · ساده نگه دار
+- فعال کردن RLS **قبل از** نوشتن policy — default deny همه rowها برای non-superuser
+
+**PgBouncer / Prisma:** هر `$transaction` باید با `set_config` شروع شود — الگوی `withTenantTransaction` در `@app-tour/tenant-kernel` ([§8](#8-زیرفاز-41--packagestenant-kernel)).
+
+### 2.4 Defense in depth — بیش از «یک WHERE فراموش‌شده»
+
+```text
+Request
+  → Tenant resolve (kernel)
+  → AuthZ CASL — accessibleBy / ability (فاز ۳)
+  → ORM/Repository — tenant scope در query
+  → Postgres RLS — safety net
+  → Response — بدون leak در body/header
+```
+
+| لایه | نقش | فاز |
+|------|-----|-----|
+| **Application (CASL)** | جلوگیری از دسترسی غیرمجاز + performance (index-friendly filter) | ۳ ✅ · ۴ ادامه |
+| **Database (RLS)** | تضمین حتی با باگ `findMany({})` یا route اشتباه | **۴ اجباری** |
+| **Cache/Queue** | key prefix `tenant:{id}:*` · payload `tenantId` اجباری | ۴ minimal · ۵ کامل |
+| **Logs/audit** | `tenantId` در structured log · بدون PII متقاطع | ۴.۶+ |
+| **Jobs/workers** | `tenant_id` explicit در message — نه «global job» | ۵ |
+
+RLS **جایگزین** CASL نیست — برعکس: CASL برای authorization semantics؛ RLS برای **data plane guarantee** ([`phase-3-design-system.md` §15.4](phase-3-design-system.md)).
+
+### 2.5 Tenant context propagation (runtime)
+
+| الگو | منبع ۲۰۲۵–۲۰۲۶ | app-tour |
+|------|----------------|----------|
+| **Middleware اول pipeline** | AWS · NestJS recipes | API: قبل از handler · Web: RSC/layout per request |
+| **AsyncLocalStorage** | NestJS docs · `@nestarc/nestjs-tenancy` | worker/job context بدون prop-drill |
+| **Request-scoped store** | `nestjs-cls` / ALS `run(store, fn)` | یک `tenantId` + `ability` per request |
+| **Fail-closed** | Cadence · MAP R4 | بدون context → 401/403 |
+
+**تصمیم معماری:** `@app-tour/tenant-kernel` = pure TS (host parse · RLS SQL constants · `TenantRoute` stub) — **بدون** Nest/Prisma داخل پکیج؛ adapters در `apps/api` و `apps/web`.
+
+### 2.6 ایزولاسیون end-to-end (چک‌لیست ۲۰۲۵)
+
+Emergen / industry: **بیشتر leak از cache، job، export، admin tool است — نه فقط SQL.**
+
+| سطح | الزام فاز ۴+ | تست |
+|------|-------------|-----|
+| HTTP API | هر route tenant-scoped → kernel + CASL | `tenant-security.spec.ts` |
+| ORM/Prisma | `accessibleBy` · هر mutation scoped | P3-E-DB-01 |
+| Postgres | RLS + non-superuser integration | P4-E-RLS-01 |
+| In-process events | `tenantId` روی envelope · ممنوع cross-tenant publish | P4-E-EVT-01 |
+| Redis idempotency | key شامل `tenantId` | ۴.۵ scaffold |
+| Web subtree | `[data-tenant-id]` · theme فقط پس از auth | ۴.4 |
+
+### 2.7 Event bus (۴.۵) و transactional outbox (۵)
+
+| فاز | مکانیزم | استاندارد |
+|-----|---------|-----------|
+| **۴** | In-process bus · `tenant_id` روی envelope · subscriber idempotent | Domain events در monolith |
+| **۵** | `outbox_events` + relay (Debezium/CDC اختیاری) | [microservices.io outbox](https://microservices.io/patterns/data/transactional-outbox.html) |
+
+Plugin **مستقیم** به finance publish نمی‌کند — orchestration در API + hooks ([MAP §6](MIGRATION-MAP.md#۶-ارتباط-بین-ماژول‌ها--event-bus--outbox)).
+
+### 2.8 مقیاس و triggerهای escalation
+
+| Trigger | اقدام | فاز |
+|---------|--------|-----|
+| &lt; ~۱٬۰۰۰ tenant · B2B عادی | Pool + RLS کافی | **۴** |
+| Noisy neighbor (گزارش سنگین) | read replica · `statement_timeout` · queue جدا | ۵–۷ |
+| Compliance (HIPAA, PCI, FedRAMP) | Silo DB / dedicated stack | **۷** |
+| Enterprise whale | `tenant_routes.tier = silo` | **۷** |
+| &gt; ۱۰M row per table | partitioning by `tenant_id` (HASH/LIST) | ۷+ |
+
+### 2.9 سه اپ + session (MAP §3.5–۳.۶) — قرارداد، نه سه repo در فاز ۴
+
+**وضعیت repo فاز ۳:** فقط [`apps/web`](../apps/web) به‌عنوان **اولین shell**. فاز ۴ همان را تقویت می‌کند (per-request session · tenant theme) — **بدون** ساخت `apps/marketing` جدا در این فاز.
+
+| اپ (هدف محصول) | دسترسی | فاز ۴ در `apps/web` |
+|-----------------|--------|---------------------|
+| **Marketing** | Public | آینده — route/public بدون ویزارد اپراتور |
+| **User-Portal** | Protected | **فعلی:** `/tours/new` · wizard · `POST /tours` |
+| **Admin-Panel** | Protected | آینده — RBAC admin روی همان session |
+
+- Session واحد domain-scoped — الگوی [`MIGRATION-MAP.md` §3.6](MIGRATION-MAP.md#۳۶-authentication--data-hydration) · JWT slot در `apps/api` ([`phase-3-design-system.md` §10](phase-3-design-system.md))
+- Hydration canonical: **فاز ۵+** کامل؛ فاز ۴ فقط تضمین **tenant + persist** یک مسیر عمودی
+
+### 2.10 anti-pattern های رایج (رد کنید)
+
+| anti-pattern | چرا خطرناک |
+|--------------|------------|
+| فقط `WHERE tenant_id` در کد | یک PR فراموش = leak |
+| `tenantId` از query/body بدون bind به auth | RF-F09 class |
+| RLS بدون CASL (یا برعکس به‌تنهایی) | authorization vs data plane |
+| Schema-per-tenant در فاز ۴ «برای امنیت» | operational hell بدون compliance trigger |
+| Session-scoped `SET` با pool مشترک | tenant بعدی همان connection → leak |
+| Cache global بدون tenant prefix | شایع‌ترین leak عملی |
+| ادعای multi-tenant با in-memory SoT | RF-F01 — marketing ≠ architecture |
+
+---
+
+## 3. درس‌های legacy — port / anti-port
+
+### 3.1 جدول port
+
+| دارایی legacy | مسیر | فاز ۴ |
+|---------------|------|-------|
+| Host label parse | [`legacy/packages/tenant-host`](../legacy/packages/tenant-host/src/parse-workspace-tenant-label.ts) | `@app-tour/tenant-kernel` (pure TS) |
+| API tenant resolver | [`legacy/apps/api/src/common/tenant/tenant-resolver.middleware.ts`](../legacy/apps/api/src/common/tenant/tenant-resolver.middleware.ts) | الگو — Nest/Node adapter در `apps/api` |
+| RLS session bind | [`legacy/apps/api/src/database/tenant-session-binding.service.ts`](../legacy/apps/api/src/database/tenant-session-binding.service.ts) | `withTenantTransaction` + Prisma `$executeRaw` |
+| RLS SQL constants | [`legacy/apps/api/src/database/rls-tenant-session.ts`](../legacy/apps/api/src/database/rls-tenant-session.ts) | MAP name: `app.current_tenant_id` |
+| Subdomain e2e | [`legacy/apps/api/test/e2e/subdomain-multi-tenant.e2e-spec.ts`](../legacy/apps/api/test/e2e/subdomain-multi-tenant.e2e-spec.ts) | Testcontainers در app-tour |
+| Tenant theme CSS | [`legacy/apps/web/lib/tenant/build-tenant-theme-style.ts`](../legacy/apps/web/lib/tenant/build-tenant-theme-style.ts) | `@app-tour/theme-react` — wire API در 4.4 |
+| Web tenant provider | [`legacy/apps/web/lib/tenant/tenant-provider.tsx`](../legacy/apps/web/lib/tenant/tenant-provider.tsx) | RSC props → `TenantThemeProvider` |
+| Events | [`legacy/apps/api/src/common/events/`](../legacy/apps/api/src/common/events/) | **`@app-tour/platform-events`** (ترجیح MAP §6) · hook در `CanonicalTourService` |
+| Docker stack | [`legacy/infra/docker-compose.yml`](../legacy/infra/docker-compose.yml) | [`infra/docker-compose.yml`](../infra/docker-compose.yml) در root |
+
+### 3.2 anti-port
+
+| anti-pattern | چرا ممنوع |
+|--------------|-----------|
+| Copy کل Nest `TenantModule` به `platform-core` | core headless |
+| Denali در `tenant-kernel` | فاز ۶ |
+| RLS به‌تنهایی بدون CASL | leakage از raw SQL / service account |
+| `tenantId` از query/header بدون verify | RF-F09 class |
+| grep-only phase-4 closure | MAP §12.1 |
+
+---
+
+## 4. تعریف دقیق خروجی فاز ۴
+
+### 4.1 خروجی‌های hard (MAP 4.1–4.5)
+
+| # | خروجی | Exit |
+|---|--------|------|
+| 4.0 | R0–R3 red-flag backlog | [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) exit criteria |
+| 4.1 | `@app-tour/tenant-kernel` — host, context, `TenantRoute` | unit + adversarial host tests |
+| 4.2 | Postgres + Redis (Docker) + RLS + Prisma tours | isolation e2e · restart survival |
+| 4.3 | provision tenant → default `workspace_type` | دو tenant جدا در e2e |
+| 4.4 | tenant theme از kernel/DB | web/API e2e accent ≠ |
+| 4.5 | in-process event bus | `TourCreated` handler test |
+| 4.6 | `phase-4:gate` + contract + forensic | Purity ≥ 8 · Verification = CI |
+
+### 4.2 خروجی‌های soft
+
+- Playwright subdomain smoke (non-blocking تا PR بعدی)
+- `GET /tours/:id` hydrate کامل
+- OTP login production (می‌تواند با JWT stub در 4.1 شروع شود)
+
+### 4.3 Definition of Done (یک جمله)
+
+> **Tenant boundary در کد، CI، و DB قابل اثبات است — نه با env dev و in-memory store.**
+
+---
+
+## 5. معماری tenant kernel + defense-in-depth
+
+### 5.1 جریان request
+
+```text
+Request (Host + Authorization)
+        │
+        ▼
+packages/tenant-kernel     ← parse host · validate label · TenantRoute (design)
+        │
+        ├── apps/api — ingress در `apps/api/src/tenant-kernel/` (JWT · dev bearer gated · headers)
+        │     → `createApiAbility` + `accessibleByTourWhere` ([`phase-3-design-system.md` §10](phase-3-design-system.md))
+        │     → Prisma + `SET_LOCAL_RLS_TENANT_SQL` ([`tenant-kernel` RLS constants](packages/tenant-kernel/src/rls/session.ts))
+        │
+        └── apps/web (RSC) — [`phase-3-design-system.md` §11](phase-3-design-system.md)
+              → `resolveBootstrapAppSession()` per request ([`layout.tsx`](../apps/web/app/layout.tsx))
+              → `ThemeProviderChain`: Platform → Tenant → Workspace ([`phase-2-design-system.md` §5.2](phase-2-design-system.md#52-زنجیره-provider-هدف--فاز-۲-harness،-فاز-۳-production))
+              → `WorkspaceThemeProvider` + CASL **قبل** ingress (P3-E-CASL-01 — unchanged)
+        │
+        ▼
+Postgres RLS policies      ← safety net (layer 2)
+```
+
+### 5.2 تفکیک theme (همان فاز ۲ — فاز ۴ فقط Tenant را operational می‌کند)
+
+| لایه | قرارداد | مالک | فاز |
+|------|---------|------|-----|
+| Platform | `--color-*` semantic | `@app-tour/design-tokens` | ۲ ✅ |
+| Tenant | `TenantThemeConfig` | DB / tenant settings · validate در SDK | ۲ types ✅ · **۴ provider + API** |
+| Workspace | `--ws-*` · ingress T-1–T-7 | `WorkspacePlugin.theme` | ۲–۳ ✅ |
+
+**ترتیب Provider (ثابت — [`phase-2-design-system.md` §5.2](phase-2-design-system.md)):**
+
+```text
+PlatformThemeProvider
+  └ TenantThemeProvider     ← فاز ۴: config از API، نه `{}` mock
+       └ WorkspaceThemeProvider  ← starter تا فاز ۶؛ CASL قبل ingress (فاز ۳)
+```
+
+**تفاوت با workspace theme:** tenant = یک **سازمان** (لوگو/accent) · workspace = **مدل کسب‌وکار** (starter/Denali) — [`phase-2-design-system.md` §8.3](phase-2-design-system.md#83-تفکیک-از-tenant-فاز-۴).
+
+### 5.3 `TenantConnectionRouter` (stub)
+
+```typescript
+// packages/tenant-kernel — design for phase 7
+export interface TenantRoute {
+  readonly tenantId: string;
+  readonly tier: "pool" | "silo";
+  readonly databaseUrl: string;
+}
+```
+
+---
+
+## 6. DAG و زیرفازها
+
+```text
+4.0  R0–R3 (blocking)
+  ↓
+4.1  packages/tenant-kernel
+  ↓
+4.2  Postgres + RLS + Prisma (جایگزین in-memory)
+  ↓
+4.3  provision · دو tenant
+  ↓
+4.4  TenantTheme production (موازی پس از 4.2)
+  ↓
+4.5  event bus scaffold
+  ↓
+4.6  phase-4:gate + forensic audit
+```
+
+**Overlap مجاز:** طراحی schema فاز ۵ موازی 4.2 (بدون cutover outbox).  
+**Overlap ممنوع:** شروع 4.2 قبل از 4.0 · Denali (۶) قبل از 4 **Closed**.
+
+---
+
+## 7. زیرفاز 4.0 — Gate of Gates (R0–R3)
+
+> **Blocking:** هیچ PR با `Phase: 4.1+` merge نشود تا exit زیر سبز باشد.
+
+| Track | Red flag | کار | Exit |
+|-------|----------|-----|------|
+| **R0** | RF-F09 | Gate `dev.<base64>` bearer | `AUTH_ALLOW_DEV_BEARER=true` فقط dev · prod/test → 401 |
+| **R1** | RF-F05/F06 | Session per-request | `layout.tsx` `force-dynamic` · props به providers |
+| **R2** | RF-SCALE-* | Indexed in-memory · no full scan on write | `in-memory-tour.repository.spec.ts` |
+| **R3** | RF-F08 | Web → API bridge | `FetchTourClient` + `create-tour.server.ts` |
+
+**فایل‌های مرجع:** `apps/api/src/tenant-kernel/*` · `apps/web/src/tenant/*` · `apps/web/src/tours/fetch-tour-client.ts`
+
+**گزارش وضعیت:** `reports/phase-3.2-red-flag-status-YYYY-MM-DD.md`
+
+**قانون gate:** `phase-4:gate` check `p4_red_flag_prerequisite` — FAIL اگر گزارش 4.0 ناموجود یا R0–R3 باز.
+
+---
+
+## 8. زیرفاز 4.1 — `packages/tenant-kernel`
+
+### 8.1 هدف
+
+استخراج منطق generic tenant از `apps/api/src/tenant-kernel` به پکیج مستقل — **بدون** Nest · **بدون** Prisma در پکیج (فقط types/helpers).
+
+### 8.2 ساختار پکیج
+
+```text
+packages/tenant-kernel/
+  src/
+    host/           ← port legacy tenant-host
+    rls/            ← SET LOCAL helpers · policy name constants
+    route.ts        ← TenantRoute interface
+    index.ts
+  test/
+    phase-4.contract.spec.ts
+    host-parse.spec.ts
+```
+
+### 8.3 API surface (واقعی — [`packages/tenant-kernel/src/index.ts`](../packages/tenant-kernel/src/index.ts))
+
+| Export | نقش |
+|--------|-----|
+| `parseWorkspaceTenantLabelFromHost` | subdomain → label outcome (reserved · invalid · apex) |
+| `resolveWorkspaceSlugFromNormalizedHost` | label string یا null |
+| `RLS_TENANT_SETTING` · `SET_LOCAL_RLS_TENANT_SQL` | MAP §7.1 session variable |
+| `TenantRoute` · `TenantTier` | hybrid stub — implement فاز ۷ |
+
+**باقی می‌ماند در `apps/api/src/tenant-kernel/` تا استخراج کامل:** `resolveTenantContextFromRequest` · JWT · `parse-dev-bearer` · `auth-env` — ingress وابسته به HTTP ([§8.4](#84-import-boundary)).
+
+### 8.4 Import boundary
+
+```text
+tenant-kernel  → workspace-sdk (types only, optional)
+tenant-kernel  ↛ platform-core · ↛ design-tokens · ↛ workspaces/*
+apps/api       → tenant-kernel, workspace-sdk, platform-core
+apps/web       → tenant-kernel (types/host parse), theme-react, workspace-sdk
+platform-core  ↛ tenant-kernel
+```
+
+### 8.5 Exit criteria 4.1
+
+- [ ] `@app-tour/tenant-kernel` build + test
+- [ ] `phase-4.contract.spec.ts` — host adversarial (reserved, apex, invalid)
+- [ ] `apps/api` re-export/wire ingress از پکیج (thin adapter)
+- [ ] Subdomain design doc در §8 (جدول reserved labels)
+
+---
+
+## 9. زیرفاز 4.2 — Postgres + Redis + RLS + Prisma
+
+### 9.1 Infra
+
+[`infra/docker-compose.yml`](../infra/docker-compose.yml):
+
+| سرویس | پورت host | نقش |
+|---------|-----------|-----|
+| postgres | 5433→5432 | RLS + Prisma |
+| redis | 6379 | idempotency scaffold (4.5) |
+
+### 9.2 Schema (حداقل)
+
+```sql
+-- tenants: id, subdomain (unique), workspace_type, theme JSONB
+-- tours: id, tenant_id NOT NULL, canonical JSONB, ...
+-- RLS: ENABLE + FORCE on tours; policy USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
+```
+
+**Prisma:** [`apps/api/prisma/schema.prisma`](../apps/api/prisma/schema.prisma) — مرجع schema.
+
+**CASL + DB (هم‌راستا فاز ۳):** فاز ۳ [`accessibleByTourWhere`](../apps/api/src/casl/api-ability.ts) روی in-memory؛ فاز ۴ همان ability را روی **Prisma** با [`@casl/prisma`](../apps/api/docs/prisma-accessible-by.md) — نه جایگزین rules در `workspace-sdk`.
+
+### 9.3 `withTenantTransaction`
+
+اولین statement در transaction:
+
+```sql
+SELECT set_config('app.current_tenant_id', $1::text, true);
+```
+
+سپس Prisma queries — mirror legacy `TenantSessionBindingService` بدون TypeORM.
+
+### 9.4 جایگزینی in-memory
+
+| قبل | بعد |
+|-----|-----|
+| `InMemoryTourRepository` | `PrismaTourRepository` وقتی `DATABASE_URL` set |
+| `main.ts` global array | env `TOUR_STORAGE=postgres` |
+
+In-memory می‌ماند برای unit tests بدون Docker — **نه** default production.
+
+### 9.5 Exit criteria 4.2
+
+- [ ] Migration + seed دو tenant
+- [ ] Testcontainers (یا tagged integration): tenant A ≠ B
+- [ ] Restart survival: tour persists after API restart
+- [ ] `P4-E-RLS-01` · `P4-E-DATA-01` green
+
+---
+
+## 10. زیرفاز 4.3 — provision + دو tenant
+
+### 10.1 Provision
+
+- Seed: `tenant-a`, `tenant-b` · `workspace_type: starter` (هم‌نام [`starterWorkspacePlugin`](../packages/workspaces/starter))
+- Dev route (gated): `POST /internal/tenants/provision` — `NODE_ENV=development` only
+- **بعد از 4.3 (اختیاری):** resolve `pluginId` از header/registry در validation — تکمیل RF-F03 ([`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md))؛ فاز ۳ هنوز `starter` hard-coded در [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts)
+
+### 10.2 E2E proof
+
+```bash
+# Host: tenant-a.localhost:3001
+curl -H "Host: tenant-a.localhost" … POST /tours
+# tenant-b cannot read tenant-a tour id
+```
+
+### 10.3 Exit criteria 4.3
+
+- [ ] MAP 4.3 «دو tenant جدا» — automated test
+- [ ] default `workspace_type` on provision
+
+---
+
+## 11. زیرفاز 4.4 — `TenantThemeProvider` production
+
+### 11.1 API
+
+`GET /api/v2/tenant-config` (یا `/tenant/theme`) — kernel-scoped · returns `TenantThemeConfig`
+
+### 11.2 Web
+
+```text
+RootLayout (RSC)
+  → resolve host → tenantId
+  → fetch tenant-config (server-only)
+  → AppProviders → TenantThemeProvider theme={…} data-tenant-id={tenantId}
+```
+
+CASL: قبل از اعمال tenant CSS — همان الگوی فاز ۳ برای `WorkspaceTheme` ([`ThemeProviderChain`](../packages/theme-react) + `authz` از [`workspace-sdk`](../packages/workspace-sdk/src/auth/))؛ subject `Tenant` در `ability.ts` در PR جدا اگر هنوز نیست.
+
+### 11.3 Exit criteria 4.4
+
+- [ ] tenant A `primaryColor` ≠ tenant B در e2e
+- [ ] بدون `NEXT_PUBLIC_DEV_TENANT_ID` as sole prod source
+
+---
+
+## 12. زیرفاز 4.5 — in-process event bus
+
+### 12.1 پکیج
+
+`@app-tour/platform-events`:
+
+```typescript
+publishDomainEvent({ tenantId, type, payload }): void
+subscribe(type, handler): void
+```
+
+**قوانین:** cross-tenant dispatch → throw · handler idempotent (`eventId` dedupe در ۴ minimal).
+
+### 12.2 Hook
+
+`CanonicalTourService` پس از persist موفق → `TourCreated`.
+
+### 12.3 Exit criteria 4.5
+
+- [ ] unit: subscriber receives event with correct `tenantId`
+- [ ] integration: publish after `POST /tours` (postgres path)
+
+---
+
+## 13. زیرفاز 4.6 — `phase-4:gate` + forensic
+
+| Artifact | مسیر |
+|----------|------|
+| Contract | `packages/tenant-kernel/test/phase-4.contract.spec.ts` |
+| Guard | `scripts/guards/phase-4-guard.mjs` |
+| Report | `reports/phase-4-gate-YYYY-MM-DD.json` |
+| Forensic | `docs/audits/phase-4-zero-debt-forensic-audit.mdoc` |
+
+**Gate composition:**
+
+```json
+"phase-4:gate": "pnpm build && pnpm test && pnpm run phase-3:gate && pnpm run phase-4:guard"
+```
+
+**Purity Score ≥ 8** قبل از **Closed: Zero-Debt Verified** ([MAP §16](MIGRATION-MAP.md#۱۶-forensic-drift-enforcement)).
+
+---
+
+## 14. PHASE 4 ENFORCEMENT (الزام CI)
+
+> هر PR `Phase: 4.x` **باید** شناسه `P4-E-*` در checklist داشته باشد.
+
+### 14.1 Verification table (Doc-Claim ↔ CI 1:1)
+
+| Claim | Enforcement ID | Mechanism | FAIL if |
+|-------|----------------|-----------|---------|
+| No API request without tenant context | `P4-E-TENANT-01` | `apps/api/test/tenant-security.spec.ts` | 200 without headers/JWT |
+| Dev bearer dead in prod | `P4-E-AUTH-01` | `tenant-kernel.spec.ts` + security spec | bearer accepted when flag off |
+| RLS blocks cross-tenant read | `P4-E-RLS-01` | `test/rls-isolation.integration.spec.ts` | B reads A row |
+| `set_config` transactional | `P4-E-RLS-02` | unit mock pool reuse | session leak test fails |
+| Postgres SoT | `P4-E-DATA-01` | restart + find tour | in-memory only in prod path |
+| Host parse reserved | `P4-E-HOST-01` | `phase-4.contract.spec.ts` | `api.localhost` → tenant |
+| Event carries tenantId | `P4-E-EVT-01` | platform-events spec | missing tenant on envelope |
+| Write path O(1) tenant scope | `P4-E-SCALE-01` | repository spec + doc Big-O | full table scan documented |
+| Red-flag prerequisite | `P4-E-RF-40` | status report + guard | R0–R3 open |
+| Phase 3 regression | `P4-E-REG-03` | `phase-3:gate` in phase-4:gate | phase-3 red |
+
+**grep-only:** supplementary ([MAP §20](MIGRATION-MAP.md#۲۰-guardrails-ci)) — never sole closure proof.
+
+### 14.2 `phase-4:guard` checks (هدف)
+
+| # | Check |
+|---|--------|
+| 1 | `@app-tour/tenant-kernel` build + test ≥ baseline |
+| 2 | `@app-tour/platform-events` test |
+| 3 | `phase-4.contract.spec.ts` PASS |
+| 4 | `P4-E-RF-40` report exists |
+| 5 | `rg -i denali packages/tenant-kernel` → 0 |
+| 6 | depcruise tenant-kernel boundary |
+| 7 | Write `reports/phase-4-gate-*.json` |
+
+---
+
+## 15. آنچه در فاز ۴ ممنوع است
+
+| ممنوع | فاز صحیح |
+|--------|----------|
+| `packages/workspaces/denali` | 6 |
+| `outbox_events` table + relay | 5 |
+| Dedicated DB per tenant (implement) | 7 |
+| Raw SQL بدون RLS review | 5+ با architect |
+| RLS-only بدون CASL | — |
+| grep-only gate closure | — |
+| `platform-core` import tenant-kernel | — |
+| Marketing/User-Portal static import workspace plugin | 6+ dynamic registry |
+
+---
+
+## 16. Definition of Done فاز ۴
+
+- [ ] 4.0 R0–R3 — report archived
+- [ ] `@app-tour/tenant-kernel` + `@app-tour/platform-events`
+- [ ] `infra/docker-compose.yml` documented
+- [ ] Prisma + RLS e2e green
+- [ ] دو tenant subdomain e2e
+- [ ] `TenantThemeProvider` از API config
+- [ ] `TourCreated` event test
+- [ ] `pnpm run phase-4:gate` سبز
+- [ ] Forensic audit archived · Purity ≥ 8
+- [ ] Verification table = CI 1:1
+- [ ] `guard:doc-sync` با phase 4 در registry
+
+### 16.1 §14.4 Forensic Truth vs Marketing
+
+> **Mandatory** per [MAP §14.4](MIGRATION-MAP.md#۱۴۴-self-referencing-audit-mandatory-phase-docs).
+
+| Claim | Reality | Status |
+|-------|---------|--------|
+| «Multi-tenant enterprise» | Until 4.2, tours may be in-memory | **Aspirational** until `P4-E-DATA-01` |
+| «Subdomain routing» | Host parse in 4.1; DB lookup in 4.2 | **Partial** until provision |
+| «Phase 3 Zero-Debt» | **Gate** فاز ۳ = visual/app/CASL scaffold · **نه** ادعای tenant production | **Enforced** honesty — 4.0 جدا |
+| `ThemeProviderChain` order | فاز ۲/۳ ثابت | Tenant layer operational in 4.4 — **نه** جابجایی با Workspace |
+| `@casl/prisma` در runtime | فاز ۳: reference test + in-memory | **۴.2** Postgres path |
+| JWT production auth | Slot in API; full OTP/session = 4.4+ | **Aspirational** if stub only |
+| Hybrid silo `TenantRoute` | Interface only in 4.1 | **Aspirational** until phase 7 |
+| Transactional outbox | In-process bus only in 4.5 | **Deferred** phase 5 |
+| Playwright subdomain | Soft / optional | **Backlog** |
+
+---
+
+## 17. چک‌لیست ورود به فاز ۵
+
+- [ ] این سند §8–§16 complete
+- [ ] `phase-4:gate` سبز
+- [ ] Forensic Phase 4 archived
+- [ ] Postgres SoT برای tours — نه in-memory default
+- [ ] RLS migration applied on all tenant tables
+- [ ] Event bus hook points — outbox table **not** required yet
+
+**فاز ۵ بعدی:** `canonical_data` JSONB · projected columns · transactional outbox ([MAP §11 فاز ۵](MIGRATION-MAP.md#فاز-۵--data-layer-استاندارد--hardened-§12-mandatory)).
+
+---
+
+## 18. پیوست‌ها
+
+### پیوست A — dependency graph (MAP §2 + فاز ۳–۴)
+
+```text
+design-tokens        → (none)
+workspace-sdk        → @casl/ability only
+platform-core        → workspace-sdk only
+ui-primitives        → design-tokens
+theme-react          → design-tokens, workspace-sdk
+tenant-kernel        → workspace-sdk (optional types)
+platform-events      → (none)
+workspaces/starter   → workspace-sdk, platform-core, design-tokens (theme.css)
+apps/api             → tenant-kernel, platform-events, workspace-sdk, platform-core, workspace-starter
+apps/web             → theme-react, ui-primitives/*, workspace-sdk, platform-core, design-tokens
+apps/web             ↛ workspaces/* (static)
+platform-core        ↛ tenant-kernel · ↛ design-tokens
+```
+
+مرجع frozen: [`phase-3-design-system.md` پیوست A](phase-3-design-system.md#پیوست-a--dependency-graph-فاز-۳).
+
+### پیوست B — دستورات verification
+
+```bash
+nvm use && corepack enable
+pnpm install
+docker compose -f infra/docker-compose.yml up -d
+pnpm build && pnpm test
+pnpm run phase-3:gate
+pnpm run phase-4:gate    # when implemented
+pnpm run guard:doc-sync
+```
+
+### پیوست C — PR template snippet
+
+```markdown
+Phase: 4.x
+
+## Covenant (MIGRATION-MAP §12)
+- [ ] 4.0 R0–R3 closed (if 4.1+)
+- [ ] Enforcement IDs: P4-E-___
+
+## Sub-phase (phase-4-tenant-kernel.md §7–13)
+- [ ] …
+
+## Doc-First
+- [ ] Markdoc updated before protected package code
+```
+
+### پیوست D — مراجع خارجی (تحقیق §2)
+
+| موضوع | مرجع |
+|--------|------|
+| Pool / Bridge / Silo | [AWS — Choose PostgreSQL data access pattern for SaaS](https://aws.amazon.com/blogs/database/choose-the-right-postgresql-data-access-pattern-for-your-saas-application/) |
+| پیش‌فرض ۲۰۲۶ B2B | [Cadence — Multi-tenancy in SaaS 2026](https://cadence.withremote.ai/blog/multi-tenancy-saas) |
+| طیف ایزولاسیون | [HLD Handbook — Multi-Tenancy spectrum](https://hld.handbook.academy/curriculum/architecture-patterns/multi-tenancy/) |
+| RLS production | [Cadence — Postgres RLS for SaaS](https://cadence.withremote.ai/blog/postgres-rls-saas) · [Quantlab — Postgres RLS 2026](https://quantlabusa.dev/blog/building-multi-tenant-saas-postgres-rls) |
+| AWS RLS | [AWS Prescriptive Guidance — PostgreSQL RLS](https://docs.aws.amazon.com/prescriptive-guidance/latest/saas-multitenant-managed-postgresql/rls.html) |
+| ۷ practice isolation | [Emergen — Data isolation 2025](https://emergen.io/blog/ensuring-data-isolation-in-multi-tenant-saas-2025-guide) |
+| Resolution + patterns | [Zenn — SaaS multi-tenant architecture 2025](https://zenn.dev/shineos/articles/saas-multi-tenant-architecture-2025?locale=en) |
+| ALS / context | [NestJS — Async Local Storage](https://docs.nestjs.com/recipes/async-local-storage) |
+| Outbox | [microservices.io — Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html) |
+
+### پیوست E — ماتریس تست
+
+| ID | لایه | سناریو |
+|----|------|--------|
+| TK-1 | tenant-kernel | reserved label `api` → not tenant |
+| TK-2 | tenant-kernel | valid `acme.localhost` label (no workspace name in package) |
+| RLS-1 | postgres | A inserts; B select → 0 rows |
+| AUTH-1 | api | dev bearer prod → 401 |
+| EVT-1 | events | TourCreated has tenantId |
+| TH-1 | web | tenant-a accent ≠ tenant-b |
+
+### پیوست F — `phase-4:gate` (root `package.json`)
+
+```json
+{
+  "phase-4:guard": "node scripts/guards/phase-4-guard.mjs",
+  "phase-4:gate": "pnpm build && pnpm test && pnpm run phase-3:gate && pnpm run phase-4:guard"
+}
+```
+
+### پیوست G — پل MAP §5–§10
+
+| MAP § | فاز ۴ سهم |
+|-------|----------|
+| §5 Infra | Docker Postgres/Redis root `infra/` |
+| §6 Events | in-process 4.5 · outbox 5 |
+| §7 Tenant | **این فاز** — RLS + subdomain |
+| §8 Plugin | unchanged — registry still starter until 6 |
+| §10 Observability | request `tenantId` in structured logs |
+
+---
+
+**شروع:** [§7 زیرفاز 4.0](#7-زیرفاز-40--gate-of-gates-r0r3) پس از `pnpm run phase-3:gate` سبز.

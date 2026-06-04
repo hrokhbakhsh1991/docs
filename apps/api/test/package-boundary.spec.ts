@@ -10,6 +10,8 @@ const SRC_DIR = join(PACKAGE_ROOT, "src");
 
 const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/platform-core",
+  "@app-tour/platform-events",
+  "@app-tour/tenant-kernel",
   "@app-tour/workspace-sdk",
   "@app-tour/workspace-starter",
   "@casl/ability",

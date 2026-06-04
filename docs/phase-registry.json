@@ -9,7 +9,8 @@
       "legacyMarkdown": "phase-0-foundation.md",
       "mapSection": "فاز ۰",
       "packages": ["packages/workspace-sdk", "packages/config"],
-      "packageReadmeMustLink": "phase-0-foundation.md"
+      "packageReadmeMustLink": "phase-0-foundation.md",
+      "aiExecIndex": "phase-0/phase-0.ai-exec.index.md"
     },
     {
       "phase": 1,
@@ -21,7 +22,8 @@
       "closureDate": "2026-06-03",
       "closureGitSha": "7000685",
       "packages": ["packages/platform-core"],
-      "packageReadmeMustLink": "phase-1-platform-core.md"
+      "packageReadmeMustLink": "phase-1-platform-core.md",
+      "aiExecIndex": "phase-1/phase-1.ai-exec.index.md"
     },
     {
       "phase": 2,
@@ -34,7 +36,8 @@
         "packages/ui-primitives",
         "packages/theme-react"
       ],
-      "packageReadmeMustLink": "phase-2-design-system.md"
+      "packageReadmeMustLink": "phase-2-design-system.md",
+      "aiExecIndex": "phase-2/phase-2.ai-exec.index.md"
     },
     {
       "phase": 3,
@@ -54,6 +57,7 @@
         "apps/api",
         "apps/web"
       ],
+      "aiExecIndex": "phase-3/phase-3.ai-exec.index.md",
       "subPhases": {
         "3.0-doc": {
           "title": "Docs-as-Code scaffold",

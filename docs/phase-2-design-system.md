@@ -1,5 +1,7 @@
 # Phase 2 — Design System & Enterprise Visual Layer
 
+> **AI-execution (agents):** [`phase-2-design-system.ai-exec.md`](phase-2-design-system.ai-exec.md) · [`phase-2/phase-2.ai-exec.index.md`](phase-2/phase-2.ai-exec.index.md) · hub [`phase-2/README.md`](phase-2/README.md)  
+> **Gate (repo):** `pnpm run phase-2:gate` (8 steps + `p2_*`) — not Appendix G JSON · no `guard:symlink` in chain · body may lag `.mdoc`  
 > **Canonical (Markdoc):** [`phase-2-design-system.mdoc`](phase-2-design-system.mdoc) · §19 · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md)  
 > **Integrity:** [`audits/phase-2-documentation-integrity-2026-06-03.mdoc`](audits/phase-2-documentation-integrity-2026-06-03.mdoc)
@@ -7,7 +9,7 @@
 **app-tour — راهنمای اجرایی کامل فاز دو**
 
 > **نقش:** بسط عمیق فاز ۲ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) §۱۱  
-> **پیش‌نیاز:** [`phase-1-platform-core.mdoc`](phase-1-platform-core.mdoc) (canonical) — `pnpm run phase-1:gate` سبز (**≥132** tests platform-core · g1–g6 · g8 · g10–g13)  
+> **پیش‌نیاز:** [`phase-1/phase-1.ai-exec.index.md`](phase-1/phase-1.ai-exec.index.md) — `pnpm run phase-1:gate` سبز (**≥148** / closure **≥56** · `gate-thresholds.mjs`) · body below may lag `.mdoc`  
 > **North Star:** Platform semantics = generic tokens · Workspace brand = injectable theme · Tenant = visual boundary hook (فاز ۴)  
 > **مرجع legacy (port انتخابی):** [`legacy/packages/ui/`](../legacy/packages/ui/) · [`legacy/libs/core/src/types/tenant-config.ts`](../legacy/libs/core/src/types/tenant-config.ts)
 

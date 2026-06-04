@@ -1,4 +1,5 @@
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
+import { publishDomainEvent } from "@app-tour/platform-events";
 
 import type { ApiAbility } from "../casl/api-ability";
 import { accessibleByTourWhere } from "../casl/api-ability";
@@ -41,6 +42,12 @@ export class CanonicalTourService {
     if (!sync.ok) {
       throw new Error(`CANONICAL_SYNC_VALIDATION_FAILED: ${sync.violations.join(", ")}`);
     }
+
+    publishDomainEvent({
+      tenantId: record.tenantId,
+      type: "TourCreated",
+      payload: { tourId: record.id },
+    });
 
     return record;
   }

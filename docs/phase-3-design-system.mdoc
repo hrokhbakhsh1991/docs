@@ -1,5 +1,5 @@
 ---
-title: Phase 3 — Design System & App Integration
+title: Phase 3 — Design System
 phase: 3
 format: markdoc
 sourceMarkdown: phase-3-design-system.md
@@ -399,7 +399,7 @@ API نازک با **canonical in-memory SoT** (`in_memory.tour_records`)، healt
 |----------|---------|-----------|
 | **Write path** | `POST /tours` → `ToursService` → `CanonicalTourService` → `ScopedTourRepository` → `in_memory.tour_records` | Direct `db/*` repository import from `tours.routes` / `tours.service` |
 | **CASL** | `createApiAbility` + `accessibleByTourWhere` in `apps/api/src/casl/api-ability.ts` | Procedural `if (role === …)` in handlers |
-| **Tenant binding** | `TenantKernel` (`apps/api/src/tenant-kernel/`) — Bearer `dev.<payload>` or explicit headers (no `ws-default` fabrication) | Missing header → **401** `UNAUTHORIZED_*`; mismatch → **403** |
+| **Tenant binding** | `TenantKernel` in `apps/api` — `Authorization: Bearer dev.<payload>` **or** explicit headers (`x-authenticated-tenant-id`, `x-user-id`, `x-actor-role`, `x-membership-status`, `x-workspace-id`) — **no defaults** | Missing header → **401** `UNAUTHORIZED_*`; claim mismatch → **403** |
 | **Cross-tenant read** | `ScopedTourRepository.findFirst` → **403** `FORBIDDEN_TOUR_READ_CROSS_TENANT` | Masking as **404** |
 | **Legacy tables** | `LegacyCanonicalAdapter` (read mirror / write throws `DUAL_WRITE_FORBIDDEN`) | Prisma / `workspace_tour*` in `apps/api/src` handlers |
 | **Import surface** | `@app-tour/workspace-sdk`, `@app-tour/platform-core`, `@app-tour/workspace-starter` (validation only) | `@app-tour/ui-primitives`, `packages/workspaces/denali` |
@@ -637,8 +637,10 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 - [x] [`phase-3-design-system.md` §15](#15-definition-of-done-فاز-۳) ✅
 - [x] `phase-3:gate` سبز
 - [x] Forensic Phase 3 archived — [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)
-- [ ] Tenant subdomain design reviewed ([MAP §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting))
-- [ ] RLS migration plan drafted — **not** implemented in Phase 3
+- [ ] Tenant subdomain design reviewed ([MAP §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting)) → تحویل **۴.1** در [`phase-4-tenant-kernel.md` §0.2](phase-4-tenant-kernel.md#02-پل-از-phase-3-design-systemmd-16)
+- [ ] RLS migration plan drafted — **not** implemented in Phase 3 → تحویل **۴.2** در همان [§0.2](phase-4-tenant-kernel.md#02-پل-از-phase-3-design-systemmd-16)
+
+**هم‌ترازی فاز ۳ «Closed» vs tenant واقعی:** [`phase-4-tenant-kernel.md` §0.1](phase-4-tenant-kernel.md#01-تناقض‌های-آگاهانه-از-قبل-حل‌شده--فاز-۴-تکمیل-می‌کند)
 
 ---
 

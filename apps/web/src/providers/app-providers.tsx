@@ -24,7 +24,7 @@ export function AppProviders({ bootstrap, children }: AppProvidersProps) {
     <AppSessionProvider session={resolved.session}>
       <ThemeProviderChain
         mode="light"
-        tenantTheme={{}}
+        tenantTheme={bootstrap.tenantTheme ?? {}}
         plugin={resolved.plugin}
         workspaceTheme={resolved.plugin.theme}
         authz={resolved.scopedAuthz}

@@ -1,11 +1,12 @@
 # @apps/web
 
-Phase **3.3** thin Next.js shell — no static `packages/workspaces/*` imports.
+Phase **3.3+** thin Next.js shell — **Phase 4** per-request tenant theme fetch ([`phase-4-tenant-kernel.md`](../../docs/phase-4-tenant-kernel.md)).
 
 ## Central documentation
 
 | Doc | Link |
 |-----|------|
+| **Phase 4 guide** | [`docs/phase-4-tenant-kernel.md`](../../docs/phase-4-tenant-kernel.md) · [Markdoc](../../docs/phase-4-tenant-kernel.mdoc) |
 | **Phase 3 guide** | [`docs/phase-3-design-system.md`](../../docs/phase-3-design-system.md) · [Markdoc](../../docs/phase-3-design-system.mdoc) |
 | Forensic audit | [`docs/audits/phase-3-zero-debt-forensic-audit.md`](../../docs/audits/phase-3-zero-debt-forensic-audit.md) |
 | Integrity report | [`docs/audits/phase-3-documentation-integrity-2026-06-03.mdoc`](../../docs/audits/phase-3-documentation-integrity-2026-06-03.mdoc) |

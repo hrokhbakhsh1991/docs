@@ -118,4 +118,12 @@ export class RuleEngineScope {
     this.effectiveByFieldId.set(fieldId, effective);
     return effective;
   }
+
+  /** Visible effective fields for the resolved cell (excludes hidden overrides). */
+  listEffectiveFields(): readonly EffectiveFieldState[] {
+    return this.fieldEngine
+      .listAll()
+      .map((entry) => this.resolveEffectiveField(entry.id))
+      .filter((state) => !state.hidden);
+  }
 }

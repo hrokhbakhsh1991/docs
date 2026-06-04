@@ -5,6 +5,7 @@ import {
 } from "@app-tour/workspace-sdk/auth";
 import type {
   TenantAuthContext,
+  TenantThemeConfig,
   WorkspacePlugin,
   WorkspaceThemeSubject,
 } from "@app-tour/workspace-sdk";
@@ -39,6 +40,7 @@ export type ResolvedBootstrapSession = {
 export type SerializableBootstrap = {
   readonly context: TenantAuthContext;
   readonly plugin: WorkspacePlugin;
+  readonly tenantTheme?: TenantThemeConfig;
 };
 
 function resolveContextFromEnv(): TenantKernelResolveInput {
@@ -110,10 +112,12 @@ export function resolveBootstrapAppSession(
 /** Props passed from server layout into client providers. */
 export function toSerializableBootstrap(
   resolved: ResolvedBootstrapSession,
+  tenantTheme?: TenantThemeConfig,
 ): SerializableBootstrap {
   return {
     context: resolved.context,
     plugin: resolved.plugin,
+    ...(tenantTheme ? { tenantTheme } : {}),
   };
 }
 

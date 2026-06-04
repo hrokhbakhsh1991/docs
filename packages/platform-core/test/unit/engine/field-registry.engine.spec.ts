@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { testStarterFieldRegistry } from "../../fixtures/starter.fixture.js";
 import { PlatformCoreError } from "../../../src/errors/platform-core.error.js";
 import { FieldRegistryEngine } from "../../../src/engine/field-registry.engine.js";
+import { MAX_ALLOWED_REGISTRY_FIELDS } from "../../../src/engine/rule-cell-limits.js";
 
 describe("FieldRegistryEngine", () => {
   it("getById returns entry when found", () => {
@@ -37,6 +38,15 @@ describe("FieldRegistryEngine", () => {
     assert.equal(field.canonicalPath, "details.summary");
   });
 
+  it("tryAssertKnownFieldIds returns UNKNOWN_FIELD_ID for orphan ids", () => {
+    const engine = FieldRegistryEngine.create(testStarterFieldRegistry());
+    const result = engine.tryAssertKnownFieldIds(["orphan.id"]);
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error.code, "UNKNOWN_FIELD_ID");
+    }
+  });
+
   it("assertKnownFieldIds throws UNKNOWN_FIELD_ID for orphan ids", () => {
     const engine = FieldRegistryEngine.create(testStarterFieldRegistry());
     assert.throws(
@@ -47,6 +57,21 @@ describe("FieldRegistryEngine", () => {
         return true;
       },
     );
+  });
+
+  it("tryCreate fails REGISTRY_CARDINALITY_VIOLATION when fields exceed limit", () => {
+    const fields = Array.from({ length: MAX_ALLOWED_REGISTRY_FIELDS + 1 }, (_, i) => ({
+      id: `field-${i}`,
+      canonicalPath: `field-${i}`,
+      stepId: "step",
+      kind: "text" as const,
+      required: false,
+    }));
+    const result = FieldRegistryEngine.tryCreate({ version: 1, fields });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error.code, "REGISTRY_CARDINALITY_VIOLATION");
+    }
   });
 
   it("constructor throws DUPLICATE_FIELD_ID when ids repeat", () => {

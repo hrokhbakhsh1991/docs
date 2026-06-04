@@ -1,5 +1,7 @@
 # Phase 3 — Design System & App Integration Plan
 
+> **AI-execution (agents):** [`phase-3-design-system.ai-exec.md`](phase-3-design-system.ai-exec.md) · [`phase-3/phase-3.ai-exec.index.md`](phase-3/phase-3.ai-exec.index.md) · hub [`phase-3/README.md`](phase-3/README.md)  
+> **Gate (repo):** `pnpm run phase-3:gate` (9 steps + `p3_*`) — includes `doc-gate` + nested `phase-2:gate` — not §13.4 JSON · body may lag `.mdoc`  
 > **Canonical (Markdoc):** [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · §19 · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)  
 > **Integrity:** [`audits/phase-3-documentation-integrity-2026-06-03.mdoc`](audits/phase-3-documentation-integrity-2026-06-03.mdoc)
@@ -7,7 +9,7 @@
 **app-tour — راهنمای اجرایی کامل فاز سه**
 
 > **نقش:** بسط عمیق فاز ۳ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) §۱۱ · **الزام:** [`MIGRATION-MAP.md` §۱۸ — PHASE PROTOCOL & ZERO-DEBT COVENANT](MIGRATION-MAP.md#۱۸-phase-protocol--zero-debt-covenant)  
-> **پیش‌نیاز:** فاز ۲ **Closed: Zero-Debt Verified** — [`phase-2-design-system.md`](phase-2-design-system.md) · forensic: [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) · `pnpm run phase-2:gate` سبز  
+> **پیش‌نیاز:** فاز ۲ **Closed: Zero-Debt Verified** — [`phase-2/phase-2.ai-exec.index.md`](phase-2/phase-2.ai-exec.index.md) · `pnpm run phase-2:gate` سبز · body below may lag `.mdoc`  
 > **North Star:** Platform shell = generic · Workspace = injectable plugin · Authority = CASL قبل از ingress · Visual = subpath-only primitives  
 > **Docs-as-Code (§19):** Markdoc canonical — [`phase-3-design-system.mdoc`](phase-3-design-system.mdoc) · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-3-zero-debt-forensic-audit.mdoc`](audits/phase-3-zero-debt-forensic-audit.mdoc) · legacy [`.md`](audits/phase-3-zero-debt-forensic-audit.md)  
@@ -630,8 +632,10 @@ Shell production-first با **خط اول کد** تحت import-boundary.
 - [x] [`phase-3-design-system.md` §15](#15-definition-of-done-فاز-۳) ✅
 - [x] `phase-3:gate` سبز
 - [x] Forensic Phase 3 archived — [`audits/phase-3-zero-debt-forensic-audit.md`](audits/phase-3-zero-debt-forensic-audit.md)
-- [ ] Tenant subdomain design reviewed ([MAP §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting))
-- [ ] RLS migration plan drafted — **not** implemented in Phase 3
+- [ ] Tenant subdomain design reviewed ([MAP §7](MIGRATION-MAP.md#۷-tenant-isolation--poolhybridrouting)) → تحویل **۴.1** در [`phase-4-tenant-kernel.md` §0.2](phase-4-tenant-kernel.md#02-پل-از-phase-3-design-systemmd-16)
+- [ ] RLS migration plan drafted — **not** implemented in Phase 3 → تحویل **۴.2** در همان [§0.2](phase-4-tenant-kernel.md#02-پل-از-phase-3-design-systemmd-16)
+
+**هم‌ترازی فاز ۳ «Closed» vs tenant واقعی:** [`phase-4-tenant-kernel.md` §0.1](phase-4-tenant-kernel.md#01-تناقض‌های-آگاهانه-از-قبل-حل‌شده--فاز-۴-تکمیل-می‌کند)
 
 ---
 
