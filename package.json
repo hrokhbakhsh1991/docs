@@ -25,6 +25,10 @@
     "phase-3:doc-scaffold": "pnpm run doc-gate",
     "guard:symlink": "node scripts/guards/symlink-guard.mjs",
     "ci:integrity": "bash scripts/ci-integrity-check.sh",
+    "test:changed": "bash scripts/test-changed.sh",
+    "test:full": "bash scripts/test-full.sh",
+    "pre-commit:fast": "bash scripts/pre-commit-fast.sh",
+    "db:test-reset": "bash scripts/db-test-reset.sh",
     "prepare": "husky",
     "phase-0:guard": "node scripts/guards/phase-0-guard.mjs",
     "phase-0:foundation-adversarial": "pnpm --filter @app-tour/workspace-sdk exec -- env NODE_ENV=test node --import tsx --test test/adversarial-canonical-ingress.spec.ts test/storage-ingress-immutability.spec.ts",
@@ -55,6 +59,7 @@
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "husky": "^9.1.7",
+    "prettier": "^3.6.2",
     "typescript": "5.9.3"
   }
 }

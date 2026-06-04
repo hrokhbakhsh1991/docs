@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Local integrity gate — full phase chain: 0 → 1 → 2 → 3 (pre-commit via Husky).
+# CI / explicit full-path integrity — phase chain 0 → 1 → 2 → 3 (not Husky pre-commit).
+# Husky default: scripts/pre-commit-fast.sh. PR / Phase 4: pnpm run test:full.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
