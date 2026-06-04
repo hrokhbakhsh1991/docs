@@ -39,6 +39,6 @@ describe("invariant: plugin-binding", () => {
     const plugin = createFreshStarterPlugin();
     const cell = getWorkspaceRuleCell(plugin.ruleSet, "default");
     assert.ok(cell);
-    assert.equal(cell.fieldOverrides.length, 2);
+    assert.equal(cell.fieldOverrides.length, 4);
   });
 });

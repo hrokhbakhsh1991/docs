@@ -1,3 +1,4 @@
+import type { WorkspaceFieldRegistryEntry } from "@app-tour/workspace-sdk/registry";
 import type { WorkspaceWizardSurface } from "@app-tour/workspace-sdk/plugin-types";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
@@ -85,8 +86,20 @@ function toRenderFieldPlan(
     // Omitted hidden fields are excluded above; row.hidden is not the visibility authority (BL-04).
     hidden: false,
     stepId: entry.stepId,
-    uiHints: entry.kind === "composite" ? { compositeId: entry.id } : undefined,
+    uiHints: buildFieldUiHints(entry),
   };
+}
+
+function buildFieldUiHints(
+  entry: WorkspaceFieldRegistryEntry,
+): Readonly<Record<string, string>> | undefined {
+  if (entry.kind === "composite") {
+    return { compositeId: entry.id };
+  }
+  if (entry.kind === "enum" && entry.enumOptions && entry.enumOptions.length > 0) {
+    return { enumOptions: JSON.stringify([...entry.enumOptions]) };
+  }
+  return undefined;
 }
 
 /**

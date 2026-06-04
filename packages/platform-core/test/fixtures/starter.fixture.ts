@@ -21,3 +21,9 @@ export function testStarterRuleSet() {
 export function testStarterWizardSurface() {
   return createTestStarterPlugin().wizard;
 }
+
+/** Starter registry fields excluding ids replaced in a test-local registry overlay. */
+export function testStarterFieldsExcept(...excludeIds: readonly string[]) {
+  const exclude = new Set(excludeIds);
+  return createTestStarterPlugin().fieldRegistry.fields.filter((field) => !exclude.has(field.id));
+}

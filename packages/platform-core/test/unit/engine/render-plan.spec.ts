@@ -34,17 +34,21 @@ describe("buildRenderPlan", () => {
     const plan = buildPlan(testStarterFieldRegistry(), testStarterRuleSet(), testStarterWizardSurface());
     assert.equal(plan.length, 2);
     assert.equal(plan[0]?.stepId, "basics");
-    assert.equal(plan[0]?.fields.length, 1);
+    assert.equal(plan[0]?.fields.length, 2);
     assert.equal(plan[1]?.stepId, "details");
-    assert.equal(plan[1]?.fields.length, 1);
-    const title = plan[0]?.fields[0];
-    const summary = plan[1]?.fields[0];
-    assert.equal(title?.fieldId, "basics.title");
+    assert.equal(plan[1]?.fields.length, 2);
+    const title = plan[0]?.fields.find((f) => f.fieldId === "basics.title");
+    const featured = plan[0]?.fields.find((f) => f.fieldId === "basics.featured");
+    const summary = plan[1]?.fields.find((f) => f.fieldId === "details.summary");
+    const status = plan[1]?.fields.find((f) => f.fieldId === "details.status");
     assert.equal(title?.kind, "text");
     assert.equal(title?.required, true);
+    assert.equal(featured?.kind, "boolean");
     assert.equal(summary?.fieldId, "details.summary");
     assert.equal(summary?.kind, "text");
     assert.equal(summary?.required, false);
+    assert.equal(status?.kind, "enum");
+    assert.deepEqual(status?.uiHints, { enumOptions: '["draft","open","published"]' });
   });
 
   it("omits hidden fields from plan rows (row.hidden false is not visibility authority)", () => {
@@ -168,6 +172,46 @@ describe("buildRenderPlan", () => {
     const plan = buildPlan(registry, ruleSet, wizard);
     assert.equal(plan[0]?.fields[0]?.kind, "composite");
     assert.deepEqual(plan[0]?.fields[0]?.uiHints, { compositeId: "widget.peak" });
+  });
+
+  it("serializes enum options into uiHints.enumOptions", () => {
+    const registry: WorkspaceFieldRegistry = {
+      version: 1,
+      fields: [
+        {
+          id: "details.status",
+          canonicalPath: "details.status",
+          stepId: "step",
+          kind: "enum",
+          required: false,
+          enumOptions: ["draft", "open"],
+        },
+      ],
+    };
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [{ fieldId: "details.status", hidden: false }],
+        },
+      ],
+    };
+    const wizard: WorkspaceWizardSurface = {
+      wizardMode: "classic",
+      railId: "test",
+      roots: ["step"],
+      inactiveFieldGroups: [],
+      wizardCapacityStepRedundant: false,
+    };
+    const plan = buildPlan(registry, ruleSet, wizard);
+    assert.equal(plan[0]?.fields[0]?.kind, "enum");
+    assert.deepEqual(plan[0]?.fields[0]?.uiHints, {
+      enumOptions: '["draft","open"]',
+    });
   });
 
   it("omits empty root steps from plan", () => {

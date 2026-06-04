@@ -470,11 +470,13 @@ describe("RuleEngine", () => {
       engine,
       testRuleContext({ variant: "default" }),
     );
-    assert.equal(fields.length, 2);
+    assert.equal(fields.length, 4);
     const title = fields.find((f) => f.fieldId === "basics.title");
     assert.ok(title);
     assert.equal(title.required, true);
     assert.equal(title.hidden, false);
+    assert.ok(fields.some((f) => f.fieldId === "basics.featured"));
+    assert.ok(fields.some((f) => f.fieldId === "details.status"));
   });
 
   it("reuses RuleEngineScope outcomes for repeated calls with the same context", () => {

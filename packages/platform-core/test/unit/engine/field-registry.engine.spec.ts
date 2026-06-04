@@ -23,12 +23,14 @@ describe("FieldRegistryEngine", () => {
   it("listByStep filters by stepId preserving registry order", () => {
     const engine = FieldRegistryEngine.create(testStarterFieldRegistry());
     const basics = engine.listByStep("basics");
-    assert.equal(basics.length, 1);
+    assert.equal(basics.length, 2);
     assert.equal(basics[0]?.id, "basics.title");
+    assert.equal(basics[1]?.id, "basics.featured");
 
     const details = engine.listByStep("details");
-    assert.equal(details.length, 1);
+    assert.equal(details.length, 2);
     assert.equal(details[0]?.id, "details.summary");
+    assert.equal(details[1]?.id, "details.status");
   });
 
   it("getById returns entry for registry field id", () => {

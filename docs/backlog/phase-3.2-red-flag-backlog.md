@@ -1,10 +1,10 @@
 # Phase 3.2 — Primary Backlog (Red Flags)
 
-**Status:** Active — supersedes Wave A–E remediation workflow  
+**Status:** P0/P1 tracks closed (R0–R3) — gate refresh + Playwright waiver before MAP «Locked»  
 **Source of truth:** [`audit-red-flags-phase-3.md`](../../audit-red-flags-phase-3.md)  
 **Stance:** Scaffold Theater → **honest scaffold** with blocking security and one real vertical slice (web → API)
 
-**Do not claim:** “Zero-Debt Verified” until this backlog’s P0/P1 exit criteria are met and grep-only gates are demoted or replaced.
+**Do not claim:** MAP **“Locked / Zero-Debt Verified”** until `pnpm run phase-3:gate` on post-gap SHA + [`final-phase-3-audit-report.md`](../final-phase-3-audit-report.md) PASS + Playwright EC-33-3/4 waived or implemented.
 
 ---
 

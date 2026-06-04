@@ -177,10 +177,39 @@ export const badgeTokens = {
   PrimitiveColorToken | PrimitiveSpacing | PrimitiveRadius | PrimitiveTypography | PrimitiveBorderToken | PrimitiveLayoutToken
 >;
 
+/** Select control tokens — Select.module.css (aligned with input surface). */
+export const selectControlTokens = {
+  ...inputControlTokens,
+  cursor: "--layout-cursor-pointer",
+} as const satisfies Record<
+  string,
+  PrimitiveColorToken | PrimitiveSpacing | PrimitiveRadius | PrimitiveTypography | PrimitiveFocusToken | PrimitiveBorderToken | PrimitiveLayoutToken
+>;
+
+/** Checkbox control tokens — Checkbox.module.css */
+export const checkboxControlTokens = {
+  size: "--layout-icon-slot",
+  margin: "--space-0",
+  accent: "--color-primary",
+  focusOutlineWidth: "--focus-outline-width",
+  focusOutlineOffset: "--focus-outline-offset",
+  focusRing: "--color-focus-ring",
+  invalidOutline: "--color-danger",
+  cursor: "--layout-cursor-pointer",
+  cursorDisabled: "--layout-cursor-not-allowed",
+  disabledOpacity: "--opacity-disabled",
+  borderStyle: "--layout-border-style-solid",
+} as const satisfies Record<
+  string,
+  PrimitiveColorToken | PrimitiveSpacing | PrimitiveRadius | PrimitiveFocusToken | PrimitiveBorderToken | PrimitiveLayoutToken
+>;
+
 /** Maps component → layout token record for guard tests. */
 export const componentCssTokenMaps = {
   button: buttonLayoutTokens,
   input: inputControlTokens,
+  select: selectControlTokens,
+  checkbox: checkboxControlTokens,
   fieldShell: fieldShellTokens,
   alert: alertTokens,
   badge: badgeTokens,

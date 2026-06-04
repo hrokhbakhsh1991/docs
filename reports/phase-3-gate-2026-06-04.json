@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T05:54:37.154Z",
-  "gitSha": "319129a",
+  "generatedAt": "2026-06-04T08:09:27.851Z",
+  "gitSha": "98b98c9",
   "phase": "3.5",
   "reportDate": "2026-06-04",
   "enforcement": {
@@ -134,7 +134,7 @@
       "description": "Select/Checkbox subpaths (optional until 3.3.x)",
       "required": false,
       "ok": true,
-      "detail": "select=false checkbox=false"
+      "detail": "select=true checkbox=true"
     },
     {
       "id": "p3_no_denali",

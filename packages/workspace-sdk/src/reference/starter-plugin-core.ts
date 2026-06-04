@@ -18,8 +18,12 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** Phase 3 shell — text only until Select/Checkbox primitives ship (P0-05). */
-export const STARTER_ALLOWED_FIELD_KINDS = ["text"] as const satisfies readonly WorkspaceFieldKind[];
+/** Phase 3 shell — kinds with ui-primitives wiring (3.3.x). */
+export const STARTER_ALLOWED_FIELD_KINDS = [
+  "text",
+  "enum",
+  "boolean",
+] as const satisfies readonly WorkspaceFieldKind[];
 
 function assertStarterFieldKinds(): void {
   for (const field of STARTER_FIELD_REGISTRY.fields) {
@@ -43,11 +47,26 @@ export const STARTER_FIELD_REGISTRY = deepFreeze({
       tags: ["core"],
     },
     {
+      id: "basics.featured",
+      canonicalPath: "basics.featured",
+      stepId: "basics",
+      kind: "boolean" as const,
+      required: false,
+    },
+    {
       id: "details.summary",
       canonicalPath: "details.summary",
       stepId: "details",
       kind: "text" as const,
       required: false,
+    },
+    {
+      id: "details.status",
+      canonicalPath: "details.status",
+      stepId: "details",
+      kind: "enum" as const,
+      required: false,
+      enumOptions: ["draft", "open", "published"],
     },
   ],
 });
@@ -64,7 +83,9 @@ export const STARTER_RULE_SET = deepFreeze({
       dimensions: { variant: "default" },
       fieldOverrides: [
         { fieldId: "basics.title", required: true, hidden: false },
+        { fieldId: "basics.featured", hidden: false },
         { fieldId: "details.summary", hidden: false },
+        { fieldId: "details.status", hidden: false },
       ],
     },
   ],

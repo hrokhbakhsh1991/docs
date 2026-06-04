@@ -15,6 +15,7 @@
 | **P0-03** | Production auth path | `auth-env.ts` — dev bearer only `NODE_ENV=test`; boot throws otherwise; prod warns on `DEV_TENANTS` |
 | **P0-04** | Wizard binding | `workspace-wizard-host.tsx` + `tour-wizard-draft-path.ts` — `canonicalPath` from render plan |
 | **P0-05** | Field kind strategy | `wizard-field.tsx` read-only unsupported UI; `STARTER_ALLOWED_FIELD_KINDS` in starter-plugin-core |
+| **3.3.x** | Select + Checkbox primitives | `@app-tour/ui-primitives/select` + `/checkbox`; wizard enum/boolean; engine `uiHints.enumOptions` |
 
 ---
 
@@ -51,7 +52,8 @@ These items are **not** missing packages; they are **incomplete Phase 2** capabi
 2. ~~P0-02~~ (done)
 3. ~~P0-03~~ (done)
 4. ~~P0-04 + P0-05~~ (done)
-5. **Next:** 3.3.x Select/Checkbox + wire registry when ready for enum/boolean fields
+5. ~~3.3.x Select/Checkbox~~ (done 2026-06-04)
+6. **Next:** Phase 4 entry (tenant-kernel RLS, dynamic plugin bootstrap P1-03) or Playwright soft backlog
 
 ---
 

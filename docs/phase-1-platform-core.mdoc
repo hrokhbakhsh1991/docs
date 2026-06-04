@@ -1004,6 +1004,7 @@ Agent runbook: [`phase-1-platform-core.ai-exec.md`](phase-1-platform-core.ai-exe
 1. `WorkspaceThemeContract` در SDK (**shipped** فاز ۲) — design-tokens + theme-react consume
 2. `packages/design-tokens` — semantic CSS vars
 3. `RenderFieldPlan.uiHints` map به token names — **نه** raw colors در platform-core
+4. **Enum fields (3.3.x):** `uiHints.enumOptions` = `JSON.stringify(enumOptions[])` from registry — consumed by `apps/web` Select; not validated in headless layer beyond kind gates
 
 ```text
 Phase 1: RenderPlan (headless, kind + path)

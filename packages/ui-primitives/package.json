@@ -8,11 +8,15 @@
     "./dist/Input/Input.module.css",
     "./dist/FieldShell/FieldShell.module.css",
     "./dist/Alert/Alert.module.css",
-    "./dist/Badge/Badge.module.css"
+    "./dist/Badge/Badge.module.css",
+    "./dist/Select/Select.module.css",
+    "./dist/Checkbox/Checkbox.module.css"
   ],
   "files": [
     "dist/Button",
     "dist/Input",
+    "dist/Select",
+    "dist/Checkbox",
     "dist/FieldShell",
     "dist/Alert",
     "dist/Badge",
@@ -38,6 +42,14 @@
     "./badge": {
       "types": "./dist/Badge/Badge.d.ts",
       "default": "./dist/Badge/Badge.js"
+    },
+    "./select": {
+      "types": "./dist/Select/Select.d.ts",
+      "default": "./dist/Select/Select.js"
+    },
+    "./checkbox": {
+      "types": "./dist/Checkbox/Checkbox.d.ts",
+      "default": "./dist/Checkbox/Checkbox.js"
     }
   },
   "scripts": {

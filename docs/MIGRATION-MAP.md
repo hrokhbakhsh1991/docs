@@ -647,8 +647,8 @@ WorkspacePluginRegistry.register({
 | FieldShell | ۲ ✅ | `@app-tour/ui-primitives/field-shell` |
 | Alert | ۲ ✅ | `@app-tour/ui-primitives/alert` |
 | Badge | ۲ ✅ | `@app-tour/ui-primitives/badge` |
-| **Select** | **۳ — Backlog** | Deferred to Phase 3 — **not Complete** |
-| **Checkbox** | **۳ — Backlog** | Deferred to Phase 3 — **not Complete** |
+| **Select** | **۳ ✅** | `@app-tour/ui-primitives/select` — 3.3.x |
+| **Checkbox** | **۳ ✅** | `@app-tour/ui-primitives/checkbox` — 3.3.x |
 
 Barrel `@app-tour/ui-primitives` is **deprecated** (not in `exports`). Apps must use subpaths; enforced by `pnpm run guard:import-boundary` and `pnpm run audit-boundary`.
 
@@ -664,11 +664,12 @@ Barrel `@app-tour/ui-primitives` is **deprecated** (not in `exports`). Apps must
 
 ---
 
-### فاز ۳ — Starter workspace + apps minimal — **Scaffold (red-flag backlog active)**
+### فاز ۳ — Starter workspace + apps minimal — **Gate-passed (integration complete)**
 
-> **Status:** **Scaffold** — not eligible for “Zero-Debt Verified” until [§12](#۱۲-the-zero-debt-covenant-mandatory-enforcement) **R4 + R3 + R5** Runtime Proof + [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) exit. Forensic debt: [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md).  
-> **Hardening filter:** No phase closure while any §12 claim remains **Aspirational** (no named test/guard).  
-> **راهنمای اجرایی:** [`phase-3-design-system.md`](phase-3-design-system.md) — DAG 3.0–3.5، **PHASE 3 ENFORCEMENT**، بدهی فاز ۲ → Invariant · **Hardening:** [§12](#۱۲-the-zero-debt-covenant-mandatory-enforcement) R4 + R3 + R5 until backlog exit
+> **Status:** **`pnpm run phase-3:gate` PASS** — subphases 3.0–3.5 + P0 remediation (storage, auth, wizard binding, 3.3.x primitives).  
+> **Locked label:** Use **Gate-passed** until fresh gate SHA after gap-closure commit; full MAP **“Zero-Debt Verified”** still requires signed waiver for soft items (Playwright EC-33-3/4) and Phase 4 tenant/RLS items — see [`final-phase-3-audit-report.md`](../final-phase-3-audit-report.md).  
+> **Red-flag backlog:** P0/P1 tracks R0–R3 marked closed in [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md); forensic: [`audit-red-flags-phase-3.md`](../audit-red-flags-phase-3.md).  
+> **راهنمای اجرایی:** [`phase-3-design-system.md`](phase-3-design-system.md) — DAG 3.0–3.5، **PHASE 3 ENFORCEMENT**
 
 **هدف:** اثبات end-to-end plugin (قبل از Denali) با **access control و DB guardrails** قبل از هر مسیر production.
 

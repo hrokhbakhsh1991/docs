@@ -324,7 +324,7 @@ describe("PlatformWizardEngine", () => {
       fieldRegistry: {
         version: 1,
         fields: [
-          ...createTestStarterPlugin().fieldRegistry.fields,
+          ...createTestStarterPlugin().fieldRegistry.fields.filter((f) => f.id !== "details.status"),
           {
             id: "details.status",
             canonicalPath: "details.status",

@@ -6,8 +6,8 @@
 phase_id: "3"
 phase_name: "Design System & App Integration"
 north_star: "Platform shell = generic · Workspace = injectable plugin · Authority = CASL before ingress · Visual = subpath-only primitives"
-document_status_claim: "Closed: Zero-Debt Verified — platform scaffold 3.0–3.5 — pnpm run phase-3:gate exit 0"
-document_closure_claim: "Starter workspace + apps/api + apps/web prove engine, tokens, primitives, theme chain, CASL — no barrel, no dist leakage, no false Security Seal"
+document_status_claim: "Gate-passed — platform scaffold 3.0–3.5 + 3.3.x — pnpm run phase-3:gate exit 0 (refresh SHA after gap closure)"
+document_closure_claim: "Starter + apps/api + apps/web prove CASL, subpath primitives (incl. select/checkbox), canonical SoT, STORAGE_DRIVER — MAP Locked label requires final-phase-3-audit PASS"
 prerequisite_phase: "2"
 prerequisite_gate: "pnpm run phase-2:gate — ALL exit criteria PASS (Closed: Zero-Debt Verified)"
 legacy_truth: "First real consumer of @app-tour/ui-primitives + @app-tour/theme-react — NOT Denali until phase 6"
@@ -237,7 +237,7 @@ hard_outputs:
   - id: H3
     artifact: "@apps/api health + POST /tours + CASL queries"
     path: apps/api/
-    sot: "in_memory.tour_records — NOT Postgres Prisma accessibleBy runtime in 3.2"
+    sot: "TourStorageRepository — STORAGE_DRIVER memory|prisma; @casl/prisma runtime in Phase 4+"
   - id: H4
     artifact: "@apps/web ThemeProviderChain + wizard host + subpath primitives"
     path: apps/web/
@@ -322,6 +322,8 @@ import_law_apps:
   allowed:
     - "@app-tour/ui-primitives/button"
     - "@app-tour/ui-primitives/input"
+    - "@app-tour/ui-primitives/select"
+    - "@app-tour/ui-primitives/checkbox"
     - "@app-tour/ui-primitives/field-shell"
     - "@app-tour/ui-primitives/alert"
     - "@app-tour/ui-primitives/badge"

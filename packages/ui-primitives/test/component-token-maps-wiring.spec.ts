@@ -19,6 +19,8 @@ const srcRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../s
 const COMPONENT_CSS: Record<keyof typeof componentCssTokenMaps, string> = {
   button: "Button/Button.module.css",
   input: "Input/Input.module.css",
+  select: "Select/Select.module.css",
+  checkbox: "Checkbox/Checkbox.module.css",
   fieldShell: "FieldShell/FieldShell.module.css",
   alert: "Alert/Alert.module.css",
   badge: "Badge/Badge.module.css",

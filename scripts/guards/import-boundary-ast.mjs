@@ -33,6 +33,8 @@ const UI_PRIMITIVES_BARREL = /^@app-tour\/ui-primitives$/;
 const UI_PRIMITIVES_ALLOWED_SUBPATHS = new Set([
   "button",
   "input",
+  "select",
+  "checkbox",
   "field-shell",
   "alert",
   "badge",
