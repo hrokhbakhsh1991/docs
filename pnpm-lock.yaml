@@ -38,6 +38,12 @@ importers:
       '@app-tour/platform-core':
         specifier: workspace:*
         version: link:../../packages/platform-core
+      '@app-tour/platform-events':
+        specifier: workspace:*
+        version: link:../../packages/platform-events
+      '@app-tour/tenant-kernel':
+        specifier: workspace:*
+        version: link:../../packages/tenant-kernel
       '@app-tour/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk
@@ -149,6 +155,40 @@ importers:
         version: 5.9.3
 
   packages/platform-core:
+    dependencies:
+      '@app-tour/workspace-sdk':
+        specifier: workspace:*
+        version: link:../workspace-sdk
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/platform-events:
+    devDependencies:
+      '@app-tour/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.4
+      tsx:
+        specifier: ^4.20.6
+        version: 4.22.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  packages/tenant-kernel:
     dependencies:
       '@app-tour/workspace-sdk':
         specifier: workspace:*

@@ -1,0 +1,31 @@
+// Phase 4 schema reference — runtime may use pg + infra/sql/001_tenant_rls.sql until Prisma client is wired.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id            String   @id @default(uuid()) @db.Uuid
+  subdomain     String   @unique
+  workspaceType String   @default("starter") @map("workspace_type")
+  theme         Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+  tours         Tour[]
+
+  @@map("tenants")
+}
+
+model Tour {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  canonical  Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, id])
+  @@map("tours")
+}

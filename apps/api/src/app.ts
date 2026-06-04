@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { handleHealth } from "./health/health.routes";
+import { handleTenantConfig } from "./tenant/tenant-config.routes";
 import { handleCreateTour, handleGetTour, type ToursRouteDeps } from "./tours/tours.routes";
 
 export type AppDeps = ToursRouteDeps;
@@ -12,6 +13,11 @@ export function createRequestListener(deps: AppDeps) {
 
     if (method === "GET" && url.pathname === "/health") {
       handleHealth(req, res);
+      return;
+    }
+
+    if (method === "GET" && url.pathname === "/api/v2/tenant-config") {
+      await handleTenantConfig(req, res);
       return;
     }
 

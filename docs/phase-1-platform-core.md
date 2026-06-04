@@ -2,15 +2,15 @@
 
 > **⚠️ Legacy mirror — do not edit for Phase 1 truth.**  
 > **Canonical source:** [`phase-1-platform-core.mdoc`](phase-1-platform-core.mdoc) only · Docs-as-Code §19 · `pnpm run guard:doc-sync`  
-> **AI execution:** [`phase-1-platform-core.ai-exec.md`](phase-1-platform-core.ai-exec.md) — deterministic agent runbook (repo scripts authoritative)  
+> **AI-execution (agents):** [`phase-1-platform-core.ai-exec.md`](phase-1-platform-core.ai-exec.md) · [`phase-1/phase-1.ai-exec.index.md`](phase-1/phase-1.ai-exec.index.md) · hub [`phase-1/README.md`](phase-1/README.md)  
 > This `.md` file is retained for link compatibility; counts, gates, and API shapes may be stale.  
-> **Integrity report:** [`audits/phase-1-documentation-integrity-2026-06-03.mdoc`](audits/phase-1-documentation-integrity-2026-06-03.mdoc) · **Gate:** `pnpm run phase-1:guard` (132 tests, g11–g13)
+> **Integrity report:** [`audits/phase-1-documentation-integrity-2026-06-03.mdoc`](audits/phase-1-documentation-integrity-2026-06-03.mdoc) · **Gate:** `pnpm run phase-1:gate` · guard floors **148** / **56** closure (`gate-thresholds.mjs`) · g11–g13
 
-### Key facts (synced 2026-06-03 — read `.mdoc` for full spec)
+### Key facts (synced 2026-06-04 — read `.mdoc` for full spec; floors = `scripts/guards/gate-thresholds.mjs`)
 
 | Item | Value |
 |------|--------|
-| Tests | **132** (`gate-thresholds.mjs`) · **18** `test/**/*.spec.ts` |
+| Tests | **≥148** full suite · **≥56** closure (`gate-thresholds.mjs`) · **14** behavior contracts (`test:phase-1`) |
 | Public API | `PlatformWizardEngine` only (`exports["."]` only) |
 | Ingress | `includeTheme: false` at platform init |
 | Open | MAP §14.1 **architect sign-off** → [`phase-1-closure-readiness-2026-06-03.md`](../reports/phase-1-closure-readiness-2026-06-03.md) |
@@ -212,13 +212,13 @@ flowchart TD
 ### کارها
 
 1. `packages/platform-core/package.json` — name `@app-tour/platform-core`
-2. `tsconfig.json` extends `@app-tour/config`
+2. `tsconfig.json` extends `../config/tsconfig.base.json` — devDependency `@app-tour/config`
 3. dependency: `@app-tour/workspace-sdk: workspace:*`
 4. root `package.json` — `build` chain includes platform-core
-5. `src/index.ts` — export placeholder `PLATFORM_CORE_VERSION = 1`
-6. test script (هم‌تراز SDK): `"test": "node --import tsx --test \"src/**/*.spec.ts\""`
+5. `src/index.ts` — `PLATFORM_CORE_VERSION = 1` (1.1); facade exports through **1.6**
+6. test: `test` = `test:closure` + `test:unit:internal` — specs **only** under `test/` (not `src/`)
 
-### dependency-cruiser (اضافه به root config)
+### dependency-cruiser (هم‌تراز `dependency-cruiser.config.js`)
 
 ```javascript
 {
@@ -231,7 +231,7 @@ flowchart TD
   name: "platform-core-only-sdk",
   severity: "error",
   from: { path: "^packages/platform-core" },
-  to: { path: "^packages/(?!workspace-sdk|config)" },
+  to: { path: "^packages/(?!workspace-sdk|config|platform-core)" },
 },
 ```
 
@@ -245,88 +245,81 @@ flowchart TD
 
 ## 4.2. زیرفاز 1.2 — FieldRegistryEngine
 
-### API پیشنهادی
+هم‌تراز [`phase-1/subphases/1.2-field-registry.md`](phase-1/subphases/1.2-field-registry.md) و [`packages/platform-core/src/engine/field-registry.engine.ts`](../packages/platform-core/src/engine/field-registry.engine.ts).
+
+### API (repo)
 
 ```typescript
 export class FieldRegistryEngine {
-  constructor(private readonly registry: WorkspaceFieldRegistry) {}
+  private constructor(registry: WorkspaceFieldRegistry);
+
+  static tryCreate(registry: WorkspaceFieldRegistry): PlatformResult<FieldRegistryEngine>;
+  static create(registry: WorkspaceFieldRegistry): FieldRegistryEngine;
 
   getById(fieldId: string): WorkspaceFieldRegistryEntry | undefined;
-  getByCanonicalPath(path: string): WorkspaceFieldRegistryEntry | undefined;
   listByStep(stepId: string): readonly WorkspaceFieldRegistryEntry[];
   listAll(): readonly WorkspaceFieldRegistryEntry[];
-  assertKnownFieldIds(fieldIds: readonly string[]): void; // throws PlatformCoreError
+  tryAssertKnownFieldIds(fieldIds: readonly string[]): PlatformResult<void>;
+  assertKnownFieldIds(fieldIds: readonly string[]): void;
 }
 ```
+
+**حذف‌شده از draft قدیمی:** `getByCanonicalPath`، constructor عمومی، O(n) scan — پیاده‌سازی از bootstrap با `Map` است.
 
 ### رفتار
 
 | متد | قرارداد |
 |-----|---------|
-| `getById` | O(n) scan کافی برای فاز ۱؛ index map در 1.6 اگر n>200 |
-| `getByCanonicalPath` | match دقیق `canonicalPath` |
-| `listByStep` | stable sort by registry order |
-| `assertKnownFieldIds` | برای rule overrides — unknown fieldId → `UNKNOWN_FIELD_ID` |
+| `tryCreate` / `create` | duplicate `field.id` → `DUPLICATE_FIELD_ID`؛ `fields.length` > `MAX_ALLOWED_REGISTRY_FIELDS` → `REGISTRY_CARDINALITY_VIOLATION` |
+| `getById` | `Map` — O(1) |
+| `listByStep` | آرایه‌های frozen per-step در bootstrap |
+| `tryAssertKnownFieldIds` / `assertKnownFieldIds` | unknown fieldId → `UNKNOWN_FIELD_ID` |
 
-### تست‌ها (حداقل 6)
+### تست‌ها
 
-1. getById found / not found
-2. listByStep filters correctly
-3. getByCanonicalPath
-4. assertKnownFieldIds throws on orphan override id
-5. empty registry edge case
-6. duplicate id in fixture → constructor throws (fail fast)
+`test/unit/engine/field-registry.engine.spec.ts` — **9** case (شامل cardinality + `tryAssert`).
+
+### Fixture
+
+`test/fixtures/starter.fixture.ts` — `createTestStarterPlugin`, `createFreshStarterPlugin`, `testStarterFieldRegistry()` (factory per call).
 
 ### Exit criteria 1.2
 
-- [ ] class + tests ≥ 6
-- [ ] uses starter fixture from `__fixtures__/starter.fixture.ts`
+- [x] class + tests ≥ 6
+- [x] starter fixture at `test/fixtures/starter.fixture.ts`
 
 ---
 
 ## 4.3. زیرفاز 1.3 — RuleEngine
 
-### Rule context
+هم‌تراز [`phase-1/subphases/1.3-rule-engine.md`](phase-1/subphases/1.3-rule-engine.md) و سورس `packages/platform-core/src/engine/`.
+
+### Rule context (public)
 
 ```typescript
 export interface RuleContext {
+  readonly tenantId: string;
   readonly dimensions: Readonly<Record<string, string>>;
-  /** optional explicit cell — for tests */
-  readonly forceCellId?: string;
 }
 ```
 
-### API
+`forceCellId` فقط روی `RuleContextResolution` + `RuleEngineScopePolicy.allowForceCellId` (تست) — **نه** روی `RuleContext` عمومی.
 
-```typescript
-export class RuleEngine {
-  constructor(
-    private readonly ruleSet: WorkspaceRuleSet,
-    private readonly fieldEngine: FieldRegistryEngine,
-  ) {}
+### API (repo)
 
-  resolveCellId(context: RuleContext): string;
-  resolveEffectiveField(fieldId: string, context: RuleContext): EffectiveFieldState;
-  listEffectiveFields(context: RuleContext): readonly EffectiveFieldState[];
-}
+`RuleEngine` — `tryCreate` / `create` / `createScope` → `RuleEngineScope` با `resolveCellId`, `resolveEffectiveField`, `listEffectiveFields`.
 
-export interface EffectiveFieldState {
-  readonly fieldId: string;
-  readonly entry: WorkspaceFieldRegistryEntry;
-  readonly hidden: boolean;
-  readonly required: boolean;
-}
-```
+**حذف‌شده از draft قدیمی:** constructor عمومی، `resolveCellId` روی engine، fallback lexicographic، `listEffectiveFields(context)` روی engine.
 
 ### الگوریتم resolve cell
 
-1. اگر `forceCellId` → باید در `ruleSet.cells` وجود داشته باشد؛ وگرنه `INVALID_RULE_SET`
-2. else: cellهایی که **همه** `(key, value)` در `cell.dimensions` با `context.dimensions` برابرند
-3. اگر چند match → **specificity sort:** تعداد کلیدهای `dimensions` بیشتر → `priority` بالاتر → `cellId` lexicographic
-4. bootstrap: بیش از یک cell با `dimensions: {}` بدون `priority` متمایز → `INVALID_RULE_SET`
-5. اگر none → `defaultCellId` (باید در cells وجود داشته باشد)
-
-> **نکته:** `context.dimensions` می‌تواند کلید اضافه داشته باشد؛ فقط کلیدهای cell match می‌شوند. کلیدهای `matrixDimensions` که در context نیستند → match نمی‌شوند (fallback به default).
+1. `forceCellId` (test policy) → cell باید exist؛ وگرنه `INVALID_RULE_SET`
+2. match: همه کلیدهای `cell.dimensions` در context
+3. tie همان specificity/priority → `AMBIGUOUS_RULE_RESOLUTION` (**بدون** lexicographic)
+4. winner: بیشترین matched keys → priority بالاتر
+5. bootstrap catch-all: `validateWorkspaceRuleSet` (SDK) → `INVALID_RULE_SET`
+6. bootstrap: `defaultCellId` ∈ cells (`tryCreate`)
+7. runtime: no match → `RULE_CONTEXT_UNMATCHED` (catch-all `{}` برای «پیش‌فرض»)
 
 ### merge overrides
 
@@ -350,173 +343,100 @@ effective.hidden = override.hidden ?? false
 
 ### Exit criteria 1.3
 
-- [x] RuleEngine + tests ≥ 8
-- [ ] no Denali dimension names in tests — use `variant: "default"` only
+- [x] RuleEngine + tests ≥ 8 (**31** — `rule.engine` + `rule-cell-index` + `rule.engine.force-cell` specs)
+- [x] `RuleEngineScope.listEffectiveFields` — `rule-engine.scope.ts`
+- [x] no Denali dimension names in production tests — `variant: "default"` in fixtures
 
 ---
 
-## 4.4. زیرفاز 1.4 — StepEngine
+## 4.4. زیرفاز 1.4 — Step ordering (`render-plan.steps`)
 
-### API
+هم‌تراز [`phase-1/subphases/1.4-render-plan-steps.md`](phase-1/subphases/1.4-render-plan-steps.md) — **توابع** در `render-plan.steps.ts`؛ **ممنوع:** `class StepEngine` در `src/`.
 
-```typescript
-export class StepEngine {
-  constructor(
-    private readonly wizard: WorkspaceWizardSurface,
-    private readonly fieldEngine: FieldRegistryEngine,
-    private readonly ruleEngine: RuleEngine,
-  ) {}
+### API (repo)
 
-  listStepIds(): readonly string[];
-  getStepVisibility(stepId: string, context: RuleContext): StepVisibility;
-  listActiveSteps(context: RuleContext): readonly string[];
-}
+`listStepIds`, `getStepVisibility`, `listActiveSteps` — ورودی `RuleEngineScope` (نه `RuleContext` مستقیم).
 
-export type StepVisibility = "active" | "hidden" | "empty";
-
-// hidden: all fields hidden
-// empty: visible but zero non-hidden fields
-// active: at least one visible field
-```
+`StepVisibility`: `active` | `hidden` | `empty` — `empty` = صفر فیلد در registry برای آن step.
 
 ### منطق
 
-- steps از union `fieldRegistry.entry.stepId` + `wizard.roots`؛ **ترتیب:** ابتدا stepهای موجود در `wizard.roots` به ترتیب roots، سپس stepهای بدون root به ترتیب کشف در registry
-- **`inactiveFieldGroups`:** هر `groupSlug` در این آرایه → همه فیلدهای با آن `groupSlug` → `hidden: true` (قبل از merge cell overrides)
-- **`wizardCapacityStepRedundant`:** فاز ۱ — parse-only؛ رفتار UI در فاز ۳؛ engine فقط flag را در plan metadata expose می‌کند (optional `uiHints`)
+- ترتیب: `wizard.roots` ∩ union سپس discovery بدون root (RP-1)
+- `inactiveFieldGroups` → `field-visibility.ts` قبل از cell overrides
+- `wizardCapacityStepRedundant`: parse-only فاز ۱
 
-### تست‌ها (حداقل 5)
+### تست‌ها
 
-1. listStepIds order stable
-2. step hidden when all fields hidden
-3. inactiveFieldGroups hides step
-4. wizard.roots includes step with no fields yet → empty
-5. starter plugin integration
+[`render-plan.steps.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts) — **6** case.
 
 ### Exit criteria 1.4
 
-- [x] StepEngine + tests ≥ 5
+- [x] `render-plan.steps` + tests ≥ 5
+- [x] no `src/engine/step.engine.ts` (EC-14-2)
 
 ---
 
 ## 4.5. زیرفاز 1.5 — Renderer (headless)
 
-### فلسفه
+هم‌تراز [`phase-1/subphases/1.5-renderer-headless.md`](phase-1/subphases/1.5-renderer-headless.md) — تابع `buildRenderPlan` در `render-plan.ts` (**نه** کلاس `RenderPlanBuilder`).
 
-فاز ۱ **RenderPlan** تولید می‌کند — نه JSX. فاز ۳ web plan را به `@app-tour/ui-primitives` map می‌کند.
+### API (repo)
 
-```typescript
-export interface RenderFieldPlan {
-  readonly fieldId: string;
-  readonly kind: WorkspaceFieldKind;
-  readonly canonicalPath: string;
-  readonly required: boolean;
-  readonly hidden: boolean;
-  readonly stepId: string;
-  /** hints for ui-primitives — generic strings only */
-  readonly uiHints?: Readonly<Record<string, string>>;
-}
+انواع: [`types/render-plan.ts`](../packages/platform-core/src/types/render-plan.ts).  
+سازنده: `buildRenderPlan(wizard, fieldEngine, ruleEngine, context, options?)` → `readonly RenderStepPlan[]`.
 
-export interface RenderStepPlan {
-  readonly stepId: string;
-  readonly fields: readonly RenderFieldPlan[];
-}
+**سیاست empty step (در کد):** فقط stepهای **active** با `fields.length > 0` — step خالی/پنهان **حذف** می‌شوند (`render-plan.ts` JSDoc).
 
-export class RenderPlanBuilder {
-  build(context: RuleContext): readonly RenderStepPlan[];
-}
-```
+**`RenderStepPlan.uiHints`:** اختیاری؛ با `includeWorkspaceStepUiHints: true` و `wizardCapacityStepRedundant` روی wizard.
 
-### composite slot (فاز ۱ minimal)
+### composite
 
-- `kind: "composite"` → plan includes `uiHints.compositeId` — **بدون** resolve widget
-- widget resolve در workspace plugin (فاز ۶)
+`kind: "composite"` → `uiHints: { compositeId: fieldId }` — بدون resolve widget (فاز ۶).
 
-### تست‌ها (حداقل 6)
+### تست‌ها
 
-1. build full plan for starter
-2. hidden fields excluded from plan
-3. composite kind preserved
-4. empty step omitted or included with `fields: []` — **document choice in code**
-5. canonical path on every plan row
-6. snapshot test JSON plan stable
+[`render-plan.spec.ts`](../packages/platform-core/test/unit/engine/render-plan.spec.ts) — **8** case (+ golden `starter-plan-golden.ts`).
 
 ### Exit criteria 1.5
 
-- [ ] RenderPlanBuilder + tests ≥ 6
-- [ ] zero imports from react/dom
+- [x] `buildRenderPlan` + tests ≥ 6
+- [x] `rg react packages/platform-core` → 0
 
 ---
 
 ## 4.6. زیرفاز 1.6 — Guardrails + integration facade
 
-### PlatformWizardEngine
+هم‌تراز [`phase-1/subphases/1.6-guardrails-facade.md`](phase-1/subphases/1.6-guardrails-facade.md) و [`phase-1/phase-1-guards.md`](phase-1/phase-1-guards.md).
 
-```typescript
-export class PlatformWizardEngine {
-  static fromPlugin(plugin: WorkspacePlugin): PlatformWizardEngine;
-  buildRenderPlan(context: RuleContext): readonly RenderStepPlan[];
-  validateCanonical(document: CanonicalDocument, context: RuleContext): ValidationResult;
-}
-// No getFieldEngine / getRuleEngine / getStepEngine — private engines (see index.ts exports).
+### PlatformWizardEngine (repo)
 
-export interface ValidationResult {
-  readonly ok: boolean;
-  readonly violations: readonly {
-    readonly code: string;
-    readonly fieldId?: string;
-    readonly message: string;
-  }[];
-}
-```
+- `static create` (lazy) · `static tryFromPlugin` (eager `PlatformResult`) — **بدون** `fromPlugin`
+- `tryInit` / `init` · `tryBuildRenderPlan` / `buildRenderPlan` · `validateCanonical`
+- **ممنوع:** `getFieldEngine` / `getRuleEngine` / `getStepEngine`
+- barrel [`index.ts`](../packages/platform-core/src/index.ts): facade + types only (`exports["./*"]: null`)
 
-### 4.6.1 Bootstrap validation
+### Bootstrap + validateCanonical
 
-قبل از ساخت engines، **یک‌بار** validate (الگوی enterprise fail-fast):
+Ingress: `parseWorkspacePluginFromStorage({ includeTheme: false })` → `tryValidateWorkspacePluginForPlatform` → `FieldRegistryEngine` + `RuleEngine` tryCreate.
 
-| check | خطا |
-|-------|-----|
-| `isWorkspacePlugin(plugin)` | throw |
-| duplicate `fieldRegistry.fields[].id` | `DUPLICATE_FIELD_ID` |
-| `defaultCellId` ∈ `cells` | `INVALID_RULE_SET` |
-| هر `fieldOverrides[].fieldId` ∈ registry | `UNKNOWN_FIELD_ID` |
-| هر `cell.dimensions` key ∈ `matrixDimensions` | `INVALID_RULE_SET` |
-| `wizard.roots` — هشدار در dev log اگر step بدون field (مجاز — `empty`) | — |
+`validateCanonical`: SDK ingress + visible required + `HIDDEN_FIELD_POISON` (REM-016) — تست‌ها در [`platform-wizard.engine.spec.ts`](../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) + [`facade-integration.spec.ts`](../packages/platform-core/test/facade-integration.spec.ts).
 
-### validateCanonical (minimal فاز ۱)
-
-- `assertCanonicalDocumentRoots(document)` از SDK ([`canonical-document.ts`](../packages/workspace-sdk/src/canonical/canonical-document.ts))
-- every **visible required** field has non-empty value at `canonicalPath` via `utils/canonical-path.ts`
-- empty string / null / undefined = violation `REQUIRED_FIELD_EMPTY`
-- **نه** Zod Denali — `plugin.validation` hooks در فاز ۳ API
-- **`HIDDEN_FIELD_POISON`:** hidden non-composite field with value in canonical → violation ([`platform-wizard.engine.ts`](../packages/platform-core/src/engine/platform-wizard.engine.ts))
-- Prune hidden keys در API/UI (فاز ۳) مکمل است
-
-### Guard script: `phase-1-guard.mjs`
-
-| check | id | pass |
-|-------|-----|------|
-| platform-core `dist/index.js` exists | g1 | build first |
-| cumulative test count ≥ 30 | g2 | count `*.spec.ts` assertions or `node --test` reporter |
-| `rg -i denali packages/platform-core` (excl. `*.spec.ts`) | g3 | 0 lines |
-| no react/dom in platform-core | g4 | 0 imports |
-| depcruise platform-core rules | g5 | exit 0 |
-| write `reports/phase-1-guard-YYYY-MM-DD.json/.md` | g6 | committed |
-
-### root scripts
+### Gate
 
 ```json
-"phase-1:guard": "node scripts/guards/phase-1-guard.mjs",
-"phase-1:gate": "pnpm build && pnpm --filter @app-tour/platform-core test && pnpm run phase-1:guard"
+"phase-1:gate": "pnpm build && pnpm test && pnpm --filter @app-tour/platform-core run test:phase-1 && guard:architecture && guard:import-boundary && guard:symlink && phase-1:guard"
 ```
+
+CI: [`.github/workflows/phase-1-gate.yml`](../.github/workflows/phase-1-gate.yml) → `pnpm run phase-1:gate`.
+
+Thresholds: [`gate-thresholds.mjs`](../scripts/guards/gate-thresholds.mjs) — platform-core **≥ 148**, closure **≥ 56**, contracts **≥ 14**.
 
 ### Exit criteria 1.6
 
-- [ ] PlatformWizardEngine facade + bootstrap validation tests (≥ 3)
-- [ ] validateCanonical basic tests
-- [ ] `phase-1-guard.mjs` + `phase-1:gate` in root `package.json`
-- [ ] CI: extend `.github/workflows/phase-0-gate.yml` → `phase-1-gate.yml` or matrix step after 1.6
-- [ ] cumulative tests ≥ 30
+- [x] facade + bootstrap + validateCanonical tests
+- [x] `phase-1-guard.mjs` + `phase-1:gate`
+- [x] `phase-1-gate.yml` workflow
+- [x] `g2` floor ≥ 148 (guard green locally)
 
 ---
 
@@ -528,7 +448,9 @@ export interface ValidationResult {
 import { starterWorkspacePlugin } from "@app-tour/workspace-sdk";
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 
-const engine = PlatformWizardEngine.fromPlugin(starterWorkspacePlugin);
+const loaded = PlatformWizardEngine.tryFromPlugin(starterWorkspacePlugin);
+if (!loaded.ok) throw loaded.error;
+const engine = loaded.value;
 const context = { tenantId: "tenant-a", dimensions: { variant: "default" } };
 const plan = engine.buildRenderPlan(context);
 // → web renderer consumes plan
@@ -559,10 +481,12 @@ const plan = engine.buildRenderPlan(context);
 
 ### test runner
 
-همان الگوی `@app-tour/workspace-sdk`:
+**نه** همان layoutِ `@app-tour/workspace-sdk` (`src/**/*.spec.ts`). از [`packages/platform-core/package.json`](../packages/platform-core/package.json):
 
 ```bash
-node --import tsx --test "src/**/*.spec.ts"
+pnpm --filter @app-tour/platform-core run test
+pnpm --filter @app-tour/platform-core run test:closure
+pnpm --filter @app-tour/platform-core run test:unit:internal
 ```
 
 ---

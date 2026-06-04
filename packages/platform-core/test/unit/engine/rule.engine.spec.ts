@@ -64,15 +64,9 @@ function resolveEffectiveField(
 
 function listVisibleEffectiveFields(
   engine: RuleEngine,
-  registry: WorkspaceFieldRegistry,
   context: RuleContext,
 ): readonly EffectiveFieldState[] {
-  const scope = engine.createScope(context);
-  const fieldEngine = FieldRegistryEngine.create(registry);
-  return fieldEngine
-    .listAll()
-    .map((entry) => scope.resolveEffectiveField(entry.id))
-    .filter((state) => !state.hidden);
+  return engine.createScope(context).listEffectiveFields();
 }
 
 describe("RuleEngine", () => {
@@ -137,6 +131,28 @@ describe("RuleEngine", () => {
     );
   });
 
+  it("override can set required to true on optional base field", () => {
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "default",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [{ fieldId: "field.b", required: true, hidden: false }],
+        },
+      ],
+    };
+    const engine = makeEngine(minimalRegistry, ruleSet);
+    const state = resolveEffectiveField(
+      engine,
+      "field.b",
+      testRuleContext({ variant: "default" }),
+    );
+    assert.equal(state.required, true);
+  });
+
   it("override can set required to false on required base field", () => {
     const ruleSet: WorkspaceRuleSet = {
       version: 1,
@@ -178,11 +194,31 @@ describe("RuleEngine", () => {
     const engine = makeEngine(minimalRegistry, ruleSet);
     const visible = listVisibleEffectiveFields(
       engine,
-      minimalRegistry,
       testRuleContext({ variant: "default" }),
     );
     assert.equal(visible.length, 1);
     assert.equal(visible[0]?.fieldId, "field.b");
+  });
+
+  it("tryCreate fails INVALID_RULE_SET when defaultCellId is missing from cells", () => {
+    const ruleSet: WorkspaceRuleSet = {
+      version: 1,
+      matrixDimensions: ["variant"],
+      defaultCellId: "missing",
+      cells: [
+        {
+          cellId: "default",
+          dimensions: { variant: "default" },
+          fieldOverrides: [],
+        },
+      ],
+    };
+    const fieldEngine = FieldRegistryEngine.create(minimalRegistry);
+    const result = RuleEngine.tryCreate(ruleSet, fieldEngine);
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error.code, "INVALID_RULE_SET");
+    }
   });
 
   it("constructor throws UNKNOWN_FIELD_ID for orphan override fieldId", () => {
@@ -432,7 +468,6 @@ describe("RuleEngine", () => {
     const engine = makeEngine(testStarterFieldRegistry(), testStarterRuleSet());
     const fields = listVisibleEffectiveFields(
       engine,
-      testStarterFieldRegistry(),
       testRuleContext({ variant: "default" }),
     );
     assert.equal(fields.length, 2);

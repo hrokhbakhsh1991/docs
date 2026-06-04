@@ -1,8 +1,9 @@
 # Phase 0 — Foundation & Contract (`workspace-sdk`)
 
 > **Canonical (Markdoc):** [`phase-0-foundation.mdoc`](phase-0-foundation.mdoc) · Docs-as-Code §20 MAP · `pnpm run guard:doc-sync`  
-> **AI execution:** [`phase-0-foundation.ai-exec.md`](phase-0-foundation.ai-exec.md) — deterministic agent runbook (repo scripts authoritative)  
-> **R2 Verification-as-Code:** per-section `### Verification` + [Unenforced Aspiration](phase-0-foundation.mdoc#unenforced-aspiration) live in the **`.mdoc`** file only (this `.md` mirror may lag).
+> **AI-execution (agents):** [`phase-0-foundation.ai-exec.md`](phase-0-foundation.ai-exec.md) · [`phase-0/phase-0.ai-exec.index.md`](phase-0/phase-0.ai-exec.index.md) · hub [`phase-0/README.md`](phase-0/README.md)  
+> **Gate (repo):** `pnpm run phase-0:gate` = `test:phase-0` + integration-gate (10 covenant contracts · g4/g4b/g6/g7) — not §9.3 g1–g5 · body may lag `.mdoc`  
+> **R2 Verification-as-Code:** per-section `### Verification` + [Unenforced Aspiration](phase-0-foundation.mdoc#unenforced-aspiration) live in the **`.mdoc`** file only.
 
 
 **app-tour — راهنمای اجرایی کامل فاز صفر**
