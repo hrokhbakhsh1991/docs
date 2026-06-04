@@ -1,8 +1,16 @@
 # Phase 4 — Tenant Kernel & Multi-Tenant Enterprise Boundary
 
+```yaml
+agent_load_tier: T3_human
+non_authoritative_for_execution: true
+sole_execution_entry: docs/phase-4/phase-4-ai-exec.md
+fail_if: "Agent implements Phase 4 from this monolith body instead of phase-4-ai-exec.md + subphases/"
+```
+
 > **Canonical (Markdoc):** [`phase-4-tenant-kernel.mdoc`](phase-4-tenant-kernel.mdoc) · §19 · `pnpm run guard:doc-sync`  
-> **AI execution (agents):** [`phase-4-tenant-kernel.ai-exec.md`](phase-4-tenant-kernel.ai-exec.md) · [`phase-4/phase-4.ai-exec.index.md`](phase-4/phase-4.ai-exec.index.md) · hub [`phase-4/README.md`](phase-4/README.md)  
-> **Forensic (on closure):** `docs/audits/phase-4-zero-debt-forensic-audit.mdoc` — created at Phase 4 **Closed**  
+> **AI execution (agents):** **[`phase-4/phase-4-ai-exec.md`](phase-4/phase-4-ai-exec.md)** only · stub [`phase-4-tenant-kernel.ai-exec.md`](phase-4-tenant-kernel.ai-exec.md) · hub [`phase-4/README.md`](phase-4/README.md)  
+> **Forensic:** [`audits/phase-4-zero-debt-forensic-audit.mdoc`](audits/phase-4-zero-debt-forensic-audit.mdoc) — **SCAFFOLD** `PENDING` until 4.6 · **Gaps:** [`phase-4/audits/PHASE-4-GAP-REGISTER.md`](phase-4/audits/PHASE-4-GAP-REGISTER.md)  
+> **Interop (Tenant ≠ Workspace):** [`phase-4/appendices/workspace-interoperability-model.md`](phase-4/appendices/workspace-interoperability-model.md) — **FA/EN** §0.3 below · agents: T0 only  
 > **Red-flag entry gate:** [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md) — **R0–R3 blocking** before 4.1  
 > **Gate (repo):** `pnpm run phase-4:gate` = build + test + phase-3:gate + phase-4:guard · guards **`p4_*`** per [`phase-4/phase-4-guard.md`](phase-4/phase-4-guard.md) — not §14.2 numbered table · body may lag `.mdoc`
 
@@ -99,6 +107,17 @@ platform-core        ↛ tenant-kernel
 ```
 
 **حفظ فاز ۳:** `apps/web` همچنان **فقط** `starterWorkspacePlugin` از registry تا فاز ۶ — tenant resolve جدا از workspace plugin است ([`phase-3-design-system.md` §6](phase-3-design-system.md)).
+
+### 0.4 Workspace interoperability — Tenant ≠ Workspace
+
+| | |
+|--|--|
+| **FA** | فاز ۴ فقط **مرز tenant** (RLS، host، `packages/tenant-kernel`) را می‌بندد. **قوانین workspace** (`WorkspacePlugin`، `workspaces/starter`، CASL محصول) در فاز ۳ و `workspace-sdk` می‌مانند — دو محور را در یک پکیج ادغام نکنید. |
+| **EN** | Phase 4 closes the **tenant security boundary** only. **Workspace product rules** stay in Phase 3 / `workspace-sdk`. Do not fold workspace plugins into `tenant-kernel`. |
+
+**Authoritative (agents, T0):** [`phase-4/appendices/workspace-interoperability-model.md`](phase-4/appendices/workspace-interoperability-model.md) · **Industry map (2026):** [`phase-4/appendices/industry-alignment-2026.md`](phase-4/appendices/industry-alignment-2026.md)
+
+**Phase 5 handoff:** after `phase-4:gate`, boot [`phase-5/phase-5-agent-router.md`](phase-5/phase-5-agent-router.md) + [`phase-5/appendices/phase-4-bridge.md`](phase-5/appendices/phase-4-bridge.md) — not §17 checklist alone.
 
 ---
 
@@ -668,6 +687,11 @@ subscribe(type, handler): void
 
 ## 14. PHASE 4 ENFORCEMENT (الزام CI)
 
+> **⚠️ T3 narrative — non-authoritative for execution**  
+> **Agents / CI SoT:** [`phase-4/phase-4-guard.md`](phase-4/phase-4-guard.md) (`p4_*` ids) · [`phase-4/phase-4-enforcement.md`](phase-4/phase-4-enforcement.md) · **DRIFT:** [`phase-4/phase-4.ai-exec.index.md`](phase-4/phase-4.ai-exec.index.md) DRIFT-P4-01..06  
+> **Gap closure:** [`phase-4/audits/PHASE-4-GAP-REGISTER.md`](phase-4/audits/PHASE-4-GAP-REGISTER.md)  
+> **Do not** use §14.2 numbered table below instead of `p4_*` — table may lag `phase-4-guard.mjs`.
+
 > هر PR `Phase: 4.x` **باید** شناسه `P4-E-*` در checklist داشته باشد.
 
 ### 14.1 Verification table (Doc-Claim ↔ CI 1:1)
@@ -750,12 +774,13 @@ subscribe(type, handler): void
 
 ## 17. چک‌لیست ورود به فاز ۵
 
-- [ ] این سند §8–§16 complete
+- [ ] **Modular SoT:** [`phase-4/phase-4-ai-exec.md`](phase-4/phase-4-ai-exec.md) + [`phase-4/appendices/workspace-interoperability-model.md`](phase-4/appendices/workspace-interoperability-model.md) (§0.3)
 - [ ] `phase-4:gate` سبز
 - [ ] Forensic Phase 4 archived
 - [ ] Postgres SoT برای tours — نه in-memory default
 - [ ] RLS migration applied on all tenant tables
 - [ ] Event bus hook points — outbox table **not** required yet
+- [ ] **Phase 5 boot:** [`phase-5/phase-5-agent-router.md`](phase-5/phase-5-agent-router.md) · schema [`phase-5-canonical-schema.md`](phase-5-canonical-schema.md)
 
 **فاز ۵ بعدی:** `canonical_data` JSONB · projected columns · transactional outbox ([MAP §11 فاز ۵](MIGRATION-MAP.md#فاز-۵--data-layer-استاندارد--hardened-§12-mandatory)).
 

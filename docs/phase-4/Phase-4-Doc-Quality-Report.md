@@ -197,18 +197,29 @@ Implementing Phase 4 **literally from doc PASS rows without repo gates** risks:
 | `p4_contract_spec` | true | — |
 | `p4_no_denali_in_kernel` | true | — |
 | `p4_infra_compose` | true | — |
-| **`p4_rls_integration_tests`** | **false** | `DATABASE_URL unset — required for p4_rls_integration_tests (see docs/phase-4/ci.md)` |
+| **`p4_rls_integration_tests`** | **false** (pre-setup) | `DATABASE_URL unset` |
 | `p4_anti_hollow_tests` | true | — |
 
-**Remediation (CI / local):**
+### Gate run log (post local Postgres setup — 2026-06-04)
+
+**Command:** `pnpm run phase-4:gate` on Node **24.16.0**  
+**Exit code:** **0** (all `p4_*` PASS including `p4_rls_integration_tests`)
+
+**Environment used (host port 5434 — 5432 was already bound on this machine):**
 
 ```bash
-export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev}"
+docker compose -f docs/phase-4/dev/docker-compose.yml up -d
+export DATABASE_URL="postgresql://app_tour:app_tour@localhost:5434/tour_db"
+export DATABASE_URL_ADMIN="postgresql://postgres:postgres@localhost:5434/tour_db"
 export STORAGE_DRIVER=prisma
-docker compose -f infra/docker-compose.yml up -d
-# apply infra/sql/001_tenant_rls.sql
+pnpm --filter @apps/api exec prisma migrate dev --name phase4_schema
+psql "$DATABASE_URL_ADMIN" -f infra/sql/001_tenant_rls.sql
 pnpm run phase-4:gate
 ```
+
+**Code paths added for RLS + Prisma pool:** `apps/api/src/db/with-tenant-rls.ts`, `PrismaTourRepository` transaction-scoped `set_config`, `DATABASE_URL_ADMIN` for CASL `resolveById`.
+
+**If your machine uses port 5432:** set `PHASE4_DB_PORT=5432` in compose and use `postgresql://postgres:postgres@localhost:5432/tour_db` for admin migrate; use `app_tour` URL for gate (not `postgres` — superuser bypasses RLS).
 
 **Hardening applied this sprint:** `p4_rls_integration_tests` guard check; IMPLEMENTATION-TRUTH honesty; canonical `GET /api/v2/tenant-config`; [`ci.md`](ci.md) env block.
 

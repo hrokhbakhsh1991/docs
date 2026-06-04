@@ -1,3 +1,12 @@
+# Phase 4 — State machine
+
+```yaml
+agent_load_tier: T1_gate
+machine_readable: true
+owner: phase-4-state-machine.md
+duplicate_of: audits/subphase-enforcement-map.md#forbidden-transitions
+```
+
 ## STATE MODEL
 
 ```yaml
@@ -139,7 +148,7 @@ forbidden_overlap:
   - action: "phase 6 Denali before phase 4 DONE"
 pr_rule:
   - rule: "PR title/body MUST include label Phase: 4.x"
-  - rule: "PR checklist MUST list Enforcement IDs P4-E-* from §14.1"
+  - rule: "PR checklist MUST list Enforcement IDs P4-E-* from audits/verification-matrix.md"
   - rule: "Doc-First: update docs/phase-4-tenant-kernel.mdoc BEFORE protected package code per Zero-Debt Covenant"
   - rule: "grep-only closure FORBIDDEN as sole proof — MAP §12.1"
 ```

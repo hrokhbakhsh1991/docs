@@ -1,0 +1,53 @@
+---
+title: Phase 4 Zero-Debt Forensic Audit
+phase: 4
+status: SCAFFOLD_PENDING_CLOSURE
+gitSha: TBD_AT_4_6
+generatedAt: TBD_AT_4_6
+verdict: PENDING
+debtScore: "TBD"
+gateReport: reports/phase-4-gate-YYYY-MM-DD.json
+gapRegister: docs/phase-4/audits/PHASE-4-GAP-REGISTER.md
+---
+
+# Phase 4 Zero-Debt Forensic Audit (scaffold)
+
+{% meta %}
+status: SCAFFOLD
+rule: "Do not set verdict Zero-Debt Verified until phase-4:gate ok:true and IMPLEMENTATION-TRUTH 7/7 VERIFIED"
+{% /meta %}
+
+> **Agents:** Do not treat this file as closure proof until `verdict` is updated at subphase **4.6**.
+
+## Pre-closure checklist (4.6)
+
+| # | Requirement | Source |
+|---|-------------|--------|
+| 1 | `pnpm run phase-4:gate` exit 0 on Node 24 | `package.json` |
+| 2 | `reports/phase-4-gate-*.json` → `"ok": true` | guard output |
+| 3 | All subphases `VERIFIED` in IMPLEMENTATION-TRUTH | `docs/phase-4/audits/IMPLEMENTATION-TRUTH.md` |
+| 4 | `p4_*` checks PASS (8/8) | `phase-4-guard.md` |
+| 5 | Red-flag report present | `reports/phase-3.2-red-flag-status-*.md` |
+| 6 | GAP register repo_verify column green | `PHASE-4-GAP-REGISTER.md` |
+| 7 | Purity score ≥ 8 per MAP §16 | human architect |
+
+## Forensic Truth (Phase 4)
+
+| Claim | Status at scaffold |
+|-------|-------------------|
+| Postgres + RLS production SoT | ENFORCED when 4.2 VERIFIED |
+| In-process events only | ENFORCED 4.5 — outbox Phase 5 |
+| JWT production auth | ASPIRATIONAL |
+| TenantRoute silo | ASPIRATIONAL Phase 7 |
+| Playwright subdomain e2e | DEFERRED backlog_soft |
+
+## Sign-off (fill at 4.6)
+
+```yaml
+verdict: PENDING
+architect:
+  name: TBD
+  date: TBD
+```
+
+**Human guide:** [`phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md) (T3) · **Execution:** [`phase-4/phase-4-ai-exec.md`](../phase-4/phase-4-ai-exec.md)
