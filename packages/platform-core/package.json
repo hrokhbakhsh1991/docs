@@ -15,10 +15,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
-    "test:closure": "NODE_ENV=test node --import tsx --test test/purity-side-effects.spec.ts test/facade-integration.spec.ts test/cold-start.contract.spec.ts test/runtime-isolation.spec.ts test/phase-1.contract.spec.ts test/adversarial-validation.spec.ts test/rule-engine-concurrency.spec.ts test/adversarial-plugin-ingress.spec.ts",
+    "test:closure": "NODE_ENV=test node --import tsx --test test/purity-side-effects.spec.ts test/facade-integration.spec.ts test/cold-start.contract.spec.ts test/runtime-isolation.spec.ts test/phase-1.contract.spec.ts test/adversarial-validation.spec.ts test/validate-canonical-mutation.spec.ts test/rule-engine-concurrency.spec.ts test/adversarial-plugin-ingress.spec.ts",
     "test:unit:internal": "NODE_ENV=test node --import tsx --test \"test/unit/**/*.spec.ts\"",
     "test": "pnpm run test:closure && pnpm run test:unit:internal",
-    "test:phase-1": "NODE_ENV=test node --import tsx --test test/phase-1.contract.spec.ts"
+    "test:phase-1": "NODE_ENV=test node --import tsx --test test/phase-1.contract.spec.ts",
+    "test:phase-2": "NODE_ENV=test node --import tsx --test test/phase-2.contract.spec.ts"
   },
   "dependencies": {
     "@app-tour/workspace-sdk": "workspace:*"

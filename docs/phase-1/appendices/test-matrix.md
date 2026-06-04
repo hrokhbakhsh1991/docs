@@ -8,7 +8,8 @@ exit_criteria_test_floor_gate:
   platform_core_full: 148
   platform_core_closure: 56
   workspace_sdk: 39
-  facade_ratio: 0.6
+  facade_ratio_min: 0.6
+  facade_ratio_source: scripts/guards/gate-thresholds.mjs PHASE_1_FACADE_TEST_RATIO_MIN
   behavior_contracts: 14
 source_threshold_file: scripts/guards/gate-thresholds.mjs
 

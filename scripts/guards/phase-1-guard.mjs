@@ -277,14 +277,31 @@ function checkNoDenaliInPlatformCoreDist() {
 
 /** @returns {GuardCheck} */
 function checkNoReactInPlatformCore() {
+  const srcRoot = path.join(PLATFORM_CORE_ROOT, "src");
+  if (!fs.existsSync(srcRoot)) {
+    return {
+      id: "g4_no_react_imports",
+      description: "no react/react-dom imports in platform-core src/",
+      required: true,
+      ok: false,
+      detail: "packages/platform-core/src missing",
+    };
+  }
   const r = rg(
-    ["-w", "react", "-w", "react-dom", "from \"react\"", "from 'react'"],
-    PLATFORM_CORE_ROOT,
+    [
+      "from \"react\"",
+      "from 'react'",
+      "from \"react-dom\"",
+      "from 'react-dom'",
+      "from \"react/",
+      "from 'react/",
+    ],
+    srcRoot,
   );
   const ok = r.lines.length === 0;
   return {
     id: "g4_no_react_imports",
-    description: "no react/react-dom word-boundary imports in platform-core",
+    description: "no react/react-dom imports in platform-core src/ (excl. test paths like theme-react)",
     required: true,
     ok,
     detail: ok ? null : truncateDetail(r.lines.join("\n")),

@@ -5,7 +5,10 @@ import { isFieldEffectivelyHidden } from "./field-visibility";
 import type { FieldRegistryEngine } from "./field-registry.engine";
 import type { RuleEngineScope } from "./rule-engine.scope";
 
-/** §4.4 ordering_logic: wizard.roots order first, then registry discovery order for the rest. */
+/**
+ * §4.4 ordering_logic: wizard.roots order first, then registry discovery order for the rest.
+ * @see test/unit/engine/render-plan.steps.spec.ts — not `step.engine.spec.ts` (removed with StepEngine class).
+ */
 export function listStepIds(
   wizard: WorkspaceWizardSurface,
   fieldEngine: FieldRegistryEngine,
@@ -26,10 +29,12 @@ export function listStepIds(
     }
   }
 
+  // §4.4 two-filter emit (RP-1): roots ∩ union, then discovery \ roots — no partition/sort buffers.
   const inRoots = new Set(wizard.roots);
-  const rooted = wizard.roots.filter((id) => seen.has(id));
-  const orphan = discoveryOrder.filter((id) => !inRoots.has(id));
-  return [...rooted, ...orphan];
+  return [
+    ...wizard.roots.filter((id) => seen.has(id)),
+    ...discoveryOrder.filter((id) => !inRoots.has(id)),
+  ];
 }
 
 export function getStepVisibility(

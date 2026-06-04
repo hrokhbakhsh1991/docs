@@ -24,6 +24,11 @@ phase_2_guard_checks_execution_order:
     description: pnpm run validate-design-tokens
     command: pnpm run validate-design-tokens
     script: scripts/guards/validate-design-tokens.mjs
+  - id: p2_design_tokens_tests
+    description: design-tokens tests ≥ 3 (tokens.meta.json contract)
+    command: pnpm --filter @app-tour/design-tokens run test
+    threshold: 3
+    spec: packages/design-tokens/test/tokens-meta.contract.spec.mjs
   - id: p2_ui_primitives_dist
     description: ui-primitives dist/Button/Button.js exists (subpath build; no barrel)
     artifact: packages/ui-primitives/dist/Button/Button.js
@@ -76,6 +81,12 @@ phase_2_guard_checks_execution_order:
       - 'package.json must not export ./internal'
       - 'rg @app-tour/theme-react/internal in packages apps → 0 (excl guard scripts)'
     remediation: SB-01
+  - id: p2_phase2_contract_behaviors
+    description: "phase-2.contract.spec.ts ≥ 8 behavioral rows (barrel, internal theme, platform purity)"
+    command: pnpm --filter @app-tour/platform-core run test:phase-2
+    threshold: 8
+    source: packages/platform-core/test/phase-2.contract.spec.ts
+    doc: docs/phase-2/audits/closure-contracts.md
   - id: p2_platform_core_no_tokens
     description: platform-core must not depend on design-tokens
     command: 'rg design-tokens packages/platform-core/package.json packages/platform-core/src'

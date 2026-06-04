@@ -1,7 +1,7 @@
 # Phase 2 — Design System & Enterprise Visual Layer
 
 > **AI-execution (agents):** [`phase-2-design-system.ai-exec.md`](phase-2-design-system.ai-exec.md) · [`phase-2/phase-2.ai-exec.index.md`](phase-2/phase-2.ai-exec.index.md) · hub [`phase-2/README.md`](phase-2/README.md)  
-> **Gate (repo):** `pnpm run phase-2:gate` (8 steps + `p2_*`) — not Appendix G JSON · no `guard:symlink` in chain · body may lag `.mdoc`  
+> **Gate (repo):** `pnpm run phase-2:gate` (check-node-engine + build + test + test:phase-2 + guards + 16× `p2_*`) · `ci:integrity` = phase-0 + phase-1 + phase-2 gates  
 > **Canonical (Markdoc):** [`phase-2-design-system.mdoc`](phase-2-design-system.mdoc) · §19 · `pnpm run guard:doc-sync`  
 > **Forensic (permanent):** [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) · [`audits/phase-2-zero-debt-forensic-audit-2026-06-02.md`](audits/phase-2-zero-debt-forensic-audit-2026-06-02.md)  
 > **Integrity:** [`audits/phase-2-documentation-integrity-2026-06-03.mdoc`](audits/phase-2-documentation-integrity-2026-06-03.mdoc)

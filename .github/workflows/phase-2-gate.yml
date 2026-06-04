@@ -31,9 +31,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - name: Verify Node.js engine
-        run: node scripts/guards/check-node-engine.mjs
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

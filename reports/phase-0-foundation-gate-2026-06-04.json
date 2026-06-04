@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T01:48:52.349Z",
-  "gitSha": "d880989",
+  "generatedAt": "2026-06-04T01:55:45.337Z",
+  "gitSha": "d52b767",
   "phase": "0.5-foundation",
   "gateScope": {
     "script": "phase-0-guard.mjs",

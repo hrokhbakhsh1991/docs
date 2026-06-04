@@ -24,7 +24,8 @@
   },
   "scripts": {
     "build": "node ./scripts/generate-tokens.mjs && node ./scripts/build.mjs && tsc -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json"
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/tokens-meta.contract.spec.mjs"
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",

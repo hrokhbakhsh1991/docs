@@ -358,4 +358,21 @@ Phase 2 publish surfaces audited here meet the **Zero-Debt technical bar** for a
 
 ---
 
+---
+
+## 6. Phase 2 Closure — All Checks Passed (2026-06-04)
+
+| Field | Value |
+|-------|--------|
+| **Event** | Process infrastructure aligned with Phase 1 — **locked** |
+| **Git SHA** | `8fcee69` |
+| **Commands** | `pnpm run phase-2:gate` **PASS** (15/15) · `test:phase-2` **10/10** |
+| **R2-P0-01** | `scripts/ci-integrity-check.sh` includes full `phase-2:gate` |
+| **R2-P0-02** | [`packages/platform-core/test/phase-2.contract.spec.ts`](../../packages/platform-core/test/phase-2.contract.spec.ts) — `p2_phase2_contract_behaviors` |
+| **Sign-off** | [`reports/phase-2-closure-signoff-2026-06-04.md`](../../reports/phase-2-closure-signoff-2026-06-04.md) |
+
+**Attestation:** SB-01/02/03 remediations remain valid; behavioral contract enforces barrel ban, internal theme leakage ban, and platform-core visual dependency purity on every `ci:integrity` run.
+
+> **LOCK:** Phase 2 publish surfaces + process gates frozen until Phase 3 doc-first changes. Do not weaken `p2_phase2_contract_behaviors` without Markdoc update.
+
 *End of report.*

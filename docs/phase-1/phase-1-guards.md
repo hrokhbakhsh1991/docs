@@ -65,7 +65,7 @@ phase_1_guard_execution_order:
     enforcement_id: P1-E-FACADE-RATIO
     verification: scripts/guards/lib/facade-test-ratio.mjs on closure specs ≥ 0.6
     fail_if: ratio below PHASE_1_FACADE_TEST_RATIO_MIN
-    note: ignore stale mdoc 30% row — DRIFT-03
+    note: "PHASE_1_FACADE_TEST_RATIO_MIN = 0.6 (60% minimum) — gate-thresholds.mjs + mdoc §4.6"
   - id: g10_adversarial_specs_execute
     enforcement_id: P1-E-ADVERSARIAL
     verification: pnpm run test:adversarial

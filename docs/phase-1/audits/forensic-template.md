@@ -6,7 +6,7 @@
 forensic_truth_rules:
   - id: FT-P1-01
     claim: "Headless platform — no theme in engine"
-    repo: "buildRuntime uses includeTheme:false; theme SDK codes → PLUGIN_INVALID_SHAPE at boundary"
+    repo: "create/tryFromPlugin → sanitizePluginAtCreate → parseWorkspacePluginFromStorage({ includeTheme: false }); buildRuntime uses tryValidateWorkspacePluginForPlatform (no second theme parse)"
     enforcement: "phase-1.contract headless-plugin-ingress + adversarial-plugin-ingress"
     guard_ids: [g11_phase1_contract_behaviors, g10_adversarial_specs_execute]
   - id: FT-P1-02
@@ -26,8 +26,8 @@ forensic_truth_rules:
     repo: "platform-core does NOT invoke plugin.validation in Phase 1"
     status: DEFERRED Phase 3+ API
   - id: FT-P1-05
-    claim: "Public RuleEngine / internal engines on barrel"
-    repo: "index.ts exports PlatformWizardEngine facade only"
+    claim: "Internal engines must not appear on barrel"
+    repo: "index.ts exports PlatformWizardEngine + shared types/errors (PlatformCoreError, plan/validation types) — NOT RuleEngine, FieldRegistryEngine, or render-plan internals"
     enforcement: "single-facade-export + no-test-policy-export contracts"
     guard_ids: [g11_phase1_contract_behaviors]
   - id: FT-P1-06
@@ -57,7 +57,7 @@ forensic_truth_rules:
     repo: "PHASE_1_FACADE_TEST_RATIO_MIN = 0.6 on closure specs excl test/unit/**"
     enforcement: g13_facade_test_ratio
     guard_ids: [g13_facade_test_ratio]
-    stale_doc_warning: "mdoc §4.6 lists conflicting 30% package policy — REPO uses 60% closure ratio"
+    stale_doc_warning: "resolved — mdoc §4.6 g13 and gate-thresholds.mjs both use 60% (0.6)"
   - id: FT-P1-12
     claim: "Subphase 1.4 = StepEngine class"
     repo: "render-plan.steps plain functions only — step.engine.ts removed from src/"

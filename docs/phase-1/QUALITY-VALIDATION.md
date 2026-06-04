@@ -46,7 +46,7 @@ validation_meta:
 |----------|------------|
 | test:phase-1 omitted in mdoc JSON | MERGED — DRIFT-01; gate step 3 |
 | g6 report-write vs import-boundary | MERGED — DRIFT-02 |
-| g13 30% vs 0.6 | MERGED — DRIFT-03 |
+| g13 facade ratio | **0.6** minimum (`PHASE_1_FACADE_TEST_RATIO_MIN`) — DRIFT-03 closed |
 | StepEngine vs render-plan.steps | MERGED — DRIFT-04 |
 | fromPlugin removed | MERGED — DRIFT-05 |
 | stale narrative gate chain | MERGED — DRIFT-06 |

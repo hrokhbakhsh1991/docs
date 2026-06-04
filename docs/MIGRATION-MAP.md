@@ -729,15 +729,15 @@ export function defineAbilityFor(context: TenantAuthContext) {
 
 ##### Cross-Layer Security (CASL × Theme Ingress Guard)
 
-فاز ۲ **Theme Ingress Guard** (`validateWorkspaceThemeIngress`, `snapshotWorkspaceTheme`, sealed DOM builders) فقط **صحت payload** را تضمین می‌کند — **نه** اینکه actor مجاز به دیدن theme باشد.
+فاز ۲ **Theme Ingress Guard** (داخلی در `@app-tour/theme-react`: `validateWorkspaceThemeIngress`, `snapshotWorkspaceTheme`, sealed DOM builders) فقط **صحت payload** را تضمین می‌کند — **نه** اینکه actor مجاز به دیدن theme باشد. **API عمومی:** `WorkspaceThemeProvider` / `ThemeProviderChain` — ingress helpers روی barrel منتشر نمی‌شوند.
 
 **Handoff اجباری (ترتیب غیرقابل تعویض):**
 
 ```text
 1. Resolve actor + tenant context (apps/web | apps/api)
-2. ability.can('access', workspaceThemeSubject)   ← CASL (فاز ۳)
-3. validateWorkspaceThemeIngress(plugin, theme)     ← Theme Ingress Guard (فاز ۲)
-4. snapshotWorkspaceTheme → WorkspaceThemeProvider → DOM
+2. ability.can('access', workspaceThemeSubject)   ← CASL (فاز ۳ inject؛ gate در theme-react فاز ۲.۴)
+3. WorkspaceThemeProvider → useThemeIngressGuard → validateWorkspaceThemeIngress  ← Theme Ingress Guard (فاز ۲، package-internal)
+4. snapshotWorkspaceTheme → DOM
 ```
 
 | Layer | Responsibility |

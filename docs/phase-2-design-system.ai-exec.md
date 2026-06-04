@@ -86,7 +86,9 @@ phase_2_gate:
   step_5: pnpm run validate-design-tokens
   step_6: pnpm run guard:artifact-surface
   step_7: pnpm run audit-boundary
+  step_0: pnpm run check:node-engine
+  step_3b: pnpm --filter @app-tour/platform-core run test:phase-2
   step_8: pnpm run phase-2:guard
   not_in_chain: guard:symlink
-pre_commit_note: "ci:integrity does NOT run phase-2:gate — explicit CI required (DRIFT-P2-11)"
+pre_commit_note: "ci:integrity runs phase-0:gate + phase-1:gate + phase-2:gate (DRIFT-P2-11 closed)"
 ```
