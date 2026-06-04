@@ -1,8 +1,8 @@
 # Phase 4 — CI / guards / gates
 
 > **SOURCE OF TRUTH:** CI pipeline and PR gate requirements  
-> **Guard script (p4_*):** [`phase-4-guard.md`](phase-4-guard.md)  
-> **Enforcement (P4-E-*):** [`phase-4-enforcement.md`](phase-4-enforcement.md)  
+> **Guard script (p4\_\*):** [`phase-4-guard.md`](phase-4-guard.md)  
+> **Enforcement (P4-E-\*):** [`phase-4-enforcement.md`](phase-4-enforcement.md)  
 > **Subphase map:** [`audits/subphase-enforcement-map.md`](audits/subphase-enforcement-map.md)
 
 ```yaml
@@ -38,10 +38,10 @@ execution_commands:
 
 Phase 4 guard step 4 (`phase-4:guard`) runs **`p4_rls_integration_tests`**, which spawns `apps/api` integration specs with:
 
-| Variable | Required value | When |
-|----------|----------------|------|
-| `DATABASE_URL` | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev`) | Before `phase-4:guard` / `phase-4:gate` |
-| `STORAGE_DRIVER` | `prisma` | Set automatically in guard spawn; **must** be `prisma` in CI job env for 4.2 runtime parity |
+| Variable         | Required value                                                                   | When                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev`) | Before `phase-4:guard` / `phase-4:gate`                                                     |
+| `STORAGE_DRIVER` | `prisma`                                                                         | Set automatically in guard spawn; **must** be `prisma` in CI job env for 4.2 runtime parity |
 
 ```bash
 # Dev profile (Phase 4 implementation — docs/phase-4/dev/docker-compose.yml)
@@ -72,33 +72,37 @@ Without `DATABASE_URL`, `p4_rls_integration_tests` is **`ok: false`** (required)
 
 ## Closure gate (`phase-4:gate`)
 
-| Step | Command | Enforcement |
-|------|---------|-------------|
-| 1 | `pnpm build` | — |
-| 2 | `pnpm test` | — |
-| 3 | `pnpm run phase-3:gate` | P4-E-REG-03 |
-| 4 | `pnpm run phase-4:guard` | p4_* → reports/phase-4-gate-*.json (includes RLS integration when env set) |
+| Step | Command                  | Enforcement                                                                 |
+| ---- | ------------------------ | --------------------------------------------------------------------------- |
+| 1    | `pnpm build`             | —                                                                           |
+| 2    | `pnpm test`              | —                                                                           |
+| 3    | `pnpm run phase-3:gate`  | P4-E-REG-03                                                                 |
+| 4    | `pnpm run phase-4:guard` | p4\__ → reports/phase-4-gate-_.json (includes RLS integration when env set) |
 
 **Not in outer chain (by design):** `guard:architecture`, `guard:import-boundary` — nested in phase-3:gate step 3.
 
 ## Pre-commit vs PR
 
-| Context | Script | Runs phase-4:gate? |
-|---------|--------|-------------------|
-| Husky `ci:integrity` | `scripts/ci-integrity-check.sh` | No — phase-0 + phase-1 only |
-| PR / Phase 4.6 closure | explicit `pnpm run phase-4:gate` | **Yes — required** |
+| Context                 | Script                                        | Runs phase-4:gate?                                           |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------------------ |
+| Husky fast path         | `scripts/pre-commit-fast.sh` → `test-changed` | No                                                           |
+| Manual / PR integration | `pnpm run test:full`                          | **Yes** — `phase-3:gate` + `phase-4:gate` (RLS when env set) |
+| CI `main` / PR          | `pnpm run ci:integrity` (phases 0–3)          | No                                                           |
+| Phase 4.6 closure       | `pnpm run phase-4:gate`                       | **Yes — required**                                           |
+
+Tiered testing detail: [`docs/dev/tiered-testing.md`](../dev/tiered-testing.md). DB reset between RLS runs: `pnpm run db:test-reset`.
 
 ## CI ↔ subphase
 
-| Subphase | Primary commands | P4-E (primary) |
-|----------|------------------|----------------|
-| 4.0 | `phase-3:gate`, red-flag report | P4-E-RF-40, P4-E-AUTH-01 |
-| 4.1 | `tenant-kernel` build/test, `test:phase-4` | P4-E-HOST-01, P4-E-RLS-02 |
-| 4.2 | `DATABASE_URL` + `STORAGE_DRIVER=prisma`, compose, `p4_rls_integration_tests` | P4-E-RLS-01, P4-E-DATA-01 |
-| 4.3 | api e2e two-tenant | P4-E-TENANT-01 |
-| 4.4 | tenant-config route, web e2e TH-1 | — (TH-1 matrix) |
-| 4.5 | `platform-events` test, TourCreated integration | P4-E-EVT-01 |
-| 4.6 | `phase-4:gate`, forensic, `guard:doc-sync` | P4-E-GATE |
+| Subphase | Primary commands                                                              | P4-E (primary)            |
+| -------- | ----------------------------------------------------------------------------- | ------------------------- |
+| 4.0      | `phase-3:gate`, red-flag report                                               | P4-E-RF-40, P4-E-AUTH-01  |
+| 4.1      | `tenant-kernel` build/test, `test:phase-4`                                    | P4-E-HOST-01, P4-E-RLS-02 |
+| 4.2      | `DATABASE_URL` + `STORAGE_DRIVER=prisma`, compose, `p4_rls_integration_tests` | P4-E-RLS-01, P4-E-DATA-01 |
+| 4.3      | api e2e two-tenant                                                            | P4-E-TENANT-01            |
+| 4.4      | tenant-config route, web e2e TH-1                                             | — (TH-1 matrix)           |
+| 4.5      | `platform-events` test, TourCreated integration                               | P4-E-EVT-01               |
+| 4.6      | `phase-4:gate`, forensic, `guard:doc-sync`                                    | P4-E-GATE                 |
 
 ## Interpret gate JSON
 
@@ -120,8 +124,8 @@ pnpm run phase-4:gate   # full closure — see CLOSURE-CHECKLIST.md
 
 ## PR requirements
 
-- Label `Phase: 4.N` for active subphase only  
-- List satisfied **P4-E-*** rows from [`audits/verification-matrix.md`](audits/verification-matrix.md)  
+- Label `Phase: 4.N` for active subphase only
+- List satisfied **P4-E-\*** rows from [`audits/verification-matrix.md`](audits/verification-matrix.md)
 - **4.1+ forbidden** until `reports/phase-3.2-red-flag-status-*.md` exists (`p4_red_flag_prerequisite`)
 
 **Legacy filename:** narrative `§14.2` — retired; bind to this file + `phase-4-guard.md`.
@@ -137,5 +141,5 @@ gate_scaling:
     - "Package-scoped test during subphases 4.1–4.5"
     - "Full phase-4:gate only at 4.6 closure and release branches"
     - "Future: optional phase-4:gate:fast profile (rejected until scripted — see FUTURE-PROOFING-REPORT.md)"
-  pre_commit: "ci:integrity does not run phase-4:gate — by design (FR-11)"
+  pre_commit: "pre-commit-fast + test-changed — not phase-4:gate (FR-11); test:full for RLS"
 ```
