@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-03T16:54:06.478Z",
-  "gitSha": "e8fc3a8",
+  "generatedAt": "2026-06-04T01:05:27.915Z",
+  "gitSha": "b8734e9",
   "phase": "0.6",
   "thresholds": {},
   "metrics": {
-    "workspace_sdk_test_count": 174,
-    "workspace_sdk_test_it_source": 147,
+    "workspace_sdk_test_count": 176,
+    "workspace_sdk_test_it_source": 149,
     "workspace_sdk_spec_files": 26,
     "workspace_sdk_export_count": 4,
     "workspace_sdk_source_files": 67,
@@ -15,6 +15,8 @@
       "config",
       "design-tokens",
       "platform-core",
+      "platform-events",
+      "tenant-kernel",
       "theme-react",
       "ui-primitives",
       "workspace-sdk",
@@ -49,7 +51,7 @@
   },
   "testRun": {
     "ok": true,
-    "testCount": 174
+    "testCount": 176
   },
   "exit06": {
     "pass": true,
