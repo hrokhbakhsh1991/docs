@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { EventEmitter } from "node:events";
 
 export type DomainEventEnvelope<TPayload = unknown> = {
   readonly eventId: string;
@@ -9,53 +10,109 @@ export type DomainEventEnvelope<TPayload = unknown> = {
 };
 
 export type DomainEventHandler<TPayload = unknown> = (
-  event: DomainEventEnvelope<TPayload>,
+  event: DomainEventEnvelope<TPayload>
 ) => void | Promise<void>;
 
-const subscribers = new Map<string, Set<DomainEventHandler>>();
+/** In-process bus (Phase 4.5 — no outbox / no persistence). */
+const domainBus = new EventEmitter();
 
-export function publishDomainEvent<TPayload>(
-  input: Omit<DomainEventEnvelope<TPayload>, "eventId" | "occurredAt">,
-): DomainEventEnvelope<TPayload> {
-  const tenantId = input.tenantId?.trim();
-  if (!tenantId) {
+/** Per-handler dedupe of eventId (minimal P4-E-EVT-01 idempotency). */
+const DEDUPE_CAPACITY = 64;
+
+function normalizeTenantId(tenantId: string): string {
+  const normalized = tenantId?.trim();
+  if (!normalized) {
     throw new Error("DOMAIN_EVENT_TENANT_REQUIRED");
   }
+  return normalized;
+}
+
+function rememberEventId(seen: string[], eventId: string): boolean {
+  if (seen.includes(eventId)) {
+    return false;
+  }
+  seen.push(eventId);
+  if (seen.length > DEDUPE_CAPACITY) {
+    seen.shift();
+  }
+  return true;
+}
+
+function wrapHandler<TPayload>(
+  tenantId: string | null,
+  handler: DomainEventHandler<TPayload>
+): DomainEventHandler<TPayload> {
+  const seenEventIds: string[] = [];
+  return (envelope) => {
+    if (tenantId !== null && tenantId !== envelope.tenantId) {
+      return;
+    }
+    if (!rememberEventId(seenEventIds, envelope.eventId)) {
+      return;
+    }
+    void handler(envelope);
+  };
+}
+
+/**
+ * Publish a domain event (in-memory). {@link tenantId} is required on every envelope.
+ */
+export type PublishDomainEventInput<TPayload> = Omit<
+  DomainEventEnvelope<TPayload>,
+  "eventId" | "occurredAt"
+> & {
+  readonly eventId?: string;
+  readonly occurredAt?: string;
+};
+
+export function publishDomainEvent<TPayload>(
+  input: PublishDomainEventInput<TPayload>
+): DomainEventEnvelope<TPayload> {
+  const tenantId = normalizeTenantId(input.tenantId);
 
   const envelope: DomainEventEnvelope<TPayload> = {
-    eventId: randomUUID(),
+    eventId: input.eventId?.trim() || randomUUID(),
     tenantId,
     type: input.type,
     payload: input.payload,
-    occurredAt: new Date().toISOString(),
+    occurredAt: input.occurredAt ?? new Date().toISOString(),
   };
 
-  const handlers = subscribers.get(envelope.type);
-  if (handlers) {
-    for (const handler of handlers) {
-      void handler(envelope);
-    }
-  }
-
+  domainBus.emit(envelope.type, envelope);
   return envelope;
 }
 
+/**
+ * Subscribe to all tenants for an event type (global fan-out).
+ */
 export function subscribeDomainEvent<TPayload>(
   type: string,
-  handler: DomainEventHandler<TPayload>,
+  handler: DomainEventHandler<TPayload>
 ): () => void {
-  let set = subscribers.get(type);
-  if (!set) {
-    set = new Set();
-    subscribers.set(type, set);
-  }
-  set.add(handler as DomainEventHandler);
+  const wrapped = wrapHandler(null, handler);
+  domainBus.on(type, wrapped);
   return () => {
-    set?.delete(handler as DomainEventHandler);
+    domainBus.off(type, wrapped);
   };
 }
 
-/** Test-only — reset registry between specs. */
+/**
+ * Subscribe to events for a single tenant — other tenants' events are not delivered.
+ */
+export function subscribeDomainEventForTenant<TPayload>(
+  tenantId: string,
+  type: string,
+  handler: DomainEventHandler<TPayload>
+): () => void {
+  const scopedTenantId = normalizeTenantId(tenantId);
+  const wrapped = wrapHandler(scopedTenantId, handler);
+  domainBus.on(type, wrapped);
+  return () => {
+    domainBus.off(type, wrapped);
+  };
+}
+
+/** Test-only — reset bus state between specs. */
 export function resetDomainEventBusForTests(): void {
-  subscribers.clear();
+  domainBus.removeAllListeners();
 }

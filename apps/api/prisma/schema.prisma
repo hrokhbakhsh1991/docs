@@ -12,9 +12,14 @@ model Tenant {
   id            String   @id @default(uuid()) @db.Uuid
   subdomain     String   @unique
   workspaceType String   @default("starter") @map("workspace_type")
+  status        String   @default("active")
   theme         Json     @default("{}")
   createdAt     DateTime @default(now()) @map("created_at")
   tours         Tour[]
+  outboxEvents  OutboxEvent[]
+  auditEvents   AuditEvent[]
+  httpIdempotencyRecords HttpIdempotencyRecord[]
+  processedDomainEvents ProcessedDomainEvent[]
 
   @@map("tenants")
 }
@@ -25,6 +30,7 @@ model Tour {
   canonical      Json     @map("canonical_data")
   title          String?
   schemaVersion  Int      @default(1) @map("schema_version")
+  rowVersion     Int      @default(1) @map("row_version")
   createdAt      DateTime @default(now()) @map("created_at")
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
 
@@ -46,6 +52,7 @@ model OutboxEvent {
   correlationId  String?   @map("correlation_id")
   createdAt      DateTime  @default(now()) @map("created_at")
   processedAt    DateTime? @map("processed_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, domainEventId])
   @@index([tenantId, status, createdAt])
@@ -61,7 +68,38 @@ model AuditEvent {
   entityId   String   @map("entity_id") @db.Uuid
   metadata   Json     @default("{}")
   createdAt  DateTime @default(now()) @map("created_at")
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
   @@map("audit_events")
+}
+
+/// P0 DEC-006 — HTTP Idempotency-Key replay store (POST /tours).
+model HttpIdempotencyRecord {
+  tenantId       String    @map("tenant_id") @db.Uuid
+  idempotencyKey String    @map("idempotency_key")
+  requestHash    String    @map("request_hash")
+  status         String    @default("processing")
+  statusCode     Int?      @map("status_code")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@id([tenantId, idempotencyKey])
+  @@index([tenantId, status])
+  @@map("http_idempotency_records")
+}
+
+/// Phase 5.4-S4 — consumer idempotency log (domain_event_id per tenant).
+model ProcessedDomainEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  domainEventId String   @map("domain_event_id")
+  processedAt   DateTime @default(now()) @map("processed_at")
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, domainEventId])
+  @@index([tenantId, processedAt])
+  @@map("processed_domain_events")
 }

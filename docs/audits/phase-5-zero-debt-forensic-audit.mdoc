@@ -1,0 +1,48 @@
+---
+title: Phase 5 Zero-Debt Forensic Audit
+phase: 5
+status: SCAFFOLD_PENDING_CLOSURE
+verdict: PENDING
+auto_fill: false
+gateReport: reports/phase-5-gate-YYYY-MM-DD.json
+phase4GateReport: reports/phase-4-gate-YYYY-MM-DD.json
+closure_checklist: docs/phase-5/audits/CLOSURE-CHECKLIST.md
+---
+
+# Phase 5 Zero-Debt Forensic Audit (scaffold)
+
+> **Do not set `verdict: PASS` until** [`CLOSURE-CHECKLIST.md`](../phase-5/audits/CLOSURE-CHECKLIST.md) section D is complete and `pnpm run phase-5:gate` exit 0.
+
+{% meta %}
+rule: "Fill at 5.6 when phase-5:gate and nested phase-4:gate ok:true and 5.2–5.5 VERIFIED_BEHAVIORAL"
+auto_fill: false
+{% /meta %}
+
+## Pre-closure checklist
+
+| #   | Requirement                                                                                 |
+| --- | ------------------------------------------------------------------------------------------- |
+| 1   | `pnpm run phase-5:gate` exit 0                                                              |
+| 2   | `pnpm run phase-4:gate` exit 0 (nested)                                                     |
+| 3   | Behavioral tests 5.2–5.5 per [`test-inventory.md`](../phase-5/appendices/test-inventory.md) |
+| 3b  | Forensic rubric [`FORENSIC-RUBRIC.md`](../phase-5/appendices/FORENSIC-RUBRIC.md) total >= 8 |
+| 4   | TourCreated API → handler with outbox                                                       |
+| 5   | IMPLEMENTATION-TRUTH 7/7 VERIFIED                                                           |
+| 6   | [`CLOSURE-CHECKLIST.md`](../phase-5/audits/CLOSURE-CHECKLIST.md) complete                   |
+
+## Forensic Truth
+
+| Claim                         | Status                        |
+| ----------------------------- | ----------------------------- |
+| canonical_data JSONB SoT      | ENFORCED at 5.1 scaffold      |
+| Outbox same TX                | ENFORCED when 5.4 VERIFIED    |
+| Relay throughput 10k/s        | ASPIRATIONAL                  |
+| Kafka/CDC primary             | DEFERRED Phase 7+             |
+| Multi-workspace plugin matrix | starter only — BLOCKER-P5-011 |
+
+## Sign-off
+
+```yaml
+verdict: PENDING
+architect: TBD
+```

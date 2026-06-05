@@ -16,4 +16,5 @@ DB_URL="${DATABASE_URL_ADMIN:-${DATABASE_URL:-$DEFAULT_URL}}"
 
 echo "db-test-reset: applying $SQL"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$SQL"
+psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'ALTER TABLE tours ADD COLUMN IF NOT EXISTS row_version INT NOT NULL DEFAULT 1;'
 echo "db-test-reset: PASS"

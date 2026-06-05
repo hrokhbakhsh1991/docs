@@ -1,0 +1,5 @@
+# Phase 7 genericity baseline (record at 7.2 start)
+baseline_sha: null
+recorded_at: null
+recorded_by: null
+note: "Set baseline_sha to git ref before any urban-related platform-core touch; diff must stay empty through 7.9"

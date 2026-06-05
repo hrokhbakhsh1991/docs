@@ -2,7 +2,6 @@ import type { TourRecord, TourWhere } from "./tour-record";
 import type { TourStorageRepository as DbTourStorageRepository } from "./tour.repository";
 import type {
   Tour,
-  TourIdResolver,
   TourStorageRepository as StorageTourRepository,
 } from "../storage/tour-storage.interface";
 
@@ -12,6 +11,7 @@ function toRecord(tour: Tour): TourRecord {
     tenantId: tour.tenantId,
     canonical: tour.canonical,
     createdAt: tour.createdAt,
+    rowVersion: tour.rowVersion,
   };
 }
 
@@ -21,9 +21,15 @@ function toRecord(tour: Tour): TourRecord {
  */
 export class TourStorageDbAdapter implements DbTourStorageRepository {
   constructor(
-    private readonly store: StorageTourRepository & TourIdResolver & {
+    private readonly store: StorageTourRepository & {
       createTour(data: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour>;
-    },
+      updateIfRowVersion(input: {
+        tenantId: string;
+        id: string;
+        canonical: Tour["canonical"];
+        expectedRowVersion: number;
+      }): Promise<Tour>;
+    }
   ) {}
 
   async findMany(where: TourWhere): Promise<readonly TourRecord[]> {
@@ -45,16 +51,21 @@ export class TourStorageDbAdapter implements DbTourStorageRepository {
     return first === undefined ? null : toRecord(first);
   }
 
-  async findById(id: string): Promise<TourRecord | null> {
-    const hit = await this.store.resolveById(id);
-    return hit === null ? null : toRecord(hit);
-  }
-
   async create(data: {
     tenantId: string;
     canonical: TourRecord["canonical"];
   }): Promise<TourRecord> {
     const created = await this.store.createTour(data);
     return toRecord(created);
+  }
+
+  async update(data: {
+    tenantId: string;
+    id: string;
+    canonical: TourRecord["canonical"];
+    expectedRowVersion: number;
+  }): Promise<TourRecord> {
+    const updated = await this.store.updateIfRowVersion(data);
+    return toRecord(updated);
   }
 }

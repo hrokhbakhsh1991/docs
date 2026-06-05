@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T05:51:15.862Z",
-  "gitSha": "319129a",
+  "generatedAt": "2026-06-04T15:32:42.960Z",
+  "gitSha": "ae73a28",
   "phase": "2.5",
   "checks": [
     {
@@ -36,7 +36,7 @@
       "description": "ui-primitives: no barrel export; apps use subpaths only (audit-boundary)",
       "required": true,
       "ok": true,
-      "detail": "subpaths: ./button, ./input, ./field-shell, ./alert, ./badge"
+      "detail": "subpaths: ./button, ./input, ./field-shell, ./alert, ./badge, ./select, ./checkbox"
     },
     {
       "id": "p2_artifact_surface_guard",
@@ -64,7 +64,7 @@
       "description": "ui-primitives tests ≥ 12 (enforced count)",
       "required": true,
       "ok": true,
-      "detail": "30 tests"
+      "detail": "38 tests"
     },
     {
       "id": "p2_theme_react_tests",

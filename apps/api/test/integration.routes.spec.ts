@@ -28,7 +28,7 @@ async function requestJson(
     readonly path: string;
     readonly headers?: Record<string, string>;
     readonly body?: unknown;
-  },
+  }
 ): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -63,7 +63,7 @@ async function requestJson(
               body: raw.length > 0 ? JSON.parse(raw) : null,
             });
           });
-        },
+        }
       );
       req.on("error", (err) => {
         server.close();
@@ -121,7 +121,7 @@ describe("apps/api integration", () => {
     assert.match((res.body as { error?: string }).error ?? "", /ZOD_VALIDATION_FAILED/);
   });
 
-  it("tenant B cannot read tenant A tour — returns 403 Forbidden", async () => {
+  it("tenant B cannot read tenant A tour — returns 404 Not Found", async () => {
     const created = await requestJson(listener, {
       method: "POST",
       path: "/tours",
@@ -137,7 +137,7 @@ describe("apps/api integration", () => {
       path: `/tours/${tourId}`,
       headers: authHeaders("tenant-b"),
     });
-    assert.equal(foreign.status, 403);
-    assert.match((foreign.body as { error?: string }).error ?? "", /FORBIDDEN_TOUR_READ_CROSS_TENANT/);
+    assert.equal(foreign.status, 404);
+    assert.match((foreign.body as { error?: string }).error ?? "", /not_found|TOUR_NOT_FOUND/);
   });
 });

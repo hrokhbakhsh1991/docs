@@ -17,52 +17,52 @@ forensicArchive: audits/phase-3-zero-debt-forensic-audit.mdoc
 
 ## 1. Markdoc migration
 
-| Artifact | Status |
-|----------|--------|
-| Canonical guide | [`phase-3-design-system.mdoc`](../phase-3-design-system.mdoc) |
-| Legacy mirror | [`phase-3-design-system.md`](../phase-3-design-system.md) |
-| `pnpm run doc:markdoc:validate` | PASS |
+| Artifact                        | Status                                                        |
+| ------------------------------- | ------------------------------------------------------------- |
+| Canonical guide                 | [`phase-3-design-system.mdoc`](../phase-3-design-system.mdoc) |
+| Legacy mirror                   | [`phase-3-design-system.md`](../phase-3-design-system.md)     |
+| `pnpm run doc:markdoc:validate` | PASS                                                          |
 
 ## 2. Forensic linkage (permanent)
 
-| Format | Path |
-|--------|------|
+| Format  | Path                                                                             |
+| ------- | -------------------------------------------------------------------------------- |
 | Markdoc | [`phase-3-zero-debt-forensic-audit.mdoc`](phase-3-zero-debt-forensic-audit.mdoc) |
-| Legacy | [`phase-3-zero-debt-forensic-audit.md`](phase-3-zero-debt-forensic-audit.md) |
+| Legacy  | [`phase-3-zero-debt-forensic-audit.md`](phase-3-zero-debt-forensic-audit.md)     |
 
 ## 3. Context-aware audit — gaps found and resolved
 
-| ID | Finding | Type | Resolution |
-|----|---------|------|------------|
-| P3-DOC-01 | No Markdoc phase guide | Doc debt | **Fixed** — `phase-3-design-system.mdoc` |
-| P3-DOC-02 | §10.1 implied Postgres SoT | Doc drift | **Fixed** — in-memory `in_memory.tour_records`; Postgres = Phase 4+ |
-| P3-DOC-03 | §17 MAP row said Postgres in api | Doc drift | **Fixed** — Docker infra vs API SoT clarified |
-| P3-DOC-04 | Ability test count stale (15) | Doc drift | **Fixed** — 23 tests in `ability.spec.ts` |
-| P3-DOC-05 | ESLint path `eslint.config.mjs` | Doc drift | **Fixed** — `.eslintrc.cjs` |
-| P3-DOC-06 | §15.2 Select/Checkbox “required” vs gate optional | Doc contradiction | **Fixed** — aligned with `phase-3-guard` optional check |
-| **P3-INT-02** | Doc forbade `x-tenant-id` alone; code fell back to claim | **Broken code** | **Fixed** — `FORBIDDEN_TENANT_UNAUTHENTICATED` + forensic test |
-| P3-DOC-07 | Web dev session undocumented | Unclear doc | **Fixed** — §11.2 `dev-app-session.ts` |
-| P3-DOC-08 | Playwright backlog | Deferred (soft) | Documented non-blocking; Phase 4+ E2E |
-| P3-DOC-09 | Select/Checkbox subpaths | Deferred (3.3.x) | Documented optional; gate `required: false` |
+| ID            | Finding                                                  | Type              | Resolution                                                          |
+| ------------- | -------------------------------------------------------- | ----------------- | ------------------------------------------------------------------- |
+| P3-DOC-01     | No Markdoc phase guide                                   | Doc debt          | **Fixed** — `phase-3-design-system.mdoc`                            |
+| P3-DOC-02     | §10.1 implied Postgres SoT                               | Doc drift         | **Fixed** — in-memory `in_memory.tour_records`; Postgres = Phase 4+ |
+| P3-DOC-03     | §17 MAP row said Postgres in api                         | Doc drift         | **Fixed** — Docker infra vs API SoT clarified                       |
+| P3-DOC-04     | Ability test count stale (15)                            | Doc drift         | **Fixed** — 23 tests in `ability.spec.ts`                           |
+| P3-DOC-05     | ESLint path `eslint.config.mjs`                          | Doc drift         | **Fixed** — `.eslintrc.cjs`                                         |
+| P3-DOC-06     | §15.2 Select/Checkbox “required” vs gate optional        | Doc contradiction | **Fixed** — aligned with `phase-3-guard` optional check             |
+| **P3-INT-02** | Doc forbade `x-tenant-id` alone; code fell back to claim | **Broken code**   | **Fixed** — `FORBIDDEN_TENANT_UNAUTHENTICATED` + forensic test      |
+| P3-DOC-07     | Web dev session undocumented                             | Unclear doc       | **Fixed** — §11.2 `dev-app-session.ts`                              |
+| P3-DOC-08     | Playwright backlog                                       | Deferred (soft)   | Documented non-blocking; Phase 4+ E2E                               |
+| P3-DOC-09     | Select/Checkbox subpaths                                 | Deferred (3.3.x)  | Documented optional; gate `required: false`                         |
 
 ## 4. Implementation parity (post-fix)
 
-| Area | Documented | Code |
-|------|------------|------|
-| API SoT | `CanonicalTourService` → `in_memory.tour_records` | `canonical-storage.ts` |
-| Tenant binding | `x-authenticated-tenant-id` required | `request-context.ts` |
-| CASL handoff | §6.3 before ingress | `ability.ts` + `WorkspaceThemeProvider` |
-| Web guards | `predev`/`prebuild`/`prelint` | `apps/web/package.json` |
-| Starter plugin | `@app-tour/workspace-starter` | `packages/workspaces/starter` |
-| Barrel ban | subpaths only | `guard:import-boundary` PASS |
+| Area           | Documented                                        | Code                                    |
+| -------------- | ------------------------------------------------- | --------------------------------------- |
+| API SoT        | `CanonicalTourService` → `in_memory.tour_records` | `canonical-storage.ts`                  |
+| Tenant binding | `x-authenticated-tenant-id` required              | `request-context.ts`                    |
+| CASL handoff   | §6.3 before ingress                               | `ability.ts` + `WorkspaceThemeProvider` |
+| Web guards     | `predev`/`prebuild`/`prelint`                     | `apps/web/package.json`                 |
+| Starter plugin | `@app-tour/workspace-starter`                     | `packages/workspaces/starter`           |
+| Barrel ban     | subpaths only                                     | `guard:import-boundary` PASS            |
 
 ## 5. Audit registry status
 
-| Registry | Open items |
-|----------|------------|
-| This integrity report | **0** blocking |
-| [`DOCUMENTATION-DEBT-REGISTRY.md`](../DOCUMENTATION-DEBT-REGISTRY.md) Phase 3 | **0** open (retrofit complete) |
-| Phase 3 soft backlog | Playwright, Select/Checkbox — documented, non-blocking for seal |
+| Registry                                                                      | Open items                                                      |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| This integrity report                                                         | **0** blocking                                                  |
+| [`DOCUMENTATION-DEBT-REGISTRY.md`](../DOCUMENTATION-DEBT-REGISTRY.md) Phase 3 | **0** open (retrofit complete)                                  |
+| Phase 3 soft backlog                                                          | Playwright, Select/Checkbox — documented, non-blocking for seal |
 
 ## 6. Verification
 

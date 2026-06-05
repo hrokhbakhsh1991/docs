@@ -1,0 +1,100 @@
+# Phase 5 — Authoritative agent boot manifest (machine-readable)
+# All other boot lists MUST include or defer to this file.
+manifest_version: "2026-06-04-v2"
+doc_execution_system_score: 96
+composite_doc_score: 95
+guard_enforced: p5_doc_hardening
+sole_execution_entry: ../phase-5-agent-router.md
+fail_token: FAIL
+
+deprecated_entrypoints:
+  - path: phase-5-ai-exec.layer4.md
+    load_tier: forbidden_T0
+    redirect: ../phase-5-agent-router.md
+  - path: appendices/agent-contract.md
+    load_tier: forbidden
+    redirect: ../phase-5-agent-router.md
+  - path: research/phase-5-data-architecture-research.md
+    load_tier: T3_narrative_only
+    redirect: ../phase-5-agent-router.md
+  - path: subphases/*.skeleton.md
+    load_tier: forbidden
+    redirect: "subphases/{id}.md (non-skeleton)"
+
+boot_sequence_T0:
+  - id: boot-0
+    read: audits/IMPLEMENTATION-TRUTH.md
+    rule: "Use repo_status enum; never treat doc_navigation_100 as phase closed"
+  - id: boot-1
+    read: appendices/REPO-PROJECT-ALIGNMENT.md
+  - id: boot-1a
+    read: appendices/IMPLEMENTATION-DECISIONS.md
+    rule: "Resolves write-path / TX / relay / env ambiguities — mandatory before 5.3+ code"
+  - id: boot-1b
+    read: appendices/IMPLEMENTATION-MAP.md
+  - id: boot-2
+    read: appendices/PRECISION-DOC-INDEX.md
+  - id: boot-3
+    read: audits/SUBPHASE-READY-SPEC.md
+  - id: boot-4
+    read: appendices/test-inventory.md
+  - id: boot-5
+    assert: reading phase-5-agent-router.md
+  - id: boot-6
+    read: appendices/blockers.md
+  - id: boot-7
+    read: appendices/platform-continuity-0-5.md
+  - id: boot-7a
+    read: ../../appendices/PLATFORM-CONTINUITY-0-5.md
+  - id: boot-7b
+    read: appendices/CROSS-PHASE-ENTRY-MAP.md
+    when_subphase: "5.0"
+  - id: boot-8
+    read: appendices/workspace-data-layer-model.md
+  - id: boot-9
+    run: pnpm run phase-4:gate
+    expect_exit: 0
+    when_subphase_gte: "5.0"
+  - id: boot-10
+    algorithm: detect_current_subphase
+  - id: boot-11
+    load: subphases/{current_subphase}.md
+  - id: boot-12
+    read_once_per_pr: appendices/cross-cutting-actions.md
+
+repo_status_enum:
+  - SPEC_ONLY
+  - PARTIAL
+  - VERIFIED_SCAFFOLD
+  - VERIFIED_BEHAVIORAL
+  - BLOCKED
+
+detect_current_subphase:
+  description: "Deterministic pick among parallel-eligible open subphases"
+  steps:
+    - "Load IMPLEMENTATION-TRUTH.md subphase ledger (or subphase yaml repo_status)"
+    - "If any of 5.0,5.1 not VERIFIED_* → pick lowest id among {5.0,5.1} that is not VERIFIED_*"
+    - "If 5.2 not VERIFIED_BEHAVIORAL → current = 5.2 (blocks 5.4)"
+    - "eligible_parallel = subset of {5.3,5.5} where status not VERIFIED_BEHAVIORAL"
+    - "If eligible_parallel non-empty → current = min(eligible_parallel) by numeric id"
+    - "If 5.2 VERIFIED_BEHAVIORAL and 5.4 not VERIFIED_BEHAVIORAL → current = 5.4"
+    - "If 5.2-5.5 all VERIFIED_BEHAVIORAL → current = 5.6"
+  pick_rule: min_numeric_id_among_eligible
+  multi_agent: "One PR label Phase:5.N must match current; no concurrent edits on same subphase"
+
+parallel_groups:
+  after_5_1: ["5.2", "5.3", "5.5"]
+  after_5_2: ["5.4"]
+  merge_5_6_requires: ["5.2", "5.3", "5.4", "5.5"]
+
+forbidden_transitions:
+  - start_5.4_before_5.2_VERIFIED_BEHAVIORAL
+  - start_5.6_before_5.2_5.3_5.4_5.5_VERIFIED_BEHAVIORAL
+  - claim_closure_from_phase_5_guard_scaffold_only
+  - cite_phase_5_contract_as_outbox_proof
+
+closure_requires:
+  - pnpm run phase-5:gate exit 0
+  - pnpm run phase-4:gate exit 0 nested
+  - IMPLEMENTATION-TRUTH rows 5.0-5.5 VERIFIED_BEHAVIORAL or VERIFIED_SCAFFOLD only where explicitly allowed
+  - behavioral tests per appendices/test-inventory.md for 5.2-5.5

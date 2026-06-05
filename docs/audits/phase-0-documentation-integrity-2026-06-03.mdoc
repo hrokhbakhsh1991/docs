@@ -14,36 +14,36 @@ verdict: Aligned with codebase
 
 ## 1. Markdoc migration
 
-| Artifact | Status |
-|----------|--------|
-| Canonical guide | [`phase-0-foundation.mdoc`](../phase-0-foundation.mdoc) |
-| Legacy mirror | [`phase-0-foundation.md`](../phase-0-foundation.md) (banner → Markdoc) |
-| `pnpm run doc:markdoc:validate` | PASS |
+| Artifact                        | Status                                                                 |
+| ------------------------------- | ---------------------------------------------------------------------- |
+| Canonical guide                 | [`phase-0-foundation.mdoc`](../phase-0-foundation.mdoc)                |
+| Legacy mirror                   | [`phase-0-foundation.md`](../phase-0-foundation.md) (banner → Markdoc) |
+| `pnpm run doc:markdoc:validate` | PASS                                                                   |
 
 ## 2. Package README coverage (`packages/*`)
 
-| Package | README | Links `phase-0-foundation.md` + MAP |
-|---------|--------|-------------------------------------|
-| `workspace-sdk` | ✅ | ✅ |
-| `config` | ✅ | ✅ |
-| `platform-core` | ✅ | ✅ |
-| `design-tokens` | ✅ | ✅ |
-| `ui-primitives` | ✅ | ✅ |
-| `theme-react` | ✅ | ✅ |
-| `workspaces/starter` | ✅ | ✅ |
+| Package              | README | Links `phase-0-foundation.md` + MAP |
+| -------------------- | ------ | ----------------------------------- |
+| `workspace-sdk`      | ✅     | ✅                                  |
+| `config`             | ✅     | ✅                                  |
+| `platform-core`      | ✅     | ✅                                  |
+| `design-tokens`      | ✅     | ✅                                  |
+| `ui-primitives`      | ✅     | ✅                                  |
+| `theme-react`        | ✅     | ✅                                  |
+| `workspaces/starter` | ✅     | ✅                                  |
 
 ## 3. Gate requirements — doc vs codebase
 
-| Doc claim (§9) | Repo reality | Action |
-|----------------|--------------|--------|
-| `phase-0-guard` checks g1–g5 | **g1, g2, g3, g4, g4b, g5** in `phase-0-guard.mjs` | **Updated doc** — added `g4b` |
-| Denali scan paths | `workspace-sdk`, `config`, `platform-core` | **Updated doc** |
-| SDK tests "7/7" | **114** tests pass | **Updated doc** §6.10–6.11 |
-| Baseline test min ≥ 7 | **`≥ 13`** in `baseline-metrics.mjs` | **Updated doc** §10 |
-| CI workflow steps | build, test, architecture, guard, baseline | **Accurate** (import-boundary via `g4b` in guard) |
-| Local `phase-0:gate` | + explicit `guard:import-boundary` | **Documented** |
-| SDK tree appendix A | missing `auth/`, `theme/`, `ingress/` | **Updated doc** |
-| `WorkspaceThemeContract` "not in code" | **Shipped** in `src/theme/` | **Updated doc** §14 |
+| Doc claim (§9)                         | Repo reality                                       | Action                                            |
+| -------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| `phase-0-guard` checks g1–g5           | **g1, g2, g3, g4, g4b, g5** in `phase-0-guard.mjs` | **Updated doc** — added `g4b`                     |
+| Denali scan paths                      | `workspace-sdk`, `config`, `platform-core`         | **Updated doc**                                   |
+| SDK tests "7/7"                        | **114** tests pass                                 | **Updated doc** §6.10–6.11                        |
+| Baseline test min ≥ 7                  | **`≥ 13`** in `baseline-metrics.mjs`               | **Updated doc** §10                               |
+| CI workflow steps                      | build, test, architecture, guard, baseline         | **Accurate** (import-boundary via `g4b` in guard) |
+| Local `phase-0:gate`                   | + explicit `guard:import-boundary`                 | **Documented**                                    |
+| SDK tree appendix A                    | missing `auth/`, `theme/`, `ingress/`              | **Updated doc**                                   |
+| `WorkspaceThemeContract` "not in code" | **Shipped** in `src/theme/`                        | **Updated doc** §14                               |
 
 ## 4. Verification commands
 

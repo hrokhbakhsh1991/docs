@@ -4,13 +4,14 @@
 
 ## Tiers
 
-| Tier                   | Command                              | When                        | What runs                                                                                                                                              |
-| ---------------------- | ------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fast (default)**     | Husky → `scripts/pre-commit-fast.sh` | Every `git commit`          | `guard-docs`, Node engine, eslint on changed TS (root + `apps/web`), optional prettier (if installed + config), `test-changed` for affected workspaces |
-| **Changed tests**      | `pnpm run test:changed`              | Manual / CI selective       | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                          |
-| **Pre-commit dry-run** | `pnpm run pre-commit:fast`           | Before commit               | Same as Husky fast path                                                                                                                                |
-| **Full**               | `pnpm run test:full`                 | Before PR / Phase 4 closure | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
-| **CI integrity**       | `pnpm run ci:integrity`              | GitHub / explicit local     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
+| Tier                     | Command                              | When                        | What runs                                                                                                                                              |
+| ------------------------ | ------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Fast (default)**       | Husky → `scripts/pre-commit-fast.sh` | Every `git commit`          | `guard-docs`, Node engine, eslint on changed TS (root + `apps/web`), optional prettier (if installed + config), `test-changed` for affected workspaces |
+| **Changed tests**        | `pnpm run test:changed`              | Manual / CI selective       | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                          |
+| **Pre-commit dry-run**   | `pnpm run pre-commit:fast`           | Before commit               | Same as Husky fast path                                                                                                                                |
+| **Full**                 | `pnpm run test:full`                 | Before PR / Phase 4 closure | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
+| **CI integrity**         | `pnpm run ci:integrity`              | GitHub / explicit local     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
+| **Nightly (API probes)** | `pnpm run test:nightly`              | Scheduled / pre-release     | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                   |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
 
@@ -51,6 +52,41 @@ pnpm run test:full
 ```
 
 See [`docs/phase-4/ci.md`](../phase-4/ci.md) for compose URLs and migration steps.
+
+## Phase 5 API test tiers (P2-1)
+
+| Command                                    | `APPS_API_TEST_TIER` | Probes                                                                                          |
+| ------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
+| `pnpm --filter @apps/api test` (default)   | `trunk`              | Unit + integration; **skips** nightly-only specs                                                |
+| `pnpm --filter @apps/api run test:nightly` | `nightly`            | Full suite including `event-backlog-recovery`, `noise-neighbor`, `outbox-relay-connection-leak` |
+| `pnpm run test:nightly` (root)             | `nightly` + soak     | Above + `soak-memory-leak` when `RUN_SOAK=1`                                                    |
+
+`pnpm run phase-5:gate` uses trunk-tier `pnpm test` — heavy probes do not block PR closure.
+
+Nightly-only specs: [`apps/api/test/test-tier.ts`](../../apps/api/test/test-tier.ts).
+
+## Tenant ALS isolation (0-security, no Postgres)
+
+[`runWithTenantContext`](../../apps/api/src/tenant/tenant-request-context.ts) uses Node `AsyncLocalStorage.run` — tenant scope must survive `Promise.all`, nested binds, `setImmediate` / `nextTick`, and rejections without cross-tenant bleed.
+
+| Spec                                                                                                                  | DB      | Focus                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| [`tenant-request-context-isolation.spec.ts`](../../apps/api/test/0-security/tenant-request-context-isolation.spec.ts) | No      | Pure ALS unit — parallel tenants, nesting, scheduling hops, missing-context errors                  |
+| [`als-high-load-synthetic.spec.ts`](../../apps/api/test/0-security/als-high-load-synthetic.spec.ts)                   | No      | High-load synthetic — 200 concurrent trace+tenant ALS, `queueMicrotask`, nested bind, jitter timers |
+| [`context-resilience.spec.ts`](../../apps/api/test/0-security/context-resilience.spec.ts)                             | Partial | ALS teardown after throw/reject; PG RLS when `DATABASE_URL` set                                     |
+| [`async-context-leak.spec.ts`](../../apps/api/test/0-security/async-context-leak.spec.ts)                             | Yes     | 50 concurrent mixed-tenant ALS + `withTenantRls` probes                                             |
+
+Run the unit suite alone:
+
+```bash
+cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/tenant-request-context-isolation.spec.ts
+```
+
+High-load synthetic (trace + tenant ALS, no Postgres):
+
+```bash
+cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/als-high-load-synthetic.spec.ts
+```
 
 ## GitHub Actions
 

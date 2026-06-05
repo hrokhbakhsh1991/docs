@@ -3,7 +3,11 @@ import { afterEach, describe, it } from "node:test";
 
 import { PlatformWizardEngine } from "@app-tour/platform-core";
 
-import { buildValidatedCanonicalDocument } from "./canonical-validation";
+import {
+  buildValidatedCanonicalDocument,
+  resetValidationEngineCacheForTests,
+  validateCanonicalBeforePersist,
+} from "./canonical-validation";
 
 describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
   const originalCreate = PlatformWizardEngine.create;
@@ -36,30 +40,48 @@ describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
     };
   }
 
-  it("creates a fresh PlatformWizardEngine per call (no module singleton)", () => {
+  it("creates PlatformWizardEngine per tenant+workspaceType+variant (DEC-030 LRU)", () => {
+    resetValidationEngineCacheForTests();
     const tracker = trackEngineCreate();
 
     buildValidatedCanonicalDocument(
       { data: { basics: { title: "Tenant A tour" }, details: { summary: "a" } } },
-      "tenant-a",
+      "tenant-a"
     );
     buildValidatedCanonicalDocument(
       { data: { basics: { title: "Tenant B tour" }, details: { summary: "b" } } },
-      "tenant-b",
+      "tenant-b"
     );
+    assert.equal(tracker.createCount, 2, "distinct tenants must not share a cached engine");
 
-    assert.equal(tracker.createCount, 2, "expected one engine per validation call");
-    assert.notEqual(tracker.engines[0], tracker.engines[1], "engines must not be reused");
+    buildValidatedCanonicalDocument(
+      { data: { basics: { title: "Tenant A again" }, details: { summary: "a2" } } },
+      "tenant-a"
+    );
+    assert.equal(tracker.createCount, 2, "same tenant reuses cached engine");
+
+    validateCanonicalBeforePersist({
+      body: { data: { basics: { title: "Basic variant" }, details: { summary: "" } } },
+      tenantId: "tenant-c",
+      workspaceType: "starter",
+      validationVariant: "basic",
+    });
+    assert.equal(tracker.createCount, 3, "distinct validationVariant must create a new engine");
+    assert.notEqual(
+      tracker.engines[0],
+      tracker.engines[2],
+      "engines must not be reused across variants"
+    );
   });
 
   it("keeps tenant A and tenant B canonical data isolated back-to-back", () => {
     const docA = buildValidatedCanonicalDocument(
       { data: { basics: { title: "Only tenant A" }, details: { summary: "" } } },
-      "tenant-a",
+      "tenant-a"
     );
     const docB = buildValidatedCanonicalDocument(
       { data: { basics: { title: "Only tenant B" }, details: { summary: "" } } },
-      "tenant-b",
+      "tenant-b"
     );
 
     assert.equal(docA.data?.basics?.title, "Only tenant A");
@@ -75,13 +97,13 @@ describe("buildValidatedCanonicalDocument (P0-CRIT-01b)", () => {
             details: { summary: "" },
           },
         },
-        "tenant-a",
+        "tenant-a"
       );
     }
 
     const docB = buildValidatedCanonicalDocument(
       { data: { basics: { title: "B-after-burst-A" }, details: { summary: "" } } },
-      "tenant-b",
+      "tenant-b"
     );
     assert.equal(docB.data?.basics?.title, "B-after-burst-A");
   });

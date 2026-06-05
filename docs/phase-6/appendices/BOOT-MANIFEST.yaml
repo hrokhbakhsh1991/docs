@@ -1,0 +1,86 @@
+# Phase 6 — Authoritative agent boot manifest
+manifest_version: "2026-06-04-v2"
+doc_execution_system_target: 96
+sole_execution_entry: ../phase-6-agent-router.md
+fail_token: FAIL
+pek_reference: ../phase-5/audits/DOC-EXECUTION-SCORECARD.md#phase-execution-kernel-pek--phase-6-template
+
+deprecated_entrypoints:
+  - path: ../phase-6-ai-exec.md
+    load_tier: forbidden_if_created_as_monolith
+    redirect: ../phase-6-agent-router.md
+  - path: subphases/*.skeleton.md
+    load_tier: forbidden
+    redirect: "subphases/{id}.md (non-skeleton)"
+
+boot_sequence_T0:
+  - id: boot-0
+    read: audits/IMPLEMENTATION-TRUTH.md
+  - id: boot-1
+    read: appendices/REPO-PROJECT-ALIGNMENT.md
+  - id: boot-1a
+    read: appendices/IMPLEMENTATION-DECISIONS.md
+  - id: boot-1b
+    read: appendices/IMPLEMENTATION-MAP.md
+  - id: boot-2
+    read: appendices/PRECISION-DOC-INDEX.md
+  - id: boot-3
+    read: audits/SUBPHASE-READY-SPEC.md
+  - id: boot-3b
+    read: audits/verification-matrix.md
+  - id: boot-3c
+    read: appendices/industry-alignment-2026.md
+    load_tier: T0
+  - id: boot-3d
+    read: audits/DOC-EXECUTION-SCORECARD.md
+    load_tier: T1
+  - id: boot-4
+    read: appendices/test-inventory.md
+  - id: boot-4b
+    read: appendices/req-p6-command-atlas.md
+  - id: boot-4c
+    read: appendices/anti-hollow-contract.md
+  - id: boot-5
+    assert: reading phase-6-agent-router.md
+  - id: boot-6
+    read: appendices/blockers.md
+  - id: boot-7
+    read: ../../appendices/PLATFORM-CONTINUITY-0-6.md
+  - id: boot-7b
+    read: appendices/phase-5-bridge.md
+  - id: boot-7c
+    read: appendices/CROSS-PHASE-ENTRY-MAP.md
+    when_subphase: "6.0"
+  - id: boot-8
+    run: pnpm run phase-5:gate
+    expect_exit: 0
+    when_subphase_gte: "6.0"
+  - id: boot-9
+    algorithm: detect_current_subphase
+  - id: boot-10
+    load: subphases/{current_subphase}.md
+
+repo_status_enum:
+  - SPEC_ONLY
+  - PARTIAL
+  - VERIFIED_SCAFFOLD
+  - VERIFIED_BEHAVIORAL
+  - BLOCKED
+
+detect_current_subphase:
+  pick_rule: min_numeric_id_among_eligible
+  steps:
+    - "If 6.0 or 6.1 not VERIFIED_* → pick lowest among {6.0,6.1} open"
+    - "If 6.2 not VERIFIED_BEHAVIORAL → current = 6.2"
+    - "eligible_parallel = subset of {6.3,6.4} not VERIFIED_BEHAVIORAL"
+    - "If eligible_parallel non-empty → current = min(id)"
+    - "If 6.5 not VERIFIED_BEHAVIORAL → current = 6.5"
+    - "eligible_parallel_2 = subset of {6.6,6.7} not VERIFIED_BEHAVIORAL"
+    - "If eligible_parallel_2 non-empty → current = min(id)"
+    - "If 6.8 not VERIFIED_BEHAVIORAL → current = 6.8"
+    - "Else current = 6.9"
+
+parallel_groups:
+  after_6_2: ["6.3", "6.4"]
+  after_6_5: ["6.6", "6.7"]
+  merge_6_9_requires: ["6.2", "6.3", "6.4", "6.5", "6.6", "6.7", "6.8"]

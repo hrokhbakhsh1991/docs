@@ -35,35 +35,33 @@ async function loadVerifyKey(pem: string): Promise<JwtPublicKey> {
   return cachedPublicKey;
 }
 
+function readStringClaim(payload: JWTPayload, key: string): string {
+  const value = payload[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readCanonicalClaim(payload: JWTPayload, snakeKey: string, camelKey: string): string {
+  const snake = readStringClaim(payload, snakeKey);
+  const camel = readStringClaim(payload, camelKey);
+  if (snake.length > 0 && camel.length > 0 && snake !== camel) {
+    throw new Error(UNAUTHORIZED_INVALID_BEARER_TOKEN);
+  }
+  return snake.length > 0 ? snake : camel;
+}
+
 function mapJwtPayload(payload: JWTPayload): TenantAuthContext {
   const userId = typeof payload.sub === "string" ? payload.sub.trim() : "";
-  const tenantId =
-    typeof payload.tenant_id === "string"
-      ? payload.tenant_id.trim()
-      : typeof payload.tenantId === "string"
-        ? payload.tenantId.trim()
-        : "";
+  const tenantId = readCanonicalClaim(payload, "tenant_id", "tenantId");
   const role = (typeof payload.role === "string" ? payload.role.trim() : "") as ActorRole;
-  const statusRaw =
-    typeof payload.membership_status === "string"
-      ? payload.membership_status.trim()
-      : typeof payload.status === "string"
-        ? payload.status.trim()
-        : "ACTIVE";
-  const status = statusRaw as MembershipStatus;
-  const workspaceId =
-    typeof payload.workspace_id === "string"
-      ? payload.workspace_id.trim()
-      : typeof payload.workspaceId === "string"
-        ? payload.workspaceId.trim()
-        : "";
+  const status = readCanonicalClaim(payload, "membership_status", "status") as MembershipStatus;
+  const workspaceId = readCanonicalClaim(payload, "workspace_id", "workspaceId");
 
   return parseTenantAuthContext({
     userId,
     tenantId,
     role,
-    status,
-    workspaceId,
+    status: status.length > 0 ? status : "ACTIVE",
+    ...(workspaceId.length > 0 ? { workspaceId } : {}),
   });
 }
 
@@ -72,7 +70,7 @@ function mapJwtPayload(payload: JWTPayload): TenantAuthContext {
  * Returns null when authorization is not a JWT-shaped Bearer token.
  */
 export async function tryResolveJwtBearerAsync(
-  authorization: string,
+  authorization: string
 ): Promise<TenantAuthContext | null> {
   if (!isJwtShapedBearer(authorization)) {
     return null;
