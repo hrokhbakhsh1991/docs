@@ -8,6 +8,7 @@ import {
 import { pseudonymizeAuditActorId } from "./audit-pseudonym";
 
 export const AUDIT_ACTION_TOUR_CREATED = "TOUR_CREATED";
+export const AUDIT_ACTION_TOUR_UPDATED = "TOUR_UPDATED";
 
 const AUDIT_METADATA_ALLOWLIST = ["workspaceType"] as const;
 

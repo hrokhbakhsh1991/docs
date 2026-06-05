@@ -6,7 +6,7 @@ import {
   type TenantRateLimitTier,
 } from "../middleware/tenant-rate-limiter";
 import { resolveTraceIdFromHeaders } from "../observability/resolve-trace-id";
-import { runWithTraceContext } from "../observability/trace-request-context";
+import { getActiveTraceId, runWithTraceContext } from "../observability/trace-request-context";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 
 export type HttpRequestContextOptions = {
@@ -15,7 +15,8 @@ export type HttpRequestContextOptions = {
 };
 
 /**
- * Binds trace ALS (outer) and tenant ALS (inner) at the HTTP boundary.
+ * Binds tenant ALS at the HTTP boundary; reuses outer trace ALS from `app.ts` when
+ * already bound (DEC-044 / TRACE-REGEN-01 — no second `resolveTraceIdFromHeaders`).
  * Optional `rateLimit` runs {@link consumeTenantRateLimit} after auth + tenant ALS,
  * before route business logic — see docs/phase-5/appendices/rate-limiting.md.
  */
@@ -25,8 +26,7 @@ export async function runWithHttpRequestContext<T>(
   run: () => Promise<T>,
   options?: HttpRequestContextOptions
 ): Promise<T> {
-  const traceId = resolveTraceIdFromHeaders(req.headers);
-  return runWithTraceContext(traceId, () =>
+  const runWithTenant = () =>
     runWithTenantContext(
       auth.tenantId,
       async () => {
@@ -40,6 +40,13 @@ export async function runWithHttpRequestContext<T>(
       {
         actorId: auth.userId,
       }
-    )
-  );
+    );
+
+  const existingTrace = getActiveTraceId();
+  if (existingTrace !== undefined) {
+    return runWithTenant();
+  }
+
+  const traceId = resolveTraceIdFromHeaders(req.headers);
+  return runWithTraceContext(traceId, runWithTenant);
 }

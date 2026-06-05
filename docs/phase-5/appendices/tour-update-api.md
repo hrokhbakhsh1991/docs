@@ -20,6 +20,12 @@ Implementation: [`updateIfRowVersion`](../../../apps/api/src/storage/prisma-tour
 
 `updateTour` binds tenant ALS via `runWithTenantContext(input.tenantId, …)` before calling the private `updateTourInActiveContext`. The inner path asserts `requireActiveTenantId() === input.tenantId` (same invariant as create) so validation gate keys, scoped repository predicates, and RLS GUC cannot diverge under scheduler interleave or direct internal calls.
 
+## Audit trail (DEC-047 / AUDIT-GAP-02)
+
+When `isForensicStorageDriver()` is true (`STORAGE_DRIVER=prisma` + `DATABASE_URL`), updates use `persistTourUpdateAtomically` — same `withCanonicalTransaction` boundary as create. An append-only `audit_events` row with `action = TOUR_UPDATED` commits in the same TX as the canonical row mutation. Memory driver updates remain **non-forensic** (no audit row).
+
+Verification: `apps/api/test/5.5-audit-events.spec.ts` — `PATCH /tours/:id` after create.
+
 ## Rate limit
 
 `PATCH /tours/:id` uses the **write** tenant rate-limit tier (DEC-015).

@@ -237,11 +237,37 @@ Documented in [`env-runtime-matrix.md`](env-runtime-matrix.md) and `apps/api/.en
 | `actor_id`    | HMAC pseudonym of `auth.userId` when present, else `null` (DEC-034)              |
 | `metadata`    | `{ "workspaceType": "starter" }` only — **allowlist**; extra caller keys dropped |
 
-**Scope Phase 5:** **create tour only** — not update/delete (Phase 6+).
+**Scope Phase 5 (create):** tour create via `TOUR_CREATED` — see **DEC-047** for update extension.
 
 **Where:** `apps/api/src/audit/audit-logger.ts` (`appendAuditEvent`) inside same `withCanonicalTransaction` as tour + outbox.
 
 **Test:** `apps/api/test/5.5-audit-events.spec.ts` — tenant B cannot read tenant A rows; append-only trigger.
+
+---
+
+## DEC-047 — Phase 2 step 5 closure (AUDIT-GAP-02 / TOUR_UPDATED)
+
+**Scope:** Phase 2 Fix-next #2 — forensic row on `PATCH /tours` when Prisma atomic path is active.
+
+| Field         | Value on tour update                            |
+| ------------- | ----------------------------------------------- |
+| `action`      | `TOUR_UPDATED`                                  |
+| `entity_type` | `tour`                                          |
+| `entity_id`   | tour UUID                                       |
+| `actor_id`    | Same pseudonym rules as DEC-007 / DEC-034       |
+| `metadata`    | `{ "workspaceType": "starter" }` allowlist only |
+
+| ID               | Change                                                                                                        | Verification                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| **AUDIT-GAP-02** | `persistTourUpdateAtomically` — `withCanonicalTransaction` → `tour.update` + `appendAuditEvent(TOUR_UPDATED)` | `5.5-audit-events.spec.ts` PATCH case |
+| **Memory path**  | `STORAGE_DRIVER=memory` still skips audit (non-forensic per DEC-045)                                          | `isForensicStorageDriver()`           |
+| **CI lock**      | `guard-tour-update-audit.mjs`                                                                                 | `pnpm run guard:tour-update-audit`    |
+
+**Where:** `atomic-canonical-tour-persist.ts` (`persistTourUpdateAtomically`); `CanonicalTourService.updateTourInActiveContext` routes Prisma driver through atomic persist.
+
+**No outbox on update** — `TourUpdated` domain event deferred; audit row is the Phase 2 observability target.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 5.
 
 ---
 
@@ -864,6 +890,138 @@ Pass criteria: exit `0`; results appended to [`phase1-aggressive-audit.md`](../.
 | **#10**        | `memory-mixed-tenant-http.spec.ts` — concurrent A/B POST+GET on memory driver                    | `test/1-integration/`                                |
 
 **Deferred (unchanged):** LOG-COL-10 (product response shape); IDX-ADV-\* (no new queries); DI-LGC-01 (dual-write not enabled).
+
+---
+
+## DEC-043 — Phase 2 step 1 closure (LOG-V-01 / STD-BYPASS-02)
+
+**Scope:** Phase 2 paranoid audit Must-Fix #1 — eliminate the last production unstructured sink on graceful shutdown.
+
+| ID                | Change                                                                                                                                                                       | Verification                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **LOG-V-01**      | `installGracefulShutdownHandlers` logs `graceful_shutdown.failed` via pino with `code: GRACEFUL_SHUTDOWN_FAILED` only — no `console.error`, no `Error.message` interpolation | `graceful-shutdown.ts`, `graceful-shutdown.spec.ts`             |
+| **STD-BYPASS-02** | Same as LOG-V-01 — `src/server/graceful-shutdown.ts` is the former single production bypass                                                                                  | `guard-no-console-in-src.mjs`                                   |
+| **STD-BYPASS-01** | CI guard forbids `console.(log\|error\|warn\|debug\|info)` under `apps/api/src/` (excludes `*.spec.ts`)                                                                      | `pnpm run guard:no-console-src` wired in `prebuild` / `pretest` |
+
+**Cross-phase:** Implementation landed with DEC-037 (`graceful_shutdown.failed` row in observability matrix). DEC-043 is the Phase 2 formal closure + regression lock.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 1.
+
+---
+
+## DEC-044 — Phase 2 step 2 closure (TRACE-REGEN-01 / TRACE-CONTEXT-SPLIT)
+
+**Scope:** Phase 2 Must-Fix #2 — one trace id per HTTP request end-to-end (ALS → Postgres GUC → error `correlationId`).
+
+| ID                      | Change                                                                                                                          | Verification                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **TRACE-REGEN-01**      | `runWithHttpRequestContext` skips nested `runWithTraceContext` when `getActiveTraceId()` is already set (outer `app.ts` bind)   | `bind-request-context.spec.ts`                        |
+| **TRACE-CONTEXT-SPLIT** | Headerless clients no longer get independent `randomUUID()` at inner bind — persist GUC and `handleHttpError` share the same id | `trace-isolation.spec.ts`, `error-enrichment.spec.ts` |
+
+**Invariant:** Ingress resolution runs at most once per HTTP request on the hot path (`app.ts` → routes reuse). Direct script callers without outer bind still resolve once inside `runWithHttpRequestContext`.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 2.
+
+---
+
+## DEC-045 — Phase 2 step 3 closure (AUDIT-GAP-01)
+
+**Scope:** Phase 2 Must-Fix #3 — production cannot run without forensic storage; memory driver explicitly non-forensic.
+
+| ID                        | Change                                                                                                                                  | Verification                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **AUDIT-GAP-01 (prod)**   | `assertProductionStorageDriver()` + `assertProductionRuntimeIntegrity()` fail boot on `STORAGE_DRIVER=memory` or missing `DATABASE_URL` | `production-runtime-env.spec.ts`, `create-tour-storage.spec.ts` |
+| **Non-forensic contract** | `isForensicStorageDriver()` === `useAtomicCanonicalPersist()` — memory skips `appendAuditEvent` by design                               | `forensic-storage-driver.spec.ts`                               |
+| **CI lock**               | `guard-forensic-storage-production.mjs` — boot chain + single `appendAuditEvent` production call site                                   | `pnpm run guard:forensic-storage` in `prebuild` / `pretest`     |
+
+**Cross-phase:** Same policy as Phase 1 **DM-CT-01** / **DI-MEM-01** (DEC-GAP-03). Phase 2 adds explicit forensic naming, regression spec, and guard — not a new storage rule.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 3 · [`storage-driver-truth.md`](../../phase-4/appendices/storage-driver-truth.md) § Forensic vs non-forensic.
+
+---
+
+## DEC-046 — Phase 2 step 4 closure (TRACE-LOST-03)
+
+**Scope:** Phase 2 Fix-next #1 — persist HTTP trace correlation on outbox insert at tour create.
+
+| ID                    | Change                                                                                          | Verification                        |
+| --------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **TRACE-LOST-03**     | `persistNewTourAtomically` passes `correlationId: getActiveTraceId()` into `enqueueOutboxEvent` | `outbox-http-correlation.spec.ts`   |
+| **Null when unbound** | No trace ALS → `correlation_id` column stays `NULL` (scripts / background callers)              | same spec                           |
+| **CI lock**           | `guard-outbox-http-correlation.mjs` — atomic persist must wire trace → outbox                   | `pnpm run guard:outbox-correlation` |
+
+**Cross-phase:** Column existed since Phase 5.4 outbox schema; only the create path was omitting the field. Relay trace continuation (**TRACE-LOST-02**) remains Phase 7.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 4 · [`trace-request-context.md`](trace-request-context.md) § Outbox correlation.
+
+---
+
+## DEC-048 — Phase 2 step 6 closure (TRACE-LOST-01)
+
+**Scope:** Phase 2 Fix-next #3 — access logs carry the same trace id as error envelope / outbox correlation.
+
+| ID                    | Change                                                                                          | Verification                       |
+| --------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **TRACE-LOST-01**     | `logHttpRequest` emits `correlation_id` from `getActiveTraceId()` in `res.on("finish")`         | `access-log-correlation.spec.ts`   |
+| **Omit when unbound** | No `correlation_id` key when trace ALS absent (defensive — HTTP path always binds via `app.ts`) | same spec                          |
+| **CI lock**           | `guard-http-access-trace.mjs`                                                                   | `pnpm run guard:http-access-trace` |
+
+**Field name:** `correlation_id` (not `traceId`) — aligns with `http.error.internal` and Postgres GUC naming.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 6 · [`observability.md`](../../phase-4/appendices/observability.md) `http.request` row.
+
+---
+
+## DEC-049 — Phase 2 step 7 closure (MET-API-01)
+
+**Scope:** Phase 2 Fix-next #4 (final) — tenant-scoped counters cannot open unlabeled billing series.
+
+| ID             | Change                                                                                                         | Verification                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **MET-API-01** | `MetricsRegistry.increment` fail-closed when metric name is tenant-scoped and `labels.tenant_id` missing/empty | `metrics.spec.ts`                      |
+| **Catalog**    | `TENANT_SCOPED_METRIC_NAMES` — `tour_creation_count`, `projection_inconsistency_total`                         | `guard-tenant-metrics-labels.mjs`      |
+| **CI lock**    | Static scan: direct `metricsRegistry.increment` on tenant-scoped names must pass `tenant_id` label             | `pnpm run guard:tenant-metrics-labels` |
+
+**HT-11 alignment:** New tenant business counters must be added to `TENANT_SCOPED_METRIC_NAMES` and use `tenant_id` label (see [`tenant-metrics.md`](tenant-metrics.md)).
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure step 7 — **Fix-next complete**.
+
+---
+
+## DEC-050 — Phase 2 formal regression gate (closure step 8)
+
+**Problem:** Phase 2 closure steps 1–7 (DEC-043…049) were verified ad hoc; no single CI-invokable gate records pass/fail for observability sign-off.
+
+**Decision:** `pnpm run phase-2:regression-gate` orchestrates:
+
+| Tier                  | Steps                                                                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 2 guards**    | `guard:no-console-src`, `guard:forensic-storage`, `guard:outbox-correlation`, `guard:tour-update-audit`, `guard:http-access-trace`, `guard:tenant-metrics-labels`                           |
+| **ALS script**        | `verify-als-request-cleanup.ts`                                                                                                                                                             |
+| **Memory specs**      | `bind-request-context`, `access-log-correlation`, `log-privacy`, `trace-isolation`, `tenant-metrics`, `metrics`, `forensic-storage-driver`, `create-tour-storage`, `production-runtime-env` |
+| **Postgres optional** | `outbox-http-correlation`, `5.5-audit-events` when `DATABASE_URL` set                                                                                                                       |
+
+Pass criteria: exit `0`; artifact `test/reliability/phase-2-regression-gate.last-run.json`.
+
+**Verification:** `scripts/phase-2-regression-gate.mjs`, `test/reliability/phase-2-regression-gate.spec.ts`.
+
+---
+
+## DEC-051 — Phase 2 formal sign-off (closure step 9)
+
+**Closure date:** 2026-06-05  
+**Scope:** Phase 2 paranoid audit Must-Fix (3/3), Fix-next (5/5), formal regression gate (DEC-050).
+
+| Metric                 | Pre-audit | Post-closure                                |
+| ---------------------- | --------- | ------------------------------------------- |
+| Red Team trust score   | 78 / 100  | **90 / 100**                                |
+| Must-Fix open          | 3         | **0**                                       |
+| Fix-next open          | 5         | **0**                                       |
+| Formal regression gate | ad hoc    | **`pnpm run phase-2:regression-gate` PASS** |
+
+**Verdict:** Phase 2 **observability parity closed** for trunk — residual P2/P3 items (TRACE-LOST-02 Phase 7, ERR-BYPASS-01 internal routes, MET-VALID-01 empty tenant_id) are scheduled, not blockers.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure sign-off.
 
 ---
 

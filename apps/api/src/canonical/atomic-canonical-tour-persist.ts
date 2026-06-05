@@ -3,9 +3,15 @@ import { randomUUID } from "node:crypto";
 import type { CanonicalDocument } from "@app-tour/workspace-sdk";
 import type { Prisma } from "@prisma/client";
 
-import { AUDIT_ACTION_TOUR_CREATED, appendAuditEvent } from "../audit/audit-logger";
+import {
+  AUDIT_ACTION_TOUR_CREATED,
+  AUDIT_ACTION_TOUR_UPDATED,
+  appendAuditEvent,
+} from "../audit/audit-logger";
 import { withCanonicalTransaction } from "../db/with-canonical-transaction";
+import { getActiveTraceId } from "../observability/trace-request-context";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
+import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import {
   getActiveActorId,
   getActiveTenantId,
@@ -27,6 +33,21 @@ export type AtomicCanonicalTourPersistResult = {
   readonly createdAt: string;
   readonly title: string | null;
   readonly schemaVersion: number;
+};
+
+export type AtomicCanonicalTourUpdateInput = {
+  readonly tenantId: string;
+  readonly tourId: string;
+  readonly canonical: CanonicalDocument;
+  readonly expectedRowVersion: number;
+};
+
+export type AtomicCanonicalTourUpdateResult = {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly canonical: CanonicalDocument;
+  readonly createdAt: string;
+  readonly rowVersion: number;
 };
 
 /**
@@ -91,6 +112,7 @@ async function persistNewTourAtomicallyInContext(
       eventType: "TourCreated",
       payload: { tenantId: input.tenantId, tourId },
       domainEventId,
+      correlationId: getActiveTraceId(),
     });
 
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
@@ -110,6 +132,79 @@ async function persistNewTourAtomicallyInContext(
       createdAt: createdAt.toISOString(),
       title: projections.title,
       schemaVersion: projections.schemaVersion,
+    };
+  });
+}
+
+/**
+ * DEC-047 / AUDIT-GAP-02 — one TX: tour update + `TOUR_UPDATED` audit (no outbox).
+ */
+export async function persistTourUpdateAtomically(
+  input: AtomicCanonicalTourUpdateInput
+): Promise<AtomicCanonicalTourUpdateResult> {
+  const activeTenantId = getActiveTenantId();
+  if (activeTenantId !== undefined) {
+    if (activeTenantId !== input.tenantId) {
+      throw new Error("ATOMIC_PERSIST_TENANT_CONTEXT_MISMATCH");
+    }
+    return persistTourUpdateAtomicallyInContext(input);
+  }
+  return runWithTenantContext(input.tenantId, () => persistTourUpdateAtomicallyInContext(input), {
+    actorId: getActiveActorId(),
+    workspaceType: getActiveWorkspaceType() ?? "starter",
+  });
+}
+
+async function persistTourUpdateAtomicallyInContext(
+  input: AtomicCanonicalTourUpdateInput
+): Promise<AtomicCanonicalTourUpdateResult> {
+  const projections = deriveTourProjections(input.canonical);
+
+  return withCanonicalTransaction(input.tenantId, async (tx) => {
+    const result = await tx.tour.updateMany({
+      where: {
+        tenantId: input.tenantId,
+        id: input.tourId,
+        rowVersion: input.expectedRowVersion,
+      },
+      data: {
+        canonical: input.canonical as unknown as Prisma.InputJsonValue,
+        title: projections.title,
+        schemaVersion: projections.schemaVersion,
+        rowVersion: input.expectedRowVersion + 1,
+      },
+    });
+    if (result.count !== 1) {
+      throw new TourVersionConflictError();
+    }
+
+    const row = await tx.tour.findUnique({
+      where: { tenantId_id: { tenantId: input.tenantId, id: input.tourId } },
+    });
+    if (row === null) {
+      throw new TourVersionConflictError();
+    }
+
+    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "before_update_audit") {
+      throw new Error("P5_ATOMIC_TX_TEST_ABORT");
+    }
+
+    await appendAuditEvent(tx, {
+      action: AUDIT_ACTION_TOUR_UPDATED,
+      entityType: "tour",
+      entityId: input.tourId,
+    });
+
+    if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
+      throw new Error("P5_ATOMIC_TX_TEST_ABORT");
+    }
+
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      canonical: row.canonical as unknown as CanonicalDocument,
+      createdAt: row.createdAt.toISOString(),
+      rowVersion: row.rowVersion,
     };
   });
 }

@@ -22,7 +22,7 @@ Correlate HTTP requests with downstream service and repository work using a **re
 | `x-request-id`     | Fallback correlation id                                   |
 | _(none)_           | Generate `randomUUID()` at HTTP bind time                 |
 
-Resolution lives in `apps/api/src/observability/resolve-trace-id.ts`. `createRequestListener` binds trace ALS at the outer HTTP entry (`apps/api/src/app.ts`) **before** route dispatch; per-route handlers may nest `runWithHttpRequestContext` with the same header resolution.
+Resolution lives in `apps/api/src/observability/resolve-trace-id.ts`. **Single-resolve rule (DEC-044 / TRACE-REGEN-01):** `createRequestListener` binds trace ALS once at the outer HTTP entry (`apps/api/src/app.ts`) before route dispatch. `runWithHttpRequestContext` **reuses** the active outer trace when ALS is already bound; it calls `resolveTraceIdFromHeaders` only when invoked outside the listener (scripts, unit tests). A second `randomUUID()` at the inner bind caused split-brain: DB GUC used inner id while route-level `handleHttpError` saw outer id after inner ALS exited.
 
 ## HTTP error envelope (OBS-ERR)
 
@@ -72,6 +72,7 @@ This lets integration tests (and future DB audit triggers) read `current_setting
 
 | Spec             | Path                                                     | Proves                                                                                                                       |
 | ---------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Trace bind reuse | `apps/api/src/http/bind-request-context.spec.ts`         | TRACE-REGEN-01 — inner HTTP bind reuses outer trace ALS (DEC-044)                                                            |
 | Trace isolation  | `apps/api/test/2-observability/trace-isolation.spec.ts`  | HTTP → service → repo ALS propagation; concurrent tenant A/B trace separation; optional Postgres GUC when `DATABASE_URL` set |
 | Error enrichment | `apps/api/test/2-observability/error-enrichment.spec.ts` | Correlation echo on 4xx/5xx; no engine leak; enriched `ValidationFailure`                                                    |
 | Tenant metrics   | `apps/api/test/2-observability/tenant-metrics.spec.ts`   | `tour_creation_count{tenant_id}` separation after multi-tenant creates                                                       |
@@ -95,11 +96,32 @@ DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db' \
   NODE_ENV=test STORAGE_DRIVER=prisma node --import tsx --test test/2-observability/trace-isolation.spec.ts
 ```
 
+## Outbox correlation (DEC-046 / TRACE-LOST-03)
+
+Tour create on the Prisma atomic path enqueues `TourCreated` in the same TX as `audit_events`. The outbox row stores the active HTTP trace when trace ALS is bound:
+
+```typescript
+await enqueueOutboxEvent(tx, {
+  // ...
+  correlationId: getActiveTraceId(),
+});
+```
+
+| Caller context                              | `outbox_events.correlation_id` |
+| ------------------------------------------- | ------------------------------ |
+| HTTP `/tours` (trace ALS from `app.ts`)     | Ingress trace id               |
+| Script / test without `runWithTraceContext` | `NULL`                         |
+
+Ops can join `outbox_events.correlation_id` to access logs and error `correlationId` for a single create. Relay publish does not yet re-bind trace ALS (**TRACE-LOST-02** — Phase 7).
+
+Verification: `apps/api/test/2-observability/outbox-http-correlation.spec.ts` (requires `DATABASE_URL`).
+
 ## Phase boundaries
 
-| Capability                                       | Phase            |
-| ------------------------------------------------ | ---------------- |
-| Trace ALS + `app.current_trace_id` GUC           | **5** (this doc) |
-| Structured log `traceId` on every `http.request` | 4+ recommended   |
-| W3C `traceparent` + OTel spans                   | **7**            |
-| Outbox relay trace continuation                  | **7**            |
+| Capability                                          | Phase            |
+| --------------------------------------------------- | ---------------- |
+| Trace ALS + `app.current_trace_id` GUC              | **5** (this doc) |
+| Outbox insert stores HTTP `correlation_id`          | **5** (DEC-046)  |
+| Structured `correlation_id` on every `http.request` | **5** (DEC-048)  |
+| W3C `traceparent` + OTel spans                      | **7**            |
+| Outbox relay trace continuation                     | **7**            |

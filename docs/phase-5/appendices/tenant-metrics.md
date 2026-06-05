@@ -27,11 +27,12 @@ Implementation: `apps/api/src/observability/metrics.ts` — single global regist
 
 ## Metric catalog (Phase 5)
 
-| Name                  | Labels      | When incremented                                                                         |
-| --------------------- | ----------- | ---------------------------------------------------------------------------------------- |
-| `tour_creation_count` | `tenant_id` | After successful `CanonicalTourService.writeTour` persist (memory + atomic Prisma paths) |
+| Name                             | Labels      | When incremented                                                                         |
+| -------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
+| `tour_creation_count`            | `tenant_id` | After successful `CanonicalTourService.writeTour` persist (memory + atomic Prisma paths) |
+| `projection_inconsistency_total` | `tenant_id` | `recordProjectionInconsistency` — downstream handler drift signal (DEC-008)              |
 
-**Label contract:** `tenant_id` must match the persisted `TourRecord.tenantId`. Counters must **never** roll up unlabeled totals that hide per-tenant cardinality in tests.
+**Label contract (MET-API-01 / DEC-049):** Names in `TENANT_SCOPED_METRIC_NAMES` **require** non-empty `tenant_id` at `increment` time — runtime throws `METRIC_TENANT_LABEL_REQUIRED`. CI guard `guard:tenant-metrics-labels` locks direct call sites.
 
 ## Instrumentation point
 

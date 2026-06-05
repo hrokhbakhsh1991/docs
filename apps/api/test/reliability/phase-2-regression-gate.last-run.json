@@ -1,0 +1,73 @@
+{
+  "gate": "phase-2-regression-gate",
+  "decision": "DEC-050",
+  "startedAt": "2026-06-05T04:03:33.142Z",
+  "finishedAt": "2026-06-05T04:03:50.951Z",
+  "databaseUrlSet": true,
+  "verdict": "PASS",
+  "steps": [
+    {
+      "id": "guard:no-console-src",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 922,
+      "skipped": false
+    },
+    {
+      "id": "guard:forensic-storage",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 872,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-correlation",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 869,
+      "skipped": false
+    },
+    {
+      "id": "guard:tour-update-audit",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 837,
+      "skipped": false
+    },
+    {
+      "id": "guard:http-access-trace",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 858,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-metrics-labels",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 841,
+      "skipped": false
+    },
+    {
+      "id": "verify-als-request-cleanup",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 2501,
+      "skipped": false
+    },
+    {
+      "id": "phase2-observability-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 7226,
+      "skipped": false
+    },
+    {
+      "id": "phase2-postgres-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 2875,
+      "skipped": false
+    }
+  ]
+}
