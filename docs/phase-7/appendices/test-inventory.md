@@ -1,0 +1,27 @@
+# Phase 7 — Test inventory
+
+```yaml
+inventory_version: "2026-06-04-v2"
+honesty: TARGET_until_implementation
+```
+
+| Test file                                                              | Subphase | Status | REQ        |
+| ---------------------------------------------------------------------- | -------- | ------ | ---------- |
+| `packages/workspaces/urban/test/phase-7.contract.spec.ts`              | 7.2, 7.9 | TARGET | REQ-P7-006 |
+| `packages/workspaces/urban/test/urban-registry.spec.ts`                | 7.1      | TARGET | REQ-P7-031 |
+| `apps/api/test/urban-workspace-plugin.spec.ts`                         | 7.3      | TARGET | REQ-P7-009 |
+| `apps/api/test/urban-create-publish.integration.spec.ts`               | 7.4      | TARGET | REQ-P7-012 |
+| `apps/api/test/rate-limit-tenant.spec.ts`                              | 7.6      | TARGET | REQ-P7-018 |
+| `packages/tenant-kernel/test/tenant-connection-router.spec.ts`         | 7.7      | TARGET | REQ-P7-022 |
+| `packages/workspace-sdk/test/urban-workspace-binding.contract.spec.ts` | 7.3      | TARGET | REQ-P7-009 |
+| `scripts/guards/audit-log-fields.mjs`                                  | 7.5      | TARGET | REQ-P7-015 |
+
+## Golden fixtures
+
+| Path                                                                               | Subphase |
+| ---------------------------------------------------------------------------------- | -------- |
+| `packages/workspaces/urban/test/fixtures/golden/urban-tour-minimal.json`           | 7.1, 7.4 |
+| `packages/workspaces/urban/test/fixtures/golden/urban-tour-publish-ready.json`     | 7.4      |
+| `packages/workspaces/urban/test/fixtures/golden/urban-tour-invalid-itinerary.json` | 7.4      |
+
+See [`SMOKE-SCENARIO-MAP.md`](SMOKE-SCENARIO-MAP.md).

@@ -5,6 +5,8 @@ export type TourRecord = {
   readonly tenantId: string;
   readonly canonical: CanonicalDocument;
   readonly createdAt: string;
+  /** Optimistic lock — CAS on PATCH (P1-6). */
+  readonly rowVersion: number;
 };
 
 export type TourWhere = {

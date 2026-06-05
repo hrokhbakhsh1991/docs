@@ -1,0 +1,27 @@
+# Phase 6 entry — 6.0 gate ledger
+phase_6_entry:
+  phase_5_gate:
+    command: pnpm run phase-5:gate
+    status: PENDING
+    report: reports/phase-5-gate-YYYY-MM-DD.json
+    note: "Required for 6.0 DoD — independent of doc_pack_score"
+  phase_5_behavioral_minimum:
+    note: "5.2 VERIFIED minimum; 5.3-5.5 per IMPLEMENTATION-TRUTH at entry time"
+    status: PENDING
+  no_denali_core_creep:
+    status: PASS
+    evidence: depcruise + phase-5 FORBIDDEN-008..011
+  starter_plugin_verified:
+    status: PASS
+    evidence: apps/api resolve-workspace-plugin.spec.ts
+  outbox_behavioral:
+    status: PENDING
+    waiver: BLOCKER-P6-OUTBOX-5.4 for 6.4 stub
+  doc_pack_score:
+    doc_execution_system: 96
+    critical_spec_quality: 96
+    guard: pnpm run phase-6:guard
+    status: PASS
+    note: "Doc-only — does not unlock 6.1 without phase_5_gate PASS"
+  verified_at: null
+  verified_by: null

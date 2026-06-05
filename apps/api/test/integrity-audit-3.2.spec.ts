@@ -17,13 +17,33 @@ const FORBIDDEN_STORAGE_PATTERNS = [
   /\blegacy\/apps\/api\b/i,
 ];
 
-/** Storage/Prisma bootstrap files — not handler layers. */
+/** Storage/Prisma bootstrap + Phase 5 data-layer (ADR-005) — not HTTP handlers. */
 const STORAGE_LAYER_ALLOWED_REL = [
   "storage/",
   "db/prisma.ts",
+  "db/pool-saturation.ts",
   "db/with-canonical-transaction.ts",
   "db/with-tenant-rls.ts",
+  "db/rls-session-vars.ts",
+  "db/assert-tenant-rls-alignment.ts",
+  "db/assert-production-database-integrity.ts",
   "canonical/canonical-storage.ts",
+  "canonical/atomic-canonical-tour-persist.ts",
+  "canonical/assert-tour-capacity-in-tx.ts",
+  "outbox/",
+  "audit/",
+  "events/processed-domain-event-log.ts",
+  "events/tour-created-envelope-guard.ts",
+  "http/http-idempotency.ts",
+  "internal/provisioning.service.ts",
+  "routes/internal/db-pool-hold.ts",
+  "routes/internal/tenants.ts",
+  "server/graceful-shutdown.ts",
+  "middleware/error-interceptor.ts",
+  "middleware/tenant-rate-limiter.ts",
+  "tenant/resolve-registered-tenant.ts",
+  "tenant/resolve-tenant-feature-flags.ts",
+  "tenant/tenant-id-format.ts",
 ];
 
 function listTsFiles(dir: string, out: string[] = []): string[] {
@@ -50,7 +70,11 @@ describe("Phase 3.2 integrity audit (automated)", () => {
         hits.push(`${rel}: ${pattern}`);
       }
     }
-    assert.deepEqual(hits, [], "legacy/SQL/Prisma outside storage/ is forbidden in apps/api handlers");
+    assert.deepEqual(
+      hits,
+      [],
+      "legacy/SQL/Prisma outside storage/ is forbidden in apps/api handlers"
+    );
   });
 
   it("handlers never call storage find* directly (ScopedTourRepository only)", () => {

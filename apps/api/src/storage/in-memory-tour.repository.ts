@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 
+import { deriveTourProjections } from "../canonical/projection-sync";
+import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
-import type { Tour, TourIdResolver, TourStorageRepository } from "./tour-storage.interface";
+import type { Tour, TourStorageRepository } from "./tour-storage.interface";
 
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
@@ -16,7 +18,7 @@ function assertTenantId(tenantId: string): void {
  * In-memory {@link TourStorageRepository} — tenant-partitioned indexes (Phase 3 scaffold / tests).
  * Not for production; swap DI in `main.ts` when Postgres adapter lands.
  */
-export class InMemoryTourRepository implements TourStorageRepository, TourIdResolver {
+export class InMemoryTourRepository implements TourStorageRepository {
   private readonly byId = new Map<string, Tour>();
   private readonly idsByTenant = new Map<string, Set<string>>();
 
@@ -33,13 +35,13 @@ export class InMemoryTourRepository implements TourStorageRepository, TourIdReso
     if (this.globalCount() >= limits.maxGlobal) {
       throw new TourCapacityExceededError(
         "TOUR_CAPACITY_GLOBAL",
-        tourCapacityErrorMessage("TOUR_CAPACITY_GLOBAL"),
+        tourCapacityErrorMessage("TOUR_CAPACITY_GLOBAL")
       );
     }
     if (this.tenantCount(tenantId) >= limits.maxPerTenant) {
       throw new TourCapacityExceededError(
         "TOUR_CAPACITY_TENANT",
-        tourCapacityErrorMessage("TOUR_CAPACITY_TENANT"),
+        tourCapacityErrorMessage("TOUR_CAPACITY_TENANT")
       );
     }
   }
@@ -94,23 +96,40 @@ export class InMemoryTourRepository implements TourStorageRepository, TourIdReso
     return out;
   }
 
-  /** {@link TourIdResolver} — used by db adapter for CASL cross-tenant probes only. */
-  async resolveById(id: string): Promise<Tour | null> {
-    return this.byId.get(id) ?? null;
-  }
-
   /** Create helper for db adapter (assigns id + createdAt). */
-  async createTour(input: {
-    tenantId: string;
-    canonical: Tour["canonical"];
-  }): Promise<Tour> {
+  async createTour(input: { tenantId: string; canonical: Tour["canonical"] }): Promise<Tour> {
     const tour: Tour = {
       id: randomUUID(),
       tenantId: input.tenantId,
       canonical: input.canonical,
       createdAt: new Date().toISOString(),
+      rowVersion: 1,
     };
     await this.save(tour);
     return tour;
+  }
+
+  async updateIfRowVersion(input: {
+    tenantId: string;
+    id: string;
+    canonical: Tour["canonical"];
+    expectedRowVersion: number;
+  }): Promise<Tour> {
+    assertTenantId(input.tenantId);
+    const existing = this.byId.get(input.id);
+    if (existing === undefined || existing.tenantId !== input.tenantId) {
+      throw new TourVersionConflictError();
+    }
+    if (existing.rowVersion !== input.expectedRowVersion) {
+      throw new TourVersionConflictError();
+    }
+    deriveTourProjections(input.canonical);
+    const updated: Tour = {
+      ...existing,
+      canonical: input.canonical,
+      rowVersion: existing.rowVersion + 1,
+    };
+    this.indexTour(updated);
+    return updated;
   }
 }

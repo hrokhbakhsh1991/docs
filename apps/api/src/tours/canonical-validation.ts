@@ -6,6 +6,9 @@ import {
   type CanonicalDocument,
 } from "@app-tour/workspace-sdk";
 
+import { resolveWorkspaceCurrentSchemaVersion } from "../canonical/schema-version-policy";
+import { throwSchemaVersionMismatch } from "../canonical/schema-version-mismatch";
+import { throwValidationFailure } from "../canonical/validation-failure";
 import { resolveWorkspacePluginForType } from "../workspace/resolve-workspace-plugin";
 import type { CreateTourBody } from "./create-tour.schema";
 
@@ -13,12 +16,66 @@ export type ValidateBeforePersistInput = {
   readonly body: CreateTourBody;
   readonly tenantId: string;
   readonly workspaceType: string;
+  /** RuleContext variant — `default` (advanced) or `basic` (degraded). DEC-014. */
+  readonly validationVariant?: "default" | "basic";
 };
 
-/** Per-call engine — no module singleton (CRIT-STATE-01). */
-function createValidationEngine(workspaceType: string) {
+const DEFAULT_ENGINE_CACHE_SIZE = 8;
+
+type CachedEngine = {
+  readonly engine: PlatformWizardEngine;
+};
+
+const engineCache = new Map<string, CachedEngine>();
+const engineCacheOrder: string[] = [];
+
+function readEngineCacheSize(): number {
+  const raw = process.env.P5_VALIDATION_ENGINE_CACHE_SIZE?.trim();
+  if (!raw) {
+    return DEFAULT_ENGINE_CACHE_SIZE;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_ENGINE_CACHE_SIZE;
+}
+
+function engineCacheKey(
+  tenantId: string,
+  workspaceType: string,
+  validationVariant: "default" | "basic"
+): string {
+  return `${tenantId.trim()}:${workspaceType}:${validationVariant}`;
+}
+
+function touchEngineCache(key: string, entry: CachedEngine): PlatformWizardEngine {
+  const existingIndex = engineCacheOrder.indexOf(key);
+  if (existingIndex >= 0) {
+    engineCacheOrder.splice(existingIndex, 1);
+  }
+  engineCache.set(key, entry);
+  engineCacheOrder.push(key);
+  const maxSize = readEngineCacheSize();
+  while (engineCacheOrder.length > maxSize) {
+    const evictKey = engineCacheOrder.shift();
+    if (evictKey) {
+      engineCache.delete(evictKey);
+    }
+  }
+  return entry.engine;
+}
+
+/** Cached per tenant + workspaceType + variant (DEC-030 / HT-04). Engine instances remain stateless. */
+export function getOrCreateValidationEngine(
+  tenantId: string,
+  workspaceType: string,
+  validationVariant: "default" | "basic" = "default"
+): PlatformWizardEngine {
+  const key = engineCacheKey(tenantId, workspaceType, validationVariant);
+  const hit = engineCache.get(key);
+  if (hit) {
+    return touchEngineCache(key, hit);
+  }
   const plugin = resolveWorkspacePluginForType(workspaceType);
-  return PlatformWizardEngine.create(plugin);
+  return touchEngineCache(key, { engine: PlatformWizardEngine.create(plugin) });
 }
 
 function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, unknown> {
@@ -36,21 +93,31 @@ function defaultCanonicalData(pluginRoots: readonly string[]): Record<string, un
  * RULE-003 / RULE-005 — assertCanonicalDocument + validateCanonical before any persist.
  */
 export function validateCanonicalBeforePersist(
-  input: ValidateBeforePersistInput,
+  input: ValidateBeforePersistInput
 ): CanonicalDocument {
   const plugin = resolveWorkspacePluginForType(input.workspaceType);
-  const engine = createValidationEngine(input.workspaceType);
+  const validationVariant = input.validationVariant ?? "default";
+  const engine = getOrCreateValidationEngine(
+    input.tenantId,
+    input.workspaceType,
+    validationVariant
+  );
+  const currentSchemaVersion = resolveWorkspaceCurrentSchemaVersion(input.workspaceType);
+  const requestedSchemaVersion = input.body.schemaVersion ?? currentSchemaVersion;
+  if (requestedSchemaVersion !== currentSchemaVersion) {
+    throwSchemaVersionMismatch(requestedSchemaVersion, currentSchemaVersion);
+  }
 
   let document: CanonicalDocument;
   try {
     document = createCanonicalDocument({
-      schemaVersion: input.body.schemaVersion ?? 1,
+      schemaVersion: requestedSchemaVersion,
       roots: input.body.roots ?? [...plugin.wizard.roots],
       data: input.body.data ?? defaultCanonicalData(plugin.wizard.roots),
     });
   } catch (error) {
     if (error instanceof CanonicalDocumentValidationError) {
-      throw new Error(`CANONICAL_VALIDATION_FAILED: ${error.code}: ${error.message}`);
+      throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${error.code}: ${error.message}`);
     }
     throw error;
   }
@@ -59,12 +126,12 @@ export function validateCanonicalBeforePersist(
 
   const result = engine.validateCanonical(document, {
     tenantId: input.tenantId,
-    dimensions: { variant: "default" },
+    dimensions: { variant: validationVariant },
   });
 
   if (!result.ok) {
     const message = result.violations.map((v) => v.message).join("; ");
-    throw new Error(`CANONICAL_VALIDATION_FAILED: ${message}`);
+    throwValidationFailure(`CANONICAL_VALIDATION_FAILED: ${message}`);
   }
 
   return document;
@@ -73,7 +140,13 @@ export function validateCanonicalBeforePersist(
 export function buildValidatedCanonicalDocument(
   body: CreateTourBody,
   tenantId: string,
-  workspaceType = "starter",
+  workspaceType = "starter"
 ): CanonicalDocument {
   return validateCanonicalBeforePersist({ body, tenantId, workspaceType });
+}
+
+/** Test-only — clear engine LRU between cases. */
+export function resetValidationEngineCacheForTests(): void {
+  engineCache.clear();
+  engineCacheOrder.length = 0;
 }

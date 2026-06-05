@@ -3,6 +3,7 @@
 -- Usage: scripts/db-test-reset.sh
 
 TRUNCATE TABLE
+  processed_domain_events,
   outbox_events,
   audit_events,
   tours,

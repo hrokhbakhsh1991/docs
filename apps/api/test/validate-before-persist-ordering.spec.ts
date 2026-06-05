@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { ValidationFailure } from "../src/canonical/validation-failure";
 import { CanonicalTourService } from "../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapter";
 import { TourStorageDbAdapter } from "../src/db/tour-storage.adapter";
@@ -23,6 +24,20 @@ class CreateCountingRepository extends InMemoryTourRepository {
 }
 
 describe("RULE-003 — validation before persist ordering", () => {
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
+
+  before(() => {
+    process.env.STORAGE_DRIVER = "memory";
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+  });
+
   const activeMember: TenantAuthContext = {
     userId: "user-1",
     tenantId: "tenant-a",
@@ -34,7 +49,7 @@ describe("RULE-003 — validation before persist ordering", () => {
   it("does not call storage createTour when validateCanonical fails", async () => {
     const counting = new CreateCountingRepository();
     const service = new ToursService(
-      new CanonicalTourService(new TourStorageDbAdapter(counting), new LegacyCanonicalAdapter()),
+      new CanonicalTourService(new TourStorageDbAdapter(counting), new LegacyCanonicalAdapter())
     );
 
     await assert.rejects(
@@ -43,7 +58,7 @@ describe("RULE-003 — validation before persist ordering", () => {
           roots: ["basics", "details"],
           data: { basics: {}, details: { summary: "" } },
         }),
-      /CANONICAL_VALIDATION_FAILED/,
+      (error: unknown) => error instanceof ValidationFailure
     );
 
     assert.equal(counting.createTourCalls, 0);
@@ -52,7 +67,7 @@ describe("RULE-003 — validation before persist ordering", () => {
   it("calls storage createTour once when validation passes", async () => {
     const counting = new CreateCountingRepository();
     const service = new ToursService(
-      new CanonicalTourService(new TourStorageDbAdapter(counting), new LegacyCanonicalAdapter()),
+      new CanonicalTourService(new TourStorageDbAdapter(counting), new LegacyCanonicalAdapter())
     );
 
     await service.createTour(activeMember, {

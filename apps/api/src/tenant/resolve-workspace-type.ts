@@ -1,10 +1,10 @@
-import { findTenantById } from "./tenant-registry";
+import { resolveRegisteredTenantById } from "./resolve-registered-tenant";
 
 /**
  * Loads workspace_type for validation-time plugin resolution (5.2).
- * Dev/test tenant ids not in DEV_TENANTS default to starter (BLOCKER-P5-011 waiver).
+ * Postgres `tenants.workspace_type` when present; else static registry; else starter.
  */
-export function resolveWorkspaceTypeForTenant(tenantId: string): string {
-  const registered = findTenantById(tenantId);
+export async function resolveWorkspaceTypeForTenant(tenantId: string): Promise<string> {
+  const registered = await resolveRegisteredTenantById(tenantId);
   return registered?.workspaceType ?? "starter";
 }

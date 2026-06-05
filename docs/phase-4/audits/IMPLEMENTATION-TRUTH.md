@@ -56,33 +56,33 @@ last_guard:
 
 ## Subphase ledger
 
-| Subphase | Status       | Repo evidence                                                                                                       | Gap / next action                                                                                       |
-| -------- | ------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **4.0**  | PARTIAL      | `reports/phase-3.2-red-flag-status-2026-06-04.md`; `p4_red_flag_prerequisite` PASS                                  | R1–R3 track `prove_with` executable commands; human signoff                                             |
-| **4.1**  | PARTIAL      | `packages/tenant-kernel/`; guard `p4_tenant_kernel_*` + `p4_contract_spec` **PASS** (Node 24)                       | Subphase `prove_with` + full gate `ok: true` before VERIFIED                                            |
-| **4.2**  | **VERIFIED** | `rls-isolation.integration.spec.ts`; `001_tenant_rls.sql`; `reports/phase-4-42-43-ground-truth-audit-2026-06-04.md` | Verified by Audit 2026-06-04: RLS policy active on tours table, gate `p4_rls_integration_tests` passed. |
-| **4.3**  | PARTIAL      | `tenant-security.spec.ts` (not in guard until `p4_rls_integration_tests` runs)                                      | MAP 4.3 two-tenant e2e automation                                                                       |
-| **4.4**  | PARTIAL      | `tenant-config.spec.ts` → `GET /api/v2/tenant-config`                                                               | TH-1 web e2e accent A≠B                                                                                 |
-| **4.5**  | PARTIAL      | `packages/platform-events/`; guard `p4_platform_events_*` **PASS** (Node 24)                                        | TourCreated integration + gate `ok: true`                                                               |
-| **4.6**  | SPEC_ONLY    | `phase-4-guard.mjs` + `phase-4:gate` chain                                                                          | All 4.0–4.5 VERIFIED + `phase-4:gate` `ok: true`                                                        |
+| Subphase | Status       | Repo evidence                                                                                                       | Gap / next action                                                                                                               |
+| -------- | ------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **4.0**  | PARTIAL      | `reports/phase-3.2-red-flag-status-2026-06-04.md`; `p4_red_flag_prerequisite` PASS                                  | R1–R3 track `prove_with` executable commands; human signoff                                                                     |
+| **4.1**  | PARTIAL      | `packages/tenant-kernel/`; guard `p4_tenant_kernel_*` + `p4_contract_spec` **PASS** (Node 24)                       | Subphase `prove_with` + full gate `ok: true` before VERIFIED                                                                    |
+| **4.2**  | **VERIFIED** | `rls-isolation.integration.spec.ts`; `001_tenant_rls.sql`; `reports/phase-4-42-43-ground-truth-audit-2026-06-04.md` | Verified by Audit 2026-06-04: RLS policy active on tours table, gate `p4_rls_integration_tests` passed.                         |
+| **4.3**  | **VERIFIED** | `provisioning.service.ts`; `routes/internal/tenants.ts`; `test/4.3-provisioning.spec.ts`; `db:seed`                 | 4.3-S2 POST `/internal/tenants/provision` (non-production); MAP 4.3 isolation 8/8 PASS; guard `p4_rls_integration_tests` green. |
+| **4.4**  | PARTIAL      | `tenant-config.spec.ts` → `GET /api/v2/tenant-config`                                                               | TH-1 web e2e accent A≠B                                                                                                         |
+| **4.5**  | PARTIAL      | `packages/platform-events/`; guard `p4_platform_events_*` **PASS** (Node 24)                                        | TourCreated integration + gate `ok: true`                                                                                       |
+| **4.6**  | SPEC_ONLY    | `phase-4-guard.mjs` + `phase-4:gate` chain                                                                          | All 4.0–4.5 VERIFIED + `phase-4:gate` `ok: true`                                                                                |
 
 ---
 
 ## P4-E-\* mechanism truth
 
-| P4-E           | Truth status | Mechanism                                      | Hollow risk                                                                            |
-| -------------- | ------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| P4-E-HOST-01   | PARTIAL      | tenant-kernel contract + host-parse            | Guard PASS; ledger not VERIFIED until gate green                                       |
-| P4-E-RLS-02    | PARTIAL      | contract SQL shape (`test:phase-4` guard PASS) | Integration needs DATABASE_URL                                                         |
-| P4-E-EVT-01    | PARTIAL      | `events.spec.ts`                               | Guard PASS; full gate blocked on RLS env                                               |
-| P4-E-TENANT-01 | PARTIAL      | `tenant-security.spec.ts`                      | Guard runs via `p4_rls_integration_tests`                                              |
-| P4-E-AUTH-01   | PARTIAL      | auth-env + tenant-kernel.spec                  | Confirm prod matrix                                                                    |
-| P4-E-RLS-01    | **VERIFIED** | `rls-isolation.integration.spec.ts`            | `p4_rls_integration_tests` + `p4_anti_hollow_tests` PASS (Audit 2026-06-04, live 5434) |
-| P4-E-DATA-01   | PARTIAL      | `STORAGE_DRIVER=prisma` path                   | Default memory without env                                                             |
-| P4-E-SCALE-01  | PARTIAL      | in-memory repo spec                            | Document Big-O                                                                         |
-| P4-E-RF-40     | PARTIAL      | status report exists                           | Tracks need CI signoff                                                                 |
-| P4-E-REG-03    | PARTIAL      | nested phase-3:gate in full gate               | Blocked while outer gate FAIL                                                          |
-| P4-E-GATE      | SPEC_ONLY    | full chain                                     | After subphases + `ok: true` JSON                                                      |
+| P4-E           | Truth status | Mechanism                                             | Hollow risk                                                                            |
+| -------------- | ------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| P4-E-HOST-01   | PARTIAL      | tenant-kernel contract + host-parse                   | Guard PASS; ledger not VERIFIED until gate green                                       |
+| P4-E-RLS-02    | PARTIAL      | contract SQL shape (`test:phase-4` guard PASS)        | Integration needs DATABASE_URL                                                         |
+| P4-E-EVT-01    | PARTIAL      | `events.spec.ts`                                      | Guard PASS; full gate blocked on RLS env                                               |
+| P4-E-TENANT-01 | **VERIFIED** | `tenant-security.spec.ts`; `4.3-provisioning.spec.ts` | MAP 4.3 cross-tenant + provision route; guard `p4_rls_integration_tests` PASS          |
+| P4-E-AUTH-01   | PARTIAL      | auth-env + tenant-kernel.spec                         | Confirm prod matrix                                                                    |
+| P4-E-RLS-01    | **VERIFIED** | `rls-isolation.integration.spec.ts`                   | `p4_rls_integration_tests` + `p4_anti_hollow_tests` PASS (Audit 2026-06-04, live 5434) |
+| P4-E-DATA-01   | PARTIAL      | `STORAGE_DRIVER=prisma` path                          | Default memory without env                                                             |
+| P4-E-SCALE-01  | PARTIAL      | in-memory repo spec                                   | Document Big-O                                                                         |
+| P4-E-RF-40     | PARTIAL      | status report exists                                  | Tracks need CI signoff                                                                 |
+| P4-E-REG-03    | PARTIAL      | nested phase-3:gate in full gate                      | Blocked while outer gate FAIL                                                          |
+| P4-E-GATE      | SPEC_ONLY    | full chain                                            | After subphases + `ok: true` JSON                                                      |
 
 ---
 
@@ -100,4 +100,4 @@ forbidden:
   - "Trust CONSISTENCY-REPORT PASS as repo closure"
 ```
 
-**Composite execution score:** 1 VERIFIED / 7 subphases (4.2) → **14%** repo closure (doc navigation may still score 100). **4.3 baseline:** [`reports/phase-4-42-43-ground-truth-audit-2026-06-04.md`](../../../reports/phase-4-42-43-ground-truth-audit-2026-06-04.md).
+**Composite execution score:** 2 VERIFIED / 7 subphases (4.2, 4.3) → **29%** repo closure (doc navigation may still score 100). **4.3 baseline:** [`reports/phase-4-42-43-ground-truth-audit-2026-06-04.md`](../../../reports/phase-4-42-43-ground-truth-audit-2026-06-04.md).

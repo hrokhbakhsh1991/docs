@@ -29,7 +29,7 @@ function assertStarterFieldKinds(): void {
   for (const field of STARTER_FIELD_REGISTRY.fields) {
     if (!(STARTER_ALLOWED_FIELD_KINDS as readonly string[]).includes(field.kind)) {
       throw new Error(
-        `Starter field "${field.id}" uses kind "${field.kind}"; allowed: ${STARTER_ALLOWED_FIELD_KINDS.join(", ")}`,
+        `Starter field "${field.id}" uses kind "${field.kind}"; allowed: ${STARTER_ALLOWED_FIELD_KINDS.join(", ")}`
       );
     }
   }
@@ -83,6 +83,16 @@ export const STARTER_RULE_SET = deepFreeze({
       dimensions: { variant: "default" },
       fieldOverrides: [
         { fieldId: "basics.title", required: true, hidden: false },
+        { fieldId: "basics.featured", hidden: false },
+        { fieldId: "details.summary", hidden: false },
+        { fieldId: "details.status", hidden: false },
+      ],
+    },
+    {
+      cellId: "basic",
+      dimensions: { variant: "basic" },
+      fieldOverrides: [
+        { fieldId: "basics.title", required: false, hidden: false },
         { fieldId: "basics.featured", hidden: false },
         { fieldId: "details.summary", hidden: false },
         { fieldId: "details.status", hidden: false },

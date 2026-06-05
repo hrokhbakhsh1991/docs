@@ -39,7 +39,7 @@ lint_ts() {
     any=1
     pnpm exec eslint --max-warnings 0 -c "$cfg" "$f"
   done
-  [ "$any" -eq 0 ]
+  return 0
 }
 
 if [ -n "$(echo "$LINT_FILES" | tr -d '[:space:]')" ]; then

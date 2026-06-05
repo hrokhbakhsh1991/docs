@@ -16,9 +16,11 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/workspace-starter",
   "@casl/ability",
   "@prisma/client",
+  "ioredis",
   "jose",
   "zod",
   "pino",
+  "rate-limiter-flexible",
 ]);
 
 const FORBIDDEN_IMPORT_PATTERNS = [

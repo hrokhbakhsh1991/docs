@@ -1,0 +1,48 @@
+# Phase 5 — Canonical schema (Markdoc)
+
+{% meta %}
+deliverable: DEL-P5-001
+human_spec: phase-5-canonical-schema.md
+execution_router: phase-5/phase-5-agent-router.md
+map_section: فاز ۵
+{% /meta %}
+
+> **Agents (T0):** [`phase-5/phase-5-agent-router.md`](phase-5/phase-5-agent-router.md) · **Phase 4 bridge:** [`phase-5/appendices/phase-4-bridge.md`](phase-5/appendices/phase-4-bridge.md)  
+> **Human research:** [`research/phase-5-data-architecture-research.md`](research/phase-5-data-architecture-research.md)  
+> **Gate (repo):** `pnpm run phase-5:gate` = build + test + phase-4:gate + phase-5:guard
+
+Authoritative DDL and API contracts live in [phase-5-canonical-schema.md](phase-5-canonical-schema.md).
+
+Apply SQL: `infra/sql/002_phase5_data_layer.sql` after `001_tenant_rls.sql`.
+
+## canonical_data
+
+JSONB SoT on `tours.canonical_data` — projections `title`, `schema_version`. Full DDL: [phase-5-canonical-schema.md §1–4](phase-5-canonical-schema.md).
+
+## outbox_events
+
+Transactional outbox table + status machine — [phase-5-canonical-schema.md §2](phase-5-canonical-schema.md). Exit criterion: TourCreated API → handler with contract test.
+
+## RLS
+
+`outbox_events` and `audit_events` tenant isolation via `app.current_tenant_id` — same session variable as Phase 4 ([`phase-4/appendices/workspace-interoperability-model.md`](phase-4/appendices/workspace-interoperability-model.md)).
+
+## phase-5-agent-router
+
+Modular execution SoT under `docs/phase-5/` — **do not** implement from this mdoc stub alone.
+
+## Industry alignment 2026
+
+Outbox + RLS + JSONB projections — [`phase-5/appendices/industry-alignment-2026.md`](phase-5/appendices/industry-alignment-2026.md).
+
+## Platform continuity
+
+Phases 0–5 ownership — [`phase-5/appendices/platform-continuity-0-5.md`](phase-5/appendices/platform-continuity-0-5.md).
+
+## Precision pack (agents)
+
+[`phase-5/appendices/PRECISION-DOC-INDEX.md`](phase-5/appendices/PRECISION-DOC-INDEX.md) · [`phase-5/audits/PHASE-5-GAP-REGISTER.md`](phase-5/audits/PHASE-5-GAP-REGISTER.md)
+
+## Forensic Truth
+
+Aspirational items (relay scaling, full OTel) remain in research doc until enforced in `phase-5-enforcement.md` and `IMPLEMENTATION-TRUTH.md`.

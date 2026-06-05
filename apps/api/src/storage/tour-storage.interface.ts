@@ -9,6 +9,7 @@ export type Tour = {
   readonly tenantId: string;
   readonly canonical: CanonicalDocument;
   readonly createdAt: string;
+  readonly rowVersion: number;
 };
 
 /**
@@ -21,12 +22,15 @@ export interface TourStorageRepository {
   save(tour: Tour): Promise<void>;
 
   listByTenant(tenantId: string): Promise<Tour[]>;
-}
 
-/**
- * Policy-layer helper: resolve a row by id only so CASL can detect cross-tenant reads.
- * Implementations must not use this for handler responses without a tenant check.
- */
-export interface TourIdResolver {
-  resolveById(id: string): Promise<Tour | null>;
+  /**
+   * Updates canonical when `expectedRowVersion` matches — increments row_version.
+   * @throws {import("../tours/tour-version-conflict").TourVersionConflictError} on stale version
+   */
+  updateIfRowVersion(input: {
+    readonly tenantId: string;
+    readonly id: string;
+    readonly canonical: CanonicalDocument;
+    readonly expectedRowVersion: number;
+  }): Promise<Tour>;
 }
