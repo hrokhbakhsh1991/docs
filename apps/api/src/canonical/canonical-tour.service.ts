@@ -23,7 +23,10 @@ function assertCanonicalWriteTenantAllowed(requestedTenantId: string): void {
 }
 import { recordTourCreated } from "../observability/metrics";
 import { publishTourCreatedEvent } from "./publish-tour-created";
-import { persistNewTourAtomically } from "./atomic-canonical-tour-persist";
+import {
+  persistNewTourAtomically,
+  persistTourUpdateAtomically,
+} from "./atomic-canonical-tour-persist";
 import { CanonicalSyncValidationError } from "./canonical-sync-validation-error";
 import { validateCanonicalLegacySync } from "./canonical-sync-validator";
 import { LegacyCanonicalAdapter } from "./legacy-canonical-adapter";
@@ -186,6 +189,22 @@ export class CanonicalTourService {
     });
 
     try {
+      if (useAtomicCanonicalPersist()) {
+        const updated = await persistTourUpdateAtomically({
+          tenantId: input.tenantId,
+          tourId: input.tourId,
+          canonical,
+          expectedRowVersion: input.body.rowVersion,
+        });
+        return {
+          id: updated.id,
+          tenantId: updated.tenantId,
+          canonical: updated.canonical,
+          createdAt: updated.createdAt,
+          rowVersion: updated.rowVersion,
+        };
+      }
+
       return await scopedRepo.update({
         tenantId: input.tenantId,
         id: input.tourId,

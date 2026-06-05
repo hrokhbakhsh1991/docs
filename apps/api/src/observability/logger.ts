@@ -11,19 +11,22 @@ export type RequestLogContext = {
   readonly path: string;
   readonly statusCode: number;
   readonly durationMs: number;
+  /** Ingress trace ALS id — omitted when unbound (DEC-048 / TRACE-LOST-01). */
+  readonly correlationId?: string;
 };
 
 export function logHttpRequest(ctx: RequestLogContext): void {
-  logger.info(
-    {
-      event: "http.request",
-      http: {
-        method: ctx.method,
-        path: ctx.path,
-        statusCode: ctx.statusCode,
-      },
-      durationMs: ctx.durationMs,
+  const payload: Record<string, unknown> = {
+    event: "http.request",
+    http: {
+      method: ctx.method,
+      path: ctx.path,
+      statusCode: ctx.statusCode,
     },
-    "request completed",
-  );
+    durationMs: ctx.durationMs,
+  };
+  if (ctx.correlationId !== undefined) {
+    payload.correlation_id = ctx.correlationId;
+  }
+  logger.info(payload, "request completed");
 }

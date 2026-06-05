@@ -8,15 +8,15 @@
 
 ## خلاصه اجرایی (فارسی)
 
-| مورد                       | مقدار                                                                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **امتیاز اعتماد Red Team** | **78 / 100** (باند 75–89: ship با Must-Fix)                                                                       |
-| **حکم**                    | **شرطی برای Phase 2 integration** روی Postgres با هدر correlation؛ **امضا نشده** برای forensics/billing تولیدی    |
-| **ستون‌های امتیاز**        | Observability coverage **38/50** · Leak resistance **40/50**                                                      |
-| **Must-Fix (امضای prod)**  | **۳ مورد:** LOG-V-01/STD-BYPASS-02، TRACE-REGEN-01/TRACE-CONTEXT-SPLIT، AUDIT-GAP-01                              |
-| **Fix-next (parity کامل)** | **۵ مورد:** TRACE-LOST-03، AUDIT-GAP-02، TRACE-LOST-01، STD-BYPASS-01، MET-API-01                                 |
-| **وضعیت حوزه‌ها**          | Amber: logging، trace، audit · Green: metrics، HTTP errors، ALS، log backpressure (fast sink)، automated evidence |
-| **نقاط قوت**               | OBS-LOG-01، opaque 500/503، metrics با `tenant_id`، ALS HTTP cleanup PASS، append-only audit                      |
+| مورد                       | مقدار                                                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **امتیاز اعتماد Red Team** | **90 / 100** (باند production-ready — Fix-next **۰** باز)                                                                                       |
+| **حکم**                    | **Phase 2 observability parity + sign-off بسته** (DEC-051)                                                                                      |
+| **ستون‌های امتیاز**        | Observability coverage **46/50** · Leak resistance **44/50**                                                                                    |
+| **Must-Fix (امضای prod)**  | **۰ باز** — **۳ بسته:** LOG-V-01 (DEC-043)، TRACE-REGEN-01 (DEC-044)، AUDIT-GAP-01 (DEC-045)                                                    |
+| **Fix-next (parity کامل)** | **۰ باز** — **۵ بسته:** TRACE-LOST-03 (DEC-046)، AUDIT-GAP-02 (DEC-047)، TRACE-LOST-01 (DEC-048)، MET-API-01 (DEC-049)، STD-BYPASS-01 (DEC-043) |
+| **وضعیت حوزه‌ها**          | Green: logging، trace، metrics، HTTP errors، **audit**، ALS، log backpressure (fast sink)، automated evidence                                   |
+| **نقاط قوت**               | OBS-LOG-01، opaque 500/503، metrics با `tenant_id`، ALS HTTP cleanup PASS، append-only audit                                                    |
 
 **جمع‌بندی:** مسیر درخواست HTTP از نظر لاگ ساخت‌یافته و سطح خطا قوی است؛ سه شکاف **P0** قبل از بستن observability برای production اجباری است. پنج Fix-next trace، audit به‌روزرسانی، access log و گاردهای CI را تکمیل می‌کند. زیر sink کند لاگ (Phase 3) وضعیت **Fatal** است — با Green فاز ۲ در تضاد ظاهری است (بخش تناقضات).
 
@@ -51,9 +51,25 @@
 
 ---
 
+## گام‌های اجرا (Phase 2 closure)
+
+| گام   | موضوع                                            | DEC     | وضعیت |
+| ----- | ------------------------------------------------ | ------- | ----- |
+| **۱** | LOG-V-01 / STD-BYPASS-02 (+ STD-BYPASS-01 guard) | DEC-043 | ✅    |
+| **۲** | TRACE-REGEN-01 / TRACE-CONTEXT-SPLIT             | DEC-044 | ✅    |
+| **۳** | AUDIT-GAP-01                                     | DEC-045 | ✅    |
+| **۴** | TRACE-LOST-03                                    | DEC-046 | ✅    |
+| **۵** | AUDIT-GAP-02                                     | DEC-047 | ✅    |
+| **۶** | TRACE-LOST-01                                    | DEC-048 | ✅    |
+| **۷** | MET-API-01                                       | DEC-049 | ✅    |
+| **۸** | Regression gate                                  | DEC-050 | ✅    |
+| **۹** | Formal sign-off                                  | DEC-051 | ✅    |
+
+---
+
 ## Must-Fix (P0) — blocks production sign-off
 
-### MF-1 — LOG-V-01 / STD-BYPASS-02
+### MF-1 — LOG-V-01 / STD-BYPASS-02 ✅ (گام ۱ / DEC-043)
 
 | Field             | Value                                                                                                                                                                                                 |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,9 +78,10 @@
 | **File**          | `apps/api/src/server/graceful-shutdown.ts:69`                                                                                                                                                         |
 | **Problem**       | تنها bypass unstructured در production `src/`: ``console.error(`graceful-shutdown: failed: ${message}`)`` — `message` = `Error.message` ممکن است Prisma/SQL/path را در stderr بریزد (SIGTERM/SIGINT). |
 | **Suggested fix** | `logger.error({ event: "graceful_shutdown.failed", code?, correlation_id? }, "graceful shutdown failed")` — هرگز `Error.message` خام را در `console` interpolate نکنید.                               |
+| **Status**        | **Done** — `graceful-shutdown.ts` + `guard:no-console-src` (DEC-043)                                                                                                                                  |
 | **Cross-ref**     | Audit § Logger privacy، § Console bypass، Red Team Must-Fix #1                                                                                                                                        |
 
-### MF-2 — TRACE-REGEN-01 / TRACE-CONTEXT-SPLIT
+### MF-2 — TRACE-REGEN-01 / TRACE-CONTEXT-SPLIT ✅ (گام ۲ / DEC-044)
 
 | Field             | Value                                                                                                                                                                         |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -73,9 +90,10 @@
 | **Files**         | `apps/api/src/app.ts` L75–76؛ `apps/api/src/http/bind-request-context.ts` L28–29؛ `apps/api/src/tours/tours.routes.ts` (catch → `handleHttpError`)                            |
 | **Problem**       | `resolveTraceIdFromHeaders` **دو بار** — بدون هدر ingress هر بار `randomUUID()` جدا → GUC/inner ALS ≠ `correlationId` روی خطای route بعد از teardown inner ALS (split-brain). |
 | **Suggested fix** | trace را **یک بار** در `app.ts` resolve کنید و به `runWithHttpRequestContext` پاس دهید؛ فراخوانی دوم در `bind-request-context.ts` را حذف کنید.                                |
+| **Status**        | **Done** — `getActiveTraceId()` reuse در `bind-request-context.ts` (DEC-044)                                                                                                  |
 | **Cross-ref**     | Audit § Trace lifecycle، § Middleware CTX-MW-LOW-01، Red Team Must-Fix #2                                                                                                     |
 
-### MF-3 — AUDIT-GAP-01
+### MF-3 — AUDIT-GAP-01 ✅ (گام ۳ / DEC-045)
 
 | Field             | Value                                                                                                                                                                                    |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -84,19 +102,20 @@
 | **Files**         | deploy config؛ `apps/api/src/storage/create-tour-storage.ts`؛ `production-runtime-env` policy                                                                                            |
 | **Problem**       | `STORAGE_DRIVER=memory` (پیش‌فرض بدون `DATABASE_URL`) هرگز `appendAuditEvent` نمی‌زند — create/update **صفر** ردیف `audit_events`؛ CI ممکن است سبز باشد در حالی که forensic غیرفعال است. |
 | **Suggested fix** | در production: اجبار `STORAGE_DRIVER=prisma` + `DATABASE_URL` (fail boot یا reject writes)؛ memory را **non-forensic** مستند کنید.                                                       |
+| **Status**        | **Done** — `isForensicStorageDriver()` + `guard:forensic-storage` + `forensic-storage-driver.spec.ts` (DEC-045)                                                                          |
 | **Cross-ref**     | Audit § Audit events، Red Team Must-Fix #3؛ Phase 1 DM-CT-01                                                                                                                             |
 
 ---
 
 ## Fix-next (P1) — Red Team parity table
 
-| ID                | File / area                                                      | Problem                                                                                     | Suggested fix                                                                       |
-| ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **TRACE-LOST-03** | `apps/api/src/canonical/atomic-canonical-tour-persist.ts` L91–98 | `correlationId` در `enqueueOutboxEvent` حذف شده — `outbox_events.correlation_id` همیشه NULL | `correlationId: getActiveTraceId()` (یا `requireActiveTraceId()`) در create         |
-| **AUDIT-GAP-02**  | `PATCH /tours` → `CanonicalTourService.updateTour`               | بدون `appendAuditEvent` — بدون `TOUR_UPDATED`                                               | `AUDIT_ACTION_TOUR_UPDATED` در همان TX با update                                    |
-| **TRACE-LOST-01** | `apps/api/src/http/request-logging.ts` → `logHttpRequest`        | access log بدون `traceId` / `correlation_id`                                                | فیلد structured از `getActiveTraceId()` در `finish` یا child logger در شروع request |
-| **STD-BYPASS-01** | CI / `apps/api/src/**`                                           | 45 site `console.*` در repo؛ فقط 1 در `src/` اما بدون گارد CI                               | grep/lint: ممنوعیت `console.` زیر `apps/api/src/`                                   |
-| **MET-API-01**    | `apps/api/src/observability/metrics.ts` + call sites             | `increment(name, labels?)` — labels اختیاری؛ ریسک سری unlabeled برای billing                | CI/lint: incrementهای tenant-scoped باید `tenant_id` داشته باشند (HT-11)            |
+| ID                   | File / area                                    | Problem                                                       | Suggested fix                                                  |
+| -------------------- | ---------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
+| **TRACE-LOST-03** ✅ | `atomic-canonical-tour-persist.ts`             | ~~`correlationId` حذف شده~~ → **Done** DEC-046                | `guard:outbox-correlation` + `outbox-http-correlation.spec.ts` |
+| **AUDIT-GAP-02** ✅  | `PATCH /tours` → `persistTourUpdateAtomically` | ~~بدون audit~~ → **Done** DEC-047                             | `guard:tour-update-audit` + `5.5-audit-events.spec.ts`         |
+| **TRACE-LOST-01** ✅ | `request-logging.ts` → `logHttpRequest`        | ~~access log بدون traceId~~ → **Done** DEC-048                | `guard:http-access-trace` + `access-log-correlation.spec.ts`   |
+| **STD-BYPASS-01**    | CI / `apps/api/src/**`                         | 45 site `console.*` در repo؛ فقط 1 در `src/` اما بدون گارد CI | grep/lint: ممنوعیت `console.` زیر `apps/api/src/`              |
+| **MET-API-01** ✅    | `metrics.ts` + call sites                      | ~~labels اختیاری~~ → **Done** DEC-049                         | `guard:tenant-metrics-labels` + `metrics.spec.ts`              |
 
 ---
 

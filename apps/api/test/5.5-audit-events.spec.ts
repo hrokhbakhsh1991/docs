@@ -6,7 +6,7 @@ import { after, before, describe, it } from "node:test";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 import { createRequestListener } from "../src/app";
-import { AUDIT_ACTION_TOUR_CREATED } from "../src/audit/audit-logger";
+import { AUDIT_ACTION_TOUR_CREATED, AUDIT_ACTION_TOUR_UPDATED } from "../src/audit/audit-logger";
 import { pseudonymizeAuditActorId } from "../src/audit/audit-pseudonym";
 import { CanonicalTourService } from "../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../src/canonical/legacy-canonical-adapter";
@@ -42,10 +42,64 @@ function authHeaders(tenantId: string): Record<string, string> {
   };
 }
 
+async function patchTour(
+  listener: ReturnType<typeof createRequestListener>,
+  tenantId: string,
+  tourId: string,
+  body: {
+    rowVersion: number;
+    data?: { basics?: { title?: string }; details?: { summary?: string } };
+  }
+): Promise<{ status: number; body: { id?: string; rowVersion?: number } }> {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer(listener);
+    server.listen(0, () => {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") {
+        server.close();
+        reject(new Error("no listen address"));
+        return;
+      }
+      const payload = JSON.stringify(body);
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: addr.port,
+          path: `/tours/${tourId}`,
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": String(Buffer.byteLength(payload)),
+            ...authHeaders(tenantId),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c) => chunks.push(c));
+          res.on("end", () => {
+            server.close();
+            const raw = Buffer.concat(chunks).toString("utf8");
+            resolve({
+              status: res.statusCode ?? 0,
+              body: raw.length > 0 ? JSON.parse(raw) : {},
+            });
+          });
+        }
+      );
+      req.on("error", (err) => {
+        server.close();
+        reject(err);
+      });
+      req.write(payload);
+      req.end();
+    });
+  });
+}
+
 async function postTour(
   listener: ReturnType<typeof createRequestListener>,
   tenantId: string
-): Promise<{ status: number; body: { id?: string } }> {
+): Promise<{ status: number; body: { id?: string; rowVersion?: number } }> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
     server.listen(0, () => {
@@ -151,6 +205,101 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
     await appRole.$disconnect();
   });
 
+  it("valid tour update writes TOUR_UPDATED audit row in same tenant (DEC-047)", async () => {
+    const createRes = await postTour(listener, tenantA);
+    assert.equal(createRes.status, 201);
+    assert.ok(createRes.body.id);
+
+    const auditBefore = await admin.auditEvent.count({
+      where: { tenantId: tenantA, action: AUDIT_ACTION_TOUR_UPDATED },
+    });
+
+    const patchRes = await patchTour(listener, tenantA, createRes.body.id!, {
+      rowVersion: 1,
+      data: {
+        basics: { title: "P5.5 audit trail updated" },
+        details: { summary: "patched" },
+      },
+    });
+    assert.equal(patchRes.status, 200);
+    assert.equal(patchRes.body.rowVersion, 2);
+
+    const updateAudits = await admin.auditEvent.findMany({
+      where: { tenantId: tenantA, action: AUDIT_ACTION_TOUR_UPDATED },
+      orderBy: { createdAt: "desc" },
+    });
+    assert.equal(updateAudits.length, auditBefore + 1);
+
+    const row = updateAudits[0];
+    assert.equal(row?.action, AUDIT_ACTION_TOUR_UPDATED);
+    assert.equal(row?.entityType, "tour");
+    assert.equal(row?.entityId, createRes.body.id);
+    assert.equal(row?.actorId, pseudonymizeAuditActorId("audit-user-1", tenantA));
+  });
+
+  it("atomic TX rollback omits TOUR_UPDATED when update aborts before audit", async () => {
+    const tenantC = integrationTenantId();
+    await admin.tenant.create({
+      data: {
+        id: tenantC,
+        subdomain: `p55-upd-${tenantC.slice(0, 8)}`,
+        workspaceType: "starter",
+        theme: {},
+      },
+    });
+
+    const createRes = await postTour(listener, tenantC);
+    assert.equal(createRes.status, 201);
+    assert.ok(createRes.body.id);
+
+    const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
+    process.env.P5_ATOMIC_TX_TEST_ABORT = "before_update_audit";
+
+    const auditBefore = await admin.auditEvent.count({
+      where: { tenantId: tenantC, action: AUDIT_ACTION_TOUR_UPDATED },
+    });
+    const tourBefore = await admin.tour.findUnique({
+      where: { tenantId_id: { tenantId: tenantC, id: createRes.body.id! } },
+    });
+    assert.ok(tourBefore);
+    assert.equal(tourBefore.rowVersion, 1);
+
+    const patchRes = await patchTour(listener, tenantC, createRes.body.id!, {
+      rowVersion: 1,
+      data: {
+        basics: { title: "rollback update" },
+        details: { summary: "abort" },
+      },
+    });
+    assert.equal(patchRes.status, 500, "HTTP maps TX abort to opaque internal_error");
+
+    const tourAfter = await admin.tour.findUnique({
+      where: { tenantId_id: { tenantId: tenantC, id: createRes.body.id! } },
+    });
+    assert.ok(tourAfter);
+    assert.equal(tourAfter.rowVersion, 1, "aborted TX must not commit tour update");
+    assert.equal(tourAfter.title, "P5.5 audit trail", "canonical projection must roll back");
+    const auditAfter = await admin.auditEvent.count({
+      where: { tenantId: tenantC, action: AUDIT_ACTION_TOUR_UPDATED },
+    });
+    assert.equal(auditAfter, auditBefore, "aborted TX must not commit TOUR_UPDATED audit row");
+
+    process.env.P5_ATOMIC_TX_TEST_ABORT = priorAbort;
+    await admin.$executeRawUnsafe(
+      `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+    );
+    try {
+      await admin.auditEvent.deleteMany({ where: { tenantId: tenantC } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId: tenantC } });
+      await admin.tour.deleteMany({ where: { tenantId: tenantC } });
+      await admin.tenant.delete({ where: { id: tenantC } });
+    } finally {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+      );
+    }
+  });
+
   it("valid tour creation writes TOUR_CREATED audit row in same tenant", async () => {
     const auditBefore = await admin.auditEvent.count({ where: { tenantId: tenantA } });
 
@@ -208,7 +357,10 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
         `;
       return tx.auditEvent.findMany();
     });
-    assert.equal(ownRows.length, 0, "tenant B has no audit rows in this fixture");
+    assert.ok(
+      ownRows.every((row) => row.tenantId === tenantB),
+      "tenant B session must only return tenant B audit rows"
+    );
   });
 
   it("audit_events rows are immutable at database level", async () => {
@@ -229,15 +381,26 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
   });
 
   it("atomic TX rollback omits audit when tour write aborts before audit", async () => {
+    const tenantD = integrationTenantId();
+    await admin.tenant.create({
+      data: {
+        id: tenantD,
+        subdomain: `p55-cr-${tenantD.slice(0, 8)}`,
+        workspaceType: "starter",
+        theme: {},
+      },
+    });
+
     const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
     process.env.P5_ATOMIC_TX_TEST_ABORT = "before_outbox";
 
-    const auditBefore = await admin.auditEvent.count({ where: { tenantId: tenantB } });
+    const auditBefore = await admin.auditEvent.count({ where: { tenantId: tenantD } });
+    const toursBefore = await admin.tour.count({ where: { tenantId: tenantD } });
 
     await assert.rejects(
       () =>
         runWithTenantContext(
-          tenantB,
+          tenantD,
           async () => {
             const service = new ToursService(
               new CanonicalTourService(
@@ -248,7 +411,7 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
             return service.createTour(
               {
                 userId: "audit-user-1",
-                tenantId: tenantB,
+                tenantId: tenantD,
                 role: "admin",
                 status: "ACTIVE",
                 workspaceId: "ws-1",
@@ -261,11 +424,24 @@ describe("5.5 audit events (integration)", { skip: !hasDatabase, concurrency: fa
       /P5_ATOMIC_TX_TEST_ABORT/
     );
 
-    const toursAfter = await admin.tour.count({ where: { tenantId: tenantB } });
-    const auditAfter = await admin.auditEvent.count({ where: { tenantId: tenantB } });
-    assert.equal(toursAfter, 0, "aborted TX must not commit tour");
+    const toursAfter = await admin.tour.count({ where: { tenantId: tenantD } });
+    const auditAfter = await admin.auditEvent.count({ where: { tenantId: tenantD } });
+    assert.equal(toursAfter, toursBefore, "aborted TX must not commit tour");
     assert.equal(auditAfter, auditBefore, "aborted TX must not commit audit row");
 
     process.env.P5_ATOMIC_TX_TEST_ABORT = priorAbort;
+    await admin.$executeRawUnsafe(
+      `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+    );
+    try {
+      await admin.auditEvent.deleteMany({ where: { tenantId: tenantD } });
+      await admin.outboxEvent.deleteMany({ where: { tenantId: tenantD } });
+      await admin.tour.deleteMany({ where: { tenantId: tenantD } });
+      await admin.tenant.delete({ where: { id: tenantD } });
+    } finally {
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+      );
+    }
   });
 });

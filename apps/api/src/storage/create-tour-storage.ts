@@ -61,3 +61,12 @@ export function createTourStorageRepository(): TourStorageImplementation {
 export function useAtomicCanonicalPersist(): boolean {
   return resolveStorageDriver() === "prisma" && Boolean(process.env.DATABASE_URL?.trim());
 }
+
+/**
+ * Forensic storage — Postgres atomic TX with `audit_events` + outbox SoT (DEC-045 / AUDIT-GAP-01).
+ * Memory driver is intentionally non-forensic (unit/local speed); forbidden in production.
+ * @see docs/phase-4/appendices/storage-driver-truth.md
+ */
+export function isForensicStorageDriver(): boolean {
+  return useAtomicCanonicalPersist();
+}

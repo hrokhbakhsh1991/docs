@@ -29,6 +29,17 @@ corrects_doc_drift: "TOUR_STORAGE env name in older subphase drafts"
 
 Memory driver partitions reads by `tenantId` argument but does **not** provide Postgres RLS, audit append-only tables, or outbox SoT — never use on public ingress.
 
+## Forensic vs non-forensic (AUDIT-GAP-01 / DEC-045)
+
+| Driver                    | `isForensicStorageDriver()` | `audit_events` on `POST /tours`            | `audit_events` on `PATCH /tours`                | Boot in `NODE_ENV=production`                    |
+| ------------------------- | --------------------------- | ------------------------------------------ | ----------------------------------------------- | ------------------------------------------------ |
+| `memory`                  | **false**                   | **No** — `persistViaScopedRepository` only | **No** — scoped repo update only                | **Fail** — `PRODUCTION_STORAGE_DRIVER_FORBIDDEN` |
+| `prisma` + `DATABASE_URL` | **true**                    | **Yes** — `TOUR_CREATED` in atomic TX      | **Yes** — `TOUR_UPDATED` in atomic TX (DEC-047) | **Pass** when admin URL + RLS checks succeed     |
+
+**Invariant:** `appendAuditEvent` is reachable only on the Prisma atomic path (`useAtomicCanonicalPersist()`). CI guard `guard:forensic-storage` locks boot chain (`main.ts` → `assertProductionRuntimeIntegrity` → `assertProductionStorageDriver`) and forbids stray `appendAuditEvent` call sites outside `atomic-canonical-tour-persist.ts`.
+
+**Deploy checklist:** Production must set `STORAGE_DRIVER=prisma`, non-empty `DATABASE_URL`, and distinct `DATABASE_URL_ADMIN`. Running integration tests with `memory` is valid for speed but is **non-forensic** — do not treat green CI as audit coverage unless Postgres tier ran.
+
 **Role split:** `DATABASE_URL` → `app_tour` (or equivalent `NOBYPASSRLS` role); `DATABASE_URL_ADMIN` → owner/postgres for migrations, outbox claim, registry reads. Never point `DATABASE_URL` at a superuser or bypass role (**DM-CT-02**).
 
 **Phase 4.2 exit (P4-E-DATA-01):** document and CI prove tours survive restart with `STORAGE_DRIVER=prisma` + migrations applied.

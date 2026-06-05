@@ -15,6 +15,7 @@ contracts: no new mandatory P4-E-* for merge
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | **Correlation ID**             | Propagate `x-request-id` / `traceparent` on API ingress; include in structured logs                                       | Code review + **recommended** middleware smoke (see below) |
 | **Structured logging**         | JSON logs — shared SIEM stream uses `tenant_hash` + stable codes only (DEC-037); never log secrets or raw `Error.message` | `log-privacy.spec.ts`, `error-enrichment.spec.ts`          |
+| **Zero `console` in `src/`**   | Production runtime forbids `console.*` under `apps/api/src/` (Phase 2 LOG-V-01 / STD-BYPASS-02)                           | `guard-no-console-in-src.mjs`, `graceful-shutdown.spec.ts` |
 | **Fail-closed tenant context** | Missing tenant → 401/403 before handler (P4-E-TENANT-01)                                                                  | tenant-security.spec.ts                                    |
 | **Event envelope metadata**    | `tenantId` on every domain event (P4-E-EVT-01)                                                                            | events.spec.ts                                             |
 | **Health/readiness**           | `/health` liveness; readiness includes Postgres when `DATABASE_URL` set                                                   | ops runbook                                                |
@@ -59,15 +60,15 @@ correlation_id_smoke:
 
 ## Shared-stream fields (DEC-037 / LOG-COL-01…04)
 
-| Event                            | Structured fields                                          | Never on shared stream                             |
-| -------------------------------- | ---------------------------------------------------------- | -------------------------------------------------- |
-| `http.error.internal`            | `correlation_id`, `tenant_hash`, `error_code`              | `tenant_id`, `message`, `stack`                    |
-| `projection.inconsistency`       | `tenant_hash`, `domain_event_id`, `reason_code`            | `tenantId`, `tourId`, `reason`                     |
-| `graceful_shutdown.failed`       | `code`                                                     | `console.*`, interpolated error text               |
-| `client.validation_failed`       | `error_code`, `tenant_hash`, `correlation_id`              | `message`, `detail`, raw `tenant_id` (DEC-038)     |
-| `client.schema_version_mismatch` | `error_code`, `tenant_hash`, `correlation_id`              | version text in log fields                         |
-| `http.request`                   | `http.method`, `http.path` (normalized), `http.statusCode` | raw query strings, UUID segments in path (DEC-042) |
-| `outbox.relay.error`             | `error_code`                                               | `message`, raw Prisma/SQL text (DEC-042)           |
+| Event                            | Structured fields                                                                                           | Never on shared stream                             |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `http.error.internal`            | `correlation_id`, `tenant_hash`, `error_code`                                                               | `tenant_id`, `message`, `stack`                    |
+| `projection.inconsistency`       | `tenant_hash`, `domain_event_id`, `reason_code`                                                             | `tenantId`, `tourId`, `reason`                     |
+| `graceful_shutdown.failed`       | `code`                                                                                                      | `console.*`, interpolated error text               |
+| `client.validation_failed`       | `error_code`, `tenant_hash`, `correlation_id`                                                               | `message`, `detail`, raw `tenant_id` (DEC-038)     |
+| `client.schema_version_mismatch` | `error_code`, `tenant_hash`, `correlation_id`                                                               | version text in log fields                         |
+| `http.request`                   | `http.method`, `http.path` (normalized), `http.statusCode`, `correlation_id` when trace ALS bound (DEC-048) | raw query strings, UUID segments in path (DEC-042) |
+| `outbox.relay.error`             | `error_code`                                                                                                | `message`, raw Prisma/SQL text (DEC-042)           |
 
 Env: `LOG_HASH_KEY` (or `AUDIT_PSEUDONYM_KEY`) for HMAC tenant pseudonym in logs.
 

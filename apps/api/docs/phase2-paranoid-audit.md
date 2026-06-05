@@ -11,51 +11,199 @@
 **Role:** Adversarial static + behavioral review (assume malicious tenant, noisy neighbor, misconfigured deploy, and headerless clients).  
 **Verdict:** **Conditionally acceptable for Phase 2 integration work** on Postgres with correlation headers; **not signed off for production forensics/billing** until Must-Fix items land.
 
-### Trust Score: **78 / 100**
+### Trust Score: **90 / 100** (steps 1–7 closed — Fix-next complete)
 
-| Pillar (weight)                  |       Score | Rationale                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------------- | ----------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Observability coverage** (50%) | **38 / 50** | Strong pino contract (**OBS-LOG-01**), opaque 500/503 (**ERR-PASS-01**), labeled metrics (**MET-OK-01**), deep test matrix (`test/0-security/*`, `test/2-observability/*`). Gaps: trace split-brain (**TRACE-REGEN-01**), access logs without `traceId` (**TRACE-LOST-01**), outbox rows without HTTP correlation (**TRACE-LOST-03**), audit limited to create-on-Prisma (**AUDIT-GAP-01/02**). |
-| **Leak resistance** (50%)        | **40 / 50** | HTTP handler clears ALS per request (**verify-als-request-cleanup** PASS); no stack/SQL in tenant 500 bodies; tenant metrics not unlabeled today. Deductions: production **console** on shutdown (**LOG-V-01**), headerless correlation mismatch (**TRACE-REGEN-01**), memory driver forensic hole (**AUDIT-GAP-01**), scheduler footgun if fire-and-forget added (**ALS-FOOTGUN-01**).         |
+| Pillar (weight)                  |       Score | Rationale                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ----------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Observability coverage** (50%) | **46 / 50** | Phase 2 Fix-next complete through DEC-049: structured logging, trace correlation (HTTP + outbox), forensic audit create/update, access log `correlation_id`, tenant-scoped metrics guard (**MET-API-01**). Residual: Phase 7 export / relay trace (**TRACE-LOST-02**).                                                      |
+| **Leak resistance** (50%)        | **44 / 50** | HTTP handler clears ALS per request (**verify-als-request-cleanup** PASS); no stack/SQL in tenant 500 bodies; tenant metrics fail-closed on missing `tenant_id` (DEC-049); **zero `console.*` in `src/`** (DEC-043); production cannot boot on memory driver (DEC-045). Deductions: scheduler footgun (**ALS-FOOTGUN-01**). |
 
 **Score bands (reference):** 90–100 production-ready · 75–89 ship with Must-Fix · 60–74 material rework · under 60 do not trust.
 
 ### Phase 2 status summary
 
-| Area                       | Status    | Headline                                                                                                              |
-| -------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Structured logging**     | **Amber** | Request path uses pino; **one** production `console.error` on shutdown (**LOG-V-01**).                                |
-| **Trace / correlation**    | **Amber** | DB GUC + ALS propagation tested; **double** `resolveTraceIdFromHeaders` without ingress headers (**TRACE-REGEN-01**). |
-| **Metrics / usage**        | **Green** | All live counters carry `tenant_id`; **OBS-MET-01** guards unlabeled series.                                          |
-| **HTTP error surface**     | **Green** | 500/503 opaque; validation 400 intentional; internal routes minor bypass (**ERR-BYPASS-01**).                         |
-| **Audit (`audit_events`)** | **Amber** | `TOUR_CREATED` in Prisma TX only; **no** update audit; **no** rows on memory driver.                                  |
-| **ALS / tenant isolation** | **Green** | No post-request ALS on HTTP listener; concurrent burst clean; middleware does not fork context.                       |
-| **Log backpressure**       | **Green** | 1000× `/health` burst: no client latency regression attributable to logging (**LOG-BP-01**).                          |
-| **Automated evidence**     | **Green** | 15+ targeted specs + `scripts/verify-als-request-cleanup.ts` + `scripts/log-backpressure-burst.ts`.                   |
+| Area                       | Status    | Headline                                                                                                               |
+| -------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Structured logging**     | **Green** | Request path uses pino; **LOG-V-01** closed — `graceful_shutdown.failed` via pino; `guard:no-console-src` (DEC-043).   |
+| **Trace / correlation**    | **Green** | Single-resolve trace at `app.ts`; access logs carry `correlation_id` (**TRACE-LOST-01** closed DEC-048).               |
+| **Metrics / usage**        | **Green** | Tenant-scoped counters fail-closed without `tenant_id` (**MET-API-01** closed DEC-049); **OBS-MET-01** spec.           |
+| **HTTP error surface**     | **Green** | 500/503 opaque; validation 400 intentional; internal routes minor bypass (**ERR-BYPASS-01**).                          |
+| **Audit (`audit_events`)** | **Green** | `TOUR_CREATED` + `TOUR_UPDATED` in Prisma atomic TX (DEC-047); memory driver **non-forensic** by design (dev/CI only). |
+| **ALS / tenant isolation** | **Green** | No post-request ALS on HTTP listener; concurrent burst clean; middleware does not fork context.                        |
+| **Log backpressure**       | **Green** | 1000× `/health` burst: no client latency regression attributable to logging (**LOG-BP-01**).                           |
+| **Automated evidence**     | **Green** | 15+ targeted specs + `scripts/verify-als-request-cleanup.ts` + `scripts/log-backpressure-burst.ts`.                    |
 
 **Strengths (keep):** Fail-closed tenant rate limiter; append-only `audit_events` trigger; RLS-aligned audit reads; error interceptor centralization; minimal production log surface (7 pino sites).
 
-**Residual risk (accept or schedule):** Phase 7 outbox trace continuation (**TRACE-LOST-02**); metrics export guardrails (**MET-API-01**); internal route correlation (**ERR-BYPASS-01**); CI grep for `console.` in `src/`.
+**Residual risk (accept or schedule):** Phase 7 outbox trace continuation (**TRACE-LOST-02**); internal route correlation (**ERR-BYPASS-01**).
 
 ### Must-Fix list (blocks Red Team sign-off for production)
 
 These are **P0** or production-impacting **P1** items — fix before calling Phase 2 observability “closed” for prod.
 
-| #     | ID                                           | Action                                                                                                                                                          | File / area                                     | Why Must-Fix                                                                                                          |
-| ----- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **1** | **LOG-V-01** / **STD-BYPASS-02**             | Replace `console.error(\`…${message}\`)`with structured`logger.error({ event, code }, static msg)`; do not interpolate raw `Error.message` to stderr.           | `src/server/graceful-shutdown.ts:69`            | Only production unstructured sink; may leak Prisma/SQL/path text on SIGTERM.                                          |
-| **2** | **TRACE-REGEN-01** / **TRACE-CONTEXT-SPLIT** | Resolve ingress trace **once** in `app.ts` and pass into `runWithHttpRequestContext` (remove second `resolveTraceIdFromHeaders` in `bind-request-context.ts`).  | `app.ts`, `http/bind-request-context.ts`        | Headerless clients get **different** trace ids for DB work vs error `correlationId` — breaks incident reconstruction. |
-| **3** | **AUDIT-GAP-01**                             | Enforce `STORAGE_DRIVER=prisma` + `DATABASE_URL` in production (fail boot or reject writes if audit required); document that memory driver is **non-forensic**. | deploy config / `create-tour-storage.ts` policy | Creates/updates produce **zero** `audit_events` rows — compliance blind spot if prod ever runs memory.                |
+| #     | ID                                           | Action                                                                                                                                                       | File / area                                                               | Why Must-Fix                                                                                                          |
+| ----- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **1** | **LOG-V-01** / **STD-BYPASS-02**             | **Done** (DEC-037 + DEC-043) — `logger.error({ event: "graceful_shutdown.failed", code: "GRACEFUL_SHUTDOWN_FAILED" })`; `guard:no-console-src` locks `src/`. | `src/server/graceful-shutdown.ts`                                         | Was only production unstructured sink; may leak Prisma/SQL/path text on SIGTERM.                                      |
+| **2** | **TRACE-REGEN-01** / **TRACE-CONTEXT-SPLIT** | **Done** (DEC-044) — `runWithHttpRequestContext` reuses `getActiveTraceId()` when outer `app.ts` bind is active.                                             | `http/bind-request-context.ts`                                            | Headerless clients get **different** trace ids for DB work vs error `correlationId` — breaks incident reconstruction. |
+| **3** | **AUDIT-GAP-01**                             | **Done** (DEC-045) — production boot fail-closed on memory; `isForensicStorageDriver()`; `guard:forensic-storage`; memory documented **non-forensic**.       | `create-tour-storage.ts` · `production-runtime-env.ts` · deploy checklist | Was compliance blind spot if prod ran memory — now boot throws `PRODUCTION_STORAGE_DRIVER_FORBIDDEN`.                 |
+
+### Phase 2 closure — step 1 (DEC-043)
+
+| Gate                      | Status   | Evidence                                                 |
+| ------------------------- | -------- | -------------------------------------------------------- |
+| LOG-V-01 shutdown sink    | **Done** | `graceful-shutdown.ts` — pino `graceful_shutdown.failed` |
+| STD-BYPASS-02 prod bypass | **Done** | Zero `console.*` in `src/` runtime                       |
+| STD-BYPASS-01 CI lock     | **Done** | `pnpm run guard:no-console-src`                          |
+| Regression spec           | **Done** | `graceful-shutdown.spec.ts`                              |
+
+```bash
+cd apps/api && pnpm run guard:no-console-src
+node --import tsx --test src/server/graceful-shutdown.spec.ts
+```
+
+**Must-Fix open after step 1:** **2** (TRACE-REGEN-01, AUDIT-GAP-01).
+
+### Phase 2 closure — step 2 (DEC-044)
+
+| Gate                          | Status   | Evidence                                             |
+| ----------------------------- | -------- | ---------------------------------------------------- |
+| TRACE-REGEN-01 single resolve | **Done** | `bind-request-context.ts` reuses outer trace ALS     |
+| TRACE-CONTEXT-SPLIT           | **Done** | No second `randomUUID()` on headerless `/tours` path |
+| Regression spec               | **Done** | `bind-request-context.spec.ts`                       |
+
+```bash
+cd apps/api
+node --import tsx --test src/http/bind-request-context.spec.ts
+node --import tsx --test test/2-observability/trace-isolation.spec.ts
+```
+
+**Must-Fix open after step 2:** **1** (AUDIT-GAP-01).
+
+### Phase 2 closure — step 3 (DEC-045)
+
+| Gate                             | Status   | Evidence                                                                                                                                       |
+| -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production prisma + DATABASE_URL | **Done** | `assertProductionStorageDriver()` in factory + `assertProductionRuntimeIntegrity()` at boot                                                    |
+| Memory non-forensic contract     | **Done** | `isForensicStorageDriver()` · [`storage-driver-truth.md`](../../../docs/phase-4/appendices/storage-driver-truth.md) § Forensic vs non-forensic |
+| CI lock                          | **Done** | `pnpm run guard:forensic-storage`                                                                                                              |
+| Regression spec                  | **Done** | `forensic-storage-driver.spec.ts` · `create-tour-storage.spec.ts` · `production-runtime-env.spec.ts`                                           |
+
+```bash
+cd apps/api
+pnpm run guard:forensic-storage
+node --import tsx --test src/storage/forensic-storage-driver.spec.ts
+node --import tsx --test src/storage/create-tour-storage.spec.ts
+node --import tsx --test src/server/production-runtime-env.spec.ts
+```
+
+**Must-Fix open after step 3:** **0** — all Phase 2 Must-Fix items closed. Fix-next (AUDIT-GAP-02, TRACE-LOST-\*) remains for full observability parity.
+
+### Phase 2 closure — step 4 (DEC-046)
+
+| Gate                              | Status   | Evidence                                                                  |
+| --------------------------------- | -------- | ------------------------------------------------------------------------- |
+| Outbox HTTP correlation on create | **Done** | `correlationId: getActiveTraceId()` in `atomic-canonical-tour-persist.ts` |
+| Null when trace ALS absent        | **Done** | `enqueue-domain-event.ts` maps `undefined` → `NULL`                       |
+| CI lock                           | **Done** | `pnpm run guard:outbox-correlation`                                       |
+| Regression spec                   | **Done** | `test/2-observability/outbox-http-correlation.spec.ts` (Postgres tier)    |
+
+```bash
+cd apps/api
+pnpm run guard:outbox-correlation
+DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db' \
+  NODE_ENV=test STORAGE_DRIVER=prisma \
+  node --import tsx --test test/2-observability/outbox-http-correlation.spec.ts
+```
+
+**Fix-next open after step 4:** **3** (AUDIT-GAP-02, TRACE-LOST-01, MET-API-01). STD-BYPASS-01 closed in step 1.
+
+### Phase 2 closure — step 5 (DEC-047)
+
+| Gate                        | Status   | Evidence                                                                            |
+| --------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| TOUR_UPDATED audit on PATCH | **Done** | `persistTourUpdateAtomically` in `atomic-canonical-tour-persist.ts`                 |
+| Service routing             | **Done** | `CanonicalTourService.updateTourInActiveContext` when `useAtomicCanonicalPersist()` |
+| CI lock                     | **Done** | `pnpm run guard:tour-update-audit`                                                  |
+| Regression spec             | **Done** | `5.5-audit-events.spec.ts` — PATCH + rollback cases                                 |
+
+```bash
+cd apps/api
+pnpm run guard:tour-update-audit
+DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db' \
+  NODE_ENV=test STORAGE_DRIVER=prisma \
+  node --import tsx --test test/5.5-audit-events.spec.ts
+```
+
+**Fix-next open after step 5:** **2** (TRACE-LOST-01, MET-API-01).
+
+### Phase 2 closure — step 6 (DEC-048)
+
+| Gate                   | Status   | Evidence                                                                 |
+| ---------------------- | -------- | ------------------------------------------------------------------------ |
+| Access log correlation | **Done** | `correlation_id` on `http.request` from `getActiveTraceId()` in `finish` |
+| CI lock                | **Done** | `pnpm run guard:http-access-trace`                                       |
+| Regression spec        | **Done** | `test/2-observability/access-log-correlation.spec.ts`                    |
+
+```bash
+cd apps/api
+pnpm run guard:http-access-trace
+NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test test/2-observability/access-log-correlation.spec.ts
+```
+
+**Fix-next open after step 6:** **1** (MET-API-01).
+
+### Phase 2 closure — step 7 (DEC-049)
+
+| Gate                      | Status   | Evidence                                                              |
+| ------------------------- | -------- | --------------------------------------------------------------------- |
+| Tenant metric label guard | **Done** | `TENANT_SCOPED_METRIC_NAMES` + runtime `METRIC_TENANT_LABEL_REQUIRED` |
+| CI lock                   | **Done** | `pnpm run guard:tenant-metrics-labels`                                |
+| Regression spec           | **Done** | `metrics.spec.ts` · `tenant-metrics.spec.ts`                          |
+
+```bash
+cd apps/api
+pnpm run guard:tenant-metrics-labels
+node --import tsx --test src/observability/metrics.spec.ts test/2-observability/tenant-metrics.spec.ts
+```
+
+**Fix-next open after step 7:** **0** — Phase 2 observability parity complete (steps 1–7).
+
+### Phase 2 closure — step 8 (DEC-050)
+
+| Gate                   | Status   | Evidence                                                 |
+| ---------------------- | -------- | -------------------------------------------------------- |
+| Formal regression gate | **Done** | `pnpm run phase-2:regression-gate`                       |
+| Artifact               | **Done** | `test/reliability/phase-2-regression-gate.last-run.json` |
+| Meta spec              | **Done** | `test/reliability/phase-2-regression-gate.spec.ts`       |
+
+```bash
+cd apps/api
+pnpm run phase-2:regression-gate
+# Postgres tier:
+DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db' pnpm run phase-2:regression-gate
+```
+
+### Phase 2 closure sign-off (DEC-051)
+
+| Metric              | Value                                             |
+| ------------------- | ------------------------------------------------- |
+| **Trust score**     | **90 / 100** (production-ready band)              |
+| **Must-Fix**        | **0** open                                        |
+| **Fix-next**        | **0** open                                        |
+| **Regression gate** | `phase-2:regression-gate`                         |
+| **Verdict**         | **Phase 2 observability parity closed** for trunk |
+
+**Scheduled (not blockers):** TRACE-LOST-02 (Phase 7 relay), ERR-BYPASS-01 (internal routes), MET-VALID-01 (empty `tenant_id` on metrics), Phase 3 slow-sink backpressure (FOF-LOG).
 
 ### Fix-next (P1 — not Must-Fix, required for full Phase 2 observability parity)
 
-| ID                | Action                                                                             |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| **TRACE-LOST-03** | Pass `correlationId: getActiveTraceId()` into `enqueueOutboxEvent` on tour create. |
-| **AUDIT-GAP-02**  | `appendAuditEvent` for `PATCH /tours` (`TOUR_UPDATED`) in same TX as update.       |
-| **TRACE-LOST-01** | Add `traceId` / `correlation_id` to `logHttpRequest` structured fields.            |
-| **STD-BYPASS-01** | CI grep: forbid `console.` under `apps/api/src/`.                                  |
-| **MET-API-01**    | CI/lint: tenant-scoped `metricsRegistry.increment` must include `tenant_id`.       |
+| ID                | Action                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| **TRACE-LOST-03** | **Done** (DEC-046) — `correlationId: getActiveTraceId()` on tour create outbox enqueue. |
+| **AUDIT-GAP-02**  | **Done** (DEC-047) — `TOUR_UPDATED` in same TX as `PATCH /tours` on Prisma path.        |
+| **TRACE-LOST-01** | **Done** (DEC-048) — `correlation_id` on `http.request` access logs.                    |
+| **STD-BYPASS-01** | **Done** (DEC-043) — `guard:no-console-src` forbids `console.` under `apps/api/src/`.   |
+| **MET-API-01**    | **Done** (DEC-049) — tenant-scoped `increment` requires `tenant_id` label.              |
 
 ### Verification commands (regression pack)
 
@@ -254,23 +402,23 @@ The GUC is **transaction-local** (`true` = `SET LOCAL` semantics). It is visible
 
 **Memory driver:** ALS still applies; GUC calls are skipped when no Prisma/Postgres.
 
-**Outbox row:** `enqueueOutboxEvent` in `atomic-canonical-tour-persist.ts` does **not** pass `correlationId`; `outbox_events.correlation_id` is always `NULL` on insert today (only `enqueue-domain-event.ts` supports the column).
+**Outbox row:** `enqueueOutboxEvent` in `atomic-canonical-tour-persist.ts` passes `correlationId: getActiveTraceId()` (DEC-046). `NULL` only when trace ALS is unbound (scripts / background).
 
 ---
 
 ### Async boundaries — loss, regeneration, or split-brain
 
-| ID                      | Severity            | Boundary                                                                                | Behavior                                                                                                                                                   | Impact                                                                                                                                                                                                                                                                                                                              |
-| ----------------------- | ------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **TRACE-REGEN-01**      | **High**            | `app.ts` outer + `bind-request-context.ts` inner both call `resolveTraceIdFromHeaders`  | When **no** ingress correlation headers, each call executes `randomUUID()` independently                                                                   | **Split-brain:** inner ALS id is used for `withCanonicalTransaction` GUC during `/tours` work; outer ALS id is active again after `runWithHttpRequestContext` returns. Route-level `handleHttpError` in `tours.routes.ts` runs **after** inner ALS exits → `correlationId` on 4xx/5xx may be **outer** id ≠ id used during persist. |
-| **TRACE-REGEN-02**      | **Medium**          | `resolveCorrelationId()` in `error-interceptor.ts`                                      | `getActiveTraceId() ?? randomUUID()`                                                                                                                       | Any `handleHttpError` invoked **outside** trace ALS (or after ALS cleared) emits a **new** correlation id unrelated to request work.                                                                                                                                                                                                |
-| **TRACE-LOST-01**       | **Low**             | `res.on("finish")` in `request-logging.ts`                                              | Handler registers callback during request; Node ALS generally propagates to `finish` in current engine, but **`logHttpRequest` does not record `traceId`** | Support cannot correlate access logs with trace ALS / `x-correlation-id` without adding a structured field.                                                                                                                                                                                                                         |
-| **TRACE-LOST-02**       | **Info** (deferred) | `setInterval` outbox relay tick (`start-outbox-relay.ts`)                               | No `runWithTraceContext`; `getActiveTraceId()` is `undefined` in relay `withTenantRls`                                                                     | Relay publish path does not set `app.current_trace_id`; aligns with `docs/phase-5/appendices/trace-request-context.md` (outbox continuation → Phase 7).                                                                                                                                                                             |
-| **TRACE-LOST-03**       | **Medium**          | Outbox enqueue                                                                          | `correlationId` omitted at `atomic-canonical-tour-persist.ts` L91–98                                                                                       | DB `outbox_events.correlation_id` never stores HTTP trace; relay cannot restore ingress correlation from row data.                                                                                                                                                                                                                  |
-| **TRACE-CONTEXT-SPLIT** | **Medium**          | `tours.routes.ts` try/catch → `handleHttpError`                                         | Errors caught at route boundary run after nested ALS teardown                                                                                              | With headers present, outer/inner ids match; **without headers**, see TRACE-REGEN-01.                                                                                                                                                                                                                                               |
-| **TRACE-SCHED-01**      | **Pass**            | `validation-scheduler.ts` (`setImmediate` / `Promise` chain)                            | Task scheduled synchronously from request `await runScheduledValidation`                                                                                   | `trace-isolation.spec.ts` asserts ALS + GUC survive `setImmediate` and nested `await` through repo layer.                                                                                                                                                                                                                           |
-| **TRACE-IDEM-01**       | **Pass**            | Idempotency poll `setTimeout(25ms)` in `http-idempotency.ts`                            | Poll loops run inside same `execute()` closure while HTTP ALS still held                                                                                   | Trace remains available for `withTenantRls` GUC on claim/update paths.                                                                                                                                                                                                                                                              |
-| **TRACE-TENANT-NEST**   | **Pass**            | `canonical-tour.service.ts` `runWithTenantContext` inside already-bound HTTP tenant ALS | Nested ALS with same `tenantId`                                                                                                                            | Does not disturb trace ALS (separate `AsyncLocalStorage` instances).                                                                                                                                                                                                                                                                |
+| ID                      | Severity             | Boundary                                                                                | Behavior                                                                                 | Impact                                                                                                                                                                                                                                                                                                                              |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TRACE-REGEN-01**      | **High**             | `app.ts` outer + `bind-request-context.ts` inner both call `resolveTraceIdFromHeaders`  | When **no** ingress correlation headers, each call executes `randomUUID()` independently | **Split-brain:** inner ALS id is used for `withCanonicalTransaction` GUC during `/tours` work; outer ALS id is active again after `runWithHttpRequestContext` returns. Route-level `handleHttpError` in `tours.routes.ts` runs **after** inner ALS exits → `correlationId` on 4xx/5xx may be **outer** id ≠ id used during persist. |
+| **TRACE-REGEN-02**      | **Medium**           | `resolveCorrelationId()` in `error-interceptor.ts`                                      | `getActiveTraceId() ?? randomUUID()`                                                     | Any `handleHttpError` invoked **outside** trace ALS (or after ALS cleared) emits a **new** correlation id unrelated to request work.                                                                                                                                                                                                |
+| **TRACE-LOST-01**       | **Closed** (DEC-048) | `res.on("finish")` in `request-logging.ts`                                              | `logHttpRequest` records `correlation_id` from `getActiveTraceId()`                      | Access logs join error envelope and outbox correlation for incident reconstruction.                                                                                                                                                                                                                                                 |
+| **TRACE-LOST-02**       | **Info** (deferred)  | `setInterval` outbox relay tick (`start-outbox-relay.ts`)                               | No `runWithTraceContext`; `getActiveTraceId()` is `undefined` in relay `withTenantRls`   | Relay publish path does not set `app.current_trace_id`; aligns with `docs/phase-5/appendices/trace-request-context.md` (outbox continuation → Phase 7).                                                                                                                                                                             |
+| **TRACE-LOST-03**       | **Closed** (DEC-046) | Outbox enqueue on tour create                                                           | `correlationId: getActiveTraceId()` wired in `atomic-canonical-tour-persist.ts`          | HTTP create stores ingress trace on `outbox_events.correlation_id`; relay re-bind remains Phase 7 (**TRACE-LOST-02**).                                                                                                                                                                                                              |
+| **TRACE-CONTEXT-SPLIT** | **Medium**           | `tours.routes.ts` try/catch → `handleHttpError`                                         | Errors caught at route boundary run after nested ALS teardown                            | With headers present, outer/inner ids match; **without headers**, see TRACE-REGEN-01.                                                                                                                                                                                                                                               |
+| **TRACE-SCHED-01**      | **Pass**             | `validation-scheduler.ts` (`setImmediate` / `Promise` chain)                            | Task scheduled synchronously from request `await runScheduledValidation`                 | `trace-isolation.spec.ts` asserts ALS + GUC survive `setImmediate` and nested `await` through repo layer.                                                                                                                                                                                                                           |
+| **TRACE-IDEM-01**       | **Pass**             | Idempotency poll `setTimeout(25ms)` in `http-idempotency.ts`                            | Poll loops run inside same `execute()` closure while HTTP ALS still held                 | Trace remains available for `withTenantRls` GUC on claim/update paths.                                                                                                                                                                                                                                                              |
+| **TRACE-TENANT-NEST**   | **Pass**             | `canonical-tour.service.ts` `runWithTenantContext` inside already-bound HTTP tenant ALS | Nested ALS with same `tenantId`                                                          | Does not disturb trace ALS (separate `AsyncLocalStorage` instances).                                                                                                                                                                                                                                                                |
 
 ### Routes without inner `runWithHttpRequestContext`
 
@@ -305,8 +453,8 @@ The GUC is **transaction-local** (`true` = `SET LOCAL` semantics). It is visible
 | Priority | Action                                                                                                                                                       | IDs                                 |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
 | P0       | Resolve trace id **once** per HTTP request (e.g. only in `app.ts`) and pass into `runWithHttpRequestContext` — do not call `resolveTraceIdFromHeaders` twice | TRACE-REGEN-01, TRACE-CONTEXT-SPLIT |
-| P1       | Pass `correlationId: getActiveTraceId()` (or `requireActiveTraceId()`) into `enqueueOutboxEvent` on create                                                   | TRACE-LOST-03                       |
-| P2       | Add `traceId` / `correlation_id` to `logHttpRequest` structured payload from `getActiveTraceId()` inside `finish` (or bind child logger at request start)    | TRACE-LOST-01                       |
+| P1       | ~~Pass `correlationId` into `enqueueOutboxEvent` on create~~ **Done** (DEC-046)                                                                              | TRACE-LOST-03                       |
+| P2       | ~~Add `correlation_id` to `logHttpRequest`~~ **Done** (DEC-048)                                                                                              | TRACE-LOST-01                       |
 | P3       | Outbox relay: continue trace from `outbox_events.correlation_id` under `runWithTraceContext` per row (Phase 7)                                               | TRACE-LOST-02                       |
 
 ---
@@ -356,9 +504,9 @@ The registry is a **process-global singleton** (`metricsRegistry`). Multi-tenant
 ### Findings — label-less / cross-tenant aggregation risk
 
 | ID                | Severity             | Finding                                                                                                                  | Billing / usage reporting risk                                                                                                                                                                                                                                                                               |
-| ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ----------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
 | **MET-OK-01**     | —                    | All live counters include `tenant_id`                                                                                    | Per-tenant series are separable in `getMetric(name, { tenant_id })` and in `snapshot()` keys.                                                                                                                                                                                                                |
-| **MET-API-01**    | **Medium** (future)  | `increment(name, labels?)` allows **optional** labels; no compile-time or runtime guard for tenant-scoped metric names   | A future caller can open a **parallel unlabeled series** (e.g. `increment("tour_creation_count")`) that billing pipelines might scrape as the only series, or confuse with “platform total.”                                                                                                                 |
+| **MET-API-01**    | **Closed** (DEC-049) | `increment(name, labels?)` allowed optional labels on tenant-scoped names                                                | `TENANT_SCOPED_METRIC_NAMES` + runtime throw + `guard:tenant-metrics-labels`                                                                                                                                                                                                                                 | Unlabeled billing series blocked at increment time. |
 | **MET-EXPORT-01** | **Medium** (Phase 7) | `snapshot()` returns all series keys; no helper to sum by tenant or reject unlabeled business metrics                    | A naive exporter doing `sum(snapshot.values())` or aggregating all keys matching `tour_creation_count` **without** label parsing would **not** equal per-tenant usage; summing **only** unlabeled `tour_creation_count` would **under-report** all labeled creates (OBS-MET-01 asserts unlabeled = 0 today). |
 | **MET-VALID-01**  | **Low**              | `recordTourCreated(tenantId)` does not validate non-empty `tenantId`                                                     | Empty string would create `tenant_id=` series — still “labeled,” but could **collapse** bad data into one bucket or break tenant invoice joins.                                                                                                                                                              |
 | **MET-COV-01**    | **Low**              | `projection_inconsistency_total` is labeled but **not** covered by `tenant-metrics.spec.ts` (only `tour_creation_count`) | Regression could add unlabeled inconsistency increments without CI failure.                                                                                                                                                                                                                                  |
@@ -394,12 +542,12 @@ The registry is a **process-global singleton** (`metricsRegistry`). Multi-tenant
 
 ### Remediation hints (metrics / billing)
 
-| Priority | Action                                                                                                                 | IDs           |
-| -------- | ---------------------------------------------------------------------------------------------------------------------- | ------------- |
-| P1       | Add CI grep/lint: `metricsRegistry.increment` on tenant paths must include `tenant_id` or `tenantId` label (per HT-11) | MET-API-01    |
-| P2       | Extend OBS-MET test (or sibling spec) to assert `projection_inconsistency_total` has no unlabeled series               | MET-COV-01    |
-| P2       | `recordTourCreated`: `requireActiveTenantId()` or trim+reject empty `tenantId` before increment                        | MET-VALID-01  |
-| P3       | Phase 7 exporter: never promote unlabeled `tour_creation_count` as global usage; document `sum by (tenant_id)`         | MET-EXPORT-01 |
+| Priority | Action                                                                                                         | IDs           |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ------------- |
+| P1       | ~~Add CI grep/lint for tenant_id on tenant-scoped increments~~ **Done** (DEC-049)                              | MET-API-01    |
+| P2       | Extend OBS-MET test (or sibling spec) to assert `projection_inconsistency_total` has no unlabeled series       | MET-COV-01    |
+| P2       | `recordTourCreated`: `requireActiveTenantId()` or trim+reject empty `tenantId` before increment                | MET-VALID-01  |
+| P3       | Phase 7 exporter: never promote unlabeled `tour_creation_count` as global usage; document `sum by (tenant_id)` | MET-EXPORT-01 |
 
 ---
 
@@ -624,34 +772,34 @@ There is **no** Postgres trigger that auto-inserts audit rows when `tours` or `t
 
 ### Sensitive-mutation inventory vs audit coverage
 
-| Mutation                                            | Path                                                                       | `tenant_id` in audit?                               | `actor_id` / user?                              | Verdict                                                  |
-| --------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
-| **POST `/tours` create** (Prisma + `DATABASE_URL`)  | `persistNewTourAtomically` → `appendAuditEvent` same TX                    | Yes                                                 | Yes when HTTP context binds `auth.userId` → ALS | **Covered** (DEC-007)                                    |
-| **POST `/tours` create** (`STORAGE_DRIVER=memory`)  | `persistViaScopedRepository` → in-memory only                              | **N/A** (no `audit_events` table)                   | N/A                                             | **AUDIT-GAP-01**                                         |
-| **PATCH `/tours/:id` update**                       | `CanonicalTourService.updateTour` → `scopedRepo.update` / `tx.tour.update` | **No**                                              | **No**                                          | **AUDIT-GAP-02** (exposed tenant API; no `TOUR_UPDATED`) |
-| **GET `/tours`**                                    | read-only                                                                  | N/A                                                 | N/A                                             | No audit required                                        |
-| **POST `/internal/tenants/provision`**              | `ProvisioningService` → `prisma.tenant.create` (admin)                     | **No**                                              | **No**                                          | **AUDIT-GAP-03** (internal/dev; high privilege)          |
-| **`seedDevTenants` / tenant upsert**                | `prisma.tenant.upsert` (admin)                                             | **No**                                              | **No**                                          | **AUDIT-GAP-03**                                         |
-| **Outbox enqueue** (`TourCreated`)                  | `enqueueOutboxEvent` in same TX as create audit                            | Correlated via tour row, not duplicate audit action | N/A                                             | Covered indirectly on create                             |
-| **Outbox relay** (`processing` / `done` / `failed`) | `outbox-relay.ts` admin updates                                            | **No**                                              | **No**                                          | **AUDIT-GAP-04** (ops pipeline; defer Phase 7)           |
-| **`http_idempotency_records`** insert/update        | idempotency layer                                                          | **No**                                              | **No**                                          | **Info** — technical dedup store                         |
-| **`processed_domain_events`** insert                | consumer idempotency                                                       | **No**                                              | **No**                                          | **Info** — not an end-user mutation                      |
-| **Validation failure** (pre-TX)                     | throw before `withCanonicalTransaction`                                    | **No** (intentional)                                | **No**                                          | **Pass** per DEC-007 success-only policy                 |
+| Mutation                                            | Path                                                                    | `tenant_id` in audit?                               | `actor_id` / user?                              | Verdict                                         |
+| --------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| **POST `/tours` create** (Prisma + `DATABASE_URL`)  | `persistNewTourAtomically` → `appendAuditEvent` same TX                 | Yes                                                 | Yes when HTTP context binds `auth.userId` → ALS | **Covered** (DEC-007)                           |
+| **POST `/tours` create** (`STORAGE_DRIVER=memory`)  | `persistViaScopedRepository` → in-memory only                           | **N/A** (no `audit_events` table)                   | N/A                                             | **AUDIT-GAP-01**                                |
+| **PATCH `/tours/:id` update**                       | `persistTourUpdateAtomically` → `tx.tour.update` + `TOUR_UPDATED` audit | **Yes** (Prisma TX)                                 | **No**                                          | **Closed** DEC-047                              |
+| **GET `/tours`**                                    | read-only                                                               | N/A                                                 | N/A                                             | No audit required                               |
+| **POST `/internal/tenants/provision`**              | `ProvisioningService` → `prisma.tenant.create` (admin)                  | **No**                                              | **No**                                          | **AUDIT-GAP-03** (internal/dev; high privilege) |
+| **`seedDevTenants` / tenant upsert**                | `prisma.tenant.upsert` (admin)                                          | **No**                                              | **No**                                          | **AUDIT-GAP-03**                                |
+| **Outbox enqueue** (`TourCreated`)                  | `enqueueOutboxEvent` in same TX as create audit                         | Correlated via tour row, not duplicate audit action | N/A                                             | Covered indirectly on create                    |
+| **Outbox relay** (`processing` / `done` / `failed`) | `outbox-relay.ts` admin updates                                         | **No**                                              | **No**                                          | **AUDIT-GAP-04** (ops pipeline; defer Phase 7)  |
+| **`http_idempotency_records`** insert/update        | idempotency layer                                                       | **No**                                              | **No**                                          | **Info** — technical dedup store                |
+| **`processed_domain_events`** insert                | consumer idempotency                                                    | **No**                                              | **No**                                          | **Info** — not an end-user mutation             |
+| **Validation failure** (pre-TX)                     | throw before `withCanonicalTransaction`                                 | **No** (intentional)                                | **No**                                          | **Pass** per DEC-007 success-only policy        |
 
 ### Findings (missing or partial audit points)
 
-| ID               | Severity      | Gap                                                                                                     | Risk                                                                                                                                                                                      |
-| ---------------- | ------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AUDIT-OK-01**  | —             | Prisma create path writes `TOUR_CREATED` with `tenant_id` + `entity_id` in same TX as tour              | Forensic trail for production creates ([`5.5-audit-events.spec.ts`](../test/5.5-audit-events.spec.ts), [`audit-trail-integrity.spec.ts`](../test/security/audit-trail-integrity.spec.ts)) |
-| **AUDIT-OK-02**  | —             | Append-only trigger prevents tampering with audit store                                                 | Compliance ([`audit-trail-integrity.spec.ts`](../test/security/audit-trail-integrity.spec.ts))                                                                                            |
-| **AUDIT-OK-03**  | —             | RLS on `audit_events` mirrors `tours` tenant isolation                                                  | [`audit-log-security.spec.ts`](../test/2-observability/audit-log-security.spec.ts)                                                                                                        |
-| **AUDIT-GAP-01** | **P0** (prod) | **`STORAGE_DRIVER=memory`** (default in non-prod without `DATABASE_URL`) never calls `appendAuditEvent` | All creates/updates invisible to `audit_events`; pre-commit/CI may think audit is green while using memory                                                                                |
-| **AUDIT-GAP-02** | **P1**        | **`PATCH /tours`** mutates canonical data with **no** `appendAuditEvent`                                | Tenant data changes without actor/tenant forensic row; DEC-007 scoped create-only — **product gap** if updates must be audited                                                            |
-| **AUDIT-GAP-03** | **P2**        | **Tenant provisioning** (`tenants` insert/upsert) has no audit row                                      | Privileged mutation (new tenant boundary) not in `audit_events`; acceptable for Phase 4.3 dev-only if provision stays internal                                                            |
-| **AUDIT-GAP-04** | **P3**        | **Outbox status transitions** (relay) unlogged                                                          | Ops/debugging only unless billing/compliance requires event pipeline audit                                                                                                                |
-| **AUDIT-GAP-05** | **Low**       | **`actor_id` nullable** — no DB `NOT NULL`, no `user_id` alias column                                   | Service/background calls without `actorId` in ALS persist `actor_id = null` while `tenant_id` is set; HTTP `/tours` path sets actor when headers present                                  |
-| **AUDIT-GAP-06** | **Low**       | **No `actor_id` index**                                                                                 | Slow “all actions by user X” queries across tenants                                                                                                                                       |
-| **AUDIT-GAP-07** | **Info**      | **No DB trigger** on domain tables to enforce audit                                                     | Bypass only if code path skips `appendAuditEvent` (e.g. memory driver, update path) — not silently fixed by Postgres                                                                      |
+| ID               | Severity             | Gap                                                                                                     | Risk                                                                                                                                                                                      |
+| ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AUDIT-OK-01**  | —                    | Prisma create path writes `TOUR_CREATED` with `tenant_id` + `entity_id` in same TX as tour              | Forensic trail for production creates ([`5.5-audit-events.spec.ts`](../test/5.5-audit-events.spec.ts), [`audit-trail-integrity.spec.ts`](../test/security/audit-trail-integrity.spec.ts)) |
+| **AUDIT-OK-02**  | —                    | Append-only trigger prevents tampering with audit store                                                 | Compliance ([`audit-trail-integrity.spec.ts`](../test/security/audit-trail-integrity.spec.ts))                                                                                            |
+| **AUDIT-OK-03**  | —                    | RLS on `audit_events` mirrors `tours` tenant isolation                                                  | [`audit-log-security.spec.ts`](../test/2-observability/audit-log-security.spec.ts)                                                                                                        |
+| **AUDIT-GAP-01** | **P0** (prod)        | **`STORAGE_DRIVER=memory`** (default in non-prod without `DATABASE_URL`) never calls `appendAuditEvent` | All creates/updates invisible to `audit_events`; pre-commit/CI may think audit is green while using memory                                                                                |
+| **AUDIT-GAP-02** | **Closed** (DEC-047) | **`PATCH /tours`** on Prisma path appends `TOUR_UPDATED` in atomic TX                                   | Memory driver still non-forensic; no `TourUpdated` outbox yet                                                                                                                             |
+| **AUDIT-GAP-03** | **P2**               | **Tenant provisioning** (`tenants` insert/upsert) has no audit row                                      | Privileged mutation (new tenant boundary) not in `audit_events`; acceptable for Phase 4.3 dev-only if provision stays internal                                                            |
+| **AUDIT-GAP-04** | **P3**               | **Outbox status transitions** (relay) unlogged                                                          | Ops/debugging only unless billing/compliance requires event pipeline audit                                                                                                                |
+| **AUDIT-GAP-05** | **Low**              | **`actor_id` nullable** — no DB `NOT NULL`, no `user_id` alias column                                   | Service/background calls without `actorId` in ALS persist `actor_id = null` while `tenant_id` is set; HTTP `/tours` path sets actor when headers present                                  |
+| **AUDIT-GAP-06** | **Low**              | **No `actor_id` index**                                                                                 | Slow “all actions by user X” queries across tenants                                                                                                                                       |
+| **AUDIT-GAP-07** | **Info**             | **No DB trigger** on domain tables to enforce audit                                                     | Bypass only if code path skips `appendAuditEvent` (e.g. memory driver, update path) — not silently fixed by Postgres                                                                      |
 
 ### Identity mapping (`user_id` requirement)
 
@@ -672,7 +820,7 @@ Verified in integration test: `actor_id = "audit-user-1"` when `x-user-id` is se
 | Priority | Action                                                                                                             | IDs          |
 | -------- | ------------------------------------------------------------------------------------------------------------------ | ------------ |
 | P0       | Production: enforce `STORAGE_DRIVER=prisma` + `DATABASE_URL` (see production-runtime / phase-4 audits)             | AUDIT-GAP-01 |
-| P1       | Add `AUDIT_ACTION_TOUR_UPDATED` in atomic or RLS TX on `updateTour` (mirror create pattern)                        | AUDIT-GAP-02 |
+| P1       | ~~Add `AUDIT_ACTION_TOUR_UPDATED` on update~~ **Done** (DEC-047)                                                   | AUDIT-GAP-02 |
 | P2       | `appendAuditEvent` for `TENANT_PROVISIONED` on admin provision (separate action, admin actor from service context) | AUDIT-GAP-03 |
 | P3       | `requireActiveActorId()` on tenant-facing writes, or document system-null actor for jobs                           | AUDIT-GAP-05 |
 | P3       | Index `(tenant_id, actor_id, created_at)` if user-scoped audit queries are required                                | AUDIT-GAP-06 |
