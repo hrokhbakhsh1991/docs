@@ -42,7 +42,7 @@ pnpm run phase-6:gate
 
 ## E — Forensic
 
-[`phase-6-zero-debt-forensic-audit.mdoc`](../../audits/phase-6-zero-debt-forensic-audit.mdoc) · [`reports/phase-6-forensic-audit-2026-06-06.md`](../../../reports/phase-6-forensic-audit-2026-06-06.md) — **CLOSURE_PASS_FAST_TRACK** · purity **9.5**.
+[`phase-6-zero-debt-forensic-audit.mdoc`](../../audits/phase-6-zero-debt-forensic-audit.mdoc) · [`reports/phase-6-forensic-audit-2026-06-06.md`](../../../reports/phase-6-forensic-audit-2026-06-06.md) — **CLOSURE_PASS_BEHAVIORAL** · purity **9.9** (finance stub −0.1).
 
 ## Residual waivers (honesty)
 

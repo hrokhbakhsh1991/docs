@@ -1,0 +1,191 @@
+# Phase 6 — behavioral closure + nightly full gate (REQ-P6-022).
+# PR path: phase-4/5 gates; this workflow proves 6.6 smoke, 6.7 MinIO, and fast-closure on CI.
+
+name: phase-6-gate
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: phase-6-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-closure:
+    name: Phase 6 fast-closure (Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Phase 6 fast-closure
+        run: pnpm run phase-6:fast-closure
+
+      - name: Upload phase-6 gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-6-gate-reports
+          path: |
+            reports/phase-5-gate-*.json
+            reports/phase-6-gate-*.json
+          if-no-files-found: ignore
+
+  minio-photo:
+    name: Phase 6.7 MinIO round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9002:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio server /data
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:9002/minio/health/live; then exit 0; fi
+            sleep 2
+          done
+          echo "MinIO failed to become healthy" >&2
+          docker logs minio
+          exit 1
+
+      - name: Ensure bucket
+        run: pnpm run infra:minio:ensure-bucket
+
+      - name: MinIO photo spec (REQ-P6-016)
+        env:
+          MINIO_ENDPOINT: http://127.0.0.1:9002
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_BUCKET: app-tour-dev
+        run: pnpm run test:minio-photo
+
+  smoke-denali:
+    name: Phase 6.6 Playwright smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Build workspace (smoke servers)
+        run: pnpm run build
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @apps/web exec playwright install --with-deps chromium
+
+      - name: Denali smoke (SMK-P6-01..06)
+        run: pnpm --filter @apps/web run test:smoke:denali
