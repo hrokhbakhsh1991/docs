@@ -50,6 +50,12 @@ function rgBarrelHits() {
     ...SCAN_ROOTS,
   ];
   const r = spawnSync("rg", args, { cwd: REPO_ROOT, encoding: "utf8" });
+  if (r.error?.code === "ENOENT") {
+    console.error(
+      "audit-ui-primitives-boundary: ripgrep (rg) not found — install ripgrep (apt/brew) or add it to CI before doc-gate",
+    );
+    process.exit(2);
+  }
   if (r.status === 1 && !r.stdout?.trim()) {
     return [];
   }
