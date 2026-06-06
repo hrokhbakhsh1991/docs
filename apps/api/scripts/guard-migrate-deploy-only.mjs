@@ -39,6 +39,16 @@ for (const rel of workflowPaths) {
   if (!content.includes("migrate deploy") && !content.includes("db:migrate:deploy")) {
     violations.push(`${rel} must run migrate deploy`);
   }
+  if (content.includes("db:migrate:deploy") && !content.includes("DATABASE_URL_ADMIN")) {
+    violations.push(`${rel} must set DATABASE_URL_ADMIN for migrate deploy`);
+  }
+  if (
+    content.includes("db:migrate:deploy") &&
+    !content.includes('DATABASE_URL="$DATABASE_URL_ADMIN"') &&
+    !content.includes("DATABASE_URL=$DATABASE_URL_ADMIN")
+  ) {
+    violations.push(`${rel} must pass owner URL to migrate deploy (DATABASE_URL=$DATABASE_URL_ADMIN)`);
+  }
 }
 
 const ciDoc = read("docs/phase-4/ci.md");

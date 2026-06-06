@@ -58,7 +58,7 @@ jobs:
         run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
 
       - name: Prisma migrate deploy
-        run: pnpm --filter @apps/api run db:migrate:deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
       - name: Run restore drill smoke
         run: bash scripts/restore-drill-smoke.sh | tee restore-drill-report.txt

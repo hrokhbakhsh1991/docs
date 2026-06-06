@@ -4,6 +4,7 @@
  * @see docs/phase-5/appendices/migrate-deploy-only.md
  */
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,6 +16,15 @@ function resolveMigrateUrl() {
   const app = process.env.DATABASE_URL?.trim();
   if (app) return { url: app, source: "DATABASE_URL" };
   return null;
+}
+
+function redactDatabaseUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.username}@${parsed.hostname}:${parsed.port || "5432"}${parsed.pathname}`;
+  } catch {
+    return "(invalid DATABASE_URL)";
+  }
 }
 
 const resolved = resolveMigrateUrl();
@@ -29,14 +39,20 @@ if (resolved.source === "DATABASE_URL") {
   );
 }
 
+console.log(
+  `db:migrate:deploy: using ${resolved.source} (${redactDatabaseUrl(resolved.url)})`
+);
+
+const prismaBin = path.join(API_ROOT, "node_modules", ".bin", "prisma");
+const prismaCmd = fs.existsSync(prismaBin) ? prismaBin : "prisma";
+
 const result = spawnSync(
-  "pnpm",
-  ["exec", "prisma", "migrate", "deploy", "--schema=./prisma/schema.prisma"],
+  prismaCmd,
+  ["migrate", "deploy", "--schema=./prisma/schema.prisma"],
   {
     cwd: API_ROOT,
     env: { ...process.env, DATABASE_URL: resolved.url },
     stdio: "inherit",
-    shell: true,
   }
 );
 
