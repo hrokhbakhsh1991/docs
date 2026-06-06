@@ -141,39 +141,61 @@ function checkUiPrimitivesSubpathsOptional() {
   };
 }
 
+const DENALI_CORE_SCAN_ROOTS = [
+  "packages/platform-core/src",
+  "packages/workspaces/starter/src",
+  "packages/theme-react/src",
+  "packages/ui-primitives/src",
+];
+
+const DENALI_SOURCE_FILE = /\.(ts|tsx|js|jsx|mjs|cjs)$/i;
+const DENALI_SPEC_FILE = /\.spec\.(ts|tsx)$/i;
+const DENALI_PATTERN = /denali/i;
+
+function listDenaliCoreSourceFiles(rootDir, out = []) {
+  if (!fs.existsSync(rootDir)) return out;
+  for (const ent of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const full = path.join(rootDir, ent.name);
+    if (ent.isDirectory()) {
+      if (ent.name === "test" || ent.name === "node_modules" || ent.name === "dist") continue;
+      listDenaliCoreSourceFiles(full, out);
+      continue;
+    }
+    if (!DENALI_SOURCE_FILE.test(ent.name) || DENALI_SPEC_FILE.test(ent.name)) continue;
+    out.push(full);
+  }
+  return out;
+}
+
+function findDenaliCoreHits() {
+  const hits = [];
+  for (const rel of DENALI_CORE_SCAN_ROOTS) {
+    const root = path.join(REPO_ROOT, rel);
+    for (const file of listDenaliCoreSourceFiles(root)) {
+      const text = fs.readFileSync(file, "utf8");
+      if (!DENALI_PATTERN.test(text)) continue;
+      const relFile = path.relative(REPO_ROOT, file);
+      const line = text.split("\n").findIndex((row) => DENALI_PATTERN.test(row)) + 1;
+      hits.push(`${relFile}:${line}`);
+    }
+  }
+  return hits;
+}
+
 /** @returns {GuardCheck} */
 function checkNoDenaliInPhase3Scope() {
   // Phase 6+ — Denali lives under packages/workspaces/denali and approved apps/web|api
   // wiring; kernel + design-system packages stay Denali-free (P3-E-WS-01 / no core creep).
-  const srcPaths = [
-    path.join(REPO_ROOT, "packages/platform-core/src"),
-    path.join(REPO_ROOT, "packages/workspaces/starter/src"),
-    path.join(REPO_ROOT, "packages/theme-react/src"),
-    path.join(REPO_ROOT, "packages/ui-primitives/src"),
-  ].filter((p) => fs.existsSync(p));
-
-  const r = rg(
-    [
-      "-i",
-      "denali",
-      "-g",
-      "!**/*.spec.ts",
-      "-g",
-      "!**/*.spec.tsx",
-      "-g",
-      "!**/test/**",
-    ],
-    srcPaths,
-  );
-  const ok = r.lines.length === 0;
+  const hits = findDenaliCoreHits();
+  const ok = hits.length === 0;
   return {
     id: "p3_no_denali",
     enforcementId: "P3-E-WS-01",
     description:
-      "rg -i denali in platform-core/starter/theme-react/ui-primitives only (Phase 6 apps/sdk exempt)",
+      "denali-free scan: platform-core/starter/theme-react/ui-primitives src (Phase 6 apps/sdk exempt)",
     required: true,
     ok,
-    detail: ok ? null : truncateDetail(r.lines.join("\n")),
+    detail: ok ? null : truncateDetail(hits.join("\n")),
   };
 }
 
@@ -321,6 +343,9 @@ function main() {
   console.log(`phase-3-guard: ${requiredOk ? "PASS" : "FAIL"}`);
   for (const c of checks) {
     console.log(`  ${c.ok ? "✓" : "✗"} ${c.id}${c.enforcementId ? ` (${c.enforcementId})` : ""}`);
+    if (!c.ok && c.detail) {
+      console.log(`      ${String(c.detail).split("\n").join("\n      ")}`);
+    }
   }
 
   if (!requiredOk) {

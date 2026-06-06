@@ -73,7 +73,7 @@ phase_3_guard_checks_execution_order:
     check: "./select and ./checkbox in ui-primitives exports"
   - id: p3_no_denali
     enforcementId: P3-E-WS-01
-    scan: "rg -i denali in kernel/design packages only (Phase 6+ apps/sdk exempt)"
+    scan: "AST walk — denali in kernel/design package src only (Phase 6+ apps/sdk exempt; no rg)"
     paths:
       - packages/platform-core/src
       - packages/workspaces/starter/src
