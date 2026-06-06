@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
   PriorityLoadShedError,
@@ -10,23 +10,36 @@ import {
   releaseWeightedFairAdmission,
   resetWeightedFairAdmissionForTests,
 } from "./weighted-fair-admission";
-import { setCachedTenantThemeById } from "../tenant/tenant-registry-cache";
+import {
+  resetTenantRegistryCacheForTests,
+  setCachedTenantThemeById,
+} from "../tenant/tenant-registry-cache";
 
 describe("weighted fair admission (DEC-114)", () => {
-  const tenantLow = "00000000-0000-4000-8000-000000000101";
-  const tenantHigh = "00000000-0000-4000-8000-000000000102";
+  // Slug ids — avoid Postgres UUID branch on CI (seeded rows would override theme cache).
+  const tenantLow = "dec114-tenant-low";
+  const tenantHigh = "dec114-tenant-high";
+
+  beforeEach(() => {
+    resetWeightedFairAdmissionForTests();
+    resetTenantRegistryCacheForTests();
+    process.env.PRIORITY_LOAD_SHED_ENABLED = "true";
+  });
 
   afterEach(() => {
     resetWeightedFairAdmissionForTests();
+    resetTenantRegistryCacheForTests();
     process.env.PRIORITY_LOAD_SHED_ENABLED = "true";
     delete process.env.GLOBAL_HTTP_INFLIGHT_MAX;
     delete process.env.GLOBAL_HTTP_LOW_TIER_SHED_WATERMARK;
+    delete process.env.GLOBAL_HTTP_NORMAL_TIER_SHED_WATERMARK;
   });
 
   it("sheds low tier before normal watermark is reached", async () => {
     process.env.GLOBAL_HTTP_INFLIGHT_MAX = "10";
     process.env.GLOBAL_HTTP_LOW_TIER_SHED_WATERMARK = "2";
     setCachedTenantThemeById(tenantLow, { priorityTier: "low" });
+    setCachedTenantThemeById(tenantHigh, { priorityTier: "high" });
 
     await acquireWeightedFairAdmission(tenantHigh);
     await acquireWeightedFairAdmission(tenantHigh);

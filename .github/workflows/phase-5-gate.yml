@@ -58,14 +58,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
 
       - name: Bootstrap app_tour role
         run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
 
       - name: Prisma migrate deploy (DEC-124)
-        run: pnpm --filter @apps/api run db:migrate:deploy
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
       - name: Phase 5 closure gate
         run: pnpm run phase-5:gate

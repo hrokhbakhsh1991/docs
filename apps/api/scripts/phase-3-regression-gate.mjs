@@ -9,6 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { GATE_BUILD_DIST_STEP } from "./lib/gate-build-dist.mjs";
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HAS_DATABASE = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -168,7 +170,7 @@ const STEPS = [
       P5_VALIDATION_WORKERS_ENABLED: "false",
     },
   },
-  { id: "build-dist", cmd: ["pnpm", "run", "build"] },
+  GATE_BUILD_DIST_STEP,
   {
     id: "cold-start-readiness-gate",
     cmd: ["pnpm", "run", "cold-start-readiness-gate"],
@@ -198,7 +200,7 @@ function runStep(step) {
   const started = Date.now();
   const env = { ...process.env, ...(step.env ?? {}) };
   const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
-    cwd: ROOT,
+    cwd: step.cwd ?? ROOT,
     env,
     stdio: "inherit",
     shell: false,

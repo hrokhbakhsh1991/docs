@@ -125,7 +125,7 @@ Overrides apply **per tenant** without changing the global env default.
 
 Resolution mirrors `resolveTenantFeatureFlags`: registry first, then Postgres when `DATABASE_URL` is set. With `STORAGE_DRIVER=memory` and no `DATABASE_URL`, HTTP probes use env defaults only (random `integrationTenantId` rows are not required).
 
-**Admin DB amplification (RL-DOS-01 / DEC-053):** `resolveEffectiveRateLimitForTenant` uses `resolveTenantThemeJsonById` — **5s TTL read-through cache** + **negative cache** for unknown UUIDs (`tenant-registry-cache.ts`). No uncached `findUnique` per HTTP consume on cache hit.
+**Admin DB amplification (RL-DOS-01 / DEC-053):** `resolveEffectiveRateLimitForTenant` uses `resolveTenantThemeJsonById` — **5s TTL read-through cache** + **negative cache** for unknown UUIDs (`tenant-registry-cache.ts`). Theme cache is consulted **before** any Postgres branch (including test seeds via `setCachedTenantThemeById`); DB `findUnique` runs only on cache miss. No uncached `findUnique` per HTTP consume on cache hit.
 
 ```mermaid
 sequenceDiagram

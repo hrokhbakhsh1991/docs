@@ -9,16 +9,16 @@ import { normalizeRuleContext } from "../../../src/utils/rule-context.js";
 describe("assertTenantId", () => {
   it("rejects leading whitespace consistently for normalize and scope keys", () => {
     const context = { tenantId: " bad", dimensions: { variant: "default" } };
-    assert.throws(() => assertTenantId(context), (error: unknown) => {
-      assert.ok(error instanceof PlatformCoreError);
-      assert.equal(error.code, "TENANT_ISOLATION_VIOLATION");
-      return true;
-    });
-    assert.throws(() => normalizeRuleContext(context), PlatformCoreError);
     assert.throws(
-      () => buildRuleContextScopeKey(context, ["variant"]),
-      PlatformCoreError,
+      () => assertTenantId(context),
+      (error: unknown) => {
+        assert.ok(error instanceof PlatformCoreError);
+        assert.equal(error.code, "TENANT_ISOLATION_VIOLATION");
+        return true;
+      }
     );
+    assert.throws(() => normalizeRuleContext(context), PlatformCoreError);
+    assert.throws(() => buildRuleContextScopeKey(context, ["variant"]), PlatformCoreError);
   });
 
   it("rejects invalid tenant token format", () => {
@@ -28,7 +28,15 @@ describe("assertTenantId", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "INVALID_RULE_CONTEXT");
         return true;
-      },
+      }
+    );
+  });
+
+  it("accepts registry UUID tenant ids (Phase 6.6 denali smoke)", () => {
+    const tenantId = "00000000-0000-4000-8000-000000000003";
+    assert.equal(assertTenantId({ tenantId, dimensions: {} }), tenantId);
+    assert.doesNotThrow(() =>
+      buildRuleContextScopeKey({ tenantId, dimensions: { variant: "default" } }, ["variant"])
     );
   });
 });

@@ -97,11 +97,34 @@ export function resolveTenantContext(
 /** Per-request bootstrap with optional Host-based tenant override (dev e2e / TH-1). */
 export function resolveBootstrapAppSessionForHost(host: string): ResolvedBootstrapSession {
   const base = resolveContextFromEnv();
+  const profile = resolveDevSessionProfileFromHost(host);
+  const withProfile = profile ? { ...base, ...profile } : base;
   const hostTenantId = resolveTenantIdFromDevHost(host);
   if (hostTenantId) {
-    return resolveBootstrapAppSession({ ...base, tenantId: hostTenantId }, host);
+    return resolveBootstrapAppSession({ ...withProfile, tenantId: hostTenantId }, host);
   }
-  return resolveBootstrapAppSession(base, host);
+  return resolveBootstrapAppSession(withProfile, host);
+}
+
+/** Dev-only host profiles for EC-33 e2e (single server, multiple session shapes). */
+const DEV_HOST_SESSION_PROFILES: Readonly<Record<string, Partial<TenantKernelResolveInput>>> = {
+  "deny-theme": {
+    userId: "deny-theme-user",
+    role: "member",
+    status: "SUSPENDED",
+  },
+};
+
+function resolveDevSessionProfileFromHost(host: string): Partial<TenantKernelResolveInput> | null {
+  if (!isDevWebSessionAllowed()) {
+    return null;
+  }
+  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  const match = /^([a-z0-9-]+)\.localhost$/.exec(hostname);
+  if (!match?.[1]) {
+    return null;
+  }
+  return DEV_HOST_SESSION_PROFILES[match[1]] ?? null;
 }
 
 /** Per-request bootstrap (call from Server Components only). */

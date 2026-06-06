@@ -133,13 +133,13 @@ export function resetAdminThemeLookupCountForTests(): void {
 export async function resolveTenantThemeJsonById(tenantId: string): Promise<unknown | null> {
   const normalized = tenantId.trim().toLowerCase();
 
-  if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
-    const cachedTheme = getCachedTenantThemeById(normalized);
-    if (cachedTheme !== undefined) {
-      recordTenantRegistryCacheHit("theme");
-      return cachedTheme;
-    }
+  const cachedTheme = getCachedTenantThemeById(normalized);
+  if (cachedTheme !== undefined) {
+    recordTenantRegistryCacheHit("theme");
+    return cachedTheme;
+  }
 
+  if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
     recordTenantRegistryCacheMiss("theme");
     adminThemeLookupCountForTests += 1;
     const readStarted = performance.now();
@@ -150,9 +150,7 @@ export async function resolveTenantThemeJsonById(tenantId: string): Promise<unkn
     recordAdminPoolRead(performance.now() - readStarted);
     const theme = row !== null ? row.theme : null;
     setCachedTenantThemeById(normalized, theme);
-    if (theme !== null) {
-      return theme;
-    }
+    return theme;
   }
 
   if (isStaticTenantRegistryAllowed()) {

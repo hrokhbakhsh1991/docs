@@ -4,7 +4,7 @@ phase: 1
 format: markdoc
 sourceMarkdown: phase-1-platform-core.md
 convertedAt: 2026-06-03
-docRevision: 2026-06-03-df-066-086
+docRevision: 2026-06-06-p1-closure-sync
 ---
 
 # Phase 1 — Platform Core (Schema-Driven Engine)
@@ -811,12 +811,13 @@ const plan = engine.buildRenderPlan(context);
 
 ### 5.3 Isolation (tenant + engine reuse)
 
-| Rule                              | Detail                                                                                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **One engine per tenant session** | Reuse `PlatformWizardEngine` only when every call passes a distinct `tenantId` in `RuleContext` — LRU scope cache is keyed by tenant + dimensions                                                 |
-| **No cross-tenant sharing**       | Do not call `buildRenderPlan` / `validateCanonical` without `tenantId`; missing/blank → `INVALID_RULE_CONTEXT`                                                                                    |
-| **Concurrent API**                | Safe to share one initialized engine across parallel requests **iff** each request supplies correct `tenantId` (see `rule-engine-concurrency.spec.ts`)                                            |
-| **Plugin alias window**           | `create(plugin)` immediately deep-clones via `parseWorkspacePluginFromStorage({ includeTheme: false })` — invalid shape throws `PlatformCoreError`; `tryFromPlugin` maps that to `PlatformResult` |
+| Rule                              | Detail                                                                                                                                                                                                                                                |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One engine per tenant session** | Reuse `PlatformWizardEngine` only when every call passes a distinct `tenantId` in `RuleContext` — LRU scope cache is keyed by tenant + dimensions                                                                                                     |
+| **No cross-tenant sharing**       | Do not call `buildRenderPlan` / `validateCanonical` without `tenantId`; missing/blank → `INVALID_RULE_CONTEXT`                                                                                                                                        |
+| **`tenantId` format**             | `assertTenantId` accepts **slug** (`^[a-z][a-z0-9_-]{0,127}$`, e.g. `tenant-a`) **or** **UUID** (`8-4-4-4-12` hex, e.g. Phase 4.3 seeds / Phase 6.6 `DENALI_SMOKE_TENANT_ID`) — dashes-only UUIDs were previously rejected and broke web wizard smoke |
+| **Concurrent API**                | Safe to share one initialized engine across parallel requests **iff** each request supplies correct `tenantId` (see `rule-engine-concurrency.spec.ts`)                                                                                                |
+| **Plugin alias window**           | `create(plugin)` immediately deep-clones via `parseWorkspacePluginFromStorage({ includeTheme: false })` — invalid shape throws `PlatformCoreError`; `tryFromPlugin` maps that to `PlatformResult`                                                     |
 
 **قانون مصرف‌کننده (apps / `apps/api` / `apps/web`):** فقط `PlatformWizardEngine` از `@app-tour/platform-core` — **هرگز** `FieldRegistryEngine` / `RuleEngine` مستقیم.
 
@@ -826,38 +827,38 @@ const plan = engine.buildRenderPlan(context);
 
 ## 6. تست‌ها — ماتریس الزام
 
-**Exit criteria:** **≥ 30** tests — **current: 132** (`pnpm --filter @app-tour/platform-core test`).
+**Exit criteria:** gate floor **≥ 148** full suite · **≥ 56** closure (`gate-thresholds.mjs`) — **current (2026-06-06 @ `1697b77`):** **184** full · **78** closure · **106** unit internal ([`phase-1-guard-2026-06-06.json`](../reports/phase-1-guard-2026-06-06.json)).
 
 ### 6.1 Test registry (linked to source)
 
-| Module                   | Spec file                                                                                                        | Cases   | Run                                                      |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------- | -------------------------------------------------------- |
-| **FieldRegistryEngine**  | [`field-registry.engine.spec.ts`](../../packages/platform-core/test/unit/engine/field-registry.engine.spec.ts)   | 7       | `pnpm --filter @app-tour/platform-core test`             |
-| **RuleEngine**           | [`rule.engine.spec.ts`](../../packages/platform-core/test/unit/engine/rule.engine.spec.ts)                       | 25+     | unit suite                                               |
-| RuleCellIndex            | [`rule-cell-index.spec.ts`](../../packages/platform-core/test/unit/engine/rule-cell-index.spec.ts)               | 4       | unit suite                                               |
-| Rule concurrency         | [`rule-engine-concurrency.spec.ts`](../../packages/platform-core/test/rule-engine-concurrency.spec.ts)           | 4       | adversarial gate                                         |
-| **render-plan.steps**    | [`render-plan.steps.spec.ts`](../../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts)           | 6       | unit suite                                               |
-| **buildRenderPlan**      | [`render-plan.spec.ts`](../../packages/platform-core/test/unit/engine/render-plan.spec.ts)                       | 8       | unit suite                                               |
-| Phase 1 contract         | [`phase-1.contract.spec.ts`](../../packages/platform-core/test/phase-1.contract.spec.ts)                         | 17      | `pnpm --filter @app-tour/platform-core run test:phase-1` |
-| Facade integration       | [`facade-integration.spec.ts`](../../packages/platform-core/test/facade-integration.spec.ts)                     | 5       | `g12` + full `test` glob                                 |
-| **PlatformWizardEngine** | [`platform-wizard.engine.spec.ts`](../../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) | 15+     | unit suite                                               |
-| Canonical path utils     | [`canonical-path.spec.ts`](../../packages/platform-core/test/unit/utils/canonical-path.spec.ts)                  | 7       | unit suite                                               |
-| Canonical value utils    | [`canonical-value.spec.ts`](../../packages/platform-core/test/unit/utils/canonical-value.spec.ts)                | 7       | unit suite                                               |
-| Adversarial validation   | [`adversarial-validation.spec.ts`](../../packages/platform-core/test/adversarial-validation.spec.ts)             | 6       | `pnpm run test:adversarial`                              |
-| Runtime isolation        | [`runtime-isolation.spec.ts`](../../packages/platform-core/test/runtime-isolation.spec.ts)                       | 5       | `pnpm run test:adversarial`                              |
-| Cold start               | [`cold-start.contract.spec.ts`](../../packages/platform-core/test/cold-start.contract.spec.ts)                   | 6       | unit suite                                               |
-| **Total**                | **15+ spec files**                                                                                               | **132** | `pnpm --filter @app-tour/platform-core test`             |
+| Module                   | Spec file                                                                                                        | Cases                   | Run                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------- | -------------------------------------------------------- |
+| **FieldRegistryEngine**  | [`field-registry.engine.spec.ts`](../../packages/platform-core/test/unit/engine/field-registry.engine.spec.ts)   | 7                       | `pnpm --filter @app-tour/platform-core test`             |
+| **RuleEngine**           | [`rule.engine.spec.ts`](../../packages/platform-core/test/unit/engine/rule.engine.spec.ts)                       | 25+                     | unit suite                                               |
+| RuleCellIndex            | [`rule-cell-index.spec.ts`](../../packages/platform-core/test/unit/engine/rule-cell-index.spec.ts)               | 4                       | unit suite                                               |
+| Rule concurrency         | [`rule-engine-concurrency.spec.ts`](../../packages/platform-core/test/rule-engine-concurrency.spec.ts)           | 4                       | adversarial gate                                         |
+| **render-plan.steps**    | [`render-plan.steps.spec.ts`](../../packages/platform-core/test/unit/engine/render-plan.steps.spec.ts)           | 6                       | unit suite                                               |
+| **buildRenderPlan**      | [`render-plan.spec.ts`](../../packages/platform-core/test/unit/engine/render-plan.spec.ts)                       | 8                       | unit suite                                               |
+| Phase 1 contract         | [`phase-1.contract.spec.ts`](../../packages/platform-core/test/phase-1.contract.spec.ts)                         | 17                      | `pnpm --filter @app-tour/platform-core run test:phase-1` |
+| Facade integration       | [`facade-integration.spec.ts`](../../packages/platform-core/test/facade-integration.spec.ts)                     | 5                       | `g12` + full `test` glob                                 |
+| **PlatformWizardEngine** | [`platform-wizard.engine.spec.ts`](../../packages/platform-core/test/unit/engine/platform-wizard.engine.spec.ts) | 15+                     | unit suite                                               |
+| Canonical path utils     | [`canonical-path.spec.ts`](../../packages/platform-core/test/unit/utils/canonical-path.spec.ts)                  | 7                       | unit suite                                               |
+| Canonical value utils    | [`canonical-value.spec.ts`](../../packages/platform-core/test/unit/utils/canonical-value.spec.ts)                | 7                       | unit suite                                               |
+| Adversarial validation   | [`adversarial-validation.spec.ts`](../../packages/platform-core/test/adversarial-validation.spec.ts)             | 6                       | `pnpm run test:adversarial`                              |
+| Runtime isolation        | [`runtime-isolation.spec.ts`](../../packages/platform-core/test/runtime-isolation.spec.ts)                       | 5                       | `pnpm run test:adversarial`                              |
+| Cold start               | [`cold-start.contract.spec.ts`](../../packages/platform-core/test/cold-start.contract.spec.ts)                   | 6                       | unit suite                                               |
+| **Total**                | **15+ spec files**                                                                                               | **184** (floor **148**) | `pnpm --filter @app-tour/platform-core test`             |
 
 ### 6.2 Minimum matrix (historical sub-phase targets)
 
-| ماژول                         | min (PR plan) | actual     |
-| ----------------------------- | ------------- | ---------- |
-| FieldRegistryEngine           | 6             | **7** ✅   |
-| RuleEngine (+ index)          | 8             | **33** ✅  |
-| render-plan.steps             | 5             | **6** ✅   |
-| buildRenderPlan               | 6             | **7** ✅   |
-| Facade + validate + bootstrap | 5+            | **15+** ✅ |
-| **جمع**                       | **≥ 30**      | **132** ✅ |
+| ماژول                         | min (PR plan)                 | actual                     |
+| ----------------------------- | ----------------------------- | -------------------------- |
+| FieldRegistryEngine           | 6                             | **7** ✅                   |
+| RuleEngine (+ index)          | 8                             | **33** ✅                  |
+| render-plan.steps             | 5                             | **6** ✅                   |
+| buildRenderPlan               | 6                             | **7** ✅                   |
+| Facade + validate + bootstrap | 5+                            | **15+** ✅                 |
+| **جمع**                       | **≥ 30** (historical PR plan) | **184** ✅ (floor **148**) |
 
 > bootstrap: duplicate field id، orphan override، invalid defaultCellId — covered in `platform-wizard.engine.spec.ts` + `rule.engine.spec.ts`
 
@@ -940,7 +941,7 @@ phase-0:gate  →  (فاز ۱ PRs)  →  phase-1:gate
 | -------- | ----------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------- |
 | DRIFT-01 | §4.6 `phase-1:gate` JSON omitted `test:phase-1` | `package.json` includes `pnpm --filter @app-tour/platform-core run test:phase-1` | **Fixed** — §4.6 + §7 Verification            |
 | DRIFT-02 | `.md` `RenderPlanBuilder` class                 | `buildRenderPlan()` in `render-plan.ts`                                          | **Fixed** — use `.mdoc` / ai-exec             |
-| DRIFT-03 | `.md` ≥30 tests / g2 only                       | ≥132 + g2c/g2d/g11/g12/g13/g10                                                   | **Fixed** — §6 + guard table                  |
+| DRIFT-03 | `.md` ≥30 tests / g2 only                       | ≥148 + g2c/g2d/g11/g12/g13/g10                                                   | **Fixed** — §6 + guard table                  |
 | DRIFT-04 | `.md` / DAG `StepEngine` class                  | `render-plan.steps.ts` plain functions                                           | **Fixed** — §4.4 title + ai-exec              |
 | DRIFT-05 | `.md` `PlatformWizardEngine.fromPlugin`         | `tryFromPlugin` / `create` + `init` only                                         | **Fixed** — §5 + `no-fromPlugin-api` contract |
 | DRIFT-06 | mdoc g13 dual 30%/60% rows                      | `PHASE_1_FACADE_TEST_RATIO_MIN = 0.6` (60% closure)                              | **Fixed** — guard table §4.6                  |
@@ -973,7 +974,7 @@ Agent runbook: [`phase-1-platform-core.ai-exec.md`](phase-1-platform-core.ai-exe
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | «Headless platform — no theme in engine»    | `buildRuntime` uses `includeTheme: false`; theme SDK codes map to `PLUGIN_INVALID_SHAPE` at boundary                                          | **Enforced** — `phase-1.contract` + `adversarial-plugin-ingress`                        |
 | «Fail-fast `fromPlugin`»                    | **`fromPlugin` removed** — use `create` + `init` or `tryFromPlugin`                                                                           | **Enforced** — production `src/` has no `fromPlugin`                                    |
-| Test count ≥ 132 (gate floor)               | `phase-1-guard` `g2` count floor — **does not** alone prove behavioral closure                                                                | **Enforced** count + `g11` / `g12` behavioral specs                                     |
+| Test count ≥ 148 (gate floor)               | `phase-1-guard` `g2` count floor — **does not** alone prove behavioral closure                                                                | **Enforced** count + `g11` / `g12` behavioral specs                                     |
 | `plugin.validation` hooks at runtime        | Invoked in **API** after `validateCanonical` (`run-workspace-validation-hooks.ts`); platform-core remains headless-only                       | **Phase 3 API** — Denali rules in phase 6 workspace plugin                              |
 | Public `RuleEngine` / internal engines      | Hidden from `index.ts`; only `PlatformWizardEngine` facade exported                                                                           | **Enforced**                                                                            |
 | `unwrapPlatformResult` on barrel            | **Not exported** — apps use `tryFromPlugin` + `PlatformResult`                                                                                | **Enforced** — `phase-1.contract`                                                       |
@@ -992,12 +993,12 @@ Agent runbook: [`phase-1-platform-core.ai-exec.md`](phase-1-platform-core.ai-exe
 
 ## 10. Definition of Done فاز ۱
 
-> **وضعیت doc (2026-06-03):** **Closed: Zero-Debt Verified** @ `7000685` — gate 16/16 · forensic + sign-off checklist — [`phase-1-closure-readiness-2026-06-03.md`](../reports/phase-1-closure-readiness-2026-06-03.md).
+> **وضعیت doc (2026-06-06):** **Closed: Zero-Debt Verified** @ `1697b77` — gate 16/16 · MAP §14.1 architect sign-off — [`phase-1-closure-signoff-2026-06-04.md`](../reports/phase-1-closure-signoff-2026-06-04.md) · [`phase-1-architect-signoff-checklist-2026-06-03.md`](../reports/phase-1-architect-signoff-checklist-2026-06-03.md).
 
 ### 10.1 Delivered (verified in repo)
 
 - [x] `@app-tour/platform-core` build در chain root `pnpm build`
-- [x] tests **132** pass (`pnpm --filter @app-tour/platform-core test`, floor در `gate-thresholds.mjs`)
+- [x] tests **≥ 148** pass (`PLATFORM_CORE_TEST_MIN.phase1` — current **184** @ `1697b77`)
 - [x] `PlatformWizardEngine.create` / `tryFromPlugin` / `tryInit` با starter-shaped plugin
 - [x] `rg -i denali packages/platform-core` → 0 (excl. specs)
 - [x] depcruise: `platform-core-no-workspaces`, `platform-core-only-sdk`, `no-legacy-imports`

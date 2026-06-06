@@ -8,6 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { GATE_BUILD_DIST_STEP } from "./lib/gate-build-dist.mjs";
 import { requireGateDatabase } from "./lib/require-gate-database.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,7 +40,7 @@ const STEPS = [
   { id: "guard:rate-limiter-100-probe", cmd: ["pnpm", "run", "guard:rate-limiter-100-probe"] },
   { id: "guard:production-redis-url", cmd: ["pnpm", "run", "guard:production-redis-url"] },
   { id: "guard:bulk-import-victim-slo", cmd: ["pnpm", "run", "guard:bulk-import-victim-slo"] },
-  { id: "build-dist", cmd: ["pnpm", "run", "build"] },
+  GATE_BUILD_DIST_STEP,
   {
     id: "phase4-cross-phase-p0-specs",
     cmd: [
@@ -82,7 +83,7 @@ function runStep(step) {
   const started = Date.now();
   const env = { ...process.env, ...(step.env ?? {}) };
   const result = spawnSync(step.cmd[0], step.cmd.slice(1), {
-    cwd: ROOT,
+    cwd: step.cwd ?? ROOT,
     env,
     stdio: "inherit",
     shell: false,

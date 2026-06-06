@@ -78,12 +78,14 @@ Without `DATABASE_URL`, `p4_rls_integration_tests` is **`ok: false`** (required)
 
 ## GitHub Actions — `phase-4-gate.yml` (DEC-081)
 
-Workflow provisions Postgres 16, seeds `app_tour` role, runs `db:migrate:deploy` (DEC-124 — no `infra/sql` bootstrap), then:
+Workflow provisions Postgres 16, seeds `app_tour` role, runs `DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy` (DEC-124 — owner DDL; no `infra/sql` bootstrap), then:
 
 1. `pnpm run phase-4:resilience-regression-gate` (`apps/api`)
 2. `pnpm run phase-4:gate` (root)
 
 Env in job: `DATABASE_URL`, `DATABASE_URL_ADMIN`, `STORAGE_DRIVER=prisma`, `NODE_ENV=test`.
+
+OS packages: `postgresql-client`, `ripgrep` (`audit-boundary` in nested `phase-3:gate` → `phase-2:gate` requires `rg` on the runner).
 
 ## Closure gate (`phase-4:gate`)
 
