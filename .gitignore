@@ -1,5 +1,8 @@
+.cache/test-changed/
+
 node_modules/
 .pnpm-store/
+.cache/
 dist/
 coverage/
 *.tsbuildinfo

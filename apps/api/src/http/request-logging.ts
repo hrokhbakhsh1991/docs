@@ -1,14 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { logHttpRequest } from "../observability/logger";
+import { normalizeHttpLogPath } from "../observability/log-safety";
+import { getActiveTraceId } from "../observability/trace-request-context";
 
 export function withRequestLogging(
-  listener: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
+  listener: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>
 ): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
   return async (req, res) => {
     const started = performance.now();
     const method = req.method ?? "GET";
-    const path = req.url ?? "/";
+    const path = normalizeHttpLogPath(req.url ?? "/");
 
     res.on("finish", () => {
       logHttpRequest({
@@ -16,6 +18,7 @@ export function withRequestLogging(
         path,
         statusCode: res.statusCode,
         durationMs: Math.round(performance.now() - started),
+        correlationId: getActiveTraceId(),
       });
     });
 

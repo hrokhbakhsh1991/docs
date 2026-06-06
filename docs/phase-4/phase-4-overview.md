@@ -1,6 +1,15 @@
 # Phase 4 — Overview
 
-> Narrative: [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md) · Subphases: [`subphases/`](subphases/)
+```yaml
+agent_load_tier: T2_CONTEXT
+machine_readable: true
+execution_router: phase-4-ai-exec.md
+rule: "Agents implementing code MUST NOT load this file — use T0 in appendices/agent-load-tiers.md"
+fail_if: "T0 execution task loads this file without T2 dispute"
+```
+
+> **Agents:** [`phase-4-ai-exec.md`](phase-4-ai-exec.md) · **Tiers:** [`appendices/agent-load-tiers.md`](appendices/agent-load-tiers.md)  
+> **Human narrative:** [`../phase-4-tenant-kernel.md`](../phase-4-tenant-kernel.md) · Subphases: [`subphases/`](subphases/)
 
 ## STEP 1 — PHASE DETECTION (COMPLETE)
 
@@ -8,6 +17,8 @@
 phase_id: "4"
 phase_name: "Tenant Kernel & Multi-Tenant Enterprise Boundary"
 north_star: "Platform logic = generic · Workspace = injectable · Tenant = security boundary"
+interop_model: appendices/workspace-interoperability-model.md
+product_type: "Interoperable workspace platform (app-tour) — NOT legacy Tour Ops Phase 4"
 document_status_claim: "Open"
 prerequisite_phase: "3"
 prerequisite_gate: "pnpm run phase-3:gate — exit 0"
@@ -19,13 +30,13 @@ subphases:
   - id: "4.0"
     name: "Gate of Gates R0–R3"
     blocked_until: ["phase_3_gate_green"]
-    enforcement_ids: [P4-E-RF-40]
+    enforcement_ids: [P4-E-RF-40, P4-E-AUTH-01, P4-E-SCALE-01]
     merge_rule: "FORBIDDEN merge PR labeled Phase 4.1+ until 4.0 exit ALL PASS"
   - id: "4.1"
     name: "packages/tenant-kernel"
     blocked_until: ["4.0"]
     packages: ["@app-tour/tenant-kernel"]
-    enforcement_ids: [P4-E-HOST-01, P4-E-TENANT-01, P4-E-AUTH-01]
+    enforcement_ids: [P4-E-HOST-01, P4-E-RLS-02]
   - id: "4.2"
     name: "Postgres + Redis + RLS + Prisma"
     blocked_until: ["4.1"]
@@ -38,13 +49,15 @@ subphases:
     name: "provision + two tenants"
     blocked_until: ["4.2"]
     map_output: "MAP 4.3 two isolated tenants"
+    enforcement_ids: [P4-E-TENANT-01]
   - id: "4.4"
     name: "TenantThemeProvider production"
     blocked_until: ["4.2"]
     parallel_after: "4.2"
     blocked_until_not: ["4.3"]
     routes: ["GET /api/v2/tenant-config OR GET /tenant/theme"]
-    enforcement_ids: [TH-1]
+    test_matrix_ids: [TH-1]
+    dod_ids: [DOD-7]
   - id: "4.5"
     name: "in-process event bus"
     blocked_until: ["4.2"]
@@ -55,7 +68,7 @@ subphases:
     name: "phase-4:gate + forensic"
     blocked_until: ["4.0", "4.1", "4.2", "4.3", "4.4", "4.5"]
     ci: "pnpm run phase-4:gate"
-    enforcement_ids: [P4-E-REG-03]
+    enforcement_ids: [P4-E-GATE, P4-E-REG-03]
     forensic_output: docs/audits/phase-4-zero-debt-forensic-audit.mdoc
 phase_detection_blocker: null
 ```

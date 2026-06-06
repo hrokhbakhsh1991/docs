@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { TENANT_KERNEL_TEST_MIN, PLATFORM_EVENTS_TEST_MIN } from "./gate-thresholds.mjs";
+import { evaluateAntiHollowPhase4 } from "./lib/anti-hollow-phase4.mjs";
 import { evaluatePackageTestRun } from "./lib/parse-test-output.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,6 +43,66 @@ function rgDenaliZero() {
     { cwd: REPO_ROOT, encoding: "utf8" },
   );
   return r.status === 1;
+}
+
+const API_RLS_TEST = "test/rls-isolation.integration.spec.ts";
+const API_TENANT_SECURITY_TEST = "test/tenant-security.spec.ts";
+
+/**
+ * P4-E-RLS-01 + P4-E-TENANT-01 — runs API integration specs with Postgres + prisma driver.
+ * @returns {{ ok: boolean, detail: string | null }}
+ */
+function evaluateRlsIntegrationTests() {
+  const apiDir = path.join(REPO_ROOT, "apps/api");
+  const rlsAbs = path.join(apiDir, API_RLS_TEST);
+  const secAbs = path.join(apiDir, API_TENANT_SECURITY_TEST);
+
+  if (!fs.existsSync(rlsAbs)) {
+    return { ok: false, detail: `${API_RLS_TEST} missing` };
+  }
+  if (!fs.existsSync(secAbs)) {
+    return { ok: false, detail: `${API_TENANT_SECURITY_TEST} missing` };
+  }
+
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (!databaseUrl) {
+    return {
+      ok: false,
+      detail:
+        "DATABASE_URL unset — required for p4_rls_integration_tests (see docs/phase-4/ci.md)",
+    };
+  }
+
+  const run = spawnSync(
+    "node",
+    [
+      "--import",
+      "tsx",
+      "--test",
+      API_RLS_TEST,
+      API_TENANT_SECURITY_TEST,
+    ],
+    {
+      cwd: apiDir,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        NODE_ENV: "test",
+        DATABASE_URL: databaseUrl,
+        STORAGE_DRIVER: "prisma",
+      },
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+
+  if (run.status === 0) {
+    return { ok: true, detail: null };
+  }
+  const out = `${run.stderr ?? ""}${run.stdout ?? ""}`.trim();
+  return {
+    ok: false,
+    detail: out.slice(0, 500) || "apps/api RLS/tenant integration tests failed",
+  };
 }
 
 function main() {
@@ -136,6 +197,27 @@ function main() {
     required: true,
     ok: fs.existsSync(infraCompose),
     detail: null,
+  });
+
+  const rlsEval = evaluateRlsIntegrationTests();
+  checks.push({
+    id: "p4_rls_integration_tests",
+    enforcementId: "P4-E-RLS-01",
+    description:
+      "apps/api RLS + tenant-security integration (DATABASE_URL + STORAGE_DRIVER=prisma)",
+    required: true,
+    ok: rlsEval.ok,
+    detail: rlsEval.detail,
+  });
+
+  const hollowEval = evaluateAntiHollowPhase4();
+  checks.push({
+    id: "p4_anti_hollow_tests",
+    enforcementId: "P4-E-RLS-01",
+    description: "P4-E mechanism tests are not hollow (assertions required)",
+    required: true,
+    ok: hollowEval.ok,
+    detail: hollowEval.detail,
   });
 
   const requiredFailed = checks.filter((c) => c.required && !c.ok);

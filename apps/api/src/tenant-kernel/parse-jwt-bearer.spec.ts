@@ -62,17 +62,25 @@ describe("tryResolveJwtBearerAsync", () => {
     assert.equal(ctx?.workspaceId, "ws-jwt");
   });
 
-  it("rejects invalid JWT when verify is configured", async () => {
+  it("rejects conflicting tenant_id and tenantId aliases", async () => {
     process.env.AUTH_JWT_PUBLIC_KEY = publicKeyPem;
     process.env.AUTH_JWT_ISSUER = "tour-ops";
     process.env.AUTH_JWT_AUDIENCE = "tour-ops-api";
+    const token = await signTestJwt({
+      sub: "user-jwt",
+      tenant_id: "tenant-a",
+      tenantId: "tenant-b",
+      role: "admin",
+      membership_status: "ACTIVE",
+      workspace_id: "ws-jwt",
+    });
     await assert.rejects(
-      () => tryResolveJwtBearerAsync("Bearer not.a.jwt"),
+      () => tryResolveJwtBearerAsync(`Bearer ${token}`),
       (error: unknown) => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, UNAUTHORIZED_INVALID_BEARER_TOKEN);
         return true;
-      },
+      }
     );
   });
 });

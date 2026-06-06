@@ -9,6 +9,7 @@ Each platform phase has a guide in `docs/` and a row in [`MIGRATION-MAP.md` §11
 | 2 | [`phase-2-design-system.mdoc`](../phase-2-design-system.mdoc) | [`.md`](../phase-2-design-system.md) | Closed: Zero-Debt Verified · §19 synced · AI-exec: [`phase-2/`](../phase-2/README.md) |
 | 3 | [`phase-3-design-system.mdoc`](../phase-3-design-system.mdoc) | [`.md`](../phase-3-design-system.md) | Closed: Zero-Debt Verified · AI-exec: [`phase-3/`](../phase-3/README.md) |
 | 4 | [`phase-4-tenant-kernel.mdoc`](../phase-4-tenant-kernel.mdoc) | [`.md`](../phase-4-tenant-kernel.md) | Open · AI-exec: [`phase-4/`](../phase-4/README.md) |
+| 5 | [`phase-5-canonical-schema.mdoc`](../phase-5-canonical-schema.mdoc) | [`.md`](../phase-5-canonical-schema.md) · research [`.md`](../research/phase-5-data-architecture-research.md) | Open · AI-exec: [`phase-5/`](../phase-5/README.md) |
 
 Registry source of truth: [`phase-registry.json`](../phase-registry.json).
 

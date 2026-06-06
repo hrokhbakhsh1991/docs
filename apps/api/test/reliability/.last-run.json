@@ -1,0 +1,103 @@
+{
+  "verdict": "PASS",
+  "heapGrowthRatio": 1.0000856266795646,
+  "maxConnections": 9,
+  "baselineConnections": {
+    "total": 0,
+    "active": 0,
+    "idle": 0,
+    "idleInTransaction": 0
+  },
+  "samples": [
+    {
+      "operation": 0,
+      "heapMb": 31.775611877441406,
+      "connections": {
+        "total": 0,
+        "active": 0,
+        "idle": 0,
+        "idleInTransaction": 0
+      },
+      "label": "start"
+    },
+    {
+      "operation": 1500,
+      "heapMb": 49.6282958984375,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "op-1500"
+    },
+    {
+      "operation": 4000,
+      "heapMb": 49.16099548339844,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "op-4000"
+    },
+    {
+      "operation": 6500,
+      "heapMb": 45.41505432128906,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "op-6500"
+    },
+    {
+      "operation": 8000,
+      "heapMb": 63.71857452392578,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "op-8000"
+    },
+    {
+      "operation": 10400,
+      "heapMb": 41.075408935546875,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "after-errors"
+    },
+    {
+      "operation": 10400,
+      "heapMb": 41.07892608642578,
+      "connections": {
+        "total": 9,
+        "active": 0,
+        "idle": 9,
+        "idleInTransaction": 0
+      },
+      "label": "pre-disconnect"
+    },
+    {
+      "operation": 10400,
+      "heapMb": 41.340110778808594,
+      "connections": {
+        "total": 0,
+        "active": 0,
+        "idle": 0,
+        "idleInTransaction": 0
+      },
+      "label": "post-disconnect"
+    }
+  ],
+  "monotonicHeapGrowth": false,
+  "poolExhaustion": false
+}

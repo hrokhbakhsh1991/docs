@@ -11,7 +11,97 @@ validation_meta:
     - scripts/guards/gate-thresholds.mjs
     - scripts/ci-integrity-check.sh
   result: PASS
+  modernization_report: docs/phase-4/MODERNIZATION-REPORT.md
+  modernization_date: "2026-06-04"
+  readability_95_pass: "2026-06-04"
+  readability_report: docs/phase-4/AI-READABILITY-REPORT.md
 ```
+
+## GAP closure pass (2026-06-04) — 7 items
+
+| ID | Doc fix | Status |
+|----|---------|--------|
+| GAP-01 | Honest dual score in AI-READABILITY | DONE |
+| GAP-02 | CONSISTENCY + TRACEABILITY repo scope | DONE |
+| GAP-03 | GATE-BINDING replaces BLOCKER-NONE | DONE |
+| GAP-04 | Red-flag template + status report | DONE |
+| GAP-05 | IMPLEMENTATION-TRUTH + guard block | DONE |
+| GAP-06 | Monolith §14 banner + 4.0 paths | DONE |
+| GAP-07 | Forensic scaffold mdoc | DONE |
+
+| Metric | Score (honest) |
+|--------|----------------|
+| Doc structure / navigation | **100** |
+| Doc ↔ repo alignment | **95** |
+| Closure readiness | **30** |
+| **Weighted decision score** | **~74** |
+
+## Wave 3 — precision pack (2026-06-04)
+
+| Module | Status |
+|--------|--------|
+| PRECISION-DOC-INDEX.md | DONE |
+| SUBPHASE-READY-SPEC.md | DONE |
+| p4-e-command-atlas.md | DONE |
+| test-inventory.md | DONE |
+| env-runtime-matrix.md | DONE |
+| agent-faq.md | DONE |
+| phase-handoff-3-4-5.md | DONE |
+
+## Wave 2 (2026-06-04)
+
+| Item | Status |
+|------|--------|
+| CLOSURE-CHECKLIST.md | DONE |
+| storage-driver-truth.md | DONE |
+| ci.md gate JSON section | DONE |
+| phase-4-tenant-kernel.mdoc §14 banner | DONE |
+
+Register: [`audits/PHASE-4-GAP-REGISTER.md`](audits/PHASE-4-GAP-REGISTER.md)
+
+## 99 AI readability + interop + registry (2026-06-04) — superseded
+
+Superseded by **GAP closure pass** — navigation-only 99 retired (GAP-01).
+
+## 98+ AI readability + interop alignment (2026-06-04)
+
+| Change | Status |
+|--------|--------|
+| workspace-interoperability-model.md | DONE |
+| industry-alignment-2026.md | DONE |
+| phase_5_entry_requires_modular | DONE |
+| T0 boot includes interop model | DONE |
+
+## 95+ AI readability pass (2026-06-04)
+
+| Change | Status |
+|--------|--------|
+| SOLE_EXECUTION_ENTRY + AGENT_START_SEQUENCE | DONE |
+| completion_proof all subphases | DONE |
+| verification-commands.md (Phase 3 parity) | DONE |
+| legacy-structure-bridge.md | DONE |
+| T3 non-authoritative banner on monolith | DONE |
+
+## Modernization pass (2026-06-04)
+
+| Change | Status |
+|--------|--------|
+| `ci.md` split from guard | DONE |
+| `audits/subphase-enforcement-map.md` | DONE |
+| `appendices/observability.md` | DONE |
+| `phase-4-ai-exec.md` hub | DONE |
+| Subphase agent YAML headers | DONE |
+| §14.2 references retired in modular tree | DONE |
+| P4-E-* / p4_* / phase-4:gate preserved | PASS |
+
+## AI readability pass (2026-06-04)
+
+| Metric | Score |
+|--------|-------|
+| Readability | 89 |
+| Determinism | 93 |
+| Execution clarity | 91 |
+| Report | AI-READABILITY-REPORT.md |
 
 ## STEP 1 — Phase detection
 
@@ -66,8 +156,19 @@ validation_meta:
 
 | ID | Item | Status |
 |----|------|--------|
-| GAP-4.0-RF | R0–R3 + report before 4.1 | required_human — P4-E-RF-40 |
-| GAP-FORENSIC | phase-4-zero-debt-forensic-audit.mdoc | at Phase 4 Closed — DOD-10 |
-| GAP-NARRATIVE | `phase-4-tenant-kernel.md` body §14.2 | header UPDATED — use `docs/phase-4/` |
+| GAP-REGISTER | 7-item closure | [`audits/PHASE-4-GAP-REGISTER.md`](audits/PHASE-4-GAP-REGISTER.md) — doc **DONE** |
+| GAP-4.0-RF | R0–R3 + report | **report file** `reports/phase-3.2-red-flag-status-2026-06-04.md` — tracks need CI signoff |
+| GAP-FORENSIC | phase-4-zero-debt-forensic-audit.mdoc | **SCAFFOLD** `verdict: PENDING` — fill at 4.6 |
+| GAP-NARRATIVE | `phase-4-tenant-kernel.md` §14 | **banner** → p4_* SoT |
 | GAP-PLAYWRIGHT | Subdomain e2e | backlog_soft |
-| BLOCKER-NONE | Modular docs match package.json + phase-4-guard.mjs | PASS |
+
+### GATE-BINDING (replaces BLOCKER-NONE)
+
+```yaml
+rule: "QUALITY PASS for repo closure requires latest reports/phase-4-gate-*.json ok:true"
+verify:
+  - nvm use   # Node 24 per package.json engines
+  - pnpm run phase-4:gate
+pre_commit_note: "ci:integrity does NOT run phase-4:gate — DRIFT-P4-03"
+last_local_guard_sample: "2026-06-04 — ok:false until Node 24 + full pnpm chain green"
+```

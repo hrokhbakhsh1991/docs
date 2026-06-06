@@ -12,5 +12,4 @@ if [ "${SKIP_HOOKS:-}" != "" ] || [ "${SKIP_HOOK:-}" != "" ]; then
   exit 1
 fi
 
-sh scripts/guard-docs.sh
-pnpm run ci:integrity
+bash scripts/pre-commit-fast.sh

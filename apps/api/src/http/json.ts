@@ -1,11 +1,15 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
+export async function readRequestBodyRaw(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+export async function readJsonBody<T>(req: IncomingMessage): Promise<T> {
+  const raw = (await readRequestBodyRaw(req)).trim();
   if (raw.length === 0) {
     return {} as T;
   }
