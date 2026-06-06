@@ -1,9 +1,21 @@
 # Phase 5 — Canonical Data Architecture Research
 
+```yaml
+agent_load_tier: T3_human
+non_authoritative_for_execution: true
+sole_execution_entry: docs/phase-5/phase-5-agent-router.md
+schema_authoritative: docs/phase-5-canonical-schema.md
+fail_if: "Agent implements Phase 5 from this research body instead of phase-5-agent-router.md + subphases/"
+```
+
 **Role:** Principal Software Architect research (no implementation)  
-**Status:** Research complete — input for `phase-5-canonical-schema.md` and `phase-5-canonical-schema.ai-exec.md`  
+**Status:** Research complete — input for [`phase-5-canonical-schema.md`](../phase-5-canonical-schema.md)  
 **Date:** 2026-06-04  
 **Scope:** Phases 0–4 implied architecture + modern industry patterns + Phase 5 decision record
+
+> **Agents (T0):** [`phase-5/phase-5-agent-router.md`](../phase-5/phase-5-agent-router.md) only.  
+> **Repo status (not this doc):** [`phase-5/audits/IMPLEMENTATION-TRUTH.md`](../phase-5/audits/IMPLEMENTATION-TRUTH.md) · **5.2 VERIFIED** — schema [`phase-5-canonical-schema.md`](../phase-5-canonical-schema.md) §4.1  
+> **Alignment (T0):** [`industry-alignment-2026.md`](../phase-5/appendices/industry-alignment-2026.md) · [`platform-continuity-0-5.md`](../phase-5/appendices/platform-continuity-0-5.md) · [`workspace-data-layer-model.md`](../phase-5/appendices/workspace-data-layer-model.md)
 
 ---
 
@@ -41,47 +53,47 @@ Industry research supports **strengthening the current model** (JSONB canonical 
 
 ### 1.2 Current source of truth
 
-| Layer | Source of truth | Notes |
-|-------|-----------------|-------|
-| **Wizard / API business state** | `CanonicalDocument` (`schemaVersion`, `roots`, `data`) in `@app-tour/workspace-sdk` | Structural validation via `assertCanonicalDocument`; deep-frozen `data` on create |
-| **Engine semantics** | `PlatformWizardEngine.validateCanonical` in `@app-tour/platform-core` | Registry + rules from active `WorkspacePlugin` |
-| **Persisted tour state** | `TourRecord.canonical` (typed as `CanonicalDocument` in app code) | Phase 3.4 introduced **single write path**; no dual-write to legacy tables in production path |
-| **Legacy mirror** | `LegacyCanonicalAdapter` | Read-only list for sync **integrity checks** after write—not a second SoT |
-| **UI (when wired)** | Canonical only—no RHF mirror | Phase 0 covenant; Phase 3 scaffold |
+| Layer                           | Source of truth                                                                     | Notes                                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Wizard / API business state** | `CanonicalDocument` (`schemaVersion`, `roots`, `data`) in `@app-tour/workspace-sdk` | Structural validation via `assertCanonicalDocument`; deep-frozen `data` on create             |
+| **Engine semantics**            | `PlatformWizardEngine.validateCanonical` in `@app-tour/platform-core`               | Registry + rules from active `WorkspacePlugin`                                                |
+| **Persisted tour state**        | `TourRecord.canonical` (typed as `CanonicalDocument` in app code)                   | Phase 3.4 introduced **single write path**; no dual-write to legacy tables in production path |
+| **Legacy mirror**               | `LegacyCanonicalAdapter`                                                            | Read-only list for sync **integrity checks** after write—not a second SoT                     |
+| **UI (when wired)**             | Canonical only—no RHF mirror                                                        | Phase 0 covenant; Phase 3 scaffold                                                            |
 
 **Wire shape (target, Phase 5):** MAP and Phase 0 state `data` is the **sole API persist shape**; envelope fields (`schemaVersion`, `roots`) are part of the canonical contract, not parallel DTO trees.
 
 ### 1.3 Current persistence model
 
-| Aspect | Current / planned (Phase 4 docs) | Gap vs Phase 5 target |
-|--------|----------------------------------|------------------------|
-| **Production default** | `InMemoryTourRepository` wired in `apps/api/src/main.ts` | Phase 4 exit requires Postgres when `DATABASE_URL` set |
-| **Schema reference** | `apps/api/prisma/schema.prisma`: `Tour.canonical` JSON, `Tenant.workspaceType`, `Tenant.theme` JSON | MAP names column `canonical_data`; rename/migration is a Phase 5 schema task |
-| **SQL reference** | `infra/sql/001_tenant_rls.sql`: `tours.canonical JSONB NOT NULL` | Aligned with JSONB document store |
-| **Indexing** | `(tenant_id, id)` on tours | No **projected** columns for list/filter yet |
-| **Capacity** | In-memory repo enforces per-tenant/global caps | Must carry over to Postgres adapter |
-| **Prisma client** | Schema exists; **runtime may still be raw SQL or in-memory** until 4.2 closure | Phase 5 assumes Prisma interactive transactions for outbox |
+| Aspect                 | Current / planned (Phase 4 docs)                                                                    | Gap vs Phase 5 target                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Production default** | `InMemoryTourRepository` wired in `apps/api/src/main.ts`                                            | Phase 4 exit requires Postgres when `DATABASE_URL` set                       |
+| **Schema reference**   | `apps/api/prisma/schema.prisma`: `Tour.canonical` JSON, `Tenant.workspaceType`, `Tenant.theme` JSON | MAP names column `canonical_data`; rename/migration is a Phase 5 schema task |
+| **SQL reference**      | `infra/sql/001_tenant_rls.sql`: `tours.canonical JSONB NOT NULL`                                    | Aligned with JSONB document store                                            |
+| **Indexing**           | `(tenant_id, id)` on tours                                                                          | No **projected** columns for list/filter yet                                 |
+| **Capacity**           | In-memory repo enforces per-tenant/global caps                                                      | Must carry over to Postgres adapter                                          |
+| **Prisma client**      | Schema exists; **runtime may still be raw SQL or in-memory** until 4.2 closure                      | Phase 5 assumes Prisma interactive transactions for outbox                   |
 
 ### 1.4 Current tenant model
 
-| Mechanism | Implementation |
-|-----------|----------------|
-| **Isolation model** | Shared schema + `tenant_id` on tenant-scoped rows (pool tier) |
-| **Resolution** | `tenant-kernel` host/subdomain parsing; API binds `TenantAuthContext` |
-| **DB session** | `SET LOCAL app.current_tenant_id` via `tenant-kernel` `SET_LOCAL_RLS_TENANT_SQL` |
-| **RLS** | `FORCE ROW LEVEL SECURITY` policy on `tours` matching session UUID |
-| **App filter** | `ScopedTourRepository` + CASL `accessibleByTourWhere` — defense in depth |
-| **Enterprise silo** | `TenantRoute` interface only — **Phase 7** per MAP §7.2 |
+| Mechanism           | Implementation                                                                   |
+| ------------------- | -------------------------------------------------------------------------------- |
+| **Isolation model** | Shared schema + `tenant_id` on tenant-scoped rows (pool tier)                    |
+| **Resolution**      | `tenant-kernel` host/subdomain parsing; API binds `TenantAuthContext`            |
+| **DB session**      | `SET LOCAL app.current_tenant_id` via `tenant-kernel` `SET_LOCAL_RLS_TENANT_SQL` |
+| **RLS**             | `FORCE ROW LEVEL SECURITY` policy on `tours` matching session UUID               |
+| **App filter**      | `ScopedTourRepository` + CASL `accessibleByTourWhere` — defense in depth         |
+| **Enterprise silo** | `TenantRoute` interface only — **Phase 7** per MAP §7.2                          |
 
 ### 1.5 Current event model
 
-| Mechanism | Phase | Behavior |
-|-----------|-------|----------|
-| **In-process bus** | 4.5 (`@app-tour/platform-events`) | `publishDomainEvent` after successful persist; `TourCreated` with `tenantId`, `tourId` |
-| **Transactional outbox** | Deferred Phase 5 | MAP §6: `outbox_events` table |
-| **Cross-tenant** | Forbidden | `DOMAIN_EVENT_TENANT_REQUIRED` on publish |
-| **Idempotency** | Redis scaffold Phase 4 | Not tied to outbox yet |
-| **Legacy reference** | `legacy/.../OutboxService` | TypeORM + same-transaction `enqueueOutboxEvent`; financial audit coupling |
+| Mechanism                | Phase                             | Behavior                                                                               |
+| ------------------------ | --------------------------------- | -------------------------------------------------------------------------------------- |
+| **In-process bus**       | 4.5 (`@app-tour/platform-events`) | `publishDomainEvent` after successful persist; `TourCreated` with `tenantId`, `tourId` |
+| **Transactional outbox** | Deferred Phase 5                  | MAP §6: `outbox_events` table                                                          |
+| **Cross-tenant**         | Forbidden                         | `DOMAIN_EVENT_TENANT_REQUIRED` on publish                                              |
+| **Idempotency**          | Redis scaffold Phase 4            | Not tied to outbox yet                                                                 |
+| **Legacy reference**     | `legacy/.../OutboxService`        | TypeORM + same-transaction `enqueueOutboxEvent`; financial audit coupling              |
 
 **Critical gap:** Events are **ephemeral** (in-process). Process crash after DB commit but before handler completion loses side effects; no relay to finance/registrations modules in trunk.
 
@@ -105,13 +117,13 @@ HTTP POST /tours
 
 ### 1.7 Current CASL model
 
-| Layer | Detail |
-|-------|--------|
-| **Authority package** | `@casl/ability` in `workspace-sdk` (`buildTenantAuthz`, subjects) |
-| **API surface** | `createApiAbility` → MongoAbility on `Tour` with `{ tenantId }` conditions |
-| **Enforcement** | `accessibleByTourWhere` throws `FORBIDDEN_TOUR_*`; `ScopedTourRepository` blocks cross-tenant create/read |
-| **Prisma integration** | Documented target `@casl/prisma` — Phase 4 applies same rules on Postgres path |
-| **Web** | CASL before theme ingress (Phase 3); deny-by-default wizard host |
+| Layer                  | Detail                                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Authority package**  | `@casl/ability` in `workspace-sdk` (`buildTenantAuthz`, subjects)                                         |
+| **API surface**        | `createApiAbility` → MongoAbility on `Tour` with `{ tenantId }` conditions                                |
+| **Enforcement**        | `accessibleByTourWhere` throws `FORBIDDEN_TOUR_*`; `ScopedTourRepository` blocks cross-tenant create/read |
+| **Prisma integration** | Documented target `@casl/prisma` — Phase 4 applies same rules on Postgres path                            |
+| **Web**                | CASL before theme ingress (Phase 3); deny-by-default wizard host                                          |
 
 **RLS is not a substitute for CASL** — MAP §7.1: RLS is safety net when app filter fails.
 
@@ -421,18 +433,18 @@ For each pattern below: **definition**, **advantages**, **disadvantages**, **ope
 
 ## Section 3 — Compatibility matrix
 
-| Approach | Decision | Reason |
-| -------- | -------- | ------ |
-| Canonical JSONB storage | **Adopt Now** | Already the product model (`CanonicalDocument`); MAP Phase 5.1; matches workspace variability without EAV. |
-| Transactional Outbox Pattern | **Adopt Now** | MAP §6 exit criterion; closes gap between durable writes and side effects; legacy-proven; fits Postgres+Prisma transactions. |
-| Event Sourcing (platform-wide) | **Reject** | Domain is document CRUD + rules engine, not event-native ledger; cost exceeds audit needs; current SoT is state not log. |
+| Approach                           | Decision                   | Reason                                                                                                                                     |
+| ---------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Canonical JSONB storage            | **Adopt Now**              | Already the product model (`CanonicalDocument`); MAP Phase 5.1; matches workspace variability without EAV.                                 |
+| Transactional Outbox Pattern       | **Adopt Now**              | MAP §6 exit criterion; closes gap between durable writes and side effects; legacy-proven; fits Postgres+Prisma transactions.               |
+| Event Sourcing (platform-wide)     | **Reject**                 | Domain is document CRUD + rules engine, not event-native ledger; cost exceeds audit needs; current SoT is state not log.                   |
 | CQRS (separate stores / async bus) | **Reject** (platform-wide) | **Adopt Later** as CQRS-lite only: same Postgres, projection columns + optional read replica Phase 7. Full split not justified pre-Denali. |
-| CDC (Debezium-style) | **Adopt Later** | Useful for warehouse/search at scale; ops burden unjustified before outbox + projections prove insufficient. |
-| Projection Tables | **Adopt Now** | MAP 5.3; required for indexed tenant lists and §12 R3; sync derivation in write transaction is simplest. |
-| Snapshot Strategies | **Adopt Later** | Revisit if selective ES for finance aggregate or long audit streams; not needed while JSONB row is SoT. |
-| Event Replay | **Adopt Later** | After outbox exists; scope to admin tooling + tenant-scoped reprocessing; not Phase 5 day-one. |
-| Idempotency | **Adopt Now** | Phase 4 Redis scaffold + outbox `domainEventId`/unique keys; required for at-least-once outbox relay. |
-| Multi-tenant data evolution | **Adopt Now** | Formalize `schemaVersion`, `workspace_type`, `migrateCanonical` contract in Phase 5 schema doc; silo routing stays Phase 7. |
+| CDC (Debezium-style)               | **Adopt Later**            | Useful for warehouse/search at scale; ops burden unjustified before outbox + projections prove insufficient.                               |
+| Projection Tables                  | **Adopt Now**              | MAP 5.3; required for indexed tenant lists and §12 R3; sync derivation in write transaction is simplest.                                   |
+| Snapshot Strategies                | **Adopt Later**            | Revisit if selective ES for finance aggregate or long audit streams; not needed while JSONB row is SoT.                                    |
+| Event Replay                       | **Adopt Later**            | After outbox exists; scope to admin tooling + tenant-scoped reprocessing; not Phase 5 day-one.                                             |
+| Idempotency                        | **Adopt Now**              | Phase 4 Redis scaffold + outbox `domainEventId`/unique keys; required for at-least-once outbox relay.                                      |
+| Multi-tenant data evolution        | **Adopt Now**              | Formalize `schemaVersion`, `workspace_type`, `migrateCanonical` contract in Phase 5 schema doc; silo routing stays Phase 7.                |
 
 ---
 
@@ -506,26 +518,26 @@ Phase 5 should **not** redefine the product as an event-sourced system. It shoul
 
 ### Hard boundary table
 
-| Capability | Phase 5 (MUST) | Phase 6 (MUST NOT before) | Phase 7 (MUST NOT before) |
-|------------|----------------|---------------------------|---------------------------|
-| `canonical_data` JSONB contract + migrations | ✅ | — | — |
-| Plugin-aware validate-before-persist (registry) | ✅ | Denali-specific fields/rules | — |
-| Sync projection columns + indexed list queries | ✅ | Denali-only projection fields | — |
-| `outbox_events` + transactional emit + relay | ✅ | Finance consumer implementation | — |
-| Minimal `audit_events` (who/tenant/action/entity) | ✅ | Finance mutation audit parity | Full observability stack |
-| `TourCreated` outbox integration test (MAP exit) | ✅ | — | — |
-| Idempotency keys (API + outbox dedupe) | ✅ | Payment-grade idempotency stores | — |
-| `migrateCanonical` implementation for legacy shapes | Design + hook only | ✅ Full Denali cutover | — |
-| `packages/workspaces/denali` | — | ✅ | — |
-| Finance hooks / ledger events | — | ✅ | — |
-| MinIO photo upload | — | ✅ | — |
-| Dynamic Denali bootstrap in api/web | — | ✅ | — |
-| Second workspace (urban) E2E | — | — | ✅ |
-| `TenantConnectionRouter` pool/silo | — | — | ✅ |
-| Read replica / `statement_timeout` policy | — | Defer design note | ✅ |
-| CDC to warehouse | — | — | ✅ (optional) |
-| Rate limits + runbooks + OTel | — | Partial in 6 | ✅ |
-| Marketing / Portal / Admin deploy split | — | — | ✅ (deploy topology) |
+| Capability                                          | Phase 5 (MUST)     | Phase 6 (MUST NOT before)        | Phase 7 (MUST NOT before) |
+| --------------------------------------------------- | ------------------ | -------------------------------- | ------------------------- |
+| `canonical_data` JSONB contract + migrations        | ✅                 | —                                | —                         |
+| Plugin-aware validate-before-persist (registry)     | ✅                 | Denali-specific fields/rules     | —                         |
+| Sync projection columns + indexed list queries      | ✅                 | Denali-only projection fields    | —                         |
+| `outbox_events` + transactional emit + relay        | ✅                 | Finance consumer implementation  | —                         |
+| Minimal `audit_events` (who/tenant/action/entity)   | ✅                 | Finance mutation audit parity    | Full observability stack  |
+| `TourCreated` outbox integration test (MAP exit)    | ✅                 | —                                | —                         |
+| Idempotency keys (API + outbox dedupe)              | ✅                 | Payment-grade idempotency stores | —                         |
+| `migrateCanonical` implementation for legacy shapes | Design + hook only | ✅ Full Denali cutover           | —                         |
+| `packages/workspaces/denali`                        | —                  | ✅                               | —                         |
+| Finance hooks / ledger events                       | —                  | ✅                               | —                         |
+| MinIO photo upload                                  | —                  | ✅                               | —                         |
+| Dynamic Denali bootstrap in api/web                 | —                  | ✅                               | —                         |
+| Second workspace (urban) E2E                        | —                  | —                                | ✅                        |
+| `TenantConnectionRouter` pool/silo                  | —                  | —                                | ✅                        |
+| Read replica / `statement_timeout` policy           | —                  | Defer design note                | ✅                        |
+| CDC to warehouse                                    | —                  | —                                | ✅ (optional)             |
+| Rate limits + runbooks + OTel                       | —                  | Partial in 6                     | ✅                        |
+| Marketing / Portal / Admin deploy split             | —                  | —                                | ✅ (deploy topology)      |
 
 ### What belongs in Phase 5 (summary)
 
@@ -543,18 +555,18 @@ Data layer **contracts and infrastructure**: canonical persistence shape, outbox
 
 ## Section 6 — Risks
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| **Projection drift** from canonical | Wrong list data, tenant-visible bugs | Medium | Same-transaction update; contract test round-trip; rebuild job from JSONB |
-| **Outbox relay failure** | Stuck side effects (email, finance prep) | Medium | Monitoring `status` + age; DLQ table; alert on backlog; idempotent retry |
-| **JSONB hot-query anti-pattern** | DB CPU, slow lists at scale | Medium | Code review ban on `@>` in list paths; enforce projections in guard/docs |
-| **schemaVersion fragmentation** | Incompatible reads across plugins | Medium | Central version matrix; dual-read window documented; plugin tests per version |
-| **Prisma transaction scope bugs** | Outbox not atomic with tour | Low–Medium | Integration tests on real Postgres; single `$transaction` wrapper |
-| **RLS bypass via raw SQL** | Cross-tenant data leak | High impact | Ban raw queries without `withTenantTransaction`; CI RLS specs (P4-E-RLS-*) extended in Phase 5 |
-| **At-least-once duplicate handlers** | Double emails/charges | Medium | `domainEventId` unique; consumer dedupe table |
-| **Over-engineering ES/CQRS** | Delivery slip, ops burden | Medium | This research **rejects** platform ES; Architect sign-off for any ES pilot (finance only, Phase 6+) |
-| **Phase 4 incomplete Postgres cutover** | Phase 5 built on in-memory lie | Medium | Gate Phase 5 entry on `phase-4:gate` checklist (Postgres default, RLS green) |
-| **Tenant migration job cross-wire** | Catastrophic data corruption | Low–High impact | Jobs require explicit `tenant_id`; RLS session per job; no global migrate without tenant scope |
+| Risk                                    | Impact                                   | Likelihood      | Mitigation                                                                                          |
+| --------------------------------------- | ---------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| **Projection drift** from canonical     | Wrong list data, tenant-visible bugs     | Medium          | Same-transaction update; contract test round-trip; rebuild job from JSONB                           |
+| **Outbox relay failure**                | Stuck side effects (email, finance prep) | Medium          | Monitoring `status` + age; DLQ table; alert on backlog; idempotent retry                            |
+| **JSONB hot-query anti-pattern**        | DB CPU, slow lists at scale              | Medium          | Code review ban on `@>` in list paths; enforce projections in guard/docs                            |
+| **schemaVersion fragmentation**         | Incompatible reads across plugins        | Medium          | Central version matrix; dual-read window documented; plugin tests per version                       |
+| **Prisma transaction scope bugs**       | Outbox not atomic with tour              | Low–Medium      | Integration tests on real Postgres; single `$transaction` wrapper                                   |
+| **RLS bypass via raw SQL**              | Cross-tenant data leak                   | High impact     | Ban raw queries without `withTenantTransaction`; CI RLS specs (P4-E-RLS-\*) extended in Phase 5     |
+| **At-least-once duplicate handlers**    | Double emails/charges                    | Medium          | `domainEventId` unique; consumer dedupe table                                                       |
+| **Over-engineering ES/CQRS**            | Delivery slip, ops burden                | Medium          | This research **rejects** platform ES; Architect sign-off for any ES pilot (finance only, Phase 6+) |
+| **Phase 4 incomplete Postgres cutover** | Phase 5 built on in-memory lie           | Medium          | Gate Phase 5 entry on `phase-4:gate` checklist (Postgres default, RLS green)                        |
+| **Tenant migration job cross-wire**     | Catastrophic data corruption             | Low–High impact | Jobs require explicit `tenant_id`; RLS session per job; no global migrate without tenant scope      |
 
 ---
 
@@ -609,23 +621,23 @@ Do **not** adopt platform-wide event sourcing, separate CQRS data stores, or CDC
 
 **Rejected alternatives**
 
-| Alternative | Why rejected |
-|-------------|--------------|
-| Platform-wide Event Sourcing | SoT already materialized state; replay/version tax not justified for tour wizard CRUD. |
-| Full CQRS + async projectors only | Adds lag and ops without separate read store need yet; sync projections sufficient. |
-| CDC (Debezium) as primary integration | Ops-heavy; domain events better expressed in outbox than row replication. |
-| Kafka as event store | Kafka is transport, not SoT; no cluster mandate in MAP Phase 5. |
-| Relational-only (no JSONB) | Breaks workspace plugin field variability and Phase 0–3 contracts. |
-| Keep in-process bus only | Fails MAP Phase 5 exit and loses events on crash. |
+| Alternative                           | Why rejected                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| Platform-wide Event Sourcing          | SoT already materialized state; replay/version tax not justified for tour wizard CRUD. |
+| Full CQRS + async projectors only     | Adds lag and ops without separate read store need yet; sync projections sufficient.    |
+| CDC (Debezium) as primary integration | Ops-heavy; domain events better expressed in outbox than row replication.              |
+| Kafka as event store                  | Kafka is transport, not SoT; no cluster mandate in MAP Phase 5.                        |
+| Relational-only (no JSONB)            | Breaks workspace plugin field variability and Phase 0–3 contracts.                     |
+| Keep in-process bus only              | Fails MAP Phase 5 exit and loses events on crash.                                      |
 
 **Future migration path**
 
-| Stage | Trigger | Direction |
-|-------|---------|-----------|
-| Phase 5 | Now | Outbox + projections + audit minimal |
-| Phase 6 | Denali port | Finance consumers on outbox; `migrateCanonical`; richer projections |
-| Phase 7 | Scale / enterprise | Read replicas; optional CDC to warehouse; silo `TenantConnectionRouter` |
-| Selective ES | Finance ledger aggregate only | If audit replay mandates—**separate** from tour canonical SoT |
+| Stage        | Trigger                       | Direction                                                               |
+| ------------ | ----------------------------- | ----------------------------------------------------------------------- |
+| Phase 5      | Now                           | Outbox + projections + audit minimal                                    |
+| Phase 6      | Denali port                   | Finance consumers on outbox; `migrateCanonical`; richer projections     |
+| Phase 7      | Scale / enterprise            | Read replicas; optional CDC to warehouse; silo `TenantConnectionRouter` |
+| Selective ES | Finance ledger aggregate only | If audit replay mandates—**separate** from tour canonical SoT           |
 
 **Consequences**
 
@@ -661,15 +673,15 @@ The following MUST be specified in `phase-5-canonical-schema.md` (derived from t
 
 ## Appendix B — Repository evidence snapshot (2026-06-04)
 
-| Artifact | Observation |
-|----------|-------------|
-| `apps/api/src/main.ts` | Still wires `InMemoryTourRepository` |
-| `apps/api/prisma/schema.prisma` | `Tour.canonical` Json; tenant `workspaceType` |
-| `infra/sql/001_tenant_rls.sql` | RLS on `tours` |
-| `packages/platform-events` | In-process only |
-| `apps/api/src/tours/canonical-validation.ts` | `PlatformWizardEngine` + starter plugin |
-| `phase-4-enforcement.md` | Outbox deferred; Phase 5 entry checklist |
+| Artifact                                     | Observation                                   |
+| -------------------------------------------- | --------------------------------------------- |
+| `apps/api/src/main.ts`                       | Still wires `InMemoryTourRepository`          |
+| `apps/api/prisma/schema.prisma`              | `Tour.canonical` Json; tenant `workspaceType` |
+| `infra/sql/001_tenant_rls.sql`               | RLS on `tours`                                |
+| `packages/platform-events`                   | In-process only                               |
+| `apps/api/src/tours/canonical-validation.ts` | `PlatformWizardEngine` + starter plugin       |
+| `phase-4-enforcement.md`                     | Outbox deferred; Phase 5 entry checklist      |
 
 ---
 
-*End of research document.*
+_End of research document._

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     "@app-tour/ui-primitives",
     "@app-tour/workspace-sdk",
     "@app-tour/workspace-starter",
+    "@app-tour/workspace-denali",
   ],
 };
 

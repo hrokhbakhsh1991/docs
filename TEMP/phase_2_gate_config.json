@@ -1,0 +1,36 @@
+{
+  "phase": 2,
+  "schemaVersion": 1,
+  "description": "Phase 2 gate — ordered execution sequence before merge",
+  "gateCommand": "phase-2:gate",
+  "steps": [
+    {
+      "id": "build",
+      "order": 1,
+      "command": "pnpm build",
+      "required": true,
+      "description": "Compile workspace-sdk, platform-core, and design-tokens"
+    },
+    {
+      "id": "test",
+      "order": 2,
+      "command": "pnpm test",
+      "required": true,
+      "description": "Run workspace-sdk and platform-core unit tests"
+    },
+    {
+      "id": "guard-architecture",
+      "order": 3,
+      "command": "pnpm run guard:architecture",
+      "required": true,
+      "description": "dependency-cruiser — design-tokens isolation and package boundaries"
+    },
+    {
+      "id": "validate-tokens",
+      "order": 4,
+      "command": "pnpm run validate-design-tokens",
+      "required": true,
+      "description": "CSS variables vs packages/design-tokens/tokens.meta.json"
+    }
+  ]
+}

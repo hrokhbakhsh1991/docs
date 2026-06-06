@@ -1,0 +1,47 @@
+# DEC-122 — HPA for split outbox-relay worker (DEC-118); backlog-driven scale.
+# Use when OUTBOX_RELAY_ENABLED=false on API Rollout and relay runs in outbox-relay Deployment.
+# Apply: kubectl apply -f deploy/hpa/outbox-relay-hpa.yaml -n app-tour
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: outbox-relay
+  namespace: app-tour
+  labels:
+    app: outbox-relay
+    app.kubernetes.io/component: outbox-relay
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: outbox-relay
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: outbox_pending_total
+        target:
+          type: AverageValue
+          averageValue: "100"
+    - type: Pods
+      pods:
+        metric:
+          name: outbox_relay_oldest_pending_age_seconds
+        target:
+          type: AverageValue
+          averageValue: "120"

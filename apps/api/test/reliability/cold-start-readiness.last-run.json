@@ -1,0 +1,14 @@
+{
+  "gate": "cold-start-readiness-gate",
+  "decision": "DEC-061",
+  "startedAt": "2026-06-06T01:43:00.060Z",
+  "budgetMs": 500,
+  "enforce": false,
+  "samples": [208.7, 188.73, 186.12],
+  "p50Ms": 188.73,
+  "p95Ms": 208.7,
+  "maxMs": 208.7,
+  "unscalable": false,
+  "verdict": "PASS",
+  "artifact": "test/reliability/cold-start-readiness.last-run.json"
+}

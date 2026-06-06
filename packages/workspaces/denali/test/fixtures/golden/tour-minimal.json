@@ -1,0 +1,42 @@
+{
+  "basicInfo": {
+    "title": "Test",
+    "tourType": "mountain_day",
+    "destinationId": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "startDateTime": "2026-06-01T08:00:00.000Z",
+    "leaderUserIds": [],
+    "requiresLocalGuide": false,
+    "requiresManualAdminApproval": false,
+    "publishStatus": "draft"
+  },
+  "programNature": {
+    "themeIds": ["b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
+    "difficultyLevel": 5,
+    "itinerary": []
+  },
+  "transport": {
+    "transportMode": "none"
+  },
+  "pricingPayment": {
+    "requiresPayment": false,
+    "includesTourInsurance": false
+  },
+  "participantRequirements": {
+    "nationalIdRequired": false,
+    "sportsInsuranceRequired": false,
+    "gearItems": []
+  },
+  "policies": {},
+  "photosData": {
+    "photos": []
+  },
+  "tripDetails": {
+    "logistics": {
+      "gatheringPoints": []
+    },
+    "overview": {
+      "customServiceLabels": []
+    },
+    "metrics": {}
+  }
+}

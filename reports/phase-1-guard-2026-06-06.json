@@ -1,0 +1,123 @@
+{
+  "generatedAt": "2026-06-06T02:20:56.853Z",
+  "gitSha": "1697b77",
+  "phase": "1.6",
+  "checks": [
+    {
+      "id": "g1_platform_core_dist",
+      "description": "packages/platform-core/dist/index.js exists (run pnpm build first)",
+      "required": true,
+      "ok": true,
+      "detail": "/home/hamed/Music/docs/packages/platform-core/dist/index.js"
+    },
+    {
+      "id": "g2b_workspace_sdk_test_count",
+      "description": "workspace-sdk tests ≥ 39",
+      "required": true,
+      "ok": true,
+      "detail": "176 tests"
+    },
+    {
+      "id": "g2_platform_core_test_count",
+      "description": "platform-core tests ≥ 148 (closure + unit:internal)",
+      "required": true,
+      "ok": true,
+      "detail": "184 tests"
+    },
+    {
+      "id": "g2c_platform_core_closure_test_count",
+      "description": "platform-core closure tests ≥ 56 (excludes test/unit/**)",
+      "required": true,
+      "ok": true,
+      "detail": "78 closure tests"
+    },
+    {
+      "id": "g2d_unit_internal_tests",
+      "description": "test:unit:internal passes (non-gating package policy)",
+      "required": true,
+      "ok": true,
+      "detail": "106 unit tests"
+    },
+    {
+      "id": "g11_phase1_contract_behaviors",
+      "description": "phase-1.contract.spec.ts ≥ 14 behavioral rows (not count-only gate)",
+      "required": true,
+      "ok": true,
+      "detail": "21 contract tests (packages/platform-core/test/phase-1.contract.spec.ts)"
+    },
+    {
+      "id": "g12_facade_integration_spec",
+      "description": "facade-integration.spec.ts executes public PlatformWizardEngine behaviors",
+      "required": true,
+      "ok": true,
+      "detail": "facade integration green"
+    },
+    {
+      "id": "g13_facade_test_ratio",
+      "description": "facade-path tests ≥ 60% of closure spec cases (excl. test/unit/**)",
+      "required": true,
+      "ok": true,
+      "detail": "65/88 cases (74%)"
+    },
+    {
+      "id": "g10_adversarial_specs_execute",
+      "description": "pnpm run test:adversarial — adversarial entry specs pass",
+      "required": true,
+      "ok": true,
+      "detail": "adversarial specs green"
+    },
+    {
+      "id": "g3_no_denali_tokens",
+      "description": "rg -i denali packages/platform-core (excl. *.spec.ts) → 0",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g3b_denali_in_platform_core_test",
+      "description": "rg -i denali packages/platform-core/test → 0",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g3c_denali_in_platform_core_dist",
+      "description": "rg -i denali packages/platform-core/dist → 0 (after build)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g4_no_react_imports",
+      "description": "no react/react-dom imports in platform-core src/ (excl. test paths like theme-react)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g5_depcruise_architecture",
+      "description": "pnpm run guard:architecture",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g6_import_boundary",
+      "description": "pnpm run guard:import-boundary",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "g8_symlink_guard",
+      "description": "pnpm run guard:symlink",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "exit16": {
+    "pass": true,
+    "note": "platform-core: dist + ≥132 tests + facade ratio g13 + workspace-sdk ≥39 + adversarial + denali-free + no react + depcruise"
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T05:02:01.139Z",
-  "gitSha": "319129a",
+  "generatedAt": "2026-06-04T13:16:16.967Z",
+  "gitSha": "210d9f7",
   "phase": "1.6",
   "checks": [
     {
@@ -22,7 +22,7 @@
       "description": "platform-core tests ≥ 148 (closure + unit:internal)",
       "required": true,
       "ok": true,
-      "detail": "172 tests"
+      "detail": "173 tests"
     },
     {
       "id": "g2c_platform_core_closure_test_count",
@@ -36,7 +36,7 @@
       "description": "test:unit:internal passes (non-gating package policy)",
       "required": true,
       "ok": true,
-      "detail": "105 unit tests"
+      "detail": "106 unit tests"
     },
     {
       "id": "g11_phase1_contract_behaviors",

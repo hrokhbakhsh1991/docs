@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Local integrity gate — full phase chain: 0 → 1 → 2 → 3 (pre-commit via Husky).
+# CI / explicit full-path integrity — phase chain 0 → 3 + phase-4 guard + evolution (DEC-119).
+# Husky default: scripts/pre-commit-fast.sh. Full perf: pnpm run test:full (phase-5:gate).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,4 +20,10 @@ pnpm run phase-2:gate
 echo "ci-integrity: phase-3:gate (apps + starter + doc-gate + p3_* guards)"
 pnpm run phase-3:gate
 
-echo "ci-integrity: PASS (phases 0–3)"
+echo "ci-integrity: phase-4:guard (tenant-kernel + RLS when DATABASE_URL set)"
+pnpm run phase-4:guard
+
+echo "ci-integrity: apps/api phase-5:evolution-gate (DEC-109…118 static guards)"
+pnpm --filter @apps/api run phase-5:evolution-gate
+
+echo "ci-integrity: PASS (phases 0–3 + phase-4 guard + evolution)"

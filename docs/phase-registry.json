@@ -102,6 +102,42 @@
           "blockedUntil": ["4.0"]
         }
       }
+    },
+    {
+      "phase": 5,
+      "title": "Data layer (canonical + outbox)",
+      "doc": "phase-5-canonical-schema.mdoc",
+      "legacyMarkdown": "phase-5-canonical-schema.md",
+      "humanResearch": "research/phase-5-data-architecture-research.md",
+      "mapSection": "فاز ۵",
+      "packageReadmeMustLink": "phase-5-canonical-schema.md",
+      "aiExecIndex": "phase-5/phase-5.ai-exec.index.md",
+      "requiredDocSections": [
+        "canonical_data",
+        "outbox_events",
+        "RLS",
+        "phase-5-agent-router"
+      ],
+      "packages": ["apps/api"],
+      "executionHub": "phase-5/README.md",
+      "soleAgentRouter": "phase-5/phase-5-agent-router.md",
+      "implementationMap": "phase-5/appendices/IMPLEMENTATION-MAP.md",
+      "subPhases": {
+        "5.1": {
+          "title": "DDL + migrations",
+          "blockedUntil": ["4.6"],
+          "requiresCanonicalSchema": true
+        },
+        "5.2": {
+          "title": "validate-before-persist",
+          "blockedUntil": ["5.1"],
+          "docSection": "phase-5-canonical-schema.md#41-validate-before-persist-pipeline-52"
+        },
+        "5.6": {
+          "title": "phase-5:gate + forensic",
+          "blockedUntil": ["5.2", "5.3", "5.4", "5.5"]
+        }
+      }
     }
   ],
   "markdoc": {
@@ -151,11 +187,25 @@
       "phase": 3,
       "format": "markdoc",
       "doc": "audits/phase-3-documentation-integrity-2026-06-03.mdoc"
+    },
+    {
+      "phase": 4,
+      "format": "markdoc",
+      "doc": "audits/phase-4-zero-debt-forensic-audit.mdoc",
+      "legacyMarkdown": "audits/phase-4-zero-debt-forensic-audit.md",
+      "status": "SCAFFOLD_PENDING_CLOSURE"
+    },
+    {
+      "phase": 5,
+      "format": "markdoc",
+      "doc": "audits/phase-5-zero-debt-forensic-audit.mdoc",
+      "legacyMarkdown": "audits/phase-5-zero-debt-forensic-audit.md",
+      "status": "SCAFFOLD_PENDING_CLOSURE"
     }
   ],
   "zeroDebtDocSync": {
-    "phasesRequired": [0, 1, 2, 3, 4],
+    "phasesRequired": [0, 1, 2, 3, 4, 5],
     "foundationPhasesRequired": [0],
-    "note": "foundation-gate: DOC_SYNC_SCOPE=foundation uses foundationPhasesRequired only (sdk + config). Full seal: phasesRequired [0–3] via doc-gate / integration."
+    "note": "foundation-gate: DOC_SYNC_SCOPE=foundation uses foundationPhasesRequired only (sdk + config). Full seal: phasesRequired [0–5] via doc-gate / integration. Phase 5 canonical doc: phase-5-canonical-schema.mdoc; execution hub: phase-5/."
   }
 }

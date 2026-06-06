@@ -10,6 +10,16 @@ const monorepoGuardExclude =
 module.exports = {
   forbidden: [
     {
+      name: "no-circular-dependencies",
+      severity: "error",
+      comment:
+        "Circular dependency chains are forbidden. Break the cycle or extract shared code to a neutral module (G-02 / RF-P0-IMP-06).",
+      from: {},
+      to: {
+        circular: true,
+      },
+    },
+    {
       name: "workspace-sdk-no-workspaces",
       comment: "Contract package must not depend on workspace implementations",
       severity: "error",
@@ -125,10 +135,11 @@ module.exports = {
     },
     {
       name: "apps-web-no-workspaces-except-starter",
-      comment: "Web shell may import starter only — other workspace plugins are dynamic (Phase 3.3+)",
+      comment:
+        "Web shell: starter always; denali only via lazy-denali-plugin.ts (Phase 6.5 — docs/phase-6/subphases/6.5-bootstrap.md)",
       severity: "error",
       from: { path: "^apps/web" },
-      to: { path: "^packages/workspaces/(?!starter)" },
+      to: { path: "^packages/workspaces/(?!starter|denali)" },
     },
     {
       name: "workspace-starter-no-apps",
@@ -155,11 +166,12 @@ module.exports = {
     },
     {
       name: "apps-web-allowed-packages",
-      comment: "Web shell Phase 3 allowed workspace dependencies",
+      comment:
+        "Web shell Phase 3+ allowed workspace dependencies (denali devDep for lazy chunk — 6.5)",
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|workspaces/starter|config)",
+        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|workspaces/starter|workspaces/denali|config)",
       },
     },
     {
@@ -178,11 +190,12 @@ module.exports = {
     },
     {
       name: "apps-api-allowed-packages",
-      comment: "Phase 3.2+ API allowed workspace dependencies (incl. phase-4 tenant-kernel / platform-events)",
+      comment:
+        "Phase 3.2+ / 6.5 API allowed workspace dependencies (starter + denali plugin registry, migrate, photos)",
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|config)",
+        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|config)",
       },
     },
     {

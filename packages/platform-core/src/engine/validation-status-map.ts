@@ -1,9 +1,19 @@
 import type { ValidationResult, ValidationViolation } from "../types/validation-result";
 
-const OK_RESULT: ValidationResult = Object.freeze({
-  ok: true,
-  violations: Object.freeze([]),
-});
+/** Fresh frozen success — per finalize call (BL-03: no shared singleton). */
+function frozenOkResult(): ValidationResult {
+  return Object.freeze({
+    ok: true as const,
+    violations: Object.freeze([]) as readonly ValidationViolation[],
+  });
+}
+
+function frozenFailureResult(violations: readonly ValidationViolation[]): ValidationResult {
+  return Object.freeze({
+    ok: false as const,
+    violations: Object.freeze([...violations]),
+  });
+}
 
 type MutableViolation = {
   code: string;
@@ -50,12 +60,9 @@ export function createViolationCollector(): ViolationCollector {
 
     finalize(): ValidationResult {
       if (size === 0) {
-        return OK_RESULT;
+        return frozenOkResult();
       }
-      return {
-        ok: false,
-        violations: buffer.slice(0, size) as readonly ValidationViolation[],
-      };
+      return frozenFailureResult(buffer.slice(0, size) as ValidationViolation[]);
     },
   };
 }

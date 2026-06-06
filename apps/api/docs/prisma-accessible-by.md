@@ -11,7 +11,7 @@ import { createApiAbility } from "../casl/api-ability";
 
 const ability = createApiAbility(context);
 await prisma.tour.findMany({
-  where: { AND: [accessibleBy(ability).Tour, /* filters */] },
+  where: { AND: [accessibleBy(ability).Tour /* filters */] },
 });
 ```
 

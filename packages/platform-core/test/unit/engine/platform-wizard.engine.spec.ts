@@ -162,7 +162,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "DUPLICATE_FIELD_ID");
         return true;
-      },
+      }
     );
   });
 
@@ -173,7 +173,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "INVALID_RULE_SET");
         return true;
-      },
+      }
     );
   });
 
@@ -184,7 +184,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "UNKNOWN_FIELD_ID");
         return true;
-      },
+      }
     );
   });
 
@@ -195,7 +195,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "DUPLICATE_CELL_ID");
         return true;
-      },
+      }
     );
   });
 
@@ -206,7 +206,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "DUPLICATE_CANONICAL_PATH");
         return true;
-      },
+      }
     );
   });
 
@@ -217,7 +217,7 @@ describe("PlatformWizardEngine", () => {
         assert.ok(error instanceof PlatformCoreError);
         assert.equal(error.code, "INVALID_RULE_SET");
         return true;
-      },
+      }
     );
   });
 
@@ -324,7 +324,9 @@ describe("PlatformWizardEngine", () => {
       fieldRegistry: {
         version: 1,
         fields: [
-          ...createTestStarterPlugin().fieldRegistry.fields.filter((f) => f.id !== "details.status"),
+          ...createTestStarterPlugin().fieldRegistry.fields.filter(
+            (f) => f.id !== "details.status"
+          ),
           {
             id: "details.status",
             canonicalPath: "details.status",
@@ -365,7 +367,7 @@ describe("PlatformWizardEngine", () => {
     assert.equal(result.violations[0]?.fieldId, "details.status");
   });
 
-  it("validateCanonical skips fields in inactiveFieldGroups even when data is invalid", () => {
+  it("validateCanonical skips fields in inactiveFieldGroups even when data is invalid (ST-WEAK-05 hardened)", () => {
     const plugin: WorkspacePlugin = {
       ...createTestStarterPlugin(),
       fieldRegistry: {
@@ -392,13 +394,20 @@ describe("PlatformWizardEngine", () => {
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
-        basics: { title: "My tour" },
+        basics: {},
         details: { summary: "Summary text", pricingAmount: 99999 },
       },
     });
     const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
-    assert.equal(result.ok, true);
-    assert.equal(result.violations.length, 0);
+    assert.equal(result.ok, false);
+    assert.ok(
+      result.violations.some((v) => v.fieldId === "basics.title"),
+      "active required field must still fail when validation runs"
+    );
+    assert.ok(
+      !result.violations.some((v) => v.fieldId === "details.pricingAmount"),
+      "inactive group field must be skipped"
+    );
   });
 
   it("validateCanonical reports violation for inactive group field when group is active", () => {
@@ -436,12 +445,12 @@ describe("PlatformWizardEngine", () => {
     assert.equal(result.ok, false);
     assert.ok(
       result.violations.some(
-        (v) => v.fieldId === "details.pricingAmount" && v.code === "CANONICAL_TYPE_MISMATCH",
-      ),
+        (v) => v.fieldId === "details.pricingAmount" && v.code === "CANONICAL_TYPE_MISMATCH"
+      )
     );
   });
 
-  it("validateCanonical allows hidden composite with benign object (no HIDDEN_FIELD_POISON)", () => {
+  it("validateCanonical allows hidden composite with benign object (no HIDDEN_FIELD_POISON, ST-WEAK-06 hardened)", () => {
     const plugin: WorkspacePlugin = {
       ...createTestStarterPlugin(),
       fieldRegistry: {
@@ -477,12 +486,16 @@ describe("PlatformWizardEngine", () => {
       schemaVersion: 1,
       roots: ["basics", "details"],
       data: {
-        basics: { title: "My tour" },
-        details: { summary: "Summary text", meta: { note: "internal" } },
+        basics: { title: "" },
+        details: { meta: { note: "internal" } },
       },
     });
     const result = engine.validateCanonical(document, testRuleContext({ variant: "default" }));
-    assert.equal(result.ok, true);
+    assert.equal(result.ok, false);
+    assert.ok(
+      result.violations.some((v) => v.fieldId === "basics.title"),
+      "active required field must fail when validation runs"
+    );
     assert.ok(!result.violations.some((v) => v.code === "HIDDEN_FIELD_POISON"));
   });
 
@@ -499,7 +512,7 @@ describe("PlatformWizardEngine", () => {
         roots: ["basics", "details"],
         data: { basics: { title: "My tour" }, details: { summary: "ok" } },
       }),
-      testRuleContext({ variant: "default" }),
+      testRuleContext({ variant: "default" })
     );
     assert.equal(result.ok, false);
     assert.equal(result.violations.length, 1);
@@ -584,7 +597,7 @@ describe("validateCanonical high-cardinality", () => {
         stepId,
         kind: "text" as const,
         required: false,
-      })),
+      }))
     );
 
     const data: Record<string, Record<string, string>> = {};
@@ -639,15 +652,15 @@ describe("validateCanonical high-cardinality", () => {
           "step-0": {},
         },
       }),
-      context,
+      context
     );
     assert.equal(missingVisible.ok, false);
     assert.ok(
       missingVisible.violations.some(
         (v) =>
           v.fieldId === visibleProbeId &&
-          (v.code === "REQUIRED_FIELD_EMPTY" || v.code === "UNKNOWN_CANONICAL_PATH"),
-      ),
+          (v.code === "REQUIRED_FIELD_EMPTY" || v.code === "UNKNOWN_CANONICAL_PATH")
+      )
     );
   });
 });

@@ -18,4 +18,11 @@ allowed_overlap:
 forbidden_overlap:
   - action: "implement platform-core before 0.6 PASS"
   - action: "merge platform-core feature work before baseline:metrics PASS"
+
+circular_dependencies:
+  rule: no-circular-dependencies
+  config: dependency-cruiser.config.js
+  enforcement: pnpm run guard:architecture
+  closed: G-02 / RF-P0-IMP-06 (2026-06-05)
+  remediation_pattern: extract leaf modules (types, config, queue-counts) before enabling rule
 ```

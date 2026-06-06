@@ -1,0 +1,32 @@
+# Phase 5.0 entry verification — update fields to PASS as subphase 5.0 completes
+# Doc: docs/phase-5/subphases/5.0-entry-gate.md · CLOSURE: docs/phase-5/audits/CLOSURE-CHECKLIST.md §A
+# Map: docs/phase-5/appendices/CROSS-PHASE-ENTRY-MAP.md
+# Do not mark 5.0 VERIFIED in IMPLEMENTATION-TRUTH while any blocking field is PENDING
+phase_5_entry:
+  phase_4_gate:
+    command: pnpm run phase-4:gate
+    status: PASS
+    report_path: reports/phase-4-gate-2026-06-04.json
+    git_sha: ae73a28
+    note: "Verified from gate report ok:true; re-run locally with Node 24 per .nvmrc"
+  phase_5_entry_requires:
+    postgres_sot:
+      status: PASS
+      evidence: apps/api/src/storage/create-tour-storage.ts — production defaults to prisma
+      dev_note: "Set STORAGE_DRIVER=prisma when DATABASE_URL set — see REPO-PROJECT-ALIGNMENT.md"
+    rls_applied:
+      status: PASS
+      evidence:
+        - infra/sql/001_tenant_rls.sql
+        - apps/api/src/db/with-tenant-rls.ts
+        - apps/api/test/rls-isolation.integration.spec.ts
+    event_hooks_exist:
+      status: PASS
+      evidence:
+        - apps/api/src/canonical/publish-tour-created.ts
+        - apps/api/src/canonical/canonical-tour.service.ts
+    human_doc_sections_8_16:
+      status: WAIVED_T3
+      note: "phase-5-canonical-schema.md has §1–§10; research §8–16 optional T3 — not blocking 5.0"
+  verified_at: "2026-06-04"
+  verified_by: "phase-5-doc-recommendations-plan"

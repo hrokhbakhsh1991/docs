@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-04T04:56:21.381Z",
-  "gitSha": "319129a",
+  "generatedAt": "2026-06-04T13:10:45.255Z",
+  "gitSha": "210d9f7",
   "phase": "0.5-foundation",
   "gateScope": {
     "script": "phase-0-guard.mjs",
@@ -8,9 +8,7 @@
     "foundationGate": "pnpm run phase-0:foundation-gate — workspace-sdk + config only (Phase 0 closure)",
     "integrationGate": "pnpm run phase-0:integration-gate — full monorepo build/test + trunk guards (REM-013)",
     "phase0ClosureContract": "pnpm run test:phase-0 — phase-0.contract.spec.ts (dist + denali + legacy + invariant manifest; H-06)",
-    "importBoundaryScanRoots": [
-      "packages/workspace-sdk"
-    ],
+    "importBoundaryScanRoots": ["packages/workspace-sdk"],
     "countThresholdsRetired": true
   },
   "checks": [

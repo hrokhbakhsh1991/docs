@@ -29,7 +29,7 @@ function assertStarterFieldKinds(): void {
   for (const field of STARTER_FIELD_REGISTRY.fields) {
     if (!(STARTER_ALLOWED_FIELD_KINDS as readonly string[]).includes(field.kind)) {
       throw new Error(
-        `Starter field "${field.id}" uses kind "${field.kind}"; allowed: ${STARTER_ALLOWED_FIELD_KINDS.join(", ")}`,
+        `Starter field "${field.id}" uses kind "${field.kind}"; allowed: ${STARTER_ALLOWED_FIELD_KINDS.join(", ")}`
       );
     }
   }
@@ -88,6 +88,16 @@ export const STARTER_RULE_SET = deepFreeze({
         { fieldId: "details.status", hidden: false },
       ],
     },
+    {
+      cellId: "basic",
+      dimensions: { variant: "basic" },
+      fieldOverrides: [
+        { fieldId: "basics.title", required: false, hidden: false },
+        { fieldId: "basics.featured", hidden: false },
+        { fieldId: "details.summary", hidden: false },
+        { fieldId: "details.status", hidden: false },
+      ],
+    },
   ],
 });
 
@@ -110,6 +120,7 @@ export function createStarterWorkspacePlugin(theme: WorkspaceThemeContract): Wor
   return deepFreeze({
     id: STARTER_WORKSPACE_PLUGIN_ID,
     version: 1,
+    contractVersion: 1,
     supportedWorkspaceTypes: deepFreeze([STARTER_WORKSPACE_TYPE]),
     fieldRegistry: STARTER_FIELD_REGISTRY,
     ruleSet: STARTER_RULE_SET,

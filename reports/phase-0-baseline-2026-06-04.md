@@ -1,35 +1,35 @@
 # Phase 0 baseline — 2026-06-04
 
-- **Generated:** 2026-06-04T04:57:37.300Z
-- **Git SHA:** `319129a`
+- **Generated:** 2026-06-04T13:11:57.108Z
+- **Git SHA:** `210d9f7`
 - **JSON:** [reports/phase-0-baseline-2026-06-04.json](reports/phase-0-baseline-2026-06-04.json)
 
 ## Summary metrics
 
-| Metric | Value |
-|--------|-------|
-| workspace_sdk_test_it_source (informational) | 149 |
-| workspace_sdk_export_count | 4 |
-| workspace_sdk_source_files | 67 |
-| denali_coupling_contract_ok | true |
-| legacy_import_contract_ok | true |
-| new_packages | config, design-tokens, platform-core, platform-events, tenant-kernel, theme-react, ui-primitives, workspace-sdk, workspaces |
+| Metric                                       | Value                                                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| workspace_sdk_test_it_source (informational) | 149                                                                                                                         |
+| workspace_sdk_export_count                   | 4                                                                                                                           |
+| workspace_sdk_source_files                   | 67                                                                                                                          |
+| denali_coupling_contract_ok                  | true                                                                                                                        |
+| legacy_import_contract_ok                    | true                                                                                                                        |
+| new_packages                                 | config, design-tokens, platform-core, platform-events, tenant-kernel, theme-react, ui-primitives, workspace-sdk, workspaces |
 
 ## Per-layer denali (foundation contract scope)
 
-| Layer | enforced | source |
-|-------|----------|--------|
-| `packages/config` | yes | denali-coupling.contract.spec.ts |
-| `packages/workspace-sdk` | yes | denali-coupling.contract.spec.ts |
-| `packages/platform-core` | no | outside foundation scan |
-| `packages/workspaces` | no | outside foundation scan |
+| Layer                    | enforced | source                           |
+| ------------------------ | -------- | -------------------------------- |
+| `packages/config`        | yes      | denali-coupling.contract.spec.ts |
+| `packages/workspace-sdk` | yes      | denali-coupling.contract.spec.ts |
+| `packages/platform-core` | no       | outside foundation scan          |
+| `packages/workspaces`    | no       | outside foundation scan          |
 
 ## Threshold checks
 
-| ID | Expected | Actual | Result |
-|----|----------|--------|--------|
-| t2_denali_coupling_contract | denali-coupling.contract.spec.ts PASS | true | PASS |
-| t3_legacy_import_contract | legacy-import.contract.spec.ts PASS | true | PASS |
+| ID                          | Expected                              | Actual | Result |
+| --------------------------- | ------------------------------------- | ------ | ------ |
+| t2_denali_coupling_contract | denali-coupling.contract.spec.ts PASS | true   | PASS   |
+| t3_legacy_import_contract   | legacy-import.contract.spec.ts PASS   | true   | PASS   |
 
 ## Phase 0.6 exit
 

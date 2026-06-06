@@ -5,10 +5,7 @@ import type { ReactNode } from "react";
 import { AppProviders } from "@/providers/app-providers";
 import { AppShell } from "@/shell/app-shell";
 import { fetchTenantThemeForContext } from "@/tenant/fetch-tenant-theme.server";
-import {
-  resolveBootstrapAppSession,
-  toSerializableBootstrap,
-} from "@/tenant/tenant-kernel";
+import { resolveBootstrapAppSessionForHost, toSerializableBootstrap } from "@/tenant/tenant-kernel";
 
 import "./globals.css";
 
@@ -21,14 +18,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const resolved = resolveBootstrapAppSession();
   const headerList = await headers();
   const host = headerList.get("host") ?? "localhost:3000";
+  const resolved = resolveBootstrapAppSessionForHost(host);
   const tenantTheme = await fetchTenantThemeForContext(resolved.context, host);
-  const bootstrap = toSerializableBootstrap(
-    resolved,
-    tenantTheme ?? undefined,
-  );
+  const bootstrap = toSerializableBootstrap(resolved, tenantTheme ?? undefined);
 
   return (
     <html lang="en">

@@ -1,0 +1,33 @@
+---
+title: Phase 7 Zero-Debt Forensic Audit
+verdict: PENDING
+score: null
+date: 2026-06-04
+phase_id: "7"
+closure_gate: pnpm run phase-7:gate
+---
+
+# Phase 7 forensic audit
+
+```yaml
+verdict: PENDING
+minimum_score: 8
+blocking_until: "7.9 behavioral closure"
+```
+
+## Rubric (target)
+
+| #   | Criterion                                   | Weight |
+| --- | ------------------------------------------- | ------ |
+| 1   | Second workspace without platform-core diff | high   |
+| 2   | Urban E2E create→publish                    | high   |
+| 3   | Observability §10 complete                  | medium |
+| 4   | Rate limits per tenant                      | medium |
+| 5   | TenantConnectionRouter silo                 | high   |
+| 6   | ci:integrity at closure                     | high   |
+| 7   | No legacy runtime import                    | medium |
+| 8   | Doc/reality alignment (TRUTH)               | medium |
+
+## Status
+
+Doc pack complete; behavioral audit **PENDING** until implementation.

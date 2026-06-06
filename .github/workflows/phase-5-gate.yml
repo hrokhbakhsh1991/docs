@@ -1,0 +1,80 @@
+# Phase 5 — full closure gate with Postgres (DEC-096).
+
+name: phase-5-gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: phase-5-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Phase 5 gate (Postgres required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy (DEC-124)
+        run: pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Phase 5 closure gate
+        run: pnpm run phase-5:gate
+
+      - name: Upload phase-5 gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-5-gate-reports
+          path: |
+            reports/phase-5-gate-*.json
+          if-no-files-found: ignore

@@ -2,6 +2,6 @@
  * Intentional Denali product coupling — negative proof for no-denali-product-ids only.
  * @see test/denali-coupling.contract.spec.ts
  */
-import { DENALI_BREACH_PROBE } from "../../../workspaces/denali";
+import { getDenaliWorkspacePlugin } from "../../../workspaces/denali/src/denali.plugin";
 
-void DENALI_BREACH_PROBE;
+void getDenaliWorkspacePlugin;

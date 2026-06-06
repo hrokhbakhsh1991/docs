@@ -10,8 +10,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const r = spawnSync(
   "pnpm",
-  ["exec", "tsx", "--test", "src/canonical/canonical-sync-validator.spec.ts", "src/canonical/legacy-canonical-adapter.spec.ts"],
-  { cwd: ROOT, encoding: "utf8", shell: true },
+  [
+    "exec",
+    "tsx",
+    "--test",
+    "src/canonical/canonical-sync-validator.spec.ts",
+    "src/canonical/legacy-canonical-adapter.spec.ts",
+  ],
+  { cwd: ROOT, encoding: "utf8", shell: true }
 );
 
 if (r.status !== 0) {

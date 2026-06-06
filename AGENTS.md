@@ -21,11 +21,16 @@ pnpm build && pnpm test && pnpm run guard:architecture && pnpm run guard:import-
 pnpm run phase-1:gate   # phase 1 full gate (recommended before PR)
 pnpm run phase-2:gate   # phase 2 design-system gate (build, test, contracts, p2_* guards)
 pnpm run test:contract            # KS-02/04: dist surface + no-legacy-imports (depcruise)
-pnpm run phase-0:foundation-gate  # Phase 0 closure: workspace-sdk + config + scoped guards
-pnpm run phase-0:integration-gate   # trunk: full build + test + architecture + import-boundary
-pnpm run phase-0:gate               # foundation-gate then integration-gate
-pnpm run ci:integrity               # phase-0:gate → phase-1:gate → phase-2:gate → phase-3:gate — pre-commit
-pnpm run phase-3:gate               # apps/starter integration + doc-gate (also inside ci:integrity)
+pnpm run phase-0:covenant-gate      # Phase 0 covenant (alias: phase-0:foundation-gate)
+pnpm run phase-0:trunk-gate         # trunk integrity (alias: phase-0:integration-gate)
+pnpm run phase-0:gate               # covenant-gate then trunk-gate
+pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
+pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
+pnpm run test:full                  # phase-3:gate + phase-4:gate (RLS when DATABASE_URL set)
+pnpm run db:test-reset              # TRUNCATE tenant data — fast between integration runs
+pnpm run ci:integrity               # phase-0→3 + phase-4 guard + evolution — CI / PR (not pre-commit)
+pnpm run phase-3:gate               # apps/starter integration + doc-gate (inside ci:integrity / test:full)
+pnpm run phase-4:gate               # full Phase 4 closure (includes phase-3:gate)
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)
 pnpm run baseline:metrics
 pnpm run doc-gate              # Docs-as-Code Doc-Gate (MAP §19) — required before Phase 3.1 merge
@@ -34,13 +39,14 @@ pnpm run phase-3:doc-scaffold  # alias for doc-gate
 
 ## Pre-commit (Husky)
 
-After `pnpm install`, Husky runs `pnpm run ci:integrity` on every commit. Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` are rejected). To reinstall hooks: `pnpm run prepare`.
+After `pnpm install`, Husky runs **`pnpm run pre-commit:fast`** (eslint + prettier on diff, `test-changed` only). Full integration: **`pnpm run test:full`** before PR or Phase 4 work. See [`docs/dev/tiered-testing.md`](docs/dev/tiered-testing.md). Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` are rejected). To reinstall hooks: `pnpm run prepare`.
 
 ## Migration plan
 
 **Primary doc:** [`docs/MIGRATION-MAP.md`](docs/MIGRATION-MAP.md) — §5 infra, §6 events, §7 tenant routing, §8 plugin semver, §10 observability
 
 **Phase execution (detailed):**
+
 - Phase 0: [`docs/phase-0-foundation.md`](docs/phase-0-foundation.md)
 - Phase 1: [`docs/phase-1-platform-core.md`](docs/phase-1-platform-core.md)
 - Phase 2: [`docs/phase-2-design-system.md`](docs/phase-2-design-system.md)

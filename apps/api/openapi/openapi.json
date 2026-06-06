@@ -1,0 +1,436 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "@apps/api thin HTTP dispatch",
+    "version": "0.1.0",
+    "description": "Machine-readable contract for createRequestListener routes. Not the legacy Nest openapi.json."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3001"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/metrics": {
+      "get": {
+        "operationId": "getInternalMetrics",
+        "summary": "Prometheus metrics (dev/test)",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/cache/invalidate": {
+      "post": {
+        "operationId": "invalidateCache",
+        "summary": "Invalidate registry cache / flush Redis rate keys",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/api/v2/tenant-config": {
+      "get": {
+        "operationId": "getTenantConfig",
+        "summary": "Tenant theme and feature flags",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/api/v2/map/enrich": {
+      "get": {
+        "operationId": "getMapEnrich",
+        "summary": "Map upstream enrich proxy",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/tenants/provision": {
+      "post": {
+        "operationId": "provisionTenant",
+        "summary": "Provision tenant (dev/test only)",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/test/db-pool-hold": {
+      "get": {
+        "operationId": "dbPoolHold",
+        "summary": "Test-only pool hold hook",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/internal/outbox/{outboxId}/replay": {
+      "post": {
+        "operationId": "replayOutbox",
+        "summary": "Replay failed outbox row",
+        "x-internal": true,
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/tours": {
+      "post": {
+        "operationId": "createTour",
+        "summary": "Create tour",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listTours",
+        "summary": "List tours for tenant (cursor pagination)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    },
+    "/tours/{tourId}": {
+      "get": {
+        "operationId": "getTour",
+        "summary": "Get tour by id",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchTour",
+        "summary": "Patch tour (optimistic lock)",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Client error"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "429": {
+            "description": "Rate limited"
+          },
+          "503": {
+            "description": "Unavailable (pool, shutdown, circuit)"
+          }
+        }
+      }
+    }
+  }
+}

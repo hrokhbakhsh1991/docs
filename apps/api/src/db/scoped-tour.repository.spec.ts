@@ -7,7 +7,7 @@ import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { ScopedTourRepository } from "./scoped-tour.repository";
 
 describe("ScopedTourRepository cross-tenant policy", () => {
-  it("findFirst throws FORBIDDEN when record exists under another tenant", async () => {
+  it("findFirst returns null when record exists under another tenant (RLS-scoped read)", async () => {
     const inner = new TourStorageDbAdapter(new InMemoryTourRepository());
     const owner = createApiAbility({
       userId: "u1",
@@ -33,9 +33,7 @@ describe("ScopedTourRepository cross-tenant policy", () => {
       workspaceId: "ws-1",
     });
 
-    await assert.rejects(
-      () => new ScopedTourRepository(inner, intruder).findFirst({ id: created.id }),
-      /FORBIDDEN_TOUR_READ_CROSS_TENANT/,
-    );
+    const hit = await new ScopedTourRepository(inner, intruder).findFirst({ id: created.id });
+    assert.equal(hit, null);
   });
 });

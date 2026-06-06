@@ -3,11 +3,11 @@ import http from "node:http";
 import { describe, it, before } from "node:test";
 
 import { createRequestListener } from "../src/app";
-import { createTestToursService } from "./test-helpers";
+import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 /**
  * Phase 3.2 integrity — cross-tenant forensic (P3-E-DB-01).
- * Policy: mismatched tenant claims or cross-tenant resource access MUST return 403, never 200/404.
+ * Policy: mismatched tenant claims MUST return 403; cross-tenant tour id GET returns 404 under RLS (DM-CT-03).
  */
 
 type JsonResponse = {
@@ -39,7 +39,7 @@ async function requestJson(
     readonly path: string;
     readonly headers?: Record<string, string>;
     readonly body?: unknown;
-  },
+  }
 ): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -74,7 +74,7 @@ async function requestJson(
               body: raw.length > 0 ? JSON.parse(raw) : null,
             });
           });
-        },
+        }
       );
       req.on("error", (err) => {
         server.close();
@@ -87,6 +87,7 @@ async function requestJson(
 }
 
 describe("cross-tenant forensic (integrity 3.2)", () => {
+  installMemoryStorageDriverForDescribe();
   let listener: ReturnType<typeof createRequestListener>;
 
   before(() => {
@@ -95,7 +96,7 @@ describe("cross-tenant forensic (integrity 3.2)", () => {
     });
   });
 
-  it("GET foreign tour returns 403 Forbidden (not 404)", async () => {
+  it("GET foreign tour returns 404 Not Found (RLS tenant-scoped read)", async () => {
     const created = await requestJson(listener, {
       method: "POST",
       path: "/tours",
@@ -111,13 +112,9 @@ describe("cross-tenant forensic (integrity 3.2)", () => {
       headers: memberHeaders({ authenticatedTenantId: "tenant-b", tenantId: "tenant-b" }),
     });
 
-    assert.equal(
-      probe.status,
-      403,
-      `cross-tenant GET must be 403 (got ${probe.status}) — 404 leaks existence via enumeration gap`,
-    );
-    const err = (probe.body as { error?: string }).error ?? "";
-    assert.match(err, /FORBIDDEN_TOUR_READ_CROSS_TENANT/);
+    assert.equal(probe.status, 404, `cross-tenant GET must be 404 (got ${probe.status})`);
+    const err = (probe.body as { error?: string; code?: string }).error ?? "";
+    assert.match(err, /not_found|TOUR_NOT_FOUND/);
   });
 
   it("FORENSIC POST: tenantId token ≠ authenticated context → 403 only (never 200/201/404)", async () => {
@@ -136,7 +133,7 @@ describe("cross-tenant forensic (integrity 3.2)", () => {
     assert.notEqual(
       res.status,
       404,
-      "cross-tenant POST must not mask auth failure as 404 — reveals policy gap",
+      "cross-tenant POST must not mask auth failure as 404 — reveals policy gap"
     );
     assert.equal(res.status, 403, "accessibleBy / tenant binding must fail closed with 403");
     assert.match((res.body as { error?: string }).error ?? "", /FORBIDDEN_TENANT_CLAIM_MISMATCH/);
@@ -166,7 +163,7 @@ describe("cross-tenant forensic (integrity 3.2)", () => {
     assert.equal(res.status, 401);
     assert.match(
       (res.body as { error?: string }).error ?? "",
-      /UNAUTHORIZED_MISSING_AUTHENTICATED_TENANT/,
+      /UNAUTHORIZED_MISSING_AUTHENTICATED_TENANT/
     );
   });
 

@@ -28,6 +28,38 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
     assert.equal(correctTenant?.id, tour.id);
   });
 
+  it("listByTenantPage paginates with cursor", async () => {
+    const repo = new InMemoryTourRepository();
+    await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
+    await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
+    await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
+
+    const sortedIds = (await repo.listByTenant("t1"))
+      .sort((left, right) => {
+        const byCreatedAt = left.createdAt.localeCompare(right.createdAt);
+        return byCreatedAt !== 0 ? byCreatedAt : left.id.localeCompare(right.id);
+      })
+      .map((tour) => tour.id);
+
+    const page1 = await repo.listByTenantPage({ tenantId: "t1", limit: 2 });
+    assert.deepEqual(
+      page1.items.map((tour) => tour.id),
+      sortedIds.slice(0, 2)
+    );
+    assert.equal(page1.nextCursor, page1.items[1]?.id);
+
+    const page2 = await repo.listByTenantPage({
+      tenantId: "t1",
+      limit: 2,
+      cursor: page1.nextCursor ?? undefined,
+    });
+    assert.deepEqual(
+      page2.items.map((tour) => tour.id),
+      sortedIds.slice(2)
+    );
+    assert.equal(page2.nextCursor, null);
+  });
+
   it("listByTenant returns only rows for that tenant", async () => {
     const repo = new InMemoryTourRepository();
     await repo.createTour({ tenantId: "t1", canonical: sampleCanonical });
@@ -56,7 +88,7 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT");
         return true;
-      },
+      }
     );
   });
 
@@ -71,7 +103,7 @@ describe("InMemoryTourRepository (tenant-scoped storage)", () => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, tourCapacityErrorMessage("TOUR_CAPACITY_TENANT"));
         return true;
-      },
+      }
     );
   });
 });

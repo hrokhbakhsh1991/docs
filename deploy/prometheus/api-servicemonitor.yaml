@@ -1,0 +1,30 @@
+# DEC-121 — scrape @apps/api Prometheus text from internal metrics route.
+# Requires: Prometheus Operator, Secret api-metrics-scrape-jwt (Bearer JWT ops_scope=metrics:read).
+# Apply: kubectl apply -f deploy/prometheus/api-servicemonitor.yaml
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api
+  namespace: app-tour
+  labels:
+    app: api
+    app.kubernetes.io/component: metrics
+    release: prometheus
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: api
+  namespaceSelector:
+    matchNames:
+      - app-tour
+  endpoints:
+    - port: http
+      path: /internal/metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      scheme: http
+      bearerTokenSecret:
+        name: api-metrics-scrape-jwt
+        key: token

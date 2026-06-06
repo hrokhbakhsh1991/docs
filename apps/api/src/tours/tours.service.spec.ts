@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
@@ -9,12 +9,26 @@ import { TourStorageDbAdapter } from "../db/tour-storage.adapter";
 import { InMemoryTourRepository } from "../storage/in-memory-tour.repository";
 import { ToursService } from "./tours.service";
 
-describe("ToursService", () => {
+describe("ToursService", { concurrency: false }, () => {
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
+
+  before(() => {
+    process.env.STORAGE_DRIVER = "memory";
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
+  });
+
   const service = new ToursService(
     new CanonicalTourService(
       new TourStorageDbAdapter(new InMemoryTourRepository()),
-      new LegacyCanonicalAdapter(),
-    ),
+      new LegacyCanonicalAdapter()
+    )
   );
 
   const activeMember: TenantAuthContext = {
@@ -30,9 +44,9 @@ describe("ToursService", () => {
       () =>
         service.createTour(
           { ...activeMember, status: "SUSPENDED" },
-          { data: { basics: { title: "Blocked" }, details: { summary: "" } } },
+          { data: { basics: { title: "Blocked" }, details: { summary: "" } } }
         ),
-      /FORBIDDEN_TOUR_CREATE/,
+      /FORBIDDEN_TOUR_CREATE/
     );
   });
 
@@ -43,7 +57,7 @@ describe("ToursService", () => {
           tenantId: "tenant-b",
           data: { basics: { title: "Cross" }, details: { summary: "" } },
         }),
-      /FORBIDDEN_TENANT_CLAIM_MISMATCH/,
+      /FORBIDDEN_TENANT_CLAIM_MISMATCH/
     );
   });
 

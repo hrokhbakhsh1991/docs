@@ -1,0 +1,99 @@
+{
+  "gate": "phase-4-cross-phase-p0-verify",
+  "decision": "DEC-073",
+  "waveA": "DEC-080",
+  "postgresRequired": true,
+  "closes": ["CASCADE-01-partial", "CASCADE-03-partial"],
+  "verifies": ["NN-01", "NN-02", "RL-DOS-01", "SCAL-HF-11-partial"],
+  "residual": ["RL-DOS-04", "SH-GAP-13"],
+  "startedAt": "2026-06-06T05:54:21.855Z",
+  "finishedAt": "2026-06-06T05:54:44.818Z",
+  "databaseUrlSet": true,
+  "verdict": "PASS",
+  "steps": [
+    {
+      "id": "guard:validation-queue-depth",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 338,
+      "skipped": false
+    },
+    {
+      "id": "guard:validation-workers",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 328,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-db-budget",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 338,
+      "skipped": false
+    },
+    {
+      "id": "guard:tour-write-concurrency",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 341,
+      "skipped": false
+    },
+    {
+      "id": "guard:rate-limit-theme-cache",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 346,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-registry-cache-bounds",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 347,
+      "skipped": false
+    },
+    {
+      "id": "guard:rate-limiter-100-probe",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 330,
+      "skipped": false
+    },
+    {
+      "id": "guard:production-redis-url",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 325,
+      "skipped": false
+    },
+    {
+      "id": "guard:bulk-import-victim-slo",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 331,
+      "skipped": false
+    },
+    {
+      "id": "build-dist",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 13984,
+      "skipped": false
+    },
+    {
+      "id": "phase4-cross-phase-p0-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 4154,
+      "skipped": false
+    },
+    {
+      "id": "phase4-cross-phase-postgres-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1799,
+      "skipped": false
+    }
+  ]
+}

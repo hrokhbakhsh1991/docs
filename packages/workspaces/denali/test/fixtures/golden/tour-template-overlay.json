@@ -1,0 +1,55 @@
+{
+  "basicInfo": {
+    "title": "صعود به قله دماوند - جبهه جنوبی",
+    "tourType": "mountain_day",
+    "destinationId": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "startDateTime": "2026-06-01T08:00:00.000Z",
+    "capacityMax": 15,
+    "leaderUserIds": [],
+    "requiresLocalGuide": false,
+    "requiresManualAdminApproval": false,
+    "publishStatus": "draft"
+  },
+  "programNature": {
+    "themeIds": ["b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
+    "shortDescription": "یک برنامه جذاب برای صعود به بام ایران.",
+    "difficultyLevel": 5,
+    "hikingHoursApprox": 8,
+    "itinerary": []
+  },
+  "transport": {
+    "transportMode": "none"
+  },
+  "pricingPayment": {
+    "requiresPayment": true,
+    "basePricePerPerson": 500000,
+    "paymentMode": "offline_receipt",
+    "includesTourInsurance": false
+  },
+  "participantRequirements": {
+    "minimumAge": 18,
+    "fitnessLevel": "medium",
+    "nationalIdRequired": false,
+    "sportsInsuranceRequired": true,
+    "gearItems": []
+  },
+  "policies": {},
+  "photosData": {
+    "photos": []
+  },
+  "tripDetails": {
+    "logistics": {
+      "gatheringPoints": []
+    },
+    "overview": {
+      "customServiceLabels": [],
+      "peakHeight": 5610
+    },
+    "metrics": {}
+  },
+  "_templateOverlay": {
+    "transport.seatPreference": {
+      "visibility": "hidden"
+    }
+  }
+}
