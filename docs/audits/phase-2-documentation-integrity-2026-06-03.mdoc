@@ -15,38 +15,38 @@ forensicArchive: audits/phase-2-zero-debt-forensic-audit-2026-06-02.mdoc
 
 ## 1. Markdoc migration
 
-| Artifact | Status |
-|----------|--------|
+| Artifact        | Status                                                        |
+| --------------- | ------------------------------------------------------------- |
 | Canonical guide | [`phase-2-design-system.mdoc`](../phase-2-design-system.mdoc) |
-| Legacy mirror | [`phase-2-design-system.md`](../phase-2-design-system.md) |
+| Legacy mirror   | [`phase-2-design-system.md`](../phase-2-design-system.md)     |
 
 ## 2. Forensic linkage (permanent)
 
-| Format | Path |
-|--------|------|
+| Format                  | Path                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
 | **Markdoc (canonical)** | [`phase-2-zero-debt-forensic-audit-2026-06-02.mdoc`](phase-2-zero-debt-forensic-audit-2026-06-02.mdoc) |
-| Legacy markdown | [`phase-2-zero-debt-forensic-audit-2026-06-02.md`](phase-2-zero-debt-forensic-audit-2026-06-02.md) |
+| Legacy markdown         | [`phase-2-zero-debt-forensic-audit-2026-06-02.md`](phase-2-zero-debt-forensic-audit-2026-06-02.md)     |
 
 Linked from phase guide header, §5.6 (barrel context), §13 (Security Seal), and [`docs/audits/README.md`](README.md).
 
 ## 3. Theme Ingress Guard × SDK contract
 
-| Control | Documented | Code |
-|---------|------------|------|
-| SDK `WorkspaceThemeContract` | §5.3, §8.2.1 T-1–T-7 | `workspace-theme.contract.ts` |
-| `assertThemeCssValueIsSafe` | §8.2.1 T-6 | `theme-css-value-safety.ts` |
-| `validateWorkspaceThemeIngress` | §5.5 mermaid | `theme-ingress-guard.ts` |
-| CASL before ingress | §5.5 step 2 | `ability.ts` comment + `WorkspaceThemeProvider` |
-| Sealed snapshot | §5.5 step 4 | `snapshotWorkspaceTheme` |
+| Control                         | Documented           | Code                                            |
+| ------------------------------- | -------------------- | ----------------------------------------------- |
+| SDK `WorkspaceThemeContract`    | §5.3, §8.2.1 T-1–T-7 | `workspace-theme.contract.ts`                   |
+| `assertThemeCssValueIsSafe`     | §8.2.1 T-6           | `theme-css-value-safety.ts`                     |
+| `validateWorkspaceThemeIngress` | §5.5 mermaid         | `theme-ingress-guard.ts`                        |
+| CASL before ingress             | §5.5 step 2          | `ability.ts` comment + `WorkspaceThemeProvider` |
+| Sealed snapshot                 | §5.5 step 4          | `snapshotWorkspaceTheme`                        |
 
 ## 4. Barrel import ban
 
-| Item | Documented |
-|------|------------|
-| Why (SB-02, tree-shake) | §5.6 |
+| Item                             | Documented             |
+| -------------------------------- | ---------------------- |
+| Why (SB-02, tree-shake)          | §5.6                   |
 | `pnpm run guard:import-boundary` | §5.6, §11 / Appendix G |
-| `pnpm run audit-boundary` | §5.6, doc-gate |
-| Allowed subpaths | §5.6 |
+| `pnpm run audit-boundary`        | §5.6, doc-gate         |
+| Allowed subpaths                 | §5.6                   |
 
 ## 5. Verification
 

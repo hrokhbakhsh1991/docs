@@ -1,6 +1,12 @@
 import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
 
+import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 import { logger } from "../observability/logger";
+
+export const PRODUCTION_STATIC_TENANT_REGISTRY_FORBIDDEN =
+  "PRODUCTION_STATIC_TENANT_REGISTRY_FORBIDDEN";
+export const PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY =
+  "PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY";
 
 export type RegisteredTenant = {
   readonly id: string;
@@ -24,19 +30,54 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
   },
 ];
 
-function warnDevTenantRegistryInProduction(): void {
-  if (process.env.NODE_ENV === "production") {
+/**
+ * HT-01 — static `DEV_TENANTS` may back resolution only in test, or in development
+ * without `DATABASE_URL`. Production and DB-backed dev paths use Postgres `tenants`.
+ */
+export function isStaticTenantRegistryAllowed(): boolean {
+  if (isProductionAuthMode()) {
+    return false;
+  }
+  if (process.env.NODE_ENV === "test") {
+    return true;
+  }
+  if (process.env.NODE_ENV === "development") {
+    return !process.env.DATABASE_URL?.trim();
+  }
+  return false;
+}
+
+/**
+ * Boot-time fail-closed for static registry in prod-like deploys (DI-REG-01 / DEC-039).
+ * @see docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md DEC-025, DEC-039
+ */
+export function assertStaticTenantRegistryRuntime(): void {
+  if (isProductionAuthMode()) {
+    if (isStaticTenantRegistryAllowed()) {
+      throw new Error(PRODUCTION_STATIC_TENANT_REGISTRY_FORBIDDEN);
+    }
+    return;
+  }
+
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  if (nodeEnv !== "test" && nodeEnv !== "development" && !process.env.DATABASE_URL?.trim()) {
+    throw new Error(PRODLIKE_DATABASE_URL_REQUIRED_FOR_REGISTRY);
+  }
+}
+
+function warnDevTenantRegistryWhenAllowed(): void {
+  if (isStaticTenantRegistryAllowed() && process.env.NODE_ENV === "development") {
     logger.warn(
       {
         event: "tenant.registry.dev_tenants",
         count: DEV_TENANTS.length,
       },
-      "DEV_TENANTS static registry is active in production — replace with tenant-kernel / DB resolution before go-live",
+      "DEV_TENANTS static registry active — set DATABASE_URL for Postgres-backed tenant resolution"
     );
   }
 }
 
-warnDevTenantRegistryInProduction();
+warnDevTenantRegistryWhenAllowed();
 
 export function listRegisteredTenants(): readonly RegisteredTenant[] {
   return DEV_TENANTS;

@@ -1,0 +1,28 @@
+---
+title: Phase 6 Zero-Debt Forensic Audit
+phase: 6
+status: SCAFFOLD_PENDING_CLOSURE
+verdict: PENDING
+auto_fill: false
+gateReport: reports/phase-6-gate-YYYY-MM-DD.json
+phase5GateReport: reports/phase-5-gate-YYYY-MM-DD.json
+---
+
+# Phase 6 Zero-Debt Forensic Audit (scaffold)
+
+> Fill at **6.9** only when `phase-6:gate` ok and plugin e2e proven.
+
+## Pre-closure
+
+| #   | Requirement                                   |
+| --- | --------------------------------------------- |
+| 1   | `pnpm run phase-6:gate` exit 0                |
+| 2   | Nested `phase-5:gate` ok                      |
+| 3   | `getDenaliWorkspacePlugin` registered api/web |
+| 4   | No runtime `legacy/` import in trunk apps     |
+| 5   | MinIO + smoke per MAP 6.6–6.7 or waiver       |
+
+```yaml
+verdict: PENDING
+architect: TBD
+```

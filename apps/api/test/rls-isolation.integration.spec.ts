@@ -11,7 +11,7 @@ const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
  * Requires: docker compose up + infra/sql/001_tenant_rls.sql applied.
  * Run: DATABASE_URL=postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev pnpm --filter @apps/api test
  */
-describe("RLS isolation (integration)", { skip: !hasDatabase }, () => {
+describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false }, () => {
   const tenantA = randomUUID();
   const tenantB = randomUUID();
   let tourBId: string;
@@ -35,8 +35,9 @@ describe("RLS isolation (integration)", { skip: !hasDatabase }, () => {
       },
     });
 
+    // Session-level (false): Prisma uses separate transactions per query; local=true drops setting.
     await prisma.$executeRaw`
-      SELECT set_config('app.current_tenant_id', ${tenantB}::text, true)
+      SELECT set_config('app.current_tenant_id', ${tenantB}::text, false)
     `;
     const tour = await prisma.tour.create({
       data: {
@@ -53,7 +54,12 @@ describe("RLS isolation (integration)", { skip: !hasDatabase }, () => {
 
   after(async () => {
     const prisma = getPrisma();
-    await prisma.tour.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
+    for (const tenantId of [tenantA, tenantB]) {
+      await prisma.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${tenantId}::text, false)
+      `;
+      await prisma.tour.deleteMany({ where: { tenantId } });
+    }
     await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
     await disconnectPrisma();
   });
@@ -61,7 +67,7 @@ describe("RLS isolation (integration)", { skip: !hasDatabase }, () => {
   it("P4-E-RLS-01: tenant A session cannot SELECT tenant B tour row", async () => {
     const prisma = getPrisma();
     await prisma.$executeRaw`
-      SELECT set_config('app.current_tenant_id', ${tenantA}::text, true)
+      SELECT set_config('app.current_tenant_id', ${tenantA}::text, false)
     `;
     const rows = await prisma.$queryRaw<{ id: string }[]>`
       SELECT id::text AS id FROM tours WHERE id = ${tourBId}::uuid

@@ -1,7 +1,4 @@
-import {
-  getWorkspaceRuleCell,
-  type WorkspaceRuleSet,
-} from "@app-tour/workspace-sdk/registry";
+import { getWorkspaceRuleCell, type WorkspaceRuleSet } from "@app-tour/workspace-sdk/registry";
 
 import { PlatformCoreError } from "../errors/platform-core.error";
 import {
@@ -22,6 +19,21 @@ import {
 } from "./rule-engine-scope-policy";
 
 const MAX_SCOPE_CACHE_SIZE = 64;
+const DEFAULT_MAX_TENANT_PARTITIONS = 128;
+
+function readMaxTenantPartitions(): number {
+  const raw = process.env.RULE_ENGINE_MAX_TENANT_PARTITIONS?.trim();
+  if (raw === undefined || raw === "") {
+    return DEFAULT_MAX_TENANT_PARTITIONS;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_MAX_TENANT_PARTITIONS;
+  }
+  return parsed;
+}
+
+const MAX_TENANT_PARTITIONS = readMaxTenantPartitions();
 
 export class RuleEngine {
   private readonly cellIndex: RuleCellIndex;
@@ -30,7 +42,7 @@ export class RuleEngine {
   private constructor(
     private readonly ruleSet: WorkspaceRuleSet,
     private readonly fieldEngine: FieldRegistryEngine,
-    private readonly scopePolicy: RuleEngineScopePolicy,
+    private readonly scopePolicy: RuleEngineScopePolicy
   ) {
     this.cellIndex = new RuleCellIndex(ruleSet);
   }
@@ -42,17 +54,17 @@ export class RuleEngine {
   static tryCreate(
     ruleSet: WorkspaceRuleSet,
     fieldEngine: FieldRegistryEngine,
-    scopePolicy: RuleEngineScopePolicy = DEFAULT_RULE_ENGINE_SCOPE_POLICY,
+    scopePolicy: RuleEngineScopePolicy = DEFAULT_RULE_ENGINE_SCOPE_POLICY
   ): PlatformResult<RuleEngine> {
     if (!getWorkspaceRuleCell(ruleSet, ruleSet.defaultCellId)) {
       return platformFail(
         "INVALID_RULE_SET",
-        `defaultCellId "${ruleSet.defaultCellId}" is not in ruleSet.cells`,
+        `defaultCellId "${ruleSet.defaultCellId}" is not in ruleSet.cells`
       );
     }
 
     const overrideFieldIds = ruleSet.cells.flatMap((cell) =>
-      cell.fieldOverrides.map((override) => override.fieldId),
+      cell.fieldOverrides.map((override) => override.fieldId)
     );
     const known = fieldEngine.tryAssertKnownFieldIds(overrideFieldIds);
     if (!known.ok) {
@@ -72,7 +84,7 @@ export class RuleEngine {
   static create(
     ruleSet: WorkspaceRuleSet,
     fieldEngine: FieldRegistryEngine,
-    scopePolicy?: RuleEngineScopePolicy,
+    scopePolicy?: RuleEngineScopePolicy
   ): RuleEngine {
     return unwrapPlatformResult(RuleEngine.tryCreate(ruleSet, fieldEngine, scopePolicy));
   }
@@ -81,16 +93,32 @@ export class RuleEngine {
     return this.scopeFor(context);
   }
 
+  private tenantScopeCache(tenantId: string): Map<string, RuleEngineScope> {
+    const existing = this.scopeCacheByTenant.get(tenantId);
+    if (existing != null) {
+      this.scopeCacheByTenant.delete(tenantId);
+      this.scopeCacheByTenant.set(tenantId, existing);
+      return existing;
+    }
+
+    if (this.scopeCacheByTenant.size >= MAX_TENANT_PARTITIONS) {
+      const oldestTenant = this.scopeCacheByTenant.keys().next().value;
+      if (oldestTenant != null) {
+        this.scopeCacheByTenant.delete(oldestTenant);
+      }
+    }
+
+    const tenantCache = new Map<string, RuleEngineScope>();
+    this.scopeCacheByTenant.set(tenantId, tenantCache);
+    return tenantCache;
+  }
+
   private scopeFor(context: RuleContextResolution): RuleEngineScope {
     const normalized = normalizeRuleContext(context);
     const scopeKey = buildRuleContextScopeKey(normalized, this.ruleSet.matrixDimensions);
     const tenantId = normalized.tenantId;
 
-    let tenantCache = this.scopeCacheByTenant.get(tenantId);
-    if (tenantCache == null) {
-      tenantCache = new Map<string, RuleEngineScope>();
-      this.scopeCacheByTenant.set(tenantId, tenantCache);
-    }
+    const tenantCache = this.tenantScopeCache(tenantId);
 
     const cached = tenantCache.get(scopeKey);
     if (cached != null) {
@@ -104,7 +132,7 @@ export class RuleEngine {
       this.fieldEngine,
       this.cellIndex,
       normalized,
-      this.scopePolicy,
+      this.scopePolicy
     );
     if (tenantCache.size >= MAX_SCOPE_CACHE_SIZE) {
       const oldest = tenantCache.keys().next().value;

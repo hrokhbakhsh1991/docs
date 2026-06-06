@@ -9,23 +9,27 @@ Modular **AI-execution** spec. Narrative: [`../phase-2-design-system.md`](../pha
 
 ## Navigation
 
-| File | Contents |
-|------|----------|
-| [`phase-2.ai-exec.index.md`](phase-2.ai-exec.index.md) | `document_meta`, agent algorithm, module map, doc drift, fail conditions |
-| [`phase-2-overview.md`](phase-2-overview.md) | Phase detection · §1–§5 |
-| [`phase-2-state-machine.md`](phase-2-state-machine.md) | State model · DAG · PR rules |
-| [`phase-2-enforcement.md`](phase-2-enforcement.md) | Forbidden · DoD · Phase 3 entry · completion checklist |
-| [`phase-2-guards.md`](phase-2-guards.md) | All `p2_*` checks (`phase-2-guard.mjs`) |
-| [`phase-2-ci.md`](phase-2-ci.md) | `phase-2:gate` chain · Appendix G repo truth |
-| [`subphases/2.1-design-tokens.md`](subphases/2.1-design-tokens.md) | §7 |
-| [`subphases/2.2-workspace-theme-contract.md`](subphases/2.2-workspace-theme-contract.md) | §8 |
-| [`subphases/2.2.1-theme-ingress-security.md`](subphases/2.2.1-theme-ingress-security.md) | §8.2.1 · T-1–T-7 |
-| [`subphases/2.3-ui-primitives.md`](subphases/2.3-ui-primitives.md) | §9 |
-| [`subphases/2.4-theme-react.md`](subphases/2.4-theme-react.md) | §10 |
-| [`subphases/2.5-visual-qa-gate.md`](subphases/2.5-visual-qa-gate.md) | §11 |
-| [`audits/forensic-template.md`](audits/forensic-template.md) | SB-01/02/03 forensic truth |
-| [`audits/verification-matrix.md`](audits/verification-matrix.md) | Test matrix binding · `p2_*` map |
-| [`appendices/`](appendices/) | Dependency graph · commands · PR template · MAP bridge |
+| File                                                                                     | Contents                                                                 |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [`phase-2.ai-exec.index.md`](phase-2.ai-exec.index.md)                                   | `document_meta`, agent algorithm, module map, doc drift, fail conditions |
+| [`phase-2-overview.md`](phase-2-overview.md)                                             | Phase detection · §1–§5                                                  |
+| [`phase-2-state-machine.md`](phase-2-state-machine.md)                                   | State model · DAG · PR rules                                             |
+| [`phase-2-enforcement.md`](phase-2-enforcement.md)                                       | Forbidden · DoD · Phase 3 entry · completion checklist                   |
+| [`phase-2-guards.md`](phase-2-guards.md)                                                 | All `p2_*` checks (`phase-2-guard.mjs`)                                  |
+| [`phase-2-ci.md`](phase-2-ci.md)                                                         | `phase-2:gate` chain · Appendix G repo truth                             |
+| [`subphases/2.1-design-tokens.md`](subphases/2.1-design-tokens.md)                       | §7                                                                       |
+| [`subphases/2.2-workspace-theme-contract.md`](subphases/2.2-workspace-theme-contract.md) | §8                                                                       |
+| [`subphases/2.2.1-theme-ingress-security.md`](subphases/2.2.1-theme-ingress-security.md) | §8.2.1 · T-1–T-7                                                         |
+| [`subphases/2.3-ui-primitives.md`](subphases/2.3-ui-primitives.md)                       | §9                                                                       |
+| [`subphases/2.4-theme-react.md`](subphases/2.4-theme-react.md)                           | §10                                                                      |
+| [`subphases/2.5-visual-qa-gate.md`](subphases/2.5-visual-qa-gate.md)                     | §11                                                                      |
+| [`audits/forensic-template.md`](audits/forensic-template.md)                             | SB-01/02/03 forensic truth                                               |
+| [`audits/verification-matrix.md`](audits/verification-matrix.md)                         | Test matrix binding · `p2_*` map                                         |
+| [`appendices/`](appendices/)                                                             | Dependency graph · commands · PR template · MAP bridge                   |
+
+## Cross-phase continuity
+
+Design tokens do not own DB or canonical persist (Phase 5). Hub: [`../appendices/PLATFORM-CONTINUITY-0-5.md`](../appendices/PLATFORM-CONTINUITY-0-5.md)
 
 ## Agent load order
 
