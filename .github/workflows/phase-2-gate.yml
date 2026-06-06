@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install ripgrep (audit-boundary)
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Phase 2 gate
         run: pnpm run phase-2:gate
 
