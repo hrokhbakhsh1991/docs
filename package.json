@@ -33,7 +33,7 @@
     "db:test-reset": "bash scripts/db-test-reset.sh",
     "infra:minio:up": "docker compose -f infra/docker-compose.yml up -d minio",
     "infra:minio:ensure-bucket": "docker run --rm --network host --entrypoint /bin/sh minio/mc -c 'mc alias set local http://127.0.0.1:9002 minioadmin minioadmin && mc mb local/app-tour-dev --ignore-existing'",
-    "test:minio-photo": "pnpm --filter @apps/api exec node --import tsx --test test/minio-photo.spec.ts",
+    "test:minio-photo": "pnpm --filter @app-tour/workspace-denali... run build && pnpm --filter @apps/api exec node --import tsx --test test/minio-photo.spec.ts",
     "db:migrate:deploy": "pnpm --filter @apps/api run db:migrate:deploy",
     "prepare": "husky",
     "phase-0:guard": "node scripts/guards/phase-0-guard.mjs",

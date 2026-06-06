@@ -41,12 +41,12 @@ git push
 
 ## GitHub Actions (`phase-6-gate.yml`)
 
-| Job            | Proves                         | Services / infra                           |
-| -------------- | ------------------------------ | ------------------------------------------ |
-| `fast-closure` | REQ-P6-022 fast-track closure  | Postgres 16 · migrate deploy · app role    |
-| `minio-photo`  | REQ-P6-016 round-trip          | MinIO container on `:9002` · bucket ensure |
-| `smoke-denali` | SMK-P6-01..06 Playwright smoke | Postgres · build · Playwright Chromium     |
-| `full-gate`    | REQ-P6-022 nested closure      | Postgres · `pnpm run phase-6:gate`         |
+| Job            | Proves                         | Services / infra                                            |
+| -------------- | ------------------------------ | ----------------------------------------------------------- |
+| `fast-closure` | REQ-P6-022 fast-track closure  | Postgres 16 · migrate deploy · app role                     |
+| `minio-photo`  | REQ-P6-016 round-trip          | `workspace-denali...` build · MinIO `:9002` · bucket ensure |
+| `smoke-denali` | SMK-P6-01..06 Playwright smoke | Postgres · build · Playwright Chromium                      |
+| `full-gate`    | REQ-P6-022 nested closure      | Postgres · `pnpm run phase-6:gate`                          |
 
 **Triggers:**
 
@@ -68,6 +68,8 @@ DATABASE_URL_ADMIN=postgresql://postgres:postgres@127.0.0.1:5434/tour_db
 STORAGE_DRIVER=prisma
 NODE_ENV=test
 ```
+
+**MinIO job:** `test:minio-photo` imports `@app-tour/workspace-denali` from `dist/` — run `pnpm --filter @app-tour/workspace-denali... run build` before the spec (wired in root `package.json` and CI).
 
 **MinIO job env:**
 
