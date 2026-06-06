@@ -18,11 +18,11 @@ Cross-link: [HARDENED-GATE-REPORT.md](./HARDENED-GATE-REPORT.md)
 
 | #   | mode          | exit | signal  | orphan_tours | orphan_outbox | orphan_audit | partial | pass |
 | --- | ------------- | ---- | ------- | ------------ | ------------- | ------------ | ------- | ---- |
-| 1   | sigkill       | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 2   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 3   | pre_commit    | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
+| 1   | outbox        | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
+| 2   | pre_commit    | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
+| 3   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
 | 4   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
-| 5   | pre_commit    | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
+| 5   | before_outbox | null | SIGKILL | 0            | 0             | 0            | 0       | PASS |
 
 ## Atomicity verdict
 

@@ -5,8 +5,8 @@ created: "2026-06-06"
 repo: /home/hamed/Music/docs
 remote: origin
 canonical_main: origin/main
-current_branch: feat/phase-4
-current_head: 1697b77
+current_branch: integrate/phase-4-6
+current_head: W4-complete
 origin_main_head: 1937f0b
 wip_uncommitted_files: ~619
 diff_vs_origin_main: ~808 files (+83k / -2.4k lines)
@@ -133,13 +133,20 @@ git cherry-pick <sha1>^..<sha9>               # تک‌تک
 
 ---
 
-### Tier 3 — بازگرداندن WIP و commit موجی (۱–۳ ساعت) 🔄 در حال انجام
+### Tier 3 — بازگرداندن WIP و commit موجی (۱–۳ ساعت) ✅ انجام شد 2026-06-06
 
 ```bash
 git stash pop   # یا: git stash apply stash^{/wip-phase-4-6}
 ```
 
-**وضعیت:** `git stash apply` انجام شد · WIP روی `integrate/phase-4-6` · wave commit‌ها **باقی**
+**وضعیت:** ۴ wave commit روی `integrate/phase-4-6` · working tree **clean**
+
+| Wave | commit    | پیام                                      |
+| ---- | --------- | ----------------------------------------- |
+| W1   | `538ffde` | phase-4 resilience closure                |
+| W2   | `ac4dd8e` | phase-5 evolution closure                 |
+| W3   | `7f82c81` | phase-6 Denali workspace closure          |
+| W4   | `6ea3b21` | integrate artifacts + gates + repo wiring |
 
 **ترتیب commit پیشنهادی (هر wave یک PR-logical unit):**
 
