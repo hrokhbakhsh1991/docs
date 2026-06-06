@@ -190,9 +190,11 @@ describe("1-reliability — idempotency bypass (security research)", () => {
       let admin: PrismaClient;
       let listener: ReturnType<typeof createRequestListener>;
       const priorStorageDriver = process.env.STORAGE_DRIVER;
+      const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
 
       before(async () => {
         process.env.STORAGE_DRIVER = "prisma";
+        process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = String(BURST);
         admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
         await admin.tenant.create({
           data: {
@@ -212,6 +214,11 @@ describe("1-reliability — idempotency bypass (security research)", () => {
 
       after(async () => {
         process.env.STORAGE_DRIVER = priorStorageDriver;
+        if (priorMaxTourWrites === undefined) {
+          delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+        } else {
+          process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = priorMaxTourWrites;
+        }
         await admin.$executeRawUnsafe(
           `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
         );

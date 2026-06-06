@@ -279,7 +279,7 @@ describe("1-reliability — ToursService partial state (validation → persist f
 
     assert.equal(store.ruleEnginePathConfirmed, true);
 
-    const independentValidation = validateCanonicalBeforePersist({
+    const independentValidation = await validateCanonicalBeforePersist({
       body: {
         data: { basics: { title: "independent-validation" }, details: { summary: "ok" } },
       },

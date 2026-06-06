@@ -12,9 +12,5 @@
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "src/**/*.spec.ts",
-    "test/**/*.spec.ts",
-    "src/schemas/*.generated.ts"
-  ]
+  "exclude": ["src/**/*.spec.ts", "test/**/*.spec.ts", "src/schemas/*.generated.ts"]
 }

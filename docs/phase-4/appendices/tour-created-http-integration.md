@@ -15,8 +15,8 @@ Unit coverage in `canonical-tour.service.events.spec.ts` does not replace this â
 
 ## Spec
 
-| File | Layer |
-|------|-------|
+| File                                                    | Layer                 |
+| ------------------------------------------------------- | --------------------- |
 | `apps/api/test/4-integration/tour-created-http.spec.ts` | HTTP + memory storage |
 
 ## Run

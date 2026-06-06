@@ -38,11 +38,11 @@ execution_commands:
 
 Phase 4 guard step 4 (`phase-4:guard`) runs **`p4_rls_integration_tests`**, which spawns `apps/api` specs **sequentially** (not one combined `node --test` — avoids hang when mixing prisma RLS + in-memory HTTP tests):
 
-| Variable         | Required value                                                                   | When                                                                                        |
-| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`   | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db`) | Before `phase-4:guard` / `phase-4:gate` — **RLS spec only**                               |
-| `DATABASE_URL_ADMIN` | postgres owner URL                                                           | Migrate deploy + optional RLS bootstrap                                                     |
-| `STORAGE_DRIVER` | `prisma` in your shell for 4.2 parity; guard sets **per spec** (RLS→prisma, tenant-security→memory) | CI job env                                                                                  |
+| Variable             | Required value                                                                                      | When                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`       | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db`)                         | Before `phase-4:guard` / `phase-4:gate` — **RLS spec only** |
+| `DATABASE_URL_ADMIN` | postgres owner URL                                                                                  | Migrate deploy + optional RLS bootstrap                     |
+| `STORAGE_DRIVER`     | `prisma` in your shell for 4.2 parity; guard sets **per spec** (RLS→prisma, tenant-security→memory) | CI job env                                                  |
 
 Guard prints progress (`phase-4-guard: tenant-kernel build…`) — silence after start usually means a long build step, not a dead process.
 

@@ -8,91 +8,120 @@
 
 ## خلاصه اجرایی (فارسی)
 
-| مورد                             | مقدار                                                          |
-| -------------------------------- | -------------------------------------------------------------- |
-| **حکم Stress-Test**              | **CONDITIONAL** — tier-3 gates سبز؛ scale-out تولیدی **مسدود** |
-| **Break-point RPS (global)**     | **~40 RPS** @ 250 ms hold · **~200 RPS** @ ~50 ms TX (تخمینی)  |
-| **Break-point RPS (per tenant)** | **50 RPS** write/read (429 بالاتر — عمدی)                      |
-| **Hard-Fail Risks**              | **12** (`SCAL-HF-01` … `SCAL-HF-12`)                           |
-| **Scalability Debt**             | **15** (`SCAL-DEBT-01` … `SCAL-DEBT-15`)                       |
-| **Noisy Neighbor**               | **8** آسیب‌پذیری (**3 High**) — RLS سبز؛ availability **Fail** |
-| **Rate limiter 100-ID flood**    | **4** DoS (`RL-DOS-01` … `RL-DOS-04`) — **Fail**               |
-| **Outbox 10k flood**             | **Pass** — 0 System Scalability Failure · **233 eps** drain    |
-| **Cold-start**                   | **2 Unscalable** (`CS-UNSC-01/02`) — p95 boot **2084 ms**      |
-| **Race register**                | **30** (**6 High**) — بدون bleed داده بین tenant               |
+| مورد                             | مقدار                                                                                                                                                                        |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **حکم Stress-Test**              | **CONDITIONAL** — tier-3 gates سبز؛ P0+P1 closure **بسته**                                                                                                                   |
+| **Break-point RPS (global)**     | **~40 RPS** @ 250 ms hold · **~200 RPS** @ ~50 ms TX (تخمینی)                                                                                                                |
+| **Break-point RPS (per tenant)** | **50 RPS** write/read (429 بالاتر — عمدی)                                                                                                                                    |
+| **Hard-Fail Risks**              | **12** ثبت — **~4** residual (HF-09/11/12 + monitor)                                                                                                                         |
+| **Scalability Debt**             | **15/15 Done** (`SCAL-DEBT-01` … `SCAL-DEBT-15`)                                                                                                                             |
+| **Noisy Neighbor**               | **Mitigated** — DEC-055/056/064/069 + **NN-08** fast path ([`health-priority-lane.md`](../docs/phase-5/appendices/health-priority-lane.md))                                  |
+| **Rate limiter 100-ID flood**    | **Mitigated** — DEC-053/059/065/083                                                                                                                                          |
+| **Outbox 10k flood**             | **Pass** — 0 System Scalability Failure · **233 eps** drain                                                                                                                  |
+| **Cold-start**                   | **Pass** compiled p95 **~290 ms**؛ worker ready **Pass**؛ CS-UNSC-01 **A2 Done** ([`cold-start-tsx-dev-waiver.md`](../docs/phase-5/appendices/cold-start-tsx-dev-waiver.md)) |
+| **Race register**                | **30** (**6 High**) — بخشی با LRU/TTL بسته                                                                                                                                   |
 
-**جمع‌بندی:** pool storm → **503** (نه hang)، outbox 10k + HTTP SLO **3.19×** اثبات شده. قبل از multi-tenant production: **SCAL-DEBT-01…06**، **SCAL-HF-01/02**، **NN-01/02** و **RL-DOS-01** را ببندید.
+**جمع‌بندی:** pool storm → **503**؛ outbox 10k + HTTP SLO **3.19×**؛ **SCAL-DEBT** و Must-Fix P0/P1 **بسته**. Residual monitored: _(A1–A4, B1–B5, C2–C4, D1/D6, F1–F2 closed)_. **E1 Done** — `phase-3-regression-gate` **PASS 37 steps** (~65s, 2026-06-06).
 
 ---
 
 ## تناقضات و ابهامات در سند (نیاز به هم‌راستاسازی)
 
-| ID         | محل در سند                                                                               | تناقض                            | توضیح / اقدام پیشنهادی                                                                                                |
-| ---------- | ---------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **CON-01** | Headline «**14** Scalability Debt» vs جدول SCAL-DEBT (**15** ردیف تا CS-UNSC)            | شمارش 14 vs 15                   | **SCAL-DEBT-15** (cold-start gate @ 500 ms) بعد از capstone اضافه شده — در doc اصلی headline را به **15** اصلاح کنید. |
-| **CON-02** | Verdict **CONDITIONAL** vs Executive «Rate limiter **Fail**» و «Noisy neighbor **Fail**» | capstone سبز؛ زیربخش‌ها Fail     | تناقض نیست — gate integration **Pass**؛ production scale-out **blocked**. در گزارش مدیریتی هر دو را جدا بنویسید.      |
-| **CON-03** | `cold-start-latency.spec.ts` budget **1000 ms** vs §12 SLO **500 ms Unscalable**         | دو آستانه                        | spec قدیمی‌تر است؛ audit §12 سخت‌گیرتر — **CS-UNSC** بر اساس 500 ms. هم‌راستا: gate @ 500 ms روی `dist/main.js`.      |
-| **CON-04** | Outbox §10 **Pass** vs OB-COND-01 sync `publishDomainEvent`                              | relay pass؛ handler sync ریسک    | pass در بار تست‌شده؛ OB-COND-01 ریسک **آینده** اگر subscriber سنگین شود — در risk register نگه دارید.                 |
-| **CON-05** | Logging §11 «**Low today**» (fast stdout) vs FOF-LOG **Fatal (adversarial)**             | empirical سبز؛ تئوری Fatal       | عمدی — LOG-BP-01 سبز ≠ slow-sink امن. re-run با stdout blocked اجباری قبل از prod log driver.                         |
-| **CON-06** | `BASELINE_RATIO_MAX=1.10` در spec vs `1.25` در `phase-5:gate`                            | SLO noisy-neighbor شل‌تر در gate | [phase5 CI-BYP-20](../apps/api/docs/phase5-evolution-audit.md) — fairness gate pragmatic؛ doc delta را ثبت کنید.      |
-| **CON-07** | Pool «**Pass**» (isolation) vs NN-02 «B **503**» (fairness)                              | RLS درست؛ pool مشترک             | schema/design درست؛ **fairness gap** — SCAL-DEBT-01 P2-5.                                                             |
+| ID         | محل در سند                                                                               | تناقض                            | توضیح / اقدام پیشنهادی                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CON-01** | Headline «**14** Scalability Debt» vs جدول SCAL-DEBT (**15** ردیف تا CS-UNSC)            | شمارش 14 vs 15                   | **Resolved (D1)** — headline **15** + § Document alignment (CON) در audit.                                                                         |
+| **CON-02** | Verdict **CONDITIONAL** vs Executive «Rate limiter **Fail**» و «Noisy neighbor **Fail**» | capstone سبز؛ زیربخش‌ها Fail     | **Resolved** — Executive Summary به Mitigated/Pass به‌روز شد (2026-06-05).                                                                         |
+| **CON-03** | `cold-start-latency.spec.ts` budget **1000 ms** vs §12 SLO **500 ms Unscalable**         | دو آستانه                        | **Resolved** — tiered budgets: engine **1000 ms** (`COLD_START_ENGINE_BUDGET_MS`); HTTP/readiness **500 ms** (`COLD_START_HTTP_BUDGET_MS` ↔ gate). |
+| **CON-04** | Outbox §10 **Pass** vs OB-COND-01 sync `publishDomainEvent`                              | relay pass؛ handler sync ریسک    | pass در بار تست‌شده؛ OB-COND-01 ریسک **آینده** اگر subscriber سنگین شود — در risk register نگه دارید.                                              |
+| **CON-05** | Logging §11 «**Low today**» (fast stdout) vs FOF-LOG **Fatal (adversarial)**             | empirical سبز؛ تئوری Fatal       | **Resolved (A3)** — `test:nightly:slow-sink` + production-deploy-checklist + `fof-log-03-shutdown-tail-acceptance.md`.                             |
+| **CON-06** | `BASELINE_RATIO_MAX=1.10` در spec vs `1.25` در `phase-5:gate`                            | SLO noisy-neighbor شل‌تر در gate | **Resolved (D6)** — [`baseline-ratio-tiering.md`](../docs/phase-5/appendices/baseline-ratio-tiering.md) + `guard:phase3-doc-alignment`.            |
+| **CON-07** | Pool «**Pass**» (isolation) vs NN-02 «B **503**» (fairness)                              | RLS درست؛ pool مشترک             | **Resolved** — SCAL-DEBT-01/DEC-055 per-tenant semaphore.                                                                                          |
+
+---
+
+## گام‌های اجرا (Phase 3 closure)
+
+| گام         | موضوع                                 | DEC     | وضعیت |
+| ----------- | ------------------------------------- | ------- | ----- |
+| **۱**       | SCAL-DEBT-03 / HTTP body cap          | DEC-052 | ✅    |
+| **۲**       | SCAL-DEBT-04 / RL-DOS-01              | DEC-053 | ✅    |
+| **۳**       | SCAL-DEBT-06 / queue depth            | DEC-054 | ✅    |
+| **۴**       | SCAL-DEBT-01 / pool semaphore         | DEC-055 | ✅    |
+| **۵**       | SCAL-DEBT-02 / validation CPU         | DEC-056 | ✅    |
+| **۶**       | Regression gate                       | DEC-057 | ✅    |
+| **۷**       | P0 sign-off                           | DEC-058 | ✅    |
+| **۸**       | SCAL-DEBT-14 / 100-tenant RL          | DEC-059 | ✅    |
+| **۹**       | SCAL-DEBT-05 / prod storage           | DEC-060 | ✅    |
+| **۱۰**      | SCAL-DEBT-15 / cold-start gate        | DEC-061 | ✅    |
+| **۱۱**      | SCAL-DEBT-07 / async request log      | DEC-062 | ✅    |
+| **۱۲**      | SCAL-DEBT-08 / log backpressure       | DEC-063 | ✅    |
+| **۱۳**      | SCAL-DEBT-09 / tour write cap         | DEC-064 | ✅    |
+| **۱۴**      | SCAL-DEBT-04 / REDIS_URL prod         | DEC-065 | ✅    |
+| **۱۵**      | SCAL-DEBT-10 / outbox budget          | DEC-066 | ✅    |
+| **۱۶**      | SCAL-DEBT-11 / idempotency LRU        | DEC-067 | ✅    |
+| **۱۷**      | SCAL-DEBT-12 / registry cache         | DEC-068 | ✅    |
+| **۱۸**      | SCAL-DEBT-13 / victim SLO bulk-import | DEC-069 | ✅    |
+| **اختیاری** | slow-sink adversarial nightly         | DEC-070 | ✅    |
+| **اختیاری** | cold-start enforce nightly            | DEC-061 | ✅    |
+| **P2**      | Response shaping / egress cap         | DEC-129 | ✅    |
 
 ---
 
 ## Must-Fix — Phase 3 scale-out sign-off (از Final Stress-Test Audit)
 
-| Pri    | ID(s)                                  | File / area                          | Problem                                             | Suggested fix                                             |
-| ------ | -------------------------------------- | ------------------------------------ | --------------------------------------------------- | --------------------------------------------------------- |
-| **P0** | SCAL-DEBT-01, NN-02                    | pool / `withCanonicalTransaction`    | بدون سقف DB per-tenant — A bulk → B **503**         | Per-tenant app-pool semaphore (P2-5); reserved read slots |
-| **P0** | SCAL-DEBT-02, NN-01, SCAL-HF-10        | `canonical-validation.ts`, scheduler | RuleEngine sync روی event loop — CPU monopolization | Worker pool + time budget + 408/429 shed                  |
-| **P0** | SCAL-DEBT-03, NN-07                    | `http/json.ts`, routes               | بدون `maxBody` — parse/stringify multi-MiB          | HTTP 413 قبل از `Buffer.concat`                           |
-| **P0** | SCAL-DEBT-04, RL-DOS-01/03, SCAL-HF-01 | `tenant-rate-limiter.ts`             | Admin `findUnique` هر consume — 100-ID flood        | Route via `tenant-registry-cache` + negative cache        |
-| **P0** | SCAL-DEBT-06, NN-04, RACE-04           | `validation-scheduler.ts`            | `tenantQueues` بدون max depth                       | Queue depth cap → 429/503 + metric                        |
-| **P1** | SCAL-DEBT-05                           | `create-tour-storage.ts`             | Memory driver در misconfig prod                     | Fail-closed prisma + DATABASE_URL (cross phase1/2)        |
-| **P1** | SCAL-DEBT-09, NN-05                    | bulk import path                     | بدون quota/concurrency cap                          | Job API یا middleware cap                                 |
-| **P1** | SCAL-DEBT-14                           | CI                                   | فقط two-tenant limiter specs                        | 100-tenant concurrent probe در gate                       |
-| **P1** | SCAL-DEBT-15, CS-UNSC-01               | cold-start / CI                      | tsx boot **2×** over 500 ms SLO                     | Gate `node dist/main.js` @ 500 ms readiness               |
+| Pri    | ID(s)                           | File / area                          | Problem                                                | Suggested fix                                             |
+| ------ | ------------------------------- | ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------- |
+| **P0** | SCAL-DEBT-01, NN-02             | pool / `withCanonicalTransaction`    | بدون سقف DB per-tenant — A bulk → B **503**            | Per-tenant app-pool semaphore (P2-5); reserved read slots |
+| **P0** | SCAL-DEBT-02, NN-01, SCAL-HF-10 | `canonical-validation.ts`, scheduler | RuleEngine sync روی event loop — CPU monopolization    | Worker pool + time budget + 408/429 shed                  |
+| **P0** | SCAL-DEBT-03, NN-07 ✅          | `http/json.ts`, routes               | ~~بدون `maxBody`~~ → **Done** DEC-052                  | `HTTP_MAX_BODY_BYTES` + 413 قبل از parse                  |
+| **P0** | SCAL-DEBT-04, RL-DOS-01/03 ✅   | `tenant-rate-limiter.ts`             | ~~Admin findUnique هر consume~~ → **Done** DEC-053     | `resolveTenantThemeJsonById` + negative cache             |
+| **P0** | SCAL-DEBT-06, NN-04, RACE-04 ✅ | `validation-scheduler.ts`            | ~~`tenantQueues` بدون max depth~~ → **Done** DEC-054   | Queue depth cap → 429 + metric                            |
+| **P1** | SCAL-DEBT-05 ✅                 | `create-tour-storage.ts`             | ~~Memory driver در misconfig prod~~ → **Done** DEC-060 | `guard:production-storage-driver` + boot specs            |
+| **P1** | SCAL-DEBT-09 ✅                 | `POST /tours`                        | ~~بدون concurrent create cap~~ → **Done** DEC-064      | `TENANT_MAX_CONCURRENT_TOUR_WRITES` middleware cap        |
+| **P1** | SCAL-DEBT-07 ✅                 | `http/request-logging.ts`            | ~~sync log on `finish`~~ → **Done** DEC-062            | Async bounded queue + drop/warn fail-open                 |
+| **P1** | SCAL-DEBT-14 ✅                 | CI                                   | ~~فقط two-tenant limiter specs~~ → **Done** DEC-059    | `tenant-rate-limiter-100.spec.ts`                         |
+| **P1** | SCAL-DEBT-15 ✅                 | cold-start / CI                      | ~~tsx boot **2×** over 500 ms SLO~~ → **Done** DEC-061 | `cold-start-readiness-gate.mjs` on `dist/main.js`         |
 
 ---
 
 ## Hard-Fail Risks (SCAL-HF — crash/OOM/DoS)
 
-| ID             | Risk                                | Trigger (خلاصه)                                | Ref                  |
-| -------------- | ----------------------------------- | ---------------------------------------------- | -------------------- |
-| **SCAL-HF-01** | Admin DB amplification via limiter  | 100+ unique tenant IDs × rate-limited routes   | RL-DOS-01            |
-| **SCAL-HF-02** | OOM — memory rate limiter keys      | Rotating UUIDs بدون `REDIS_URL`                | RL-DOS-02            |
-| **SCAL-HF-03** | OOM — idempotency Map               | Unique `Idempotency-Key` flood (memory driver) | HT-08                |
-| **SCAL-HF-04** | OOM — validation queue closures     | Burst >> scheduler drain                       | NN-04                |
-| **SCAL-HF-05** | OOM — metrics label cardinality     | Unbounded custom labels                        | MET-API-01           |
-| **SCAL-HF-06** | OOM/stall — large JSON              | Multi-MiB POST بدون 413                        | Event-loop High      |
-| **SCAL-HF-07** | OOM — Sonic-Boom buffer             | High RPS + slow log sink                       | FOF-LOG-01           |
-| **SCAL-HF-08** | Event-loop stall — `finish` logging | 503/200 storm + full buffer                    | FOF-LOG-02           |
-| **SCAL-HF-09** | Process crash — pipe `error`        | EAGAIN storm                                   | §11.3                |
-| **SCAL-HF-10** | Cross-tenant CPU/pool DoS           | A bulk @ allowed RPS                           | NN-01, NN-02         |
-| **SCAL-HF-11** | Redis fail-closed **500**           | `REDIS_URL` blip                               | RL-DOS-04, SH-GAP-13 |
-| **SCAL-HF-12** | Sync domain handler blocks process  | Heavy `publishDomainEvent` subscriber          | OB-COND-01           |
+| ID             | Risk                                | Trigger (خلاصه)                                | Ref                                                      |
+| -------------- | ----------------------------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| **SCAL-HF-01** | Admin DB amplification via limiter  | 100+ unique tenant IDs × rate-limited routes   | RL-DOS-01                                                |
+| **SCAL-HF-02** | OOM — memory rate limiter keys      | Rotating UUIDs بدون `REDIS_URL`                | RL-DOS-02                                                |
+| **SCAL-HF-03** | OOM — idempotency Map               | Unique `Idempotency-Key` flood (memory driver) | HT-08                                                    |
+| **SCAL-HF-04** | OOM — validation queue closures     | Burst >> scheduler drain                       | NN-04                                                    |
+| **SCAL-HF-05** | OOM — metrics label cardinality     | Unbounded custom labels                        | MET-API-01                                               |
+| **SCAL-HF-06** | OOM/stall — large JSON              | Multi-MiB POST بدون 413                        | Event-loop High                                          |
+| **SCAL-HF-07** | OOM — Sonic-Boom buffer             | High RPS + slow log sink                       | FOF-LOG-01                                               |
+| **SCAL-HF-08** | Event-loop stall — `finish` logging | 503/200 storm + full buffer                    | FOF-LOG-02                                               |
+| **SCAL-HF-09** | Process crash — pipe `error`        | EAGAIN storm                                   | **Mitigated** — `log_sink_error_total` + swallow handler |
+| **SCAL-HF-10** | Cross-tenant CPU/pool DoS           | A bulk @ allowed RPS                           | NN-01, NN-02                                             |
+| **SCAL-HF-11** | Redis fail-closed **500**           | `REDIS_URL` blip                               | RL-DOS-04, SH-GAP-13                                     |
+| **SCAL-HF-12** | Sync domain handler blocks process  | Heavy `publishDomainEvent` subscriber          | OB-COND-01                                               |
 
 ---
 
 ## Scalability Debt (SCAL-DEBT — معماری معوق)
 
-| ID               | Item                                      | Closes                  |
-| ---------------- | ----------------------------------------- | ----------------------- |
-| **SCAL-DEBT-01** | Per-tenant DB connection semaphore        | NN-02, PS-02            |
-| **SCAL-DEBT-02** | Validation worker pool + time budget      | NN-01, NN-04, EL High   |
-| **SCAL-DEBT-03** | HTTP body size limit (413)                | NN-07, large JSON       |
-| **SCAL-DEBT-04** | `REDIS_URL` + cache theme lookup          | RL-DOS-01/02            |
-| **SCAL-DEBT-05** | Enforce `STORAGE_DRIVER=prisma` prod      | DI-MEM-01, AUDIT-GAP-01 |
-| **SCAL-DEBT-06** | Validation queue max depth + shed         | NN-04, BULK-UNSAFE-01   |
-| **SCAL-DEBT-07** | Defer access logs off sync `finish`       | FOF-LOG-02, LOG-BP-03   |
-| **SCAL-DEBT-08** | Logging backpressure contract             | FOF-LOG-01/03           |
-| **SCAL-DEBT-09** | Bulk import concurrency cap / job API     | NN-05                   |
-| **SCAL-DEBT-10** | Outbox relay per-tenant budget            | NN-03, NN-06            |
-| **SCAL-DEBT-11** | Idempotency memory TTL + LRU              | HT-08                   |
-| **SCAL-DEBT-12** | Registry cache max-size sweep             | RL-DOS-03               |
-| **SCAL-DEBT-13** | Victim SLO: bulk import ∥ B login/read    | NN gap                  |
-| **SCAL-DEBT-14** | 100-tenant rate-limiter probe CI          | RL-DOS gap              |
-| **SCAL-DEBT-15** | Cold-start gate @ 500 ms (`dist/main.js`) | CS-UNSC-01/02           |
+| ID               | Item                                      | Closes                                     |
+| ---------------- | ----------------------------------------- | ------------------------------------------ |
+| **SCAL-DEBT-01** | Per-tenant DB connection semaphore        | NN-02, PS-02                               |
+| **SCAL-DEBT-02** | Validation worker pool + time budget      | NN-01, NN-04, EL High                      |
+| **SCAL-DEBT-03** | HTTP body size limit (413)                | NN-07, large JSON                          |
+| **SCAL-DEBT-04** | `REDIS_URL` + cache theme lookup          | RL-DOS-01/02 — **Done** DEC-053 + DEC-065  |
+| **SCAL-DEBT-05** | Enforce `STORAGE_DRIVER=prisma` prod      | DI-MEM-01, AUDIT-GAP-01 — **Done** DEC-060 |
+| **SCAL-DEBT-06** | Validation queue max depth + shed         | NN-04, BULK-UNSAFE-01                      |
+| **SCAL-DEBT-07** | Defer access logs off sync `finish`       | FOF-LOG-02, LOG-BP-03 — **Done** DEC-062   |
+| **SCAL-DEBT-08** | Logging backpressure contract             | FOF-LOG-01/03 — **Done** DEC-063           |
+| **SCAL-DEBT-09** | Bulk import concurrency cap / job API     | NN-05 — **Done** DEC-064                   |
+| **SCAL-DEBT-10** | Outbox relay per-tenant budget            | NN-03, NN-06 — **Done** DEC-066            |
+| **SCAL-DEBT-11** | Idempotency memory TTL + LRU              | HT-08 — **Done** DEC-067                   |
+| **SCAL-DEBT-12** | Registry cache max-size sweep             | RL-DOS-03 — **Done** DEC-068               |
+| **SCAL-DEBT-13** | Victim SLO: bulk import ∥ B login/read    | NN gap — **Done** DEC-069                  |
+| **SCAL-DEBT-14** | 100-tenant rate-limiter probe CI          | RL-DOS gap — **Done** DEC-059              |
+| **SCAL-DEBT-15** | Cold-start gate @ 500 ms (`dist/main.js`) | CS-UNSC-01/02 — **Done** DEC-061           |
 
 ---
 
@@ -100,16 +129,16 @@
 
 ### Noisy Neighbor (NN — Tenant A bulk → B login/read)
 
-| ID        | Sev      | Shared resource         | B impact                     | Trigger A                     |
-| --------- | -------- | ----------------------- | ---------------------------- | ----------------------------- |
-| **NN-01** | **High** | Event loop (RuleEngine) | Degraded health/config/tours | 1000+ validations / bulk POST |
-| **NN-02** | **High** | App DB pool             | **503** `GET /tours/:id`     | 10+ parallel canonical TX     |
-| **NN-03** | Medium   | Admin pool              | tenant-config slow/503       | Outbox relay + registry miss  |
-| **NN-04** | Medium   | `tenantQueues`          | B POST queued behind A       | Unbounded enqueue             |
-| **NN-05** | Medium   | HTTP persist            | No bulk quota                | Sustained POST @ 50/s         |
-| **NN-06** | Medium   | Relay + admin pool      | p99 admin reads              | 100+ tours/import             |
-| **NN-07** | Medium   | Event loop (JSON)       | B reads lag                  | Large POST bodies             |
-| **NN-08** | Low      | Health priority         | health latency only          | Extreme CPU monolith          |
+| ID        | Sev              | Shared resource         | B impact                                      | Trigger A                                                                                        |
+| --------- | ---------------- | ----------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **NN-01** | **Mitigated** ✅ | Event loop (RuleEngine) | Residual `/health` latency — **alerted** (A1) | Worker pool DEC-056 + victim SLO DEC-069 + NN-08 + `health_probe_p99_ms` / `AppTourHealthProbe*` |
+| **NN-02** | **Mitigated** ✅ | App DB pool             | B isolated under semaphore (DEC-055)          | victim SLO DEC-069                                                                               |
+| **NN-03** | **Mitigated** ✅ | Admin pool              | Residual cache-miss — **alerted** (B1)        | DEC-066 + `admin_pool_read_p99_ms`                                                               |
+| **NN-04** | **Mitigated** ✅ | `tenantQueues`          | Depth/skew — **alerted** (B2)                 | DEC-054 cap + queue gauges                                                                       |
+| **NN-05** | **Mitigated** ✅ | HTTP persist            | Bulk skew — **alerted** (B3)                  | DEC-064 + in-flight gauges                                                                       |
+| **NN-06** | **Mitigated** ✅ | Relay + admin pool      | Relay skew — **alerted** (B4)                 | DEC-066 + relay in-flight gauges                                                                 |
+| **NN-07** | **Mitigated** ✅ | Event loop (JSON)       | Reject bursts — **alerted** (B5)              | DEC-052/129 + reject counters                                                                    |
+| **NN-08** | Low              | Health priority         | health latency only                           | Extreme CPU monolith                                                                             |
 
 ### Rate limiter DoS (RL-DOS)
 
@@ -122,12 +151,12 @@
 
 ### Event-loop blockers (خلاصه — 18 ردیف در سند)
 
-| Priority rows | File                                                       | Issue                                  |
-| ------------- | ---------------------------------------------------------- | -------------------------------------- |
-| **P0**        | `canonical-validation.ts`, `pre-transaction-validation.ts` | Sync RuleEngine >10 ms under burst     |
-| **P0**        | `http/json.ts`                                             | Full-buffer parse/stringify large JSON |
-| **P1**        | `request-logging.ts`, `error-interceptor.ts`               | Sync `finish` + 500 log storm          |
-| **P1**        | `tours.routes.ts`                                          | Duplicate parse + hash before Zod      |
+| Priority rows | File                                                       | Issue                                                                                          |
+| ------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **P0**        | `canonical-validation.ts`, `pre-transaction-validation.ts` | Sync RuleEngine >10 ms under burst                                                             |
+| **P0**        | `http/json.ts`                                             | ~~Full-buffer parse/stringify large JSON~~ → ingress **Done** DEC-052; egress **Done** DEC-129 |
+| **P1**        | `request-logging.ts`, `error-interceptor.ts`               | Sync `finish` + 500 log storm                                                                  |
+| **P1**        | `tours.routes.ts` ✅                                       | ~~Duplicate parse + hash before Zod~~ → **Done** DEC-100                                       |
 
 ### Shared-state races (RACE — 6 High)
 
@@ -142,25 +171,29 @@
 
 ### Logging — Fatal Observability Flaws (FOF-LOG)
 
-| ID             | Sev       | Problem                                                   |
-| -------------- | --------- | --------------------------------------------------------- |
-| **FOF-LOG-01** | **Fatal** | No backpressure/drop policy — unbounded Sonic-Boom buffer |
-| **FOF-LOG-02** | **Fatal** | HTTP `finish` → sync `logger.info` on event loop          |
-| **FOF-LOG-03** | **Fatal** | Shutdown بدون `logger.flush` — tail loss on SIGTERM       |
+| ID             | Sev               | Problem                                                                                                                                          |
+| -------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **FOF-LOG-01** | **Fatal**         | No backpressure/drop policy — unbounded Sonic-Boom buffer                                                                                        |
+| **FOF-LOG-02** | **Fatal**         | HTTP `finish` → sync `logger.info` on event loop                                                                                                 |
+| **FOF-LOG-03** | **Accepted (A3)** | Shutdown flush + timeout metrics — [`fof-log-03-shutdown-tail-acceptance.md`](../docs/phase-5/appendices/fof-log-03-shutdown-tail-acceptance.md) |
 
 ### Cold-start Unscalable (CS-UNSC)
 
-| ID             | Component                      | p95 (ms) | Root cause                           |
-| -------------- | ------------------------------ | -------: | ------------------------------------ |
-| **CS-UNSC-01** | Full `main.ts` → `/health`     | **2084** | ESM import + tsx transpile           |
-| **CS-UNSC-02** | `cold-start-http-worker` ready |  **794** | platform-core + workspace-sdk subset |
+| ID             | Component                      | p95 (ms) | Root cause                                                                              |
+| -------------- | ------------------------------ | -------: | --------------------------------------------------------------------------------------- |
+| **CS-UNSC-01** | Full `main.ts` → `/health`     | **2084** | **Waived (A2)** — `probe:cold-start-tsx-dev` record-only; enforce = `dist/main.js` only |
+| **CS-UNSC-02** | `cold-start-http-worker` ready | **<500** | **Pass** — lazy probe import (CS-UNSC-02 follow-on)                                     |
 
 ### Outbox 10k — conditional (not failure @ tested load)
 
-| ID             | Risk                                         | Note                       |
-| -------------- | -------------------------------------------- | -------------------------- |
-| **OB-COND-01** | Sync `publishDomainEvent`                    | Latent if subscriber heavy |
-| **OB-COND-02** | Admin pool vs HTTP under 16 parallel publish | I/O contention             |
+| ID             | Risk                                         | Note                                                                                                                                                    |
+| -------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OB-COND-01** | Sync `publishDomainEvent`                    | **Done** — deferred dispatch + handler budget monitor ([`domain-event-handler-monitor.md`](../docs/phase-5/appendices/domain-event-handler-monitor.md)) |
+| **OB-COND-02** | Admin pool vs HTTP under 16 parallel publish | **C2 Done** — [`outbox-relay-pool-contention-monitor.md`](../docs/phase-5/appendices/outbox-relay-pool-contention-monitor.md)                           |
+| **OB-COND-03** | `running` guard skips relay poll ticks       | **C3 Done** — [`outbox-relay-tick-monitor.md`](../docs/phase-5/appendices/outbox-relay-tick-monitor.md)                                                 |
+| **OB-COND-04** | No relay throughput metric exported          | **C4 Done** — same doc — `outbox_relay_published_total` + last-tick gauges                                                                              |
+| **F1**         | Relay lag — oldest pending age               | **Done** — [`outbox-relay-lag-monitor.md`](../docs/phase-5/appendices/outbox-relay-lag-monitor.md)                                                      |
+| **F2**         | HPA scale on relay lag                       | **Done** — `outbox-relay-hpa.yaml` + `adapter-rules.yaml` + [`api-hpa-custom-metrics.md`](../docs/phase-5/appendices/api-hpa-custom-metrics.md)         |
 
 **OB-SSF (System Scalability Failure):** **0** @ 10k measured load.
 
@@ -168,13 +201,13 @@
 
 ## Accepted risks (waived — با monitoring)
 
-| ID                     | Risk                            | دلیل پذیرش             |
-| ---------------------- | ------------------------------- | ---------------------- |
-| **Pool leak post-500** | `connectionLeakSuspected=false` | Gate proven            |
-| **FOF-LOG-03**         | Tail loss SIGTERM               | Low freq vs OOM        |
-| **CS-UNSC**            | Readiness not crash             | Scale-to-zero debt     |
-| **OB-COND-\***         | Relay pass @ 10k                | Monitor subscriber CPU |
-| **Engine LRU 8**       | Bounded cache                   | Soak pass              |
+| ID                     | Risk                            | دلیل پذیرش                                                                       |
+| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
+| **Pool leak post-500** | `connectionLeakSuspected=false` | **A4 Done** — `db_pool_saturated_total` + nightly `test:nightly:pool-stress-500` |
+| **FOF-LOG-03**         | Tail loss SIGTERM               | **A3 Done** — flush + alert; slow-sink before prod log driver                    |
+| **CS-UNSC**            | Readiness not crash             | Scale-to-zero debt                                                               |
+| **OB-COND-\***         | Relay pass @ 10k                | Monitor subscriber CPU                                                           |
+| **Engine LRU 8**       | Bounded cache                   | Soak pass                                                                        |
 
 ---
 
@@ -190,16 +223,17 @@
 ### کوتاه‌مدت (P1)
 
 5. **SCAL-DEBT-07/08** + **FOF-LOG-01…03** — defer logs، Pino destination، shutdown flush.
-6. **SCAL-DEBT-13/14** — victim SLO spec + 100-tenant limiter CI.
-7. **SCAL-DEBT-15** — cold-start gate on compiled `dist/main.js`.
+6. **SCAL-DEBT-13/14** — victim SLO spec + 100-tenant limiter CI (**done** DEC-059 + DEC-069).
+7. **SCAL-DEBT-15** — cold-start gate on compiled `dist/main.js` (**done** DEC-061).
 8. **RACE-01…05** — بسته به موارد بالا.
 
 ### میان‌مدت (P2/P3)
 
 9. **SCAL-DEBT-09/10** — bulk job API؛ outbox per-tenant budget.
-10. Slow-sink logging stress (LOG-BP-03 adversarial re-run).
-11. **OB-COND-01** — async/light domain handlers.
+10. Slow-sink logging stress (LOG-BP-03 adversarial re-run) — **done** DEC-070.
+11. **OB-COND-01** — async/light domain handlers + slow-handler monitor. ✅
 12. Lazy `import()` heavy routes — shrink CS-UNSC-01 graph.
+13. ~~Event-loop P2 response shaping~~ — **Done** DEC-129 (`HTTP_MAX_RESPONSE_BYTES`, tenant-config cache).
 
 ---
 
@@ -234,17 +268,17 @@
 
 ## Appendix B — Stress-test evidence matrix
 
-| Spec / script                         | Stress                     | Pass signal                           |
-| ------------------------------------- | -------------------------- | ------------------------------------- |
-| `db-pool-saturation.spec.ts`          | 100 parallel hold          | 503 + heartbeat ≥8                    |
-| `pool-stress-500-parallel.ts`         | 500 parallel               | 460×503, no leak                      |
-| `noisy-neighbor-latency.spec.ts`      | 1000 validations ∥ 1 write | ratio ≤1.10                           |
-| `noise-neighbor.spec.ts`              | 500 reads ∥ 1 write        | write ≤4× baseline                    |
-| `outbox-throughput.spec.ts`           | 10k + 20 creates           | 233 eps; 3.19× p95                    |
-| `tenant-rate-limiting.spec.ts`        | 100 burst + victim         | B ≤2× p50                             |
-| `cold-start-latency.spec.ts`          | Fresh engine + TTFB        | ≤1000 ms spec; §12 flags 2 Unscalable |
-| `log-backpressure-burst.ts`           | 1000 `/health` @ c=100     | fast stdout baseline                  |
-| `validation-gate-concurrency.spec.ts` | 2 tenants pre-TX           | independent gates                     |
+| Spec / script                         | Stress                     | Pass signal                                                     |
+| ------------------------------------- | -------------------------- | --------------------------------------------------------------- |
+| `db-pool-saturation.spec.ts`          | 100 parallel hold          | 503 + heartbeat ≥8                                              |
+| `pool-stress-500-parallel.ts`         | 500 parallel               | 460×503, no leak                                                |
+| `noisy-neighbor-latency.spec.ts`      | 1000 validations ∥ 1 write | ratio ≤1.10                                                     |
+| `noise-neighbor.spec.ts`              | 500 reads ∥ 1 write        | write ≤4× baseline                                              |
+| `outbox-throughput.spec.ts`           | 10k + 20 creates           | 233 eps; 3.19× p95                                              |
+| `tenant-rate-limiting.spec.ts`        | 100 burst + victim         | B ≤2× p50                                                       |
+| `cold-start-latency.spec.ts`          | Engine + HTTP TTFB         | Engine ≤1000 ms; HTTP ≤500 ms (CON-03); §12 gate `dist/main.js` |
+| `log-backpressure-burst.ts`           | 1000 `/health` @ c=100     | fast stdout baseline                                            |
+| `validation-gate-concurrency.spec.ts` | 2 tenants pre-TX           | independent gates                                               |
 
 ---
 
@@ -282,6 +316,8 @@ node --import tsx --test test/1-functional/concurrent-tour-logic.spec.ts
 # Cold-start
 node --import tsx --test test/3-performance/cold-start-latency.spec.ts
 # COLD_START_HTTP_EMIT=1 for JSON report
+pnpm run test:nightly:cold-start   # enforce=true (nightly tier)
+pnpm run guard:cold-start-readiness-enforce
 
 # Logging backpressure (fast sink)
 NODE_ENV=test npx tsx scripts/log-backpressure-burst.ts

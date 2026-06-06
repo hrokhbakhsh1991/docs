@@ -56,7 +56,9 @@ export async function handleCacheInvalidate(
 
     let featureFlagFreezeUntil: string | null = null;
     if (body.freezeFeatureFlags === true) {
-      featureFlagFreezeUntil = activateFeatureFlagFreeze(body.featureFlagFreezeSeconds).toISOString();
+      featureFlagFreezeUntil = activateFeatureFlagFreeze(
+        body.featureFlagFreezeSeconds
+      ).toISOString();
     }
 
     sendJson(res, 200, {

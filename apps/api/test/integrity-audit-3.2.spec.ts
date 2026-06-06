@@ -24,12 +24,18 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "db/pool-saturation.ts",
   "db/with-canonical-transaction.ts",
   "db/with-tenant-rls.ts",
+  "db/with-transient-tx-retry.ts",
   "db/rls-session-vars.ts",
+  "db/canonical-transaction-now.ts",
+  "db/migration-head-preflight.ts",
+  "db/tenant-connection-budget.ts",
+  "db/transient-db-error.ts",
   "db/assert-tenant-rls-alignment.ts",
   "db/assert-production-database-integrity.ts",
   "canonical/canonical-storage.ts",
   "canonical/atomic-canonical-tour-persist.ts",
   "canonical/assert-tour-capacity-in-tx.ts",
+  "canonical/migrate-canonical-denali.service.ts",
   "outbox/",
   "audit/",
   "events/processed-domain-event-log.ts",
@@ -44,6 +50,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "tenant/resolve-registered-tenant.ts",
   "tenant/resolve-tenant-feature-flags.ts",
   "tenant/tenant-id-format.ts",
+  "tenant/update-tenant-registry-row.ts",
 ];
 
 function listTsFiles(dir: string, out: string[] = []): string[] {

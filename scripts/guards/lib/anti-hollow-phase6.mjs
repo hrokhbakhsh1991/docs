@@ -38,8 +38,8 @@ export function evaluateAntiHollowPhase6() {
   }
 
   const truth = readUtf8("docs/phase-6/audits/IMPLEMENTATION-TRUTH.md");
-  if (!/probe/i.test(truth) || !/SPEC_ONLY/.test(truth)) {
-    failures.push("IMPLEMENTATION-TRUTH must stay honest about probe/SPEC_ONLY");
+  if (!/6\.1/.test(truth) || !/VERIFIED_SCAFFOLD|SPEC_ONLY/.test(truth)) {
+    failures.push("IMPLEMENTATION-TRUTH must document 6.1 scaffold honesty");
   }
 
   const scorecard = readUtf8("docs/phase-6/audits/DOC-EXECUTION-SCORECARD.md");

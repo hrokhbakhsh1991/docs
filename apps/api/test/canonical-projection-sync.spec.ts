@@ -48,9 +48,19 @@ describe(
     });
 
     after(async () => {
-      await admin.outboxEvent.deleteMany({ where: { tenantId } });
-      await admin.tour.deleteMany({ where: { tenantId } });
-      await admin.tenant.delete({ where: { id: tenantId } });
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      try {
+        await admin.auditEvent.deleteMany({ where: { tenantId } });
+        await admin.outboxEvent.deleteMany({ where: { tenantId } });
+        await admin.tour.deleteMany({ where: { tenantId } });
+        await admin.tenant.delete({ where: { id: tenantId } });
+      } finally {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        );
+      }
       await admin.$disconnect();
     });
 

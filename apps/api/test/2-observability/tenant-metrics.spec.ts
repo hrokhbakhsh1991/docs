@@ -114,7 +114,7 @@ describe("2-observability — tenant-scoped tour_creation_count", () => {
       "labeled totals must sum to total successful creates"
     );
 
-    const snapshot = metricsRegistry.snapshot();
+    const snapshot = metricsRegistry.snapshotCounters();
     const tourSeries = [...snapshot.entries()].filter(([key]) =>
       key.startsWith("tour_creation_count")
     );

@@ -16,6 +16,7 @@ import { guardSubprocessEnv } from "./lib/guard-subprocess-env.mjs";
 import { guardDepcruiseBin } from "./lib/guard-require.mjs";
 
 const IS_FOUNDATION_SCOPE = process.env.PHASE_0_GUARD_SCOPE === "foundation";
+const IS_INTEGRATION_REPORT = process.env.PHASE_0_GUARD_REPORT?.trim() === "integration";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -90,19 +91,15 @@ function checkArchitectureGuard() {
           maxBuffer: 8 * 1024 * 1024,
           // H-01: exclude denali-breach negative fixture from crawl (see dependency-cruiser.config.js)
           env: guardSubprocessEnv({ DEPCRUISE_MONOREPO_GUARD: "1" }),
-        },
+        }
       )
-    : spawnSync(
-        process.execPath,
-        [path.join(__dirname, "lib/depcruise-architecture.mjs")],
-        {
-          cwd: REPO_ROOT,
-          encoding: "utf8",
-          shell: false,
-          maxBuffer: 8 * 1024 * 1024,
-          env: guardSubprocessEnv(),
-        },
-      );
+    : spawnSync(process.execPath, [path.join(__dirname, "lib/depcruise-architecture.mjs")], {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+        shell: false,
+        maxBuffer: 8 * 1024 * 1024,
+        env: guardSubprocessEnv(),
+      });
   const ok = r.status === 0;
   return {
     id: "g4_depcruise_architecture",
@@ -202,7 +199,7 @@ function checkUiPrimitivesRuntimeDeps() {
       const pkgName = packageNameFromSpecifier(spec, declared);
       if (!declared.has(pkgName)) {
         violations.push(
-          `${path.relative(REPO_ROOT, file)}: "${spec}" → "${pkgName}" not in dependencies (peer/dev only is FAIL)`,
+          `${path.relative(REPO_ROOT, file)}: "${spec}" → "${pkgName}" not in dependencies (peer/dev only is FAIL)`
         );
       }
     }
@@ -227,9 +224,7 @@ function checkDocSync() {
     shell: true,
     maxBuffer: 8 * 1024 * 1024,
     env: guardSubprocessEnv(
-      IS_FOUNDATION_SCOPE
-        ? { PHASE_0_GUARD_SCOPE: "foundation", DOC_SYNC_SCOPE: "foundation" }
-        : {},
+      IS_FOUNDATION_SCOPE ? { PHASE_0_GUARD_SCOPE: "foundation", DOC_SYNC_SCOPE: "foundation" } : {}
     ),
   });
   const ok = r.status === 0;
@@ -261,11 +256,7 @@ function renderMarkdown(report, jsonRel, dateSlug, titleLabel) {
   }
 
   lines.push("", "## Phase 0.5 exit", "");
-  lines.push(
-    report.exit05.pass
-      ? "- **Phase 0.5 gate:** PASS"
-      : "- **Phase 0.5 gate:** FAIL",
-  );
+  lines.push(report.exit05.pass ? "- **Phase 0.5 gate:** PASS" : "- **Phase 0.5 gate:** FAIL");
 
   const failed = report.checks.filter((c) => !c.ok);
   if (failed.length) {
@@ -314,14 +305,25 @@ function main() {
   };
 
   const dateSlug = new Date().toISOString().slice(0, 10);
-  const baseName = IS_FOUNDATION_SCOPE ? `phase-0-foundation-gate-${dateSlug}` : `phase-0-gate-${dateSlug}`;
-  const titleLabel = IS_FOUNDATION_SCOPE ? "Phase 0 foundation gate" : "Phase 0 gate";
+  const baseName = IS_INTEGRATION_REPORT
+    ? `phase-0-integration-gate-${dateSlug}`
+    : IS_FOUNDATION_SCOPE
+      ? `phase-0-foundation-gate-${dateSlug}`
+      : `phase-0-gate-${dateSlug}`;
+  const titleLabel = IS_INTEGRATION_REPORT
+    ? "Phase 0 integration gate"
+    : IS_FOUNDATION_SCOPE
+      ? "Phase 0 foundation gate"
+      : "Phase 0 gate";
   fs.mkdirSync(REPORTS_DIR, { recursive: true });
 
   const jsonPath = path.join(REPORTS_DIR, `${baseName}.json`);
   const mdPath = path.join(REPORTS_DIR, `${baseName}.md`);
   fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
-  fs.writeFileSync(mdPath, renderMarkdown(report, `reports/${baseName}.json`, dateSlug, titleLabel));
+  fs.writeFileSync(
+    mdPath,
+    renderMarkdown(report, `reports/${baseName}.json`, dateSlug, titleLabel)
+  );
 
   console.log(`phase-0-guard: wrote ${path.relative(REPO_ROOT, jsonPath)}`);
   console.log(`phase-0-guard: ${requiredOk ? "PASS" : "FAIL"}`);

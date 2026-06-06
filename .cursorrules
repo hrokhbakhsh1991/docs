@@ -25,3 +25,80 @@ Updating documentation means adding technical details, logic explanations, or di
 ## Git hook
 
 Commits that touch protected packages without a matching `docs/` change are blocked by `scripts/guard-docs.sh` (see Husky pre-commit).
+
+---
+
+## Verification Policy (Development Speed Protocol)
+
+Agents working in this monorepo MUST follow these rules to avoid redundant ~30-minute pipeline runs.
+
+### No Automatic Full-Gates
+
+- NEVER execute `pnpm run phase-5:gate`, `pnpm run phase-6:gate`, `pnpm run test:full`, `pnpm run ci:integrity`, or any full-stack monorepo `pnpm build` / `pnpm test` without the user's explicit **YES** in chat.
+- The same applies to nested heavy gates: `phase-4:gate`, `phase-3:gate`, `phase-2:gate`, `phase-1:gate`, `phase-0:gate`, and `pnpm --filter @apps/api run phase-5:evolution-gate`.
+- If verification is needed, propose the fast-track path first and ask before escalating.
+
+### Default to Fast-Track
+
+For every verification request, prefer these scripts (target under 60s–5min, not ~30min):
+
+| Context | Command |
+| ------- | ------- |
+| **Phase 6 work** | `pnpm run phase-6:fast-track` |
+| **General checks** | `pnpm run pre-commit:fast && pnpm run guard:import-boundary` |
+| **Git-aware tests only** (when tests are justified) | `pnpm run test:changed` |
+| **Phase 6 doc pack only** | `pnpm run phase-6:guard` |
+| **Phase 5 static closure only** (no build/test chain) | `pnpm run phase-5:guard` |
+
+`phase-6:fast-track` expands to: `nvm use && pnpm run pre-commit:fast && pnpm run guard:import-boundary && pnpm run phase-6:guard`.
+
+`pre-commit:fast` runs: `guard-docs`, Node engine check, eslint/prettier on staged diff, and `test-changed` for affected workspaces only.
+
+### Manual Analysis First
+
+Before suggesting or running any script:
+
+1. Perform static analysis — read the changed files, trace imports, check boundary rules, and look for syntax/logic errors by inspection.
+2. Use `grep`, file reads, and linter diagnostics; do not use test output as a substitute for reading code.
+
+### No Test-Driven Blindness
+
+- Do not run tests to find bugs that code inspection can identify (wrong imports, missing exports, obvious type/shape mismatches, boundary violations, hollow stubs).
+- Run `test:changed` or targeted specs only when behavior changed and static analysis cannot prove correctness.
+
+### Emergency Override
+
+Only when the user explicitly requests **"Full Integrity Check"** (or replies **YES** to a proposed full gate) may you run:
+
+- `pnpm run phase-5:gate` — full Phase 5 closure (~25–35 min; Postgres required)
+- `pnpm run ci:integrity` — phases 0–3 + phase-4 guard + evolution (~20–40 min)
+- `pnpm run test:full` — phase-3 + phase-4 + phase-5 gate chain
+
+Document why the heavy path was needed and what failed on the fast-track.
+
+### Fast-Track Command Reference
+
+```text
+# Daily default (Husky uses this on commit)
+pnpm run pre-commit:fast
+
+# Phase 6 iteration loop
+pnpm run phase-6:fast-track
+
+# Lightweight guards (no full monorepo build/test)
+pnpm run guard:import-boundary
+pnpm run guard:architecture
+pnpm run phase-6:guard
+pnpm run phase-5:guard
+
+# Selective tests (diff-aware, cached)
+pnpm run test:changed
+
+# Heavy — explicit YES or "Full Integrity Check" only
+pnpm run phase-5:gate
+pnpm run phase-6:gate
+pnpm run test:full
+pnpm run ci:integrity
+```
+
+See also: `docs/dev/tiered-testing.md`.

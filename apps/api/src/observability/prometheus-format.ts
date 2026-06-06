@@ -108,7 +108,10 @@ export function formatPrometheusMetrics(): string {
   lines.push(formatSample("tour_write_tenants_active", readTourWriteTenantsActive()));
   lines.push(formatSample("outbox_pending_total", readOutboxPendingTotalGauge()));
   lines.push(
-    formatSample("outbox_relay_oldest_pending_age_seconds", readOutboxRelayOldestPendingAgeSeconds())
+    formatSample(
+      "outbox_relay_oldest_pending_age_seconds",
+      readOutboxRelayOldestPendingAgeSeconds()
+    )
   );
   lines.push(formatSample("outbox_failed_total", readOutboxFailedTotalGauge()));
   lines.push(formatSample("outbox_relay_in_flight_total", readOutboxRelayInFlightTotal()));
@@ -136,16 +139,19 @@ export function formatPrometheusMetrics(): string {
   lines.push(formatSample("validation_queue_tenants_pending", readValidationQueueTenantsPending()));
   lines.push(formatSample("validation_queue_in_flight_total", readValidationQueueInFlightTotal()));
   lines.push(formatSample("db_circuit_open", isDbCircuitOpen() ? 1 : 0));
-  lines.push(formatSample("redis_rate_limiter_circuit_open", isRedisRateLimiterCircuitOpen() ? 1 : 0));
-  lines.push(formatSample("domain_event_handler_slow_total", readDomainEventHandlerSlowTotal()));
-  lines.push(formatSample("log_sink_drain_total", metricsRegistry.getMetric("log_sink_drain_total")));
-  lines.push(formatSample("log_sink_drop_total", metricsRegistry.getMetric("log_sink_drop_total")));
-  lines.push(formatSample("log_sink_error_total", metricsRegistry.getMetric("log_sink_error_total")));
   lines.push(
-    formatSample(
-      "log_shutdown_flush_total",
-      metricsRegistry.getMetric("log_shutdown_flush_total")
-    )
+    formatSample("redis_rate_limiter_circuit_open", isRedisRateLimiterCircuitOpen() ? 1 : 0)
+  );
+  lines.push(formatSample("domain_event_handler_slow_total", readDomainEventHandlerSlowTotal()));
+  lines.push(
+    formatSample("log_sink_drain_total", metricsRegistry.getMetric("log_sink_drain_total"))
+  );
+  lines.push(formatSample("log_sink_drop_total", metricsRegistry.getMetric("log_sink_drop_total")));
+  lines.push(
+    formatSample("log_sink_error_total", metricsRegistry.getMetric("log_sink_error_total"))
+  );
+  lines.push(
+    formatSample("log_shutdown_flush_total", metricsRegistry.getMetric("log_shutdown_flush_total"))
   );
   lines.push(
     formatSample(
@@ -160,7 +166,9 @@ export function formatPrometheusMetrics(): string {
   lines.push(formatSample("admin_pool_read_p99_ms", readAdminPoolReadP99Ms()));
   lines.push(formatSample("admin_pool_read_slow_total", readAdminPoolReadSlowTotal()));
   lines.push(formatSample("http_request_body_rejected_total", readHttpRequestBodyRejectedTotal()));
-  lines.push(formatSample("http_response_body_rejected_total", readHttpResponseBodyRejectedTotal()));
+  lines.push(
+    formatSample("http_response_body_rejected_total", readHttpResponseBodyRejectedTotal())
+  );
 
   return `${lines.join("\n")}\n`;
 }

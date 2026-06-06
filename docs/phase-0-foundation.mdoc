@@ -10,7 +10,7 @@ convertedAt: 2026-06-03
 
 **app-tour — راهنمای اجرایی کامل فاز صفر**
 
-> **Foundation-Gate is pure-contract-only; Integration-Gate is cross-phase-trunk-integrity.**
+> **Covenant gate** (`phase-0:covenant-gate` / `phase-0:foundation-gate`) = workspace-sdk contracts only. **Trunk gate** (`phase-0:trunk-gate` / `phase-0:integration-gate`) = full monorepo build/test + guards (REM-013). Report: `reports/phase-0-integration-gate-*.json`.
 
 > **نقش:** بسط عمیق فاز ۰ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md)  
 > **North Star:** Platform logic = generic · Workspace logic = injectable  
@@ -27,53 +27,53 @@ convertedAt: 2026-06-03
 
 **Phase 0 is an Integration Foundation, not a dependency-free contract freeze.**
 
-| Claim (old docs) | Reality (repo) |
-|------------------|----------------|
-| “Foundation only” = `workspace-sdk` + `config` | **Seven** packages under `packages/` plus `apps/*` build in root `pnpm build` / `pnpm test` |
-| `phase-0:gate` = foundation-only | **KS-01 split:** `phase-0:foundation-gate` = sdk + config only · `phase-0:integration-gate` = full stack (REM-013) |
-| SDK “no runtime deps” except `@casl/ability` | CASL in contract package; **theme/auth** retrofitted on same package (Phases 2–3) |
-| Green gate = architectural honesty | Proves compile + tests + guards on **current monorepo** — not isolation from Phases 1–3 |
+| Claim (old docs)                               | Reality (repo)                                                                                                    |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| “Foundation only” = `workspace-sdk` + `config` | **Seven** packages under `packages/` plus `apps/*` build in root `pnpm build` / `pnpm test`                       |
+| `phase-0:gate` = foundation-only               | **KS-01 split (enforced):** `phase-0:covenant-gate` = sdk contracts · `phase-0:trunk-gate` = full stack (REM-013) |
+| SDK “no runtime deps” except `@casl/ability`   | CASL in contract package; **theme/auth** retrofitted on same package (Phases 2–3)                                 |
+| Green gate = architectural honesty             | Proves compile + tests + guards on **current monorepo** — not isolation from Phases 1–3                           |
 
 ### Known Structural Liabilities (RF-P0)
 
 Source: [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md). Status after painful-gate hardening (2026-06).
 
-| ID | Liability (one line) | Remediation in this pass |
-|----|----------------------|-------------------------|
-| RF-P0-ABS-01 | Seven packages + apps in “Phase 0” gate path | Documented only (REM-013 intentional) |
-| RF-P0-ABS-02 | `@casl/ability` runtime in `workspace-sdk` | Documented; not removed |
-| RF-P0-ABS-03 | `platform-core` exists while §11 says Phase 1 | Documented boundary drift |
-| RF-P0-ABS-04 | `theme-react` React runtime layer | Documented |
-| RF-P0-ABS-05 | `ui-primitives` `react` was peer-only in `src/` | **g6** + `react` in `dependencies` |
-| RF-P0-ABS-06 | `workspace-starter` triple `@app-tour/*` deps | Documented |
-| RF-P0-ABS-07 | SDK reference comment couples to starter package | Documented |
-| RF-P0-IMP-01 | `ui-primitives` omitted from import-boundary scan | **Fixed** — `IMPORT_BOUNDARY_SCAN_ROOTS` |
-| RF-P0-IMP-02 | `workspaces/starter` omitted from AST scan | **Fixed** |
-| RF-P0-IMP-03 | Test/storybook imports vs `package.json` graph | Partially — g6 enforces `src/` deps |
-| RF-P0-IMP-04 | Dynamic `import()` evades package rules | Documented |
-| RF-P0-IMP-05 | Guard script uses hoisted `typescript` | Documented |
-| RF-P0-IMP-06 | No circular-deps rule in depcruise | Out of scope |
-| RF-P0-IMP-07 | `createRequire` in theme-react scripts | Documented |
-| RF-P0-IMP-08 | `denali` in `tokens.meta.json` forbidden list | Foundation scan = `packages/config` + `workspace-sdk` src only — `design-tokens` outside scope |
-| RF-P0-GATE-01 | `phase-0:gate` = full monorepo | **Fixed (KS-01)** — split foundation vs integration gates |
-| RF-P0-GATE-02 | `phase-0-guard` only six narrow checks | **Expanded** — `phase-0.contract.spec.ts` + scoped depcruise/import + doc-sync |
-| RF-P0-GATE-03 | Denali scan missed design-tokens / ui / theme | **Fixed** — [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
-| RF-P0-GATE-04 | Legacy import enforcement fragile | **Fixed (KS-02)** — [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| RF-P0-GATE-05 | Test floor was 13 vs 114 tests | **Retired (H-03)** — [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) replaces count floor |
-| RF-P0-GATE-09 | `guard:doc-sync` not in `phase-0:gate` | **Fixed** |
-| RF-P0-DOC-01…10 | Aspirational “complete” / doc-sync / coupling | Banner + tables in this section |
+| ID              | Liability (one line)                              | Remediation in this pass                                                                                                        |
+| --------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| RF-P0-ABS-01    | Seven packages + apps in “Phase 0” gate path      | Documented only (REM-013 intentional)                                                                                           |
+| RF-P0-ABS-02    | `@casl/ability` runtime in `workspace-sdk`        | Documented; not removed                                                                                                         |
+| RF-P0-ABS-03    | `platform-core` exists while §11 says Phase 1     | Documented boundary drift                                                                                                       |
+| RF-P0-ABS-04    | `theme-react` React runtime layer                 | Documented                                                                                                                      |
+| RF-P0-ABS-05    | `ui-primitives` `react` was peer-only in `src/`   | **g6** + `react` in `dependencies`                                                                                              |
+| RF-P0-ABS-06    | `workspace-starter` triple `@app-tour/*` deps     | Documented                                                                                                                      |
+| RF-P0-ABS-07    | SDK reference comment couples to starter package  | Documented                                                                                                                      |
+| RF-P0-IMP-01    | `ui-primitives` omitted from import-boundary scan | **Fixed** — `IMPORT_BOUNDARY_SCAN_ROOTS`                                                                                        |
+| RF-P0-IMP-02    | `workspaces/starter` omitted from AST scan        | **Fixed**                                                                                                                       |
+| RF-P0-IMP-03    | Test/storybook imports vs `package.json` graph    | Partially — g6 enforces `src/` deps                                                                                             |
+| RF-P0-IMP-04    | Dynamic `import()` evades package rules           | Documented                                                                                                                      |
+| RF-P0-IMP-05    | Guard script uses hoisted `typescript`            | Documented                                                                                                                      |
+| RF-P0-IMP-06    | No circular-deps rule in depcruise                | Out of scope                                                                                                                    |
+| RF-P0-IMP-07    | `createRequire` in theme-react scripts            | Documented                                                                                                                      |
+| RF-P0-IMP-08    | `denali` in `tokens.meta.json` forbidden list     | Foundation scan = `packages/config` + `workspace-sdk` src only — `design-tokens` outside scope                                  |
+| RF-P0-GATE-01   | `phase-0:gate` = full monorepo                    | **Fixed (KS-01)** — split foundation vs integration gates                                                                       |
+| RF-P0-GATE-02   | `phase-0-guard` only six narrow checks            | **Expanded** — `phase-0.contract.spec.ts` + scoped depcruise/import + doc-sync                                                  |
+| RF-P0-GATE-03   | Denali scan missed design-tokens / ui / theme     | **Fixed** — [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts)               |
+| RF-P0-GATE-04   | Legacy import enforcement fragile                 | **Fixed (KS-02)** — [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)           |
+| RF-P0-GATE-05   | Test floor was 13 vs 114 tests                    | **Retired (H-03)** — [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) replaces count floor |
+| RF-P0-GATE-09   | `guard:doc-sync` not in `phase-0:gate`            | **Fixed**                                                                                                                       |
+| RF-P0-DOC-01…10 | Aspirational “complete” / doc-sync / coupling     | Banner + tables in this section                                                                                                 |
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| Phase 0 closure (aggregator) | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0` |
-| Legacy import enforcement | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| Denali coupling (foundation dirs) | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
-| Dist publish surface | [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) |
-| Behavioral invariants (5) | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts) |
-| Barrel import purity | [`import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts) |
-| Zero-Debt Covenant aggregator | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0` |
+| Claim                                        | Verification                                                                                                                           |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 closure (aggregator)                 | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0`                        |
+| Legacy import enforcement                    | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)                                      |
+| Denali coupling (foundation dirs)            | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts)                                  |
+| Dist publish surface                         | [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts)                                                                  |
+| Behavioral invariants (5)                    | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts)                            |
+| Barrel import purity                         | [`import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts)                                                        |
+| Zero-Debt Covenant aggregator                | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0`                        |
 | Foundation vs integration gate split (KS-01) | [`.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) · `phase-0:foundation-gate` / `phase-0:integration-gate` |
 
 > Narrative rows in the table above that are **documented only** are listed under [Unenforced Aspiration](#unenforced-aspiration).
@@ -104,44 +104,44 @@ Source: [`audit-red-flags-phase-0.md`](../audit-red-flags-phase-0.md). Status af
 
 Claims in this document **without** a paired `.spec.ts`, guard script, or CI workflow step. Each item references the section it came from. (R2 — Verification-as-Code.)
 
-| § | Claim | Why unenforced |
-|---|--------|----------------|
-| Forensic Truth | “Dependency-free foundation closed” | <span style="color:#c00">**Aspirational**</span> — trunk still builds Phases 1–3 packages via `phase-0:integration-gate` |
-| Forensic Truth | SDK has only `@casl/ability` runtime dep (no theme/auth retrofit) | <span style="color:#c00">**Aspirational**</span> — `src/auth/**`, `src/theme/**` exist; see `package.json` |
-| §1 | Physical `legacy/` archive; `apps/` absent from product tree | <span style="color:#c00">**Aspirational**</span> — `legacy/` + `apps/*` exist; **architecturally isolated** via [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (foundation scope) + KS-01 gate split |
-| §1 | “Enterprise-ready repo” one-liner | <span style="color:#c00">**Aspirational**</span> — composite narrative, not a single assertion |
-| §2 L-1 | Phase 0 = contract only; production in Phase 3+ | <span style="color:#c00">**Aspirational**</span> — process / PR scope |
-| §2 L-2 | No adapter delegate to legacy | <span style="color:#c00">**Aspirational**</span> — no dedicated “delegate adapter” detector |
-| §2 L-3 | Starter plugin shape vs mock | <span style="color:#c00">**Aspirational**</span> — partially covered by starter tests; no “not mock” rule |
-| §2 L-4 | No `@repo/types` / `TourFormProfile` | <span style="color:#c00">**Aspirational**</span> — depcruise does not name legacy package ids |
-| §2 L-5 | One sub-phase per PR | <span style="color:#c00">**Aspirational**</span> — social contract only |
-| §2 L-7 | platform-core before apps (ordering) | <span style="color:#c00">**Aspirational**</span> — both exist in tree; integration gate builds both |
-| §2 L-8 | Canonical sole SoT from Phase 3 UI | <span style="color:#c00">**Aspirational**</span> — forward-looking; UI not in Phase 0 gate |
-| §2 L-9 | No `DENALI_STRATEGY_PROFILES` in API core | <span style="color:#c00">**Aspirational**</span> — apps/api not scanned in foundation-gate |
-| §3 soft | MIGRATION-MAP / phase-1 doc files exist and stay linked | <span style="color:#c00">**Aspirational**</span> — partial via `guard:doc-sync`; not full content audit |
-| §4 | Sub-phase DAG ordering; no platform-core before 0.6 | <span style="color:#c00">**Aspirational**</span> — merge policy, not CI |
-| §5 | `git mv` history preserved; root has `apps/*` under Integration Foundation | **Enforced** — `legacy/apps/api` + REM-013 trunk |
-| §6 | SDK without UI, Nest, Denali product code | **Partial** — depcruise + `denali-coupling.contract.spec.ts` |
-| §6 | `resolveWorkspacePluginIdForType("denali") → null` until Phase 6 | **Enforced** — `denali-workspace-binding.contract.spec.ts` in `test:phase-0` |
-| §8 | PR template always used with `Phase: 0.x` | <span style="color:#c00">**Aspirational**</span> — `.github/pull_request_template.md` not executed in CI |
-| §11 | Do not add `platform-core` / apps in Phase 0 PRs | <span style="color:#c00">**Aspirational**</span> — PR policy; trunk may contain them |
-| §11 | No `packages/workspaces/denali` | <span style="color:#c00">**Aspirational**</span> — no denali workspace package test |
-| §11 | No theme/design-token scaffold in Phase 0 | <span style="color:#c00">**Aspirational**</span> — packages exist from later phases |
-| §12 #8 | No open PRs outside Phase 0 scope | <span style="color:#c00">**Aspirational**</span> — human process |
-| §14 | Future MAP §5–§10 delivery | <span style="color:#c00">**Aspirational**</span> — by design (out of Phase 0 scope) |
-| §9.4 | Remote GitHub Actions green after push | <span style="color:#c00">**Aspirational**</span> — environment-dependent; verify both jobs (`Phase 0 foundation gate` + `Phase 0 integration gate`) manually after push |
+| §              | Claim                                                                      | Why unenforced                                                                                                                                                                                                                                          |
+| -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Forensic Truth | “Dependency-free foundation closed”                                        | <span style="color:#c00">**Aspirational**</span> — trunk still builds Phases 1–3 packages via `phase-0:integration-gate`                                                                                                                                |
+| Forensic Truth | SDK has only `@casl/ability` runtime dep (no theme/auth retrofit)          | <span style="color:#c00">**Aspirational**</span> — `src/auth/**`, `src/theme/**` exist; see `package.json`                                                                                                                                              |
+| §1             | Physical `legacy/` archive; `apps/` absent from product tree               | <span style="color:#c00">**Aspirational**</span> — `legacy/` + `apps/*` exist; **architecturally isolated** via [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (foundation scope) + KS-01 gate split |
+| §1             | “Enterprise-ready repo” one-liner                                          | <span style="color:#c00">**Aspirational**</span> — composite narrative, not a single assertion                                                                                                                                                          |
+| §2 L-1         | Phase 0 = contract only; production in Phase 3+                            | <span style="color:#c00">**Aspirational**</span> — process / PR scope                                                                                                                                                                                   |
+| §2 L-2         | No adapter delegate to legacy                                              | <span style="color:#c00">**Aspirational**</span> — no dedicated “delegate adapter” detector                                                                                                                                                             |
+| §2 L-3         | Starter plugin shape vs mock                                               | <span style="color:#c00">**Aspirational**</span> — partially covered by starter tests; no “not mock” rule                                                                                                                                               |
+| §2 L-4         | No `@repo/types` / `TourFormProfile`                                       | <span style="color:#c00">**Aspirational**</span> — depcruise does not name legacy package ids                                                                                                                                                           |
+| §2 L-5         | One sub-phase per PR                                                       | <span style="color:#c00">**Aspirational**</span> — social contract only                                                                                                                                                                                 |
+| §2 L-7         | platform-core before apps (ordering)                                       | <span style="color:#c00">**Aspirational**</span> — both exist in tree; integration gate builds both                                                                                                                                                     |
+| §2 L-8         | Canonical sole SoT from Phase 3 UI                                         | <span style="color:#c00">**Aspirational**</span> — forward-looking; UI not in Phase 0 gate                                                                                                                                                              |
+| §2 L-9         | No `DENALI_STRATEGY_PROFILES` in API core                                  | <span style="color:#c00">**Aspirational**</span> — apps/api not scanned in foundation-gate                                                                                                                                                              |
+| §3 soft        | MIGRATION-MAP / phase-1 doc files exist and stay linked                    | <span style="color:#c00">**Aspirational**</span> — partial via `guard:doc-sync`; not full content audit                                                                                                                                                 |
+| §4             | Sub-phase DAG ordering; no platform-core before 0.6                        | <span style="color:#c00">**Aspirational**</span> — merge policy, not CI                                                                                                                                                                                 |
+| §5             | `git mv` history preserved; root has `apps/*` under Integration Foundation | **Enforced** — `legacy/apps/api` + REM-013 trunk                                                                                                                                                                                                        |
+| §6             | SDK without UI, Nest, Denali product code                                  | **Partial** — depcruise + `denali-coupling.contract.spec.ts`                                                                                                                                                                                            |
+| §6             | `resolveWorkspacePluginIdForType("denali") → null` until Phase 6           | **Enforced** — `denali-workspace-binding.contract.spec.ts` in `test:phase-0`                                                                                                                                                                            |
+| §8             | PR template always used with `Phase: 0.x`                                  | <span style="color:#c00">**Aspirational**</span> — `.github/pull_request_template.md` not executed in CI                                                                                                                                                |
+| §11            | Do not add `platform-core` / apps in Phase 0 PRs                           | <span style="color:#c00">**Aspirational**</span> — PR policy; trunk may contain them                                                                                                                                                                    |
+| §11            | No `packages/workspaces/denali`                                            | <span style="color:#c00">**Aspirational**</span> — no denali workspace package test                                                                                                                                                                     |
+| §11            | No theme/design-token scaffold in Phase 0                                  | <span style="color:#c00">**Aspirational**</span> — packages exist from later phases                                                                                                                                                                     |
+| §12 #8         | No open PRs outside Phase 0 scope                                          | <span style="color:#c00">**Aspirational**</span> — human process                                                                                                                                                                                        |
+| §14            | Future MAP §5–§10 delivery                                                 | <span style="color:#c00">**Aspirational**</span> — by design (out of Phase 0 scope)                                                                                                                                                                     |
+| §9.4           | Remote GitHub Actions green after push                                     | <span style="color:#c00">**Aspirational**</span> — environment-dependent; verify both jobs (`Phase 0 foundation gate` + `Phase 0 integration gate`) manually after push                                                                                 |
 
 ---
 
 ## DOC_DRIFT Register (resolved — source `.md` mirror may lag)
 
-| ID | Stale source claim | Repo enforcement | Resolution |
-|----|-------------------|------------------|------------|
-| DRIFT-01 | §9.2 / `.md` §10.4: `baseline:metrics` inside monolithic gate step list | `phase-0:integration-gate` ends with `pnpm run baseline:metrics` | **Fixed** — see [`package.json`](../package.json) |
-| DRIFT-02 | §9.3 g1/g2/g3/g5 guard table | Covenant contracts + `g4`/`g4b`/`g6`/`g7` in `phase-0-guard.mjs` | **Fixed** — Verification Table §9.3 |
-| DRIFT-03 | §6.10 ≥103 test floor in gate | `test:phase-0` behavioral closure; count informational only | **Fixed** — §10.2 |
-| DRIFT-04 | Single CI step `pnpm run phase-0:gate` | KS-01 split: foundation job + integration job | **Fixed** — §9.2 |
-| DRIFT-05 | Remote CI unchecked | Manual verify after push; listed under Unenforced Aspiration §9.4 | **Documented** |
+| ID       | Stale source claim                                                      | Repo enforcement                                                  | Resolution                                        |
+| -------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
+| DRIFT-01 | §9.2 / `.md` §10.4: `baseline:metrics` inside monolithic gate step list | `phase-0:integration-gate` ends with `pnpm run baseline:metrics`  | **Fixed** — see [`package.json`](../package.json) |
+| DRIFT-02 | §9.3 g1/g2/g3/g5 guard table                                            | Covenant contracts + `g4`/`g4b`/`g6`/`g7` in `phase-0-guard.mjs`  | **Fixed** — Verification Table §9.3               |
+| DRIFT-03 | §6.10 ≥103 test floor in gate                                           | `test:phase-0` behavioral closure; count informational only       | **Fixed** — §10.2                                 |
+| DRIFT-04 | Single CI step `pnpm run phase-0:gate`                                  | KS-01 split: foundation job + integration job                     | **Fixed** — §9.2                                  |
+| DRIFT-05 | Remote CI unchecked                                                     | Manual verify after push; listed under Unenforced Aspiration §9.4 | **Documented**                                    |
 
 Agent runbook: [`phase-0-foundation.ai-exec.md`](phase-0-foundation.ai-exec.md).
 
@@ -151,13 +151,13 @@ Agent runbook: [`phase-0-foundation.ai-exec.md`](phase-0-foundation.ai-exec.md).
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| Import law from day 1 (`no-legacy-imports`) | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
+| Claim                                               | Verification                                                                                                                                                                                                                                                        |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Import law from day 1 (`no-legacy-imports`)         | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)                                                                                                                                                                   |
 | Starter reference plugin (minimal production shape) | [Verifies: `packages/workspace-sdk/src/workspace-sdk.spec.ts`](../packages/workspace-sdk/src/workspace-sdk.spec.ts) · [Verifies: `packages/workspaces/starter/test/sdk-reference-parity.spec.ts`](../packages/workspaces/starter/test/sdk-reference-parity.spec.ts) |
-| CI gate on push/PR (L-6) | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| JSON reports with `gitSha` (L-10) | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) · [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) |
-| Phase 0 closure suite | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
+| CI gate on push/PR (L-6)                            | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                                                                                                                                             |
+| JSON reports with `gitSha` (L-10)                   | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) · [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs)                                                                                     |
+| Phase 0 closure suite                               | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                                                                                                                                               |
 
 > Unenforced narrative claims (legacy freeze comparison, “empty enterprise-ready repo”) → [Unenforced Aspiration](#unenforced-aspiration).
 
@@ -176,13 +176,13 @@ Agent runbook: [`phase-0-foundation.ai-exec.md`](phase-0-foundation.ai-exec.md).
 
 در greenfield فاز ۰ یعنی:
 
-| هدف | معنی |
-|-----|------|
-| **جداسازی فیزیکی** | کل monorepo قدیم در [`legacy/`](../legacy/) — ریشه فقط app-tour |
-| **زبان مشترک plugin** | `@app-tour/workspace-sdk` بدون وابستگی به Denali/types قدیم |
-| **قانون import از روز ۱** | `dependency-cruiser` blocking |
-| **starter reference** | plugin مرجع minimal — نه mock بی‌ربط به production |
-| **مستندات مرجع** | نقشه مهاجرت + این سند — قبل از platform-core |
+| هدف                       | معنی                                                            |
+| ------------------------- | --------------------------------------------------------------- |
+| **جداسازی فیزیکی**        | کل monorepo قدیم در [`legacy/`](../legacy/) — ریشه فقط app-tour |
+| **زبان مشترک plugin**     | `@app-tour/workspace-sdk` بدون وابستگی به Denali/types قدیم     |
+| **قانون import از روز ۱** | `dependency-cruiser` blocking                                   |
+| **starter reference**     | plugin مرجع minimal — نه mock بی‌ربط به production              |
+| **مستندات مرجع**          | نقشه مهاجرت + این سند — قبل از platform-core                    |
 
 ```mermaid
 flowchart LR
@@ -202,29 +202,29 @@ flowchart LR
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| L-6 — gate on push to main, not local-only | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| L-10 — baseline/gate JSON includes `gitSha` | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) · [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) |
-| No `legacy/` imports under `packages/` | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) (`no-legacy-imports`) |
-| `workspace-sdk` ↛ `packages/workspaces` | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
+| Claim                                       | Verification                                                                                                                                                                                                    |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L-6 — gate on push to main, not local-only  | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                                                                                         |
+| L-10 — baseline/gate JSON includes `gitSha` | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) · [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs)                                 |
+| No `legacy/` imports under `packages/`      | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) (`no-legacy-imports`) |
+| `workspace-sdk` ↛ `packages/workspaces`     | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)                                                                                                               |
 
 > L-1–L-5, L-7–L-9 (process / ordering / “no delegate”) → [Unenforced Aspiration](#unenforced-aspiration).
 
 این جدول **الزامات منفی** فاز ۰ app-tour است — مستقیماً از ممیزی [`legacy/map_2.md`](../legacy/map_2.md).
 
-| ID | اشتباه legacy | پیامد | قانون app-tour فاز ۰ |
-|----|---------------|--------|----------------------|
-| **L-1** | ادعای «فاز ۱ تمام» در حالی که bridge فقط `general` و همه delegate به legacy | false confidence | فاز ۰ **فقط contract** — رفتار production در فاز ۳+ |
-| **L-2** | `SdkWorkspaceStrategyAdapter` — همه متدها → `legacy.getX()` | SDK تزئینی | **ممنوع** adapter delegate در app-tour؛ plugin یا هیچ |
-| **L-3** | `mockWorkspacePlugin` با ۲ فیلد ساختگی | contract بی‌ارزش | `starterWorkspacePlugin` با shape واقعی registry/rules/wizard |
-| **L-4** | وابستگی SDK به `@repo/types` / `TourFormProfile` | coupling زودهنگام | `WorkspaceTypeId` مستقل در SDK |
-| **L-5** | fast-forward ۴ sub-phase در یک merge | review/rollback سخت | **یک sub-phase = یک PR** با `Phase: 0.x` |
-| **L-6** | `ci:integrity` محلی سبز ولی GitHub e2e قرمز | main ناپایدار | gate فاز ۰ روی **push به main** هم اجرا شود |
-| **L-7** | `platform-core` هرگز ساخته نشد | ویزارد مستقیم Denali | فاز ۱ app-tour = platform-core **قبل** apps |
-| **L-8** | dual state RHF + canonical + sync | هر PR سه مسیر | از فاز ۳: canonical تنها SoT — در contract فاز ۰ ثبت |
-| **L-9** | `DENALI_STRATEGY_PROFILES` در API core | workspace hardcode | فقط `WorkspaceTypeBinding` در SDK — constants در plugin |
-| **L-10** | baseline JSON stale بعد از merge | regression نامشخص | گزارش JSON با `gitSha` در هر gate |
+| ID       | اشتباه legacy                                                               | پیامد                | قانون app-tour فاز ۰                                          |
+| -------- | --------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------- |
+| **L-1**  | ادعای «فاز ۱ تمام» در حالی که bridge فقط `general` و همه delegate به legacy | false confidence     | فاز ۰ **فقط contract** — رفتار production در فاز ۳+           |
+| **L-2**  | `SdkWorkspaceStrategyAdapter` — همه متدها → `legacy.getX()`                 | SDK تزئینی           | **ممنوع** adapter delegate در app-tour؛ plugin یا هیچ         |
+| **L-3**  | `mockWorkspacePlugin` با ۲ فیلد ساختگی                                      | contract بی‌ارزش     | `starterWorkspacePlugin` با shape واقعی registry/rules/wizard |
+| **L-4**  | وابستگی SDK به `@repo/types` / `TourFormProfile`                            | coupling زودهنگام    | `WorkspaceTypeId` مستقل در SDK                                |
+| **L-5**  | fast-forward ۴ sub-phase در یک merge                                        | review/rollback سخت  | **یک sub-phase = یک PR** با `Phase: 0.x`                      |
+| **L-6**  | `ci:integrity` محلی سبز ولی GitHub e2e قرمز                                 | main ناپایدار        | gate فاز ۰ روی **push به main** هم اجرا شود                   |
+| **L-7**  | `platform-core` هرگز ساخته نشد                                              | ویزارد مستقیم Denali | فاز ۱ app-tour = platform-core **قبل** apps                   |
+| **L-8**  | dual state RHF + canonical + sync                                           | هر PR سه مسیر        | از فاز ۳: canonical تنها SoT — در contract فاز ۰ ثبت          |
+| **L-9**  | `DENALI_STRATEGY_PROFILES` در API core                                      | workspace hardcode   | فقط `WorkspaceTypeBinding` در SDK — constants در plugin       |
+| **L-10** | baseline JSON stale بعد از merge                                            | regression نامشخص    | گزارش JSON با `gitSha` در هر gate                             |
 
 ---
 
@@ -232,17 +232,17 @@ flowchart LR
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| `@app-tour/workspace-sdk` build + Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0` |
-| Import / architecture boundaries | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) · integration: `guard:architecture` |
-| CI `phase-0-gate` workflow | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| `phase-0-guard` foundation report | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) |
-| Zero denali in foundation scan dirs | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
-| No legacy imports under `packages/` | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| Phase 0 contract closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
-| `legacy/` archive + README | → [Unenforced Aspiration](#unenforced-aspiration) (filesystem) |
-| Soft docs (MIGRATION-MAP, phase-1) | → [Unenforced Aspiration](#unenforced-aspiration) (partial doc-sync only) |
+| Claim                                             | Verification                                                                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@app-tour/workspace-sdk` build + Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) · `pnpm run test:phase-0`                             |
+| Import / architecture boundaries                  | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) · integration: `guard:architecture`       |
+| CI `phase-0-gate` workflow                        | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                     |
+| `phase-0-guard` foundation report                 | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs)                                                         |
+| Zero denali in foundation scan dirs               | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
+| No legacy imports under `packages/`               | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)     |
+| Phase 0 contract closure                          | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                       |
+| `legacy/` archive + README                        | → [Unenforced Aspiration](#unenforced-aspiration) (filesystem)                                                                              |
+| Soft docs (MIGRATION-MAP, phase-1)                | → [Unenforced Aspiration](#unenforced-aspiration) (partial doc-sync only)                                                                   |
 
 پایان فاز ۰ وقتی است که **همه** موارد زیر برقرار باشند:
 
@@ -276,11 +276,11 @@ flowchart LR
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
+| Claim                             | Verification                                                                                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0.5 CI gate exists before Phase 1 | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) · [Verifies: `package.json`](../package.json) (`phase-0:foundation-gate`) |
-| 0.6 baseline metrics | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) — runs in `phase-0:integration-gate`; not in foundation-gate |
-| Sub-phase = one PR; overlap rules | → [Unenforced Aspiration](#unenforced-aspiration) |
+| 0.6 baseline metrics              | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) — runs in `phase-0:integration-gate`; not in foundation-gate            |
+| Sub-phase = one PR; overlap rules | → [Unenforced Aspiration](#unenforced-aspiration)                                                                                                                 |
 
 ```text
 0.1 legacy archive
@@ -298,14 +298,14 @@ flowchart LR
 → Phase 1.1 platform-core scaffold
 ```
 
-| Sub-phase | PR label | وابستگی |
-|-----------|----------|---------|
-| 0.1 | `Phase: 0.1` | — |
-| 0.2 | `Phase: 0.2` | 0.1 |
-| 0.3 | `Phase: 0.3` | 0.2 |
-| 0.4 | `Phase: 0.4` | 0.1 |
-| 0.5 | `Phase: 0.5` | 0.2, 0.3 |
-| 0.6 | `Phase: 0.6` | 0.5 |
+| Sub-phase | PR label     | وابستگی  |
+| --------- | ------------ | -------- |
+| 0.1       | `Phase: 0.1` | —        |
+| 0.2       | `Phase: 0.2` | 0.1      |
+| 0.3       | `Phase: 0.3` | 0.2      |
+| 0.4       | `Phase: 0.4` | 0.1      |
+| 0.5       | `Phase: 0.5` | 0.2, 0.3 |
+| 0.6       | `Phase: 0.6` | 0.5      |
 
 **Overlap مجاز:** 0.4 موازی 0.2–0.3 (فقط docs).  
 **Overlap ممنوع:** شروع `platform-core` قبل از **0.6** سبز (شامل `baseline:metrics`).
@@ -316,10 +316,10 @@ flowchart LR
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| No imports from `legacy/` in new `packages/` | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) |
-| Root monorepo is `app-tour` (not legacy layout) | → [Unenforced Aspiration](#unenforced-aspiration) (`ls apps`, `git mv` history) |
+| Claim                                           | Verification                                                                                                                                                                              |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No imports from `legacy/` in new `packages/`    | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) |
+| Root monorepo is `app-tour` (not legacy layout) | → [Unenforced Aspiration](#unenforced-aspiration) (`ls apps`, `git mv` history)                                                                                                           |
 
 ### 5.1 هدف
 
@@ -327,12 +327,12 @@ flowchart LR
 
 ### 5.2 کارهای انجام‌شده
 
-| کار | وضعیت |
-|-----|--------|
-| `git mv` apps, packages, infra, scripts, … → `legacy/` | ✅ |
-| `legacy/README.md` — راهنمای «فقط مرجع» | ✅ |
-| ریشه: `app-tour` package.json، pnpm workspace | ✅ |
-| حذف `node_modules` orphan در root | ✅ |
+| کار                                                    | وضعیت |
+| ------------------------------------------------------ | ----- |
+| `git mv` apps, packages, infra, scripts, … → `legacy/` | ✅    |
+| `legacy/README.md` — راهنمای «فقط مرجع»                | ✅    |
+| ریشه: `app-tour` package.json، pnpm workspace          | ✅    |
+| حذف `node_modules` orphan در root                      | ✅    |
 
 ### 5.3 ساختار ریشه پس از 0.1
 
@@ -365,19 +365,19 @@ flowchart LR
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| SDK builds; dist entry + exports | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) |
-| `WorkspacePlugin` / `CanonicalDocument` contracts | [Verifies: `packages/workspace-sdk/src/workspace-sdk.spec.ts`](../packages/workspace-sdk/src/workspace-sdk.spec.ts) · [Verifies: `packages/workspace-sdk/src/plugin/workspace-plugin-validation.spec.ts`](../packages/workspace-sdk/src/plugin/workspace-plugin-validation.spec.ts) |
-| Ingress hardening (BigInt, accessors, arrays) | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts) (manifest invariants) · extended adversarial specs → [Unenforced Aspiration](#unenforced-aspiration) (integration `pnpm test` only) |
-| Import purity (lazy presets / starter) | [Verifies: `packages/workspace-sdk/test/import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts) |
-| CASL auth surface | [Verifies: `packages/workspace-sdk/src/auth/ability.spec.ts`](../packages/workspace-sdk/src/auth/ability.spec.ts) · [Verifies: `packages/workspace-sdk/src/auth/ability.red-team.spec.ts`](../packages/workspace-sdk/src/auth/ability.red-team.spec.ts) · [Verifies: `packages/workspace-sdk/src/auth/validate-auth-context.spec.ts`](../packages/workspace-sdk/src/auth/validate-auth-context.spec.ts) |
-| Theme ingress / seal / CSS safety | [Verifies: `packages/workspace-sdk/src/theme/theme.spec.ts`](../packages/workspace-sdk/src/theme/theme.spec.ts) · [Verifies: `packages/workspace-sdk/src/theme/theme-safety-seal.spec.ts`](../packages/workspace-sdk/src/theme/theme-safety-seal.spec.ts) · [Verifies: `packages/workspace-sdk/src/theme/theme-css-value-safety.spec.ts`](../packages/workspace-sdk/src/theme/theme-css-value-safety.spec.ts) |
-| Starter reference ↔ workspace-starter parity | [Verifies: `packages/workspaces/starter/test/sdk-reference-parity.spec.ts`](../packages/workspaces/starter/test/sdk-reference-parity.spec.ts) |
-| `workspace-sdk` ↛ `workspaces/*` | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| No denali tokens (sdk/config in foundation gate) | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
-| Five critical behavioral invariants | [Verifies: `packages/workspace-sdk/test/invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts) |
-| No `@repo/types` / UI / Nest in SDK | → [Unenforced Aspiration](#unenforced-aspiration) (partial via depcruise only) |
+| Claim                                             | Verification                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK builds; dist entry + exports                  | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts)                                                                                                                                                                                                                                                                                                   |
+| `WorkspacePlugin` / `CanonicalDocument` contracts | [Verifies: `packages/workspace-sdk/src/workspace-sdk.spec.ts`](../packages/workspace-sdk/src/workspace-sdk.spec.ts) · [Verifies: `packages/workspace-sdk/src/plugin/workspace-plugin-validation.spec.ts`](../packages/workspace-sdk/src/plugin/workspace-plugin-validation.spec.ts)                                                                                                                           |
+| Ingress hardening (BigInt, accessors, arrays)     | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts) (manifest invariants) · extended adversarial specs → [Unenforced Aspiration](#unenforced-aspiration) (integration `pnpm test` only)                                                                                                                                                               |
+| Import purity (lazy presets / starter)            | [Verifies: `packages/workspace-sdk/test/import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts)                                                                                                                                                                                                                                                                                         |
+| CASL auth surface                                 | [Verifies: `packages/workspace-sdk/src/auth/ability.spec.ts`](../packages/workspace-sdk/src/auth/ability.spec.ts) · [Verifies: `packages/workspace-sdk/src/auth/ability.red-team.spec.ts`](../packages/workspace-sdk/src/auth/ability.red-team.spec.ts) · [Verifies: `packages/workspace-sdk/src/auth/validate-auth-context.spec.ts`](../packages/workspace-sdk/src/auth/validate-auth-context.spec.ts)       |
+| Theme ingress / seal / CSS safety                 | [Verifies: `packages/workspace-sdk/src/theme/theme.spec.ts`](../packages/workspace-sdk/src/theme/theme.spec.ts) · [Verifies: `packages/workspace-sdk/src/theme/theme-safety-seal.spec.ts`](../packages/workspace-sdk/src/theme/theme-safety-seal.spec.ts) · [Verifies: `packages/workspace-sdk/src/theme/theme-css-value-safety.spec.ts`](../packages/workspace-sdk/src/theme/theme-css-value-safety.spec.ts) |
+| Starter reference ↔ workspace-starter parity      | [Verifies: `packages/workspaces/starter/test/sdk-reference-parity.spec.ts`](../packages/workspaces/starter/test/sdk-reference-parity.spec.ts)                                                                                                                                                                                                                                                                 |
+| `workspace-sdk` ↛ `workspaces/*`                  | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)                                                                                                                                                                                                                                                                                                             |
+| No denali tokens (sdk/config in foundation gate)  | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts)                                                                                                                                                                                                                                                                   |
+| Five critical behavioral invariants               | [Verifies: `packages/workspace-sdk/test/invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts)                                                                                                                                                                                                                                                             |
+| No `@repo/types` / UI / Nest in SDK               | → [Unenforced Aspiration](#unenforced-aspiration) (partial via depcruise only)                                                                                                                                                                                                                                                                                                                                |
 
 ### 6.1 هدف
 
@@ -385,13 +385,13 @@ flowchart LR
 
 ### 6.2 تفاوت با legacy SDK
 
-| موضوع | legacy `@repo/workspace-sdk` | app-tour `@app-tour/workspace-sdk` |
-|--------|------------------------------|-------------------------------------|
-| Profile binding | `TourFormProfile` از `@repo/types` | `WorkspaceTypeId` داخلی |
-| Reference plugin | `mock` / `general` | `starter` |
-| supportedProfiles | 7-value freeze | `supportedWorkspaceTypes: ["starter"]` |
-| وابستگی | `@repo/types` | **بدون** `@repo/types` و **بدون** `@app-tour/*` workspace packages |
-| Runtime npm | (implicit در legacy) | **`@casl/ability` ^6.7.3** — Phase 3 CASL در `src/auth/**` |
+| موضوع             | legacy `@repo/workspace-sdk`       | app-tour `@app-tour/workspace-sdk`                                 |
+| ----------------- | ---------------------------------- | ------------------------------------------------------------------ |
+| Profile binding   | `TourFormProfile` از `@repo/types` | `WorkspaceTypeId` داخلی                                            |
+| Reference plugin  | `mock` / `general`                 | `starter`                                                          |
+| supportedProfiles | 7-value freeze                     | `supportedWorkspaceTypes: ["starter"]`                             |
+| وابستگی           | `@repo/types`                      | **بدون** `@repo/types` و **بدون** `@app-tour/*` workspace packages |
+| Runtime npm       | (implicit در legacy)               | **`@casl/ability` ^6.7.3** — Phase 3 CASL در `src/auth/**`         |
 
 **هدف خلوص فاز ۰:** جداسازی از legacy types و workspace implementations — **نه** صفر بودن همهٔ runtime npm deps. تنها runtime dependency اعلام‌شده در [`packages/workspace-sdk/package.json`](../packages/workspace-sdk/package.json): `@casl/ability`.
 
@@ -407,7 +407,7 @@ interface WorkspacePlugin {
   readonly wizard: WorkspaceWizardSurface;
   readonly validation: WorkspaceValidationHooks;
   readonly lifecycle: WorkspaceLifecycleContract;
-  readonly theme?: WorkspaceThemeContract;  // optional — Phase 2+ retrofit
+  readonly theme?: WorkspaceThemeContract; // optional — Phase 2+ retrofit
 }
 ```
 
@@ -415,11 +415,11 @@ interface WorkspacePlugin {
 
 ### 6.4 `CanonicalDocument` — semantics
 
-| فیلد | قانون |
-|------|--------|
-| `schemaVersion` | monotonic per workspace major |
-| `roots` | کلیدهای مجاز top-level در `data` |
-| `data` | SoT persist — **تنها** شکل wire در API (فاز ۵) |
+| فیلد            | قانون                                          |
+| --------------- | ---------------------------------------------- |
+| `schemaVersion` | monotonic per workspace major                  |
+| `roots`         | کلیدهای مجاز top-level در `data`               |
+| `data`          | SoT persist — **تنها** شکل wire در API (فاز ۵) |
 
 ```typescript
 // رفتار ثبت‌شده در تست
@@ -436,10 +436,10 @@ createCanonicalDocument({
 
 ```typescript
 interface WorkspaceFieldRegistryEntry {
-  readonly id: string;              // stable id e.g. "basics.title"
-  readonly canonicalPath: string;     // dot path in canonical JSON
+  readonly id: string; // stable id e.g. "basics.title"
+  readonly canonicalPath: string; // dot path in canonical JSON
   readonly stepId: string;
-  readonly kind: WorkspaceFieldKind;  // text | number | date | enum | boolean | composite
+  readonly kind: WorkspaceFieldKind; // text | number | date | enum | boolean | composite
   readonly required: boolean;
   readonly groupSlug?: string;
   readonly tags?: readonly string[];
@@ -469,18 +469,18 @@ interface WorkspaceWizardSurface {
 
 دو منبع shape یکسان — **عمدی** تا فاز ۳؛ همگام‌سازی با تست parity:
 
-| منبع | مسیر | نقش |
-|------|------|-----|
-| **SDK reference** | [`packages/workspace-sdk/src/reference/starter-workspace.plugin.ts`](../packages/workspace-sdk/src/reference/starter-workspace.plugin.ts) | Contract tests · export `starterWorkspacePlugin` |
-| **Production workspace** | [`packages/workspaces/starter/src/starter.plugin.ts`](../packages/workspaces/starter/src/starter.plugin.ts) | `@app-tour/workspace-starter` |
+| منبع                     | مسیر                                                                                                                                      | نقش                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **SDK reference**        | [`packages/workspace-sdk/src/reference/starter-workspace.plugin.ts`](../packages/workspace-sdk/src/reference/starter-workspace.plugin.ts) | Contract tests · export `starterWorkspacePlugin` |
+| **Production workspace** | [`packages/workspaces/starter/src/starter.plugin.ts`](../packages/workspaces/starter/src/starter.plugin.ts)                               | `@app-tour/workspace-starter`                    |
 
-| بخش | مقدار (هر دو) |
-|-----|----------------|
-| id | `"starter"` |
-| workspace type | `"starter"` |
-| steps | `basics`, `details` |
-| fields | `basics.title` (required), `details.summary` |
-| railId | `starter_base` |
+| بخش            | مقدار (هر دو)                                |
+| -------------- | -------------------------------------------- |
+| id             | `"starter"`                                  |
+| workspace type | `"starter"`                                  |
+| steps          | `basics`, `details`                          |
+| fields         | `basics.title` (required), `details.summary` |
+| railId         | `starter_base`                               |
 
 **انحراف:** فاز ۰ فقط SDK reference بود؛ فاز ۳ package اضافه شد **بدون** حذف reference (engine/tests بدون import به `workspaces/*`). **کاهش drift:** [`sdk-reference-parity.spec.ts`](../packages/workspaces/starter/test/sdk-reference-parity.spec.ts).
 
@@ -489,9 +489,7 @@ interface WorkspaceWizardSurface {
 ### 6.9 Workspace type binding
 
 ```typescript
-const DEFAULT_WORKSPACE_TYPE_BINDINGS = [
-  { workspaceType: "starter", pluginId: "starter" },
-];
+const DEFAULT_WORKSPACE_TYPE_BINDINGS = [{ workspaceType: "starter", pluginId: "starter" }];
 
 resolveWorkspacePluginIdForType("starter"); // → "starter"
 resolveWorkspacePluginIdForType("denali"); // → null (تا فاز ۶)
@@ -501,10 +499,10 @@ resolveWorkspacePluginIdForType("denali"); // → null (تا فاز ۶)
 
 `pnpm --filter @app-tour/workspace-sdk test` → **165** tests · **35** suites (`test/**`) (شامل canonical، plugin، theme ingress، CASL `auth/` — فاز ۲–۳ روی همان پکیج).
 
-| Baseline | مقدار |
-|----------|--------|
+| Baseline                  | مقدار                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | حداقل فاز ۰ (gate script) | `pnpm run test:phase-0` — [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) **PASS** |
-| تعداد تست (informational) | **165** tests · **35** suites — count threshold **retired** (H-03) |
+| تعداد تست (informational) | **165** tests · **35** suites — count threshold **retired** (H-03)                                                       |
 
 نمونه caseهای اصلی فاز ۰: plugin structural guard، type binding، canonical roots، rule cells، lifecycle.
 
@@ -521,15 +519,15 @@ resolveWorkspacePluginIdForType("denali"); // → null (تا فاز ۶)
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
+| Claim                                                                   | Verification                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Phase 0 core rules (`workspace-sdk-no-workspaces`, `no-legacy-imports`) | [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) · [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| Full package graph (integration) | [Verifies: `package.json`](../package.json) (`guard:architecture`) · `phase-0:integration-gate` |
-| AST import boundary (barrels, `legacy/`, dist scan) | [Verifies: `scripts/guards/import-boundary-ast.mjs`](../scripts/guards/import-boundary-ast.mjs) · [Verifies: `scripts/guards/foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.mjs) |
-| No legacy imports (foundation packages) | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) |
-| Phase 1–3 rules in same config file | [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) — enforced when integration gate runs |
-| `ui-primitives` runtime deps in `dependencies` (integration guard) | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) (g6, non-foundation scope) |
-| Circular dependency ban | → [Unenforced Aspiration](#unenforced-aspiration) (RF-P0-IMP-06) |
+| Full package graph (integration)                                        | [Verifies: `package.json`](../package.json) (`guard:architecture`) · `phase-0:integration-gate`                                                                                                                       |
+| AST import boundary (barrels, `legacy/`, dist scan)                     | [Verifies: `scripts/guards/import-boundary-ast.mjs`](../scripts/guards/import-boundary-ast.mjs) · [Verifies: `scripts/guards/foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.mjs)               |
+| No legacy imports (foundation packages)                                 | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts)                                                                                                                     |
+| Phase 1–3 rules in same config file                                     | [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) — enforced when integration gate runs                                                                                                     |
+| `ui-primitives` runtime deps in `dependencies` (integration guard)      | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) (g6, non-foundation scope)                                                                                                        |
+| Circular dependency ban                                                 | → [Unenforced Aspiration](#unenforced-aspiration) (RF-P0-IMP-06)                                                                                                                                                      |
 
 ### 7.1 قوانین فعلی (`dependency-cruiser.config.js`)
 
@@ -539,44 +537,44 @@ resolveWorkspacePluginIdForType("denali"); // → null (تا فاز ۶)
 
 #### Phase 0 core
 
-| Rule | from | to |
-|------|------|-----|
+| Rule                          | from                     | to                    |
+| ----------------------------- | ------------------------ | --------------------- |
 | `workspace-sdk-no-workspaces` | `packages/workspace-sdk` | `packages/workspaces` |
-| `no-legacy-imports` | `packages/*` | `legacy/` |
+| `no-legacy-imports`           | `packages/*`             | `legacy/`             |
 
 #### Phase 1 — platform-core
 
-| Rule | from | to |
-|------|------|-----|
-| `platform-core-no-workspaces` | `packages/platform-core` | `packages/workspaces` |
-| `platform-core-only-sdk` | `packages/platform-core` | packages غیر از sdk/config/platform-core |
-| `platform-core-no-apps` | `packages/platform-core` | `apps/` |
-| `workspace-sdk-no-apps` | `packages/workspace-sdk` | `apps/` |
+| Rule                          | from                     | to                                       |
+| ----------------------------- | ------------------------ | ---------------------------------------- |
+| `platform-core-no-workspaces` | `packages/platform-core` | `packages/workspaces`                    |
+| `platform-core-only-sdk`      | `packages/platform-core` | packages غیر از sdk/config/platform-core |
+| `platform-core-no-apps`       | `packages/platform-core` | `apps/`                                  |
+| `workspace-sdk-no-apps`       | `packages/workspace-sdk` | `apps/`                                  |
 
 #### Phase 2 — design system
 
-| Rule | from | to |
-|------|------|-----|
-| `design-tokens-isolated` | `packages/design-tokens` | packages غیر از design-tokens |
-| `design-tokens-no-workspaces` | `packages/design-tokens` | `packages/workspaces` |
-| `design-tokens-no-apps` | `packages/design-tokens` | `apps/` |
-| `ui-primitives-only-design-tokens` | `packages/ui-primitives` | packages خارج از allow-list |
-| `ui-primitives-no-workspaces` | `packages/ui-primitives` | `packages/workspaces` |
-| `theme-react-allowed-deps` | `packages/theme-react` | packages خارج از theme-react/design-tokens/workspace-sdk/config |
-| `theme-react-no-workspaces` | `packages/theme-react` | `packages/workspaces` |
+| Rule                               | from                     | to                                                              |
+| ---------------------------------- | ------------------------ | --------------------------------------------------------------- |
+| `design-tokens-isolated`           | `packages/design-tokens` | packages غیر از design-tokens                                   |
+| `design-tokens-no-workspaces`      | `packages/design-tokens` | `packages/workspaces`                                           |
+| `design-tokens-no-apps`            | `packages/design-tokens` | `apps/`                                                         |
+| `ui-primitives-only-design-tokens` | `packages/ui-primitives` | packages خارج از allow-list                                     |
+| `ui-primitives-no-workspaces`      | `packages/ui-primitives` | `packages/workspaces`                                           |
+| `theme-react-allowed-deps`         | `packages/theme-react`   | packages خارج از theme-react/design-tokens/workspace-sdk/config |
+| `theme-react-no-workspaces`        | `packages/theme-react`   | `packages/workspaces`                                           |
 
 #### Phase 3 — apps & starter
 
-| Rule | from | to |
-|------|------|-----|
-| `apps-web-no-workspaces-except-starter` | `apps/web` | `packages/workspaces/*` (except starter) |
-| `workspace-starter-no-apps` | `packages/workspaces/starter` | `apps/` |
-| `workspace-starter-allowed-deps` | `packages/workspaces/starter` | packages خارج از allow-list |
-| `apps-web-no-legacy` | `apps/web` | `legacy/` |
-| `apps-web-allowed-packages` | `apps/web` | packages خارج از allow-list |
-| `apps-api-no-ui-primitives` | `apps/api` | ui-primitives / theme-react / design-tokens |
-| `apps-api-no-legacy` | `apps/api` | `legacy/` |
-| `apps-api-allowed-packages` | `apps/api` | packages خارج از allow-list |
+| Rule                                    | from                          | to                                                                                                           |
+| --------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `apps-web-no-workspaces-except-starter` | `apps/web`                    | `packages/workspaces/*` except **starter** and **denali** (denali: `lazy-denali-plugin.ts` only — Phase 6.5) |
+| `workspace-starter-no-apps`             | `packages/workspaces/starter` | `apps/`                                                                                                      |
+| `workspace-starter-allowed-deps`        | `packages/workspaces/starter` | packages خارج از allow-list                                                                                  |
+| `apps-web-no-legacy`                    | `apps/web`                    | `legacy/`                                                                                                    |
+| `apps-web-allowed-packages`             | `apps/web`                    | packages خارج از allow-list (incl. `workspaces/denali` devDep for lazy chunk)                                |
+| `apps-api-no-ui-primitives`             | `apps/api`                    | ui-primitives / theme-react / design-tokens                                                                  |
+| `apps-api-no-legacy`                    | `apps/api`                    | `legacy/`                                                                                                    |
+| `apps-api-allowed-packages`             | `apps/api`                    | packages خارج از allow-list (incl. `workspaces/denali` — Phase 6.5 bootstrap)                                |
 
 ### 7.2 دستور
 
@@ -601,25 +599,25 @@ pnpm run guard:architecture
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
-| PR verification commands documented | [Verifies: `.github/pull_request_template.md`](../.github/pull_request_template.md) (template only) |
-| MIGRATION-MAP / phase-1 file presence | → [Unenforced Aspiration](#unenforced-aspiration) (not fully asserted in doc-sync) |
-| Every PR uses `Phase: 0.x` | → [Unenforced Aspiration](#unenforced-aspiration) |
+| Claim                                 | Verification                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Phase 0 closure                       | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)               |
+| PR verification commands documented   | [Verifies: `.github/pull_request_template.md`](../.github/pull_request_template.md) (template only) |
+| MIGRATION-MAP / phase-1 file presence | → [Unenforced Aspiration](#unenforced-aspiration) (not fully asserted in doc-sync)                  |
+| Every PR uses `Phase: 0.x`            | → [Unenforced Aspiration](#unenforced-aspiration)                                                   |
 
 ### 8.1 سندهای مرجع
 
-| سند | نقش |
-|-----|------|
-| [`MIGRATION-MAP.md`](MIGRATION-MAP.md) | نقشه ۷ فاز + §5 infra · §6 events · §7 tenant · §8 versioning · §9 trust · §10 observability |
-| [`phase-0-foundation.mdoc`](phase-0-foundation.mdoc) | این سند (Markdoc canonical) |
-| [`phase-0-foundation.md`](phase-0-foundation.md) | legacy mirror + banner |
-| [`DOCUMENTATION-DEBT-REGISTRY.md`](DOCUMENTATION-DEBT-REGISTRY.md) | doc retrofit tracker |
-| [MIGRATION-MAP §19](MIGRATION-MAP.md#۱۹-documentation-governance--dod) | Docs-as-Code |
-| [`phase-1-platform-core.md`](phase-1-platform-core.md) | اجرای فاز ۱ |
-| [`MIGRATION.md`](MIGRATION.md) | index کوتاه |
-| [`AGENTS.md`](../AGENTS.md) | دستورالعمل agent/توسعه‌دهنده |
+| سند                                                                    | نقش                                                                                          |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`MIGRATION-MAP.md`](MIGRATION-MAP.md)                                 | نقشه ۷ فاز + §5 infra · §6 events · §7 tenant · §8 versioning · §9 trust · §10 observability |
+| [`phase-0-foundation.mdoc`](phase-0-foundation.mdoc)                   | این سند (Markdoc canonical)                                                                  |
+| [`phase-0-foundation.md`](phase-0-foundation.md)                       | legacy mirror + banner                                                                       |
+| [`DOCUMENTATION-DEBT-REGISTRY.md`](DOCUMENTATION-DEBT-REGISTRY.md)     | doc retrofit tracker                                                                         |
+| [MIGRATION-MAP §19](MIGRATION-MAP.md#۱۹-documentation-governance--dod) | Docs-as-Code                                                                                 |
+| [`phase-1-platform-core.md`](phase-1-platform-core.md)                 | اجرای فاز ۱                                                                                  |
+| [`MIGRATION.md`](MIGRATION.md)                                         | index کوتاه                                                                                  |
+| [`AGENTS.md`](../AGENTS.md)                                            | دستورالعمل agent/توسعه‌دهنده                                                                 |
 
 ### 8.2 قرارداد PR
 
@@ -629,14 +627,17 @@ pnpm run guard:architecture
 Phase: 0.x
 
 ## Summary
+
 …
 
 ## Exit criteria (from phase-0-foundation.md §X)
+
 - [ ] …
 
 ## Verification
-pnpm run phase-0:foundation-gate   # Phase 0.x closure
-pnpm run phase-0:gate                # optional: + integration trunk check
+
+pnpm run phase-0:foundation-gate # Phase 0.x closure
+pnpm run phase-0:gate # optional: + integration trunk check
 ```
 
 ### 8.3 Exit criteria 0.4
@@ -652,18 +653,18 @@ pnpm run phase-0:gate                # optional: + integration trunk check
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| **Zero-Debt Covenant** (foundation gate) | `pnpm run phase-0:foundation-gate` = `pnpm run test:phase-0` → [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
-| Integration gate script chain | [Verifies: `package.json`](../package.json) (`phase-0:integration-gate` — includes `baseline:metrics`) |
-| CI jobs (foundation + integration) | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| Node 24 engine check in CI | [Verifies: `scripts/guards/check-node-engine.mjs`](../scripts/guards/check-node-engine.mjs) (workflow step) |
-| Guard report `phase-0-gate-*.json` | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) (integration gate) |
-| Baseline report `phase-0-baseline-*.json` | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) (integration gate) |
-| Supplementary guards (integration only) | `g4_depcruise_architecture` · `g4b_import_boundary` · `g7_doc_sync` (foundation scope) · `g6_runtime_deps_honesty` (full `pnpm run phase-0:guard` only) |
-| Retired grep/count guards | g1 dist file · g2 rg denali · g3 rg legacy · g5 test count ≥103 — **replaced** by [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) covenant modules |
-| Sub-guard env whitelist | [Verifies: `scripts/guards/lib/guard-subprocess-env.mjs`](../scripts/guards/lib/guard-subprocess-env.mjs) |
-| Remote Actions green on push | → [Unenforced Aspiration](#unenforced-aspiration) (environment-dependent; checklist §9.4) |
+| Claim                                     | Verification                                                                                                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Zero-Debt Covenant** (foundation gate)  | `pnpm run phase-0:foundation-gate` = `pnpm run test:phase-0` → [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                     |
+| Integration gate script chain             | [Verifies: `package.json`](../package.json) (`phase-0:integration-gate` — includes `baseline:metrics`)                                                                                   |
+| CI jobs (foundation + integration)        | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                                                                  |
+| Node 24 engine check in CI                | [Verifies: `scripts/guards/check-node-engine.mjs`](../scripts/guards/check-node-engine.mjs) (workflow step)                                                                              |
+| Guard report `phase-0-gate-*.json`        | [Verifies: `scripts/guards/phase-0-guard.mjs`](../scripts/guards/phase-0-guard.mjs) (integration gate)                                                                                   |
+| Baseline report `phase-0-baseline-*.json` | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) (integration gate)                                                                             |
+| Supplementary guards (integration only)   | `g4_depcruise_architecture` · `g4b_import_boundary` · `g7_doc_sync` (foundation scope) · `g6_runtime_deps_honesty` (full `pnpm run phase-0:guard` only)                                  |
+| Retired grep/count guards                 | g1 dist file · g2 rg denali · g3 rg legacy · g5 test count ≥103 — **replaced** by [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) covenant modules |
+| Sub-guard env whitelist                   | [Verifies: `scripts/guards/lib/guard-subprocess-env.mjs`](../scripts/guards/lib/guard-subprocess-env.mjs)                                                                                |
+| Remote Actions green on push              | → [Unenforced Aspiration](#unenforced-aspiration) (environment-dependent; checklist §9.4)                                                                                                |
 
 ### 9.1 هدف
 
@@ -673,9 +674,9 @@ pnpm run phase-0:gate                # optional: + integration trunk check
 
 فایل: [`.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) — دو job موازی:
 
-| Job (CI name) | اسکریپت | نقش |
-|---------------|---------|------|
-| **Phase 0 foundation gate** | `pnpm run phase-0:foundation-gate` | **Phase 0 Closure** — تنها gate الزامی برای merge فاز ۰ |
+| Job (CI name)                | اسکریپت                             | نقش                                                           |
+| ---------------------------- | ----------------------------------- | ------------------------------------------------------------- |
+| **Phase 0 foundation gate**  | `pnpm run phase-0:foundation-gate`  | **Phase 0 Closure** — تنها gate الزامی برای merge فاز ۰       |
 | **Phase 0 integration gate** | `pnpm run phase-0:integration-gate` | **Trunk integrity** — build/test/guards کل monorepo (REM-013) |
 
 **Scope Assert (H-04):** قبل از closure در job foundation، [`foundation-scope-assert.mjs`](../scripts/guards/foundation-scope-assert.mjs) تأیید می‌کند `phase-0:foundation-gate` **فقط** `pnpm run test:phase-0` است (بدون `guard:doc-sync`، `phase-0-guard`، یا root `pnpm build`). build/guard/doc-sync فقط در `phase-0:integration-gate`.
@@ -694,8 +695,8 @@ pnpm run phase-0:gate                # هر دو (ترتیبی)
 
 #### 9.2.1 `phase-0:foundation-gate` (Zero-Debt Covenant)
 
-| Step | دستور |
-|------|--------|
+| Step             | دستور                                                        |
+| ---------------- | ------------------------------------------------------------ |
 | **closure only** | `pnpm run phase-0:foundation-gate` → `pnpm run test:phase-0` |
 
 `test:phase-0` در `@app-tour/workspace-sdk`: `pnpm run build` + اجرای **تنها** [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) — subprocess **ده** ماژول covenant: `dist-surface` · `denali-coupling` · `legacy-import` · `invariant-manifest` · `import-purity` · `ingress-error` · `theme-safety-seal` · `foundation-import-purity` · `denali-workspace-binding` · `supplemental-behavior`.
@@ -706,15 +707,15 @@ Scope: [`foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.m
 
 #### 9.2.2 `phase-0:integration-gate`
 
-| Step | دستور |
-|------|--------|
-| build + test | root `pnpm build` + `pnpm test` (همه packages + apps؛ شامل adversarial specs در SDK) |
-| legacy (H-12) | `pnpm run test:contract:monorepo` — `legacy-import.contract.spec.ts` با `LEGACY_IMPORT_SCAN_SCOPE=monorepo` |
-| adversarial | `pnpm run test:adversarial` |
-| doc-sync | `DOC_SYNC_SCOPE=foundation` → `pnpm run guard:doc-sync` |
-| supplementary | `PHASE_0_GUARD_SCOPE=foundation` → `phase-0-guard.mjs` (scoped depcruise + import-boundary + doc-sync check) |
-| guards | `guard:architecture` + `guard:import-boundary` (full `IMPORT_BOUNDARY_SCAN_ROOTS`) |
-| baseline (0.6) | `pnpm run baseline:metrics` — coupling contracts t2/t3 + `reports/phase-0-baseline-*.json` |
+| Step           | دستور                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| build + test   | root `pnpm build` + `pnpm test` (همه packages + apps؛ شامل adversarial specs در SDK)                         |
+| legacy (H-12)  | `pnpm run test:contract:monorepo` — `legacy-import.contract.spec.ts` با `LEGACY_IMPORT_SCAN_SCOPE=monorepo`  |
+| adversarial    | `pnpm run test:adversarial`                                                                                  |
+| doc-sync       | `DOC_SYNC_SCOPE=foundation` → `pnpm run guard:doc-sync`                                                      |
+| supplementary  | `PHASE_0_GUARD_SCOPE=foundation` → `phase-0-guard.mjs` (scoped depcruise + import-boundary + doc-sync check) |
+| guards         | `guard:architecture` + `guard:import-boundary` (full `IMPORT_BOUNDARY_SCAN_ROOTS`)                           |
+| baseline (0.6) | `pnpm run baseline:metrics` — coupling contracts t2/t3 + `reports/phase-0-baseline-*.json`                   |
 
 گزارش: `reports/phase-0-foundation-gate-*.json` (foundation guard scope) · `reports/phase-0-gate-*.json` (full guard) · `reports/phase-0-baseline-*.json`.
 
@@ -726,27 +727,27 @@ Scope: [`foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.m
 
 ### Verification Table (foundation gate — H-11 / Zero-Debt Covenant)
 
-| Requirement claim | Verification | Truth rating | Risk class |
-|-------------------|--------------|--------------|------------|
-| **Zero-Debt Covenant (aggregator)** | `pnpm run test:phase-0` → [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) | **Verified** | Closure |
-| Dist publish surface | [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) (via aggregator) | **Verified** | Export surface |
-| **Denali coupling** | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) — depcruise `no-denali-product-ids` (not grep/g2) | **Verified** | Coupling |
-| **Legacy import** | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) — foundation scope in aggregator; monorepo via `test:contract:monorepo` in integration | **Verified** | Coupling |
-| **Manifest invariants** | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts) | **Verified** | Security |
-| **Import purity** | [`import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts) | **Verified** | Purity |
-| **Ingress error taxonomy** | [`ingress-error.contract.spec.ts`](../packages/workspace-sdk/test/ingress-error.contract.spec.ts) | **Verified** | Error handling |
-| **Denali workspace binding** | [`denali-workspace-binding.contract.spec.ts`](../packages/workspace-sdk/test/denali-workspace-binding.contract.spec.ts) (via aggregator) | **Verified** | Binding |
-| **Supplemental behavior** | [`phase-0-supplemental.contract.spec.ts`](../packages/workspace-sdk/test/phase-0-supplemental.contract.spec.ts) (via aggregator) | **Verified** | Coverage |
-| Test count floor (g5) / grep denali (g2) | **Retired** — replaced by covenant modules | N/A | — |
-| `test:adversarial` | **integration-gate only** (not in `test:phase-0`) | N/A | Trunk |
+| Requirement claim                        | Verification                                                                                                                                                                             | Truth rating | Risk class     |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | -------------- |
+| **Zero-Debt Covenant (aggregator)**      | `pnpm run test:phase-0` → [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                                          | **Verified** | Closure        |
+| Dist publish surface                     | [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) (via aggregator)                                                                                                   | **Verified** | Export surface |
+| **Denali coupling**                      | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) — depcruise `no-denali-product-ids` (not grep/g2)                                  | **Verified** | Coupling       |
+| **Legacy import**                        | [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) — foundation scope in aggregator; monorepo via `test:contract:monorepo` in integration | **Verified** | Coupling       |
+| **Manifest invariants**                  | [`invariant-manifest.contract.spec.ts`](../packages/workspace-sdk/test/invariant-manifest.contract.spec.ts)                                                                              | **Verified** | Security       |
+| **Import purity**                        | [`import-purity.spec.ts`](../packages/workspace-sdk/test/import-purity.spec.ts)                                                                                                          | **Verified** | Purity         |
+| **Ingress error taxonomy**               | [`ingress-error.contract.spec.ts`](../packages/workspace-sdk/test/ingress-error.contract.spec.ts)                                                                                        | **Verified** | Error handling |
+| **Denali workspace binding**             | [`denali-workspace-binding.contract.spec.ts`](../packages/workspace-sdk/test/denali-workspace-binding.contract.spec.ts) (via aggregator)                                                 | **Verified** | Binding        |
+| **Supplemental behavior**                | [`phase-0-supplemental.contract.spec.ts`](../packages/workspace-sdk/test/phase-0-supplemental.contract.spec.ts) (via aggregator)                                                         | **Verified** | Coverage       |
+| Test count floor (g5) / grep denali (g2) | **Retired** — replaced by covenant modules                                                                                                                                               | N/A          | —              |
+| `test:adversarial`                       | **integration-gate only** (not in `test:phase-0`)                                                                                                                                        | N/A          | Trunk          |
 
 ### 9.4.1 API tenant engine isolation (P0-CRIT-01b)
 
-| Claim | Verification |
-|-------|--------------|
-| Per-call `PlatformWizardEngine` (no module singleton) | [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts) |
-| Tenant A/B back-to-back isolation | [`canonical-validation.spec.ts`](../apps/api/src/tours/canonical-validation.spec.ts) |
-| Command | `pnpm --filter @apps/api test` |
+| Claim                                                 | Verification                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Per-call `PlatformWizardEngine` (no module singleton) | [`canonical-validation.ts`](../apps/api/src/tours/canonical-validation.ts)           |
+| Tenant A/B back-to-back isolation                     | [`canonical-validation.spec.ts`](../apps/api/src/tours/canonical-validation.spec.ts) |
+| Command                                               | `pnpm --filter @apps/api test`                                                       |
 
 ### 9.4 Exit criteria 0.5
 
@@ -761,12 +762,12 @@ Scope: [`foundation-gate-config.mjs`](../scripts/guards/foundation-gate-config.m
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| `denali_coupling_contract_ok` | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) (baseline t2 — informational script) |
-| `legacy_import_contract_ok` | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (baseline t3) |
-| `workspace_sdk_test_count` (informational only) | Count threshold **retired** — not a foundation-gate pass criterion |
-| JSON report `phase-0-baseline-*.json` + `gitSha` | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) — required in `phase-0:integration-gate` |
+| Claim                                            | Verification                                                                                                                                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `denali_coupling_contract_ok`                    | [Verifies: `packages/workspace-sdk/test/denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) (baseline t2 — informational script) |
+| `legacy_import_contract_ok`                      | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (baseline t3)                            |
+| `workspace_sdk_test_count` (informational only)  | Count threshold **retired** — not a foundation-gate pass criterion                                                                                                               |
+| JSON report `phase-0-baseline-*.json` + `gitSha` | [Verifies: `scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) — required in `phase-0:integration-gate`                                               |
 
 ### 10.1 تفاوت با legacy baseline
 
@@ -776,22 +777,22 @@ app-tour: **coupling score در packages جدید باید صفر بماند** +
 
 ### 10.2 متریک‌های پیشنهادی
 
-| متریک | هدف فاز ۰ |
-|--------|-----------|
-| `workspace_sdk_test_count` | informational (فعلی: **~165** full suite) — **not** a gate threshold |
-| `denali_coupling_contract_ok` | contract test PASS |
-| `legacy_import_contract_ok` | contract test PASS |
-| `workspace_sdk_export_count` | ثبت در JSON |
+| متریک                         | هدف فاز ۰                                                            |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `workspace_sdk_test_count`    | informational (فعلی: **~165** full suite) — **not** a gate threshold |
+| `denali_coupling_contract_ok` | contract test PASS                                                   |
+| `legacy_import_contract_ok`   | contract test PASS                                                   |
+| `workspace_sdk_export_count`  | ثبت در JSON                                                          |
 
 ### 10.3 اسکریپت
 
 [`scripts/guards/baseline-metrics.mjs`](../scripts/guards/baseline-metrics.mjs) — خروجی `reports/phase-0-baseline-<date>.json` + `.md`
 
-| threshold | مقدار |
-|-----------|--------|
+| threshold                  | مقدار                                     |
+| -------------------------- | ----------------------------------------- |
 | `denali_coupling_contract` | PASS (`denali-coupling.contract.spec.ts`) |
-| `legacy_import_contract` | PASS (`legacy-import.contract.spec.ts`) |
-| `workspace_sdk_test_count` | informational only (count floor retired) |
+| `legacy_import_contract`   | PASS (`legacy-import.contract.spec.ts`)   |
+| `workspace_sdk_test_count` | informational only (count floor retired)  |
 
 ### 10.4 Exit criteria 0.6
 
@@ -805,26 +806,26 @@ app-tour: **coupling score در packages جدید باید صفر بماند** +
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| No `legacy/` imports in `packages/` | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) |
-| Phase 0 closure = foundation-gate only (KS-01) | [Verifies: `package.json`](../package.json) · [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| Do not merge on integration-only green | → [Unenforced Aspiration](#unenforced-aspiration) (branch protection policy) |
-| Forbidden Phase 0 PR scope (platform-core, apps, denali workspace) | → [Unenforced Aspiration](#unenforced-aspiration) |
+| Claim                                                              | Verification                                                                                                                                                                                                          |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No `legacy/` imports in `packages/`                                | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) · [Verifies: `dependency-cruiser.config.js`](../dependency-cruiser.config.js) |
+| Phase 0 closure = foundation-gate only (KS-01)                     | [Verifies: `package.json`](../package.json) · [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                                                 |
+| Do not merge on integration-only green                             | → [Unenforced Aspiration](#unenforced-aspiration) (branch protection policy)                                                                                                                                          |
+| Forbidden Phase 0 PR scope (platform-core, apps, denali workspace) | → [Unenforced Aspiration](#unenforced-aspiration)                                                                                                                                                                     |
 
 این جدول **قوانین معماری PR** است — نه معیار سبز شدن CI. وجود `platform-core` / apps در tree برای trunk طبیعی است؛ **Phase 0 Closure** فقط با **`pnpm run phase-0:foundation-gate`** (و job CI **Phase 0 foundation gate**) سنجیده می‌شود. **`phase-0:integration-gate`** یکپارچگی trunk را بدون ادعای «فقط foundation» چک می‌کند (KS-01).
 
-| کار | فاز صحیح | دلیل |
-|-----|----------|------|
-| `packages/platform-core` | 1.x | PR فاز ۰ نباید scaffold جدید اضافه کند؛ وجود در trunk ≠ closure |
-| `apps/api`, `apps/web` | 3.x | خارج از scope PR فاز ۰؛ integration-gate آن‌ها را build می‌کند |
-| `packages/workspaces/denali` | 6.x | بدون starter proof |
-| import از `legacy/` در packages جدید | — | coupling — `legacy-import.contract.spec.ts` (depcruise `no-legacy-imports`) |
-| scaffold سیستم theme/design-tokens در فاز ۰ | 2.x | **انجام نشد** در فاز ۰؛ exportهای `theme`/`auth` در SDK پس از retrofit فاز ۲–۳ مجازند |
-| تغییر فایل‌های `legacy/` برای feature | — | archive only |
-| adapter «delegate to legacy» | — | L-2 |
-| dual-write state design | — | L-8 |
-| ادعای «foundation بسته» با فقط integration-gate سبز | — | **Gate Drift** — closure = foundation-gate فقط |
+| کار                                                 | فاز صحیح | دلیل                                                                                  |
+| --------------------------------------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `packages/platform-core`                            | 1.x      | PR فاز ۰ نباید scaffold جدید اضافه کند؛ وجود در trunk ≠ closure                       |
+| `apps/api`, `apps/web`                              | 3.x      | خارج از scope PR فاز ۰؛ integration-gate آن‌ها را build می‌کند                        |
+| `packages/workspaces/denali`                        | 6.x      | بدون starter proof                                                                    |
+| import از `legacy/` در packages جدید                | —        | coupling — `legacy-import.contract.spec.ts` (depcruise `no-legacy-imports`)           |
+| scaffold سیستم theme/design-tokens در فاز ۰         | 2.x      | **انجام نشد** در فاز ۰؛ exportهای `theme`/`auth` در SDK پس از retrofit فاز ۲–۳ مجازند |
+| تغییر فایل‌های `legacy/` برای feature               | —        | archive only                                                                          |
+| adapter «delegate to legacy»                        | —        | L-2                                                                                   |
+| dual-write state design                             | —        | L-8                                                                                   |
+| ادعای «foundation بسته» با فقط integration-gate سبز | —        | **Gate Drift** — closure = foundation-gate فقط                                        |
 
 ---
 
@@ -832,33 +833,33 @@ app-tour: **coupling score در packages جدید باید صفر بماند** +
 
 ### Verification
 
-| # | Claim | Verification |
-|---|--------|-------------|
-| 1 | legacy isolated | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) — partial; layout → [Unenforced Aspiration](#unenforced-aspiration) |
-| 2 | workspace-sdk build + Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
-| 3 | `guard:architecture` | integration gate only — [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (foundation scope) |
-| 4 | docs set | [Verifies: `scripts/guards/documentation-sync.mjs`](../scripts/guards/documentation-sync.mjs) — partial |
-| 5 | CI foundation gate | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml) |
-| 6 | Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
-| 7 | denali coupling 0 | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts) |
-| 8 | no out-of-scope open PRs | → [Unenforced Aspiration](#unenforced-aspiration) |
-| 9 | Phase 0 contract closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts) |
+| #   | Claim                                 | Verification                                                                                                                                                                                                |
+| --- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | legacy isolated                       | [Verifies: `packages/workspace-sdk/test/legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) — partial; layout → [Unenforced Aspiration](#unenforced-aspiration) |
+| 2   | workspace-sdk build + Phase 0 closure | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                                                                                       |
+| 3   | `guard:architecture`                  | integration gate only — [`legacy-import.contract.spec.ts`](../packages/workspace-sdk/test/legacy-import.contract.spec.ts) (foundation scope)                                                                |
+| 4   | docs set                              | [Verifies: `scripts/guards/documentation-sync.mjs`](../scripts/guards/documentation-sync.mjs) — partial                                                                                                     |
+| 5   | CI foundation gate                    | [Verifies: `.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)                                                                                                                     |
+| 6   | Phase 0 closure                       | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                                                                                       |
+| 7   | denali coupling 0                     | [`denali-coupling.contract.spec.ts`](../packages/workspace-sdk/test/denali-coupling.contract.spec.ts)                                                                                                       |
+| 8   | no out-of-scope open PRs              | → [Unenforced Aspiration](#unenforced-aspiration)                                                                                                                                                           |
+| 9   | Phase 0 contract closure              | [`phase-0.contract.spec.ts`](../packages/workspace-sdk/test/phase-0.contract.spec.ts)                                                                                                                       |
 
 > **شماره‌گذاری:** این **§12** سند فاز ۰ است (چک‌لیست ورود به فاز ۱). **§12 Zero-Debt Covenant** در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) جداگانه است — هر دو برای gate اجرایی لازم‌اند.
 
 همه باید ✅ باشند:
 
-| # | شرط | § |
-|---|------|---|
-| 1 | legacy ایزوله در `legacy/` | 5 |
-| 2 | workspace-sdk build + `test:phase-0` | 6, 9 |
-| 3 | guard:architecture سبز | 7 |
-| 4 | docs: MIGRATION-MAP + phase-0 + phase-1 | 8 |
-| 5 | CI **Phase 0 foundation gate** سبز (`phase-0:foundation-gate`) | 9 |
-| 6 | `test:phase-0` PASS; integration: `test:contract:monorepo` | 9 |
-| 7 | coupling: denali + legacy contract tests PASS | 6, 9, 10 |
-| 8 | هیچ PR باز با scope خارج از فاز ۰ | — |
-| 9 | `pnpm run guard:doc-sync` — Phase 0 package READMEs + links (integration-gate) | §19 |
+| #   | شرط                                                                            | §        |
+| --- | ------------------------------------------------------------------------------ | -------- |
+| 1   | legacy ایزوله در `legacy/`                                                     | 5        |
+| 2   | workspace-sdk build + `test:phase-0`                                           | 6, 9     |
+| 3   | guard:architecture سبز                                                         | 7        |
+| 4   | docs: MIGRATION-MAP + phase-0 + phase-1                                        | 8        |
+| 5   | CI **Phase 0 foundation gate** سبز (`phase-0:foundation-gate`)                 | 9        |
+| 6   | `test:phase-0` PASS; integration: `test:contract:monorepo`                     | 9        |
+| 7   | coupling: denali + legacy contract tests PASS                                  | 6, 9, 10 |
+| 8   | هیچ PR باز با scope خارج از فاز ۰                                              | —        |
+| 9   | `pnpm run guard:doc-sync` — Phase 0 package READMEs + links (integration-gate) | §19      |
 
 **پس از ✅:** شروع [`phase-1-platform-core.md`](phase-1-platform-core.md) § Phase 1.1.
 
@@ -868,11 +869,11 @@ app-tour: **coupling score در packages جدید باید صفر بماند** +
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| Appendix commands match `package.json` scripts | [Verifies: `package.json`](../package.json) |
-| Export map matches `src/index.ts` | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) (required exports subset) |
-| File tree diagram accuracy | → [Unenforced Aspiration](#unenforced-aspiration) (manual doc) |
+| Claim                                          | Verification                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Appendix commands match `package.json` scripts | [Verifies: `package.json`](../package.json)                                                                                           |
+| Export map matches `src/index.ts`              | [Verifies: `packages/workspace-sdk/test/contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) (required exports subset) |
+| File tree diagram accuracy                     | → [Unenforced Aspiration](#unenforced-aspiration) (manual doc)                                                                        |
 
 ### پیوست A — درخت فایل SDK (وضعیت فعلی)
 
@@ -921,37 +922,37 @@ pnpm run guard:doc-sync            # Docs-as-Code §19 (integration-gate)
 
 ### پیوست C — export map (`index.ts`)
 
-| export | kind |
-|--------|------|
-| `WORKSPACE_SDK_VERSION` | const |
-| `CanonicalDocument`, helpers | type + fn |
-| `starterWorkspacePlugin` | reference plugin |
-| `WorkspacePlugin`, `isWorkspacePlugin` | contract |
-| `WorkspaceTypeId`, `STARTER_WORKSPACE_TYPE` | ids |
-| `resolveWorkspacePluginIdForType` | binding |
-| registry / rule / wizard / validation / lifecycle types | types |
-| `auth/*` | **CASL** (`@casl/ability`): `defineAbilityFor`, `createTenantAbility`, `canAccessWorkspaceTheme` — **23** tests (`ability.spec.ts`) |
-| `theme/*` | `WorkspaceThemeContract`, presets, `snapshotWorkspaceTheme`, ingress helpers |
-| `ingress/*` | `parseCanonicalDocumentFromStorage`, `parseWorkspacePluginFromStorage` |
+| export                                                  | kind                                                                                                                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `WORKSPACE_SDK_VERSION`                                 | const                                                                                                                               |
+| `CanonicalDocument`, helpers                            | type + fn                                                                                                                           |
+| `starterWorkspacePlugin`                                | reference plugin                                                                                                                    |
+| `WorkspacePlugin`, `isWorkspacePlugin`                  | contract                                                                                                                            |
+| `WorkspaceTypeId`, `STARTER_WORKSPACE_TYPE`             | ids                                                                                                                                 |
+| `resolveWorkspacePluginIdForType`                       | binding                                                                                                                             |
+| registry / rule / wizard / validation / lifecycle types | types                                                                                                                               |
+| `auth/*`                                                | **CASL** (`@casl/ability`): `defineAbilityFor`, `createTenantAbility`, `canAccessWorkspaceTheme` — **23** tests (`ability.spec.ts`) |
+| `theme/*`                                               | `WorkspaceThemeContract`, presets, `snapshotWorkspaceTheme`, ingress helpers                                                        |
+| `ingress/*`                                             | `parseCanonicalDocumentFromStorage`, `parseWorkspacePluginFromStorage`                                                              |
 
 ### پیوست D — نگاشت مفهوم legacy → app-tour
 
-| legacy | app-tour فاز ۰ |
-|--------|----------------|
-| `TourFormProfile` | `WorkspaceTypeId` (فاز ۶: `"denali"`) |
-| `mockWorkspacePlugin` | `starterWorkspacePlugin` |
-| `WorkspaceProfileBinding` | `WorkspaceTypeBinding` |
-| `phase-0:verify-freeze` (7 profiles) | **حذف** — freeze فقط در legacy |
-| `baseline:platform-metrics` (denali count) | `baseline:metrics` (zero coupling) |
+| legacy                                     | app-tour فاز ۰                        |
+| ------------------------------------------ | ------------------------------------- |
+| `TourFormProfile`                          | `WorkspaceTypeId` (فاز ۶: `"denali"`) |
+| `mockWorkspacePlugin`                      | `starterWorkspacePlugin`              |
+| `WorkspaceProfileBinding`                  | `WorkspaceTypeBinding`                |
+| `phase-0:verify-freeze` (7 profiles)       | **حذف** — freeze فقط در legacy        |
+| `baseline:platform-metrics` (denali count) | `baseline:metrics` (zero coupling)    |
 
 ### پیوست E — مراجع legacy (فقط خواندن)
 
-| موضوع | مسیر |
-|--------|------|
-| ممیزی شکست فاز ۱ | `legacy/map_2.md` |
-| baseline قدیم | `legacy/phase-0-platform-baseline.md` |
-| contract قدیم | `legacy/phase-1-platform-contract.md` |
-| denali registry (فاز ۶) | `legacy/packages/denali-domain/` |
+| موضوع                   | مسیر                                  |
+| ----------------------- | ------------------------------------- |
+| ممیزی شکست فاز ۱        | `legacy/map_2.md`                     |
+| baseline قدیم           | `legacy/phase-0-platform-baseline.md` |
+| contract قدیم           | `legacy/phase-1-platform-contract.md` |
+| denali registry (فاز ۶) | `legacy/packages/denali-domain/`      |
 
 ---
 
@@ -959,21 +960,21 @@ pnpm run guard:doc-sync            # Docs-as-Code §19 (integration-gate)
 
 ### Verification
 
-| Claim | Verification |
-|-------|--------------|
-| Items deferred to Phases 1–7 | → [Unenforced Aspiration](#unenforced-aspiration) (by design; tracked in [Verifies: `docs/MIGRATION-MAP.md`](MIGRATION-MAP.md) only) |
+| Claim                                          | Verification                                                                                                                                                                 |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Items deferred to Phases 1–7                   | → [Unenforced Aspiration](#unenforced-aspiration) (by design; tracked in [Verifies: `docs/MIGRATION-MAP.md`](MIGRATION-MAP.md) only)                                         |
 | `contractVersion` not on `WorkspacePlugin` yet | [Verifies: `packages/workspace-sdk/src/plugin/workspace-plugin.contract.ts`](../packages/workspace-sdk/src/plugin/workspace-plugin.contract.ts) (source inspection; no gate) |
 
 فاز ۰ **عمداً** این موارد را implement نمی‌کند؛ در [`MIGRATION-MAP.md`](MIGRATION-MAP.md) برنامه‌ریزی شده‌اند:
 
-| § MAP | موضوع | فاز implement |
-|-------|--------|----------------|
-| §5 | Postgres / Redis / MinIO واقعی | ۳+ ([§5.3 MAP](MIGRATION-MAP.md#۵۳-per-phase--چه-باید-واقعی-باشد)) |
-| §6 | Event bus + transactional outbox | ۴–۵ |
-| §7 | RLS + hybrid tenant routing | ۴ design · ۷ enterprise |
-| §8 | `contractVersion` + `migrateCanonical` | SDK فاز ۲+ · cutover فاز ۶ |
-| §9 | First-party plugins only | تا DoD · third-party بعداً |
-| §10 | Observability / audit | حداقل فاز ۳ · کامل فاز ۷ |
+| § MAP | موضوع                                  | فاز implement                                                      |
+| ----- | -------------------------------------- | ------------------------------------------------------------------ |
+| §5    | Postgres / Redis / MinIO واقعی         | ۳+ ([§5.3 MAP](MIGRATION-MAP.md#۵۳-per-phase--چه-باید-واقعی-باشد)) |
+| §6    | Event bus + transactional outbox       | ۴–۵                                                                |
+| §7    | RLS + hybrid tenant routing            | ۴ design · ۷ enterprise                                            |
+| §8    | `contractVersion` + `migrateCanonical` | SDK فاز ۲+ · cutover فاز ۶                                         |
+| §9    | First-party plugins only               | تا DoD · third-party بعداً                                         |
+| §10   | Observability / audit                  | حداقل فاز ۳ · کامل فاز ۷                                           |
 
 **تناقض آگاهانهٔ حل‌شده:** فاز ۳ Postgres می‌خواهد ولی tenant/RLS فاز ۴ — تورهای فاز ۳ **single-tenant dev** یا `tenant_id` nullable تا RLS در ۴.
 
@@ -986,12 +987,12 @@ pnpm run guard:doc-sync            # Docs-as-Code §19 (integration-gate)
 
 ### 15. Optional / P2 closure (phase 6)
 
-| ID | Status |
-|----|--------|
-| P0-GATE-04 | Root runtime allowlist — [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) |
-| P0-SDK-01 / P0-SDK-02 | Documented in SDK README — peer CASL · transitional TourClient barrel |
-| P0-STRICT-04 | Won't fix (REM-013) |
-| §8.2 | PR template check in `doc-gate` |
+| ID                    | Status                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| P0-GATE-04            | Root runtime allowlist — [`contract.spec.ts`](../packages/workspace-sdk/test/contract.spec.ts) |
+| P0-SDK-01 / P0-SDK-02 | Documented in SDK README — peer CASL · transitional TourClient barrel                          |
+| P0-STRICT-04          | Won't fix (REM-013)                                                                            |
+| §8.2                  | PR template check in `doc-gate`                                                                |
 
 → [`reports/phase-0-optional-closure-2026-06-03.md`](../reports/phase-0-optional-closure-2026-06-03.md)
 

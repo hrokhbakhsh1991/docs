@@ -1,118 +1,118 @@
-# Phase 1 Aggressive Audit — Fix List
+# باقی‌مانده — عبور فاز ۰ با DB واقعی (هدف ≥ 95)
 
-**Source:** [`apps/api/docs/phase1-aggressive-audit.md`](../apps/api/docs/phase1-aggressive-audit.md)  
-**Generated:** 2026-06-05  
-**Closure sign-off:** 2026-06-05 — **DEC-041**  
-**Scope:** Death-Match tenant isolation, DI/singletons, ALS stress, Prisma/RLS, raw-SQL backdoors, cache, PII+log co-location, bulk ops.
+> **به‌روز:** 2026-06-05  
+> **وضعیت:** فازهای **A→E** · **F-01/F-02** · **G-01…G-06** انجام شده — این فایل **فقط کار باز** را نگه می‌دارد.
 
 ---
 
-## خلاصه اجرایی (فارسی) — پس از بستن فاز ۱
+## انجام‌شده (خلاصه — حذف از runbook)
 
-| مورد                                           | مقدار                                                   |
-| ---------------------------------------------- | ------------------------------------------------------- |
-| **حکم نهایی**                                  | **PASS** — امتیاز اجرا **94/100** (Tier A−)             |
-| **حکم طراحی (baseline)**                       | 84/100 (Tier B+) — مرجع pre-remediation                 |
-| **نشت HTTP تأییدشده (خواندن tour بین tenant)** | **0**                                                   |
-| **Must-Fix باز**                               | **0** (۷/۷ بسته)                                        |
-| **LOG-COL CRITICAL باز**                       | **0** (۴/۴ بسته)                                        |
-| **Regression gate رسمی**                       | **PASS** — `pnpm run phase-1:regression-gate` (۸ مرحله) |
-| **تهدید DM-CT**                                | ۵ mitigated + ۱ waived                                  |
-
-**جمع‌بندی:** فاز ۱ aggressive audit برای `apps/api` **بسته شد**. ادامه کار در Phase 2 observability (TRACE، LOG P2) و Postgres-tier regression اختیاری.
+| بلوک              | شواهد                                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| A→E               | Postgres :5434 · migrate · RLS · seed · API smoke                                                     |
+| F-01              | `reports/phase-0-foundation-gate-2026-06-05.json`                                                     |
+| F-02              | `reports/phase-0-integration-gate-2026-06-05.json`                                                    |
+| G-01…G-06         | aliases · depcruise cycles · integration JSON · doc truth · branch protection doc · `contractVersion` |
+| اصلاحات تست/guard | `STORAGE_DRIVER` پیش‌فرض memory · ۹ تست trunk · `guard-forensic-storage` + provisioning               |
 
 ---
 
-## چک‌لیست بستن (گام‌های ۱–۵)
-
-| گام | موضوع                     | وضعیت      |
-| --- | ------------------------- | ---------- |
-| ۱   | LOG P0 — LOG-COL-01/02/04 | ✅ DEC-037 |
-| ۲   | LOG P1 — LOG-COL-06/07    | ✅ DEC-038 |
-| ۳   | DI-REG-01 / DI-IDEM-02    | ✅ DEC-039 |
-| ۴   | Regression pack رسمی      | ✅ DEC-040 |
-| ۵   | Doc sign-off + CON        | ✅ DEC-041 |
-| ۶   | P2 zero-debt (اختیاری)    | ✅ DEC-042 |
-
----
-
-## تناقضات — وضعیت پس از sign-off
-
-| ID         | وضعیت                                                   |
-| ---------- | ------------------------------------------------------- |
-| **CON-01** | ✅ بسته — تفکیک ALS leak / HTTP read / DI-RAW-01 closed |
-| **CON-02** | ✅ بسته — ALS verified + Must-Fix done                  |
-| **CON-03** | ✅ بسته — schema ≠ app probe                            |
-| **CON-04** | ✅ بسته — alias در DM-CT register                       |
-| **CON-05** | ✅ بسته — waived vs HIGH هم‌راستا                       |
-| **CON-06** | ✅ acknowledged — دامنه‌های متفاوت                      |
-| **CON-07** | ✅ بسته — LOG-COL + LOG-V یک PR                         |
-
----
-
-## Must-Fix — همه Done
-
-| Pri | ID(s)                     | Status        |
-| --- | ------------------------- | ------------- |
-| P0  | DM-CT-05 / BULK-UNSAFE-01 | ✅            |
-| P0  | DM-CT-04                  | ✅ DEC-029    |
-| P0  | DM-CT-01 / DI-MEM-01      | ✅ DEC-GAP-03 |
-| P0  | DM-CT-02 / DI-PRISMA-01   | ✅ DEC-GAP-03 |
-| P1  | DM-CT-03 / DI-RAW-01      | ✅ DEC-031    |
-| P1  | BULK-UNSAFE-04            | ✅ DEC-032    |
-| P1  | DI-MANUAL-01              | ✅ DEC-033    |
-
----
-
-## Regression pack (رسمی — DEC-040)
+## env مشترک (قبل از هر gate)
 
 ```bash
-cd apps/api
-pnpm run phase-1:regression-gate
+cd /home/hamed/Music/docs
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"
+export PHASE4_DB_PORT=5434
+export DATABASE_URL="postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db"
+export DATABASE_URL_ADMIN="postgresql://postgres:postgres@127.0.0.1:5434/tour_db"
+export REDIS_URL="redis://127.0.0.1:6379"
+export NODE_ENV=test
+export TENANT_MAX_CONCURRENT_DB_OPS=100
+export TENANT_MAX_CONCURRENT_TOUR_WRITES=100
+export GLOBAL_HTTP_INFLIGHT_MAX=200
 ```
 
-خروجی: `test/reliability/phase-1-regression-gate.last-run.json` — **PASS** 2026-06-05 (۸ مرحله؛ Postgres tier skipped).
+**قانون `STORAGE_DRIVER`:** تا F-05 unset بماند (trunk tests → memory). از F-06: `export STORAGE_DRIVER=prisma`.
 
 ---
 
-## شمارش نهایی (پس از closure)
+## فاز F — نردبان gate (باقی‌مانده)
 
-| دسته                 | قبل | بعد                |
-| -------------------- | --- | ------------------ |
-| Must-Fix باز         | 7   | **0**              |
-| LOG-COL CRITICAL باز | 4   | **0**              |
-| DI CRITICAL باز      | 1   | **0**              |
-| BULK UNSAFE باز      | 4   | **0** (+ 1 waived) |
-| CON باز              | 7   | **0**              |
-| Execution score      | 84  | **94**             |
+| گام      | وضعیت                              | دستور                                                                                                                         |
+| -------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **F-03** | ✅ PASS (`F-03 EXIT:0` 2026-06-06) | `pnpm run phase-1:gate`                                                                                                       |
+| **F-04** | ⏳                                 | `pnpm run phase-2:gate`                                                                                                       |
+| **F-05** | ⏳                                 | `pnpm run phase-3:gate`                                                                                                       |
+| **F-06** | ⏳                                 | `export STORAGE_DRIVER=prisma` سپس `pnpm --filter @apps/api run phase-4:resilience-regression-gate` و `pnpm run phase-4:gate` |
+| **F-07** | ⏳                                 | `export STORAGE_DRIVER=prisma` سپس `pnpm run test:full`                                                                       |
+
+### اجرای یک‌جا (پس از توقف run قبلی)
+
+```bash
+# پیشنهادی — live log + توقف واقعی روی اولین FAIL (نه && با set -e)
+bash scripts/ops/run-phase-f-gates.sh
+# یا: tail -f TEMP/phase-f-gates.log
+```
+
+**تله bash:** `set -e` با `pnpm run phase-2:gate && echo "F-04 PASS"` **متوقف نمی‌شود** — شکست داخل `&&` استثناست. از `run-phase-f-gates.sh` استفاده کنید.
+
+<details>
+<summary>دستور legacy (بدون live log)</summary>
+
+```bash
+# همان env بالا — بدون STORAGE_DRIVER تا F-05
+{
+  echo "=== F ladder $(date -Iseconds) ==="
+  pnpm run phase-2:gate && echo "F-04 PASS"
+  ...
+} > TEMP/phase-f-gates.log 2>&1
+```
+
+</details>
+
+**لاگ زنده:** `tail -f TEMP/phase-f-gates.log`
+
+**معیار عبور trunk:** F-02 ✅ + F-06 سبز + `ALL_F_GATES_PASS` در لاگ.
 
 ---
 
-## P2 / اختیاری — گام ۶ (DEC-042)
+## فاز G — sign-off (بعد از F-07)
 
-| مورد                              | وضعیت                     |
-| --------------------------------- | ------------------------- |
-| LOG-COL-08 path normalizer        | ✅                        |
-| LOG-COL-09 outbox error_code      | ✅                        |
-| LOG-COL-12 chaos stderr           | ✅                        |
-| #10 memory mixed-tenant HTTP spec | ✅                        |
-| LOG-COL-10 product/docs           | deferred                  |
-| Postgres tier regression          | optional                  |
-| DI-LGC-01 dual-write mirror       | deferred (dual-write off) |
-| IDX-ADV                           | deferred                  |
+| گام      | کار                                                                       | شرط                |
+| -------- | ------------------------------------------------------------------------- | ------------------ |
+| **G-07** | به‌روز `reports/phase-0-excellence-signoff-2026-06-05.md` با امتیاز واقعی | F-07 PASS          |
+| **G-08** | ماتریس rescore + `docs/phase-0/QUALITY-VALIDATION.md`                     | همه gate JSON تازه |
 
----
+```bash
+export STORAGE_DRIVER=prisma
+pnpm run phase-0:covenant-gate
+pnpm run phase-0:trunk-gate
+pnpm run phase-4:gate
+DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync
+pnpm run baseline:metrics
+```
 
-## پیوند به auditهای دیگر
-
-| موضوع                 | سند                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| Observability / trace | [`phase2-paranoid-audit-fix-list.md`](phase2-paranoid-audit-fix-list.md)                    |
-| Scalability           | [`phase3-scalability-stress-audit.md`](../apps/api/docs/phase3-scalability-stress-audit.md) |
-| Resilience            | [`phase4-resilience-audit.md`](../apps/api/docs/phase4-resilience-audit.md)                 |
-| Phase 0 RLS           | [`phase0-audit-report.md`](../apps/api/docs/phase0-audit-report.md)                         |
-| DEC-041 sign-off      | [`IMPLEMENTATION-DECISIONS.md`](../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md)     |
+**Sign-off ≥95:** فقط وقتی `reports/phase-4-gate-*.json` پس از F-06 و `ALL_F_GATES_PASS` موجود باشد.
 
 ---
 
-_این فایل استخراج/پیگیری است. سند مرجع: `phase1-aggressive-audit.md`._
+## عیب‌یابی سریع (gate)
+
+| علامت                          | اقدام                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `POST /tours` → 500 در trunk   | `STORAGE_DRIVER` نباید prisma باشد تا F-05                                                           |
+| `guard-forensic-storage` FAIL  | allow-list: `provisioning.service.ts` (DEC-127)                                                      |
+| تست‌های observability بدون log | `drainHttpRequestLogQueueSync()` بعد از HTTP                                                         |
+| flood 100-tenant → 503         | `GLOBAL_HTTP_INFLIGHT_MAX≥132`                                                                       |
+| outbox throughput < 80/s       | `MIN_THROUGHPUT` پیش‌فرض 80 در spec                                                                  |
+| gate روی chaos قفل می‌شود      | worker یتیم `atomic-crash-worker` — `pkill -9 -f atomic-crash-worker`؛ trunk دیگر chaos اجرا نمی‌کند |
+| gate «قفل» ولی لاگ نمی‌رود     | چند run موازی — `pgrep -af phase-1:gate`؛ فقط یکی بماند. outbox throughput ~۸۰s طبیعی است            |
+| `service-starvation` heartbeat | آستانه `STARVATION_MAX_HEARTBEAT_GAP_MS` پیش‌فرض 260 (تحت بار full suite)                            |
+
+---
+
+## پیوندها
+
+- [`docs/dev/tiered-testing.md`](../docs/dev/tiered-testing.md) — `STORAGE_DRIVER` پیش‌فرض
+- [`docs/phase-4/ci.md`](../docs/phase-4/ci.md) — CI env
+- [`reports/phase-0-excellence-signoff-2026-06-05.md`](../reports/phase-0-excellence-signoff-2026-06-05.md) — **منتظر F-07 برای تأیید نهایی**

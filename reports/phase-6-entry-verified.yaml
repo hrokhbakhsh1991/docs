@@ -2,12 +2,14 @@
 phase_6_entry:
   phase_5_gate:
     command: pnpm run phase-5:gate
-    status: PENDING
-    report: reports/phase-5-gate-YYYY-MM-DD.json
-    note: "Required for 6.0 DoD — independent of doc_pack_score"
+    status: PASS
+    report: reports/phase-5-gate-2026-06-05.json
+    git_sha: 1697b77
+    elapsed_minutes: 20
+    note: "Full closure exit 0 — db:test-reset + build + test + phase-4:gate + phase-5:guard (2026-06-06 run)"
   phase_5_behavioral_minimum:
-    note: "5.2 VERIFIED minimum; 5.3-5.5 per IMPLEMENTATION-TRUTH at entry time"
-    status: PENDING
+    note: "5.2 VERIFIED_BEHAVIORAL minimum; 5.3-5.5 VERIFIED_BEHAVIORAL per docs/phase-5/audits/IMPLEMENTATION-TRUTH.md"
+    status: PASS
   no_denali_core_creep:
     status: PASS
     evidence: depcruise + phase-5 FORBIDDEN-008..011
@@ -22,6 +24,6 @@ phase_6_entry:
     critical_spec_quality: 96
     guard: pnpm run phase-6:guard
     status: PASS
-    note: "Doc-only — does not unlock 6.1 without phase_5_gate PASS"
-  verified_at: null
-  verified_by: null
+    note: "Doc-only — does not unlock 6.1 without phase_5_gate PASS; verified_at set enables 6.1"
+  verified_at: "2026-06-06T03:47:41Z"
+  verified_by: "phase-5:gate local run (cursor agent)"

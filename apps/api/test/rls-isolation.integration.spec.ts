@@ -75,7 +75,7 @@ describe("RLS isolation (integration)", { skip: !hasDatabase, concurrency: false
     assert.equal(
       rows.length,
       0,
-      "RLS must hide tenant B row when app.current_tenant_id is tenant A",
+      "RLS must hide tenant B row when app.current_tenant_id is tenant A"
     );
   });
 });
