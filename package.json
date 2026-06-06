@@ -44,7 +44,7 @@
     "test:contract:monorepo": "pnpm --filter @app-tour/workspace-sdk run test:contract:monorepo",
     "phase-0:covenant-gate": "pnpm run test:phase-0",
     "phase-0:trunk-gate": "pnpm run phase-0:integration-gate",
-    "phase-0:foundation-gate": "pnpm run phase-0:covenant-gate",
+    "phase-0:foundation-gate": "pnpm run test:phase-0",
     "phase-0:integration-gate": "pnpm build && pnpm test && pnpm run test:contract:monorepo && pnpm run test:adversarial && DOC_SYNC_SCOPE=foundation pnpm run guard:doc-sync && PHASE_0_GUARD_REPORT=integration node scripts/guards/phase-0-guard.mjs && pnpm run guard:architecture && pnpm run guard:import-boundary && pnpm run baseline:metrics",
     "baseline:metrics": "node scripts/guards/baseline-metrics.mjs",
     "phase-0:gate": "pnpm run phase-0:foundation-gate && pnpm run phase-0:integration-gate",
