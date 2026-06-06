@@ -1,0 +1,183 @@
+{
+  "gate": "phase-4-resilience-regression-gate",
+  "decision": "DEC-079",
+  "waveA": "DEC-080",
+  "waveB": "DEC-083",
+  "waveC": "DEC-086",
+  "waveD": "DEC-090",
+  "postgresRequired": true,
+  "closureSteps": [
+    "DEC-071",
+    "DEC-072",
+    "DEC-073",
+    "DEC-074",
+    "DEC-075",
+    "DEC-076",
+    "DEC-077",
+    "DEC-078",
+    "DEC-083",
+    "DEC-084",
+    "DEC-085",
+    "DEC-086",
+    "DEC-087",
+    "DEC-088",
+    "DEC-089",
+    "DEC-090",
+    "DEC-091",
+    "DEC-092",
+    "DEC-093"
+  ],
+  "chaosVerdictBefore": "CONDITIONAL",
+  "chaosVerdictAfter": "CLOSURE_PASS_WITH_RESIDUAL",
+  "resilienceScoreBefore": 62,
+  "resilienceScoreAfter": 88,
+  "residualRisks": [
+    "SV-F-04"
+  ],
+  "mustFixP0OpenBefore": 8,
+  "mustFixP0OpenAfter": 0,
+  "startedAt": "2026-06-06T04:41:13.739Z",
+  "finishedAt": "2026-06-06T04:43:22.354Z",
+  "databaseUrlSet": true,
+  "verdict": "PASS",
+  "signOff": {
+    "date": "2026-06-06",
+    "auditor": "phase-4-resilience-regression-gate",
+    "note": "Closure steps DEC-071…093 complete; Wave A–D postgres tier required (DEC-080); Phase 6 migrateCanonical runtime deferred."
+  },
+  "steps": [
+    {
+      "id": "guard:outbox-processing-reclaim",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 334,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-publish-done-pairing",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 330,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-registry-cache-invalidation",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 319,
+      "skipped": false
+    },
+    {
+      "id": "guard:proxy-upstream-timeout",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 321,
+      "skipped": false
+    },
+    {
+      "id": "guard:graceful-shutdown-outbox",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 317,
+      "skipped": false
+    },
+    {
+      "id": "guard:canonical-transaction-now",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 314,
+      "skipped": false
+    },
+    {
+      "id": "guard:patch-schema-drift",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 322,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-failed-replay",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 324,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-ordered-per-tenant",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 332,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-projection-lag",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 314,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-registry-cache-coherence",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 311,
+      "skipped": false
+    },
+    {
+      "id": "guard:migrate-canonical-placeholder",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 320,
+      "skipped": false
+    },
+    {
+      "id": "guard:http-malformed-json",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 317,
+      "skipped": false
+    },
+    {
+      "id": "guard:proxy-production-wire",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 340,
+      "skipped": false
+    },
+    {
+      "id": "guard:phase4-cross-phase-p0",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 347,
+      "skipped": false
+    },
+    {
+      "id": "phase-4:cross-phase-p0-verify",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 29346,
+      "skipped": false
+    },
+    {
+      "id": "build-dist",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 18016,
+      "skipped": false
+    },
+    {
+      "id": "phase4-resilience-closure-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 6239,
+      "skipped": false
+    },
+    {
+      "id": "phase4-resilience-postgres-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 70147,
+      "skipped": false
+    }
+  ]
+}

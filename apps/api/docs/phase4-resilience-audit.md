@@ -1265,4 +1265,80 @@ node --import tsx --test test/4-integration/bulk-import-consistency.spec.ts
 | Bulk import NN verdict                          | **fail** (no victim SLO spec)                                                                                                                                                                                                                                                                |
 | Document                                        | `apps/api/docs/phase4-resilience-audit.md`                                                                                                                                                                                                                                                   |
 
-Architect, documentation status: Updated. Link to docs: `apps/api/docs/phase4-resilience-audit.md`.
+---
+
+## Phase 4 resilience closure — step 9 (DEC-079)
+
+| Gate                   | Status   | Evidence                                                            |
+| ---------------------- | -------- | ------------------------------------------------------------------- |
+| Formal regression gate | **Done** | `pnpm run phase-4:resilience-regression-gate`                       |
+| Closure steps 1–8      | **Done** | DEC-071 … DEC-078 (`TEMP/phase4-resilience-audit-fix-list.md`)      |
+| Artifact               | **Done** | `test/reliability/phase-4-resilience-regression-gate.last-run.json` |
+| Meta spec              | **Done** | `test/reliability/phase-4-resilience-regression-gate.spec.ts`       |
+| CI lock                | **Done** | `pnpm run guard:phase4-resilience-regression-gate`                  |
+
+```bash
+cd apps/api
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32'
+export DATABASE_URL_ADMIN='postgresql://postgres:postgres@127.0.0.1:5434/tour_db'
+export STORAGE_DRIVER=prisma NODE_ENV=test
+pnpm run phase-4:resilience-regression-gate
+# artifact MUST: databaseUrlSet: true, postgresRequired: true (DEC-080)
+```
+
+### Wave B — Residual hardening (DEC-083 … DEC-085)
+
+| Item                                        | DEC     | Status          |
+| ------------------------------------------- | ------- | --------------- |
+| Redis blip → fail_local / 503 (not 500)     | DEC-083 | **Implemented** |
+| Terminal SQL `now()` (outbox + idempotency) | DEC-084 | **Implemented** |
+| CLK-SKEW-10 JWT ±5s boundary                | DEC-084 | **Implemented** |
+| HTTP shutdown watchdog + health 503         | DEC-085 | **Implemented** |
+| Worker SIGINT/SIGTERM parity                | DEC-085 | **Implemented** |
+
+### Wave C — Recovery and Ops (DEC-086 … DEC-089)
+
+| Item                                                      | DEC     | Status          |
+| --------------------------------------------------------- | ------- | --------------- |
+| Outbox terminal `failed` + `last_error` + admin replay    | DEC-086 | **Implemented** |
+| INT-SAGA-03 heal (`outbox-failed-replay.spec.ts`)         | DEC-086 | **Implemented** |
+| Per-tenant FIFO claim (`OUTBOX_RELAY_ORDERED_PER_TENANT`) | DEC-087 | **Implemented** |
+| Projection lag metric + reconcile job                     | DEC-088 | **Implemented** |
+| Chaos SIGKILL + NN victim SLO in postgres gate            | DEC-089 | **Implemented** |
+
+Appendices: [`outbox-failed-replay.md`](../../../docs/phase-5/appendices/outbox-failed-replay.md), [`outbox-relay-ordered-per-tenant.md`](../../../docs/phase-5/appendices/outbox-relay-ordered-per-tenant.md), [`outbox-projection-reconcile.md`](../../../docs/phase-5/appendices/outbox-projection-reconcile.md).
+
+### Wave D — Coherence (DEC-090 … DEC-093)
+
+| Item                                                             | DEC     | Status          |
+| ---------------------------------------------------------------- | ------- | --------------- |
+| Feature flags via `resolveTenantThemeJsonById` (cache coherence) | DEC-090 | **Implemented** |
+| `migrateCanonical` placeholder import guard                      | DEC-091 | **Implemented** |
+| Malformed JSON → 400 `INVALID_JSON`                              | DEC-092 | **Implemented** |
+| `TenantHttpProxy` DI + `GET /api/v2/map/enrich`                  | DEC-093 | **Implemented** |
+
+Appendices: [`tenant-registry-cache-coherence.md`](../../../docs/phase-5/appendices/tenant-registry-cache-coherence.md), [`migrate-canonical-phase6-placeholder.md`](../../../docs/phase-5/appendices/migrate-canonical-phase6-placeholder.md), [`http-malformed-json.md`](../../../docs/phase-5/appendices/http-malformed-json.md), [`proxy-production-wire.md`](../../../docs/phase-5/appendices/proxy-production-wire.md).
+
+### Wave A — Postgres-required gates (DEC-080 … DEC-082)
+
+| Item                                                         | Status                                                     |
+| ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `requireGateDatabase` early fail                             | **Implemented**                                            |
+| Postgres tier unconditional                                  | **Implemented**                                            |
+| Integration pack (outbox relay/transactional, clock, config) | **Implemented**                                            |
+| CI `.github/workflows/phase-4-gate.yml`                      | **Implemented**                                            |
+| 9.5+ bar                                                     | `databaseUrlSet: false` = **reject** (not enterprise pass) |
+
+### Phase 4 resilience sign-off (DEC-079)
+
+| Metric                    | Value                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| **Must-Fix P0 (audit)**   | **0 open** (F-01, F-02, F-05, PI-01, PU-F-01, NN/RL-DOS closed via steps 1–5 + DEC-073) |
+| **Regression gate**       | `phase-4:resilience-regression-gate`                                                    |
+| **Chaos verdict (audit)** | **CONDITIONAL** at audit date                                                           |
+| **Closure verdict**       | **CLOSURE_PASS_WITH_RESIDUAL** — resilience score **88/100** (estimate post Wave A–D)   |
+| **Residual**              | SV-F-04 (Phase 6 migrateCanonical runtime — guard only in Phase 5)                      |
+
+**Not closure blockers:** Phase 6 `migrateCanonical`; nightly-only slow-sink; §12 cold-start enforce when p95 stable.
+
+Architect, documentation status: Updated. Link to docs: [`docs/phase-5/appendices/phase4-resilience-regression-gate.md`](../../docs/phase-5/appendices/phase4-resilience-regression-gate.md).

@@ -10,6 +10,7 @@
  *   - 400 VALIDATION_FAILURE (CANONICAL_VALIDATION_FAILED / plugin rule violations)
  *
  * Stale `schemaVersion` → SCHEMA_VERSION_MISMATCH (workspace current is 1 for starter).
+ * PATCH /tours/:id uses the same pre-TX gate after merge (DEC-078 / SV-PATCH-01, SV-PATCH-05, SV-PATCH-09).
  *
  * STORAGE_DRIVER=memory — no Postgres required.
  *
@@ -26,6 +27,7 @@ import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
 
 import { createRequestListener } from "../../src/app";
 import { CanonicalTourService } from "../../src/canonical/canonical-tour.service";
+import { resetValidationWorkerPoolForTests } from "../../src/canonical/validation-worker-pool";
 import { LegacyCanonicalAdapter } from "../../src/canonical/legacy-canonical-adapter";
 import { ValidationFailure } from "../../src/canonical/validation-failure";
 import { createApiAbility } from "../../src/casl/api-ability";
@@ -58,6 +60,10 @@ function authHeaders(tenantId: string): Record<string, string> {
     "x-workspace-id": "ws-schema-compat",
   };
 }
+
+type PatchJsonResponse = JsonResponse & {
+  readonly body: JsonResponse["body"] & { readonly rowVersion?: number };
+};
 
 async function postTour(
   listener: ReturnType<typeof createRequestListener>,
@@ -107,6 +113,74 @@ async function postTour(
       req.end();
     });
   });
+}
+
+async function patchTour(
+  listener: ReturnType<typeof createRequestListener>,
+  tenantId: string,
+  tourId: string,
+  body: unknown
+): Promise<PatchJsonResponse> {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer(listener);
+    server.listen(0, () => {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") {
+        server.close();
+        reject(new Error("no listen address"));
+        return;
+      }
+      const payload = JSON.stringify(body);
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: addr.port,
+          path: `/tours/${tourId}`,
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": String(Buffer.byteLength(payload)),
+            ...authHeaders(tenantId),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c) => chunks.push(c));
+          res.on("end", () => {
+            server.close();
+            const raw = Buffer.concat(chunks).toString("utf8");
+            resolve({
+              status: res.statusCode ?? 0,
+              body: raw.length > 0 ? JSON.parse(raw) : {},
+            });
+          });
+        }
+      );
+      req.on("error", (err) => {
+        server.close();
+        reject(err);
+      });
+      req.write(payload);
+      req.end();
+    });
+  });
+}
+
+async function seedTourForPatch(
+  listener: ReturnType<typeof createRequestListener>,
+  tenantId: string,
+  store: InMemoryTourRepository,
+  body: unknown = {
+    schemaVersion: 1,
+    roots: ["basics", "details"],
+    data: { basics: { title: "PATCH seed tour" }, details: { summary: "seed" } },
+  }
+): Promise<{ readonly id: string; readonly rowVersion: number }> {
+  const res = await postTour(listener, tenantId, body);
+  assert.equal(res.status, 201, "seed tour must succeed before PATCH cases");
+  const tour = (await store.listByTenant(tenantId)).find((row) => row.id === res.body.id);
+  assert.ok(tour, "seed tour must be readable from store");
+  return { id: tour.id, rowVersion: tour.rowVersion };
 }
 
 function assertNotInternalError(res: JsonResponse, label: string): void {
@@ -164,7 +238,8 @@ describe("4-integration — schema version compatibility (memory)", () => {
     listener = createRequestListener({ toursService });
   });
 
-  after(() => {
+  after(async () => {
+    await resetValidationWorkerPoolForTests();
     if (priorStorageDriver === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {
@@ -244,6 +319,90 @@ describe("4-integration — schema version compatibility (memory)", () => {
     assertStructuredReject(res, "explicit-empty-data");
   });
 
+  it("PATCH /tours/:id SV-PATCH-01: stale schemaVersion returns SCHEMA_VERSION_MISMATCH (SV-01 parity)", async () => {
+    const seeded = await seedTourForPatch(listener, tenantId, store);
+    const before = await store.getById(seeded.id, tenantId);
+    assert.ok(before);
+
+    const res = await patchTour(listener, tenantId, seeded.id, {
+      rowVersion: seeded.rowVersion,
+      schemaVersion: 2,
+      data: { basics: { title: "Future rev on PATCH" }, details: { summary: "" } },
+    });
+    assertNotInternalError(res, "patch-stale-schema-rev");
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "SCHEMA_VERSION_MISMATCH");
+    assert.match(res.body.error ?? "", /SCHEMA_VERSION_MISMATCH/);
+
+    const after = await store.getById(seeded.id, tenantId);
+    assert.ok(after);
+    assert.equal(after.canonical.schemaVersion, 1);
+    assert.equal(
+      (after.canonical.data?.basics as { title?: string } | undefined)?.title,
+      "PATCH seed tour",
+      "mismatch PATCH must not mutate stored canonical"
+    );
+  });
+
+  it("PATCH /tours/:id SV-PATCH-09: merge + explicit stale schemaVersion rejects before persist", async () => {
+    const seeded = await seedTourForPatch(listener, tenantId, store);
+
+    const res = await patchTour(listener, tenantId, seeded.id, {
+      rowVersion: seeded.rowVersion,
+      schemaVersion: 2,
+      data: { basics: { title: "Only title patch" } },
+    });
+    assertNotInternalError(res, "patch-sv-09-merge-stale");
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "SCHEMA_VERSION_MISMATCH");
+
+    const after = await store.getById(seeded.id, tenantId);
+    assert.ok(after);
+    assert.equal(after.rowVersion, seeded.rowVersion);
+  });
+
+  it("PATCH /tours/:id SV-PATCH-05: partial data missing details root rejects with structured 400", async () => {
+    const seeded = await seedTourForPatch(listener, tenantId, store);
+    const beforeCount = (await store.listByTenant(tenantId)).length;
+
+    const res = await patchTour(listener, tenantId, seeded.id, {
+      rowVersion: seeded.rowVersion,
+      schemaVersion: 1,
+      data: { basics: { title: "PATCH partial — no details root" } },
+    });
+    assertNotInternalError(res, "patch-partial-missing-details");
+    assertStructuredReject(res, "patch-partial-missing-details");
+
+    assert.equal((await store.listByTenant(tenantId)).length, beforeCount);
+    const after = await store.getById(seeded.id, tenantId);
+    assert.ok(after);
+    assert.equal(
+      (after.canonical.data?.basics as { title?: string } | undefined)?.title,
+      "PATCH seed tour"
+    );
+  });
+
+  it("PATCH /tours/:id SV-PATCH-OK: valid merge updates title and returns 200", async () => {
+    const seeded = await seedTourForPatch(listener, tenantId, store);
+
+    const res = await patchTour(listener, tenantId, seeded.id, {
+      rowVersion: seeded.rowVersion,
+      data: {
+        basics: { title: "PATCH merged title" },
+        details: { summary: "merged summary" },
+      },
+    });
+    assertNotInternalError(res, "patch-valid-merge");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.id, seeded.id);
+    assert.equal(res.body.rowVersion, seeded.rowVersion + 1);
+    assert.equal(
+      (res.body.canonical?.data?.basics as { title?: string } | undefined)?.title,
+      "PATCH merged title"
+    );
+    assert.equal(res.body.canonical?.schemaVersion, 1);
+  });
+
   it("POST /tours: legacy payload missing required basics.title rejects via plugin rules", async () => {
     const res = await postTour(listener, tenantId, {
       schemaVersion: 1,
@@ -278,6 +437,49 @@ describe("4-integration — schema version compatibility (memory)", () => {
     assert.equal(basics?.title, "Untitled tour");
     assert.equal(details?.summary, "");
     assert.equal(record.canonical.schemaVersion, 1);
+  });
+
+  it("CanonicalTourService.updateTour: stale schemaVersion throws before persist (SV-PATCH service parity)", async () => {
+    const ability = createApiAbility({
+      userId: "schema-compat-user",
+      tenantId,
+      role: "admin",
+      status: "ACTIVE",
+      workspaceId: "ws-schema-compat",
+    });
+
+    const created = await canonicalService.writeTour({
+      ability,
+      tenantId,
+      workspaceType: "starter",
+      body: {
+        schemaVersion: 1,
+        roots: ["basics", "details"],
+        data: { basics: { title: "Service seed" }, details: { summary: "svc" } },
+      },
+    });
+
+    await assert.rejects(
+      () =>
+        canonicalService.updateTour({
+          ability,
+          tenantId,
+          tourId: created.id,
+          workspaceType: "starter",
+          body: {
+            rowVersion: created.rowVersion,
+            schemaVersion: 2,
+            data: { basics: { title: "Stale rev" }, details: { summary: "" } },
+          },
+        }),
+      (error: unknown) => {
+        assert.match(
+          error instanceof Error ? error.message : String(error),
+          /SCHEMA_VERSION_MISMATCH/
+        );
+        return true;
+      }
+    );
   });
 
   it("CanonicalTourService.writeTour: partial legacy data throws ValidationFailure not 500", async () => {

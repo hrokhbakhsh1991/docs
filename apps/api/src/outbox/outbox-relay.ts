@@ -4,7 +4,27 @@ import { publishDomainEvent } from "@app-tour/platform-events";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { getPrismaAdmin } from "../db/prisma";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
-import { readOutboxRelayBatchSize, readOutboxRelayPublishConcurrency } from "./outbox-relay-config";
+import {
+  isOutboxRelayOrderedPerTenant,
+  readOutboxPublishMaxAttempts,
+  readOutboxRelayBatchSize,
+  readOutboxRelayPublishConcurrency,
+} from "./outbox-relay-config";
+import { markOutboxDoneWithRetry, OutboxMarkDoneAfterPublishError } from "./outbox-mark-done";
+import {
+  markOutboxFailed,
+  markOutboxPendingForRetry,
+  parseOutboxPublishAttempts,
+} from "./outbox-failed";
+import { classifyOutboxPublishError } from "./outbox-publish-error-classifier";
+import { metricsRegistry } from "../observability/metrics";
+import { refreshOutboxQueueGaugesFromDb } from "./outbox-pending-metrics";
+import { reclaimStaleProcessingOutboxRows } from "./outbox-processing-reclaim";
+import {
+  releaseOutboxRelayTenantSlot,
+  tryAcquireOutboxRelayTenantSlot,
+} from "./outbox-relay-tenant-budget";
+import { recordOutboxRelayTickResult } from "./outbox-relay-tick-monitor";
 
 export type ClaimedOutboxRow = {
   readonly id: string;
@@ -16,12 +36,14 @@ export type ClaimedOutboxRow = {
   readonly domainEventId: string;
   readonly correlationId: string | null;
   readonly createdAt: Date;
+  readonly lastError: Prisma.JsonValue | null;
 };
 
 export type OutboxRelayProcessResult = {
   readonly claimed: number;
   readonly published: number;
   readonly failed: number;
+  readonly deferred: number;
 };
 
 type TourCreatedPayload = {
@@ -45,7 +67,7 @@ async function markClaimedRowsProcessing(
         tenantId: tenantScope,
         id: { in: rows.map((row) => row.id) },
       },
-      data: { status: "processing" },
+      data: { status: "processing", processedAt: new Date() },
     });
     return;
   }
@@ -57,7 +79,7 @@ async function markClaimedRowsProcessing(
         tenantId: row.tenantId,
       })),
     },
-    data: { status: "processing" },
+    data: { status: "processing", processedAt: new Date() },
   });
 }
 
@@ -69,24 +91,51 @@ export async function claimPendingOutboxBatch(
   batchSize = readOutboxRelayBatchSize()
 ): Promise<ClaimedOutboxRow[]> {
   const admin = getPrismaAdmin();
+  const ordered = isOutboxRelayOrderedPerTenant();
+  const effectiveBatch = ordered ? 1 : batchSize;
   return admin.$transaction(async (tx) => {
-    const rows = await tx.$queryRaw<ClaimedOutboxRow[]>`
-      SELECT
-        id::text AS id,
-        tenant_id::text AS "tenantId",
-        aggregate_type AS "aggregateType",
-        aggregate_id::text AS "aggregateId",
-        event_type AS "eventType",
-        payload,
-        domain_event_id AS "domainEventId",
-        correlation_id AS "correlationId",
-        created_at AS "createdAt"
-      FROM outbox_events
-      WHERE status = 'pending'
-      ORDER BY created_at ASC
-      LIMIT ${batchSize}
-      FOR UPDATE SKIP LOCKED
-    `;
+    const rows = ordered
+      ? await tx.$queryRaw<ClaimedOutboxRow[]>`
+          SELECT
+            id::text AS id,
+            tenant_id::text AS "tenantId",
+            aggregate_type AS "aggregateType",
+            aggregate_id::text AS "aggregateId",
+            event_type AS "eventType",
+            payload,
+            domain_event_id AS "domainEventId",
+            correlation_id AS "correlationId",
+            created_at AS "createdAt",
+            last_error AS "lastError"
+          FROM outbox_events
+          WHERE status = 'pending'
+            AND NOT EXISTS (
+              SELECT 1 FROM outbox_events o2
+              WHERE o2.tenant_id = outbox_events.tenant_id
+                AND o2.status = 'processing'
+            )
+          ORDER BY created_at ASC
+          LIMIT ${effectiveBatch}
+          FOR UPDATE SKIP LOCKED
+        `
+      : await tx.$queryRaw<ClaimedOutboxRow[]>`
+          SELECT
+            id::text AS id,
+            tenant_id::text AS "tenantId",
+            aggregate_type AS "aggregateType",
+            aggregate_id::text AS "aggregateId",
+            event_type AS "eventType",
+            payload,
+            domain_event_id AS "domainEventId",
+            correlation_id AS "correlationId",
+            created_at AS "createdAt",
+            last_error AS "lastError"
+          FROM outbox_events
+          WHERE status = 'pending'
+          ORDER BY created_at ASC
+          LIMIT ${effectiveBatch}
+          FOR UPDATE SKIP LOCKED
+        `;
 
     if (rows.length === 0) {
       return [];
@@ -106,24 +155,51 @@ export async function claimPendingOutboxBatchForTenant(
   batchSize = readOutboxRelayBatchSize()
 ): Promise<ClaimedOutboxRow[]> {
   const admin = getPrismaAdmin();
+  const ordered = isOutboxRelayOrderedPerTenant();
+  const effectiveBatch = ordered ? 1 : batchSize;
   return admin.$transaction(async (tx) => {
-    const rows = await tx.$queryRaw<ClaimedOutboxRow[]>`
-      SELECT
-        id::text AS id,
-        tenant_id::text AS "tenantId",
-        aggregate_type AS "aggregateType",
-        aggregate_id::text AS "aggregateId",
-        event_type AS "eventType",
-        payload,
-        domain_event_id AS "domainEventId",
-        correlation_id AS "correlationId",
-        created_at AS "createdAt"
-      FROM outbox_events
-      WHERE status = 'pending' AND tenant_id = ${tenantId}::uuid
-      ORDER BY created_at ASC
-      LIMIT ${batchSize}
-      FOR UPDATE SKIP LOCKED
-    `;
+    const rows = ordered
+      ? await tx.$queryRaw<ClaimedOutboxRow[]>`
+          SELECT
+            id::text AS id,
+            tenant_id::text AS "tenantId",
+            aggregate_type AS "aggregateType",
+            aggregate_id::text AS "aggregateId",
+            event_type AS "eventType",
+            payload,
+            domain_event_id AS "domainEventId",
+            correlation_id AS "correlationId",
+            created_at AS "createdAt",
+            last_error AS "lastError"
+          FROM outbox_events
+          WHERE status = 'pending' AND tenant_id = ${tenantId}::uuid
+            AND NOT EXISTS (
+              SELECT 1 FROM outbox_events o2
+              WHERE o2.tenant_id = outbox_events.tenant_id
+                AND o2.status = 'processing'
+            )
+          ORDER BY created_at ASC
+          LIMIT ${effectiveBatch}
+          FOR UPDATE SKIP LOCKED
+        `
+      : await tx.$queryRaw<ClaimedOutboxRow[]>`
+          SELECT
+            id::text AS id,
+            tenant_id::text AS "tenantId",
+            aggregate_type AS "aggregateType",
+            aggregate_id::text AS "aggregateId",
+            event_type AS "eventType",
+            payload,
+            domain_event_id AS "domainEventId",
+            correlation_id AS "correlationId",
+            created_at AS "createdAt",
+            last_error AS "lastError"
+          FROM outbox_events
+          WHERE status = 'pending' AND tenant_id = ${tenantId}::uuid
+          ORDER BY created_at ASC
+          LIMIT ${effectiveBatch}
+          FOR UPDATE SKIP LOCKED
+        `;
 
     if (rows.length === 0) {
       return [];
@@ -158,21 +234,83 @@ async function runWithConcurrency<T>(
   await Promise.all(workers);
 }
 
+async function markOutboxPending(row: ClaimedOutboxRow): Promise<void> {
+  const admin = getPrismaAdmin();
+  try {
+    await admin.outboxEvent.update({
+      where: { id: row.id },
+      data: { status: "pending", processedAt: null },
+    });
+  } catch (error: unknown) {
+    if (isRecordNotFound(error)) {
+      return;
+    }
+    throw error;
+  }
+}
+
+type PublishClaimOutcome = "published" | "failed" | "deferred";
+
+async function publishClaimedRowWithBudget(row: ClaimedOutboxRow): Promise<PublishClaimOutcome> {
+  if (!tryAcquireOutboxRelayTenantSlot(row.tenantId)) {
+    await markOutboxPending(row);
+    return "deferred";
+  }
+  try {
+    await publishClaimedOutboxRow(row);
+    return "published";
+  } catch (error: unknown) {
+    if (error instanceof OutboxMarkDoneAfterPublishError) {
+      return "published";
+    }
+
+    const classification = classifyOutboxPublishError(error);
+    const priorAttempts = parseOutboxPublishAttempts(row.lastError);
+    const attempts = priorAttempts + 1;
+    const maxAttempts = readOutboxPublishMaxAttempts();
+
+    if (classification === "poison" || attempts >= maxAttempts) {
+      await markOutboxFailed(row, error, {
+        attempts,
+        classification: classification === "poison" ? "poison" : "transient",
+      });
+      if (classification === "poison") {
+        metricsRegistry.increment("outbox_publish_poison_total");
+      } else {
+        metricsRegistry.increment("outbox_publish_transient_exhausted_total");
+      }
+      return "failed";
+    }
+
+    await markOutboxPendingForRetry(row, error, attempts);
+    metricsRegistry.increment("outbox_publish_transient_retry_total");
+    return "deferred";
+  } finally {
+    releaseOutboxRelayTenantSlot(row.tenantId);
+  }
+}
+
 async function publishClaimedBatch(claimed: ClaimedOutboxRow[]): Promise<OutboxRelayProcessResult> {
-  let published = 0;
-  let failed = 0;
+  const outcomes: PublishClaimOutcome[] = [];
 
   await runWithConcurrency(claimed, readOutboxRelayPublishConcurrency(), async (row) => {
-    try {
-      await publishClaimedOutboxRow(row);
-      published += 1;
-    } catch {
-      await markOutboxFailed(row);
-      failed += 1;
-    }
+    outcomes.push(await publishClaimedRowWithBudget(row));
   });
 
-  return { claimed: claimed.length, published, failed };
+  let published = 0;
+  let failed = 0;
+  let deferred = 0;
+  for (const outcome of outcomes) {
+    if (outcome === "published") {
+      published += 1;
+    } else if (outcome === "failed") {
+      failed += 1;
+    } else {
+      deferred += 1;
+    }
+  }
+
+  return { claimed: claimed.length, published, failed, deferred };
 }
 
 function assertOutboxPayloadTenant(row: ClaimedOutboxRow): TourCreatedPayload {
@@ -217,30 +355,11 @@ export async function publishClaimedOutboxRow(row: ClaimedOutboxRow): Promise<vo
     });
   });
 
-  const admin = getPrismaAdmin();
-  await admin.outboxEvent.update({
-    where: { id: row.id },
-    data: { status: "done", processedAt: new Date() },
-  });
+  await markOutboxDoneWithRetry(row);
 }
 
 function isRecordNotFound(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
-}
-
-async function markOutboxFailed(row: ClaimedOutboxRow): Promise<void> {
-  const admin = getPrismaAdmin();
-  try {
-    await admin.outboxEvent.update({
-      where: { id: row.id },
-      data: { status: "failed", processedAt: new Date() },
-    });
-  } catch (error: unknown) {
-    if (isRecordNotFound(error)) {
-      return;
-    }
-    throw error;
-  }
 }
 
 /**
@@ -249,8 +368,12 @@ async function markOutboxFailed(row: ClaimedOutboxRow): Promise<void> {
 export async function processOutboxRelayOnce(
   batchSize = readOutboxRelayBatchSize()
 ): Promise<OutboxRelayProcessResult> {
+  await reclaimStaleProcessingOutboxRows();
   const claimed = await claimPendingOutboxBatch(batchSize);
-  return publishClaimedBatch(claimed);
+  const result = await publishClaimedBatch(claimed);
+  recordOutboxRelayTickResult(result);
+  await refreshOutboxQueueGaugesFromDb();
+  return result;
 }
 
 /** Tenant-isolated relay tick — hardened-gate memory profile and tenant-scoped tests. */

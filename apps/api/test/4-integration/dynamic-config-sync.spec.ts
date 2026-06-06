@@ -10,8 +10,8 @@
  *     isStaticTenantRegistryAllowed() (test, or dev without DATABASE_URL).
  *
  * Dynamic sync proof: mid-load admin UPDATE to tenants.theme must appear on
- * subsequent GET /api/v2/tenant-config without process restart (invalidate
- * PERF-1 registry cache after admin write — 5s TTL otherwise serves stale theme).
+ * subsequent GET /api/v2/tenant-config without process restart
+ * (`updateTenantRegistryRow` → DEC-074 cache invalidation; 5s TTL otherwise stale).
  *
  * Run:
  *   DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev' \
@@ -28,6 +28,7 @@ import { after, before, describe, it } from "node:test";
 import { createRequestListener } from "../../src/app";
 import { disconnectPrisma, getPrismaAdmin } from "../../src/db/prisma";
 import { resetTenantRegistryCacheForTests } from "../../src/tenant/tenant-registry-cache";
+import { updateTenantRegistryRow } from "../../src/tenant/update-tenant-registry-row";
 import {
   PHASE_43_SEED_SUBDOMAINS,
   ProvisioningService,
@@ -184,24 +185,19 @@ describe(
     });
 
     it("dynamic sync: tenant-a reflects DB theme + workspaceType after mid-load admin update", async () => {
-      const admin = getPrismaAdmin();
       let dbUpdated = false;
       const tenantAThemes: Array<string | undefined> = [];
       const tenantBThemes: Array<string | undefined> = [];
 
       for (let i = 0; i < LOAD_REQUEST_COUNT; i += 1) {
         if (i === UPDATE_AT_REQUEST && !dbUpdated) {
-          await admin.tenant.update({
-            where: { id: TENANT_A_ID },
-            data: {
-              theme: {
-                primaryColor: DB_THEME_A_UPDATED,
-                cssVariables: { "--color-primary": DB_THEME_A_UPDATED },
-              },
-              workspaceType: DB_WORKSPACE_A_UPDATED,
+          await updateTenantRegistryRow(TENANT_A_ID, {
+            theme: {
+              primaryColor: DB_THEME_A_UPDATED,
+              cssVariables: { "--color-primary": DB_THEME_A_UPDATED },
             },
+            workspaceType: DB_WORKSPACE_A_UPDATED,
           });
-          resetTenantRegistryCacheForTests();
           dbUpdated = true;
         }
 

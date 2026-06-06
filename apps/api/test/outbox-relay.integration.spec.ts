@@ -3,19 +3,24 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { resetDomainEventBusForTests, subscribeDomainEvent } from "@app-tour/platform-events";
 import { PrismaClient } from "@prisma/client";
 
 import {
-  claimPendingOutboxBatch,
-  processOutboxRelayOnce,
+  claimPendingOutboxBatchForTenant,
+  processOutboxRelayForTenantOnce,
   publishClaimedOutboxRow,
 } from "../src/outbox/outbox-relay";
 import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
 import { withTenantRls } from "../src/db/with-tenant-rls";
-import { integrationTenantId } from "./test-helpers";
+import {
+  drainDomainEventHandlers,
+  integrationTenantId,
+  preparePostgresOutboxIsolation,
+  quiesceStaleOutboxProcessing,
+} from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -52,8 +57,10 @@ describe("outbox relay (integration)", { skip: !hasDatabase, concurrency: false 
   let outboxRowId: string;
 
   before(async () => {
+    await preparePostgresOutboxIsolation();
     resetDomainEventBusForTests();
     admin = getPrismaAdmin();
+    await admin.outboxEvent.deleteMany({ where: { tenantId } });
     await admin.tenant.create({
       data: {
         id: tenantId,
@@ -77,6 +84,11 @@ describe("outbox relay (integration)", { skip: !hasDatabase, concurrency: false 
     outboxRowId = row.id;
   });
 
+  beforeEach(async () => {
+    resetDomainEventBusForTests();
+    await quiesceStaleOutboxProcessing(0);
+  });
+
   after(async () => {
     await admin.outboxEvent.deleteMany({ where: { tenantId } });
     await admin.tenant.delete({ where: { id: tenantId } });
@@ -93,7 +105,8 @@ describe("outbox relay (integration)", { skip: !hasDatabase, concurrency: false 
       });
     });
 
-    const result = await processOutboxRelayOnce(10);
+    const result = await processOutboxRelayForTenantOnce(tenantId, 10);
+    await drainDomainEventHandlers();
 
     assert.equal(result.claimed, 1);
     assert.equal(result.published, 1);
@@ -119,6 +132,10 @@ describe("outbox relay (integration)", { skip: !hasDatabase, concurrency: false 
       deliveries.push(evt.eventId);
     });
 
+    await admin.outboxEvent.deleteMany({
+      where: { tenantId, status: { in: ["pending", "processing"] } },
+    });
+
     await admin.outboxEvent.create({
       data: {
         tenantId,
@@ -132,8 +149,8 @@ describe("outbox relay (integration)", { skip: !hasDatabase, concurrency: false 
     });
 
     const [first, second] = await Promise.all([
-      claimPendingOutboxBatch(1),
-      claimPendingOutboxBatch(1),
+      claimPendingOutboxBatchForTenant(tenantId, 1),
+      claimPendingOutboxBatchForTenant(tenantId, 1),
     ]);
 
     const totalClaimed = first.length + second.length;

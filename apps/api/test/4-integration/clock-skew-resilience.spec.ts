@@ -4,7 +4,7 @@
  * Simulates bounded clock drift (+/- 5 min) on the Node app clock and verifies:
  * - In-process TourCreated `occurredAt` uses app `Date` authority (ISO UTC).
  * - Outbox relay `occurredAt` uses persisted outbox `created_at` (DB authority).
- * - Audit/outbox rows use Postgres `now()` defaults; tour `created_at` follows app `new Date()`.
+ * - Atomic TX tour/audit/outbox share one DB `now()` snapshot (DEC-077).
  * - RS256 JWT `exp` rejects past expiry (401) with jose `clockTolerance: 5s`.
  * - Dev bearer tokens carry `exp` + TTL (`AUTH_DEV_BEARER_TTL_SECONDS`, 5s skew).
  *
@@ -14,7 +14,7 @@
  * | In-process bus       | App `new Date().toISOString()`     |
  * | Outbox relay publish | DB `outbox_events.created_at`      |
  * | Audit append         | DB `@default(now())` on insert     |
- * | Tour persist (Prisma)| App `new Date()` passed explicitly |
+ * | Tour persist (Prisma)| DB `readCanonicalTransactionNow` per TX |
  * | JWT verify           | Wall/app `Date` via jose + 5s skew |
  *
  * Run (memory + JWT — no Postgres):
@@ -39,7 +39,11 @@ import { fileURLToPath } from "node:url";
 import { after, afterEach, before, beforeEach, describe, it, type TestContext } from "node:test";
 
 import type { DomainEventEnvelope } from "@app-tour/platform-events";
-import { resetDomainEventBusForTests, subscribeDomainEvent } from "@app-tour/platform-events";
+import {
+  flushDomainEventDispatch,
+  resetDomainEventBusForTests,
+  subscribeDomainEvent,
+} from "@app-tour/platform-events";
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 import { exportSPKI, generateKeyPair, SignJWT, type CryptoKey } from "jose";
 import { PrismaClient } from "@prisma/client";
@@ -183,6 +187,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
       runWithTenantContext(tenantId, () => {
         publishTourCreatedEvent({ tenantId, tourId });
       });
+      await flushDomainEventDispatch();
 
       restoreAppClock(t);
 
@@ -213,6 +218,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
       runWithTenantContext(tenantId, () => {
         publishTourCreatedEvent({ tenantId, tourId });
       });
+      await flushDomainEventDispatch();
 
       restoreAppClock(t);
 
@@ -235,11 +241,13 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
       runWithTenantContext(tenantId, () => {
         publishTourCreatedEvent({ tenantId, tourId: randomUUID() });
       });
+      await flushDomainEventDispatch();
 
       t.mock.timers.setTime(BASE_INSTANT_MS + 1_500);
       runWithTenantContext(tenantId, () => {
         publishTourCreatedEvent({ tenantId, tourId: randomUUID() });
       });
+      await flushDomainEventDispatch();
 
       restoreAppClock(t);
 
@@ -292,6 +300,48 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
       const token = await signJwtExpAt(expUnix, jwtClaims);
 
       t.mock.timers.setTime(BASE_INSTANT_MS + 63_000);
+      const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
+      assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
+
+      restoreAppClock(t);
+    });
+
+    it("CLK-SKEW-10a: JWT within 5s drift budget after exp still verifies", async (t) => {
+      const expUnix = Math.floor(BASE_INSTANT_MS / 1000) + 60;
+      enableAppClock(t, BASE_INSTANT_MS);
+      const token = await signJwtExpAt(expUnix, jwtClaims);
+
+      t.mock.timers.setTime(BASE_INSTANT_MS + 64_900);
+      const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
+      assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
+
+      restoreAppClock(t);
+    });
+
+    it("CLK-SKEW-10b: JWT beyond 5s drift budget after exp rejects", async (t) => {
+      const expUnix = Math.floor(BASE_INSTANT_MS / 1000) + 60;
+      enableAppClock(t, BASE_INSTANT_MS);
+      const token = await signJwtExpAt(expUnix, jwtClaims);
+
+      t.mock.timers.setTime(BASE_INSTANT_MS + 65_100);
+      await assert.rejects(
+        () => tryResolveJwtBearerAsync(`Bearer ${token}`),
+        (error: unknown) => {
+          assert.ok(error instanceof Error);
+          assert.equal(error.message, UNAUTHORIZED_INVALID_BEARER_TOKEN);
+          return true;
+        }
+      );
+
+      restoreAppClock(t);
+    });
+
+    it("CLK-SKEW-10c: JWT 5s before exp still valid", async (t) => {
+      const expUnix = Math.floor(BASE_INSTANT_MS / 1000) + 60;
+      enableAppClock(t, BASE_INSTANT_MS);
+      const token = await signJwtExpAt(expUnix, jwtClaims);
+
+      t.mock.timers.setTime(BASE_INSTANT_MS + 55_000);
       const ctx = await tryResolveJwtBearerAsync(`Bearer ${token}`);
       assert.equal(ctx?.tenantId, jwtClaims.tenant_id);
 
@@ -416,7 +466,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
         return Number(rows[0]?.now_ms ?? 0n);
       }
 
-      it("CLK-SKEW-08: tour created_at follows app clock; audit/outbox follow DB now()", async (t) => {
+      it("CLK-SKEW-08: tour, audit, and outbox share DB now() in atomic TX (DEC-077)", async (t) => {
         const skewedMs = BASE_INSTANT_MS + SKEW_MS;
         enableAppClock(t, skewedMs);
 
@@ -454,31 +504,26 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
         assert.ok(audit);
         assert.ok(outbox);
 
-        assert.equal(
-          tour.createdAt.getTime(),
-          skewedMs,
-          "tour.created_at must use app new Date() passed at persist time"
-        );
-
+        const tourMs = tour.createdAt.getTime();
         const auditMs = audit.createdAt.getTime();
         const outboxMs = outbox.createdAt.getTime();
         const dbWindowStart = dbNowBeforeMs - 5_000;
         const dbWindowEnd = dbNowAfterMs + 5_000;
 
-        assert.ok(
-          auditMs >= dbWindowStart && auditMs <= dbWindowEnd,
-          `audit.created_at must track Postgres now(), not skewed app clock (audit=${auditMs}, db=[${dbWindowStart},${dbWindowEnd}])`
-        );
-        assert.ok(
-          outboxMs >= dbWindowStart && outboxMs <= dbWindowEnd,
-          `outbox.created_at must track Postgres now(), not skewed app clock (outbox=${outboxMs})`
-        );
+        for (const [label, ms] of [
+          ["tour", tourMs],
+          ["audit", auditMs],
+          ["outbox", outboxMs],
+        ] as const) {
+          assert.ok(
+            ms >= dbWindowStart && ms <= dbWindowEnd,
+            `${label}.created_at must track Postgres now(), not skewed app clock (${label}=${ms}, db=[${dbWindowStart},${dbWindowEnd}])`
+          );
+        }
 
-        const skewDelta = Math.abs(auditMs - skewedMs);
-        assert.ok(
-          skewDelta >= SKEW_MS - 5_000,
-          "audit timestamp must diverge from skewed app clock by ~bounded skew (proves separate authority)"
-        );
+        assert.equal(tourMs, auditMs, "tour and audit must share the same txNow snapshot");
+        assert.equal(tourMs, outboxMs, "tour and outbox must share the same txNow snapshot");
+        assert.notEqual(tourMs, skewedMs, "unified timestamps must not mirror skewed app clock");
       });
 
       it("CLK-SKEW-09: outbox relay occurredAt equals outbox row created_at (DB ISO UTC)", async (t) => {
@@ -533,6 +578,7 @@ describe("4-integration — clock skew resilience", { concurrency: false }, () =
           1,
           `relay publish failed: ${JSON.stringify(relayResult)}`
         );
+        await flushDomainEventDispatch();
 
         assert.equal(relayCaptured.length, 1);
         const expectedOccurredAt = outboxRow.createdAt.toISOString();

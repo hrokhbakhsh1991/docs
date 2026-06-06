@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { logger } from "../observability/logger";
 import { PROJECTION_HANDLER_FAILED } from "../observability/log-safety";
+import { metricsRegistry, resetMetricsRegistryForTests } from "../observability/metrics";
 import {
   recordProjectionInconsistency,
   resetProjectionInconsistencySignalsForTests,
@@ -30,6 +31,8 @@ function captureWarnLog(run: () => void): CapturedLogRecord[] {
 
 describe("projection-reconciliation log privacy (LOG-COL-02)", () => {
   it("recordProjectionInconsistency logs tenant_hash and reason_code only", () => {
+    const priorAuto = process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+    process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
     resetProjectionInconsistencySignalsForTests();
     const tenantId = integrationTenantId();
     const domainEventId = "00000000-0000-4000-8000-000000000099";
@@ -58,5 +61,30 @@ describe("projection-reconciliation log privacy (LOG-COL-02)", () => {
     assert.equal(record.tourId, undefined);
     assert.equal(record.reason, undefined);
     assert.equal(record.message, undefined);
+    if (priorAuto === undefined) {
+      delete process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+    } else {
+      process.env.PROJECTION_AUTO_RECONCILE_ENABLED = priorAuto;
+    }
+  });
+
+  it("recordProjectionInconsistency observes outbox_projection_lag_seconds when provided", () => {
+    resetMetricsRegistryForTests();
+    const tenantId = integrationTenantId();
+
+    recordProjectionInconsistency(
+      {
+        tenantId,
+        domainEventId: "00000000-0000-4000-8000-000000000077",
+        tourId: "00000000-0000-4000-8000-000000000066",
+        reasonCode: PROJECTION_HANDLER_FAILED,
+      },
+      { lagSeconds: 12.5 }
+    );
+
+    assert.equal(
+      metricsRegistry.getGauge("outbox_projection_lag_seconds", { tenant_id: tenantId }),
+      12.5
+    );
   });
 });

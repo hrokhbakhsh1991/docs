@@ -6,6 +6,8 @@ const ENV_SNAPSHOT = {
   DATABASE_URL: process.env.DATABASE_URL,
   DATABASE_URL_ADMIN: process.env.DATABASE_URL_ADMIN,
   STORAGE_DRIVER: process.env.STORAGE_DRIVER,
+  REDIS_URL: process.env.REDIS_URL,
+  TENANT_RATE_LIMIT_ENABLED: process.env.TENANT_RATE_LIMIT_ENABLED,
 };
 
 afterEach(() => {
@@ -13,9 +15,11 @@ afterEach(() => {
   process.env.DATABASE_URL = ENV_SNAPSHOT.DATABASE_URL;
   process.env.DATABASE_URL_ADMIN = ENV_SNAPSHOT.DATABASE_URL_ADMIN;
   process.env.STORAGE_DRIVER = ENV_SNAPSHOT.STORAGE_DRIVER;
+  process.env.REDIS_URL = ENV_SNAPSHOT.REDIS_URL;
+  process.env.TENANT_RATE_LIMIT_ENABLED = ENV_SNAPSHOT.TENANT_RATE_LIMIT_ENABLED;
 });
 
-describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", () => {
+describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", { concurrency: false }, () => {
   it("no-op outside production", async () => {
     process.env.NODE_ENV = "test";
     delete process.env.DATABASE_URL;
@@ -92,11 +96,43 @@ describe("assertProductionRuntimeIntegrity (DEC-GAP-03)", () => {
     );
   });
 
+  it("requires REDIS_URL in production when rate limiting is enabled", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.DATABASE_URL = "postgresql://app/db";
+    process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
+    process.env.STORAGE_DRIVER = "prisma";
+    process.env.TENANT_RATE_LIMIT_ENABLED = "true";
+    process.env.REDIS_URL = "";
+    const { assertProductionRuntimeIntegrity } = await import("./production-runtime-env.js");
+    const { PRODUCTION_REDIS_URL_REQUIRED } =
+      await import("../middleware/tenant-rate-limit-config.js");
+    assert.throws(
+      () => assertProductionRuntimeIntegrity(),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.message, PRODUCTION_REDIS_URL_REQUIRED);
+        return true;
+      }
+    );
+  });
+
+  it("allows missing REDIS_URL in production when rate limiting is disabled", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.DATABASE_URL = "postgresql://app/db";
+    process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
+    process.env.STORAGE_DRIVER = "prisma";
+    process.env.TENANT_RATE_LIMIT_ENABLED = "false";
+    delete process.env.REDIS_URL;
+    const { assertProductionRuntimeIntegrity } = await import("./production-runtime-env.js");
+    assert.doesNotThrow(() => assertProductionRuntimeIntegrity());
+  });
+
   it("passes when production env is correctly configured", async () => {
     process.env.NODE_ENV = "production";
     process.env.DATABASE_URL = "postgresql://app/db";
     process.env.DATABASE_URL_ADMIN = "postgresql://admin/db";
     process.env.STORAGE_DRIVER = "prisma";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
     const { assertProductionRuntimeIntegrity } = await import("./production-runtime-env.js");
     assert.doesNotThrow(() => assertProductionRuntimeIntegrity());
   });

@@ -39,7 +39,9 @@ async function runIdempotentHandler<TPayload>(
   }
 
   try {
-    await runWithTenantContext(envelope.tenantId, () => handler(envelope));
+    await runWithTenantContext(envelope.tenantId, async () => {
+      await handler(envelope);
+    });
   } catch (error: unknown) {
     if (error instanceof SecurityViolation) {
       throw error;

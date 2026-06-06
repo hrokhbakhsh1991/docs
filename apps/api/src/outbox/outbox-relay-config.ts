@@ -6,6 +6,11 @@ export function isOutboxRelayEnabled(): boolean {
   return process.env.OUTBOX_RELAY_ENABLED?.trim().toLowerCase() === "true";
 }
 
+/** DEC-087 — at most one processing row per tenant when true. */
+export function isOutboxRelayOrderedPerTenant(): boolean {
+  return process.env.OUTBOX_RELAY_ORDERED_PER_TENANT?.trim().toLowerCase() === "true";
+}
+
 export function readOutboxPollIntervalMs(): number {
   const raw = process.env.OUTBOX_POLL_INTERVAL_MS?.trim();
   if (raw === undefined || raw.length === 0) {
@@ -28,6 +33,21 @@ export function readOutboxRelayBatchSize(): number {
     return DEFAULT_BATCH_SIZE;
   }
   return Math.min(parsed, 100);
+}
+
+const DEFAULT_PUBLISH_MAX_ATTEMPTS = 5;
+
+/** Bounded publish attempts before terminal `failed` (DEC-110 / SH-GAP-07). */
+export function readOutboxPublishMaxAttempts(): number {
+  const raw = process.env.OUTBOX_PUBLISH_MAX_ATTEMPTS?.trim();
+  if (raw === undefined || raw.length === 0) {
+    return DEFAULT_PUBLISH_MAX_ATTEMPTS;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return DEFAULT_PUBLISH_MAX_ATTEMPTS;
+  }
+  return Math.min(parsed, 20);
 }
 
 const DEFAULT_PUBLISH_CONCURRENCY = 16;

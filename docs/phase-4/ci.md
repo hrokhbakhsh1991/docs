@@ -36,12 +36,15 @@ execution_commands:
 
 ## Phase 4 CI environment (required)
 
-Phase 4 guard step 4 (`phase-4:guard`) runs **`p4_rls_integration_tests`**, which spawns `apps/api` integration specs with:
+Phase 4 guard step 4 (`phase-4:guard`) runs **`p4_rls_integration_tests`**, which spawns `apps/api` specs **sequentially** (not one combined `node --test` — avoids hang when mixing prisma RLS + in-memory HTTP tests):
 
 | Variable         | Required value                                                                   | When                                                                                        |
 | ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`   | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev`) | Before `phase-4:guard` / `phase-4:gate`                                                     |
-| `STORAGE_DRIVER` | `prisma`                                                                         | Set automatically in guard spawn; **must** be `prisma` in CI job env for 4.2 runtime parity |
+| `DATABASE_URL`   | Postgres URL (e.g. `postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db`) | Before `phase-4:guard` / `phase-4:gate` — **RLS spec only**                               |
+| `DATABASE_URL_ADMIN` | postgres owner URL                                                           | Migrate deploy + optional RLS bootstrap                                                     |
+| `STORAGE_DRIVER` | `prisma` in your shell for 4.2 parity; guard sets **per spec** (RLS→prisma, tenant-security→memory) | CI job env                                                                                  |
+
+Guard prints progress (`phase-4-guard: tenant-kernel build…`) — silence after start usually means a long build step, not a dead process.
 
 ```bash
 # Dev profile (Phase 4 implementation — docs/phase-4/dev/docker-compose.yml)
@@ -53,22 +56,34 @@ export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@localhost:${
 export DATABASE_URL_ADMIN="${DATABASE_URL_ADMIN:-postgresql://postgres:postgres@localhost:${PHASE4_DB_PORT:-5434}/tour_db}"
 export STORAGE_DRIVER=prisma
 psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql 2>/dev/null || true
-pnpm --filter @apps/api exec prisma migrate dev --name phase4_schema
-psql "$DATABASE_URL_ADMIN" -f infra/sql/001_tenant_rls.sql
+pnpm --filter @apps/api run db:migrate:deploy
 pnpm run phase-4:gate
 ```
 
 Alternate stack (repo root `infra/docker-compose.yml`, port 5433):
 
 ```bash
+export DATABASE_URL_ADMIN="${DATABASE_URL_ADMIN:-postgresql://postgres:postgres@127.0.0.1:5433/app_tour_dev}"
 export DATABASE_URL="${DATABASE_URL:-postgresql://app_tour:app_tour@127.0.0.1:5433/app_tour_dev}"
 export STORAGE_DRIVER=prisma
 docker compose -f infra/docker-compose.yml up -d
-psql "$DATABASE_URL" -f infra/sql/001_tenant_rls.sql
+psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql 2>/dev/null || true
+pnpm --filter @apps/api run db:migrate:deploy
 pnpm run phase-4:gate
 ```
 
-Without `DATABASE_URL`, `p4_rls_integration_tests` is **`ok: false`** (required). See [`appendices/env-runtime-matrix.md`](appendices/env-runtime-matrix.md).
+`prisma migrate dev` is for **authoring** new migrations locally only — see [`../phase-5/appendices/migrate-deploy-only.md`](../phase-5/appendices/migrate-deploy-only.md) (DEC-124).
+
+Without `DATABASE_URL`, `p4_rls_integration_tests` is **`ok: false`** (required). Resilience gates (`phase-4:resilience-regression-gate`, `phase-4:cross-phase-p0-verify`) **exit 1** when `DATABASE_URL` unset (DEC-080). See [`appendices/env-runtime-matrix.md`](appendices/env-runtime-matrix.md) and [`../phase-5/appendices/postgres-required-gates.md`](../phase-5/appendices/postgres-required-gates.md).
+
+## GitHub Actions — `phase-4-gate.yml` (DEC-081)
+
+Workflow provisions Postgres 16, seeds `app_tour` role, runs `db:migrate:deploy` (DEC-124 — no `infra/sql` bootstrap), then:
+
+1. `pnpm run phase-4:resilience-regression-gate` (`apps/api`)
+2. `pnpm run phase-4:gate` (root)
+
+Env in job: `DATABASE_URL`, `DATABASE_URL_ADMIN`, `STORAGE_DRIVER=prisma`, `NODE_ENV=test`.
 
 ## Closure gate (`phase-4:gate`)
 
@@ -83,12 +98,13 @@ Without `DATABASE_URL`, `p4_rls_integration_tests` is **`ok: false`** (required)
 
 ## Pre-commit vs PR
 
-| Context                 | Script                                        | Runs phase-4:gate?                                           |
-| ----------------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| Husky fast path         | `scripts/pre-commit-fast.sh` → `test-changed` | No                                                           |
-| Manual / PR integration | `pnpm run test:full`                          | **Yes** — `phase-3:gate` + `phase-4:gate` (RLS when env set) |
-| CI `main` / PR          | `pnpm run ci:integrity` (phases 0–3)          | No                                                           |
-| Phase 4.6 closure       | `pnpm run phase-4:gate`                       | **Yes — required**                                           |
+| Context                 | Script                                         | Runs phase-4:gate?                                            |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------- |
+| Husky fast path         | `scripts/pre-commit-fast.sh` → `test-changed`  | No                                                            |
+| Manual / PR integration | `pnpm run test:full`                           | **Yes** — `phase-3:gate` + `phase-4:gate` (RLS when env set)  |
+| CI `main` / PR          | `pnpm run ci:integrity` (phases 0–3)           | No                                                            |
+| CI `main` / PR          | `.github/workflows/phase-4-gate.yml` (DEC-081) | **Yes** — Postgres service + resilience gate + `phase-4:gate` |
+| Phase 4.6 closure       | `pnpm run phase-4:gate`                        | **Yes — required**                                            |
 
 Tiered testing detail: [`docs/dev/tiered-testing.md`](../dev/tiered-testing.md). DB reset between RLS runs: `pnpm run db:test-reset`.
 

@@ -28,6 +28,7 @@ import {
 } from "../../src/canonical/pre-transaction-validation";
 import { disconnectPrisma } from "../../src/db/prisma";
 import { integrationTenantId } from "../test-helpers";
+import { skipUnlessNightlyTier } from "../test-tier";
 import {
   assertZeroOrphanedState,
   auditTenantConsistency,
@@ -48,6 +49,10 @@ const ITERATIONS = Number.parseInt(process.env.P5_CHAOS_ITERATIONS?.trim() ?? "3
 const ABORT_MODES = ["pre_commit", "sigkill", "before_outbox", "outbox"] as const;
 const PARENT_KILL_MS = Number.parseInt(process.env.P5_CHAOS_PARENT_KILL_MS?.trim() ?? "400", 10);
 const SIGKILL_SLEEP_MS = Number.parseInt(process.env.P5_CHAOS_SLEEP_MS?.trim() ?? "2500", 10);
+const WORKER_TIMEOUT_MS = Number.parseInt(
+  process.env.P5_CHAOS_WORKER_TIMEOUT_MS?.trim() ?? "15000",
+  10
+);
 
 type AbortMode = (typeof ABORT_MODES)[number];
 
@@ -95,8 +100,35 @@ function spawnCrashWorker(args: {
       }, PARENT_KILL_MS);
     }
 
-    child.on("error", reject);
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        /* already dead */
+      }
+      resolve({ exitCode: null, signal: "SIGKILL" });
+    }, WORKER_TIMEOUT_MS);
+
+    child.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
     child.on("close", (exitCode, signal) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
       resolve({ exitCode, signal });
     });
   });
@@ -152,7 +184,12 @@ function writeChaosReport(rows: IterationRow[], verdict: "PASS" | "FAIL"): void 
  */
 describe(
   "chaos atomic rollback stress (integration)",
-  { skip: !hasDatabase, concurrency: false },
+  {
+    skip: !hasDatabase
+      ? "chaos atomic rollback requires DATABASE_URL"
+      : skipUnlessNightlyTier("chaos atomic rollback stress (integration)"),
+    concurrency: false,
+  },
   () => {
     const tenantId = integrationTenantId();
     const runId = randomUUID().slice(0, 8);
@@ -182,6 +219,18 @@ describe(
         `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
       );
       try {
+        const staleProcessing = await admin.outboxEvent.count({
+          where: { tenantId, status: "processing" },
+        });
+        const maxProcessing = Number.parseInt(
+          process.env.CHAOS_MAX_PROCESSING_ROWS?.trim() ?? "0",
+          10
+        );
+        assert.ok(
+          staleProcessing <= maxProcessing,
+          `chaos tenant must not retain stale processing rows — got ${staleProcessing}, max ${maxProcessing} (DEC-089)`
+        );
+
         await admin.auditEvent.deleteMany({ where: { tenantId } });
         await admin.outboxEvent.deleteMany({ where: { tenantId } });
         await admin.tour.deleteMany({ where: { tenantId } });
@@ -191,6 +240,7 @@ describe(
           `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
         );
       }
+
       await admin.$disconnect();
       await disconnectPrisma();
 

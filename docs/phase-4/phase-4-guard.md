@@ -15,8 +15,9 @@ TENANT_KERNEL_TEST_MIN_phase4: 6
 PLATFORM_EVENTS_TEST_MIN_phase4: 2
 
 phase_4_integration_env:
-  DATABASE_URL: "required for p4_rls_integration_tests"
-  STORAGE_DRIVER: "prisma (set by guard for API test spawn)"
+  DATABASE_URL: "required for p4_rls_integration_tests (RLS spec only)"
+  DATABASE_URL_ADMIN: "recommended for RLS spec cleanup/migrate"
+  STORAGE_DRIVER: "prisma for RLS spawn; memory for tenant-security spawn (guard sets per spec)"
 ```
 
 ## Guard checks (execution order)
@@ -31,7 +32,7 @@ phase_4_integration_env:
 | `p4_contract_spec` | P4-E-HOST-01, P4-E-RLS-02 | `test:phase-4` |
 | `p4_no_denali_in_kernel` | forbidden | `rg -i denali` → zero matches |
 | `p4_infra_compose` | DOD-4 | `infra/docker-compose.yml` exists |
-| `p4_rls_integration_tests` | P4-E-RLS-01, P4-E-TENANT-01 | `node --import tsx --test` `rls-isolation.integration.spec.ts` + `tenant-security.spec.ts` with `DATABASE_URL` + `STORAGE_DRIVER=prisma` |
+| `p4_rls_integration_tests` | P4-E-RLS-01, P4-E-TENANT-01 | **Sequential** runs: (1) `rls-isolation.integration.spec.ts` with `DATABASE_URL` + `STORAGE_DRIVER=prisma`; (2) `tenant-security.spec.ts` with `STORAGE_DRIVER=memory` and **no** `DATABASE_URL` (avoids Prisma pool keeping process alive). Flags: `--test-concurrency=1`, `--test-timeout=120000`, `--test-force-exit`. Progress logged per step. |
 | `p4_anti_hollow_tests` | P4-E-RLS-01 (static) | mechanism tests contain real `assert.*` — no placeholder-only bodies |
 
 ```yaml

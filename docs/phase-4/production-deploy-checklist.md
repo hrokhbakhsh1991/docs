@@ -46,8 +46,8 @@ Use this checklist before exposing `@apps/api` on a public ingress. Boot fails c
 
 ## Database bootstrap order
 
-1. Apply Prisma migrations with **owner** credentials (`DATABASE_URL_ADMIN` or `postgres` role) — includes `20260605180000_tours_rls` (DEC-024).
-2. Optional legacy reference: `infra/sql/001_tenant_rls.sql` (bootstrap DDL documentation).
+1. Apply Prisma migrations with **owner** credentials (`DATABASE_URL_ADMIN` or `postgres` role): `pnpm --filter @apps/api run db:migrate:deploy` (DEC-124).
+2. **Do not** run `infra/sql/001…004` in production — reference-only; all RLS/DDL is in Prisma migrations (`20260605180000_tours_rls`, etc.).
 3. Seed tenant rows via controlled ops tooling — **not** via public `/internal/*` in production.
 4. Runtime API uses `DATABASE_URL` (app role) for tour I/O with `set_config('app.current_tenant_id', …, true)` per transaction.
 
@@ -73,6 +73,17 @@ pnpm --filter @apps/api exec node --import tsx --test \
   test/tenant-security.spec.ts
 ```
 
+## Logging / observability pre-flight (FOF-LOG-03 / A3)
+
+Before switching from stdout to a **remote or slow log driver** (Fluent Bit, CloudWatch, `pino.transport`, etc.):
+
+1. Run **`pnpm --filter @apps/api run test:nightly:slow-sink`** on the release candidate (DEC-070).
+2. Confirm **`guard:log-backpressure-contract`** and **`guard:fof-log-03-shutdown-tail`** pass in CI.
+3. Scrape **`log_shutdown_flush_timed_out_total`** and **`log_sink_drop_total`** — alert on sustained growth ([`fof-log-03-shutdown-tail-acceptance.md`](../phase-5/appendices/fof-log-03-shutdown-tail-acceptance.md)).
+4. Keep `LOG_SINK_FLUSH_TIMEOUT_MS` aligned with collector drain SLA (default **2000** ms).
+
+Trunk fast-stdout probes (LOG-BP-01) alone are **insufficient** for production log driver changes.
+
 ## Post-deploy smoke
 
 1. Health: process started without boot errors.
@@ -81,10 +92,54 @@ pnpm --filter @apps/api exec node --import tsx --test \
 4. Cross-tenant tour read → **404** or **403** (RLS + CASL).
 5. `GET /api/v2/tenant-config` reflects Postgres `tenants.theme` (not static registry).
 
+## Bad deployment rollback (DEC-098 / RB-GAP-01…04)
+
+Prisma is **forward-only** — there is no `migrate down`. Coordinated revert spans code, cache, and outbox state.
+
+### Three rollback levels
+
+| Level | Scope | Feasible in ~30s? | Action |
+| ----- | ----- | ----------------- | ------ |
+| **Code only** | Image / Deployment | **Sometimes** (5–30s platform) | `kubectl rollout undo` or redeploy previous digest |
+| **Single migration TX** | One failed `migration.sql` | **Yes** (Postgres rolls back the file) | Fix SQL; `migrate deploy` retries pending file |
+| **Migration chain + cache** | Applied N migrations + Redis + outbox | **No** | Forward-fix or PITR; manual runbook |
+
+### Code-only rollback checklist
+
+1. **Stop new traffic** — readiness should fail when `shuttingDown` or migration head mismatch (DEC-097/101).
+2. **Revert image** — previous Deployment revision; allow **≥ 30s** `terminationGracePeriodSeconds` for drain ([`graceful-shutdown-ingress-reject.md`](../phase-5/appendices/graceful-shutdown-ingress-reject.md)).
+3. **Outbox reclaim** — ensure `OUTBOX_PROCESSING_RECLAIM_MS` job runs or relay tick reclaims stale `processing` before trusting delivery (DEC-071).
+4. **Cache + rate keys** — `POST /internal/cache/invalidate` with service JWT (`ops_scope: cache:invalidate`, DEC-120) from cluster-internal automation; or manual `redis-cli SCAN` + `DEL` for `ratelimit:*`. Optional `freezeFeatureFlags: true` stops live DB feature-flag reads during revert (RB-GAP-11).
+5. **Schema skew** — if migration **N** shipped with bad code, code rollback alone leaves DB at **N**; only safe when **N** is backward-compatible with **N-1** binary.
+
+### Expand / contract discipline (MD-GAP mitigation)
+
+1. Ship **schema expand** migrations **before** code that depends on new columns.
+2. Revert **code** first on bad deploy; leave DB expanded until a forward migration removes obsolete columns.
+3. Never hand-edit applied `migration.sql` — checksum mismatch blocks deploy (MD-GAP-11).
+
+### Never
+
+- `prisma migrate reset` or manual `DROP` on production tenant tables.
+- `pnpm run db:test-reset` against production URLs (DEC-095).
+
+## Backup / RPO / RTO (DEC-125 / CAE-GAP-14)
+
+| Objective | Target | Notes |
+| --------- | ------ | ----- |
+| **RPO** | ≤ 15 minutes | Postgres WAL / PITR — configured at infrastructure provider |
+| **RTO** | ≤ 60 minutes | Restore + `db:migrate:deploy` + health smoke |
+
+**SoT tables:** `tenants`, `tours`, `outbox_events`, `audit_events`, `processed_domain_events`.
+
+**Monthly drill:** `bash scripts/restore-drill-smoke.sh` (local) or GitHub Actions `restore-drill-monthly.yml`.
+
+Full playbook: [`../phase-5/appendices/rpo-rto-production.md`](../phase-5/appendices/rpo-rto-production.md).
+
 ## JWT key rotation (F-18 / P2-7)
 
-1. Generate new RS256 key pair; deploy `AUTH_JWT_PUBLIC_KEY` (new PEM) to all API replicas.
-2. Issue tokens from the **new** private key at the identity provider; keep old public key in config only if dual-verify is required during overlap (not implemented in trunk — plan a maintenance window).
+1. Generate new RS256 key pair; set **previous** PEM: `AUTH_JWT_PUBLIC_KEY_PREVIOUS=<old>` then deploy **new** as `AUTH_JWT_PUBLIC_KEY` (DEC-107).
+2. Issue tokens from the **new** private key at the identity provider; old tokens verify via `AUTH_JWT_PUBLIC_KEY_PREVIOUS` during overlap.
 3. Rolling restart `@apps/api` pods so `parse-jwt-bearer` reloads PEM from env (in-process cache invalidates on PEM string change).
 4. Smoke: `POST /tours` with fresh JWT → **201**; expired/old-key tokens → **401**.
 5. Record rotation date in ops log.
