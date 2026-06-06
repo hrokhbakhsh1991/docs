@@ -48,6 +48,14 @@ flowchart LR
 
 Gate jobs export both URLs (`app_tour` for runtime RLS tests, `postgres` for DDL). Without the admin override, `app_tour` lacks `CREATE` on `public` and migrate deploy fails with `permission denied for schema public`.
 
+GHA workflows run:
+
+```bash
+DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+```
+
+The wrapper also prefers `DATABASE_URL_ADMIN` when set — double wiring so a stale `DATABASE_URL=app_tour` job env cannot regress CI.
+
 ## Commands
 
 ```bash
