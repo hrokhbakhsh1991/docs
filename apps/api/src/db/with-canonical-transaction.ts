@@ -1,6 +1,13 @@
 import type { Prisma } from "@prisma/client";
 
+import { consumePreTransactionValidationGate } from "../canonical/pre-transaction-validation";
+import { getActiveTraceId } from "../observability/trace-request-context";
+import { withPoolSaturationMapping } from "./pool-saturation";
+import { withTenantDbBudget } from "./tenant-connection-budget";
+import { withTransientTxRetry } from "./with-transient-tx-retry";
 import { getPrisma } from "./prisma";
+import { assertActiveTenantMatchesRlsTarget } from "./assert-tenant-rls-alignment";
+import { applyTenantRlsSessionVars } from "./rls-session-vars";
 
 /**
  * Phase 5 transaction boundary — sets RLS session tenant then runs fn in one Prisma TX.
@@ -8,16 +15,23 @@ import { getPrisma } from "./prisma";
  */
 export async function withCanonicalTransaction<T>(
   tenantId: string,
-  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
 ): Promise<T> {
-  if (!tenantId?.trim()) {
+  const normalized = tenantId.trim();
+  if (normalized.length === 0) {
     throw new Error("CANONICAL_TX_TENANT_REQUIRED");
   }
+  assertActiveTenantMatchesRlsTarget(normalized);
+  consumePreTransactionValidationGate(normalized);
   const prisma = getPrisma();
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`
-      SELECT set_config('app.current_tenant_id', ${tenantId}::text, true)
-    `;
-    return fn(tx);
-  });
+  return withTransientTxRetry(() =>
+    withTenantDbBudget(normalized, () =>
+      withPoolSaturationMapping(() =>
+        prisma.$transaction(async (tx) => {
+          await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
+          return fn(tx);
+        })
+      )
+    )
+  );
 }

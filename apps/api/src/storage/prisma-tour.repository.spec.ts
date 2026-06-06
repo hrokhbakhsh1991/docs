@@ -15,7 +15,7 @@ const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
 const describeIntegration = hasDatabase ? describe : describe.skip;
 
-describeIntegration("PrismaTourRepository (integration)", () => {
+describeIntegration("PrismaTourRepository (integration)", { concurrency: false }, () => {
   const tenantA = randomUUID();
   const tenantB = randomUUID();
   let repo: PrismaTourRepository;
@@ -47,7 +47,12 @@ describeIntegration("PrismaTourRepository (integration)", () => {
 
   after(async () => {
     const prisma = getPrisma();
-    await prisma.tour.deleteMany({ where: { tenantId: { in: [tenantA, tenantB] } } });
+    for (const tenantId of [tenantA, tenantB]) {
+      await prisma.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${tenantId}::text, false)
+      `;
+      await prisma.tour.deleteMany({ where: { tenantId } });
+    }
     await prisma.tenant.deleteMany({ where: { id: { in: [tenantA, tenantB] } } });
     await disconnectPrisma();
   });
@@ -74,7 +79,7 @@ describeIntegration("PrismaTourRepository (integration)", () => {
         assert.ok(error instanceof Error);
         assert.equal(error.message, "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT");
         return true;
-      },
+      }
     );
   });
 });

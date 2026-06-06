@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { describe, it, before } from "node:test";
+import { describe, it, before, after } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { createTestToursService } from "./test-helpers";
@@ -28,7 +28,7 @@ async function requestJson(
     readonly path: string;
     readonly headers?: Record<string, string>;
     readonly body?: unknown;
-  },
+  }
 ): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -63,7 +63,7 @@ async function requestJson(
               body: raw.length > 0 ? JSON.parse(raw) : null,
             });
           });
-        },
+        }
       );
       req.on("error", (err) => {
         server.close();
@@ -75,13 +75,23 @@ async function requestJson(
   });
 }
 
-describe("apps/api integration", () => {
+describe("apps/api integration", { concurrency: false }, () => {
   let listener: ReturnType<typeof createRequestListener>;
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
 
   before(() => {
+    process.env.STORAGE_DRIVER = "memory";
     listener = createRequestListener({
       toursService: createTestToursService(),
     });
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
   });
 
   it("GET /health returns 200", async () => {
@@ -121,7 +131,7 @@ describe("apps/api integration", () => {
     assert.match((res.body as { error?: string }).error ?? "", /ZOD_VALIDATION_FAILED/);
   });
 
-  it("tenant B cannot read tenant A tour — returns 403 Forbidden", async () => {
+  it("tenant B cannot read tenant A tour — returns 404 Not Found", async () => {
     const created = await requestJson(listener, {
       method: "POST",
       path: "/tours",
@@ -137,7 +147,7 @@ describe("apps/api integration", () => {
       path: `/tours/${tourId}`,
       headers: authHeaders("tenant-b"),
     });
-    assert.equal(foreign.status, 403);
-    assert.match((foreign.body as { error?: string }).error ?? "", /FORBIDDEN_TOUR_READ_CROSS_TENANT/);
+    assert.equal(foreign.status, 404);
+    assert.match((foreign.body as { error?: string }).error ?? "", /not_found|TOUR_NOT_FOUND/);
   });
 });

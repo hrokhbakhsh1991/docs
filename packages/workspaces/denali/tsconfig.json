@@ -1,0 +1,16 @@
+{
+  "extends": "../../config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "noEmit": false,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/types": ["./src/types/legacy/repo-types.ts"],
+      "@repo/types/denali": ["./src/types/legacy/repo-types-denali.ts"],
+      "@repo/shared-contracts": ["./src/types/legacy/shared-contracts.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "test/**/*.spec.ts", "src/schemas/*.generated.ts"]
+}

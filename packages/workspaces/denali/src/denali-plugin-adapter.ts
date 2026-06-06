@@ -1,0 +1,102 @@
+import type { WorkspaceFieldRegistry, WorkspaceRuleSet } from "@app-tour/workspace-sdk";
+
+import { DENALI_FIELD_DEFINITIONS } from "./field-registry/denaliFieldRegistryData";
+import { resolveDenaliFieldRenderer } from "./composites/denali-composite-registry";
+import {
+  DENALI_RULE_MODEL_CATEGORIES,
+  DENALI_RULE_MODEL_DURATIONS,
+  type DenaliRuleSet,
+} from "./rules/denaliRuleModel.types";
+import { denaliRuleSet } from "./rules/denaliRuleModel";
+
+function buildDenaliFieldIdByCanonicalPath(): Readonly<Record<string, string>> {
+  const map: Record<string, string> = {};
+  for (const def of DENALI_FIELD_DEFINITIONS) {
+    const resolution = resolveDenaliFieldRenderer(def);
+    if (resolution == null) continue;
+    map[def.canonicalPath] =
+      resolution.kind === "composite" ? resolution.rendererId : def.canonicalPath;
+  }
+  return Object.freeze(map);
+}
+
+const DENALI_FIELD_ID_BY_CANONICAL_PATH = buildDenaliFieldIdByCanonicalPath();
+
+export function denaliFieldIdForCanonicalPath(canonicalPath: string): string {
+  return DENALI_FIELD_ID_BY_CANONICAL_PATH[canonicalPath] ?? canonicalPath;
+}
+
+export function buildDenaliWorkspaceFieldRegistry(): WorkspaceFieldRegistry {
+  const fields = DENALI_FIELD_DEFINITIONS.flatMap((def) => {
+    const resolution = resolveDenaliFieldRenderer(def);
+    if (resolution == null) return [];
+
+    const fieldId = resolution.kind === "composite" ? resolution.rendererId : def.canonicalPath;
+
+    return [
+      Object.freeze({
+        id: fieldId,
+        canonicalPath: def.canonicalPath,
+        stepId: def.stepId,
+        kind: resolution.kind,
+        required: def.ruleDefaults.required,
+        tags: def.tags.length > 0 ? [...def.tags] : undefined,
+        ...(resolution.enumOptions != null ? { enumOptions: resolution.enumOptions } : {}),
+      }),
+    ];
+  });
+
+  return Object.freeze({
+    version: 1,
+    fields: Object.freeze(fields),
+  });
+}
+
+export function buildDenaliWizardRoots(): readonly string[] {
+  const roots = new Set<string>();
+  for (const def of DENALI_FIELD_DEFINITIONS) {
+    const topLevel = def.canonicalPath.split(".")[0];
+    if (topLevel) roots.add(topLevel);
+    roots.add(def.stepId);
+  }
+  return Object.freeze([...roots].sort());
+}
+
+export function buildDenaliWorkspaceRuleSet(
+  source: DenaliRuleSet = denaliRuleSet,
+  registry: WorkspaceFieldRegistry = buildDenaliWorkspaceFieldRegistry()
+): WorkspaceRuleSet {
+  const registryFieldIds = new Set(registry.fields.map((field) => field.id));
+  const cells = [];
+
+  for (const category of DENALI_RULE_MODEL_CATEGORIES) {
+    for (const duration of DENALI_RULE_MODEL_DURATIONS) {
+      const model = source[category][duration];
+      if (model == null) continue;
+      const fieldOverrides = model.fields
+        .map((field) =>
+          Object.freeze({
+            fieldId: denaliFieldIdForCanonicalPath(field.path),
+            required: field.required,
+            hidden: field.hidden,
+          })
+        )
+        .filter((override) => registryFieldIds.has(override.fieldId));
+
+      cells.push(
+        Object.freeze({
+          cellId: `${category}:${duration}`,
+          dimensions: Object.freeze({ category, duration }),
+          fieldOverrides: Object.freeze(fieldOverrides),
+        })
+      );
+    }
+  }
+
+  return Object.freeze({
+    version: 1,
+    matrixDimensions: Object.freeze(["category", "duration"]),
+    defaultCellId: "mountain:single_day",
+    cells: Object.freeze(cells),
+  });
+}

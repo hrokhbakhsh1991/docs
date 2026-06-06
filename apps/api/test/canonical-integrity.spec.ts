@@ -34,14 +34,21 @@ describe("canonical integrity — POST /tours storage", () => {
   it("POST /tours path has no legacy SQL table or Prisma references", () => {
     const tourPath = join(API_SRC, "tours");
     const canonicalPath = join(API_SRC, "canonical");
-    const allowPrismaLiteral = new Set(["canonical/canonical-storage.ts"]);
+    /** Phase 5 atomic write path — Prisma TX + outbox enqueue (ADR-005). */
+    const phase5AtomicWriteRel = new Set([
+      "canonical/canonical-storage.ts",
+      "canonical/atomic-canonical-tour-persist.ts",
+      "canonical/assert-tour-capacity-in-tx.ts",
+      "canonical/migrate-canonical-denali.service.ts",
+    ]);
     const hits: string[] = [];
     for (const file of [...listTsFiles(tourPath), ...listTsFiles(canonicalPath)]) {
       const rel = relative(API_SRC, file);
-      if (allowPrismaLiteral.has(rel)) continue;
       const src = readFileSync(file, "utf8");
       for (const pattern of LEGACY_TABLE_HINTS) {
-        if (pattern.test(src)) hits.push(`${rel}: ${pattern}`);
+        if (!pattern.test(src)) continue;
+        if (phase5AtomicWriteRel.has(rel)) continue;
+        hits.push(`${rel}: ${pattern}`);
       }
     }
     assert.deepEqual(hits, []);

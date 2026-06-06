@@ -14,53 +14,53 @@ verdict: Aligned with codebase
 
 ## 1. Markdoc migration
 
-| Artifact | Status |
-|----------|--------|
-| Canonical guide | [`phase-1-platform-core.mdoc`](../phase-1-platform-core.mdoc) |
-| Legacy mirror | [`phase-1-platform-core.md`](../phase-1-platform-core.md) |
-| `pnpm run doc:markdoc:validate` | PASS |
+| Artifact                        | Status                                                        |
+| ------------------------------- | ------------------------------------------------------------- |
+| Canonical guide                 | [`phase-1-platform-core.mdoc`](../phase-1-platform-core.mdoc) |
+| Legacy mirror                   | [`phase-1-platform-core.md`](../phase-1-platform-core.md)     |
+| `pnpm run doc:markdoc:validate` | PASS                                                          |
 
 ## 2. Engine mapping (documented)
 
-| Component | Source | Tests linked in §6.1 |
-|-----------|--------|-------------------|
-| **FieldRegistryEngine** | `field-registry.engine.ts` | 7 cases |
-| **RuleEngine** | `rule.engine.ts` + `rule-cell-index.ts` | 25 + 4 + concurrency |
-| **Step ordering** | `render-plan.steps.ts` (plain functions — **not** `StepEngine` class) | 6 cases (`render-plan.steps.spec.ts`) |
-| **Render plan** | `render-plan.ts` | 8 cases (`render-plan.spec.ts`) |
-| **PlatformWizardEngine** | `platform-wizard.engine.ts` | facade + wizard + cold-start specs |
+| Component                | Source                                                                | Tests linked in §6.1                  |
+| ------------------------ | --------------------------------------------------------------------- | ------------------------------------- |
+| **FieldRegistryEngine**  | `field-registry.engine.ts`                                            | 7 cases                               |
+| **RuleEngine**           | `rule.engine.ts` + `rule-cell-index.ts`                               | 25 + 4 + concurrency                  |
+| **Step ordering**        | `render-plan.steps.ts` (plain functions — **not** `StepEngine` class) | 6 cases (`render-plan.steps.spec.ts`) |
+| **Render plan**          | `render-plan.ts`                                                      | 8 cases (`render-plan.spec.ts`)       |
+| **PlatformWizardEngine** | `platform-wizard.engine.ts`                                           | facade + wizard + cold-start specs    |
 
 Mermaid diagrams: §1.4 pipeline, §3.5 per-engine flows, orchestration facade.
 
 ## 3. Anti-pattern ↔ dependency-cruiser
 
-| Doc ID | depcruise / guard | Match |
-|--------|-------------------|-------|
-| A1 Denali | `g3_no_denali_tokens` | ✅ |
-| A2 workspaces | `platform-core-no-workspaces` | ✅ |
-| A3 legacy | `no-legacy-imports` | ✅ |
-| A4 React | `g4_no_react_imports` | ✅ |
-| A5 procedural denali | code review (no automated rule) | ✅ documented |
-| apps import | `platform-core-no-apps` | ✅ (§8 aligned) |
-| SDK-only deps | `platform-core-only-sdk` | ✅ |
+| Doc ID               | depcruise / guard               | Match           |
+| -------------------- | ------------------------------- | --------------- |
+| A1 Denali            | `g3_no_denali_tokens`           | ✅              |
+| A2 workspaces        | `platform-core-no-workspaces`   | ✅              |
+| A3 legacy            | `no-legacy-imports`             | ✅              |
+| A4 React             | `g4_no_react_imports`           | ✅              |
+| A5 procedural denali | code review (no automated rule) | ✅ documented   |
+| apps import          | `platform-core-no-apps`         | ✅ (§8 aligned) |
+| SDK-only deps        | `platform-core-only-sdk`        | ✅              |
 
 ## 4. Test exit criteria (≥ 30)
 
-| Metric | Documented | Repo |
-|--------|------------|------|
-| Minimum | ≥ 30 | **154** pass (56 closure + 98 unit, 2026-06-03) |
-| Spec files | 20 under `packages/platform-core/test` | on disk |
-| `phase-1-guard` | `g2_platform_core_test_count` ≥ 132 | PASS |
+| Metric          | Documented                             | Repo                                            |
+| --------------- | -------------------------------------- | ----------------------------------------------- |
+| Minimum         | ≥ 30                                   | **154** pass (56 closure + 98 unit, 2026-06-03) |
+| Spec files      | 20 under `packages/platform-core/test` | on disk                                         |
+| `phase-1-guard` | `g2_platform_core_test_count` ≥ 132    | PASS                                            |
 
 ## 5. Forensic cross-links (2026-06-03)
 
-| Section | Report |
-|---------|--------|
-| Contract vs engine gaps · BL-01–04 | [`audits/phase-1-forensic-audit.md`](../../audits/phase-1-forensic-audit.md) §9–§10 |
-| Architectural theater · RP-1 | same §11 |
-| Tenant isolation | same §12 |
-| Facade integrity | same §13 |
-| Brutal maturity summary | [`reports/phase-1-brutal-audit-2026-06-03.md`](../../reports/phase-1-brutal-audit-2026-06-03.md) |
+| Section                            | Report                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Contract vs engine gaps · BL-01–04 | [`audits/phase-1-forensic-audit.md`](../../audits/phase-1-forensic-audit.md) §9–§10              |
+| Architectural theater · RP-1       | same §11                                                                                         |
+| Tenant isolation                   | same §12                                                                                         |
+| Facade integrity                   | same §13                                                                                         |
+| Brutal maturity summary            | [`reports/phase-1-brutal-audit-2026-06-03.md`](../../reports/phase-1-brutal-audit-2026-06-03.md) |
 
 ## 6. Verification
 

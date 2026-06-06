@@ -1,0 +1,16 @@
+{
+  "gate": "cold-start-tsx-dev-probe",
+  "id": "CS-UNSC-01",
+  "waived": true,
+  "productionPath": "dist/main.js",
+  "startedAt": "2026-06-06T01:03:32.428Z",
+  "budgetMs": 500,
+  "samples": [1655.51, 1151.92],
+  "p50Ms": 1151.92,
+  "p95Ms": 1655.51,
+  "maxMs": 1655.51,
+  "unscalable": true,
+  "verdict": "PASS",
+  "note": "record-only — tsx dev excluded from trunk/nightly readiness enforce",
+  "artifact": "test/reliability/cold-start-tsx-dev.last-run.json"
+}

@@ -1,0 +1,9 @@
+{
+  "gate": "pool-stress-500-nightly-probe",
+  "id": "A4",
+  "startedAt": "2026-06-06T01:08:36.058Z",
+  "verdict": "skipped",
+  "skippedReason": "DATABASE_URL unset — leak probe requires Postgres",
+  "connectionLeakSuspected": null,
+  "artifact": "test/reliability/pool-stress-500.last-run.json"
+}

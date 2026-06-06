@@ -1,22 +1,39 @@
-# @app-tour/workspace-denali (test-only probe)
+# @app-tour/workspace-denali
 
-**Phase:** 6.x product workspace — **not** Phase 0 deliverable.
+**Phase 6.2–6.3 — registry, rules, composites + theme** (product workspace; not a guard probe).
 
-This package exists on trunk **only** as a negative-test probe for foundation guards:
+Denali is the first full `WorkspacePlugin` product workspace on trunk. P0 domain files from `legacy/packages/denali-domain/` are ported under `src/` with `types/legacy/` shims (no runtime `legacy/` imports).
 
-- [`denali-coupling.contract.spec.ts`](../../workspace-sdk/test/denali-coupling.contract.spec.ts) — depcruise must block product imports of Denali paths (H-01).
-- [`__fixtures__/denali-breach.ts`](../../workspace-sdk/test/__fixtures__/denali-breach.ts) — intentional corruption fixture for import-purity audit.
-- [`denali-workspace-binding.contract.spec.ts`](../../workspace-sdk/test/denali-workspace-binding.contract.spec.ts) — `resolveWorkspacePluginIdForType("denali")` returns `null` until Phase 6.
+## Layout
+
+| Path                               | Role                                                          |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `src/field-registry/`              | Field registry + matrix recipes (P0 port)                     |
+| `src/rules/`                       | `evaluateFormRules` + generated rule set                      |
+| `src/composites/`                  | `denali.*` widget registry + platform renderer id map         |
+| `src/denali-plugin-adapter.ts`     | Maps registry → `WorkspaceFieldRegistry` / `WorkspaceRuleSet` |
+| `src/denali.plugin.ts`             | `getDenaliWorkspacePlugin()`                                  |
+| `src/acl/`                         | `normalizeLegacyTripDetails`, `toCanonicalDocument`           |
+| `scripts/denali-codegen.mjs`       | Regenerates `src/rules/generated/`                            |
+| `test/registry-parity.spec.ts`     | Legacy parity + `validateCanonical` gate                      |
+| `test/composites.contract.spec.ts` | Widget registry + theme ingress (6.3)                         |
+| `test/fixtures/golden/`            | 3 golden wizard JSON fixtures                                 |
+| `theme/tokens.css`                 | `--ws-*` workspace brand tokens                               |
+
+## Commands
+
+```bash
+pnpm --filter @app-tour/workspace-denali build
+pnpm --filter @app-tour/workspace-denali run denali:codegen
+git diff --exit-code packages/workspaces/denali/src/rules/generated
+pnpm --filter @app-tour/workspace-denali test test/registry-parity.spec.ts
+pnpm --filter @app-tour/workspace-denali test test/composites.contract.spec.ts
+```
 
 ## Policy
 
-| Rule | Detail |
-|------|--------|
-| **Do not** import from app/product packages | `dependency-cruiser` rule `no-denali-product-ids` |
-| **Do not** add to `pnpm-workspace` consumers | No `dependencies` on `@app-tour/workspace-denali` in apps or platform packages |
-| **Do not** treat as shipped workspace | Full Denali shell ships in Phase 6 per `docs/MIGRATION-MAP.md` |
-
-## Contents
-
-- `index.ts` — exports `DENALI_BREACH_PROBE` for fixture imports only.
-- No theme, domain, or plugin implementation on trunk.
+| Rule                                                                | Detail                                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Product code lives here only                                        | No Denali-specific logic in `platform-core` / generic `apps/api` |
+| No runtime `legacy/` imports in `src/` (except `src/acl/` boundary) | Port is manual copy + shims                                      |
+| API resolver binding                                                | Subphase **6.5** wires `resolveWorkspacePluginForType('denali')` |

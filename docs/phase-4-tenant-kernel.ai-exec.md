@@ -1,6 +1,7 @@
-# AI-EXECUTION DOCUMENT — Phase 4 (central index)
+# AI-EXECUTION DOCUMENT — Phase 4 (link stub — not execution SoT)
 
-> **Detailed modules:** [`phase-4/phase-4.ai-exec.index.md`](phase-4/phase-4.ai-exec.index.md) · **Hub:** [`phase-4/README.md`](phase-4/README.md)
+> **SOLE EXECUTION ENTRY:** [`phase-4/phase-4-ai-exec.md`](phase-4/phase-4-ai-exec.md) — implement from there only.  
+> **This file:** module map + gate chain links · **Index:** [`phase-4/phase-4.ai-exec.index.md`](phase-4/phase-4.ai-exec.index.md) · **Hub:** [`phase-4/README.md`](phase-4/README.md)
 
 ```yaml
 document_meta:
@@ -37,7 +38,10 @@ document_meta:
 |--------|------|
 | Overview · STEP 1 · §1–§5 | [`phase-4/phase-4-overview.md`](phase-4/phase-4-overview.md) |
 | State machine · DAG · §0 | [`phase-4/phase-4-state-machine.md`](phase-4/phase-4-state-machine.md) |
-| Guards p4_* · CI | [`phase-4/phase-4-guard.md`](phase-4/phase-4-guard.md) |
+| AI hub | [`phase-4/phase-4-ai-exec.md`](phase-4/phase-4-ai-exec.md) |
+| CI pipeline | [`phase-4/ci.md`](phase-4/ci.md) |
+| Guards p4_* | [`phase-4/phase-4-guard.md`](phase-4/phase-4-guard.md) |
+| Modernization | [`phase-4/MODERNIZATION-REPORT.md`](phase-4/MODERNIZATION-REPORT.md) |
 | Enforcement P4-E-* · DoD · Phase 5 | [`phase-4/phase-4-enforcement.md`](phase-4/phase-4-enforcement.md) |
 
 ## Audits
@@ -68,18 +72,11 @@ document_meta:
 ## Agent boot (deterministic)
 
 ```yaml
-agent_boot:
-  1: "READ phase-4-overview.md STEP 1 — phase_id must be 4; phase_detection_blocker must be null"
-  2: "VERIFY pnpm run phase-3:gate exit 0"
-  3: "VERIFY 4.0 — reports/phase-3.2-red-flag-status-*.md exists; R0–R3 closed — P4-E-RF-40"
-  4: "SET current_subphase 4.0 unless 4.0 exit criteria PASS"
-  5: "FORBIDDEN merge 4.1+ while R0–R3 open"
-  6: "FORBIDDEN grep-only closure — run P4-E-* tests per verification_table"
-  7: "FORBIDDEN platform-core imports tenant-kernel"
-  8: "RUN pnpm run phase-4:gate for closure — bind p4_* not §14.2 numbered table"
-  9: "BIND thresholds tenant-kernel 6 platform-events 2 from gate-thresholds.mjs"
-  10: "ON DONE READ phase-4-enforcement.md phase_5_entry_requires"
-  fail_token: FAIL
+agent_boot_ref: docs/phase-4/phase-4-ai-exec.md
+interop_model: docs/phase-4/appendices/workspace-interoperability-model.md
+agent_load_tiers: docs/phase-4/appendices/agent-load-tiers.md
+readability_report: docs/phase-4/AI-READABILITY-REPORT.md
+fail_token: FAIL
 ```
 
 ## Gate chain (package.json)

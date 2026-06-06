@@ -10,6 +10,15 @@ document_meta:
   ai_exec_modules: docs/phase-4/
   transformation_version: "2026-06-04"
   modular_split_version: "2026-06-04"
+  modernization_version: "2026-06-04"
+  modernization_report: docs/phase-4/MODERNIZATION-REPORT.md
+  readability_report: docs/phase-4/AI-READABILITY-REPORT.md
+  ai_exec_hub: docs/phase-4/phase-4-ai-exec.md
+  agent_load_tiers: docs/phase-4/appendices/agent-load-tiers.md
+  knowledge_index: docs/phase-4/appendices/knowledge-index.md
+  future_proofing_report: docs/phase-4/FUTURE-PROOFING-REPORT.md
+  future_risk_signals: docs/phase-4/appendices/future-risk-signals.md
+  ci_module: docs/phase-4/ci.md
   quality_report: docs/phase-4/QUALITY-VALIDATION.md
   quality_pass_date: "2026-06-04"
   central_stub: docs/phase-4-tenant-kernel.ai-exec.md
@@ -71,49 +80,35 @@ detected_from: phase-4-overview.md STEP 1
 | §12 Subphase 4.5 | [`subphases/4.5-platform-events.md`](subphases/4.5-platform-events.md) |
 | §13 Subphase 4.6 | [`subphases/4.6-phase-gate.md`](subphases/4.6-phase-gate.md) |
 | §14 Verification · §15 Forbidden · §16 DoD · §17 Phase 5 | [`phase-4-enforcement.md`](phase-4-enforcement.md) |
-| §14.2 Guard · CI pipeline | [`phase-4-guard.md`](phase-4-guard.md) |
+| Guards p4_* | [`phase-4-guard.md`](phase-4-guard.md) |
+| CI pipeline | [`ci.md`](ci.md) |
+| Subphase ↔ enforcement | [`audits/subphase-enforcement-map.md`](audits/subphase-enforcement-map.md) |
+| Observability scaffold | [`appendices/observability.md`](appendices/observability.md) |
+| AI hub | [`phase-4-ai-exec.md`](phase-4-ai-exec.md) |
+| Agent load tiers | [`appendices/agent-load-tiers.md`](appendices/agent-load-tiers.md) |
+| Knowledge index | [`appendices/knowledge-index.md`](appendices/knowledge-index.md) |
+| Execution action index | [`audits/execution-action-index.md`](audits/execution-action-index.md) |
+| AI readability report | [`AI-READABILITY-REPORT.md`](AI-READABILITY-REPORT.md) |
+| Traceability matrix | [`audits/TRACEABILITY-MATRIX.md`](audits/TRACEABILITY-MATRIX.md) |
+| Consistency report | [`audits/CONSISTENCY-REPORT.md`](audits/CONSISTENCY-REPORT.md) |
 | Verification matrix | [`audits/verification-matrix.md`](audits/verification-matrix.md) |
 | Quality validation | [`QUALITY-VALIDATION.md`](QUALITY-VALIDATION.md) |
+| Appendix — verification commands | [`appendices/verification-commands.md`](appendices/verification-commands.md) |
+| Appendix — legacy bridge | [`appendices/legacy-structure-bridge.md`](appendices/legacy-structure-bridge.md) |
+| Appendix — completion proof | [`appendices/subphase-completion-schema.md`](appendices/subphase-completion-schema.md) |
 | Appendix A · E · G · C | [`appendices/`](appendices/) |
 
 ---
 
-## AGENT START SEQUENCE
+## AGENT START (link only)
+
+> **SOLE EXECUTION ENTRY:** [`phase-4-ai-exec.md`](phase-4-ai-exec.md) — `AGENT_START_SEQUENCE` lives there only.  
+> **Load tiers:** [`appendices/agent-load-tiers.md`](appendices/agent-load-tiers.md)
 
 ```yaml
-agent_boot:
-  step_1: "READ phase_detection_blocker in phase-4-overview.md STEP 1 — if non-null OUTPUT FAIL and STOP"
-  step_2: "VERIFY pnpm run phase-3:gate exit 0 — if fail STOP subphase 4.0"
-  step_3: "READ phase-4-state-machine.md transition_rules — SET current_subphase 4.0 unless report proves 4.0 done"
-  step_4: "LOAD subphases/{current}.md — EXECUTE steps in DAG order only (phase-4-state-machine.md)"
-  step_5: "READ phase-4-enforcement.md forbidden_phase_4 — BEFORE any packages/platform-core change STOP"
-  step_6: "READ phase-4-enforcement.md verification_table — BEFORE merge RUN listed P4-E-* for that subphase"
-  step_7: "ON phase 4 DONE — RUN phase_5_entry_requires in phase-4-enforcement.md then handoff phase 5 doc"
-
-failure_output_token: "FAIL"
-failure_conditions:
-  - "phase_detection_blocker != null"
-  - "attempt 4.1+ merge with R0-R3 open"
-  - "closure using grep-only without P4-E-* tests"
-  - "production default in-memory tours with P4-E-DATA-01 claimed done"
-```
-
----
-
-## AGENT EXECUTION ALGORITHM
-
-```yaml
-algorithm:
-  1: "VERIFY phase_3 DONE — pnpm run phase-3:gate exit 0"
-  2: "SET current_subphase 4.0 unless reports/phase-3.2-red-flag-status-*.md proves 4.0 PASS"
-  3: "IF modifying tenant-kernel platform-events apps/api apps/web infra THEN update docs/phase-4-tenant-kernel.mdoc FIRST"
-  4: "EXECUTE only tasks for current_subphase per DAG — 4.2 FORBIDDEN before 4.0"
-  5: "FORBIDDEN merge 4.1+ while R0-R3 open — P4-E-RF-40"
-  6: "FORBIDDEN grep-only closure — P4-E-* tests required"
-  7: "AFTER 4.6 RUN pnpm run phase-4:gate — not phase-4:guard alone"
-  8: "BIND guards to p4_* in phase-4-guard.mjs — never narrative §14.2 numbered table"
-  9: "BIND thresholds tenant-kernel 6 platform-events 2 from gate-thresholds.mjs"
-  10: "APPEND: Architect, documentation status: [Updated/Not Needed]. Link to docs: [URL]"
+sole_execution_entry: phase-4-ai-exec.md
+fail_if: "Duplicate AGENT_START_SEQUENCE outside phase-4-ai-exec.md"
+fail_token: FAIL
 ```
 
 ---

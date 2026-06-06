@@ -7,10 +7,7 @@ import type { ScopedTenantAuthz, TenantAuthz } from "@app-tour/workspace-sdk";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import type { TourWizardDraft } from "@/tours/tour-wizard-draft";
-import {
-  getCanonicalStringValue,
-  setCanonicalStringValue,
-} from "@/tours/tour-wizard-draft-path";
+import { getCanonicalStringValue, setCanonicalStringValue } from "@/tours/tour-wizard-draft-path";
 
 import { canLoadWorkspaceWizard } from "./wizard-access";
 import { WizardAccessDenied } from "./wizard-access-denied";
@@ -25,8 +22,21 @@ export type WorkspaceWizardHostProps = {
   readonly draft: TourWizardDraft;
   readonly onDraftChange: (draft: TourWizardDraft) => void;
   readonly renderFooter?: (draft: TourWizardDraft) => ReactNode;
-  readonly dimensions?: Readonly<Record<string, string>>;
 };
+
+function resolveWizardDimensions(
+  plugin: Awaited<ReturnType<typeof loadWorkspacePluginById>>,
+  validationVariant: "default" | "basic" = "default"
+): Record<string, string> {
+  const matrix = plugin.ruleSet.matrixDimensions;
+  if (matrix.includes("variant")) {
+    return { variant: validationVariant };
+  }
+  if (matrix.includes("category") && matrix.includes("duration")) {
+    return { category: "mountain", duration: "single_day" };
+  }
+  return Object.fromEntries(matrix.map((key) => [key, validationVariant]));
+}
 
 /**
  * Workspace wizard host — CASL gate before plugin load; deny-by-default (no wizard DOM on 403).
@@ -40,11 +50,10 @@ export function WorkspaceWizardHost({
   draft,
   onDraftChange,
   renderFooter,
-  dimensions = { variant: "default" },
 }: WorkspaceWizardHostProps) {
   const access = useMemo(
     () => ({ authz, tenantId, pluginId, workspaceId }),
-    [authz, tenantId, pluginId, workspaceId],
+    [authz, tenantId, pluginId, workspaceId]
   );
 
   const authorized = useMemo(() => canLoadWorkspaceWizard(access), [access]);
@@ -69,7 +78,10 @@ export function WorkspaceWizardHost({
         const plugin = await loadWorkspacePluginById(pluginId);
         const engine = PlatformWizardEngine.create(plugin);
         engine.init();
-        const plan = engine.buildRenderPlan({ tenantId, dimensions });
+        const plan = engine.buildRenderPlan({
+          tenantId,
+          dimensions: resolveWizardDimensions(plugin),
+        });
         if (!cancelled) {
           setSteps(plan);
           setError(null);
@@ -86,7 +98,7 @@ export function WorkspaceWizardHost({
     return () => {
       cancelled = true;
     };
-  }, [authorized, access, pluginId, tenantId, dimensions]);
+  }, [authorized, access, pluginId, tenantId]);
 
   if (!authorized) {
     return <WizardAccessDenied />;

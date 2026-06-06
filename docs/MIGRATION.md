@@ -4,13 +4,17 @@
 
 ## سندهای فاز (اجرایی — جزئیات کامل)
 
-| فاز | سند |
-|-----|------|
-| **0** Foundation & SDK | [`phase-0-foundation.md`](phase-0-foundation.md) ✅ · AI-exec: [`phase-0/`](phase-0/README.md) |
-| **1** Platform core | [`phase-1-platform-core.md`](phase-1-platform-core.md) ✅ · AI-exec: [`phase-1/`](phase-1/README.md) |
-| **2** Design system | [`phase-2-design-system.md`](phase-2-design-system.md) ✅ · AI-exec: [`phase-2/`](phase-2/README.md) |
-| **3** Starter + apps | [`phase-3-design-system.md`](phase-3-design-system.md) ✅ · AI-exec: [`phase-3/`](phase-3/README.md) |
-| **4** Tenant kernel | [`phase-4-tenant-kernel.md`](phase-4-tenant-kernel.md) — **active** · AI-exec: [`phase-4/`](phase-4/README.md) |
+| فاز                        | سند                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **0** Foundation & SDK     | [`phase-0-foundation.md`](phase-0-foundation.md) ✅ · AI-exec: [`phase-0/`](phase-0/README.md)                                  |
+| **1** Platform core        | [`phase-1-platform-core.md`](phase-1-platform-core.md) ✅ · AI-exec: [`phase-1/`](phase-1/README.md)                            |
+| **2** Design system        | [`phase-2-design-system.md`](phase-2-design-system.md) ✅ · AI-exec: [`phase-2/`](phase-2/README.md)                            |
+| **3** Starter + apps       | [`phase-3-design-system.md`](phase-3-design-system.md) ✅ · AI-exec: [`phase-3/`](phase-3/README.md)                            |
+| **4** Tenant kernel        | [`phase-4-tenant-kernel.md`](phase-4-tenant-kernel.md) ✅ · AI-exec: [`phase-4/`](phase-4/README.md)                            |
+| **5** Canonical data layer | [`phase-5-canonical-schema.md`](phase-5-canonical-schema.md) · AI-exec: [`phase-5/`](phase-5/README.md)                         |
+| **6** Denali workspace     | [`phase-6-denali-workspace.md`](phase-6-denali-workspace.md) — **active (doc pack)** · AI-exec: [`phase-6/`](phase-6/README.md) |
+
+**Cross-phase continuity:** [`appendices/PLATFORM-CONTINUITY-0-6.md`](appendices/PLATFORM-CONTINUITY-0-6.md)
 
 ## North star
 
@@ -18,14 +22,15 @@ Platform logic = generic · Workspace logic = injectable · Tenant = security bo
 
 ## فاز جاری
 
-**Phase 4** — Tenant kernel (RLS, subdomain, Postgres SoT) — **active** · [`phase-4-tenant-kernel.md`](phase-4-tenant-kernel.md) · agents: [`phase-4/phase-4.ai-exec.index.md`](phase-4/phase-4.ai-exec.index.md)
+**Phase 6** — Denali workspace (plugin port, bootstrap, MinIO, migrateCanonical) — **doc pack active** · agents: [`phase-6/phase-6-agent-router.md`](phase-6/phase-6-agent-router.md)
 
-**Prerequisite:** Phase 3 `phase-3:gate` + sub-phase **4.0** (R0–R3 red flags) per [`backlog/phase-3.2-red-flag-backlog.md`](backlog/phase-3.2-red-flag-backlog.md)
+**Prerequisites:** `phase-5:gate` exit 0 + [`phase-6/subphases/6.0-entry-gate.md`](phase-6/subphases/6.0-entry-gate.md)
 
 ```bash
-pnpm run phase-3:gate   # frozen baseline before phase 4 work
-pnpm run phase-4:gate   # when phase-4-guard ships
-pnpm run phase-0:gate   # full phase 0 regression
+pnpm run phase-5:gate   # required before Phase 6 work
+pnpm run phase-6:guard  # doc pack (PEK v1)
+pnpm run phase-6:gate   # 6.9 when implementation complete
+pnpm run phase-5:guard
 pnpm build && pnpm test
 ```
 

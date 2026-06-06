@@ -1,0 +1,74 @@
+# Phase 7 — Authoritative agent boot manifest
+manifest_version: "2026-06-04-v1"
+doc_execution_system_target: 96
+sole_execution_entry: ../phase-7-agent-router.md
+fail_token: FAIL
+pek_reference: ../phase-6/audits/DOC-EXECUTION-SCORECARD.md#phase-execution-kernel-pek--phase-6-template
+
+boot_sequence_T0:
+  - id: boot-0
+    read: audits/IMPLEMENTATION-TRUTH.md
+  - id: boot-1a
+    read: appendices/IMPLEMENTATION-DECISIONS.md
+  - id: boot-1b
+    read: appendices/IMPLEMENTATION-MAP.md
+  - id: boot-2
+    read: appendices/PRECISION-DOC-INDEX.md
+  - id: boot-3
+    read: audits/SUBPHASE-READY-SPEC.md
+  - id: boot-3b
+    read: audits/verification-matrix.md
+  - id: boot-3c
+    read: appendices/industry-alignment-2026.md
+    load_tier: T0
+  - id: boot-3d
+    read: audits/DOC-EXECUTION-SCORECARD.md
+    load_tier: T1
+  - id: boot-4
+    read: appendices/test-inventory.md
+  - id: boot-4b
+    read: appendices/req-p7-command-atlas.md
+  - id: boot-4c
+    read: appendices/anti-hollow-contract.md
+  - id: boot-5
+    assert: reading phase-7-agent-router.md
+  - id: boot-6
+    read: appendices/blockers.md
+  - id: boot-7
+    read: ../../appendices/PLATFORM-CONTINUITY-0-7.md
+  - id: boot-7b
+    read: appendices/phase-6-bridge.md
+  - id: boot-7c
+    read: ../phase-7-state-machine.md
+  - id: boot-8
+    run: pnpm run phase-6:gate
+    expect_exit: 0
+    when_subphase_gte: "7.0"
+  - id: boot-9
+    algorithm: detect_current_subphase
+  - id: boot-10
+    load: subphases/{current_subphase}.md
+
+repo_status_enum:
+  - SPEC_ONLY
+  - PARTIAL
+  - VERIFIED_SCAFFOLD
+  - VERIFIED_BEHAVIORAL
+  - BLOCKED
+
+detect_current_subphase:
+  pick_rule: min_numeric_id_among_eligible
+  steps:
+    - "If 7.0 or 7.1 not VERIFIED_* → pick lowest among {7.0,7.1} open"
+    - "If 7.2 not VERIFIED_BEHAVIORAL → current = 7.2"
+    - "If 7.3 not VERIFIED_BEHAVIORAL → current = 7.3"
+    - "If 7.4 not VERIFIED_BEHAVIORAL → current = 7.4"
+    - "eligible_parallel = subset of {7.5,7.6} not VERIFIED_BEHAVIORAL"
+    - "If eligible_parallel non-empty → current = min(id)"
+    - "If 7.7 not VERIFIED_BEHAVIORAL → current = 7.7"
+    - "If 7.8 not VERIFIED_BEHAVIORAL → current = 7.8"
+    - "Else current = 7.9"
+
+parallel_groups:
+  after_7_4: ["7.5", "7.6"]
+  merge_7_9_requires: ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6", "7.7", "7.8"]

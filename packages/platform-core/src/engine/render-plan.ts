@@ -19,14 +19,15 @@ export type RenderPlanBuildOptions = {
  * Builds a headless render plan for the wizard UI (phase 3+).
  *
  * Policy: only **active** steps are included; empty/hidden steps are omitted.
- * Hidden fields (inactiveFieldGroups + rule overrides) are excluded from rows.
+ * Policy: only **active** steps are included; empty/hidden steps are omitted.
+ * Hidden fields (inactiveFieldGroups + rule overrides) are excluded from rows — not flagged via `row.hidden`.
  */
 export function buildRenderPlan(
   wizard: WorkspaceWizardSurface,
   fieldEngine: FieldRegistryEngine,
   ruleEngine: RuleEngine,
   context: RuleContextResolution,
-  options: RenderPlanBuildOptions = {},
+  options: RenderPlanBuildOptions = {}
 ): readonly RenderStepPlan[] {
   const scope = ruleEngine.createScope(context);
   const plans: RenderStepPlan[] = [];
@@ -50,7 +51,7 @@ function buildFieldsForStep(
   wizard: WorkspaceWizardSurface,
   fieldEngine: FieldRegistryEngine,
   stepId: string,
-  scope: RuleEngineScope,
+  scope: RuleEngineScope
 ): readonly RenderFieldPlan[] {
   const rows: RenderFieldPlan[] = [];
 
@@ -67,13 +68,13 @@ function buildFieldsForStep(
 function toRenderFieldPlan(
   fieldEngine: FieldRegistryEngine,
   fieldId: string,
-  scope: RuleEngineScope,
+  scope: RuleEngineScope
 ): RenderFieldPlan {
   const entry = fieldEngine.getById(fieldId);
   if (!entry) {
     throw new PlatformCoreError(
       "UNKNOWN_FIELD_ID",
-      `Unknown field id "${fieldId}" while building render plan`,
+      `Unknown field id "${fieldId}" while building render plan`
     );
   }
   const effective = scope.resolveEffectiveField(fieldId);
@@ -91,7 +92,7 @@ function toRenderFieldPlan(
 }
 
 function buildFieldUiHints(
-  entry: WorkspaceFieldRegistryEntry,
+  entry: WorkspaceFieldRegistryEntry
 ): Readonly<Record<string, string>> | undefined {
   if (entry.kind === "composite") {
     return { compositeId: entry.id };

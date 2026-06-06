@@ -1,0 +1,80 @@
+{
+  "gate": "phase-1-regression-gate",
+  "decision": "DEC-040",
+  "startedAt": "2026-06-05T02:11:13.092Z",
+  "finishedAt": "2026-06-05T02:11:40.437Z",
+  "databaseUrlSet": true,
+  "verdict": "PASS",
+  "steps": [
+    {
+      "id": "guard:tenant-isolation",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1004,
+      "skipped": false
+    },
+    {
+      "id": "guard:client-error-log",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 795,
+      "skipped": false
+    },
+    {
+      "id": "guard:static-registry",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 753,
+      "skipped": false
+    },
+    {
+      "id": "stress-tenant-context-switch",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1433,
+      "skipped": false
+    },
+    {
+      "id": "verify-als-request-cleanup",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1703,
+      "skipped": false
+    },
+    {
+      "id": "isolation-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 11427,
+      "skipped": false
+    },
+    {
+      "id": "observability-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 4868,
+      "skipped": false
+    },
+    {
+      "id": "step3-medium-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1594,
+      "skipped": false
+    },
+    {
+      "id": "p2-zero-debt-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1394,
+      "skipped": false
+    },
+    {
+      "id": "postgres-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 2366,
+      "skipped": false
+    }
+  ]
+}

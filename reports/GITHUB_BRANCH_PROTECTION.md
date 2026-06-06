@@ -1,35 +1,81 @@
-# GitHub — Phase 0 CI & branch protection (P0-OPS-01 / P0-OPS-03)
+# GitHub — CI & branch protection (Phase 0 + Phase 1)
+
+## Phase 0
 
 **Workflow:** [`.github/workflows/phase-0-gate.yml`](../.github/workflows/phase-0-gate.yml)
 
-| Job | Required for merge? | Command parity |
-|-----|---------------------|----------------|
-| **Phase 0 foundation gate** | **Yes** (recommended) | `pnpm run phase-0:foundation-gate` |
-| **Phase 0 integration gate** | Team policy (trunk integrity) | `pnpm run phase-0:integration-gate` |
+| Job                          | Required for merge? | Command parity                                                      |
+| ---------------------------- | ------------------- | ------------------------------------------------------------------- |
+| **Phase 0 foundation gate**  | **Yes**             | `pnpm run phase-0:covenant-gate` (alias: `phase-0:foundation-gate`) |
+| **Phase 0 integration gate** | **Yes**             | `pnpm run phase-0:trunk-gate` (alias: `phase-0:integration-gate`)   |
 
-## Verified remote run (2026-06-03)
-
-| Commit | Workflow run | Foundation gate | Integration gate |
-|--------|--------------|-----------------|------------------|
-| `06f747f` | [Actions run 26900279746](https://github.com/hrokhbakhsh1991/docs/actions/runs/26900279746) | success | success |
-
-## Steps (human / admin)
-
-1. Push branch with Phase 0 fixes to `origin` and open PR → `main`. _(Done: `main` @ `06f747f`)_
-2. Confirm both jobs green under **Actions** → `phase-0-gate`. _(Done — see table above.)_
-3. **Settings → Branches → Branch protection** for `main`:
-   - Require status check: **Phase 0 foundation gate** (exact job name from workflow).
-   - Optionally also: **Phase 0 integration gate**.
-4. Save; re-run failed jobs if cache/Node drift.
-
-## Local verification (before push)
+### Local verification (before push)
 
 ```bash
 nvm use 24
 export PATH="$(dirname "$(nvm which 24)"):$PATH"
 cd /home/hamed/Music/docs
-pnpm run phase-0:gate
+pnpm run phase-0:covenant-gate && pnpm run phase-0:trunk-gate
+# equivalent: pnpm run phase-0:gate
 ```
+
+Artifacts: `reports/phase-0-foundation-gate-*.json` (covenant job via SDK tests) · `reports/phase-0-integration-gate-*.json` (trunk job).
+
+---
+
+## Phase 1
+
+**Workflow:** [`.github/workflows/phase-1-gate.yml`](../.github/workflows/phase-1-gate.yml)
+
+| Job                            | Required for merge?                | Command parity          |
+| ------------------------------ | ---------------------------------- | ----------------------- |
+| **Phase 1 platform-core gate** | **Yes** (recommended with Phase 0) | `pnpm run phase-1:gate` |
+
+### Local verification
+
+```bash
+nvm use 24
+export PATH="$(dirname "$(nvm which 24)"):$PATH"
+cd /home/hamed/Music/docs
+pnpm run phase-1:gate
+```
+
+Artifact: `reports/phase-1-guard-*.json` · architect sign-off: [`phase-1-architect-signoff-checklist-2026-06-03.md`](phase-1-architect-signoff-checklist-2026-06-03.md)
+
+---
+
+## Branch protection for `main` (admin)
+
+Prerequisite: at least one green run on `main` (or a PR) so GitHub lists the job names.
+
+### Option A — UI
+
+1. Push to `origin` and confirm jobs green under **Actions**.
+2. **Settings → Branches → Branch protection rules → `main`** (edit or create):
+   - **Require status checks to pass before merging**
+   - Enable:
+     - **Phase 0 foundation gate**
+     - **Phase 0 integration gate**
+     - **Phase 1 platform-core gate** ← exact job `name:` from workflow
+3. Save.
+
+### Option B — CLI (after `gh auth login`)
+
+Adds **Phase 0 + Phase 1** required checks while preserving existing contexts:
+
+```bash
+gh auth login
+cd /home/hamed/Music/docs
+pnpm run ops:branch-protection:main
+```
+
+Alias (same script): `pnpm run ops:branch-protection:phase-1`
+
+Requires repo **admin** on `hrokhbakhsh1991/docs`.
+
+**Prerequisite:** at least one green Actions run on `main` (or a PR) so GitHub exposes the job names above.
+
+---
 
 ## PR hygiene (§12 #8)
 

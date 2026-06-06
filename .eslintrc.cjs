@@ -6,7 +6,8 @@ module.exports = {
   parserOptions: {
     project: [
       "./packages/workspace-sdk/tsconfig.json",
-      "./packages/platform-core/tsconfig.json",
+      "./packages/workspace-sdk/tsconfig.test.json",
+      "./packages/platform-core/tsconfig.eslint.json",
     ],
     tsconfigRootDir: __dirname,
   },
@@ -20,7 +21,8 @@ module.exports = {
         alwaysTryTypes: true,
         project: [
           "./packages/workspace-sdk/tsconfig.json",
-          "./packages/platform-core/tsconfig.json",
+          "./packages/workspace-sdk/tsconfig.test.json",
+          "./packages/platform-core/tsconfig.eslint.json",
         ],
       },
     },

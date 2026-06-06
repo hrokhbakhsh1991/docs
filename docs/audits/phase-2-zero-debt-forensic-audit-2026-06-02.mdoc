@@ -58,13 +58,13 @@ dist/utils:     cn.d.ts, cn.js
 
 #### `package.json` `exports` map (explicit paths only)
 
-| Export subpath | Declared paths |
-|----------------|----------------|
-| `./button` | `dist/Button/Button.d.ts`, `dist/Button/Button.js` |
-| `./input` | `dist/Input/Input.d.ts`, `dist/Input/Input.js` |
+| Export subpath  | Declared paths                                                     |
+| --------------- | ------------------------------------------------------------------ |
+| `./button`      | `dist/Button/Button.d.ts`, `dist/Button/Button.js`                 |
+| `./input`       | `dist/Input/Input.d.ts`, `dist/Input/Input.js`                     |
 | `./field-shell` | `dist/FieldShell/FieldShell.d.ts`, `dist/FieldShell/FieldShell.js` |
-| `./alert` | `dist/Alert/Alert.d.ts`, `dist/Alert/Alert.js` |
-| `./badge` | `dist/Badge/Badge.d.ts`, `dist/Badge/Badge.js` |
+| `./alert`       | `dist/Alert/Alert.d.ts`, `dist/Alert/Alert.js`                     |
+| `./badge`       | `dist/Badge/Badge.d.ts`, `dist/Badge/Badge.js`                     |
 
 #### `package.json` `files` whitelist (directory prefixes)
 
@@ -77,25 +77,25 @@ dist/utils:     cn.d.ts, cn.js
 
 #### Per-file cross-reference
 
-| File (relative to package) | In `exports`? | In `files` whitelist? | Classification |
-|----------------------------|---------------|------------------------|----------------|
-| `dist/Alert/Alert.d.ts` | Yes (`./alert` types) | Yes (`dist/Alert`) | Public export surface |
-| `dist/Alert/Alert.js` | Yes (`./alert` default) | Yes | Public export surface |
-| `dist/Alert/Alert.module.css` | No | Yes | Supporting artifact (CSS side-effect); not SB-02 |
-| `dist/Badge/Badge.d.ts` | Yes | Yes | Public export surface |
-| `dist/Badge/Badge.js` | Yes | Yes | Public export surface |
-| `dist/Badge/Badge.module.css` | No | Yes | Supporting artifact; not SB-02 |
-| `dist/Button/Button.d.ts` | Yes | Yes | Public export surface |
-| `dist/Button/Button.js` | Yes | Yes | Public export surface |
-| `dist/Button/Button.module.css` | No | Yes | Supporting artifact; not SB-02 |
-| `dist/FieldShell/FieldShell.d.ts` | Yes | Yes | Public export surface |
-| `dist/FieldShell/FieldShell.js` | Yes | Yes | Public export surface |
-| `dist/FieldShell/FieldShell.module.css` | No | Yes | Supporting artifact; not SB-02 |
-| `dist/Input/Input.d.ts` | Yes | Yes | Public export surface |
-| `dist/Input/Input.js` | Yes | Yes | Public export surface |
-| `dist/Input/Input.module.css` | No | Yes | Supporting artifact; not SB-02 |
-| `dist/utils/cn.d.ts` | No | Yes (`dist/utils`) | Internal runtime helper; not SB-02 |
-| `dist/utils/cn.js` | No | Yes | Internal runtime helper; not SB-02 |
+| File (relative to package)              | In `exports`?           | In `files` whitelist? | Classification                                   |
+| --------------------------------------- | ----------------------- | --------------------- | ------------------------------------------------ |
+| `dist/Alert/Alert.d.ts`                 | Yes (`./alert` types)   | Yes (`dist/Alert`)    | Public export surface                            |
+| `dist/Alert/Alert.js`                   | Yes (`./alert` default) | Yes                   | Public export surface                            |
+| `dist/Alert/Alert.module.css`           | No                      | Yes                   | Supporting artifact (CSS side-effect); not SB-02 |
+| `dist/Badge/Badge.d.ts`                 | Yes                     | Yes                   | Public export surface                            |
+| `dist/Badge/Badge.js`                   | Yes                     | Yes                   | Public export surface                            |
+| `dist/Badge/Badge.module.css`           | No                      | Yes                   | Supporting artifact; not SB-02                   |
+| `dist/Button/Button.d.ts`               | Yes                     | Yes                   | Public export surface                            |
+| `dist/Button/Button.js`                 | Yes                     | Yes                   | Public export surface                            |
+| `dist/Button/Button.module.css`         | No                      | Yes                   | Supporting artifact; not SB-02                   |
+| `dist/FieldShell/FieldShell.d.ts`       | Yes                     | Yes                   | Public export surface                            |
+| `dist/FieldShell/FieldShell.js`         | Yes                     | Yes                   | Public export surface                            |
+| `dist/FieldShell/FieldShell.module.css` | No                      | Yes                   | Supporting artifact; not SB-02                   |
+| `dist/Input/Input.d.ts`                 | Yes                     | Yes                   | Public export surface                            |
+| `dist/Input/Input.js`                   | Yes                     | Yes                   | Public export surface                            |
+| `dist/Input/Input.module.css`           | No                      | Yes                   | Supporting artifact; not SB-02                   |
+| `dist/utils/cn.d.ts`                    | No                      | Yes (`dist/utils`)    | Internal runtime helper; not SB-02               |
+| `dist/utils/cn.js`                      | No                      | Yes                   | Internal runtime helper; not SB-02               |
 
 #### SB-02 Security Debt (`dist/` file ∉ `exports` AND ∉ `files`)
 
@@ -123,9 +123,9 @@ dist/workspace/ normalize-workspace-theme-style.{d.ts,js}
 
 #### `package.json` `exports` map
 
-| Export key | Declared paths |
-|------------|----------------|
-| `.` | `dist/index.d.ts`, `dist/index.js` |
+| Export key | Declared paths                     |
+| ---------- | ---------------------------------- |
+| `.`        | `dist/index.d.ts`, `dist/index.js` |
 
 #### `package.json` `files` whitelist
 
@@ -134,14 +134,14 @@ dist/workspace/ normalize-workspace-theme-style.{d.ts,js}
 
 #### Per-file cross-reference (summary)
 
-| Area | Files | In `exports`? | In `files`? | Classification |
-|------|-------|---------------|-------------|----------------|
-| Root | `index.js`, `index.d.ts` | Yes | Yes | Public entry |
-| `dist/ingress/**` (4) | No | Yes (`dist/ingress`) | L-01 internal; bundled via providers; **not SB-02** |
-| `dist/providers/**` (8) | No | Yes | L-01 internal; **not SB-02** |
-| `dist/tenant/**` (2) | No | Yes | L-01 internal; **not SB-02** |
-| `dist/types/**` (2) | No | Yes | L-01 internal; **not SB-02** |
-| `dist/workspace/**` (2) | No | Yes | L-01 internal; **not SB-02** |
+| Area                    | Files                    | In `exports`?        | In `files`?                                         | Classification |
+| ----------------------- | ------------------------ | -------------------- | --------------------------------------------------- | -------------- |
+| Root                    | `index.js`, `index.d.ts` | Yes                  | Yes                                                 | Public entry   |
+| `dist/ingress/**` (4)   | No                       | Yes (`dist/ingress`) | L-01 internal; bundled via providers; **not SB-02** |
+| `dist/providers/**` (8) | No                       | Yes                  | L-01 internal; **not SB-02**                        |
+| `dist/tenant/**` (2)    | No                       | Yes                  | L-01 internal; **not SB-02**                        |
+| `dist/types/**` (2)     | No                       | Yes                  | L-01 internal; **not SB-02**                        |
+| `dist/workspace/**` (2) | No                       | Yes                  | L-01 internal; **not SB-02**                        |
 
 **Notable forensic path (historical SB-02 concern):**
 
@@ -163,29 +163,29 @@ grep -rE 'padding:|font-weight:|line-height:|width:' packages/ui-primitives/dist
 
 ### 2.2 Raw grep hits (all matches)
 
-| File | Line | Content |
-|------|------|---------|
-| `packages/ui-primitives/dist/Input/Input.module.css` | 3 | `padding: var(--space-3) var(--space-4);` |
-| `packages/ui-primitives/dist/Input/Input.module.css` | 6 | `line-height: var(--text-body-leading);` |
-| `packages/ui-primitives/dist/Input/Input.module.css` | 11 | `width: var(--layout-width-full);` |
-| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 9 | `font-weight: var(--font-weight-semibold);` |
-| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 10 | `line-height: var(--text-small-leading);` |
-| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 22 | `line-height: var(--text-small-leading);` |
-| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 29 | `line-height: var(--text-small-leading);` |
-| `packages/ui-primitives/dist/Button/Button.module.css` | 7 | `font-weight: var(--font-weight-semibold);` |
-| `packages/ui-primitives/dist/Button/Button.module.css` | 12 | `padding: var(--space-0) var(--space-4);` |
-| `packages/ui-primitives/dist/Button/Button.module.css` | 14 | `line-height: var(--text-body-leading);` |
-| `packages/ui-primitives/dist/Badge/Badge.module.css` | 5 | `padding: var(--space-1) var(--space-3);` |
-| `packages/ui-primitives/dist/Badge/Badge.module.css` | 8 | `font-weight: var(--text-micro-weight);` |
-| `packages/ui-primitives/dist/Badge/Badge.module.css` | 9 | `line-height: var(--text-micro-leading);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 6 | `padding: var(--space-4);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 13 | `width: var(--layout-icon-slot);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 17 | `font-weight: var(--font-weight-semibold);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 18 | `line-height: var(--line-height-tight);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 26 | `min-width: var(--layout-min-width-none);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 32 | `font-weight: var(--font-weight-semibold);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 33 | `line-height: var(--text-small-leading);` |
-| `packages/ui-primitives/dist/Alert/Alert.module.css` | 39 | `line-height: var(--text-small-leading);` |
+| File                                                           | Line | Content                                     |
+| -------------------------------------------------------------- | ---- | ------------------------------------------- |
+| `packages/ui-primitives/dist/Input/Input.module.css`           | 3    | `padding: var(--space-3) var(--space-4);`   |
+| `packages/ui-primitives/dist/Input/Input.module.css`           | 6    | `line-height: var(--text-body-leading);`    |
+| `packages/ui-primitives/dist/Input/Input.module.css`           | 11   | `width: var(--layout-width-full);`          |
+| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 9    | `font-weight: var(--font-weight-semibold);` |
+| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 10   | `line-height: var(--text-small-leading);`   |
+| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 22   | `line-height: var(--text-small-leading);`   |
+| `packages/ui-primitives/dist/FieldShell/FieldShell.module.css` | 29   | `line-height: var(--text-small-leading);`   |
+| `packages/ui-primitives/dist/Button/Button.module.css`         | 7    | `font-weight: var(--font-weight-semibold);` |
+| `packages/ui-primitives/dist/Button/Button.module.css`         | 12   | `padding: var(--space-0) var(--space-4);`   |
+| `packages/ui-primitives/dist/Button/Button.module.css`         | 14   | `line-height: var(--text-body-leading);`    |
+| `packages/ui-primitives/dist/Badge/Badge.module.css`           | 5    | `padding: var(--space-1) var(--space-3);`   |
+| `packages/ui-primitives/dist/Badge/Badge.module.css`           | 8    | `font-weight: var(--text-micro-weight);`    |
+| `packages/ui-primitives/dist/Badge/Badge.module.css`           | 9    | `line-height: var(--text-micro-leading);`   |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 6    | `padding: var(--space-4);`                  |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 13   | `width: var(--layout-icon-slot);`           |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 17   | `font-weight: var(--font-weight-semibold);` |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 18   | `line-height: var(--line-height-tight);`    |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 26   | `min-width: var(--layout-min-width-none);`  |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 32   | `font-weight: var(--font-weight-semibold);` |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 33   | `line-height: var(--text-small-leading);`   |
+| `packages/ui-primitives/dist/Alert/Alert.module.css`           | 39   | `line-height: var(--text-small-leading);`   |
 
 ### 2.3 Supplemental literal hunt (stricter)
 
@@ -216,19 +216,19 @@ grep -rE ':\s*[0-9]|:\s*inherit|:\s*nowrap|:\s*#[0-9a-fA-F]|:\s*solid\s|:\s*flex
 
 ### 3.3 Barrel import violations (consumer code)
 
-| File path | Violation? | Notes |
-|-----------|------------|-------|
-| *(none)* | No | Zero runtime/import statements resolving barrel |
+| File path | Violation? | Notes                                           |
+| --------- | ---------- | ----------------------------------------------- |
+| _(none)_  | No         | Zero runtime/import statements resolving barrel |
 
 ### 3.4 Related references (non-violations)
 
-| File path | Content | Why not a violation |
-|-----------|---------|---------------------|
-| `packages/ui-primitives/src/index.ts` | Deprecated stub; `export {}`; comment only | Excluded from `tsconfig.build.json`; **not emitted** to `dist/` |
-| `scripts/guards/audit-ui-primitives-boundary.mjs` | Guard script strings | Tooling, not consumer import |
-| `scripts/guards/import-boundary-ast.mjs` | AST guard for barrel | Enforcement |
-| `scripts/guards/phase-2-guard.mjs` | `pnpm --filter @app-tour/ui-primitives` | Package name in CLI, not import |
-| `scripts/guards/artifact-surface-guard.mjs` | Package id string | Tooling |
+| File path                                         | Content                                    | Why not a violation                                             |
+| ------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `packages/ui-primitives/src/index.ts`             | Deprecated stub; `export {}`; comment only | Excluded from `tsconfig.build.json`; **not emitted** to `dist/` |
+| `scripts/guards/audit-ui-primitives-boundary.mjs` | Guard script strings                       | Tooling, not consumer import                                    |
+| `scripts/guards/import-boundary-ast.mjs`          | AST guard for barrel                       | Enforcement                                                     |
+| `scripts/guards/phase-2-guard.mjs`                | `pnpm --filter @app-tour/ui-primitives`    | Package name in CLI, not import                                 |
+| `scripts/guards/artifact-surface-guard.mjs`       | Package id string                          | Tooling                                                         |
 
 ### 3.5 Enforcement scripts (PASS at audit)
 
@@ -287,7 +287,7 @@ Registered in `main()` checks array (required).
 
 ### 4.3 Exact change (only if enforcement were missing)
 
-*Hypothetical — not required today.* Apply both hunks:
+_Hypothetical — not required today._ Apply both hunks:
 
 **`package.json`** — add to `scripts` and append to `phase-2:gate`:
 
@@ -332,12 +332,12 @@ function checkArtifactSurfaceGuard() {
 
 ### 5.1 Debt Score: **94 / 100**
 
-| Dimension | Weight | Score | Notes |
-|-----------|--------|-------|-------|
-| SB-02 artifact leakage | 30 | 30 | 0 undeclared `dist/` files |
-| CSS purity in published `dist/` | 25 | 25 | 0 literal violations |
-| Import boundary (barrel) | 25 | 22 | Guards PASS; **no `apps/` consumers yet** (−3) |
-| CI gate enforcement | 20 | 17 | `phase-2:gate` + `p2_artifact_surface_guard` green; root `build` omits guard (−3) |
+| Dimension                       | Weight | Score | Notes                                                                             |
+| ------------------------------- | ------ | ----- | --------------------------------------------------------------------------------- |
+| SB-02 artifact leakage          | 30     | 30    | 0 undeclared `dist/` files                                                        |
+| CSS purity in published `dist/` | 25     | 25    | 0 literal violations                                                              |
+| Import boundary (barrel)        | 25     | 22    | Guards PASS; **no `apps/` consumers yet** (−3)                                    |
+| CI gate enforcement             | 20     | 17    | `phase-2:gate` + `p2_artifact_surface_guard` green; root `build` omits guard (−3) |
 
 ### 5.2 Compliance status
 
@@ -362,17 +362,17 @@ Phase 2 publish surfaces audited here meet the **Zero-Debt technical bar** for a
 
 ## 6. Phase 2 Closure — All Checks Passed (2026-06-04)
 
-| Field | Value |
-|-------|--------|
-| **Event** | Process infrastructure aligned with Phase 1 — **locked** |
-| **Git SHA** | `8fcee69` |
-| **Commands** | `pnpm run phase-2:gate` **PASS** (15/15) · `test:phase-2` **10/10** |
-| **R2-P0-01** | `scripts/ci-integrity-check.sh` includes full `phase-2:gate` |
+| Field        | Value                                                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Event**    | Process infrastructure aligned with Phase 1 — **locked**                                                                                              |
+| **Git SHA**  | `8fcee69`                                                                                                                                             |
+| **Commands** | `pnpm run phase-2:gate` **PASS** (15/15) · `test:phase-2` **10/10**                                                                                   |
+| **R2-P0-01** | `scripts/ci-integrity-check.sh` includes full `phase-2:gate`                                                                                          |
 | **R2-P0-02** | [`packages/platform-core/test/phase-2.contract.spec.ts`](../../packages/platform-core/test/phase-2.contract.spec.ts) — `p2_phase2_contract_behaviors` |
-| **Sign-off** | [`reports/phase-2-closure-signoff-2026-06-04.md`](../../reports/phase-2-closure-signoff-2026-06-04.md) |
+| **Sign-off** | [`reports/phase-2-closure-signoff-2026-06-04.md`](../../reports/phase-2-closure-signoff-2026-06-04.md)                                                |
 
 **Attestation:** SB-01/02/03 remediations remain valid; behavioral contract enforces barrel ban, internal theme leakage ban, and platform-core visual dependency purity on every `ci:integrity` run.
 
 > **LOCK:** Phase 2 publish surfaces + process gates frozen until Phase 3 doc-first changes. Do not weaken `p2_phase2_contract_behaviors` without Markdoc update.
 
-*End of report.*
+_End of report._

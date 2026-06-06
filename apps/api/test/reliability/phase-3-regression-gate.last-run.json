@@ -1,0 +1,269 @@
+{
+  "gate": "phase-3-regression-gate",
+  "decision": "DEC-057",
+  "startedAt": "2026-06-06T01:41:57.396Z",
+  "finishedAt": "2026-06-06T01:43:00.088Z",
+  "databaseUrlSet": false,
+  "verdict": "PASS",
+  "steps": [
+    {
+      "id": "guard:http-body-limit",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 741,
+      "skipped": false
+    },
+    {
+      "id": "guard:http-response-size-budget",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 639,
+      "skipped": false
+    },
+    {
+      "id": "guard:rate-limit-theme-cache",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 624,
+      "skipped": false
+    },
+    {
+      "id": "guard:validation-queue-depth",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 693,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-db-budget",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 740,
+      "skipped": false
+    },
+    {
+      "id": "guard:validation-workers",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 684,
+      "skipped": false
+    },
+    {
+      "id": "guard:rate-limiter-100-probe",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 602,
+      "skipped": false
+    },
+    {
+      "id": "guard:production-storage-driver",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 574,
+      "skipped": false
+    },
+    {
+      "id": "guard:cold-start-readiness-gate",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 649,
+      "skipped": false
+    },
+    {
+      "id": "guard:cold-start-tsx-waiver",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 595,
+      "skipped": false
+    },
+    {
+      "id": "guard:log-backpressure-contract",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 782,
+      "skipped": false
+    },
+    {
+      "id": "guard:fof-log-03-shutdown-tail",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 578,
+      "skipped": false
+    },
+    {
+      "id": "guard:tour-write-concurrency",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 608,
+      "skipped": false
+    },
+    {
+      "id": "guard:production-redis-url",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 700,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-tenant-budget",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 824,
+      "skipped": false
+    },
+    {
+      "id": "guard:http-idempotency-memory-bounds",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 751,
+      "skipped": false
+    },
+    {
+      "id": "guard:tenant-registry-cache-bounds",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 967,
+      "skipped": false
+    },
+    {
+      "id": "guard:bulk-import-victim-slo",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 905,
+      "skipped": false
+    },
+    {
+      "id": "guard:health-priority-lane",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 747,
+      "skipped": false
+    },
+    {
+      "id": "guard:health-probe-latency-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 698,
+      "skipped": false
+    },
+    {
+      "id": "guard:pool-leak-post-storm",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 572,
+      "skipped": false
+    },
+    {
+      "id": "guard:admin-pool-read-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 580,
+      "skipped": false
+    },
+    {
+      "id": "guard:validation-queue-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 613,
+      "skipped": false
+    },
+    {
+      "id": "guard:tour-write-concurrency-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 606,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 566,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-pool-contention",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 571,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-tick-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 556,
+      "skipped": false
+    },
+    {
+      "id": "guard:phase3-doc-alignment",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 648,
+      "skipped": false
+    },
+    {
+      "id": "guard:outbox-relay-lag-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 582,
+      "skipped": false
+    },
+    {
+      "id": "guard:deploy-hpa",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 573,
+      "skipped": false
+    },
+    {
+      "id": "guard:http-json-pressure-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 553,
+      "skipped": false
+    },
+    {
+      "id": "guard:redis-rate-limiter-fallback",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 595,
+      "skipped": false
+    },
+    {
+      "id": "guard:domain-event-async-dispatch",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 560,
+      "skipped": false
+    },
+    {
+      "id": "guard:domain-event-handler-monitor",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 554,
+      "skipped": false
+    },
+    {
+      "id": "phase3-p0-closure-specs",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 14689,
+      "skipped": false
+    },
+    {
+      "id": "build-dist",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 23302,
+      "skipped": false
+    },
+    {
+      "id": "cold-start-readiness-gate",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 2453,
+      "skipped": false
+    }
+  ]
+}

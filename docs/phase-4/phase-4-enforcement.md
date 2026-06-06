@@ -1,4 +1,6 @@
-## PHASE 4 ENFORCEMENT — VERIFICATION TABLE (§14)
+## PHASE 4 ENFORCEMENT — VERIFICATION TABLE
+
+> **CI binding:** [`ci.md`](ci.md) · **p4_* guards:** [`phase-4-guard.md`](phase-4-guard.md) · **Subphase map:** [`audits/subphase-enforcement-map.md`](audits/subphase-enforcement-map.md) · **Observability (scaffold):** [`appendices/observability.md`](appendices/observability.md)
 
 ```yaml
 verification_table:
@@ -42,16 +44,33 @@ verification_table:
     id: P4-E-REG-03
     mechanism: "phase-3:gate inside phase-4:gate"
     FAIL_if: "phase-3:gate fails"
+  - claim: "Phase 4 closure gate"
+    id: P4-E-GATE
+    mechanism: "pnpm run phase-4:gate — build test phase-3:gate phase-4:guard"
+    FAIL_if: "any step exit non-zero or p4_* check fails"
 
 grep_only_rule:
   status: SUPPLEMENTARY_ONLY
   forbidden: "sole closure proof"
   ref: MIGRATION-MAP.md §20
+
+anti_hollow_rule:
+  status: MANDATORY
+  doc: appendices/anti-hollow-contract.md
+  ledger: audits/IMPLEMENTATION-TRUTH.md
+  guard: p4_anti_hollow_tests
+  forbidden: "P4-E PASS with empty test body or doc-only PR"
+
+observability_scaffold:
+  status: RECOMMENDED_NOT_GATING
+  doc: appendices/observability.md
+  rule: "Structured logs + correlation ID on API — no new P4-E-* required for Phase 4 merge"
+  deferred_full_stack: "OpenTelemetry Phase 7 per MAP §10"
 ```
 
 ---
 
-## FORBIDDEN ACTIONS (§15)
+## FORBIDDEN ACTIONS
 
 ```yaml
 forbidden_phase_4:
@@ -85,7 +104,7 @@ forbidden_phase_4:
 
 ---
 
-## DEFINITION OF DONE — PHASE 4 (§16)
+## DEFINITION OF DONE — PHASE 4
 
 ```yaml
 phase_4_dod_hard:
@@ -111,51 +130,68 @@ phase_4_dod_hard:
   - id: DOD-10
     item: "Forensic audit archived Purity >= 8"
   - id: DOD-11
-    item: "Verification table §14.1 = CI 1:1"
+    item: "verification-matrix.md each P4-E-* has CI mechanism — step 4.6-S3"
   - id: DOD-12
-    item: "guard:doc-sync phase 4 in docs/phase-registry.json"
+    item: "guard:doc-sync phases 4–5 in docs/phase-registry.json"
 
-forensic_truth_mandatory_MAP_14_4:
-  - claim: "Multi-tenant enterprise"
-    reality_until: "P4-E-DATA-01 green"
-    status: Aspirational_until_4_2
-  - claim: "Subdomain routing"
-    reality: "host parse 4.1 DB lookup 4.2"
-    status: Partial_until_provision
-  - claim: "Phase 3 Zero-Debt"
-    reality: "gate scaffold not tenant production"
-    status: Enforced_honesty_4_0_separate
-  - claim: "ThemeProviderChain order"
-    reality: "fixed phase 2/3 Tenant operational 4.4"
-    status: "FORBIDDEN swap with Workspace"
-  - claim: "@casl/prisma runtime"
-    reality: "phase 3 in-memory reference"
-    status: "4.2 Postgres path required"
-  - claim: "JWT production auth"
-    reality: "slot in API OTP may stub"
-    status: Aspirational_if_stub_only
-  - claim: "Hybrid silo TenantRoute"
-    reality: "interface 4.1 only"
-    status: Aspirational_until_phase_7
-  - claim: "Transactional outbox"
-    reality: "in-process 4.5 only"
-    status: Deferred_phase_5
-  - claim: "Playwright subdomain"
-    status: Backlog_soft
+status_constraints:
+  ENFORCED:
+    - id: P4-SC-01
+      claim: ThemeProviderChain order fixed
+      constraint: FORBIDDEN swap Tenant with Workspace
+      verify: code review + phase-4 forbidden list
+    - id: P4-SC-02
+      claim: Phase 3 honesty separate from Phase 4 production
+      constraint: 4.0 closes red flags before 4.1 merge
+      verify: P4-E-RF-40
+  ASPIRATIONAL:
+    - id: P4-SC-10
+      claim: Multi-tenant enterprise production SoT
+      until_enforced: P4-E-DATA-01 PASS
+      on_claim_before: FAIL marketing closure
+    - id: P4-SC-11
+      claim: JWT production auth
+      until_enforced: prod-like env rejects dev bearer
+      verify: P4-E-AUTH-01
+  DEFERRED:
+    - id: P4-SC-20
+      claim: Transactional outbox
+      phase: "5"
+      phase_4_allowed: in-process bus only P4-E-EVT-01
+    - id: P4-SC-21
+      claim: Hybrid silo TenantRoute
+      phase: "7"
+      phase_4_allowed: interface stub 4.1 only
+  BACKLOG_SOFT:
+    - id: P4-SC-30
+      claim: Playwright subdomain e2e
+      does_not_block: phase_4_dod hard items except optional forensic note
 ```
 
 ---
 
-## PHASE 5 ENTRY CHECKLIST (§17)
+## PHASE 5 ENTRY CHECKLIST
 
 ```yaml
+phase_5_entry_requires_modular:
+  - item: "Phase 4 subphases 4.0–4.6 exit criteria PASS per subphases/*.md completion_proof"
+    owner: docs/phase-4/subphases/
+  - item: "Workspace interoperability model acknowledged"
+    owner: docs/phase-4/appendices/workspace-interoperability-model.md
+  - item: "pnpm run phase-4:gate exit 0"
+    owner: package.json
+  - item: "Forensic Phase 4 archived docs/audits/phase-4-zero-debt-forensic-audit.mdoc"
+  - item: "Postgres SoT tours — STORAGE_DRIVER=prisma in production"
+    owner: apps/api/src/storage/create-tour-storage.ts
+  - item: "RLS on tours (+ policies for new tables in Phase 5)"
+  - item: "Event bus hook points exist — outbox table NOT required at Phase 4 exit"
+
+phase_5_entry_human_optional_T3:
+  - "docs/phase-4-tenant-kernel.md sections 8-16 — narrative only; modular tree is execution SoT"
+
+# Legacy single-line (retired for agents — use modular list above)
 phase_5_entry_requires:
-  - "docs/phase-4-tenant-kernel.md sections 8-16 complete"
-  - "pnpm run phase-4:gate exit 0"
-  - "Forensic Phase 4 archived docs/audits/phase-4-zero-debt-forensic-audit.mdoc"
-  - "Postgres SoT tours — NOT in-memory default production"
-  - "RLS migration applied all tenant tables"
-  - "Event bus hook points exist — outbox table NOT required"
+  - "See phase_5_entry_requires_modular — NOT monolith-only"
 phase_5_next:
   - "canonical_data JSONB"
   - "projected columns"
