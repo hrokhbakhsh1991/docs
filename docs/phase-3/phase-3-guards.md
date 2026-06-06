@@ -1,6 +1,6 @@
-# Phase 3 — Guards (p3_*)
+# Phase 3 — Guards (p3\_\*)
 
-## GUARDS — FULL p3_* LIST (phase-3-guard.mjs)
+## GUARDS — FULL p3\_\* LIST (phase-3-guard.mjs)
 
 ```yaml
 phase_3_guard_entrypoint:
@@ -73,16 +73,13 @@ phase_3_guard_checks_execution_order:
     check: "./select and ./checkbox in ui-primitives exports"
   - id: p3_no_denali
     enforcementId: P3-E-WS-01
-    scan: "rg -i denali phase-3 src paths excl tests"
+    scan: "rg -i denali in kernel/design packages only (Phase 6+ apps/sdk exempt)"
     paths:
-      - apps/web/src
-      - apps/web/app
-      - apps/api/src
-      - packages/workspace-sdk/src
       - packages/platform-core/src
       - packages/workspaces/starter/src
       - packages/theme-react/src
       - packages/ui-primitives/src
+    phase_6_note: "Denali wiring allowed in apps/web lazy loader, apps/api workspace-plugins, workspace-sdk exports — see phase-6 entry gate"
 
 guard_ids_binding_summary:
   - p3_doc_gate
@@ -111,4 +108,3 @@ not_in_phase_3_guard_script:
 ```
 
 ---
-

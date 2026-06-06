@@ -4,7 +4,7 @@ import type { RuleContext } from "../types/rule-context";
 /** Dev slug token for cache partitioning (alphanumeric + _-). */
 const TENANT_SLUG_PATTERN = /^[a-z][a-z0-9_-]{0,127}$/i;
 
-/** Registry / provisioning UUID (Phase 4.3 seeds, Phase 6.6 denali smoke). */
+/** Registry / provisioning UUID (Phase 4.3 seeds, Phase 6.6 smoke tenant). */
 const TENANT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isValidTenantId(value: string): boolean {

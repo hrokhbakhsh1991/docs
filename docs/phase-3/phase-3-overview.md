@@ -91,8 +91,8 @@ phase_2_to_3_risk_mitigation:
     rule: "wiring test + dist grep — P3-E-CSS-01"
   - risk: "Theme without CASL"
     rule: "ability.can before validateWorkspaceThemeIngress"
-  - risk: "Denali in shell"
-    rule: "static workspaces/denali FORBIDDEN until phase 6 — p3_no_denali"
+  - risk: "Denali in kernel/design packages"
+    rule: "p3_no_denali — platform-core/starter/theme-react/ui-primitives only; Phase 6 workspace lives under packages/workspaces/denali + approved apps wiring"
 
 phase_3_one_liner: >
   Starter workspace + thin web + api apps prove engine, tokens, primitives,
@@ -338,4 +338,3 @@ import_law_apps:
 ```
 
 ---
-
