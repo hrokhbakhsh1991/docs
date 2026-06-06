@@ -3,6 +3,7 @@
  */
 const WORKSPACE_SCHEMA_VERSION: Readonly<Record<string, number>> = {
   starter: 1,
+  denali: 1,
 };
 
 export function resolveWorkspaceCurrentSchemaVersion(workspaceType: string): number {

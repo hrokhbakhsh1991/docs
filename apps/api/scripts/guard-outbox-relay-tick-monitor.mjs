@@ -35,12 +35,16 @@ for (const rel of [
 
 const startRelay = readApi("src/outbox/start-outbox-relay.ts");
 if (!startRelay.includes("recordOutboxRelayTickSkipped")) {
-  violations.push("start-outbox-relay.ts must call recordOutboxRelayTickSkipped when running guard skips");
+  violations.push(
+    "start-outbox-relay.ts must call recordOutboxRelayTickSkipped when running guard skips"
+  );
 }
 
 const relay = readApi("src/outbox/outbox-relay.ts");
 if (!relay.includes("recordOutboxRelayTickResult")) {
-  violations.push("outbox-relay.ts must call recordOutboxRelayTickResult after publishClaimedBatch");
+  violations.push(
+    "outbox-relay.ts must call recordOutboxRelayTickResult after publishClaimedBatch"
+  );
 }
 
 const prom = readApi("src/observability/prometheus-format.ts");

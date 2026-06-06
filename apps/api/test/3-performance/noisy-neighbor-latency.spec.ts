@@ -135,7 +135,7 @@ async function runValidationStorm(tenantId: string, count: number): Promise<numb
     const slice = Math.min(batchSize, count - offset);
     await Promise.all(
       Array.from({ length: slice }, (_, index) =>
-        runScheduledValidation(tenantId, () =>
+        runScheduledValidation(tenantId, async () =>
           validateCanonicalBeforePersist(heavyValidationInput(tenantId, offset + index))
         )
       )

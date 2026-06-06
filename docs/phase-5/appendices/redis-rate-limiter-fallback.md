@@ -35,12 +35,12 @@ Explicit env overrides tier defaults for all routes.
 
 ## Implementation
 
-| Module                             | Role                                                         |
-| ---------------------------------- | ------------------------------------------------------------ |
-| `redis-rate-limiter-resilience.ts` | Policy resolver, circuit state, `isRedisInfrastructureError` |
+| Module                             | Role                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `redis-rate-limiter-resilience.ts` | Policy resolver, circuit state, `isRedisInfrastructureError`                                                        |
 | `redis-rate-limiter-store.ts`      | Wraps Redis + memory fallback; `retryStrategy: () => null` (no background reconnect); `disconnect()` closes ioredis |
-| `tenant-rate-limiter.ts`           | `RateLimiterRedisUnavailableError`, store factory; `resetTenantRateLimiterStoreForTests()` awaits Redis `quit()` |
-| `error-interceptor.ts`             | Maps unavailable → 503                                       |
+| `tenant-rate-limiter.ts`           | `RateLimiterRedisUnavailableError`, store factory; `resetTenantRateLimiterStoreForTests()` awaits Redis `quit()`    |
+| `error-interceptor.ts`             | Maps unavailable → 503                                                                                              |
 
 Consumer key format `{tenantId}:{read|write}` selects tier for policy when env unset.
 

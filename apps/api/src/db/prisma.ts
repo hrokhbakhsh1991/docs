@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
-import { PRODUCTION_DATABASE_URL_ADMIN_REQUIRED } from "../server/production-runtime-env";
+import { PRODUCTION_DATABASE_URL_ADMIN_REQUIRED } from "../server/production-env-codes";
 
 let client: PrismaClient | undefined;
 let adminClient: PrismaClient | undefined;

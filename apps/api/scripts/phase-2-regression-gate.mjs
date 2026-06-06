@@ -14,11 +14,15 @@ const HAS_DATABASE = Boolean(process.env.DATABASE_URL?.trim());
 
 const MEMORY_SPECS = [
   "src/http/bind-request-context.spec.ts",
+  "src/middleware/error-interceptor.spec.ts",
   "test/2-observability/access-log-correlation.spec.ts",
+  "test/2-observability/internal-route-correlation.spec.ts",
   "test/2-observability/log-privacy.spec.ts",
   "test/2-observability/trace-isolation.spec.ts",
   "test/2-observability/tenant-metrics.spec.ts",
   "src/observability/metrics.spec.ts",
+  "src/observability/internal-error-log-budget.spec.ts",
+  "src/observability/log-safety.spec.ts",
   "src/storage/forensic-storage-driver.spec.ts",
   "src/storage/create-tour-storage.spec.ts",
   "src/server/production-runtime-env.spec.ts",
@@ -36,6 +40,25 @@ const STEPS = [
   { id: "guard:tour-update-audit", cmd: ["pnpm", "run", "guard:tour-update-audit"] },
   { id: "guard:http-access-trace", cmd: ["pnpm", "run", "guard:http-access-trace"] },
   { id: "guard:tenant-metrics-labels", cmd: ["pnpm", "run", "guard:tenant-metrics-labels"] },
+  {
+    id: "guard:route-handler-async-hygiene",
+    cmd: ["pnpm", "run", "guard:route-handler-async-hygiene"],
+  },
+  {
+    id: "guard:internal-route-http-error",
+    cmd: ["pnpm", "run", "guard:internal-route-http-error"],
+  },
+  { id: "guard:http-send-json-5xx", cmd: ["pnpm", "run", "guard:http-send-json-5xx"] },
+  { id: "guard:tenant-provision-audit", cmd: ["pnpm", "run", "guard:tenant-provision-audit"] },
+  {
+    id: "guard:http-access-path-normalize",
+    cmd: ["pnpm", "run", "guard:http-access-path-normalize"],
+  },
+  { id: "guard:log-structured-hygiene", cmd: ["pnpm", "run", "guard:log-structured-hygiene"] },
+  {
+    id: "guard:internal-error-log-budget",
+    cmd: ["pnpm", "run", "guard:internal-error-log-budget"],
+  },
   {
     id: "verify-als-request-cleanup",
     cmd: ["npx", "tsx", "scripts/verify-als-request-cleanup.ts"],
@@ -79,7 +102,9 @@ const results = [];
 let failed = false;
 
 console.log("phase-2-regression-gate: starting (DEC-050)");
-console.log(`  DATABASE_URL: ${HAS_DATABASE ? "set (postgres tier enabled)" : "unset (postgres tier skipped)"}`);
+console.log(
+  `  DATABASE_URL: ${HAS_DATABASE ? "set (postgres tier enabled)" : "unset (postgres tier skipped)"}`
+);
 
 for (const step of STEPS) {
   console.log(`\n--- ${step.id} ---`);

@@ -47,6 +47,10 @@ Concurrent requests with the same key:
 
 Rationale: idempotency keys are scoped per `(tenant_id, idempotency_key)` in storage, but the `tenantId` parameter also drives `withTenantRls` session GUC on the Prisma path. A caller passing `tenantId=B` while ALS=A would open the wrong RLS session even though the map/unique key might still partition by B.
 
+## Terminal timestamps (DEC-084)
+
+Prisma path sets `completed_at = now()` via SQL on transition to `completed` — not app `new Date()`. See [`canonical-terminal-timestamps.md`](canonical-terminal-timestamps.md).
+
 ## Storage
 
 | Driver                  | Backend                                                                        |
@@ -63,6 +67,8 @@ Rationale: idempotency keys are scoped per `(tenant_id, idempotency_key)` in sto
 | Test hygiene        | `resetHttpIdempotencyMemoryForTests()` | Spec `before`/`after`                 |
 
 Processing claims are not TTL-evicted. Production auth mode always uses Prisma storage (DEC-GAP-03).
+
+**Phase 3 regression lock (DEC-067 / SCAL-DEBT-11):** `pnpm run guard:http-idempotency-memory-bounds` asserts TTL/LRU helpers remain in `http-idempotency.ts` and memory-bound spec stays in `phase-3:regression-gate`.
 
 ## Errors
 

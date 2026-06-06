@@ -1,58 +1,30 @@
-import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
 
-import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 
-import { RedisRateLimiterStore } from "./redis-rate-limiter-store";
-
-import { getPrismaAdmin } from "../db/prisma";
 import { sendJson } from "../http/json";
+import { requireActiveTraceId } from "../observability/trace-request-context";
+import { resolveTenantThemeJsonById } from "../tenant/resolve-registered-tenant";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
-import { isPersistedTenantUuid } from "../tenant/tenant-id-format";
-import { findTenantById, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
+import { RedisRateLimiterStore } from "./redis-rate-limiter-store";
+import { resolveTenantRateLimitConfig } from "./tenant-rate-limit-config";
+import type {
+  RateLimiterStore,
+  TenantRateLimitConfig,
+  TenantRateLimitTier,
+} from "./tenant-rate-limiter-types";
+import { isRateLimiterRejected, TenantRateLimitExceededError } from "./tenant-rate-limiter-errors";
 
-/**
- * Swappable backing store for per-tenant rate limits.
- * Phase 7.6 replaces {@link MemoryRateLimiterStore} with Redis (`RateLimiterRedis`)
- * while keeping the same `consume(tenantId)` contract — see DEC-015 / rate-limiting.md.
- */
-export interface RateLimiterStore {
-  consume(
-    tenantKey: string,
-    options?: { readonly points: number; readonly durationSec: number }
-  ): Promise<void>;
-}
-
-export type TenantRateLimitConfig = {
-  readonly enabled: boolean;
-  readonly points: number;
-  readonly durationSec: number;
-};
-
-export type TenantRateLimitTier = "read" | "write";
-
-export function resolveTenantRateLimitConfig(
-  env: NodeJS.ProcessEnv = process.env,
-  tier: TenantRateLimitTier = "write"
-): TenantRateLimitConfig {
-  const enabled = env.TENANT_RATE_LIMIT_ENABLED?.trim().toLowerCase() !== "false";
-  const pointsRaw =
-    tier === "read"
-      ? (env.TENANT_RATE_LIMIT_READ_POINTS ?? env.TENANT_RATE_LIMIT_POINTS ?? "50")
-      : (env.TENANT_RATE_LIMIT_POINTS ?? "50");
-  const points = Number.parseInt(pointsRaw, 10);
-  const durationSec = Number.parseInt(env.TENANT_RATE_LIMIT_DURATION_SEC ?? "1", 10);
-  return {
-    enabled:
-      enabled &&
-      Number.isFinite(points) &&
-      points > 0 &&
-      Number.isFinite(durationSec) &&
-      durationSec > 0,
-    points: Number.isFinite(points) && points > 0 ? points : 50,
-    durationSec: Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 1,
-  };
-}
+export type {
+  RateLimiterStore,
+  TenantRateLimitConfig,
+  TenantRateLimitTier,
+} from "./tenant-rate-limiter-types";
+export {
+  assertProductionRedisUrl,
+  PRODUCTION_REDIS_URL_REQUIRED,
+  resolveTenantRateLimitConfig,
+} from "./tenant-rate-limit-config";
 
 /**
  * Per-tenant RPS override from `tenants.theme` JSON.
@@ -81,42 +53,15 @@ export async function resolveEffectiveRateLimitForTenant(
   tenantId: string,
   base: TenantRateLimitConfig = resolveTenantRateLimitConfig()
 ): Promise<{ readonly points: number; readonly durationSec: number }> {
-  const normalized = tenantId.trim();
-
-  if (isStaticTenantRegistryAllowed()) {
-    const registered = findTenantById(normalized);
-    if (registered !== null) {
-      const rps = parseRateLimitRpsFromTheme(registered.theme);
-      if (rps !== undefined) {
-        return { points: Math.floor(rps), durationSec: base.durationSec };
-      }
-    }
-  }
-
-  if (!process.env.DATABASE_URL?.trim()) {
-    return { points: base.points, durationSec: base.durationSec };
-  }
-
-  if (!isPersistedTenantUuid(normalized)) {
-    return { points: base.points, durationSec: base.durationSec };
-  }
-
-  const row = await getPrismaAdmin().tenant.findUnique({
-    where: { id: normalized },
-    select: { theme: true },
-  });
-  if (row !== null) {
-    const rps = parseRateLimitRpsFromTheme(row.theme);
+  const theme = await resolveTenantThemeJsonById(tenantId);
+  if (theme !== null) {
+    const rps = parseRateLimitRpsFromTheme(theme);
     if (rps !== undefined) {
       return { points: Math.floor(rps), durationSec: base.durationSec };
     }
   }
 
   return { points: base.points, durationSec: base.durationSec };
-}
-
-function isRateLimiterRejected(error: unknown): error is RateLimiterRes {
-  return error instanceof RateLimiterRes;
 }
 
 function limiterConfigKey(points: number, durationSec: number): string {
@@ -160,14 +105,11 @@ export class MemoryRateLimiterStore implements RateLimiterStore {
   }
 }
 
-export class TenantRateLimitExceededError extends Error {
-  readonly code = "RATE_LIMIT_EXCEEDED" as const;
-
-  constructor(readonly retryAfterMs: number) {
-    super("RATE_LIMIT_EXCEEDED");
-    this.name = "TenantRateLimitExceededError";
-  }
-}
+export {
+  isRateLimiterRedisUnavailableError,
+  RateLimiterRedisUnavailableError,
+  TenantRateLimitExceededError,
+} from "./tenant-rate-limiter-errors";
 
 let sharedStore: RateLimiterStore | undefined;
 
@@ -181,14 +123,17 @@ export function getTenantRateLimiterStore(
     const redisUrl = process.env.REDIS_URL?.trim();
     sharedStore =
       redisUrl !== undefined && redisUrl.length > 0
-        ? new RedisRateLimiterStore(redisUrl, config)
+        ? new RedisRateLimiterStore(redisUrl, config, new MemoryRateLimiterStore(config))
         : new MemoryRateLimiterStore(config);
   }
   return sharedStore;
 }
 
 /** Test-only — reset singleton between node:test files. */
-export function resetTenantRateLimiterStoreForTests(): void {
+export async function resetTenantRateLimiterStoreForTests(): Promise<void> {
+  if (sharedStore instanceof RedisRateLimiterStore) {
+    await sharedStore.disconnect();
+  }
   sharedStore = undefined;
 }
 
@@ -220,10 +165,10 @@ export function sendTenantRateLimitExceeded(
 ): void {
   const retryAfterSec = retryAfterMs > 0 ? Math.ceil(retryAfterMs / 1000) : 1;
   res.setHeader("Retry-After", String(retryAfterSec));
-  const id = correlationId ?? randomUUID();
+  const id = correlationId ?? requireActiveTraceId();
   res.setHeader("x-correlation-id", id);
   sendJson(res, 429, {
-    error: "Rate limit exceeded",
+    error: "rate_limit_exceeded",
     code: "RATE_LIMIT_EXCEEDED",
     retryAfter: String(retryAfterSec),
     correlationId: id,

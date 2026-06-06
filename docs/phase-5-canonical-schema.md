@@ -167,6 +167,27 @@ projection_derivation_map:
   extension_phase_6: workspaces/denali — additional paths in DEL-P5-001 addendum
 ```
 
+### extension_phase_6 addendum (Denali — Phase 6.2 scaffold)
+
+> **Bridge:** [`phase-6/subphases/6.2-registry-rules.md`](phase-6/subphases/6.2-registry-rules.md) · **Plugin:** `packages/workspaces/denali`
+
+```yaml
+extension_phase_6_denali:
+  workspace_type: denali
+  status: SCAFFOLD_6_2
+  fields:
+    - source_json_path: "data.basicInfo.title"
+      column: tours.title
+      type: text
+      note: "maps via denali canonical adapter — full projection in 6.6"
+    - source_json_path: "data.basicInfo.tourType"
+      column: tours.canonical_data
+      type: jsonb_path
+      note: "classification for rule matrix — not a separate column at 6.2"
+  forbidden:
+    - "dual-write trip_details + canonical_data (DEC-P6-010)"
+```
+
 ---
 
 ## 6. Outbox state machine

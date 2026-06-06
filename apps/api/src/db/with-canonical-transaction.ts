@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { consumePreTransactionValidationGate } from "../canonical/pre-transaction-validation";
 import { getActiveTraceId } from "../observability/trace-request-context";
 import { withPoolSaturationMapping } from "./pool-saturation";
+import { withTenantDbBudget } from "./tenant-connection-budget";
+import { withTransientTxRetry } from "./with-transient-tx-retry";
 import { getPrisma } from "./prisma";
 import { assertActiveTenantMatchesRlsTarget } from "./assert-tenant-rls-alignment";
 import { applyTenantRlsSessionVars } from "./rls-session-vars";
@@ -22,10 +24,14 @@ export async function withCanonicalTransaction<T>(
   assertActiveTenantMatchesRlsTarget(normalized);
   consumePreTransactionValidationGate(normalized);
   const prisma = getPrisma();
-  return withPoolSaturationMapping(() =>
-    prisma.$transaction(async (tx) => {
-      await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
-      return fn(tx);
-    })
+  return withTransientTxRetry(() =>
+    withTenantDbBudget(normalized, () =>
+      withPoolSaturationMapping(() =>
+        prisma.$transaction(async (tx) => {
+          await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
+          return fn(tx);
+        })
+      )
+    )
   );
 }

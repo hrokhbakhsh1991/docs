@@ -54,14 +54,17 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
   const priorLimitPoints = process.env.TENANT_RATE_LIMIT_POINTS;
   const priorLimitDuration = process.env.TENANT_RATE_LIMIT_DURATION_SEC;
   const priorLimitEnabled = process.env.TENANT_RATE_LIMIT_ENABLED;
+  const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
 
-  before(() => {
-    resetTenantRateLimiterStoreForTests();
+  before(async () => {
+    await resetTenantRateLimiterStoreForTests();
     process.env.STORAGE_DRIVER = "memory";
     process.env.NODE_ENV = "test";
     process.env.TENANT_RATE_LIMIT_ENABLED = "true";
     process.env.TENANT_RATE_LIMIT_POINTS = String(LIMIT_POINTS);
     process.env.TENANT_RATE_LIMIT_DURATION_SEC = "1";
+    /** Burst exceeds default write cap (8); rate-limit 429 must not be conflated with tour-write shed. */
+    process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = String(BURST_A + BURST_B);
     listener = createRequestListener({ toursService: createTestToursService() });
     server = http.createServer(listener);
     return new Promise<void>((resolve) => {
@@ -76,13 +79,18 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
     });
   });
 
-  after(() => {
+  after(async () => {
     server.close();
-    resetTenantRateLimiterStoreForTests();
+    await resetTenantRateLimiterStoreForTests();
     process.env.STORAGE_DRIVER = priorStorageDriver;
     process.env.TENANT_RATE_LIMIT_POINTS = priorLimitPoints;
     process.env.TENANT_RATE_LIMIT_DURATION_SEC = priorLimitDuration;
     process.env.TENANT_RATE_LIMIT_ENABLED = priorLimitEnabled;
+    if (priorMaxTourWrites === undefined) {
+      delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+    } else {
+      process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = priorMaxTourWrites;
+    }
   });
 
   async function httpPostTour(tenantId: string, suffix: string): Promise<PostResult> {
@@ -163,7 +171,7 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
 
     const rateLimited = resultsA.find((r) => r.body.code === "RATE_LIMIT_EXCEEDED");
     if (rateLimited) {
-      assert.equal(rateLimited.body.error, "Rate limit exceeded");
+      assert.equal(rateLimited.body.error, "rate_limit_exceeded");
       assert.ok(rateLimited.body.retryAfter !== undefined);
     }
   });

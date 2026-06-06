@@ -5,15 +5,17 @@
  *   (a) In-process — fresh PlatformWizardEngine.tryInit after large RuleSet (256 cells)
  *   (b) Subprocess — fresh Node HTTP server, first GET /probe TTFB after module load
  *
- * SLO: initial RuleEngine compilation (tryInit / first validateCanonical) must stay
- * under COLD_START_BUDGET_MS (default 1000). Exceeding budget signals need for lazy-load
- * partitioning or pre-compile/warm pool before accepting serverless traffic.
+ * SLO (CON-03 tiered budgets — see cold-start-lazy-boot.md):
+ *   COLD_START_ENGINE_BUDGET_MS — RuleEngine tryInit on large RuleSet (default 1000)
+ *   COLD_START_HTTP_BUDGET_MS     — subprocess first-byte TTFB (default 500, same as readiness gate)
  *
  * Env tunables:
- *   COLD_START_BUDGET_MS       — fail threshold for engine init + HTTP TTFB (default 1000)
- *   COLD_START_CELL_COUNT      — ruleSet.cells cardinality (default 256, max 256)
- *   COLD_START_HTTP_EMIT       — set "1" to log JSON report to stdout
- *   COLD_START_SKIP_SUBPROCESS — set "1" to skip subprocess HTTP probe (engine-only)
+ *   COLD_START_ENGINE_BUDGET_MS  — engine tryInit/validate fail threshold (default 1000)
+ *   COLD_START_HTTP_BUDGET_MS    — HTTP TTFB fail threshold (default 500; alias: COLD_START_READINESS_BUDGET_MS)
+ *   COLD_START_BUDGET_MS         — legacy alias for engine budget only
+ *   COLD_START_CELL_COUNT        — ruleSet.cells cardinality (default 256, max 256)
+ *   COLD_START_HTTP_EMIT         — set "1" to log JSON report to stdout
+ *   COLD_START_SKIP_SUBPROCESS   — set "1" to skip subprocess HTTP probe (engine-only)
  *
  * Run:
  *   cd apps/api && NODE_ENV=test node --import tsx --test test/3-performance/cold-start-latency.spec.ts
@@ -35,7 +37,20 @@ import { createStarterWorkspacePlugin, workspaceThemePresets } from "@app-tour/w
 
 import { buildLargeWorkspacePlugin, COLD_START_CANONICAL_INPUT } from "./cold-start-fixtures";
 
-const COLD_START_BUDGET_MS = Number.parseInt(process.env.COLD_START_BUDGET_MS ?? "1000", 10);
+const COLD_START_ENGINE_BUDGET_MS = Number.parseInt(
+  process.env.COLD_START_ENGINE_BUDGET_MS ?? process.env.COLD_START_BUDGET_MS ?? "1000",
+  10
+);
+const COLD_START_HTTP_BUDGET_MS = Number.parseInt(
+  process.env.COLD_START_HTTP_BUDGET_MS ?? process.env.COLD_START_READINESS_BUDGET_MS ?? "500",
+  10
+);
+const COLD_START_WORKER_READY_BUDGET_MS = Number.parseInt(
+  process.env.COLD_START_WORKER_READY_BUDGET_MS ??
+    process.env.COLD_START_READINESS_BUDGET_MS ??
+    "500",
+  10
+);
 const COLD_START_CELL_COUNT = Number.parseInt(process.env.COLD_START_CELL_COUNT ?? "256", 10);
 const SKIP_SUBPROCESS = process.env.COLD_START_SKIP_SUBPROCESS === "1";
 const WORKER_PATH = join(dirname(fileURLToPath(import.meta.url)), "cold-start-http-worker.ts");
@@ -45,7 +60,8 @@ const HTTP_PROBE_TIMEOUT_MS = 15_000;
 
 export type ColdStartLatencyReport = {
   readonly verdict: "pass" | "budget_exceeded";
-  readonly budgetMs: number;
+  readonly engineBudgetMs: number;
+  readonly httpBudgetMs: number;
   readonly cellCount: number;
   readonly engineCreateMs: number;
   readonly engineTryInitMs: number;
@@ -66,10 +82,11 @@ function roundMs(value: number): number {
 function budgetFailMessage(
   report: ColdStartLatencyReport,
   phase: string,
-  measuredMs: number
+  measuredMs: number,
+  budgetMs: number
 ): string {
   return [
-    `COLD_START_BUDGET_EXCEEDED: ${phase} exceeded ${report.budgetMs}ms serverless readiness budget`,
+    `COLD_START_BUDGET_EXCEEDED: ${phase} exceeded ${budgetMs}ms budget`,
     `  measured: ${roundMs(measuredMs)}ms`,
     `  cellCount: ${report.cellCount}`,
     `  engine_tryInit: ${report.engineTryInitMs}ms`,
@@ -81,12 +98,20 @@ function budgetFailMessage(
     .join("\n");
 }
 
-function optimizerRecommendation(exceeded: boolean): string {
+function optimizerRecommendation(exceeded: boolean, kind: "engine" | "http"): string {
   if (!exceeded) {
-    return "Within budget — per-call engine init acceptable for current RuleSet size; monitor if cell count grows.";
+    return kind === "engine"
+      ? "Within engine budget — per-call init acceptable for current RuleSet size; monitor if cell count grows."
+      : "Within HTTP budget — validation wake path aligned with readiness gate SLO.";
+  }
+  if (kind === "http") {
+    return [
+      "HTTP cold TTFB exceeds readiness-aligned budget — defer validation imports or warm worker pool.",
+      "Readiness gate path (/health only) is separate; this probe includes RuleEngine validation on first request.",
+    ].join(" ");
   }
   return [
-    "RuleEngine cold compile exceeds 1s — not serverless-ready.",
+    "RuleEngine cold compile exceeds engine budget — not serverless-ready.",
     "Options: (1) pre-compile RuleEngine at provision time and cache per workspaceType;",
     "(2) lazy partition RuleSet (defer non-default cells);",
     "(3) warm pool / min-instances to hide first-request compile;",
@@ -96,11 +121,13 @@ function optimizerRecommendation(exceeded: boolean): string {
 
 type SpawnedWorker = {
   readonly port: number;
+  readonly readyMs: number;
   readonly child: ChildProcessWithoutNullStreams;
 };
 
 function spawnColdStartWorker(cellCount: number): Promise<SpawnedWorker> {
   return new Promise((resolve, reject) => {
+    const spawnStarted = performance.now();
     const child = spawn(process.execPath, ["--import", "tsx", WORKER_PATH], {
       env: {
         ...process.env,
@@ -141,7 +168,11 @@ function spawnColdStartWorker(cellCount: number): Promise<SpawnedWorker> {
           fail(new Error("cold-start worker ready payload missing port"));
           return;
         }
-        resolve({ port: payload.port, child });
+        resolve({
+          port: payload.port,
+          readyMs: performance.now() - spawnStarted,
+          child,
+        });
       } catch (error: unknown) {
         fail(error instanceof Error ? error : new Error(String(error)));
       }
@@ -263,11 +294,12 @@ describe("cold-start latency (3-performance)", { concurrency: false }, () => {
 
     const engineTotalMs = engineTryInitMs + engineValidateMs;
     const budgetExceeded =
-      engineTryInitMs > COLD_START_BUDGET_MS || engineTotalMs > COLD_START_BUDGET_MS;
+      engineTryInitMs > COLD_START_ENGINE_BUDGET_MS || engineTotalMs > COLD_START_ENGINE_BUDGET_MS;
 
     lastReport = {
       verdict: budgetExceeded ? "budget_exceeded" : "pass",
-      budgetMs: COLD_START_BUDGET_MS,
+      engineBudgetMs: COLD_START_ENGINE_BUDGET_MS,
+      httpBudgetMs: COLD_START_HTTP_BUDGET_MS,
       cellCount,
       engineCreateMs: roundMs(engineCreateMs),
       engineTryInitMs: roundMs(engineTryInitMs),
@@ -276,23 +308,30 @@ describe("cold-start latency (3-performance)", { concurrency: false }, () => {
       starterTryInitMs: roundMs(starterTryInitMs),
       httpTtfbMs: null,
       httpInitHeaderMs: null,
-      recommendation: optimizerRecommendation(budgetExceeded),
+      recommendation: optimizerRecommendation(budgetExceeded, "engine"),
     };
 
     const summary = [
-      `COLD_START_ENGINE verdict=${lastReport.verdict} cells=${cellCount} budget=${COLD_START_BUDGET_MS}ms`,
+      `COLD_START_ENGINE verdict=${lastReport.verdict} cells=${cellCount} budget=${COLD_START_ENGINE_BUDGET_MS}ms`,
       `  create=${lastReport.engineCreateMs}ms tryInit=${lastReport.engineTryInitMs}ms validate=${lastReport.engineValidateMs}ms total=${lastReport.engineTotalMs}ms`,
       `  starter_tryInit=${lastReport.starterTryInitMs}ms (baseline)`,
     ].join("\n");
     console.info(summary);
 
     assert.ok(
-      engineCreateMs < COLD_START_BUDGET_MS,
+      engineCreateMs < COLD_START_ENGINE_BUDGET_MS,
       `PlatformWizardEngine.create must stay lightweight (got ${roundMs(engineCreateMs)}ms)`
     );
 
-    if (engineTryInitMs > COLD_START_BUDGET_MS) {
-      assert.fail(budgetFailMessage(lastReport, "RuleEngine.tryInit", engineTryInitMs));
+    if (engineTryInitMs > COLD_START_ENGINE_BUDGET_MS) {
+      assert.fail(
+        budgetFailMessage(
+          lastReport,
+          "RuleEngine.tryInit",
+          engineTryInitMs,
+          COLD_START_ENGINE_BUDGET_MS
+        )
+      );
     }
   });
 
@@ -307,10 +346,18 @@ describe("cold-start latency (3-performance)", { concurrency: false }, () => {
     const cellCount = Math.min(COLD_START_CELL_COUNT, 256);
     spawnedWorker = await spawnColdStartWorker(cellCount);
 
+    assert.ok(
+      spawnedWorker.readyMs <= COLD_START_WORKER_READY_BUDGET_MS,
+      `CS-UNSC-02: worker spawn-to-ready ${roundMs(spawnedWorker.readyMs)}ms exceeded ${COLD_START_WORKER_READY_BUDGET_MS}ms`
+    );
+    console.info(
+      `COLD_START_WORKER_READY ms=${roundMs(spawnedWorker.readyMs)} budget=${COLD_START_WORKER_READY_BUDGET_MS}`
+    );
+
     const probe = await measureHttpColdStartTtfb(spawnedWorker.port);
     assert.equal(probe.status, 200, "cold-start HTTP probe must return 200");
 
-    const httpBudgetExceeded = probe.ttfbMs > COLD_START_BUDGET_MS;
+    const httpBudgetExceeded = probe.ttfbMs > COLD_START_HTTP_BUDGET_MS;
     const combinedExceeded = lastReport.verdict === "budget_exceeded" || httpBudgetExceeded;
 
     lastReport = {
@@ -319,13 +366,13 @@ describe("cold-start latency (3-performance)", { concurrency: false }, () => {
       httpInitHeaderMs:
         probe.initHeaderMs !== null ? roundMs(probe.initHeaderMs) : lastReport.httpInitHeaderMs,
       verdict: combinedExceeded ? "budget_exceeded" : "pass",
-      recommendation: optimizerRecommendation(combinedExceeded),
+      recommendation: optimizerRecommendation(httpBudgetExceeded, "http"),
     };
 
     process.env.COLD_START_LATENCY_REPORT = JSON.stringify(lastReport);
 
     const summary = [
-      `COLD_START_HTTP verdict=${lastReport.verdict} ttfb=${lastReport.httpTtfbMs}ms budget=${COLD_START_BUDGET_MS}ms`,
+      `COLD_START_HTTP verdict=${lastReport.verdict} ttfb=${lastReport.httpTtfbMs}ms budget=${COLD_START_HTTP_BUDGET_MS}ms`,
       lastReport.httpInitHeaderMs !== null
         ? `  x-rule-engine-init-ms=${lastReport.httpInitHeaderMs}ms`
         : undefined,
@@ -340,7 +387,12 @@ describe("cold-start latency (3-performance)", { concurrency: false }, () => {
 
     if (httpBudgetExceeded) {
       assert.fail(
-        budgetFailMessage(lastReport, "HTTP TTFB (subprocess first request)", probe.ttfbMs)
+        budgetFailMessage(
+          lastReport,
+          "HTTP TTFB (subprocess first request)",
+          probe.ttfbMs,
+          COLD_START_HTTP_BUDGET_MS
+        )
       );
     }
   });

@@ -13,17 +13,17 @@ Relay claims rows `pending` → `processing` with `FOR UPDATE SKIP LOCKED`. If t
 
 ## Decision
 
-| Item                 | Choice                                                                             |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| Claim timestamp      | Set `processed_at = now()` when marking `processing` (claim time)                  |
-| Reclaim TTL          | `OUTBOX_PROCESSING_RECLAIM_MS` (default **120_000** ms) — read in `outbox-processing-reclaim.ts` via `resolveOutboxProcessingReclaimMs()` |
-| Shutdown drain backoff | `computeRelayBackoff` in `sleepOutboxShutdownDrainBackoff()` (DEC-111) — consumed by `outbox-shutdown-drain.ts` |
-| OZ-02 heal (DEC-072) | Stale `processing` + `processed_domain_events` match → `done`                      |
-| Reclaim action       | Remaining stale `processing` → `pending`, `processed_at = null`                    |
-| Legacy rows          | `processing` + `processed_at IS NULL` + `created_at` older than TTL also reclaimed |
-| When to run          | Start of each relay tick + shutdown drain loop                                     |
-| Shutdown drain       | Exit when **both** `pending` and reclaimable `processing` are **0**                |
-| Metric               | `outbox_processing_reclaimed_total`                                                |
+| Item                   | Choice                                                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Claim timestamp        | Set `processed_at = now()` when marking `processing` (claim time)                                                                         |
+| Reclaim TTL            | `OUTBOX_PROCESSING_RECLAIM_MS` (default **120_000** ms) — read in `outbox-processing-reclaim.ts` via `resolveOutboxProcessingReclaimMs()` |
+| Shutdown drain backoff | `computeRelayBackoff` in `sleepOutboxShutdownDrainBackoff()` (DEC-111) — consumed by `outbox-shutdown-drain.ts`                           |
+| OZ-02 heal (DEC-072)   | Stale `processing` + `processed_domain_events` match → `done`                                                                             |
+| Reclaim action         | Remaining stale `processing` → `pending`, `processed_at = null`                                                                           |
+| Legacy rows            | `processing` + `processed_at IS NULL` + `created_at` older than TTL also reclaimed                                                        |
+| When to run            | Start of each relay tick + shutdown drain loop                                                                                            |
+| Shutdown drain         | Exit when **both** `pending` and reclaimable `processing` are **0**                                                                       |
+| Metric                 | `outbox_processing_reclaimed_total`                                                                                                       |
 
 ## Flow
 

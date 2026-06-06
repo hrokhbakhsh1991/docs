@@ -14,7 +14,7 @@
  *     node --import tsx --test test/3-performance/db-pool-saturation.spec.ts
  *
  * @see docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md DEC-012
- * @see apps/api/test/reliability/outbox-relay-connection-leak.spec.ts — pool sizing notes
+ * @see docs/phase-5/appendices/connection-budget.md DEC-055 — raise tenant cap so global pool binds first
  */
 import assert from "node:assert/strict";
 import http from "node:http";
@@ -106,11 +106,14 @@ describe(
     const priorStorageDriver = process.env.STORAGE_DRIVER;
     const priorHoldMs = process.env.P5_DB_HOLD_MS;
     const priorDatabaseUrl = process.env.DATABASE_URL;
+    const priorTenantMaxOps = process.env.TENANT_MAX_CONCURRENT_DB_OPS;
     let lastReport: DbPoolSaturationReport | undefined;
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
       process.env.NODE_ENV = "test";
+      // Global pool must saturate before per-tenant budget (DEC-055) rejects this probe.
+      process.env.TENANT_MAX_CONCURRENT_DB_OPS = "100";
       process.env.P5_DB_HOLD_MS = String(
         Number.parseInt(process.env.P5_DB_HOLD_MS?.trim() ?? String(DEFAULT_HOLD_MS), 10) ||
           DEFAULT_HOLD_MS
@@ -151,6 +154,11 @@ describe(
       process.env.STORAGE_DRIVER = priorStorageDriver;
       process.env.P5_DB_HOLD_MS = priorHoldMs;
       process.env.DATABASE_URL = priorDatabaseUrl;
+      if (priorTenantMaxOps === undefined) {
+        delete process.env.TENANT_MAX_CONCURRENT_DB_OPS;
+      } else {
+        process.env.TENANT_MAX_CONCURRENT_DB_OPS = priorTenantMaxOps;
+      }
       try {
         await admin.tenant.delete({ where: { id: tenantId } });
       } catch {

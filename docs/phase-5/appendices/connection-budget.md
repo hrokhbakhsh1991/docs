@@ -1,11 +1,10 @@
 # Per-tenant connection budget (P2-5 — design)
 
 ```yaml
-status: design_closed
-sprint: enterprise-gap TEMP closed 2026-06-05
-implementation: deferred_post_phase_6_main
+status: implemented
+phase: 3 scalability audit — closure step 4 (DEC-055)
 related: DEC-012 (pool saturation 503), DEC-015 (HTTP rate limit)
-gap: P2-5 — code not in Phase 4–5 / Phase 6 main scope
+closes: SCAL-DEBT-01, NN-02 (partial)
 ```
 
 ## Problem
@@ -14,24 +13,48 @@ HTTP rate limits (50 rps default) bound **request rate**, not **concurrent DB se
 
 ## Proposed model
 
-| Layer      | Knob                                    | Behavior                                                                 |
-| ---------- | --------------------------------------- | ------------------------------------------------------------------------ |
-| Pool       | `DATABASE_URL` `connection_limit`       | Global ceiling (existing)                                                |
-| Per-tenant | `TENANT_MAX_CONCURRENT_DB_OPS` (future) | Semaphore in `withTenantRls` / `withCanonicalTransaction` before TX open |
-| Saturation | DEC-012                                 | When global pool exhausted → HTTP 503 `DB_POOL_SATURATED`                |
+| Layer          | Knob                                           | Behavior                                                                                                                   |
+| -------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Pool           | `DATABASE_URL` `connection_limit`              | Global ceiling — size ≥ `OUTBOX_RELAY_PUBLISH_CONCURRENCY` + HTTP headroom ([C2](outbox-relay-pool-contention-monitor.md)) |
+| Per-tenant     | `TENANT_MAX_CONCURRENT_DB_OPS` (default **4**) | In-process semaphore before `prisma.$transaction` in `withTenantRls` / `withCanonicalTransaction`                          |
+| Saturation     | DEC-012                                        | When global pool exhausted → HTTP 503 `DB_POOL_SATURATED`                                                                  |
+| Per-tenant cap | DEC-055                                        | When tenant at cap → HTTP 503 `tenant_db_budget_exceeded` / `TENANT_DB_BUDGET_EXCEEDED`                                    |
 
-## Semantics (target)
+## Semantics (implemented)
 
-1. Acquire tenant slot before `prisma.$transaction` (non-blocking try; 503 if tenant at cap).
-2. Release in `finally` on commit/rollback.
-3. Nightly probe: two tenants × N parallel TX — tenant A at cap must not block tenant B below its cap.
+1. **Non-blocking acquire** before `prisma.$transaction` — fail fast when tenant at cap (does not wait on pool).
+2. **Release** in `finally` on commit/rollback/throw.
+3. Counter is **in-process** — multi-replica fairness requires Phase 7 distributed semaphore (out of scope).
 
-## Out of scope (this sprint)
+```mermaid
+sequenceDiagram
+  participant HTTP as POST_tours
+  participant Budget as tenant-connection-budget
+  participant Pool as getPrisma pool
 
-- Redis-backed distributed semaphore (multi-replica) — Phase 7.
-- Replacing Prisma pool — use URL `connection_limit` + app semaphore.
+  HTTP->>Budget: acquireTenantDbSlot(tenantId)
+  alt tenant at TENANT_MAX_CONCURRENT_DB_OPS
+    Budget-->>HTTP: 503 tenant_db_budget_exceeded
+  else slot available
+    Budget->>Pool: $transaction
+    Pool-->>Budget: commit/rollback
+    Budget->>Budget: releaseTenantDbSlot
+  end
+```
 
-## Verification (when implemented)
+## Environment
 
-- `apps/api/test/3-performance/tenant-connection-budget.spec.ts` (planned)
-- Doc cross-link from [`rate-limiting.md`](rate-limiting.md)
+| Variable                       | Default | Role                                  |
+| ------------------------------ | ------- | ------------------------------------- |
+| `TENANT_MAX_CONCURRENT_DB_OPS` | `4`     | Max concurrent app-pool TX per tenant |
+
+## Verification
+
+```bash
+cd apps/api
+pnpm run guard:tenant-db-budget
+node --import tsx --test test/3-performance/tenant-connection-budget.spec.ts
+pnpm run phase-3:regression-gate
+```
+
+**Probe isolation:** `db-pool-saturation.spec.ts` raises `TENANT_MAX_CONCURRENT_DB_OPS` for the suite so **global** pool saturation (DEC-012) is measured — not per-tenant budget rejection (DEC-055).

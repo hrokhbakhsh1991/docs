@@ -1,0 +1,61 @@
+# DEC-121 — prometheus-adapter custom metrics for HPA (SCAL-LIM-01).
+# Mount as ConfigMap; reference from prometheus-adapter Helm values (config: config.yaml).
+# Apply: kubectl apply -f deploy/prometheus/adapter-rules.yaml -n monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/component: prometheus-adapter
+data:
+  config.yaml: |
+    rules:
+      - seriesQuery: 'http_requests_in_flight{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "^http_requests_in_flight"
+          as: "http_requests_in_flight"
+        metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+
+      - seriesQuery: 'outbox_pending_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "^outbox_pending_total"
+          as: "outbox_pending_total"
+        metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+
+      - seriesQuery: 'outbox_relay_oldest_pending_age_seconds{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "^outbox_relay_oldest_pending_age_seconds"
+          as: "outbox_relay_oldest_pending_age_seconds"
+        metricsQuery: max(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)
+
+      - seriesQuery: 'validation_queue_depth_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace:
+              resource: namespace
+            pod:
+              resource: pod
+        name:
+          matches: "^validation_queue_depth_total"
+          as: "validation_queue_depth_total"
+        metricsQuery: sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)

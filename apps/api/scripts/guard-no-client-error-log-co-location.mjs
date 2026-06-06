@@ -38,13 +38,13 @@ for (const file of walk(SRC)) {
 
     if (/\blogger\.(error|warn|info|fatal)\(\s*(error|failure|err)\b/.test(line)) {
       violations.push(
-        `${rel}:${i + 1}: do not pass raw error/failure to logger — use safe serializers (DEC-038)`,
+        `${rel}:${i + 1}: do not pass raw error/failure to logger — use safe serializers (DEC-038)`
       );
     }
 
     if (/ValidationFailure|SchemaVersionMismatchError/.test(line)) {
       violations.push(
-        `${rel}:${i + 1}: do not log ValidationFailure / SchemaVersionMismatchError directly`,
+        `${rel}:${i + 1}: do not log ValidationFailure / SchemaVersionMismatchError directly`
       );
     }
 
@@ -52,7 +52,7 @@ for (const file of walk(SRC)) {
     const hasMessageKey = /\bmessage\s*:/.test(line);
     if (hasTenantKey && hasMessageKey) {
       violations.push(
-        `${rel}:${i + 1}: logger call co-locates tenant_id and message on shared stream`,
+        `${rel}:${i + 1}: logger call co-locates tenant_id and message on shared stream`
       );
     }
   }

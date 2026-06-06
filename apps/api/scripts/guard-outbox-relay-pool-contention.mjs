@@ -65,7 +65,9 @@ if (!fs.existsSync(path.join(REPO_ROOT, alertsPath))) {
 
 const phase3Audit = readApi("docs/phase3-scalability-stress-audit.md");
 if (!phase3Audit.includes("outbox-relay-pool-contention-monitor.md")) {
-  violations.push("phase3-scalability-stress-audit.md must link outbox-relay-pool-contention-monitor.md");
+  violations.push(
+    "phase3-scalability-stress-audit.md must link outbox-relay-pool-contention-monitor.md"
+  );
 }
 
 const fairnessDoc = readRepo("docs/phase-5/appendices/outbox-relay-fairness.md");

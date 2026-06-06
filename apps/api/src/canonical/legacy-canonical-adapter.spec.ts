@@ -14,7 +14,7 @@ describe("LegacyCanonicalAdapter", () => {
           canonical: { schemaVersion: 1, roots: ["basics"], data: {} },
           createdAt: new Date().toISOString(),
         }),
-      /DUAL_WRITE_FORBIDDEN/,
+      /DUAL_WRITE_FORBIDDEN/
     );
   });
 });

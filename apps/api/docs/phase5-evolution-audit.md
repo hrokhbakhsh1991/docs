@@ -1,33 +1,37 @@
 # Phase 5 evolution audit — API versioning, Self-Heal, Migration Danger, System Rollback & auto-scaling
 
 **Audit date:** 2026-06-05  
+**Remediation closure:** 2026-06-05 — evolution phases **1–3** (DEC-071…109); score **re-baselined** below  
 **Scope:** `@apps/api` (0) **HTTP/API versioning strategy** — URL paths, header negotiation, canonical `schemaVersion` policy, breaking-change deploy posture; (1) intermittent Postgres disconnections and unstable network; (2) **Migration Danger** — adversarial `prisma migrate deploy` failure mid-way on large tables; **(2b) System Rollback** — bad-deployment coordinated revert of **DB** (migrations down?), **code** (container/image), and **cache** (Redis, in-memory tenant registry, rate-limiter state) under a **30s** operator budget; (3) **adversarial traffic spike** with **no K8s/HPA scale-out** and **no tenant-priority load shedding**; (4) **CLI/Admin** surfaces — internal HTTP routes, `getPrismaAdmin()` call sites, seed/reset scripts, and adversarial “buggy admin tool accidentally wipes data” recovery posture; and (5) **CI/CD god-mode bypass** — monorepo `scripts/`, `.github/workflows/`, Husky, phase gates, workspace guards, env defaults (`production-runtime-env.ts`), test-only env in `src/`; and (6) **secret management / key rotation** — JWT (`jose`), env vars, DB/Redis credentials, internal route guards, logs, vault integration.  
 **Runtime model:** **Single Node process** — one `createServer` listener, one event loop, dual Prisma singletons (app + admin), in-process outbox relay timer ([`main.ts`](../src/main.ts)).  
-**Method:** Static trace of production `src/` paths, ops scripts, migrations, and test cleanup conventions; cross-reference tiered test evidence and prior audits. **Docs only** — no `src/` changes in this pass.
+**Method:** Static trace of production `src/` paths, ops scripts, migrations, and test cleanup conventions; cross-reference tiered test evidence, prior audits, and **post-remediation** guard/evidence (`pnpm run phase-5:evolution-gate`).
 
 **Related audits:**
 
-| Doc                                                                                                                   | Relevance                                                                                                                     |
-| --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`phase0-audit-report.md`](phase0-audit-report.md)                                                                    | RLS wrappers, pool saturation (DEC-012), error mapping, **V-003/V-004 internal routes & admin pool**                          |
-| [`phase1-aggressive-audit.md`](phase1-aggressive-audit.md)                                                            | **Migration danger (DM-CT-\*)**, admin/outbox bypass — retry must not weaken tenant binding                                   |
-| [`phase2-paranoid-audit.md`](phase2-paranoid-audit.md)                                                                | HTTP 503/500 opaque contract                                                                                                  |
-| [`phase3-scalability-stress-audit.md`](phase3-scalability-stress-audit.md)                                            | Break-point RPS, SCAL-DEBT/HF, noisy neighbor, rate-limiter flood                                                             |
-| [`phase4-resilience-audit.md`](phase4-resilience-audit.md)                                                            | Graceful shutdown, feature-flag mid-burst races; **§ Schema drift** (canonical payload version — complements HTTP versioning) |
-| [`docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md`](../../../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md) | DEC-012 pool → 503; DEC-004 outbox relay; DEC-015/016 rate limit + validation fairness; **DEC-019** SCHEMA_VERSION_MISMATCH   |
-| [`docs/MIGRATION-MAP.md`](../../../docs/MIGRATION-MAP.md)                                                             | §7.4 shared `/api/v2` base path; §8.3 `migrateCanonical` + dual-read (Phase 6)                                                |
-| [`docs/phase-5/appendices/migration-map.md`](../../../docs/phase-5/appendices/migration-map.md)                       | Canonical `schemaVersion` field; dual-read flag deferred                                                                      |
-| [`docs/phase-4/appendices/production-auth-policy.md`](../../../docs/phase-4/appendices/production-auth-policy.md)     | DEC-023 JWT-only production; dev bearer TTL                                                                                   |
-| [`docs/phase-4/production-deploy-checklist.md`](../../../docs/phase-4/production-deploy-checklist.md)                 | JWT key rotation runbook (F-18 / P2-7); `/internal/*` isolation                                                               |
-| [`docs/phase-4/appendices/env-runtime-matrix.md`](../../../docs/phase-4/appendices/env-runtime-matrix.md)             | `DATABASE_URL` / `DATABASE_URL_ADMIN` / `AUTH_JWT_*` matrix                                                                   |
-| [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md)                                                   | Husky fast path vs `test:full` / phase gates                                                                                  |
-| [`docs/phase-4/ci.md`](../../../docs/phase-4/ci.md)                                                                   | `DATABASE_URL` + `STORAGE_DRIVER=prisma` for RLS integration                                                                  |
+| Doc                                                                                                                       | Relevance                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| [`phase0-audit-report.md`](phase0-audit-report.md)                                                                        | RLS wrappers, pool saturation (DEC-012), error mapping, **V-003/V-004 internal routes & admin pool**                          |
+| [`phase1-aggressive-audit.md`](phase1-aggressive-audit.md)                                                                | **Migration danger (DM-CT-\*)**, admin/outbox bypass — retry must not weaken tenant binding                                   |
+| [`phase2-paranoid-audit.md`](phase2-paranoid-audit.md)                                                                    | HTTP 503/500 opaque contract                                                                                                  |
+| [`phase3-scalability-stress-audit.md`](phase3-scalability-stress-audit.md)                                                | Break-point RPS, SCAL-DEBT/HF, noisy neighbor, rate-limiter flood                                                             |
+| [`phase4-resilience-audit.md`](phase4-resilience-audit.md)                                                                | Graceful shutdown, feature-flag mid-burst races; **§ Schema drift** (canonical payload version — complements HTTP versioning) |
+| [`docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md`](../../../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md)     | DEC-012 pool → 503; DEC-004 outbox relay; DEC-015/016 rate limit + validation fairness; **DEC-019** SCHEMA_VERSION_MISMATCH   |
+| [`docs/MIGRATION-MAP.md`](../../../docs/MIGRATION-MAP.md)                                                                 | §7.4 shared `/api/v2` base path; §8.3 `migrateCanonical` + dual-read (Phase 6)                                                |
+| [`docs/phase-5/appendices/migration-map.md`](../../../docs/phase-5/appendices/migration-map.md)                           | Canonical `schemaVersion` field; dual-read flag deferred                                                                      |
+| [`docs/phase-4/appendices/production-auth-policy.md`](../../../docs/phase-4/appendices/production-auth-policy.md)         | DEC-023 JWT-only production; dev bearer TTL                                                                                   |
+| [`docs/phase-4/production-deploy-checklist.md`](../../../docs/phase-4/production-deploy-checklist.md)                     | JWT key rotation runbook (F-18 / P2-7); `/internal/*` isolation                                                               |
+| [`docs/phase-4/appendices/env-runtime-matrix.md`](../../../docs/phase-4/appendices/env-runtime-matrix.md)                 | `DATABASE_URL` / `DATABASE_URL_ADMIN` / `AUTH_JWT_*` matrix                                                                   |
+| [`docs/dev/tiered-testing.md`](../../../docs/dev/tiered-testing.md)                                                       | Husky fast path vs `test:full` / phase gates                                                                                  |
+| [`docs/phase-4/ci.md`](../../../docs/phase-4/ci.md)                                                                       | `DATABASE_URL` + `STORAGE_DRIVER=prisma` for RLS integration                                                                  |
+| [`docs/phase-5/appendices/phase5-evolution-p0-phase1.md`](../../../docs/phase-5/appendices/phase5-evolution-p0-phase1.md) | P0 closure — outbox, transient DB, test-reset guard, GHA gates, migration head                                                |
+| [`docs/phase-5/appendices/phase5-evolution-p1-phase2.md`](../../../docs/phase-5/appendices/phase5-evolution-p1-phase2.md) | P1 closure — rollback runbook, OpenAPI parity, shutdown ingress, deploy debt decision                                         |
+| [`docs/phase-5/appendices/phase5-evolution-p2-phase3.md`](../../../docs/phase-5/appendices/phase5-evolution-p2-phase3.md) | P2 closure — metrics export scaffold, cache invalidate, JWT dual-key, evolution gate                                          |
 
-**Parent handoff (versioning):** `deployment_debt_count=9` · `header_routing_exists=no`  
-**Parent handoff (OpenAPI):** `openapi_generator_exists=no` · `shadow_endpoint_count=7`  
-**Parent handoff (secret management):** `secret_management_vulnerability_count=11` · `auto_rotation_pipeline_exists=no`  
-**Parent handoff (rollback):** `rollback_30s_feasible=no` · `rollback_gap_count=14`  
-**Parent handoff (autonomous readiness):** `autonomous_readiness_score=45` · `autonomous_verdict=SEMI` · `operational_toil_count=10`
+**Parent handoff (versioning):** `deployment_debt_count=9` · `header_routing_exists=no` · `phase6_version_strategy=decided`  
+**Parent handoff (OpenAPI):** `openapi_generator_exists=yes` · `shadow_endpoint_count=0` · `zod_to_openapi=no`  
+**Parent handoff (secret management):** `secret_management_vulnerability_count=11` · `auto_rotation_pipeline_exists=no` · `dual_key_jwt_verify=yes`  
+**Parent handoff (rollback):** `rollback_30s_feasible=no` · `rollback_gap_count=11` · `rollback_runbook_documented=yes`  
+**Parent handoff (autonomous readiness):** `autonomous_readiness_score=58` · `autonomous_verdict=SEMI` · `operational_toil_count=6` · `evolution_remediation_phases=3`
 
 ---
 
@@ -35,75 +39,79 @@
 
 **Audit lens:** Can `@apps/api` run **30 consecutive days** with **zero human intervention** — no on-call pages, no manual SQL, no coordinated deploy firefighting, no migration recovery — under realistic production churn (weekly rolling deploy, brief Postgres/Redis blips, moderate traffic, one schema migration attempt)?
 
-**Verdict:** **SEMI**  
-**Autonomous readiness score:** **45 / 100**
+**Verdict:** **SEMI** (improved — still not **AUTONOMOUS**)  
+**Autonomous readiness score:** **58 / 100** (was **45** pre-remediation)
 
-Steady-state HTTP + canonical persist + equal-tier **429**/**503** shedding can ride out **short** infra blips, but the stack **cannot** self-heal outbox zombies, terminal `failed` relay rows, migration-chain skew, bad-deploy rollback, or sustained overload. Normal release cadence alone is expected to produce **silent projection drift** within 30 days ([phase4 CASCADE-02](./phase4-resilience-audit.md)). **AUTONOMOUS** is blocked by **71+** catalogued gaps across Self-Heal (16), Scalability Limits (18), Migration Danger (14), Catastrophic Admin (14), Deployment Debt (9), Shadow API (7), Rollback Strategy (14), CI bypass (44), and secret-management debt (11 — no auto-rotation pipeline).
+**Baseline (2026-06-05 AM):** steady-state HTTP + shedding OK; outbox zombies, misclassified DB errors, unguarded reset, and missing CI gates blocked autonomy.
+
+**Post phases 1–3 (DEC-071…109):** P0/P1/P2 evolution items closed — in-app **processing reclaim**, **failed replay API**, **transient DB classifier + circuit breaker**, **migration head preflight**, **GHA phase-4/5**, **OpenAPI dispatch parity**, **shutdown ingress reject**, **Prometheus metrics scaffold**, **cache invalidate (dev/test)**, **JWT dual-key verify**. Remaining blockers: **30s multi-layer rollback**, **soft delete**, **auto JWT rotation**, **server-side outbox retry before `failed`**, **priority load shed**, **production metrics scrape**, and **~50+** residual register IDs.
+
+**AUTONOMOUS** still blocked — expect **1–3** human interventions/month (down from **3–5**).
 
 ### Pillar scores (30-day autonomy)
 
-| Pillar                           |  Score | 30-day autonomy note                                                                                                                                                                            |
-| -------------------------------- | -----: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Self-Heal (DB/network)**       | **28** | Fail-immediate everywhere except fixed outbox poll ([§ Self-Heal](#executive-answer--automated-retry-backoff-vs-fail-immediately)); no circuit breaker ([SH-GAP-15](#gap-table))                |
-| **Background recovery**          | **35** | Outbox relay polls but **no** `processing` reclaim ([SH-GAP-08](#gap-table)); terminal `failed` ([SH-GAP-07](#gap-table)); [phase4 F-01/F-03](./phase4-resilience-audit.md)                     |
-| **Scale & overload**             | **40** | Partial shed only ([SCAL-LIM-01…18](#scalability-limit-register-traffic-spike)); ~40–200 RPS ceiling ([phase3 break-point table](./phase3-scalability-stress-audit.md))                         |
-| **Deploy, migration & rollback** | **32** | Lockstep breaking deploy ([DEPLOY-DEBT-01…09](#deployment-debt-register)); forward-only Prisma ([RB-GAP-01…02](#rollback-strategy-gap-table)); **30s all-layer revert: no**                     |
-| **Observability & alert**        | **32** | In-process counters only ([SCAL-LIM-02](#scalability-limit-register-traffic-spike)); **7/7 Shadow API** routes — no OpenAPI CI gate ([SHADOW-API-01…07](#shadow-api-risk-register))             |
-| **Secrets & CI trust**           | **38** | No auto-rotation pipeline; **GHA-phase-4/5-omission** ([CI-BYP-12](#ci-cd-god-mode-bypass-audit)); `guardSubprocessEnv` mitigates guard child leaks ([CI-BYP-23](#ci-cd-god-mode-bypass-audit)) |
-| **Data safety & admin**          | **50** | Append-only audit + FK RESTRICT help; no soft delete; `db:test-reset` unguarded ([CAE-GAP-05](#catastrophic-admin-error--gap-table))                                                            |
+| Pillar                           | Was |    Now | 30-day autonomy note (post remediation)                                                                                                                                                              |
+| -------------------------------- | --: | -----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Self-Heal (DB/network)**       |  28 | **44** | **Closed partial:** P1001/P1017 → **503** + `Retry-After`, DB circuit breaker (DEC-094); Redis tiered fallback (DEC-083). **Open:** TX retry, relay backoff ([SH-GAP-01…03, 06, 09](#gap-table))     |
+| **Background recovery**          |  35 | **58** | **Closed:** `processing` reclaim + shutdown drain (DEC-071/072), admin `failed` replay (DEC-086). **Open:** auto retry before terminal `failed` ([SH-GAP-07](#gap-table))                            |
+| **Scale & overload**             |  40 | **42** | Unchanged ceiling (~40 RPS); validation queue cap + partial shed. **Open:** priority shed, global admission ([SCAL-LIM-05…12](#scalability-limit-register-traffic-spike))                            |
+| **Deploy, migration & rollback** |  32 | **48** | **Closed partial:** forward-only runbook (DEC-098), migration head boot (DEC-097), cache invalidate dev (DEC-106). **Open:** **30s** all-layer revert ([RB-GAP-01…04](#rollback-strategy-gap-table)) |
+| **Observability & alert**        |  32 | **52** | **Closed partial:** `openapi.json` + parity guard (DEC-099), `GET /internal/metrics` scaffold (DEC-108). **Open:** prod scrape/alerting, Zod-rich OpenAPI (Phase 6+)                                 |
+| **Secrets & CI trust**           |  38 | **54** | **Closed partial:** GHA phase-4/5 (DEC-096), evolution gate (DEC-109), dual-key JWT (DEC-107). **Open:** auto-rotation, vault ([SM-VUL](#secret-management-vulnerability-key-rotation-audit))        |
+| **Data safety & admin**          |  50 | **58** | **Closed partial:** `db:test-reset` prod guard (DEC-095). **Open:** soft delete, admin blast radius ([CAE-GAP-01…04](#catastrophic-admin-error--gap-table))                                          |
 
 ### Phase 3 / Phase 4 cross-links (brief)
 
-| Prior audit                                                              | Phase 5 evolution interaction                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [phase3 — Final Stress-Test Audit](./phase3-scalability-stress-audit.md) | Break-point **~40 RPS** @ long TX and **12 hard-fail risks** (OOM, admin-pool DoS, Redis fail-closed **500**) define the **single-worker ceiling** HPA cannot lift without exported metrics ([SCAL-LIM-01…02](#scalability-limit-register-traffic-spike)). Noisy-neighbor **NN-01/02** amplifies any 30-day traffic variance into cross-tenant **503**.          |
-| [phase4 — Chaos Report](./phase4-resilience-audit.md)                    | Resilience score **62/100**, verdict **CONDITIONAL**. **CASCADE-01…03** (bulk import brownout, deploy processing zombies, Redis blip total write failure) remain **unmitigated** — Self-Heal gaps do not close F-01/F-05 shutdown flush or F-03 terminal `failed`. Schema drift **SV-\*** and graceful shutdown **SD-G1…G7** still require human ops on failure. |
+| Prior audit                                                              | Phase 5 evolution interaction                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [phase3 — Final Stress-Test Audit](./phase3-scalability-stress-audit.md) | Break-point **~40 RPS** @ long TX and **12 hard-fail risks** (OOM, admin-pool DoS, Redis fail-closed **500**) define the **single-worker ceiling** HPA cannot lift without exported metrics ([SCAL-LIM-01…02](#scalability-limit-register-traffic-spike)). Noisy-neighbor **NN-01/02** amplifies any 30-day traffic variance into cross-tenant **503**. |
+| [phase4 — Chaos Report](./phase4-resilience-audit.md)                    | Resilience **62→~72/100** (estimate post DEC-071…101). **CASCADE-02** (deploy zombies) **mitigated** by reclaim + ingress shutdown; **CASCADE-03** (Redis blip) **mitigated** by DEC-083. **Open:** CASCADE-01 bulk import, F-03 auto-retry before `failed`, projection auto-heal F-04.                                                                 |
 
 ### Operational Toil — top 10
 
 Recurring human work expected within a 30-day window if the service is deployed, migrated, or stressed.
 
-| Rank   | Toil item                                   | Trigger                                               | Manual action today                                                                                                                                                 | Ref                                                                                                             |
-| ------ | ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **1**  | Reclaim stuck outbox `processing` rows      | Rolling deploy, SIGKILL, relay crash mid-tick         | SQL/TTL job to reset `processing` → `pending`; no in-app reclaim                                                                                                    | [SH-GAP-08](#gap-table), [RB-GAP-10](#rollback-strategy-gap-table), [phase4 F-01](./phase4-resilience-audit.md) |
-| **2**  | Replay terminal outbox `failed` rows        | Poison/transient publish misclassified                | Inspect payload; manual re-enqueue or quarantine                                                                                                                    | [SH-GAP-07](#gap-table), [phase4 F-03](./phase4-resilience-audit.md)                                            |
-| **3**  | Migration failure recovery                  | `migrate deploy` timeout/FK/disk on large table       | Root-cause fix + owner URL redeploy or `migrate resolve`                                                                                                            | [MD-GAP-01…03](#migration-danger-gap-table), [§ Manual recovery playbook](#manual-recovery-playbook)            |
-| **4**  | Bad-deploy rollback (code + cache + outbox) | SLO breach after release                              | `kubectl rollout undo` + Redis `DEL ratelimit:*` + outbox SQL — **>30s**, no runbook                                                                                | [RB-GAP-01…14](#rollback-strategy-gap-table), [§ Rollback Strategy](#rollback-strategy--db--code--cache)        |
-| **5**  | Projection / consumer drift reconciliation  | `projection_inconsistency_total` increment            | Manual replay bus events + relay tick                                                                                                                               | [phase4 F-04](./phase4-resilience-audit.md)                                                                     |
-| **6**  | Lockstep breaking deploy coordination       | Workspace `schemaVersion` bump or URL break           | Synchronized API + plugin + all clients; no header routing escape                                                                                                   | [DEPLOY-DEBT-01…09](#deployment-debt-register)                                                                  |
-| **7**  | JWT / DB credential rotation                | Key expiry, security policy                           | Manual PEM swap + pod restart per [production-deploy-checklist § JWT rotation](../../../docs/phase-4/production-deploy-checklist.md); **no** auto-rotation pipeline | `SM-VUL-01…11` · [env-runtime-matrix](../../../docs/phase-4/appendices/env-runtime-matrix.md)                   |
-| **8**  | Postgres/Redis incident response            | P1001 blip, Redis offline, pool storm                 | Scale/restart infra; tune blind client retries — **no** in-app circuit breaker                                                                                      | [SH-GAP-04](#gap-table), [SH-GAP-13](#gap-table), [SCAL-HF-11](./phase3-scalability-stress-audit.md)            |
-| **9**  | CI vs production DB bootstrap drift         | Integration gate uses `migrate dev` + `infra/sql/001` | Human judgment when CI green ≠ prod schema path                                                                                                                     | [MD-GAP-05…06](#migration-danger-gap-table), [CI-BYP-12](#ci-cd-god-mode-bypass-audit)                          |
-| **10** | Backup / PITR verification                  | Admin wipe, `TRUNCATE`, or storage failure            | Restore from out-of-band Postgres PITR — **undocumented RPO/RTO**                                                                                                   | [CAE-GAP-04…06](#catastrophic-admin-error--gap-table), [CAE-GAP-14](#catastrophic-admin-error--gap-table)       |
+| Rank   | Toil item                                   | Trigger                                               | Manual action today                                                                                                                                                 | Ref                                                                                                        |
+| ------ | ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **1**  | Reclaim stuck outbox `processing` rows      | Rolling deploy, SIGKILL, relay crash mid-tick         | **Automated** — relay reclaim + shutdown drain (DEC-071/072); ops SQL only if reclaim disabled                                                                      | ✅ DEC-071 · [outbox-processing-reclaim.md](../../../docs/phase-5/appendices/outbox-processing-reclaim.md) |
+| **2**  | Replay terminal outbox `failed` rows        | Poison/transient publish misclassified                | **Semi-auto** — `POST /internal/outbox/:id/replay` + CLI; still human triage for poison payload                                                                     | DEC-086 · [outbox-failed-replay.md](../../../docs/phase-5/appendices/outbox-failed-replay.md)              |
+| **3**  | Migration failure recovery                  | `migrate deploy` timeout/FK/disk on large table       | Root-cause fix + owner URL redeploy or `migrate resolve`                                                                                                            | [MD-GAP-01…03](#migration-danger-gap-table), [§ Manual recovery playbook](#manual-recovery-playbook)       |
+| **4**  | Bad-deploy rollback (code + cache + outbox) | SLO breach after release                              | Documented runbook + dev cache invalidate; prod still manual Redis SCAN — **>30s**                                                                                  | DEC-098/106 · [production-deploy-checklist.md](../../../docs/phase-4/production-deploy-checklist.md)       |
+| **5**  | Projection / consumer drift reconciliation  | `projection_inconsistency_total` increment            | Manual replay bus events + relay tick                                                                                                                               | [phase4 F-04](./phase4-resilience-audit.md)                                                                |
+| **6**  | Lockstep breaking deploy coordination       | Workspace `schemaVersion` bump or URL break           | Synchronized API + plugin + all clients; no header routing escape                                                                                                   | [DEPLOY-DEBT-01…09](#deployment-debt-register)                                                             |
+| **7**  | JWT / DB credential rotation                | Key expiry, security policy                           | Manual PEM swap + pod restart per [production-deploy-checklist § JWT rotation](../../../docs/phase-4/production-deploy-checklist.md); **no** auto-rotation pipeline | `SM-VUL-01…11` · [env-runtime-matrix](../../../docs/phase-4/appendices/env-runtime-matrix.md)              |
+| **8**  | Postgres/Redis incident response            | P1001 blip, Redis offline, pool storm                 | **Partial auto** — DB circuit + 503 `Retry-After` (DEC-094); Redis fail_local/fail_open (DEC-083); pool storm still needs scale-out                                 | DEC-094/083                                                                                                |
+| **9**  | CI vs production DB bootstrap drift         | Integration gate uses `migrate dev` + `infra/sql/001` | **Reduced** — GHA runs `migrate deploy` + RLS (DEC-096); `infra/sql` parallel track still diverges                                                                  | [MD-GAP-05…06](#migration-danger-gap-table)                                                                |
+| **10** | Backup / PITR verification                  | Admin wipe, `TRUNCATE`, or storage failure            | Restore from out-of-band Postgres PITR — **undocumented RPO/RTO**; `db:test-reset` prod-blocked (DEC-095)                                                           | [CAE-GAP-14](#catastrophic-admin-error--gap-table)                                                         |
 
-**Operational toil count (catalogued above):** **10**
+**Operational toil count (catalogued above):** **6** fully manual · **4** semi-automated (items 1–2, 4, 8 partial)
 
 ### Human-dependency — top 5 risks
 
-| Rank  | Risk                                                       | Why humans required within 30 days                                                                                                                         | Severity |
-| ----- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **1** | **Outbox zombie + silent projection drift**                | Normal rolling deploy creates permanent `processing` rows; relay never reclaims; API returns **201** while downstream never catches up                     | **P0**   |
-| **2** | **Fail-immediate infra + no circuit breaker**              | Postgres/Redis blips surface **500**/**503** with no server-side retry or fast-fail gate; client retry storms prolong outage until operator intervenes     | **P0**   |
-| **3** | **Forward-only deploy + no 30s rollback**                  | Bad release cannot revert DB/code/cache in one window; Prisma has no `migrate down`; Redis keys and outbox state survive image rollback                    | **P0**   |
-| **4** | **No autonomous observability**                            | Metrics in-process only; **100% Shadow API** surface; no alert on pool depth, outbox lag, or `processing` count — failures invisible until customer impact | **P1**   |
-| **5** | **Destructive admin credential + unguarded reset scripts** | Owner role can `TRUNCATE` all tenant data; `db:test-reset` has no prod URL blocklist — recovery requires backup restore, not app self-heal                 | **P0**   |
+| Rank  | Risk                                                       | Why humans required within 30 days                                                                                                 | Severity |
+| ----- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **1** | **Outbox zombie + silent projection drift**                | **Mitigated** — reclaim heals most deploy zombies; projection reconcile still manual ([phase4 F-04](./phase4-resilience-audit.md)) | **P1**   |
+| **2** | **Fail-immediate infra + no circuit breaker**              | **Mitigated partial** — DB circuit + transient→503 (DEC-094); Redis fallback (DEC-083); no TX-level retry                          | **P1**   |
+| **3** | **Forward-only deploy + no 30s rollback**                  | Unchanged — bad release cannot revert DB/code/cache in one window                                                                  | **P0**   |
+| **4** | **No autonomous observability**                            | **Improved** — OpenAPI parity + metrics scaffold; **no** prod alert pipeline or rich schemas                                       | **P1**   |
+| **5** | **Destructive admin credential + unguarded reset scripts** | **Mitigated partial** — `db:test-reset` prod guard (DEC-095); admin pool blast radius unchanged                                    | **P1**   |
 
 ### 30-day failure scenarios
 
 | ID           | Scenario                                                    | Day (typical) | Autonomous outcome                                                                                                                                                           | Human required?                                                                                                 |
 | ------------ | ----------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **AR-30-01** | **Weekly rolling deploy** — SIGTERM mid relay tick          | 7, 14, 21, 28 | Rows stuck `processing`; flush counts `pending` only ([phase4 SD-G1](./phase4-resilience-audit.md))                                                                          | **Yes** — SQL reclaim or replay                                                                                 |
-| **AR-30-02** | **Postgres maintenance restart** (5–30 min)                 | 10–20         | **500** on P1001/P1017 ([SH-GAP-04](#gap-table)); no reconnect probe; pool storm on recovery                                                                                 | **Maybe** — self-recovers if clients backoff; often needs ops                                                   |
-| **AR-30-03** | **Redis blip or eviction**                                  | 5–25          | All rate-limited routes → **500** fail-closed ([SCAL-LIM-11](#scalability-limit-register-traffic-spike))                                                                     | **Yes** if Redis not self-healing                                                                               |
+| **AR-30-01** | **Weekly rolling deploy** — SIGTERM mid relay tick          | 7, 14, 21, 28 | Reclaim + shutdown drain heal most zombies; ingress rejects new work during drain (DEC-101)                                                                                  | **Maybe** — poison `failed` still needs replay                                                                  |
+| **AR-30-02** | **Postgres maintenance restart** (5–30 min)                 | 10–20         | Transient errors → **503** + `Retry-After`; DB circuit fast-fail during outage (DEC-094)                                                                                     | **Maybe** — often self-recovers with client backoff                                                             |
+| **AR-30-03** | **Redis blip or eviction**                                  | 5–25          | Rate-limited routes use fail_local/fail_open — **not** blanket **500** (DEC-083)                                                                                             | **Maybe** if policy fail_closed or multi-replica skew                                                           |
 | **AR-30-04** | **Traffic spike > ~40 RPS** sustained                       | Any           | Global **503**, validation queue OOM risk ([SCAL-LIM-09](./phase3-scalability-stress-audit.md)), noisy-neighbor brownout ([phase4 CASCADE-01](./phase4-resilience-audit.md)) | **Yes** — scale pods / shed load (out of repo)                                                                  |
 | **AR-30-05** | **Schema migration on large `outbox_events`**               | 15 (planned)  | Long **ACCESS EXCLUSIVE** lock → app **503** storm; failure leaves chain at **N-1** ([MD-GAP-01…03](#migration-danger-gap-table))                                            | **Yes** — maintenance window + playbook                                                                         |
-| **AR-30-06** | **Transient publish failure** → `failed` outbox             | 3–12          | Terminal row; event never redelivered ([SH-GAP-07](#gap-table))                                                                                                              | **Yes** — manual replay                                                                                         |
+| **AR-30-06** | **Transient publish failure** → `failed` outbox             | 3–12          | Terminal row until admin replay API (DEC-086) — **no** auto classifier retry                                                                                                 | **Yes** — replay API or CLI                                                                                     |
 | **AR-30-07** | **Bad deploy** — logic bug after image + optional migration | 12–22         | Code rollback **>30s**; schema skew if migration shipped ([RB-GAP-04](#rollback-strategy-gap-table)); cache stale                                                            | **Yes** — multi-layer runbook                                                                                   |
 | **AR-30-08** | **Breaking workspace revision** without client upgrade      | 20            | Explicit stale `schemaVersion` → **400** for all old clients ([DEPLOY-DEBT-04](#deployment-debt-register))                                                                   | **Yes** — rollback or lockstep client push                                                                      |
 | **AR-30-09** | **JWT key expiry** without staged rotation                  | 25–30         | Auth **401** storm until pods restarted with new PEM                                                                                                                         | **Yes** — manual rotation ([production-deploy-checklist](../../../docs/phase-4/production-deploy-checklist.md)) |
-| **AR-30-10** | **Misconfigured `DATABASE_URL_ADMIN`** → `db:test-reset`    | Rare          | Full **TRUNCATE CASCADE** of tenant data + audit ([CAE-GAP-05](#catastrophic-admin-error--gap-table))                                                                        | **Yes** — PITR restore                                                                                          |
+| **AR-30-10** | **Misconfigured `DATABASE_URL_ADMIN`** → `db:test-reset`    | Rare          | Script **refuses** prod URL / `NODE_ENV=production` (DEC-095) unless explicit `CONFIRM_TEST_RESET=1`                                                                         | **Rare** — misconfig with override only                                                                         |
 
-**30-day survival summary:** **3–5** of the above scenarios are **expected** in a typical month (deploy zombies, at least one infra blip, possible migration or bad deploy). **Zero** listed scenarios fully self-heal to pre-incident SLO without human action.
+**30-day survival summary:** **1–3** scenarios still need human action in a typical month (bad deploy rollback, migration window, poison outbox). **2–3** scenarios now **often** self-heal (deploy zombies, short DB/Redis blips).
 
 ---
 
@@ -209,7 +217,7 @@ Full Shadow API analysis: [§ OpenAPI/Swagger auto-generation](#executive-answer
 
 ## Executive answer — OpenAPI/Swagger auto-generation & Shadow API
 
-**OpenAPI/Swagger generator in `@apps/api`: No.** Static search of `apps/api/` for `openapi`, `swagger`, `tsoa`, `zod-to-openapi`, and route-registry patterns returned **zero** matches. [`package.json`](../package.json) has **no** `openapi:*` / `swagger:*` scripts; dependencies include **no** `@nestjs/swagger`, `tsoa`, or `zod-to-openapi`. There is **no** committed `openapi.json`, `openapi.yaml`, or Swagger UI mount in the thin Node HTTP stack ([`main.ts`](../src/main.ts) → [`createRequestListener`](../src/app.ts)).
+**OpenAPI generator in `@apps/api`: Yes (hand-maintained, DEC-099).** [`scripts/generate-openapi.mjs`](../scripts/generate-openapi.mjs) emits [`openapi/openapi.json`](../openapi/openapi.json) from [`dispatch-routes.ts`](../src/openapi/dispatch-routes.ts). **`pnpm run openapi:generate`** + **`guard:openapi-dispatch-parity`** keep dispatch ↔ spec aligned. **No** `zod-to-openapi`, Nest decorators, or Swagger UI — response schemas remain skeleton until Phase 6+.
 
 | Check                     | `@apps/api` (current)     | `legacy/apps/api` (frozen reference)                                    |
 | ------------------------- | ------------------------- | ----------------------------------------------------------------------- |
@@ -218,7 +226,7 @@ Full Shadow API analysis: [§ OpenAPI/Swagger auto-generation](#executive-answer
 | Committed spec            | **Absent**                | [`legacy/apps/api/openapi.json`](../../../legacy/apps/api/openapi.json) |
 | Decorator / schema source | Manual `if` dispatch only | `@nestjs/swagger` on Nest controllers                                   |
 
-**Shadow API** = HTTP surface reachable in production routing but **not** present in a machine-readable OpenAPI document generated from (or validated against) route handlers. Without a generator or committed spec, **every** `dispatchRequest` route is a shadow endpoint for contract consumers, gateway policy, and client codegen — even when prose docs exist elsewhere.
+**Shadow API (gate definition):** route in `dispatchRequest` but **absent** from committed `openapi/openapi.json`. **Post DEC-099: shadow count = 0** at `guard:openapi-dispatch-parity`. **Quality debt remains:** skeleton responses, no Zod-exported request bodies, legacy `openapi.json` still misleading.
 
 ```mermaid
 flowchart LR
@@ -241,19 +249,20 @@ flowchart LR
 
 ### Generator & package inventory (verified 2026-06-05)
 
-| Artifact                                            | Present in `apps/api`?                                                                                                                                                           |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `openapi` / `swagger` string in `src/`              | **No**                                                                                                                                                                           |
-| `tsoa`                                              | **No**                                                                                                                                                                           |
-| `zod-to-openapi`                                    | **No**                                                                                                                                                                           |
-| Central route registry (beyond `app.ts` `if` chain) | **No**                                                                                                                                                                           |
-| `package.json` OpenAPI script                       | **No**                                                                                                                                                                           |
-| Zod request schemas (partial)                       | **Yes** — [`provision-tenant.schema.ts`](../src/internal/provision-tenant.schema.ts), [`update-tour.schema.ts`](../src/tours/update-tour.schema.ts); **not** exported to OpenAPI |
-| TypeScript client contract (SDK)                    | **Partial** — [`tour-client.contract.ts`](../../../packages/workspace-sdk/src/tours/tour-client.contract.ts) documents `POST /tours` body only                                   |
+| Artifact                               | Present in `apps/api`?                                                                                                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openapi` / `swagger` string in `src/` | **No**                                                                                                                                                                           |
+| `tsoa`                                 | **No**                                                                                                                                                                           |
+| `zod-to-openapi`                       | **No**                                                                                                                                                                           |
+| Central route registry                 | **Yes** — [`dispatch-routes.ts`](../src/openapi/dispatch-routes.ts)                                                                                                              |
+| `package.json` OpenAPI script          | **Yes** — `openapi:generate`, `guard:openapi-dispatch-parity`                                                                                                                    |
+| Committed `openapi/openapi.json`       | **Yes** — 11 paths (2026-06-05)                                                                                                                                                  |
+| Zod request schemas (partial)          | **Yes** — [`provision-tenant.schema.ts`](../src/internal/provision-tenant.schema.ts), [`update-tour.schema.ts`](../src/tours/update-tour.schema.ts); **not** exported to OpenAPI |
+| TypeScript client contract (SDK)       | **Partial** — [`tour-client.contract.ts`](../../../packages/workspace-sdk/src/tours/tour-client.contract.ts) documents `POST /tours` body only                                   |
 
 ### `dispatchRequest` route inventory vs documented specs
 
-Authoritative runtime inventory from [`app.ts`](../src/app.ts) `dispatchRequest` (lines 30–64). **7** distinct method+path patterns; **0** captured by an in-repo OpenAPI generator.
+Authoritative runtime inventory from [`dispatch-routes.ts`](../src/openapi/dispatch-routes.ts) + [`app.ts`](../src/app.ts). **11** routes (includes map enrich, outbox replay, metrics, cache invalidate); **11/11** in committed OpenAPI (DEC-099).
 
 | #   | Method  | Path                          | Handler                                                                     | In OpenAPI spec? | Human / SDK docs (non-OpenAPI)                                                                                                                                                  |
 | --- | ------- | ----------------------------- | --------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -265,13 +274,13 @@ Authoritative runtime inventory from [`app.ts`](../src/app.ts) `dispatchRequest`
 | 6   | `GET`   | `/tours/:id`                  | `handleGetTour`                                                             | **No**           | [`rate-limiting.md`](../../../docs/phase-5/appendices/rate-limiting.md)                                                                                                         |
 | 7   | `PATCH` | `/tours/:id`                  | `handlePatchTour`                                                           | **No**           | [`update-tour.schema.ts`](../src/tours/update-tour.schema.ts) (Zod only); no MAP OpenAPI stub                                                                                   |
 
-**Shadow endpoint count: 7** (100% of `dispatchRequest` surface).
+**Shadow endpoint count: 0** (parity guard). **Schema richness debt: high** — see SHADOW-API register (severity downgraded where spec exists).
 
-**Documented spec files in `apps/api`:** **none** (no `openapi.json`, no `docs/openapi/`). [`test/phase-5.contract.spec.ts`](../test/phase-5.contract.spec.ts) asserts **DDL / Prisma** contract docs only — not HTTP OpenAPI.
+**Documented spec files in `apps/api`:** [`openapi/openapi.json`](../openapi/openapi.json). [`test/phase-5.contract.spec.ts`](../test/phase-5.contract.spec.ts) still asserts **DDL / Prisma** only — HTTP contract gate is `guard:openapi-dispatch-parity`.
 
 ### Shadow API risk register
 
-**Shadow API risk count: 7** (`SHADOW-API-01` … `SHADOW-API-07`)
+**Shadow API risk count: 7 IDs** — **gate status: closed** (all paths documented); **consumer risk: partial** until Zod-to-OpenAPI (Phase 6+)
 
 | ID                | Endpoint                           | Risk                                                                                                                                                                   | Severity |
 | ----------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
@@ -281,6 +290,7 @@ Authoritative runtime inventory from [`app.ts`](../src/app.ts) `dispatchRequest`
 | **SHADOW-API-04** | `GET /internal/test/db-pool-hold`  | Test hook not in any spec — accidental exposure if `NODE_ENV` mis-set ([§ Internal admin API](#internal-admin-api-inventory))                                          | P2       |
 | **SHADOW-API-05** | `POST /tours`                      | Primary write path — SDK types partial; `Idempotency-Key` / error codes not machine-verified                                                                           | P1       |
 | **SHADOW-API-06** | `GET /tours/:id`                   | Read contract + CASL-shaped response undocumented for consumers                                                                                                        | P1       |
+| **SHADOW-API-08** | `GET /tours`                       | List index (slim rows + cursor) — OpenAPI `listTours`; see [tours-list-endpoint.md](../../../docs/phase-5/appendices/tours-list-endpoint.md)                           | P1       |
 | **SHADOW-API-07** | `PATCH /tours/:id`                 | `rowVersion` optimistic-lock body/409 contract only in Zod + tests — highest drift risk vs SDK (`TourClient` has no `updateTour`)                                      | P1       |
 
 ### Cross-reference — legacy OpenAPI false confidence
@@ -452,7 +462,7 @@ flowchart TD
 | **Registry cache**                  | 5s TTL ([`tenant-registry-cache.ts`](../src/tenant/tenant-registry-cache.ts)) | Reduces admin reads under steady load | No              | **No** — uncapped Map keys                           |
 | **Metrics**                         | In-memory counters                                                            | None                                  | **No export**   | **No**                                               |
 
-**Routes under rate limit** (via [`bind-request-context.ts`](../src/http/bind-request-context.ts)): `POST/PATCH /tours` (write), `GET /tours/:id` (read), `GET /api/v2/tenant-config` (read). **`GET /health`** — **no** rate limit, **no** priority lane ([phase3 NN-08](./phase3-scalability-stress-audit.md)).
+**Routes under rate limit** (via [`bind-request-context.ts`](../src/http/bind-request-context.ts)): `POST/PATCH /tours` (write), `GET /tours` + `GET /tours/:id` (read), `GET /api/v2/tenant-config` (read). **`GET /health`** — **no** rate limit; **priority ingress** bypasses logging/trace ([`health-priority-lane.md`](../../../docs/phase-5/appendices/health-priority-lane.md) / phase3 NN-08).
 
 ### Scalability Limit register (traffic spike)
 
@@ -1090,7 +1100,18 @@ Transient Redis disconnect → `consume()` throws → typically **500** unless m
 
 ## Gap table
 
-**Gap count: 16**
+**Gap count: 16** catalogued · **5 mitigated** (phases 1–3) · **11 open**
+
+| ID            | Remediation (2026-06-05)                                      |
+| ------------- | ------------------------------------------------------------- |
+| **SH-GAP-04** | **Closed** — transient→503 (DEC-094)                          |
+| **SH-GAP-05** | **Closed** — `Retry-After` on 503 paths (DEC-094)             |
+| **SH-GAP-07** | **Partial** — admin replay API; no auto-retry before `failed` |
+| **SH-GAP-08** | **Closed** — processing reclaim (DEC-071)                     |
+| **SH-GAP-13** | **Closed** — Redis tiered fallback (DEC-083)                  |
+| **SH-GAP-15** | **Closed** — DB circuit breaker (DEC-094)                     |
+
+**Verification:** `pnpm run phase-5:evolution-gate`
 
 | ID            | Layer         | Scenario                                                            | Current behavior                                         | Class                             | Severity |
 | ------------- | ------------- | ------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------- | -------- |
@@ -1603,9 +1624,10 @@ rg -l 'flush.*cache|invalidate.*registry|resetTenantRegistry' apps/api/src/ \
 | Metric                                        | Value                                                                                                                                                                      |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Document**                                  | `apps/api/docs/phase5-evolution-audit.md`                                                                                                                                  |
-| **Autonomous readiness score**                | **45 / 100**                                                                                                                                                               |
-| **Autonomous verdict**                        | **SEMI** — steady-state OK; deploy/migration/rollback/outbox recovery require humans                                                                                       |
-| **Operational toil count**                    | **10** (top recurring manual tasks — [§ Operational Toil](#operational-toil--top-10))                                                                                      |
+| **Autonomous readiness score**                | **58 / 100** (was 45 pre-remediation)                                                                                                                                      |
+| **Autonomous verdict**                        | **SEMI** — improved; **AUTONOMOUS** blocked by rollback, soft delete, auto-rotation, priority shed                                                                         |
+| **Evolution remediation phases**              | **3** closed (DEC-071…109) — [phase5-evolution-p0-phase1.md](../../../docs/phase-5/appendices/phase5-evolution-p0-phase1.md) et al.                                        |
+| **Operational toil count**                    | **6** manual + **4** semi-auto ([§ Operational Toil](#operational-toil--top-10))                                                                                           |
 | **Migration Danger count**                    | **14** (`MD-GAP-01` … `MD-GAP-14`)                                                                                                                                         |
 | **Auto-rollback (single migration TX)**       | **Yes** — PostgreSQL rolls back all statements in failed file                                                                                                              |
 | **Auto-rollback (migration chain)**           | **No** — prior migrations remain applied                                                                                                                                   |
@@ -1613,8 +1635,8 @@ rg -l 'flush.*cache|invalidate.*registry|resetTenantRegistry' apps/api/src/ \
 | **Rollback 30s feasible (DB + code + cache)** | **No** — [RB-GAP-01…14](#rollback-strategy-gap-table)                                                                                                                      |
 | **Catastrophic Admin gap count**              | **14** (`CAE-GAP-01` … `CAE-GAP-14`)                                                                                                                                       |
 | **Deployment Debt count**                     | **9** (`DEPLOY-DEBT-01` … `DEPLOY-DEBT-09`)                                                                                                                                |
-| **OpenAPI generator exists**                  | **No** — no `openapi.json`, no generator script, no `@nestjs/swagger` / `tsoa` / `zod-to-openapi`                                                                          |
-| **Shadow endpoint count**                     | **7** — 100% of `dispatchRequest` routes (`SHADOW-API-01` … `SHADOW-API-07`)                                                                                               |
+| **OpenAPI generator exists**                  | **Yes** — `openapi:generate` + `openapi/openapi.json` (DEC-099); **no** `zod-to-openapi`                                                                                   |
+| **Shadow endpoint count**                     | **0** at parity guard — **11** routes documented                                                                                                                           |
 | **Header routing exists**                     | **No** — pathname-only dispatch; no `Accept-Version` / `API-Version` reader                                                                                                |
 | **Self-Heal gap count**                       | **16** (`SH-GAP-01` … `SH-GAP-16`)                                                                                                                                         |
 | **Scalability Limit count**                   | **18** (`SCAL-LIM-01` … `SCAL-LIM-18`)                                                                                                                                     |
@@ -1628,32 +1650,35 @@ rg -l 'flush.*cache|invalidate.*registry|resetTenantRegistry' apps/api/src/ \
 | **Secret Management Vulnerability count**     | **11** (`SM-VUL-01` … `SM-VUL-11`)                                                                                                                                         |
 | **Auto-rotation pipeline exists**             | **No** — manual JWT runbook + rolling restart only                                                                                                                         |
 | **Per-tenant key derivation**                 | **No** — global RS256 PEM + shared DB/Redis credentials                                                                                                                    |
-| **Dual-key JWT verify window**                | **No** — single `AUTH_JWT_PUBLIC_KEY`                                                                                                                                      |
+| **Dual-key JWT verify window**                | **Yes** — `AUTH_JWT_PUBLIC_KEY_PREVIOUS` (DEC-107); **no** auto-rotation pipeline                                                                                          |
 | **Vault integration**                         | **No**                                                                                                                                                                     |
 | **CI/CD bypass count**                        | **44** (`CI-BYP-01` … `CI-BYP-44`)                                                                                                                                         |
-| **Highest-risk CI/CD bypass**                 | **`GHA-phase-4/5-omission`** (no GHA workflow for `phase-4:gate` / `phase-5:gate`)                                                                                         |
+| **Highest-risk CI/CD bypass**                 | **`ci:integrity` stops at phase-3** (CI-BYP-11) — GHA phase-4/5 **closed** (DEC-096)                                                                                       |
 | **Highest-risk runtime env leak**             | **`P5_ATOMIC_TX_TEST_ABORT`** / **`P5_CHAOS_ABORT`** (ungated in `src/`)                                                                                                   |
 | **Rollback 30s feasible (DB + code + cache)** | **No**                                                                                                                                                                     |
 | **Rollback Strategy gap count**               | **14** (`RB-GAP-01` … `RB-GAP-14`)                                                                                                                                         |
 | **Prisma migrate down supported**             | **No** — forward-only; PITR / manual SQL for DB revert                                                                                                                     |
 | **Blue/green in repo**                        | **No**                                                                                                                                                                     |
-| **Cache flush API**                           | **No** — test-only registry/RL reset helpers                                                                                                                               |
+| **Cache flush API**                           | **Partial** — `POST /internal/cache/invalidate` dev/test (DEC-106); prod uses runbook Redis SCAN                                                                           |
+| **Self-Heal gaps mitigated**                  | **5** of 16 (SH-GAP-04/05/08/13/15; SH-GAP-07 partial)                                                                                                                     |
+| **Rollback runbook documented**               | **Yes** — production-deploy-checklist § Bad deployment (DEC-098)                                                                                                           |
+| **Migration head boot check**                 | **Yes** — DEC-097                                                                                                                                                          |
 
-**Parent handoff (autonomous readiness):** `autonomous_readiness_score=45` · `autonomous_verdict=SEMI` · `operational_toil_count=10`
+**Parent handoff (autonomous readiness):** `autonomous_readiness_score=58` · `autonomous_verdict=SEMI` · `operational_toil_count=6` · `evolution_remediation_phases=3`
 
-**Parent handoff (versioning):** `deployment_debt_count=9` · `header_routing_exists=no`
+**Parent handoff (versioning):** `deployment_debt_count=9` · `header_routing_exists=no` · `phase6_version_strategy=decided`
 
-**Parent handoff (OpenAPI):** `openapi_generator_exists=no` · `shadow_endpoint_count=7`
+**Parent handoff (OpenAPI):** `openapi_generator_exists=yes` · `shadow_endpoint_count=0` · `zod_to_openapi=no`
 
 **Parent handoff (Migration Danger):** `auto_rollback_single_migration=yes` · `auto_rollback_chain=no` · `corrupted_schema_from_failed_tx=no` · `migration_danger_count=14`
 
 **Parent handoff (auto-scaling):** `scalability_limit_count=18` · `in_app_shedding=partial` (equal-tier 429/503 yes; priority load shed no)
 
-**Parent handoff (secret management):** `secret_management_vulnerability_count=11` · `auto_rotation_pipeline_exists=no`
+**Parent handoff (secret management):** `secret_management_vulnerability_count=11` · `auto_rotation_pipeline_exists=no` · `dual_key_jwt_verify=yes`
 
-**Parent handoff (CI/CD bypass):** `ci_bypass_count=44` · `highest_risk_bypass=GHA-phase-4/5-omission`
+**Parent handoff (CI/CD bypass):** `ci_bypass_count=44` · `highest_risk_bypass=ci-integrity-stops-phase3` · `gha_phase_4_5=closed`
 
-**Parent handoff (rollback):** `rollback_30s_feasible=no` · `rollback_gap_count=14`
+**Parent handoff (rollback):** `rollback_30s_feasible=no` · `rollback_gap_count=11` · `rollback_runbook_documented=yes`
 
 **Parent handoff (catastrophic admin):** `catastrophic_admin_risk_count=14` · `soft_delete_exists=no`
 

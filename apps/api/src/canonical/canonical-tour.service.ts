@@ -5,6 +5,7 @@ import { accessibleByTourWhere } from "../casl/api-ability";
 import { ScopedTourRepository } from "../db/scoped-tour.repository";
 import type { TourRecord } from "../db/tour-record";
 import type { TourStorageRepository } from "../db/tour.repository";
+import type { ListToursQuery, TourListItem, TourListResult } from "../tours/list-tours-query";
 import type { CreateTourBody } from "../tours/create-tour.schema";
 import type { UpdateTourBody } from "../tours/update-tour.schema";
 import { useAtomicCanonicalPersist } from "../storage/create-tour-storage";
@@ -139,6 +140,16 @@ export class CanonicalTourService {
     return scopedRepo.findFirst({ id: tourId });
   }
 
+  async listTours(ability: ApiAbility, options: ListToursQuery): Promise<TourListResult> {
+    accessibleByTourWhere(ability, "read");
+    const scopedRepo = new ScopedTourRepository(this.canonicalStore, ability);
+    const page = await scopedRepo.listPage({}, { limit: options.limit, cursor: options.cursor });
+    return {
+      items: page.items.map(toTourListItem),
+      nextCursor: page.nextCursor,
+    };
+  }
+
   async updateTour(input: {
     readonly ability: ApiAbility;
     readonly tenantId: string;
@@ -215,4 +226,13 @@ export class CanonicalTourService {
       clearPreTransactionValidationGate(input.tenantId);
     }
   }
+}
+
+function toTourListItem(record: TourRecord): TourListItem {
+  return {
+    id: record.id,
+    tenantId: record.tenantId,
+    createdAt: record.createdAt,
+    rowVersion: record.rowVersion,
+  };
 }

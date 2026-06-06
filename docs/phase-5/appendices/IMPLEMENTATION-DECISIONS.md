@@ -1019,9 +1019,1292 @@ Pass criteria: exit `0`; artifact `test/reliability/phase-2-regression-gate.last
 | Fix-next open          | 5         | **0**                                       |
 | Formal regression gate | ad hoc    | **`pnpm run phase-2:regression-gate` PASS** |
 
-**Verdict:** Phase 2 **observability parity closed** for trunk — residual P2/P3 items (TRACE-LOST-02 Phase 7, ERR-BYPASS-01 internal routes, MET-VALID-01 empty tenant_id) are scheduled, not blockers.
+**Verdict:** Phase 2 **observability parity closed** for trunk — residual P2/P3 items (TRACE-LOST-02 Phase 7, outbox-replay error mapper, MET-VALID-01 empty tenant_id) are scheduled, not blockers.
 
 **Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 closure sign-off.
+
+---
+
+## DEC-052 — HTTP request body size limit (Phase 3 closure step 1)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-03, SCAL-HF-06 (ingress), NN-07 (large POST parse).
+
+| Item         | Choice                                                       |
+| ------------ | ------------------------------------------------------------ |
+| Default max  | **256 KiB** (`HTTP_MAX_BODY_BYTES=262144`)                   |
+| Reject point | `readRequestBodyRaw` — before `Buffer.concat` / `JSON.parse` |
+| Status       | **413** `payload_too_large` / `REQUEST_BODY_TOO_LARGE`       |
+| Logging      | **None** on 413 (client error)                               |
+
+**Rationale:** Phase 3 event-loop audit priority #1 — blocks multi-MiB DoS and event-loop monopolization from oversized JSON without waiting for validation scheduler or pool saturation.
+
+**Verification:** [`http-request-body-limit.md`](http-request-body-limit.md) · `guard:http-body-limit` · `test/3-performance/request-body-limit.spec.ts`.
+
+---
+
+## DEC-053 — Rate limiter theme lookup cache (Phase 3 closure step 2)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-04 (partial), RL-DOS-01, RL-DOS-03, RACE-01 (rate-limiter path).
+
+| Item           | Choice                                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| API            | `resolveTenantThemeJsonById` in `resolve-registered-tenant.ts`                            |
+| Cache          | `tenant-registry-cache.ts` — `getCachedTenantThemeById` / `setCachedTenantThemeById`      |
+| TTL            | **5s** (same as registry row cache)                                                       |
+| Negative cache | `null` theme cached for unknown UUID — stops rotating-ID admin storms                     |
+| Rate limiter   | `resolveEffectiveRateLimitForTenant` — **no direct** `getPrismaAdmin().tenant.findUnique` |
+
+**Rationale:** Phase 3 audit primary bottleneck — uncached admin read on every rate-limited HTTP request under 100-tenant flood.
+
+**Verification:** [`rate-limiting.md`](rate-limiting.md) · `guard:rate-limit-theme-cache` · `resolve-tenant-theme-cache.spec.ts`.
+
+**Deferred (same pattern, later step):** `resolveTenantFeatureFlags` still uncached — separate ticket.
+
+---
+
+## DEC-054 — Validation queue max depth + shed (Phase 3 closure step 3)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-06, NN-04 (partial), SCAL-HF-04 (closure growth), RACE-04 (depth cap).
+
+| Item   | Choice                                                              |
+| ------ | ------------------------------------------------------------------- |
+| Env    | `P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT` (default **64**)         |
+| Scope  | **Pending** tasks per tenant in `tenantQueues` — in-flight excluded |
+| Shed   | Immediate reject — `ValidationQueueSaturatedError`                  |
+| HTTP   | **429** `validation_queue_saturated` / `VALIDATION_QUEUE_SATURATED` |
+| Metric | `validation_queue_shed_total{tenant_id}`                            |
+
+**Rationale:** Unbounded `tenantQueues` closures under bulk import → OOM and cross-tenant indirect delay (NN-04).
+
+**Verification:** [`validation-fairness.md`](validation-fairness.md) · `guard:validation-queue-depth` · `validation-queue-depth.spec.ts`.
+
+---
+
+## DEC-055 — Per-tenant DB connection budget (Phase 3 closure step 4)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-01 (partial), NN-02 (fairness — tenant A cannot monopolize all pool slots).
+
+| Item    | Choice                                                            |
+| ------- | ----------------------------------------------------------------- |
+| Env     | `TENANT_MAX_CONCURRENT_DB_OPS` (default **4**)                    |
+| Scope   | `withTenantRls` + `withCanonicalTransaction` (app pool only)      |
+| Acquire | Non-blocking — reject before `$transaction`                       |
+| HTTP    | **503** `tenant_db_budget_exceeded` / `TENANT_DB_BUDGET_EXCEEDED` |
+| Module  | `apps/api/src/db/tenant-connection-budget.ts`                     |
+
+**Verification:** [`connection-budget.md`](connection-budget.md) · `guard:tenant-db-budget` · `tenant-connection-budget.spec.ts`.
+
+---
+
+## DEC-056 — Validation worker pool + time budget (Phase 3 closure step 5)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-02, NN-01 (partial), SCAL-HF-10 (event-loop CPU monopolization).
+
+| Item           | Choice                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Env            | `P5_VALIDATION_WORKER_POOL_SIZE` (default **2**); `P5_VALIDATION_TIME_BUDGET_MS` (default **10000**); `P5_VALIDATION_WORKERS_ENABLED` (`false` disables) |
+| Offload        | `worker_threads` — `validation-worker-entry.ts` runs `validateCanonicalBeforePersistSync` off main thread                                                |
+| Production API | `validateCanonicalBeforePersist()` → `runValidationOffThread()`; sync export retained for probes                                                         |
+| Timeout        | Per-job timer in pool — `ValidationTimeBudgetExceededError`                                                                                              |
+| HTTP           | **408** `validation_time_budget_exceeded` / `VALIDATION_TIME_BUDGET_EXCEEDED`                                                                            |
+| Metric         | `validation_time_budget_exceeded_total{tenant_id}`                                                                                                       |
+| Modules        | `validation-worker-pool.ts`, `validation-time-budget.ts`, `validation-worker-entry.ts`                                                                   |
+
+**Rationale:** DEC-016 scheduler yields between tasks but validation body was still sync on the event loop; bulk RuleEngine work blocked heartbeats (`noisy-neighbor-latency`, `service-starvation`).
+
+**Verification:** [`validation-fairness.md`](validation-fairness.md) · `guard:validation-workers` · `validation-worker-pool.spec.ts`.
+
+---
+
+## DEC-057 — Phase 3 formal regression gate (closure step 6)
+
+**Problem:** Phase 3 closure steps 1–5 (DEC-052…056) were verified ad hoc; no single CI-invokable gate records pass/fail for P0 scalability sign-off.
+
+**Decision:** `pnpm run phase-3:regression-gate` orchestrates:
+
+| Tier                  | Steps                                                                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 3 guards**    | `guard:http-body-limit`, `guard:rate-limit-theme-cache`, `guard:validation-queue-depth`, `guard:tenant-db-budget`, `guard:validation-workers`, `guard:rate-limiter-100-probe`                                                         |
+| **Memory specs**      | `request-body-limit`, `resolve-tenant-theme-cache`, `validation-queue-depth`, `tenant-connection-budget`, `validation-worker-pool`, `tenant-rate-limiter-100`, `validation-gate-concurrency` (workers disabled for deterministic LRU) |
+| **Postgres optional** | `db-pool-saturation` when `DATABASE_URL` set                                                                                                                                                                                          |
+
+Pass criteria: exit `0`; artifact `test/reliability/phase-3-regression-gate.last-run.json`.
+
+**Verification:** `scripts/phase-3-regression-gate.mjs`, `test/reliability/phase-3-regression-gate.spec.ts`.
+
+---
+
+## DEC-058 — Phase 3 P0 scale-out sign-off (closure step 7)
+
+**Closure date:** 2026-06-05  
+**Scope:** Phase 3 scalability audit P0 Must-Fix (SCAL-DEBT-01…03, 06 + partial 04), formal regression gate (DEC-057).
+
+| Metric                 | Pre-closure P0 | Post-closure                                |
+| ---------------------- | -------------- | ------------------------------------------- |
+| Must-Fix P0 open       | 5              | **0**                                       |
+| SCAL-DEBT P0 done      | 0              | **6** (01–03, 06 + partial 04 theme cache)  |
+| Formal regression gate | ad hoc         | **`pnpm run phase-3:regression-gate` PASS** |
+
+**Verdict:** Phase 3 **P0 scale-out blockers closed** for trunk — overall audit remains **CONDITIONAL** until remaining P1 backlog (SCAL-DEBT-09, 07/08 logging, partial 04 `REDIS_URL` prod guard, 10–13).
+
+**Sign-off artifact:** [`apps/api/docs/phase3-scalability-stress-audit.md`](../../../apps/api/docs/phase3-scalability-stress-audit.md) § Phase 3 closure sign-off.
+
+---
+
+## DEC-059 — 100-tenant rate-limiter flood probe (Phase 3 P1 step 8)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-14, RL-DOS gap (two-tenant specs insufficient), partial RL-DOS-01 regression lock.
+
+| Item         | Choice                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Spec         | `test/3-performance/tenant-rate-limiter-100.spec.ts`                                                                 |
+| Shape        | **100** unique tenant IDs × **1** concurrent `POST /tours` each                                                      |
+| Admin budget | When `DATABASE_URL` set: `getAdminThemeLookupCountForTests()` ≤ **100** on cold cache; second wave **0** new lookups |
+| SLO          | Storm ≤ **30s**; p95 ≤ **8s**; heartbeat ≥ **8** ticks; all **201** (limit points ≥ flood count)                     |
+| CI lock      | `guard:rate-limiter-100-probe` + `phase-3:regression-gate`                                                           |
+
+**Rationale:** DEC-053 theme cache mitigates RL-DOS-01 but two-tenant fairness specs do not bound 100-ID admin-pool amplification.
+
+**Verification:** [`rate-limiting.md`](rate-limiting.md) · `guard:rate-limiter-100-probe` · `tenant-rate-limiter-100.spec.ts`.
+
+---
+
+## DEC-060 — Production storage driver CI lock (Phase 3 P1 step 9)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-05, DI-MEM-01, AUDIT-GAP-01 (formal cross-ref to Phase 1/2 DEC-GAP-03).
+
+| Item            | Choice                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Runtime guard   | Existing `assertProductionStorageDriver()` in `create-tour-storage.ts` + `assertProductionRuntimeIntegrity()` at boot |
+| CI lock         | `guard:production-storage-driver.mjs` — asserts boot chain + regression gate runs storage specs                       |
+| Specs           | `create-tour-storage.spec.ts`, `forensic-storage-driver.spec.ts` in `phase-3:regression-gate`                         |
+| Production rule | `NODE_ENV=production` + `STORAGE_DRIVER=memory` → `PRODUCTION_STORAGE_DRIVER_FORBIDDEN`                               |
+
+**Rationale:** Fail-closed production storage was implemented in Phase 4/5; Phase 3 audit required a **formal regression lock** so misconfig cannot regress without CI failure.
+
+**Verification:** [`storage-driver-truth.md`](../../phase-4/appendices/storage-driver-truth.md) · `guard:production-storage-driver` · `phase-3:regression-gate`.
+
+---
+
+## DEC-061 — Compiled cold-start readiness gate (Phase 3 P1 step 10)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-15, CS-UNSC-01/02 (compiled path); tsx dev boot remains documented as **unscalable** at 500 ms.
+
+| Item              | Choice                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Probe             | Spawn `node dist/main.js` → poll `GET /health` (spawn-to-200 ms)                                                                |
+| Samples           | **3** cold starts per run; report p50/p95/max                                                                                   |
+| Budget            | Default **500 ms** p95 (`COLD_START_READINESS_BUDGET_MS`)                                                                       |
+| Enforce (trunk)   | `COLD_START_READINESS_ENFORCE=false` in `phase-3:regression-gate` — records `unscalable: true` but **PASS** unless enforce=true |
+| Enforce (nightly) | `COLD_START_READINESS_ENFORCE=true` via `test:nightly:cold-start` — **FAIL** when p95 > budget; not in trunk/pre-commit         |
+| Artifact          | `test/reliability/cold-start-readiness.last-run.json`                                                                           |
+| CI lock (trunk)   | `guard:cold-start-readiness-gate` + record-only step after `build-dist` in `phase-3:regression-gate`                            |
+| CI lock (nightly) | `guard:cold-start-readiness-enforce` + `.github/workflows/api-nightly.yml`                                                      |
+
+**Rationale:** `cold-start-latency.spec.ts` measures tsx/dev import graph (~2× over 500 ms SLO). Production scale-to-zero readiness must use **compiled** `dist/main.js`. Trunk stays record-only so shared PR runners with variable p95 do not block merge; nightly/release hard-fail when lazy-boot p95 exceeds budget.
+
+**Follow-on (lazy boot):** [`cold-start-lazy-boot.md`](cold-start-lazy-boot.md) — `main.ts` serves `/health` before `import("./app")`; tour stack and non-health routes load on first use. Gate samples (2026-06-05): p95 **240–290 ms** on `dist/main.js` (`unscalable: false`).
+
+**Verification:** `apps/api/docs/phase3-scalability-stress-audit.md` §12 · `cold-start-readiness-gate.mjs` · `test:nightly:cold-start` · `guard:cold-start-readiness-enforce` · `cold-start-lazy-boot.md`.
+
+---
+
+## DEC-062 — Async request-log enqueue off `finish` (Phase 3 P1 step 11)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-07, FOF-LOG-02 (partial; SCAL-DEBT-08 remains open for sink-level backpressure contract).
+
+| Item         | Choice                                                                                |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Ingress hook | `withRequestLogging()` captures request context at `finish` and enqueues log write    |
+| Dispatch     | `setImmediate` drain so the response `finish` path avoids synchronous `logger.info()` |
+| Queue cap    | `HTTP_LOG_QUEUE_MAX` (default **2048**) with fail-open drop on overflow               |
+| Drop signal  | Warn once per burst with dropped count (no throw; availability-first logging path)    |
+| Scope        | Request access logs only; does not change outbox/audit logger behavior                |
+
+**Rationale:** Slow sink pressure previously executed log write inline with `finish`, compounding tail latency under 503/200 storms. Moving to an async bounded queue preserves request-path responsiveness while keeping logs best-effort.
+
+**Verification:** `request-logging.spec.ts` · `log-backpressure-burst.ts` baseline · `phase-3:regression-gate`.
+
+---
+
+## DEC-063 — Logging backpressure contract (Phase 3 P1 step 12)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-08, FOF-LOG-01 (bounded buffer + metrics), FOF-LOG-03 (shutdown flush).
+
+| Item          | Choice                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Destination   | Explicit `pino.destination({ dest: 1, sync: false, minLength, maxLength })`                |
+| Bound         | `LOG_SINK_MAX_LENGTH` default **4 MiB** — Sonic-Boom `drop` on overflow                    |
+| Observability | `log_sink_drain_total`, `log_sink_drop_total` counters                                     |
+| Shutdown      | After `server.close()`: `drainHttpRequestLogQueueSync()` → `flushLogSink()` → outbox flush |
+| Flush timeout | `LOG_SINK_FLUSH_TIMEOUT_MS` default **2000** — fail-open                                   |
+
+**Rationale:** DEC-062 decoupled HTTP `finish` from Pino enqueue; step 12 completes the sink contract so operators can observe backpressure and shutdown does not silently discard buffered access logs.
+
+**Verification:** [`logging-backpressure.md`](logging-backpressure.md) · `guard:log-backpressure-contract` · `logger-backpressure.spec.ts`.
+
+---
+
+## DEC-064 — Tour write concurrency cap (Phase 3 P1 step 13)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-09, NN-05 (partial — no dedicated bulk route).
+
+| Item   | Choice                                                                 |
+| ------ | ---------------------------------------------------------------------- |
+| Scope  | `POST /tours` only (create path)                                       |
+| Cap    | `TENANT_MAX_CONCURRENT_TOUR_WRITES` default **8** in-flight per tenant |
+| HTTP   | **429** `tour_write_concurrency_exceeded`                              |
+| Hook   | `runWithHttpRequestContext(..., { tourWriteConcurrency: true })`       |
+| Metric | `tour_write_concurrency_shed_total`                                    |
+
+**Rationale:** RPS limits bound arrival rate; DB budget bounds TX slots. Bulk-import storms need an HTTP-level concurrent-create semaphore before validation CPU and pool pressure accumulate.
+
+**Verification:** [`tour-write-concurrency.md`](tour-write-concurrency.md) · `guard:tour-write-concurrency` · `tour-write-concurrency.spec.ts`.
+
+---
+
+## DEC-065 — Production `REDIS_URL` guard (Phase 3 P1 step 14)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-04 (complete), RL-DOS-02 (prod misconfig), SCAL-HF-02 (prod path).
+
+| Item       | Choice                                                                       |
+| ---------- | ---------------------------------------------------------------------------- |
+| When       | `NODE_ENV=production` + `TENANT_RATE_LIMIT_ENABLED` not `false`              |
+| Rule       | Non-empty `REDIS_URL` required — boot throws `PRODUCTION_REDIS_URL_REQUIRED` |
+| Skip       | Rate limiting disabled → memory store allowed (single-node ops only)         |
+| Boot chain | `assertProductionRedisUrl()` from `assertProductionRuntimeIntegrity()`       |
+| CI lock    | `guard:production-redis-url`                                                 |
+
+**Rationale:** DEC-053 closed admin theme amplification; memory `RateLimiterMemory` keys remain unbounded (RL-DOS-02) without Redis in multi-tenant production.
+
+**Verification:** [`rate-limiting.md`](rate-limiting.md) · `guard:production-redis-url` · `production-runtime-env.spec.ts`.
+
+---
+
+## DEC-066 — Outbox relay per-tenant budget (Phase 3 P1 step 15)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-10, NN-03, NN-06 (partial).
+
+| Item         | Choice                                                                                |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Cap          | `OUTBOX_RELAY_MAX_IN_FLIGHT_PER_TENANT` default **4** concurrent publishes per tenant |
+| Over cap     | Revert row to `pending` — deferred to next tick (not `failed`)                        |
+| Scope        | `publishClaimedBatch` in `outbox-relay.ts`                                            |
+| Metric       | `outbox_relay_tenant_deferred_total`                                                  |
+| Result field | `OutboxRelayProcessResult.deferred`                                                   |
+
+**Rationale:** Global batch claim + parallel publish allowed one tenant's backlog to amplify admin/app pool usage. Per-tenant in-flight cap bounds noisy-neighbor blast radius without disabling global throughput.
+
+**Verification:** [`outbox-relay-fairness.md`](outbox-relay-fairness.md) · `guard:outbox-relay-tenant-budget` · `outbox-relay-tenant-budget.spec.ts`.
+
+---
+
+## DEC-067 — Idempotency memory TTL + LRU CI lock (Phase 3 P1 step 16)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-11, HT-08, SCAL-HF-03 (memory driver path).  
+**Cross-ref:** Implementation in **DEC-039** — this step adds Phase 3 regression lock only.
+
+| Item     | Choice                                                                                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------- |
+| Bounds   | `HTTP_IDEMPOTENCY_MEMORY_TTL_MS` (default **300000**) + `HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES` (default **512**) |
+| Eviction | TTL purge + LRU on **completed** entries only; `processing` claims never TTL-evicted                            |
+| CI lock  | `guard:http-idempotency-memory-bounds` + `http-idempotency.memory.spec.ts` in `phase-3:regression-gate`         |
+
+**Rationale:** Memory-driver idempotency was bounded in DEC-039; Phase 3 audit required explicit regression lock so `memoryByKey` cannot regress unbounded under HT-08 flood scenarios.
+
+**Verification:** [`http-idempotency.md`](http-idempotency.md) · `guard:http-idempotency-memory-bounds` · `http-idempotency.memory.spec.ts`.
+
+---
+
+## DEC-068 — Registry cache max-size sweep (Phase 3 P1 step 17)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-12, RL-DOS-03 (partial).
+
+| Item     | Choice                                                          |
+| -------- | --------------------------------------------------------------- |
+| Maps     | `byId`, `bySubdomain`, `themeById` — each bounded independently |
+| Cap      | `TENANT_REGISTRY_CACHE_MAX_ENTRIES` default **1024** per map    |
+| Eviction | Expired purge then LRU oldest key                               |
+| TTL      | **5000 ms** unchanged                                           |
+
+**Rationale:** DEC-053 added theme JSON cache for rate limiter; without max-size sweep, rotating UUID probes could still grow Maps between TTL expiries.
+
+**Verification:** [`registry-cache-bounds.md`](registry-cache-bounds.md) · `guard:tenant-registry-cache-bounds` · `tenant-registry-cache.spec.ts`.
+
+---
+
+## DEC-069 — Victim SLO bulk import probe (Phase 3 P1 step 18)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-DEBT-13, NN-05 (partial), BULK-01 victim SLO gap.
+
+| Item     | Choice                                                                  |
+| -------- | ----------------------------------------------------------------------- |
+| Spec     | `bulk-import-victim-slo.spec.ts`                                        |
+| Attacker | Tenant A — parallel `POST /tours` (`BULK_IMPORT_PARALLEL`)              |
+| Victim   | Tenant B — `GET /health`, `GET /api/v2/tenant-config`, `GET /tours/:id` |
+| SLO      | p99 ≤ baseline p50 × **4** per path (min **500 ms**)                    |
+| CI lock  | `guard:bulk-import-victim-slo` + regression gate memory tier            |
+
+**Rationale:** Closes the noisy-neighbor matrix gap where bulk import starves B login/read paths without a regression spec.
+
+**Verification:** [`victim-slo-bulk-import.md`](victim-slo-bulk-import.md) · `guard:bulk-import-victim-slo` · `bulk-import-victim-slo.spec.ts`.
+
+---
+
+## DEC-070 — Nightly slow-sink adversarial probe (Phase 3 optional closure)
+
+**Date:** 2026-06-05  
+**Closes:** LOG-BP-03 adversarial gap, FOF-LOG nightly re-run (post DEC-062/063).
+
+| Item     | Choice                                                                                  |
+| -------- | --------------------------------------------------------------------------------------- |
+| Spec     | `log-slow-sink-adversarial.spec.ts`                                                     |
+| Tier     | Nightly only — `skipUnlessNightlyTier`                                                  |
+| Scenario | Burst `/health` with `withRequestLogging` while `logger.info` simulates slow sink drain |
+| SLO      | 100% HTTP **200**; p99 ≤ **3000 ms**; log queue drains to **0**                         |
+| CI lock  | `guard:log-slow-sink-nightly` — **not** in trunk `phase-3-regression-gate`              |
+
+**Rationale:** Fast-path burst (LOG-BP-01) cannot prove safety when sink throughput < emit rate. Nightly probe validates DEC-062 decoupling + DEC-063 bounded sink under adversarial drain without blocking HTTP completion.
+
+**Verification:** [`logging-backpressure.md`](logging-backpressure.md) § nightly · `pnpm run test:nightly:slow-sink` · `guard:log-slow-sink-nightly`.
+
+---
+
+## DEC-071 — Outbox processing reclaim + shutdown drain (Phase 4 step 1)
+
+**Date:** 2026-06-05  
+**Closes:** F-01, F-05, SD-G1, OZ-01/02/06 (partial), CASCADE-02 propagation.
+
+| Item        | Choice                                                                                   |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| Reclaim TTL | `OUTBOX_PROCESSING_RECLAIM_MS` (default **120_000**)                                     |
+| Claim time  | `processed_at` set when status → `processing`                                            |
+| Reclaim     | `processing` → `pending`, `processed_at = null`                                          |
+| Shutdown    | `drainOutboxRelayOnShutdown()` — reclaim + relay until no pending/reclaimable processing |
+| CI lock     | `guard:outbox-processing-reclaim`                                                        |
+
+**Rationale:** Deploy SIGTERM mid-relay left permanent `processing` zombies; shutdown flush ignored them (SD-G1). Time-boxed reclaim restores at-least-once delivery without manual SQL.
+
+**Verification:** [`outbox-processing-reclaim.md`](outbox-processing-reclaim.md) · `guard:outbox-processing-reclaim` · `outbox-processing-reclaim.spec.ts`.
+
+---
+
+## DEC-072 — Outbox publish / mark-done pairing (Phase 4 step 2)
+
+**Date:** 2026-06-05  
+**Closes:** F-02, OZ-02 (partial).
+
+| Item        | Choice                                                            |
+| ----------- | ----------------------------------------------------------------- |
+| Mark-done   | Conditional `processing` → `done` with retry after bus publish    |
+| Pairing gap | Publish success + mark failure → stay `processing` (not `failed`) |
+| OZ-02 heal  | Reclaim tick marks `done` when `processed_domain_events` matches  |
+| CI lock     | `guard:outbox-publish-done-pairing`                               |
+
+**Rationale:** Bus could lead DB by one admin round-trip; stuck `processing` implied undelivered events. Retries shrink the window; reclaim heal closes the OZ-02 gap when handlers already claimed delivery.
+
+**Verification:** [`outbox-publish-done-pairing.md`](outbox-publish-done-pairing.md) · `guard:outbox-publish-done-pairing` · `outbox-publish-done-pairing.spec.ts`.
+
+---
+
+## DEC-073 — Phase 4 cross-phase P0 verify (step 3)
+
+**Date:** 2026-06-05  
+**Closes:** CASCADE-01 (partial), CASCADE-03 (partial) — verifies Phase 3 mitigations for NN / RL-DOS / Redis.
+
+| Item       | Choice                                                                          |
+| ---------- | ------------------------------------------------------------------------------- |
+| NN-01/02   | Re-run DEC-054…056, DEC-069 guards + probes                                     |
+| RL-DOS-01  | Re-run DEC-053, DEC-059, DEC-068 guards + `tenant-rate-limiter-100`             |
+| SCAL-HF-11 | Verify DEC-065 boot guard — **runtime blip residual** (SH-GAP-13)               |
+| Gate       | `phase-4:cross-phase-p0-verify` → `phase-4-cross-phase-p0-verify.last-run.json` |
+| CI lock    | `guard:phase4-cross-phase-p0`                                                   |
+
+**Rationale:** Phase 4 Must-Fix NN/RL-DOS/Redis items are implemented in Phase 3; step 3 proves they remain wired without duplicating implementation.
+
+**Verification:** [`phase4-cross-phase-p0-verify.md`](phase4-cross-phase-p0-verify.md) · `pnpm run phase-4:cross-phase-p0-verify` · `guard:phase4-cross-phase-p0`.
+
+---
+
+## DEC-074 — Tenant registry cache invalidation on write (Phase 4 step 4)
+
+**Date:** 2026-06-05  
+**Closes:** PU-F-01, PU-F-04 (partial).
+
+| Item    | Choice                                                         |
+| ------- | -------------------------------------------------------------- |
+| API     | `invalidateTenantRegistryCache(tenantId, subdomain?)`          |
+| Hooks   | `ProvisioningService` upsert/create; `updateTenantRegistryRow` |
+| Metric  | `tenant_registry_cache_invalidated_total`                      |
+| CI lock | `guard:tenant-registry-cache-invalidation`                     |
+
+**Rationale:** 5s TTL cache served stale theme/workspace after admin writes; tests hid gap with full cache reset. Targeted invalidation makes hot-reload coherent without restart.
+
+**Verification:** [`tenant-registry-cache-invalidation.md`](tenant-registry-cache-invalidation.md) · `guard:tenant-registry-cache-invalidation` · `tenant-registry-cache-invalidation.spec.ts` · `dynamic-config-sync.spec.ts`.
+
+---
+
+## DEC-075 — Proxy upstream timeout + circuit breaker (Phase 4 step 5)
+
+**Date:** 2026-06-05  
+**Closes:** PI-01.
+
+| Item    | Choice                                                                         |
+| ------- | ------------------------------------------------------------------------------ |
+| Timeout | `PROXY_UPSTREAM_TIMEOUT_MS` (default **5000**) — `AbortSignal.timeout`         |
+| Breaker | `PROXY_CIRCUIT_FAILURE_THRESHOLD` (**5**), `PROXY_CIRCUIT_OPEN_MS` (**30000**) |
+| CI lock | `guard:proxy-upstream-timeout`                                                 |
+
+**Rationale:** Unbounded `fetch` to map upstream would hold request slots when routes wire. Bounded deadline + per-host circuit fast-fails before systemic hang.
+
+**Verification:** [`proxy-upstream-timeout.md`](proxy-upstream-timeout.md) · `guard:proxy-upstream-timeout` · `proxy-upstream-timeout.spec.ts`.
+
+---
+
+## DEC-076 — Graceful shutdown relay await + flush timeout (Phase 4 step 6)
+
+**Date:** 2026-06-05  
+**Closes:** SD-G2, SD-G3, F-11, F-12 (partial).
+
+| Item    | Choice                                                                                |
+| ------- | ------------------------------------------------------------------------------------- |
+| SD-G2   | `OutboxRelayHandle.stop(): Promise<void>` awaits in-flight relay tick                 |
+| SD-G3   | `drainOutboxRelayOnShutdown` returns `drained`; timeout → throw + metric + exit **1** |
+| CI lock | `guard:graceful-shutdown-outbox`                                                      |
+
+**Rationale:** Stop cleared the poll timer while a tick could still publish; flush deadline expiry was silent success. Await + explicit timeout signal closes deploy-window races.
+
+**Verification:** [`graceful-shutdown-outbox-drain.md`](graceful-shutdown-outbox-drain.md) · `guard:graceful-shutdown-outbox` · `graceful-shutdown-outbox.spec.ts` · `start-outbox-relay.spec.ts`.
+
+---
+
+## DEC-077 — Canonical TX unified DB `now()` (Phase 4 step 7)
+
+**Date:** 2026-06-05  
+**Closes:** CLK-F-01, CLK-F-02 (atomic enqueue + relay path).
+
+| Item                  | Choice                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| CLK-TT-01             | `readCanonicalTransactionNow(tx)` — single Postgres snapshot per canonical TX                  |
+| Tour / audit / outbox | Explicit `createdAt: txNow` on all three writes in `persistNewTourAtomically`                  |
+| CLK-TT-02             | Outbox row `created_at` set at enqueue (not app default); relay `occurredAt` unchanged mapping |
+| Update audit          | `persistTourUpdateAtomically` passes `txNow` to `appendAuditEvent`                             |
+| CI lock               | `guard:canonical-transaction-now`                                                              |
+
+**Rationale:** Mixed app vs DB timestamps in one TX corrupt incident ordering. One DB `now()` per TX aligns tour, audit, outbox, and downstream relay `occurredAt`.
+
+**Verification:** [`canonical-transaction-now.md`](canonical-transaction-now.md) · `guard:canonical-transaction-now` · `canonical-transaction-now.spec.ts` · `clock-skew-resilience.spec.ts` (CLK-SKEW-08).
+
+---
+
+## DEC-078 — PATCH schema drift HTTP spec (Phase 4 step 8)
+
+**Date:** 2026-06-05  
+**Closes:** SV-F-03, SV-CRIT-02 (inferred → proven).
+
+| Item                | Choice                                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Coverage            | Extend `schema-version-compat.spec.ts` with PATCH HTTP cases                                              |
+| SV-PATCH-01 / SV-09 | Stale explicit `schemaVersion` → **400** `SCHEMA_VERSION_MISMATCH`                                        |
+| SV-PATCH-05         | Partial merged `data` → **400** `VALIDATION_FAILURE`                                                      |
+| SV-PATCH-OK         | Valid merge → **200**                                                                                     |
+| CI lock             | `guard:patch-schema-drift`                                                                                |
+| Worker path         | Rehydrate `SchemaVersionMismatchError` off-thread — prevents **500** when `P5_VALIDATION_WORKERS_ENABLED` |
+
+**Rationale:** POST drift matrix was gated; PATCH shared validation code without contract tests. Mirroring SV-01/05/09 closes the audit gap without wiring Phase 6 `migrateCanonical`.
+
+**Verification:** [`patch-schema-drift.md`](patch-schema-drift.md) · `guard:patch-schema-drift` · `schema-version-compat.spec.ts`.
+
+---
+
+## DEC-079 — Phase 4 resilience regression gate + sign-off (closure step 9)
+
+**Date:** 2026-06-05  
+**Closes:** Phase 4 resilience audit closure path (steps 1–9).
+
+| Item             | Choice                                                     |
+| ---------------- | ---------------------------------------------------------- |
+| Gate             | `pnpm run phase-4:resilience-regression-gate`              |
+| Artifact         | `phase-4-resilience-regression-gate.last-run.json`         |
+| Embeds           | `phase-4:cross-phase-p0-verify` (DEC-073)                  |
+| Sign-off verdict | **CLOSURE_PASS_WITH_RESIDUAL** (score **78/100** estimate) |
+| CI lock          | `guard:phase4-resilience-regression-gate`                  |
+
+**Rationale:** Steps 1–8 shipped isolated guards; trunk needed one orchestrated gate + signed artifact before Phase 5 handoff. Residual risks (Redis blip, Phase 6 migrate, SD-G4+) documented — not Phase 4 closure blockers.
+
+**Verification:** [`phase4-resilience-regression-gate.md`](phase4-resilience-regression-gate.md) · `guard:phase4-resilience-regression-gate` · `phase-4-resilience-regression-gate.spec.ts`.
+
+---
+
+## DEC-080 — Postgres required in Phase 4 resilience gates (Wave A)
+
+**Date:** 2026-06-05  
+**Closes:** GAP-95-A01 … GAP-95-A03 — optional Postgres tier allowed PASS without integration proof.
+
+| Item     | Choice                                                                        |
+| -------- | ----------------------------------------------------------------------------- |
+| Policy   | `DATABASE_URL` required — gate `exit 1` when unset                            |
+| Helper   | `apps/api/scripts/lib/require-gate-database.mjs`                              |
+| Gates    | `phase-4-resilience-regression-gate.mjs`, `phase-4-cross-phase-p0-verify.mjs` |
+| Artifact | `postgresRequired: true`, `databaseUrlSet: true`                              |
+
+**Rationale:** 9.5+ enterprise bar treats skip-as-pass as fail. Testcontainers/service Postgres in CI; local dev uses `docs/phase-4/dev/docker-compose.yml`.
+
+**Verification:** [`postgres-required-gates.md`](postgres-required-gates.md) · `require-gate-database.mjs` · meta specs assert `databaseUrlSet`.
+
+---
+
+## DEC-081 — GitHub Actions Postgres for `phase-4:gate` (Wave A)
+
+**Date:** 2026-06-05  
+**Closes:** GAP-95-A02 — `p4_rls_integration_tests` fail without CI Postgres.
+
+| Item      | Choice                                                             |
+| --------- | ------------------------------------------------------------------ |
+| Workflow  | `.github/workflows/phase-4-gate.yml`                               |
+| Service   | `postgres:16` on port 5434                                         |
+| Bootstrap | `01-app-role.sql` → `prisma migrate deploy` → `001_tenant_rls.sql` |
+| Commands  | `phase-4:resilience-regression-gate` then `phase-4:gate`           |
+
+**Rationale:** Trunk CI must prove RLS + resilience integration without manual Docker on every PR.
+
+**Verification:** [`docs/phase-4/ci.md`](../../phase-4/ci.md) · workflow green on PR.
+
+---
+
+## DEC-082 — Postgres integration pack in resilience gate (Wave A)
+
+**Date:** 2026-06-05  
+**Closes:** GAP-95-A04 … GAP-95-A06 — outbox/clock/config specs skipped in gate path.
+
+| Item    | Choice                                                                                |
+| ------- | ------------------------------------------------------------------------------------- |
+| Step id | `phase4-resilience-postgres-specs` (always runs)                                      |
+| Specs   | clock-skew, dynamic-config, outbox reclaim/pairing, relay + transactional integration |
+| Env     | `STORAGE_DRIVER=prisma`, `OUTBOX_RELAY_ENABLED=false`                                 |
+
+**Rationale:** Memory tier proves source invariants; postgres tier proves RLS + relay under real DB — SimpleOutbox-class integration gate.
+
+**Verification:** [`postgres-required-gates.md`](postgres-required-gates.md) · `guard:phase4-resilience-regression-gate` lists all spec paths.
+
+---
+
+## DEC-083 — Redis rate limiter runtime fallback (Wave B)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-13 — Redis blip → 500 on throttled routes.
+
+| Item               | Choice                                   |
+| ------------------ | ---------------------------------------- |
+| Write tier default | `fail_local` → in-process memory bucket  |
+| Read tier default  | `fail_open`                              |
+| Override           | `TENANT_RATE_LIMIT_REDIS_FAILURE_POLICY` |
+| Circuit            | 3 failures → 30s open → skip Redis       |
+| Metric             | `rate_limiter_redis_fallback_total`      |
+| fail_closed        | `RateLimiterRedisUnavailableError` → 503 |
+
+**Verification:** [`redis-rate-limiter-fallback.md`](redis-rate-limiter-fallback.md) · `guard:redis-rate-limiter-fallback` · `redis-rate-limiter-fallback.spec.ts`.
+
+---
+
+## DEC-084 — Terminal timestamps via SQL `now()` (Wave B)
+
+**Date:** 2026-06-05  
+**Closes:** CLK-F-03, CLK-F-04.
+
+| Item        | Choice                                     |
+| ----------- | ------------------------------------------ |
+| Outbox done | `processed_at = now()` in `markOutboxDone` |
+| Idempotency | `completed_at = now()` on Prisma path      |
+| Spec        | CLK-SKEW-10 — JWT ±5s boundary             |
+
+**Verification:** [`canonical-terminal-timestamps.md`](canonical-terminal-timestamps.md) · `guard:canonical-terminal-timestamps`.
+
+---
+
+## DEC-085 — HTTP shutdown watchdog + worker parity (Wave B)
+
+**Date:** 2026-06-05  
+**Closes:** SD-G4, SD-G5, SD-G7.
+
+| Item        | Choice                                               |
+| ----------- | ---------------------------------------------------- |
+| HTTP cap    | `GRACEFUL_SHUTDOWN_HTTP_MS` (default 10s)            |
+| Force close | `closeIdleConnections` / `closeAllConnections`       |
+| Health      | 503 during shutdown                                  |
+| Flush order | HTTP close → `flushLogSink` → outbox drain           |
+| Worker      | `installGracefulShutdownHandlers` — SIGTERM + SIGINT |
+
+**Verification:** [`graceful-shutdown-http-watchdog.md`](graceful-shutdown-http-watchdog.md) · `guard:graceful-shutdown-outbox` (extended).
+
+---
+
+## DEC-086 — Outbox terminal `failed` + admin replay (Wave C)
+
+**Date:** 2026-06-05  
+**Closes:** F-03 — poison outbox with no ops replay path.
+
+| Item     | Choice                                                           |
+| -------- | ---------------------------------------------------------------- |
+| Column   | `outbox_events.last_error JSONB`                                 |
+| Terminal | `failed` + `processed_at` + `last_error` — relay never re-claims |
+| Replay   | `replayFailedOutboxEvent` → `pending`; payload immutable         |
+| HTTP     | `POST /internal/outbox/:id/replay` — dev/test only               |
+| CLI      | `outbox:replay-failed`                                           |
+| Spec     | `outbox-failed-replay.spec.ts` — INT-SAGA-03 heal                |
+
+**Verification:** [`outbox-failed-replay.md`](outbox-failed-replay.md) · `guard:outbox-failed-replay`.
+
+---
+
+## DEC-087 — Outbox relay ordered per tenant (Wave C)
+
+**Date:** 2026-06-05  
+**Closes:** F-15, BL-01 — same-tenant publish order under parallel relay.
+
+| Item    | Choice                                           |
+| ------- | ------------------------------------------------ |
+| Env     | `OUTBOX_RELAY_ORDERED_PER_TENANT=true`           |
+| Claim   | `NOT EXISTS` processing sibling same `tenant_id` |
+| Default | Unordered (backward compatible)                  |
+
+**Verification:** [`outbox-relay-ordered-per-tenant.md`](outbox-relay-ordered-per-tenant.md) · `guard:outbox-relay-ordered-per-tenant` · `outbox-relay-ordered-per-tenant.spec.ts`.
+
+---
+
+## DEC-088 — Projection lag metric + reconcile job (Wave C)
+
+**Date:** 2026-06-05  
+**Closes:** F-04 / OZ-D — ops visibility for projection drift.
+
+| Item    | Choice                                                 |
+| ------- | ------------------------------------------------------ |
+| Metric  | `outbox_projection_lag_seconds` (gauge, tenant-scoped) |
+| Job     | `reconcile:tour-projection`                            |
+| Compare | `deriveTourProjections(canonical)` vs `tours` columns  |
+
+**Verification:** [`outbox-projection-reconcile.md`](outbox-projection-reconcile.md) · `guard:outbox-projection-lag`.
+
+---
+
+## DEC-089 — Chaos SIGKILL + NN victim SLO in postgres gate (Wave C)
+
+**Date:** 2026-06-05  
+**Closes:** OZ-A, CASCADE-01 — postgres gate missing chaos + victim proofs.
+
+| Item       | Choice                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Specs      | `atomic-rollback-stress`, `bulk-import-victim-slo`, `noisy-neighbor-latency`, `outbox-failed-replay`, `outbox-relay-ordered-per-tenant` |
+| Chaos env  | `P5_CHAOS_ITERATIONS=5` in gate (fast path)                                                                                             |
+| Post-chaos | `processing` rows for chaos tenant ≤ 0 (stale claim alert)                                                                              |
+| Guards     | Wave C guards in resilience gate STEPS                                                                                                  |
+
+**Verification:** [`postgres-required-gates.md`](postgres-required-gates.md) (Wave C table) · `guard:phase4-resilience-regression-gate` (extended paths).
+
+---
+
+## DEC-090 — Feature flags via theme cache (Wave D)
+
+**Date:** 2026-06-05  
+**Closes:** FF-RC-02, PU-F-03 (partial) — uncached admin reads on hot write path.
+
+| Item         | Choice                                                             |
+| ------------ | ------------------------------------------------------------------ |
+| Read path    | `resolveTenantFeatureFlags` → `resolveTenantThemeJsonById`         |
+| Forbidden    | Direct `getPrismaAdmin().tenant.findUnique` in feature-flag module |
+| Invalidation | DEC-074 `invalidateTenantRegistryCache` on admin writes            |
+| Spec         | `tenant-registry-cache-coherence.spec.ts`                          |
+| Guard        | `guard:tenant-registry-cache-coherence`                            |
+
+**Verification:** [`tenant-registry-cache-coherence.md`](tenant-registry-cache-coherence.md).
+
+---
+
+## DEC-091 — migrateCanonical Phase 6 placeholder guard (Wave D)
+
+**Date:** 2026-06-05  
+**Closes:** SV-F-04 — documented deferral + import lock.
+
+| Item           | Choice                                                                              |
+| -------------- | ----------------------------------------------------------------------------------- |
+| Hook           | `migrateCanonicalNotImplemented` throws `MIGRATE_CANONICAL_NOT_IMPLEMENTED_PHASE_5` |
+| Write paths    | **Must not** import `migrate-canonical-hook` until Phase 6                          |
+| Mismatch today | `SchemaVersionMismatchError` → **400**                                              |
+| Guard          | `guard:migrate-canonical-placeholder`                                               |
+
+**Verification:** [`migrate-canonical-phase6-placeholder.md`](migrate-canonical-phase6-placeholder.md).
+
+---
+
+## DEC-092 — Malformed JSON → 400 INVALID_JSON (Wave D)
+
+**Date:** 2026-06-05  
+**Closes:** SV-11 — client parse errors must not 500.
+
+| Item     | Choice                                                       |
+| -------- | ------------------------------------------------------------ |
+| Parser   | `parseJsonBody` / `MalformedJsonBodyError` in `http/json.ts` |
+| Routes   | `tours.routes.ts` POST/PATCH                                 |
+| Response | **400** `{ code: "INVALID_JSON" }` — no error log            |
+| Spec     | `malformed-json-body.spec.ts`                                |
+| Guard    | `guard:http-malformed-json`                                  |
+
+**Verification:** [`http-malformed-json.md`](http-malformed-json.md).
+
+---
+
+## DEC-093 — TenantHttpProxy DI + map enrich route (Wave D)
+
+**Date:** 2026-06-05  
+**Closes:** PI-03 — proxy seam production-wired.
+
+| Item         | Choice                                |
+| ------------ | ------------------------------------- |
+| Env          | `MAP_UPSTREAM_BASE_URL`               |
+| Bootstrap    | `main.ts` → `AppDeps.tenantHttpProxy` |
+| Route        | `GET /api/v2/map/enrich?path=`        |
+| Unconfigured | **503** `MAP_UPSTREAM_NOT_CONFIGURED` |
+| Spec         | `proxy-production-wire.spec.ts`       |
+| Guard        | `guard:proxy-production-wire`         |
+
+**Verification:** [`proxy-production-wire.md`](proxy-production-wire.md).
+
+---
+
+## DEC-094 — Transient DB classifier + circuit breaker (evolution P0 Phase 1)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-04, SH-GAP-05, SH-GAP-15 — P1001/P1017 → 503 not 500.
+
+| Item       | Choice                                                   |
+| ---------- | -------------------------------------------------------- |
+| Classifier | `isTransientDbError` in `src/db/transient-db-error.ts`   |
+| Circuit    | `db-circuit-breaker.ts` — 3 failures → open 30s          |
+| HTTP       | **503** + `Retry-After` (1s transient, 30s circuit open) |
+| Wrapper    | `withTransientDbGuard` on `withTenantRls` outer boundary |
+| Guard      | `guard:transient-db-error`                               |
+
+**Verification:** [`transient-db-error.md`](transient-db-error.md) · [`phase5-evolution-p0-phase1.md`](phase5-evolution-p0-phase1.md).
+
+---
+
+## DEC-095 — db:test-reset production guard (evolution P0 Phase 1)
+
+**Date:** 2026-06-05  
+**Closes:** CAE-GAP-05, AR-30-10.
+
+| Item   | Choice                                                   |
+| ------ | -------------------------------------------------------- |
+| Script | `scripts/db-test-reset.sh` — block `NODE_ENV=production` |
+| URL    | Prod host heuristics unless `CONFIRM_TEST_RESET=1`       |
+| Guard  | `guard-db-test-reset-prod.mjs`                           |
+
+**Verification:** [`db-test-reset-prod-guard.md`](db-test-reset-prod-guard.md).
+
+---
+
+## DEC-096 — GHA phase-5 gate + test:full extension (evolution P0 Phase 1)
+
+**Date:** 2026-06-05  
+**Closes:** CI-BYP-12, CI-BYP-13.
+
+| Item        | Choice                                           |
+| ----------- | ------------------------------------------------ |
+| Workflow    | `.github/workflows/phase-5-gate.yml`             |
+| test:full   | `phase-3:gate` → `phase-4:gate` → `phase-5:gate` |
+| Postgres CI | Same service container pattern as phase-4        |
+
+**Verification:** [`phase5-evolution-p0-phase1.md`](phase5-evolution-p0-phase1.md).
+
+---
+
+## DEC-097 — Migration head preflight at boot (evolution P0 Phase 1)
+
+**Date:** 2026-06-05  
+**Closes:** MD-GAP-12, RB-GAP-04 (partial).
+
+| Item     | Choice                                                            |
+| -------- | ----------------------------------------------------------------- |
+| Constant | `EXPECTED_PRISMA_MIGRATION_HEAD` in `migration-head-preflight.ts` |
+| Probe    | Latest finished `_prisma_migrations` row at production boot       |
+| Error    | `PRODUCTION_MIGRATION_HEAD_MISMATCH`                              |
+| Guard    | `guard:migration-head-preflight`                                  |
+
+**Verification:** [`migration-head-preflight.md`](migration-head-preflight.md).
+
+---
+
+## DEC-098 — Forward-only rollback runbook (evolution P1 Phase 2)
+
+**Date:** 2026-06-05  
+**Closes:** RB-GAP-01…04 (documentation).
+
+| Item     | Choice                                                     |
+| -------- | ---------------------------------------------------------- |
+| Location | `docs/phase-4/production-deploy-checklist.md` § Bad deploy |
+| Policy   | No `migrate down`; code/cache/outbox coordinated revert    |
+
+**Verification:** [`phase5-evolution-p1-phase2.md`](phase5-evolution-p1-phase2.md).
+
+---
+
+## DEC-099 — OpenAPI dispatch contract (evolution P1 Phase 2)
+
+**Date:** 2026-06-05  
+**Closes:** SHADOW-API-01…07.
+
+| Item      | Choice                                                  |
+| --------- | ------------------------------------------------------- |
+| SoT       | `src/openapi/dispatch-routes.ts`                        |
+| Generator | `scripts/generate-openapi.mjs` → `openapi/openapi.json` |
+| Scripts   | `openapi:generate`, `guard:openapi-dispatch-parity`     |
+
+**Verification:** [`openapi-dispatch-contract.md`](openapi-dispatch-contract.md).
+
+---
+
+## DEC-100 — Deployment debt Phase 6 decision (evolution P1 Phase 2)
+
+**Date:** 2026-06-05  
+**Closes:** DEPLOY-DEBT-01/02 (decision; implementation Phase 6).
+
+| Item    | Choice                                  |
+| ------- | --------------------------------------- |
+| Posture | Lockstep breaking deploy until MAP §8.3 |
+| Doc     | `deploy-debt-phase6-decision.md`        |
+
+**Verification:** [`deploy-debt-phase6-decision.md`](deploy-debt-phase6-decision.md).
+
+---
+
+## DEC-101 — Shutdown ingress reject (evolution P1 Phase 2)
+
+**Date:** 2026-06-05  
+**Closes:** RB-GAP-09, RB-GAP-08 (partial).
+
+| Item     | Choice                                                   |
+| -------- | -------------------------------------------------------- |
+| Gate     | `rejectRequestDuringShutdown` in `createRequestListener` |
+| Response | **503** `shutting_down` on all routes                    |
+| Guard    | `guard:shutdown-ingress`                                 |
+
+**Verification:** [`graceful-shutdown-ingress-reject.md`](graceful-shutdown-ingress-reject.md).
+
+---
+
+## DEC-105 — Soft delete deferred Phase 6 (evolution P2 Phase 3)
+
+**Date:** 2026-06-05  
+**Closes:** CAE-GAP-01/02 (decision only).
+
+| Item    | Choice                                 |
+| ------- | -------------------------------------- |
+| Posture | Hard delete + audit remains in Phase 5 |
+| Doc     | `soft-delete-phase6-deferred.md`       |
+
+---
+
+## DEC-106 — Internal cache invalidate (evolution P2 Phase 3)
+
+**Date:** 2026-06-05  
+**Closes:** RB-GAP-13 (partial).
+
+| Item  | Choice                                           |
+| ----- | ------------------------------------------------ |
+| Route | `POST /internal/cache/invalidate`                |
+| Guard | dev/test only; `guard:internal-cache-invalidate` |
+
+**Verification:** [`internal-cache-invalidate.md`](internal-cache-invalidate.md).
+
+---
+
+## DEC-107 — JWT dual-key verify (evolution P2 Phase 3)
+
+**Date:** 2026-06-05  
+**Closes:** SM-VUL (partial).
+
+| Item | Choice                         |
+| ---- | ------------------------------ |
+| Env  | `AUTH_JWT_PUBLIC_KEY_PREVIOUS` |
+| Code | `parse-jwt-bearer.ts` fallback |
+
+**Verification:** [`jwt-dual-key-verify.md`](jwt-dual-key-verify.md).
+
+---
+
+## DEC-108 — Prometheus metrics export (evolution P2 Phase 3)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-LIM-02/03 (partial).
+
+| Item   | Choice                  |
+| ------ | ----------------------- |
+| Route  | `GET /internal/metrics` |
+| Format | `prometheus-format.ts`  |
+
+**Verification:** [`metrics-prometheus-export.md`](metrics-prometheus-export.md).
+
+---
+
+## DEC-109 — Phase 5 evolution gate pack (evolution P2 Phase 3)
+
+**Date:** 2026-06-05  
+**Closes:** CI evolution guard rollup.
+
+| Item    | Choice                            |
+| ------- | --------------------------------- |
+| Script  | `phase-5-evolution-gate.mjs`      |
+| Command | `pnpm run phase-5:evolution-gate` |
+
+**Verification:** [`phase5-evolution-p2-phase3.md`](phase5-evolution-p2-phase3.md).
+
+---
+
+## DEC-110 — Outbox publish transient auto-retry (evolution Phase 4.1)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-07, phase4 F-03 (partial).
+
+| Item       | Choice                                                                |
+| ---------- | --------------------------------------------------------------------- |
+| Classifier | `classifyOutboxPublishError` → transient \| poison                    |
+| Config     | `OUTBOX_PUBLISH_MAX_ATTEMPTS` (default 5)                             |
+| Retry      | `markOutboxPendingForRetry` — `pending` + `last_error.attempts`       |
+| Terminal   | Poison or exhausted attempts → `markOutboxFailed` (DEC-086 unchanged) |
+
+**Verification:** [`outbox-publish-auto-retry.md`](outbox-publish-auto-retry.md).
+
+---
+
+## DEC-111 — Relay / poll exponential backoff + jitter (evolution Phase 4.2)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-06, SH-GAP-09, SH-GAP-10, SH-GAP-11, SH-GAP-12.
+
+| Item           | Choice                                                           |
+| -------------- | ---------------------------------------------------------------- |
+| Helper         | `computeRelayBackoff` — capped exponential + 25% jitter          |
+| Relay          | `setTimeout` chain; streak backoff on tick error or `failed > 0` |
+| Shutdown drain | Backoff between iterations                                       |
+| Idempotency    | Backoff in `waitForPrismaCompletion` / `waitForMemoryCompletion` |
+
+**Verification:** [`relay-backoff-jitter.md`](relay-backoff-jitter.md).
+
+---
+
+## DEC-112 — Canonical TX transient whole-TX retry (evolution Phase 4.3)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-01, SH-GAP-02, SH-GAP-03 (partial).
+
+| Item     | Choice                                                      |
+| -------- | ----------------------------------------------------------- |
+| Wrapper  | `withTransientTxRetry`                                      |
+| Wired in | `withCanonicalTransaction`                                  |
+| Config   | `CANONICAL_TX_TRANSIENT_RETRY_ATTEMPTS` (default 2 retries) |
+| Circuit  | Count transient failure only when retry budget exhausted    |
+
+**Verification:** [`canonical-tx-transient-retry.md`](canonical-tx-transient-retry.md).
+
+---
+
+## DEC-113 — Pool saturation 503 + Retry-After (evolution Phase 4.4)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-05, SCAL-LIM-10 (partial).
+
+| Item   | Choice                                                           |
+| ------ | ---------------------------------------------------------------- |
+| Error  | `DbPoolSaturatedError`                                           |
+| Config | `DB_POOL_SATURATED_RETRY_AFTER_SEC` (default 2)                  |
+| HTTP   | Explicit `Retry-After` on pool saturation + tenant DB budget 503 |
+
+**Verification:** [`pool-saturation-retry-after.md`](pool-saturation-retry-after.md).
+
+---
+
+## DEC-114 — Tenant priority load shed (evolution Phase 4.5)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-LIM-05, SCAL-LIM-12 (partial).
+
+| Item      | Choice                                                      |
+| --------- | ----------------------------------------------------------- |
+| Tier      | `theme.priorityTier` → low / normal / high                  |
+| Admission | `weighted-fair-admission.ts` at `runWithHttpRequestContext` |
+| Shed      | 503 `PRIORITY_LOAD_SHED` + `Retry-After`                    |
+
+**Verification:** [`priority-load-shed.md`](priority-load-shed.md).
+
+---
+
+## DEC-115 — Projection auto-reconcile scheduler (evolution Phase 4.6)
+
+**Date:** 2026-06-05  
+**Closes:** phase4 F-04 (partial).
+
+| Item      | Choice                                                   |
+| --------- | -------------------------------------------------------- |
+| Queue     | `enqueueProjectionAutoReconcile` on inconsistency signal |
+| Repair    | Sync `title` / `schemaVersion` from canonical JSON       |
+| Scheduler | `startProjectionAutoReconcileIfEnabled`                  |
+
+**Verification:** [`projection-auto-reconcile.md`](projection-auto-reconcile.md).
+
+---
+
+## DEC-116 — HTTP idempotency poll backoff (evolution Phase 4.7)
+
+**Date:** 2026-06-05  
+**Closes:** SH-GAP-11, SH-GAP-12.
+
+| Item           | Choice                                                           |
+| -------------- | ---------------------------------------------------------------- |
+| Implementation | `sleepIdempotencyPollBackoff` in `http-idempotency.ts` (DEC-111) |
+| Guard          | `guard:relay-backoff` asserts no fixed `POLL_INTERVAL_MS`        |
+
+**Verification:** [`relay-backoff-jitter.md`](relay-backoff-jitter.md).
+
+---
+
+## DEC-117 — Evolution Phase 4 gate rollup (evolution Phase 4.8)
+
+**Date:** 2026-06-05  
+**Closes:** evolution CI pack extension.
+
+| Item    | Choice                                                 |
+| ------- | ------------------------------------------------------ |
+| Script  | `phase-5-evolution-phase4-gate.mjs`                    |
+| Command | `pnpm run phase-5:evolution-phase4-gate`               |
+| Parent  | `phase-5:evolution-gate` composes phase-4 + phases 1–3 |
+
+**Verification:** [`phase5-evolution-phase4-gate.md`](phase5-evolution-phase4-gate.md).
+
+---
+
+## DEC-118 — Argo Rollouts blue-green + split outbox relay (evolution Phase 5.1)
+
+**Date:** 2026-06-05  
+**Closes:** RB-GAP-05, RB-GAP-08, RB-GAP-14.
+
+| Item      | Choice                                                                   |
+| --------- | ------------------------------------------------------------------------ |
+| Manifests | `deploy/argo-rollouts/api-rollout.yaml`, `outbox-relay-deployment.yaml`  |
+| Strategy  | Blue/green `scaleDownDelaySeconds: 30`; API `OUTBOX_RELAY_ENABLED=false` |
+| Boot      | `WORKER_ROLE=outbox-relay` → `bootstrapOutboxRelayWorker()`              |
+| Guard     | `guard:deploy-argo-rollouts`                                             |
+
+**Verification:** [`argo-rollouts-progressive-delivery.md`](argo-rollouts-progressive-delivery.md).
+
+---
+
+## DEC-119 — CI integrity phase-4 guard + evolution (evolution Phase 5.6)
+
+**Date:** 2026-06-05  
+**Closes:** CI-BYP-11 (partial), CI-BYP-13 naming drift.
+
+| Item      | Choice                                                                           |
+| --------- | -------------------------------------------------------------------------------- |
+| Script    | `scripts/ci-integrity-check.sh` tail: `phase-4:guard` + `phase-5:evolution-gate` |
+| Full perf | `phase-5:gate` stays in `test:full` / GHA — not `ci:integrity`                   |
+| Guard     | `guard:ci-integrity-extension`                                                   |
+
+**Verification:** [`ci-integrity-phase-extension.md`](ci-integrity-phase-extension.md).
+
+---
+
+## DEC-120 — Production cache invalidate + feature-flag freeze (evolution Phase 5.2)
+
+**Date:** 2026-06-05  
+**Closes:** RB-GAP-11, RB-GAP-12, RB-GAP-13 (prod path).  
+**Extends:** DEC-106.
+
+| Item   | Choice                                                                     |
+| ------ | -------------------------------------------------------------------------- |
+| Auth   | RS256 service JWT with `ops_scope: cache:invalidate` (DEC-107 dual-key)    |
+| Freeze | `feature-flag-freeze.ts` — cache-only reads in `resolveTenantFeatureFlags` |
+| Route  | `POST /internal/cache/invalidate` — dev/test unchanged; prod JWT-gated     |
+| Guard  | `guard:internal-cache-invalidate` (extended)                               |
+
+**Verification:** [`prod-cache-invalidate-service-jwt.md`](prod-cache-invalidate-service-jwt.md).
+
+---
+
+## DEC-121 — ServiceMonitor + Prometheus Adapter + HPA gauges (evolution Phase 5.3)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-LIM-01, SCAL-LIM-02, SCAL-LIM-15 (partial).  
+**Extends:** DEC-108.
+
+| Item        | Choice                                                            |
+| ----------- | ----------------------------------------------------------------- |
+| Manifests   | `deploy/prometheus/api-servicemonitor.yaml`, `adapter-rules.yaml` |
+| Gauges      | `http_requests_in_flight`, `outbox_pending_total`                 |
+| Prod scrape | `ops_scope: metrics:read` via `verify-ops-service-jwt.ts`         |
+| Guard       | `guard:deploy-prometheus-adapter`                                 |
+
+**Verification:** [`prometheus-servicemonitor-adapter.md`](prometheus-servicemonitor-adapter.md).
+
+---
+
+## DEC-122 — API HPA custom metrics (evolution Phase 5.4)
+
+**Date:** 2026-06-05  
+**Closes:** SCAL-LIM-01.
+
+| Item      | Choice                                                     |
+| --------- | ---------------------------------------------------------- |
+| Manifests | `deploy/hpa/api-hpa.yaml`, `outbox-relay-hpa.yaml`         |
+| Target    | Argo `Rollout` `api`; optional `Deployment` `outbox-relay` |
+| Metrics   | `http_requests_in_flight`, `outbox_pending_total`, CPU 70% |
+| Guard     | `guard:deploy-hpa`                                         |
+
+**Verification:** [`api-hpa-custom-metrics.md`](api-hpa-custom-metrics.md).
+
+---
+
+## DEC-123 — Phase 5 SLO alerting (evolution Phase 5.5)
+
+**Date:** 2026-06-05  
+**Closes:** Observability prod alert gap (evolution audit).
+
+| Item   | Choice                                                                     |
+| ------ | -------------------------------------------------------------------------- |
+| Rules  | `deploy/alerts/phase5-slo.yaml` — `PrometheusRule`                         |
+| Alerts | `outbox_failed_total`, `projection_inconsistency_total`, `db_circuit_open` |
+| Gauge  | `outbox_failed_total` — admin DB count of `status=failed`                  |
+| Guard  | `guard:deploy-phase5-slo-alerts`                                           |
+
+**Verification:** [`phase5-slo-alerting.md`](phase5-slo-alerting.md).
+
+---
+
+## DEC-124 — Migrate deploy only — CI/prod parity (evolution Phase 5.7)
+
+**Date:** 2026-06-05  
+**Closes:** MD-GAP-05, MD-GAP-06, MD-GAP-04 (partial).
+
+| Item                | Choice                                                                   |
+| ------------------- | ------------------------------------------------------------------------ |
+| Command             | `pnpm run db:migrate:deploy` (`apps/api`)                                |
+| CI                  | GHA phase-4/5 gates — `migrate deploy` only; no `infra/sql/001`          |
+| `infra/sql/001…004` | Reference-only per [`infra/sql/README.md`](../../../infra/sql/README.md) |
+| Guard               | `guard:migrate-deploy-only`                                              |
+
+**Verification:** [`migrate-deploy-only.md`](migrate-deploy-only.md).
+
+---
+
+## DEC-125 — RPO/RTO + monthly restore drill (evolution Phase 5.8)
+
+**Date:** 2026-06-05  
+**Closes:** CAE-GAP-14.
+
+| Item    | Choice                                                          |
+| ------- | --------------------------------------------------------------- |
+| Targets | RPO ≤ 15m (PITR), RTO ≤ 60m                                     |
+| Script  | `scripts/restore-drill-smoke.sh`                                |
+| CI      | `.github/workflows/restore-drill-monthly.yml` (cron + dispatch) |
+| Guard   | `guard:rpo-rto-restore-drill`                                   |
+
+**Verification:** [`rpo-rto-production.md`](rpo-rto-production.md).
+
+---
+
+## DEC-126 — Phase 2 residual P1 closure (TRACE-REGEN-02, ERR-BYPASS-01, ALS-FOOTGUN-01)
+
+**Date:** 2026-06-05  
+**Scope:** Remaining Phase 2 paranoid audit **P1 (سایر)** — correlation fail-closed, internal route error parity, route-handler async hygiene guard.
+
+| ID                 | Change                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **TRACE-REGEN-02** | `resolveCorrelationId()` uses `requireActiveTraceId()` — no `randomUUID()` fallback that splits error envelope from ingress trace ALS  |
+| **ERR-BYPASS-01**  | `POST /internal/tenants/provision` and `GET /internal/test/db-pool-hold` route errors through `handleHttpError` (correlation echo)     |
+| **ALS-FOOTGUN-01** | `guard:route-handler-async-hygiene` forbids `setImmediate` / `process.nextTick` / `void promise(` in `*.routes.ts` and `src/routes/**` |
+
+**Provisioning errors in mapper:** `ProvisioningDevOnlyError` → 403; `TenantProvisionConflictError` → 409 with stable `code`.
+
+**Verification:** `guard:route-handler-async-hygiene` · `guard:internal-route-http-error` · `test/2-observability/internal-route-correlation.spec.ts` · `error-interceptor.spec.ts` · phase-2 regression gate.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 residual P1.
+
+---
+
+## DEC-127 — Phase 2 residual P2 closure (batch 1)
+
+**Date:** 2026-06-05  
+**Scope:** Phase 2 paranoid audit **P2** — test harness logging, metrics coverage, HTTP error parity, provision audit, audit index.
+
+| ID                | Change                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| **LOG-V-04/05**   | Graceful-shutdown harness stderr — JSON `{ event, code }` only (no raw `Error.message`)                |
+| **MET-COV-01**    | `metrics.spec.ts` asserts `projection_inconsistency_total` rejects unlabeled increment                 |
+| **ERR-GAP-01**    | `guard:http-send-json-5xx` — forbid `sendJson(res, 5xx, { error: error.message })` outside interceptor |
+| **ERR-BYPASS-02** | Unknown routes return JSON `{ error, code, correlationId }` via `sendHttpError`                        |
+| **ERR-429-01**    | `sendTenantRateLimitExceeded` uses trace ALS (`requireActiveTraceId`) instead of `randomUUID`          |
+| **outbox-replay** | Internal replay route uses `handleHttpError` (ERR-BYPASS parity)                                       |
+| **AUDIT-GAP-03**  | `TENANT_PROVISIONED` audit row in same admin TX as `tenant.create`                                     |
+| **AUDIT-GAP-06**  | Index `(tenant_id, actor_id, created_at)` on `audit_events`                                            |
+
+**Verification:** `guard:http-send-json-5xx` · `guard:tenant-provision-audit` · `guard:internal-route-http-error` · phase-2 regression gate.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 residual P2.
+
+---
+
+## DEC-128 — Phase 2 residual P2 closure (batch 2)
+
+**Date:** 2026-06-05  
+**Scope:** Remaining Phase 2 **P2** advisories — log hygiene CI locks, 500 burst budget, audit coverage documentation.
+
+| ID                  | Change                                                                           |
+| ------------------- | -------------------------------------------------------------------------------- |
+| **H-01**            | `guard:http-access-path-normalize` locks `normalizeHttpLogPath` on access logs   |
+| **H-02**            | `guard:log-structured-hygiene` forbids raw `message:` in pino structured objects |
+| **H-03**            | `sanitizeReliabilitySamplePayload` before emitting `P5_RELIABILITY_SAMPLES`      |
+| **LOG-BP-04**       | Per-second burst budget for `http.error.internal` logs + suppression metric      |
+| **AUDIT-GAP-05/07** | [`audit-coverage.md`](audit-coverage.md) — actor null policy + bypass matrix     |
+| **CTX-MW-LOW-01**   | Closed via DEC-044 (trace ALS reuse, not middleware fork)                        |
+
+**Verification:** `guard:http-access-path-normalize` · `guard:log-structured-hygiene` · `guard:internal-error-log-budget` · `internal-error-log-budget.spec.ts`.
+
+**Sign-off artifact:** [`apps/api/docs/phase2-paranoid-audit.md`](../../../apps/api/docs/phase2-paranoid-audit.md) § Phase 2 residual P2 batch 2.
+
+---
+
+## DEC-129 — HTTP response size budget + tenant-config cache (Event-loop P2 #5)
+
+**Date:** 2026-06-05  
+**Closes:** Event-loop egress stringify row (partial), `tenant-config.routes.ts` repeat stringify under load.
+
+| Item                  | Choice                                                                        |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Default max           | **2 MiB** (`HTTP_MAX_RESPONSE_BYTES=2097152`)                                 |
+| Reject point          | `sendJson` — after `JSON.stringify`, before `res.end`                         |
+| Pre-serialized string | `Buffer.byteLength` check only — no re-stringify                              |
+| Status                | **507** `response_too_large` / `RESPONSE_TOO_LARGE` (ingress remains **413**) |
+| Tenant-config cache   | **5s** TTL serialized JSON per tenant; evicted on registry invalidation       |
+| Logging               | **None** on 507 (client error)                                                |
+
+**Rationale:** Phase 3 event-loop P2 — caps adversarial multi-MiB egress and avoids repeat `JSON.stringify` on hot `GET /api/v2/tenant-config` when registry row is already cached.
+
+**Verification:** [`http-response-size-budget.md`](http-response-size-budget.md) · `guard:http-response-size-budget` · `src/http/json.spec.ts` · `src/tenant/tenant-config-response-cache.spec.ts`.
 
 ---
 

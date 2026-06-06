@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 
 import { createApiAbility } from "../casl/api-ability";
-import type { TourRecord, TourWhere } from "../db/tour-record";
+import type {
+  TourListPageInput,
+  TourListPageResult,
+  TourRecord,
+  TourWhere,
+} from "../db/tour-record";
 import type { TourStorageRepository } from "../db/tour.repository";
 import { CanonicalTourService } from "./canonical-tour.service";
 import { LegacyCanonicalAdapter } from "./legacy-canonical-adapter";
@@ -18,6 +23,10 @@ class CountingTourStore implements TourStorageRepository {
 
   async findFirst(): Promise<TourRecord | null> {
     return null;
+  }
+
+  async listPage(_where: TourWhere, _page: TourListPageInput): Promise<TourListPageResult> {
+    return { items: [], nextCursor: null };
   }
 
   async findById(): Promise<TourRecord | null> {

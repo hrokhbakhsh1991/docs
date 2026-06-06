@@ -47,6 +47,29 @@ describe("tenant-scoped metrics (MET-API-01 / DEC-049)", () => {
     assert.equal(metricsRegistry.getMetric("tour_creation_count", { tenant_id: tenantId }), 1);
   });
 
+  it("rejects unlabeled projection_inconsistency_total increment (MET-COV-01)", () => {
+    assert.throws(
+      () => metricsRegistry.increment("projection_inconsistency_total"),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(
+          error.message,
+          `${METRIC_TENANT_LABEL_REQUIRED}:projection_inconsistency_total`
+        );
+        return true;
+      }
+    );
+  });
+
+  it("allows labeled projection_inconsistency_total increment", () => {
+    const tenantId = integrationTenantId();
+    metricsRegistry.increment("projection_inconsistency_total", { tenant_id: tenantId });
+    assert.equal(
+      metricsRegistry.getMetric("projection_inconsistency_total", { tenant_id: tenantId }),
+      1
+    );
+  });
+
   it("allows non-tenant-scoped metrics without tenant_id", () => {
     metricsRegistry.increment("platform_health_probe_total");
     assert.equal(metricsRegistry.getMetric("platform_health_probe_total"), 1);

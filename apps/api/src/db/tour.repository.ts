@@ -1,9 +1,10 @@
-import type { TourRecord, TourWhere } from "./tour-record";
+import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 
 /** Policy-facing repository — handlers use ScopedTourRepository only. */
 export interface TourRepository {
   findMany(where: TourWhere): Promise<readonly TourRecord[]>;
   findFirst(where: TourWhere): Promise<TourRecord | null>;
+  listPage(where: TourWhere, page: TourListPageInput): Promise<TourListPageResult>;
   create(data: { tenantId: string; canonical: TourRecord["canonical"] }): Promise<TourRecord>;
   update(data: {
     tenantId: string;

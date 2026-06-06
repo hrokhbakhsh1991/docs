@@ -10,7 +10,13 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
 
-const TENANT_SCOPED = ["tour_creation_count", "projection_inconsistency_total"];
+const TENANT_SCOPED = [
+  "tour_creation_count",
+  "projection_inconsistency_total",
+  "projection_auto_repair_total",
+  "validation_queue_shed_total",
+  "validation_time_budget_exceeded_total",
+];
 
 function read(rel) {
   return fs.readFileSync(path.join(ROOT, rel), "utf8");

@@ -52,6 +52,7 @@ model OutboxEvent {
   correlationId  String?   @map("correlation_id")
   createdAt      DateTime  @default(now()) @map("created_at")
   processedAt    DateTime? @map("processed_at")
+  lastError      Json?     @map("last_error")
   tenant         Tenant    @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, domainEventId])
@@ -71,6 +72,7 @@ model AuditEvent {
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
+  @@index([tenantId, actorId, createdAt])
   @@map("audit_events")
 }
 

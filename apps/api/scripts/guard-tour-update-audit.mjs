@@ -33,7 +33,9 @@ if (!/appendAuditEvent\(tx,\s*\{[\s\S]*action:\s*AUDIT_ACTION_TOUR_UPDATED/.test
 
 const canonicalService = read("src/canonical/canonical-tour.service.ts");
 if (!canonicalService.includes("persistTourUpdateAtomically")) {
-  violations.push("canonical-tour.service.ts: must route updates through persistTourUpdateAtomically");
+  violations.push(
+    "canonical-tour.service.ts: must route updates through persistTourUpdateAtomically"
+  );
 }
 
 if (violations.length > 0) {

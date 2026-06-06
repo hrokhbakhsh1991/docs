@@ -34,12 +34,16 @@ implementation_decisions: IMPLEMENTATION-DECISIONS.md
 | dev/test, `STORAGE_DRIVER` unset | **memory**                           | **NO** — set `STORAGE_DRIVER=prisma` |
 | `STORAGE_DRIVER=prisma`          | prisma                               | **YES**                              |
 
-**Factory:** `apps/api/src/storage/create-tour-storage.ts` — **not** hard-coded `InMemoryTourRepository` in `main.ts`.
+**Factory:** `apps/api/src/storage/create-tour-storage.ts` — **not** hard-coded `InMemoryTourRepository` in boot path.
+
+**Wiring (cold-start lazy boot):** `main.ts` stays thin for `/health`; tour storage resolves on first `/tours` via [`lazy-tours-service.ts`](../../../apps/api/src/boot/lazy-tours-service.ts):
 
 ```typescript
-// main.ts (actual)
+// lazy-tours-service.ts (actual — not eager in main.ts)
 const canonicalStore = new TourStorageDbAdapter(createTourStorageRepository());
 ```
+
+See [`cold-start-lazy-boot.md`](cold-start-lazy-boot.md).
 
 **5.0 entry `postgres_sot`:** PASS when production uses prisma **or** when `DATABASE_URL` + `STORAGE_DRIVER=prisma` in dev/CI.
 

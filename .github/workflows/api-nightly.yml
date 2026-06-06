@@ -1,0 +1,69 @@
+# DEC-061 / DEC-070 — API nightly probes (enforce cold-start + slow-sink adversarial).
+# Not on trunk PR path — shared runners may vary; cold-start enforce is nightly-only.
+
+name: api-nightly
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: api-nightly
+  cancel-in-progress: false
+
+jobs:
+  nightly-probes:
+    name: API nightly probes
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: pnpm run build
+
+      - name: Cold-start readiness (enforce)
+        run: pnpm --filter @apps/api run test:nightly:cold-start
+
+      - name: Slow-sink adversarial (nightly tier)
+        run: pnpm --filter @apps/api run test:nightly:slow-sink
+
+      - name: Noisy-neighbor CPU fairness (nightly tier)
+        run: pnpm --filter @apps/api run test:nightly:noisy-neighbor-latency
+
+      - name: Pool leak post-500 probe (skip without Postgres)
+        run: pnpm --filter @apps/api run test:nightly:pool-stress-500
+
+      - name: Upload cold-start artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cold-start-readiness-last-run
+          path: apps/api/test/reliability/cold-start-readiness.last-run.json
+          if-no-files-found: ignore
+
+      - name: Upload pool-stress artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-stress-500-last-run
+          path: apps/api/test/reliability/pool-stress-500.last-run.json
+          if-no-files-found: ignore

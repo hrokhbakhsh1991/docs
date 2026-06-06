@@ -10,6 +10,7 @@ import {
   resolveInternalErrorCode,
   resolveOutboxRelayErrorCode,
   resolveProjectionReasonCode,
+  sanitizeReliabilitySamplePayload,
 } from "./log-safety";
 import { integrationTenantId } from "../../test/test-helpers";
 
@@ -58,5 +59,20 @@ describe("log-safety (DEC-037)", () => {
       OUTBOX_RELAY_TICK_FAILED
     );
     assert.equal(resolveOutboxRelayErrorCode(new Error("DB_POOL_SATURATED")), "DB_POOL_SATURATED");
+  });
+
+  it("sanitizeReliabilitySamplePayload strips tenant keys and UUIDs (H-03)", () => {
+    const tenantId = integrationTenantId();
+    const sanitized = sanitizeReliabilitySamplePayload({
+      tenantId,
+      tourId: "a0000000-0000-4000-8000-000000000099",
+      latencyMs: 12.5,
+      nested: { userId: "u1", count: 3 },
+    }) as Record<string, unknown>;
+
+    assert.equal(sanitized.tenantId, undefined);
+    assert.equal(sanitized.tourId, undefined);
+    assert.equal(sanitized.latencyMs, 12.5);
+    assert.deepEqual(sanitized.nested, { count: 3 });
   });
 });

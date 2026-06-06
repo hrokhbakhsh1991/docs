@@ -1,4 +1,6 @@
 import { runWithTenantContext } from "../tenant/tenant-request-context";
+import { metricsRegistry } from "../observability/metrics";
+import { ValidationQueueSaturatedError } from "./validation-queue-saturated";
 
 type ScheduledTask<T> = {
   readonly tenantId: string;
@@ -15,6 +17,7 @@ const inFlightPerTenant = new Map<string, number>();
 const DEFAULT_MAX_CONCURRENT = 4;
 const DEFAULT_MAX_IN_FLIGHT_PER_TENANT = 2;
 const DEFAULT_QUEUE_YIELD_DEPTH = 32;
+const DEFAULT_MAX_QUEUE_DEPTH_PER_TENANT = 64;
 
 function readMaxConcurrent(): number {
   const raw = process.env.P5_VALIDATION_MAX_CONCURRENT?.trim();
@@ -41,6 +44,19 @@ function readMaxInFlightPerTenant(): number {
   }
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_MAX_IN_FLIGHT_PER_TENANT;
+}
+
+function readMaxQueueDepthPerTenant(): number {
+  const raw = process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT?.trim();
+  if (!raw) {
+    return DEFAULT_MAX_QUEUE_DEPTH_PER_TENANT;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : DEFAULT_MAX_QUEUE_DEPTH_PER_TENANT;
+}
+
+function recordValidationQueueShed(tenantId: string): void {
+  metricsRegistry.increment("validation_queue_shed_total", { tenant_id: tenantId });
 }
 
 function enqueueTenant(tenantId: string): void {
@@ -134,6 +150,14 @@ function pumpQueue(): void {
 export function runScheduledValidation<T>(tenantId: string, run: () => T): Promise<T> {
   const normalized = tenantId.trim();
   return new Promise<T>((resolve, reject) => {
+    const pendingDepth = tenantQueues.get(normalized)?.length ?? 0;
+    const maxDepth = readMaxQueueDepthPerTenant();
+    if (pendingDepth >= maxDepth) {
+      recordValidationQueueShed(normalized);
+      reject(new ValidationQueueSaturatedError(maxDepth));
+      return;
+    }
+
     enqueueTenant(normalized);
     const queue = tenantQueues.get(normalized)!;
     queue.push({
@@ -144,6 +168,33 @@ export function runScheduledValidation<T>(tenantId: string, run: () => T): Promi
     });
     pumpQueue();
   });
+}
+
+/** Test-only — pending task count for a tenant (excludes in-flight). */
+export function getValidationQueueDepthForTests(tenantId: string): number {
+  return tenantQueues.get(tenantId.trim())?.length ?? 0;
+}
+
+/** Validations currently executing (DEC-108 / B2 monitor). */
+export function getValidationInFlightTotal(): number {
+  return activeCount;
+}
+
+/** Pending validation tasks snapshot for metrics (DEC-108). */
+export function getValidationQueueDepthSnapshot(): {
+  readonly total: number;
+  readonly perTenant: ReadonlyMap<string, number>;
+} {
+  let total = 0;
+  const perTenant = new Map<string, number>();
+  for (const [tenantId, queue] of tenantQueues) {
+    const depth = queue.length;
+    if (depth > 0) {
+      perTenant.set(tenantId, depth);
+      total += depth;
+    }
+  }
+  return { total, perTenant };
 }
 
 /** Test-only — reset scheduler between isolated cases. */

@@ -2,42 +2,46 @@
 
 **Source:** [`apps/api/docs/phase5-evolution-audit.md`](../apps/api/docs/phase5-evolution-audit.md)  
 **Generated:** 2026-06-05  
+**Re-baselined:** 2026-06-05 (post evolution phases 1–3)  
 **Scope:** Autonomous readiness, Self-Heal, Migration Danger, System Rollback, API versioning, Shadow API, Deployment Debt, Catastrophic Admin Error, CI/CD bypass, secrets, auto-scaling limits.
 
 ---
 
 ## خلاصه اجرایی (فارسی)
 
-| مورد                         | مقدار                                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------ |
-| **حکم Autonomous Readiness** | **SEMI** — امتیاز **45/100**                                                   |
-| **Operational toil**         | **10** کار دستی تکراری در 30 روز                                               |
-| **30-day failure scenarios** | **10** (`AR-30-01` … `AR-30-10`) — **3–5** مورد در ماه معمول **انتظار** می‌رود |
-| **Self-Heal gaps**           | **16** (`SH-GAP-01` … `SH-GAP-16`)                                             |
-| **Rollback gaps**            | **14** (`RB-GAP-01` … `RB-GAP-14`) — **30s revert: no**                        |
-| **Migration Danger**         | **14** (`MD-GAP-01` … `MD-GAP-14`)                                             |
-| **Catastrophic Admin**       | **14** (`CAE-GAP-01` … `CAE-GAP-14`) — **soft_delete=no**                      |
-| **Deployment Debt**          | **9** (`DEPLOY-DEBT-01` … `09`)                                                |
-| **Shadow API**               | **7/7** routes — **100%** بدون OpenAPI                                         |
-| **CI/CD bypass**             | **44** (`CI-BYP-01` … `CI-BYP-44`)                                             |
-| **Scalability Limits**       | **18** (`SCAL-LIM-01` … `18`)                                                  |
-| **Secret management debt**   | **11** — no auto-rotation pipeline                                             |
+| مورد                         | قبل                    | بعد (فاز ۱–۳)                                                             |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------------- |
+| **حکم Autonomous Readiness** | SEMI **45**            | SEMI **58/100** — هنوز **AUTONOMOUS نیست**                                |
+| **Operational toil**         | **10**                 | **6** دستی + **4** نیمه‌خودکار                                            |
+| **30-day failure scenarios** | **3–5**/ماه نیاز انسان | **1–3**/ماه — deploy/DB/Redis blip اغلب خودترمیم                          |
+| **Self-Heal gaps**           | **16** باز             | **11** باز · **5** بسته (04/05/08/13/15) · 07 جزئی                        |
+| **Rollback gaps**            | **14**                 | **11** — runbook مستند؛ **30s revert: no**                                |
+| **Migration Danger**         | **14**                 | **13** باز — MD-GAP-12 **بسته** (boot head)                               |
+| **Catastrophic Admin**       | **14**                 | **13** باز — CAE-GAP-05 **بسته** (test-reset guard)                       |
+| **Deployment Debt**          | **9**                  | **9** — تصمیم Phase 6 مستند (DEC-100)                                     |
+| **Shadow API**               | **7/7** بدون spec      | **0** در parity guard · **11** route در `openapi.json`                    |
+| **CI/CD bypass**             | **44**                 | **44** — GHA phase-4/5 **بسته**؛ بالاترین ریسک: `ci:integrity` تا phase-3 |
+| **Scalability Limits**       | **18**                 | **18** — metrics scaffold (DEC-108)؛ HPA prod هنوز باز                    |
+| **Secret management debt**   | **11**                 | **11** — dual-key JWT **بله**؛ auto-rotation **خیر**                      |
 
-**جمع‌بندی:** HTTP پایدار + 429/503 کوتاه‌مدت قابل تحمل است؛ **خودکار-بهبود** outbox zombie، migration skew، rollback چندلایه، و overload پایدار **وجود ندارد**. قبل از ادعای AUTONOMOUS: toil #1–4 و SH-GAP-07/08 و RB-GAP-01/10 را ببندید.
+**جمع‌بندی:** فازهای ۱–۳ evolution (DEC-071…109) بسته شد. **AUTONOMOUS** هنوز نیاز به: rollback ۳۰ثانیه‌ای، soft delete، auto-rotation، priority shed، production alerting.
 
 ---
 
 ## Evolution Report — Final Autonomous Readiness
 
-**Audit lens:** آیا `@apps/api` **30 روز متوالی** بدون مداخله انسان (on-call، SQL دستی، firefighting deploy) دوام می‌آورد؟
+**Audit lens:** آیا `@apps/api` **30 روز متوالی** بدون مداخله انسان دوام می‌آورد؟
 
-| Metric                         | Value                                                                                              |
-| ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Verdict**                    | **SEMI**                                                                                           |
-| **Autonomous readiness score** | **45 / 100**                                                                                       |
-| **Operational toil count**     | **10**                                                                                             |
-| **30-day failure scenarios**   | **10**                                                                                             |
-| **Catalogued gaps (rollup)**   | **71+** across SH(16), SCAL-LIM(18), MD(14), CAE(14), DEPLOY(9), SHADOW(7), RB(14), CI(44), SM(11) |
+| Metric                         | قبل    | بعد                                   |
+| ------------------------------ | ------ | ------------------------------------- |
+| **Verdict**                    | SEMI   | **SEMI** (بهبود یافته)                |
+| **Autonomous readiness score** | 45     | **58 / 100**                          |
+| **Operational toil count**     | 10     | **6**                                 |
+| **30-day human interventions** | 3–5/mo | **1–3/mo**                            |
+| **Evolution phases closed**    | 0      | **3** (P0+P1+P2)                      |
+| **Catalogued gaps (rollup)**   | 71+    | **~55+** open (estimate post-closure) |
+
+**سند منبع به‌روز:** [`apps/api/docs/phase5-evolution-audit.md`](../apps/api/docs/phase5-evolution-audit.md) § Evolution Report
 
 ### Pillar scores (30-day autonomy)
 
@@ -342,29 +346,35 @@
 
 ## پیشنهادات و اصلاحات (اولویت‌بندی یکپارچه)
 
-### فوری (P0 — SEMI → conditional autonomous)
+### فوری (P0 — SEMI → conditional autonomous) — **فاز اول DONE (2026-06-05)**
 
-1. **SH-GAP-08/07** + **RB-GAP-10** — outbox reclaim + failed replay policy.
-2. **SH-GAP-15/04/05** — transient classifier, circuit breaker, Retry-After on 503.
-3. **CAE-GAP-05/04** — test-reset prod guard; admin credential separation.
-4. **CI-BYP-12/13/17** — GHA phase-4/5 + Postgres CI service.
-5. **MD-GAP-12** — boot migration head check.
+1. **SH-GAP-08/07** + **RB-GAP-10** — outbox reclaim + failed replay policy. ✅ DEC-071/072/086
+2. **SH-GAP-15/04/05** — transient classifier, circuit breaker, Retry-After on 503. ✅ DEC-094
+3. **CAE-GAP-05/04** — test-reset prod guard; admin credential separation. ✅ DEC-095 (reset guard); admin URL split pre-existing
+4. **CI-BYP-12/13/17** — GHA phase-4/5 + Postgres CI service. ✅ DEC-096 (`phase-4-gate.yml` + `phase-5-gate.yml`, `test:full`)
+5. **MD-GAP-12** — boot migration head check. ✅ DEC-097
 
-### کوتاه‌مدت (P1)
+**Doc pack:** [`docs/phase-5/appendices/phase5-evolution-p0-phase1.md`](../docs/phase-5/appendices/phase5-evolution-p0-phase1.md)
 
-6. **RB-GAP-01…04** — forward-only rollback runbook + expand/contract discipline.
-7. **SHADOW-API** — `openapi:generate` + dispatchRequest CI gate.
-8. **DEPLOY-DEBT-01/02** — version strategy Phase 6 decision.
-9. **RB-GAP-09/08** — ingress `shuttingDown` + grace period docs.
-10. **SH-GAP-13** — Redis fail-open policy (phase3 RL-DOS-04).
+### کوتاه‌مدت (P1) — **فاز دوم DONE (2026-06-05)**
 
-### میان‌مدت (P2/P3 — Phase 6+)
+6. **RB-GAP-01…04** — forward-only rollback runbook + expand/contract discipline. ✅ DEC-098
+7. **SHADOW-API** — `openapi:generate` + dispatchRequest CI gate. ✅ DEC-099
+8. **DEPLOY-DEBT-01/02** — version strategy Phase 6 decision. ✅ DEC-100
+9. **RB-GAP-09/08** — ingress `shuttingDown` + grace period docs. ✅ DEC-101
+10. **SH-GAP-13** — Redis fail-open policy (phase3 RL-DOS-04). ✅ DEC-083 (pre-existing)
 
-11. **CAE-GAP-01/02** — soft delete + canonical history.
-12. **RB-GAP-13/14** — Redis flush API; split relay Deployment.
-13. **SM-VUL** — dual-key JWT + rotation pipeline.
-14. **SCAL-LIM-02/03** — export pool/lag metrics for HPA.
-15. **CI-BYP-01/28/32/33/34** — trunk policy hardening.
+**Doc pack:** [`docs/phase-5/appendices/phase5-evolution-p1-phase2.md`](../docs/phase-5/appendices/phase5-evolution-p1-phase2.md)
+
+### میان‌مدت (P2/P3 — Phase 6+) — **فاز سوم DONE (2026-06-05)**
+
+11. **CAE-GAP-01/02** — soft delete + canonical history. ⏭️ Phase 6 (DEC-105)
+12. **RB-GAP-13/14** — Redis flush API; split relay Deployment. ✅ DEC-106 (flush API); relay split → ops
+13. **SM-VUL** — dual-key JWT + rotation pipeline. ✅ DEC-107 (dual verify); auto-rotation → Phase 6+
+14. **SCAL-LIM-02/03** — export pool/lag metrics for HPA. ✅ DEC-108 (Prometheus scaffold)
+15. **CI-BYP-01/28/32/33/34** — trunk policy hardening. ✅ DEC-109 (`phase-5:evolution-gate`)
+
+**Doc pack:** [`docs/phase-5/appendices/phase5-evolution-p2-phase3.md`](../docs/phase-5/appendices/phase5-evolution-p2-phase3.md)
 
 ---
 
@@ -460,9 +470,10 @@ rg -i 'openapi|swagger|tsoa|zod-to-openapi' apps/api/package.json apps/api/src/
 
 | دسته                            |  تعداد |
 | ------------------------------- | -----: |
-| Autonomous readiness score      | 45/100 |
+| Autonomous readiness score      | 58/100 |
 | Verdict                         |   SEMI |
-| Operational toil                |     10 |
+| Operational toil                |      6 |
+| Evolution phases closed         |      3 |
 | 30-day failure scenarios        |     10 |
 | Self-Heal (SH-GAP)              |     16 |
 | Rollback (RB-GAP)               |     14 |
@@ -492,11 +503,11 @@ rg -i 'openapi|swagger|tsoa|zod-to-openapi' apps/api/package.json apps/api/src/
 
 ## Document metadata
 
-| Item               | Value                                                                                                                                                                   |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Output path**    | `TEMP/phase5-evolution-audit-fix-list.md`                                                                                                                               |
-| **Code changes**   | None (`docs/TEMP` only)                                                                                                                                                 |
-| **Parent handoff** | `autonomous_readiness_score=45` · `autonomous_verdict=SEMI` · `operational_toil_count=10` · `soft_delete_exists=no` · `ci_bypass_count=44` · `rollback_30s_feasible=no` |
-| **Architect note** | Documentation status: **Updated** (extracted from existing audit). Link: `TEMP/phase5-evolution-audit-fix-list.md`                                                      |
+| Item               | Value                                                                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Output path**    | `TEMP/phase5-evolution-audit-fix-list.md`                                                                                                                                                |
+| **Code changes**   | None (`docs/TEMP` only)                                                                                                                                                                  |
+| **Parent handoff** | `autonomous_readiness_score=58` · `autonomous_verdict=SEMI` · `operational_toil_count=6` · `evolution_remediation_phases=3` · `shadow_endpoint_count=0` · `openapi_generator_exists=yes` |
+| **Architect note** | Documentation status: **Updated** (re-baselined 2026-06-05 post phases 1–3). Link: `apps/api/docs/phase5-evolution-audit.md`                                                             |
 
 _این فایل استخراج از `phase5-evolution-audit.md` است و جایگزین سند منبع نیست. برای جزئیات کامل به سند اصلی مراجعه کنید._

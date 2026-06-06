@@ -5,6 +5,11 @@ import {
   consumeTenantRateLimit,
   type TenantRateLimitTier,
 } from "../middleware/tenant-rate-limiter";
+import {
+  acquireWeightedFairAdmission,
+  releaseWeightedFairAdmission,
+} from "./weighted-fair-admission";
+import { withTourWriteConcurrencyBudget } from "./tour-write-concurrency-budget";
 import { resolveTraceIdFromHeaders } from "../observability/resolve-trace-id";
 import { getActiveTraceId, runWithTraceContext } from "../observability/trace-request-context";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
@@ -12,6 +17,8 @@ import { runWithTenantContext } from "../tenant/tenant-request-context";
 export type HttpRequestContextOptions = {
   /** When true, enforce write-tier limit; `'read'` / `'write'` select independent buckets (DEC-015 / P0-8). */
   readonly rateLimit?: boolean | TenantRateLimitTier;
+  /** Cap concurrent in-flight POST /tours per tenant (DEC-064 / SCAL-DEBT-09). */
+  readonly tourWriteConcurrency?: boolean;
 };
 
 /**
@@ -30,12 +37,24 @@ export async function runWithHttpRequestContext<T>(
     runWithTenantContext(
       auth.tenantId,
       async () => {
-        if (options?.rateLimit) {
-          const tier: TenantRateLimitTier =
-            options.rateLimit === true ? "write" : options.rateLimit;
-          await consumeTenantRateLimit(tier);
+        await acquireWeightedFairAdmission(auth.tenantId);
+        try {
+          const execute = async () => {
+            if (options?.rateLimit) {
+              const tier: TenantRateLimitTier =
+                options.rateLimit === true ? "write" : options.rateLimit;
+              await consumeTenantRateLimit(tier);
+            }
+            return run();
+          };
+
+          if (options?.tourWriteConcurrency) {
+            return await withTourWriteConcurrencyBudget(auth.tenantId, execute);
+          }
+          return await execute();
+        } finally {
+          releaseWeightedFairAdmission();
         }
-        return run();
       },
       {
         actorId: auth.userId,

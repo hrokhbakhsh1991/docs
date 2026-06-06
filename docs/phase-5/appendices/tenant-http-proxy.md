@@ -58,10 +58,16 @@ sequenceDiagram
 | Cache scope      | Only `GET` when `cacheResponses: true`; mutations never cached.                                                                               |
 | `STORAGE_DRIVER` | Proxy is HTTP-only; integration test uses `memory` and an in-process mock upstream (no real map API).                                         |
 
+## Upstream bounds (DEC-075 / PI-01)
+
+See [`proxy-upstream-timeout.md`](proxy-upstream-timeout.md) — `AbortSignal.timeout`, per-host circuit breaker, timeout/circuit metrics.
+
 ## Verification
 
 ```bash
 cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test test/4-integration/proxy-tenant-isolation.spec.ts
+pnpm run guard:proxy-upstream-timeout
+node --import tsx --test test/4-integration/proxy-upstream-timeout.spec.ts
 ```
 
 | Assertion                                                          | Proves                                            |

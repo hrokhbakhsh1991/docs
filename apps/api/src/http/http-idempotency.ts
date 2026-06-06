@@ -4,6 +4,12 @@ import type { IncomingMessage } from "node:http";
 import { Prisma } from "@prisma/client";
 
 import { withTenantRls } from "../db/with-tenant-rls";
+import {
+  computeRelayBackoff,
+  readHttpIdempotencyPollBaseMs,
+  readHttpIdempotencyPollMaxMs,
+  sleepRelayBackoffMs,
+} from "../resilience/compute-relay-backoff";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
 
@@ -110,8 +116,17 @@ export function readHttpIdempotencyMemorySizeForTests(): number {
   return memoryByKey.size;
 }
 
-const POLL_INTERVAL_MS = 25;
 const POLL_DEADLINE_MS = 30_000;
+
+async function sleepIdempotencyPollBackoff(attempt: number): Promise<void> {
+  await sleepRelayBackoffMs(
+    computeRelayBackoff({
+      attempt,
+      baseMs: readHttpIdempotencyPollBaseMs(),
+      maxMs: readHttpIdempotencyPollMaxMs(),
+    })
+  );
+}
 
 function memoryKey(tenantId: string, idempotencyKey: string): string {
   return `${tenantId}\0${idempotencyKey}`;
@@ -130,6 +145,7 @@ export function hashIdempotentRequest(method: string, path: string, rawBody: str
 
 async function waitForMemoryCompletion(key: string, requestHash: string): Promise<StoredResponse> {
   const deadline = Date.now() + POLL_DEADLINE_MS;
+  let attempt = 0;
   while (Date.now() < deadline) {
     const entry = memoryByKey.get(key);
     if (entry?.status === "completed" && entry.response !== undefined) {
@@ -138,7 +154,8 @@ async function waitForMemoryCompletion(key: string, requestHash: string): Promis
       }
       return entry.response;
     }
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    attempt += 1;
+    await sleepIdempotencyPollBackoff(attempt);
   }
   throw new Error(IDEMPOTENCY_IN_PROGRESS);
 }
@@ -195,6 +212,7 @@ async function waitForPrismaCompletion(
   requestHash: string
 ): Promise<StoredResponse> {
   const deadline = Date.now() + POLL_DEADLINE_MS;
+  let attempt = 0;
   while (Date.now() < deadline) {
     const row = await withTenantRls(tenantId, (tx) =>
       tx.httpIdempotencyRecord.findUnique({
@@ -209,7 +227,8 @@ async function waitForPrismaCompletion(
       }
       return row.responseBody as StoredResponse;
     }
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    attempt += 1;
+    await sleepIdempotencyPollBackoff(attempt);
   }
   throw new Error(IDEMPOTENCY_IN_PROGRESS);
 }
@@ -262,19 +281,21 @@ async function runWithPrismaIdempotency(
 
   try {
     const response = await execute();
-    await withTenantRls(tenantId, (tx) =>
-      tx.httpIdempotencyRecord.update({
-        where: {
-          tenantId_idempotencyKey: { tenantId, idempotencyKey },
-        },
-        data: {
-          status: "completed",
-          statusCode: 201,
-          responseBody: response as object,
-          completedAt: new Date(),
-        },
-      })
-    );
+    await withTenantRls(tenantId, async (tx) => {
+      const affected = await tx.$executeRaw`
+        UPDATE http_idempotency_records
+        SET status = 'completed',
+            status_code = 201,
+            response_body = ${JSON.stringify(response)}::jsonb,
+            completed_at = now()
+        WHERE tenant_id = ${tenantId}::uuid
+          AND idempotency_key = ${idempotencyKey}
+          AND status = 'processing'
+      `;
+      if (Number(affected) !== 1) {
+        throw new Error(IDEMPOTENCY_IN_PROGRESS);
+      }
+    });
     return response;
   } catch (error) {
     await withTenantRls(tenantId, (tx) =>

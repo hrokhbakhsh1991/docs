@@ -382,7 +382,7 @@ describe(
     }
 
     async function runValidationTask(tenantId: string, index: number): Promise<void> {
-      validateCanonicalBeforePersist(validationInput(tenantId, index));
+      await validateCanonicalBeforePersist(validationInput(tenantId, index));
     }
 
     async function dispatchWork(tenantId: string, index: number): Promise<void> {

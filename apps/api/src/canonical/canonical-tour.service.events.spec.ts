@@ -6,6 +6,7 @@ import {
   resetDomainEventBusForTests,
   subscribeDomainEvent,
   subscribeDomainEventForTenant,
+  flushDomainEventDispatch,
 } from "@app-tour/platform-events";
 
 import { createApiAbility } from "../casl/api-ability";
@@ -76,6 +77,7 @@ describe("CanonicalTourService TourCreated event", () => {
       body: validBody,
     });
 
+    await flushDomainEventDispatch();
     assert.deepEqual(seen, ["tenant-a"]);
   });
 

@@ -68,7 +68,7 @@ function classify429(
     return "capacity";
   }
   if (
-    msg.includes("Rate limit exceeded") ||
+    msg.includes("rate_limit_exceeded") ||
     msg.includes("RATE_LIMIT") ||
     msg.includes("rate_limit") ||
     msg.includes("Too Many Requests") ||
@@ -136,8 +136,8 @@ describe("tenant rate limiting (3-performance)", { concurrency: false }, () => {
   const priorLimitDuration = process.env.TENANT_RATE_LIMIT_DURATION_SEC;
   const priorLimitEnabled = process.env.TENANT_RATE_LIMIT_ENABLED;
 
-  before(() => {
-    resetTenantRateLimiterStoreForTests();
+  before(async () => {
+    await resetTenantRateLimiterStoreForTests();
     process.env.STORAGE_DRIVER = "memory";
     process.env.NODE_ENV = "test";
     process.env.TENANT_RATE_LIMIT_ENABLED = "true";
@@ -157,9 +157,9 @@ describe("tenant rate limiting (3-performance)", { concurrency: false }, () => {
     });
   });
 
-  after(() => {
+  after(async () => {
     server.close();
-    resetTenantRateLimiterStoreForTests();
+    await resetTenantRateLimiterStoreForTests();
     process.env.STORAGE_DRIVER = priorStorageDriver;
     process.env.TENANT_RATE_LIMIT_POINTS = priorLimitPoints;
     process.env.TENANT_RATE_LIMIT_DURATION_SEC = priorLimitDuration;
@@ -266,7 +266,7 @@ describe("tenant rate limiting (3-performance)", { concurrency: false }, () => {
     for (const r of burstResults) {
       if (r.status === 429 && classify429(r.body.error, r.body.code) === "rate_limit") {
         assert.equal(r.body.code, "RATE_LIMIT_EXCEEDED");
-        assert.equal(r.body.error, "Rate limit exceeded");
+        assert.equal(r.body.error, "rate_limit_exceeded");
         assert.ok(r.body.retryAfter !== undefined, "429 body must include retryAfter");
         assert.ok(r.retryAfterHeader !== undefined, "429 must include Retry-After header");
       }

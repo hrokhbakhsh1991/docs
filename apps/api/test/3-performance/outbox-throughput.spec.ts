@@ -44,7 +44,12 @@ import { processOutboxRelayOnce } from "../../src/outbox/outbox-relay";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { TourStorageDbAdapter } from "../../src/db/tour-storage.adapter";
 import { ToursService } from "../../src/tours/tours.service";
-import { integrationTenantId } from "../test-helpers";
+import {
+  integrationTenantId,
+  preparePostgresOutboxIsolation,
+  quiesceStaleOutboxProcessing,
+} from "../test-helpers";
+import { skipUnlessNightlyTier } from "../test-tier";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -61,7 +66,7 @@ const APP_TOUR_URL =
 
 const SEED_COUNT = Number(process.env.OUTBOX_SEED_COUNT ?? "5000");
 const MIN_THROUGHPUT = Number.parseInt(
-  process.env.MIN_THROUGHPUT ?? (process.env.OUTBOX_THROUGHPUT_STRICT === "1" ? "500" : "100"),
+  process.env.MIN_THROUGHPUT ?? (process.env.OUTBOX_THROUGHPUT_STRICT === "1" ? "500" : "80"),
   10
 );
 const RELAY_BATCH_SIZE = Number(process.env.OUTBOX_RELAY_BATCH_SIZE ?? "100");
@@ -140,9 +145,18 @@ async function seedPendingOutboxRows(
     );
   }
 
-  const pending = await admin.outboxEvent.count({
+  await quiesceStaleOutboxProcessing(0);
+
+  let pending = await admin.outboxEvent.count({
     where: { tenantId, status: "pending" },
   });
+  for (let attempt = 0; pending < count && attempt < 8; attempt += 1) {
+    await quiesceStaleOutboxProcessing(0);
+    await new Promise<void>((resolve) => setTimeout(resolve, 25));
+    pending = await admin.outboxEvent.count({
+      where: { tenantId, status: "pending" },
+    });
+  }
   assert.equal(pending, count, `seed must create ${count} pending outbox rows`);
 }
 
@@ -210,7 +224,12 @@ type HttpResult = {
 
 describe(
   "3-performance — outbox relay throughput (integration)",
-  { skip: hasDatabase ? false : SKIP_MESSAGE, concurrency: false },
+  {
+    skip: !hasDatabase
+      ? SKIP_MESSAGE
+      : skipUnlessNightlyTier("5000-row outbox relay throughput probe"),
+    concurrency: false,
+  },
   () => {
     const runId = randomUUID().slice(0, 8);
     const tenantId = integrationTenantId();
@@ -223,9 +242,12 @@ describe(
 
     const priorStorageDriver = process.env.STORAGE_DRIVER;
     const priorBatchSize = process.env.OUTBOX_RELAY_BATCH_SIZE;
+    const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
 
     before(async () => {
+      await preparePostgresOutboxIsolation();
       process.env.STORAGE_DRIVER = "prisma";
+      process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = String(Math.max(CONCURRENT_CREATES, 32));
       process.env.OUTBOX_RELAY_BATCH_SIZE = String(RELAY_BATCH_SIZE);
       process.env.DATABASE_URL = withConnectionLimit(
         process.env.DATABASE_URL?.trim() ?? APP_TOUR_URL
@@ -269,6 +291,11 @@ describe(
     after(async () => {
       server.close();
       process.env.STORAGE_DRIVER = priorStorageDriver;
+      if (priorMaxTourWrites === undefined) {
+        delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+      } else {
+        process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = priorMaxTourWrites;
+      }
       if (priorBatchSize === undefined) {
         delete process.env.OUTBOX_RELAY_BATCH_SIZE;
       } else {

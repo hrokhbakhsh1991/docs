@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
 
 import { applyTestDbHoldIfConfigured, withPoolSaturationMapping } from "./pool-saturation";
+import { withTransientDbGuard } from "./with-transient-db-guard";
+import { withTenantDbBudget } from "./tenant-connection-budget";
 import { getPrisma } from "./prisma";
 import { assertActiveTenantMatchesRlsTarget } from "./assert-tenant-rls-alignment";
 import { applyTenantRlsSessionVars } from "./rls-session-vars";
@@ -20,11 +22,15 @@ export async function withTenantRls<T>(
   }
   assertActiveTenantMatchesRlsTarget(normalized);
   const prisma = getPrisma();
-  return withPoolSaturationMapping(() =>
-    prisma.$transaction(async (tx) => {
-      await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
-      await applyTestDbHoldIfConfigured(tx);
-      return run(tx);
-    })
+  return withTenantDbBudget(normalized, () =>
+    withTransientDbGuard(() =>
+      withPoolSaturationMapping(() =>
+        prisma.$transaction(async (tx) => {
+          await applyTenantRlsSessionVars(tx, normalized, getActiveTraceId());
+          await applyTestDbHoldIfConfigured(tx);
+          return run(tx);
+        })
+      )
+    )
   );
 }
