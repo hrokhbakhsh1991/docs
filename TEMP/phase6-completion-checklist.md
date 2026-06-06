@@ -140,14 +140,17 @@ recommended_path: "merge PR → phase-6-gate on main"
 
 ---
 
-## Tier 4 — CI
+## Tier 4 — CI (لوکال سبک · سنگین روی GitHub)
 
-| #   | کار                          | وضعیت |
-| --- | ---------------------------- | ----- | ------------------------------- |
-| 4.1 | MinIO در GitHub Actions      | `[x]` | `phase-6-gate.yml#minio-photo`  |
-| 4.2 | Playwright در CI             | `[x]` | `phase-6-gate.yml#smoke-denali` |
-| 4.3 | `phase-6:fast-closure` در CI | `[x]` | nightly + push `main`           |
-| 4.4 | Full `phase-6:gate` 4×       | `[ ]` | optional extend nightly         |
+| #   | کار                          | وضعیت | توضیح                              |
+| --- | ---------------------------- | ----- | ---------------------------------- |
+| 4.0 | لوکال فقط L0+L1              | `[x]` | `pre-commit:fast` + `test:changed` |
+| 4.1 | MinIO در GitHub Actions      | `[x]` | PR + main · `minio-photo`          |
+| 4.2 | Playwright در CI             | `[x]` | PR + main · `smoke-denali`         |
+| 4.3 | `phase-6:fast-closure` در CI | `[x]` | PR + main + nightly                |
+| 4.4 | Full `phase-6:gate`          | `[x]` | یکشنبه cron + `workflow_dispatch`  |
+
+**لوکال نزن:** `phase-6:gate` · `phase-5:gate` · smoke · minio — لاگ CI را بفرست.
 
 ---
 
