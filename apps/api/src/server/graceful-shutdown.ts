@@ -1,23 +1,20 @@
 import type { Server } from "node:http";
 
-import { disconnectPrisma, getPrismaAdmin } from "../db/prisma";
-import { logger } from "../observability/logger";
-import { processOutboxRelayOnce } from "../outbox/outbox-relay";
+import { disconnectPrisma } from "../db/prisma";
+import { drainHttpRequestLogQueueSync } from "../http/request-logging";
+import { flushLogSink, logger } from "../observability/logger";
+import { metricsRegistry } from "../observability/metrics";
+import { drainOutboxRelayOnShutdown } from "../outbox/outbox-shutdown-drain";
 import type { OutboxRelayHandle } from "../outbox/start-outbox-relay";
+import { assertOutboxShutdownDrained } from "./graceful-shutdown-outbox-flush";
 
 const FLUSH_DEADLINE_MS = Number.parseInt(process.env.GRACEFUL_SHUTDOWN_FLUSH_MS ?? "8000", 10);
+const HTTP_SHUTDOWN_MS = Number.parseInt(process.env.GRACEFUL_SHUTDOWN_HTTP_MS ?? "10000", 10);
 
-async function flushOutboxRelay(): Promise<void> {
-  const deadline = Date.now() + FLUSH_DEADLINE_MS;
-  while (Date.now() < deadline) {
-    await processOutboxRelayOnce(50);
-    const pending = await getPrismaAdmin().outboxEvent.count({
-      where: { status: "pending" },
-    });
-    if (pending === 0) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
+export class GracefulShutdownHttpTimeoutError extends Error {
+  constructor() {
+    super("GRACEFUL_SHUTDOWN_HTTP_TIMEOUT");
+    this.name = "GracefulShutdownHttpTimeoutError";
   }
 }
 
@@ -28,9 +25,53 @@ export type GracefulShutdownDeps = {
 
 let shuttingDown = false;
 
+export function isGracefulShutdownInProgress(): boolean {
+  return shuttingDown;
+}
+
+/** Test-only — reset shutdown latch between specs. */
+export function resetGracefulShutdownStateForTests(): void {
+  shuttingDown = false;
+}
+
+async function closeHttpServerWithWatchdog(server: Server): Promise<void> {
+  if (typeof server.closeIdleConnections === "function") {
+    server.closeIdleConnections();
+  }
+
+  let timeoutHandle: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      }),
+      new Promise<void>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          if (typeof server.closeAllConnections === "function") {
+            server.closeAllConnections();
+          }
+          metricsRegistry.increment("graceful_shutdown_http_force_close_total");
+          reject(new GracefulShutdownHttpTimeoutError());
+        }, HTTP_SHUTDOWN_MS);
+        timeoutHandle.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== undefined) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
 /**
- * Production shutdown contract (P0): stop relay → drain HTTP → flush outbox → disconnect Prisma.
- * @see apps/api/test/4-integration/graceful-shutdown-worker.ts
+ * Production shutdown contract (P0): stop relay → health 503 → drain HTTP → flush logs → outbox → Prisma.
+ * @see docs/phase-5/appendices/graceful-shutdown-http-watchdog.md DEC-085
  */
 export async function runGracefulShutdown(deps: GracefulShutdownDeps): Promise<void> {
   if (shuttingDown) {
@@ -38,20 +79,15 @@ export async function runGracefulShutdown(deps: GracefulShutdownDeps): Promise<v
   }
   shuttingDown = true;
 
-  deps.outboxRelay.stop();
+  await deps.outboxRelay.stop();
+  await closeHttpServerWithWatchdog(deps.server);
 
-  await new Promise<void>((resolve, reject) => {
-    deps.server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    });
-  });
+  drainHttpRequestLogQueueSync();
+  await flushLogSink();
 
   if (process.env.DATABASE_URL?.trim()) {
-    await flushOutboxRelay();
+    const drain = await drainOutboxRelayOnShutdown(FLUSH_DEADLINE_MS);
+    assertOutboxShutdownDrained(drain);
     await disconnectPrisma();
   }
 }

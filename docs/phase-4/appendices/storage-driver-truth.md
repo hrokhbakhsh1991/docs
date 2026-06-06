@@ -38,6 +38,8 @@ Memory driver partitions reads by `tenantId` argument but does **not** provide P
 
 **Invariant:** `appendAuditEvent` is reachable only on the Prisma atomic path (`useAtomicCanonicalPersist()`). CI guard `guard:forensic-storage` locks boot chain (`main.ts` → `assertProductionRuntimeIntegrity` → `assertProductionStorageDriver`) and forbids stray `appendAuditEvent` call sites outside `atomic-canonical-tour-persist.ts`.
 
+**Phase 3 regression lock (DEC-060 / SCAL-DEBT-05):** `guard:production-storage-driver` asserts the boot chain and that `phase-3:regression-gate` runs `create-tour-storage.spec.ts` + `forensic-storage-driver.spec.ts`. Run: `pnpm run guard:production-storage-driver` from `apps/api`.
+
 **Deploy checklist:** Production must set `STORAGE_DRIVER=prisma`, non-empty `DATABASE_URL`, and distinct `DATABASE_URL_ADMIN`. Running integration tests with `memory` is valid for speed but is **non-forensic** — do not treat green CI as audit coverage unless Postgres tier ran.
 
 **Role split:** `DATABASE_URL` → `app_tour` (or equivalent `NOBYPASSRLS` role); `DATABASE_URL_ADMIN` → owner/postgres for migrations, outbox claim, registry reads. Never point `DATABASE_URL` at a superuser or bypass role (**DM-CT-02**).

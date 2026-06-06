@@ -12,6 +12,8 @@ export type EnqueueOutboxEventInput = {
   readonly payload: Prisma.InputJsonValue;
   readonly domainEventId: string;
   readonly correlationId?: string;
+  /** DEC-077 — DB-sourced enqueue time; relay maps `occurredAt` from this column. */
+  readonly createdAt?: Date;
 };
 
 /**
@@ -39,6 +41,7 @@ export async function enqueueOutboxEvent(
         status: "pending",
         domainEventId: input.domainEventId,
         correlationId: input.correlationId ?? null,
+        ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
       },
     });
     return true;

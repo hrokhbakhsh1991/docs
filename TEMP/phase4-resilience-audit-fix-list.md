@@ -1,364 +1,409 @@
-# Phase 4 Resilience Audit — Fix List
+# Phase 4 — نقشه ۹.۵+ با راهکارهای Enterprise (پیاده‌سازی روی app-tour)
 
-**Source:** [`apps/api/docs/phase4-resilience-audit.md`](../apps/api/docs/phase4-resilience-audit.md)  
-**Generated:** 2026-06-05  
-**Scope:** Saga/outbox relay, graceful shutdown, zombie events, feature flags, Rule Engine degradation, hot-reload config, proxy, schema drift, clock skew, bulk import coupling.
-
----
-
-## خلاصه اجرایی (فارسی)
-
-| مورد                               | مقدار                                                                          |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| **حکم Chaos Report**               | **CONDITIONAL** — امتیاز تاب‌آوری **62/100**                                   |
-| **Transactional integrity**        | **78** — tour + audit + outbox co-commit اثبات‌شده                             |
-| **Degradation**                    | **58** — 503/429 خوب؛ gaps: NN, Redis 500, proxy hang                          |
-| **Recovery**                       | **52** — backlog replay سبز؛ **بدون** reclaim `processing`                     |
-| **Must-Fix (multi-tenant prod)**   | **8** مورد (F-01, F-02, F-05, PI-01, NN-01/02, RL-DOS-01, SCAL-HF-11, PU-F-01) |
-| **Zombie-risk scenarios**          | **6**                                                                          |
-| **Shutdown gaps**                  | **7** (SD-G1 … SD-G7)                                                          |
-| **Schema drift critical 500**      | **0** — graceful 4xx/201                                                       |
-| **Data Integrity Breach (replay)** | **0**                                                                          |
-| **CASCADE scenarios**              | **3** (bulk brownout, deploy zombies, Redis blip)                              |
-
-**جمع‌بندی:** یکپارچگی TX و idempotent replay قوی است؛ ریسک اصلی **outbox `processing` بدون reclaim** (deploy عادی → drift خاموش) و **noisy-neighbor** cross-tenant availability. قبل از scale-out: Must-Fix زیر را ببندید.
+**منبع audit:** [`apps/api/docs/phase4-resilience-audit.md`](../apps/api/docs/phase4-resilience-audit.md)  
+**به‌روزرسانی:** 2026-06-05  
+**هدف:** نمره پیاده‌سازی **≥ ۹.۵/۱۰ (۹۵+)** — هم‌تراز Stripe/Shopify-class SaaS backend patterns  
+**قانون سخت:** **Postgres واقعی اجباری در هر gate** — `skip`، `databaseUrlSet: false`، یا `# SKIP` در integration = **رد**
 
 ---
 
-## Chaos Report — Pillar breakdown
+## ۱. وضعیت و هدف
 
-| Pillar                      |  Score | خلاصه                                                          |
-| --------------------------- | -----: | -------------------------------------------------------------- |
-| **Transactional integrity** | **78** | Co-commit proven؛ gaps: publish≠`done` (F-02), SIGKILL (F-10)  |
-| **Degradation**             | **58** | Pool 503 + 429؛ fail: NN CPU/pool, Redis 500, PI-01 latent     |
-| **Recovery**                | **52** | No stale-`processing` reclaim (F-01); terminal `failed` (F-03) |
-| **Config consistency**      | **64** | FF mid-burst pass؛ 5s TTL؛ E2E hot-reload not atomic           |
-| **External dependencies**   | **55** | Postgres bounded؛ proxy latent؛ admin-pool amplification       |
+| بعد                       |         الان |                      هدف ۹.۵+ |
+| ------------------------- | -----------: | ----------------------------: |
+| Resilience (DEC-071…079)  |       ۷۸/۱۰۰ |                          ≥ ۹۵ |
+| Modular Phase 4 (4.0→4.6) | ۲۹٪ VERIFIED | ۱۰۰٪ + `phase-4:gate ok:true` |
+| Degradation pillar        |        ~۶/۱۰ |                        ≥ ۹/۱۰ |
+| Trunk / CI truth          |        ~۵/۱۰ |                         ۱۰/۱۰ |
 
----
-
-## تناقضات و ابهامات در سند (نیاز به هم‌راستاسازی)
-
-| ID         | محل در سند                                                                        | تناقض                                          | توضیح / اقدام پیشنهادی                                                        |
-| ---------- | --------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
-| **CON-01** | `orphaned_tx_risk=no` (SIGTERM) vs `yes` (SIGKILL)                                | یک خط دو حکم                                   | عمدی — parent handoff هر دو را ذکر می‌کند؛ در PR «no» فقط برای graceful path. |
-| **CON-02** | Schema drift **Pass** vs PATCH **Partial** / untested                             | POST proven؛ PATCH inferred                    | SV-F-03/04 accepted Phase 6 — تناقض نیست؛ یک ticket برای PATCH drift spec.    |
-| **CON-03** | Feature-flag degradation **pass** (FF-F-05) vs Rule Engine hard-fail **16** paths | proactive basic OK؛ runtime fallback **no**    | دو لایه مختلف — doc باید «no reactive degrade» را bold کند.                   |
-| **CON-04** | Proxy **PI-03 accepted** (not wired) vs **PI-01 Must-Fix**                        | deferred exposure vs systemic when wired       | PI-01 برای **وقتی** map routes wire شود — در wiring checklist اجباری کنید.    |
-| **CON-05** | Shutdown static parity **Pass** vs **7** operational gaps                         | main.ts wiring OK؛ runtime contract incomplete | SD-G\* جدا از static audit — هر دو درست.                                      |
-| **CON-06** | Resilience **62** vs phase3 **CONDITIONAL** (no numeric score)                    | مقیاس متفاوت                                   | cross-link: phase3 blocks scale؛ phase4 blocks resilience sign-off.           |
-| **CON-07** | `atomic_update_paths_db=yes` vs `e2e=no`                                          | DB TX atomic؛ read coherence partial           | PU-03 harness vs production cache — doc E2E gap واضح است.                     |
+**Baseline انجام‌شده (نگه دارید):** DEC-071…079 — reclaim، pairing، proxy timeout، shutdown await، canonical TX now، PATCH drift spec، resilience gate (با نقص Postgres).
 
 ---
 
-## Must-Fix — blocks multi-tenant production resilience
+## ۲. معیار قبولی نهایی (رد = fail)
 
-| Pri    | ID                | Finding                             | Why cascade                                 | Suggested fix                                 |
-| ------ | ----------------- | ----------------------------------- | ------------------------------------------- | --------------------------------------------- |
-| **P0** | **F-01**          | No stale `processing` reclaim       | OZ-01/02/06 — deploy permanent undelivered  | TTL job `processing`→`pending` or dead-letter |
-| **P0** | **F-05**          | Shutdown flush ignores `processing` | SD-G1 — rolling restart **creates** zombies | Extend drain predicate + reclaim (F-01)       |
-| **P0** | **F-02**          | Bus publish ≠ `done` update         | Amplifies F-01; outbox never heals          | Pair publish+mark or compensate via reclaim   |
-| **P0** | **NN-01 / NN-02** | Noisy-neighbor CPU + pool           | CASCADE-01 innocent tenant outage           | phase3 SCAL-DEBT-01/02                        |
-| **P0** | **RL-DOS-01**     | Uncached admin read per rate-limit  | CASCADE-03 admin pool DoS                   | Registry cache on limiter path                |
-| **P0** | **SCAL-HF-11**    | Redis fail-closed 500               | Total write failure on blip                 | SH-GAP-13 fail-open policy                    |
-| **P1** | **PI-01**         | Unbounded proxy `fetch`             | Hung upstream when wired                    | Timeout + breaker before DI-PROXY-01          |
-| **P1** | **PU-F-01**       | No write-path cache invalidation    | Stale flags up to 5s on writes              | Invalidate registry cache on tenant update    |
+```yaml
+pass_95:
+  postgres:
+    DATABASE_URL: required # app_tour + RLS
+    DATABASE_URL_ADMIN: required # postgres owner
+    STORAGE_DRIVER: prisma
+    zero_skip_in_gate: true # هیچ describe.skip برای DB
+  gates:
+    - phase-4:resilience-regression-gate # MUST databaseUrlSet: true
+    - phase-4:gate # MUST ok: true (10/10)
+    - phase-4:cross-phase-p0-verify # postgres tier اجباری
+  artifacts:
+    - IMPLEMENTATION-TRUTH.md → 7/7 VERIFIED
+    - phase-4-zero-debt-forensic-audit.mdoc → Zero-Debt Verified
+  ci:
+    - Testcontainers یا service Postgres در GitHub Actions (نه optional)
+    - prisma migrate + RLS policies قبل از integration specs
+```
 
----
-
-## Top 3 cascading failure scenarios (CASCADE)
-
-### CASCADE-01 — Bulk import noisy-neighbor platform brownout
-
-| Stage           | Narrative                                                                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Trigger**     | Tenant A sustained bulk `POST /tours` @ 50 RPS or 10 parallel persist/chunk                                                                                               |
-| **Propagation** | RuleEngine monopolizes loop (NN-01) → B latency spikes → pool exhausted (NN-02) → B **503** → outbox backlog → relay competes admin pool → logging amplifies (FOF-LOG-02) |
-| **Impact**      | Cross-tenant **availability collapse** — RLS holds (no data leak)                                                                                                         |
-
-### CASCADE-02 — Deploy storm processing zombies (silent projection drift)
-
-| Stage           | Narrative                                                                                                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Trigger**     | SIGTERM mid relay tick; SIGKILL on grace expiry                                                                                                           |
-| **Propagation** | Rows stuck `processing` (F-01) → new pods claim only `pending` → flush counts `pending` only, exit 0 (SD-G1) → API **201** but projections never catch up |
-| **Impact**      | **Silent multi-hour data-plane divergence** until manual SQL                                                                                              |
-
-### CASCADE-03 — Rate-limiter identity flood + Redis blip
-
-| Stage           | Narrative                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| **Trigger**     | 100+ unique `x-tenant-id` + Redis blip                                                                |
-| **Propagation** | Admin `findUnique` storm → Redis throw → **500** all limited routes → retries amplify → relay starved |
-| **Impact**      | **Platform-wide write outage**                                                                        |
-
----
-
-## باگ‌ها و آسیب‌پذیری‌ها
-
-### Outbox / saga findings (F-\*)
-
-| ID                  | Sev      | Finding                                             | Gap                      |
-| ------------------- | -------- | --------------------------------------------------- | ------------------------ |
-| **F-01**            | **High** | No stale `processing` reclaim                       | Ops SQL only             |
-| **F-02**            | **High** | Publish / mark-done not atomic                      | Bus ahead of DB          |
-| **F-03**            | Medium   | `failed` terminal — no auto-retry                   | Admin replay deferred    |
-| **F-04**            | Medium   | Projection partial success                          | DEC-008 manual reconcile |
-| **F-05**            | **High** | Shutdown flush pending-only                         | SD-G1                    |
-| **F-10**            | Partial  | SIGKILL mid canonical TX                            | OZ-A chaos-monitored     |
-| **F-11**            | Medium   | Flush silent timeout                                | SD-G3                    |
-| **F-12**            | Medium   | In-flight relay tick not awaited                    | SD-G2                    |
-| **F-13**            | Low      | No shutdown deadline on `server.close`              | SD-G4                    |
-| **F-14**            | Low      | No logger drain on shutdown                         | SD-G5 / FOF-LOG-03       |
-| **F-15**            | Medium   | No strict FIFO per tenant in prod relay             | BL-01                    |
-| **F-06…F-09, F-16** | **Pass** | Atomicity, idempotency, SKIP LOCKED, backlog dedupe | —                        |
-
-### Graceful shutdown gaps (SD-G)
-
-| ID        | Sev      | Gap                                                |
-| --------- | -------- | -------------------------------------------------- |
-| **SD-G1** | **High** | Flush counts `pending` only — `processing` zombies |
-| **SD-G2** | Medium   | `stop()` doesn't await in-flight tick              |
-| **SD-G3** | Medium   | Deadline expiry exit 0 with `pending > 0`          |
-| **SD-G4** | Medium   | Hung handler blocks `server.close` forever         |
-| **SD-G5** | Low      | No logger flush                                    |
-| **SD-G6** | Low      | Worker duplicates shutdown logic                   |
-| **SD-G7** | Low      | Worker SIGTERM only vs prod SIGINT                 |
-
-### Zombie event definition (6 scenarios)
-
-| Class        | Examples                       | Reclaim?                    |
-| ------------ | ------------------------------ | --------------------------- |
-| **OZ-01/02** | Crash after claim, mid-publish | **No** — stuck `processing` |
-| **OZ-06**    | SIGTERM during relay           | **No** — SD-G1              |
-| **OZ-D**     | Projection after `done`        | Metrics only (F-04)         |
-| **OZ-A**     | SIGKILL mid TX                 | Postgres best-effort        |
-
-### Partial tenant-config update (PU-\*)
-
-| ID          | Sev      | Risk                               |
-| ----------- | -------- | ---------------------------------- |
-| **PU-F-01** | **High** | No write-path cache invalidation   |
-| **PU-F-02** | Medium   | Split cache vs uncached flag reads |
-| **PU-03**   | Medium   | 5s registry TTL window             |
-| **PU-06**   | Medium   | Stale theme on concurrent write    |
-
-**Partial update risk count: 6** · `atomic_update_paths_db=yes` · `atomic_update_paths_e2e=no`
-
-### Rule Engine hard-fail (HF-RE — 16 paths, no runtime degrade)
-
-| Posture               | Detail                                                                  |
-| --------------------- | ----------------------------------------------------------------------- |
-| **Proactive degrade** | `advancedRuleEngine: false` → `basic` variant (DEC-014) — **2 paths**   |
-| **Hard-fail**         | Engine init/validate failure → **400/500** — **16 paths** (HF-RE-01…14) |
-| **No reactive**       | No downgrade default→basic on runtime failure                           |
-
-### Proxy isolation (PI-\*)
-
-| ID        | Sev      | Finding                                       |
-| --------- | -------- | --------------------------------------------- |
-| **PI-01** | **High** | Unbounded `fetch` — systemic when on hot path |
-| **PI-02** | Medium   | No tenant-scoped upstream timeout config      |
-| **PI-03** | Info     | Not wired in `main.ts` today — latent         |
-
-### Schema drift (SV-\*)
-
-| Metric                            |                                                           Value |
-| --------------------------------- | --------------------------------------------------------------: |
-| **Critical 500 on version drift** |                                                           **0** |
-| **Graceful paths**                |                                                          **14** |
-| **SV-CRIT-01**                    |                               No proven HTTP 500 on write drift |
-| **Gap**                           | PATCH cases untested (SV-F-03); no `migrateCanonical` (SV-F-04) |
-
-### Clock skew (CLK-F)
-
-| ID           | Sev      | Issue                                   |
-| ------------ | -------- | --------------------------------------- |
-| **CLK-F-01** | **High** | Triple timestamp authority in atomic TX |
-| **CLK-F-02** | **High** | `occurredAt` app vs relay DB split      |
-| **CLK-F-03** | Medium   | Terminal timestamps app `new Date()`    |
-| **CLK-F-04** | Low      | Spec gap at ±5s (uses ±5min)            |
-
-### Bulk import — RuleEngine coupling
-
-**Verdict:** RLS **pass** · noisy-neighbor **fail** · victim SLO **not** gated (BULK-01)
-
----
-
-## Accepted risks (documented; manual ops or Phase 5+)
-
-| ID               | Finding                                      | Acceptance basis                       |
-| ---------------- | -------------------------------------------- | -------------------------------------- |
-| **F-03**         | Terminal `failed` outbox                     | Poison payloads; admin replay deferred |
-| **F-04**         | Projection partial (OZ-D)                    | DEC-008 metrics + manual reconcile     |
-| **F-10**         | SIGKILL mid TX                               | Chaos-monitored OZ-A                   |
-| **F-15 / BL-01** | No per-tenant FIFO in prod relay             | Idempotent handlers                    |
-| **SD-G4…G7**     | Shutdown watchdog / log drain / worker drift | Low severity                           |
-| **PI-03**        | Proxy not on `main.ts`                       | Until DI-PROXY-01                      |
-| **PU-03**        | 5s registry TTL                              | Perf trade-off                         |
-| **CLK-F-01…04**  | Mixed timestamps                             | Forensic skew; JWT path pass           |
-| **SV-F-03/04**   | PATCH untested; no migrateCanonical          | Phase 6                                |
-
----
-
-## پیشنهادات و اصلاحات (اولویت‌بندی یکپارچه)
-
-### فوری (P0)
-
-1. **F-01 + F-05 + SD-G1** — `processing` reclaim TTL + shutdown drain includes reclaim.
-2. **F-02** — atomic publish+`done` or documented compensate.
-3. **NN-01/02 + RL-DOS-01 + SCAL-HF-11** — cross-phase3 mitigations (CASCADE-01/03).
-4. **PU-F-01** — cache invalidation on tenant theme write.
-
-### کوتاه‌مدت (P1)
-
-5. **PI-01** — timeout/breaker قبل از wiring proxy.
-6. **SD-G2/G3** — await relay tick; non-zero exit / metric on flush timeout.
-7. **CLK-F-01/02** — unify DB `now()` per TX.
-8. **PATCH schema drift spec** — extend `schema-version-compat.spec.ts`.
-9. **Victim SLO test** — bulk import ∥ B login/read (phase3 SCAL-DEBT-13).
-
-### میان‌مدت (P2)
-
-10. **F-03** — admin replay tooling for `failed` rows.
-11. **F-15** — per-tenant FIFO option for order-sensitive projections.
-12. **SD-G4/G5** — shutdown watchdog + `logger.flush`.
-13. **Rule Engine reactive degrade** — policy decision (likely Phase 6+).
-
----
-
-## تأیید شده (PASS)
-
-| Area                           | Evidence                                         |
-| ------------------------------ | ------------------------------------------------ |
-| **Canonical TX atomicity**     | `withCanonicalTransaction`; integration + chaos  |
-| **Outbox enqueue idempotency** | UNIQUE + P2002                                   |
-| **Consumer idempotency**       | `processed_domain_events`; INT-BACKLOG-02        |
-| **SKIP LOCKED multi-worker**   | `outbox-relay.integration.spec.ts`               |
-| **SIGTERM no orphan commit**   | `graceful-shutdown.spec.ts`                      |
-| **Backlog 1h replay dedupe**   | `event-backlog-recovery.spec.ts`                 |
-| **Schema drift graceful**      | `schema-version-compat.spec.ts` — 0 critical 500 |
-| **Feature-flag mid-burst**     | `feature-flag-degradation.spec.ts`               |
-| **Data Integrity Breach**      | **0** on idempotent path                         |
-
----
-
-## Appendix A — Recovery flows (خلاصه)
-
-| Flow                          | Verdict                                          |
-| ----------------------------- | ------------------------------------------------ |
-| Canonical write saga (happy)  | **Pass**                                         |
-| Canonical TX failure rollback | **Pass**                                         |
-| Relay failure recovery        | **Partial** — poll only; no reclaim              |
-| Crash between relay states    | **Partial** — at-least-once safe; zombies remain |
-| Consumer down 1h resume       | **Pass** dedupe; **Partial** FIFO                |
-
----
-
-## Appendix B — Idempotency / retry summary
-
-| Layer                    | On duplicate/retry                  |
-| ------------------------ | ----------------------------------- |
-| Outbox insert            | `(tenant_id, domain_event_id)` skip |
-| Relay claim              | SKIP LOCKED one worker              |
-| Bus delivery             | `processed_domain_events` — once    |
-| Per-tenant order         | **Not guaranteed** prod (F-15)      |
-| Terminal `done`/`failed` | No re-claim                         |
-| HTTP idempotency         | Separate `HttpIdempotencyRecord`    |
-
-**Relay retry:** fixed poll ~1s only — **no** exponential backoff; **no** `processing` timeout.
-
----
-
-## Appendix C — Phase 5 doc gaps (outbox policy)
-
-سند `5.4-transactional-outbox.md` فعلاً مشخص نمی‌کند:
-
-- Maximum `processing` age / reclaim policy
-- Retry policy for `failed`
-- Pairing guarantee bus publish ↔ `done`
-
-→ با پیاده‌سازی F-01/F-03 به docs اضافه شود.
-
----
-
-## Regression pack (verification commands)
+**Env استاندارد:**
 
 ```bash
-cd apps/api
-export DATABASE_URL="postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db"
-export DATABASE_URL_ADMIN="postgresql://postgres:postgres@127.0.0.1:5434/tour_db"
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32'
+export DATABASE_URL_ADMIN='postgresql://postgres:postgres@127.0.0.1:5434/tour_db'
 export STORAGE_DRIVER=prisma NODE_ENV=test
-
-# Core resilience pack
-node --import tsx --test \
-  test/outbox-transactional.integration.spec.ts \
-  test/outbox-relay.integration.spec.ts \
-  test/4-integration/saga-rollback.spec.ts \
-  test/4-integration/event-backlog-recovery.spec.ts \
-  test/4-integration/graceful-shutdown.spec.ts \
-  test/1-reliability/domain-event-consistency.spec.ts \
-  test/4-integration/schema-version-compat.spec.ts \
-  test/4-integration/feature-flag-degradation.spec.ts \
-  test/4-integration/dynamic-config-sync.spec.ts
-
-# Graceful shutdown runtime (optional main.ts)
-export OUTBOX_RELAY_ENABLED=true
-# GRACEFUL_SHUTDOWN_USE_MAIN=1 for production entrypoint
-
-# Proxy (no Postgres)
-NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test \
-  test/4-integration/proxy-tenant-isolation.spec.ts
-
-# Clock skew
-node --import tsx --test test/4-integration/clock-skew-resilience.spec.ts
-
-# Bulk import partition
-node --import tsx --test test/4-integration/bulk-import-consistency.spec.ts
-
-# Nightly backlog (1000 rows)
-TEST_TIER=nightly node --import tsx --test test/4-integration/event-backlog-recovery.spec.ts
 ```
 
 ---
 
-## شمارش نهایی
+## ۳. مرجع‌های Enterprise (برای ایده‌گیری)
 
-| دسته                        |         تعداد |
-| --------------------------- | ------------: |
-| Resilience score            |        62/100 |
-| Verdict                     |   CONDITIONAL |
-| Must-Fix                    |             8 |
-| Zombie-risk scenarios       |             6 |
-| Shutdown gaps (SD-G)        |             7 |
-| Findings F-\* (excl. Pass)  | 12 actionable |
-| Partial-update risks        |             6 |
-| Hard-fail Rule Engine paths |            16 |
-| Schema drift critical 500   |             0 |
-| CASCADE scenarios           |             3 |
-| تناقض/ابهام (CON)           |             7 |
-| Data Integrity Breach       |             0 |
+| حوزه                    | مرجع industry                     | پروژه/استاندارد قابل الگو                                                                                                                                                                                                                                        |
+| ----------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Outbox + reclaim        | Lease recovery قبل از DLQ         | [CodeNotes Outbox](https://codenotes.tech/blog/transactional-outbox-pattern-in-microservices) · [JusDB Outbox](https://www.jusdb.com/blog/transactional-outbox-pattern-event-publishing)                                                                         |
+| FIFO per tenant         | Partition key + NOT EXISTS guard  | [SimpleOutbox](https://github.com/alexandrereyes/SimpleOutbox) · [OutboxNet](https://github.com/outboxnet/OutboxNet) · [SqlTransactionalOutbox](https://github.com/cajuncoding/SqlTransactionalOutbox)                                                           |
+| Failed events / DLQ     | Terminal state + admin replay     | [Confluent DLQ guide](https://www.confluent.io/learn/kafka-dead-letter-queue/) · [Conduktor DLQ ops](https://www.conduktor.io/glossary/dead-letter-queues-for-error-handling)                                                                                    |
+| Rate limit + Redis blip | fail_local / tiered policy        | [FluxRate](https://github.com/ayd1ndemirci/fluxrate) · [aws-rate-limiter failure modes](https://github.com/sanskari27/aws-rate-limiter/blob/main/docs/08-failure-modes.md)                                                                                       |
+| CI Postgres             | Ephemeral real DB per suite       | [Testcontainers PostgreSQL](https://node.testcontainers.org/modules/postgresql/) · [Nikola Milovic Vitest pattern](https://nikolamilovic.com/posts/integration-testing-node-postgres-vitest-testcontainers/)                                                     |
+| Graceful shutdown       | keep-alive drain + hard timeout   | [Grizzly Peak shutdown](https://www.grizzlypeaksoftware.com/library/graceful-shutdown-in-nodejs-applications-4rmcu5d5) · [K8s preStop pattern](https://dev.to/axiom_agent/nodejs-graceful-shutdown-the-right-way-sigterm-connection-draining-and-kubernetes-fp8) |
+| Circuit breaker + fetch | Opossum (Red Hat)                 | [nodeshift/opossum](https://github.com/nodeshift/opossum) — شما DEC-075 دارید؛ wire + metrics                                                                                                                                                                    |
+| Cache invalidation      | Cache-aside + invalidate-on-write | [Microsoft cache-aside](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside) · [Redis node invalidation](https://redis.io/docs/latest/develop/use-cases/cache-aside/nodejs/)                                                               |
+| Schema evolution        | Expand–Contract (Fowler)          | [Martin Fowler Parallel Change](https://martinfowler.com/bliki/ParallelChange.html) · [Prisma expand-contract](https://www.prisma.io/dataguide/types/relational/expand-and-contract-pattern)                                                                     |
+| Idempotency timestamps  | DB authority نه wall clock        | [FlowVerify idempotency](https://www.flowverify.co/blog/idempotency-keys-concurrent-pattern) · [Cockroach event ordering](https://www.cockroachlabs.com/blog/idempotency-and-ordering-in-event-driven-systems/)                                                  |
 
 ---
 
-## پیوند به auditهای دیگر
+## ۴. موج A — Postgres اجباری در Gate (P0 · بدون این رد)
 
-| موضوع                       | سند                                                                                          |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| Pool / NN / RL-DOS          | [`phase3-scalability-stress-audit-fix-list.md`](phase3-scalability-stress-audit-fix-list.md) |
-| Self-Heal / rollback        | [`phase5-evolution-audit-fix-list.md`](phase5-evolution-audit-fix-list.md)                   |
-| Tenant isolation            | [`phase1-aggressive-audit-fix-list.md`](phase1-aggressive-audit-fix-list.md)                 |
-| Observability shutdown logs | [`phase2-paranoid-audit-fix-list.md`](phase2-paranoid-audit-fix-list.md)                     |
+### GAP-95-A01 — Resilience gate بدون Postgres
+
+|                        |                                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **مشکل**               | آخرین `phase-4-resilience-regression-gate` با `databaseUrlSet: false` — CLK-SKEW-08، dynamic-config، outbox integration skip                                                                     |
+| **Enterprise pattern** | Testcontainers در CI + `fail if !DATABASE_URL` در gate script ([Testcontainers guide](https://qaskills.sh/blog/testcontainers-postgresql-node-complete-guide))                                   |
+| **راهکار app-tour**    | 1) ابتدای `phase-4-resilience-regression-gate.mjs`: اگر `!DATABASE_URL` → `exit 1` با پیام فارسی/انگلیسی 2) tier Postgres همیشه اجرا (نه `if HAS_DATABASE`) 3) artifact `postgresRequired: true` |
+| **فایل‌ها**            | `scripts/phase-4-resilience-regression-gate.mjs` · `scripts/guard-phase4-resilience-regression-gate.mjs` · `docs/phase-5/appendices/phase4-resilience-regression-gate.md`                        |
+| **DEC**                | DEC-080                                                                                                                                                                                          |
+| **قبولی**              | gate بدون env → exit 1؛ با Postgres → `databaseUrlSet: true` و ۰ skip                                                                                                                            |
+
+### GAP-95-A02 — `phase-4:gate` و RLS
+
+|                        |                                                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `p4_rls_integration_tests` fail وقتی `DATABASE_URL` unset ([`phase-4-gate-2026-06-05.json`](../reports/phase-4-gate-2026-06-05.json))                                                                 |
+| **Enterprise pattern** | CI service container Postgres + migrate + seed ([CLOSURE-CHECKLIST](../docs/phase-4/audits/CLOSURE-CHECKLIST.md) §B)                                                                                  |
+| **راهکار app-tour**    | 1) `.github/workflows` یا `ci:integrity`: Postgres قبل از `phase-4:gate` 2) `docker compose -f infra/docker-compose.yml up -d` در doc gate 3) guard: `phase-4-guard.mjs` نباید ok:true بدون RLS در CI |
+| **DEC**                | DEC-081                                                                                                                                                                                               |
+| **قبولی**              | `pnpm run phase-4:gate` → 10/10 PASS با env استاندارد                                                                                                                                                 |
+
+### GAP-95-A03 — Cross-phase verify Postgres اختیاری
+
+|                     |                                                     |
+| ------------------- | --------------------------------------------------- |
+| **مشکل**            | `db-pool-saturation.spec.ts` فقط با `DATABASE_URL`  |
+| **راهکار app-tour** | همان DEC-080 — یک policy برای همه gateهای Phase 3/4 |
+| **DEC**             | DEC-080 (همان)                                      |
+
+### GAP-95-A04 — Outbox integration `# SKIP` بدون DB
+
+|                        |                                                                                                                                                                                                                                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `outbox-processing-reclaim.spec.ts` / `outbox-publish-done-pairing.spec.ts` — integration block skip                                                                                                                                                |
+| **Enterprise pattern** | Relay integration با `FOR UPDATE SKIP LOCKED` تحت RLS ([SimpleOutbox](https://github.com/alexandrereyes/SimpleOutbox))                                                                                                                              |
+| **راهکار app-tour**    | 1) حذف `hasDatabase ? … : SKIP` در gate path — gate خودش Postgres می‌دهد 2) اضافه به `phase4-resilience-postgres-specs`: `outbox-relay.integration.spec.ts` · `outbox-transactional.integration.spec.ts` 3) multi-worker claim spec با ۲ connection |
+| **فایل‌ها**            | specهای outbox · gate script                                                                                                                                                                                                                        |
+| **DEC**                | DEC-082                                                                                                                                                                                                                                             |
+| **قبولی**              | reclaim + pairing + relay تحت RLS در gate سبز                                                                                                                                                                                                       |
+
+### GAP-95-A05 — DEC-074 E2E hot-reload
+
+|                        |                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `dynamic-config-sync.spec.ts` خارج از gate با Postgres                                                                                                |
+| **Enterprise pattern** | Cache-aside: update DB → invalidate key → read sees new ([MS cache-aside](https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside)) |
+| **راهکار app-tour**    | اجباری در postgres tier؛ assert بدون `resetTenantRegistryCacheForTests` در mid-load                                                                   |
+| **DEC**                | DEC-082                                                                                                                                               |
+| **قبولی**              | admin UPDATE theme → GET tenant-config فوری (نه بعد از 5s TTL)                                                                                        |
+
+### GAP-95-A06 — CLK-SKEW DB در gate
+
+|                     |                                                                          |
+| ------------------- | ------------------------------------------------------------------------ |
+| **مشکل**            | DEC-077 فقط unit در memory gate                                          |
+| **راهکار app-tour** | `clock-skew-resilience.spec.ts` اجباری در postgres tier — CLK-SKEW-08/09 |
+| **DEC**             | DEC-082                                                                  |
+
+### GAP-95-A07 — Trunk / commit
+
+|                        |                                                     |
+| ---------------------- | --------------------------------------------------- |
+| **مشکل**               | تغییرات Phase 3/4 uncommitted                       |
+| **Enterprise pattern** | Gate artifact با `gitSha` + CI فقط روی merge commit |
+| **راهکار app-tour**    | PR یکپارچه Phase 3+4؛ gate بعد از merge روی main    |
+| **DEC**                | — (process)                                         |
 
 ---
 
-## Document metadata
+## ۵. موج B — Residual audit با الگوی Enterprise (P0)
 
-| Item               | Value                                                                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Output path**    | `TEMP/phase4-resilience-audit-fix-list.md`                                                                                                            |
-| **Code changes**   | None (`docs/TEMP` only)                                                                                                                               |
-| **Parent handoff** | `resilience_score=62` · `verdict=CONDITIONAL` · `zombie_risk_count=6` · `shutdown_gap_count=7` · `cascade_scenarios=CASCADE-01,CASCADE-02,CASCADE-03` |
-| **Architect note** | Documentation status: **Updated** (extracted from existing audit). Link: `TEMP/phase4-resilience-audit-fix-list.md`                                   |
+### SH-GAP-13 — Redis blip → 500
 
-_این فایل استخراج از `phase4-resilience-audit.md` است و جایگزین سند منبع نیست. برای جزئیات کامل به سند اصلی مراجعه کنید._
+|                        |                                                                                                                                                                                                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `SCAL-HF-11` — fail-closed روی rate-limited routes                                                                                                                                                                                                                                                              |
+| **Enterprise pattern** | **Tiered failure policy:** `fail_closed` برای auth/payment، `fail_local` برای tour writes، `fail_open` برای public read ([aws-rate-limiter doc](https://github.com/sanskari27/aws-rate-limiter/blob/main/docs/08-failure-modes.md))                                                                             |
+| **راهکار app-tour**    | 1) `TENANT_RATE_LIMIT_REDIS_FAILURE_POLICY=fail_local` (default برای `POST/PATCH /tours`) 2) in-memory per-process window وقتی Redis timeout (مثل FluxRate fallback) 3) circuit: ۳ خطا → 30s open 4) metric `rate_limiter_redis_fallback_total` 5) spec adversarial: Redis down → **429/503 ساخت‌یافته** نه 500 |
+| **فایل‌ها**            | `tenant-rate-limiter.ts` · spec جدید · guard · appendix                                                                                                                                                                                                                                                         |
+| **DEC**                | DEC-083                                                                                                                                                                                                                                                                                                         |
+| **قبولی**              | Redis قطع → tour write همچنان bounded (local)؛ هرگز `internal_error`                                                                                                                                                                                                                                            |
+
+### CLK-F-03 — Terminal timestamps
+
+|                        |                                                                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `markOutboxDone` / idempotency `completedAt` از app `new Date()`                                                                                                                                     |
+| **Enterprise pattern** | DB authority برای forensic + idempotency ([FlowVerify](https://www.flowverify.co/blog/idempotency-keys-concurrent-pattern): `created_at TIMESTAMPTZ DEFAULT now()`)                                  |
+| **راهکار app-tour**    | 1) `markOutboxDone`: `UPDATE … SET processed_at = now()` (SQL) 2) idempotency terminal: `completed_at = now()` در Prisma raw یا `$executeRaw` 3) همان `readCanonicalTransactionNow` برای consistency |
+| **فایل‌ها**            | `outbox-mark-done.ts` · `http-idempotency.ts` (prisma path)                                                                                                                                          |
+| **DEC**                | DEC-084                                                                                                                                                                                              |
+| **قبولی**              | terminal timestamps در بازه DB window در integration spec                                                                                                                                            |
+
+### CLK-F-04 — JWT ±5s spec
+
+|                     |                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| **مشکل**            | فقط ±5min تست شده                                                                  |
+| **راهکار app-tour** | `CLK-SKEW-10` در `clock-skew-resilience.spec.ts` — exp دقیقاً 5s قبل/بعد tolerance |
+| **DEC**             | DEC-084                                                                            |
+
+### SD-G4 — Shutdown watchdog
+
+|                        |                                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | `server.close` ممکن است forever hang (keep-alive)                                                                                                                                                                                         |
+| **Enterprise pattern** | Hard timeout + destroy idle sockets ([Grizzly Peak](https://www.grizzlypeaksoftware.com/library/graceful-shutdown-in-nodejs-applications-4rmcu5d5)) · Node 19+ `close()` بسته idle ([Node HTTP](https://nodejs.org/api/http.html))        |
+| **راهکار app-tour**    | 1) `server.closeIdleConnections()` در shutdown (Node 18.2+) 2) `GRACEFUL_SHUTDOWN_HTTP_MS` — بعد از آن `connections.destroy()` 3) health → 503 بلافاصله هنگام shutdown (K8s pattern) 4) metric `graceful_shutdown_http_force_close_total` |
+| **فایل‌ها**            | `graceful-shutdown.ts` · spec                                                                                                                                                                                                             |
+| **DEC**                | DEC-085                                                                                                                                                                                                                                   |
+| **قبولی**              | hung handler → exit 1 قبل از `terminationGracePeriodSeconds`                                                                                                                                                                              |
+
+### SD-G5 — Logger flush
+
+|                        |                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **مشکل**               | tail log روی SIGTERM گم می‌شود                                                                                                                                      |
+| **Enterprise pattern** | Drain observability قبل از `disconnectPrisma` ([phase3 LOG-BP](apps/api/docs/phase3-scalability-stress-audit.md))                                                   |
+| **راهکار app-tour**    | `await flushLogSink()` بعد از HTTP close، قبل از outbox drain — ترتیب: relay stop → health 503 → server.close → **flushLogSink** → outbox drain → prisma disconnect |
+| **DEC**                | DEC-085                                                                                                                                                             |
+
+### SD-G7 — SIGINT parity
+
+|                     |                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| **راهکار app-tour** | `graceful-shutdown-worker.ts` فقط `runGracefulShutdown` import — بدون duplicate logic؛ test برای SIGINT |
+| **DEC**             | DEC-085                                                                                                 |
+
+---
+
+## ۶. موج C — Recovery و Ops (P1)
+
+### F-03 — Outbox `failed` + replay
+
+|                        |                                                                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Enterprise pattern** | DLQ + admin replay با payload immutable ([Confluent DLQ](https://www.confluent.io/learn/kafka-dead-letter-queue/))                                                                                                                                           |
+| **راهکار app-tour**    | 1) status `failed` با `last_error` JSON (already partial) 2) internal `POST /internal/outbox/:id/replay` (non-prod + admin) → `pending` 3) CLI `pnpm run outbox:replay-failed --tenant=X` 4) spec INT-SAGA-03 heal 5) **نه** auto-retry بی‌نهایت برای poison |
+| **DEC**                | DEC-086                                                                                                                                                                                                                                                      |
+
+### F-15 / BL-01 — FIFO per tenant
+
+|                        |                                                                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | `partition_key = tenantId` + claim guard که row قبلی همان partition در `processing` نباشد ([OutboxNet ordered processing](https://github.com/outboxnet/OutboxNet))                                                                                                                                            |
+| **راهکار app-tour**    | 1) env `OUTBOX_RELAY_ORDERED_PER_TENANT=true` 2) claim query: `AND NOT EXISTS (SELECT 1 FROM outbox_events o2 WHERE o2.tenant_id = $t AND o2.status = 'processing')` یا serialize per-tenant batch size=1 3) relay `occurredAt` از `created_at` (DEC-077) 4) spec: دو event هم‌tenant → publish order حفظ شود |
+| **DEC**                | DEC-087                                                                                                                                                                                                                                                                                                       |
+
+### F-04 — Projection reconcile (OZ-D)
+
+|                     |                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **راهکار app-tour** | metric `outbox_projection_lag_seconds` + optional job `reconcile-tour-projection` (read canonical vs projection column) |
+| **DEC**             | DEC-088                                                                                                                 |
+
+### CASCADE-01 — NN victim SLO با Postgres
+
+|                     |                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------- |
+| **راهکار app-tour** | `bulk-import-victim-slo` + `noisy-neighbor-latency` در postgres gate pack؛ victim p95 < SLO ثبت‌شده |
+| **DEC**             | DEC-082                                                                                             |
+
+### OZ-A / F-10 — SIGKILL chaos
+
+|                        |                                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Chaos subprocess + assert no orphan commit (already partial)                                              |
+| **راهکار app-tour**    | gate postgres tier شامل `atomic-rollback-stress.spec.ts`؛ alert اگر `processing` > threshold بعد از chaos |
+| **DEC**                | DEC-089                                                                                                   |
+
+---
+
+## ۷. موج D — Coherence (P1)
+
+### PU-F-02 / PU-03 / PU-06 — Cache coherence
+
+|                        |                                                                                                                                                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Cache-aside + **invalidate-on-write** + TTL as safety net ([Redis cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/nodejs/)) · tenant-prefixed keys `tenant:{id}:*`                                                                      |
+| **راهکار app-tour**    | 1) همه reads از `resolveTenantRegistry` — نه mix cache/DB 2) `updateTenantRegistryRow` → `invalidateTenantRegistryCache` (DEC-074) — تست race دو reader 3) optional: Redis pub/sub برای multi-pod (آینده) — فعلاً single-pod + invalidation کافی برای ۹.۵ trunk |
+| **DEC**                | DEC-090                                                                                                                                                                                                                                                         |
+
+### SV-F-04 — Schema migration
+
+|                        |                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | **Expand–Contract** (Fowler) — نه big-bang `migrateCanonical` ([Prisma guide](https://www.prisma.io/dataguide/types/relational/expand-and-contract-pattern))                          |
+| **راهکار app-tour**    | 1) Phase 4: `migrateCanonicalHook` → explicit reject + telemetry 2) Phase 6: expand (dual-write) → backfill job → contract 3) workspace bump: implicit default به current + spec bump |
+| **DEC**                | Phase 6 (DEC-091 placeholder)                                                                                                                                                         |
+
+### SV-11 — Malformed JSON → 400
+
+|                        |                                                                                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Parse layer قبل از domain ([API backward compat](https://asoasis.tech/articles/2026-03-27-0253-api-backward-compatibility-strategies/)) |
+| **راهکار app-tour**    | `try/catch JSON.parse` در routes → `400` + `code: INVALID_JSON`                                                                         |
+| **DEC**                | DEC-092                                                                                                                                 |
+
+### PI-02 / PI-03 — Proxy production path
+
+|                        |                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Opossum per upstream host ([nodeshift/opossum](https://github.com/nodeshift/opossum)) — شما DEC-075 دارید                       |
+| **راهکار app-tour**    | 1) wire `TenantHttpProxy` در DI `main.ts` 2) `theme.proxyTimeoutMs` / env override 3) integration spec روی مسیر واقعی map proxy |
+| **DEC**                | DEC-093                                                                                                                         |
+
+---
+
+## ۸. موج E — Modular Phase 4 → VERIFIED (P2)
+
+| Subphase | Enterprise analogue                         | اقدام app-tour                                            | DEC     |
+| -------- | ------------------------------------------- | --------------------------------------------------------- | ------- |
+| **4.0**  | Red-flag CI gate (P4-E-RF-40)               | `prove_with` executable + human signoff در report         | DEC-094 |
+| **4.1**  | JWT host contract (Auth0/Clerk style)       | tenant-kernel `prove_with` + ledger VERIFIED              | DEC-095 |
+| **4.4**  | Multi-tenant theme CDN                      | TH-1 e2e: tenant A accent ≠ B روی GET config              | DEC-096 |
+| **4.5**  | Domain events (Shopify/Stripe internal bus) | TourCreated E2E: persist → relay → subscriber با Postgres | DEC-097 |
+| **4.6**  | Platform gate (مثل internal `ci:integrity`) | `phase-4:gate` سبز پایدار + forensic Zero-Debt            | DEC-098 |
+
+---
+
+## ۹. موج F — Rule Engine + Observability (۹.۵+ سخت‌گیرانه)
+
+### HF-RE-01…16 — Reactive degrade
+
+|                        |                                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Circuit breaker روی validation engine + fallback variant ([Resilience4j-style](https://github.com/nodeshift/opossum) برای CPU path)                                                                               |
+| **راهکار app-tour**    | 1) اگر `validateCanonical` throw/timeout → یک بار retry با `basic` variant 2) اگر باز fail → `503 VALIDATION_ENGINE_UNAVAILABLE` (نه 500) 3) metric `validation_engine_degrade_total` 4) **نه** silent wrong data |
+| **DEC**                | DEC-099                                                                                                                                                                                                           |
+
+### FOF-LOG + nightly
+
+|                     |                                                                              |
+| ------------------- | ---------------------------------------------------------------------------- |
+| **راهکار app-tour** | `log-slow-sink-adversarial` در weekly CI؛ shutdown spec با slow sink + flush |
+| **DEC**             | DEC-100                                                                      |
+
+### event-backlog 1000 rows
+
+|                        |                                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Enterprise pattern** | Soak / backlog replay ([Confluent ordering](https://www.cockroachlabs.com/blog/idempotency-and-ordering-in-event-driven-systems/)) |
+| **راهکار app-tour**    | `TEST_TIER=nightly` در scheduled workflow — نه optional local                                                                      |
+| **DEC**                | DEC-100                                                                                                                            |
+
+---
+
+## ۱۰. ترتیب اجرا و تخمین نمره
+
+```text
+فاز 1  DEC-080…082  Postgres اجباری + integration pack (رد فوری)
+فاز 2  DEC-083…085  Redis fail_local + timestamps + shutdown hardening
+فاز 3  DEC-086…089  DLQ replay + FIFO + chaos/postgres
+فاز 4  DEC-090…093  Cache E2E + JSON 400 + proxy wire
+فاز 5  DEC-094…098  Modular 4.0→4.6 VERIFIED
+فاز 6  DEC-099…100  RE degrade + nightly soak
+```
+
+| بعد از فاز |        نمره |
+| ---------- | ----------: |
+| الان       |         ۷.۸ |
+| فاز ۱      |         ۸.۷ |
+| فاز ۲      |         ۹.۲ |
+| فاز ۳      |         ۹.۴ |
+| فاز ۴      |         ۹.۶ |
+| فاز ۵+۶    | **۹.۷–۹.۸** |
+
+---
+
+## ۱۱. Gate نهایی ۹.۵+ (همه PASS — هر fail = رد)
+
+```bash
+# پیش‌نیاز: Postgres بالا
+docker compose -f infra/docker-compose.yml up -d
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32'
+export DATABASE_URL_ADMIN='postgresql://postgres:postgres@127.0.0.1:5434/tour_db'
+export STORAGE_DRIVER=prisma NODE_ENV=test
+
+cd apps/api
+pnpm run phase-4:resilience-regression-gate   # MUST: databaseUrlSet: true
+cd ../.. && pnpm run phase-4:gate              # MUST: ok: true
+
+# Postgres integration pack (کامل)
+cd apps/api && node --import tsx --test --test-concurrency=1 \
+  test/outbox-transactional.integration.spec.ts \
+  test/outbox-relay.integration.spec.ts \
+  test/rls-isolation.integration.spec.ts \
+  test/4-integration/saga-rollback.spec.ts \
+  test/4-integration/event-backlog-recovery.spec.ts \
+  test/4-integration/graceful-shutdown.spec.ts \
+  test/4-integration/dynamic-config-sync.spec.ts \
+  test/4-integration/clock-skew-resilience.spec.ts \
+  test/4-integration/bulk-import-consistency.spec.ts \
+  test/3-performance/noisy-neighbor-latency.spec.ts \
+  test/3-performance/bulk-import-victim-slo.spec.ts \
+  src/outbox/outbox-processing-reclaim.spec.ts \
+  src/outbox/outbox-publish-done-pairing.spec.ts
+```
+
+---
+
+## ۱۲. جدول DEC پیشنهادی (فاز ۹.۵+)
+
+| DEC         | موضوع                                                    | موج |
+| ----------- | -------------------------------------------------------- | --- |
+| DEC-080     | Postgres required در همه resilience/cross-phase gates    | A   |
+| DEC-081     | CI Postgres service + phase-4:gate سبز                   | A   |
+| DEC-082     | Postgres integration pack (outbox/RLS/config/clock/bulk) | A   |
+| DEC-083     | Redis fail_local tiered policy                           | B   |
+| DEC-084     | SQL `now()` terminal + CLK-SKEW-10                       | B   |
+| DEC-085     | Shutdown watchdog + log flush + SIGINT                   | B   |
+| DEC-086     | Outbox failed replay tooling                             | C   |
+| DEC-087     | Per-tenant ordered relay                                 | C   |
+| DEC-088     | Projection reconcile metric/job                          | C   |
+| DEC-089     | Chaos SIGKILL postgres gate                              | C   |
+| DEC-090     | Cache single read path + race spec                       | D   |
+| DEC-091     | Expand–contract migration (Phase 6)                      | D   |
+| DEC-092     | Malformed JSON 400                                       | D   |
+| DEC-093     | Proxy DI wire + per-tenant timeout                       | D   |
+| DEC-094…098 | Modular subphase VERIFIED                                | E   |
+| DEC-099…100 | RE degrade + nightly soak                                | F   |
+
+---
+
+## ۱۳. metadata
+
+| Item                | Value                                                                      |
+| ------------------- | -------------------------------------------------------------------------- |
+| **هدف**             | ≥ ۹.۵/۱۰ (۹۵+)                                                             |
+| **حکم فعلی**        | `CLOSURE_PASS_WITH_RESIDUAL` — ناکافی                                      |
+| **حکم هدف**         | `ENTERPRISE_PASS`                                                          |
+| **فایل**            | `TEMP/phase4-resilience-audit-fix-list.md`                                 |
+| **پیاده‌سازی بعدی** | از **DEC-080** (Postgres اجباری) — doc-first در `docs/phase-5/appendices/` |
+
+---
+
+_این سند نقشه کار + مرجع enterprise است. پیاده‌سازی هر DEC نیاز به appendix Markdoc + guard + spec با Postgres دارد._

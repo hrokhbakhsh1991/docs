@@ -31,6 +31,7 @@ import { createRequestListener } from "../../src/app";
 import { CanonicalTourService } from "../../src/canonical/canonical-tour.service";
 import { LegacyCanonicalAdapter } from "../../src/canonical/legacy-canonical-adapter";
 import { disconnectPrisma, getPrismaAdmin } from "../../src/db/prisma";
+import { updateTenantRegistryRow } from "../../src/tenant/update-tenant-registry-row";
 import { TourStorageDbAdapter } from "../../src/db/tour-storage.adapter";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
@@ -140,9 +141,11 @@ describe(
     let admin: PrismaClient;
     let listener: ReturnType<typeof createRequestListener>;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
+    const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = String(BURST_REQUEST_COUNT + 4);
       await disconnectPrisma();
       admin = getPrismaAdmin();
 
@@ -178,6 +181,11 @@ describe(
 
     after(async () => {
       process.env.STORAGE_DRIVER = priorStorageDriver;
+      if (priorMaxTourWrites === undefined) {
+        delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+      } else {
+        process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = priorMaxTourWrites;
+      }
 
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
@@ -282,12 +290,9 @@ describe(
 
         for (let i = 0; i < BURST_REQUEST_COUNT; i += 1) {
           if (i === FLAG_FLIP_AT_REQUEST && !flagFlipped) {
-            await admin.tenant.update({
-              where: { id: flipTenant },
-              data: {
-                theme: {
-                  featureFlags: { advancedRuleEngine: false },
-                },
+            await updateTenantRegistryRow(flipTenant, {
+              theme: {
+                featureFlags: { advancedRuleEngine: false },
               },
             });
             flagFlipped = true;

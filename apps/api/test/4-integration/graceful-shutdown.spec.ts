@@ -31,7 +31,7 @@ import { PrismaClient } from "@prisma/client";
 
 import { disconnectPrisma } from "../../src/db/prisma";
 import { assertZeroOrphanedState, auditTenantConsistency } from "../chaos/chaos-db-assertions";
-import { integrationTenantId } from "../test-helpers";
+import { integrationTenantId, preparePostgresOutboxIsolation } from "../test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -96,6 +96,8 @@ function authHeaders(tenantId: string): Record<string, string> {
 
 function tourBody(index: number) {
   return {
+    schemaVersion: 1,
+    roots: ["basics", "details"],
     data: {
       basics: { title: `graceful-shutdown-${index}` },
       details: { summary: `request-${index}` },
@@ -120,7 +122,7 @@ export function auditMainTsShutdownContract(mainSource = readFileSync(MAIN_PATH,
   const detail: MainShutdownGap = {
     missingServerClose: !/server\.close/.test(handler),
     missingDisconnectPrisma: !/disconnectPrisma/.test(handler),
-    missingOutboxFlush: !/processOutboxRelayOnce/.test(handler),
+    missingOutboxFlush: !/drainOutboxRelayOnShutdown/.test(handler),
   };
 
   const gaps: string[] = [];
@@ -134,7 +136,7 @@ export function auditMainTsShutdownContract(mainSource = readFileSync(MAIN_PATH,
     gaps.push("server.close() — drain in-flight HTTP before exit");
   }
   if (detail.missingOutboxFlush) {
-    gaps.push("processOutboxRelayOnce flush loop — relay pending rows before exit");
+    gaps.push("drainOutboxRelayOnShutdown — relay pending rows before exit");
   }
   if (detail.missingDisconnectPrisma) {
     gaps.push("disconnectPrisma() — release DB pool connections");
@@ -147,6 +149,7 @@ type SpawnedApi = {
   readonly port: number;
   readonly child: ChildProcessWithoutNullStreams;
   readonly stdout: string;
+  readonly stderr: string;
 };
 
 function spawnApiProcess(env: NodeJS.ProcessEnv): Promise<SpawnedApi> {
@@ -191,7 +194,7 @@ function spawnApiProcess(env: NodeJS.ProcessEnv): Promise<SpawnedApi> {
           fail(new Error("ready payload missing port"));
           return;
         }
-        resolve({ port: payload.port, child, stdout: stdoutBuffer });
+        resolve({ port: payload.port, child, stdout: stdoutBuffer, stderr: stderrBuffer });
       } catch (error: unknown) {
         fail(error instanceof Error ? error : new Error(String(error)));
       }
@@ -212,7 +215,7 @@ function spawnApiProcess(env: NodeJS.ProcessEnv): Promise<SpawnedApi> {
         fail,
         (port) => {
           settled = true;
-          resolve({ port, child, stdout: stdoutBuffer });
+          resolve({ port, child, stdout: stdoutBuffer, stderr: stderrBuffer });
         }
       );
     }
@@ -299,7 +302,11 @@ function postTour(
               parsed = { error: raw };
             }
           }
-          resolve({ status: res.statusCode ?? 0, ...parsed });
+          resolve({
+            id: parsed.id,
+            error: parsed.error ?? (typeof parsed.status === "string" ? parsed.status : undefined),
+            status: res.statusCode ?? 0,
+          });
         });
       }
     );
@@ -404,12 +411,16 @@ describe(
     const priorPollInterval = process.env.OUTBOX_POLL_INTERVAL_MS;
 
     before(async () => {
+      await preparePostgresOutboxIsolation();
       process.env.STORAGE_DRIVER = "prisma";
       process.env.OUTBOX_RELAY_ENABLED = "true";
       process.env.OUTBOX_POLL_INTERVAL_MS = "200";
       await disconnectPrisma();
 
       admin = new PrismaClient({ datasources: { db: { url: ADMIN_URL } } });
+      await admin.outboxEvent.deleteMany({
+        where: { status: { in: ["pending", "processing"] } },
+      });
       await admin.tenant.create({
         data: {
           id: tenantId,
@@ -457,7 +468,9 @@ describe(
       ].join("\n");
 
       if (SKIP_MAIN_GAP) {
-        console.warn(`[graceful-shutdown] SKIP main.ts gap:\n${message}`);
+        process.stderr.write(
+          `${JSON.stringify({ event: "graceful_shutdown.main_gap.skipped", code: "MAIN_SHUTDOWN_GAP_SKIPPED" })}\n`
+        );
         return;
       }
 
@@ -473,7 +486,9 @@ describe(
         DATABASE_URL_ADMIN: ADMIN_URL,
         OUTBOX_RELAY_ENABLED: "true",
         OUTBOX_POLL_INTERVAL_MS: "200",
-        GRACEFUL_SHUTDOWN_FLUSH_MS: "15000",
+        GRACEFUL_SHUTDOWN_FLUSH_MS: "30000",
+        TENANT_MAX_CONCURRENT_TOUR_WRITES: String(CONCURRENT_REQUESTS),
+        GLOBAL_HTTP_INFLIGHT_MAX: String(CONCURRENT_REQUESTS + 32),
       };
 
       if (USE_MAIN) {
@@ -481,7 +496,7 @@ describe(
       }
 
       const spawned = await spawnApiProcess(childEnv);
-      const { child, port } = spawned;
+      const { child, port, stderr: childStderr } = spawned;
 
       try {
         const requests = Array.from({ length: CONCURRENT_REQUESTS }, (_, index) =>
@@ -491,8 +506,10 @@ describe(
         await new Promise((resolve) => setTimeout(resolve, SIGTERM_DELAY_MS));
         child.kill("SIGTERM");
 
-        const { exitCode, signal } = await waitForExit(child, EXIT_TIMEOUT_MS);
-        const responses = await Promise.all(requests);
+        const [responses, { exitCode, signal }] = await Promise.all([
+          Promise.all(requests),
+          waitForExit(child, EXIT_TIMEOUT_MS),
+        ]);
 
         const httpCompleted = responses.filter((row) => row.status > 0).length;
         const httpSucceeded = responses.filter((row) => row.status === 201).length;
@@ -500,7 +517,7 @@ describe(
         assert.equal(
           exitCode,
           0,
-          `subprocess must exit 0 after graceful shutdown (signal=${String(signal)})`
+          `subprocess must exit 0 after graceful shutdown (signal=${String(signal)})\nstderr:\n${childStderr}`
         );
 
         await assertZeroOrphanedState(admin, tenantId);
@@ -511,9 +528,14 @@ describe(
           httpSucceeded > 0 || consistency.tourCount > 0,
           "at least one tour must commit or succeed over HTTP to exercise shutdown path"
         );
+        const httpZero = responses.filter((row) => row.status === 0).length;
         assert.ok(
-          httpCompleted + responses.filter((row) => row.status === 0).length >= CONCURRENT_REQUESTS,
-          "all 50 concurrent requests must settle (HTTP response or connection error)"
+          httpCompleted + httpZero >= CONCURRENT_REQUESTS,
+          [
+            "all 50 concurrent requests must settle (HTTP response or connection error)",
+            `completed=${httpCompleted} connection_error=${httpZero} total=${responses.length}`,
+            `status histogram: ${responses.map((row) => row.status).join(",")}`,
+          ].join(" — ")
         );
 
         const report: ShutdownRunReport = {

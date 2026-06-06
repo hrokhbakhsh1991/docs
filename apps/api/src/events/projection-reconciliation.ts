@@ -4,6 +4,8 @@ import { logger } from "../observability/logger";
 import { hashTenantIdForLog } from "../observability/log-safety";
 import { metricsRegistry } from "../observability/metrics";
 import type { TourCreatedEventPayload } from "./tour-created-envelope-guard";
+import { enqueueProjectionAutoReconcile } from "../outbox/projection-reconcile-queue";
+import { isProjectionAutoReconcileEnabled } from "../outbox/start-projection-auto-reconcile";
 
 export type ProjectionInconsistencySignal = {
   readonly tenantId: string;
@@ -52,7 +54,10 @@ export function projectionInconsistencyFromEnvelope(
  * Partial-success signal: canonical + outbox `done` + `processed_domain_events` claim succeeded,
  * but a downstream idempotent handler failed. Ops must reconcile manually (DEC-008 — no DLQ table).
  */
-export function recordProjectionInconsistency(signal: ProjectionInconsistencySignal): void {
+export function recordProjectionInconsistency(
+  signal: ProjectionInconsistencySignal,
+  options?: { readonly lagSeconds?: number }
+): void {
   if (process.env.NODE_ENV === "test") {
     testSignals.push(signal);
   }
@@ -61,6 +66,19 @@ export function recordProjectionInconsistency(signal: ProjectionInconsistencySig
     tenant_id: signal.tenantId,
   });
 
+  if (options?.lagSeconds !== undefined) {
+    metricsRegistry.observe("outbox_projection_lag_seconds", options.lagSeconds, {
+      tenant_id: signal.tenantId,
+    });
+  }
+
+  if (isProjectionAutoReconcileEnabled()) {
+    enqueueProjectionAutoReconcile(
+      signal.tenantId,
+      signal.tourId.length > 0 ? signal.tourId : undefined
+    );
+  }
+
   logger.warn(
     {
       event: "projection.inconsistency",
@@ -68,6 +86,8 @@ export function recordProjectionInconsistency(signal: ProjectionInconsistencySig
       domain_event_id: signal.domainEventId,
       reason_code: signal.reasonCode,
     },
-    "downstream projection failed after idempotent claim — manual reconciliation required"
+    isProjectionAutoReconcileEnabled()
+      ? "downstream projection failed — auto-reconcile enqueued"
+      : "downstream projection failed after idempotent claim — manual reconciliation required"
   );
 }

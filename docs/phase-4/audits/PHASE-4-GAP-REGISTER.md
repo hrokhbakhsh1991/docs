@@ -19,14 +19,14 @@ register_meta:
 | ID | Gap (discover) | Solution | Doc / artifact fix | Repo verify |
 |----|----------------|----------|-------------------|-------------|
 | **GAP-01** | Doc scores (99) imply phase done | Dual score: doc vs execution | AI-READABILITY + QUALITY updated | IMPLEMENTATION-TRUTH unchanged until code |
-| **GAP-02** | CONSISTENCY/TRACEABILITY = doc-only PASS | Add `repo_verification` column | CONSISTENCY + TRACEABILITY sections | `phase-4:gate` green |
-| **GAP-03** | `BLOCKER-NONE` false when guard fails | Bind QUALITY to latest gate JSON | QUALITY-VALIDATION GAP section | `reports/phase-4-gate-*.json` |
-| **GAP-04** | Missing `phase-3.2-red-flag-status-*.md` | Template + honest status report | Template + `reports/…-2026-06-04.md` | `p4_red_flag_prerequisite` |
-| **GAP-05** | Ledger vs guard out of sync | Gate status block in IMPLEMENTATION-TRUTH | IMPLEMENTATION-TRUTH + ci.md note | Re-run guard after Node 24 |
+| **GAP-02** | CONSISTENCY/TRACEABILITY = doc-only PASS | Add `repo_verification` column | CONSISTENCY + TRACEABILITY sections | **PASS** — `phase-4:gate` green 2026-06-06 |
+| **GAP-03** | `BLOCKER-NONE` false when guard fails | Bind QUALITY to latest gate JSON | QUALITY-VALIDATION GAP section | **PASS** — `reports/phase-4-gate-2026-06-06.json` |
+| **GAP-04** | Missing `phase-3.2-red-flag-status-*.md` | Template + honest status report | Template + `reports/…-2026-06-04.md` | **PASS** — signoff 2026-06-06 |
+| **GAP-05** | Ledger vs guard out of sync | Gate status block in IMPLEMENTATION-TRUTH | IMPLEMENTATION-TRUTH + ci.md note | **PASS** — 7/7 VERIFIED |
 | **GAP-06** | Monolith §14.2 + test path drift | DRIFT banner + 4.0 path fix | monolith §14 + subphase 4.0 | Agents use p4_* only |
-| **GAP-07** | No Phase 4 forensic artifact | Scaffold mdoc at pre-closure | `audits/phase-4-zero-debt-forensic-audit.mdoc` | Fill on 4.6 when gate green |
+| **GAP-07** | No Phase 4 forensic artifact | Scaffold mdoc at pre-closure | `audits/phase-4-zero-debt-forensic-audit.mdoc` | **PASS** — Zero-Debt Verified 2026-06-06 |
 
-**Register status:** all **7** doc implementation rows **DONE** (2026-06-04). Repo verify column remains open until `phase-4:gate` exit 0.
+**Register status:** all **7** doc implementation rows **DONE** (2026-06-04). **Repo verify: PASS** (2026-06-06 — `phase-4:gate` ok:true, IMPLEMENTATION-TRUTH 7/7).
 
 ## Wave 2 improvements (2026-06-04)
 

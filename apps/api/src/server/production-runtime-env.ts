@@ -1,15 +1,21 @@
+import { assertProductionRedisUrl } from "../middleware/tenant-rate-limit-config";
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
-import { assertProductionStorageDriver } from "../storage/create-tour-storage";
+import { assertProductionStorageDriver } from "../storage/production-storage-driver-assert";
 import { assertStaticTenantRegistryRuntime } from "../tenant/tenant-registry";
+import {
+  PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER,
+  PRODUCTION_DATABASE_URL_ADMIN_REQUIRED,
+} from "./production-env-codes";
 
 export {
   PRODUCTION_DATABASE_URL_REQUIRED,
   PRODUCTION_STORAGE_DRIVER_FORBIDDEN,
-} from "../storage/create-tour-storage";
+} from "../storage/production-storage-driver-assert";
 
-export const PRODUCTION_DATABASE_URL_ADMIN_REQUIRED = "PRODUCTION_DATABASE_URL_ADMIN_REQUIRED";
-export const PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER =
-  "PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER";
+export {
+  PRODUCTION_DATABASE_URL_ADMIN_REQUIRED,
+  PRODUCTION_DATABASE_URL_ADMIN_MUST_DIFFER,
+} from "./production-env-codes";
 
 /**
  * Fail-closed production boot checks (DEC-GAP-03, V-004, V-009).
@@ -23,6 +29,7 @@ export function assertProductionRuntimeIntegrity(): void {
   }
 
   assertProductionStorageDriver();
+  assertProductionRedisUrl();
 
   const databaseUrl = process.env.DATABASE_URL?.trim();
   const adminUrl = process.env.DATABASE_URL_ADMIN?.trim();

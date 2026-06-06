@@ -1,6 +1,13 @@
+import { performance } from "node:perf_hooks";
+
 import type { TenantThemeConfig } from "@app-tour/workspace-sdk";
 
 import { getPrismaAdmin } from "../db/prisma";
+import {
+  recordAdminPoolRead,
+  recordTenantRegistryCacheHit,
+  recordTenantRegistryCacheMiss,
+} from "./admin-pool-read-monitor";
 import {
   findTenantById,
   findTenantBySubdomain,
@@ -10,8 +17,10 @@ import {
 import {
   getCachedTenantById,
   getCachedTenantBySubdomain,
+  getCachedTenantThemeById,
   setCachedTenantById,
   setCachedTenantBySubdomain,
+  setCachedTenantThemeById,
 } from "./tenant-registry-cache";
 import { isPersistedTenantUuid } from "./tenant-id-format";
 
@@ -56,11 +65,15 @@ export async function resolveRegisteredTenantById(
   if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
     const cached = getCachedTenantById(normalized);
     if (cached !== undefined) {
+      recordTenantRegistryCacheHit("by_id");
       return cached;
     }
+    recordTenantRegistryCacheMiss("by_id");
+    const readStarted = performance.now();
     const row = await getPrismaAdmin().tenant.findUnique({
       where: { id: normalized },
     });
+    recordAdminPoolRead(performance.now() - readStarted);
     const mapped = row !== null ? mapPrismaTenant(row) : null;
     setCachedTenantById(normalized, mapped);
     if (mapped !== null) {
@@ -80,11 +93,15 @@ export async function resolveRegisteredTenantBySubdomain(
   if (process.env.DATABASE_URL?.trim()) {
     const cached = getCachedTenantBySubdomain(normalized);
     if (cached !== undefined) {
+      recordTenantRegistryCacheHit("by_subdomain");
       return cached;
     }
+    recordTenantRegistryCacheMiss("by_subdomain");
+    const readStarted = performance.now();
     const row = await getPrismaAdmin().tenant.findUnique({
       where: { subdomain: normalized },
     });
+    recordAdminPoolRead(performance.now() - readStarted);
     const mapped = row !== null ? mapPrismaTenant(row) : null;
     setCachedTenantBySubdomain(normalized, mapped);
     if (mapped !== null) {
@@ -94,5 +111,53 @@ export async function resolveRegisteredTenantBySubdomain(
   if (isStaticTenantRegistryAllowed()) {
     return findTenantBySubdomain(normalized);
   }
+  return null;
+}
+
+let adminThemeLookupCountForTests = 0;
+
+/** Test-only — count admin `findUnique` for theme resolution. */
+export function getAdminThemeLookupCountForTests(): number {
+  return adminThemeLookupCountForTests;
+}
+
+/** Test-only — reset admin theme lookup counter. */
+export function resetAdminThemeLookupCountForTests(): void {
+  adminThemeLookupCountForTests = 0;
+}
+
+/**
+ * Raw `tenants.theme` JSON with 5s read-through cache (DEC-053 / RL-DOS-01).
+ * Negative-caches unknown UUIDs to stop rotating-ID admin storms.
+ */
+export async function resolveTenantThemeJsonById(tenantId: string): Promise<unknown | null> {
+  const normalized = tenantId.trim().toLowerCase();
+
+  if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
+    const cachedTheme = getCachedTenantThemeById(normalized);
+    if (cachedTheme !== undefined) {
+      recordTenantRegistryCacheHit("theme");
+      return cachedTheme;
+    }
+
+    recordTenantRegistryCacheMiss("theme");
+    adminThemeLookupCountForTests += 1;
+    const readStarted = performance.now();
+    const row = await getPrismaAdmin().tenant.findUnique({
+      where: { id: normalized },
+      select: { theme: true },
+    });
+    recordAdminPoolRead(performance.now() - readStarted);
+    const theme = row !== null ? row.theme : null;
+    setCachedTenantThemeById(normalized, theme);
+    if (theme !== null) {
+      return theme;
+    }
+  }
+
+  if (isStaticTenantRegistryAllowed()) {
+    return findTenantById(normalized)?.theme ?? null;
+  }
+
   return null;
 }

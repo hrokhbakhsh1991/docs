@@ -46,7 +46,13 @@ import {
 } from "../../src/outbox/outbox-relay";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
-import { createTestToursService, integrationTenantId } from "../test-helpers";
+import {
+  createTestToursService,
+  drainDomainEventHandlers,
+  integrationTenantId,
+  preparePostgresOutboxIsolation,
+  quiesceStaleOutboxProcessing,
+} from "../test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -55,12 +61,6 @@ const PROJECTION_FAILURE = "READ_MODEL_PROJECTION_FAILED";
 const VALID_TOUR_BODY = {
   data: { basics: { title: "saga-rollback-partial" }, details: { summary: "ok" } },
 } as const;
-
-async function drainAsyncHandlers(rounds = 32): Promise<void> {
-  for (let i = 0; i < rounds; i += 1) {
-    await new Promise<void>((resolve) => setImmediate(resolve));
-  }
-}
 
 function authForTenant(tenantId: string): TenantAuthContext {
   return {
@@ -117,7 +117,7 @@ describe("4-integration — saga rollback / partial success (memory partial)", (
     const service = createTestToursService();
     const record = await service.createTour(authForTenant(tenantId), { ...VALID_TOUR_BODY });
 
-    await drainAsyncHandlers();
+    await drainDomainEventHandlers();
 
     assert.equal(capturedEvents.length, 1, "TourCreated must publish after successful persist");
     assert.equal(capturedEvents[0]?.payload.tourId, record.id);
@@ -145,9 +145,14 @@ describe(
     let service: ToursService;
     const projectionMarkers: string[] = [];
     const priorStorageDriver = process.env.STORAGE_DRIVER;
+    const priorAutoReconcile = process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+    const priorRelay = process.env.OUTBOX_RELAY_ENABLED;
 
     before(async () => {
+      await preparePostgresOutboxIsolation();
       process.env.STORAGE_DRIVER = "prisma";
+      process.env.PROJECTION_AUTO_RECONCILE_ENABLED = "false";
+      process.env.OUTBOX_RELAY_ENABLED = "false";
       await disconnectPrisma();
       admin = getPrismaAdmin();
       await admin.tenant.create({
@@ -169,6 +174,16 @@ describe(
 
     after(async () => {
       process.env.STORAGE_DRIVER = priorStorageDriver;
+      if (priorAutoReconcile === undefined) {
+        delete process.env.PROJECTION_AUTO_RECONCILE_ENABLED;
+      } else {
+        process.env.PROJECTION_AUTO_RECONCILE_ENABLED = priorAutoReconcile;
+      }
+      if (priorRelay === undefined) {
+        delete process.env.OUTBOX_RELAY_ENABLED;
+      } else {
+        process.env.OUTBOX_RELAY_ENABLED = priorRelay;
+      }
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
       );
@@ -187,10 +202,12 @@ describe(
     });
 
     describe("with failing projection handler", () => {
-      beforeEach(() => {
+      beforeEach(async () => {
         resetDomainEventBusForTests();
         resetProjectionInconsistencySignalsForTests();
         projectionMarkers.length = 0;
+        process.env.OUTBOX_RELAY_ENABLED = "false";
+        await quiesceStaleOutboxProcessing(0);
         registerFailingReadModelHandler();
       });
 
@@ -219,12 +236,13 @@ describe(
         assert.equal(outbox.status, "pending");
         assert.ok(outbox.domainEventId, "domain_event_id required for idempotent delivery");
 
+        await quiesceStaleOutboxProcessing(0);
         const firstRelay = await processOutboxRelayForTenantOnce(tenantId, 10);
         assert.equal(firstRelay.claimed, 1);
         assert.equal(firstRelay.published, 1);
         assert.equal(firstRelay.failed, 0);
 
-        await drainAsyncHandlers();
+        await drainDomainEventHandlers(128);
 
         const relayed = await admin.outboxEvent.findUnique({ where: { id: outbox.id } });
         assert.equal(
@@ -283,7 +301,7 @@ describe(
         });
 
         await processOutboxRelayForTenantOnce(tenantId, 10);
-        await drainAsyncHandlers(64);
+        await drainDomainEventHandlers(64);
 
         let pending = await admin.outboxEvent.count({
           where: { tenantId, status: { in: ["pending", "processing"] } },
@@ -292,7 +310,7 @@ describe(
         while (pending > 0 && safety < 100) {
           safety += 1;
           await processOutboxRelayForTenantOnce(tenantId, 10);
-          await drainAsyncHandlers(64);
+          await drainDomainEventHandlers(64);
           pending = await admin.outboxEvent.count({
             where: { tenantId, status: { in: ["pending", "processing"] } },
           });
@@ -321,7 +339,7 @@ describe(
         };
 
         await publishClaimedOutboxRow(claimed);
-        await drainAsyncHandlers();
+        await drainDomainEventHandlers();
 
         const processedCount = await admin.processedDomainEvent.count({
           where: { tenantId, domainEventId: outbox.domainEventId! },
@@ -388,7 +406,7 @@ describe(
       );
       assert.ok(row?.processedAt, "failed row must carry processedAt for ops visibility");
 
-      await drainAsyncHandlers();
+      await drainDomainEventHandlers(128);
 
       const processedCount = await admin.processedDomainEvent.count({
         where: { tenantId, domainEventId },
