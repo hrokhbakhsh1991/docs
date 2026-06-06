@@ -143,11 +143,9 @@ function checkUiPrimitivesSubpathsOptional() {
 
 /** @returns {GuardCheck} */
 function checkNoDenaliInPhase3Scope() {
+  // Phase 6+ — Denali lives under packages/workspaces/denali and approved apps/web|api
+  // wiring; kernel + design-system packages stay Denali-free (P3-E-WS-01 / no core creep).
   const srcPaths = [
-    path.join(REPO_ROOT, "apps/web/src"),
-    path.join(REPO_ROOT, "apps/web/app"),
-    path.join(REPO_ROOT, "apps/api/src"),
-    path.join(REPO_ROOT, "packages/workspace-sdk/src"),
     path.join(REPO_ROOT, "packages/platform-core/src"),
     path.join(REPO_ROOT, "packages/workspaces/starter/src"),
     path.join(REPO_ROOT, "packages/theme-react/src"),
@@ -171,7 +169,8 @@ function checkNoDenaliInPhase3Scope() {
   return {
     id: "p3_no_denali",
     enforcementId: "P3-E-WS-01",
-    description: "rg -i denali in phase-3 src/ only (excl. tests)",
+    description:
+      "rg -i denali in platform-core/starter/theme-react/ui-primitives only (Phase 6 apps/sdk exempt)",
     required: true,
     ok,
     detail: ok ? null : truncateDetail(r.lines.join("\n")),
