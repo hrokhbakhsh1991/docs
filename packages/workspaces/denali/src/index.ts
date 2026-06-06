@@ -25,6 +25,7 @@ export {
   assertDenaliTourPhotoKeyTenantScope,
   buildDenaliTourPhotoObjectKey,
   createMinioPhotoClient,
+  ensureMinioPhotoBucket,
   getDenaliTourPhotoSignedReadUrl,
   pingMinioPhotoStorage,
   putDenaliTourPhoto,

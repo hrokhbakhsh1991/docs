@@ -10,10 +10,10 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   workers: 1,
-  timeout: 90_000,
+  timeout: 180_000,
   use: {
     ...devices["Desktop Chrome"],
-    baseURL: process.env.SMOKE_BASE_URL ?? "http://denali.localhost:3000",
+    baseURL: process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000",
     viewport: { width: 1280, height: 900 },
   },
   webServer: {

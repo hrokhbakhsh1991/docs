@@ -58,6 +58,15 @@ export async function pingMinioPhotoStorage(config: MinioPhotoConfig): Promise<b
   }
 }
 
+/** Idempotent — creates bucket when missing (local dev / CI seed). */
+export async function ensureMinioPhotoBucket(config: MinioPhotoConfig): Promise<void> {
+  const client = createMinioPhotoClient(config);
+  const exists = await client.bucketExists(config.bucket);
+  if (!exists) {
+    await client.makeBucket(config.bucket);
+  }
+}
+
 export async function putDenaliTourPhoto(input: {
   config: MinioPhotoConfig;
   tenantId: string;

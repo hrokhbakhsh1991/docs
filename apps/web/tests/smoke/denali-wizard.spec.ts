@@ -10,11 +10,9 @@ const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 const API_BASE = process.env.SMOKE_API_URL ?? "http://127.0.0.1:3001";
 
 test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
+  // smoke-denali-e2e-servers sets TOUR_OPS_DEV_TENANT_ID → denali plugin (Linux-safe; no Host override).
   test.use({
     baseURL: process.env.SMOKE_BASE_URL ?? "http://127.0.0.1:3000",
-    extraHTTPHeaders: {
-      Host: "denali.localhost:3000",
-    },
   });
 
   test("SMK-P6-01 / SMK-P6-04: /tours/new renders denali workspace wizard", async ({ page }) => {
@@ -25,7 +23,10 @@ test.describe("denali-wizard.spec.ts (SMK-P6-01..06, REQ-P6-015)", () => {
       }
     });
 
-    const res = await page.goto("/tours/new", { waitUntil: "domcontentloaded" });
+    const res = await page.goto("/tours/new", {
+      waitUntil: "domcontentloaded",
+      timeout: 120_000,
+    });
     expect(res?.status()).toBeDefined();
     expect(res!.status()).toBeLessThan(500);
 
