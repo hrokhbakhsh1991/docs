@@ -29,7 +29,7 @@ Phase 4 Must-Fix items **NN-01/02**, **RL-DOS-01**, and **SCAL-HF-11** are imple
 
 ## Gate
 
-Runs **9 guards** + **`pnpm run build`** (worker thread loads `dist/canonical/validation-worker-entry.js`) + **8 trunk specs** + **required postgres tier** (`db-pool-saturation.spec.ts`). `DATABASE_URL` is **mandatory** (DEC-080) — see [`postgres-required-gates.md`](postgres-required-gates.md).
+Runs **9 guards** + **monorepo `pnpm run build`** from repo root via [`gate-build-dist.mjs`](../../../apps/api/scripts/lib/gate-build-dist.mjs) (builds `platform-core/dist` before `@apps/api` prebuild import-boundary scan; worker thread loads `dist/canonical/validation-worker-entry.js`) + **8 trunk specs** + **required postgres tier** (`db-pool-saturation.spec.ts`). `DATABASE_URL` is **mandatory** (DEC-080) — see [`postgres-required-gates.md`](postgres-required-gates.md).
 
 ```bash
 export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32'

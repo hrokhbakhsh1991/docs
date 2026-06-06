@@ -59,6 +59,9 @@ if (!gate.includes("validation-worker-pool.spec.ts")) {
 if (!gate.includes("build-dist")) {
   violations.push("phase-4-cross-phase-p0-verify.mjs must build dist before worker specs");
 }
+if (!gate.includes("gate-build-dist.mjs")) {
+  violations.push("phase-4-cross-phase-p0-verify.mjs must use monorepo GATE_BUILD_DIST_STEP");
+}
 if (!gate.includes("bulk-import-victim-slo.spec.ts")) {
   violations.push("phase-4-cross-phase-p0-verify.mjs must run bulk-import-victim-slo.spec.ts");
 }
