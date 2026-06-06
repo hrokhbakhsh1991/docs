@@ -60,11 +60,11 @@ Prisma path sets `completed_at = now()` via SQL on transition to `completed` —
 
 ### Memory driver bounds (DI-IDEM-02)
 
-| Control             | Default                                | Env                                   |
-| ------------------- | -------------------------------------- | ------------------------------------- |
-| Completed-entry TTL | 5 min                                  | `HTTP_IDEMPOTENCY_MEMORY_TTL_MS`      |
-| Max completed rows  | 512                                    | `HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES` |
-| Test hygiene        | `resetHttpIdempotencyMemoryForTests()` | Spec `before`/`after`                 |
+| Control             | Default                                | Env                                                       |
+| ------------------- | -------------------------------------- | --------------------------------------------------------- |
+| Completed-entry TTL | 5 min                                  | `HTTP_IDEMPOTENCY_MEMORY_TTL_MS`                          |
+| Max completed rows  | 512                                    | `HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES`                     |
+| Test hygiene        | `resetHttpIdempotencyMemoryForTests()` | Spec `afterEach`; TTL spec uses `mock.timers` (CI-stable) |
 
 Processing claims are not TTL-evicted. Production auth mode always uses Prisma storage (DEC-GAP-03).
 
