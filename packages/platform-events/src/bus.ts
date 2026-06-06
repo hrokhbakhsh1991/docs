@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
+import { performance } from "node:perf_hooks";
+
+import { recordDomainEventHandlerDuration } from "./handler-monitor";
 
 export type DomainEventEnvelope<TPayload = unknown> = {
   readonly eventId: string;
@@ -50,8 +53,31 @@ function wrapHandler<TPayload>(
     if (!rememberEventId(seenEventIds, envelope.eventId)) {
       return;
     }
-    void handler(envelope);
+    setImmediate(() => {
+      const started = performance.now();
+      const recordDuration = () => {
+        recordDomainEventHandlerDuration(envelope.type, performance.now() - started);
+      };
+      try {
+        const result = handler(envelope);
+        if (result instanceof Promise) {
+          void result.finally(recordDuration);
+        } else {
+          recordDuration();
+        }
+      } catch (error) {
+        recordDuration();
+        throw error;
+      }
+    });
   };
+}
+
+/** Test helper — await one deferred dispatch turn after `publishDomainEvent`. */
+export function flushDomainEventDispatch(): Promise<void> {
+  return new Promise((resolve) => {
+    setImmediate(resolve);
+  });
 }
 
 /**

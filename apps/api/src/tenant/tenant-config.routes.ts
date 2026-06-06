@@ -6,7 +6,12 @@ import {
 } from "@app-tour/tenant-kernel";
 
 import { runWithHttpRequestContext } from "../http/bind-request-context";
+import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
+import {
+  getCachedTenantConfigPayload,
+  setCachedTenantConfigPayload,
+} from "./tenant-config-response-cache";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
 import {
   resolveRegisteredTenantById,
@@ -50,16 +55,20 @@ export async function handleTenantConfig(req: IncomingMessage, res: ServerRespon
           return;
         }
 
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.end(
-          JSON.stringify({
-            tenantId: tenant.id,
-            subdomain: tenant.subdomain,
-            workspaceType: tenant.workspaceType,
-            theme: tenant.theme,
-          })
-        );
+        const cachedPayload = getCachedTenantConfigPayload(tenant.id);
+        if (cachedPayload !== undefined) {
+          sendJson(res, 200, cachedPayload);
+          return;
+        }
+
+        const payload = JSON.stringify({
+          tenantId: tenant.id,
+          subdomain: tenant.subdomain,
+          workspaceType: tenant.workspaceType,
+          theme: tenant.theme,
+        });
+        setCachedTenantConfigPayload(tenant.id, payload);
+        sendJson(res, 200, payload);
       },
       { rateLimit: "read" }
     );

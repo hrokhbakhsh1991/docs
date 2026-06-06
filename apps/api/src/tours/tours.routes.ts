@@ -6,10 +6,14 @@ import {
   readIdempotencyKey,
   runIdempotentCreateTour,
 } from "../http/http-idempotency";
-import { readRequestBodyRaw, sendJson } from "../http/json";
+import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
+import { parseCreateTourBody } from "./create-tour.schema";
+import { parseListToursQuery } from "./list-tours-query";
+import { readTourRequestBody } from "./read-tour-request-body";
 import type { ToursService } from "./tours.service";
+import { parseUpdateTourBody } from "./update-tour.schema";
 
 export type ToursRouteDeps = {
   readonly toursService: ToursService;
@@ -21,8 +25,8 @@ export async function handleCreateTour(
   deps: ToursRouteDeps
 ): Promise<void> {
   try {
-    const rawBody = await readRequestBodyRaw(req);
-    const parsedBody = rawBody.trim().length === 0 ? {} : (JSON.parse(rawBody) as unknown);
+    const { rawBody, parsedBody } = await readTourRequestBody(req);
+    const body = parseCreateTourBody(parsedBody);
     const auth = await resolveTenantContextFromRequest(req);
     const idempotencyKey = readIdempotencyKey(req);
 
@@ -31,7 +35,7 @@ export async function handleCreateTour(
       auth,
       async () => {
         const finish = async () => {
-          const record = await deps.toursService.createTour(auth, parsedBody);
+          const record = await deps.toursService.createTour(auth, body);
           return {
             id: record.id,
             tenantId: record.tenantId,
@@ -40,21 +44,21 @@ export async function handleCreateTour(
         };
 
         if (idempotencyKey === undefined) {
-          const body = await finish();
-          sendJson(res, 201, body);
+          const responseBody = await finish();
+          sendJson(res, 201, responseBody);
           return;
         }
 
         const requestHash = hashIdempotentRequest(req.method ?? "POST", "/tours", rawBody);
-        const body = await runIdempotentCreateTour(
+        const responseBody = await runIdempotentCreateTour(
           auth.tenantId,
           idempotencyKey,
           requestHash,
           finish
         );
-        sendJson(res, 201, body);
+        sendJson(res, 201, responseBody);
       },
-      { rateLimit: "write" }
+      { rateLimit: "write", tourWriteConcurrency: true }
     );
   } catch (error) {
     handleHttpError(res, error);
@@ -68,15 +72,15 @@ export async function handlePatchTour(
   tourId: string
 ): Promise<void> {
   try {
-    const rawBody = await readRequestBodyRaw(req);
-    const parsedBody = rawBody.trim().length === 0 ? {} : (JSON.parse(rawBody) as unknown);
+    const { parsedBody } = await readTourRequestBody(req);
+    const body = parseUpdateTourBody(parsedBody);
     const auth = await resolveTenantContextFromRequest(req);
 
     await runWithHttpRequestContext(
       req,
       auth,
       async () => {
-        const record = await deps.toursService.updateTour(auth, tourId, parsedBody);
+        const record = await deps.toursService.updateTour(auth, tourId, body);
         sendJson(res, 200, {
           id: record.id,
           tenantId: record.tenantId,
@@ -85,6 +89,30 @@ export async function handlePatchTour(
         });
       },
       { rateLimit: "write" }
+    );
+  } catch (error) {
+    handleHttpError(res, error);
+  }
+}
+
+export async function handleListTours(
+  req: IncomingMessage,
+  res: ServerResponse,
+  deps: ToursRouteDeps
+): Promise<void> {
+  try {
+    const auth = await resolveTenantContextFromRequest(req);
+    const url = new URL(req.url ?? "/", "http://127.0.0.1");
+    const query = parseListToursQuery(url.searchParams);
+
+    await runWithHttpRequestContext(
+      req,
+      auth,
+      async () => {
+        const result = await deps.toursService.listTours(auth, query);
+        sendJson(res, 200, result);
+      },
+      { rateLimit: "read" }
     );
   } catch (error) {
     handleHttpError(res, error);

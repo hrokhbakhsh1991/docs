@@ -5,12 +5,21 @@ import type { WorkspaceFieldKind } from "@app-tour/workspace-sdk/plugin-types";
 import { Checkbox } from "@app-tour/ui-primitives/checkbox";
 import { Input } from "@app-tour/ui-primitives/input";
 import { Select, type SelectOption } from "@app-tour/ui-primitives/select";
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 
 /** Kinds wired to ui-primitives subpaths in the Phase 3 shell. */
-export const SUPPORTED_WIZARD_FIELD_KINDS = ["text", "enum", "boolean"] as const satisfies readonly WorkspaceFieldKind[];
+export const SUPPORTED_WIZARD_FIELD_KINDS = [
+  "text",
+  "enum",
+  "boolean",
+  "number",
+  "date",
+] as const satisfies readonly WorkspaceFieldKind[];
 
-export const DEFERRED_WIZARD_FIELD_KINDS = ["number", "date", "composite"] as const satisfies readonly WorkspaceFieldKind[];
+/** Composite widgets resolve in workspace plugins (phase 6). */
+export const DEFERRED_WIZARD_FIELD_KINDS = [
+  "composite",
+] as const satisfies readonly WorkspaceFieldKind[];
 
 type WizardFieldRendererProps = {
   readonly field: RenderFieldPlan;
@@ -73,7 +82,12 @@ function renderEnumField({ field, value, onChange, label }: WizardFieldRendererP
   );
 }
 
-function renderBooleanField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+function renderBooleanField({
+  field,
+  value,
+  onChange,
+  label,
+}: WizardFieldRendererProps): ReactNode {
   const checked = value === "true";
   return (
     <label>
@@ -90,6 +104,39 @@ function renderBooleanField({ field, value, onChange, label }: WizardFieldRender
   );
 }
 
+function renderNumberField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+  return (
+    <label>
+      <span>{label}</span>
+      <Input
+        name={field.fieldId}
+        type="number"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={field.required}
+        aria-required={field.required || undefined}
+        placeholder={field.uiHints?.placeholder}
+      />
+    </label>
+  );
+}
+
+function renderDateField({ field, value, onChange, label }: WizardFieldRendererProps): ReactNode {
+  return (
+    <label>
+      <span>{label}</span>
+      <Input
+        name={field.fieldId}
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={field.required}
+        aria-required={field.required || undefined}
+      />
+    </label>
+  );
+}
+
 /** Kind → renderer registry (Phase 3 shell — extend when new primitives ship). */
 export const WIZARD_FIELD_RENDERERS: Readonly<
   Partial<Record<WorkspaceFieldKind, (props: WizardFieldRendererProps) => ReactNode>>
@@ -97,6 +144,8 @@ export const WIZARD_FIELD_RENDERERS: Readonly<
   text: renderTextField,
   enum: renderEnumField,
   boolean: renderBooleanField,
+  number: renderNumberField,
+  date: renderDateField,
 };
 
 function UnsupportedWizardField({

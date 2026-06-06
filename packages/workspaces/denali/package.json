@@ -1,10 +1,37 @@
 {
   "name": "@app-tour/workspace-denali",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Denali workspace probe — contract negative-test target only (H-01)",
-  "type": "module",
+  "description": "Denali workspace plugin — registry, rules, composites, finance hooks (Phase 6)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css"
+  },
+  "files": [
+    "dist",
+    "theme/tokens.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "denali:codegen": "node --import tsx ./scripts/denali-codegen.mjs",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/platform-core": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*",
+    "minio": "^8.0.4"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
   }
 }

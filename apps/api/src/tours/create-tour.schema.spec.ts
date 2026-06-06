@@ -7,14 +7,14 @@ describe("createTourBodySchema (Zod)", () => {
   it("rejects unknown keys (strict mode)", () => {
     assert.throws(
       () => parseCreateTourBody({ data: { basics: { title: "x" } }, extra: true }),
-      /ZOD_VALIDATION_FAILED/,
+      /ZOD_VALIDATION_FAILED/
     );
   });
 
   it("rejects non-positive schemaVersion", () => {
     assert.throws(
       () => parseCreateTourBody({ schemaVersion: 0, data: { basics: { title: "x" } } }),
-      /ZOD_VALIDATION_FAILED/,
+      /ZOD_VALIDATION_FAILED/
     );
   });
 

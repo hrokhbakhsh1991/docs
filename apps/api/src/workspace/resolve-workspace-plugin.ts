@@ -7,9 +7,7 @@ import {
 
 import { listApiWorkspacePlugins } from "./workspace-plugins";
 
-const pluginById = new Map(
-  listApiWorkspacePlugins().map((plugin) => [plugin.id, plugin] as const),
-);
+const pluginById = new Map(listApiWorkspacePlugins().map((plugin) => [plugin.id, plugin] as const));
 
 /**
  * Resolves {@link WorkspacePlugin} from tenant `workspace_type` (RULE-005).
@@ -18,7 +16,7 @@ const pluginById = new Map(
 export function resolveWorkspacePluginForType(workspaceType: string): WorkspacePlugin {
   const pluginId = resolveWorkspacePluginIdForType(
     workspaceType as WorkspaceTypeId,
-    DEFAULT_WORKSPACE_TYPE_BINDINGS,
+    DEFAULT_WORKSPACE_TYPE_BINDINGS
   );
   if (pluginId === null) {
     throw new Error(`WORKSPACE_PLUGIN_NOT_BOUND:${workspaceType}`);

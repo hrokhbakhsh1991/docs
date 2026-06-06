@@ -27,9 +27,6 @@ describe("createApiAbility + accessibleByTourWhere (P3-E-DB-01)", () => {
       status: "SUSPENDED",
       workspaceId: "ws-1",
     });
-    assert.throws(
-      () => accessibleByTourWhere(ability, "create"),
-      /FORBIDDEN_TOUR_CREATE/,
-    );
+    assert.throws(() => accessibleByTourWhere(ability, "create"), /FORBIDDEN_TOUR_CREATE/);
   });
 });

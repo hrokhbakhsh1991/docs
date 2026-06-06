@@ -9,10 +9,13 @@ const PACKAGE_JSON = join(WEB_ROOT, "package.json");
 const SRC_DIR = join(WEB_ROOT, "src");
 const APP_DIR = join(WEB_ROOT, "app");
 
+const DENALI_LAZY_LOAD_ALLOWLIST = new Set([join(SRC_DIR, "bootstrap", "lazy-denali-plugin.ts")]);
+
 const FORBIDDEN_IMPORT = [
   /from\s+['"][^'"]*workspaces\/denali/,
   /from\s+['"]@app-tour\/workspace-denali/,
   /require\s*\(\s*['"][^'"]*denali/,
+  /import\s*\(\s*['"]@app-tour\/workspace-denali['"]\s*\)/,
 ];
 
 function listSourceFiles(dir: string, out: string[] = []): string[] {
@@ -37,9 +40,10 @@ describe("Phase 3.3 workspace boundary", () => {
     assert.ok(!("@app-tour/workspace-denali" in (pkg.dependencies ?? {})));
   });
 
-  it("source tree contains no denali workspace imports", () => {
+  it("source tree contains no denali workspace imports outside lazy loader", () => {
     const hits: string[] = [];
     for (const file of [...listSourceFiles(SRC_DIR), ...listSourceFiles(APP_DIR)]) {
+      if (DENALI_LAZY_LOAD_ALLOWLIST.has(file)) continue;
       const src = readFileSync(file, "utf8");
       for (const pattern of FORBIDDEN_IMPORT) {
         if (pattern.test(src)) hits.push(`${file}: ${pattern}`);

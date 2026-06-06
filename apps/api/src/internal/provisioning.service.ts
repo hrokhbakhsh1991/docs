@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 
+import { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID } from "@app-tour/workspace-denali";
+
+import { appendAuditEvent, AUDIT_ACTION_TENANT_PROVISIONED } from "../audit/audit-logger";
 import { getPrismaAdmin } from "../db/prisma";
+import { invalidateTenantRegistryCache } from "../tenant/tenant-registry-cache";
 import { findTenantBySubdomain, isStaticTenantRegistryAllowed } from "../tenant/tenant-registry";
+import { runWithTenantContext } from "../tenant/tenant-request-context";
 import { TenantProvisionConflictError } from "./provisioning.errors";
 import { assertProvisioningDevelopmentOnly } from "./provisioning-guard";
 
@@ -14,6 +19,8 @@ export const PHASE_43_SEED_TENANT_IDS: Record<Phase43SeedSubdomain, string> = {
   "tenant-a": "00000000-0000-4000-8000-000000000001",
   "tenant-b": "00000000-0000-4000-8000-000000000002",
 };
+
+export { DENALI_SMOKE_SUBDOMAIN, DENALI_SMOKE_TENANT_ID };
 
 export const TENANT_STATUS_ACTIVE = "active" as const;
 
@@ -70,6 +77,16 @@ export class ProvisioningService {
     return results;
   }
 
+  /** Phase 6.6 — idempotent denali smoke tenant (`denali.localhost`). */
+  async seedDenaliSmokeTenant(): Promise<ProvisionedTenant> {
+    assertProvisioningDevelopmentOnly();
+    return this.upsertSeedTenant({
+      subdomain: DENALI_SMOKE_SUBDOMAIN,
+      tenantId: DENALI_SMOKE_TENANT_ID,
+      workspaceType: "denali",
+    });
+  }
+
   /**
    * Create tenant when id + subdomain are absent (POST /internal/tenants/provision).
    */
@@ -108,6 +125,8 @@ export class ProvisioningService {
       },
     });
 
+    invalidateTenantRegistryCache(row.id, row.subdomain);
+
     return {
       id: row.id,
       subdomain: row.subdomain,
@@ -133,21 +152,34 @@ async function assertTenantNotAlreadyPresent(tenantId: string, subdomain: string
 
 async function createTenantRow(identity: ResolvedTenantIdentity): Promise<ProvisionedTenant> {
   const prisma = getPrismaAdmin();
-  const row = await prisma.tenant.create({
-    data: {
-      id: identity.tenantId,
-      subdomain: identity.subdomain,
-      workspaceType: identity.workspaceType,
-      status: identity.status,
-      theme: identity.theme,
-    },
-    select: {
-      id: true,
-      subdomain: true,
-      workspaceType: true,
-      status: true,
-    },
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.tenant.create({
+      data: {
+        id: identity.tenantId,
+        subdomain: identity.subdomain,
+        workspaceType: identity.workspaceType,
+        status: identity.status,
+        theme: identity.theme,
+      },
+      select: {
+        id: true,
+        subdomain: true,
+        workspaceType: true,
+        status: true,
+      },
+    });
+
+    await runWithTenantContext(created.id, async () => {
+      await appendAuditEvent(tx, {
+        action: AUDIT_ACTION_TENANT_PROVISIONED,
+        entityType: "tenant",
+        entityId: created.id,
+      });
+    });
+
+    return created;
   });
+  invalidateTenantRegistryCache(row.id, row.subdomain);
   return {
     id: row.id,
     subdomain: row.subdomain,

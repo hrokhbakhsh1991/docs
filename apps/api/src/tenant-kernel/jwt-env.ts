@@ -1,5 +1,6 @@
 export type JwtVerifyConfig = {
   readonly publicKeyPem: string;
+  readonly previousPublicKeyPem?: string;
   readonly issuer: string;
   readonly audience: string;
 };
@@ -11,10 +12,23 @@ export function readJwtVerifyConfig(): JwtVerifyConfig | null {
   }
   const issuer = process.env.AUTH_JWT_ISSUER?.trim();
   const audience = process.env.AUTH_JWT_AUDIENCE?.trim();
-  if (issuer === undefined || issuer.length === 0 || audience === undefined || audience.length === 0) {
+  if (
+    issuer === undefined ||
+    issuer.length === 0 ||
+    audience === undefined ||
+    audience.length === 0
+  ) {
     return null;
   }
-  return { publicKeyPem, issuer, audience };
+  const previousPublicKeyPem = process.env.AUTH_JWT_PUBLIC_KEY_PREVIOUS?.trim();
+  return {
+    publicKeyPem,
+    ...(previousPublicKeyPem !== undefined && previousPublicKeyPem.length > 0
+      ? { previousPublicKeyPem }
+      : {}),
+    issuer,
+    audience,
+  };
 }
 
 export function isJwtVerifyConfigured(): boolean {

@@ -15,6 +15,9 @@
     "prelint": "pnpm run guard:import-boundary && pnpm run audit-boundary && pnpm run guard:no-raw-wizard-input",
     "lint": "eslint \"app/**/*.{ts,tsx}\" \"src/**/*.{ts,tsx}\" --max-warnings 0 && tsc --noEmit",
     "test": "NODE_ENV=test node --import tsx --import ./test/register-dom.mjs --test \"test/**/*.spec.ts\" \"test/**/*.spec.tsx\"",
+    "test:e2e:th-1": "playwright test tests/e2e/th-1-tenant-theme-isolation.spec.ts",
+    "test:smoke:denali": "playwright test -c playwright.smoke.config.ts",
+    "test:e2e:th-1:install": "playwright install chromium",
     "validate:canonical-sot": "NODE_ENV=test node --import tsx --test test/canonical-sot.spec.ts",
     "phase-3:web-gate": "pnpm run prelint && pnpm run lint && pnpm run test && pnpm run build",
     "start": "next start --port 3000"
@@ -32,6 +35,8 @@
   },
   "devDependencies": {
     "@app-tour/config": "workspace:*",
+    "@app-tour/workspace-denali": "workspace:*",
+    "@playwright/test": "^1.51.1",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
