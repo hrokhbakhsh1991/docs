@@ -1,7 +1,7 @@
 {
   "gate": "phase-6",
   "date": "2026-06-06",
-  "gitSha": "2cd7f87",
+  "gitSha": "c3e7d70",
   "ok": true,
   "checks": [
     {
@@ -29,5 +29,5 @@
       "detail": null
     }
   ],
-  "note": "Fast-closure 2026-06-06: build+test+denali+phase-5:guard+phase-6:guard; phase-4 artifact PASS. Full phase-6:gate → CI nightly."
+  "note": "Full phase-6:gate includes phase-5:gate — see package.json when wired"
 }

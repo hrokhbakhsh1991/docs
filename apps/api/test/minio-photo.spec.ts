@@ -6,6 +6,7 @@ import {
   assertDenaliTourPhotoKeyTenantScope,
   buildDenaliTourPhotoObjectKey,
   getDenaliTourPhotoSignedReadUrl,
+  ensureMinioPhotoBucket,
   pingMinioPhotoStorage,
   putDenaliTourPhoto,
   readMinioPhotoConfigFromEnv,
@@ -38,10 +39,11 @@ describe("minio-photo.spec.ts (REQ-P6-016, RULE-P6-009)", () => {
     { skip: minioSkip },
     async () => {
       assert.ok(minioConfig);
-      const reachable = await pingMinioPhotoStorage(minioConfig);
-      if (!reachable) {
-        return;
-      }
+      await ensureMinioPhotoBucket(minioConfig);
+      assert.ok(
+        await pingMinioPhotoStorage(minioConfig),
+        "MinIO bucket must exist after ensureMinioPhotoBucket"
+      );
 
       const payload = Buffer.from("denali-photo-smoke-bytes", "utf8");
       const { key } = await putDenaliTourPhoto({

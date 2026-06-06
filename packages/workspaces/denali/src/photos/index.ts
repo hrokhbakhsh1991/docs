@@ -4,6 +4,7 @@ export {
 } from "./tour-photo-object-key";
 export {
   createMinioPhotoClient,
+  ensureMinioPhotoBucket,
   getDenaliTourPhotoSignedReadUrl,
   pingMinioPhotoStorage,
   putDenaliTourPhoto,

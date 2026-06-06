@@ -46,9 +46,9 @@ pnpm run phase-6:gate
 
 ## Residual waivers (honesty)
 
-| Item                              | Status                      |
-| --------------------------------- | --------------------------- |
-| MinIO round-trip                  | Skips without `MINIO_*`     |
-| Playwright `denali-wizard`        | Spec exists; needs servers  |
-| BLOCKER-P6-OUTBOX-5.4             | Finance stub per REQ-P6-028 |
-| Full `phase-6:gate` 4× test chain | Deferred to CI nightly      |
+| Item                              | Status                                         |
+| --------------------------------- | ---------------------------------------------- |
+| MinIO round-trip                  | **PASS** (`pnpm run test:minio-photo` 4/4)     |
+| Playwright `denali-wizard`        | **PASS** (`test:smoke:denali` 4/4, 2026-06-06) |
+| BLOCKER-P6-OUTBOX-5.4             | Finance stub per REQ-P6-028                    |
+| Full `phase-6:gate` 4× test chain | Deferred to CI nightly                         |
