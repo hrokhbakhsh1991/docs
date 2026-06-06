@@ -37,7 +37,7 @@ Phase 4 resilience fixes (steps 1–8) shipped individual guards and specs but l
 7. `guard:patch-schema-drift` (DEC-078)
 8. `guard:phase4-cross-phase-p0` (DEC-073 wiring)
 9. `phase-4:cross-phase-p0-verify` (NN / RL-DOS / victim SLO)
-10. `build-dist`
+10. `build-dist` — monorepo root `pnpm run build` (`gate-build-dist.mjs`; `platform-core/dist` before `@apps/api` prebuild)
 11. Resilience closure specs (outbox reclaim/pairing/shutdown, proxy timeout, canonical TX now, schema PATCH drift)
 
 ## Gate steps (postgres tier — required, DEC-082)
