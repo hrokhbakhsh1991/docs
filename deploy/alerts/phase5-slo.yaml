@@ -1,0 +1,384 @@
+# DEC-123 — Phase 5 SLO alerts (outbox failed, projection drift, DB circuit).
+# Requires: Prometheus Operator, DEC-121 ServiceMonitor scraping app metrics.
+# Apply: kubectl apply -f deploy/alerts/phase5-slo.yaml -n app-tour
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-tour-phase5-slo
+  namespace: app-tour
+  labels:
+    app: api
+    app.kubernetes.io/component: observability
+    prometheus: app-tour
+    release: prometheus
+spec:
+  groups:
+    - name: app-tour.phase5.slo
+      interval: 30s
+      rules:
+        - alert: AppTourOutboxFailedRows
+          expr: sum(outbox_failed_total{namespace="app-tour"}) > 0
+          for: 5m
+          labels:
+            severity: critical
+            slo: outbox_delivery
+            team: platform
+          annotations:
+            summary: Outbox events in failed status
+            description: >-
+              At least one outbox row is `failed` for 5m. Run failed replay or
+              inspect last_error before projection lag grows.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-failed-replay.md
+
+        - alert: AppTourProjectionDrift
+          expr: sum(rate(projection_inconsistency_total{namespace="app-tour"}[5m])) > 0
+          for: 2m
+          labels:
+            severity: warning
+            slo: projection_sync
+            team: platform
+          annotations:
+            summary: Projection inconsistency detected
+            description: >-
+              `projection_inconsistency_total` is increasing — canonical vs projection
+              drift. Check projection auto-reconcile (DEC-115) and relay health.
+
+        - alert: AppTourDbCircuitOpen
+          expr: max(db_circuit_open{namespace="app-tour"}) == 1
+          for: 1m
+          labels:
+            severity: critical
+            slo: database_resilience
+            team: platform
+          annotations:
+            summary: Database transient-error circuit is open
+            description: >-
+              `db_circuit_open` latched — API is fail-fast on DB transient errors.
+              Inspect Postgres connectivity, pool saturation, and P1001/P1017 rates.
+
+        - alert: AppTourOutboxBacklogHigh
+          expr: sum(outbox_pending_total{namespace="app-tour"}) > 500
+          for: 10m
+          labels:
+            severity: warning
+            slo: outbox_backlog
+            team: platform
+          annotations:
+            summary: Outbox pending backlog elevated
+            description: >-
+              Pending outbox rows above 500 for 10m — relay may need scale-up
+              (see outbox-relay-hpa) or tenant budget tuning.
+
+        - alert: AppTourOutboxRelayLagHigh
+          expr: outbox_relay_oldest_pending_age_seconds{namespace="app-tour"} > 300
+          for: 10m
+          labels:
+            severity: warning
+            slo: outbox_relay_lag
+            team: platform
+          annotations:
+            summary: Outbox relay lag high (oldest pending row age)
+            description: >-
+              Oldest pending outbox row older than 5m — catch-up debt after incident or
+              relay stall. Check outbox_relay_published_total and pool contention.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-lag-monitor.md
+
+        - alert: AppTourHealthProbeLatencyHigh
+          expr: max(health_probe_p99_ms{namespace="app-tour"}) > 500
+          for: 5m
+          labels:
+            severity: warning
+            slo: readiness_nn01
+            team: platform
+          annotations:
+            summary: GET /health p99 elevated (NN-01 residual)
+            description: >-
+              In-process health probe p99 exceeds 500ms for 5m — likely event-loop
+              CPU contention from validation. Check validation queue depth and worker pool.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/validation-fairness.md
+
+        - alert: AppTourHealthProbeSlowBursts
+          expr: increase(health_probe_slow_total{namespace="app-tour"}[5m]) > 5
+          for: 2m
+          labels:
+            severity: warning
+            slo: readiness_nn01
+            team: platform
+          annotations:
+            summary: Health probes exceeding latency budget
+            description: >-
+              More than five health probes exceeded HEALTH_PROBE_LATENCY_BUDGET_MS
+              in 5m — NN-01 event-loop degradation. Inspect CPU validation fairness.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/health-probe-latency-monitor.md
+
+        - alert: AppTourLogShutdownFlushTimeout
+          expr: increase(log_shutdown_flush_timed_out_total{namespace="app-tour"}[1h]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            slo: logging_shutdown
+            team: platform
+          annotations:
+            summary: Log sink flush timed out during graceful shutdown
+            description: >-
+              SIGTERM path hit LOG_SINK_FLUSH_TIMEOUT_MS — tail NDJSON may be lost (FOF-LOG-03).
+              Re-run test:nightly:slow-sink before changing log driver.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/fof-log-03-shutdown-tail-acceptance.md
+
+        - alert: AppTourDbPoolSaturationStorm
+          expr: increase(db_pool_saturated_total{namespace="app-tour"}[5m]) > 50
+          for: 2m
+          labels:
+            severity: warning
+            slo: pool_storm
+            team: platform
+          annotations:
+            summary: DB pool saturation 503 storm elevated
+            description: >-
+              More than 50 DB_POOL_SATURATED 503 responses in 5m — expected under spike load.
+              If sustained with db_circuit_open or errors, scale pool or replicas. Nightly leak
+              probe: test:nightly:pool-stress-500.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/pool-leak-post-storm-monitor.md
+
+        - alert: AppTourAdminPoolReadLatencyHigh
+          expr: max(admin_pool_read_p99_ms{namespace="app-tour"}) > 500
+          for: 5m
+          labels:
+            severity: warning
+            slo: admin_pool_nn03
+            team: platform
+          annotations:
+            summary: Admin pool registry read p99 elevated (NN-03)
+            description: >-
+              Cache-miss getPrismaAdmin findUnique p99 exceeds 500ms for 5m — likely outbox relay
+              or registry contention. Check outbox_relay_tenant_deferred_total and admin pool sizing.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/admin-pool-read-monitor.md
+
+        - alert: AppTourAdminPoolReadSlowBursts
+          expr: increase(admin_pool_read_slow_total{namespace="app-tour"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: warning
+            slo: admin_pool_nn03
+            team: platform
+          annotations:
+            summary: Admin pool reads exceeding latency budget
+            description: >-
+              More than ten admin pool reads exceeded ADMIN_POOL_READ_BUDGET_MS in 5m — tenant-config
+              and rate-limit theme paths may lag for neighbors (NN-03).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-fairness.md
+
+        - alert: AppTourValidationQueueDepthHigh
+          expr: validation_queue_depth_total{namespace="app-tour"} > 200
+          for: 5m
+          labels:
+            severity: warning
+            slo: validation_queue_nn04
+            team: platform
+          annotations:
+            summary: Validation pending queue depth elevated (NN-04)
+            description: >-
+              Sum of pending validation tasks exceeds 200 for 5m — bulk import may delay neighbor
+              POST /tours. Check validation_queue_in_flight_total and worker pool health.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/validation-queue-monitor.md
+
+        - alert: AppTourValidationQueueDepthSkew
+          expr: validation_queue_depth_max_per_tenant{namespace="app-tour"} > 50
+          for: 5m
+          labels:
+            severity: warning
+            slo: validation_queue_nn04
+            team: platform
+          annotations:
+            summary: Single-tenant validation queue depth skewed
+            description: >-
+              One tenant holds more than 50 pending validations — noisy-neighbor risk for mixed
+              workloads. Pair with validation_queue_shed_total bursts.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/validation-fairness.md
+
+        - alert: AppTourValidationQueueShedBursts
+          expr: sum(increase(validation_queue_shed_total{namespace="app-tour"}[5m])) > 20
+          for: 2m
+          labels:
+            severity: warning
+            slo: validation_queue_nn04
+            team: platform
+          annotations:
+            summary: Validation queue shed storm (429)
+            description: >-
+              More than 20 validation_queue_shed_total events in 5m — tenants hitting
+              P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT cap (DEC-054).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/validation-queue-monitor.md
+
+        - alert: AppTourTourWriteInFlightHigh
+          expr: tour_write_in_flight_total{namespace="app-tour"} > 20
+          for: 5m
+          labels:
+            severity: warning
+            slo: bulk_write_nn05
+            team: platform
+          annotations:
+            summary: Tour write in-flight total elevated (NN-05)
+            description: >-
+              More than 20 concurrent POST /tours handlers for 5m — bulk import storm across
+              tenants. Check validation queue depth and victim SLO probes.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/tour-write-concurrency-monitor.md
+
+        - alert: AppTourTourWriteInFlightSkew
+          expr: tour_write_in_flight_max_per_tenant{namespace="app-tour"} > 6
+          for: 5m
+          labels:
+            severity: warning
+            slo: bulk_write_nn05
+            team: platform
+          annotations:
+            summary: Single-tenant tour write concurrency skewed
+            description: >-
+              One tenant holds more than six in-flight POST /tours — approaching
+              TENANT_MAX_CONCURRENT_TOUR_WRITES cap (DEC-064).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/tour-write-concurrency.md
+
+        - alert: AppTourTourWriteConcurrencyShedBursts
+          expr: sum(increase(tour_write_concurrency_shed_total{namespace="app-tour"}[5m])) > 15
+          for: 2m
+          labels:
+            severity: warning
+            slo: bulk_write_nn05
+            team: platform
+          annotations:
+            summary: Tour write concurrency shed storm (429)
+            description: >-
+              More than 15 tour_write_concurrency_shed_total events in 5m — bulk POST /tours
+              hitting per-tenant in-flight cap (DEC-064 / NN-05).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/victim-slo-bulk-import.md
+
+        - alert: AppTourOutboxRelayInFlightHigh
+          expr: outbox_relay_in_flight_total{namespace="app-tour"} > 12
+          for: 5m
+          labels:
+            severity: warning
+            slo: outbox_relay_nn06
+            team: platform
+          annotations:
+            summary: Outbox relay in-flight total elevated (NN-06)
+            description: >-
+              More than 12 concurrent relay publishes for 5m — admin pool contention risk for
+              tenant-config reads. Check outbox_pending_total and admin_pool_read_p99_ms.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-monitor.md
+
+        - alert: AppTourOutboxRelayInFlightSkew
+          expr: outbox_relay_in_flight_max_per_tenant{namespace="app-tour"} > 3
+          for: 5m
+          labels:
+            severity: warning
+            slo: outbox_relay_nn06
+            team: platform
+          annotations:
+            summary: Single-tenant outbox relay in-flight skewed
+            description: >-
+              One tenant holds more than three in-flight relay publishes — approaching
+              OUTBOX_RELAY_MAX_IN_FLIGHT_PER_TENANT cap (DEC-066).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-fairness.md
+
+        - alert: AppTourOutboxRelayDeferredBursts
+          expr: sum(increase(outbox_relay_tenant_deferred_total{namespace="app-tour"}[5m])) > 20
+          for: 2m
+          labels:
+            severity: warning
+            slo: outbox_relay_nn06
+            team: platform
+          annotations:
+            summary: Outbox relay tenant defer burst
+            description: >-
+              More than 20 outbox_relay_tenant_deferred_total events in 5m — relay per-tenant
+              budget deferring publishes (DEC-066 / NN-06).
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-monitor.md
+
+        - alert: AppTourHttpRequestBodyRejectedBursts
+          expr: increase(http_request_body_rejected_total{namespace="app-tour"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: warning
+            slo: json_pressure_nn07
+            team: platform
+          annotations:
+            summary: HTTP request body reject burst (413)
+            description: >-
+              More than ten 413 REQUEST_BODY_TOO_LARGE responses in 5m — large POST bodies blocked
+              before parse (DEC-052 / NN-07). Check bulk import clients and HTTP_MAX_BODY_BYTES.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/http-json-pressure-monitor.md
+
+        - alert: AppTourHttpResponseBodyRejectedBursts
+          expr: increase(http_response_body_rejected_total{namespace="app-tour"}[5m]) > 5
+          for: 2m
+          labels:
+            severity: warning
+            slo: json_pressure_nn07
+            team: platform
+          annotations:
+            summary: HTTP response body reject burst (507)
+            description: >-
+              More than five 507 RESPONSE_TOO_LARGE responses in 5m — egress stringify blocked
+              (DEC-129). Check canonical payload size and HTTP_MAX_RESPONSE_BYTES.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/http-response-size-budget.md
+
+        - alert: AppTourOutboxRelayPoolHeadroomNegative
+          expr: outbox_relay_pool_headroom{namespace="app-tour"} < 0
+          for: 10m
+          labels:
+            severity: warning
+            slo: outbox_relay_obcond02
+            team: platform
+          annotations:
+            summary: Outbox relay publish concurrency exceeds pool connection_limit (OB-COND-02)
+            description: >-
+              OUTBOX_RELAY_PUBLISH_CONCURRENCY exceeds DATABASE_URL connection_limit — HTTP 503
+              risk under combined relay+write. Raise connection_limit or lower publish concurrency.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-pool-contention-monitor.md
+
+        - alert: AppTourOutboxRelayPoolContentionStorm
+          expr: >-
+            outbox_relay_in_flight_total{namespace="app-tour"} > 8
+            and increase(db_pool_saturated_total{namespace="app-tour"}[5m]) > 30
+          for: 2m
+          labels:
+            severity: warning
+            slo: outbox_relay_obcond02
+            team: platform
+          annotations:
+            summary: Outbox relay + HTTP app pool contention storm
+            description: >-
+              High relay in-flight with elevated DB_POOL_SATURATED 503 rate — OB-COND-02 live
+              contention. Size pool or shed relay concurrency.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/connection-budget.md
+
+        - alert: AppTourOutboxRelayTickSkippedBursts
+          expr: increase(outbox_relay_tick_skipped_total{namespace="app-tour"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: warning
+            slo: outbox_relay_tick
+            team: platform
+          annotations:
+            summary: Outbox relay poll ticks skipped (prior batch still running)
+            description: >-
+              More than ten relay tick skips in 5m — OB-COND-03 long batches exceed
+              OUTBOX_POLL_INTERVAL_MS. done latency grows; HTTP not blocked.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-tick-monitor.md
+
+        - alert: AppTourOutboxRelayPublishStalled
+          expr: >-
+            outbox_pending_total{namespace="app-tour"} > 100
+            and increase(outbox_relay_published_total{namespace="app-tour"}[10m]) == 0
+          for: 15m
+          labels:
+            severity: warning
+            slo: outbox_relay_tick
+            team: platform
+          annotations:
+            summary: Outbox relay publish throughput stalled with backlog
+            description: >-
+              Pending outbox rows > 100 with zero publishes in 10m — OB-COND-04 stall.
+              Check relay enabled, poison rows, and pool contention.
+            runbook_url: https://github.com/app-tour/docs/blob/main/docs/phase-5/appendices/outbox-relay-tick-monitor.md

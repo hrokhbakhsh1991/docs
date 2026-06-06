@@ -11,6 +11,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { sanitizeReliabilitySamplePayload } from "../src/observability/log-safety";
+
 const specPath = join(
   dirname(fileURLToPath(import.meta.url)),
   "../test/reliability/outbox-relay-connection-leak.spec.ts"
@@ -21,9 +23,21 @@ const result = spawnSync(process.execPath, ["--import", "tsx", "--expose-gc", "-
   env: { ...process.env, NODE_ENV: "test" },
 });
 
-if (process.env.P5_RELIABILITY_SAMPLES) {
-  console.error("\n--- P5_RELIABILITY_SAMPLES ---");
-  console.error(process.env.P5_RELIABILITY_SAMPLES);
+const rawSamples = process.env.P5_RELIABILITY_SAMPLES?.trim();
+if (rawSamples) {
+  try {
+    const parsed = JSON.parse(rawSamples) as unknown;
+    process.stderr.write(
+      `${JSON.stringify({
+        event: "p5.reliability.samples",
+        samples: sanitizeReliabilitySamplePayload(parsed),
+      })}\n`
+    );
+  } catch {
+    process.stderr.write(
+      `${JSON.stringify({ event: "p5.reliability.samples.invalid", code: "INVALID_SAMPLES" })}\n`
+    );
+  }
 }
 
 process.exit(result.status ?? 1);

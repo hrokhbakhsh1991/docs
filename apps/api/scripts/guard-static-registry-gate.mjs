@@ -10,9 +10,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "src");
 
-const ALLOWLIST = new Set([
-  path.join(SRC, "tenant", "tenant-registry.ts"),
-]);
+const ALLOWLIST = new Set([path.join(SRC, "tenant", "tenant-registry.ts")]);
 
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
@@ -47,7 +45,7 @@ for (const file of walk(SRC)) {
     const window = lines.slice(windowStart, i + 1).join("\n");
     if (!/\bisStaticTenantRegistryAllowed\s*\(/.test(window)) {
       violations.push(
-        `${rel}:${i + 1}: findTenantBy* requires isStaticTenantRegistryAllowed() guard (DEC-039)`,
+        `${rel}:${i + 1}: findTenantBy* requires isStaticTenantRegistryAllowed() guard (DEC-039)`
       );
     }
   }

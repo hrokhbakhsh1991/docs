@@ -1,6 +1,6 @@
 import type { ApiAbility } from "../casl/api-ability";
 import { accessibleByTourWhere, type TourAction } from "../casl/api-ability";
-import type { TourRecord, TourWhere } from "./tour-record";
+import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 import type { TourRepository, TourStorageRepository } from "./tour.repository";
 
 function mergeWhere(
@@ -26,6 +26,13 @@ export class ScopedTourRepository implements TourRepository {
 
   findMany(extra?: Partial<TourWhere>): Promise<readonly TourRecord[]> {
     return this.inner.findMany(mergeWhere(this.ability, "read", extra));
+  }
+
+  listPage(
+    extra: Partial<TourWhere> | undefined,
+    page: TourListPageInput
+  ): Promise<TourListPageResult> {
+    return this.inner.listPage(mergeWhere(this.ability, "read", extra), page);
   }
 
   async findFirst(extra?: Partial<TourWhere>): Promise<TourRecord | null> {

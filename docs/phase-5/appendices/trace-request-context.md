@@ -28,12 +28,12 @@ Resolution lives in `apps/api/src/observability/resolve-trace-id.ts`. **Single-r
 
 `apps/api/src/middleware/error-interceptor.ts` is the global mapper for thrown errors and uncaught route failures:
 
-| Field / header                       | Behavior                                                      |
-| ------------------------------------ | ------------------------------------------------------------- |
-| `correlationId` (JSON)               | Active trace ALS id, or `randomUUID()` when ALS is missing    |
-| `x-correlation-id` (response header) | Same value as `correlationId` on every **4xx/5xx** JSON error |
-| `error`                              | Client-safe message; `internal_error` for opaque 500          |
-| `code`                               | Present for `VALIDATION_FAILURE`, `RATE_LIMIT_EXCEEDED`, etc. |
+| Field / header                       | Behavior                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `correlationId` (JSON)               | Active trace ALS id via `requireActiveTraceId()` — **fail-closed** when trace ALS is missing (DEC-126 / TRACE-REGEN-02) |
+| `x-correlation-id` (response header) | Same value as `correlationId` on every **4xx/5xx** JSON error                                                           |
+| `error`                              | Client-safe message; `internal_error` for opaque 500                                                                    |
+| `code`                               | Present for `VALIDATION_FAILURE`, `RATE_LIMIT_EXCEEDED`, etc.                                                           |
 
 Mapping rules:
 

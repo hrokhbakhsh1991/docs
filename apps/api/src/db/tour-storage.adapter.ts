@@ -1,4 +1,4 @@
-import type { TourRecord, TourWhere } from "./tour-record";
+import type { TourListPageInput, TourListPageResult, TourRecord, TourWhere } from "./tour-record";
 import type { TourStorageRepository as DbTourStorageRepository } from "./tour.repository";
 import type {
   Tour,
@@ -39,6 +39,18 @@ export class TourStorageDbAdapter implements DbTourStorageRepository {
     }
     const hit = rows.find((row) => row.id === where.id);
     return hit === undefined ? [] : [toRecord(hit)];
+  }
+
+  async listPage(where: TourWhere, page: TourListPageInput): Promise<TourListPageResult> {
+    const result = await this.store.listByTenantPage({
+      tenantId: where.tenantId,
+      limit: page.limit,
+      cursor: page.cursor,
+    });
+    return {
+      items: result.items.map(toRecord),
+      nextCursor: result.nextCursor,
+    };
   }
 
   async findFirst(where: TourWhere): Promise<TourRecord | null> {

@@ -38,6 +38,32 @@ export interface RateLimiterStore {
 
 **Redis activation:** set `REDIS_URL=redis://127.0.0.1:6379` (or managed URL). Without it, trunk stays in-memory (documented BLOCKER for multi-replica fairness in 7.6 until Redis is provisioned).
 
+## Production fail-closed (DEC-065 / SCAL-DEBT-04)
+
+When `NODE_ENV=production` and tenant rate limiting is **enabled** (`TENANT_RATE_LIMIT_ENABLED` not `false`), boot calls `assertProductionRedisUrl()` and throws `PRODUCTION_REDIS_URL_REQUIRED` if `REDIS_URL` is missing or empty. This prevents unbounded in-memory limiter keys (RL-DOS-02) on public ingress.
+
+| Production misconfig                | Error                                                         |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Rate limit on + missing `REDIS_URL` | `PRODUCTION_REDIS_URL_REQUIRED`                               |
+| `TENANT_RATE_LIMIT_ENABLED=false`   | Guard skipped — ops must accept per-process limiter semantics |
+
+CI lock: `pnpm run guard:production-redis-url` from `apps/api`.
+
+## Runtime Redis fallback (DEC-083 / Wave B)
+
+When Redis is configured but **unreachable at request time**, tiered policy avoids **500**:
+
+| Tier                          | Default policy | On Redis blip                           |
+| ----------------------------- | -------------- | --------------------------------------- |
+| `write` (`POST/PATCH /tours`) | `fail_local`   | In-process memory limiter (bounded 429) |
+| `read`                        | `fail_open`    | Allow request                           |
+
+Override all tiers: `TENANT_RATE_LIMIT_REDIS_FAILURE_POLICY=fail_closed|fail_local|fail_open`.
+
+Circuit: 3 consecutive Redis errors → 30s open → policy path without Redis. Metric: `rate_limiter_redis_fallback_total`.
+
+See [`redis-rate-limiter-fallback.md`](redis-rate-limiter-fallback.md).
+
 ## HTTP pipeline order
 
 ```mermaid
@@ -60,14 +86,17 @@ sequenceDiagram
 
 Rate limiting runs **after** tenant authentication and ALS bind, **before** `ToursService.createTour`.
 
-### `GET /tours/:id` (P0-8)
+### Read tier — `GET /tours` and `GET /tours/:id` (P0-8)
 
-Reads and writes use **independent token buckets** per tenant (`{tenantId}:read` vs `{tenantId}:write`). `TENANT_RATE_LIMIT_READ_POINTS` defaults to `TENANT_RATE_LIMIT_POINTS` when unset. `handleGetTour` uses `rateLimit: 'read'` so a neighbor’s read storm is throttled without consuming the write bucket used by victim `POST /tours`.
+Reads and writes use **independent token buckets** per tenant (`{tenantId}:read` vs `{tenantId}:write`). `TENANT_RATE_LIMIT_READ_POINTS` defaults to `TENANT_RATE_LIMIT_POINTS` when unset. List and get-by-id handlers use `rateLimit: 'read'` so a neighbor’s read storm is throttled without consuming the write bucket used by victim `POST /tours`.
 
 | Route            | `rateLimit` | Module                                 |
 | ---------------- | ----------- | -------------------------------------- |
 | `POST /tours`    | `true`      | `tours.routes.ts` → `handleCreateTour` |
-| `GET /tours/:id` | `true`      | `tours.routes.ts` → `handleGetTour`    |
+| `GET /tours`     | `read`      | `tours.routes.ts` → `handleListTours`  |
+| `GET /tours/:id` | `read`      | `tours.routes.ts` → `handleGetTour`    |
+
+List response omits full `canonical` per row — see [tours-list-endpoint.md](tours-list-endpoint.md).
 
 Probe: `apps/api/test/2-observability/noise-neighbor.spec.ts` (500 parallel GET tenant A + POST tenant B).
 
@@ -96,6 +125,27 @@ Overrides apply **per tenant** without changing the global env default.
 
 Resolution mirrors `resolveTenantFeatureFlags`: registry first, then Postgres when `DATABASE_URL` is set. With `STORAGE_DRIVER=memory` and no `DATABASE_URL`, HTTP probes use env defaults only (random `integrationTenantId` rows are not required).
 
+**Admin DB amplification (RL-DOS-01 / DEC-053):** `resolveEffectiveRateLimitForTenant` uses `resolveTenantThemeJsonById` — **5s TTL read-through cache** + **negative cache** for unknown UUIDs (`tenant-registry-cache.ts`). No uncached `findUnique` per HTTP consume on cache hit.
+
+```mermaid
+sequenceDiagram
+  participant RL as consumeTenantRateLimit
+  participant Resolve as resolveEffectiveRateLimitForTenant
+  participant Cache as tenant-registry-cache
+  participant Admin as getPrismaAdmin
+
+  RL->>Resolve: tenantId
+  Resolve->>Cache: getCachedTenantThemeById
+  alt cache hit (incl. negative)
+    Cache-->>Resolve: theme JSON or null
+  else cache miss
+    Resolve->>Admin: findUnique theme (once)
+    Admin-->>Resolve: row.theme
+    Resolve->>Cache: setCachedTenantThemeById
+  end
+  Resolve-->>RL: effective points/duration
+```
+
 ## 429 contract
 
 **Header:** `Retry-After` (seconds, RFC 7231)
@@ -114,18 +164,23 @@ Resolution mirrors `resolveTenantFeatureFlags`: registry first, then Postgres wh
 
 ## Performance probes
 
-| Spec                           | Scenario                                     | SLO                                                                                                                                                                  |
-| ------------------------------ | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tenant-rate-limiter.spec.ts`  | 20 concurrent A + 5 concurrent B, limit 10/s | Exactly `LIMIT`×201 and remainder `RATE_LIMIT_EXCEEDED` for A; all B succeed                                                                                         |
-| `tenant-rate-limiting.spec.ts` | A flooded, B concurrent                      | A: mix of 201 + `RATE_LIMIT_EXCEEDED`; B: 2xx and latency ≤ `max(p50 × TENANT_B_LATENCY_RATIO_MAX, TENANT_B_LATENCY_MIN_BUDGET_MS)` (defaults **2.0** and **500ms**) |
-| `noise-neighbor.spec.ts`       | 500× GET A + POST B (Postgres)               | B write p95 ≤ baseline × `RATIO_THRESHOLD` (default **4**)                                                                                                           |
+| Spec                              | Scenario                                             | SLO                                                                                                                                                                  |
+| --------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenant-rate-limiter.spec.ts`     | 20 concurrent A + 5 concurrent B, limit 10/s         | Exactly `LIMIT`×201 and remainder `RATE_LIMIT_EXCEEDED` for A; all B succeed                                                                                         |
+| `tenant-rate-limiting.spec.ts`    | A flooded, B concurrent                              | A: mix of 201 + `RATE_LIMIT_EXCEEDED`; B: 2xx and latency ≤ `max(p50 × TENANT_B_LATENCY_RATIO_MAX, TENANT_B_LATENCY_MIN_BUDGET_MS)` (defaults **2.0** and **500ms**) |
+| `tenant-rate-limiter-100.spec.ts` | **100** unique tenants × 1 concurrent POST (DEC-059) | All **201**; p95 ≤ **8s**; admin lookups ≤ **100** when Postgres; second wave **0** new admin lookups                                                                |
+| `noise-neighbor.spec.ts`          | 500× GET A + POST B (Postgres)                       | B write p95 ≤ baseline × `RATIO_THRESHOLD` (default **4**)                                                                                                           |
 
-CPU-only fairness (no HTTP) uses **10%** slack in `noisy-neighbor-latency.spec.ts` (`BASELINE_RATIO_MAX=1.10`). HTTP probes use a **ratio plus floor** because solo baseline p50 understates event-loop scheduling under a concurrent burst on the same listener.
+CPU-only fairness (no HTTP) uses **10%** slack in `noisy-neighbor-latency.spec.ts` (`BASELINE_RATIO_MAX=1.10` default). Phase 5/4 gates inject **1.25** / **1.30** — see [`baseline-ratio-tiering.md`](baseline-ratio-tiering.md) (CON-06). HTTP probes use a **ratio plus floor** because solo baseline p50 understates event-loop scheduling under a concurrent burst on the same listener.
 
 ```bash
 cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory \
   node --import tsx --test test/3-performance/tenant-rate-limiting.spec.ts \
   test/3-performance/tenant-rate-limiter.spec.ts
+
+# 100-tenant flood (DEC-059 / SCAL-DEBT-14)
+cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory \
+  node --import tsx --test test/3-performance/tenant-rate-limiter-100.spec.ts
 ```
 
 ## Cross-references

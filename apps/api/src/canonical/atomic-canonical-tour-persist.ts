@@ -8,6 +8,7 @@ import {
   AUDIT_ACTION_TOUR_UPDATED,
   appendAuditEvent,
 } from "../audit/audit-logger";
+import { readCanonicalTransactionNow } from "../db/canonical-transaction-now";
 import { withCanonicalTransaction } from "../db/with-canonical-transaction";
 import { getActiveTraceId } from "../observability/trace-request-context";
 import { enqueueOutboxEvent } from "../outbox/enqueue-domain-event";
@@ -76,9 +77,10 @@ async function persistNewTourAtomicallyInContext(
   const tourId = randomUUID();
   const domainEventId = randomUUID();
   const projections = deriveTourProjections(input.canonical);
-  const createdAt = new Date();
 
   return withCanonicalTransaction(input.tenantId, async (tx) => {
+    const txNow = await readCanonicalTransactionNow(tx);
+
     await assertTourCapacityInTx(tx, input.tenantId);
 
     await tx.tour.create({
@@ -87,7 +89,7 @@ async function persistNewTourAtomicallyInContext(
         tenantId: input.tenantId,
         canonical: input.canonical,
         projections,
-        createdAt,
+        createdAt: txNow,
       }),
     });
 
@@ -95,6 +97,7 @@ async function persistNewTourAtomicallyInContext(
       action: AUDIT_ACTION_TOUR_CREATED,
       entityType: "tour",
       entityId: tourId,
+      createdAt: txNow,
     });
 
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "before_outbox") {
@@ -113,6 +116,7 @@ async function persistNewTourAtomicallyInContext(
       payload: { tenantId: input.tenantId, tourId },
       domainEventId,
       correlationId: getActiveTraceId(),
+      createdAt: txNow,
     });
 
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {
@@ -129,7 +133,7 @@ async function persistNewTourAtomicallyInContext(
       id: tourId,
       tenantId: input.tenantId,
       canonical: input.canonical,
-      createdAt: createdAt.toISOString(),
+      createdAt: txNow.toISOString(),
       title: projections.title,
       schemaVersion: projections.schemaVersion,
     };
@@ -161,6 +165,8 @@ async function persistTourUpdateAtomicallyInContext(
   const projections = deriveTourProjections(input.canonical);
 
   return withCanonicalTransaction(input.tenantId, async (tx) => {
+    const txNow = await readCanonicalTransactionNow(tx);
+
     const result = await tx.tour.updateMany({
       where: {
         tenantId: input.tenantId,
@@ -193,6 +199,7 @@ async function persistTourUpdateAtomicallyInContext(
       action: AUDIT_ACTION_TOUR_UPDATED,
       entityType: "tour",
       entityId: input.tourId,
+      createdAt: txNow,
     });
 
     if (process.env.P5_ATOMIC_TX_TEST_ABORT === "pre_commit") {

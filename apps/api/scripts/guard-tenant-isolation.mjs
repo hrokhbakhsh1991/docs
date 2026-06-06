@@ -32,6 +32,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log(
-  "guard-tenant-isolation: PASS (api-queries + rls-session-local + id-only-tour-read)",
-);
+console.log("guard-tenant-isolation: PASS (api-queries + rls-session-local + id-only-tour-read)");

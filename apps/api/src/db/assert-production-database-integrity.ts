@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { assertProductionMigrationHead } from "./migration-head-preflight";
 import { resolveStorageDriver } from "../storage/create-tour-storage";
 import { isProductionAuthMode } from "../tenant-kernel/auth-env";
 
@@ -79,6 +80,7 @@ export async function assertProductionDatabaseIntegrity(): Promise<void> {
         )
     `;
     assertTenantTablesHaveRls(rlsRows);
+    await assertProductionMigrationHead(databaseUrl);
   } finally {
     await probe.$disconnect();
   }

@@ -42,7 +42,7 @@ blockers:
     rules:
       production: "NODE_ENV=production → STORAGE_DRIVER prisma (requires DATABASE_URL)"
       dev_ci: "When DATABASE_URL set for enterprise tests → must set STORAGE_DRIVER=prisma explicitly"
-      main_wiring: "main.ts uses createTourStorageRepository() — not direct InMemoryTourRepository"
+      main_wiring: "lazy-tours-service.ts wires createTourStorageRepository() — main.ts stays thin; no direct InMemoryTourRepository"
     impact: dev/CI must set STORAGE_DRIVER=prisma when DATABASE_URL set — see IMPLEMENTATION-DECISIONS DEC-010
     resolution: env-runtime-matrix + apps/api/.env.example + 5.0 yaml PASS; production already prisma
     requires_architect: false

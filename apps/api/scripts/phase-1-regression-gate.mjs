@@ -40,6 +40,7 @@ const STEP3_SPECS = [
 
 const P2_SPECS = [
   "test/1-integration/memory-mixed-tenant-http.spec.ts",
+  "test/1-functional/tours-list.spec.ts",
 ];
 
 const POSTGRES_SPECS = [
@@ -122,7 +123,9 @@ const results = [];
 let failed = false;
 
 console.log("phase-1-regression-gate: starting (DEC-040)");
-console.log(`  DATABASE_URL: ${HAS_DATABASE ? "set (postgres tier enabled)" : "unset (postgres tier skipped)"}`);
+console.log(
+  `  DATABASE_URL: ${HAS_DATABASE ? "set (postgres tier enabled)" : "unset (postgres tier skipped)"}`
+);
 
 for (const step of STEPS) {
   console.log(`\n--- ${step.id} ---`);

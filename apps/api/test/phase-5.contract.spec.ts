@@ -9,10 +9,7 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 describe("phase-5.contract (REQ-P5-024)", () => {
   it("DEL-P5-001 schema doc exists with DDL sections", () => {
-    const doc = fs.readFileSync(
-      path.join(REPO_ROOT, "docs/phase-5-canonical-schema.md"),
-      "utf8",
-    );
+    const doc = fs.readFileSync(path.join(REPO_ROOT, "docs/phase-5-canonical-schema.md"), "utf8");
     assert.match(doc, /canonical_data/);
     assert.match(doc, /outbox_events/);
     assert.match(doc, /audit_events/);
@@ -30,10 +27,7 @@ describe("phase-5.contract (REQ-P5-024)", () => {
   });
 
   it("Prisma schema defines Tour canonical_data + OutboxEvent + AuditEvent", () => {
-    const schema = fs.readFileSync(
-      path.join(REPO_ROOT, "apps/api/prisma/schema.prisma"),
-      "utf8",
-    );
+    const schema = fs.readFileSync(path.join(REPO_ROOT, "apps/api/prisma/schema.prisma"), "utf8");
     assert.match(schema, /@map\("canonical_data"\)/);
     assert.match(schema, /model OutboxEvent/);
     assert.match(schema, /model AuditEvent/);

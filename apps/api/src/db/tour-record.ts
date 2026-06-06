@@ -13,3 +13,13 @@ export type TourWhere = {
   readonly tenantId: string;
   readonly id?: string;
 };
+
+export type TourListPageInput = {
+  readonly limit: number;
+  readonly cursor?: string;
+};
+
+export type TourListPageResult = {
+  readonly items: readonly TourRecord[];
+  readonly nextCursor: string | null;
+};

@@ -27,13 +27,13 @@ const openGates = new Map<string, ValidationGate>();
 export async function runPreTransactionValidation(
   input: ValidateBeforePersistInput
 ): Promise<CanonicalDocument> {
-  return runScheduledValidation(input.tenantId, () => {
+  return runScheduledValidation(input.tenantId, async () => {
     const activeTenant = requireActiveTenantId();
     if (activeTenant !== input.tenantId.trim()) {
       throw new Error("CANONICAL_VALIDATION_TENANT_MISMATCH");
     }
     try {
-      const canonical = validateCanonicalBeforePersist(input);
+      const canonical = await validateCanonicalBeforePersist(input);
       openGates.set(input.tenantId, { tenantId: input.tenantId });
       return canonical;
     } catch (error) {

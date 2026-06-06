@@ -15,6 +15,10 @@ export const OUTBOX_RELAY_TICK_FAILED = "OUTBOX_RELAY_TICK_FAILED";
 const UUID_PATH_SEGMENT =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const UUID_INLINE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
+
+const RELIABILITY_SENSITIVE_KEY = /tenant|tour|user|actor|correlation|uuid/i;
+
 /** LOG-COL-08 / DEC-042 — strip query and redact UUID segments before access logs. */
 export function normalizeHttpLogPath(rawPath: string): string {
   const withoutQuery = rawPath.split("?")[0]?.split("#")[0] ?? "/";
@@ -29,6 +33,27 @@ export function normalizeHttpLogPath(rawPath: string): string {
   });
   const normalized = segments.join("/");
   return normalized.length > 0 ? normalized : "/";
+}
+
+/** H-03 / DEC-128 — strip tenant/tour identifiers from reliability profile samples. */
+export function sanitizeReliabilitySamplePayload(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.replace(UUID_INLINE, ":uuid");
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeReliabilitySamplePayload(entry));
+  }
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (RELIABILITY_SENSITIVE_KEY.test(key)) {
+        continue;
+      }
+      out[key] = sanitizeReliabilitySamplePayload(entry);
+    }
+    return out;
+  }
+  return value;
 }
 
 function readLogHashKey(): string {

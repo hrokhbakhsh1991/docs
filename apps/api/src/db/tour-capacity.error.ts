@@ -1,7 +1,7 @@
 export class TourCapacityExceededError extends Error {
   constructor(
     readonly code: "TOUR_CAPACITY_TENANT" | "TOUR_CAPACITY_GLOBAL",
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = "TourCapacityExceededError";

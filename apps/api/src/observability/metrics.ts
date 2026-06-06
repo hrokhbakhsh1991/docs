@@ -4,6 +4,12 @@ export type MetricLabels = Readonly<Record<string, string>>;
 export const TENANT_SCOPED_METRIC_NAMES = new Set<string>([
   "tour_creation_count",
   "projection_inconsistency_total",
+  "projection_auto_repair_total",
+  "validation_queue_shed_total",
+  "validation_time_budget_exceeded_total",
+  "tour_write_concurrency_shed_total",
+  "outbox_relay_tenant_deferred_total",
+  "outbox_projection_lag_seconds",
 ]);
 
 function labelKey(labels: MetricLabels | undefined): string {
@@ -39,6 +45,7 @@ function assertTenantScopedMetricLabels(name: string, labels: MetricLabels | und
  */
 export class MetricsRegistry {
   private readonly counters = new Map<string, number>();
+  private readonly gauges = new Map<string, number>();
 
   increment(name: string, labels?: MetricLabels, amount = 1): void {
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -53,14 +60,33 @@ export class MetricsRegistry {
     return this.counters.get(seriesKey(name, labels)) ?? 0;
   }
 
+  observe(name: string, value: number, labels?: MetricLabels): void {
+    if (!Number.isFinite(value) || value < 0) {
+      return;
+    }
+    assertTenantScopedMetricLabels(name, labels);
+    const key = seriesKey(name, labels);
+    this.gauges.set(key, value);
+  }
+
+  getGauge(name: string, labels?: MetricLabels): number {
+    return this.gauges.get(seriesKey(name, labels)) ?? 0;
+  }
+
   /** Test-only — clears all series. */
   reset(): void {
     this.counters.clear();
+    this.gauges.clear();
   }
 
   /** Snapshot of all counter series (name+labels key → value). */
-  snapshot(): ReadonlyMap<string, number> {
+  snapshotCounters(): ReadonlyMap<string, number> {
     return new Map(this.counters);
+  }
+
+  /** Snapshot of all gauge series (name+labels key → value). */
+  snapshotGauges(): ReadonlyMap<string, number> {
+    return new Map(this.gauges);
   }
 }
 

@@ -14,15 +14,15 @@ Default Pino → Sonic-Boom stdout had **no bounded buffer**, **no drain/drop ob
 
 ## Decision
 
-| Knob                        | Default             | Behavior                                         |
-| --------------------------- | ------------------- | ------------------------------------------------ |
-| `LOG_SINK_MIN_LENGTH`       | **4096**            | Sonic-Boom batch flush size                      |
-| `LOG_SINK_MAX_LENGTH`       | **4194304** (4 MiB) | Bounded buffer; overflow emits Sonic-Boom `drop` |
-| `LOG_SINK_FLUSH_TIMEOUT_MS` | **2000**            | Shutdown flush deadline (fail-open)              |
-| `log_sink_drain_total`      | counter             | Increment on destination `drain`                 |
-| `log_sink_drop_total`       | counter             | Increment on destination `drop`                  |
+| Knob                        | Default             | Behavior                                                                          |
+| --------------------------- | ------------------- | --------------------------------------------------------------------------------- |
+| `LOG_SINK_MIN_LENGTH`       | **4096**            | Sonic-Boom batch flush size                                                       |
+| `LOG_SINK_MAX_LENGTH`       | **4194304** (4 MiB) | Bounded buffer; overflow emits Sonic-Boom `drop`                                  |
+| `LOG_SINK_FLUSH_TIMEOUT_MS` | **2000**            | Shutdown flush deadline (fail-open)                                               |
+| `log_sink_drain_total`      | counter             | Increment on destination `drain`                                                  |
+| `log_sink_drop_total`       | counter             | Increment on destination `drop`                                                   |
 | `log_sink_error_total`      | counter             | Increment on destination `error` (EPIPE/EAGAIN) — **must not crash** (SCAL-HF-09) |
-| `retryEAGAIN`               | **`() => false`**   | Stop infinite Sonic-Boom retry on full pipe; emit `error` once instead |
+| `retryEAGAIN`               | **`() => false`**   | Stop infinite Sonic-Boom retry on full pipe; emit `error` once instead            |
 
 ## Shutdown order (after `server.close`)
 
@@ -43,13 +43,13 @@ Default Pino → Sonic-Boom stdout had **no bounded buffer**, **no drain/drop ob
 
 ## Contract (availability-first)
 
-| Signal                      | App response                                             |
-| --------------------------- | -------------------------------------------------------- |
-| Sink backpressure (`drain`) | Metric only — no request-path block                      |
-| Buffer overflow (`drop`)    | Metric only — bounded memory at cost of log completeness |
-| Destination `error` (pipe) | Metric only — swallowed handler; process stays alive (HF-09) |
+| Signal                      | App response                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| Sink backpressure (`drain`) | Metric only — no request-path block                                                   |
+| Buffer overflow (`drop`)    | Metric only — bounded memory at cost of log completeness                              |
+| Destination `error` (pipe)  | Metric only — swallowed handler; process stays alive (HF-09)                          |
 | SIGTERM / SIGINT            | Best-effort flush within timeout; `log_shutdown_flush_*` metrics; process still exits |
-| Flush timeout (FOF-LOG-03)  | `log_shutdown_flush_timed_out_total` — alert `AppTourLogShutdownFlushTimeout` |
+| Flush timeout (FOF-LOG-03)  | `log_shutdown_flush_timed_out_total` — alert `AppTourLogShutdownFlushTimeout`         |
 
 ## Nightly slow-sink adversarial probe (DEC-070)
 

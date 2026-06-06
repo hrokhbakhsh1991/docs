@@ -15,14 +15,14 @@ Enterprise pattern: **DLQ + immutable payload + explicit admin replay** — not 
 
 ## Decision
 
-| Item               | Choice                                                                  |
-| ------------------ | ----------------------------------------------------------------------- |
-| Terminal state     | `status = failed`, `processed_at` set, `last_error` JSON                |
-| `last_error` shape | `{ code: string, at: ISO8601 }` from caught publish error               |
-| Replay             | `pending` + clear `processed_at` + `last_error` — **payload unchanged** |
-| HTTP               | `POST /internal/outbox/:id/replay` body `{ tenantId }` — dev/test only  |
-| CLI                | `pnpm run outbox:replay-failed -- --tenant=<uuid> [--id=<uuid>]`        |
-| Guard              | `guard:outbox-failed-replay`                                            |
+| Item               | Choice                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Terminal state     | `status = failed`, `processed_at` set, `last_error` JSON                                                                                            |
+| `last_error` shape | `{ code: string, at: ISO8601 }` from caught publish error                                                                                           |
+| Replay             | `pending` + clear `processed_at` + `last_error` — **payload unchanged**                                                                             |
+| HTTP               | `POST /internal/outbox/:id/replay` body `{ tenantId }` — dev/test only                                                                              |
+| CLI                | `pnpm run outbox:replay-failed -- --tenant=<uuid> [--id=<uuid>]`                                                                                    |
+| Guard              | `guard:outbox-failed-replay`                                                                                                                        |
 | Auto-retry         | **Forbidden on `failed`** — relay must not claim terminal `failed` (DEC-086). **Transient retry before `failed`:** DEC-110 returns row to `pending` |
 
 ### Dev-only gate

@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 
 import { RedisRateLimiterStore } from "../../src/middleware/redis-rate-limiter-store";
 import {
+  MemoryRateLimiterStore,
   resetTenantRateLimiterStoreForTests,
   resolveTenantRateLimitConfig,
   TenantRateLimitExceededError,
@@ -18,7 +19,7 @@ const redisUrl = process.env.REDIS_URL?.trim();
 
 describe("3-performance — redis rate limiter store", { skip: !redisUrl }, () => {
   it("enforces per-tenant keys in Redis when REDIS_URL is set", async () => {
-    resetTenantRateLimiterStoreForTests();
+    await resetTenantRateLimiterStoreForTests();
     const config = resolveTenantRateLimitConfig(
       {
         ...process.env,
@@ -28,19 +29,23 @@ describe("3-performance — redis rate limiter store", { skip: !redisUrl }, () =
       },
       "write"
     );
-    const store = new RedisRateLimiterStore(redisUrl!, config);
+    const store = new RedisRateLimiterStore(redisUrl!, config, new MemoryRateLimiterStore(config));
     const tenantKey = `redis-rl-test-${Date.now()}`;
 
-    await store.consume(tenantKey);
-    await store.consume(tenantKey);
+    try {
+      await store.consume(tenantKey);
+      await store.consume(tenantKey);
 
-    await assert.rejects(
-      () => store.consume(tenantKey),
-      (error: unknown) => {
-        assert.ok(error instanceof TenantRateLimitExceededError);
-        return true;
-      }
-    );
+      await assert.rejects(
+        () => store.consume(tenantKey),
+        (error: unknown) => {
+          assert.ok(error instanceof TenantRateLimitExceededError);
+          return true;
+        }
+      );
+    } finally {
+      await store.disconnect();
+    }
   });
 });
 

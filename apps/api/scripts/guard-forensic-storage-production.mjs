@@ -37,7 +37,10 @@ if (!mainTs.includes("assertProductionRuntimeIntegrity()")) {
   violations.push("main.ts: must call assertProductionRuntimeIntegrity() at boot");
 }
 
-const AUDIT_CALL_SITE = "canonical/atomic-canonical-tour-persist.ts";
+const AUDIT_CALL_SITES = new Set([
+  "src/canonical/atomic-canonical-tour-persist.ts",
+  "src/internal/provisioning.service.ts", // DEC-127 TENANT_PROVISIONED in admin TX
+]);
 
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) {
@@ -63,9 +66,9 @@ for (const file of walk(SRC)) {
     continue;
   }
   const text = fs.readFileSync(file, "utf8");
-  if (/\bappendAuditEvent\b/.test(text) && rel !== `src/${AUDIT_CALL_SITE}`) {
+  if (/\bappendAuditEvent\b/.test(text) && !AUDIT_CALL_SITES.has(rel)) {
     violations.push(
-      `${rel}: appendAuditEvent only allowed in audit-logger.ts (definition) and ${AUDIT_CALL_SITE}`
+      `${rel}: appendAuditEvent only allowed in audit-logger.ts (definition) and ${[...AUDIT_CALL_SITES].join(", ")}`
     );
   }
 }
