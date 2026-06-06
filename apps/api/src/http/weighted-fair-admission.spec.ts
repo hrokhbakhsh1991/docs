@@ -16,8 +16,9 @@ import {
 } from "../tenant/tenant-registry-cache";
 
 describe("weighted fair admission (DEC-114)", () => {
-  const tenantLow = "00000000-0000-4000-8000-000000000101";
-  const tenantHigh = "00000000-0000-4000-8000-000000000102";
+  // Slug ids — avoid Postgres UUID branch on CI (seeded rows would override theme cache).
+  const tenantLow = "dec114-tenant-low";
+  const tenantHigh = "dec114-tenant-high";
 
   beforeEach(() => {
     resetWeightedFairAdmissionForTests();

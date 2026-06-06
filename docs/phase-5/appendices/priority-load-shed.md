@@ -47,6 +47,14 @@ flowchart TD
   D --> E[release inflight]
 ```
 
+## Integration test isolation
+
+`weighted-fair-admission.spec.ts` seeds `priorityTier` via `seedTenantRegistryCacheForTests` and asserts watermark ordering (low sheds before normal; high survives until hard max).
+
+When `DATABASE_URL` is set (phase-4/5 CI gates), **UUID-shaped** tenant ids take the Postgres branch in `resolveRegisteredTenant`. Seeded `tenants` rows can return `theme.priorityTier: normal` and override the in-memory cache, so shed assertions fail even though production admission still reads cache-first for slug ids.
+
+The spec therefore uses **slug** tenant ids (`dec114-tenant-low`, `dec114-tenant-high`) so tier resolution stays on the registry cache path under full gate runs.
+
 ## Verification
 
 ```bash
