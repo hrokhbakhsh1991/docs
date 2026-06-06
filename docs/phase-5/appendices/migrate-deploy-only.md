@@ -42,11 +42,18 @@ flowchart LR
   deploy --> app[API boot + gates]
 ```
 
+## Owner URL wiring (DEC-124)
+
+`pnpm run db:migrate:deploy` runs [`apps/api/scripts/db-migrate-deploy.mjs`](../../../apps/api/scripts/db-migrate-deploy.mjs), which passes **`DATABASE_URL_ADMIN`** to Prisma when set, otherwise falls back to `DATABASE_URL`.
+
+Gate jobs export both URLs (`app_tour` for runtime RLS tests, `postgres` for DDL). Without the admin override, `app_tour` lacks `CREATE` on `public` and migrate deploy fails with `permission denied for schema public`.
+
 ## Commands
 
 ```bash
-# Production / CI / local gate (owner URL)
+# Production / CI / local gate
 export DATABASE_URL_ADMIN='postgresql://postgres:postgres@127.0.0.1:5434/tour_db'
+export DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32'
 psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql 2>/dev/null || true
 cd apps/api && pnpm run db:migrate:deploy
 

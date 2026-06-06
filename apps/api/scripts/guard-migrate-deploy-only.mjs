@@ -67,6 +67,9 @@ const apiPkg = readApi("package.json");
 if (!apiPkg.includes("db:migrate:deploy")) {
   violations.push("apps/api package.json must define db:migrate:deploy");
 }
+if (!apiPkg.includes("db-migrate-deploy.mjs")) {
+  violations.push("db:migrate:deploy must route through db-migrate-deploy.mjs (owner URL)");
+}
 
 for (const rel of ["docs/phase-5/appendices/migrate-deploy-only.md", "infra/sql/README.md"]) {
   if (!fs.existsSync(path.join(REPO_ROOT, rel))) {
