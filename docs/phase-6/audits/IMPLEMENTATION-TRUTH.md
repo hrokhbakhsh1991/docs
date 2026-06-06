@@ -1,10 +1,10 @@
 # Phase 6 — Implementation truth ledger
 
 ```yaml
-ledger_date: "2026-06-06"
+ledger_date: "2026-06-07"
 phase_closed: true
 closure_path: fast-track
-closure_git_sha: 2cd7f87
+closure_git_sha: 9b10fcb
 doc_pack_status: PRECISION_DEPTH_v3_CRITICAL_96
 doc_execution_system_score: 96
 critical_spec_quality_score: 96
@@ -15,7 +15,7 @@ research: ../../research/phase-6-denali-workspace-research.md
 forensic: ../../../reports/phase-6-forensic-audit-2026-06-06.md
 ```
 
-> **Honesty:** Phase 6 closed via **fast-track** + behavioral hardening (2026-06-06). **6.6 smoke 4/4** (`test:smoke:denali`) · **6.7 MinIO 4/4** (`test:minio-photo`). Platform-core `assertTenantId` accepts registry UUIDs for `DENALI_SMOKE_TENANT_ID`. Remaining waiver: **BLOCKER-P6-OUTBOX-5.4** (finance stub) · full `phase-6:gate` → CI nightly.
+> **Honesty:** Phase 6 closed via **fast-track** + behavioral hardening. **6.6 smoke 4/4** (`test:smoke:denali`, re-verified 2026-06-07) · **6.7 MinIO 4/4** (`test:minio-photo`) · **`phase-6:fast-closure` exit 0** @ `9b10fcb`. Platform-core `assertTenantId` accepts registry UUIDs for `DENALI_SMOKE_TENANT_ID`. Sole residual waiver: **BLOCKER-P6-OUTBOX-5.4** (finance stub per REQ-P6-028). CI: `.github/workflows/phase-6-gate.yml` (fast-closure + minio + smoke).
 
 ## Subphase ledger
 
