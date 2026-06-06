@@ -72,6 +72,7 @@ describe("1-functional — TourCreated domain event flow", () => {
 
     const service = createTestToursService();
     const record = await service.createTour(authForTenant(tenantId), { ...VALID_TOUR_BODY });
+    await drainAsyncHandlers();
 
     assert.equal(captured.length, 1, "valid TourCreated must be published (not dropped)");
     const evt = captured[0]!;
@@ -100,6 +101,7 @@ describe("1-functional — TourCreated domain event flow", () => {
 
     const service = createTestToursService();
     const record = await service.createTour(authForTenant(tenantId), { ...VALID_TOUR_BODY });
+    await drainAsyncHandlers();
 
     assert.deepEqual(globalSeen, [record.id], "global subscriber must receive valid event");
     assert.deepEqual(scopedSeen, [record.id], "tenant-scoped subscriber must receive valid event");

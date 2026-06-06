@@ -24,11 +24,12 @@ export function evaluatePhase5RepoAlignment() {
   const failures = [];
 
   const main = read("apps/api/src/main.ts");
-  if (!/createTourStorageRepository/.test(main)) {
-    failures.push("main.ts must use createTourStorageRepository()");
+  const lazyTours = read("apps/api/src/boot/lazy-tours-service.ts");
+  if (!/createTourStorageRepository/.test(lazyTours)) {
+    failures.push("lazy-tours-service.ts must wire createTourStorageRepository()");
   }
-  if (/new InMemoryTourRepository/.test(main)) {
-    failures.push("main.ts must not construct InMemoryTourRepository directly");
+  if (/new InMemoryTourRepository/.test(main) || /new InMemoryTourRepository/.test(lazyTours)) {
+    failures.push("boot path must not construct InMemoryTourRepository directly");
   }
 
   const factory = read("apps/api/src/storage/create-tour-storage.ts");

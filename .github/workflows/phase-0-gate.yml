@@ -85,6 +85,6 @@ jobs:
         with:
           name: phase-0-integration-gate-report
           path: |
-            reports/phase-0-foundation-gate-*.json
+            reports/phase-0-integration-gate-*.json
             reports/phase-0-baseline-*.json
           if-no-files-found: ignore

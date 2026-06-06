@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { describe, it, before } from "node:test";
+import { describe, it, before, after } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { createTestToursService } from "./test-helpers";
@@ -75,13 +75,23 @@ async function requestJson(
   });
 }
 
-describe("apps/api integration", () => {
+describe("apps/api integration", { concurrency: false }, () => {
   let listener: ReturnType<typeof createRequestListener>;
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
 
   before(() => {
+    process.env.STORAGE_DRIVER = "memory";
     listener = createRequestListener({
       toursService: createTestToursService(),
     });
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
   });
 
   it("GET /health returns 200", async () => {

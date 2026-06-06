@@ -4,14 +4,15 @@
 
 ## Tiers
 
-| Tier                     | Command                              | When                        | What runs                                                                                                                                              |
-| ------------------------ | ------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fast (default)**       | Husky → `scripts/pre-commit-fast.sh` | Every `git commit`          | `guard-docs`, Node engine, eslint on changed TS (root + `apps/web`), optional prettier (if installed + config), `test-changed` for affected workspaces |
-| **Changed tests**        | `pnpm run test:changed`              | Manual / CI selective       | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                          |
-| **Pre-commit dry-run**   | `pnpm run pre-commit:fast`           | Before commit               | Same as Husky fast path                                                                                                                                |
-| **Full**                 | `pnpm run test:full`                 | Before PR / Phase 4 closure | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
-| **CI integrity**         | `pnpm run ci:integrity`              | GitHub / explicit local     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
-| **Nightly (API probes)** | `pnpm run test:nightly`              | Scheduled / pre-release     | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                   |
+| Tier                             | Command                              | When                                        | What runs                                                                                                                                              |
+| -------------------------------- | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Fast (default)**               | Husky → `scripts/pre-commit-fast.sh` | Every `git commit`                          | `guard-docs`, Node engine, eslint on changed TS (root + `apps/web`), optional prettier (if installed + config), `test-changed` for affected workspaces |
+| **Changed tests**                | `pnpm run test:changed`              | Manual / CI selective                       | `scripts/test-changed.sh --mode ci` — diff `origin/main...HEAD`, dependency expansion, `.cache/test-changed/`                                          |
+| **Pre-commit dry-run**           | `pnpm run pre-commit:fast`           | Before commit                               | Same as Husky fast path                                                                                                                                |
+| **Full**                         | `pnpm run test:full`                 | Before PR / Phase 4 closure                 | `phase-3:gate` + `phase-4:gate` (includes build, full `pnpm test`, guards, doc-gate, `p4_rls_integration_tests` when env set)                          |
+| **CI integrity**                 | `pnpm run ci:integrity`              | GitHub / explicit local                     | Phases **0 → 3** via `scripts/ci-integrity-check.sh` — **not** Husky default                                                                           |
+| **Nightly (API probes)**         | `pnpm run test:nightly`              | Scheduled / pre-release                     | `APPS_API_TEST_TIER=nightly` — backlog 1000-row, noise-neighbor HTTP, 10k relay leak; includes `test:nightly:soak` when `RUN_SOAK=1`                   |
+| **Nightly (cold-start enforce)** | `pnpm run test:nightly:cold-start`   | Scheduled (`api-nightly.yml`) / pre-release | `build` + `cold-start-readiness-gate` with `COLD_START_READINESS_ENFORCE=true` — hard-fail when compiled p95 > 500 ms                                  |
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
 
@@ -55,15 +56,46 @@ See [`docs/phase-4/ci.md`](../phase-4/ci.md) for compose URLs and migration step
 
 ## Phase 5 API test tiers (P2-1)
 
-| Command                                    | `APPS_API_TEST_TIER` | Probes                                                                                          |
-| ------------------------------------------ | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `pnpm --filter @apps/api test` (default)   | `trunk`              | Unit + integration; **skips** nightly-only specs                                                |
-| `pnpm --filter @apps/api run test:nightly` | `nightly`            | Full suite including `event-backlog-recovery`, `noise-neighbor`, `outbox-relay-connection-leak` |
-| `pnpm run test:nightly` (root)             | `nightly` + soak     | Above + `soak-memory-leak` when `RUN_SOAK=1`                                                    |
+| Command                                  | `APPS_API_TEST_TIER` | Probes                                                                                                                                                                                      |
+| ---------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @apps/api test` (default) | `trunk`              | Unit + integration; **skips** nightly-only specs; **`STORAGE_DRIVER` defaults to `memory`** (integration specs that need Postgres atomic persist set `STORAGE_DRIVER=prisma` in `before()`) |
 
-`pnpm run phase-5:gate` uses trunk-tier `pnpm test` — heavy probes do not block PR closure.
+### Outbox relay test isolation (F-03)
 
-Nightly-only specs: [`apps/api/test/test-tier.ts`](../../apps/api/test/test-tier.ts).
+Trunk `pnpm test` disables in-process background workers that would race manual relay ticks in integration specs:
+
+| Env var                             | Default in `apps/api` test script | Purpose                                                                                                                                                |
+| ----------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `OUTBOX_RELAY_ENABLED`              | `false`                           | Prevents `startOutboxRelayIfEnabled` timer from claiming rows while tests call `processOutboxRelayOnce` / `processOutboxRelayForTenantOnce` explicitly |
+| `PROJECTION_AUTO_RECONCILE_ENABLED` | `false`                           | Prevents projection auto-reconcile from mutating outbox / read-model state mid-test                                                                    |
+
+Both vars are set again in [`apps/api/test/bootstrap-outbox-test-env.ts`](../../apps/api/test/bootstrap-outbox-test-env.ts), loaded via `node --import ./test/bootstrap-outbox-test-env.ts` on every test run. When `DATABASE_URL` is set, that bootstrap:
+
+1. Sets `TENANT_MAX_CONCURRENT_DB_OPS=64` when unset (concurrent mixed-tenant specs under full gate).
+2. Registers `beforeEach` hooks that reset tenant DB budget, DB circuit breaker, weighted-fair admission, Redis rate-limiter circuit, tour-write concurrency counters, and outbox relay tenant publish slots between specs.
+3. Registers a root `before()` hook that calls `reclaimStaleProcessingOutboxRows(0)` so stale `processing` rows from prior specs or crashed workers do not block ordered-per-tenant claims.
+
+HTTP specs that use `createTestToursService()` with in-memory storage should call `installMemoryStorageDriverForDescribe()` from `test-helpers.ts` so `STORAGE_DRIVER=prisma` from the outer gate does not force atomic Postgres persist on random tenant UUIDs.
+
+Burst HTTP specs that assert **rate-limit** (`429` + `RATE_LIMIT_EXCEEDED`) or **validation** outcomes must raise `TENANT_MAX_CONCURRENT_TOUR_WRITES` in the suite `before()` hook above the burst size — default **8** sheds in-flight POST /tours as `TOUR_CAPACITY_EXCEEDED` (also mapped to 429), which would false-fail rate-limiter and feature-flag degradation probes.
+
+100-request HTTP smoke specs (`full-service-stack`, `log-persistence-smoke`) set `TENANT_RATE_LIMIT_ENABLED=false` in `before()` — default **10 req/s** would fail request ~11+ even when sequential. Bootstrap `beforeEach` also calls `resetTenantRateLimiterStoreForTests()` so perf specs that enable the limiter do not leak bucket state.
+
+Per-spec helpers in [`apps/api/test/test-helpers.ts`](../../apps/api/test/test-helpers.ts):
+
+- `stabilizeOutboxRelayTestEnv()` — force the two env vars off (returns `restore`)
+- `quiesceStaleOutboxProcessing(reclaimMs?)` — reclaim stale `processing` → `pending` / `done`
+- `preparePostgresOutboxIsolation()` — stabilize env + quiesce (call from Postgres outbox integration `before()` / `beforeEach`)
+
+Integration specs that drive relay manually should prefer **tenant-scoped** `processOutboxRelayForTenantOnce(tenantId, batch)` over global `processOutboxRelayOnce` to avoid cross-tenant pollution on shared Postgres.
+
+| `pnpm --filter @apps/api run test:nightly` | `nightly` | Full suite including `event-backlog-recovery`, `noise-neighbor`, `outbox-relay-connection-leak`, `outbox-throughput` |
+| `pnpm run test:nightly` (root) | `nightly` + soak | Above + `soak-memory-leak` when `RUN_SOAK=1` |
+| `pnpm --filter @apps/api run test:nightly:cold-start` | enforce gate | Compiled `dist/main.js` spawn-to-`/health` with `COLD_START_READINESS_ENFORCE=true` (not trunk) |
+
+`pnpm run phase-5:gate` uses trunk-tier `pnpm test` — heavy probes do not block PR closure. Cold-start **enforce** runs only in `api-nightly` workflow, not `phase-3-gate` / Husky.
+
+Nightly-only specs: [`apps/api/test/test-tier.ts`](../../apps/api/test/test-tier.ts) — includes `chaos/atomic-rollback-stress` (subprocess SIGKILL; trunk skips to avoid orphaned `atomic-crash-worker` blocking `phase-1:gate`) and `3-performance/outbox-throughput` (5000-row drain SLO; trunk skips so shared Postgres under full `phase-1:gate` is not throughput-gated). Phase 4 resilience gate runs chaos with `APPS_API_TEST_TIER=nightly`.
 
 ## Tenant ALS isolation (0-security, no Postgres)
 
@@ -91,4 +123,5 @@ cd apps/api && NODE_ENV=test node --import tsx --test test/0-security/als-high-l
 ## GitHub Actions
 
 - Phase 3: `.github/workflows/phase-3-gate.yml` runs `pnpm run phase-3:gate` on PR/push.
+- API nightly: `.github/workflows/api-nightly.yml` — scheduled `test:nightly:cold-start` (enforce) + `test:nightly:slow-sink`; not on trunk PR path.
 - Phase 4 RLS: run `pnpm run test:full` (or `phase-4:gate` with env) in a job with Postgres — not part of fast pre-commit.

@@ -27,7 +27,7 @@
 | **Structured logging**     | **Green** | Request path uses pino; **LOG-V-01** closed — `graceful_shutdown.failed` via pino; `guard:no-console-src` (DEC-043).   |
 | **Trace / correlation**    | **Green** | Single-resolve trace at `app.ts`; access logs carry `correlation_id` (**TRACE-LOST-01** closed DEC-048).               |
 | **Metrics / usage**        | **Green** | Tenant-scoped counters fail-closed without `tenant_id` (**MET-API-01** closed DEC-049); **OBS-MET-01** spec.           |
-| **HTTP error surface**     | **Green** | 500/503 opaque; validation 400 intentional; internal routes minor bypass (**ERR-BYPASS-01**).                          |
+| **HTTP error surface**     | **Green** | 500/503 opaque; internal provision + db-pool-hold use `handleHttpError` (DEC-126 / ERR-BYPASS-01).                     |
 | **Audit (`audit_events`)** | **Green** | `TOUR_CREATED` + `TOUR_UPDATED` in Prisma atomic TX (DEC-047); memory driver **non-forensic** by design (dev/CI only). |
 | **ALS / tenant isolation** | **Green** | No post-request ALS on HTTP listener; concurrent burst clean; middleware does not fork context.                        |
 | **Log backpressure**       | **Green** | 1000× `/health` burst: no client latency regression attributable to logging (**LOG-BP-01**).                           |
@@ -35,7 +35,63 @@
 
 **Strengths (keep):** Fail-closed tenant rate limiter; append-only `audit_events` trigger; RLS-aligned audit reads; error interceptor centralization; minimal production log surface (7 pino sites).
 
-**Residual risk (accept or schedule):** Phase 7 outbox trace continuation (**TRACE-LOST-02**); internal route correlation (**ERR-BYPASS-01**).
+**Residual risk (accept or schedule):** Phase 7 outbox trace continuation (**TRACE-LOST-02**); `POST /internal/outbox/:id/replay` local error mapper (same class as ERR-BYPASS-01, P2).
+
+### Phase 2 residual P1 closure (DEC-126)
+
+| ID                 | Status   | Evidence                                                             |
+| ------------------ | -------- | -------------------------------------------------------------------- |
+| **TRACE-REGEN-02** | **Done** | `resolveCorrelationId()` → `requireActiveTraceId()` (no orphan UUID) |
+| **ERR-BYPASS-01**  | **Done** | `tenants.ts` + `db-pool-hold.ts` → `handleHttpError`                 |
+| **ALS-FOOTGUN-01** | **Done** | `guard:route-handler-async-hygiene` on route handler paths           |
+| **LOG-V-02/03**    | **Done** | `db-seed.ts` structured logger (prior DEC)                           |
+
+```bash
+cd apps/api
+pnpm run guard:route-handler-async-hygiene
+pnpm run guard:internal-route-http-error
+node --import tsx --test src/middleware/error-interceptor.spec.ts test/2-observability/internal-route-correlation.spec.ts
+```
+
+### Phase 2 residual P2 closure (DEC-127 — batch 1)
+
+| ID                | Status   | Evidence                                                   |
+| ----------------- | -------- | ---------------------------------------------------------- |
+| **LOG-V-04/05**   | **Done** | Graceful-shutdown harness JSON stderr                      |
+| **MET-COV-01**    | **Done** | `metrics.spec.ts` — `projection_inconsistency_total` guard |
+| **ERR-GAP-01**    | **Done** | `guard:http-send-json-5xx`                                 |
+| **ERR-BYPASS-02** | **Done** | JSON 404 envelope via `sendHttpError`                      |
+| **ERR-429-01**    | **Done** | Rate limit uses `requireActiveTraceId`                     |
+| **outbox-replay** | **Done** | `handleHttpError` + mapper extensions                      |
+| **AUDIT-GAP-03**  | **Done** | `TENANT_PROVISIONED` in provision TX                       |
+| **AUDIT-GAP-06**  | **Done** | Migration `audit_events` actor index                       |
+
+```bash
+cd apps/api
+pnpm run guard:http-send-json-5xx
+pnpm run guard:tenant-provision-audit
+pnpm run guard:internal-route-http-error
+```
+
+### Phase 2 residual P2 closure — batch 2 (DEC-128)
+
+| ID                | Status   | Evidence                                                               |
+| ----------------- | -------- | ---------------------------------------------------------------------- |
+| **H-01**          | **Done** | `guard:http-access-path-normalize`                                     |
+| **H-02**          | **Done** | `guard:log-structured-hygiene`                                         |
+| **H-03**          | **Done** | `sanitizeReliabilitySamplePayload` + profile script                    |
+| **LOG-BP-04**     | **Done** | `internal-error-log-budget.ts` + metric                                |
+| **AUDIT-GAP-05**  | **Done** | [`audit-coverage.md`](../../docs/phase-5/appendices/audit-coverage.md) |
+| **AUDIT-GAP-07**  | **Done** | same doc — bypass matrix                                               |
+| **CTX-MW-LOW-01** | **Done** | DEC-044 trace reuse (not middleware)                                   |
+
+```bash
+cd apps/api
+pnpm run guard:http-access-path-normalize
+pnpm run guard:log-structured-hygiene
+pnpm run guard:internal-error-log-budget
+node --import tsx --test src/observability/internal-error-log-budget.spec.ts
+```
 
 ### Must-Fix list (blocks Red Team sign-off for production)
 

@@ -39,6 +39,7 @@ describe("canonical integrity — POST /tours storage", () => {
       "canonical/canonical-storage.ts",
       "canonical/atomic-canonical-tour-persist.ts",
       "canonical/assert-tour-capacity-in-tx.ts",
+      "canonical/migrate-canonical-denali.service.ts",
     ]);
     const hits: string[] = [];
     for (const file of [...listTsFiles(tourPath), ...listTsFiles(canonicalPath)]) {

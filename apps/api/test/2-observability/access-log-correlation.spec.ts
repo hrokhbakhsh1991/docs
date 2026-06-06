@@ -10,7 +10,7 @@ import http from "node:http";
 import { after, before, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app";
-import { withRequestLogging } from "../../src/http/request-logging";
+import { drainHttpRequestLogQueueSync, withRequestLogging } from "../../src/http/request-logging";
 import { logger } from "../../src/observability/logger";
 import { createTestToursService, integrationTenantId } from "../test-helpers";
 
@@ -136,6 +136,8 @@ describe("2-observability — access log correlation (TRACE-LOST-01)", () => {
           return;
         }
         const body = JSON.stringify({
+          schemaVersion: 1,
+          roots: ["basics", "details"],
           data: { basics: { title: "access-log-correlation" }, details: { summary: "ok" } },
         });
         const req = http.request(
@@ -172,6 +174,8 @@ describe("2-observability — access log correlation (TRACE-LOST-01)", () => {
         req.end();
       });
     });
+
+    drainHttpRequestLogQueueSync();
 
     const accessLog = capture.records.slice(before).find((r) => r.event === "http.request");
     assert.ok(accessLog);

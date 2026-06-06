@@ -3,7 +3,7 @@ import http from "node:http";
 import { describe, it, before } from "node:test";
 
 import { createRequestListener } from "../src/app";
-import { createTestToursService } from "./test-helpers";
+import { createTestToursService, installMemoryStorageDriverForDescribe } from "./test-helpers";
 
 /**
  * Phase 3.2 integrity — cross-tenant forensic (P3-E-DB-01).
@@ -87,6 +87,7 @@ async function requestJson(
 }
 
 describe("cross-tenant forensic (integrity 3.2)", () => {
+  installMemoryStorageDriverForDescribe();
   let listener: ReturnType<typeof createRequestListener>;
 
   before(() => {

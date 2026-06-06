@@ -45,15 +45,12 @@ describe("GET /api/v2/tenant-config", () => {
   it("returns tenant-a theme for matching host and auth", async () => {
     const store = new TourStorageDbAdapter(new InMemoryTourRepository());
     const toursService = new ToursService(
-      new CanonicalTourService(store, new LegacyCanonicalAdapter()),
+      new CanonicalTourService(store, new LegacyCanonicalAdapter())
     );
     const handler = createRequestListener({ toursService });
 
     const { status, body } = await listen(handler);
     assert.equal(status, 200);
-    assert.equal(
-      (body as { theme?: { primaryColor?: string } }).theme?.primaryColor,
-      "#2563eb",
-    );
+    assert.equal((body as { theme?: { primaryColor?: string } }).theme?.primaryColor, "#2563eb");
   });
 });

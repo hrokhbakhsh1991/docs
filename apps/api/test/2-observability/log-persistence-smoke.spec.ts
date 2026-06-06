@@ -116,9 +116,11 @@ describe(
     let server: http.Server;
     let port = 0;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
+    const priorRateLimitEnabled = process.env.TENANT_RATE_LIMIT_ENABLED;
 
     before(async () => {
       process.env.STORAGE_DRIVER = "prisma";
+      process.env.TENANT_RATE_LIMIT_ENABLED = "false";
       process.env.DATABASE_URL = withConnectionLimit(
         process.env.DATABASE_URL?.trim() ?? APP_TOUR_URL
       );
@@ -153,6 +155,11 @@ describe(
     after(async () => {
       server.close();
       process.env.STORAGE_DRIVER = priorStorageDriver;
+      if (priorRateLimitEnabled === undefined) {
+        delete process.env.TENANT_RATE_LIMIT_ENABLED;
+      } else {
+        process.env.TENANT_RATE_LIMIT_ENABLED = priorRateLimitEnabled;
+      }
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
       );

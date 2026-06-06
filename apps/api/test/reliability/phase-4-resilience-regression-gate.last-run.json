@@ -31,9 +31,7 @@
   "chaosVerdictAfter": "CLOSURE_PASS_WITH_RESIDUAL",
   "resilienceScoreBefore": 62,
   "resilienceScoreAfter": 88,
-  "residualRisks": [
-    "SV-F-04"
-  ],
+  "residualRisks": ["SV-F-04"],
   "mustFixP0OpenBefore": 8,
   "mustFixP0OpenAfter": 0,
   "startedAt": "2026-06-06T04:41:13.739Z",

@@ -14,8 +14,7 @@ const dbUrl =
   process.env.DATABASE_URL?.trim() ||
   "postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32";
 const dbAdmin =
-  process.env.DATABASE_URL_ADMIN?.trim() ||
-  "postgresql://postgres:postgres@127.0.0.1:5434/tour_db";
+  process.env.DATABASE_URL_ADMIN?.trim() || "postgresql://postgres:postgres@127.0.0.1:5434/tour_db";
 
 function waitForUrl(url, timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs;
@@ -96,10 +95,7 @@ seed.on("exit", (code) => {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  Promise.all([
-    waitForUrl("http://127.0.0.1:3001/health"),
-    waitForUrl("http://127.0.0.1:3000/"),
-  ])
+  Promise.all([waitForUrl("http://127.0.0.1:3001/health"), waitForUrl("http://127.0.0.1:3000/")])
     .then(() => {
       console.log("th1-e2e-servers: API + web ready");
     })

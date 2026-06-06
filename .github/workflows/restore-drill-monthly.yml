@@ -1,0 +1,72 @@
+# DEC-125 — monthly Postgres backup/restore drill smoke.
+
+name: restore-drill-monthly
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: restore-drill-monthly
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: Restore drill smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy
+        run: pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Run restore drill smoke
+        run: bash scripts/restore-drill-smoke.sh | tee restore-drill-report.txt
+
+      - name: Upload drill report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-drill-report
+          path: restore-drill-report.txt
+          if-no-files-found: ignore

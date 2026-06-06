@@ -10,7 +10,7 @@ import {
   runPreTransactionValidation,
 } from "../src/canonical/pre-transaction-validation";
 import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
-import { integrationTenantId } from "./test-helpers";
+import { integrationTenantId, preparePostgresOutboxIsolation } from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
 
@@ -49,6 +49,7 @@ describe(
     const priorAbort = process.env.P5_ATOMIC_TX_TEST_ABORT;
 
     before(async () => {
+      await preparePostgresOutboxIsolation();
       delete process.env.P5_ATOMIC_TX_TEST_ABORT;
       admin = getPrismaAdmin();
       appRole = new PrismaClient({ datasources: { db: { url: APP_TOUR_URL } } });
@@ -73,13 +74,23 @@ describe(
 
     after(async () => {
       process.env.P5_ATOMIC_TX_TEST_ABORT = priorAbort;
-      for (const { tenantId } of fixtures) {
-        await admin.outboxEvent.deleteMany({ where: { tenantId } });
-        await admin.tour.deleteMany({ where: { tenantId } });
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      try {
+        for (const { tenantId } of fixtures) {
+          await admin.auditEvent.deleteMany({ where: { tenantId } });
+          await admin.outboxEvent.deleteMany({ where: { tenantId } });
+          await admin.tour.deleteMany({ where: { tenantId } });
+        }
+        await admin.tenant.deleteMany({
+          where: { id: { in: fixtures.map((f) => f.tenantId) } },
+        });
+      } finally {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        );
       }
-      await admin.tenant.deleteMany({
-        where: { id: { in: fixtures.map((f) => f.tenantId) } },
-      });
       await appRole.$disconnect();
       await disconnectPrisma();
     });

@@ -1,0 +1,81 @@
+{
+  "gate": "phase-4",
+  "date": "2026-06-05",
+  "gitSha": "1697b77",
+  "ok": true,
+  "checks": [
+    {
+      "id": "p4_red_flag_prerequisite",
+      "enforcementId": "P4-E-RF-40",
+      "description": "Phase 3.2 red-flag status report exists (4.0 gate)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_tenant_kernel_build",
+      "description": "@app-tour/tenant-kernel build",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_tenant_kernel_test",
+      "enforcementId": "P4-E-HOST-01",
+      "description": "tenant-kernel tests >= 6",
+      "required": true,
+      "ok": true
+    },
+    {
+      "id": "p4_platform_events_build",
+      "description": "@app-tour/platform-events build",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_platform_events_test",
+      "enforcementId": "P4-E-EVT-01",
+      "description": "platform-events tests >= 2",
+      "required": true,
+      "ok": true
+    },
+    {
+      "id": "p4_contract_spec",
+      "description": "phase-4.contract.spec.ts",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_no_denali_in_kernel",
+      "description": "rg -i denali packages/tenant-kernel platform-events → 0",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_infra_compose",
+      "description": "infra/docker-compose.yml present",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_rls_integration_tests",
+      "enforcementId": "P4-E-RLS-01",
+      "description": "apps/api RLS + tenant-security integration (DATABASE_URL + STORAGE_DRIVER=prisma)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p4_anti_hollow_tests",
+      "enforcementId": "P4-E-RLS-01",
+      "description": "P4-E mechanism tests are not hollow (assertions required)",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ]
+}

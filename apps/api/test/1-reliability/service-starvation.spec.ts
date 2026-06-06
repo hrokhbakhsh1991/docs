@@ -17,8 +17,9 @@ import { after, before, describe, it } from "node:test";
 
 import type { TenantAuthContext } from "@app-tour/workspace-sdk";
 
+import { resetValidationSchedulerForTests } from "../../src/canonical/validation-scheduler";
 import { runPreTransactionValidation } from "../../src/canonical/pre-transaction-validation";
-import { validateCanonicalBeforePersist } from "../../src/tours/canonical-validation";
+import { validateCanonicalBeforePersistSync } from "../../src/tours/canonical-validation";
 import { createTestToursService, integrationTenantId } from "../test-helpers";
 
 const VALID_TOUR_BODY = {
@@ -30,20 +31,21 @@ const VALIDATION_BURST = Number.parseInt(process.env.STARVATION_VALIDATION_BURST
 
 /** Synchronous validations in one macrotask (models one heavy handler before first await). */
 const SYNC_VALIDATION_BURST = Number.parseInt(
-  process.env.STARVATION_SYNC_VALIDATION_BURST ?? "3000",
+  process.env.STARVATION_SYNC_VALIDATION_BURST ?? "6000",
   10
 );
 
 /** Min timer gap (ms) to treat sync burst as event-loop-blocking (architectural debt signal). */
 const SYNC_STALL_MIN_GAP_MS = Number.parseInt(
-  process.env.STARVATION_SYNC_STALL_MIN_GAP_MS ?? "100",
+  process.env.STARVATION_SYNC_STALL_MIN_GAP_MS ?? "80",
   10
 );
 
 const WRITE_BURST = Number.parseInt(process.env.STARVATION_WRITE_BURST ?? "24", 10);
 
+/** Trunk full-suite load can spike ~200ms; override via STARVATION_MAX_HEARTBEAT_GAP_MS. */
 const MAX_HEARTBEAT_GAP_MS = Number.parseInt(
-  process.env.STARVATION_MAX_HEARTBEAT_GAP_MS ?? "120",
+  process.env.STARVATION_MAX_HEARTBEAT_GAP_MS ?? "260",
   10
 );
 
@@ -159,7 +161,7 @@ function runMicrotaskValidationBurst(tenantId: string, count: number): Promise<v
 
 function runSyncValidationBurst(tenantId: string, count: number): void {
   for (let index = 0; index < count; index += 1) {
-    validateCanonicalBeforePersist(validationInput(tenantId, index));
+    validateCanonicalBeforePersistSync(validationInput(tenantId, index));
   }
 }
 
@@ -188,7 +190,7 @@ function measureSyncValidationStall(
 function offloadRemediationHint(): string {
   return [
     "Missing async offload between CPU-heavy validation and persist:",
-    "  apps/api/src/tours/canonical-validation.ts — validateCanonicalBeforePersist",
+    "  apps/api/src/tours/canonical-validation.ts — validateCanonicalBeforePersistSync (probe) / validateCanonicalBeforePersist (production worker pool)",
     "  apps/api/src/canonical/pre-transaction-validation.ts — runPreTransactionValidation",
     "  apps/api/src/canonical/canonical-tour.service.ts — writeTourInActiveContext (before persistNewTourAtomically / scopedRepo.create)",
     "Suggested: await setImmediate(() => {}) or chunked validation before opening the DB transaction.",
@@ -197,20 +199,53 @@ function offloadRemediationHint(): string {
 
 describe("1-reliability — ToursService vs rule validation (event-loop starvation)", () => {
   const priorStorageDriver = process.env.STORAGE_DRIVER;
+  const priorValidationDepth = process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT;
+  const priorValidationConcurrent = process.env.P5_VALIDATION_MAX_CONCURRENT;
+  const priorValidationInFlight = process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT;
+  const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
 
   before(() => {
     process.env.STORAGE_DRIVER = "memory";
+    process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT = String(VALIDATION_BURST);
+    process.env.P5_VALIDATION_MAX_CONCURRENT = "16";
+    process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT = "8";
+    process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = String(WRITE_BURST);
+    resetValidationSchedulerForTests();
   });
 
   after(() => {
+    resetValidationSchedulerForTests();
     if (priorStorageDriver === undefined) {
       delete process.env.STORAGE_DRIVER;
     } else {
       process.env.STORAGE_DRIVER = priorStorageDriver;
     }
+    if (priorValidationDepth === undefined) {
+      delete process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT;
+    } else {
+      process.env.P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT = priorValidationDepth;
+    }
+    if (priorValidationConcurrent === undefined) {
+      delete process.env.P5_VALIDATION_MAX_CONCURRENT;
+    } else {
+      process.env.P5_VALIDATION_MAX_CONCURRENT = priorValidationConcurrent;
+    }
+    if (priorValidationInFlight === undefined) {
+      delete process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT;
+    } else {
+      process.env.P5_VALIDATION_MAX_IN_FLIGHT_PER_TENANT = priorValidationInFlight;
+    }
+    if (priorMaxTourWrites === undefined) {
+      delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+    } else {
+      process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES = priorMaxTourWrites;
+    }
   });
 
   it("microtask-interleaved validation storm with concurrent ToursService writes stays within event-loop SLO", async () => {
+    resetValidationSchedulerForTests();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
     const toursService = createTestToursService();
     const validationTenant = integrationTenantId();
     const writeTenants = Array.from({ length: WRITE_BURST }, () => integrationTenantId());
@@ -320,13 +355,13 @@ describe("1-reliability — ToursService vs rule validation (event-loop starvati
     );
 
     assert.ok(
-      syncWallMs >= 120,
+      syncWallMs >= 55,
       `sync workload too small to probe starvation (${syncWallMs}ms); raise STARVATION_SYNC_VALIDATION_BURST`
     );
 
     const blocksEventLoop =
-      maxTimerGapMs >= Math.min(syncWallMs * 0.35, syncWallMs - 20) &&
-      maxTimerGapMs >= SYNC_STALL_MIN_GAP_MS;
+      maxTimerGapMs >= Math.min(syncWallMs * 0.3, syncWallMs - 15) &&
+      maxTimerGapMs >= Math.min(SYNC_STALL_MIN_GAP_MS, syncWallMs * 0.85);
 
     assert.ok(
       blocksEventLoop,

@@ -20,95 +20,388 @@
 | **Break-point RPS (global, pool-limited)**  | **~40 RPS** sustained @ 250 ms DB hold · **~10 concurrent** long-held TX · **~200 RPS** @ ~50 ms TX (estimated) |
 | **Break-point RPS (per tenant, by design)** |                                       **50 RPS** write / read tiers (429 above bucket) · tests gate at **10/s** |
 | **Hard-fail risks**                         |                                                                      **12** ([SCAL-HF-01…12](#hard-fail-risks)) |
-| **Scalability debt**                        |                                                                   **14** ([SCAL-DEBT-01…14](#scalability-debt)) |
+| **Scalability debt**                        |                                                                   **15** ([SCAL-DEBT-01…15](#scalability-debt)) |
 | **Verdict**                                 |                                                                                                 **CONDITIONAL** |
 
 **Headline RPS derivation:** Little's law on gate pool: 10 connections ÷ 0.25 s hold ≈ **40 completions/s** before queue saturation. Live proof: [`pool-stress-500-parallel.ts`](../scripts/pool-stress-500-parallel.ts) — **500 concurrent** → **460×503**, **40×200**, ~2.4 s storm, loop alive ([§ Pool 500](#prisma-connection-pool--500-parallel-http-stress-audit)). Short canonical TX (~50 ms) raises ceiling to **~200 RPS** global (not gate-tested at 500 parallel). Per-tenant **50 RPS** is intentional throttling, not infra failure.
 
 ### Break point table
 
-| Failure mode                                    |                                                             Approx RPS / concurrent limit | Primary evidence                                                                             | Failure character                                                                        |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------: | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **DB pool saturation**                          | **~10 concurrent** long TX · **~40 RPS** @ 250 ms hold · **500 parallel** spike tolerated | `db-pool-saturation.spec.ts`, `pool-stress-500-parallel.ts`                                  | **Graceful** — 503 `service_unavailable`; heartbeat ≥8 (100) / 56 (500)                  |
-| **Per-tenant HTTP rate limit**                  |                                      **50 RPS/tenant** (default) · **10/s** in unit specs | `tenant-rate-limiter.spec.ts`, `tenant-rate-limiting.spec.ts`                                | **Graceful** — 429; victim ≤2× baseline p50                                              |
-| **100-tenant ID limiter flood**                 |                             **100 concurrent** admin `findUnique` / wave (not RPS-capped) | [RL-DOS-01…04](#dos-vulnerability-table)                                                     | **DoS** — admin pool + heap amplification                                                |
-| **CPU noisy neighbor (RuleEngine)**             |                                 **1000 concurrent** validations breaks **10%** victim SLO | `noisy-neighbor-latency.spec.ts`                                                             | **Degraded** — ratio >1.10 = throttling gap                                              |
-| **DB read noisy neighbor**                      |                             **500 concurrent GETs** + 1 POST → fail if write >4× baseline | `noise-neighbor.spec.ts`                                                                     | **Degraded** — 300% SLO on reads                                                         |
-| **Noisy neighbor (bulk import → B login/read)** |                                       A at **50/s POST** or **10 parallel** persist/chunk | [NN-01…08](#noisy-neighbor-vulnerability-register)                                           | **503/timeout** on B `GET /tours`, tenant-config                                         |
-| **Outbox 10k flood + HTTP**                     |                             **~233 events/s** drain · **20 concurrent** POST OK @ ≤4× p95 | [§10](#10-outbox-relay--10000-event-flood-audit) (10.5 live run)                             | **Pass** — 0 System Scalability Failures                                                 |
-| **Outbox 10k memory / conn leak**               |                                                                      **10_000 ops** batch | `outbox-relay-memory.spec.ts`, `outbox-relay-connection-leak.spec.ts`                        | **Pass** — heap ≤2× post-GC; max 9 `app_tour` conns                                      |
-| **Logging backpressure**                        | **1000 req** burst @ c=100 OK (fast stdout) · **>~200–500 RPS** to slow sink **untested** | `log-backpressure-burst.ts`, [§11.4](#114-empirical-baseline-fast-sink--extends-log-bp-0102) | **Low today** · [FOF-LOG-01…03](#115-fatal-observability-flaw-inventory) under slow sink |
-| **Cold start / scale-to-zero**                  |                                                         **1st request** **<1000 ms** TTFB | `cold-start-latency.spec.ts`                                                                 | **Budget fail** — serverless readiness                                                   |
-| **Memory soak (heap slope)**                    |                                              **50 RPS × 900 s** (`SOAK_MAX_INFLIGHT=200`) | `soak-memory-leak.spec.ts` (`RUN_SOAK=1`)                                                    | **Pass** if \|slope\| ≤0.03 MB/s                                                         |
-| **Large JSON (no body cap)**                    |                                              **512 KiB–2 MiB** parse blocks loop 5–50 ms+ | [Event loop blockers](#performance-blockers-event-loop)                                      | **Degraded → OOM** at multi-MiB                                                          |
-| **Validation gate (HT-03)**                     |                                                            **2+ tenants** parallel pre-TX | `validation-gate-concurrency.spec.ts`                                                        | **Pass** — per-tenant `openGates` Map                                                    |
+| Failure mode                                    |                                                                Approx RPS / concurrent limit | Primary evidence                                                      | Failure character                                                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------: | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **DB pool saturation**                          |    **~10 concurrent** long TX · **~40 RPS** @ 250 ms hold · **500 parallel** spike tolerated | `db-pool-saturation.spec.ts`, `pool-stress-500-parallel.ts`           | **Graceful** — 503 `service_unavailable`; heartbeat ≥8 (100) / 56 (500)                               |
+| **Per-tenant HTTP rate limit**                  |                                         **50 RPS/tenant** (default) · **10/s** in unit specs | `tenant-rate-limiter.spec.ts`, `tenant-rate-limiting.spec.ts`         | **Graceful** — 429; victim ≤2× baseline p50                                                           |
+| **100-tenant ID limiter flood**                 |                                **100 concurrent** admin `findUnique` / wave (not RPS-capped) | [RL-DOS-01…04](#dos-vulnerability-table)                              | **DoS** — admin pool + heap amplification                                                             |
+| **CPU noisy neighbor (RuleEngine)**             |                                    **1000 concurrent** validations breaks **10%** victim SLO | `noisy-neighbor-latency.spec.ts`                                      | **Degraded** — ratio >1.10 default (gate tiers **1.25**/**1.30** — [CON-06](#document-alignment-con)) |
+| **DB read noisy neighbor**                      |                                **500 concurrent GETs** + 1 POST → fail if write >4× baseline | `noise-neighbor.spec.ts`                                              | **Degraded** — 300% SLO on reads                                                                      |
+| **Noisy neighbor (bulk import → B login/read)** |                                          A at **50/s POST** or **10 parallel** persist/chunk | [NN-01…08](#noisy-neighbor-vulnerability-register)                    | **503/timeout** on B `GET /tours`, tenant-config                                                      |
+| **Outbox 10k flood + HTTP**                     |                                **~233 events/s** drain · **20 concurrent** POST OK @ ≤4× p95 | [§10](#10-outbox-relay--10000-event-flood-audit) (10.5 live run)      | **Pass** — 0 System Scalability Failures                                                              |
+| **Outbox 10k memory / conn leak**               |                                                                         **10_000 ops** batch | `outbox-relay-memory.spec.ts`, `outbox-relay-connection-leak.spec.ts` | **Pass** — heap ≤2× post-GC; max 9 `app_tour` conns                                                   |
+| **Logging backpressure**                        |            **1000 req** burst @ c=100 OK (fast stdout) + nightly slow-sink adversarial probe | `log-backpressure-burst.ts`, `log-slow-sink-adversarial.spec.ts`      | **Contract enforced** (DEC-063 + DEC-070); monitor FOF-LOG residuals                                  |
+| **Cold start / scale-to-zero**                  | **Readiness** **<500 ms** p95 (`dist/main.js` /health); engine compile **<1000 ms** (CON-03) | `cold-start-latency.spec.ts`, `cold-start-readiness-gate.mjs`         | **Pass** compiled `dist/main.js` p95 **~290 ms**; tsx dev **Unscalable** @ 500 ms                     |
+| **Memory soak (heap slope)**                    |                                                 **50 RPS × 900 s** (`SOAK_MAX_INFLIGHT=200`) | `soak-memory-leak.spec.ts` (`RUN_SOAK=1`)                             | **Pass** if \|slope\| ≤0.03 MB/s                                                                      |
+| **Large JSON (no body cap)**                    |                                                 **512 KiB–2 MiB** parse blocks loop 5–50 ms+ | [Event loop blockers](#performance-blockers-event-loop)               | **Degraded → OOM** at multi-MiB                                                                       |
+| **Validation gate (HT-03)**                     |                                                               **2+ tenants** parallel pre-TX | `validation-gate-concurrency.spec.ts`                                 | **Pass** — per-tenant `openGates` Map                                                                 |
 
 ### Scalability Debt
 
 Architectural items deferred — tier-3 gates **pass**, but scale-out needs these.
 
-| ID               | Item                                                             | Closes                                                | Detail                                                                |
-| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------- |
-| **SCAL-DEBT-01** | Per-tenant DB connection semaphore (P2-5)                        | NN-02, PS-02                                          | [Pool stress §](#database-connection-pool--stress-integration)        |
-| **SCAL-DEBT-02** | RuleEngine validation worker pool + time budget                  | NN-01, NN-04, EL High rows                            | DEC-016 scheduler insufficient alone                                  |
-| **SCAL-DEBT-03** | HTTP request body size limit (413)                               | NN-07, large JSON rows                                | No `maxBody` in `src/`                                                |
-| **SCAL-DEBT-04** | Require `REDIS_URL` + cache theme lookup                         | RL-DOS-01/02                                          | [Tenant rate limiter §](#tenant-rate-limiter--100-tenant-flood-audit) |
-| **SCAL-DEBT-05** | Enforce `STORAGE_DRIVER=prisma` in prod                          | DI-MEM-01, [AUDIT-GAP-01](./phase2-paranoid-audit.md) | Memory driver non-forensic                                            |
-| **SCAL-DEBT-06** | Per-tenant validation queue max depth + shed                     | NN-04, BULK-UNSAFE-01                                 | Unbounded `tenantQueues`                                              |
-| **SCAL-DEBT-07** | Defer access logs off sync `finish`                              | FOF-LOG-02, [LOG-BP-03](./phase2-paranoid-audit.md)   | §11                                                                   |
-| **SCAL-DEBT-08** | Logging backpressure contract (drop/drain/flush)                 | FOF-LOG-01/03                                         | §11.7                                                                 |
-| **SCAL-DEBT-09** | Bulk import concurrency cap / job API                            | NN-05                                                 | No HTTP bulk route today                                              |
-| **SCAL-DEBT-10** | Outbox relay per-tenant budget                                   | NN-03, NN-06, OB-COND-02                              | Size pool ≥ publish concurrency                                       |
-| **SCAL-DEBT-11** | Idempotency memory TTL + LRU ([HT-08](./phase0-audit-report.md)) | `memoryByKey`                                         | Dev/memory driver                                                     |
-| **SCAL-DEBT-12** | Registry cache max-size sweep                                    | RL-DOS-03, admin reads                                | 5s TTL only                                                           |
-| **SCAL-DEBT-13** | Victim SLO spec: bulk import ∥ B login/read                      | NN gap                                                | Extends noise-neighbor matrix                                         |
-| **SCAL-DEBT-14** | 100-tenant rate-limiter probe in CI                              | RL-DOS gap                                            | Two-tenant specs insufficient                                         |
-| **SCAL-DEBT-15** | Cold-start readiness gate @ **500 ms** (compiled `dist/main.js`) | CS-UNSC-01/02                                         | §12 — tsx dev path **2×** over SLO                                    |
+| ID               | Item                                                             | Closes                                                | Detail                                                                                                                                                                                       |
+| ---------------- | ---------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SCAL-DEBT-01** | Per-tenant DB connection semaphore                               | NN-02, PS-02                                          | **Done** DEC-055 — `tenant-connection-budget.ts`                                                                                                                                             |
+| **SCAL-DEBT-02** | RuleEngine validation worker pool + time budget                  | NN-01, NN-04, EL High rows                            | **Done** DEC-056 — `validation-worker-pool.ts`                                                                                                                                               |
+| **SCAL-DEBT-03** | HTTP request body size limit (413)                               | NN-07, large JSON rows                                | **Done** DEC-052 — `HTTP_MAX_BODY_BYTES` in `readRequestBodyRaw`                                                                                                                             |
+| **SCAL-DEBT-04** | Require `REDIS_URL` + cache theme lookup                         | RL-DOS-01/02                                          | **Done** DEC-053 + DEC-065 — theme cache + prod `REDIS_URL` boot guard                                                                                                                       |
+| **SCAL-DEBT-05** | Enforce `STORAGE_DRIVER=prisma` in prod                          | DI-MEM-01, [AUDIT-GAP-01](./phase2-paranoid-audit.md) | **Done** DEC-060 — `guard:production-storage-driver` + boot chain specs                                                                                                                      |
+| **SCAL-DEBT-06** | Per-tenant validation queue max depth + shed                     | NN-04, BULK-UNSAFE-01                                 | **Done** DEC-054 — `P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT`                                                                                                                                |
+| **SCAL-DEBT-07** | Defer access logs off sync `finish`                              | FOF-LOG-02, [LOG-BP-03](./phase2-paranoid-audit.md)   | **Done** DEC-062 — async bounded enqueue in `withRequestLogging`                                                                                                                             |
+| **SCAL-DEBT-08** | Logging backpressure contract (drop/drain/flush)                 | FOF-LOG-01/03                                         | **Done** DEC-063 — bounded sink + metrics + shutdown flush                                                                                                                                   |
+| **SCAL-DEBT-09** | Bulk import concurrency cap / job API                            | NN-05                                                 | **Done** DEC-064 — `TENANT_MAX_CONCURRENT_TOUR_WRITES` on `POST /tours`                                                                                                                      |
+| **SCAL-DEBT-10** | Outbox relay per-tenant budget                                   | NN-03, NN-06, OB-COND-02                              | **Done** DEC-066 — `OUTBOX_RELAY_MAX_IN_FLIGHT_PER_TENANT` defer path                                                                                                                        |
+| **SCAL-DEBT-11** | Idempotency memory TTL + LRU ([HT-08](./phase0-audit-report.md)) | `memoryByKey`                                         | **Done** DEC-067 — TTL + LRU + `guard:http-idempotency-memory-bounds`                                                                                                                        |
+| **SCAL-DEBT-12** | Registry cache max-size sweep                                    | RL-DOS-03, admin reads                                | **Done** DEC-068 — `TENANT_REGISTRY_CACHE_MAX_ENTRIES` LRU sweep                                                                                                                             |
+| **SCAL-DEBT-13** | Victim SLO spec: bulk import ∥ B login/read                      | NN gap                                                | **Done** DEC-069 — `bulk-import-victim-slo.spec.ts`                                                                                                                                          |
+| **SCAL-DEBT-14** | 100-tenant rate-limiter probe in CI                              | RL-DOS gap                                            | **Done** DEC-059 — `tenant-rate-limiter-100.spec.ts`                                                                                                                                         |
+| **SCAL-DEBT-15** | Cold-start readiness gate @ **500 ms** (compiled `dist/main.js`) | CS-UNSC-01/02                                         | **Done** DEC-061 — `cold-start-readiness-gate.mjs` + lazy boot ([`cold-start-lazy-boot.md`](../../../docs/phase-5/appendices/cold-start-lazy-boot.md)); tsx dev path remains **2×** over SLO |
 
 ### Hard-Fail Risks
 
 Crash, OOM, hang, pool leak without recovery, cross-tenant DoS, or fatal observability — **not** graceful 503/429.
 
-| ID             | Risk                                             | Trigger (approx)                                 | Canonical ref                            |
-| -------------- | ------------------------------------------------ | ------------------------------------------------ | ---------------------------------------- |
-| **SCAL-HF-01** | Admin DB amplification via rate limiter          | **100+ unique tenant IDs** × rate-limited routes | RL-DOS-01, RL-DOS-03                     |
-| **SCAL-HF-02** | OOM — memory rate limiter keys                   | Rotating UUIDs without `REDIS_URL`               | RL-DOS-02                                |
-| **SCAL-HF-03** | OOM — unbounded idempotency Map                  | Unique `Idempotency-Key` flood (memory driver)   | HT-08, `memoryByKey`                     |
-| **SCAL-HF-04** | OOM — validation queue closures                  | Burst >> scheduler drain                         | NN-04, BULK-UNSAFE-01                    |
-| **SCAL-HF-05** | OOM — metrics label cardinality                  | Unbounded custom labels                          | [MET-API-01](./phase2-paranoid-audit.md) |
-| **SCAL-HF-06** | OOM / stall — large JSON bodies                  | Multi-MiB POST without 413                       | Event-loop High rows                     |
-| **SCAL-HF-07** | OOM — unbounded Sonic-Boom buffer                | High RPS + slow log sink                         | FOF-LOG-01                               |
-| **SCAL-HF-08** | Event-loop stall — logging on `finish`           | 503/200 storm + full log buffer                  | FOF-LOG-02, LOG-BP-03                    |
-| **SCAL-HF-09** | Process crash — destination `error` on full pipe | EAGAIN storm, no handler                         | §11.3 stage 5                            |
-| **SCAL-HF-10** | Cross-tenant CPU/pool DoS                        | A bulk import @ allowed RPS                      | NN-01, NN-02                             |
-| **SCAL-HF-11** | Redis fail-closed **500** on all limited routes  | `REDIS_URL` blip                                 | RL-DOS-04, SH-GAP-13                     |
-| **SCAL-HF-12** | Sync domain handler blocks entire process        | Heavy `publishDomainEvent` subscriber            | OB-COND-01                               |
+| ID             | Risk                                             | Trigger (approx)                                 | Canonical ref                                                                              |
+| -------------- | ------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| **SCAL-HF-01** | Admin DB amplification via rate limiter          | **100+ unique tenant IDs** × rate-limited routes | RL-DOS-01, RL-DOS-03                                                                       |
+| **SCAL-HF-02** | OOM — memory rate limiter keys                   | Rotating UUIDs without `REDIS_URL`               | RL-DOS-02                                                                                  |
+| **SCAL-HF-03** | OOM — unbounded idempotency Map                  | Unique `Idempotency-Key` flood (memory driver)   | HT-08, `memoryByKey`                                                                       |
+| **SCAL-HF-04** | OOM — validation queue closures                  | Burst >> scheduler drain                         | NN-04, BULK-UNSAFE-01                                                                      |
+| **SCAL-HF-05** | OOM — metrics label cardinality                  | Unbounded custom labels                          | [MET-API-01](./phase2-paranoid-audit.md)                                                   |
+| **SCAL-HF-06** | OOM / stall — large JSON bodies                  | Multi-MiB POST without 413                       | Event-loop High rows                                                                       |
+| **SCAL-HF-07** | OOM — unbounded Sonic-Boom buffer                | High RPS + slow log sink                         | FOF-LOG-01                                                                                 |
+| **SCAL-HF-08** | Event-loop stall — logging on `finish`           | 503/200 storm + full log buffer                  | FOF-LOG-02, LOG-BP-03                                                                      |
+| **SCAL-HF-09** | Process crash — destination `error` on full pipe | EAGAIN storm, no handler                         | **Mitigated** — `bindLogSinkErrorHandler` + `retryEAGAIN: () => false` (DEC-063 follow-on) |
+| **SCAL-HF-10** | Cross-tenant CPU/pool DoS                        | A bulk import @ allowed RPS                      | NN-01, NN-02                                                                               |
+| **SCAL-HF-11** | Redis fail-closed **500** on all limited routes  | `REDIS_URL` blip                                 | RL-DOS-04 — **Mitigated** DEC-083 tiered fallback (`fail_local` write / `fail_open` read)  |
+| **SCAL-HF-12** | Sync domain handler blocks entire process        | Heavy `publishDomainEvent` subscriber            | OB-COND-01 — **Mitigated** DEC-071 deferred dispatch + handler budget monitor              |
 
-**Not hard-fail at gate (monitored):** pool leak post-storm (`connectionLeakSuspected=false` @ 500 parallel); cold-start **>500 ms Unscalable** (§12 — readiness, not crash); FOF-LOG-03 (tail loss on SIGTERM, not OOM).
+**Not hard-fail at gate (monitored):** pool leak post-storm — **A4 Done** ([`pool-leak-post-storm-monitor.md`](../../../docs/phase-5/appendices/pool-leak-post-storm-monitor.md)); cold-start **>500 ms Unscalable** (§12 — readiness, not crash); FOF-LOG-03 **accepted (A3)** — [`fof-log-03-shutdown-tail-acceptance.md`](../../../docs/phase-5/appendices/fof-log-03-shutdown-tail-acceptance.md).
 
 ### Verdict: **CONDITIONAL**
 
 **Ship for Phase 3 integration** with Postgres + tier-3 gates: pool storms → **503** (not hang), outbox **10k** @ **233 eps** with HTTP SLO **3.19×**, pre-TX validation off pool ([DEC-013](./phase0-audit-report.md)), fast-sink logging green ([LOG-BP-01](./phase2-paranoid-audit.md)).
 
-**Do not scale** multi-tenant production until **SCAL-DEBT-01…06**, **SCAL-HF-01…02**, and **NN-01/02** mitigations land — uncached admin Prisma on every rate-limited request and single-thread RuleEngine CPU break before infra 503/429. Re-audit on `GET /tours` list, body-limit middleware, validation workers, 100-tenant limiter probe.
+**P0 + P1 backlog is closed** per [DEC-058](../../../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md), [DEC-069](../../../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md), and [DEC-070](../../../docs/phase-5/appendices/IMPLEMENTATION-DECISIONS.md). **§12 compiled path:** lazy boot (DEC-061 follow-on) brings `dist/main.js` p95 **≤500 ms** in repeated gate runs; **`COLD_START_READINESS_ENFORCE=true`** is wired in nightly CI (`test:nightly:cold-start` / `.github/workflows/api-nightly.yml`) while trunk stays record-only.
 
-### Stress-test evidence matrix
+### Document alignment (CON)
 
-| Spec / script                         | Stress shape                  | Pass / fail signal                                                       |
-| ------------------------------------- | ----------------------------- | ------------------------------------------------------------------------ |
-| `db-pool-saturation.spec.ts`          | 100 × parallel hold, pool=10  | 503 + heartbeat ≥8                                                       |
-| `pool-stress-500-parallel.ts`         | 500 × parallel hold           | 460×503, 40×200, no leak                                                 |
-| `long-tx-safety.spec.ts`              | `P5_VALIDATE_DELAY_MS=500`    | Zero idle-in-TX during delay                                             |
-| `noisy-neighbor-latency.spec.ts`      | 1000 validations ∥ 1 write    | Victim ratio ≤1.10                                                       |
-| `noise-neighbor.spec.ts`              | 500 reads ∥ 1 write           | Write ≤4× baseline                                                       |
-| `outbox-throughput.spec.ts`           | 10k seed + 20 creates ∥ relay | 233 eps; p95 ratio 3.19×                                                 |
-| `outbox-relay-memory.spec.ts`         | 10k relay rows                | Heap growth ≤2× post-GC                                                  |
-| `tenant-rate-limiter.spec.ts`         | 20+5 concurrent POST          | 10×201 + 10×429 (10/s limit)                                             |
-| `tenant-rate-limiting.spec.ts`        | 100 burst + victim            | A throttled; B ≤2× p50                                                   |
-| `cold-start-latency.spec.ts`          | Fresh engine + HTTP TTFB      | ≤1000 ms spec; **§12: 2 Unscalable @ 500 ms** (main boot + worker ready) |
-| `soak-memory-leak.spec.ts`            | 50 rps × 900 s                | \|slope\| ≤0.03 MB/s                                                     |
-| `log-backpressure-burst.ts`           | 1000 `/health` @ c=100        | Δ p99 +102 ms (concurrency noise)                                        |
-| `validation-gate-concurrency.spec.ts` | 2 tenants parallel pre-TX     | Independent gates (HT-03)                                                |
+| ID         | Resolution                                                                                                                                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CON-01** | **Closed (D1)** — Headline and [SCAL-DEBT register](#scalability-debt) both count **15** items (`SCAL-DEBT-01…15`); **SCAL-DEBT-15** (cold-start gate @ 500 ms) added after capstone.                                              |
+| **CON-02** | **Closed** — Executive Summary aligned to **Mitigated/Pass** for rate limiter and noisy neighbor (2026-06-05).                                                                                                                     |
+| **CON-03** | **Closed** — Tiered cold-start budgets: engine **1000 ms** (`COLD_START_ENGINE_BUDGET_MS`); HTTP/readiness **500 ms** (`COLD_START_HTTP_BUDGET_MS` ↔ gate).                                                                        |
+| **CON-04** | **Closed** — Outbox §10 **Pass** @ 10k; OB-COND-01 **Mitigated** via deferred dispatch + handler monitor.                                                                                                                          |
+| **CON-05** | **Closed (A3)** — Slow-sink nightly + FOF-LOG-03 shutdown tail acceptance.                                                                                                                                                         |
+| **CON-06** | **Closed (D6)** — [`baseline-ratio-tiering.md`](../../../docs/phase-5/appendices/baseline-ratio-tiering.md): spec default **1.10**; `phase-5:gate` **1.25** ([CI-BYP-20](./phase5-evolution-audit.md)); phase-4 Postgres **1.30**. |
+| **CON-07** | **Closed** — Pool isolation **Pass** + NN-02 fairness via SCAL-DEBT-01/DEC-055 per-tenant semaphore.                                                                                                                               |
+
+### Phase 3 closure — step 1 (DEC-052)
+
+| Gate                  | Status        | Evidence                                                              |
+| --------------------- | ------------- | --------------------------------------------------------------------- |
+| SCAL-DEBT-03 body cap | **Done**      | `readRequestBodyRaw` enforces `HTTP_MAX_BODY_BYTES` (default 256 KiB) |
+| SCAL-HF-06 ingress    | **Done**      | Reject before `Buffer.concat` / `JSON.parse`                          |
+| NN-07 large POST      | **Mitigated** | 413 on oversized create/update/provision bodies                       |
+| CI lock               | **Done**      | `pnpm run guard:http-body-limit`                                      |
+| Regression spec       | **Done**      | `test/3-performance/request-body-limit.spec.ts`                       |
+
+```bash
+cd apps/api && pnpm run guard:http-body-limit
+node --import tsx --test test/3-performance/request-body-limit.spec.ts
+```
+
+**Must-Fix open after step 1:** **4** (SCAL-DEBT-01, SCAL-DEBT-02, SCAL-DEBT-04, SCAL-DEBT-06).
+
+### Phase 3 closure — step 2 (DEC-053)
+
+| Gate                          | Status        | Evidence                                                           |
+| ----------------------------- | ------------- | ------------------------------------------------------------------ |
+| SCAL-DEBT-04 theme cache      | **Done**      | `resolveTenantThemeJsonById` + `tenant-registry-cache` theme layer |
+| RL-DOS-01 admin amplification | **Mitigated** | No uncached `findUnique` per rate-limit consume on cache hit       |
+| RL-DOS-03 negative cache      | **Done**      | Unknown UUID → cached `null` theme (5s TTL)                        |
+| CI lock                       | **Done**      | `pnpm run guard:rate-limit-theme-cache`                            |
+| Regression spec               | **Done**      | `resolve-tenant-theme-cache.spec.ts`                               |
+
+```bash
+cd apps/api && pnpm run guard:rate-limit-theme-cache
+node --import tsx --test src/tenant/resolve-tenant-theme-cache.spec.ts
+```
+
+**Must-Fix open after step 2:** **3** (SCAL-DEBT-01, SCAL-DEBT-02, SCAL-DEBT-06).
+
+### Phase 3 closure — step 3 (DEC-054)
+
+| Gate                     | Status        | Evidence                                                |
+| ------------------------ | ------------- | ------------------------------------------------------- |
+| SCAL-DEBT-06 queue depth | **Done**      | `P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT` (default 64) |
+| NN-04 unbounded enqueue  | **Mitigated** | Shed at cap — no new closures                           |
+| SCAL-HF-04 queue OOM     | **Mitigated** | Bounded pending depth per tenant                        |
+| CI lock                  | **Done**      | `pnpm run guard:validation-queue-depth`                 |
+| Regression spec          | **Done**      | `validation-queue-depth.spec.ts`                        |
+
+```bash
+cd apps/api && pnpm run guard:validation-queue-depth
+node --import tsx --test test/3-performance/validation-queue-depth.spec.ts
+```
+
+**Must-Fix open after step 3:** **2** (SCAL-DEBT-01, SCAL-DEBT-02).
+
+### Phase 3 closure — step 4 (DEC-055)
+
+| Gate                              | Status        | Evidence                                                                       |
+| --------------------------------- | ------------- | ------------------------------------------------------------------------------ |
+| SCAL-DEBT-01 per-tenant semaphore | **Done**      | `TENANT_MAX_CONCURRENT_DB_OPS` in `withTenantRls` + `withCanonicalTransaction` |
+| NN-02 pool fairness               | **Mitigated** | Tenant A capped before global pool exhaust                                     |
+| CI lock                           | **Done**      | `pnpm run guard:tenant-db-budget`                                              |
+| Regression spec                   | **Done**      | `test/3-performance/tenant-connection-budget.spec.ts`                          |
+
+```bash
+cd apps/api && pnpm run guard:tenant-db-budget
+node --import tsx --test test/3-performance/tenant-connection-budget.spec.ts
+```
+
+**Must-Fix open after step 4:** **1** (SCAL-DEBT-02).
+
+### Phase 3 closure — step 5 (DEC-056)
+
+| Gate                       | Status        | Evidence                                                        |
+| -------------------------- | ------------- | --------------------------------------------------------------- |
+| SCAL-DEBT-02 worker pool   | **Done**      | `P5_VALIDATION_WORKER_POOL_SIZE` + `validation-worker-entry.ts` |
+| NN-01 event-loop CPU       | **Mitigated** | RuleEngine off main thread when workers enabled                 |
+| SCAL-HF-10 sync validation | **Mitigated** | Time budget → **408** + `validation_time_budget_exceeded_total` |
+| CI lock                    | **Done**      | `pnpm run guard:validation-workers`                             |
+| Regression spec            | **Done**      | `validation-worker-pool.spec.ts`                                |
+
+```bash
+cd apps/api && pnpm run guard:validation-workers
+node --import tsx --test test/3-performance/validation-worker-pool.spec.ts
+```
+
+**Must-Fix open after step 5:** **0** (P0 closure complete — steps 6–7: regression gate + sign-off).
+
+### Phase 3 closure — step 6 (DEC-057)
+
+| Gate                   | Status   | Evidence                                                                                          |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| Formal regression gate | **Done** | `pnpm run phase-3:regression-gate` — **32 steps** (2026-06-06 E1 re-run; includes A1–B5 monitors) |
+| P0 guards (steps 1–5)  | **Done** | All five `guard:*` scripts in gate                                                                |
+| Closure specs          | **Done** | Memory-tier regression specs + bulk-import victim SLO                                             |
+| Artifact               | **Done** | `test/reliability/phase-3-regression-gate.last-run.json`                                          |
+| Meta spec              | **Done** | `test/reliability/phase-3-regression-gate.spec.ts`                                                |
+
+```bash
+cd apps/api
+pnpm run phase-3:regression-gate
+# Postgres pool tier (optional):
+DATABASE_URL='postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=10&pool_timeout=1' \
+  pnpm run phase-3:regression-gate
+```
+
+### Phase 3 closure sign-off (DEC-058)
+
+| Metric                    | Value                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| **Must-Fix P0 open**      | **0**                                                                                      |
+| **SCAL-DEBT P0 closed**   | **01, 02, 03, 06** + partial **04** (theme cache)                                          |
+| **Regression gate**       | `phase-3:regression-gate`                                                                  |
+| **Overall audit verdict** | **CONDITIONAL** (P1 + nightly slow-sink closed DEC-070; §12 enforce wired nightly DEC-061) |
+| **P0 verdict**            | **Phase 3 scale-out blockers closed** for trunk                                            |
+
+**Scheduled (not P0 blockers):** §12 cold-start enforce mode when p95 ≤ 500 ms stable on `dist/main.js`.
+
+**Next audit triggers:** §12 enforce mode when p95 ≤ 500 ms stable.
+
+### Phase 3 P1 closure — step 8 (DEC-059)
+
+| Gate                          | Status                | Evidence                                |
+| ----------------------------- | --------------------- | --------------------------------------- |
+| SCAL-DEBT-14 100-tenant probe | **Done**              | `tenant-rate-limiter-100.spec.ts`       |
+| RL-DOS admin amplification    | **Regression locked** | Admin lookups ≤ 100; second wave cached |
+| CI lock                       | **Done**              | `pnpm run guard:rate-limiter-100-probe` |
+| Regression gate               | **Done**              | Included in `phase-3:regression-gate`   |
+
+```bash
+cd apps/api && pnpm run guard:rate-limiter-100-probe
+NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test test/3-performance/tenant-rate-limiter-100.spec.ts
+```
+
+**P1 open after step 18:** _(none)_.
+
+### Phase 3 optional closure — nightly slow-sink (DEC-070)
+
+| Gate                         | Status   | Evidence                            |
+| ---------------------------- | -------- | ----------------------------------- |
+| LOG-BP-03 adversarial re-run | **Done** | `log-slow-sink-adversarial.spec.ts` |
+| Tier                         | **Done** | `APPS_API_TEST_TIER=nightly` only   |
+| CI lock                      | **Done** | `guard:log-slow-sink-nightly`       |
+
+```bash
+cd apps/api && pnpm run test:nightly:slow-sink
+```
+
+### Phase 3 P1 closure — step 18 (DEC-069)
+
+| Gate                    | Status   | Evidence                                                     |
+| ----------------------- | -------- | ------------------------------------------------------------ |
+| SCAL-DEBT-13 victim SLO | **Done** | `bulk-import-victim-slo.spec.ts`                             |
+| Attacker A              | **Done** | Parallel `POST /tours` (`BULK_IMPORT_PARALLEL`)              |
+| Victim B                | **Done** | `GET /health`, `GET /api/v2/tenant-config`, `GET /tours/:id` |
+| CI lock                 | **Done** | `guard:bulk-import-victim-slo`                               |
+
+```bash
+cd apps/api && pnpm run guard:bulk-import-victim-slo
+NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test test/3-performance/bulk-import-victim-slo.spec.ts
+```
+
+### Phase 3 P1 closure — step 9 (DEC-060)
+
+| Gate                             | Status   | Evidence                                                         |
+| -------------------------------- | -------- | ---------------------------------------------------------------- |
+| SCAL-DEBT-05 prod prisma enforce | **Done** | `assertProductionStorageDriver()` + boot chain                   |
+| CI lock                          | **Done** | `pnpm run guard:production-storage-driver`                       |
+| Regression gate                  | **Done** | `create-tour-storage.spec.ts`, `forensic-storage-driver.spec.ts` |
+
+```bash
+cd apps/api && pnpm run guard:production-storage-driver
+NODE_ENV=test STORAGE_DRIVER=memory node --import tsx --test src/storage/create-tour-storage.spec.ts src/storage/forensic-storage-driver.spec.ts
+```
+
+### Phase 3 P1 closure — step 10 (DEC-061)
+
+| Gate                             | Status          | Evidence                                                          |
+| -------------------------------- | --------------- | ----------------------------------------------------------------- |
+| SCAL-DEBT-15 compiled cold-start | **Done**        | `cold-start-readiness-gate.mjs`                                   |
+| Budget                           | **500 ms** p95  | `COLD_START_READINESS_BUDGET_MS` default 500                      |
+| Trunk enforce                    | **Record-only** | `COLD_START_READINESS_ENFORCE=false` in `phase-3:regression-gate` |
+| Nightly enforce                  | **Done**        | `test:nightly:cold-start` + `guard:cold-start-readiness-enforce`  |
+| CI lock (trunk)                  | **Done**        | `guard:cold-start-readiness-gate` + gate step after `build-dist`  |
+| CI lock (nightly)                | **Done**        | `.github/workflows/api-nightly.yml`                               |
+| Artifact                         | **Done**        | `test/reliability/cold-start-readiness.last-run.json`             |
+
+```bash
+# Trunk (record-only)
+cd apps/api && pnpm run build && pnpm run cold-start-readiness-gate
+pnpm run guard:cold-start-readiness-gate
+
+# Nightly (enforce — hard-fail when p95 > 500 ms)
+cd apps/api && pnpm run test:nightly:cold-start
+pnpm run guard:cold-start-readiness-enforce
+```
+
+### Phase 3 P1 closure — step 11 (DEC-062)
+
+| Gate                                   | Status   | Evidence                                                |
+| -------------------------------------- | -------- | ------------------------------------------------------- |
+| SCAL-DEBT-07 defer sync finish logging | **Done** | `withRequestLogging` async queue drain (`setImmediate`) |
+| Queue bounded + fail-open drop         | **Done** | `HTTP_LOG_QUEUE_MAX` + overflow drop/warn               |
+| Regression lock                        | **Done** | `request-logging.spec.ts`                               |
+
+```bash
+cd apps/api && node --import tsx --test src/http/request-logging.spec.ts
+```
+
+### Phase 3 P1 closure — step 12 (DEC-063)
+
+| Gate                          | Status   | Evidence                                         |
+| ----------------------------- | -------- | ------------------------------------------------ |
+| SCAL-DEBT-08 bounded log sink | **Done** | `log-sink.ts` — `maxLength` + drain/drop metrics |
+| Shutdown flush                | **Done** | `flushLogSink()` in `graceful-shutdown.ts`       |
+| CI lock                       | **Done** | `guard:log-backpressure-contract`                |
+
+```bash
+cd apps/api && pnpm run guard:log-backpressure-contract
+node --import tsx --test src/observability/logger-backpressure.spec.ts
+```
+
+### Phase 3 P1 closure — step 13 (DEC-064)
+
+| Gate                               | Status   | Evidence                              |
+| ---------------------------------- | -------- | ------------------------------------- |
+| SCAL-DEBT-09 concurrent create cap | **Done** | `tour-write-concurrency-budget.ts`    |
+| HTTP mapping                       | **Done** | 429 `tour_write_concurrency_exceeded` |
+| CI lock                            | **Done** | `guard:tour-write-concurrency`        |
+
+```bash
+cd apps/api && pnpm run guard:tour-write-concurrency
+node --import tsx --test test/3-performance/tour-write-concurrency.spec.ts
+```
+
+### Phase 3 P1 closure — step 14 (DEC-065)
+
+| Gate                          | Status   | Evidence                                      |
+| ----------------------------- | -------- | --------------------------------------------- |
+| SCAL-DEBT-04 prod `REDIS_URL` | **Done** | `assertProductionRedisUrl()` at boot          |
+| Rate limit off escape hatch   | **Done** | `TENANT_RATE_LIMIT_ENABLED=false` skips guard |
+| CI lock                       | **Done** | `guard:production-redis-url`                  |
+
+```bash
+cd apps/api && pnpm run guard:production-redis-url
+node --import tsx --test src/server/production-runtime-env.spec.ts
+```
+
+### Phase 3 P1 closure — step 15 (DEC-066)
+
+| Gate                                 | Status   | Evidence                                 |
+| ------------------------------------ | -------- | ---------------------------------------- |
+| SCAL-DEBT-10 per-tenant relay budget | **Done** | `outbox-relay-tenant-budget.ts`          |
+| Defer path                           | **Done** | Over-cap rows → `pending` (not `failed`) |
+| CI lock                              | **Done** | `guard:outbox-relay-tenant-budget`       |
+
+```bash
+cd apps/api && pnpm run guard:outbox-relay-tenant-budget
+node --import tsx --test test/3-performance/outbox-relay-tenant-budget.spec.ts
+```
+
+### Phase 3 P1 closure — step 16 (DEC-067)
+
+| Gate                               | Status   | Evidence                               |
+| ---------------------------------- | -------- | -------------------------------------- |
+| SCAL-DEBT-11 idempotency TTL + LRU | **Done** | `http-idempotency.ts` (DEC-039)        |
+| Memory bound spec                  | **Done** | `http-idempotency.memory.spec.ts`      |
+| CI lock                            | **Done** | `guard:http-idempotency-memory-bounds` |
+
+```bash
+cd apps/api && pnpm run guard:http-idempotency-memory-bounds
+node --import tsx --test src/http/http-idempotency.memory.spec.ts
+```
+
+### Phase 3 P1 closure — step 17 (DEC-068)
+
+| Gate                              | Status   | Evidence                                     |
+| --------------------------------- | -------- | -------------------------------------------- |
+| SCAL-DEBT-12 registry cache sweep | **Done** | `tenant-registry-cache.ts` LRU + max entries |
+| CI lock                           | **Done** | `guard:tenant-registry-cache-bounds`         |
+
+```bash
+cd apps/api && pnpm run guard:tenant-registry-cache-bounds
+node --import tsx --test src/tenant/tenant-registry-cache.spec.ts
+```
+
+| Spec / script                         | Stress shape                  | Pass / fail signal                                                                |
+| ------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| `db-pool-saturation.spec.ts`          | 100 × parallel hold, pool=10  | 503 + heartbeat ≥8                                                                |
+| `pool-stress-500-parallel.ts`         | 500 × parallel hold           | 460×503, 40×200, no leak                                                          |
+| `long-tx-safety.spec.ts`              | `P5_VALIDATE_DELAY_MS=500`    | Zero idle-in-TX during delay                                                      |
+| `noisy-neighbor-latency.spec.ts`      | 1000 validations ∥ 1 write    | Victim ratio ≤1.10                                                                |
+| `noise-neighbor.spec.ts`              | 500 reads ∥ 1 write           | Write ≤4× baseline                                                                |
+| `outbox-throughput.spec.ts`           | 10k seed + 20 creates ∥ relay | 233 eps; p95 ratio 3.19×                                                          |
+| `outbox-relay-memory.spec.ts`         | 10k relay rows                | Heap growth ≤2× post-GC                                                           |
+| `tenant-rate-limiter.spec.ts`         | 20+5 concurrent POST          | 10×201 + 10×429 (10/s limit)                                                      |
+| `tenant-rate-limiter-100.spec.ts`     | 100 unique tenants × 1 POST   | All 201; p95 ≤8s; admin ≤100 (Postgres)                                           |
+| `tenant-rate-limiting.spec.ts`        | 100 burst + victim            | A throttled; B ≤2× p50                                                            |
+| `cold-start-latency.spec.ts`          | Engine tryInit + HTTP TTFB    | Engine **≤1000 ms**; HTTP **≤500 ms** (CON-03 tiered); §12 gate on `dist/main.js` |
+| `soak-memory-leak.spec.ts`            | 50 rps × 900 s                | \|slope\| ≤0.03 MB/s                                                              |
+| `log-backpressure-burst.ts`           | 1000 `/health` @ c=100        | Δ p99 +102 ms (concurrency noise)                                                 |
+| `validation-gate-concurrency.spec.ts` | 2 tenants parallel pre-TX     | Independent gates (HT-03)                                                         |
 
 **ID registry (deduped):** break-point/debt/hard-fail → **SCAL-\*** (this section); rate limiter DoS → **RL-DOS-\***; noisy neighbor → **NN-\***; outbox → **OB-\***; logging → **FOF-LOG-\*** / [LOG-BP-\*](./phase2-paranoid-audit.md); races → **RACE-\*** (§9); pool run → **PS-\***.
 
@@ -116,20 +409,22 @@ Crash, OOM, hang, pool leak without recovery, cross-tenant DoS, or fatal observa
 
 ## Executive summary
 
-| Area                                       | Verdict                                      | Notes                                                                                                                                                           |
-| ------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Pool saturation (DEC-012)**              | **Pass** (isolation + 503 mapping)           | Fairness gap — no per-tenant DB slot cap                                                                                                                        |
-| **Pre-TX validation (DEC-013)**            | **Pass**                                     | Validation does not hold pool connections                                                                                                                       |
-| **Event-loop sync CPU**                    | **Conditional pass**                         | No sync fs/crypto/zlib; **RuleEngine validation** is the dominant >10 ms risk                                                                                   |
-| **JSON body/response**                     | **Gap**                                      | No enforced body size limit; large payloads can block on parse/stringify                                                                                        |
-| **Logging backpressure**                   | **Fatal under slow sink**                    | **3** [Fatal Observability Flaws](#11-logging-backpressure--adversarial-sink--fatal-observability-flaws); fast stdout [LOG-BP-01](./phase2-paranoid-audit.md)   |
-| **In-memory caches / OOM**                 | **Conditional pass**                         | RuleEngine + engine cache **bounded**; **7 High** Map growth paths without prod guards                                                                          |
-| **Tenant rate limiter (100-ID flood)**     | **Fail — 4 DoS vulns**                       | Primary bottleneck: uncached admin Prisma `findUnique` per rate-limited request — see [§ Tenant rate limiter](#tenant-rate-limiter--100-tenant-flood-audit)     |
-| **Outbox relay (10k flood)**               | **Pass** — **0 System Scalability Failures** | Relay async on same event loop; HTTP SLO holds — see [§10 Outbox relay](#10-outbox-relay--10000-event-flood-audit)                                              |
-| **Noisy neighbor (A bulk → B login/read)** | **Fail** (availability)                      | **8** NN vulnerabilities — partial DEC-015/016; no CPU/pool/import quotas — see [§ Noisy Neighbor](#noisy-neighbor--tenant-a-bulk-import-vs-tenant-b-loginread) |
-| **Cold-start init (§12)**                  | **Fail — Unscalable**                        | **2 Unscalable** components (>500 ms); slowest: full `main.ts` boot **p95 2084 ms**                                                                             |
+_Post-closure snapshot (2026-06-05) — aligns with [Final Stress-Test Audit](#final-stress-test-audit) and DEC-052…070._
 
-**Blocker inventory (detail below):** See [Final Stress-Test Audit — ID registry](#final-stress-test-audit). Rollup: **18** event-loop rows · **28** cache components (**7 High**) · **4** RL-DOS · **8** NN · **3** FOF-LOG · **30** RACE (**6 High**) · **0** OB-SSF · **2** cold-start **Unscalable** (CS-UNSC-01, CS-UNSC-02).
+| Area                                       | Verdict                                      | Notes                                                                                                                                                                                                 |
+| ------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pool saturation (DEC-012)**              | **Pass** (isolation + 503 mapping)           | Per-tenant DB semaphore **Done** DEC-055 — `TENANT_MAX_CONCURRENT_DB_OPS`                                                                                                                             |
+| **Pre-TX validation (DEC-013)**            | **Pass**                                     | Validation does not hold pool connections                                                                                                                                                             |
+| **Event-loop sync CPU**                    | **Mitigated**                                | Worker pool + time budget **Done** DEC-056; no sync fs/crypto/zlib; residual sync rows in [event-loop table](#performance-blockers-event-loop)                                                        |
+| **JSON body/response**                     | **Ingress + egress capped**                  | `HTTP_MAX_BODY_BYTES` (256 KiB default) on `readRequestBodyRaw` (**Done** DEC-052); `HTTP_MAX_RESPONSE_BYTES` (2 MiB default) on `sendJson` + tenant-config serialized cache (**Done** DEC-129)       |
+| **Logging backpressure**                   | **Contract enforced**                        | Bounded sink + async access log **Done** DEC-062/063; nightly slow-sink **Done** DEC-070; adversarial FOF-LOG residuals monitored                                                                     |
+| **In-memory caches / OOM**                 | **Conditional pass**                         | Idempotency LRU, registry sweep, prod `REDIS_URL`/`STORAGE_DRIVER` guards **Done** DEC-065/067/068; engine cache bounded (8 LRU)                                                                      |
+| **Tenant rate limiter (100-ID flood)**     | **Mitigated**                                | Theme cache + negative cache **Done** DEC-053; 100-tenant probe **Done** DEC-059; Redis tiered fallback **Done** DEC-083 — residual `fail_closed` explicit only                                       |
+| **Outbox relay (10k flood)**               | **Pass** — **0 System Scalability Failures** | Relay async on same event loop; HTTP SLO holds — see [§10 Outbox relay](#10-outbox-relay--10000-event-flood-audit)                                                                                    |
+| **Noisy neighbor (A bulk → B login/read)** | **Mitigated**                                | Pool/CPU/import caps + victim SLO spec **Done** DEC-055/056/064/069; **NN-08** (health priority) Low residual                                                                                         |
+| **Cold-start init (§12)**                  | **Pass** (compiled) / **Fail** (tsx dev)     | `dist/main.js` lazy boot p95 **~290 ms** ([`cold-start-lazy-boot.md`](../../../docs/phase-5/appendices/cold-start-lazy-boot.md)); tsx subprocess **CS-UNSC-01/02** remain **Unscalable** @ 500 ms SLO |
+
+**Blocker inventory (detail below):** See [Final Stress-Test Audit — ID registry](#final-stress-test-audit). Rollup (post-closure): **18** event-loop rows (P0 mitigated) · **28** cache components (**7 High** → prod-bounded) · **RL-DOS** mitigated · **NN** mitigated (**1** Low) · **FOF-LOG** contract enforced · **30** RACE (partially closed by LRU/TTL) · **0** OB-SSF · **CS-UNSC** compiled **Pass** / tsx **2 Unscalable**.
 
 ---
 
@@ -186,7 +481,7 @@ Pool saturation **does not** directly block the event loop (awaited I/O). Under 
 2. **Sync validation** on other requests still runs on the same thread while pool waiters are parked — [noisy-neighbor-latency.spec.ts](../test/3-performance/noisy-neighbor-latency.spec.ts) encodes this (CPU isolation gap, not pool isolation gap).
 3. **`finish` logging** on completing 503/200 responses runs sync on the loop — see LOG-BP-03 in phase 2.
 
-**Operational mitigations (pool):** Distinct `DATABASE_URL_ADMIN`; size `connection_limit`; per-tenant DB semaphore (deferred P2-5); retain gate specs in CI.
+**Operational mitigations (pool):** Distinct `DATABASE_URL_ADMIN`; size `connection_limit`; per-tenant DB semaphore (**Done** DEC-055 / [`connection-budget.md`](../../../docs/phase-5/appendices/connection-budget.md)); retain gate specs in CI.
 
 ---
 
@@ -196,7 +491,7 @@ All blockers below use these load assumptions unless a row states otherwise:
 
 | Parameter                       | Baseline                                 | Stress                                                                                             |
 | ------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Request body size**           | ~2–8 KiB JSON (starter wizard)           | **512 KiB–2 MiB** (no `maxBody` guard in `src/`)                                                   |
+| **Request body size**           | ~2–8 KiB JSON (starter wizard)           | **512 KiB–2 MiB** (rejected at **413** when over `HTTP_MAX_BODY_BYTES` — DEC-052)                  |
 | **Response canonical JSON**     | ~4 KiB                                   | **256 KiB+** nested `data` trees                                                                   |
 | **Concurrent validations**      | 1 per request                            | **`VALIDATION_BURST=1000`** (noisy-neighbor spec) + `P5_VALIDATION_MAX_CONCURRENT=4` scheduler cap |
 | **Tour count**                  | N/A on current routes (no list endpoint) | Capacity caps: **10k/tenant**, **100k/global** — relevant only if list/bulk paths added            |
@@ -212,27 +507,27 @@ All blockers below use these load assumptions unless a row states otherwise:
 
 Synchronous or CPU-bound operations on request or near-request paths that **could** exceed **10 ms** under the stress assumptions above.
 
-| File                                                                                        | Line      | Operation                                                                          | Why >10 ms possible                                                                                                                    | Severity   | Mitigation                                                                                                                                                       |
-| ------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`tours/canonical-validation.ts`](../src/tours/canonical-validation.ts)                     | 95–137    | `createCanonicalDocument` → `assertCanonicalDocument` → `engine.validateCanonical` | RuleEngine walks plugin rules synchronously; noisy-neighbor spec uses 1000 concurrent validations; single complex doc can exceed 10 ms | **High**   | Worker thread pool for validation; `runScheduledValidation` already caps concurrency — add **time budget** + 408/429; pre-compile at provision (cold-start spec) |
-| [`tours/canonical-validation.ts`](../src/tours/canonical-validation.ts)                     | 77–78     | `PlatformWizardEngine.create(plugin)` on cache miss                                | Cold compile >1 s on large RuleSet ([`cold-start-latency.spec.ts`](../test/3-performance/cold-start-latency.spec.ts))                  | **High**   | Warm cache at boot/provision; expand LRU (`P5_VALIDATION_ENGINE_CACHE_SIZE`); compile in worker                                                                  |
-| [`canonical/pre-transaction-validation.ts`](../src/canonical/pre-transaction-validation.ts) | 29–44     | `runScheduledValidation` → `validateCanonicalBeforePersist`                        | Scheduler yields via `setImmediate` but **validation body is sync**; victim tenant waits behind CPU burst                              | **High**   | Same as validation row; consider `worker_threads` + transferable canonical snapshot                                                                              |
-| [`canonical/validation-scheduler.ts`](../src/canonical/validation-scheduler.ts)             | 90–125    | `pumpQueue` `while` + `pickTenantWithShortestQueue` scan                           | Under 50+ tenants with deep queues, sync dequeue/scan in same tick as HTTP handlers                                                    | **Medium** | Move pump tail to `setImmediate`; index shortest-queue tenant in heap                                                                                            |
-| [`http/json.ts`](../src/http/json.ts)                                                       | 3–8       | `Buffer.concat(chunks).toString("utf8")`                                           | Full body buffered in memory; 512 KiB–2 MiB upload copies on loop                                                                      | **High**   | Enforce `Content-Length` max; streaming parser; reject early                                                                                                     |
-| [`http/json.ts`](../src/http/json.ts)                                                       | 16        | `JSON.parse(raw)`                                                                  | V8 parse of 512 KiB–2 MiB JSON blocks loop (typically 5–50 ms depending on depth)                                                      | **High**   | Size cap; streaming JSON (`stream-json`); worker parse                                                                                                           |
-| [`http/json.ts`](../src/http/json.ts)                                                       | 20        | `JSON.stringify(body)` + `res.end`                                                 | Large canonical in GET/POST response; stringify + socket write sync portion                                                            | **Medium** | Pagination/summary DTOs; stream JSON; compress (async zlib in worker)                                                                                            |
-| [`tours/tours.routes.ts`](../src/tours/tours.routes.ts)                                     | 24–26, 49 | `readRequestBodyRaw` + `JSON.parse` + `hashIdempotentRequest`                      | Duplicate full-buffer read; parse before Zod; SHA-256 over raw body scales with size                                                   | **Medium** | Single parse path; pass raw hash stream; body limit                                                                                                              |
-| [`tours/tours.routes.ts`](../src/tours/tours.routes.ts)                                     | 72–74     | PATCH: same parse pattern                                                          | Update with large `data` patch same cost as create                                                                                     | **Medium** | Shared body parser middleware                                                                                                                                    |
-| [`tours/tours.service.ts`](../src/tours/tours.service.ts)                                   | 22, 49    | `parseCreateTourBody` / `parseUpdateTourBody` (Zod)                                | Deep nested `data` record — Zod traverses entire tree sync                                                                             | **Medium** | Limit `data` depth/size in schema; structural sharing                                                                                                            |
-| [`tours/create-tour.schema.ts`](../src/tours/create-tour.schema.ts)                         | 24–28     | `safeParse` + issue `.map().join`                                                  | Huge invalid payloads generate thousands of issues                                                                                     | **Low**    | Cap issue count in error mapper                                                                                                                                  |
-| [`http/http-idempotency.ts`](../src/http/http-idempotency.ts)                               | 49–51     | `createHash("sha256").update(...).digest()`                                        | Node crypto sync; ~1 ms/MiB — crosses 10 ms only at multi-MiB bodies                                                                   | **Medium** | Body size cap; incremental hash while streaming read                                                                                                             |
-| [`tenant/tenant-config.routes.ts`](../src/tenant/tenant-config.routes.ts)                   | 56–61     | `JSON.stringify({ … theme })`                                                      | Large `theme` JSON from DB (feature flags, assets)                                                                                     | **Medium** | Cache config response; strip heavy theme fields from API                                                                                                         |
-| [`http/request-logging.ts`](../src/http/request-logging.ts)                                 | 13–19     | `res.on("finish")` → `logHttpRequest` → `logger.info`                              | Sync `finish` callback; Sonic-Boom full buffer or slow stdout blocks ([LOG-BP-03](./phase2-paranoid-audit.md))                         | **Medium** | `setImmediate(() => logHttpRequest(...))`; explicit `pino.destination({ sync: false })`; `LOG_LEVEL=warn` under load                                             |
-| [`middleware/error-interceptor.ts`](../src/middleware/error-interceptor.ts)                 | 103–114   | `logInternalServerError` — stack split/filter + `logger.error`                     | 500 storm: larger records than access logs ([LOG-BP-04](./phase2-paranoid-audit.md))                                                   | **Medium** | Sample internal errors; defer log; truncate stack                                                                                                                |
-| [`middleware/error-interceptor.ts`](../src/middleware/error-interceptor.ts)                 | 57        | `sendJson` on error path                                                           | Double stringify if nested error objects grow                                                                                          | **Low**    | Fixed envelope schema                                                                                                                                            |
-| [`tenant-kernel/parse-bearer.ts`](../src/tenant-kernel/parse-bearer.ts)                     | 66–80     | `Buffer.from` base64url + `JSON.parse`                                             | Test-only dev bearer — trivial size                                                                                                    | **Low**    | N/A (prod uses async JWT)                                                                                                                                        |
-| [`canonical/canonical-sync-validator.ts`](../src/canonical/canonical-sync-validator.ts)     | 28        | `JSON.stringify` ×2 compare per legacy row                                         | Phase 3.4: legacy mirror empty — O(1) today; bulk sync would scale with tour count                                                     | **Low**    | Deep compare or hash-based equality if mirror returns                                                                                                            |
-| [`casl/api-ability.ts`](../src/casl/api-ability.ts)                                         | 21–39     | `createApiAbility` / `buildTenantAuthz`                                            | Sync but microsecond-scale                                                                                                             | **Low**    | Cache ability per `(tenantId, role)` per request ALS                                                                                                             |
+| File                                                                                        | Line    | Operation                                                                          | Why >10 ms possible                                                                                                                    | Severity      | Mitigation                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`tours/canonical-validation.ts`](../src/tours/canonical-validation.ts)                     | 95–137  | `createCanonicalDocument` → `assertCanonicalDocument` → `engine.validateCanonical` | RuleEngine walks plugin rules synchronously; noisy-neighbor spec uses 1000 concurrent validations; single complex doc can exceed 10 ms | **High**      | Worker thread pool for validation; `runScheduledValidation` already caps concurrency — add **time budget** + 408/429; pre-compile at provision (cold-start spec) |
+| [`tours/canonical-validation.ts`](../src/tours/canonical-validation.ts)                     | 77–78   | `PlatformWizardEngine.create(plugin)` on cache miss                                | Cold compile >1 s on large RuleSet ([`cold-start-latency.spec.ts`](../test/3-performance/cold-start-latency.spec.ts))                  | **High**      | Warm cache at boot/provision; expand LRU (`P5_VALIDATION_ENGINE_CACHE_SIZE`); compile in worker                                                                  |
+| [`canonical/pre-transaction-validation.ts`](../src/canonical/pre-transaction-validation.ts) | 29–44   | `runScheduledValidation` → `validateCanonicalBeforePersist`                        | Scheduler yields via `setImmediate` but **validation body is sync**; victim tenant waits behind CPU burst                              | **High**      | Same as validation row; consider `worker_threads` + transferable canonical snapshot                                                                              |
+| [`canonical/validation-scheduler.ts`](../src/canonical/validation-scheduler.ts)             | 90–125  | `pumpQueue` `while` + `pickTenantWithShortestQueue` scan                           | Under 50+ tenants with deep queues, sync dequeue/scan in same tick as HTTP handlers                                                    | **Medium**    | Move pump tail to `setImmediate`; index shortest-queue tenant in heap                                                                                            |
+| [`http/json.ts`](../src/http/json.ts)                                                       | 3–8     | `Buffer.concat(chunks).toString("utf8")`                                           | Full body buffered in memory; 512 KiB–2 MiB upload copies on loop                                                                      | **High**      | Enforce `Content-Length` max; streaming parser; reject early                                                                                                     |
+| [`http/json.ts`](../src/http/json.ts)                                                       | 16      | `JSON.parse(raw)`                                                                  | V8 parse of 512 KiB–2 MiB JSON blocks loop (typically 5–50 ms depending on depth)                                                      | **High**      | Size cap; streaming JSON (`stream-json`); worker parse                                                                                                           |
+| [`http/json.ts`](../src/http/json.ts)                                                       | 71–76   | `JSON.stringify(body)` + `res.end`                                                 | Large canonical in GET/POST response; stringify + socket write sync portion                                                            | **Medium**    | **Mitigated** DEC-129 — `HTTP_MAX_RESPONSE_BYTES` + pre-serialized string fast path; pagination deferred                                                         |
+| [`tours/tours.routes.ts`](../src/tours/tours.routes.ts)                                     | 27–52   | `readTourRequestBody` + Zod + `hashIdempotentRequest` on create                    | Single ingress parse; SHA-256 over raw body still scales with size (DEC-052 cap)                                                       | **Mitigated** | **Done** DEC-100 — [`tour-request-parse-pipeline.md`](../../../docs/phase-5/appendices/tour-request-parse-pipeline.md)                                           |
+| [`tours/tours.routes.ts`](../src/tours/tours.routes.ts)                                     | 72–76   | PATCH: shared `readTourRequestBody`                                                | Same single-parse path as create                                                                                                       | **Mitigated** | **Done** DEC-100 — shared helper                                                                                                                                 |
+| [`tours/tours.service.ts`](../src/tours/tours.service.ts)                                   | 19–57   | Typed `CreateTourBody` / `UpdateTourBody` (Zod at route)                           | Deep nested `data` record — Zod traverses entire tree sync at HTTP boundary only                                                       | **Medium**    | Limit `data` depth/size in schema; structural sharing                                                                                                            |
+| [`tours/create-tour.schema.ts`](../src/tours/create-tour.schema.ts)                         | 24–28   | `safeParse` + issue `.map().join`                                                  | Huge invalid payloads generate thousands of issues                                                                                     | **Low**       | Cap issue count in error mapper                                                                                                                                  |
+| [`http/http-idempotency.ts`](../src/http/http-idempotency.ts)                               | 49–51   | `createHash("sha256").update(...).digest()`                                        | Node crypto sync; ~1 ms/MiB — crosses 10 ms only at multi-MiB bodies                                                                   | **Medium**    | Body size cap; incremental hash while streaming read                                                                                                             |
+| [`tenant/tenant-config.routes.ts`](../src/tenant/tenant-config.routes.ts)                   | 53–66   | `JSON.stringify` + `sendJson` (cached payload on hit)                              | Large `theme` JSON from DB (feature flags, assets)                                                                                     | **Medium**    | **Mitigated** DEC-129 — 5s serialized cache + registry invalidation; strip heavy theme fields deferred                                                           |
+| [`http/request-logging.ts`](../src/http/request-logging.ts)                                 | 13–19   | `res.on("finish")` → `logHttpRequest` → `logger.info`                              | Sync `finish` callback; Sonic-Boom full buffer or slow stdout blocks ([LOG-BP-03](./phase2-paranoid-audit.md))                         | **Medium**    | `setImmediate(() => logHttpRequest(...))`; explicit `pino.destination({ sync: false })`; `LOG_LEVEL=warn` under load                                             |
+| [`middleware/error-interceptor.ts`](../src/middleware/error-interceptor.ts)                 | 103–114 | `logInternalServerError` — stack split/filter + `logger.error`                     | 500 storm: larger records than access logs ([LOG-BP-04](./phase2-paranoid-audit.md))                                                   | **Medium**    | Sample internal errors; defer log; truncate stack                                                                                                                |
+| [`middleware/error-interceptor.ts`](../src/middleware/error-interceptor.ts)                 | 57      | `sendJson` on error path                                                           | Double stringify if nested error objects grow                                                                                          | **Low**       | Fixed envelope schema                                                                                                                                            |
+| [`tenant-kernel/parse-bearer.ts`](../src/tenant-kernel/parse-bearer.ts)                     | 66–80   | `Buffer.from` base64url + `JSON.parse`                                             | Test-only dev bearer — trivial size                                                                                                    | **Low**       | N/A (prod uses async JWT)                                                                                                                                        |
+| [`canonical/canonical-sync-validator.ts`](../src/canonical/canonical-sync-validator.ts)     | 28      | `JSON.stringify` ×2 compare per legacy row                                         | Phase 3.4: legacy mirror empty — O(1) today; bulk sync would scale with tour count                                                     | **Low**       | Deep compare or hash-based equality if mirror returns                                                                                                            |
+| [`casl/api-ability.ts`](../src/casl/api-ability.ts)                                         | 21–39   | `createApiAbility` / `buildTenantAuthz`                                            | Sync but microsecond-scale                                                                                                             | **Low**       | Cache ability per `(tenantId, role)` per request ALS                                                                                                             |
 
 ### Not flagged (reviewed, below threshold or off hot path)
 
@@ -260,12 +555,12 @@ Synchronous or CPU-bound operations on request or near-request paths that **coul
 
 ### Recommended priority (event loop)
 
-1. **P0 — Request body size limit** at HTTP boundary (413) before `Buffer.concat` / `JSON.parse`.
-2. **P0 — Validation offload or hard time budget** — worker thread or separate validation service; document DEC-016 scheduler as necessary but insufficient for CPU isolation.
-3. **P1 — Defer access logs** off `finish` synchronous path (phase 2 LOG-BP-03).
-4. **P1 — Single parse pipeline** for POST/PATCH `/tours` (route + service duplicate work).
-5. **P2 — Response shaping** — avoid full canonical on list endpoints when added.
-6. **P2 — Explicit Pino destination** config with `sync: false` and shutdown flush.
+1. **P0 — Request body size limit** at HTTP boundary (413) before `Buffer.concat` / `JSON.parse`. **Done** (DEC-052).
+2. **P0 — Validation offload or hard time budget** — worker thread pool + 408 shed. **Done** (DEC-056).
+3. **P1 — Defer access logs** off `finish` synchronous path (phase 2 LOG-BP-03). **Done** (DEC-062).
+4. **P1 — Single parse pipeline** for POST/PATCH `/tours` (route + service duplicate work). **Done** (DEC-100).
+5. **P2 — Response shaping** — egress cap + tenant-config serialized cache. **Done** (DEC-129). List-endpoint pagination deferred.
+6. **P2 — Explicit Pino destination** config with `sync: false` and shutdown flush. **Done** (DEC-063).
 
 ---
 
@@ -273,19 +568,19 @@ Synchronous or CPU-bound operations on request or near-request paths that **coul
 
 Superseded by [Final Stress-Test Audit — Verdict: CONDITIONAL](#verdict-conditional). Detail rollup:
 
-| Dimension                                   | Status                                                                                                              |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Pool sharing + RLS                          | **Pass**                                                                                                            |
-| Pool fairness under storm                   | **503 mapped** — [SCAL-DEBT-01](#scalability-debt)                                                                  |
-| Noisy neighbor (bulk import → victim reads) | **Fail** — [NN-01…08](#noisy-neighbor-vulnerability-register)                                                       |
-| Outbox 10k flood                            | **Pass** — 0 [OB-SSF](#106-system-scalability-failure-assessment)                                                   |
-| Rate limiter 100-ID flood                   | **Fail** — [RL-DOS-01…04](#dos-vulnerability-table)                                                                 |
-| Sync I/O / crypto / fs                      | **Pass**                                                                                                            |
-| RuleEngine validation CPU                   | **High risk** — [SCAL-HF-10](#hard-fail-risks)                                                                      |
-| Logging backpressure                        | **Fatal (adversarial)** — [FOF-LOG-01…03](#115-fatal-observability-flaw-inventory)                                  |
-| Cold-start init (>500 ms)                   | **Unscalable** — **2** findings ([CS-UNSC-01/02](#12-cold-start--service-initialization-audit)); RuleEngine path OK |
+| Dimension                                   | Status                                                                                                                                  |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Pool sharing + RLS                          | **Pass**                                                                                                                                |
+| Pool fairness under storm                   | **Mitigated** — [SCAL-DEBT-01](#scalability-debt) **Done** DEC-055                                                                      |
+| Noisy neighbor (bulk import → victim reads) | **Mitigated** — DEC-055/056/064/069; [NN-08](#noisy-neighbor-vulnerability-register) Low residual                                       |
+| Outbox 10k flood                            | **Pass** — 0 [OB-SSF](#106-system-scalability-failure-assessment)                                                                       |
+| Rate limiter 100-ID flood                   | **Mitigated** — DEC-053/059/065/083; explicit `fail_closed` residual                                                                    |
+| Sync I/O / crypto / fs                      | **Pass**                                                                                                                                |
+| RuleEngine validation CPU                   | **Mitigated** — worker pool DEC-056; monitor [SCAL-HF-10](#hard-fail-risks)                                                             |
+| Logging backpressure                        | **Contract enforced** — DEC-062/063/070; adversarial FOF-LOG monitored                                                                  |
+| Cold-start init (>500 ms)                   | **Pass** compiled `dist/main.js` (~290 ms p95); tsx dev [CS-UNSC-01/02](#12-cold-start--service-initialization-audit) remain Unscalable |
 
-**Next audit triggers:** `GET /tours` list; body-limit middleware; validation worker; bulk-import ∥ B login/read SLO spec; 100-tenant limiter probe; slow-sink logging stress; §12 re-run on compiled `dist/main.js`.
+**Next audit triggers:** _(none from Phase 3 closure list)_ — OB-COND-01 monitor **Done** ([`domain-event-handler-monitor.md`](../../../docs/phase-5/appendices/domain-event-handler-monitor.md)); `GET /tours` list **Done** ([`tours-list-endpoint.md`](../../../docs/phase-5/appendices/tours-list-endpoint.md)).
 
 ---
 
@@ -465,46 +760,48 @@ sequenceDiagram
 | **Import concurrency** | Write rate limit on HTTP path                                                                                                                               | **No** bulk-job semaphore, queue depth cap, or worker pool isolation; direct persist bypasses HTTP limits entirely      | [`bulk-import-consistency.spec.ts`](../test/4-integration/bulk-import-consistency.spec.ts) — **RLS only**, no victim SLO                                   |
 | **Tour volume**        | `MAX_TOURS_PER_TENANT` default **10k**, global **100k**                                                                                                     | Capacity is a **ceiling**, not a **fair-share throttle** — import can run at max RPS until cap                          | [`assert-tour-capacity-in-tx.ts`](../src/canonical/assert-tour-capacity-in-tx.ts)                                                                          |
 | **Data partition**     | RLS + ALS on all tenant routes                                                                                                                              | **Does not** protect B from **latency** or **503** under shared resource exhaustion                                     | [`bulk-import-consistency.spec.ts`](../test/4-integration/bulk-import-consistency.spec.ts)                                                                 |
-| **Health probe**       | Minimal handler                                                                                                                                             | **No** priority lane — still subject to event-loop starvation                                                           | [`health.routes.ts`](../src/health/health.routes.ts)                                                                                                       |
+| **Health probe**       | NN-08 fast path (`createHealthAwareServerListener`)                                                                                                         | **Partial** — bypasses log/trace/lazy import; NN-01 CPU residual on wedged loop                                         | [`health-priority-ingress.ts`](../src/boot/health-priority-ingress.ts)                                                                                     |
 
 **Protected dimensions (rollup for parent):** data isolation (RLS); per-tenant HTTP rate limits (read/write tiers); validation scheduler global + per-tenant in-flight caps; shortest-queue validation dequeue; pool saturation fail-fast 503; tour capacity ceilings; tenant registry 5s cache; dual app/admin pool (when configured); outbox SKIP LOCKED + tenant-scoped publish.
 
 ### Noisy Neighbor vulnerability register
 
-| ID        | Severity   | Shared resource                     | Tenant B impact                                                                                        | Trigger (Tenant A)                                                                     | Mitigation (deferred / recommended)                                                                     |
-| --------- | ---------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **NN-01** | **High**   | Node event loop (sync RuleEngine)   | **Degraded** `GET /health`, tenant-config, `GET /tours` latency; extreme stall → effective **timeout** | Thousands of validations via bulk `POST /tours` or `runPreTransactionValidation` storm | Worker-thread validation; hard CPU time budget + 408; per-tenant validation queue **max depth** + shed  |
-| **NN-02** | **High**   | App DB pool (`getPrisma`)           | **`GET /tours/:id` → 503** `DB_POOL_SATURATED`; create/update blocked                                  | Concurrent `withCanonicalTransaction` (10+ parallel TX per chunk in bulk harness)      | Per-tenant DB semaphore (P2-5); pool `connection_limit` tuning; import job concurrency cap              |
-| **NN-03** | **Medium** | Admin DB pool                       | **tenant-config slow or 503** on cache miss; delayed theme/feature resolution after “login”            | A bulk import → outbox rows → relay `claimPendingOutboxBatch` + mark `done`            | Size admin pool; relay shard by `tenant_id`; extend registry cache TTL under load                       |
-| **NN-04** | **Medium** | Validation scheduler `tenantQueues` | B’s `POST /tours` (if any) queued behind A’s deep FIFO; indirect delay on mixed workloads              | Unbounded enqueue while under in-flight cap                                            | Max queue depth per tenant → 429/503; metrics on queue depth                                            |
-| **NN-05** | **Medium** | HTTP + persist path                 | No **bulk import quota** — A runs at full write RPS until tour cap                                     | Sustained `POST /tours`                                                                | Dedicated import API with **global + per-tenant** concurrency; lower write points for bulk content-type |
-| **NN-06** | **Medium** | Outbox relay + admin pool           | Background load raises p99 on admin reads (tenant-config)                                              | 100+ tours/import × outbox enqueue                                                     | Per-tenant outbox relay budget; priority class for registry reads                                       |
-| **NN-07** | **Medium** | Event loop (JSON)                   | B reads lag while A parses large POST bodies (no `maxBody`)                                            | Large canonical payloads on import                                                     | Request body size limit (413) — see [Event loop blockers](#performance-blockers-event-loop)             |
-| **NN-08** | **Low**    | Health handler priority             | `GET /health` has **no** isolation — still answers unless loop fully wedged                            | Extreme CPU monolith (sync validation bypassing scheduler)                             | Priority queue or separate health worker / sidecar                                                      |
+| ID        | Severity         | Shared resource                     | Tenant B impact                                                                                                                                                                             | Trigger (Tenant A)                                                                | Mitigation (deferred / recommended)                                                                                                                                      |
+| --------- | ---------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **NN-01** | **Mitigated** ✅ | Node event loop (sync RuleEngine)   | **Degraded** `/health` latency only under sync bypass or wedged loop; **alerted** via `health_probe_p99_ms` (A1)                                                                            | Bulk `POST /tours` @ scheduler + worker pool; sync storm only in debt probes      | **Done:** worker pool, queue shed, time budget, victim SLO, NN-08, [`health-probe-latency-monitor.md`](../../../docs/phase-5/appendices/health-probe-latency-monitor.md) |
+| **NN-02** | **Mitigated** ✅ | App DB pool (`getPrisma`)           | **`GET /tours/:id` → 503** when A holds all pool slots (pre-DEC-055); B isolated under semaphore                                                                                            | Concurrent `withCanonicalTransaction` (10+ parallel TX per chunk in bulk harness) | **Done** DEC-055 per-tenant connection budget; victim SLO DEC-069                                                                                                        |
+| **NN-03** | **Mitigated** ✅ | Admin DB pool                       | Residual cache-miss latency — **alerted** (B1)                                                                                                                                              | A bulk import → outbox rows → relay `claimPendingOutboxBatch` + mark `done`       | **Done:** DEC-066 relay budget + registry cache; [`admin-pool-read-monitor.md`](../../../docs/phase-5/appendices/admin-pool-read-monitor.md)                             |
+| **NN-04** | **Mitigated** ✅ | Validation scheduler `tenantQueues` | Residual depth/skew — **alerted** (B2); shed at cap **429**                                                                                                                                 | Deep enqueue up to `P5_VALIDATION_MAX_QUEUE_DEPTH_PER_TENANT`                     | **Done:** DEC-054 shed + [`validation-queue-monitor.md`](../../../docs/phase-5/appendices/validation-queue-monitor.md)                                                   |
+| **NN-05** | **Mitigated** ✅ | HTTP + persist path                 | Residual bulk skew — **alerted** (B3); cap **429** at `TENANT_MAX_CONCURRENT_TOUR_WRITES`                                                                                                   | Sustained `POST /tours`                                                           | **Done:** DEC-064 + DEC-069 victim SLO + [`tour-write-concurrency-monitor.md`](../../../docs/phase-5/appendices/tour-write-concurrency-monitor.md)                       |
+| **NN-06** | **Mitigated** ✅ | Outbox relay + admin pool           | Residual relay skew — **alerted** (B4); defer at per-tenant cap                                                                                                                             | 100+ tours/import × outbox enqueue                                                | **Done:** DEC-066 + [`outbox-relay-monitor.md`](../../../docs/phase-5/appendices/outbox-relay-monitor.md)                                                                |
+| **NN-07** | **Mitigated** ✅ | Event loop (JSON)                   | Residual reject bursts — **alerted** (B5); ingress **413** / egress **507**                                                                                                                 | Large canonical payloads on import                                                | **Done:** DEC-052 + DEC-129 + [`http-json-pressure-monitor.md`](../../../docs/phase-5/appendices/http-json-pressure-monitor.md)                                          |
+| **NN-08** | **Low** ✅       | Health handler priority             | **Mitigated** — `createHealthAwareServerListener` bypasses access-log queue, trace ALS, lazy import ([`health-priority-lane.md`](../../../docs/phase-5/appendices/health-priority-lane.md)) | Extreme CPU monolith (sync validation bypassing scheduler — NN-01 residual)       | Sidecar / worker health port deferred; monolith fast path sufficient for probe SLO                                                                                       |
 
-**Noisy neighbor vulnerability count:** **8** (**3 High**, **4 Medium**, **1 Low**).
+**Noisy neighbor vulnerability count:** **8** — **all Mitigated** (trunk probes + DEC-055/064/066 + B1–B5 monitors); residual = alert-only, not open Medium debt.
 
 **Can Tenant B be blocked?**
 
-| Endpoint                    | Blocked (503 / hard failure)?                                     | Degraded only?    | Primary NN IDs      |
-| --------------------------- | ----------------------------------------------------------------- | ----------------- | ------------------- |
-| `GET /health`               | Rare (process hang)                                               | **Yes** — latency | NN-01, NN-08        |
-| `GET /api/v2/tenant-config` | **Yes** — admin pool saturation or auth timeout under extreme lag | **Yes**           | NN-01, NN-03, NN-06 |
-| `GET /tours/:id`            | **Yes** — app pool 503                                            | **Yes**           | NN-01, NN-02        |
+| Endpoint                    | Blocked (503 / hard failure)?                                     | Degraded only?                     | Primary NN IDs      |
+| --------------------------- | ----------------------------------------------------------------- | ---------------------------------- | ------------------- |
+| `GET /health`               | Rare (process hang)                                               | **Yes** — latency (NN-01 CPU only) | NN-01               |
+| `GET /api/v2/tenant-config` | **Yes** — admin pool saturation or auth timeout under extreme lag | **Yes**                            | NN-01, NN-03, NN-06 |
+| `GET /tours/:id`            | **Yes** — app pool 503                                            | **Yes**                            | NN-01, NN-02        |
 
 Tenant B’s **read rate limit bucket is independent** of Tenant A — B is not 429’d by A’s traffic unless B exceeds its own read tier. Blocking is via **shared pool exhaustion** and **event-loop contention**, not cross-tenant rate-limit key collision.
 
 ### Test cross-reference — what is proven vs missing
 
-| Spec                                                                                       | Tenant A noise                                      | Tenant B victim                 | Proves                                                                     | Does **not** prove                              |
-| ------------------------------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
-| [`bulk-import-consistency.spec.ts`](../test/4-integration/bulk-import-consistency.spec.ts) | 100× `persistNewTourAtomically` (10 parallel/chunk) | Interleaved B batch (same test) | RLS partition integrity (**BULK-IMPORT-01**)                               | B login/read SLO under **one-sided** A storm    |
-| [`noisy-neighbor-latency.spec.ts`](../test/3-performance/noisy-neighbor-latency.spec.ts)   | 1000× validation storm (scheduler-batched)          | 1× `createTour`                 | CPU fairness SLO ≤ **10%** over baseline (`BASELINE_RATIO_MAX=1.10`)       | HTTP GET paths; bulk TX pool hold               |
-| [`noise-neighbor.spec.ts`](../test/2-observability/noise-neighbor.spec.ts)                 | 500× `GET /tours/:id`                               | 1× `POST /tours`                | Write under read noise ≤ **4×** baseline (with read limit **2/s** in test) | Bulk **import** (writes); tenant-config; health |
-| [`service-starvation.spec.ts`](../test/1-reliability/service-starvation.spec.ts)           | 1200× microtask validation + sync monolith probe    | 24× concurrent writes           | Event-loop heartbeat gap; sync path **documents debt**                     | Per-route victim matrix for B reads             |
-| [`db-pool-saturation.spec.ts`](../test/3-performance/db-pool-saturation.spec.ts)           | 100× long TX hold                                   | Heartbeat only                  | 503 storm + loop alive                                                     | Cross-tenant victim GET latency                 |
+| Spec                                                                                       | Tenant A noise                                      | Tenant B victim                 | Proves                                                                                                                                                                                | Does **not** prove                                   |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [`bulk-import-consistency.spec.ts`](../test/4-integration/bulk-import-consistency.spec.ts) | 100× `persistNewTourAtomically` (10 parallel/chunk) | Interleaved B batch (same test) | RLS partition integrity (**BULK-IMPORT-01**)                                                                                                                                          | B login/read SLO under **one-sided** A storm         |
+| [`noisy-neighbor-latency.spec.ts`](../test/3-performance/noisy-neighbor-latency.spec.ts)   | 1000× validation storm (scheduler-batched)          | 1× `createTour`                 | CPU fairness SLO ≤ **10%** over baseline (`BASELINE_RATIO_MAX=1.10` default; gate tiers in [`baseline-ratio-tiering.md`](../../../docs/phase-5/appendices/baseline-ratio-tiering.md)) | HTTP GET paths; bulk TX pool hold                    |
+| [`noise-neighbor.spec.ts`](../test/2-observability/noise-neighbor.spec.ts)                 | 500× `GET /tours/:id`                               | 1× `POST /tours`                | Write under read noise ≤ **4×** baseline (with read limit **2/s** in test)                                                                                                            | Bulk **import** (writes); tenant-config; health      |
+| [`service-starvation.spec.ts`](../test/1-reliability/service-starvation.spec.ts)           | 1200× microtask validation + sync monolith probe    | 24× concurrent writes           | Event-loop heartbeat gap; sync path **documents debt**                                                                                                                                | Per-route victim matrix for B reads                  |
+| [`db-pool-saturation.spec.ts`](../test/3-performance/db-pool-saturation.spec.ts)           | 100× long TX hold                                   | Heartbeat only                  | 503 storm + loop alive                                                                                                                                                                | Cross-tenant victim GET latency                      |
+| [`health-priority-ingress.spec.ts`](../src/boot/health-priority-ingress.spec.ts)           | Sync validation storm + slow log drain              | Concurrent `GET /health` burst  | NN-08 bypass; **200** under CPU storm (NN-01 residual latency only)                                                                                                                   | Does not prove B tenant-config/tours under HTTP bulk |
+| [`bulk-import-victim-slo.spec.ts`](../test/3-performance/bulk-import-victim-slo.spec.ts)   | A parallel `POST /tours` bulk-import                | B health / tenant-config / tour | Victim SLO under HTTP bulk (**Done** DEC-069)                                                                                                                                         | Extreme wedged event loop; no `GET /tours` list      |
 
-**Gap (recommended spec):** Nightly probe — Tenant A runs `bulk-import`-scale **HTTP** or `persistNewTourAtomically` storm while Tenant B concurrently hits `GET /health`, tenant-config, and `GET /tours/:id`; assert B success with p99 latency ceiling (extends noise-neighbor matrix to import → login/read).
+**Residual probe gap:** _(closed)_ — nightly `noisy-neighbor-latency` wired in [`.github/workflows/api-nightly.yml`](../../../.github/workflows/api-nightly.yml); `GET /tours` list in [`tours-list.spec.ts`](../test/1-functional/tours-list.spec.ts).
 
 ### Attack scenario narrative (A → B)
 
@@ -1467,12 +1764,12 @@ A **System Scalability Failure** is recorded when the relay **blocks the main HT
 
 ### 10.7 Conditional risks (not failures at tested load)
 
-| ID             | Severity                     | Finding                                                                   | Trigger                                                                               |
-| -------------- | ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **OB-COND-01** | **High** (if handlers heavy) | Sync `domainBus.emit` in `publishDomainEvent`                             | Plugin subscribers with >10 ms sync work                                              |
-| **OB-COND-02** | **Medium**                   | `OUTBOX_RELAY_PUBLISH_CONCURRENCY` (16) > default `connection_limit` (10) | Default pool URL without raise → HTTP 503 under combined relay+write                  |
-| **OB-COND-03** | **Low**                      | `running` guard drops interval ticks                                      | Very long batches + `OUTBOX_POLL_INTERVAL_MS` — slower `done` latency, not HTTP block |
-| **OB-COND-04** | **Info**                     | No relay throughput metric exported                                       | `metrics.ts` — tour counters only                                                     |
+| ID             | Severity         | Finding                                                                     | Trigger                                                                                     |
+| -------------- | ---------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **OB-COND-01** | **Mitigated** ✅ | Deferred dispatch + `domain_event_handler_slow_total` when handler > budget | Plugin subscribers with >10 ms work — alert on counter; handlers must stay light/async      |
+| **OB-COND-02** | **Mitigated** ✅ | Pool headroom gauge + contention alert (C2)                                 | Default pool URL without raise → alert `outbox_relay_pool_headroom < 0`; size pool in prod  |
+| **OB-COND-03** | **Mitigated** ✅ | `outbox_relay_tick_skipped_total` when `running` guard drops poll           | Very long batches + `OUTBOX_POLL_INTERVAL_MS` — alert on skip bursts; slower `done` latency |
+| **OB-COND-04** | **Mitigated** ✅ | `outbox_relay_published_total` + last-tick gauges on `/internal/metrics`    | Stall alert when pending > 100 and zero publishes in 10m                                    |
 
 ### 10.8 Cross-links to prior sections
 
@@ -1485,11 +1782,12 @@ A **System Scalability Failure** is recorded when the relay **blocks the main HT
 
 ### 10.9 Recommendations
 
-1. **Size `connection_limit`** ≥ `OUTBOX_RELAY_PUBLISH_CONCURRENCY` + HTTP headroom (or lower concurrency to match pool).
-2. **Document OB-COND-01** — domain event handlers must be async/light; heavy work via outbox subscriber queue (Phase 7).
-3. **Promote `outbox-throughput.spec.ts`** with `OUTBOX_SEED_COUNT=10000` to nightly when Postgres available.
-4. **Export relay lag metric** — `pending` row count / oldest `created_at` age (Phase 7 observability).
-5. **Production batch tuning** — default `OUTBOX_RELAY_BATCH_SIZE=10` implies ~1000 ticks per 10k backlog; raise to 100 for catch-up after incidents.
+1. **Size `connection_limit`** ≥ `OUTBOX_RELAY_PUBLISH_CONCURRENCY` + HTTP headroom (or lower concurrency to match pool) — **C2 Done** [`outbox-relay-pool-contention-monitor.md`](../../../docs/phase-5/appendices/outbox-relay-pool-contention-monitor.md).
+2. **Relay tick skip + throughput** — **C3/C4 Done** [`outbox-relay-tick-monitor.md`](../../../docs/phase-5/appendices/outbox-relay-tick-monitor.md).
+3. **Document OB-COND-01** — domain event handlers must be async/light; heavy work via outbox subscriber queue (Phase 7).
+4. **Promote `outbox-throughput.spec.ts`** with `OUTBOX_SEED_COUNT=10000` to nightly when Postgres available.
+5. **Export relay lag metric** — **F1 Done** [`outbox-relay-lag-monitor.md`](../../../docs/phase-5/appendices/outbox-relay-lag-monitor.md) — `outbox_relay_oldest_pending_age_seconds` + `outbox_pending_total`; **F2 Done** HPA on lag ([`api-hpa-custom-metrics.md`](../../../docs/phase-5/appendices/api-hpa-custom-metrics.md)).
+6. **Production batch tuning** — default `OUTBOX_RELAY_BATCH_SIZE=10` implies ~1000 ticks per 10k backlog; raise to 100 for catch-up after incidents.
 
 ### 10.10 Run commands
 
@@ -1588,11 +1886,11 @@ Re-run: `cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory OUTBOX_RELAY_ENABLED
 
 Under the adversarial assumption above, the API lacks a **logging backpressure contract**. Documented flaws:
 
-| ID             | **Fatal Observability Flaw**                                                                                                                                                            | Phase 2 cross-ref             | Contributing code                          |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------ |
-| **FOF-LOG-01** | **No application backpressure, sampling, or drop policy** when emit rate exceeds sink throughput — relies on unbounded Sonic-Boom buffer (`maxLength` unset), no `drop`/`drain` metrics | LOG-BP-05, LOG-BP-DEFER-02/03 | `logger.ts` — implicit destination only    |
-| **FOF-LOG-02** | **HTTP lifecycle coupled to logging latency** — synchronous `finish` → `logger.info` on the event loop                                                                                  | LOG-BP-03, LOG-BP-DEFER-01    | `request-logging.ts` L13–19                |
-| **FOF-LOG-03** | **Graceful shutdown does not flush or drain the log destination** — buffered NDJSON discarded on SIGTERM under pressure                                                                 | LOG-BP-HARDEN-02              | `graceful-shutdown.ts` — outbox flush only |
+| ID             | **Fatal Observability Flaw**                                                                                                                                                            | Phase 2 cross-ref             | Contributing code                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------- |
+| **FOF-LOG-01** | **No application backpressure, sampling, or drop policy** when emit rate exceeds sink throughput — relies on unbounded Sonic-Boom buffer (`maxLength` unset), no `drop`/`drain` metrics | LOG-BP-05, LOG-BP-DEFER-02/03 | `logger.ts` — implicit destination only               |
+| **FOF-LOG-02** | **HTTP lifecycle coupled to logging latency** — synchronous `finish` → `logger.info` on the event loop                                                                                  | LOG-BP-03, LOG-BP-DEFER-01    | `request-logging.ts` L13–19                           |
+| **FOF-LOG-03** | **Accepted (A3)** — flush + timeout metrics; residual tail loss if sink slower than `LOG_SINK_FLUSH_TIMEOUT_MS`                                                                         | LOG-BP-HARDEN-02              | `flushLogSink` + `log_shutdown_flush_timed_out_total` |
 
 **Fatal Observability Flaw count: 3**
 
@@ -1619,11 +1917,11 @@ Under the adversarial assumption above, the API lacks a **logging backpressure c
 
 ### 11.8 Gate / regression
 
-| Check                  | Command / spec                                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Fast-path regression   | `npx tsx scripts/log-backpressure-burst.ts` — compare Δ p99 vs baseline on CI runner                                      |
-| Slow-sink stress (gap) | Block stdout or rate-limit pipe while bursting `/health` — expect p99 regression; add nightly when infra available        |
-| Privacy / shape        | [`test/2-observability/log-privacy.spec.ts`](../test/2-observability/log-privacy.spec.ts) — does not measure backpressure |
+| Check                | Command / spec                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Fast-path regression | `npx tsx scripts/log-backpressure-burst.ts` — compare Δ p99 vs baseline on CI runner                                      |
+| Slow-sink stress     | `pnpm run test:nightly:slow-sink` — DEC-070 adversarial probe (nightly tier)                                              |
+| Privacy / shape      | [`test/2-observability/log-privacy.spec.ts`](../test/2-observability/log-privacy.spec.ts) — does not measure backpressure |
 
 ### 11.9 Cross-links
 
@@ -1789,16 +2087,17 @@ Prisma connect + first admin registry query is **lazy** and **under 500 ms** onc
 
 ### 12.5 Unscalable findings (>500 ms)
 
-| ID             | Component                                           | p50 (ms) | p95 (ms) |      Flag      | Root cause                                                                                                                |
-| -------------- | --------------------------------------------------- | -------: | -------: | :------------: | ------------------------------------------------------------------------------------------------------------------------- |
-| **CS-UNSC-01** | Full `main.ts` subprocess → first `/health`         |     1296 |     2084 | **Unscalable** | Node ESM import graph + **tsx on-the-fly transpile**; pulls platform-core, workspace-sdk, prisma client, middleware stack |
-| **CS-UNSC-02** | `cold-start-http-worker` spawn → `COLD_START_READY` |      632 |      794 | **Unscalable** | Same import/transpile cost for platform-core + workspace-sdk subset (256-cell plugin materialized at module load)         |
+| ID             | Component                                           | p50 (ms) | p95 (ms) |      Flag       | Root cause / note                                                                                                                                |
+| -------------- | --------------------------------------------------- | -------: | -------: | :-------------: | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **CS-UNSC-01** | Full `main.ts` subprocess → first `/health` (tsx)   |     1296 |     2084 | **Waived (A2)** | Dev path — [`cold-start-tsx-dev-waiver.md`](../../../docs/phase-5/appendices/cold-start-tsx-dev-waiver.md); production SLO = `dist/main.js` only |
+| **CS-UNSC-02** | `cold-start-http-worker` spawn → `COLD_START_READY` |      ~30 |     ~200 |    **Pass**     | Lazy `cold-start-http-probe` — socket bind before platform-core import                                                                           |
+| **CS-UNSC-03** | Compiled `dist/main.js` → first `/health` (gate)    |      277 |      290 |    **Pass**     | Lazy boot — `/health` before `import("./app")` ([`cold-start-lazy-boot.md`](../../../docs/phase-5/appendices/cold-start-lazy-boot.md))           |
 
-**Unscalable flag count: 2**
+**Unscalable flag count (tsx/dev): 2** · **Compiled production path: Pass** @ 500 ms SLO
 
-**Slowest init component:** **CS-UNSC-01 — full `main.ts` module import graph** (**p95 2084 ms**).
+**Slowest init component (tsx):** **CS-UNSC-01 — full `main.ts` module import graph** (**p95 2084 ms**).
 
-**Passes under 500 ms SLO:** RuleEngine tryInit/validate (§12.4 A); first HTTP validation TTFB after worker ready (86.67 ms); lazy Prisma first query (19.43 ms); outbox relay when disabled (no measurable boot block); Redis (lazy, not at boot); provisioning service (lazy).
+**Passes under 500 ms SLO:** Compiled `dist/main.js` gate (CS-UNSC-03); RuleEngine tryInit/validate (§12.4 A); first HTTP validation TTFB after worker ready (86.67 ms); lazy Prisma first query (19.43 ms); outbox relay when disabled; Redis (lazy); provisioning service (lazy).
 
 ### 12.6 Coupling to other § sections
 
@@ -1813,14 +2112,14 @@ Prisma connect + first admin registry query is **lazy** and **under 500 ms** onc
 
 ### 12.7 Recommendations (docs-only)
 
-| Priority | Action                                                                                    | Closes                                                              |
-| -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **P0**   | Measure **`node dist/main.js`** cold boot in CI (readiness probe @ **500 ms**)            | CS-UNSC-01 — tsx may overstate prod                                 |
-| **P1**   | Pre-warm: min-instances / readiness gate until `/health` <500 ms for N consecutive probes | Scale-to-zero adversarial assumption                                |
-| **P1**   | Split validation worker process OR defer platform-core import until first tour write      | Shrinks HTTP-only worker graph                                      |
-| **P2**   | Pre-compile RuleEngine at tenant provision; expand `P5_VALIDATION_ENGINE_CACHE_SIZE`      | Already in validation-fairness.md — reduces first-write, not import |
-| **P2**   | Lazy-import heavy routes (`/tours`, provisioning) via dynamic `import()`                  | Reduces CS-UNSC-01 graph                                            |
-| **P3**   | Align `COLD_START_BUDGET_MS` gate to **500 ms** or add separate `@500ms` tier in spec     | Matches this audit SLO                                              |
+| Priority | Action                                                                                    | Closes / status                                                       |
+| -------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **P0**   | Measure **`node dist/main.js`** cold boot in CI (readiness probe @ **500 ms**)            | **Done** DEC-061 — `cold-start-readiness-gate.mjs`                    |
+| **P1**   | Pre-warm: min-instances / readiness gate until `/health` <500 ms for N consecutive probes | **Done** — `test:nightly:cold-start` + `api-nightly.yml` enforce=true |
+| **P1**   | Split validation worker process OR defer platform-core import until first tour write      | Partial — lazy boot defers `app.ts` graph; worker split deferred      |
+| **P2**   | Pre-compile RuleEngine at tenant provision; expand `P5_VALIDATION_ENGINE_CACHE_SIZE`      | Already in validation-fairness.md — reduces first-write, not import   |
+| **P2**   | Lazy-import heavy routes (`/tours`, provisioning) via dynamic `import()`                  | **Done** — `lazy-route-handlers.ts` + deferred `main.ts` listener     |
+| **P3**   | Align `COLD_START_BUDGET_MS` gate to **500 ms** or add separate `@500ms` tier in spec     | Compiled gate @ 500 ms; tsx spec remains @ 1000 ms informational      |
 
 ### 12.8 Gate / regression
 
@@ -1836,3 +2135,4 @@ Prisma connect + first admin registry query is **lazy** and **under 500 ms** onc
 - [`validation-fairness.md`](../../../docs/phase-5/appendices/validation-fairness.md) — LRU vs fresh-engine cold-start probe
 - [`phase2-paranoid-audit.md`](./phase2-paranoid-audit.md) — cold-start spec console emit inventory
 - [`main.ts`](../src/main.ts), [`app.ts`](../src/app.ts), [`cold-start-fixtures.ts`](../test/3-performance/cold-start-fixtures.ts)
+  ../test/3-performance/cold-start-fixtures.ts)

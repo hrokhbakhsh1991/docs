@@ -31,9 +31,9 @@ Web layout resolves `tenant-a` / `tenant-b` from `Host` when `ALLOW_DEV_WEB_SESS
 Seed colors (MAP 4.3):
 
 | Subdomain | `--color-primary` |
-|-----------|-------------------|
-| tenant-a | `#2563eb` |
-| tenant-b | `#dc2626` |
+| --------- | ----------------- |
+| tenant-a  | `#2563eb`         |
+| tenant-b  | `#dc2626`         |
 
 ## Run
 
@@ -51,8 +51,8 @@ Playwright starts API (3001) + web (3000) via `playwright.config.ts` `webServer`
 
 ## Files
 
-| Path | Role |
-|------|------|
-| `apps/web/playwright.config.ts` | Config + webServer |
-| `apps/web/tests/e2e/th-1-tenant-theme-isolation.spec.ts` | TH-1 spec |
-| `apps/web/scripts/seed-th1-tenants.mjs` | Postgres seed before e2e |
+| Path                                                     | Role                     |
+| -------------------------------------------------------- | ------------------------ |
+| `apps/web/playwright.config.ts`                          | Config + webServer       |
+| `apps/web/tests/e2e/th-1-tenant-theme-isolation.spec.ts` | TH-1 spec                |
+| `apps/web/scripts/seed-th1-tenants.mjs`                  | Postgres seed before e2e |

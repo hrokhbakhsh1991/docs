@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { describe, it, before } from "node:test";
+import { describe, it, before, after } from "node:test";
 
 import { createRequestListener } from "../src/app";
 import { InMemoryTourRepository } from "../src/storage/in-memory-tour.repository";
@@ -29,7 +29,7 @@ async function requestJson(
     readonly path: string;
     readonly headers?: Record<string, string>;
     readonly body?: unknown;
-  },
+  }
 ): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const server = http.createServer(listener);
@@ -64,7 +64,7 @@ async function requestJson(
               body: raw.length > 0 ? JSON.parse(raw) : null,
             });
           });
-        },
+        }
       );
       req.on("error", (err) => {
         server.close();
@@ -79,11 +79,21 @@ async function requestJson(
 describe("MAP 5.2 — validate via plugin before persist", () => {
   const store = new InMemoryTourRepository();
   let listener: ReturnType<typeof createRequestListener>;
+  const priorStorageDriver = process.env.STORAGE_DRIVER;
 
   before(() => {
+    process.env.STORAGE_DRIVER = "memory";
     listener = createRequestListener({
       toursService: createTestToursService(store),
     });
+  });
+
+  after(() => {
+    if (priorStorageDriver === undefined) {
+      delete process.env.STORAGE_DRIVER;
+    } else {
+      process.env.STORAGE_DRIVER = priorStorageDriver;
+    }
   });
 
   it("rejects plugin-invalid canonical with 400 before any tour row is stored", async () => {

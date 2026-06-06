@@ -98,11 +98,11 @@ Prisma is **forward-only** — there is no `migrate down`. Coordinated revert sp
 
 ### Three rollback levels
 
-| Level | Scope | Feasible in ~30s? | Action |
-| ----- | ----- | ----------------- | ------ |
-| **Code only** | Image / Deployment | **Sometimes** (5–30s platform) | `kubectl rollout undo` or redeploy previous digest |
-| **Single migration TX** | One failed `migration.sql` | **Yes** (Postgres rolls back the file) | Fix SQL; `migrate deploy` retries pending file |
-| **Migration chain + cache** | Applied N migrations + Redis + outbox | **No** | Forward-fix or PITR; manual runbook |
+| Level                       | Scope                                 | Feasible in ~30s?                      | Action                                             |
+| --------------------------- | ------------------------------------- | -------------------------------------- | -------------------------------------------------- |
+| **Code only**               | Image / Deployment                    | **Sometimes** (5–30s platform)         | `kubectl rollout undo` or redeploy previous digest |
+| **Single migration TX**     | One failed `migration.sql`            | **Yes** (Postgres rolls back the file) | Fix SQL; `migrate deploy` retries pending file     |
+| **Migration chain + cache** | Applied N migrations + Redis + outbox | **No**                                 | Forward-fix or PITR; manual runbook                |
 
 ### Code-only rollback checklist
 
@@ -125,10 +125,10 @@ Prisma is **forward-only** — there is no `migrate down`. Coordinated revert sp
 
 ## Backup / RPO / RTO (DEC-125 / CAE-GAP-14)
 
-| Objective | Target | Notes |
-| --------- | ------ | ----- |
-| **RPO** | ≤ 15 minutes | Postgres WAL / PITR — configured at infrastructure provider |
-| **RTO** | ≤ 60 minutes | Restore + `db:migrate:deploy` + health smoke |
+| Objective | Target       | Notes                                                       |
+| --------- | ------------ | ----------------------------------------------------------- |
+| **RPO**   | ≤ 15 minutes | Postgres WAL / PITR — configured at infrastructure provider |
+| **RTO**   | ≤ 60 minutes | Restore + `db:migrate:deploy` + health smoke                |
 
 **SoT tables:** `tenants`, `tours`, `outbox_events`, `audit_events`, `processed_domain_events`.
 

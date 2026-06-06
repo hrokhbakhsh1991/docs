@@ -5,10 +5,7 @@
   "productionPath": "dist/main.js",
   "startedAt": "2026-06-06T01:03:32.428Z",
   "budgetMs": 500,
-  "samples": [
-    1655.51,
-    1151.92
-  ],
+  "samples": [1655.51, 1151.92],
   "p50Ms": 1151.92,
   "p95Ms": 1655.51,
   "maxMs": 1655.51,

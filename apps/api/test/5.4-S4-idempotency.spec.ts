@@ -1,27 +1,26 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { Prisma } from "@prisma/client";
 import { resetDomainEventBusForTests } from "@app-tour/platform-events";
 
 import { subscribeIdempotentDomainEvent } from "../src/events/idempotent-domain-event-subscriber";
 import {
-  claimPendingOutboxBatch,
-  processOutboxRelayOnce,
+  claimPendingOutboxBatchForTenant,
+  processOutboxRelayForTenantOnce,
   publishClaimedOutboxRow,
   type ClaimedOutboxRow,
 } from "../src/outbox/outbox-relay";
 import { disconnectPrisma, getPrismaAdmin } from "../src/db/prisma";
-import { integrationTenantId } from "./test-helpers";
+import {
+  drainDomainEventHandlers,
+  integrationTenantId,
+  preparePostgresOutboxIsolation,
+  quiesceStaleOutboxProcessing,
+} from "./test-helpers";
 
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
-
-async function drainAsyncHandlers(rounds = 24): Promise<void> {
-  for (let i = 0; i < rounds; i += 1) {
-    await new Promise<void>((resolve) => setImmediate(resolve));
-  }
-}
 
 /**
  * P5-4-S4 — UNIQUE (tenant_id, domain_event_id) on outbox; idempotent subscribers via processed log.
@@ -35,10 +34,17 @@ describe(
     const tourId = randomUUID();
     let admin: ReturnType<typeof getPrismaAdmin>;
 
+    beforeEach(async () => {
+      resetDomainEventBusForTests();
+      delete process.env.OUTBOX_PROCESSING_RECLAIM_MS;
+      await preparePostgresOutboxIsolation();
+    });
+
     before(async () => {
+      await preparePostgresOutboxIsolation();
       admin = getPrismaAdmin();
       await admin.outboxEvent.deleteMany({
-        where: { status: { in: ["pending", "processing"] } },
+        where: { tenantId, status: { in: ["pending", "processing"] } },
       });
       await admin.tenant.create({
         data: {
@@ -52,8 +58,19 @@ describe(
 
     after(async () => {
       await admin.processedDomainEvent.deleteMany({ where: { tenantId } });
-      await admin.outboxEvent.deleteMany({ where: { tenantId } });
-      await admin.tenant.delete({ where: { id: tenantId } });
+      await admin.$executeRawUnsafe(
+        `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
+      );
+      try {
+        await admin.auditEvent.deleteMany({ where: { tenantId } });
+        await admin.outboxEvent.deleteMany({ where: { tenantId } });
+        await admin.tour.deleteMany({ where: { tenantId } });
+        await admin.tenant.delete({ where: { id: tenantId } });
+      } finally {
+        await admin.$executeRawUnsafe(
+          `ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`
+        );
+      }
       await disconnectPrisma();
     });
 
@@ -99,8 +116,9 @@ describe(
       });
 
       await admin.outboxEvent.deleteMany({
-        where: { status: { in: ["pending", "processing"] } },
+        where: { tenantId, status: { in: ["pending", "processing"] } },
       });
+      await quiesceStaleOutboxProcessing(0);
       await admin.processedDomainEvent.deleteMany({ where: { tenantId } });
 
       await admin.tour.create({
@@ -127,9 +145,11 @@ describe(
         },
       });
 
-      const firstTick = await processOutboxRelayOnce(1);
+      const firstTick = await processOutboxRelayForTenantOnce(tenantId, 1);
+      assert.equal(firstTick.claimed, 1, "relay must claim the inserted pending row");
       assert.equal(firstTick.published, 1);
-      await drainAsyncHandlers();
+      assert.equal(firstTick.deferred, 0);
+      await drainDomainEventHandlers();
 
       const doneRow = await admin.outboxEvent.findUnique({ where: { id: row.id } });
       assert.equal(doneRow?.status, "done", "relay must process the inserted row");
@@ -148,7 +168,7 @@ describe(
       };
 
       await publishClaimedOutboxRow(claimed);
-      await drainAsyncHandlers();
+      await drainDomainEventHandlers();
       assert.deepEqual(
         sideEffects,
         [relayDomainEventId],
@@ -160,7 +180,7 @@ describe(
       });
       assert.equal(processedCount, 1);
 
-      const secondTick = await processOutboxRelayOnce(10);
+      const secondTick = await processOutboxRelayForTenantOnce(tenantId, 10);
       assert.equal(secondTick.claimed, 0, "done rows must not be claimed again");
 
       await admin.outboxEvent.deleteMany({ where: { id: row.id } });
@@ -181,8 +201,9 @@ describe(
       });
 
       await admin.outboxEvent.deleteMany({
-        where: { status: { in: ["pending", "processing"] } },
+        where: { tenantId, status: { in: ["pending", "processing"] } },
       });
+      await quiesceStaleOutboxProcessing(0);
       await admin.processedDomainEvent.deleteMany({ where: { tenantId } });
 
       await admin.tour.create({
@@ -210,8 +231,8 @@ describe(
       });
 
       const [batchA, batchB] = await Promise.all([
-        claimPendingOutboxBatch(1),
-        claimPendingOutboxBatch(1),
+        claimPendingOutboxBatchForTenant(tenantId, 1),
+        claimPendingOutboxBatchForTenant(tenantId, 1),
       ]);
       const claimed =
         batchA.find((row) => row.id === inserted.id) ??
@@ -219,7 +240,7 @@ describe(
       assert.ok(claimed, "SKIP LOCKED must claim the inserted pending row");
 
       await Promise.all([publishClaimedOutboxRow(claimed), publishClaimedOutboxRow(claimed)]);
-      await drainAsyncHandlers();
+      await drainDomainEventHandlers();
 
       assert.deepEqual(deliveries, [parallelDomainEventId]);
 

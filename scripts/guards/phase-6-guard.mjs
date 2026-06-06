@@ -13,8 +13,7 @@ import { evaluatePhase6DocHardening } from "./lib/phase-6-doc-hardening.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const REPORTS_DIR = path.join(REPO_ROOT, "reports");
-const REPORT_DATE =
-  process.env.PHASE_6_GATE_REPORT ?? new Date().toISOString().slice(0, 10);
+const REPORT_DATE = process.env.PHASE_6_GATE_REPORT ?? new Date().toISOString().slice(0, 10);
 
 function gitShortSha() {
   const r = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
@@ -47,8 +46,8 @@ function main() {
   checks.push({
     id: "p6_denali_probe_honesty",
     required: true,
-    ok: /not a product workspace|probe/i.test(denaliBody),
-    detail: "denali README must state probe-only until 6.1 lands",
+    ok: /product workspace/i.test(denaliBody) && !/DENALI_BREACH_PROBE/.test(denaliBody),
+    detail: "denali README must state product workspace (6.1+); probe export removed",
   });
 
   const hollow = evaluateAntiHollowPhase6();

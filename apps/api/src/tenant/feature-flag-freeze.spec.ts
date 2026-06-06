@@ -7,7 +7,10 @@ import {
   resetFeatureFlagFreezeForTests,
   resolveFeatureFlagFreezeDefaultSeconds,
 } from "./feature-flag-freeze";
-import { parseFeatureFlagsFromTheme, resolveTenantFeatureFlags } from "./resolve-tenant-feature-flags";
+import {
+  parseFeatureFlagsFromTheme,
+  resolveTenantFeatureFlags,
+} from "./resolve-tenant-feature-flags";
 import {
   resetTenantRegistryCacheForTests,
   setCachedTenantThemeById,
@@ -41,6 +44,9 @@ describe("feature-flag-freeze (DEC-120)", () => {
     activateFeatureFlagFreeze(60);
 
     const flags = await resolveTenantFeatureFlags(tenantId);
-    assert.deepEqual(flags, parseFeatureFlagsFromTheme({ featureFlags: { advancedRuleEngine: false } }));
+    assert.deepEqual(
+      flags,
+      parseFeatureFlagsFromTheme({ featureFlags: { advancedRuleEngine: false } })
+    );
   });
 });

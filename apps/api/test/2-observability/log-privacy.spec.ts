@@ -15,7 +15,7 @@ import http from "node:http";
 import { after, before, describe, it } from "node:test";
 
 import { createRequestListener } from "../../src/app";
-import { withRequestLogging } from "../../src/http/request-logging";
+import { drainHttpRequestLogQueueSync, withRequestLogging } from "../../src/http/request-logging";
 import { logger } from "../../src/observability/logger";
 import { createTestToursService, integrationTenantId } from "../test-helpers";
 
@@ -247,6 +247,7 @@ describe("2-observability — log privacy (POST /tours)", () => {
     };
 
     const response = await postTour(listener, tenantId, userId, tourBody);
+    drainHttpRequestLogQueueSync();
 
     assert.equal(
       response.status,

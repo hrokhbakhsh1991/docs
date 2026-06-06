@@ -11,6 +11,14 @@ import { CanonicalTourService } from "../../src/canonical/canonical-tour.service
 import { LegacyCanonicalAdapter } from "../../src/canonical/legacy-canonical-adapter";
 import { TourStorageDbAdapter } from "../../src/db/tour-storage.adapter";
 import { disconnectPrisma, getPrismaAdmin } from "../../src/db/prisma";
+import { resetDbCircuitBreakerForTests } from "../../src/db/db-circuit-breaker";
+import {
+  getActiveTenantDbOpsForTests,
+  resetTenantConnectionBudgetForTests,
+} from "../../src/db/tenant-connection-budget";
+import { resetWeightedFairAdmissionForTests } from "../../src/http/weighted-fair-admission";
+import { resetRedisRateLimiterCircuitForTests } from "../../src/middleware/redis-rate-limiter-resilience";
+import { resetTenantRegistryCacheForTests } from "../../src/tenant/tenant-registry-cache";
 import { createTourStorageRepository } from "../../src/storage/create-tour-storage";
 import { ToursService } from "../../src/tours/tours.service";
 import { integrationTenantId } from "../test-helpers";
@@ -125,9 +133,16 @@ describe(
     let server: http.Server;
     let port = 0;
     const priorStorageDriver = process.env.STORAGE_DRIVER;
+    const priorMaxDbOps = process.env.TENANT_MAX_CONCURRENT_DB_OPS;
+    const priorHoldMs = process.env.P5_DB_HOLD_MS;
     let lastReport: LoadReport | undefined;
 
     before(async () => {
+      resetDbCircuitBreakerForTests();
+      resetTenantConnectionBudgetForTests();
+      resetWeightedFairAdmissionForTests();
+      resetRedisRateLimiterCircuitForTests();
+      resetTenantRegistryCacheForTests();
       process.env.STORAGE_DRIVER = "prisma";
       const appUrl = withConnectionLimit(process.env.DATABASE_URL?.trim() ?? APP_TOUR_URL);
       process.env.DATABASE_URL = appUrl;
@@ -188,6 +203,17 @@ describe(
     after(async () => {
       server.close();
       process.env.STORAGE_DRIVER = priorStorageDriver;
+      if (priorMaxDbOps === undefined) {
+        delete process.env.TENANT_MAX_CONCURRENT_DB_OPS;
+      } else {
+        process.env.TENANT_MAX_CONCURRENT_DB_OPS = priorMaxDbOps;
+      }
+      if (priorHoldMs === undefined) {
+        delete process.env.P5_DB_HOLD_MS;
+      } else {
+        process.env.P5_DB_HOLD_MS = priorHoldMs;
+      }
+      resetTenantConnectionBudgetForTests();
       await admin.$executeRawUnsafe(
         `ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`
       );
@@ -321,9 +347,18 @@ describe(
       const races: string[] = [];
       const loadDurations: number[] = [];
 
+      resetTenantConnectionBudgetForTests();
+      delete process.env.P5_DB_HOLD_MS;
+      process.env.TENANT_MAX_CONCURRENT_DB_OPS = "32";
+
       const tenantA = fixtures[0];
       const tenantB = fixtures[1];
       assert.ok(tenantA && tenantB, "fixtures require tenants A and B");
+      assert.equal(
+        getActiveTenantDbOpsForTests(tenantA.tenantId),
+        0,
+        "tenant A DB budget must start at zero"
+      );
 
       const allForeignTourIds = (): string[] =>
         fixtures.flatMap((f) => [f.seedTourId, ...f.createdTourIds]);

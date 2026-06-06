@@ -11,9 +11,7 @@
     "publishStatus": "draft"
   },
   "programNature": {
-    "themeIds": [
-      "b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"
-    ],
+    "themeIds": ["b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22"],
     "shortDescription": "یک برنامه جذاب برای صعود به بام ایران.",
     "difficultyLevel": 5,
     "hikingHoursApprox": 8,

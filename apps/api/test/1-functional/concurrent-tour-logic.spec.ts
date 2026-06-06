@@ -105,14 +105,14 @@ async function applyValidatedTitleUpdate(
   });
 }
 
-function assertTourStateValid(
+async function assertTourStateValid(
   tour: Tour,
   tenantId: string,
   allowedTitles: ReadonlySet<string>
-): void {
+): Promise<void> {
   assert.equal(tour.tenantId, tenantId);
 
-  validateCanonicalBeforePersist({
+  await validateCanonicalBeforePersist({
     body: buildUpdateBody(readBasicsTitle(tour.canonical)),
     tenantId,
     workspaceType: "starter",
@@ -206,7 +206,7 @@ describe("1-functional concurrent tour update logic (memory)", () => {
 
     const finalTour = await repo.getById(tourId, tenantId);
     assert.ok(finalTour !== null);
-    assertTourStateValid(finalTour, tenantId, markers);
+    await assertTourStateValid(finalTour, tenantId, markers);
 
     assert.notEqual(
       readBasicsTitle(finalTour.canonical),
@@ -272,7 +272,7 @@ describe(
 
       const finalTour = await repo.getById(tourId, tenantId);
       assert.ok(finalTour !== null);
-      assertTourStateValid(finalTour, tenantId, markers);
+      await assertTourStateValid(finalTour, tenantId, markers);
       assert.equal(row.title, deriveTourProjections(finalTour.canonical).title);
     });
   }
