@@ -85,6 +85,8 @@ Workflow provisions Postgres 16, seeds `app_tour` role, runs `DATABASE_URL="$DAT
 
 Env in job: `DATABASE_URL`, `DATABASE_URL_ADMIN`, `STORAGE_DRIVER=prisma`, `NODE_ENV=test`.
 
+OS packages: `postgresql-client`, `ripgrep` (`audit-boundary` in nested `phase-3:gate` → `phase-2:gate` requires `rg` on the runner).
+
 ## Closure gate (`phase-4:gate`)
 
 | Step | Command                  | Enforcement                                                                 |

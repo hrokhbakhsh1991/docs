@@ -19,9 +19,9 @@ function readApi(rel) {
   return fs.readFileSync(path.join(API_ROOT, rel), "utf8");
 }
 
-const workflowPaths = [".github/workflows/phase-4-gate.yml", ".github/workflows/phase-5-gate.yml"];
+const migrateWorkflowPaths = [".github/workflows/phase-4-gate.yml", ".github/workflows/phase-5-gate.yml"];
 
-for (const rel of workflowPaths) {
+for (const rel of migrateWorkflowPaths) {
   if (!fs.existsSync(path.join(REPO_ROOT, rel))) {
     violations.push(`${rel} must exist`);
     continue;
@@ -48,6 +48,25 @@ for (const rel of workflowPaths) {
     !content.includes("DATABASE_URL=$DATABASE_URL_ADMIN")
   ) {
     violations.push(`${rel} must pass owner URL to migrate deploy (DATABASE_URL=$DATABASE_URL_ADMIN)`);
+  }
+}
+
+const ripgrepWorkflowPaths = [
+  ".github/workflows/phase-2-gate.yml",
+  ".github/workflows/phase-3-gate.yml",
+  ".github/workflows/phase-4-gate.yml",
+  ".github/workflows/phase-5-gate.yml",
+  ".github/workflows/doc-gate.yml",
+];
+
+for (const rel of ripgrepWorkflowPaths) {
+  if (!fs.existsSync(path.join(REPO_ROOT, rel))) {
+    violations.push(`${rel} must exist`);
+    continue;
+  }
+  const content = read(rel);
+  if (!content.includes("ripgrep")) {
+    violations.push(`${rel} must install ripgrep for audit-boundary`);
   }
 }
 
