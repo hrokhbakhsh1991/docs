@@ -34,8 +34,8 @@
   "residualRisks": ["SV-F-04"],
   "mustFixP0OpenBefore": 8,
   "mustFixP0OpenAfter": 0,
-  "startedAt": "2026-06-06T04:41:13.739Z",
-  "finishedAt": "2026-06-06T04:43:22.354Z",
+  "startedAt": "2026-06-06T05:54:15.775Z",
+  "finishedAt": "2026-06-06T05:56:27.452Z",
   "databaseUrlSet": true,
   "verdict": "PASS",
   "signOff": {
@@ -48,133 +48,133 @@
       "id": "guard:outbox-processing-reclaim",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 334,
+      "durationMs": 322,
       "skipped": false
     },
     {
       "id": "guard:outbox-publish-done-pairing",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 330,
+      "durationMs": 317,
       "skipped": false
     },
     {
       "id": "guard:tenant-registry-cache-invalidation",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 319,
+      "durationMs": 326,
       "skipped": false
     },
     {
       "id": "guard:proxy-upstream-timeout",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 321,
+      "durationMs": 326,
       "skipped": false
     },
     {
       "id": "guard:graceful-shutdown-outbox",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 317,
+      "durationMs": 323,
       "skipped": false
     },
     {
       "id": "guard:canonical-transaction-now",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 314,
+      "durationMs": 369,
       "skipped": false
     },
     {
       "id": "guard:patch-schema-drift",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 322,
+      "durationMs": 354,
       "skipped": false
     },
     {
       "id": "guard:outbox-failed-replay",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 324,
+      "durationMs": 342,
       "skipped": false
     },
     {
       "id": "guard:outbox-relay-ordered-per-tenant",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 332,
+      "durationMs": 337,
       "skipped": false
     },
     {
       "id": "guard:outbox-projection-lag",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 314,
+      "durationMs": 367,
       "skipped": false
     },
     {
       "id": "guard:tenant-registry-cache-coherence",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 311,
+      "durationMs": 549,
       "skipped": false
     },
     {
       "id": "guard:migrate-canonical-placeholder",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 320,
+      "durationMs": 752,
       "skipped": false
     },
     {
       "id": "guard:http-malformed-json",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 317,
+      "durationMs": 391,
       "skipped": false
     },
     {
       "id": "guard:proxy-production-wire",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 340,
+      "durationMs": 336,
       "skipped": false
     },
     {
       "id": "guard:phase4-cross-phase-p0",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 347,
+      "durationMs": 350,
       "skipped": false
     },
     {
       "id": "phase-4:cross-phase-p0-verify",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 29346,
+      "durationMs": 23293,
       "skipped": false
     },
     {
       "id": "build-dist",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 18016,
+      "durationMs": 14323,
       "skipped": false
     },
     {
       "id": "phase4-resilience-closure-specs",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 6239,
+      "durationMs": 4779,
       "skipped": false
     },
     {
       "id": "phase4-resilience-postgres-specs",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 70147,
+      "durationMs": 83517,
       "skipped": false
     }
   ]
