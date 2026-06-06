@@ -6,11 +6,11 @@ import {
   resolveWorkspacePluginIdForType,
 } from "../src/plugin/workspace-type-binding.js";
 
-describe("denali workspace binding contract (FTV-SPEC-12)", () => {
-  it('resolveWorkspacePluginIdForType("denali") returns null until Phase 6', () => {
+describe("denali workspace binding contract (FTV-SPEC-12, REQ-P6-026)", () => {
+  it('resolveWorkspacePluginIdForType("denali") returns "denali"', () => {
     assert.equal(
       resolveWorkspacePluginIdForType("denali", DEFAULT_WORKSPACE_TYPE_BINDINGS),
-      null,
+      "denali"
     );
   });
 });

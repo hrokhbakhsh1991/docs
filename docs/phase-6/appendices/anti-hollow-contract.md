@@ -7,18 +7,23 @@ fail_token: FAIL
 
 ## Scoring
 
-| Score                        | Meaning                                                 |
-| ---------------------------- | ------------------------------------------------------- |
-| **96 doc execution**         | PEK pack + guard                                        |
-| **96 critical spec**         | Primary spec all subphases · RULE-P6 · maps             |
-| **0 behavioral (current)**   | probe-only                                              |
-| **100 behavioral (closure)** | 6.1–6.8 VERIFIED_BEHAVIORAL + HTTP/e2e + `phase-6:gate` |
+| Score                        | Meaning                                           |
+| ---------------------------- | ------------------------------------------------- |
+| **96 doc execution**         | PEK pack + guard                                  |
+| **96 critical spec**         | Primary spec all subphases · RULE-P6 · maps       |
+| **~85 behavioral (current)** | 6.1–6.8 VERIFIED_BEHAVIORAL + contract behavioral |
+| **100 behavioral (closure)** | `phase-6:gate` exit 0 + forensic ≥ 8              |
 
 ```yaml
 scaffold_contract_warning:
   file: packages/workspaces/denali/test/phase-6.contract.spec.ts
-  proves: "Plugin export surface exists"
-  does_not_prove: ["6.6 smoke parity", "6.7 MinIO", "6.4 full outbox without 5.4"]
+  proves: "Cross-surface plugin exports (migrate, finance, photos, dimensions)"
+  does_not_prove:
+    [
+      "6.6 Playwright smoke without servers",
+      "6.7 MinIO round-trip without env",
+      "6.4 full outbox without 5.4",
+    ]
   see: appendices/test-inventory.md
 ```
 

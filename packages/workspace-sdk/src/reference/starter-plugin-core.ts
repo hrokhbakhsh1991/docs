@@ -120,6 +120,7 @@ export function createStarterWorkspacePlugin(theme: WorkspaceThemeContract): Wor
   return deepFreeze({
     id: STARTER_WORKSPACE_PLUGIN_ID,
     version: 1,
+    contractVersion: 1,
     supportedWorkspaceTypes: deepFreeze([STARTER_WORKSPACE_TYPE]),
     fieldRegistry: STARTER_FIELD_REGISTRY,
     ruleSet: STARTER_RULE_SET,

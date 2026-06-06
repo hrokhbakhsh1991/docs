@@ -79,7 +79,7 @@ describeIntegration("PrismaTourRepository (integration)", { concurrency: false }
         assert.ok(error instanceof Error);
         assert.equal(error.message, "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT");
         return true;
-      },
+      }
     );
   });
 });

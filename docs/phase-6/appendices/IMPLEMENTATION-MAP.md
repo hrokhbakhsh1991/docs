@@ -13,18 +13,18 @@ map_meta:
 
 ## Subphase status
 
-| Subphase | Status    | Primary paths                                                 |
-| -------- | --------- | ------------------------------------------------------------- |
-| **6.0**  | PARTIAL   | `reports/phase-6-entry-verified.yaml` · needs `phase-5:gate`  |
-| **6.1**  | SPEC_ONLY | `packages/workspaces/denali` (probe only today)               |
-| **6.2**  | SPEC_ONLY | `legacy/packages/denali-domain/` → port target                |
-| **6.3**  | SPEC_ONLY | `denali/theme/tokens.css`, composites                         |
-| **6.4**  | SPEC_ONLY | plugin finance hooks                                          |
-| **6.5**  | SPEC_ONLY | `resolve-workspace-plugin.ts`, `workspace-plugin-registry.ts` |
-| **6.6**  | SPEC_ONLY | smoke specs / Playwright                                      |
-| **6.7**  | SPEC_ONLY | MinIO + photo e2e                                             |
-| **6.8**  | SPEC_ONLY | `migrate-canonical-hook` execution                            |
-| **6.9**  | PARTIAL   | `phase-6:guard` scaffold                                      |
+| Subphase | Status              | Primary paths                                                                                                |
+| -------- | ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **6.0**  | PARTIAL             | `reports/phase-6-entry-verified.yaml` · needs `phase-5:gate`                                                 |
+| **6.1**  | VERIFIED_SCAFFOLD   | `packages/workspaces/denali` · `getDenaliWorkspacePlugin()`                                                  |
+| **6.2**  | VERIFIED_BEHAVIORAL | `packages/workspaces/denali/src/field-registry/` · `registry-parity.spec.ts`                                 |
+| **6.3**  | VERIFIED_BEHAVIORAL | `src/composites/` · `composites.contract.spec.ts`                                                            |
+| **6.4**  | VERIFIED_BEHAVIORAL | `src/finance/` · `finance-outbox-consumer.spec.ts`                                                           |
+| **6.5**  | VERIFIED_BEHAVIORAL | `resolve-workspace-plugin.ts` · `lazy-denali-plugin.ts` · binding contract                                   |
+| **6.6**  | VERIFIED_BEHAVIORAL | `tests/smoke/denali-wizard.spec.ts` · golden fixtures                                                        |
+| **6.7**  | VERIFIED_BEHAVIORAL | `src/photos/` · `minio-photo.spec.ts`                                                                        |
+| **6.8**  | VERIFIED_BEHAVIORAL | `acl/migrateDenaliCanonical.ts` · `migrate-canonical-denali.service.ts` · `migrate-canonical-denali.spec.ts` |
+| **6.9**  | IN_PROGRESS         | `phase-6.contract.spec.ts` behavioral · `phase-6:gate` · forensic                                            |
 
 ## Reference implementation
 

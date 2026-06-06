@@ -16,11 +16,9 @@ export {
   type WorkspacePluginValidationErrorCode,
   type WorkspacePlugin,
 } from "./workspace-plugin";
+export { assertWorkspacePlugin, assertWorkspaceThemeContract } from "./workspace-plugin-validation";
 export {
-  assertWorkspacePlugin,
-  assertWorkspaceThemeContract,
-} from "./workspace-plugin-validation";
-export {
+  DENALI_WORKSPACE_PLUGIN_ID,
   STARTER_WORKSPACE_PLUGIN_ID,
   type WorkspacePluginId,
 } from "./workspace-plugin-id";
@@ -30,6 +28,7 @@ export {
   type WorkspaceTypeBinding,
 } from "./workspace-type-binding";
 export {
+  DENALI_WORKSPACE_TYPE,
   isWorkspaceTypeId,
   STARTER_WORKSPACE_TYPE,
   workspaceTypesFromPlugin,
@@ -44,10 +43,7 @@ export {
   type WorkspaceValidationHooks,
   type WorkspaceViolation,
 } from "./workspace-validation";
-export {
-  type WorkspaceWizardMode,
-  type WorkspaceWizardSurface,
-} from "./workspace-wizard-surface";
+export { type WorkspaceWizardMode, type WorkspaceWizardSurface } from "./workspace-wizard-surface";
 export {
   createStarterWorkspacePlugin,
   getStarterWorkspacePlugin,

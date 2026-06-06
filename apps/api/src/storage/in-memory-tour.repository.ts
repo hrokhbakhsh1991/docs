@@ -4,7 +4,12 @@ import { deriveTourProjections } from "../canonical/projection-sync";
 import { TourVersionConflictError } from "../tours/tour-version-conflict";
 import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
-import type { Tour, TourStorageRepository } from "./tour-storage.interface";
+import type {
+  Tour,
+  TourListByTenantPageInput,
+  TourListByTenantPageOutput,
+  TourStorageRepository,
+} from "./tour-storage.interface";
 
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
@@ -81,19 +86,42 @@ export class InMemoryTourRepository implements TourStorageRepository {
   }
 
   async listByTenant(tenantId: string): Promise<Tour[]> {
-    assertTenantId(tenantId);
-    const ids = this.idsByTenant.get(tenantId);
+    const page = await this.listByTenantPage({ tenantId, limit: Number.MAX_SAFE_INTEGER });
+    return [...page.items];
+  }
+
+  async listByTenantPage(input: TourListByTenantPageInput): Promise<TourListByTenantPageOutput> {
+    assertTenantId(input.tenantId);
+    const ids = this.idsByTenant.get(input.tenantId);
     if (ids === undefined) {
-      return [];
+      return { items: [], nextCursor: null };
     }
-    const out: Tour[] = [];
+    const sorted: Tour[] = [];
     for (const id of ids) {
       const record = this.byId.get(id);
-      if (record !== undefined && record.tenantId === tenantId) {
-        out.push(record);
+      if (record !== undefined && record.tenantId === input.tenantId) {
+        sorted.push(record);
       }
     }
-    return out;
+    sorted.sort((left, right) => {
+      const byCreatedAt = left.createdAt.localeCompare(right.createdAt);
+      return byCreatedAt !== 0 ? byCreatedAt : left.id.localeCompare(right.id);
+    });
+
+    let startIdx = 0;
+    if (input.cursor !== undefined) {
+      const cursorIdx = sorted.findIndex((tour) => tour.id === input.cursor);
+      if (cursorIdx >= 0) {
+        startIdx = cursorIdx + 1;
+      }
+    }
+
+    const page = sorted.slice(startIdx, startIdx + input.limit);
+    const hasMore = startIdx + page.length < sorted.length;
+    return {
+      items: page,
+      nextCursor: hasMore && page.length > 0 ? page[page.length - 1]!.id : null,
+    };
   }
 
   /** Create helper for db adapter (assigns id + createdAt). */

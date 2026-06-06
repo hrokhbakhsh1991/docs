@@ -31,6 +31,8 @@ const REQUIRED_AUTH_EXPORTS = ["buildTenantAuthz", "canAccessWorkspaceTheme"] as
 const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "CanonicalDocumentValidationError",
   "DEFAULT_WORKSPACE_TYPE_BINDINGS",
+  "DENALI_WORKSPACE_PLUGIN_ID",
+  "DENALI_WORKSPACE_TYPE",
   "IngressSanitizationError",
   "STARTER_THEME_TOKENS_STYLESHEET",
   "STARTER_WORKSPACE_PLUGIN_ID",
@@ -91,9 +93,7 @@ const IGNORED_RUNTIME_META_KEYS = new Set(["__esModule", "default", "module.expo
 describe("workspace-sdk foundation contract", () => {
   describe("dist publish surface", () => {
     it("defines package exports and built entry files (KS-04)", () => {
-      const pkg = JSON.parse(
-        fs.readFileSync(path.join(SDK_ROOT, "package.json"), "utf8"),
-      ) as {
+      const pkg = JSON.parse(fs.readFileSync(path.join(SDK_ROOT, "package.json"), "utf8")) as {
         main?: string;
         types?: string;
         exports?: Record<string, { types?: string; default?: string }>;

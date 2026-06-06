@@ -1,5 +1,7 @@
-import { getPrismaAdmin } from "../db/prisma";
+import { isFeatureFlagFreezeActive } from "./feature-flag-freeze";
 import { findTenantById, isStaticTenantRegistryAllowed } from "./tenant-registry";
+import { resolveTenantThemeJsonById } from "./resolve-registered-tenant";
+import { getCachedTenantById, getCachedTenantThemeById } from "./tenant-registry-cache";
 import { isPersistedTenantUuid } from "./tenant-id-format";
 
 /** Per-tenant runtime flags stored in `tenants.theme.featureFlags` (DEC-014). */
@@ -57,14 +59,22 @@ export async function resolveTenantFeatureFlags(tenantId: string): Promise<Tenan
     return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
   }
 
-  const row = await getPrismaAdmin().tenant.findUnique({
-    where: { id: normalized },
-    select: { theme: true },
-  });
-
-  if (row === null) {
+  if (isFeatureFlagFreezeActive()) {
+    const cachedTheme = getCachedTenantThemeById(normalized);
+    if (cachedTheme !== undefined) {
+      return parseFeatureFlagsFromTheme(cachedTheme);
+    }
+    const cachedTenant = getCachedTenantById(normalized);
+    if (cachedTenant !== undefined && cachedTenant !== null) {
+      return parseFeatureFlagsFromTheme(cachedTenant.theme);
+    }
     return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
   }
 
-  return parseFeatureFlagsFromTheme(row.theme);
+  const theme = await resolveTenantThemeJsonById(normalized);
+  if (theme === null) {
+    return { advancedRuleEngine: ADVANCED_RULE_ENGINE_DEFAULT };
+  }
+
+  return parseFeatureFlagsFromTheme(theme);
 }

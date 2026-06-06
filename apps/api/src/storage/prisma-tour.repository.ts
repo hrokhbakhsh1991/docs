@@ -9,7 +9,12 @@ import { readTourCapLimits } from "../db/tour-cap-config";
 import { TourCapacityExceededError, tourCapacityErrorMessage } from "../db/tour-capacity.error";
 import { withTenantRls } from "../db/with-tenant-rls";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
-import type { Tour, TourStorageRepository } from "./tour-storage.interface";
+import type {
+  Tour,
+  TourListByTenantPageInput,
+  TourListByTenantPageOutput,
+  TourStorageRepository,
+} from "./tour-storage.interface";
 
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
@@ -173,13 +178,43 @@ export class PrismaTourRepository implements TourStorageRepository {
   }
 
   async listByTenant(tenantId: string): Promise<Tour[]> {
-    assertTenantId(tenantId);
-    return withTenantRls(tenantId, async (tx) => {
+    const page = await this.listByTenantPage({ tenantId, limit: Number.MAX_SAFE_INTEGER });
+    return [...page.items];
+  }
+
+  async listByTenantPage(input: TourListByTenantPageInput): Promise<TourListByTenantPageOutput> {
+    assertTenantId(input.tenantId);
+    return withTenantRls(input.tenantId, async (tx) => {
+      let keysetWhere: Prisma.TourWhereInput = { tenantId: input.tenantId };
+      if (input.cursor !== undefined) {
+        const cursorRow = await tx.tour.findUnique({
+          where: tenantIdIdWhere(input.tenantId, input.cursor),
+        });
+        if (cursorRow !== null) {
+          keysetWhere = {
+            tenantId: input.tenantId,
+            OR: [
+              { createdAt: { gt: cursorRow.createdAt } },
+              {
+                createdAt: cursorRow.createdAt,
+                id: { gt: cursorRow.id },
+              },
+            ],
+          };
+        }
+      }
+
       const rows = await tx.tour.findMany({
-        where: { tenantId },
-        orderBy: { createdAt: "asc" },
+        where: keysetWhere,
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: input.limit + 1,
       });
-      return rows.map(toTour);
+      const hasMore = rows.length > input.limit;
+      const pageRows = rows.slice(0, input.limit);
+      return {
+        items: pageRows.map(toTour),
+        nextCursor: hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.id : null,
+      };
     });
   }
 

@@ -9,6 +9,7 @@ import { pseudonymizeAuditActorId } from "./audit-pseudonym";
 
 export const AUDIT_ACTION_TOUR_CREATED = "TOUR_CREATED";
 export const AUDIT_ACTION_TOUR_UPDATED = "TOUR_UPDATED";
+export const AUDIT_ACTION_TENANT_PROVISIONED = "TENANT_PROVISIONED";
 
 const AUDIT_METADATA_ALLOWLIST = ["workspaceType"] as const;
 
@@ -17,6 +18,8 @@ export type AppendAuditEventInput = {
   readonly entityType: string;
   readonly entityId: string;
   readonly metadata?: Prisma.InputJsonValue;
+  /** DEC-077 — explicit DB `now()` from canonical TX; omit only outside atomic path. */
+  readonly createdAt?: Date;
 };
 
 /** Allowlisted audit metadata — caller extras are dropped (LOG-COL-03 / DEC-034). */
@@ -46,6 +49,9 @@ export function buildAuditMetadata(input: AppendAuditEventInput): Prisma.InputJs
 /**
  * Append-only audit write — must run inside {@link withCanonicalTransaction} (same TX as domain row).
  * {@link tenantId} is taken from AsyncLocalStorage; optional explicit tenant must match when provided.
+ *
+ * **actor_id (AUDIT-GAP-05):** null when ALS has no `actorId` (internal provision, background jobs).
+ * HTTP `/tours` binds actor from `x-user-id`. See `docs/phase-5/appendices/audit-coverage.md`.
  */
 export async function appendAuditEvent(
   tx: Prisma.TransactionClient,
@@ -63,6 +69,7 @@ export async function appendAuditEvent(
       entityType: input.entityType,
       entityId: input.entityId,
       metadata: buildAuditMetadata(input),
+      ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
     },
   });
 }

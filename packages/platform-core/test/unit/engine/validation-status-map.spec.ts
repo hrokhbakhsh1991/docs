@@ -19,16 +19,30 @@ describe("createViolationCollector", () => {
       (error: unknown) => {
         assert.ok(error instanceof TypeError);
         return true;
-      },
+      }
     );
   });
 
-  it("reuses the same frozen OK_RESULT singleton across collectors", () => {
+  it("returns a fresh frozen success object on each finalize with no violations", () => {
     const first = createViolationCollector().finalize();
     const second = createViolationCollector().finalize();
     assert.equal(first.ok, true);
     assert.equal(second.ok, true);
-    assert.equal(first, second);
+    assert.notEqual(first, second);
+    assert.deepEqual(first, second);
+    assert.throws(
+      () => {
+        (first.violations as { push: (v: unknown) => number }).push({
+          code: "MUTATION",
+          message: "must not stick",
+        });
+      },
+      (error: unknown) => {
+        assert.ok(error instanceof TypeError);
+        return true;
+      }
+    );
+    assert.deepEqual(second.violations, []);
   });
 
   it("dedupes violations by fieldId on record", () => {

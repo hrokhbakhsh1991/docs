@@ -1,0 +1,1244 @@
+{
+  "tour-minimal": {
+    "denali_basic": [
+      {
+        "canonicalPath": "approximateReturnTime",
+        "formPath": "basicInfo.approximateReturnTime",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "capacityMax",
+        "formPath": "basicInfo.capacityMax",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "capacityMin",
+        "formPath": "basicInfo.capacityMin",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "category",
+        "formPath": "basicInfo.tourType",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "destinationId",
+        "formPath": "basicInfo.destinationId",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "endDateTime",
+        "formPath": "basicInfo.endDateTime",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "leaderUserIds",
+        "formPath": "basicInfo.leaderUserIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "localGuideName",
+        "formPath": "basicInfo.localGuideName",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresLocalGuide",
+        "formPath": "basicInfo.requiresLocalGuide",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresManualAdminApproval",
+        "formPath": "basicInfo.requiresManualAdminApproval",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "socialMediaLink",
+        "formPath": "basicInfo.socialMediaLink",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startDateTime",
+        "formPath": "basicInfo.startDateTime",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "title",
+        "formPath": "basicInfo.title",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.peakHeight",
+        "formPath": "tripDetails.overview.peakHeight",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      }
+    ],
+    "denali_photos": [
+      {
+        "canonicalPath": "photos",
+        "formPath": "photosData.photos",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.longDescription",
+        "formPath": "programNature.longDescription",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.shortDescription",
+        "formPath": "programNature.shortDescription",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.themeIds",
+        "formPath": "programNature.themeIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_program": [
+      {
+        "canonicalPath": "program.difficultyLevel",
+        "formPath": "programNature.difficultyLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingGoHours",
+        "formPath": "programNature.hikingGoHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.hikingHoursApprox",
+        "formPath": "programNature.hikingHoursApprox",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingReturnHours",
+        "formPath": "programNature.hikingReturnHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.itinerary",
+        "formPath": "programNature.itinerary",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.metrics.elevationGain",
+        "formPath": "tripDetails.metrics.elevationGain",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_logistics": [
+      {
+        "canonicalPath": "campPoint",
+        "formPath": "basicInfo.campPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "endPoint",
+        "formPath": "basicInfo.endPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "gatheringPoints",
+        "formPath": "tripDetails.logistics.gatheringPoints",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.gearItems",
+        "formPath": "participantRequirements.gearItems",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startPoint",
+        "formPath": "basicInfo.startPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "summitPoint",
+        "formPath": "basicInfo.summitPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.adminCapacityApproval",
+        "formPath": "transport.adminCapacityApproval",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.allowPersonalCar",
+        "formPath": "transport.allowPersonalCar",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.dongAmount",
+        "formPath": "transport.dongAmount",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.mode",
+        "formPath": "transport.transportMode",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "transport.transportCost",
+        "formPath": "transport.transportCost",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.customServiceLabels",
+        "formPath": "tripDetails.overview.customServiceLabels",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_pricing": [
+      {
+        "canonicalPath": "participants.fitnessLevel",
+        "formPath": "participantRequirements.fitnessLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.fitnessPrerequisiteText",
+        "formPath": "participantRequirements.fitnessPrerequisiteText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.maximumAge",
+        "formPath": "participantRequirements.maximumAge",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.minimumAge",
+        "formPath": "participantRequirements.minimumAge",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.minRequiredPeaks",
+        "formPath": "participantRequirements.minRequiredPeaks",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.nationalIdRequired",
+        "formPath": "participantRequirements.nationalIdRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.sportsInsuranceRequired",
+        "formPath": "participantRequirements.sportsInsuranceRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.basePricePerPerson",
+        "formPath": "pricingPayment.basePricePerPerson",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.includesTourInsurance",
+        "formPath": "pricingPayment.includesTourInsurance",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.requiresPayment",
+        "formPath": "pricingPayment.requiresPayment",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.nonAttendanceDetails",
+        "formPath": "tripDetails.overview.nonAttendanceDetails",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_legal": [
+      {
+        "canonicalPath": "policies.cancellationDeadlineHours",
+        "formPath": "policies.cancellationDeadlineHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.cancellationPenaltyPercentage",
+        "formPath": "policies.cancellationPenaltyPercentage",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.policiesText",
+        "formPath": "policies.policiesText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ]
+  },
+  "tour-template-overlay": {
+    "denali_basic": [
+      {
+        "canonicalPath": "approximateReturnTime",
+        "formPath": "basicInfo.approximateReturnTime",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "capacityMax",
+        "formPath": "basicInfo.capacityMax",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "capacityMin",
+        "formPath": "basicInfo.capacityMin",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "category",
+        "formPath": "basicInfo.tourType",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "destinationId",
+        "formPath": "basicInfo.destinationId",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "endDateTime",
+        "formPath": "basicInfo.endDateTime",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "leaderUserIds",
+        "formPath": "basicInfo.leaderUserIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "localGuideName",
+        "formPath": "basicInfo.localGuideName",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresLocalGuide",
+        "formPath": "basicInfo.requiresLocalGuide",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresManualAdminApproval",
+        "formPath": "basicInfo.requiresManualAdminApproval",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "socialMediaLink",
+        "formPath": "basicInfo.socialMediaLink",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startDateTime",
+        "formPath": "basicInfo.startDateTime",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "title",
+        "formPath": "basicInfo.title",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.peakHeight",
+        "formPath": "tripDetails.overview.peakHeight",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      }
+    ],
+    "denali_photos": [
+      {
+        "canonicalPath": "photos",
+        "formPath": "photosData.photos",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.longDescription",
+        "formPath": "programNature.longDescription",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.shortDescription",
+        "formPath": "programNature.shortDescription",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.themeIds",
+        "formPath": "programNature.themeIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_program": [
+      {
+        "canonicalPath": "program.difficultyLevel",
+        "formPath": "programNature.difficultyLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingGoHours",
+        "formPath": "programNature.hikingGoHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.hikingHoursApprox",
+        "formPath": "programNature.hikingHoursApprox",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingReturnHours",
+        "formPath": "programNature.hikingReturnHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.itinerary",
+        "formPath": "programNature.itinerary",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.metrics.elevationGain",
+        "formPath": "tripDetails.metrics.elevationGain",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_logistics": [
+      {
+        "canonicalPath": "campPoint",
+        "formPath": "basicInfo.campPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "endPoint",
+        "formPath": "basicInfo.endPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "gatheringPoints",
+        "formPath": "tripDetails.logistics.gatheringPoints",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.gearItems",
+        "formPath": "participantRequirements.gearItems",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startPoint",
+        "formPath": "basicInfo.startPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "summitPoint",
+        "formPath": "basicInfo.summitPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.adminCapacityApproval",
+        "formPath": "transport.adminCapacityApproval",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.allowPersonalCar",
+        "formPath": "transport.allowPersonalCar",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.dongAmount",
+        "formPath": "transport.dongAmount",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.mode",
+        "formPath": "transport.transportMode",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "transport.transportCost",
+        "formPath": "transport.transportCost",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.customServiceLabels",
+        "formPath": "tripDetails.overview.customServiceLabels",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_pricing": [
+      {
+        "canonicalPath": "participants.fitnessLevel",
+        "formPath": "participantRequirements.fitnessLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.fitnessPrerequisiteText",
+        "formPath": "participantRequirements.fitnessPrerequisiteText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.maximumAge",
+        "formPath": "participantRequirements.maximumAge",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.minimumAge",
+        "formPath": "participantRequirements.minimumAge",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.minRequiredPeaks",
+        "formPath": "participantRequirements.minRequiredPeaks",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.nationalIdRequired",
+        "formPath": "participantRequirements.nationalIdRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.sportsInsuranceRequired",
+        "formPath": "participantRequirements.sportsInsuranceRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.basePricePerPerson",
+        "formPath": "pricingPayment.basePricePerPerson",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.includesTourInsurance",
+        "formPath": "pricingPayment.includesTourInsurance",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.requiresPayment",
+        "formPath": "pricingPayment.requiresPayment",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.nonAttendanceDetails",
+        "formPath": "tripDetails.overview.nonAttendanceDetails",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_legal": [
+      {
+        "canonicalPath": "policies.cancellationDeadlineHours",
+        "formPath": "policies.cancellationDeadlineHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.cancellationPenaltyPercentage",
+        "formPath": "policies.cancellationPenaltyPercentage",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.policiesText",
+        "formPath": "policies.policiesText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ]
+  },
+  "tour-publish-ready": {
+    "denali_basic": [
+      {
+        "canonicalPath": "approximateReturnTime",
+        "formPath": "basicInfo.approximateReturnTime",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "capacityMax",
+        "formPath": "basicInfo.capacityMax",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "capacityMin",
+        "formPath": "basicInfo.capacityMin",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "category",
+        "formPath": "basicInfo.tourType",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "destinationId",
+        "formPath": "basicInfo.destinationId",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "endDateTime",
+        "formPath": "basicInfo.endDateTime",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "leaderUserIds",
+        "formPath": "basicInfo.leaderUserIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "localGuideName",
+        "formPath": "basicInfo.localGuideName",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresLocalGuide",
+        "formPath": "basicInfo.requiresLocalGuide",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "requiresManualAdminApproval",
+        "formPath": "basicInfo.requiresManualAdminApproval",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "socialMediaLink",
+        "formPath": "basicInfo.socialMediaLink",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startDateTime",
+        "formPath": "basicInfo.startDateTime",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "title",
+        "formPath": "basicInfo.title",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "tripDetails.overview.peakHeight",
+        "formPath": "tripDetails.overview.peakHeight",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      }
+    ],
+    "denali_photos": [
+      {
+        "canonicalPath": "photos",
+        "formPath": "photosData.photos",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.longDescription",
+        "formPath": "programNature.longDescription",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.shortDescription",
+        "formPath": "programNature.shortDescription",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.themeIds",
+        "formPath": "programNature.themeIds",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_program": [
+      {
+        "canonicalPath": "program.difficultyLevel",
+        "formPath": "programNature.difficultyLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingGoHours",
+        "formPath": "programNature.hikingGoHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.hikingHoursApprox",
+        "formPath": "programNature.hikingHoursApprox",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "program.hikingReturnHours",
+        "formPath": "programNature.hikingReturnHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "program.itinerary",
+        "formPath": "programNature.itinerary",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.metrics.elevationGain",
+        "formPath": "tripDetails.metrics.elevationGain",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ],
+    "denali_logistics": [
+      {
+        "canonicalPath": "campPoint",
+        "formPath": "basicInfo.campPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "endPoint",
+        "formPath": "basicInfo.endPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "gatheringPoints",
+        "formPath": "tripDetails.logistics.gatheringPoints",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.gearItems",
+        "formPath": "participantRequirements.gearItems",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "startPoint",
+        "formPath": "basicInfo.startPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "summitPoint",
+        "formPath": "basicInfo.summitPoint",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.adminCapacityApproval",
+        "formPath": "transport.adminCapacityApproval",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.allowPersonalCar",
+        "formPath": "transport.allowPersonalCar",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.dongAmount",
+        "formPath": "transport.dongAmount",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "transport.mode",
+        "formPath": "transport.transportMode",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "transport.transportCost",
+        "formPath": "transport.transportCost",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.customServiceLabels",
+        "formPath": "tripDetails.overview.customServiceLabels",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_pricing": [
+      {
+        "canonicalPath": "participants.fitnessLevel",
+        "formPath": "participantRequirements.fitnessLevel",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.fitnessPrerequisiteText",
+        "formPath": "participantRequirements.fitnessPrerequisiteText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.maximumAge",
+        "formPath": "participantRequirements.maximumAge",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.minimumAge",
+        "formPath": "participantRequirements.minimumAge",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": true
+      },
+      {
+        "canonicalPath": "participants.minRequiredPeaks",
+        "formPath": "participantRequirements.minRequiredPeaks",
+        "visible": false,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.nationalIdRequired",
+        "formPath": "participantRequirements.nationalIdRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "participants.sportsInsuranceRequired",
+        "formPath": "participantRequirements.sportsInsuranceRequired",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.basePricePerPerson",
+        "formPath": "pricingPayment.basePricePerPerson",
+        "visible": true,
+        "required": true,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.includesTourInsurance",
+        "formPath": "pricingPayment.includesTourInsurance",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "pricing.requiresPayment",
+        "formPath": "pricingPayment.requiresPayment",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "tripDetails.overview.nonAttendanceDetails",
+        "formPath": "tripDetails.overview.nonAttendanceDetails",
+        "visible": false,
+        "required": false,
+        "staticHidden": true,
+        "staticRequired": false
+      }
+    ],
+    "denali_legal": [
+      {
+        "canonicalPath": "policies.cancellationDeadlineHours",
+        "formPath": "policies.cancellationDeadlineHours",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.cancellationPenaltyPercentage",
+        "formPath": "policies.cancellationPenaltyPercentage",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      },
+      {
+        "canonicalPath": "policies.policiesText",
+        "formPath": "policies.policiesText",
+        "visible": true,
+        "required": false,
+        "staticHidden": false,
+        "staticRequired": false
+      }
+    ]
+  }
+}

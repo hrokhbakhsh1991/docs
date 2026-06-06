@@ -43,7 +43,7 @@ export function createApiAbility(input: TenantAuthContext): ApiAbility {
 export function accessibleByTourWhere(
   ability: ApiAbility,
   action: TourAction,
-  subject: TourSubject = { tenantId: ability.__tenantId },
+  subject: TourSubject = { tenantId: ability.__tenantId }
 ): { tenantId: string } {
   if (!ability.can(action, tourSubject(subject))) {
     throw new Error(`FORBIDDEN_TOUR_${action.toUpperCase()}`);

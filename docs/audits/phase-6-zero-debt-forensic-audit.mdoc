@@ -1,8 +1,8 @@
 ---
 title: Phase 6 Zero-Debt Forensic Audit
 phase: 6
-status: SCAFFOLD_PENDING_CLOSURE
-verdict: PENDING
+status: BEHAVIORAL_PENDING_GATE
+verdict: PENDING_GATE
 auto_fill: false
 gateReport: reports/phase-6-gate-YYYY-MM-DD.json
 phase5GateReport: reports/phase-5-gate-YYYY-MM-DD.json
@@ -23,6 +23,9 @@ phase5GateReport: reports/phase-5-gate-YYYY-MM-DD.json
 | 5   | MinIO + smoke per MAP 6.6–6.7 or waiver       |
 
 ```yaml
-verdict: PENDING
+verdict: PENDING_GATE
+purity_score: 9.0
+gate_blocker: "phase-6:gate FAIL — noisy-neighbor-latency.spec.ts (Phase 4 perf SLO)"
+report: reports/phase-6-forensic-audit-2026-06-06.md
 architect: TBD
 ```

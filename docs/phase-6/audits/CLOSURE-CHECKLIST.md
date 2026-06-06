@@ -14,14 +14,14 @@
 
 ## B — Prerequisites (repo)
 
-| Check          | Status            |
-| -------------- | ----------------- |
-| `phase-5:gate` | PENDING until run |
-| Entry yaml     | PENDING           |
+| Check          | Status                                                               |
+| -------------- | -------------------------------------------------------------------- |
+| `phase-5:gate` | **BLOCKED** — `noisy-neighbor-latency.spec.ts` perf SLO (2026-06-06) |
+| Entry yaml     | VERIFIED (`phase-6-entry-verified.yaml`)                             |
 
 ## C — Subphases 6.1–6.8 (repo)
 
-All **SPEC_ONLY** until plugin + e2e land.
+**6.2–6.8 VERIFIED_BEHAVIORAL** · **6.1** upgraded at 6.9 contract behavioral.
 
 ## D — Gate (repo closure)
 

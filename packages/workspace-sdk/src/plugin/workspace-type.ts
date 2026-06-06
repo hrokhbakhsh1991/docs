@@ -1,13 +1,8 @@
 import type { WorkspacePlugin } from "./workspace-plugin.contract";
+import { STARTER_WORKSPACE_TYPE, type WorkspaceTypeId } from "./workspace-type-id";
 
-/**
- * Stable workspace type identifier persisted on tours (`workspace_type` column).
- * Distinct from plugin id when one plugin serves multiple types (future).
- */
-export type WorkspaceTypeId = string;
-
-/** Built-in reference workspace for phase 0–2 bootstrap. */
-export const STARTER_WORKSPACE_TYPE = "starter" as const satisfies WorkspaceTypeId;
+export type { WorkspaceTypeId } from "./workspace-type-id";
+export { DENALI_WORKSPACE_TYPE, STARTER_WORKSPACE_TYPE } from "./workspace-type-id";
 
 const DEFAULT_STARTER_TYPE_SET = new Set<string>([STARTER_WORKSPACE_TYPE]);
 
@@ -17,7 +12,7 @@ export function workspaceTypesFromPlugin(plugin: WorkspacePlugin): ReadonlySet<s
 
 export function isWorkspaceTypeId(
   value: unknown,
-  allowed: ReadonlySet<string> = DEFAULT_STARTER_TYPE_SET,
+  allowed: ReadonlySet<string> = DEFAULT_STARTER_TYPE_SET
 ): value is WorkspaceTypeId {
   return typeof value === "string" && value.length > 0 && allowed.has(value);
 }
