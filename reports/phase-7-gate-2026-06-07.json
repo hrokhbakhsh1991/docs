@@ -1,7 +1,7 @@
 {
   "gate": "phase-7",
   "date": "2026-06-07",
-  "gitSha": "40fdbf8",
+  "gitSha": "9e86cee",
   "ok": true,
   "checks": [
     {
@@ -17,16 +17,16 @@
       "detail": null
     },
     {
-      "id": "p7_urban_absence_honesty",
+      "id": "p7_urban_package_honesty",
       "required": true,
       "ok": true,
-      "detail": "urban package must not exist until 7.1 implementation — doc pack honesty"
+      "detail": "7.1+ requires packages/workspaces/urban/src/urban.plugin.ts"
     },
     {
       "id": "p7_truth_honesty",
       "required": true,
       "ok": true,
-      "detail": "IMPLEMENTATION-TRUTH must state urban absent"
+      "detail": "IMPLEMENTATION-TRUTH must document urban package status"
     },
     {
       "id": "p7_anti_hollow",

@@ -10,13 +10,13 @@ entry_verified_at: "2026-06-07"
 closure_git_sha: 40fdbf8
 ```
 
-> **Agents:** Read this before any Phase 7 implementation claim. **7.0 entry** unlocked after Phase 6 fast-track closure + guards — **7.1 urban package still ABSENT**.
+> **Agents:** Read this before any Phase 7 implementation claim. **7.0 entry** PASS · **7.1** urban package shell in progress (`getUrbanWorkspacePlugin`).
 
 ## Package status
 
 | Path                                  | Status                  | Notes                                    |
 | ------------------------------------- | ----------------------- | ---------------------------------------- |
-| `packages/workspaces/urban`           | **ABSENT**              | Doc scaffold only — 7.1 target           |
+| `packages/workspaces/urban`           | **PACKAGE_SHELL**       | 7.1 — registry + golden fixtures + theme |
 | `packages/workspaces/denali`          | **VERIFIED_BEHAVIORAL** | Phase 6 closed (Tier D) — urban template |
 | `packages/workspaces/starter`         | **VERIFIED_BEHAVIORAL** | Reference pattern                        |
 | `packages/tenant-kernel/src/route.ts` | **SPEC_ONLY**           | Interface stub — router not implemented  |
@@ -50,8 +50,8 @@ See [`appendices/blockers.md`](../appendices/blockers.md).
 
 ## Doc vs repo
 
-| Metric       | Doc pack | Repo behavioral |
-| ------------ | -------- | --------------- |
-| Score target | ≥96      | ~0 until 7.1+   |
+| Metric       | Doc pack | Repo behavioral                |
+| ------------ | -------- | ------------------------------ |
+| Score target | ≥96      | 7.1 urban PACKAGE_SHELL (~15%) |
 
 **Do not claim Platform DoD from documentation guard alone.**

@@ -43,12 +43,12 @@ function main() {
     detail: hardening.detail,
   });
 
-  const urbanPath = path.join(REPO_ROOT, "packages/workspaces/urban");
+  const urbanPlugin = path.join(REPO_ROOT, "packages/workspaces/urban/src/urban.plugin.ts");
   checks.push({
-    id: "p7_urban_absence_honesty",
+    id: "p7_urban_package_honesty",
     required: true,
-    ok: !fs.existsSync(urbanPath),
-    detail: "urban package must not exist until 7.1 implementation — doc pack honesty",
+    ok: fs.existsSync(urbanPlugin),
+    detail: "7.1+ requires packages/workspaces/urban/src/urban.plugin.ts",
   });
 
   const truth = fs.readFileSync(
@@ -58,8 +58,8 @@ function main() {
   checks.push({
     id: "p7_truth_honesty",
     required: true,
-    ok: /ABSENT|absent/i.test(truth),
-    detail: "IMPLEMENTATION-TRUTH must state urban absent",
+    ok: /packages\/workspaces\/urban/i.test(truth),
+    detail: "IMPLEMENTATION-TRUTH must document urban package status",
   });
 
   const hollow = evaluateAntiHollowPhase7();

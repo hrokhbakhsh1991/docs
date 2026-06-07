@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "roots": ["tour"],
+  "data": {
+    "tour": {
+      "title": "Berlin city highlights",
+      "city": "Berlin",
+      "venueName": "Alexanderplatz",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-02",
+      "capacity": 120,
+      "description": "Starter-plus urban golden fixture",
+      "status": "draft"
+    }
+  }
+}

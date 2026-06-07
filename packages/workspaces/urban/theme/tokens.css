@@ -1,0 +1,7 @@
+/**
+ * Workspace brand tokens — urban plugin (Phase 7.1).
+ * Host loads via WorkspaceThemeContract.optionalStylesheet after CASL + ingress.
+ */
+[data-workspace-theme] {
+  --ws-color-accent: var(--color-primary);
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@app-tour/workspace-urban",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Urban workspace plugin — starter-plus genericity proof (Phase 7.1)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/urban.plugin.d.ts",
+      "default": "./dist/urban.plugin.js"
+    },
+    "./theme/tokens.css": "./theme/tokens.css"
+  },
+  "files": [
+    "dist",
+    "theme/tokens.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc --noEmit",
+    "test": "NODE_ENV=test node --import tsx --test \"test/**/*.spec.ts\""
+  },
+  "dependencies": {
+    "@app-tour/design-tokens": "workspace:*",
+    "@app-tour/platform-core": "workspace:*",
+    "@app-tour/workspace-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@app-tour/config": "workspace:*",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}
