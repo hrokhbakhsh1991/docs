@@ -38,7 +38,7 @@ closure_git_sha: 4c8cc2e
 | Redis rate limits per tenant + tier keys | **VERIFIED_BEHAVIORAL** | 7.6 — `rate-limit-tenant.spec.ts` (Redis)        |
 | Tenant tier in logs + rate-limit keys    | **VERIFIED_BEHAVIORAL** | 7.7 — ALS `tenantTier` from router               |
 | `phase-7.contract.spec.ts`               | **VERIFIED_BEHAVIORAL** | 7.2 genericity · baseline `64d9fea`              |
-| ADVERSARIAL-MATRIX P0 (7.8)              | **VERIFIED_BEHAVIORAL** | `phase-7:adversarial-gate` + RLS urban/denali    |
+| ADVERSARIAL-MATRIX P0 (7.8)              | **VERIFIED_BEHAVIORAL** | `phase-7:adversarial-gate` + GHA `phase-7-gate`  |
 | `rls-tenant-isolation.spec.ts`           | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-01 — Postgres + migrate                |
 | `rls-write-boundary.spec.ts`             | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-02 — Postgres + migrate                |
 
