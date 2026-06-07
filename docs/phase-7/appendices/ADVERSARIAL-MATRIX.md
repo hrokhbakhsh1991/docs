@@ -26,8 +26,17 @@
 ## Run bundle
 
 ```bash
+pnpm run phase-7:adversarial-gate
+```
+
+`PHASE_7_SKIP_CI_INTEGRITY=1` skips ADV-P7-P0-07 for fast local P0 spec runs. RLS specs (P0-01/02) skip when `DATABASE_URL` is unset.
+
+Manual split:
+
+```bash
 pnpm run ci:integrity
-pnpm --filter @apps/api exec node --import tsx --test test/urban-workspace-plugin.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/rls-tenant-isolation.spec.ts test/rls-write-boundary.spec.ts
+pnpm --filter @apps/api exec node --import tsx --test test/urban-workspace-plugin.spec.ts test/denali-workspace-plugin.spec.ts
 pnpm --filter @apps/api exec node --import tsx --test test/urban-create-publish.integration.spec.ts
 pnpm --filter @app-tour/workspace-urban exec node --import tsx --test test/phase-7.contract.spec.ts
 ```

@@ -52,3 +52,11 @@ REDIS_URL="${REDIS_URL:-redis://localhost:6379}" \
 ```bash
 pnpm --filter @app-tour/tenant-kernel exec node --import tsx --test test/tenant-connection-router.spec.ts
 ```
+
+## Adversarial + ci:integrity (7.8)
+
+```bash
+pnpm run phase-7:adversarial-gate
+# fast local (no ci:integrity tail):
+PHASE_7_SKIP_CI_INTEGRITY=1 pnpm run phase-7:adversarial-gate
+```
