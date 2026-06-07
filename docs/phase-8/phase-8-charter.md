@@ -156,7 +156,7 @@ Full machine rules: [`appendices/BOOT-MANIFEST.yaml`](appendices/BOOT-MANIFEST.y
 | **No boilerplate**     | Empty handlers, uncited `TODO` ports, or legacy copy-paste without COP → anti-hollow **FAIL** (R5).                                                                                                                                                                                                                                   |
 | **Bounded innovation** | External patterns (Next.js 15, Prisma 6, hardened sessions) are **adapted** into plugin + trunk boundaries — never replace microkernel contracts.                                                                                                                                                                                     |
 
-### TQ-P8-\* cleanliness benchmarks
+### TQ-P8-* cleanliness benchmarks
 
 _Enforced at 8.5 closure._
 

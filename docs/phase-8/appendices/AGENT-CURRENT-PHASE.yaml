@@ -1,15 +1,15 @@
 # Phase 8 — Machine snapshot: «الان کجاییم?» (sync with IMPLEMENTATION-TRUTH)
 # Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.1 impl
 
-snapshot_version: "2026-06-08-v3"
+snapshot_version: "2026-06-08-v4"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
 roadmap: ../../../TEMP/phase8-doc-95plus-plan.md
 navigator: ../AGENT-NAVIGATOR.md
 scaffold_sot: ../../../TEMP/phase8-wip-specs/README.md
 
-doc_ready_subphase: "8.1"
-behavioral_active_subphase: "8.1"
-next_subphase_after_8_1: "8.2"
+doc_ready_subphase: "8.2"
+behavioral_active_subphase: "8.3"
+next_subphase_after_8_2: "8.3"
 
 partial_subphases: []
 
@@ -19,21 +19,25 @@ guard_attestation:
   command: pnpm run phase-8:guard
   charter_gates: 25
   passed: 25
-  note: "8.1 VERIFIED_BEHAVIORAL — urban auth rail on trunk"
+  note: "8.2 VERIFIED_BEHAVIORAL — urban product port API+web+prisma"
 
 entry_ledger:
   path: reports/phase-8-entry-verified.yaml
   phase_7_gate_status: PASS
   subphase_8_0: VERIFIED_ENTRY
   subphase_8_1: VERIFIED_BEHAVIORAL
+  subphase_8_2: VERIFIED_BEHAVIORAL
 
 next_read:
   - docs/phase-8/AGENT-NAVIGATOR.md
-  - docs/phase-8/subphases/8.1-single-owner-auth.md
-  - docs/phase-8/subphases/8.2-urban-features.md
-  - docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md
+  - docs/phase-8/subphases/8.3-silo-tier.md
+  - docs/phase-8/subphases/8.4-e2e-integrity.md
 
 next_prove_with:
+  - path: apps/api/test/urban-catalog-registration.spec.ts
+    status: ON_TRUNK
+  - path: apps/web/test/urban-catalog-access.spec.ts
+    status: ON_TRUNK
   - path: packages/workspace-sdk/test/urban-owner-ability.spec.ts
     status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/workspace-sdk/urban-owner-ability.spec.ts
