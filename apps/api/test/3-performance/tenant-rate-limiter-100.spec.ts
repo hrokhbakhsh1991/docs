@@ -26,9 +26,46 @@ import { createTestToursService, integrationTenantId } from "../test-helpers";
 const TENANT_FLOOD_COUNT = Number.parseInt(process.env.TENANT_FLOOD_COUNT ?? "100", 10);
 const STORM_DEADLINE_MS = Number.parseInt(process.env.TENANT_FLOOD_DEADLINE_MS ?? "30000", 10);
 const P95_BUDGET_MS = Number.parseInt(process.env.TENANT_FLOOD_P95_BUDGET_MS ?? "8000", 10);
-const MIN_HEARTBEAT_TICKS = 8;
-const HEARTBEAT_INTERVAL_MS = 25;
+/** Trunk / CI load can legitimately block the loop during 100-way HTTP storm; gap not tick count. */
+const MAX_HEARTBEAT_GAP_MS = Number.parseInt(
+  process.env.TENANT_FLOOD_MAX_HEARTBEAT_GAP_MS ?? "500",
+  10
+);
+const HEARTBEAT_TICK_MS = 10;
 const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
+
+type HeartbeatProbe = {
+  readonly stop: () => void;
+  readonly maxGapMs: () => number;
+};
+
+function startHeartbeatProbe(tickMs = HEARTBEAT_TICK_MS): HeartbeatProbe {
+  let lastBeat = performance.now();
+  let maxGapMs = 0;
+  let stopped = false;
+
+  const timer = setInterval(() => {
+    setImmediate(() => {
+      if (stopped) {
+        return;
+      }
+      const now = performance.now();
+      const gap = now - lastBeat;
+      if (gap > maxGapMs) {
+        maxGapMs = gap;
+      }
+      lastBeat = now;
+    });
+  }, tickMs);
+
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(timer);
+    },
+    maxGapMs: () => maxGapMs,
+  };
+}
 
 function authHeaders(tenantId: string): Record<string, string> {
   return {
@@ -185,17 +222,15 @@ describe("100-tenant rate limiter flood (DEC-059 / SCAL-DEBT-14)", { concurrency
   }
 
   it("completes 100-tenant concurrent storm without hang or admin amplification", async () => {
-    let heartbeatTicks = 0;
-    const heartbeat = setInterval(() => {
-      heartbeatTicks += 1;
-    }, HEARTBEAT_INTERVAL_MS);
+    const heartbeat = startHeartbeatProbe();
 
     const stormStart = performance.now();
     const results = await Promise.all(
       tenantIds.map((tenantId, index) => httpPostTour(tenantId, index))
     );
     const stormDurationMs = performance.now() - stormStart;
-    clearInterval(heartbeat);
+    heartbeat.stop();
+    const maxHeartbeatGapMs = heartbeat.maxGapMs();
 
     const count201 = results.filter((r) => r.status === 201).length;
     const count429 = results.filter((r) => r.status === 429).length;
@@ -209,8 +244,8 @@ describe("100-tenant rate limiter flood (DEC-059 / SCAL-DEBT-14)", { concurrency
     const adminLookupsAfterFirstWave = getAdminThemeLookupCountForTests();
 
     assert.ok(
-      heartbeatTicks >= MIN_HEARTBEAT_TICKS,
-      `event loop stalled — heartbeat ticks=${heartbeatTicks}`
+      maxHeartbeatGapMs <= MAX_HEARTBEAT_GAP_MS,
+      `event loop stalled — max heartbeat gap=${maxHeartbeatGapMs.toFixed(1)}ms > ${MAX_HEARTBEAT_GAP_MS}ms (storm=${stormDurationMs.toFixed(1)}ms)`
     );
     assert.ok(
       stormDurationMs <= STORM_DEADLINE_MS,

@@ -75,7 +75,6 @@ for (const spec of [
   "outbox-relay-ordered-per-tenant.spec.ts",
   "atomic-rollback-stress.spec.ts",
   "bulk-import-victim-slo.spec.ts",
-  "noisy-neighbor-latency.spec.ts",
   "tenant-registry-cache-coherence.spec.ts",
   "malformed-json-body.spec.ts",
   "proxy-production-wire.spec.ts",
@@ -143,7 +142,13 @@ if (!gate.includes("OUTBOX_RELAY_ORDERED_PER_TENANT")) {
 
 if (!gate.includes("APPS_API_TEST_TIER")) {
   violations.push(
-    "gate postgres tier must set APPS_API_TEST_TIER=nightly for noisy-neighbor (DEC-089)"
+    "gate postgres tier must set APPS_API_TEST_TIER=nightly for chaos atomic-rollback (DEC-089)"
+  );
+}
+
+if (gate.includes("noisy-neighbor-latency.spec.ts")) {
+  violations.push(
+    "noisy-neighbor-latency.spec.ts must not run in blocking phase-4 gate — nightly workflow only (cross-phase P0 NN-01)"
   );
 }
 
