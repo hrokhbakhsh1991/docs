@@ -66,7 +66,14 @@
     "phase-6:fast-closure": "pnpm build && pnpm test && pnpm --filter @app-tour/workspace-denali test && pnpm run phase-5:guard && pnpm run phase-6:guard",
     "phase-6:gate": "pnpm build && pnpm test && pnpm run phase-5:gate && pnpm run phase-6:guard",
     "phase-7:guard": "node scripts/guards/phase-7-guard.mjs",
-    "phase-7:gate": "pnpm build && pnpm test && pnpm run phase-6:gate && pnpm run phase-7:guard"
+    "phase-7:adversarial-gate": "node scripts/phase-7-adversarial-gate.mjs",
+    "phase-7:gate": "pnpm build && pnpm test && pnpm run phase-6:gate && pnpm run phase-7:guard",
+    "phase-8:guard": "node scripts/guards/phase-8-guard.mjs",
+    "guard:p8-boundary-diff": "node scripts/guards/p8-boundary-diff.mjs",
+    "phase-8:gate": "pnpm build && pnpm test && pnpm run phase-7:gate && pnpm run phase-8:guard",
+    "phase-9:guard": "node scripts/guards/phase-9-guard.mjs",
+    "guard:p9-boundary-diff": "node scripts/guards/p9-boundary-diff.mjs",
+    "phase-9:gate": "pnpm build && pnpm test && pnpm run phase-8:gate && pnpm run phase-9:guard"
   },
   "devDependencies": {
     "@markdoc/markdoc": "^0.5.7",

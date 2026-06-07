@@ -52,3 +52,16 @@ REDIS_URL="${REDIS_URL:-redis://localhost:6379}" \
 ```bash
 pnpm --filter @app-tour/tenant-kernel exec node --import tsx --test test/tenant-connection-router.spec.ts
 ```
+
+## Adversarial + ci:integrity (7.8)
+
+**GitHub Actions:** workflow `phase-7-gate` — jobs `adversarial-p0` + `ci-integrity` (parallel). Triggers: PR, `main`, `phase-7/entry-gate`, `workflow_dispatch`.
+
+```bash
+# Local — prefer CI; fast path only when iterating:
+PHASE_7_SKIP_CI_INTEGRITY=1 pnpm run phase-7:adversarial-gate
+
+# Full 7.8 (slow — run on runner or wait for phase-7-gate workflow):
+pnpm run phase-7:adversarial-gate
+pnpm run ci:integrity
+```

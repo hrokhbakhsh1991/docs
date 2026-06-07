@@ -27,6 +27,15 @@ After a failed `migrate deploy`, the DB schema may sit at migration **N-1** whil
 2. If deploy fails, fix SQL and redeploy — do **not** start API until `_prisma_migrations` head matches embedded constant.
 3. After adding a migration, bump `EXPECTED_PRISMA_MIGRATION_HEAD` in the same PR.
 
+## Head history (embedded constant)
+
+| Migration folder                   | Landed in | Purpose                                                       |
+| ---------------------------------- | --------- | ------------------------------------------------------------- |
+| `20260605200000_outbox_last_error` | Phase 5   | Outbox `last_error` column                                    |
+| `20260607100000_tenant_routes`     | Phase 7.7 | `tenant_routes` DDL for `TenantConnectionRouter` (REQ-P7-021) |
+
+Current head: **`20260607100000_tenant_routes`** — must move in lockstep with `prisma/migrations/`.
+
 ## Verification
 
 ```bash

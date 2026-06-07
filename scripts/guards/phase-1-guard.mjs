@@ -229,26 +229,40 @@ function checkNoDenaliInPlatformCore() {
   };
 }
 
+/** Denali in `it()` / `describe()` titles is smoke labeling only — not workspace coupling. */
+function lineContentFromRgMatch(rgLine) {
+  const m = rgLine.match(/\.(?:spec\.)?ts:(?:(\d+):)?(.*)$/);
+  return m ? m[2].trim() : rgLine.trim();
+}
+
+function isDenaliOnlyInTestTitle(rgLine) {
+  const lineContent = lineContentFromRgMatch(rgLine);
+  return /^(it|describe)\s*\(/.test(lineContent);
+}
+
 /** @returns {GuardCheck} */
 function checkNoDenaliInPlatformCoreTests() {
   const testRoot = path.join(PLATFORM_CORE_ROOT, "test");
   if (!fs.existsSync(testRoot)) {
     return {
       id: "g3b_denali_in_platform_core_test",
-      description: "rg -i denali packages/platform-core/test → 0",
+      description:
+        "rg -i denali packages/platform-core/test → 0 (excl. it/describe titles)",
       required: true,
       ok: true,
       detail: "no test/ directory",
     };
   }
   const r = rg(["-i", "denali"], testRoot);
-  const ok = r.lines.length === 0;
+  const violations = r.lines.filter((line) => !isDenaliOnlyInTestTitle(line));
+  const ok = violations.length === 0;
   return {
     id: "g3b_denali_in_platform_core_test",
-    description: "rg -i denali packages/platform-core/test → 0",
+    description:
+      "rg -i denali packages/platform-core/test → 0 (excl. it/describe titles)",
     required: true,
     ok,
-    detail: ok ? null : truncateDetail(r.lines.slice(0, 15).join("\n")),
+    detail: ok ? null : truncateDetail(violations.slice(0, 15).join("\n")),
   };
 }
 

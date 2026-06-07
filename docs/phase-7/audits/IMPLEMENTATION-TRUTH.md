@@ -1,16 +1,17 @@
 # Phase 7 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-07-v5"
+truth_version: "2026-06-07-v6"
 repo_snapshot: "2026-06-07"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: PARTIAL_7_7
+behavioral: PARTIAL_7_8
 subphase_7_0: VERIFIED_ENTRY
 subphase_7_3: VERIFIED_BEHAVIORAL
 subphase_7_4: VERIFIED_BEHAVIORAL
 subphase_7_5: VERIFIED_BEHAVIORAL
 subphase_7_6: VERIFIED_BEHAVIORAL
 subphase_7_7: VERIFIED_BEHAVIORAL
+subphase_7_8: VERIFIED_BEHAVIORAL
 entry_verified_at: "2026-06-07"
 closure_git_sha: 4c8cc2e
 ```
@@ -37,6 +38,9 @@ closure_git_sha: 4c8cc2e
 | Redis rate limits per tenant + tier keys | **VERIFIED_BEHAVIORAL** | 7.6 — `rate-limit-tenant.spec.ts` (Redis)        |
 | Tenant tier in logs + rate-limit keys    | **VERIFIED_BEHAVIORAL** | 7.7 — ALS `tenantTier` from router               |
 | `phase-7.contract.spec.ts`               | **VERIFIED_BEHAVIORAL** | 7.2 genericity · baseline `64d9fea`              |
+| ADVERSARIAL-MATRIX P0 (7.8)              | **VERIFIED_BEHAVIORAL** | `phase-7:adversarial-gate` + GHA `phase-7-gate`  |
+| `rls-tenant-isolation.spec.ts`           | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-01 — Postgres + migrate                |
+| `rls-write-boundary.spec.ts`             | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-02 — Postgres + migrate                |
 
 ## Deferred (honest)
 
@@ -65,6 +69,6 @@ See [`appendices/blockers.md`](../appendices/blockers.md).
 
 | Metric       | Doc pack | Repo behavioral       |
 | ------------ | -------- | --------------------- |
-| Score target | ≥96      | 7.1–7.7 closed (~55%) |
+| Score target | ≥96      | 7.1–7.8 closed (~65%) |
 
 **Do not claim Platform DoD from documentation guard alone.**
