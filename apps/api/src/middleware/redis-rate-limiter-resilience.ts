@@ -30,8 +30,14 @@ export function recordRedisRateLimiterSuccess(): void {
 }
 
 export function parseTierFromConsumerKey(tenantKey: string): TenantRateLimitTier {
-  const suffix = tenantKey.split(":").at(-1);
-  return suffix === "read" ? "read" : "write";
+  const segments = tenantKey.split(":");
+  if (segments.includes("read")) {
+    return "read";
+  }
+  if (segments.includes("write")) {
+    return "write";
+  }
+  return "write";
 }
 
 export function resolveRedisFailurePolicy(

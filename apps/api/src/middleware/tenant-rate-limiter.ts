@@ -4,6 +4,7 @@ import { RateLimiterMemory } from "rate-limiter-flexible";
 
 import { sendJson } from "../http/json";
 import { requireActiveTraceId } from "../observability/trace-request-context";
+import { resolveTenantConnectionTier } from "../tenant/resolve-tenant-connection-tier";
 import { resolveTenantThemeJsonById } from "../tenant/resolve-registered-tenant";
 import { requireActiveTenantId } from "../tenant/tenant-request-context";
 import { RedisRateLimiterStore } from "./redis-rate-limiter-store";
@@ -21,10 +22,17 @@ export type {
   TenantRateLimitTier,
 } from "./tenant-rate-limiter-types";
 export {
+  assertConnectionTierRpmOrdering,
   assertProductionRedisUrl,
   PRODUCTION_REDIS_URL_REQUIRED,
+  resolveConnectionTierRpm,
   resolveTenantRateLimitConfig,
 } from "./tenant-rate-limit-config";
+
+export type TenantRateLimitRoute = {
+  readonly method: string;
+  readonly path: string;
+};
 
 /**
  * Per-tenant RPS override from `tenants.theme` JSON.
@@ -138,39 +146,49 @@ export async function resetTenantRateLimiterStoreForTests(): Promise<void> {
 }
 
 /**
- * Consumes one point for the active tenant ALS id.
- * Caller must bind tenant ALS first (`runWithHttpRequestContext` / `runWithTenantContext`).
+ * Redis key segment: `{tenantId}:{connectionTier}:{operationTier}:{method}:{path}`.
+ * Prefix `ratelimit` applied by RateLimiterRedis (DEC-P7-006).
  */
-function rateLimitConsumerKey(tenantId: string, tier: TenantRateLimitTier): string {
-  return `${tenantId}:${tier}`;
+export function rateLimitConsumerKey(
+  tenantId: string,
+  connectionTier: ReturnType<typeof resolveTenantConnectionTier>,
+  operationTier: TenantRateLimitTier,
+  route?: TenantRateLimitRoute
+): string {
+  const method = route?.method ?? "POST";
+  const path = route?.path ?? "/tours";
+  return `${tenantId}:${connectionTier}:${operationTier}:${method}:${path}`;
 }
 
 export async function consumeTenantRateLimit(
   tier: TenantRateLimitTier = "write",
-  config: TenantRateLimitConfig = resolveTenantRateLimitConfig(process.env, tier)
+  route?: TenantRateLimitRoute,
+  config?: TenantRateLimitConfig
 ): Promise<void> {
-  const store = getTenantRateLimiterStore(config);
+  const tenantId = requireActiveTenantId();
+  const connectionTier = resolveTenantConnectionTier(tenantId);
+  const resolvedConfig = config ?? resolveTenantRateLimitConfig(process.env, tier, connectionTier);
+  const store = getTenantRateLimiterStore(resolvedConfig);
   if (store === null) {
     return;
   }
-  const tenantId = requireActiveTenantId();
-  const effective = await resolveEffectiveRateLimitForTenant(tenantId, config);
-  await store.consume(rateLimitConsumerKey(tenantId, tier), effective);
+  const effective = await resolveEffectiveRateLimitForTenant(tenantId, resolvedConfig);
+  await store.consume(rateLimitConsumerKey(tenantId, connectionTier, tier, route), effective);
 }
 
 export function sendTenantRateLimitExceeded(
   res: ServerResponse,
   retryAfterMs = 0,
-  correlationId?: string
+  requestId?: string
 ): void {
   const retryAfterSec = retryAfterMs > 0 ? Math.ceil(retryAfterMs / 1000) : 1;
+  const retryAfterMsOut = retryAfterMs > 0 ? retryAfterMs : retryAfterSec * 1000;
   res.setHeader("Retry-After", String(retryAfterSec));
-  const id = correlationId ?? requireActiveTraceId();
+  const id = requestId ?? requireActiveTraceId();
   res.setHeader("x-correlation-id", id);
   sendJson(res, 429, {
     error: "rate_limit_exceeded",
-    code: "RATE_LIMIT_EXCEEDED",
-    retryAfter: String(retryAfterSec),
-    correlationId: id,
+    requestId: id,
+    retryAfterMs: retryAfterMsOut,
   });
 }

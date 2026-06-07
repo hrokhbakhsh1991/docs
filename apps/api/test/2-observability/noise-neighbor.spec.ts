@@ -332,7 +332,7 @@ describe(
           return false;
         }
         const body = r.body as { code?: string; error?: string };
-        return body.code === "RATE_LIMIT_EXCEEDED" || body.error === "rate_limit_exceeded";
+        return body.error === "rate_limit_exceeded";
       }).length;
       const noiseReadsHandled = noiseReadsOk + noiseReadsRateLimited;
       const noiseReadsFailed = readResults.length - noiseReadsHandled;

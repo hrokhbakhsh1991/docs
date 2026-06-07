@@ -41,7 +41,7 @@ function authHeaders(tenantId: string): Record<string, string> {
 
 type PostResult = {
   readonly status: number;
-  readonly body: { error?: string; code?: string; retryAfter?: string };
+  readonly body: { error?: string; requestId?: string; retryAfterMs?: number };
 };
 
 describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
@@ -55,11 +55,16 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
   const priorLimitDuration = process.env.TENANT_RATE_LIMIT_DURATION_SEC;
   const priorLimitEnabled = process.env.TENANT_RATE_LIMIT_ENABLED;
   const priorMaxTourWrites = process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
+  const priorPoolRpm = process.env.RATE_LIMIT_POOL_RPM;
+  const priorRedisUrl = process.env.REDIS_URL;
 
   before(async () => {
     await resetTenantRateLimiterStoreForTests();
     process.env.STORAGE_DRIVER = "memory";
     process.env.NODE_ENV = "test";
+    delete process.env.RATE_LIMIT_POOL_RPM;
+    delete process.env.RATE_LIMIT_SILO_RPM;
+    delete process.env.REDIS_URL;
     process.env.TENANT_RATE_LIMIT_ENABLED = "true";
     process.env.TENANT_RATE_LIMIT_POINTS = String(LIMIT_POINTS);
     process.env.TENANT_RATE_LIMIT_DURATION_SEC = "1";
@@ -86,6 +91,16 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
     process.env.TENANT_RATE_LIMIT_POINTS = priorLimitPoints;
     process.env.TENANT_RATE_LIMIT_DURATION_SEC = priorLimitDuration;
     process.env.TENANT_RATE_LIMIT_ENABLED = priorLimitEnabled;
+    if (priorPoolRpm === undefined) {
+      delete process.env.RATE_LIMIT_POOL_RPM;
+    } else {
+      process.env.RATE_LIMIT_POOL_RPM = priorPoolRpm;
+    }
+    if (priorRedisUrl === undefined) {
+      delete process.env.REDIS_URL;
+    } else {
+      process.env.REDIS_URL = priorRedisUrl;
+    }
     if (priorMaxTourWrites === undefined) {
       delete process.env.TENANT_MAX_CONCURRENT_TOUR_WRITES;
     } else {
@@ -141,7 +156,7 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
 
     const count201A = resultsA.filter((r) => r.status === 201).length;
     const count429RateA = resultsA.filter(
-      (r) => r.status === 429 && r.body.code === "RATE_LIMIT_EXCEEDED"
+      (r) => r.status === 429 && r.body.error === "rate_limit_exceeded"
     ).length;
     const count429CapacityA = resultsA.filter(
       (r) => r.status === 429 && String(r.body.error ?? "").startsWith("TOUR_CAPACITY_EXCEEDED")
@@ -163,16 +178,16 @@ describe("tenant rate limiter (3-performance)", { concurrency: false }, () => {
     assert.equal(count201B, BURST_B, `tenant B: expected ${BURST_B} successes; got ${count201B}`);
     for (const r of resultsB) {
       assert.notEqual(
-        r.body.code,
-        "RATE_LIMIT_EXCEEDED",
+        r.body.error,
+        "rate_limit_exceeded",
         "tenant B must not be throttled by tenant A burst"
       );
     }
 
-    const rateLimited = resultsA.find((r) => r.body.code === "RATE_LIMIT_EXCEEDED");
+    const rateLimited = resultsA.find((r) => r.body.error === "rate_limit_exceeded");
     if (rateLimited) {
-      assert.equal(rateLimited.body.error, "rate_limit_exceeded");
-      assert.ok(rateLimited.body.retryAfter !== undefined);
+      assert.ok(typeof rateLimited.body.requestId === "string");
+      assert.ok(typeof rateLimited.body.retryAfterMs === "number");
     }
   });
 });

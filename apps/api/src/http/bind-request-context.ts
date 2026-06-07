@@ -10,8 +10,10 @@ import {
   releaseWeightedFairAdmission,
 } from "./weighted-fair-admission";
 import { withTourWriteConcurrencyBudget } from "./tour-write-concurrency-budget";
+import { normalizeHttpLogPath } from "../observability/log-safety";
 import { resolveTraceIdFromHeaders } from "../observability/resolve-trace-id";
 import { getActiveTraceId, runWithTraceContext } from "../observability/trace-request-context";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 
 export type HttpRequestContextOptions = {
@@ -33,6 +35,15 @@ export async function runWithHttpRequestContext<T>(
   run: () => Promise<T>,
   options?: HttpRequestContextOptions
 ): Promise<T> {
+  const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+  const rateLimitRoute =
+    options?.rateLimit !== undefined
+      ? {
+          method: (req.method ?? "GET").toUpperCase(),
+          path: normalizeHttpLogPath(req.url ?? "/"),
+        }
+      : undefined;
+
   const runWithTenant = () =>
     runWithTenantContext(
       auth.tenantId,
@@ -43,7 +54,7 @@ export async function runWithHttpRequestContext<T>(
             if (options?.rateLimit) {
               const tier: TenantRateLimitTier =
                 options.rateLimit === true ? "write" : options.rateLimit;
-              await consumeTenantRateLimit(tier);
+              await consumeTenantRateLimit(tier, rateLimitRoute);
             }
             return run();
           };
@@ -58,6 +69,7 @@ export async function runWithHttpRequestContext<T>(
       },
       {
         actorId: auth.userId,
+        workspaceType,
       }
     );
 
