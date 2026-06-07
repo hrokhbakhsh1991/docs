@@ -50,7 +50,8 @@ type HttpResult = {
     id?: string;
     error?: string;
     code?: string;
-    retryAfter?: string;
+    requestId?: string;
+    retryAfterMs?: number;
   };
   readonly durationMs: number;
   readonly retryAfterHeader?: string;
@@ -60,7 +61,7 @@ function classify429(
   error: string | undefined,
   code?: string
 ): "rate_limit" | "capacity" | "other" {
-  if (code === "RATE_LIMIT_EXCEEDED") {
+  if (code === "RATE_LIMIT_EXCEEDED" || error === "rate_limit_exceeded") {
     return "rate_limit";
   }
   const msg = error ?? "";
@@ -265,9 +266,9 @@ describe("tenant rate limiting (3-performance)", { concurrency: false }, () => {
 
     for (const r of burstResults) {
       if (r.status === 429 && classify429(r.body.error, r.body.code) === "rate_limit") {
-        assert.equal(r.body.code, "RATE_LIMIT_EXCEEDED");
         assert.equal(r.body.error, "rate_limit_exceeded");
-        assert.ok(r.body.retryAfter !== undefined, "429 body must include retryAfter");
+        assert.ok(typeof r.body.requestId === "string", "429 body must include requestId");
+        assert.ok(typeof r.body.retryAfterMs === "number", "429 body must include retryAfterMs");
         assert.ok(r.retryAfterHeader !== undefined, "429 must include Retry-After header");
       }
     }

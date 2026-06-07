@@ -101,7 +101,11 @@ export function runWorkspaceValidationHooks(
     }
   }
 
-  const trip = extractTripDetails(plugin, data);
+  const trip =
+    extractTripDetails(plugin, data) ??
+    (Object.prototype.hasOwnProperty.call(data, "tripDetails")
+      ? { tripDetails: data.tripDetails, transportModes: null }
+      : undefined);
   if (trip !== undefined) {
     const violation = plugin.validation.checkTripDetails(trip.tripDetails, trip.transportModes);
     if (violation != null) {

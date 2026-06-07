@@ -28,6 +28,12 @@ const DEV_TENANTS: readonly RegisteredTenant[] = [
     workspaceType: "starter",
     theme: { primaryColor: "#dc2626", cssVariables: { "--color-primary": "#dc2626" } },
   },
+  {
+    id: "00000000-0000-4000-8000-000000000004",
+    subdomain: "urban",
+    workspaceType: "urban",
+    theme: { primaryColor: "#0d9488", cssVariables: { "--color-primary": "#0d9488" } },
+  },
 ];
 
 /**

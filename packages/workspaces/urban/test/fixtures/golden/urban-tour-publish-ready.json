@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "roots": ["tour"],
+  "data": {
+    "tour": {
+      "title": "Munich summer nights",
+      "city": "Munich",
+      "venueName": "Marienplatz",
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-02",
+      "capacity": 200,
+      "description": "Urban publish-ready golden fixture (SMK-P7-06)",
+      "status": "draft"
+    }
+  }
+}

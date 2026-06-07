@@ -105,4 +105,35 @@ describe("runWorkspaceValidationHooks", () => {
     assert.deepEqual(seenTrip, tripPayload);
     assert.equal(violation?.code, "TRIP_INVALID");
   });
+
+  it("invokes checkTripDetails for top-level tripDetails root without registry field (urban strip)", () => {
+    let seenTrip: unknown;
+    const plugin = pluginWithHooks({
+      checkCapacity: () => null,
+      checkTripDetails: (tripDetails) => {
+        seenTrip = tripDetails;
+        return { code: "URBAN_FORBIDDEN_ITINERARY", message: "inactive" };
+      },
+    });
+    const tripPayload = { inactive: true };
+    const document = createCanonicalDocument({
+      schemaVersion: 1,
+      roots: ["tour", "tripDetails"],
+      data: {
+        tour: {
+          title: "Urban",
+          city: "X",
+          venueName: "Y",
+          startDate: "2026-01-01",
+          endDate: "2026-01-02",
+          capacity: 1,
+          status: "draft",
+        },
+        tripDetails: tripPayload,
+      },
+    });
+    const violation = runWorkspaceValidationHooks(plugin, document);
+    assert.deepEqual(seenTrip, tripPayload);
+    assert.equal(violation?.code, "URBAN_FORBIDDEN_ITINERARY");
+  });
 });
