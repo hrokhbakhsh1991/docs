@@ -49,6 +49,7 @@ const STORAGE_LAYER_ALLOWED_REL = [
   "middleware/error-interceptor.ts",
   "middleware/tenant-rate-limiter.ts",
   "tenant/resolve-registered-tenant.ts",
+  "tenant/tenant-route-lookup.ts",
   "tenant/resolve-tenant-feature-flags.ts",
   "tenant/tenant-id-format.ts",
   "tenant/update-tenant-registry-row.ts",

@@ -1,11 +1,18 @@
 # Tenant router specification
 
 ```yaml
-spec_version: "2026-06-04-v2"
+spec_version: "2026-06-07-v3"
 decision: DEC-P7-004
 implementation_home: packages/tenant-kernel
 map_ref: docs/MIGRATION-MAP.md §7.2
+schema_truth: apps/api/prisma/migrations/*_tenant_routes (DEC-124)
+reference_sql: infra/sql/005_tenant_routes.sql
 ```
+
+## Schema deployment (DEC-124)
+
+Operational DDL lives in **Prisma migrations** (`pnpm run db:migrate:deploy`).  
+[`infra/sql/005_tenant_routes.sql`](../../../infra/sql/005_tenant_routes.sql) is reference-only — do not execute in CI gates.
 
 ## Current stub (trunk today)
 
@@ -82,4 +89,4 @@ Transaction pooling compatible with pool tier; silo dedicated URLs may bypass po
 
 - REQ-P7-021..023 — subphase 7.7
 - Test file: `packages/tenant-kernel/test/tenant-connection-router.spec.ts`
-- Migration: `infra/sql/003_tenant_routes.sql` (target path)
+- Migration: `apps/api/prisma/migrations/*_tenant_routes` · reference `infra/sql/005_tenant_routes.sql`
