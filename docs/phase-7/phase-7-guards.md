@@ -25,6 +25,8 @@ Workflow [`.github/workflows/phase-7-gate.yml`](../../../.github/workflows/phase
 
 `adversarial-p0` runs `prisma:generate` and `pnpm build` after migrate deploy — API specs import `@prisma/client` via `bootstrap-outbox-test-env.ts`, and `ADV-P7-P0-04` resolves `@app-tour/workspace-sdk/dist` from the urban workspace. `ci-integrity` already builds via `phase-0:integration-gate`.
 
+`verify-phase-7-genericity-proof-rev.mjs` fails fast when checkout still has the bf6c9f4 `registry smoke` title (REQ-P7-007). **Do not Re-run failed jobs** on an old SHA — wait for the workflow run triggered by the latest `phase-7/entry-gate` push (`b046bdb+`).
+
 Pre-commit stays `pre-commit:fast` — do not run full `ci:integrity` locally before every commit.
 
 ## Behavioral guards (implementation phase)
