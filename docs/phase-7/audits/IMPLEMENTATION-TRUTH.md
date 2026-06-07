@@ -24,12 +24,12 @@ closure_git_sha: 40fdbf8
 
 ## Apps status
 
-| Concern                                  | Status                   | Subphase  |
-| ---------------------------------------- | ------------------------ | --------- |
-| `resolveWorkspacePluginForType("urban")` | **NOT_BOUND** (expected) | 7.3       |
-| MAP §10 observability runbook            | **PARTIAL**              | 7.5       |
-| Redis rate limits per tenant             | **SPEC_ONLY**            | 7.6       |
-| `phase-7.contract.spec.ts`               | **ABSENT**               | 7.2 / 7.9 |
+| Concern                                  | Status                   | Subphase                            |
+| ---------------------------------------- | ------------------------ | ----------------------------------- |
+| `resolveWorkspacePluginForType("urban")` | **NOT_BOUND** (expected) | 7.3                                 |
+| MAP §10 observability runbook            | **PARTIAL**              | 7.5                                 |
+| Redis rate limits per tenant             | **SPEC_ONLY**            | 7.6                                 |
+| `phase-7.contract.spec.ts`               | **VERIFIED_BEHAVIORAL**  | 7.2 genericity · baseline `64d9fea` |
 
 ## Phase 6 prerequisite
 
