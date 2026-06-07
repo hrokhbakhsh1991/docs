@@ -21,6 +21,9 @@ model Tenant {
   httpIdempotencyRecords HttpIdempotencyRecord[]
   processedDomainEvents ProcessedDomainEvent[]
   tenantRoute         TenantRoute?
+  payments            Payment[]
+  paymentReceipts     PaymentReceipt[]
+  urbanRegistrations  UrbanRegistration[]
 
   @@map("tenants")
 }
@@ -39,19 +42,50 @@ model TenantRoute {
 }
 
 model Tour {
-  id             String   @id @default(uuid()) @db.Uuid
-  tenantId       String   @map("tenant_id") @db.Uuid
-  canonical      Json     @map("canonical_data")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  canonical      Json      @map("canonical_data")
   title          String?
-  schemaVersion  Int      @default(1) @map("schema_version")
-  rowVersion     Int      @default(1) @map("row_version")
-  createdAt      DateTime @default(now()) @map("created_at")
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  publishStatus  String    @default("draft") @map("publish_status")
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz
+  city           String?
+  venueName      String?   @map("venue_name")
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  schemaVersion  Int       @default(1) @map("schema_version")
+  rowVersion     Int       @default(1) @map("row_version")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  registrations  UrbanRegistration[]
 
   @@unique([tenantId, id])
-  @@index([tenantId])
-  @@index([tenantId, title])
+  @@index([tenantId], map: "idx_tours_tenant_id")
+  @@index([tenantId, title], map: "idx_tours_tenant_title")
+  @@index([tenantId, publishStatus, publishedAt(sort: Desc)], map: "idx_tours_tenant_publish_catalog")
+  @@index([tenantId, city, publishStatus], map: "idx_tours_tenant_city_publish")
   @@map("tours")
+}
+
+/// Phase 8.2 — public registration intake (catalog flow).
+model UrbanRegistration {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  tourId    String   @map("tour_id") @db.Uuid
+  email     String
+  fullName  String   @map("full_name")
+  phone     String?
+  partySize Int?     @map("party_size")
+  status    String   @default("waitlist")
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tour      Tour     @relation(fields: [tenantId, tourId], references: [tenantId, id])
+
+  @@unique([tenantId, tourId, email], map: "uq_urban_reg_tenant_tour_email")
+  @@index([tenantId, tourId, createdAt(sort: Desc)], map: "idx_urban_reg_tenant_tour_created")
+  @@index([tenantId, email], map: "idx_urban_reg_tenant_email")
+  @@index([tenantId, status, createdAt(sort: Desc)], map: "idx_urban_reg_tenant_status_created")
+  @@map("urban_registrations")
 }
 
 model OutboxEvent {
@@ -118,4 +152,51 @@ model ProcessedDomainEvent {
   @@unique([tenantId, domainEventId])
   @@index([tenantId, processedAt])
   @@map("processed_domain_events")
+}
+
+/// Phase 9.7 — manual/online payment intents (R1 legacy parity).
+model Payment {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  registrationId    String    @map("registration_id") @db.Uuid
+  amount            String
+  currency          String    @db.VarChar(8)
+  method            String    @default("Manual")
+  provider          String    @default("manual")
+  providerPaymentId String?   @map("provider_payment_id")
+  status            String    @default("Pending")
+  paidAt            DateTime? @map("paid_at")
+  failedAt          DateTime? @map("failed_at")
+  refundedAt        DateTime? @map("refunded_at")
+  ledgerJournalId   String?   @map("ledger_journal_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  receipts          PaymentReceipt[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, registrationId])
+  @@map("payments")
+}
+
+/// Phase 9.7 — manual payment proof + operator review queue.
+model PaymentReceipt {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  paymentId        String    @map("payment_id") @db.Uuid
+  fileKey          String    @map("file_key")
+  status           String    @default("Pending")
+  note             String?
+  reviewedByUserId String?   @map("reviewed_by_user_id")
+  reviewedAt       DateTime? @map("reviewed_at")
+  reviewNote       String?   @map("review_note")
+  ledgerJournalId  String?   @map("ledger_journal_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  payment          Payment   @relation(fields: [paymentId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, paymentId])
+  @@map("payment_receipts")
 }

@@ -6,7 +6,7 @@ baseline: docs/phase-7/appendices/URBAN-MINIMAL-SCOPE.md
 decision: DEC-P8-002
 plugin_package: "@app-tour/workspace-urban"
 prisma_schema: apps/api/prisma/schema.prisma
-migration_target: infra/sql/004_urban_product_delta.sql
+migration_target: infra/sql/009_urban_product_delta.sql
 ```
 
 ## Intent
@@ -97,7 +97,7 @@ Stored in `tenants.theme.urban` (existing `Tenant.theme` Json column). Validated
 ## Prisma schema delta
 
 **Authority file:** `apps/api/prisma/schema.prisma`  
-**Migration file:** `infra/sql/004_urban_product_delta.sql` (author in 8.2 — **not yet applied**)
+**Migration file:** `infra/sql/009_urban_product_delta.sql` (author in 8.2 — Prisma head `20260608100000_urban_product_delta`)
 
 ### Model: `Tour` (extend existing)
 
