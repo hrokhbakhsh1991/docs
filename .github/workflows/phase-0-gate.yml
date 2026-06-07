@@ -82,6 +82,10 @@ jobs:
       - name: Assert checkout HEAD (REQ-P7-007 fail-fast)
         run: |
           echo "integration-gate HEAD=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor b046bdb "$(git rev-parse HEAD)" || {
+            echo "::error::Stale checkout — need phase-7/entry-gate b046bdb+ (529bb2f tip). Do NOT Re-run bf6c9f4."
+            exit 1
+          }
           node scripts/verify-phase-7-genericity-proof-rev.mjs
 
       - name: Phase 0 integration gate (trunk integrity)
