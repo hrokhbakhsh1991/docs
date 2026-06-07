@@ -14,7 +14,7 @@ export const REPO_ROOT = path.resolve(__dirname, "../../..");
 const FAIL_PREFIX = "FAIL P8-GUARD-HARDENING-ARTIFACTS:";
 
 /** Charter gate count — must match phase-8-guard.mjs report and IMPLEMENTATION-TRUTH attestation. */
-export const PHASE8_CHARTER_GATES = 24;
+export const PHASE8_CHARTER_GATES = 25;
 
 export const SPEC_REGISTRY_REL = "docs/phase-8/appendices/SPEC-REGISTRY-8.1.yaml";
 
@@ -103,7 +103,11 @@ function validateHardeningYaml(rel, content) {
     if (!/response_envelope:/m.test(content)) {
       return `${rel} missing response_envelope block`;
     }
-    if (!/success:/m.test(content) || !/^\s+data:/m.test(content) || !/^\s+metadata:/m.test(content)) {
+    if (
+      !/success:/m.test(content) ||
+      !/^\s+data:/m.test(content) ||
+      !/^\s+metadata:/m.test(content)
+    ) {
       return `${rel} missing success/data/metadata envelope keys`;
     }
   }
@@ -193,11 +197,13 @@ export async function verifyEnvelopeConsistency() {
     throw new Error(`${FAIL_PREFIX} ${decisionsRel} missing DEC-P8-003`);
   }
   if (!merge.includes("URBAN-SETTINGS-HTTP-ENVELOPE.yaml")) {
-    throw new Error(`${FAIL_PREFIX} ${mergeRel} must cite URBAN-SETTINGS-HTTP-ENVELOPE.yaml for GET`);
+    throw new Error(
+      `${FAIL_PREFIX} ${mergeRel} must cite URBAN-SETTINGS-HTTP-ENVELOPE.yaml for GET`
+    );
   }
   if (/GET\s+\/urban\/settings 200 body := \{ urban:/m.test(merge)) {
     throw new Error(
-      `${FAIL_PREFIX} ${mergeRel} forbids bare { urban } on GET — use envelope per DEC-P8-003`,
+      `${FAIL_PREFIX} ${mergeRel} forbids bare { urban } on GET — use envelope per DEC-P8-003`
     );
   }
   if (!casl.includes("URBAN-SETTINGS-HTTP-ENVELOPE.yaml")) {
@@ -210,7 +216,9 @@ export async function verifyEnvelopeConsistency() {
     throw new Error(`${FAIL_PREFIX} ${dispatchRel} missing DEC-P8-003 response table`);
   }
   if (!dispatch.includes("success: true")) {
-    throw new Error(`${FAIL_PREFIX} ${dispatchRel} GET excerpt must use success/data/metadata envelope`);
+    throw new Error(
+      `${FAIL_PREFIX} ${dispatchRel} GET excerpt must use success/data/metadata envelope`
+    );
   }
 }
 
@@ -255,28 +263,26 @@ export async function verifyDocPathConsistency() {
 
   if (staleHits.length > 0) {
     throw new Error(
-      `${FAIL_PREFIX} Stale spec path urban-settings-owner.spec.ts in docs/phase-8: ${staleHits.join(", ")} — use urban-settings-patch.spec.ts`,
+      `${FAIL_PREFIX} Stale spec path urban-settings-owner.spec.ts in docs/phase-8: ${staleHits.join(", ")} — use urban-settings-patch.spec.ts`
     );
   }
 
   const bootRel = "docs/phase-8/appendices/BOOT-MANIFEST.yaml";
   const boot = await readRepoFile(bootRel);
   if (!boot.includes(canonicalSettingsSpec)) {
-    throw new Error(
-      `${FAIL_PREFIX} ${bootRel} prove_with must cite ${canonicalSettingsSpec}`,
-    );
+    throw new Error(`${FAIL_PREFIX} ${bootRel} prove_with must cite ${canonicalSettingsSpec}`);
   }
 
   const boundaryRel = "docs/phase-8/appendices/PHASE-BOUNDARY-MATRIX.yaml";
   const boundary = await readRepoFile(boundaryRel);
   if (/apps\/api\/src\/urban\/auth\/\*\*/.test(boundary)) {
     throw new Error(
-      `${FAIL_PREFIX} ${boundaryRel} must use flat apps/api/src/urban/** — not urban/auth/**`,
+      `${FAIL_PREFIX} ${boundaryRel} must use flat apps/api/src/urban/** — not urban/auth/**`
     );
   }
   if (!/apps\/api\/src\/urban\/\*\*/.test(boundary)) {
     throw new Error(
-      `${FAIL_PREFIX} ${boundaryRel} rules.allowed_write_paths missing apps/api/src/urban/**`,
+      `${FAIL_PREFIX} ${boundaryRel} rules.allowed_write_paths missing apps/api/src/urban/**`
     );
   }
 }
@@ -292,7 +298,10 @@ export async function verifyCaslNoEllipsis() {
   /** @type {readonly { re: RegExp; label: string }[]} */
   const forbiddenCaslPatterns = Object.freeze([
     { re: /\/\/\s*…\s*existing methods\s*…/, label: "TenantAuthz // … existing methods … comment" },
-    { re: /\/\/\s*\.\.\.\s*existing methods\s*\.\.\./, label: "TenantAuthz // ... existing methods ... comment" },
+    {
+      re: /\/\/\s*\.\.\.\s*existing methods\s*\.\.\./,
+      label: "TenantAuthz // ... existing methods ... comment",
+    },
     { re: /existing methods\s*…/, label: "existing methods ellipsis suffix" },
   ]);
 
@@ -319,9 +328,7 @@ export async function verifyCaslNoEllipsis() {
 
   for (const method of requiredTenantAuthzMethods) {
     if (!content.includes(method)) {
-      throw new Error(
-        `${FAIL_PREFIX} ${caslRel} TenantAuthz contract missing method ${method}`,
-      );
+      throw new Error(`${FAIL_PREFIX} ${caslRel} TenantAuthz contract missing method ${method}`);
     }
   }
 
@@ -362,9 +369,7 @@ export async function verifyEnvelopeSpecDepth() {
   ]);
   for (const key of metadataKeys) {
     if (!content.includes(key)) {
-      throw new Error(
-        `${FAIL_PREFIX} ${rel} ASM-001 must assert metadata.${key} per DEC-P8-003`,
-      );
+      throw new Error(`${FAIL_PREFIX} ${rel} ASM-001 must assert metadata.${key} per DEC-P8-003`);
     }
   }
 }
@@ -394,9 +399,7 @@ export async function verifyEntryLedgerPresent() {
   }
 
   if (statusMatch[1] === "PASS" && !/exit_code:\s*0\b/.test(content)) {
-    throw new Error(
-      `${FAIL_PREFIX} ${rel} forbids phase_7_gate.status PASS without exit_code: 0`,
-    );
+    throw new Error(`${FAIL_PREFIX} ${rel} forbids phase_7_gate.status PASS without exit_code: 0`);
   }
 }
 
@@ -412,17 +415,47 @@ export async function verifyTruthAttestationSync() {
     throw new Error(`${FAIL_PREFIX} stale 9/9 attestation in ${truthRel}`);
   }
   if (/charter_gates:\s*(9|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\b/.test(truth)) {
-    throw new Error(`${FAIL_PREFIX} stale charter_gates count in ${truthRel} — must be ${PHASE8_CHARTER_GATES}`);
+    throw new Error(
+      `${FAIL_PREFIX} stale charter_gates count in ${truthRel} — must be ${PHASE8_CHARTER_GATES}`
+    );
   }
   if (!truth.includes(`charter_gates: ${PHASE8_CHARTER_GATES}`)) {
-    throw new Error(
-      `${FAIL_PREFIX} ${truthRel} must cite charter_gates: ${PHASE8_CHARTER_GATES}`,
-    );
+    throw new Error(`${FAIL_PREFIX} ${truthRel} must cite charter_gates: ${PHASE8_CHARTER_GATES}`);
   }
   if (!truth.includes(`${PHASE8_CHARTER_GATES}/${PHASE8_CHARTER_GATES}`)) {
     throw new Error(
-      `${FAIL_PREFIX} ${truthRel} attestation must cite ${PHASE8_CHARTER_GATES}/${PHASE8_CHARTER_GATES} PASS`,
+      `${FAIL_PREFIX} ${truthRel} attestation must cite ${PHASE8_CHARTER_GATES}/${PHASE8_CHARTER_GATES} PASS`
     );
+  }
+}
+
+/**
+ * Sprint A — AGENT-NAVIGATOR + AGENT-CURRENT-PHASE wired in BOOT-MANIFEST.
+ * @returns {Promise<void>}
+ */
+export async function verifyAgentNavigatorPresent() {
+  const navRel = "docs/phase-8/AGENT-NAVIGATOR.md";
+  const currentRel = "docs/phase-8/appendices/AGENT-CURRENT-PHASE.yaml";
+  const bootRel = "docs/phase-8/appendices/BOOT-MANIFEST.yaml";
+
+  const nav = await readRepoFile(navRel);
+  if (!/decision tree|Decision tree/i.test(nav)) {
+    throw new Error(`${FAIL_PREFIX} ${navRel} missing decision tree section`);
+  }
+
+  await readRepoFile(currentRel);
+
+  const boot = await readRepoFile(bootRel);
+  if (!boot.includes("AGENT-NAVIGATOR.md")) {
+    throw new Error(`${FAIL_PREFIX} ${bootRel} boot sequence must reference AGENT-NAVIGATOR.md`);
+  }
+  if (!boot.includes("AGENT-CURRENT-PHASE.yaml")) {
+    throw new Error(
+      `${FAIL_PREFIX} ${bootRel} boot sequence must reference AGENT-CURRENT-PHASE.yaml`
+    );
+  }
+  if (!/id:\s*boot-6b\b/m.test(boot) || !/id:\s*boot-6c\b/m.test(boot)) {
+    throw new Error(`${FAIL_PREFIX} ${bootRel} missing boot-6b or boot-6c navigator entries`);
   }
 }
 
@@ -441,7 +474,7 @@ export async function verifyProveWithParity() {
   }
   if (expected.length !== actual.length || expected.some((p, i) => p !== actual[i])) {
     throw new Error(
-      `${FAIL_PREFIX} ${SPEC_REGISTRY_REL} specs mismatch guard registry — expected ${expected.join(", ")} got ${actual.join(", ")}`,
+      `${FAIL_PREFIX} ${SPEC_REGISTRY_REL} specs mismatch guard registry — expected ${expected.join(", ")} got ${actual.join(", ")}`
     );
   }
 
@@ -464,18 +497,20 @@ export async function verifyProveWithParity() {
   const truth = await readRepoFile("docs/phase-8/audits/IMPLEMENTATION-TRUTH.md");
   const proveBlock = truth.slice(
     truth.indexOf("prove_with_implementation:"),
-    truth.indexOf("```", truth.indexOf("prove_with_implementation:") + 1),
+    truth.indexOf("```", truth.indexOf("prove_with_implementation:") + 1)
   );
   for (const spec of registrySpecs) {
     if (!proveBlock.includes(spec)) {
-      throw new Error(`${FAIL_PREFIX} IMPLEMENTATION-TRUTH prove_with_implementation missing ${spec}`);
+      throw new Error(
+        `${FAIL_PREFIX} IMPLEMENTATION-TRUTH prove_with_implementation missing ${spec}`
+      );
     }
   }
 
   const matrix = await readRepoFile("docs/phase-8/audits/verification-matrix.md");
   const bundle81 = matrix.slice(
     matrix.indexOf("### 8.1 Single-Owner auth"),
-    matrix.indexOf("### 8.2 Urban product port"),
+    matrix.indexOf("### 8.2 Urban product port")
   );
   for (const spec of registrySpecs) {
     const base = path.basename(spec);
@@ -490,21 +525,21 @@ export async function verifyProveWithParity() {
  * @returns {Promise<void>}
  */
 export async function verifyApiSurfaceAlignment() {
-  const sdkSpec = await readRepoFile(
-    "packages/workspace-sdk/test/urban-owner-ability.spec.ts",
-  );
+  const sdkSpec = await readRepoFile("packages/workspace-sdk/test/urban-owner-ability.spec.ts");
   if (!/authz\.canPerformUrbanOwnerMutation\s*\(/.test(sdkSpec)) {
     throw new Error(
-      `${FAIL_PREFIX} SDK spec must call authz.canPerformUrbanOwnerMutation (TenantAuthz method per DEC-P8-004)`,
+      `${FAIL_PREFIX} SDK spec must call authz.canPerformUrbanOwnerMutation (TenantAuthz method per DEC-P8-004)`
     );
   }
   if (/import[\s\S]*canPerformUrbanOwnerMutation[\s\S]*tenant-authz/.test(sdkSpec)) {
     throw new Error(
-      `${FAIL_PREFIX} SDK spec must not import canPerformUrbanOwnerMutation as standalone export`,
+      `${FAIL_PREFIX} SDK spec must not import canPerformUrbanOwnerMutation as standalone export`
     );
   }
   if (!sdkSpec.includes("tenant-auth-grants")) {
-    throw new Error(`${FAIL_PREFIX} SDK spec must import isWorkspaceOwner from tenant-auth-grants.js`);
+    throw new Error(
+      `${FAIL_PREFIX} SDK spec must import isWorkspaceOwner from tenant-auth-grants.js`
+    );
   }
   if (/isWorkspaceOwner\s*\(\s*authz\s*\)/.test(sdkSpec)) {
     throw new Error(`${FAIL_PREFIX} isWorkspaceOwner takes TenantAuthContext not TenantAuthz`);
@@ -515,12 +550,16 @@ export async function verifyApiSurfaceAlignment() {
     throw new Error(`${FAIL_PREFIX} router must not list wizard-access*.ts as 8.1 write target`);
   }
   if (!router.includes("urban-settings-access.ts")) {
-    throw new Error(`${FAIL_PREFIX} router must cite apps/web/src/urban/urban-settings-access.ts for 8.1`);
+    throw new Error(
+      `${FAIL_PREFIX} router must cite apps/web/src/urban/urban-settings-access.ts for 8.1`
+    );
   }
 
   const matrix = await readRepoFile("docs/phase-8/audits/verification-matrix.md");
   if (/assertUrbanOwner/.test(matrix)) {
-    throw new Error(`${FAIL_PREFIX} verification-matrix must use assertWorkspaceOwner not assertUrbanOwner`);
+    throw new Error(
+      `${FAIL_PREFIX} verification-matrix must use assertWorkspaceOwner not assertUrbanOwner`
+    );
   }
 
   const decisions = await readRepoFile("docs/phase-8/appendices/IMPLEMENTATION-DECISIONS.md");
@@ -555,9 +594,7 @@ export async function verifySpecPathRegistry() {
   }
 
   if (missing.length > 0) {
-    throw new Error(
-      `${FAIL_PREFIX} Missing 8.1 spec registry path(s): ${missing.join(", ")}`,
-    );
+    throw new Error(`${FAIL_PREFIX} Missing 8.1 spec registry path(s): ${missing.join(", ")}`);
   }
 
   for (const rel of REQUIRED_PHASE8_8_1_SPEC_REGISTRY) {
@@ -587,7 +624,7 @@ export async function verifySpecPathRegistry() {
 
   if (REQUIRED_PHASE8_8_1_SPEC_REGISTRY.length !== 6) {
     throw new Error(
-      `${FAIL_PREFIX} Internal invariant violated: expected 6 registry specs, got ${REQUIRED_PHASE8_8_1_SPEC_REGISTRY.length}`,
+      `${FAIL_PREFIX} Internal invariant violated: expected 6 registry specs, got ${REQUIRED_PHASE8_8_1_SPEC_REGISTRY.length}`
     );
   }
 }
@@ -617,9 +654,7 @@ export async function verifyHardeningArtifacts() {
   }
 
   if (missing.length > 0) {
-    throw new Error(
-      `${FAIL_PREFIX} Missing hardening artifact(s): ${missing.join(", ")}`,
-    );
+    throw new Error(`${FAIL_PREFIX} Missing hardening artifact(s): ${missing.join(", ")}`);
   }
 
   for (const rel of REQUIRED_PHASE8_HARDENING_YAML) {
@@ -642,7 +677,7 @@ export async function verifyHardeningArtifacts() {
     REQUIRED_PHASE8_HARDENING_YAML.length + REQUIRED_PHASE8_8_1_API_SPECS.length;
   if (expectedTotal !== 6) {
     throw new Error(
-      `${FAIL_PREFIX} Internal invariant violated: expected 6 hardening artifacts, got ${expectedTotal}`,
+      `${FAIL_PREFIX} Internal invariant violated: expected 6 hardening artifacts, got ${expectedTotal}`
     );
   }
 }
@@ -651,7 +686,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     await verifyHardeningArtifacts();
     console.log(
-      `phase-8-hardening-artifacts: PASS (${REQUIRED_PHASE8_HARDENING_YAML.length} YAML + ${REQUIRED_PHASE8_8_1_API_SPECS.length} API specs)`,
+      `phase-8-hardening-artifacts: PASS (${REQUIRED_PHASE8_HARDENING_YAML.length} YAML + ${REQUIRED_PHASE8_8_1_API_SPECS.length} API specs)`
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

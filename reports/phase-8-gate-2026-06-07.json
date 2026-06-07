@@ -1,7 +1,7 @@
 {
   "gate": "phase-8",
   "date": "2026-06-07",
-  "gitSha": "d487666",
+  "gitSha": "34feb60",
   "ok": true,
   "fail_token": null,
   "active_subphase": "8.1",
@@ -35,7 +35,7 @@
       "id": "p8_doc_hardening",
       "required": true,
       "ok": true,
-      "detail": "33 PEK files present under docs/phase-8"
+      "detail": "39 PEK files present under docs/phase-8"
     },
     {
       "id": "p8_anti_hollow",
@@ -77,7 +77,13 @@
       "id": "p8_truth_attestation_sync",
       "required": true,
       "ok": true,
-      "detail": "IMPLEMENTATION-TRUTH attestation matches 24/24 charter gates"
+      "detail": "IMPLEMENTATION-TRUTH attestation matches 25/25 charter gates"
+    },
+    {
+      "id": "p8_agent_navigator_present",
+      "required": true,
+      "ok": true,
+      "detail": "AGENT-NAVIGATOR.md + AGENT-CURRENT-PHASE.yaml on disk · boot-6b/6c in BOOT-MANIFEST"
     },
     {
       "id": "p8_prove_with_parity",
@@ -152,6 +158,6 @@
       "detail": "TQ-P8-001..010 attested in docs/phase-8/phase-8-charter.md"
     }
   ],
-  "charter_gates": 24,
+  "charter_gates": 25,
   "note": "phase-8:gate adds build+test+phase-7:gate — see package.json"
 }

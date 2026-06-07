@@ -13,20 +13,25 @@ export const REPO_ROOT = path.resolve(__dirname, "../../..");
 const FAIL_PREFIX = "FAIL P8-GUARD-HARDENING:";
 
 /**
- * Canonical Phase 8 PEK corpus — exactly 33 required files (relative to repo root).
+ * Canonical Phase 8 PEK corpus — exactly 39 required files (relative to repo root).
  * @type {readonly string[]}
  */
 export const REQUIRED_PHASE8_PEK_FILES = Object.freeze([
+  "docs/phase-8/AGENT-NAVIGATOR.md",
   "docs/phase-8/phase-8-agent-router.md",
   "docs/phase-8/phase-8-charter.md",
   "docs/phase-8/phase-8-guards.md",
+  "docs/phase-8/appendices/AGENT-CURRENT-PHASE.yaml",
   "docs/phase-8/appendices/BOOT-MANIFEST.yaml",
+  "docs/phase-8/appendices/adr-008.md",
   "docs/phase-8/appendices/IMPLEMENTATION-DECISIONS.md",
   "docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md",
   "docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md",
   "docs/phase-8/appendices/URBAN-PRODUCT-SCOPE.md",
   "docs/phase-8/appendices/SMOKE-SCENARIO-MAP.md",
   "docs/phase-8/appendices/PRECISION-DOC-INDEX.md",
+  "docs/phase-8/appendices/phase-7-bridge.md",
+  "docs/phase-8/appendices/verification-commands.md",
   "docs/phase-8/appendices/env-runtime-matrix.md",
   "docs/phase-8/appendices/action-registry.md",
   "docs/phase-8/appendices/PHASE-BOUNDARY-MATRIX.yaml",
@@ -42,6 +47,7 @@ export const REQUIRED_PHASE8_PEK_FILES = Object.freeze([
   "docs/phase-8/appendices/schemas/URBAN-SETTINGS-HTTP-ENVELOPE.yaml",
   "docs/phase-8/appendices/erip/README.md",
   "docs/phase-8/appendices/erip/8.1-cop-auth-isolation.md",
+  "docs/phase-8/audits/DOC-EXECUTION-SCORECARD.md",
   "docs/phase-8/audits/IMPLEMENTATION-TRUTH.md",
   "docs/phase-8/audits/verification-matrix.md",
   "docs/phase-8/subphases/8.0-entry.md",
@@ -71,7 +77,7 @@ export async function verifyDocHardening(corpusPath) {
   } catch (cause) {
     const err = cause instanceof Error ? cause : new Error(String(cause));
     throw new Error(
-      `${FAIL_PREFIX} Corpus directory not accessible at ${resolvedCorpus}: ${err.message}`,
+      `${FAIL_PREFIX} Corpus directory not accessible at ${resolvedCorpus}: ${err.message}`
     );
   }
 
@@ -82,7 +88,7 @@ export async function verifyDocHardening(corpusPath) {
   const expectedCorpus = path.normalize(path.join(REPO_ROOT, "docs/phase-8"));
   if (resolvedCorpus !== expectedCorpus) {
     throw new Error(
-      `${FAIL_PREFIX} corpusPath must resolve to docs/phase-8 (got ${resolvedCorpus})`,
+      `${FAIL_PREFIX} corpusPath must resolve to docs/phase-8 (got ${resolvedCorpus})`
     );
   }
 
@@ -91,7 +97,7 @@ export async function verifyDocHardening(corpusPath) {
     await fs.access(routerPath);
   } catch {
     throw new Error(
-      `${FAIL_PREFIX} Corpus missing sole entry marker phase-8-agent-router.md at ${routerPath}`,
+      `${FAIL_PREFIX} Corpus missing sole entry marker phase-8-agent-router.md at ${routerPath}`
     );
   }
 
@@ -120,9 +126,9 @@ export async function verifyDocHardening(corpusPath) {
     throw new Error(`${FAIL_PREFIX} ${detail}`);
   }
 
-  if (REQUIRED_PHASE8_PEK_FILES.length !== 33) {
+  if (REQUIRED_PHASE8_PEK_FILES.length !== 39) {
     throw new Error(
-      `${FAIL_PREFIX} Internal invariant violated: expected 33 PEK paths, got ${REQUIRED_PHASE8_PEK_FILES.length}`,
+      `${FAIL_PREFIX} Internal invariant violated: expected 39 PEK paths, got ${REQUIRED_PHASE8_PEK_FILES.length}`
     );
   }
 }
@@ -132,7 +138,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   try {
     await verifyDocHardening(corpusArg);
     console.log(
-      `phase-8-doc-hardening: PASS (${REQUIRED_PHASE8_PEK_FILES.length} PEK files present)`,
+      `phase-8-doc-hardening: PASS (${REQUIRED_PHASE8_PEK_FILES.length} PEK files present)`
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -32,7 +32,7 @@ document_meta:
 
 | Law                      | Requirement                                                                                                                                                                                                                        |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SOLE ENTRY**           | Phase 8 execution is authorized only from **this router** + [`appendices/BOOT-MANIFEST.yaml`](appendices/BOOT-MANIFEST.yaml) + `subphases/{current}.md` (when authored).                                                           |
+| **SOLE ENTRY**           | Phase 8 execution is authorized only from **this router** + [`appendices/BOOT-MANIFEST.yaml`](appendices/BOOT-MANIFEST.yaml) + [`AGENT-NAVIGATOR.md`](AGENT-NAVIGATOR.md) + `subphases/{current}.md`.                              |
 | **CHARTER IS NARRATIVE** | [`phase-8-charter.md`](phase-8-charter.md) explains intent; it does **not** authorize implementation without router + subphase `completion_proof`.                                                                                 |
 | **TRUTH BEFORE CLAIMS**  | [`audits/IMPLEMENTATION-TRUTH.md`](audits/IMPLEMENTATION-TRUTH.md) is the honesty ledger. If truth says `SPEC_ONLY` or `ABSENT`, agents MUST NOT claim `VERIFIED_BEHAVIORAL`.                                                      |
 | **DOC-FIRST COVENANT**   | MAP §12 · `.cursorrules`: protected packages (`platform-core`, `workspace-sdk`, `apps/api` generic layer) require matching `docs/` update **before** code. Phase 8 product logic belongs in **`packages/workspaces/urban`** first. |
@@ -45,10 +45,12 @@ document_meta:
 │  MANDATORY READ ORDER (every session)                        │
 │  1. phase-8-agent-router.md          ← THIS FILE (FIRST)    │
 │  2. audits/IMPLEMENTATION-TRUTH.md                            │
-│  3. appendices/BOOT-MANIFEST.yaml → detect_current_subphase   │
-│  4. subphases/{current}.md                                    │
-│  5. §5 ERIP — research BEFORE code (8.1+ mandatory)           │
-│  6. phase-8-charter.md               (TQ-P8-* benchmarks)     │
+│  3. AGENT-NAVIGATOR.md              ← next step decision tree │
+│  4. appendices/AGENT-CURRENT-PHASE.yaml                       │
+│  5. appendices/BOOT-MANIFEST.yaml → detect_current_subphase   │
+│  6. subphases/{current}.md                                    │
+│  7. §5 ERIP — research BEFORE code (8.1+ mandatory)           │
+│  8. phase-8-charter.md               (TQ-P8-* benchmarks)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 

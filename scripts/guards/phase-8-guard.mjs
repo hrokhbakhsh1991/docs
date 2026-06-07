@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Phase 8 guard — MAP §12 R2 verification-as-code (24 charter gates).
+ * Phase 8 guard — MAP §12 R2 verification-as-code (25 charter gates).
  * @see docs/phase-8/phase-8-guards.md · docs/phase-8/phase-8-charter.md
  */
 import fs from "node:fs";
@@ -9,10 +9,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { verifyAntiHollow } from "./lib/anti-hollow-phase8.mjs";
-import {
-  REQUIRED_PHASE8_PEK_FILES,
-  verifyDocHardening,
-} from "./lib/phase-8-doc-hardening.mjs";
+import { REQUIRED_PHASE8_PEK_FILES, verifyDocHardening } from "./lib/phase-8-doc-hardening.mjs";
 import {
   REQUIRED_PHASE8_8_1_API_SPECS,
   REQUIRED_PHASE8_HARDENING_YAML,
@@ -23,6 +20,7 @@ import {
   verifyCaslNoEllipsis,
   verifyProveWithParity,
   verifyTruthAttestationSync,
+  verifyAgentNavigatorPresent,
   PHASE8_CHARTER_GATES,
   verifyDocPathConsistency,
   verifySpecPathRegistry,
@@ -51,8 +49,7 @@ const TQ_COMPLIANCE_FILE = "docs/phase-8/phase-8-charter.md";
 const TQ_ATTESTATION_HEADING = "### TQ-P8-* cleanliness benchmarks";
 const TQ_IDS = Array.from({ length: 10 }, (_, i) => `TQ-P8-${String(i + 1).padStart(3, "0")}`);
 
-const REPORT_DATE =
-  process.env.PHASE_8_GATE_REPORT ?? new Date().toISOString().slice(0, 10);
+const REPORT_DATE = process.env.PHASE_8_GATE_REPORT ?? new Date().toISOString().slice(0, 10);
 
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const LEGACY_IMPORT_PATTERNS = [
@@ -74,8 +71,7 @@ const URBAN_DENALI_COUPLING_PATTERNS = [
  * @returns {never}
  */
 function failFast(checkId, detail) {
-  const message =
-    detail.startsWith("FAIL P8-GUARD-") ? detail : failToken(checkId, detail);
+  const message = detail.startsWith("FAIL P8-GUARD-") ? detail : failToken(checkId, detail);
   console.error(message);
   process.exit(1);
 }
@@ -122,7 +118,10 @@ function gitShortSha() {
  * @param {Set<string>} [skipDirNames]
  * @returns {string[]}
  */
-function collectSourceFiles(relFromRoot, skipDirNames = new Set(["node_modules", "dist", ".next"])) {
+function collectSourceFiles(
+  relFromRoot,
+  skipDirNames = new Set(["node_modules", "dist", ".next"])
+) {
   const rootAbs = path.join(REPO_ROOT, relFromRoot);
   /** @type {string[]} */
   const files = [];
@@ -187,7 +186,7 @@ function runP8NoLegacyRuntimeImport() {
   if (hits.length > 0) {
     failFast(
       "p8_no_legacy_runtime_import",
-      `runtime legacy import forbidden (RULE-P7-007): ${hits.join("; ")}`,
+      `runtime legacy import forbidden (RULE-P7-007): ${hits.join("; ")}`
     );
   }
 
@@ -219,14 +218,14 @@ function runP8UrbanNotDenaliRail() {
     const binding = fs.readFileSync(path.join(REPO_ROOT, bindingPath), "utf8");
     if (
       /workspaceType:\s*URBAN_WORKSPACE_TYPE,\s*pluginId:\s*DENALI_WORKSPACE_PLUGIN_ID/.test(
-        binding,
+        binding
       )
     ) {
       failures.push(`${bindingPath} maps urban workspace type to denali plugin`);
     }
     if (
       !/workspaceType:\s*URBAN_WORKSPACE_TYPE,\s*pluginId:\s*URBAN_WORKSPACE_PLUGIN_ID/.test(
-        binding,
+        binding
       )
     ) {
       failures.push(`${bindingPath} must bind URBAN_WORKSPACE_TYPE → URBAN_WORKSPACE_PLUGIN_ID`);
@@ -297,7 +296,7 @@ function runP8TechnicalQuality() {
   if (!content.includes(TQ_ATTESTATION_HEADING)) {
     failFast(
       "p8_technical_quality",
-      `${TQ_COMPLIANCE_FILE} missing mandatory block "${TQ_ATTESTATION_HEADING}"`,
+      `${TQ_COMPLIANCE_FILE} missing mandatory block "${TQ_ATTESTATION_HEADING}"`
     );
   }
 
@@ -305,14 +304,14 @@ function runP8TechnicalQuality() {
   if (missing.length > 0) {
     failFast(
       "p8_technical_quality",
-      `${TQ_COMPLIANCE_FILE} missing TQ attestation rows: ${missing.join(", ")}`,
+      `${TQ_COMPLIANCE_FILE} missing TQ attestation rows: ${missing.join(", ")}`
     );
   }
 
   if (!/p8_technical_quality/.test(content)) {
     failFast(
       "p8_technical_quality",
-      `${TQ_COMPLIANCE_FILE} must declare guard check id p8_technical_quality in charter gate table`,
+      `${TQ_COMPLIANCE_FILE} must declare guard check id p8_technical_quality in charter gate table`
     );
   }
 
@@ -334,11 +333,15 @@ async function runAllChecks() {
   let baselineSha = null;
 
   checks.push(
-    assertSyncCheck("p8_boot_manifest", evaluateP8BootManifest(), "BOOT-MANIFEST structural PASS"),
+    assertSyncCheck("p8_boot_manifest", evaluateP8BootManifest(), "BOOT-MANIFEST structural PASS")
   );
 
   checks.push(
-    assertSyncCheck("p8_truth_honesty", evaluateP8TruthHonesty(), "IMPLEMENTATION-TRUTH honesty PASS"),
+    assertSyncCheck(
+      "p8_truth_honesty",
+      evaluateP8TruthHonesty(),
+      "IMPLEMENTATION-TRUTH honesty PASS"
+    )
   );
 
   const erip = evaluateP8EripCopPresent();
@@ -350,8 +353,8 @@ async function runAllChecks() {
     assertSyncCheck(
       "p8_platform_core_zero_diff",
       zeroDiff,
-      zeroDiff.detail ?? "platform-core zero diff PASS",
-    ),
+      zeroDiff.detail ?? "platform-core zero diff PASS"
+    )
   );
   baselineSha = zeroDiff.baselineSha ?? null;
 
@@ -412,7 +415,8 @@ async function runAllChecks() {
     id: "p8_doc_path_consistency",
     required: true,
     ok: true,
-    detail: "urban-settings-patch canonical in docs/phase-8 · BOOT-MANIFEST prove_with · flat urban/** boundary",
+    detail:
+      "urban-settings-patch canonical in docs/phase-8 · BOOT-MANIFEST prove_with · flat urban/** boundary",
   });
 
   try {
@@ -452,6 +456,18 @@ async function runAllChecks() {
   });
 
   try {
+    await verifyAgentNavigatorPresent();
+  } catch (error) {
+    failFastFromError("p8_agent_navigator_present", error);
+  }
+  checks.push({
+    id: "p8_agent_navigator_present",
+    required: true,
+    ok: true,
+    detail: "AGENT-NAVIGATOR.md + AGENT-CURRENT-PHASE.yaml on disk · boot-6b/6c in BOOT-MANIFEST",
+  });
+
+  try {
     await verifyProveWithParity();
   } catch (error) {
     failFastFromError("p8_prove_with_parity", error);
@@ -460,7 +476,8 @@ async function runAllChecks() {
     id: "p8_prove_with_parity",
     required: true,
     ok: true,
-    detail: "SPEC-REGISTRY-8.1.yaml parity with BOOT-MANIFEST · 8.1 subphase · truth · verification-matrix",
+    detail:
+      "SPEC-REGISTRY-8.1.yaml parity with BOOT-MANIFEST · 8.1 subphase · truth · verification-matrix",
   });
 
   try {
@@ -472,7 +489,8 @@ async function runAllChecks() {
     id: "p8_api_surface_alignment",
     required: true,
     ok: true,
-    detail: "DEC-P8-004 TenantAuthz method form · tenant-auth-grants isWorkspaceOwner · router web path",
+    detail:
+      "DEC-P8-004 TenantAuthz method form · tenant-auth-grants isWorkspaceOwner · router web path",
   });
 
   try {
@@ -484,7 +502,8 @@ async function runAllChecks() {
     id: "p8_envelope_spec_depth",
     required: true,
     ok: true,
-    detail: "ASM-001 metadata keys correlationId · primaryColor · featureFlags · rateLimitRps in patch spec",
+    detail:
+      "ASM-001 metadata keys correlationId · primaryColor · featureFlags · rateLimitRps in patch spec",
   });
 
   try {
@@ -496,7 +515,8 @@ async function runAllChecks() {
     id: "p8_entry_ledger_present",
     required: true,
     ok: true,
-    detail: "reports/phase-8-entry-verified.yaml scaffold · phase_7_gate.status PENDING|PASS with honest exit_code",
+    detail:
+      "reports/phase-8-entry-verified.yaml scaffold · phase_7_gate.status PENDING|PASS with honest exit_code",
   });
 
   try {
@@ -520,7 +540,8 @@ async function runAllChecks() {
     id: "p8_urban_routes_bound",
     required: true,
     ok: true,
-    detail: "URBAN-ROUTE-MATRIX §C settings paths ⊆ dispatch addendum · out-of-scope paths excluded",
+    detail:
+      "URBAN-ROUTE-MATRIX §C settings paths ⊆ dispatch addendum · out-of-scope paths excluded",
   });
 
   try {
@@ -556,7 +577,8 @@ async function runAllChecks() {
     id: "p8_boundary_ci_hook",
     required: true,
     ok: true,
-    detail: "scripts/guards/p8-boundary-diff.mjs present · documented · PHASE-BOUNDARY-MATRIX ci_hook",
+    detail:
+      "scripts/guards/p8-boundary-diff.mjs present · documented · PHASE-BOUNDARY-MATRIX ci_hook",
   });
 
   checks.push(runP8NoLegacyRuntimeImport());
