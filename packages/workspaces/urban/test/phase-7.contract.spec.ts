@@ -13,7 +13,6 @@ import { getUrbanWorkspacePlugin, URBAN_THEME_TOKENS_STYLESHEET } from "../src/i
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO_ROOT = join(PACKAGE_ROOT, "../../..");
 const BASELINE_YAML = join(REPO_ROOT, "reports/phase-7-genericity-baseline.yaml");
-const FINGERPRINT_JSON = join(REPO_ROOT, "reports/phase-7-platform-core-fingerprint.json");
 const PLATFORM_CORE = join(REPO_ROOT, "packages/platform-core");
 
 /** Ephemeral dirs — never part of genericity baseline (see .gitignore coverage/). */
@@ -30,12 +29,33 @@ function normalizePlatformCoreFingerprint(files: Record<string, string>): Record
   );
 }
 
+function digestPlatformCoreTree(files: Record<string, string>): string {
+  const normalized = normalizePlatformCoreFingerprint(files);
+  const lines = Object.keys(normalized)
+    .sort()
+    .map((relPath) => `${relPath}\t${normalized[relPath]}`);
+  return createHash("sha256").update(lines.join("\n")).digest("hex");
+}
+
+function readBaselineYaml(): string {
+  return readFileSync(BASELINE_YAML, "utf8");
+}
+
 function readBaselineSha(): string {
-  const yaml = readFileSync(BASELINE_YAML, "utf8");
-  const match = /baseline_sha:\s*["']?([0-9a-f]{7,40})["']?/i.exec(yaml);
+  const match = /baseline_sha:\s*["']?([0-9a-f]{7,40})["']?/i.exec(readBaselineYaml());
   if (!match?.[1]) {
     throw new Error(
       "phase-7-genericity-baseline.yaml missing baseline_sha — run P7-2-A01 before 7.2 closure"
+    );
+  }
+  return match[1];
+}
+
+function readBaselineTreeDigest(): string {
+  const match = /platform_core_tree_digest:\s*([0-9a-f]{64})/i.exec(readBaselineYaml());
+  if (!match?.[1]) {
+    throw new Error(
+      "phase-7-genericity-baseline.yaml missing platform_core_tree_digest — run P7-2-A01"
     );
   }
   return match[1];
@@ -79,35 +99,13 @@ function fingerprintPlatformCore(): Record<string, string> {
   return files;
 }
 
-function assertPlatformCoreMatchesFingerprint(baselineSha: string): void {
-  const manifest = JSON.parse(readFileSync(FINGERPRINT_JSON, "utf8")) as {
-    baseline_sha?: string;
-    files: Record<string, string>;
-  };
-  if (manifest.baseline_sha && manifest.baseline_sha !== baselineSha) {
-    throw new Error(
-      `phase-7-platform-core-fingerprint.json baseline_sha (${manifest.baseline_sha}) != ${baselineSha}`
-    );
-  }
-  const current = fingerprintPlatformCore();
-  const expected = normalizePlatformCoreFingerprint(manifest.files);
-  const expectedKeys = Object.keys(expected).sort();
-  const currentKeys = Object.keys(current).sort();
-  assert.deepEqual(
-    currentKeys,
-    expectedKeys,
-    "platform-core file set changed since 7.2 fingerprint — urban must not touch core"
-  );
-  const drift: string[] = [];
-  for (const key of expectedKeys) {
-    if (current[key] !== expected[key]) {
-      drift.push(key);
-    }
-  }
+function assertPlatformCoreMatchesTreeDigest(): void {
+  const expectedDigest = readBaselineTreeDigest();
+  const currentDigest = digestPlatformCoreTree(fingerprintPlatformCore());
   assert.equal(
-    drift.length,
-    0,
-    `platform-core content drift since 7.2 fingerprint:\n${drift.join("\n")}`
+    currentDigest,
+    expectedDigest,
+    "platform-core tree digest drift since 7.2 baseline — urban must not touch core"
   );
 }
 
@@ -121,7 +119,7 @@ function assertPlatformCoreUnchangedSinceBaseline(baselineSha: string): void {
     );
     return;
   }
-  assertPlatformCoreMatchesFingerprint(baselineSha);
+  assertPlatformCoreMatchesTreeDigest();
 }
 
 function listPlatformCoreSourceFiles(dir = PLATFORM_CORE, out: string[] = []): string[] {
