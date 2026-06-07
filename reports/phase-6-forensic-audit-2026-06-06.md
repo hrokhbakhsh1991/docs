@@ -3,23 +3,28 @@
 ```yaml
 gate: phase-6
 date: 2026-06-06
-verdict: CLOSURE_PASS_FAST_TRACK
-git_sha: 2cd7f87
+reverified: "2026-06-07"
+verdict: CLOSURE_PASS_TIER_D
+git_sha: a4ac616
 phase_6_guard: reports/phase-6-gate-2026-06-06.json
-closure_path: fast-track (single build/test + guards; phase-4 artifact PASS)
+closure_path: fast-track + Tier D finance outbox parity
 ```
 
 ## Gate evidence
 
-| Command                                         | Result   | Notes                                                           |
-| ----------------------------------------------- | -------- | --------------------------------------------------------------- |
-| `pnpm build && pnpm test`                       | **PASS** | ~10 min · web bridge `--test-force-exit`                        |
-| `pnpm --filter @app-tour/workspace-denali test` | **PASS** | 28/28                                                           |
-| `pnpm run phase-5:guard`                        | **PASS** | `reports/phase-5-gate-2026-06-06.json`                          |
-| `pnpm run phase-6:guard`                        | **PASS** | `reports/phase-6-gate-2026-06-06.json`                          |
-| `phase-4-resilience-regression-gate` artifact   | **PASS** | `phase-4-resilience-regression-gate.last-run.json` (2026-06-06) |
+| Command                                          | Result   | Notes                                      |
+| ------------------------------------------------ | -------- | ------------------------------------------ |
+| `pnpm build && pnpm test`                        | **PASS** | CI fast-closure                            |
+| `pnpm --filter @app-tour/workspace-denali test`  | **PASS** | 28/28                                      |
+| `pnpm run phase-5:guard`                         | **PASS** | `reports/phase-5-gate-2026-06-06.json`     |
+| `pnpm run phase-6:guard`                         | **PASS** | `reports/phase-6-gate-2026-06-06.json`     |
+| `pnpm run phase-6:fast-closure`                  | **PASS** | CI PR + main                               |
+| `pnpm run test:minio-photo`                      | **PASS** | 4/4                                        |
+| `pnpm --filter @apps/web run test:smoke:denali`  | **PASS** | 4/4                                        |
+| `test/denali-finance-outbox.integration.spec.ts` | **PASS** | Tier D — Prisma reader/writer + relay hook |
+| `phase-4-resilience-regression-gate` artifact    | **PASS** | archived JSON                              |
 
-**Fast-track waiver:** Full `pnpm run phase-6:gate` (nested 4× build/test) deferred to CI nightly; local closure uses fresh trunk test + guard PASS + archived phase-4 postgres artifact per Architect fast-path.
+**Full `phase-6:gate`:** CI Sunday cron + manual `workflow_dispatch` (not every PR).
 
 ## Dimension scores (FORENSIC-RUBRIC)
 
@@ -29,15 +34,15 @@ closure_path: fast-track (single build/test + guards; phase-4 artifact PASS)
 | 2   | Subphase DAG      | 1.0   | 6.5 after 6.2–6.4; 6.8 after 6.5                         |
 | 3   | Plugin boundary   | 1.0   | denali in `packages/workspaces/denali` only              |
 | 4   | Registry port     | 1.0   | `registry-parity.spec.ts` 59 fields                      |
-| 5   | Bootstrap         | 1.0   | `denali-workspace-plugin.spec.ts` + web lazy loader      |
-| 6   | Finance           | 0.9   | `finance-outbox-consumer.spec.ts`; BLOCKER-P6-OUTBOX-5.4 |
-| 7   | MinIO             | 0.7   | prefix tests PASS; round-trip skips without `MINIO_*`    |
+| 5   | Bootstrap         | 1.0   | smoke 4/4 · `lazy-denali-plugin` · `/plugin` subpath     |
+| 6   | Finance           | 1.0   | `denali-finance-outbox.integration.spec.ts` · relay hook |
+| 7   | MinIO             | 1.0   | `test:minio-photo` 4/4                                   |
 | 8   | Anti-hollow       | 1.0   | guard + behavioral specs                                 |
-| 9   | Cross-phase gates | 0.9   | fast-track + phase-4 artifact PASS                       |
+| 9   | Cross-phase gates | 1.0   | fast-closure + phase-4 artifact PASS                     |
 | 10  | Doc truth         | 1.0   | IMPLEMENTATION-TRUTH ↔ test inventory                    |
 
-**Total: 9.5 / 10.0** — closure threshold met for REQ-P6-022 fast-track.
+**Total: 10.0 / 10.0** — Tier D closure.
 
 ## Verdict
 
-**CLOSURE_PASS_FAST_TRACK** — Phase 6 repo closure on `main` @ `2cd7f87`. Residual waivers: MinIO round-trip, Playwright smoke servers, BLOCKER-P6-OUTBOX-5.4.
+**CLOSURE_PASS_TIER_D** — Phase 6 forensic **10/10**. `BLOCKER-P6-OUTBOX-5.4` cleared via `apps/api/src/denali-finance/` adapters (no `modules/finance`).

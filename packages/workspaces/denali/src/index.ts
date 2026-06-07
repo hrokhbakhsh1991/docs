@@ -55,4 +55,5 @@ export type {
   LedgerJournalLine,
   OutboxReader,
   OutboxWriter,
+  TourCreatedLedgerPayload,
 } from "./finance";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 
 import {
   readHttpIdempotencyMemorySizeForTests,
@@ -15,6 +15,7 @@ const ENV_SNAPSHOT = {
 };
 
 afterEach(() => {
+  mock.timers.reset();
   process.env.STORAGE_DRIVER = ENV_SNAPSHOT.STORAGE_DRIVER;
   process.env.HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES =
     ENV_SNAPSHOT.HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES;
@@ -44,9 +45,11 @@ describe("http-idempotency memory bounds (DI-IDEM-02 / DEC-039)", () => {
   });
 
   it("expires completed entries after TTL", async () => {
+    mock.timers.enable({ apis: ["Date"] });
+
     process.env.STORAGE_DRIVER = "memory";
     process.env.HTTP_IDEMPOTENCY_MEMORY_MAX_ENTRIES = "16";
-    process.env.HTTP_IDEMPOTENCY_MEMORY_TTL_MS = "1";
+    process.env.HTTP_IDEMPOTENCY_MEMORY_TTL_MS = "100";
 
     const tenantId = "a0000000-0000-4000-8000-000000000002";
 
@@ -59,7 +62,7 @@ describe("http-idempotency memory bounds (DI-IDEM-02 / DEC-039)", () => {
     });
 
     assert.equal(readHttpIdempotencyMemorySizeForTests(), 1);
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    mock.timers.tick(100);
 
     await runWithTenantContext(tenantId, async () => {
       await runIdempotentCreateTour(tenantId, "ttl-key-2", "ttl-hash-2", async () => ({

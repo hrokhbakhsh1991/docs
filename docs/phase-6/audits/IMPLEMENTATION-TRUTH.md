@@ -1,10 +1,10 @@
 # Phase 6 — Implementation truth ledger
 
 ```yaml
-ledger_date: "2026-06-06"
+ledger_date: "2026-06-07"
 phase_closed: true
 closure_path: fast-track
-closure_git_sha: 2cd7f87
+closure_git_sha: a4ac616
 doc_pack_status: PRECISION_DEPTH_v3_CRITICAL_96
 doc_execution_system_score: 96
 critical_spec_quality_score: 96
@@ -15,22 +15,22 @@ research: ../../research/phase-6-denali-workspace-research.md
 forensic: ../../../reports/phase-6-forensic-audit-2026-06-06.md
 ```
 
-> **Honesty:** Phase 6 closed via **fast-track** + behavioral hardening (2026-06-06). **6.6 smoke 4/4** (`test:smoke:denali`) · **6.7 MinIO 4/4** (`test:minio-photo`). Platform-core `assertTenantId` accepts registry UUIDs for `DENALI_SMOKE_TENANT_ID`. Remaining waiver: **BLOCKER-P6-OUTBOX-5.4** (finance stub) · full `phase-6:gate` → CI nightly.
+> **Honesty:** Phase 6 **VERIFIED_BEHAVIORAL 10/10** (Tier D). **6.4** Prisma finance adapters (`apps/api/src/denali-finance/`) + relay hook · **6.6 smoke 4/4** · **6.7 MinIO 4/4** · **`phase-6:fast-closure` CI green**. `BLOCKER-P6-OUTBOX-5.4` **cleared**. Full `phase-6:gate` → Sunday cron / `workflow_dispatch`.
 
 ## Subphase ledger
 
-| Subphase | Status              | REQ (primary)              | Evidence (target)                                                | Blocker                                         |
-| -------- | ------------------- | -------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- |
-| **6.0**  | VERIFIED            | REQ-P6-001–003             | `phase-6-entry-verified.yaml`                                    | `verified_at` set · phase-5:gate PASS           |
-| **6.1**  | VERIFIED_BEHAVIORAL | REQ-P6-004–005             | `getDenaliWorkspacePlugin` · `phase-6.contract.spec.ts`          | —                                               |
-| **6.2**  | VERIFIED_BEHAVIORAL | REQ-P6-006–009,015,021,023 | `registry-parity.spec.ts` · `denali:codegen`                     | —                                               |
-| **6.3**  | VERIFIED_BEHAVIORAL | REQ-P6-010                 | `composites.contract.spec.ts` · `theme/tokens.css`               | —                                               |
-| **6.4**  | VERIFIED_BEHAVIORAL | REQ-P6-011–012,028         | `finance-outbox-consumer.spec.ts` · `src/finance/`               | BLOCKER-P6-OUTBOX-5.4 — full 5.4 parity pending |
-| **6.5**  | VERIFIED_BEHAVIORAL | REQ-P6-013–014,024,026     | `denali-workspace-plugin.spec.ts` · web lazy loader              | —                                               |
-| **6.6**  | VERIFIED_BEHAVIORAL | REQ-P6-015,023,029         | `tests/smoke/denali-wizard.spec.ts` · SMK-P6-01..05 **4/4 PASS** | —                                               |
-| **6.7**  | VERIFIED_BEHAVIORAL | REQ-P6-016                 | `minio-photo.spec.ts` · `infra:minio:up` · 4/4 PASS              | —                                               |
-| **6.8**  | VERIFIED_BEHAVIORAL | REQ-P6-017                 | `migrate-canonical-denali.spec.ts` · ACL migrate                 | —                                               |
-| **6.9**  | VERIFIED_BEHAVIORAL | REQ-P6-018–022             | `phase-6.contract.spec.ts` · fast-track guards · forensic        | — (full `phase-6:gate` → CI nightly)            |
+| Subphase | Status              | REQ (primary)              | Evidence (target)                                                               | Blocker                               |
+| -------- | ------------------- | -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------- |
+| **6.0**  | VERIFIED            | REQ-P6-001–003             | `phase-6-entry-verified.yaml`                                                   | `verified_at` set · phase-5:gate PASS |
+| **6.1**  | VERIFIED_BEHAVIORAL | REQ-P6-004–005             | `getDenaliWorkspacePlugin` · `phase-6.contract.spec.ts`                         | —                                     |
+| **6.2**  | VERIFIED_BEHAVIORAL | REQ-P6-006–009,015,021,023 | `registry-parity.spec.ts` · `denali:codegen`                                    | —                                     |
+| **6.3**  | VERIFIED_BEHAVIORAL | REQ-P6-010                 | `composites.contract.spec.ts` · `theme/tokens.css`                              | —                                     |
+| **6.4**  | VERIFIED_BEHAVIORAL | REQ-P6-011–012,028         | `finance-outbox-consumer.spec.ts` · `denali-finance-outbox.integration.spec.ts` | —                                     |
+| **6.5**  | VERIFIED_BEHAVIORAL | REQ-P6-013–014,024,026     | `denali-workspace-plugin.spec.ts` · web lazy loader                             | —                                     |
+| **6.6**  | VERIFIED_BEHAVIORAL | REQ-P6-015,023,029         | `tests/smoke/denali-wizard.spec.ts` · SMK-P6-01..05 **4/4 PASS**                | —                                     |
+| **6.7**  | VERIFIED_BEHAVIORAL | REQ-P6-016                 | `minio-photo.spec.ts` · `infra:minio:up` · 4/4 PASS                             | —                                     |
+| **6.8**  | VERIFIED_BEHAVIORAL | REQ-P6-017                 | `migrate-canonical-denali.spec.ts` · ACL migrate                                | —                                     |
+| **6.9**  | VERIFIED_BEHAVIORAL | REQ-P6-018–022             | `phase-6.contract.spec.ts` · fast-track guards · forensic                       | — (full `phase-6:gate` → CI nightly)  |
 
 ## Phase 5 cross-dependency
 

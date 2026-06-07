@@ -1,0 +1,39 @@
+{
+  "gate": "phase-7",
+  "date": "2026-06-07",
+  "gitSha": "40fdbf8",
+  "ok": true,
+  "checks": [
+    {
+      "id": "p7_boot_manifest",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p7_doc_hardening",
+      "required": true,
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "p7_urban_absence_honesty",
+      "required": true,
+      "ok": true,
+      "detail": "urban package must not exist until 7.1 implementation — doc pack honesty"
+    },
+    {
+      "id": "p7_truth_honesty",
+      "required": true,
+      "ok": true,
+      "detail": "IMPLEMENTATION-TRUTH must state urban absent"
+    },
+    {
+      "id": "p7_anti_hollow",
+      "required": true,
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "note": "Full phase-7:gate includes phase-6:gate — see package.json when wired"
+}
