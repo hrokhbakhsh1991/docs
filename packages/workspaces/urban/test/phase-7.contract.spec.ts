@@ -16,6 +16,9 @@ const BASELINE_YAML = join(REPO_ROOT, "reports/phase-7-genericity-baseline.yaml"
 const FINGERPRINT_JSON = join(REPO_ROOT, "reports/phase-7-platform-core-fingerprint.json");
 const PLATFORM_CORE = join(REPO_ROOT, "packages/platform-core");
 
+/** Ephemeral dirs — never part of genericity baseline (see .gitignore coverage/). */
+const PLATFORM_CORE_SKIP_DIRS = new Set(["node_modules", "dist", "coverage"]);
+
 function readBaselineSha(): string {
   const yaml = readFileSync(BASELINE_YAML, "utf8");
   const match = /baseline_sha:\s*["']?([0-9a-f]{7,40})["']?/i.exec(yaml);
@@ -52,7 +55,7 @@ function fingerprintPlatformCore(): Record<string, string> {
     for (const ent of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, ent.name);
       if (ent.isDirectory()) {
-        if (ent.name === "node_modules" || ent.name === "dist") continue;
+        if (PLATFORM_CORE_SKIP_DIRS.has(ent.name)) continue;
         walk(path);
         continue;
       }
@@ -114,7 +117,7 @@ function listPlatformCoreSourceFiles(dir = PLATFORM_CORE, out: string[] = []): s
   for (const ent of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, ent.name);
     if (ent.isDirectory()) {
-      if (ent.name === "node_modules" || ent.name === "dist") continue;
+      if (PLATFORM_CORE_SKIP_DIRS.has(ent.name)) continue;
       listPlatformCoreSourceFiles(path, out);
     } else if (!ent.name.endsWith(".md")) {
       out.push(path);
