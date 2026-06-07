@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { getDenaliWorkspacePlugin } from "@app-tour/workspace-denali";
 import { getStarterWorkspacePlugin } from "@app-tour/workspace-starter";
+import { getUrbanWorkspacePlugin } from "@app-tour/workspace-urban";
 
 import { resolveWorkspacePluginForType } from "./resolve-workspace-plugin";
 
@@ -15,6 +16,12 @@ describe("resolveWorkspacePluginForType (5.2 / 6.5)", () => {
   it("resolves denali workspace_type to denali plugin (REQ-P6-013)", () => {
     const plugin = resolveWorkspacePluginForType("denali");
     assert.equal(plugin.id, getDenaliWorkspacePlugin().id);
+    assert.notEqual(plugin.id, getStarterWorkspacePlugin().id);
+  });
+
+  it("resolves urban workspace_type to urban plugin (REQ-P7-009)", () => {
+    const plugin = resolveWorkspacePluginForType("urban");
+    assert.equal(plugin.id, getUrbanWorkspacePlugin().id);
     assert.notEqual(plugin.id, getStarterWorkspacePlugin().id);
   });
 });

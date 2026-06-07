@@ -1,4 +1,4 @@
-import { DENALI_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-sdk";
+import { DENALI_WORKSPACE_PLUGIN_ID, URBAN_WORKSPACE_PLUGIN_ID } from "@app-tour/workspace-sdk";
 import {
   bindWorkspaceThemeAccess,
   createTenantAuthz,
@@ -14,6 +14,9 @@ import { listBootstrapWorkspacePlugins } from "@/bootstrap/workspace-plugins";
 
 /** Phase 6.6 smoke — sync with `@app-tour/workspace-denali` DENALI_SMOKE_TENANT_ID. */
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
+
+/** Phase 7.3 smoke — sync with `@app-tour/workspace-urban` URBAN_SMOKE_TENANT_ID. */
+const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
 import type { AppSession } from "@/session/app-session";
 
 import { isDevWebSessionAllowed } from "./auth-env";
@@ -51,9 +54,15 @@ function resolveBootstrapPluginId(tenantId: string, host?: string): string {
   if (tenantId === DENALI_SMOKE_TENANT_ID) {
     return DENALI_WORKSPACE_PLUGIN_ID;
   }
+  if (tenantId === URBAN_SMOKE_TENANT_ID) {
+    return URBAN_WORKSPACE_PLUGIN_ID;
+  }
   const hostname = host?.split(":")[0]?.trim().toLowerCase() ?? "";
   if (hostname.startsWith("denali.")) {
     return DENALI_WORKSPACE_PLUGIN_ID;
+  }
+  if (hostname.startsWith("urban.")) {
+    return URBAN_WORKSPACE_PLUGIN_ID;
   }
   return bootstrapPlugin.id;
 }

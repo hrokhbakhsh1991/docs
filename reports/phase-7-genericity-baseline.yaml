@@ -1,5 +1,7 @@
 # Phase 7 genericity baseline (record at 7.2 start)
-baseline_sha: null
-recorded_at: null
-recorded_by: null
-note: "Set baseline_sha to git ref before any urban-related platform-core touch; diff must stay empty through 7.9"
+baseline_sha: 64d9fea
+platform_core_tree_digest: 537c56c36f2c1549f259a17a0b99a8323fc874bd66ff49035a4ad6cf1c3ab385
+platform_core_file_count: 75
+recorded_at: "2026-06-07T04:15:00Z"
+recorded_by: "phase-7.2 genericity proof (cursor agent)"
+note: "platform-core frozen at post-7.1 urban shell; shallow CI uses platform_core_tree_digest (excludes coverage/, dist/, node_modules/)"

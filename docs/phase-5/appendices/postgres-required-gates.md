@@ -44,7 +44,7 @@ pnpm --filter @apps/api run db:migrate:deploy
 
 See [`migrate-deploy-only.md`](migrate-deploy-only.md) (DEC-124) — no parallel `infra/sql` bootstrap.
 
-Postgres tier env includes `APPS_API_TEST_TIER=nightly` (DEC-089) so `noisy-neighbor-latency.spec.ts` is not skipped.
+Postgres tier env includes `APPS_API_TEST_TIER=nightly` (DEC-089) so `atomic-rollback-stress.spec.ts` (chaos nightly tier) is not skipped. `noisy-neighbor-latency.spec.ts` runs in **`api-nightly.yml`** only — not blocking PR gate.
 
 ## Gate → postgres tier specs
 
@@ -67,9 +67,8 @@ Postgres tier env includes `APPS_API_TEST_TIER=nightly` (DEC-089) so `noisy-neig
 | `test/4-integration/outbox-relay-ordered-per-tenant.spec.ts` | DEC-087 per-tenant FIFO                       |
 | `test/chaos/atomic-rollback-stress.spec.ts`                  | OZ-A subprocess SIGKILL — zero orphan commits |
 | `test/3-performance/bulk-import-victim-slo.spec.ts`          | CASCADE-01 victim p95 under bulk storm        |
-| `test/3-performance/noisy-neighbor-latency.spec.ts`          | NN CPU fairness with `STORAGE_DRIVER=prisma`  |
 
-Gate sets `P5_CHAOS_ITERATIONS=5` for chaos fast path. Post-chaos assert: no stale `processing` rows for chaos tenant. Postgres tier env: `APPS_API_TEST_TIER=nightly`, `OUTBOX_RELAY_ORDERED_PER_TENANT=true`, `VALIDATION_BURST=600`, `BASELINE_RATIO_MAX=1.30` (orchestration context — tier table in [`baseline-ratio-tiering.md`](baseline-ratio-tiering.md); standalone default **1.10**).
+Gate sets `P5_CHAOS_ITERATIONS=5` for chaos fast path. Post-chaos assert: no stale `processing` rows for chaos tenant. Postgres tier env: `APPS_API_TEST_TIER=nightly`, `OUTBOX_RELAY_ORDERED_PER_TENANT=true`. CPU NN probe: nightly workflow — tier table in [`baseline-ratio-tiering.md`](baseline-ratio-tiering.md).
 
 ### Wave D extensions (DEC-090 … DEC-093)
 

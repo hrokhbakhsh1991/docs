@@ -164,14 +164,14 @@ sequenceDiagram
 
 ## Performance probes
 
-| Spec                              | Scenario                                             | SLO                                                                                                                                                                  |
-| --------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tenant-rate-limiter.spec.ts`     | 20 concurrent A + 5 concurrent B, limit 10/s         | Exactly `LIMIT`×201 and remainder `RATE_LIMIT_EXCEEDED` for A; all B succeed                                                                                         |
-| `tenant-rate-limiting.spec.ts`    | A flooded, B concurrent                              | A: mix of 201 + `RATE_LIMIT_EXCEEDED`; B: 2xx and latency ≤ `max(p50 × TENANT_B_LATENCY_RATIO_MAX, TENANT_B_LATENCY_MIN_BUDGET_MS)` (defaults **2.0** and **500ms**) |
-| `tenant-rate-limiter-100.spec.ts` | **100** unique tenants × 1 concurrent POST (DEC-059) | All **201**; p95 ≤ **8s**; admin lookups ≤ **100** when Postgres; second wave **0** new admin lookups                                                                |
-| `noise-neighbor.spec.ts`          | 500× GET A + POST B (Postgres)                       | B write p95 ≤ baseline × `RATIO_THRESHOLD` (default **4**)                                                                                                           |
+| Spec                              | Scenario                                             | SLO                                                                                                                                                                                                    |
+| --------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenant-rate-limiter.spec.ts`     | 20 concurrent A + 5 concurrent B, limit 10/s         | Exactly `LIMIT`×201 and remainder `RATE_LIMIT_EXCEEDED` for A; all B succeed                                                                                                                           |
+| `tenant-rate-limiting.spec.ts`    | A flooded, B concurrent                              | A: mix of 201 + `RATE_LIMIT_EXCEEDED`; B: 2xx and latency ≤ `max(p50 × TENANT_B_LATENCY_RATIO_MAX, TENANT_B_LATENCY_MIN_BUDGET_MS)` (defaults **2.0** and **500ms**)                                   |
+| `tenant-rate-limiter-100.spec.ts` | **100** unique tenants × 1 concurrent POST (DEC-059) | All **201**; storm ≤ **30s**; p95 ≤ **8s**; event-loop max heartbeat gap ≤ **500ms** (`TENANT_FLOOD_MAX_HEARTBEAT_GAP_MS`); admin lookups ≤ **100** when Postgres; second wave **0** new admin lookups |
+| `noise-neighbor.spec.ts`          | 500× GET A + POST B (Postgres)                       | B write p95 ≤ baseline × `RATIO_THRESHOLD` (default **4**)                                                                                                                                             |
 
-CPU-only fairness (no HTTP) uses **10%** slack in `noisy-neighbor-latency.spec.ts` (`BASELINE_RATIO_MAX=1.10` default). Phase 5/4 gates inject **1.25** / **1.30** — see [`baseline-ratio-tiering.md`](baseline-ratio-tiering.md) (CON-06). HTTP probes use a **ratio plus floor** because solo baseline p50 understates event-loop scheduling under a concurrent burst on the same listener.
+CPU-only fairness (no HTTP) uses **10%** slack in `noisy-neighbor-latency.spec.ts` (`BASELINE_RATIO_MAX=1.10` default). **Nightly workflow only** — not blocking `phase-4:gate`. `phase-5:gate` injects **1.25** — see [`baseline-ratio-tiering.md`](baseline-ratio-tiering.md) (CON-06). HTTP probes use a **ratio plus floor** because solo baseline p50 understates event-loop scheduling under a concurrent burst on the same listener.
 
 ```bash
 cd apps/api && NODE_ENV=test STORAGE_DRIVER=memory \

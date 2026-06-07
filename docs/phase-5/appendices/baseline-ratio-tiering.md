@@ -13,11 +13,11 @@ related: validation-fairness.md, phase5-evolution-audit.md CI-BYP-20
 
 ## Decision — tiered ceilings (intentional, not a bug)
 
-| Context                                | `BASELINE_RATIO_MAX` | Where set                                                   | Meaning                                                                                                                             |
-| -------------------------------------- | -------------------: | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Standalone spec / nightly**          |             **1.10** | `noisy-neighbor-latency.spec.ts` default; `api-nightly.yml` | Strict CPU fairness — victim `createTour` ≤ 10% over baseline @ 1000 validation burst                                               |
-| **Phase 5 full gate**                  |             **1.25** | root `package.json` `phase-5:gate`                          | Pragmatic waiver ([CI-BYP-20](../../../apps/api/docs/phase5-evolution-audit.md)) — same spec, looser ratio under parallel gate load |
-| **Phase 4 resilience gate (Postgres)** |             **1.30** | `phase-4-resilience-regression-gate.mjs`                    | Orchestration tier with DB reset + outbox ordering — documented in [`postgres-required-gates.md`](postgres-required-gates.md)       |
+| Context                                | `BASELINE_RATIO_MAX` | Where set                                                                          | Meaning                                                                                                                             |
+| -------------------------------------- | -------------------: | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Standalone spec / nightly**          |             **1.10** | `noisy-neighbor-latency.spec.ts` default; `api-nightly.yml`                        | Strict CPU fairness — victim `createTour` ≤ 10% over baseline @ 1000 validation burst                                               |
+| **Phase 5 full gate**                  |             **1.25** | root `package.json` `phase-5:gate`                                                 | Pragmatic waiver ([CI-BYP-20](../../../apps/api/docs/phase5-evolution-audit.md)) — same spec, looser ratio under parallel gate load |
+| **Phase 4 resilience gate (Postgres)** |     — (spec removed) | Was **1.30** in gate env — **retired**; NN runs nightly only per DEC-089 amendment |
 
 **Authoritative default for product SLO:** **1.10** when running the spec in isolation or nightly. Gate overrides are **environment injection only** — spec source keeps `?? "1.10"`.
 

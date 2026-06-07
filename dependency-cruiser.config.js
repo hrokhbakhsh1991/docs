@@ -136,10 +136,10 @@ module.exports = {
     {
       name: "apps-web-no-workspaces-except-starter",
       comment:
-        "Web shell: starter always; denali only via lazy-denali-plugin.ts (Phase 6.5 — docs/phase-6/subphases/6.5-bootstrap.md)",
+        "Web shell: starter always; denali/urban only via lazy-*-plugin.ts (Phase 6.5 / 7.3)",
       severity: "error",
       from: { path: "^apps/web" },
-      to: { path: "^packages/workspaces/(?!starter|denali)" },
+      to: { path: "^packages/workspaces/(?!starter|denali|urban)" },
     },
     {
       name: "workspace-starter-no-apps",
@@ -167,11 +167,11 @@ module.exports = {
     {
       name: "apps-web-allowed-packages",
       comment:
-        "Web shell Phase 3+ allowed workspace dependencies (denali devDep for lazy chunk — 6.5)",
+        "Web shell Phase 3+ allowed workspace dependencies (denali/urban devDep for lazy chunk — 6.5 / 7.3)",
       severity: "error",
       from: { path: "^apps/web" },
       to: {
-        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|workspaces/starter|workspaces/denali|config)",
+        path: "^packages/(?!design-tokens|platform-core|theme-react|ui-primitives|workspace-sdk|workspaces/starter|workspaces/denali|workspaces/urban|config)",
       },
     },
     {
@@ -191,11 +191,11 @@ module.exports = {
     {
       name: "apps-api-allowed-packages",
       comment:
-        "Phase 3.2+ / 6.5 API allowed workspace dependencies (starter + denali plugin registry, migrate, photos)",
+        "Phase 3.2+ / 6.5 / 7.3 API allowed workspace dependencies (starter + denali + urban plugin registry)",
       severity: "error",
       from: { path: "^apps/api" },
       to: {
-        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|config)",
+        path: "^packages/(?!workspace-sdk|platform-core|platform-events|tenant-kernel|workspaces/starter|workspaces/denali|workspaces/urban|config)",
       },
     },
     {

@@ -23,7 +23,7 @@ Phase 4 resilience fixes (steps 1–8) shipped individual guards and specs but l
 | Postgres tier | **Required** (DEC-080) — see [`postgres-required-gates.md`](postgres-required-gates.md) |
 | Wave A        | DEC-080 … DEC-082 — `postgresRequired: true` in artifact                                |
 | Wave B        | DEC-083 … DEC-085 — Redis fallback, SQL `now()`, shutdown watchdog                      |
-| Wave C        | DEC-086 … DEC-089 — replay, FIFO, projection lag, chaos + NN gate pack                  |
+| Wave C        | DEC-086 … DEC-089 — replay, FIFO, projection lag, chaos + bulk victim SLO               |
 | Wave D        | DEC-090 … DEC-093 — cache coherence, migrateCanonical guard, INVALID_JSON, proxy wire   |
 
 ## Gate steps (memory tier)
@@ -56,7 +56,8 @@ Phase 4 resilience fixes (steps 1–8) shipped individual guards and specs but l
 | `test/4-integration/outbox-relay-ordered-per-tenant.spec.ts` | DEC-087 FIFO                            |
 | `test/chaos/atomic-rollback-stress.spec.ts`                  | DEC-089 chaos (`P5_CHAOS_ITERATIONS=5`) |
 | `test/3-performance/bulk-import-victim-slo.spec.ts`          | CASCADE-01 victim SLO                   |
-| `test/3-performance/noisy-neighbor-latency.spec.ts`          | NN latency under prisma                 |
+
+**CPU noisy-neighbor** (`noisy-neighbor-latency.spec.ts`) is **nightly only** — see [`phase4-cross-phase-p0-verify.md`](phase4-cross-phase-p0-verify.md) NN-01 row and [`.github/workflows/api-nightly.yml`](../../../.github/workflows/api-nightly.yml). Not in blocking postgres gate (known CPU fairness debt; ratio SLO is a signal, not PR closure).
 
 Wave C guards (steps 1–8 unchanged +):
 

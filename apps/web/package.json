@@ -38,6 +38,7 @@
   "devDependencies": {
     "@app-tour/config": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
+    "@app-tour/workspace-urban": "workspace:*",
     "@playwright/test": "^1.51.1",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
