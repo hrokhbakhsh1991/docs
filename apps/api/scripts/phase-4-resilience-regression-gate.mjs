@@ -41,7 +41,6 @@ const POSTGRES_SPECS = [
   "test/4-integration/outbox-relay-ordered-per-tenant.spec.ts",
   "test/chaos/atomic-rollback-stress.spec.ts",
   "test/3-performance/bulk-import-victim-slo.spec.ts",
-  "test/3-performance/noisy-neighbor-latency.spec.ts",
   "test/4-integration/tenant-registry-cache-coherence.spec.ts",
 ];
 
@@ -119,10 +118,8 @@ const STEPS = [
       OUTBOX_RELAY_ENABLED: "false",
       OUTBOX_RELAY_ORDERED_PER_TENANT: "true",
       P5_CHAOS_ITERATIONS: "5",
+      /** Chaos subprocess spec is nightly-tier; CPU NN probe runs in api-nightly.yml only. */
       APPS_API_TEST_TIER: "nightly",
-      /** Gate orchestration — spec default 1.10; relaxed after prior postgres specs (DEC-089). */
-      VALIDATION_BURST: "600",
-      BASELINE_RATIO_MAX: "1.30",
     },
   },
 ];

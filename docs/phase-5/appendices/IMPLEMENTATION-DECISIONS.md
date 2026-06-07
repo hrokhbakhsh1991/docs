@@ -1161,13 +1161,13 @@ Pass criteria: exit `0`; artifact `test/reliability/phase-3-regression-gate.last
 **Date:** 2026-06-05  
 **Closes:** SCAL-DEBT-14, RL-DOS gap (two-tenant specs insufficient), partial RL-DOS-01 regression lock.
 
-| Item         | Choice                                                                                                               |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Spec         | `test/3-performance/tenant-rate-limiter-100.spec.ts`                                                                 |
-| Shape        | **100** unique tenant IDs × **1** concurrent `POST /tours` each                                                      |
-| Admin budget | When `DATABASE_URL` set: `getAdminThemeLookupCountForTests()` ≤ **100** on cold cache; second wave **0** new lookups |
-| SLO          | Storm ≤ **30s**; p95 ≤ **8s**; heartbeat ≥ **8** ticks; all **201** (limit points ≥ flood count)                     |
-| CI lock      | `guard:rate-limiter-100-probe` + `phase-3:regression-gate`                                                           |
+| Item         | Choice                                                                                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spec         | `test/3-performance/tenant-rate-limiter-100.spec.ts`                                                                                                        |
+| Shape        | **100** unique tenant IDs × **1** concurrent `POST /tours` each                                                                                             |
+| Admin budget | When `DATABASE_URL` set: `getAdminThemeLookupCountForTests()` ≤ **100** on cold cache; second wave **0** new lookups                                        |
+| SLO          | Storm ≤ **30s**; p95 ≤ **8s**; event-loop max heartbeat gap ≤ **500ms** (not raw tick count — busy loop under CI); all **201** (limit points ≥ flood count) |
+| CI lock      | `guard:rate-limiter-100-probe` + `phase-3:regression-gate`                                                                                                  |
 
 **Rationale:** DEC-053 theme cache mitigates RL-DOS-01 but two-tenant fairness specs do not bound 100-ID admin-pool amplification.
 
@@ -1708,12 +1708,12 @@ Pass criteria: exit `0`; artifact `test/reliability/phase-3-regression-gate.last
 **Date:** 2026-06-05  
 **Closes:** OZ-A, CASCADE-01 — postgres gate missing chaos + victim proofs.
 
-| Item       | Choice                                                                                                                                  |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Specs      | `atomic-rollback-stress`, `bulk-import-victim-slo`, `noisy-neighbor-latency`, `outbox-failed-replay`, `outbox-relay-ordered-per-tenant` |
-| Chaos env  | `P5_CHAOS_ITERATIONS=5` in gate (fast path)                                                                                             |
-| Post-chaos | `processing` rows for chaos tenant ≤ 0 (stale claim alert)                                                                              |
-| Guards     | Wave C guards in resilience gate STEPS                                                                                                  |
+| Item       | Choice                                                                                                                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Specs      | `atomic-rollback-stress`, `bulk-import-victim-slo`, `outbox-failed-replay`, `outbox-relay-ordered-per-tenant` — `noisy-neighbor-latency` **nightly only** (aligns cross-phase P0 NN-01 row; removed from blocking gate 2026-06-07) |
+| Chaos env  | `P5_CHAOS_ITERATIONS=5` in gate (fast path)                                                                                                                                                                                        |
+| Post-chaos | `processing` rows for chaos tenant ≤ 0 (stale claim alert)                                                                                                                                                                         |
+| Guards     | Wave C guards in resilience gate STEPS                                                                                                                                                                                             |
 
 **Verification:** [`postgres-required-gates.md`](postgres-required-gates.md) (Wave C table) · `guard:phase4-resilience-regression-gate` (extended paths).
 
