@@ -13,7 +13,7 @@
     },
     "tripDetails": {
       "itinerary": {
-        "dayPlans": [{ "day": 1, "title": "Forbidden for urban" }]
+        "dayPlans": { "day": 1, "title": "Forbidden for urban" }
       }
     }
   }

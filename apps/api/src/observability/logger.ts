@@ -28,6 +28,11 @@ export type RequestLogContext = {
   readonly durationMs: number;
   /** Ingress trace ALS id — omitted when unbound (DEC-048 / TRACE-LOST-01). */
   readonly correlationId?: string;
+  /** MAP §10.2 — same value as correlationId when trace ALS is bound. */
+  readonly requestId?: string;
+  readonly tenantId?: string;
+  readonly workspaceType?: string;
+  readonly tenantTier?: string;
 };
 
 export function logHttpRequest(ctx: RequestLogContext): void {
@@ -40,8 +45,19 @@ export function logHttpRequest(ctx: RequestLogContext): void {
     },
     durationMs: ctx.durationMs,
   };
-  if (ctx.correlationId !== undefined) {
-    payload.correlation_id = ctx.correlationId;
+  const requestId = ctx.requestId ?? ctx.correlationId;
+  if (requestId !== undefined) {
+    payload.requestId = requestId;
+    payload.correlation_id = requestId;
+  }
+  if (ctx.tenantId !== undefined) {
+    payload.tenantId = ctx.tenantId;
+  }
+  if (ctx.workspaceType !== undefined) {
+    payload.workspaceType = ctx.workspaceType;
+  }
+  if (ctx.tenantTier !== undefined) {
+    payload.tenantTier = ctx.tenantTier;
   }
   logger.info(payload, "request completed");
 }

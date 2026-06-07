@@ -68,6 +68,19 @@ describe("urban-registry.spec.ts (REQ-P7-005, REQ-P7-031, REQ-P7-014)", () => {
     );
   });
 
+  it("validateCanonical passes urban-tour-publish-ready golden", () => {
+    const plugin = getUrbanWorkspacePlugin();
+    const engine = PlatformWizardEngine.create(plugin);
+    const golden = loadGoldenDocument("urban-tour-publish-ready.json");
+    const document = createCanonicalDocument(golden);
+    const result = engine.validateCanonical(document, {
+      tenantId: "urban-registry-tenant",
+      dimensions: { tourType: "city" },
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.violations));
+    assert.equal((document.data.tour as { status?: string }).status, "draft");
+  });
+
   it("validateCanonical passes urban-tour-minimal golden", () => {
     const plugin = getUrbanWorkspacePlugin();
     const engine = PlatformWizardEngine.create(plugin);
