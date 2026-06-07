@@ -10,8 +10,8 @@ truth_ledgers:
   - reports/phase-7-entry-verified.yaml
   - docs/phase-7/audits/IMPLEMENTATION-TRUTH.md
   - docs/phase-6/audits/IMPLEMENTATION-TRUTH.md
-current_verdict: 7.0_ENTRY_PASS — مجاز به 7.1
-target_verdict: phase_7_entry.verified_at set → مجاز به 7.1
+current_verdict: 7.1_PACKAGE_SHELL — urban build + registry tests PASS
+target_verdict: 7.2 genericity proof → 7.3 api/web bootstrap
 forbidden_until_7_0_pass: "شروع 7.1-urban-package در حالی که yaml هنوز phase_6_gate: PENDING"
 branch: phase-7/entry-gate
 ```
@@ -32,7 +32,7 @@ branch: phase-7/entry-gate
 | legacy runtime import             | ✅ no matches           | —                                      |
 | `phase-6:fast-closure`            | ✅ exit 0 · ~261s       | `reports/phase-6-gate-2026-06-07.json` |
 | **`phase-7-entry-verified.yaml`** | ✅ `verified_at` set    | REQ-P7-002 PASS                        |
-| **`packages/workspaces/urban`**   | ❌ ABSENT (expected)    | بعد از 7.0 PASS                        |
+| **`packages/workspaces/urban`**   | ✅ PACKAGE_SHELL        | `urban-registry.spec.ts` 5/5 PASS      |
 
 ---
 

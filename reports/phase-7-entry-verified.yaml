@@ -6,7 +6,7 @@ phase_7_entry:
     doc_execution_system: 96
     guard: pnpm run phase-7:guard
     report: reports/phase-7-gate-2026-06-07.json
-    note: "Doc pack PASS — unlocks 7.0 ledger; 7.1 urban behavioral still required"
+    note: "Doc pack PASS — unlocks 7.0 ledger only; does not unlock 7.1 behavioral work alone"
   phase_6_gate:
     status: PASS
     closure_path: fast-track
