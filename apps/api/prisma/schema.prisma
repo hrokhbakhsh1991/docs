@@ -20,8 +20,22 @@ model Tenant {
   auditEvents   AuditEvent[]
   httpIdempotencyRecords HttpIdempotencyRecord[]
   processedDomainEvents ProcessedDomainEvent[]
+  tenantRoute         TenantRoute?
 
   @@map("tenants")
+}
+
+/// Phase 7.7 — pool vs silo connection routing (DEC-P7-004).
+model TenantRoute {
+  tenantId    String   @id @map("tenant_id") @db.Uuid
+  tier        String   @default("pool")
+  databaseUrl String?  @map("database_url")
+  schemaName  String?  @map("schema_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_routes")
 }
 
 model Tour {

@@ -1,14 +1,18 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import type { TenantTier } from "@app-tour/tenant-kernel";
+
 export type TenantRequestStore = {
   readonly tenantId: string;
   readonly actorId?: string;
   readonly workspaceType?: string;
+  readonly tenantTier?: TenantTier;
 };
 
 export type TenantRequestContextOptions = {
   readonly actorId?: string;
   readonly workspaceType?: string;
+  readonly tenantTier?: TenantTier;
 };
 
 const tenantRequestStorage = new AsyncLocalStorage<TenantRequestStore>();
@@ -31,6 +35,7 @@ export function runWithTenantContext<T>(
       tenantId: normalized,
       actorId: options?.actorId?.trim() || undefined,
       workspaceType: options?.workspaceType?.trim() || undefined,
+      tenantTier: options?.tenantTier,
     },
     run
   );
@@ -57,4 +62,9 @@ export function getActiveActorId(): string | undefined {
 /** Workspace type for audit metadata — defaults handled by callers. */
 export function getActiveWorkspaceType(): string | undefined {
   return tenantRequestStorage.getStore()?.workspaceType;
+}
+
+/** Connection tier from router bind — undefined outside {@link runWithTenantContext}. */
+export function getActiveTenantTier(): TenantTier | undefined {
+  return tenantRequestStorage.getStore()?.tenantTier;
 }

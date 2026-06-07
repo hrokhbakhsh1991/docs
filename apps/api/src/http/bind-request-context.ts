@@ -13,6 +13,7 @@ import { withTourWriteConcurrencyBudget } from "./tour-write-concurrency-budget"
 import { normalizeHttpLogPath } from "../observability/log-safety";
 import { resolveTraceIdFromHeaders } from "../observability/resolve-trace-id";
 import { getActiveTraceId, runWithTraceContext } from "../observability/trace-request-context";
+import { getTenantConnectionRouter } from "../tenant/tenant-connection-router";
 import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
 import { runWithTenantContext } from "../tenant/tenant-request-context";
 
@@ -35,7 +36,10 @@ export async function runWithHttpRequestContext<T>(
   run: () => Promise<T>,
   options?: HttpRequestContextOptions
 ): Promise<T> {
-  const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+  const [workspaceType, tenantRoute] = await Promise.all([
+    resolveWorkspaceTypeForTenant(auth.tenantId),
+    getTenantConnectionRouter().resolveRoute(auth.tenantId),
+  ]);
   const rateLimitRoute =
     options?.rateLimit !== undefined
       ? {
@@ -70,6 +74,7 @@ export async function runWithHttpRequestContext<T>(
       {
         actorId: auth.userId,
         workspaceType,
+        tenantTier: tenantRoute.tier,
       }
     );
 
