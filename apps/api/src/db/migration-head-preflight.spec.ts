@@ -9,13 +9,13 @@ import {
 
 describe("migration-head-preflight (DEC-097)", () => {
   it("expected head matches latest migration folder", () => {
-    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260605200000_outbox_last_error");
+    assert.equal(EXPECTED_PRISMA_MIGRATION_HEAD, "20260607100000_tenant_routes");
   });
 
   it("throws on mismatch with structured message", () => {
     assert.throws(
       () => assertMigrationHeadMatches("20260604114237_phase4_schema"),
-      /PRODUCTION_MIGRATION_HEAD_MISMATCH:20260605200000_outbox_last_error:20260604114237_phase4_schema/
+      /PRODUCTION_MIGRATION_HEAD_MISMATCH:20260607100000_tenant_routes:20260604114237_phase4_schema/
     );
   });
 

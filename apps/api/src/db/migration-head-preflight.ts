@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 /** Must match latest prisma/migrations folder name (DEC-097). */
-export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260605200000_outbox_last_error";
+export const EXPECTED_PRISMA_MIGRATION_HEAD = "20260607100000_tenant_routes";
 
 export const PRODUCTION_MIGRATION_HEAD_MISMATCH = "PRODUCTION_MIGRATION_HEAD_MISMATCH";
 
