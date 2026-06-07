@@ -15,6 +15,7 @@ const ALLOWED_RUNTIME_DEPS = new Set([
   "@app-tour/workspace-sdk",
   "@app-tour/workspace-denali",
   "@app-tour/workspace-starter",
+  "@app-tour/workspace-urban",
   "@casl/ability",
   "@prisma/client",
   "ioredis",

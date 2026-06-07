@@ -25,6 +25,12 @@ function resolveValidationDimensions(
   if (matrix.includes("category") && matrix.includes("duration")) {
     return { category: "mountain", duration: "single_day" };
   }
+  const defaultCell = plugin.ruleSet.cells.find(
+    (cell) => cell.cellId === plugin.ruleSet.defaultCellId
+  );
+  if (defaultCell) {
+    return { ...defaultCell.dimensions };
+  }
   return Object.fromEntries(matrix.map((key) => [key, validationVariant]));
 }
 

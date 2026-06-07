@@ -1,16 +1,17 @@
 # Phase 7 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-07-v1"
+truth_version: "2026-06-07-v2"
 repo_snapshot: "2026-06-07"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: SPEC_ONLY
+behavioral: PARTIAL_7_3
 subphase_7_0: VERIFIED_ENTRY
+subphase_7_3: VERIFIED_BEHAVIORAL
 entry_verified_at: "2026-06-07"
-closure_git_sha: 40fdbf8
+closure_git_sha: 4c8cc2e
 ```
 
-> **Agents:** Read this before any Phase 7 implementation claim. **7.0 entry** PASS · **7.1** urban package shell in progress (`getUrbanWorkspacePlugin`).
+> **Agents:** Read this before any Phase 7 implementation claim. **7.0 entry** PASS · **7.1** urban PACKAGE_SHELL · **7.3** urban bootstrap VERIFIED (`resolveWorkspacePluginForType("urban")`).
 
 ## Package status
 
@@ -24,12 +25,12 @@ closure_git_sha: 40fdbf8
 
 ## Apps status
 
-| Concern                                  | Status                   | Subphase                            |
-| ---------------------------------------- | ------------------------ | ----------------------------------- |
-| `resolveWorkspacePluginForType("urban")` | **NOT_BOUND** (expected) | 7.3                                 |
-| MAP §10 observability runbook            | **PARTIAL**              | 7.5                                 |
-| Redis rate limits per tenant             | **SPEC_ONLY**            | 7.6                                 |
-| `phase-7.contract.spec.ts`               | **VERIFIED_BEHAVIORAL**  | 7.2 genericity · baseline `64d9fea` |
+| Concern                                  | Status                  | Subphase                                |
+| ---------------------------------------- | ----------------------- | --------------------------------------- |
+| `resolveWorkspacePluginForType("urban")` | **VERIFIED_BEHAVIORAL** | 7.3 — api eager · web lazy-urban-plugin |
+| MAP §10 observability runbook            | **PARTIAL**             | 7.5                                     |
+| Redis rate limits per tenant             | **SPEC_ONLY**           | 7.6                                     |
+| `phase-7.contract.spec.ts`               | **VERIFIED_BEHAVIORAL** | 7.2 genericity · baseline `64d9fea`     |
 
 ## Phase 6 prerequisite
 
