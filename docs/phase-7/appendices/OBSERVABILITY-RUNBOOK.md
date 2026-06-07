@@ -13,15 +13,15 @@ implementation: apps/api/src/observability/logger.ts · apps/api/src/http/reques
 
 Emitted on every completed HTTP request via `event: http.request` (pino `info`).
 
-| Field           | JSON key        | Source                                        | Required when           |
-| --------------- | --------------- | --------------------------------------------- | ----------------------- |
-| `requestId`     | `requestId`     | trace ALS (`getActiveTraceId`)                | always when trace bound |
-| `tenantId`      | `tenantId`      | tenant ALS (`getActiveTenantId`)              | tenant-bound routes     |
-| `workspaceType` | `workspaceType` | tenant ALS (resolved at HTTP bind)            | tenant-bound routes     |
-| `tenantTier`    | `tenantTier`    | `resolveTenantConnectionTier` (pool stub 7.7) | tenant-bound routes     |
-| `durationMs`    | `durationMs`    | request lifecycle                             | always                  |
-| `level`         | pino level      | logger                                        | always                  |
-| `message`       | pino msg        | `"request completed"`                         | always                  |
+| Field           | JSON key        | Source                                               | Required when           |
+| --------------- | --------------- | ---------------------------------------------------- | ----------------------- |
+| `requestId`     | `requestId`     | trace ALS (`getActiveTraceId`)                       | always when trace bound |
+| `tenantId`      | `tenantId`      | tenant ALS (`getActiveTenantId`)                     | tenant-bound routes     |
+| `workspaceType` | `workspaceType` | tenant ALS (resolved at HTTP bind)                   | tenant-bound routes     |
+| `tenantTier`    | `tenantTier`    | ALS `getActiveTenantTier` (HTTP bind via 7.7 router) | tenant-bound routes     |
+| `durationMs`    | `durationMs`    | request lifecycle                                    | always                  |
+| `level`         | pino level      | logger                                               | always                  |
+| `message`       | pino msg        | `"request completed"`                                | always                  |
 
 **Backward compat:** `correlation_id` duplicates `requestId` when trace ALS is bound (DEC-048).
 

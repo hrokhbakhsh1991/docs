@@ -3,8 +3,11 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { logger, logHttpRequest, type RequestLogContext } from "../observability/logger";
 import { normalizeHttpLogPath } from "../observability/log-safety";
 import { getActiveTraceId } from "../observability/trace-request-context";
-import { resolveTenantConnectionTier } from "../tenant/resolve-tenant-connection-tier";
-import { getActiveTenantId, getActiveWorkspaceType } from "../tenant/tenant-request-context";
+import {
+  getActiveTenantId,
+  getActiveTenantTier,
+  getActiveWorkspaceType,
+} from "../tenant/tenant-request-context";
 import {
   decrementHttpRequestsInFlight,
   incrementHttpRequestsInFlight,
@@ -125,7 +128,7 @@ export function withRequestLogging(
           ? {
               tenantId,
               workspaceType: getActiveWorkspaceType() ?? "starter",
-              tenantTier: resolveTenantConnectionTier(tenantId),
+              tenantTier: getActiveTenantTier() ?? "pool",
             }
           : {}),
       });

@@ -27,7 +27,13 @@ if (PHASE !== "7") {
 const loggerSrc = fs.readFileSync(LOGGER, "utf8");
 const requestLoggingSrc = fs.readFileSync(REQUEST_LOGGING, "utf8");
 
-const requiredContextFields = ["requestId", "tenantId", "workspaceType", "tenantTier", "durationMs"];
+const requiredContextFields = [
+  "requestId",
+  "tenantId",
+  "workspaceType",
+  "tenantTier",
+  "durationMs",
+];
 for (const field of requiredContextFields) {
   if (!new RegExp(`\\b${field}\\b`).test(loggerSrc)) {
     fail(`RequestLogContext missing field: ${field}`);
@@ -46,13 +52,20 @@ for (const field of ["requestId", "tenantId", "workspaceType", "tenantTier", "du
 if (!requestLoggingSrc.includes("getActiveTenantId")) {
   fail("request-logging must read tenant ALS on finish");
 }
-if (!requestLoggingSrc.includes("resolveTenantConnectionTier")) {
-  fail("request-logging must resolve tenantTier");
+if (
+  !requestLoggingSrc.includes("getActiveTenantTier") &&
+  !requestLoggingSrc.includes("resolveTenantConnectionTier")
+) {
+  fail("request-logging must resolve tenantTier from ALS or router stub");
 }
 
 const urbanBranch = spawnSync(
   "rg",
-  ["workspaceType === ['\"]urban['\"]", "apps/api/src/observability", "apps/api/src/http/request-logging.ts"],
+  [
+    "workspaceType === ['\"]urban['\"]",
+    "apps/api/src/observability",
+    "apps/api/src/http/request-logging.ts",
+  ],
   { cwd: REPO_ROOT, encoding: "utf8" }
 );
 if (urbanBranch.status === 0 && urbanBranch.stdout.trim().length > 0) {

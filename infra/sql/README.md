@@ -11,6 +11,7 @@
 | `002_phase5_data_layer.sql`              | Reference  | `20260605120000_phase5_outbox_audit_rls`                  |
 | `003_phase5_processed_domain_events.sql` | Reference  | `20260605140000_phase5_processed_domain_events`           |
 | `004_audit_events_append_only.sql`       | Reference  | `20260605150000_audit_events_append_only`                 |
+| `005_tenant_routes.sql`                  | Reference  | `20260607100000_tenant_routes` (Phase 7.7)                |
 | `test-reset.sql`                         | **Active** | Used by `pnpm run db:test-reset` (non-prod only, DEC-095) |
 
 See [`docs/phase-5/appendices/migrate-deploy-only.md`](../docs/phase-5/appendices/migrate-deploy-only.md).

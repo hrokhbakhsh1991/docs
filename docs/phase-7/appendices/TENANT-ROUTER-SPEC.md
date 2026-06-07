@@ -1,11 +1,18 @@
 # Tenant router specification
 
 ```yaml
-spec_version: "2026-06-04-v2"
+spec_version: "2026-06-07-v3"
 decision: DEC-P7-004
 implementation_home: packages/tenant-kernel
 map_ref: docs/MIGRATION-MAP.md §7.2
+schema_truth: apps/api/prisma/migrations/*_tenant_routes (DEC-124)
+reference_sql: infra/sql/005_tenant_routes.sql
 ```
+
+## Schema deployment (DEC-124)
+
+Operational DDL lives in **Prisma migrations** (`pnpm run db:migrate:deploy`).  
+[`infra/sql/005_tenant_routes.sql`](../../../infra/sql/005_tenant_routes.sql) is reference-only — do not execute in CI gates.
 
 ## Current stub (trunk today)
 
@@ -48,10 +55,20 @@ CREATE TABLE tenant_routes (
 
 **Mapping:** DB `database_url` → `TenantRoute.databaseUrl` (camelCase in TypeScript).
 
+## API lookup adapter (`apps/api/src/tenant/tenant-route-lookup.ts`)
+
+Prisma lookup runs only when `DATABASE_URL` is set **and** `tenantId` matches persisted UUID shape
+(`isPersistedTenantUuid` — rejects dev string ids like `tenant-a`). Non-UUID contexts skip the query and
+fall through to pool default `{ tier: pool, useRls: true }`, keeping memory-storage HTTP specs green in CI
+after `tenant_routes` migration lands.
+
+Per-tenant cache + singleflight avoids N round-trips during rate-limit bursts.
+
 ## Resolver flow
 
 ```text
 TenantConnectionRouter.resolveRoute(tenantId)
+  → if tenantId not persisted UUID: pool default (no DB)
   → SELECT * FROM tenant_routes WHERE tenant_id = $1
   → if no row OR tier=pool:
        return { tenantId, tier: pool, databaseUrl: env.DATABASE_URL, useRls: true }
@@ -82,4 +99,4 @@ Transaction pooling compatible with pool tier; silo dedicated URLs may bypass po
 
 - REQ-P7-021..023 — subphase 7.7
 - Test file: `packages/tenant-kernel/test/tenant-connection-router.spec.ts`
-- Migration: `infra/sql/003_tenant_routes.sql` (target path)
+- Migration: `apps/api/prisma/migrations/*_tenant_routes` · reference `infra/sql/005_tenant_routes.sql`
