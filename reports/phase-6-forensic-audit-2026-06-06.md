@@ -5,7 +5,7 @@ gate: phase-6
 date: 2026-06-06
 reverified: "2026-06-07"
 verdict: CLOSURE_PASS_TIER_D
-git_sha: pending-tier-d-commit
+git_sha: a4ac616
 phase_6_guard: reports/phase-6-gate-2026-06-06.json
 closure_path: fast-track + Tier D finance outbox parity
 ```
