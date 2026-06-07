@@ -142,6 +142,7 @@
     "@app-tour/workspace-sdk": "workspace:*",
     "@app-tour/workspace-denali": "workspace:*",
     "@app-tour/workspace-starter": "workspace:*",
+    "@app-tour/workspace-urban": "workspace:*",
     "@casl/ability": "^6.7.3",
     "@prisma/client": "^6.19.0",
     "ioredis": "^5.6.1",

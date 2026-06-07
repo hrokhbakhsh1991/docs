@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "@app-tour/workspace-sdk",
     "@app-tour/workspace-starter",
     "@app-tour/workspace-denali",
+    "@app-tour/workspace-urban",
   ],
   webpack: (config, { webpack, isServer }) => {
     if (!isServer) {
@@ -22,6 +23,13 @@ const nextConfig: NextConfig = {
         config.plugins.push(
           new webpack.IgnorePlugin({
             resourceRegExp: /^@app-tour\/workspace-denali$/,
+          })
+        );
+      }
+      if (process.env.ALLOW_URBAN_WEB_PLUGIN !== "true") {
+        config.plugins.push(
+          new webpack.IgnorePlugin({
+            resourceRegExp: /^@app-tour\/workspace-urban$/,
           })
         );
       }

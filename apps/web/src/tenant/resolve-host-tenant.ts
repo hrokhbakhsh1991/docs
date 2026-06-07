@@ -3,11 +3,15 @@ import { isDevWebSessionAllowed } from "./auth-env";
 /** Phase 6.6 smoke — sync with `@app-tour/workspace-denali` DENALI_SMOKE_TENANT_ID. */
 const DENALI_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000003";
 
+/** Phase 7.3 smoke — sync with `@app-tour/workspace-urban` URBAN_SMOKE_TENANT_ID. */
+const URBAN_SMOKE_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+
 /** MAP 4.3 stable seed UUIDs — must match ProvisioningService / tenant-registry. */
 const PHASE_43_HOST_TENANT_IDS: Record<string, string> = {
   "tenant-a": "00000000-0000-4000-8000-000000000001",
   "tenant-b": "00000000-0000-4000-8000-000000000002",
   denali: DENALI_SMOKE_TENANT_ID,
+  urban: URBAN_SMOKE_TENANT_ID,
 };
 
 /**

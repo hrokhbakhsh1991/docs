@@ -20,6 +20,7 @@ export { assertWorkspacePlugin, assertWorkspaceThemeContract } from "./workspace
 export {
   DENALI_WORKSPACE_PLUGIN_ID,
   STARTER_WORKSPACE_PLUGIN_ID,
+  URBAN_WORKSPACE_PLUGIN_ID,
   type WorkspacePluginId,
 } from "./workspace-plugin-id";
 export {
@@ -31,6 +32,7 @@ export {
   DENALI_WORKSPACE_TYPE,
   isWorkspaceTypeId,
   STARTER_WORKSPACE_TYPE,
+  URBAN_WORKSPACE_TYPE,
   workspaceTypesFromPlugin,
   type WorkspaceTypeId,
 } from "./workspace-type";
