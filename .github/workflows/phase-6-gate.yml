@@ -52,6 +52,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Phase 7 genericity proof revision
+        run: |
+          echo "HEAD $(git rev-parse HEAD)"
+          grep -q 'PHASE_7_GENERICITY_PROOF_REV = 3' packages/workspaces/urban/test/phase-7.contract.spec.ts
+          grep -q assertPlatformCoreMatchesTreeDigest packages/workspaces/urban/test/phase-7.contract.spec.ts
+          grep -q platform_core_tree_digest reports/phase-7-genericity-baseline.yaml
+          if grep -q assertPlatformCoreMatchesFingerprint packages/workspaces/urban/test/phase-7.contract.spec.ts; then
+            echo "Stale phase-7.contract.spec.ts — push latest phase-7/entry-gate; do not Re-run failed jobs on an old SHA"
+            exit 1
+          fi
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
