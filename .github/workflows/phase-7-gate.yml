@@ -79,6 +79,12 @@ jobs:
       - name: Prisma migrate deploy (DEC-124)
         run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
 
+      - name: Generate Prisma client
+        run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Build workspace dist (SDK + urban contract spec)
+        run: pnpm run build
+
       - name: Phase 7 adversarial P0 gate
         run: pnpm run phase-7:adversarial-gate
 

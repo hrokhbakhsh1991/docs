@@ -75,7 +75,7 @@ phase_1_guard_execution_order:
     verification: rg -i denali packages/platform-core excl *.spec.ts → 0
   - id: g3b_denali_in_platform_core_test
     enforcement_id: P1-E-NO-DENALI-TEST
-    verification: rg -i denali packages/platform-core/test → 0
+    verification: rg -i denali packages/platform-core/test → 0 (includes `it()` titles — use neutral labels like "registry UUID smoke", not workspace names)
   - id: g3c_denali_in_platform_core_dist
     enforcement_id: P1-E-NO-DENALI-DIST
     verification: rg -i denali packages/platform-core/dist → 0 after build

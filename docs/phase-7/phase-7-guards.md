@@ -23,6 +23,8 @@ Workflow [`.github/workflows/phase-7-gate.yml`](../../../.github/workflows/phase
 | `adversarial-p0` | `PHASE_7_SKIP_CI_INTEGRITY=1 phase-7:adversarial-gate` | yes      |
 | `ci-integrity`   | `pnpm run ci:integrity`                                | yes      |
 
+`adversarial-p0` runs `prisma:generate` and `pnpm build` after migrate deploy — API specs import `@prisma/client` via `bootstrap-outbox-test-env.ts`, and `ADV-P7-P0-04` resolves `@app-tour/workspace-sdk/dist` from the urban workspace. `ci-integrity` already builds via `phase-0:integration-gate`.
+
 Pre-commit stays `pre-commit:fast` — do not run full `ci:integrity` locally before every commit.
 
 ## Behavioral guards (implementation phase)
