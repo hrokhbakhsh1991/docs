@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ProvisioningService } from "../internal/provisioning.service";
 import type { MapEnrichRouteDeps } from "../routes/api-v2/map-enrich.routes";
 import type { ToursRouteDeps } from "../tours/tours.routes";
+import type { FinanceRouteDeps } from "../denali-finance/finance.routes";
 
 type LazyRouteHandlers = {
   readonly handleInternalMetrics: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
@@ -46,6 +47,55 @@ type LazyRouteHandlers = {
     deps: ToursRouteDeps,
     tourId: string
   ) => Promise<void>;
+  readonly handleGetUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+  readonly handlePatchUrbanSettings: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+  readonly handleFinanceSummary: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceOpenPayments: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceLedgerEvents: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceListPayments: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceCreateManualPayment: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceSubmitReceipt: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
+  readonly handleFinanceReviewReceipt: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps,
+    receiptId: string
+  ) => Promise<void>;
+  readonly handleFinanceReceiptUrl: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps,
+    receiptId: string
+  ) => Promise<void>;
+  readonly handleFinancePendingReceipts: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    deps: FinanceRouteDeps
+  ) => Promise<void>;
 };
 
 let handlersPromise: Promise<LazyRouteHandlers> | null = null;
@@ -65,6 +115,8 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
       import("../routes/internal/db-pool-hold"),
       import("../routes/internal/outbox-replay"),
       import("../tours/tours.routes"),
+      import("../urban/urban-settings.routes"),
+      import("../denali-finance/finance.routes"),
     ]).then(
       ([
         metrics,
@@ -75,6 +127,8 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         dbPoolHold,
         outboxReplay,
         tours,
+        urbanSettings,
+        finance,
       ]) => ({
         handleInternalMetrics: metrics.handleInternalMetrics,
         handleCacheInvalidate: cacheInvalidate.handleCacheInvalidate,
@@ -87,6 +141,17 @@ export function loadLazyRouteHandlers(): Promise<LazyRouteHandlers> {
         handleListTours: tours.handleListTours,
         handleGetTour: tours.handleGetTour,
         handlePatchTour: tours.handlePatchTour,
+        handleGetUrbanSettings: urbanSettings.handleGetUrbanSettings,
+        handlePatchUrbanSettings: urbanSettings.handlePatchUrbanSettings,
+        handleFinanceSummary: finance.handleFinanceSummary,
+        handleFinanceOpenPayments: finance.handleFinanceOpenPayments,
+        handleFinanceLedgerEvents: finance.handleFinanceLedgerEvents,
+        handleFinanceListPayments: finance.handleFinanceListPayments,
+        handleFinanceCreateManualPayment: finance.handleFinanceCreateManualPayment,
+        handleFinanceSubmitReceipt: finance.handleFinanceSubmitReceipt,
+        handleFinanceReviewReceipt: finance.handleFinanceReviewReceipt,
+        handleFinanceReceiptUrl: finance.handleFinanceReceiptUrl,
+        handleFinancePendingReceipts: finance.handleFinancePendingReceipts,
       })
     );
   }

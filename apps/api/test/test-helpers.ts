@@ -27,6 +27,9 @@ export function integrationTenantId(): string {
 export function createTestToursService(
   store: TourStorageRepository = new InMemoryTourRepository()
 ): ToursService {
+  if (store instanceof InMemoryTourRepository) {
+    store.ensureUrbanPhase81PublishedTour();
+  }
   return new ToursService(
     new CanonicalTourService(new TourStorageDbAdapter(store), new LegacyCanonicalAdapter())
   );

@@ -1,17 +1,35 @@
 import { AbilityUsageError } from "./ability-usage-error";
 import type { TenantAuthContext } from "./auth-context";
 import { parseTenantAuthContext } from "./auth-schemas";
-import type {
-  CanonicalDocumentSubject,
-  PluginSubject,
-  WorkspaceThemeSubject,
-} from "./subjects";
+import type { CanonicalDocumentSubject, PluginSubject, WorkspaceThemeSubject } from "./subjects";
 import {
   isAdminOrOwner,
   isAuthzGranted,
+  isWorkspaceOwner,
   tenantScopeMatches,
   workspaceScopeMatches,
 } from "./tenant-auth-grants";
+
+export type UrbanOwnerSurface =
+  | "urban.settings.read"
+  | "urban.settings.update"
+  | "urban.catalog.admin.read"
+  | "urban.catalog.admin.update"
+  | "urban.catalog.admin.delete"
+  | "urban.catalog.publish"
+  | "urban.catalog.unpublish"
+  | "urban.tour.publish_fields";
+
+const URBAN_OWNER_SURFACE_ALLOWLIST: ReadonlySet<UrbanOwnerSurface> = new Set([
+  "urban.settings.read",
+  "urban.settings.update",
+  "urban.catalog.admin.read",
+  "urban.catalog.admin.update",
+  "urban.catalog.admin.delete",
+  "urban.catalog.publish",
+  "urban.catalog.unpublish",
+  "urban.tour.publish_fields",
+]);
 
 export type TenantAuthz = {
   readonly context: Readonly<TenantAuthContext>;
@@ -29,6 +47,11 @@ export type TenantAuthz = {
   canReadCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
   canCreateCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
   canUpdateCanonicalDocument(subject: CanonicalDocumentSubject): boolean;
+  canPerformUrbanOwnerMutation(
+    tenantId: string,
+    surface: UrbanOwnerSurface,
+    workspaceType: string
+  ): boolean;
 };
 
 export type CanAccessWorkspaceThemeAuthzParams = {
@@ -66,29 +89,20 @@ export function buildTenantAuthz(context: TenantAuthContext): TenantAuthz {
     },
 
     canInstallPlugin(subject) {
-      return (
-        granted && isAdminOrOwner(parsed) && tenantScopeMatches(parsed, subject.tenantId)
-      );
+      return granted && isAdminOrOwner(parsed) && tenantScopeMatches(parsed, subject.tenantId);
     },
 
     canAccessWorkspaceTheme(params) {
       if (!granted) {
         return false;
       }
-      if (
-        params.boundTenantId !== undefined &&
-        params.access.tenantId !== params.boundTenantId
-      ) {
+      if (params.boundTenantId !== undefined && params.access.tenantId !== params.boundTenantId) {
         return false;
       }
       if (params.access.pluginId !== params.pluginId) {
         return false;
       }
-      return workspaceScopeMatches(
-        parsed,
-        params.access.tenantId,
-        params.access.workspaceId,
-      );
+      return workspaceScopeMatches(parsed, params.access.tenantId, params.access.workspaceId);
     },
 
     canReadCanonicalDocument(subject) {
@@ -101,6 +115,19 @@ export function buildTenantAuthz(context: TenantAuthContext): TenantAuthz {
 
     canUpdateCanonicalDocument(subject) {
       return granted && tenantScopeMatches(parsed, subject.tenantId);
+    },
+
+    canPerformUrbanOwnerMutation(tenantId, surface, workspaceType) {
+      if (workspaceType !== "urban") {
+        return false;
+      }
+      if (!granted || !tenantScopeMatches(parsed, tenantId)) {
+        return false;
+      }
+      if (!isWorkspaceOwner(parsed)) {
+        return false;
+      }
+      return URBAN_OWNER_SURFACE_ALLOWLIST.has(surface);
     },
   };
 
@@ -118,7 +145,7 @@ export function cannotAccessWorkspaceTheme(params: CanAccessWorkspaceThemeAuthzP
 export function canAccessWorkspaceThemeScoped(
   scoped: { readonly authz: TenantAuthz; readonly context: Readonly<TenantAuthContext> },
   access: WorkspaceThemeSubject,
-  pluginId: string,
+  pluginId: string
 ): boolean {
   return canAccessWorkspaceTheme({
     authz: scoped.authz,
@@ -131,7 +158,7 @@ export function canAccessWorkspaceThemeScoped(
 export function resolveCanAccessWorkspaceThemeAuthz(
   authzOrParams: TenantAuthz | CanAccessWorkspaceThemeAuthzParams,
   access?: WorkspaceThemeSubject,
-  pluginId?: string,
+  pluginId?: string
 ): CanAccessWorkspaceThemeAuthzParams {
   if (
     typeof authzOrParams === "object" &&
@@ -144,7 +171,7 @@ export function resolveCanAccessWorkspaceThemeAuthz(
   if (access === undefined || pluginId === undefined) {
     throw new AbilityUsageError(
       "MISSING_THEME_ACCESS_ARG",
-      "canAccessWorkspaceTheme requires access and pluginId when passing a bare TenantAuthz",
+      "canAccessWorkspaceTheme requires access and pluginId when passing a bare TenantAuthz"
     );
   }
   return {

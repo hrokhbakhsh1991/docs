@@ -15,6 +15,32 @@ import {
   runWithTenantContext,
 } from "../tenant/tenant-request-context";
 
+function mergeCanonicalPatchData(
+  existing: CreateTourBody["data"],
+  patch: UpdateTourBody["data"] | undefined
+): CreateTourBody["data"] {
+  if (patch === undefined) {
+    return existing;
+  }
+  const merged: Record<string, unknown> = { ...(existing as Record<string, unknown>) };
+  for (const [root, patchRoot] of Object.entries(patch)) {
+    const existingRoot = merged[root];
+    if (
+      patchRoot !== null &&
+      typeof patchRoot === "object" &&
+      !Array.isArray(patchRoot) &&
+      existingRoot !== null &&
+      typeof existingRoot === "object" &&
+      !Array.isArray(existingRoot)
+    ) {
+      merged[root] = { ...(existingRoot as Record<string, unknown>), ...patchRoot };
+      continue;
+    }
+    merged[root] = patchRoot;
+  }
+  return merged as CreateTourBody["data"];
+}
+
 function assertCanonicalWriteTenantAllowed(requestedTenantId: string): void {
   const bound = getActiveTenantId();
   const target = requestedTenantId.trim();
@@ -189,7 +215,10 @@ export class CanonicalTourService {
     const mergeBody: CreateTourBody = {
       schemaVersion: input.body.schemaVersion ?? existing.canonical.schemaVersion,
       roots: input.body.roots ?? [...existing.canonical.roots],
-      data: (input.body.data ?? existing.canonical.data) as CreateTourBody["data"],
+      data:
+        input.workspaceType === "urban"
+          ? mergeCanonicalPatchData(existing.canonical.data, input.body.data)
+          : ((input.body.data ?? existing.canonical.data) as CreateTourBody["data"]),
     };
 
     const canonical = await runPreTransactionValidation({

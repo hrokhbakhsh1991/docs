@@ -32,11 +32,11 @@ function assertMemberWorkspaceRequired(role: string, workspaceId: string | undef
 export async function resolveTenantContextFromRequest(
   req: IncomingMessage
 ): Promise<TenantAuthContext> {
-  assertAuthEnvironmentIntegrity();
   const authorization = readAuthorizationHeader(req);
   if (isProductionAuthMode() && authorization.length === 0) {
     throw new Error(UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION);
   }
+  assertAuthEnvironmentIntegrity();
   if (authorization.length > 0) {
     const fromJwt = await tryResolveJwtBearerAsync(authorization);
     if (fromJwt !== null) {

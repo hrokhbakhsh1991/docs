@@ -1,7 +1,7 @@
 # Phase 8 — Machine snapshot: «الان کجاییم?» (sync with IMPLEMENTATION-TRUTH)
-# Authority: BOOT-MANIFEST detect_current_subphase · Sprint A
+# Authority: BOOT-MANIFEST detect_current_subphase · Sprint A + 8.1 impl
 
-snapshot_version: "2026-06-08-v1"
+snapshot_version: "2026-06-08-v2"
 sync_source: ../audits/IMPLEMENTATION-TRUTH.md
 roadmap: ../../../TEMP/phase8-doc-95plus-plan.md
 navigator: ../AGENT-NAVIGATOR.md
@@ -9,6 +9,7 @@ scaffold_sot: ../../../TEMP/phase8-wip-specs/README.md
 
 doc_ready_subphase: "8.1"
 behavioral_active_subphase: "8.1"
+next_subphase_after_8_1: "8.2"
 
 partial_subphases: []
 
@@ -18,39 +19,38 @@ guard_attestation:
   command: pnpm run phase-8:guard
   charter_gates: 25
   passed: 25
-  note: "Structural doc pack — trunk auth code ABSENT until T-8.1 promote + 8.1 impl"
+  note: "8.1 VERIFIED_BEHAVIORAL — urban auth rail on trunk"
 
 entry_ledger:
   path: reports/phase-8-entry-verified.yaml
   phase_7_gate_status: PASS
   subphase_8_0: VERIFIED_ENTRY
+  subphase_8_1: VERIFIED_BEHAVIORAL
 
 next_read:
   - docs/phase-8/AGENT-NAVIGATOR.md
   - docs/phase-8/subphases/8.1-single-owner-auth.md
-  - docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md
-  - docs/phase-8/appendices/AGENT-STATE-MAP-8.1.yaml
-  - docs/phase-8/appendices/erip/8.1-cop-auth-isolation.md
-  - TEMP/phase8-wip-specs/README.md
+  - docs/phase-8/subphases/8.2-urban-features.md
+  - docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md
 
 next_prove_with:
   - path: packages/workspace-sdk/test/urban-owner-ability.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/workspace-sdk/urban-owner-ability.spec.ts
   - path: apps/api/test/urban-owner-ability.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/urban-owner-ability.spec.ts
   - path: apps/api/test/urban-settings-patch.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/urban-settings-patch.spec.ts
   - path: apps/api/test/urban-redis-fallback.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/urban-redis-fallback.spec.ts
   - path: apps/api/test/urban-tours-bypass-gate.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase8-wip-specs/urban-tours-bypass-gate.spec.ts
   - path: apps/web/test/urban-owner-access.spec.ts
-    status: SCAFFOLD_WIP
+    status: ON_TRUNK
     wip_source: TEMP/phase9-wip-specs/web/urban-owner-access.spec.ts
 
 forbidden_until_blocker_clear:
@@ -61,6 +61,6 @@ forbidden_until_blocker_clear:
 detect_algorithm: |
   1. Read IMPLEMENTATION-TRUTH implementation_mode + subphase ledger.
   2. If phase_7_gate != PASS → cap at 8.0 (TG-P8-001).
-  3. If 8.0 VERIFIED_ENTRY and 8.1 not VERIFIED_BEHAVIORAL → doc_ready 8.1.
+  3. If 8.1 VERIFIED_BEHAVIORAL → doc_ready 8.2.
   4. Next subphase in DAG after highest VERIFIED_BEHAVIORAL row.
   5. This file must match truth after every Sprint A+ doc PR.

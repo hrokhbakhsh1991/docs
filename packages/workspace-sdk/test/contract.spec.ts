@@ -63,6 +63,7 @@ const ALLOWED_ROOT_RUNTIME_EXPORTS = new Set([
   "getStarterWorkspacePlugin",
   "getWorkspaceRuleCell",
   "getWorkspaceThemePresets",
+  "isWorkspaceOwner",
   "isWorkspacePlugin",
   "isWorkspaceSdkValidationError",
   "isWorkspaceTypeId",

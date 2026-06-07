@@ -45,7 +45,10 @@ export function resolveRedisFailurePolicy(
   env: NodeJS.ProcessEnv = process.env
 ): RedisFailurePolicy {
   const explicit = env.TENANT_RATE_LIMIT_REDIS_FAILURE_POLICY?.trim().toLowerCase();
-  if (explicit === "fail_closed" || explicit === "fail_local" || explicit === "fail_open") {
+  if (explicit === "closed" || explicit === "fail_closed") {
+    return "fail_closed";
+  }
+  if (explicit === "fail_local" || explicit === "fail_open") {
     return explicit;
   }
   return tier === "read" ? "fail_open" : "fail_local";
@@ -76,6 +79,8 @@ export function isRedisInfrastructureError(error: unknown): boolean {
     haystack.includes("connection is closed") ||
     haystack.includes("maxretriesperrequest") ||
     haystack.includes("reached the max retries") ||
-    haystack.includes("connect")
+    haystack.includes("connect") ||
+    haystack.includes("stream isn't writeable") ||
+    haystack.includes("enableofflinequeue")
   );
 }

@@ -13,6 +13,9 @@ import type {
 
 const CROSS_TENANT_SAVE = "FORBIDDEN_TOUR_STORAGE_CROSS_TENANT";
 
+const URBAN_PHASE81_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
+const URBAN_PHASE81_TENANT_ID = "00000000-0000-4000-8000-000000000004";
+
 function assertTenantId(tenantId: string): void {
   if (typeof tenantId !== "string" || tenantId.trim().length === 0) {
     throw new Error("INVALID_TENANT_ID");
@@ -26,6 +29,35 @@ function assertTenantId(tenantId: string): void {
 export class InMemoryTourRepository implements TourStorageRepository {
   private readonly byId = new Map<string, Tour>();
   private readonly idsByTenant = new Map<string, Set<string>>();
+
+  /** Phase 8.1 TPG fixture — published tour for urban publish-field gate specs. */
+  ensureUrbanPhase81PublishedTour(): void {
+    if (this.byId.has(URBAN_PHASE81_PUBLISHED_TOUR_ID)) {
+      return;
+    }
+    const tour: Tour = {
+      id: URBAN_PHASE81_PUBLISHED_TOUR_ID,
+      tenantId: URBAN_PHASE81_TENANT_ID,
+      rowVersion: 1,
+      createdAt: new Date(0).toISOString(),
+      canonical: {
+        schemaVersion: 1,
+        roots: ["tour"],
+        data: {
+          tour: {
+            title: "Urban published fixture",
+            city: "Tehran",
+            venueName: "Main Hall",
+            startDate: "2026-07-01",
+            endDate: "2026-07-02",
+            capacity: 100,
+            status: "draft",
+          },
+        },
+      },
+    };
+    this.indexTour(tour);
+  }
 
   private globalCount(): number {
     return this.byId.size;

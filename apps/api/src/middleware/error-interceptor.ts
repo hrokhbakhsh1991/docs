@@ -62,6 +62,10 @@ import {
   sendTenantRateLimitExceeded,
   TenantRateLimitExceededError,
 } from "./tenant-rate-limiter";
+import {
+  isUrbanOwnerRequiredError,
+  URBAN_OWNER_REQUIRED,
+} from "../urban/urban-owner-required.error";
 import { DbCircuitOpenError } from "../db/transient-db-error";
 import { ProxyCircuitOpenError } from "../proxy/proxy-upstream-circuit";
 import {
@@ -151,6 +155,9 @@ function mapErrorMessageToStatus(message: string): number {
   if (message.startsWith("CANONICAL_SYNC_VALIDATION_FAILED")) return 409;
   if (message.startsWith("TOUR_VERSION_CONFLICT")) return 409;
   if (message.startsWith("TOUR_NOT_FOUND")) return 404;
+  if (message.startsWith("FINANCE_WORKSPACE_UNSUPPORTED")) return 404;
+  if (message.startsWith("FINANCE_PAYMENT_NOT_FOUND")) return 404;
+  if (message.startsWith("FINANCE_RECEIPT_NOT_FOUND")) return 404;
   if (message.startsWith("TOUR_CAPACITY_EXCEEDED")) return 429;
   if (message === VALIDATION_QUEUE_SATURATED) return 429;
   if (message === TOUR_WRITE_CONCURRENCY_EXCEEDED) return 429;
@@ -377,6 +384,22 @@ export function handleHttpError(res: ServerResponse, error: unknown): void {
       { error: "WORKSPACE_INVALID", code: "WORKSPACE_INVALID" },
       correlationId
     );
+    return;
+  }
+
+  if (isUrbanOwnerRequiredError(error)) {
+    sendHttpError(
+      res,
+      403,
+      { error: URBAN_OWNER_REQUIRED, code: URBAN_OWNER_REQUIRED },
+      correlationId
+    );
+    return;
+  }
+
+  if (error instanceof Error && error.message === "INTERNAL_SERVER_ERROR") {
+    logInternalServerError(error, correlationId);
+    sendHttpError(res, 500, { error: "INTERNAL_SERVER_ERROR" }, correlationId);
     return;
   }
 
