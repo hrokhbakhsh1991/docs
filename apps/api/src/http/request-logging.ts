@@ -114,20 +114,21 @@ export function withRequestLogging(
     res.on("finish", () => {
       releaseInflight();
       const tenantId = getActiveTenantId();
-      const logCtx: RequestLogContext = {
+      enqueueHttpRequestLog({
         method,
         path,
         statusCode: res.statusCode,
         durationMs: Math.round(performance.now() - started),
         correlationId: getActiveTraceId(),
         requestId: getActiveTraceId(),
-      };
-      if (tenantId !== undefined) {
-        logCtx.tenantId = tenantId;
-        logCtx.workspaceType = getActiveWorkspaceType() ?? "starter";
-        logCtx.tenantTier = resolveTenantConnectionTier(tenantId);
-      }
-      enqueueHttpRequestLog(logCtx);
+        ...(tenantId !== undefined
+          ? {
+              tenantId,
+              workspaceType: getActiveWorkspaceType() ?? "starter",
+              tenantTier: resolveTenantConnectionTier(tenantId),
+            }
+          : {}),
+      });
     });
     res.on("close", releaseInflight);
 

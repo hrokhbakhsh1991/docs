@@ -5,6 +5,8 @@ runbook_version: "2026-06-07-v2"
 decision: DEC-P7-005
 map_ref: docs/MIGRATION-MAP.md §10
 implementation: apps/api/src/observability/logger.ts · apps/api/src/http/request-logging.ts
+
+`request-logging.ts` builds a single `RequestLogContext` object (spread for tenant fields) — no post-create mutation; satisfies `readonly` typing in `tsc` build.
 ```
 
 ## Required log fields (§10.2)
