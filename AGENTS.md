@@ -25,11 +25,14 @@ pnpm run phase-0:covenant-gate      # Phase 0 covenant (alias: phase-0:foundatio
 pnpm run phase-0:trunk-gate         # trunk integrity (alias: phase-0:integration-gate)
 pnpm run phase-0:gate               # covenant-gate then trunk-gate
 pnpm run pre-commit:fast            # same as Husky fast path (<60s target)
+pnpm run phase-9:guard              # Phase 9 doc pack — 32 charter gates
+pnpm run guard:p9-boundary-diff     # Phase 9 PR boundary allowlist (9.1+)
 pnpm run test:changed               # git-aware unit tests (origin/main...HEAD, cached)
 pnpm run test:full                  # phase-3:gate + phase-4:gate (RLS when DATABASE_URL set)
 pnpm run db:test-reset              # TRUNCATE tenant data — fast between integration runs
 pnpm run ci:integrity               # phase-0→3 + phase-4 guard + evolution — CI / PR (not pre-commit)
 pnpm run phase-7:adversarial-gate   # 7.8 P0 — prefer GHA workflow phase-7-gate (parallel jobs)
+pnpm run phase-7:platform-gate      # 7.9 DoD — GHA job platform-dod after ci-integrity + adversarial green
 pnpm run phase-3:gate               # apps/starter integration + doc-gate (inside ci:integrity / test:full)
 pnpm run phase-4:gate               # full Phase 4 closure (includes phase-3:gate)
 pnpm run check:node-engine  # Node 24 required (.nvmrc / engines)

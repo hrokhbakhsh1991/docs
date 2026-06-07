@@ -1,5 +1,5 @@
-# Phase 7 — adversarial P0 + ci:integrity on GitHub runners (REQ-P7-024..026).
-# Local dev: pre-commit:fast + test:changed — full 7.8 bundle stays off laptop.
+# Phase 7 — adversarial P0 + ci:integrity + 7.9 platform-dod on GitHub runners.
+# Local dev: pre-commit:fast + test:changed — full gates stay on GHA.
 
 name: phase-7-gate
 
@@ -13,6 +13,10 @@ on:
     inputs:
       run_ci_integrity:
         description: Run ci:integrity job (parallel with adversarial P0)
+        type: boolean
+        default: true
+      run_platform_dod:
+        description: Run Phase 7.9 platform-dod (after ci-integrity + adversarial green)
         type: boolean
         default: true
 
@@ -167,3 +171,85 @@ jobs:
 
       - name: ci:integrity
         run: pnpm run ci:integrity
+
+  platform-dod:
+    name: Phase 7.9 platform DoD (phase-7:platform-gate)
+    needs: [ci-integrity, adversarial-p0]
+    if: >-
+      always() &&
+      needs.ci-integrity.result == 'success' &&
+      needs.adversarial-p0.result == 'success' &&
+      (github.event_name != 'workflow_dispatch' || inputs.run_platform_dod)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tour_db
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tour_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app_tour:app_tour@127.0.0.1:5434/tour_db?connection_limit=32
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres@127.0.0.1:5434/tour_db
+      STORAGE_DRIVER: prisma
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Verify Node.js engine
+        run: node scripts/guards/check-node-engine.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CI OS packages
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client ripgrep
+
+      - name: Bootstrap app_tour role
+        run: psql "$DATABASE_URL_ADMIN" -f docs/phase-4/dev/init/01-app-role.sql
+
+      - name: Prisma migrate deploy (DEC-124)
+        run: DATABASE_URL="$DATABASE_URL_ADMIN" pnpm --filter @apps/api run db:migrate:deploy
+
+      - name: Generate Prisma client
+        run: pnpm --filter @apps/api run prisma:generate
+
+      - name: Build workspace dist
+        run: pnpm run build
+
+      - name: Phase 7.9 platform gate
+        run: pnpm run phase-7:platform-gate
+
+      - name: Upload platform gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-7-platform-gate-reports
+          path: |
+            reports/phase-7-gate-*.json
+            reports/phase-7-platform-gate-*.json
+          if-no-files-found: ignore

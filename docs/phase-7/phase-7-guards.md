@@ -22,6 +22,7 @@ Workflow [`.github/workflows/phase-7-gate.yml`](../../../.github/workflows/phase
 | ---------------- | ------------------------------------------------------ | -------- |
 | `adversarial-p0` | `PHASE_7_SKIP_CI_INTEGRITY=1 phase-7:adversarial-gate` | yes      |
 | `ci-integrity`   | `pnpm run ci:integrity`                                | yes      |
+| `platform-dod`   | `phase-7:platform-gate` (needs both jobs green)        | yes      |
 
 Postgres service uses `mirror.gcr.io/library/postgres:16` (not `docker.io` directly) to reduce Hub pull flakes on GitHub-hosted runners.
 
