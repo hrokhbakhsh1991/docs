@@ -24,6 +24,7 @@ const SCOPE_REQUIRED_PATHS = [
   "tour.endDate",
   "tour.capacity",
   "tour.status",
+  "tour.publishStatus",
 ] as const;
 
 function loadGoldenDocument(filename: string) {

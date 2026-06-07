@@ -16,7 +16,7 @@ const URBAN_WORKSPACE_ID = "00000000-0000-4000-8000-000000000403";
 const URBAN_OWNER_USER_ID = "00000000-0000-4000-8000-000000000401";
 const URBAN_ADMIN_USER_ID = "00000000-0000-4000-8000-000000000405";
 const URBAN_MEMBER_USER_ID = "00000000-0000-4000-8000-000000000402";
-const URBAN_PUBLISHED_TOUR_ID = "00000000-0000-4000-8000-000000000410";
+const URBAN_DRAFT_TOUR_ID = "00000000-0000-4000-8000-000000000411";
 
 function expect<T>(actual: T) {
   return {
@@ -61,7 +61,7 @@ async function patchTour(
         {
           hostname: "127.0.0.1",
           port: addr.port,
-          path: `/tours/${URBAN_PUBLISHED_TOUR_ID}`,
+          path: `/tours/${URBAN_DRAFT_TOUR_ID}`,
           method: "PATCH",
           headers: {
             Authorization: authorization,
@@ -140,9 +140,14 @@ describe("Phase 8.1 — TPG HTTP bypass gate on PATCH /tours/{tourId}", () => {
     data: { publishStatus: "published" },
   };
 
-  const draftBody = {
+  const draftBodyRv2 = {
     rowVersion: 2,
-    data: { tour: { title: "x" } },
+    data: { tour: { title: "admin-draft" } },
+  };
+
+  const draftBodyRv3 = {
+    rowVersion: 3,
+    data: { tour: { title: "owner-draft" } },
   };
 
   it("TPG-8.1-01 admin publish-field patch returns 403 code URBAN_OWNER_REQUIRED", async () => {
@@ -163,12 +168,12 @@ describe("Phase 8.1 — TPG HTTP bypass gate on PATCH /tours/{tourId}", () => {
   });
 
   it("TPG-8.1-04 admin draft-only patch returns 200", async () => {
-    const response = await patchTour(listener, bearer("admin"), draftBody);
+    const response = await patchTour(listener, bearer("admin"), draftBodyRv2);
     expect(response.status).toBe(200);
   });
 
   it("TPG-8.1-05 owner draft-only patch returns 200", async () => {
-    const response = await patchTour(listener, bearer("owner"), draftBody);
+    const response = await patchTour(listener, bearer("owner"), draftBodyRv3);
     expect(response.status).toBe(200);
   });
 });
