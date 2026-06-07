@@ -19,6 +19,17 @@ const PLATFORM_CORE = join(REPO_ROOT, "packages/platform-core");
 /** Ephemeral dirs — never part of genericity baseline (see .gitignore coverage/). */
 const PLATFORM_CORE_SKIP_DIRS = new Set(["node_modules", "dist", "coverage"]);
 
+function isEphemeralPlatformCorePath(relPath: string): boolean {
+  const top = relPath.split("/")[0];
+  return top != null && PLATFORM_CORE_SKIP_DIRS.has(top);
+}
+
+function normalizePlatformCoreFingerprint(files: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(files).filter(([relPath]) => !isEphemeralPlatformCorePath(relPath))
+  );
+}
+
 function readBaselineSha(): string {
   const yaml = readFileSync(BASELINE_YAML, "utf8");
   const match = /baseline_sha:\s*["']?([0-9a-f]{7,40})["']?/i.exec(yaml);
@@ -79,7 +90,7 @@ function assertPlatformCoreMatchesFingerprint(baselineSha: string): void {
     );
   }
   const current = fingerprintPlatformCore();
-  const expected = manifest.files;
+  const expected = normalizePlatformCoreFingerprint(manifest.files);
   const expectedKeys = Object.keys(expected).sort();
   const currentKeys = Object.keys(current).sort();
   assert.deepEqual(
