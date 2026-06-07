@@ -67,6 +67,7 @@
     "phase-6:gate": "pnpm build && pnpm test && pnpm run phase-5:gate && pnpm run phase-6:guard",
     "phase-7:guard": "node scripts/guards/phase-7-guard.mjs",
     "phase-7:adversarial-gate": "node scripts/phase-7-adversarial-gate.mjs",
+    "phase-7:platform-gate": "node scripts/phase-7-platform-gate.mjs",
     "phase-7:gate": "pnpm build && pnpm test && pnpm run phase-6:gate && pnpm run phase-7:guard",
     "phase-8:guard": "node scripts/guards/phase-8-guard.mjs",
     "guard:p8-boundary-diff": "node scripts/guards/p8-boundary-diff.mjs",
