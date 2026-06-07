@@ -16,7 +16,7 @@ const BASELINE_YAML = join(REPO_ROOT, "reports/phase-7-genericity-baseline.yaml"
 const PLATFORM_CORE = join(REPO_ROOT, "packages/platform-core");
 
 /** Bump when REQ-P7-007 proof algorithm changes (CI triage — synced with verify script). */
-const PHASE_7_GENERICITY_PROOF_REV = 4;
+const PHASE_7_GENERICITY_PROOF_REV = 5;
 
 /** Ephemeral dirs — never part of genericity baseline (see .gitignore coverage/). */
 const PLATFORM_CORE_SKIP_DIRS = new Set(["node_modules", "dist", "coverage"]);
