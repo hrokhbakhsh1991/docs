@@ -1,15 +1,16 @@
 # Phase 8 — Precision doc index
 
 ```yaml
-index_version: "2026-06-08-v1"
+index_version: "2026-06-08-v2"
 sole_entry: ../phase-8-agent-router.md
 doc_pack_target: 96
-files_on_disk: 33
+files_on_disk: 39
 pek_register: scripts/guards/lib/phase-8-doc-hardening.mjs
 spec_registry: appendices/SPEC-REGISTRY-8.1.yaml
 behavioral_ledger: ../audits/IMPLEMENTATION-TRUTH.md
 guard_script: ../../../scripts/guards/phase-8-guard.mjs
-charter_gates: 24
+charter_gates: 25
+navigator: ../AGENT-NAVIGATOR.md
 ```
 
 > Single source of truth for **every** PEK file under `docs/phase-8/`. Readiness states are **doc/structural** unless `IMPLEMENTATION-TRUTH` marks behavioral `VERIFIED_BEHAVIORAL`. Verification column names the **primary** automated or gate command that proves the file's contract.
@@ -28,14 +29,20 @@ charter_gates: 24
 
 ## T0 — Sole entry & covenant
 
-| Path                                                                  | Structural purpose                                                                                               | Readiness           | Verification target                                                      |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------ |
-| [`phase-8-agent-router.md`](../phase-8-agent-router.md)               | **SOLE execution entry** — routing law, ERIP mandate, read order, FAIL token, subphase DAG pointers              | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest` · `p8_truth_honesty`       |
-| [`phase-8-charter.md`](../phase-8-charter.md)                         | Human narrative — epic Option A + silo 8.3, TQ benchmarks, subphase exit signals, **non-authorizing** intent doc | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest` (charter path in manifest) |
-| [`appendices/BOOT-MANIFEST.yaml`](BOOT-MANIFEST.yaml)                 | Machine boot sequence · `detect_current_subphase` · hot_paths · gate_chain · `out_of_scope`                      | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest`                            |
-| [`audits/IMPLEMENTATION-TRUTH.md`](../audits/IMPLEMENTATION-TRUTH.md) | Honesty ledger — subphase `SPEC_ONLY`/`ABSENT` · package status · forbidden claims                               | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_truth_honesty`                            |
-| [`audits/verification-matrix.md`](../audits/verification-matrix.md)   | REQ-P8-001..053 · RULE-P8-_ · INV-P8-_ → proof command per row                                                   | `VERIFIED_SCAFFOLD` | Row-level commands in matrix · rollup `pnpm run phase-8:gate` at 8.5     |
-| [`phase-8-guards.md`](../phase-8-guards.md)                           | Guard command reference · `p8_*` check matrix · fail tokens · CI/Husky wiring                                    | `VERIFIED_SCAFFOLD` | `node scripts/guards/phase-8-guard.mjs`                                  |
+| Path                                                                        | Structural purpose                                                                                               | Readiness           | Verification target                                                                     |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------- |
+| [`AGENT-NAVIGATOR.md`](../AGENT-NAVIGATOR.md)                               | Decision tree · per-subphase bundles · failure modes · fast commands · sync obligation                           | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_agent_navigator_present`                                 |
+| [`appendices/AGENT-CURRENT-PHASE.yaml`](AGENT-CURRENT-PHASE.yaml)           | Machine snapshot — `doc_ready` · `next_read` · `next_prove_with` · guard attestation                             | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_agent_navigator_present`                                 |
+| [`phase-8-agent-router.md`](../phase-8-agent-router.md)                     | **SOLE execution entry** — routing law, ERIP mandate, read order, FAIL token, subphase DAG pointers              | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest` · `p8_truth_honesty`                      |
+| [`phase-8-charter.md`](../phase-8-charter.md)                               | Human narrative — epic Option A + silo 8.3, TQ benchmarks, subphase exit signals, **non-authorizing** intent doc | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest` (charter path in manifest)                |
+| [`appendices/BOOT-MANIFEST.yaml`](BOOT-MANIFEST.yaml)                       | Machine boot sequence · `detect_current_subphase` · hot_paths · gate_chain · `out_of_scope`                      | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_boot_manifest`                                           |
+| [`audits/IMPLEMENTATION-TRUTH.md`](../audits/IMPLEMENTATION-TRUTH.md)       | Honesty ledger — subphase `SPEC_ONLY`/`ABSENT` · package status · forbidden claims                               | `VERIFIED_SCAFFOLD` | `pnpm run phase-8:guard` → `p8_truth_honesty`                                           |
+| [`audits/verification-matrix.md`](../audits/verification-matrix.md)         | REQ-P8-001..053 · RULE-P8-_ · INV-P8-_ → CMD-P8-xxx refs (copy-paste blocks)                                     | `VERIFIED_SCAFFOLD` | [`verification-commands.md`](verification-commands.md) · `pnpm run phase-8:gate` at 8.5 |
+| [`audits/DOC-EXECUTION-SCORECARD.md`](../audits/DOC-EXECUTION-SCORECARD.md) | Sprint A agent-readiness score · gaps to 95                                                                      | `VERIFIED_SCAFFOLD` | Manual review · `pnpm run phase-8:guard`                                                |
+| [`phase-8-guards.md`](../phase-8-guards.md)                                 | Guard command reference · `p8_*` check matrix · fail tokens · CI/Husky wiring                                    | `VERIFIED_SCAFFOLD` | `node scripts/guards/phase-8-guard.mjs`                                                 |
+| [`appendices/phase-7-bridge.md`](phase-7-bridge.md)                         | Phase 7 closure → 8.0 prerequisite table · explicit deferrals                                                    | `VERIFIED_SCAFFOLD` | `pnpm run phase-7:gate` · entry yaml `phase_7_gate.status: PASS`                        |
+| [`appendices/adr-008.md`](adr-008.md)                                       | ADR-008 — Option A Product Parity + silo 8.3 subset                                                              | `LOCKED_SPEC`       | Charter adr front-matter · manual ADR citation in PR                                    |
+| [`appendices/verification-commands.md`](verification-commands.md)           | Copy-paste safe verification commands per subphase 8.0–8.5                                                       | `VERIFIED_SCAFFOLD` | Row commands in verification-matrix · `pnpm run phase-8:guard`                          |
 
 ---
 
@@ -89,14 +96,14 @@ charter_gates: 24
 
 ## T1 — Subphases (`subphases/`)
 
-| Path                                                                          | Structural purpose                                                                               | Readiness   | Verification target                                                                                                               |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| [`subphases/8.0-entry.md`](../subphases/8.0-entry.md)                         | Entry gate — `phase-7:gate` · MAP §22 · `reports/phase-8-entry-verified.yaml`                    | `SPEC_ONLY` | `pnpm run phase-7:gate` · `pnpm run guard:import-boundary`                                                                        |
-| [`subphases/8.1-single-owner-auth.md`](../subphases/8.1-single-owner-auth.md) | Single-owner CASL — SDK + API + web settings guard · **no** catalog in 8.1                       | `SPEC_ONLY` | `pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts` · `pnpm run phase-8:guard` |
-| [`subphases/8.2-urban-features.md`](../subphases/8.2-urban-features.md)       | Product port — `lazy-urban-plugin.ts` · catalog/register/settings routes · plugin registry delta | `SPEC_ONLY` | `pnpm --filter @app-tour/workspace-urban build` · urban HTTP specs per CP-8.2-\*                                                  |
-| [`subphases/8.3-silo-tier.md`](../subphases/8.3-silo-tier.md)                 | `TenantConnectionRouter` · silo DDL · pool vs silo rate limits                                   | `SPEC_ONLY` | `pnpm --filter @app-tour/tenant-kernel test` (when implemented) · parallel after 8.2                                              |
-| [`subphases/8.4-e2e-integrity.md`](../subphases/8.4-e2e-integrity.md)         | E2E integrity — Playwright + HTTP chain · SMK-P8-01..04 · anti-hollow AH-8.4-\*                  | `SPEC_ONLY` | `pnpm --filter @apps/web run test:e2e:urban` · [`SMOKE-SCENARIO-MAP.md`](SMOKE-SCENARIO-MAP.md)                                   |
-| [`subphases/8.5-platform-dod.md`](../subphases/8.5-platform-dod.md)           | Product Parity DoD — `phase-8:gate` · forensic rubric · contract spec                            | `SPEC_ONLY` | `pnpm run phase-8:gate` · `apps/api/test/phase-8.contract.spec.ts` (**ABSENT_BEHAVIORAL**)                                        |
+| Path                                                                          | Structural purpose                                                                               | Readiness        | Verification target                                                                                                               |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [`subphases/8.0-entry.md`](../subphases/8.0-entry.md)                         | Entry gate — `phase-7:gate` · MAP §22 · `reports/phase-8-entry-verified.yaml`                    | `VERIFIED_ENTRY` | `pnpm run phase-7:gate` · `pnpm run guard:import-boundary` · entry yaml PASS                                                      |
+| [`subphases/8.1-single-owner-auth.md`](../subphases/8.1-single-owner-auth.md) | Single-owner CASL — SDK + API + web settings guard · **no** catalog in 8.1                       | `SPEC_ONLY`      | `pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts` · `pnpm run phase-8:guard` |
+| [`subphases/8.2-urban-features.md`](../subphases/8.2-urban-features.md)       | Product port — `lazy-urban-plugin.ts` · catalog/register/settings routes · plugin registry delta | `SPEC_ONLY`      | `pnpm --filter @app-tour/workspace-urban build` · urban HTTP specs per CP-8.2-\*                                                  |
+| [`subphases/8.3-silo-tier.md`](../subphases/8.3-silo-tier.md)                 | `TenantConnectionRouter` · silo DDL · pool vs silo rate limits                                   | `SPEC_ONLY`      | `pnpm --filter @app-tour/tenant-kernel test` (when implemented) · parallel after 8.2                                              |
+| [`subphases/8.4-e2e-integrity.md`](../subphases/8.4-e2e-integrity.md)         | E2E integrity — Playwright + HTTP chain · SMK-P8-01..04 · anti-hollow AH-8.4-\*                  | `SPEC_ONLY`      | `pnpm --filter @apps/web run test:e2e:urban` · [`SMOKE-SCENARIO-MAP.md`](SMOKE-SCENARIO-MAP.md)                                   |
+| [`subphases/8.5-platform-dod.md`](../subphases/8.5-platform-dod.md)           | Product Parity DoD — `phase-8:gate` · forensic rubric · contract spec                            | `SPEC_ONLY`      | `pnpm run phase-8:gate` · `apps/api/test/phase-8.contract.spec.ts` (**ABSENT_BEHAVIORAL**)                                        |
 
 ---
 
@@ -108,14 +115,15 @@ charter_gates: 24
 | `p8_truth_honesty`                | `IMPLEMENTATION-TRUTH.md` · BL-P8-\* · `lazy-urban-plugin.ts` → 8.2 · urban shell → 7.1   |
 | `p8_erip_cop_present`             | `appendices/erip/8.1-cop-auth-isolation.md` front-matter when subphase ≥ 8.1              |
 | `p8_platform_core_zero_diff`      | `reports/phase-7-genericity-baseline.yaml` · `packages/platform-core` git diff            |
-| `p8_doc_hardening`                | All **33** paths in `REQUIRED_PHASE8_PEK_FILES`                                           |
+| `p8_agent_navigator_present`      | `AGENT-NAVIGATOR.md` · `AGENT-CURRENT-PHASE.yaml` · BOOT `boot-6b`/`boot-6c`              |
+| `p8_doc_hardening`                | All **39** paths in `REQUIRED_PHASE8_PEK_FILES`                                           |
 | `p8_anti_hollow`                  | PEK prose scan — forbidden hollow tokens in `docs/phase-8/`                               |
 | `p8_hardening_artifacts`          | `PHASE-BOUNDARY-MATRIX.yaml` · `URBAN-SETTINGS-HTTP-ENVELOPE.yaml` · 4 API spec scaffolds |
 | `p8_envelope_consistency`         | `URBAN-SETTINGS-HTTP-ENVELOPE.yaml` ↔ DEC-P8-003 docs ↔ `urban-settings-patch.spec.ts`    |
 | `p8_doc_path_consistency`         | No legacy settings-owner spec basename · `BOOT-MANIFEST` prove_with · flat `urban/**`     |
 | `p8_spec_path_registry`           | 6× 8.1 spec scaffolds — 4 API · SDK · web                                                 |
 | `p8_casl_no_ellipsis`             | `CASL-URBAN-OWNER-SPEC.md` full `TenantAuthz` surface                                     |
-| `p8_truth_attestation_sync`       | `IMPLEMENTATION-TRUTH` **24/24** attestation · no stale 9/9                               |
+| `p8_truth_attestation_sync`       | `IMPLEMENTATION-TRUTH` **25/25** attestation · no stale 9/9                               |
 | `p8_owner_auth_specs`             | CASL 8.1 routes ↔ SDK/API/WEB case IDs                                                    |
 | `p8_urban_routes_bound`           | Route matrix §C ⊆ dispatch addendum                                                       |
 | `p8_smoke_map_present`            | SMK-P8-01..04 commands in verification-matrix                                             |
@@ -135,14 +143,10 @@ charter_gates: 24
 
 ## Planned PEK extensions (not on disk — do not invent paths)
 
-Tracked outside the **32-file** register; **not** listed as present:
-
-| Planned path                        | Block  | Verification target                       |
-| ----------------------------------- | ------ | ----------------------------------------- |
-| `appendices/phase-7-bridge.md`      | future | `phase-7:gate` bridge narrative           |
-| `appendices/traceability-map.md`    | future | REQ ↔ file ↔ test rollup (8.2+)           |
-| `audits/DOC-EXECUTION-SCORECARD.md` | future | doc pack score vs 96 target               |
-| `appendices/erip/8.2-cop-*.md`      | 8.2    | `p8_erip_cop_present` when subphase ≥ 8.2 |
+| Planned path                     | Block  | Verification target                       |
+| -------------------------------- | ------ | ----------------------------------------- |
+| `appendices/traceability-map.md` | future | REQ ↔ file ↔ test rollup (8.2+)           |
+| `appendices/erip/8.2-cop-*.md`   | 8.2    | `p8_erip_cop_present` when subphase ≥ 8.2 |
 
 ---
 
@@ -161,9 +165,10 @@ Tracked outside the **32-file** register; **not** listed as present:
 ```text
 1. phase-8-agent-router.md
 2. audits/IMPLEMENTATION-TRUTH.md
-3. appendices/BOOT-MANIFEST.yaml → detect_current_subphase
-4. subphases/{current}.md
-5. appendices/PRECISION-DOC-INDEX.md (this file) — locate tier-1 maps + Block F contracts
+3. AGENT-NAVIGATOR.md + appendices/AGENT-CURRENT-PHASE.yaml
+4. appendices/BOOT-MANIFEST.yaml → detect_current_subphase
+5. subphases/{current}.md
+6. appendices/PRECISION-DOC-INDEX.md (this file) — locate tier-1 maps + Block F contracts
 6. Tier-0 locked specs for active subphase (CASL / ROUTE / PRODUCT / DEC-P8-003 envelope)
 7. appendices/AGENT-STATE-MAP-8.1.yaml + TRACEABILITY-MATRIX-8.1.md — when subphase = 8.1
 8. appendices/SMOKE-SCENARIO-MAP.md — when subphase ≥ 8.4

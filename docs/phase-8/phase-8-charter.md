@@ -5,7 +5,7 @@ phase_id: "8"
 phase_name: "Product Parity & Dynamic Core Hardening"
 epic_driver: "Option A — Product Parity"
 hardening_driver: "Option E — Enterprise silo integration (subset)"
-adr: "ADR-008 (proposed — see appendices/adr-008.md when authored)"
+adr: "ADR-008 — see appendices/adr-008.md"
 prerequisite: pnpm run phase-7:gate
 closure: pnpm run phase-8:gate
 agent_entry: docs/phase-8/phase-8-agent-router.md
@@ -156,7 +156,9 @@ Full machine rules: [`appendices/BOOT-MANIFEST.yaml`](appendices/BOOT-MANIFEST.y
 | **No boilerplate**     | Empty handlers, uncited `TODO` ports, or legacy copy-paste without COP → anti-hollow **FAIL** (R5).                                                                                                                                                                                                                                   |
 | **Bounded innovation** | External patterns (Next.js 15, Prisma 6, hardened sessions) are **adapted** into plugin + trunk boundaries — never replace microkernel contracts.                                                                                                                                                                                     |
 
-### TQ-P8-\* cleanliness benchmarks (enforced at 8.5)
+### TQ-P8-\* cleanliness benchmarks
+
+_Enforced at 8.5 closure._
 
 | ID            | Benchmark                                                                                                                                                                                                                                    | Verification                                                |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -253,20 +255,20 @@ pnpm run phase-8:gate
 | MAP §10 observability + Redis rate limits        | E2E under production-like limits (8.4)                     |
 | Platform DoD (§22)                               | **Prerequisite only** — Phase 8 does not re-close platform |
 
-See [`appendices/phase-7-bridge.md`](appendices/phase-7-bridge.md) (when authored).
+See [`appendices/phase-7-bridge.md`](appendices/phase-7-bridge.md).
 
 ---
 
 ## Research & legacy references
 
-| Document                                                                                                     | Role                                                         |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| [`phase-8-agent-router.md` §5 ERIP](phase-8-agent-router.md#5-enterprise-research--innovation-protocol-erip) | **Mandatory** research + COP before 8.1–8.3 implementation   |
-| [`appendices/erip/`](appendices/erip/)                                                                       | Archived Creativity & Optimization Proposals (when authored) |
-| [`../phase-7/appendices/LEGACY-URBAN-REFERENCE.md`](../phase-7/appendices/LEGACY-URBAN-REFERENCE.md)         | Profile vs plugin; anti-rail                                 |
-| [`../phase-7/appendices/URBAN-MINIMAL-SCOPE.md`](../phase-7/appendices/URBAN-MINIMAL-SCOPE.md)               | Phase 7 minimal baseline — 8.2 extends                       |
-| [`../MIGRATION-MAP.md`](../MIGRATION-MAP.md) §12 · §22                                                       | Zero-Debt Covenant · Platform DoD                            |
-| [`../appendices/PLATFORM-CONTINUITY-0-7.md`](../appendices/PLATFORM-CONTINUITY-0-7.md)                       | Upstream continuity                                          |
+| Document                                                                                                     | Role                                                           |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| [`phase-8-agent-router.md` §5 ERIP](phase-8-agent-router.md#5-enterprise-research--innovation-protocol-erip) | **Mandatory** research + COP before 8.1–8.3 implementation     |
+| [`appendices/erip/`](appendices/erip/)                                                                       | Archived Creativity & Optimization Proposals — 8.1 COP on disk |
+| [`../phase-7/appendices/LEGACY-URBAN-REFERENCE.md`](../phase-7/appendices/LEGACY-URBAN-REFERENCE.md)         | Profile vs plugin; anti-rail                                   |
+| [`../phase-7/appendices/URBAN-MINIMAL-SCOPE.md`](../phase-7/appendices/URBAN-MINIMAL-SCOPE.md)               | Phase 7 minimal baseline — 8.2 extends                         |
+| [`../MIGRATION-MAP.md`](../MIGRATION-MAP.md) §12 · §22                                                       | Zero-Debt Covenant · Platform DoD                              |
+| [`../appendices/PLATFORM-CONTINUITY-0-7.md`](../appendices/PLATFORM-CONTINUITY-0-7.md)                       | Upstream continuity                                            |
 
 ---
 

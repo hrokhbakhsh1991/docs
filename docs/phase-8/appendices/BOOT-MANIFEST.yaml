@@ -32,6 +32,12 @@ boot_sequence_T0:
     read: ../../appendices/PLATFORM-CONTINUITY-0-7.md
   - id: boot-6
     assert: reading phase-8-agent-router.md
+  - id: boot-6b
+    read: ../AGENT-NAVIGATOR.md
+    note: "Step 3 — what to read/do next (after router + truth)"
+  - id: boot-6c
+    read: AGENT-CURRENT-PHASE.yaml
+    note: "Machine snapshot — sync with IMPLEMENTATION-TRUTH"
   - id: boot-7
     run: pnpm run phase-7:gate
     expect_exit: 0

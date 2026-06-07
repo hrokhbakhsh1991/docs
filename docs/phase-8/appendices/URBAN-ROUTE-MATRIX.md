@@ -191,6 +191,6 @@ export function assertWorkspaceOwner(params: AssertWorkspaceOwnerParams): void {
 | Owner routes documented | `rg 'OwnerOnly\|Owner \|' docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md` |
 | 8.1 behavioral proof    | `pnpm --filter @apps/api test urban-settings-patch.spec.ts`              |
 | 8.1 web proof           | `pnpm --filter @apps/web test urban-owner-access.spec.ts`                |
-| SMK-P8 alignment        | [`SMOKE-SCENARIO-MAP.md`](SMOKE-SCENARIO-MAP.md) (when authored)         |
+| SMK-P8 alignment        | [`SMOKE-SCENARIO-MAP.md`](SMOKE-SCENARIO-MAP.md)                         |
 
 **REQ:** REQ-P8-004 · REQ-P8-010 · REQ-P8-011 · REQ-P8-012 — see [`../audits/verification-matrix.md`](../audits/verification-matrix.md).
