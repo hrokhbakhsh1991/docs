@@ -1,10 +1,10 @@
 # Phase 7 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-07-v6"
+truth_version: "2026-06-07-v7"
 repo_snapshot: "2026-06-07"
 doc_pack: VERIFIED_SCAFFOLD
-behavioral: PARTIAL_7_8
+behavioral: PARTIAL_7_9
 subphase_7_0: VERIFIED_ENTRY
 subphase_7_3: VERIFIED_BEHAVIORAL
 subphase_7_4: VERIFIED_BEHAVIORAL
@@ -12,21 +12,22 @@ subphase_7_5: VERIFIED_BEHAVIORAL
 subphase_7_6: VERIFIED_BEHAVIORAL
 subphase_7_7: VERIFIED_BEHAVIORAL
 subphase_7_8: VERIFIED_BEHAVIORAL
+subphase_7_9: IN_PROGRESS
 entry_verified_at: "2026-06-07"
-closure_git_sha: 4c8cc2e
+closure_git_sha: 2fd3866
 ```
 
 > **Agents:** Read this before any Phase 7 implementation claim. **7.0–7.7** behavioral per specs below.
 
 ## Package status
 
-| Path                          | Status                  | Notes                                    |
-| ----------------------------- | ----------------------- | ---------------------------------------- |
-| `packages/workspaces/urban`   | **PACKAGE_SHELL**       | 7.1 — registry + golden fixtures + theme |
-| `packages/workspaces/denali`  | **VERIFIED_BEHAVIORAL** | Phase 6 closed (Tier D) — urban template |
-| `packages/workspaces/starter` | **VERIFIED_BEHAVIORAL** | Reference pattern                        |
-| `TenantConnectionRouter`      | **VERIFIED_BEHAVIORAL** | 7.7 — tenant-kernel + api lookup adapter |
-| `tenant_routes` DDL           | **VERIFIED_BEHAVIORAL** | Prisma `*_tenant_routes` migration       |
+| Path                          | Status                  | Notes                                             |
+| ----------------------------- | ----------------------- | ------------------------------------------------- |
+| `packages/workspaces/urban`   | **VERIFIED_BEHAVIORAL** | 7.1–7.8 — registry · contract · E2E · adversarial |
+| `packages/workspaces/denali`  | **VERIFIED_BEHAVIORAL** | Phase 6 closed (Tier D) — urban template          |
+| `packages/workspaces/starter` | **VERIFIED_BEHAVIORAL** | Reference pattern                                 |
+| `TenantConnectionRouter`      | **VERIFIED_BEHAVIORAL** | 7.7 — tenant-kernel + api lookup adapter          |
+| `tenant_routes` DDL           | **VERIFIED_BEHAVIORAL** | Prisma `*_tenant_routes` migration                |
 
 ## Apps status
 
@@ -41,6 +42,15 @@ closure_git_sha: 4c8cc2e
 | ADVERSARIAL-MATRIX P0 (7.8)              | **VERIFIED_BEHAVIORAL** | `phase-7:adversarial-gate` + GHA `phase-7-gate`  |
 | `rls-tenant-isolation.spec.ts`           | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-01 — Postgres + migrate                |
 | `rls-write-boundary.spec.ts`             | **VERIFIED_BEHAVIORAL** | ADV-P7-P0-02 — Postgres + migrate                |
+
+## Absent / SPEC_ONLY (anti-hollow honesty)
+
+| Item                                 | Status        | Note                                                      |
+| ------------------------------------ | ------------- | --------------------------------------------------------- |
+| Silo dedicated DB in `withTenantRls` | **ABSENT**    | `TenantConnectionRouter` resolves tier; pool URL only     |
+| `SET LOCAL search_path` hook         | **ABSENT**    | schema-per-tenant connect — post-7.7 deferred             |
+| Phase 7 forensic verdict PASS        | **SPEC_ONLY** | `phase-7-zero-debt-forensic-audit.mdoc` PENDING until 7.9 |
+| `reports/phase-7-platform-gate-*`    | **ABSENT**    | until GHA `platform-dod` job green                        |
 
 ## Deferred (honest)
 
@@ -67,8 +77,8 @@ See [`appendices/blockers.md`](../appendices/blockers.md).
 
 ## Doc vs repo
 
-| Metric       | Doc pack | Repo behavioral       |
-| ------------ | -------- | --------------------- |
-| Score target | ≥96      | 7.1–7.8 closed (~65%) |
+| Metric       | Doc pack | Repo behavioral                                       |
+| ------------ | -------- | ----------------------------------------------------- |
+| Score target | ≥96      | 7.1–7.8 behavioral closed; 7.9 platform-dod in flight |
 
 **Do not claim Platform DoD from documentation guard alone.**
