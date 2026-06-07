@@ -142,7 +142,7 @@ describe("finance-outbox-consumer.spec.ts (REQ-P6-011, REQ-P6-012, REQ-P6-028)",
     assert.equal(result.skipped, 0);
     assert.equal(events.length, 1);
     assert.equal(events[0]?.payload.registrationId, regId);
-    assert.equal(consumer.hasProcessed(domainEventId), true);
+    assert.equal(await consumer.hasProcessed(domainEventId), true);
   });
 
   it("REQ-P6-012: idempotent replay of same domainEventId is a no-op", async () => {
