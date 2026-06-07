@@ -2,6 +2,7 @@ import type { TenantRouteRow, TenantTier } from "@app-tour/tenant-kernel";
 import { Prisma } from "@prisma/client";
 
 import { getPrisma } from "../db/prisma";
+import { isPersistedTenantUuid } from "./tenant-id-format";
 
 function isTenantTier(value: string): value is TenantTier {
   return value === "pool" || value === "silo";
@@ -66,7 +67,7 @@ async function loadTenantRouteRow(normalized: string): Promise<TenantRouteRow | 
  */
 export async function lookupTenantRouteRow(tenantId: string): Promise<TenantRouteRow | null> {
   const normalized = tenantId.trim();
-  if (normalized.length === 0) {
+  if (normalized.length === 0 || !isPersistedTenantUuid(normalized)) {
     return null;
   }
   if (tenantRoutesTableMissing) {

@@ -55,10 +55,20 @@ CREATE TABLE tenant_routes (
 
 **Mapping:** DB `database_url` → `TenantRoute.databaseUrl` (camelCase in TypeScript).
 
+## API lookup adapter (`apps/api/src/tenant/tenant-route-lookup.ts`)
+
+Prisma lookup runs only when `DATABASE_URL` is set **and** `tenantId` matches persisted UUID shape
+(`isPersistedTenantUuid` — rejects dev string ids like `tenant-a`). Non-UUID contexts skip the query and
+fall through to pool default `{ tier: pool, useRls: true }`, keeping memory-storage HTTP specs green in CI
+after `tenant_routes` migration lands.
+
+Per-tenant cache + singleflight avoids N round-trips during rate-limit bursts.
+
 ## Resolver flow
 
 ```text
 TenantConnectionRouter.resolveRoute(tenantId)
+  → if tenantId not persisted UUID: pool default (no DB)
   → SELECT * FROM tenant_routes WHERE tenant_id = $1
   → if no row OR tier=pool:
        return { tenantId, tier: pool, databaseUrl: env.DATABASE_URL, useRls: true }
