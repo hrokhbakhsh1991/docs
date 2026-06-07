@@ -1,23 +1,26 @@
 # Phase 7 — Implementation truth (honesty ledger)
 
 ```yaml
-truth_version: "2026-06-04-v1"
-repo_snapshot: "2026-06-04"
+truth_version: "2026-06-07-v1"
+repo_snapshot: "2026-06-07"
 doc_pack: VERIFIED_SCAFFOLD
 behavioral: SPEC_ONLY
+subphase_7_0: VERIFIED_ENTRY
+entry_verified_at: "2026-06-07"
+closure_git_sha: 40fdbf8
 ```
 
-> **Agents:** Read this before any Phase 7 implementation claim.
+> **Agents:** Read this before any Phase 7 implementation claim. **7.0 entry** unlocked after Phase 6 fast-track closure + guards — **7.1 urban package still ABSENT**.
 
 ## Package status
 
-| Path                                  | Status                  | Notes                                   |
-| ------------------------------------- | ----------------------- | --------------------------------------- |
-| `packages/workspaces/urban`           | **ABSENT**              | Doc scaffold only — 7.1 target          |
-| `packages/workspaces/denali`          | **PROBE / PARTIAL**     | Phase 6 in progress                     |
-| `packages/workspaces/starter`         | **VERIFIED_BEHAVIORAL** | Reference pattern                       |
-| `packages/tenant-kernel/src/route.ts` | **SPEC_ONLY**           | Interface stub — router not implemented |
-| `TenantConnectionRouter`              | **ABSENT**              | 7.7 target                              |
+| Path                                  | Status                  | Notes                                    |
+| ------------------------------------- | ----------------------- | ---------------------------------------- |
+| `packages/workspaces/urban`           | **ABSENT**              | Doc scaffold only — 7.1 target           |
+| `packages/workspaces/denali`          | **VERIFIED_BEHAVIORAL** | Phase 6 closed (Tier D) — urban template |
+| `packages/workspaces/starter`         | **VERIFIED_BEHAVIORAL** | Reference pattern                        |
+| `packages/tenant-kernel/src/route.ts` | **SPEC_ONLY**           | Interface stub — router not implemented  |
+| `TenantConnectionRouter`              | **ABSENT**              | 7.7 target                               |
 
 ## Apps status
 
@@ -30,10 +33,12 @@ behavioral: SPEC_ONLY
 
 ## Phase 6 prerequisite
 
-| Gate                     | Status (doc snapshot)                                |
-| ------------------------ | ---------------------------------------------------- |
-| `pnpm run phase-6:gate`  | Required for 7.0 — Denali may still be probe         |
-| Generic resolver pattern | Documented in Phase 6 — urban depends on 6.5 pattern |
+| Gate                     | Status (2026-06-07)                                              |
+| ------------------------ | ---------------------------------------------------------------- |
+| Phase 6 closure          | **PASS** — `phase_closed: true` · Tier D · forensic 10/10        |
+| `phase-6:fast-closure`   | **PASS** — 7.0 entry evidence (full `phase-6:gate` → CI nightly) |
+| Generic resolver pattern | **VERIFIED** — `6.5-bootstrap` · `getDenaliWorkspacePlugin`      |
+| Denali finance export    | `TourCreatedLedgerPayload` re-exported from denali `index.ts`    |
 
 ## Phase 5 carryover (unchanged)
 
