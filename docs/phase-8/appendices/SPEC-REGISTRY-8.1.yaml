@@ -1,0 +1,26 @@
+contract_id: SPEC-REGISTRY-8.1
+version: "2026-06-08-v1"
+authority:
+  - docs/phase-8/subphases/8.1-single-owner-auth.md
+  - scripts/guards/lib/phase-8-hardening-artifacts.mjs
+purpose: Single source of truth for Phase 8.1 behavioral spec paths — consumed by BOOT-MANIFEST, subphase 8.1, IMPLEMENTATION-TRUTH, verification-matrix
+
+specs:
+  - packages/workspace-sdk/test/urban-owner-ability.spec.ts
+  - apps/api/test/urban-owner-ability.spec.ts
+  - apps/api/test/urban-settings-patch.spec.ts
+  - apps/api/test/urban-redis-fallback.spec.ts
+  - apps/api/test/urban-tours-bypass-gate.spec.ts
+  - apps/web/test/urban-owner-access.spec.ts
+
+prove_with_commands:
+  sdk: pnpm --filter @app-tour/workspace-sdk exec node --import tsx --test test/urban-owner-ability.spec.ts
+  api_owner: pnpm --filter @apps/api exec node --import tsx --test test/urban-owner-ability.spec.ts
+  api_settings: pnpm --filter @apps/api exec node --import tsx --test test/urban-settings-patch.spec.ts
+  api_redis: pnpm --filter @apps/api exec node --import tsx --test test/urban-redis-fallback.spec.ts
+  api_tpg: pnpm --filter @apps/api exec node --import tsx --test test/urban-tours-bypass-gate.spec.ts
+  web: pnpm --filter @apps/web exec node --import tsx --test test/urban-owner-access.spec.ts
+
+verification:
+  - pnpm run phase-8:guard → p8_prove_with_parity
+  - diff against REQUIRED_PHASE8_8_1_SPEC_REGISTRY in phase-8-hardening-artifacts.mjs
