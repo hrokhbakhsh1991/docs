@@ -1,0 +1,48 @@
+# Phase 8.0 entry ledger — authorized entry into Product Parity work
+# Authority: docs/phase-8/subphases/8.0-entry.md · TG-P8-001
+ledger_version: "2026-06-08-v2"
+verified_at: "2026-06-08T00:00:00Z"
+verified_by: "phase-7 platform-dod GHA + local guard attestation"
+map_22_reviewed: true
+map_22_note: "Architect attestation — MAP §22 platform invariants reviewed at 8.0 entry"
+phase_7_gate:
+  command: pnpm run phase-7:gate
+  status: PASS
+  exit_code: 0
+  evidence_mode: gha-platform-dod
+  workflow: .github/workflows/phase-7-gate.yml
+  jobs:
+    - ci-integrity
+    - adversarial-p0
+    - platform-dod
+  git_sha: d487666
+  report_path: reports/phase-7-platform-gate-2026-06-07.json
+  guard_report: reports/phase-7-gate-2026-06-07.json
+  note: >
+    Full build/test chain satisfied by ci-integrity job; platform-dod runs
+    phase-6:guard + phase-7:guard. Local phase-7:platform-gate attested at d487666.
+phase_7_truth:
+  path: docs/phase-7/audits/IMPLEMENTATION-TRUTH.md
+  urban_status: VERIFIED_BEHAVIORAL
+  router_status: VERIFIED_BEHAVIORAL
+phase_7_genericity_baseline:
+  path: reports/phase-7-genericity-baseline.yaml
+  baseline_sha: 64d9fea
+import_boundary:
+  command: pnpm run guard:import-boundary
+  status: PASS
+no_legacy_runtime_import:
+  command: rg "from ['\"]legacy/" apps/api apps/web
+  status: PASS
+no_urban_core_creep:
+  status: PASS
+  note: "URBAN_FORBIDDEN_ITINERARY in validation-hook spec only — not product constant creep"
+subphase_8_0:
+  status: VERIFIED_ENTRY
+  prove_with:
+    - reports/phase-8-entry-verified.yaml
+    - docs/phase-8/audits/IMPLEMENTATION-TRUTH.md
+blocks_cleared:
+  - BL-P8-01
+next_subphase: "8.1"
+next_note: "Single-Owner CASL — spec scaffolds on disk; implementation ABSENT until prove_with specs green"

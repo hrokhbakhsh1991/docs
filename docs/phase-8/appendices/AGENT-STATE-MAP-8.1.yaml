@@ -1,0 +1,275 @@
+contract_id: AGENT-STATE-MAP-8.1
+version: "2026-06-07-v1"
+surfaces:
+  - GET /urban/settings
+  - PATCH /urban/settings
+middleware_pipeline:
+  - resolveTenantContextFromRequest
+  - resolveWorkspaceTypeForTenant
+  - assertWorkspaceOwner
+  - runWithHttpRequestContext
+  - handlerBody
+states:
+  - id: ASM-8.1-001
+    route: GET /urban/settings
+    input_state: bearer_valid_owner_active
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    log_event_signature: null
+    handler_entered: true
+
+  - id: ASM-8.1-002
+    route: PATCH /urban/settings
+    input_state: bearer_valid_owner_active_body_valid
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: handlerBody
+    http_status: 200
+    body_error_code: null
+    log_event_signature: null
+    handler_entered: true
+
+  - id: ASM-8.1-003
+    route: GET /urban/settings
+    input_state: bearer_valid_admin_active_privilege_escalation
+    actor_role: admin
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: code=URBAN_OWNER_REQUIRED surface=urban.settings.read
+    handler_entered: false
+
+  - id: ASM-8.1-004
+    route: PATCH /urban/settings
+    input_state: bearer_valid_admin_active_privilege_escalation
+    actor_role: admin
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: code=URBAN_OWNER_REQUIRED surface=urban.settings.update
+    handler_entered: false
+
+  - id: ASM-8.1-005
+    route: GET /urban/settings
+    input_state: bearer_valid_member_active
+    actor_role: member
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: code=URBAN_OWNER_REQUIRED surface=urban.settings.read
+    handler_entered: false
+
+  - id: ASM-8.1-006
+    route: PATCH /urban/settings
+    input_state: bearer_valid_member_active
+    actor_role: member
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: code=URBAN_OWNER_REQUIRED surface=urban.settings.update
+    handler_entered: false
+
+  - id: ASM-8.1-007
+    route: GET /urban/settings
+    input_state: bearer_missing_or_invalid
+    actor_role: none
+    workspaceType: urban
+    middleware_step: resolveTenantContextFromRequest
+    http_status: 401
+    body_error_code: UNAUTHORIZED_INVALID_BEARER_TOKEN
+    log_event_signature: event=tenant.auth.missing
+    handler_entered: false
+
+  - id: ASM-8.1-008
+    route: PATCH /urban/settings
+    input_state: bearer_missing_or_invalid
+    actor_role: none
+    workspaceType: urban
+    middleware_step: resolveTenantContextFromRequest
+    http_status: 401
+    body_error_code: UNAUTHORIZED_INVALID_BEARER_TOKEN
+    log_event_signature: event=tenant.auth.missing
+    handler_entered: false
+
+  - id: ASM-8.1-009
+    route: GET /urban/settings
+    input_state: anonymous_no_authorization_header
+    actor_role: none
+    workspaceType: urban
+    middleware_step: resolveTenantContextFromRequest
+    http_status: 401
+    body_error_code: UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION
+    log_event_signature: event=tenant.auth.missing
+    handler_entered: false
+
+  - id: ASM-8.1-010
+    route: PATCH /urban/settings
+    input_state: anonymous_no_authorization_header
+    actor_role: none
+    workspaceType: urban
+    middleware_step: resolveTenantContextFromRequest
+    http_status: 401
+    body_error_code: UNAUTHORIZED_BEARER_AUTH_REQUIRED_IN_PRODUCTION
+    log_event_signature: event=tenant.auth.missing
+    handler_entered: false
+
+  - id: ASM-8.1-011
+    route: GET /urban/settings
+    input_state: resolve_workspace_type_throws
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: resolveWorkspaceTypeForTenant
+    http_status: 500
+    body_error_code: INTERNAL_SERVER_ERROR
+    log_event_signature: event=urban.workspace_type.resolve_failed
+    handler_entered: false
+
+  - id: ASM-8.1-012
+    route: PATCH /urban/settings
+    input_state: resolve_workspace_type_throws
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: resolveWorkspaceTypeForTenant
+    http_status: 500
+    body_error_code: INTERNAL_SERVER_ERROR
+    log_event_signature: event=urban.workspace_type.resolve_failed
+    handler_entered: false
+
+  - id: ASM-8.1-013
+    route: GET /urban/settings
+    input_state: build_tenant_authz_throws_malformed_context
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: event=urban.authz.build_failed event=urban.authz.compliance_alert action=DENY_FAIL_CLOSED
+    handler_entered: false
+
+  - id: ASM-8.1-014
+    route: PATCH /urban/settings
+    input_state: build_tenant_authz_throws_malformed_context
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: event=urban.authz.build_failed event=urban.authz.compliance_alert action=DENY_FAIL_CLOSED
+    handler_entered: false
+
+  - id: ASM-8.1-015
+    route: PATCH /urban/settings
+    input_state: bearer_valid_owner_active_body_zod_invalid
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: handlerBody
+    http_status: 400
+    body_error_code: ZOD_VALIDATION_FAILED
+    log_event_signature: null
+    handler_entered: true
+
+  - id: ASM-8.1-016
+    route: GET /urban/settings
+    input_state: redis_unavailable_after_owner_assert_closed_policy
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: runWithHttpRequestContext
+    http_status: 503
+    body_error_code: RATE_LIMITER_REDIS_UNAVAILABLE
+    log_event_signature: code=RATE_LIMITER_REDIS_UNAVAILABLE
+    handler_entered: false
+
+  - id: ASM-8.1-017
+    route: PATCH /urban/settings
+    input_state: redis_unavailable_after_owner_assert_closed_policy
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: runWithHttpRequestContext
+    http_status: 503
+    body_error_code: RATE_LIMITER_REDIS_UNAVAILABLE
+    log_event_signature: code=RATE_LIMITER_REDIS_UNAVAILABLE
+    handler_entered: false
+
+  - id: ASM-8.1-018
+    route: GET /urban/settings
+    input_state: assert_workspace_owner_uncaught_regression
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 500
+    body_error_code: INTERNAL_SERVER_ERROR
+    log_event_signature: event=urban.authz.assert_regression
+    handler_entered: false
+
+  - id: ASM-8.1-019
+    route: PATCH /urban/settings
+    input_state: assert_workspace_owner_uncaught_regression
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: assertWorkspaceOwner
+    http_status: 500
+    body_error_code: INTERNAL_SERVER_ERROR
+    log_event_signature: event=urban.authz.assert_regression
+    handler_entered: false
+
+  - id: ASM-8.1-020
+    route: GET /urban/settings
+    input_state: bearer_valid_owner_workspace_type_starter
+    actor_role: owner
+    workspaceType: starter
+    middleware_step: assertWorkspaceOwner
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: code=URBAN_OWNER_REQUIRED surface=urban.settings.read
+    handler_entered: false
+
+  - id: ASM-8.1-021
+    route: GET /settings/urban
+    input_state: web_ssr_member_session
+    actor_role: member
+    workspaceType: urban
+    middleware_step: canLoadUrbanSettings
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: dom=data-workspace-wizard-forbidden data-status-code=403
+    handler_entered: false
+
+  - id: ASM-8.1-022
+    route: GET /settings/urban
+    input_state: web_ssr_admin_session_privilege_escalation
+    actor_role: admin
+    workspaceType: urban
+    middleware_step: canLoadUrbanSettings
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: dom=data-workspace-wizard-forbidden data-status-code=403
+    handler_entered: false
+
+  - id: ASM-8.1-023
+    route: GET /settings/urban
+    input_state: web_ssr_owner_session
+    actor_role: owner
+    workspaceType: urban
+    middleware_step: canLoadUrbanSettings
+    http_status: 200
+    body_error_code: null
+    log_event_signature: null
+    handler_entered: true
+
+  - id: ASM-8.1-024
+    route: GET /settings/urban
+    input_state: web_ssr_authz_context_missing
+    actor_role: none
+    workspaceType: urban
+    middleware_step: canLoadUrbanSettings
+    http_status: 403
+    body_error_code: URBAN_OWNER_REQUIRED
+    log_event_signature: dom=data-workspace-wizard-forbidden data-status-code=403
+    handler_entered: false

@@ -1,0 +1,10 @@
+{
+  "gate": "phase-7-platform",
+  "subphase": "7.9",
+  "date": "2026-06-07",
+  "gitSha": "d487666",
+  "ok": true,
+  "mode": "gha-platform-dod",
+  "prerequisites": ["ci-integrity", "adversarial-p0"],
+  "note": "phase-6:guard + phase-7:guard — nested build/test satisfied by ci:integrity"
+}

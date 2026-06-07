@@ -1,0 +1,263 @@
+# Phase 8 — Authoritative agent boot manifest (Product Parity PEK)
+manifest_version: "2026-06-08-v1"
+phase_id: "8"
+phase_name: "Product Parity & Dynamic Core Hardening"
+doc_execution_system_target: 96
+sole_execution_entry: ../phase-8-agent-router.md
+fail_token: FAIL
+pek_reference: ../phase-8-charter.md
+charter: ../phase-8-charter.md
+implementation_truth: ../audits/IMPLEMENTATION-TRUTH.md
+covenant: "../../MIGRATION-MAP.md#۱۲-the-zero-debt-covenant-mandatory-enforcement"
+platform_dod: "../../MIGRATION-MAP.md#۲۲-definition-of-done--کل-پلتفرم"
+
+# Epic selection (locked for Phase 8 doc pack)
+epic:
+  primary: "Option A — Product Parity"
+  secondary: "Option E — Enterprise silo hardening (8.3 only)"
+
+boot_sequence_T0:
+  - id: boot-0
+    read: ../audits/IMPLEMENTATION-TRUTH.md
+  - id: boot-1
+    read: ../phase-8-charter.md
+  - id: boot-2
+    read: ../../phase-7/audits/IMPLEMENTATION-TRUTH.md
+    note: "Phase 7 closure honesty before Phase 8 claims"
+  - id: boot-3
+    read: ../../phase-7/appendices/LEGACY-URBAN-REFERENCE.md
+  - id: boot-4
+    read: ../../phase-7/appendices/URBAN-MINIMAL-SCOPE.md
+  - id: boot-5
+    read: ../../appendices/PLATFORM-CONTINUITY-0-7.md
+  - id: boot-6
+    assert: reading phase-8-agent-router.md
+  - id: boot-7
+    run: pnpm run phase-7:gate
+    expect_exit: 0
+    when_subphase_gte: "8.0"
+  - id: boot-8
+    algorithm: detect_current_subphase
+  - id: boot-9
+    load: subphases/{current_subphase}.md
+
+repo_status_enum:
+  - SPEC_ONLY
+  - PARTIAL
+  - VERIFIED_SCAFFOLD
+  - VERIFIED_BEHAVIORAL
+  - VERIFIED_ENTRY
+  - READY_FOR_IMPLEMENTATION
+  - BLOCKED
+  - ABSENT
+  - NOT_BOUND
+
+# ─── Subphase dependency tree ───────────────────────────────────────────────
+
+subphases:
+  "8.0":
+    title: Entry Gate
+    spec: ../subphases/8.0-entry.md
+    prerequisites: []
+    blocks: ["8.1"]
+    parallelizable: false
+    primary_artifact: reports/phase-8-entry-verified.yaml
+    prove_with:
+      - pnpm run phase-7:gate
+      - docs/MIGRATION-MAP.md §22 checklist reviewed
+  "8.1":
+    title: Single-Owner Auth & CASL Enforcement
+    spec: ../subphases/8.1-single-owner-auth.md
+    prerequisites: ["8.0"]
+    blocks: ["8.2"]
+    parallelizable: false
+    primary_artifact: docs/phase-8/appendices/URBAN-ROUTE-MATRIX.md
+    prove_with:
+      - packages/workspace-sdk/test/urban-owner-ability.spec.ts
+      - apps/api/test/urban-owner-ability.spec.ts
+      - apps/api/test/urban-settings-patch.spec.ts
+      - apps/api/test/urban-redis-fallback.spec.ts
+      - apps/api/test/urban-tours-bypass-gate.spec.ts
+      - apps/web/test/urban-owner-access.spec.ts
+  "8.2":
+    title: Urban Product Feature Port
+    spec: ../subphases/8.2-urban-features.md
+    prerequisites: ["8.1"]
+    blocks: ["8.3", "8.4"]
+    parallelizable: false
+    primary_artifact: packages/workspaces/urban/
+    prove_with:
+      - pnpm --filter @app-tour/workspace-urban build
+      - pnpm --filter @app-tour/workspace-urban test
+      - apps/api/test/urban-catalog-registration.spec.ts
+  "8.3":
+    title: Silo Tier Integration
+    spec: ../subphases/8.3-silo-tier.md
+    prerequisites: ["8.2"]
+    blocks: ["8.5"]
+    parallelizable: true
+    parallel_group: hardening
+    primary_artifact: packages/tenant-kernel/
+    prove_with:
+      - TenantConnectionRouter enterprise fixture tests
+      - infra/sql tenant_routes migration applied
+  "8.4":
+    title: E2E Integrity
+    spec: ../subphases/8.4-e2e-integrity.md
+    prerequisites: ["8.2"]
+    blocks: ["8.5"]
+    parallelizable: true
+    parallel_group: product_proof
+    primary_artifact: apps/web/tests/e2e/
+    prove_with:
+      - Playwright urban catalog → register → settings
+      - HTTP integration catalog + registration paths
+  "8.5":
+    title: Product Parity DoD Gate
+    spec: ../subphases/8.5-platform-dod.md
+    prerequisites: ["8.1", "8.2", "8.3", "8.4"]
+    blocks: []
+    parallelizable: false
+    primary_artifact: reports/phase-8-gate-*.json
+    prove_with:
+      - pnpm run phase-8:gate
+      - phase-8.contract.spec.ts
+      - FORENSIC-RUBRIC score >= 8
+
+dependency_graph: |
+  8.0 → 8.1 → 8.2 → {8.3 ∥ 8.4} → 8.5
+
+parallel_groups:
+  after_8_2: ["8.3", "8.4"]
+  merge_8_5_requires: ["8.1", "8.2", "8.3", "8.4"]
+
+detect_current_subphase:
+  pick_rule: min_numeric_id_among_eligible
+  doc_ready_subphase: "8.1 when IMPLEMENTATION-TRUTH subphase_8_1.status == READY_FOR_IMPLEMENTATION"
+  behavioral_active_subphase: "detectCurrentSubphase() from ledger table statuses"
+  steps:
+    - "If 8.0 not VERIFIED_ENTRY|VERIFIED_BEHAVIORAL → behavioral = 8.0"
+    - "If 8.1 not VERIFIED_BEHAVIORAL → behavioral = 8.1 (even when doc_ready = 8.1 READY_FOR_IMPLEMENTATION)"
+    - "If 8.2 not VERIFIED_BEHAVIORAL → behavioral = 8.2"
+    - "eligible_parallel = subset of {8.3, 8.4} not VERIFIED_BEHAVIORAL"
+    - "If eligible_parallel non-empty → behavioral = min(id)"
+    - "Else behavioral = 8.5"
+  note: "doc_ready_subphase may lead behavioral_active_subphase — ERIP COP enforced on doc_ready ≥ 8.1"
+
+transition_guards:
+  TG-P8-001:
+    blocks: "8.1"
+    until: "reports/phase-8-entry-verified.yaml phase_7_gate.status == PASS"
+  TG-P8-002:
+    blocks: "8.2"
+    until: "8.1 VERIFIED_BEHAVIORAL"
+  TG-P8-003:
+    blocks: ["8.3", "8.4"]
+    until: "8.2 VERIFIED_BEHAVIORAL"
+  TG-P8-004:
+    blocks: "8.5"
+    until: "merge_8_5_requires all VERIFIED_BEHAVIORAL"
+
+# ─── Out of scope (explicit deferrals) ──────────────────────────────────────
+
+out_of_scope:
+  phase_9_plus:
+    - id: OOS-P8-001
+      item: CDC / data warehouse (Debezium, analytics projections)
+      deferred_from: Phase 7 IMPLEMENTATION-MAP
+      owner_phase: "10"
+    - id: OOS-P8-002
+      item: WASM third-party plugin sandbox
+      authority: MIGRATION-MAP §9.2
+      owner_phase: "10+"
+    - id: OOS-P8-003
+      item: Database-per-tenant for all tenants (non opt-in)
+      note: "Silo remains enterprise opt-in per ADR-007"
+      owner_phase: "10+"
+    - id: OOS-P8-004
+      item: AI / chat extensibility layer
+      authority: MIGRATION-MAP §24
+      owner_phase: "10+"
+    - id: OOS-P8-005
+      item: Per-tenant JWT / Vault dynamic DB credentials
+      authority: TEMP/phase5-evolution-95-roadmap.md defer list
+      owner_phase: "10+"
+    - id: OOS-P8-006
+      item: Denali domain expansion beyond Phase 6 Tier D closure
+      owner_phase: "phase-9-operator-admin"
+      note: "Operator admin parity — see docs/phase-9/"
+    - id: OOS-P8-007
+      item: Operator Admin Panel (legacy (app)/ port)
+      owner_phase: "9"
+      authority: docs/phase-9/phase-9-charter.md
+  phase_8_forbidden:
+    - id: FORB-P8-001
+      item: urban_event → Denali wizard rail
+      authority: LEGACY-URBAN-REFERENCE.md L11-13 anti-pattern
+    - id: FORB-P8-002
+      item: packages/platform-core diff for urban product features
+      authority: INV-P8-001 · phase-8.contract.spec.ts
+    - id: FORB-P8-003
+      item: Runtime import from legacy/ in trunk apps
+      authority: RULE-P7-007 carryover
+    - id: FORB-P8-004
+      item: Finance / MinIO modules inside workspace-urban
+      note: "Denali-only boundaries per DEC-P7-002"
+      authority: URBAN-MINIMAL-SCOPE.md
+
+# ─── Gate chain (append to PLATFORM-CONTINUITY) ─────────────────────────────
+
+gate_chain:
+  phase-8:guard: "node scripts/guards/phase-8-guard.mjs"
+  phase-8:gate: "pnpm build && pnpm test && pnpm run phase-7:gate && pnpm run phase-8:guard"
+  note: "wired in package.json — phase-8:guard · phase-8:gate"
+
+hot_paths:
+  # ─── 8.1 Single-Owner auth (DEC-P8-001 · CASL-URBAN-OWNER-SPEC) ───
+  - path: packages/workspace-sdk/src/auth/tenant-auth-grants.ts
+    subphase: "8.1"
+    touch: isWorkspaceOwner export
+  - path: packages/workspace-sdk/src/auth/tenant-authz.ts
+    subphase: "8.1"
+    touch: canPerformUrbanOwnerMutation · UrbanOwnerSurface
+  - path: apps/api/src/urban/require-workspace-owner.ts
+    subphase: "8.1"
+    touch: assertWorkspaceOwner middleware gate
+  - path: apps/api/src/urban/urban-settings.routes.ts
+    subphase: "8.1"
+    touch: GET/PATCH /urban/settings only — no catalog body
+  - path: apps/web/src/urban/urban-settings-access.ts
+    subphase: "8.1"
+    touch: canLoadUrbanSettings web guard
+  - path: docs/phase-8/appendices/CASL-URBAN-OWNER-SPEC.md
+    subphase: "8.1"
+    touch: auth SoT — LOCKED with DEC-P8-001/002
+  # ─── 8.2 Urban product port (catalog · registration · plugin) ───
+  - path: packages/workspaces/urban/
+    subphase: "8.2"
+    touch: registry · composites · validation hooks · golden fixtures
+  - path: apps/web/src/bootstrap/lazy-urban-plugin.ts
+    subphase: "8.2"
+    touch: sole static @app-tour/workspace-urban import
+  - path: apps/api/src/urban/urban.routes.ts
+    subphase: "8.2"
+    touch: GET /urban/catalog · POST /urban/registrations · admin catalog
+  - path: apps/web/app/(public)/catalog/
+    subphase: "8.2"
+    touch: public catalog · registration pages
+  - path: apps/web/app/(app)/settings/urban/
+    subphase: "8.2"
+    touch: settings UI shell — guards from 8.1
+  - path: infra/sql/004_urban_product_delta.sql
+    subphase: "8.2"
+    touch: Tour denormalized columns · urban_registrations DDL
+  # ─── forbidden / closure ───
+  - path: packages/platform-core/
+    subphase: "8.x"
+    touch: "FORBIDDEN — zero diff INV-P8-001"
+  - path: packages/tenant-kernel/
+    subphase: "8.3"
+    touch: TenantConnectionRouter production silo fixtures
+  - path: scripts/guards/phase-8-guard.mjs
+    subphase: "8.5"
+    touch: phase-8 guard + charter p8_* checks (expand)

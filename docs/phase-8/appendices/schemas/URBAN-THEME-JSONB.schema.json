@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://app-tour.dev/schemas/phase-8/urban-theme-jsonb.schema.json",
+  "title": "TenantThemeJsonb",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["urban"],
+  "properties": {
+    "primaryColor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "featureFlags": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "advancedRuleEngine": {
+          "type": "boolean"
+        },
+        "rateLimitRps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    },
+    "rateLimitRps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "urban": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog", "registration"],
+      "properties": {
+        "catalog": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["publicEnabled", "slug"],
+          "properties": {
+            "publicEnabled": {
+              "type": "boolean"
+            },
+            "slug": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,64}$"
+            }
+          }
+        },
+        "registration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy"],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": ["open", "waitlist", "closed"]
+            },
+            "requirePhone": {
+              "type": "boolean"
+            },
+            "confirmationMessage": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          }
+        }
+      }
+    }
+  }
+}

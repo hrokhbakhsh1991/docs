@@ -1,0 +1,157 @@
+{
+  "gate": "phase-8",
+  "date": "2026-06-07",
+  "gitSha": "d487666",
+  "ok": true,
+  "fail_token": null,
+  "active_subphase": "8.1",
+  "platform_core_baseline_sha": "64d9fea",
+  "checks": [
+    {
+      "id": "p8_boot_manifest",
+      "required": true,
+      "ok": true,
+      "detail": "BOOT-MANIFEST structural PASS"
+    },
+    {
+      "id": "p8_truth_honesty",
+      "required": true,
+      "ok": true,
+      "detail": "IMPLEMENTATION-TRUTH honesty PASS"
+    },
+    {
+      "id": "p8_erip_cop_present",
+      "required": true,
+      "ok": true,
+      "detail": "COP valid: 8.1-cop-auth-isolation.md for eripSubphase 8.1 (behavioral 8.1)"
+    },
+    {
+      "id": "p8_platform_core_zero_diff",
+      "required": true,
+      "ok": true,
+      "detail": "platform-core clean vs baseline 64d9fea and working tree"
+    },
+    {
+      "id": "p8_doc_hardening",
+      "required": true,
+      "ok": true,
+      "detail": "33 PEK files present under docs/phase-8"
+    },
+    {
+      "id": "p8_anti_hollow",
+      "required": true,
+      "ok": true,
+      "detail": "no hollow prose in docs/phase-8"
+    },
+    {
+      "id": "p8_hardening_artifacts",
+      "required": true,
+      "ok": true,
+      "detail": "2 YAML + 4 API spec scaffolds present and formatted"
+    },
+    {
+      "id": "p8_envelope_consistency",
+      "required": true,
+      "ok": true,
+      "detail": "DEC-P8-003 GET envelope vs PATCH urban root aligned across CASL, merge, dispatch"
+    },
+    {
+      "id": "p8_doc_path_consistency",
+      "required": true,
+      "ok": true,
+      "detail": "urban-settings-patch canonical in docs/phase-8 · BOOT-MANIFEST prove_with · flat urban/** boundary"
+    },
+    {
+      "id": "p8_spec_path_registry",
+      "required": true,
+      "ok": true,
+      "detail": "6× Phase 8.1 spec scaffolds on disk (4 API + SDK + web) with anti-hollow structure"
+    },
+    {
+      "id": "p8_casl_no_ellipsis",
+      "required": true,
+      "ok": true,
+      "detail": "CASL-URBAN-OWNER-SPEC TenantAuthz full method surface — no existing-methods ellipsis"
+    },
+    {
+      "id": "p8_truth_attestation_sync",
+      "required": true,
+      "ok": true,
+      "detail": "IMPLEMENTATION-TRUTH attestation matches 24/24 charter gates"
+    },
+    {
+      "id": "p8_prove_with_parity",
+      "required": true,
+      "ok": true,
+      "detail": "SPEC-REGISTRY-8.1.yaml parity with BOOT-MANIFEST · 8.1 subphase · truth · verification-matrix"
+    },
+    {
+      "id": "p8_api_surface_alignment",
+      "required": true,
+      "ok": true,
+      "detail": "DEC-P8-004 TenantAuthz method form · tenant-auth-grants isWorkspaceOwner · router web path"
+    },
+    {
+      "id": "p8_envelope_spec_depth",
+      "required": true,
+      "ok": true,
+      "detail": "ASM-001 metadata keys correlationId · primaryColor · featureFlags · rateLimitRps in patch spec"
+    },
+    {
+      "id": "p8_entry_ledger_present",
+      "required": true,
+      "ok": true,
+      "detail": "reports/phase-8-entry-verified.yaml scaffold · phase_7_gate.status PENDING|PASS with honest exit_code"
+    },
+    {
+      "id": "p8_owner_auth_specs",
+      "required": true,
+      "ok": true,
+      "detail": "CASL 8.1 route rows ↔ SDK/API/WEB case IDs on disk"
+    },
+    {
+      "id": "p8_urban_routes_bound",
+      "required": true,
+      "ok": true,
+      "detail": "URBAN-ROUTE-MATRIX §C settings paths ⊆ dispatch addendum · out-of-scope paths excluded"
+    },
+    {
+      "id": "p8_smoke_map_present",
+      "required": true,
+      "ok": true,
+      "detail": "SMK-P8-01..04 each has executable command in verification-matrix"
+    },
+    {
+      "id": "p8_verification_matrix_hydrated",
+      "required": true,
+      "ok": true,
+      "detail": "REQ-P8-010..012 rows cite spec anchors and on-disk test paths"
+    },
+    {
+      "id": "p8_boundary_ci_hook",
+      "required": true,
+      "ok": true,
+      "detail": "scripts/guards/p8-boundary-diff.mjs present · documented · PHASE-BOUNDARY-MATRIX ci_hook"
+    },
+    {
+      "id": "p8_no_legacy_runtime_import",
+      "required": true,
+      "ok": true,
+      "detail": "no legacy/ imports in apps/api, apps/web, packages/workspaces/urban"
+    },
+    {
+      "id": "p8_urban_not_denali_rail",
+      "required": true,
+      "ok": true,
+      "detail": "urban workspace isolated from denali rail (INV-P8-004 / FORB-P8-001)"
+    },
+    {
+      "id": "p8_technical_quality",
+      "required": true,
+      "ok": true,
+      "detail": "TQ-P8-001..010 attested in docs/phase-8/phase-8-charter.md"
+    }
+  ],
+  "charter_gates": 24,
+  "note": "phase-8:gate adds build+test+phase-7:gate — see package.json"
+}
