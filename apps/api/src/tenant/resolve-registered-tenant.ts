@@ -74,14 +74,21 @@ export async function resolveRegisteredTenantById(
       where: { id: normalized },
     });
     recordAdminPoolRead(performance.now() - readStarted);
-    const mapped = row !== null ? mapPrismaTenant(row) : null;
-    setCachedTenantById(normalized, mapped);
-    if (mapped !== null) {
+    if (row !== null) {
+      const mapped = mapPrismaTenant(row);
+      setCachedTenantById(normalized, mapped);
       return mapped;
     }
   }
   if (isStaticTenantRegistryAllowed()) {
-    return findTenantById(normalized);
+    const devTenant = findTenantById(normalized);
+    if (devTenant !== null) {
+      setCachedTenantById(normalized, devTenant);
+      return devTenant;
+    }
+  }
+  if (process.env.DATABASE_URL?.trim() && isPersistedTenantUuid(normalized)) {
+    setCachedTenantById(normalized, null);
   }
   return null;
 }
@@ -102,14 +109,21 @@ export async function resolveRegisteredTenantBySubdomain(
       where: { subdomain: normalized },
     });
     recordAdminPoolRead(performance.now() - readStarted);
-    const mapped = row !== null ? mapPrismaTenant(row) : null;
-    setCachedTenantBySubdomain(normalized, mapped);
-    if (mapped !== null) {
+    if (row !== null) {
+      const mapped = mapPrismaTenant(row);
+      setCachedTenantBySubdomain(normalized, mapped);
       return mapped;
     }
   }
   if (isStaticTenantRegistryAllowed()) {
-    return findTenantBySubdomain(normalized);
+    const devTenant = findTenantBySubdomain(normalized);
+    if (devTenant !== null) {
+      setCachedTenantBySubdomain(normalized, devTenant);
+      return devTenant;
+    }
+  }
+  if (process.env.DATABASE_URL?.trim()) {
+    setCachedTenantBySubdomain(normalized, null);
   }
   return null;
 }

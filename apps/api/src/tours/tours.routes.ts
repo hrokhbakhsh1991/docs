@@ -9,6 +9,9 @@ import {
 import { sendJson } from "../http/json";
 import { handleHttpError, sendHttpError } from "../middleware/error-interceptor";
 import { resolveTenantContextFromRequest } from "../tenant-kernel/tenant-kernel";
+import { resolveWorkspaceTypeForTenant } from "../tenant/resolve-workspace-type";
+import { assertWorkspaceOwner } from "../urban/require-workspace-owner";
+import { urbanTourPatchTouchesPublishFields } from "../urban/urban-tour-publish-field-gate";
 import { parseCreateTourBody } from "./create-tour.schema";
 import { parseListToursQuery } from "./list-tours-query";
 import { readTourRequestBody } from "./read-tour-request-body";
@@ -75,6 +78,15 @@ export async function handlePatchTour(
     const { parsedBody } = await readTourRequestBody(req);
     const body = parseUpdateTourBody(parsedBody);
     const auth = await resolveTenantContextFromRequest(req);
+
+    const workspaceType = await resolveWorkspaceTypeForTenant(auth.tenantId);
+    if (workspaceType === "urban" && urbanTourPatchTouchesPublishFields(body)) {
+      assertWorkspaceOwner({
+        auth,
+        workspaceType,
+        surface: "urban.tour.publish_fields",
+      });
+    }
 
     await runWithHttpRequestContext(
       req,

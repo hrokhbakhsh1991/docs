@@ -16,6 +16,18 @@
 
 Hooks cannot be bypassed (`HUSKY=0` / `SKIP_HOOKS` rejected). Fast path is the new default; full path is **on demand**.
 
+## Phase 8 hook suspension (temporary)
+
+While [`docs/phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml`](../phase-8/appendices/PHASE-8-HOOKS-SUSPENSION.yaml) has `active: true`, Husky **pre-commit exits immediately** (no `guard-docs`, eslint, prettier, or `test-changed`). This is the **only** supported suspend path during Phase 8 implementation (8.1→8.4).
+
+| Action | Command / file |
+| ------ | -------------- |
+| **Suspended** (current) | Marker present + `active: true` |
+| **Manual verify** (recommended per subphase PR) | `pnpm run phase-8:guard` + targeted urban specs |
+| **Re-enable** (mandatory at **8.5**) | Delete marker file; run `pnpm run pre-commit:fast`, `pnpm run test:full`, `pnpm run phase-8:gate`, `pnpm run ci:integrity` |
+
+Detector: `bash scripts/phase-8-hooks-suspended.sh` (exit 0 = suspended).
+
 ## `test-changed` behavior
 
 ```bash

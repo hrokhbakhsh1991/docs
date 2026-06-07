@@ -33,12 +33,15 @@ function loadGolden(filename: string): {
   };
 }
 
-function authHeaders(tenantId: string): Record<string, string> {
+function authHeaders(
+  tenantId: string,
+  role: "owner" | "admin" = "admin"
+): Record<string, string> {
   return {
     "x-tenant-id": tenantId,
     "x-authenticated-tenant-id": tenantId,
     "x-user-id": "urban-e2e-user",
-    "x-actor-role": "admin",
+    "x-actor-role": role,
     "x-membership-status": "ACTIVE",
     "x-workspace-id": "ws-urban-e2e",
   };
@@ -62,7 +65,8 @@ async function requestTour(
   listener: ReturnType<typeof createRequestListener>,
   method: "POST" | "PATCH",
   path: string,
-  body: unknown
+  body: unknown,
+  role: "owner" | "admin" = "admin"
 ): Promise<TourResponse> {
   const payload = JSON.stringify(body);
   return new Promise((resolve, reject) => {
@@ -83,7 +87,7 @@ async function requestTour(
           headers: {
             "Content-Type": "application/json",
             "Content-Length": String(Buffer.byteLength(payload)),
-            ...authHeaders(URBAN_SMOKE_TENANT_ID),
+            ...authHeaders(URBAN_SMOKE_TENANT_ID, role),
           },
         },
         (res) => {
@@ -176,7 +180,8 @@ describe("7.4 urban create → publish (integration)", { concurrency: false }, (
       listener,
       "PATCH",
       `/tours/${created.body.id}`,
-      publishBody
+      publishBody,
+      "owner"
     );
 
     assert.equal(published.status, 200);

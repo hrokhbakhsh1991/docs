@@ -88,4 +88,65 @@ export const DISPATCH_ROUTES: readonly DispatchRoute[] = [
     summary: "Patch tour (optimistic lock)",
     operationId: "patchTour",
   },
+  // Phase 8.1 — urban owner settings (INV-P8-007)
+  {
+    method: "GET",
+    path: "/urban/settings",
+    summary: "Read urban workspace owner settings (tenants.theme.urban)",
+    operationId: "getUrbanSettings",
+  },
+  {
+    method: "PATCH",
+    path: "/urban/settings",
+    summary: "Patch urban workspace owner settings (tenants.theme.urban)",
+    operationId: "patchUrbanSettings",
+  },
+  {
+    method: "GET",
+    path: "/finance/reports/summary",
+    summary: "Finance workspace summary counts",
+    operationId: "getFinanceSummary",
+  },
+  {
+    method: "GET",
+    path: "/finance/reports/open-payments",
+    summary: "List pending payments awaiting settlement",
+    operationId: "listFinanceOpenPayments",
+  },
+  {
+    method: "GET",
+    path: "/finance/reports/ledger-events",
+    summary: "Recent finance ledger journals (from outbox)",
+    operationId: "listFinanceLedgerEvents",
+  },
+  {
+    method: "GET",
+    path: "/finance/payments",
+    summary: "List manual payments",
+    operationId: "listFinancePayments",
+  },
+  {
+    method: "POST",
+    path: "/finance/payments/manual",
+    summary: "Create manual payment debt",
+    operationId: "createManualPayment",
+  },
+  {
+    method: "POST",
+    path: "/finance/receipts",
+    summary: "Submit payment receipt proof",
+    operationId: "submitPaymentReceipt",
+  },
+  {
+    method: "PATCH",
+    path: "/finance/receipts/{receiptId}/review",
+    summary: "Approve or reject payment receipt",
+    operationId: "reviewPaymentReceipt",
+  },
+  {
+    method: "GET",
+    path: "/finance/receipts/{receiptId}/url",
+    summary: "Receipt download URL",
+    operationId: "getReceiptDownloadUrl",
+  },
 ] as const;
